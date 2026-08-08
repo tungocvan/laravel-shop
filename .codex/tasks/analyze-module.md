@@ -29,31 +29,54 @@ Modules/<ModuleName>/
 
 If the target cannot be resolved safely, mark it as unknown and explain what must be verified.
 
-## 2. Bootstrap
+## 2. Required Reading
 
 Before analysis, read when present:
 
 ```text
 composer.json
+package.json
 Modules/ModuleServiceProvider.php
 .codex/bootstrap/CODEX_BOOTSTRAP.md
 .codex/bootstrap/PROJECT_BOOTSTRAP.md
 .codex/bootstrap/AI_PROJECT_CONTEXT.md
+.codex/standards/MODULE_STANDARD.md
+.codex/standards/ADMIN_UI_STANDARD.md
 ROADMAP.md
 ```
+
+If the target module contains import/export behavior, also read the repository's canonical import/export guidance when present.
 
 Determine the project conventions relevant to the target module:
 
 - Laravel/PHP versions
 - module registration and namespaces
 - route/view/Livewire conventions
+- service-layer rules
 - shared services and components
+- admin UI conventions
 - security standards
 - performance standards
 - documentation standards
 - roadmap priorities
 
-## 3. Existing Documentation
+## 3. Instruction Priority
+
+When guidance conflicts, use this order:
+
+1. Current repository source/configuration and actual runtime architecture.
+2. `.codex/bootstrap/*` and `ROADMAP.md`.
+3. `.codex/standards/MODULE_STANDARD.md` and `.codex/standards/ADMIN_UI_STANDARD.md`.
+4. Existing module documentation.
+5. Older/general guidance files.
+
+Source code is the source of truth for current behavior.
+
+Standards define the expected target quality. A mismatch between current source and standards is a finding, not permission to rewrite source during `/analyze`.
+
+Do not classify repository-specific architecture as defective merely because an older generic/master prompt uses another architecture.
+
+## 4. Existing Documentation
 
 Read existing files under:
 
@@ -71,7 +94,7 @@ README.md
 
 Existing docs are context only. Verify them against source code. If docs and source differ, record documentation drift.
 
-## 4. Scope
+## 5. Scope
 
 Primary scope:
 
@@ -91,7 +114,7 @@ Inspect shared or other-module files only when directly referenced by the target
 
 Do not inspect unrelated modules or the entire project unnecessarily.
 
-## 5. Analysis Flow
+## 6. Analysis Flow
 
 Follow this order:
 
@@ -116,6 +139,8 @@ For each relevant layer identify:
 - exact file paths
 - responsibilities
 - dependencies
+- compliance with `MODULE_STANDARD.md`
+- compliance with `ADMIN_UI_STANDARD.md` where UI exists
 - validation
 - authorization
 - transaction boundaries
@@ -125,7 +150,9 @@ For each relevant layer identify:
 - maintainability concerns
 - test coverage
 
-## 6. Evidence Rules
+Do not recommend architectural changes only for stylistic consistency. Recommendations must improve correctness, security, performance, maintainability, testability, or repository consistency.
+
+## 7. Evidence Rules
 
 Do not present guesses as facts.
 
@@ -139,7 +166,7 @@ Assumption = not proven and requires verification
 
 Unknown or unverified behavior must be stated explicitly with a verification method.
 
-## 7. Dependency Analysis
+## 8. Dependency Analysis
 
 Document the main dependency path, for example:
 
@@ -161,14 +188,16 @@ Also identify when present:
 - cross-module dependencies
 - circular dependencies
 
-## 8. Priority Rules
+Cross-module dependencies should be checked against the canonical domain-owner and shared-foundation rules in `MODULE_STANDARD.md`.
+
+## 9. Priority Rules
 
 Use:
 
 ```text
 P0 = security, data-loss, secret exposure, production-control, or irreversible data risk
 P1 = correctness, performance, maintainability, testability, or module-integrity risk
-P2 = cleanup, developer experience, observability, or non-blocking improvement
+P2 = cleanup, developer experience, observability, UI consistency, or non-blocking improvement
 ```
 
 Material issues should include:
@@ -184,35 +213,41 @@ Recommendation:
 
 Do not create issues without evidence unless clearly labeled as Inference or Assumption.
 
-## 9. Required Review Areas
+## 10. Required Review Areas
 
 Review where applicable:
 
 - routes and middleware
-- authentication and permissions
+- authentication and capability-specific permissions
 - controller responsibilities
-- Blade pages
+- Page Blade responsibilities
 - Livewire state/actions/validation/events/pagination/search/filter/sort
-- service responsibilities and transactions
+- Livewire mutation authorization
+- service responsibilities and transaction boundaries
+- service-layer bypasses
 - import mapping, validation, duplicate handling, chunking and cleanup
 - export queries, mapping, memory usage and storage
 - shared services/components
+- UI consistency, responsive behavior, validation UX, empty/loading states
+- reuse versus duplication of shared UI components
 - models, fillable, casts, relationships, scopes and soft deletes
 - migrations, columns, indexes, foreign keys, constraints and delete behavior
 - file upload/download security
-- sensitive data exposure
+- private versus public storage
+- sensitive data exposure and logging risks
 - mass assignment
 - SQL/XSS risks
 - N+1 queries
 - unbounded collections
 - caching/queue opportunities
+- concurrency/idempotency for high-risk writes
 - cross-module ownership
 - test coverage
 - documentation drift
 
 If a category does not exist in the module, state `Not present` rather than inventing content.
 
-## 10. Output Files
+## 11. Output Files
 
 Create or update only:
 
@@ -231,6 +266,7 @@ Keep it technical and decision-oriented. Include:
 ```text
 Executive Summary
 Module Purpose and Overview
+Bootstrap / Standards Context
 Dependency Graph
 Route / Controller / Blade / Livewire Analysis
 Service Analysis
@@ -240,7 +276,8 @@ Model / Migration / Database Analysis
 Security
 Performance
 Validation and Authorization
-Transactions and Data Integrity
+Transactions, Concurrency and Data Integrity
+Admin UI / UX Standard Review (when applicable)
 Cross-Module Dependencies
 Technical Debt
 Test Coverage
@@ -301,7 +338,7 @@ Developer Notes
 Future Improvements
 ```
 
-## 11. Rules
+## 12. Rules
 
 - Documentation-only task.
 - Never modify application source code.
@@ -312,18 +349,23 @@ Future Improvements
 - Be idempotent.
 - Prefer concise factual documentation over duplicated prose.
 - Code is the source of truth for current behavior.
+- Standards are the reference for target quality.
 - Mark unknowns explicitly.
+- Do not recommend introducing `nwidart`, `module.json`, a new CSS framework, or a new module-registration mechanism unless current repository infrastructure explicitly requires it.
 
-## 12. Quality Gate
+## 13. Quality Gate
 
 Before finishing verify:
 
 - target module was resolved
 - bootstrap/context files were read
+- `MODULE_STANDARD.md` and `ADMIN_UI_STANDARD.md` were read
 - existing module docs were checked
 - scope stayed within the target module plus direct dependencies
 - analysis followed the required flow
+- source-vs-standard mismatches were evaluated correctly
 - security, authorization, performance, database and tests were considered
+- UI standard was reviewed when the module has admin UI
 - P0/P1 findings have evidence
 - unknowns were identified
 - exactly the requested documentation files were created or updated
