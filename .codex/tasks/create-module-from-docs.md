@@ -1,500 +1,136 @@
-# Task: /create-module-from-docs <SourceModule> <TargetModule> --mode=new-db --with-seeder
+# Task: /create-module-from-docs <SourceModule> <TargetModule>
 
-# MASTER PROMPT — CREATE MODULE FROM DOCUMENTATION v1.0 FINAL
+Derive a specification for a new independent Laravel module from an existing module and its documentation.
+
+This task does NOT directly implement the target module.
 
 ## Purpose
 
-Create a completely new Laravel module from the documentation of an existing module.
+Use an existing module as a business/domain reference without cloning its implementation. Convert verified knowledge into a target specification that can later be implemented through the canonical `/create-module` workflow.
 
-This command MUST NOT perform a direct file clone.
+## 1. Required Context
 
-It MUST rebuild the new module using:
-
-```text
-docs/modules/<SourceModule>/
-```
-
-as the source of truth.
-
----
-
-## Command Format
+Before planning, read when present:
 
 ```text
-/create-module-from-docs <SourceModule> <TargetModule> --mode=new-db
+.codex/bootstrap/CODEX_BOOTSTRAP.md
+.codex/bootstrap/PROJECT_BOOTSTRAP.md
+.codex/bootstrap/AI_PROJECT_CONTEXT.md
+.codex/standards/MODULE_STANDARD.md
+.codex/standards/ADMIN_UI_STANDARD.md
+ROADMAP.md
 ```
 
-Example:
-
-```text
-/create-module-from-docs Website WebsiteV2 --mode=new-db
-/create-module-from-docs Product ProductV2 --mode=new-db
-/create-module-from-docs Website WebsiteV2 --mode=new-db --with-seeder
-```
-
----
-
-# Goal
-
-Generate:
-
-```text
-Modules/<TargetModule>/
-docs/modules/<TargetModule>/
-```
-
-with an architecture similar to:
-
-```text
-Modules/<SourceModule>
-```
-
-but completely independent.
-
----
-
-# Rules
-
-## Never
-
-* copy source files directly
-* duplicate migration timestamps
-* reuse old route names
-* reuse old database tables
-* reuse old permissions
-* reuse old cache keys
-* reuse old storage paths
-* reuse old view namespaces
-* modify SourceModule
-
-The source module is read-only.
-
----
-
-# Read Source Documentation
-
-Read if exists:
+Read source documentation when present:
 
 ```text
 docs/modules/<SourceModule>/ANALYSIS.md
 docs/modules/<SourceModule>/INFORMATION.md
 docs/modules/<SourceModule>/README.md
-docs/modules/<SourceModule>/REFACTOR_PLAN.md
-docs/modules/<SourceModule>/REBUILD_SPEC.md
 ```
 
-Also inspect:
+Read `REFACTOR_PLAN.md` or `REBUILD_SPEC.md` only when they exist and are relevant to the requested target intent.
+
+Verify material behavior against `Modules/<SourceModule>/**` when documentation is incomplete, stale, ambiguous, or when a target design decision depends on current implementation.
+
+## 2. Source-of-Truth Rules
+
+Use:
 
 ```text
-Modules/<SourceModule>/**
+Source documentation = business/design context
+Source code          = verification of current behavior
+Canonical standards = target architecture and quality rules
+User request         = target intent
 ```
 
-only if documentation is incomplete.
+Do not treat stale documentation as stronger evidence than current source.
 
-Documentation is the primary source of truth.
+## 3. Independence Rules
 
----
+The target module must be independent unless the specification explicitly defines a shared dependency.
 
-# Determine Source Architecture
+Never silently reuse source-specific:
 
-Identify:
+- route names/prefixes
+- view namespaces
+- permissions
+- database tables
+- migration timestamps
+- cache keys
+- storage paths
+- config keys
+- queue names
+- public identifiers/tokens
 
-* module structure
-* routes
-* controllers
-* Livewire components
-* services
-* models
-* migrations
-* permissions
-* imports
-* exports
-* events
-* jobs
-* shared dependencies
-* storage
-* cache usage
+Do not copy source files directly.
 
----
+Do not modify `SourceModule`.
 
-# Create Target Module
+## 4. Specification Phase
 
-Generate:
+Create or update only:
 
 ```text
-Modules/<TargetModule>/
+docs/modules/<TargetModule>/CREATE_PLAN.md
 ```
 
-with similar architecture.
+The plan must define as applicable:
 
----
+- target purpose and scope
+- features to preserve, omit, or change
+- module structure
+- routes and route names
+- permissions/authorization
+- controllers
+- Livewire components
+- Blade/UI requirements
+- services/workflows
+- models and relationships
+- target database tables
+- migrations/indexes/constraints
+- transactions/concurrency
+- imports/exports
+- events/jobs/queues
+- shared dependencies
+- cache/storage/config
+- security requirements
+- compatibility/isolation requirements
+- seeder/sample-data requirement only when explicitly useful
+- test/acceptance criteria
+- unresolved decisions
 
-# Required Structure
+Do not automatically generate `ANALYSIS.md`, `REFACTOR_PLAN.md`, or `REBUILD_SPEC.md` for the new module before it exists.
+
+## 5. Approval Gate
+
+After creating/updating `CREATE_PLAN.md`, STOP.
+
+Implementation is forbidden until the user explicitly approves the target plan.
+
+## 6. Implementation
+
+After approval, implement the target module using the canonical rules in:
 
 ```text
-Modules/<TargetModule>/
-
-├── Config
-├── Routes
-├── Controllers
-├── Livewire
-├── Models
-├── Services
-├── Policies
-├── Import
-├── Export
-├── Events
-├── Jobs
-├── Resources/views
-├── Database/Migrations
-├── Database/Seeders
-└── config/module.php
+.codex/tasks/create-module.md
 ```
 
-Only generate folders that are actually required.
+Treat the approved `docs/modules/<TargetModule>/CREATE_PLAN.md` as the requirement input for `/create-module`.
 
----
+Do not maintain a second independent module-creation engine in this task.
 
-# Naming Rules
+After implementation and verification, documentation may be generated/refreshed through `/analyze <TargetModule>`.
 
-Replace:
+## 7. Seeder Rule
 
-```text
-<SourceModule>
-```
+Seeder/sample data is optional, not automatic.
 
-with:
+Generate it only when requested by the user or required by the approved plan. It must use target tables only, respect relationships, avoid overwriting real data, and separate required system data from demo/test data.
 
-```text
-<TargetModule>
-```
+## 8. Uncertainty Rule
 
-in:
-
-* namespace
-* routes
-* config
-* view namespace
-* policies
-* events
-* jobs
-* services
-* imports
-* exports
-
----
-
-# Route Rules
-
-Do NOT reuse:
-
-```text
-website.
-website::
-website
-```
-
-Generate:
-
-```text
-website-v2.
-website-v2::
-website-v2
-```
-
-using Laravel conventions.
-
----
-
-# Permission Rules
-
-Never duplicate:
-
-```text
-website.view
-website.create
-website.edit
-website.delete
-```
-
-Generate:
-
-```text
-website-v2.view
-website-v2.create
-website-v2.edit
-website-v2.delete
-```
-
----
-
-# Cache Rules
-
-Never reuse:
-
-```text
-website.*
-```
-
-Generate:
-
-```text
-website_v2.*
-```
-
----
-
-# Storage Rules
-
-Never reuse:
-
-```text
-storage/app/websites
-```
-
-Generate:
-
-```text
-storage/app/website-v2
-```
-
----
-
-# Database Mode
-
-Current mode:
-
-```text
---mode=new-db
-```
-
-This means:
-
-The new module MUST have its own database tables.
-
-Never reuse:
-
-```text
-websites
-website_blocks
-website_menus
-```
-
-Generate:
-
-```text
-website_v2s
-website_v2_blocks
-website_v2_menus
-```
-
-following Laravel naming conventions.
-
----
-
-# Migration Rules
-
-Generate NEW migrations.
-
-Never copy migration timestamps.
-
-Create new migration filenames.
-
-Review:
-
-* foreign keys
-* indexes
-* unique constraints
-* cascade rules
-
-and adapt them to the new table names.
-
----
-
-# Model Rules
-
-Generate:
-
-```text
-Modules/<TargetModule>/Models
-```
-
-using:
-
-* new namespace
-* new table names
-* new relationships
-* new factories if needed
-
----
-
-# Service Rules
-
-Recreate services from:
-
-```text
-REBUILD_SPEC.md
-```
-
-Do not blindly copy code.
-
-Rebuild the service architecture.
-
----
-
-# Import / Export Rules
-
-Generate:
-
-```text
-Import/
-Export/
-Services/ImportExport.php
-```
-
-only if the source module uses Import/Export.
-
-Follow the project's shared Import/Export foundation.
-
----
-
-# Shared Dependency Rules
-
-Detect:
-
-* Shared Services
-* Shared Components
-* Traits
-* Helpers
-
-Reuse them.
-
-Do not duplicate shared code.
-
----
-# Seeder / Sample Data Rules
-
-Always generate sample data support for the target module.
-
-Generate when applicable:
-
-Modules/<TargetModule>/Database/Seeders/<TargetModule>Seeder.php
-
-The seeder must:
-
-- create realistic sample data
-- use the new target tables only
-- not insert into source module tables
-- respect foreign keys and relationships
-- be safe to run multiple times when possible
-- use `updateOrCreate`, `firstOrCreate`, or clear documented demo records only
-- avoid overwriting real production data
-- include sample records for parent/child structures if the module has hierarchy
-- include sample records for related tables if required
-- include demo permissions if the module has permissions
-- include demo settings/config records if the module uses settings
-- include sample import/export data if the module supports import/export
-
-If the module needs Excel or CSV demo import data, generate:
-
-database/seeders/data/<target-module>/
-or
-Modules/<TargetModule>/Database/Data/
-
-Examples:
-
-- sample.xlsx
-- sample.csv
-- import-template.xlsx
-- demo-data.json
-
-Seeder must clearly separate:
-
-- required system data
-- demo/sample data
-- optional test data
-
-Add instructions in:
-
-docs/modules/<TargetModule>/README.md
-
-including:
-
-php artisan db:seed --class=Modules\\<TargetModule>\\Database\\Seeders\\<TargetModule>Seeder
----
-# Documentation Rules
-
-Generate:
-
-```text
-docs/modules/<TargetModule>/
-
-ANALYSIS.md
-INFORMATION.md
-README.md
-REFACTOR_PLAN.md
-REBUILD_SPEC.md
-```
-
-The generated documentation must describe the new module.
-
----
-
-# Validation Checklist
-
-Before finishing verify:
-
-* [ ] module name changed
-* [ ] namespaces changed
-* [ ] route names changed
-* [ ] view namespace changed
-* [ ] permissions changed
-* [ ] cache keys changed
-* [ ] storage paths changed
-* [ ] table names changed
-* [ ] migrations regenerated
-* [ ] documentation generated
-* [ ] source module untouched
-
----
-
-# Final Output
-
-Return:
-
-```md
-# /create-module-from-docs Completed
-
-Source Module:
-<SourceModule>
-
-Target Module:
-<TargetModule>
-
-Mode:
-new-db
-
-Generated:
-
-- Modules/<TargetModule>
-- docs/modules/<TargetModule>
-
-Warnings:
-- migration changes
-- relationship changes
-- shared dependency notes
-
-Next Commands:
-
-/review-module <TargetModule>
-/analyze-project <TargetModule>
-```
-
----
-
-# Uncertainty Rule
-
-If the source documentation is incomplete:
+If source documentation/code does not establish a material business rule:
 
 ```text
 Needs confirmation before coding
@@ -502,6 +138,13 @@ Needs confirmation before coding
 
 Do not guess.
 
-Do not invent missing architecture.
+## Final Response
 
-Do not silently copy source code.
+Return a short summary containing:
+
+- source module
+- target module
+- generated/updated `CREATE_PLAN.md`
+- major preserved/changed behaviors
+- unresolved decisions
+- confirmation that no target application code was implemented before approval
