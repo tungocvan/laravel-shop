@@ -19,6 +19,15 @@ Before analysis, read when present:
 ROADMAP.md
 ```
 
+If the document concerns Laravel module architecture, implementation, refactor, rebuild, database, Livewire, or admin UI, also read as applicable:
+
+```text
+.codex/standards/MODULE_STANDARD.md
+.codex/standards/ADMIN_UI_STANDARD.md
+```
+
+Use repository reality as the source of truth when generic/legacy guidance conflicts with the current project.
+
 ## 2. Input
 
 Input must identify exactly one Markdown file.
@@ -47,6 +56,7 @@ Do more than summarize. Review:
 - maintainability concerns
 - implementation ambiguity
 - acceptance criteria
+- compatibility with canonical project/module/UI standards when applicable
 
 Label uncertain findings as:
 
@@ -74,6 +84,7 @@ Executive Summary
 Original Goal
 Confirmed Requirements
 Architecture Analysis
+Standards Compatibility
 Design Problems / Gaps
 Security / Data Integrity Risks
 Performance / Maintainability Risks
