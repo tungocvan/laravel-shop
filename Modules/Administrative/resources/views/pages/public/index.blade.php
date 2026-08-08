@@ -1,0 +1,6 @@
+@extends('Administrative::layouts.public')
+@section('title', 'Danh sách thủ tục hành chính')
+@section('content')
+<div class="mx-auto max-w-6xl px-4 py-10 sm:px-6"><div class="max-w-3xl"><h1 class="text-3xl font-bold tracking-tight">Thủ tục hành chính</h1><p class="mt-3 text-slate-600">Chọn thủ tục để xem hướng dẫn, tải biểu mẫu và nộp hồ sơ trực tuyến. Không cần đăng nhập.</p></div>
+<div class="mt-8 grid gap-5 md:grid-cols-2">@forelse($procedures as $procedure)<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="text-xs font-semibold uppercase tracking-wide text-indigo-600">{{ $procedure->code }}</div><h2 class="mt-2 text-lg font-semibold">{{ $procedure->name }}</h2><p class="mt-2 line-clamp-3 text-sm text-slate-600">{{ $procedure->description ?: 'Xem hướng dẫn và yêu cầu hồ sơ của thủ tục.' }}</p><a href="{{ route('administrative.public.show', $procedure) }}" class="mt-5 inline-flex rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500">Xem thủ tục</a></article>@empty<div class="md:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><h2 class="font-semibold">Chưa có thủ tục đang hoạt động</h2><p class="mt-1 text-sm text-slate-500">Vui lòng quay lại sau.</p></div>@endforelse</div></div>
+@endsection

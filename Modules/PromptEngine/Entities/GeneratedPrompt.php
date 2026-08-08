@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace Modules\PromptEngine\Entities; use Illuminate\Database\Eloquent\Model; final class GeneratedPrompt extends Model { protected $guarded=[]; protected $casts=['input_payload'=>'array','analysis_payload'=>'array','design_plan_payload'=>'array','explanation_vi'=>'array','recommended_settings'=>'array','image_metadata'=>'array']; }

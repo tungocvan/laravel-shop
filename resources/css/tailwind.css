@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@source "../views/**/*.blade.php";
+@source "../js/**/*.js";
+@source "../../Modules/**/*.blade.php";
+
+/* 👇 THÊM DÒNG NÀY ĐỂ KÍCH HOẠT TYPOGRAPHY */
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-primary: #4f46e5;
+  --font-display: "Satoshi", "sans-serif";
+
+  /* Tùy chỉnh Typography trong v4 (Optional) */
+  --typography-prose-body: var(--color-gray-600);
+  --typography-prose-headings: var(--color-gray-900);
+  --typography-prose-links: var(--color-primary);
+}
+
+@import './custom.css';

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLI_ROOT="$PROJECT_DIR/platform.d"
+VERSION="2.0.0"
+source "$CLI_ROOT/lib/common.sh"
+
+show_help() {
+cat <<EOF
+Laravel Docker Platform CLI v${VERSION}
+
+USAGE
+  ./platform-cli <command> [options]
+
+COMMANDS
+  build       Smart build project
+  compose     Docker Compose wrapper
+  db          Import/export/backup/restore database
+  logs        View service logs
+  doctor      Check project health
+  status      Show project/container status
+  version     Show version
+  help        Show help
+
+EXAMPLES
+  ./platform-cli build
+  ./platform-cli build --dry-run
+  ./platform-cli compose ps
+  ./platform-cli logs app
+  ./platform-cli db export
+  ./platform-cli db import /opt/nvh/db_nvh.sql
+  ./platform-cli doctor
+
+Run:
+  ./platform-cli <command> --help
+EOF
+}
+
+command="${1:-help}"
+shift || true
+case "$command" in
+  help|-h|--help) show_help ;;
+  version|--version|-v) echo "Laravel Docker Platform CLI ${VERSION}" ;;
+  build|compose|db|logs|doctor|status)
+    exec "$CLI_ROOT/commands/${command}.sh" "$@"
+    ;;
+  *)
+    error "Command không hợp lệ: $command"
+    echo
+    show_help
+    exit 1
+    ;;
+esac

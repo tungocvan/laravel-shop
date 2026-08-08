@@ -1,0 +1,1 @@
+<?php use Illuminate\Support\Facades\Route; use Modules\PromptEngine\Http\Controllers\PromptEngineController; Route::prefix('prompt-engine')->controller(PromptEngineController::class)->group(function(){Route::post('generate','generate');Route::post('generate-image','generateImage');});

@@ -1,0 +1,189 @@
+[
+    {
+        "name": "Dashboard",
+        "url": "\/admin",
+        "icon": "home",
+        "can": "view_admin",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Quản lý Chat",
+        "url": "\/admin\/chat",
+        "icon": "users",
+        "can": "view_users",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Chat nội bộ",
+        "url": "\/admin\/chat\/internal-chat",
+        "icon": "users",
+        "can": "view_chat",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Quản lý Sản phẩm",
+        "url": "\/admin\/products",
+        "icon": "users",
+        "can": "create_product",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Quản lý các Chuyên mục",
+        "url": "\/admin\/category",
+        "icon": "Menu",
+        "can": "view_customer",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Quản lý Bài viết",
+        "url": "\/admin\/posts",
+        "icon": "users",
+        "can": "create_post",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Phân quyền & Nhân sự",
+        "url": null,
+        "icon": "shield-check",
+        "can": "view_admin",
+        "is_active": true,
+        "children": [
+            {
+                "name": "Vai trò (Roles)",
+                "url": "\/admin\/role",
+                "icon": null,
+                "can": "view_role",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Nhân viên (Staff)",
+                "url": "\/admin\/user",
+                "icon": null,
+                "can": "view_admin",
+                "is_active": true,
+                "children": []
+            }
+        ]
+    },
+    {
+        "name": "Cấu hình Menu",
+        "url": "\/admin\/menus",
+        "icon": "menu",
+        "can": "create_admin",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Công cụ Hệ thống",
+        "url": null,
+        "icon": "shield-check",
+        "can": "create_admin",
+        "is_active": true,
+        "children": [
+            {
+                "name": "Cấu hình Hệ thống",
+                "url": "\/admin\/system",
+                "icon": "home",
+                "can": "create_admin",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Quản lý ENV",
+                "url": "\/admin\/system\/settings\/env",
+                "icon": null,
+                "can": "view_role",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Quản lý Modules",
+                "url": "admin\/system\/modules",
+                "icon": null,
+                "can": "create_admin",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Quản lý Database",
+                "url": "\/admin\/system\/database",
+                "icon": "home",
+                "can": "view_setting",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Thiết lập Biến",
+                "url": "\/admin\/system\/settings",
+                "icon": null,
+                "can": "view_staff",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Thiết lập Menu Header",
+                "url": "\/admin\/admin-header",
+                "icon": null,
+                "can": "view_role",
+                "is_active": true,
+                "children": []
+            }
+        ]
+    },
+    {
+        "name": "Quản lý Đối tác",
+        "url": "\/admin\/partner\/partners",
+        "icon": "users",
+        "can": "create_partner",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Quản lý Hồ sơ Account",
+        "url": "\/admin\/accounts",
+        "icon": "users",
+        "can": "create_account",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "DƯỢC PHẨM",
+        "url": null,
+        "icon": null,
+        "can": "view_pharma",
+        "is_active": true,
+        "children": [
+            {
+                "name": "Hồ sơ Sản phẩm",
+                "url": "\/admin\/pharma\/hssp",
+                "icon": "users",
+                "can": "create_pharma",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Thuốc trúng thầu",
+                "url": "\/admin\/pharma\/drug-bid-awards",
+                "icon": "users",
+                "can": "create_pharma",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Theo dõi nhà cung cấp",
+                "url": "\/admin\/pharma\/supplier-trackings",
+                "icon": "users",
+                "can": "create_pharma",
+                "is_active": true,
+                "children": []
+            }
+        ]
+    }
+]

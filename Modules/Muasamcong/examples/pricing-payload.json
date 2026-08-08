@@ -1,0 +1,21 @@
+[
+    {
+      "pageSize": 20,
+      "pageNumber": 0,
+      "query": [
+        {
+          "index": "es-smart-pricing",
+          "keyWord": "paracetamol",
+          "keyWordNotMatch": "",
+          "matchType": "exact",
+          "matchFields": ["ten_thuoc","ten_hoat_chat","ma_tbmt"],
+          "filters":[
+            {"fieldName":"medicines","searchType":"in","fieldValues":["0"]},
+            {"fieldName":"type","searchType":"in","fieldValues":["HANG_HOA"]},
+            {"fieldName":"tab","searchType":"in","fieldValues":["THUOC_TAN_DUOC"]}
+          ]
+        }
+      ]
+    }
+  ]
+  

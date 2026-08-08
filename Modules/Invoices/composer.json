@@ -1,0 +1,28 @@
+{
+    "name": "local/invoices-module",
+    "description": "Portable Laravel module for GDT electronic invoices",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "livewire/livewire": "^3.0",
+        "maatwebsite/excel": "^3.1",
+        "rap2hpoutre/fast-excel": "^5.0",
+        "setasign/fpdi": "^2.0",
+        "smalot/pdfparser": "^2.0",
+        "spatie/laravel-permission": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Invoices\\": ""
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\Invoices\\Providers\\InvoicesServiceProvider"
+            ]
+        }
+    }
+}

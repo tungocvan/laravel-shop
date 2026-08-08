@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace Modules\PromptEngine\Interfaces; use Modules\PromptEngine\DTOs\{CharacterAnalysisData,CharacterInputData,DesignPlanData,PlatformPromptData}; interface PromptGeneratorInterface { public function generate(CharacterInputData $input, CharacterAnalysisData $analysis, DesignPlanData $plan): PlatformPromptData; }

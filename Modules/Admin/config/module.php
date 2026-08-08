@@ -1,0 +1,30 @@
+<?php
+
+return [
+    'name' => 'Admin',
+    'type' => 'shell',
+    'enabled' => true,
+    'depends' => ['Auth', 'User', 'Role'],
+    'permissions' => [
+        'view_admin',
+        'create_admin',
+        'edit_admin',
+        'delete_admin',
+        'admin.dashboard.view',
+        'admin.menu.view',
+        'admin.menu.create',
+        'admin.menu.update',
+        'admin.menu.delete',
+        'admin.menu.restore',
+        'admin.menu.import',
+        'admin.menu.export',
+        'admin.profile.view',
+        'admin.profile.update',
+        'admin.theme.view',
+        'admin.theme.update',
+        'admin.layout.view',
+        'admin.layout.update',
+        'admin.header.view',
+        'admin.header.update',
+    ],
+];

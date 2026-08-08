@@ -1,0 +1,286 @@
+[
+    {
+        "name": "Dashboard",
+        "url": "\/admin",
+        "icon": "home",
+        "can": "view_dashboard",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "D\u01af\u1ee2C PH\u1ea8M",
+        "url": null,
+        "icon": null,
+        "can": null,
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Tra c\u1ee9u thu\u1ed1c",
+        "url": "\/admin\/pharma\/tracuu",
+        "icon": null,
+        "can": "view_staff",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Th\u00f4ng t\u01b0 Ho\u1ea1t ch\u1ea5t",
+        "url": "\/admin\/pharma\/tthc",
+        "icon": null,
+        "can": "view_staff",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "H\u1ed3 s\u01a1 s\u1ea3n ph\u1ea9m",
+        "url": "\/admin\/pharma\/hssp",
+        "icon": null,
+        "can": "view_staff",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Danh m\u1ee5c thu\u1ed1c",
+        "url": null,
+        "icon": "shopping-bag",
+        "can": "view_product",
+        "is_active": false,
+        "children": [
+            {
+                "name": "Thu\u1ed1c T\u00e2n D\u01b0\u1ee3c",
+                "url": "\/admin\/pharma\/tanduoc",
+                "icon": null,
+                "can": "view_product",
+                "is_active": false,
+                "children": []
+            },
+            {
+                "name": "Thu\u1ed1c \u0111\u00f4ng y",
+                "url": "\/admin\/pharma\/dongy",
+                "icon": null,
+                "can": "view_category",
+                "is_active": false,
+                "children": []
+            }
+        ]
+    },
+    {
+        "name": "QU\u1ea2N L\u00dd B\u00c1N H\u00c0NG",
+        "url": null,
+        "icon": null,
+        "can": null,
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Nh\u00e2n vi\u00ean (Staff)",
+        "url": "\/admin\/system\/staff",
+        "icon": null,
+        "can": "view_staff",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "S\u1ea3n ph\u1ea9m",
+        "url": null,
+        "icon": "shopping-bag",
+        "can": "view_product",
+        "is_active": false,
+        "children": [
+            {
+                "name": "T\u1ea5t c\u1ea3 s\u1ea3n ph\u1ea9m",
+                "url": "\/admin\/products",
+                "icon": null,
+                "can": "view_product",
+                "is_active": false,
+                "children": []
+            }
+        ]
+    },
+    {
+        "name": "\u0110\u01a1n h\u00e0ng",
+        "url": "\/admin\/orders",
+        "icon": "shopping-cart",
+        "can": "view_order",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Ti\u1ebfp th\u1ecb li\u00ean k\u1ebft",
+        "url": "\/admin\/affiliate",
+        "icon": "affiliate",
+        "can": "",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "M\u00e3 gi\u1ea3m gi\u00e1",
+        "url": "\/admin\/coupons",
+        "icon": "ticket",
+        "can": "view_coupon",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Kh\u00e1ch h\u00e0ng",
+        "url": "\/admin\/customers",
+        "icon": "users",
+        "can": "view_customer",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Qu\u1ea3n l\u00fd Chat",
+        "url": "\/admin\/chat",
+        "icon": "users",
+        "can": "view_customer",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "MARKETING & N\u1ed8I DUNG",
+        "url": null,
+        "icon": null,
+        "can": null,
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "Qu\u1ea3n l\u00fd c\u00e1c Chuy\u00ean m\u1ee5c",
+        "url": "\/admin\/category",
+        "icon": "Menu",
+        "can": "view_customer",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "B\u00e0i vi\u1ebft (Blog)",
+        "url": "\/admin\/posts",
+        "icon": "document-text",
+        "can": "view_post",
+        "is_active": false,
+        "children": []
+    },
+    {
+        "name": "H\u1ec6 TH\u1ed0NG",
+        "url": null,
+        "icon": null,
+        "can": null,
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Ph\u00e2n quy\u1ec1n & Nh\u00e2n s\u1ef1",
+        "url": null,
+        "icon": "shield-check",
+        "can": "view_staff",
+        "is_active": true,
+        "children": [
+            {
+                "name": "Vai tr\u00f2 (Roles)",
+                "url": "\/admin\/system\/roles",
+                "icon": null,
+                "can": "view_role",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Nh\u00e2n vi\u00ean (Staff)",
+                "url": "\/admin\/system\/staff",
+                "icon": null,
+                "can": "view_staff",
+                "is_active": true,
+                "children": []
+            }
+        ]
+    },
+    {
+        "name": "C\u1ea5u h\u00ecnh Menu",
+        "url": "\/admin\/menus",
+        "icon": "menu",
+        "can": "view_setting",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Thi\u1ebft l\u1eadp Website",
+        "url": null,
+        "icon": "shield-check",
+        "can": "view_staff",
+        "is_active": false,
+        "children": [
+            {
+                "name": "Thi\u1ebft l\u1eadp b\u1ed1 c\u1ee5c",
+                "url": "\/admin\/homepage-settings",
+                "icon": null,
+                "can": "view_role",
+                "is_active": false,
+                "children": []
+            },
+            {
+                "name": "Thi\u1ebft l\u1eadp Banner",
+                "url": "\/admin\/banners",
+                "icon": null,
+                "can": "view_staff",
+                "is_active": false,
+                "children": []
+            },
+            {
+                "name": "Thi\u1ebft l\u1eadp Header",
+                "url": "\/admin\/header-settings",
+                "icon": null,
+                "can": "view_role",
+                "is_active": false,
+                "children": []
+            },
+            {
+                "name": "Thi\u1ebft l\u1eadp Footer",
+                "url": "\/admin\/footer-settings",
+                "icon": null,
+                "can": "view_role",
+                "is_active": false,
+                "children": []
+            },
+            {
+                "name": "Thi\u1ebft l\u1eadp Khuy\u1ebfn M\u00e3i",
+                "url": "\/admin\/flash-sales",
+                "icon": null,
+                "can": "view_staff",
+                "is_active": false,
+                "children": []
+            },
+            {
+                "name": "C\u1ea5u h\u00ecnh chung",
+                "url": "\/admin\/settings",
+                "icon": "cog",
+                "can": "view_setting",
+                "is_active": false,
+                "children": []
+            }
+        ]
+    },
+    {
+        "name": "Qu\u1ea3n l\u00fd Database",
+        "url": "\/admin\/database",
+        "icon": "cog",
+        "can": "view_setting",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Qu\u1ea3n l\u00fd Modules",
+        "url": "admin\/modules",
+        "icon": "menu",
+        "can": null,
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "C\u1ea5u h\u00ecnh h\u1ec7 th\u1ed1ng",
+        "url": "admin\/settings\/env",
+        "icon": "menu",
+        "can": null,
+        "is_active": true,
+        "children": []
+    }
+]

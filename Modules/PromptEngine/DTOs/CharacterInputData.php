@@ -1,0 +1,3 @@
+<?php declare(strict_types=1);
+namespace Modules\PromptEngine\DTOs;
+final class CharacterInputData { public function __construct(public string $character, public string $platform='gemini', public string $style='museum-editorial', public string $aspectRatio='2:3', public string $language='vi', public string $textMode='editable-layout', public string $mode='prompt_only', public bool $save=false) {} public function toArray(): array { return ['character'=>$this->character,'platform'=>$this->platform,'style'=>$this->style,'aspect_ratio'=>$this->aspectRatio,'language'=>$this->language,'text_mode'=>$this->textMode,'mode'=>$this->mode,'save'=>$this->save]; } }

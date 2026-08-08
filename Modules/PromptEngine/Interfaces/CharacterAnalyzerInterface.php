@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace Modules\PromptEngine\Interfaces; use Modules\PromptEngine\DTOs\CharacterAnalysisData; interface CharacterAnalyzerInterface { public function analyze(string $character): CharacterAnalysisData; }
