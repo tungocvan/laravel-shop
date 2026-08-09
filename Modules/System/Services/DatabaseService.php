@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
+use ZipArchive;
 
 class DatabaseService
 {
@@ -20,17 +21,21 @@ class DatabaseService
         'permissions',
     ];
 
-    public function getAllTables(string $search = ''): array
+    protected ?array $tableModuleMap = null;
+
+    public function getAllTables(string $search = '', string $module = ''): array
     {
         $search = mb_substr($search, 0, 100);
         $tables = DB::select('SHOW TABLE STATUS WHERE Name LIKE ?', ['%'.$search.'%']);
+        $moduleMap = $this->getTableModuleMap();
 
-        return array_map(function ($table) {
+        $result = array_map(function ($table) use ($moduleMap) {
             $tableName = $table->Name;
             $fileName = $this->backupFileName($tableName);
 
             return [
                 'name' => $tableName,
+                'module' => $moduleMap[$tableName] ?? 'Unknown',
                 'rows' => $table->Rows,
                 'size_mb' => round(($table->Data_length + $table->Index_length) / 1024 / 1024, 2),
                 'collation' => $table->Collation,
@@ -39,6 +44,39 @@ class DatabaseService
                 'is_protected' => in_array($tableName, $this->protectedTables, true),
             ];
         }, $tables);
+
+        if ($module !== '') {
+            $result = array_values(array_filter(
+                $result,
+                static fn (array $table): bool => $table['module'] === $module,
+            ));
+        }
+
+        return $result;
+    }
+
+    public function getModuleOptions(): array
+    {
+        $currentTables = array_flip($this->getCurrentTableNames());
+        $modules = [];
+
+        foreach ($this->getTableModuleMap() as $table => $module) {
+            if (isset($currentTables[$table])) {
+                $modules[$module] = true;
+            }
+        }
+
+        foreach (array_keys($currentTables) as $table) {
+            if (! isset($this->getTableModuleMap()[$table])) {
+                $modules['Unknown'] = true;
+                break;
+            }
+        }
+
+        $options = array_keys($modules);
+        natcasesort($options);
+
+        return array_values($options);
     }
 
     public function backupTable(string $tableName): bool
@@ -54,7 +92,7 @@ class DatabaseService
         return true;
     }
 
-    public function backupTables(array $tableNames): string
+    public function backupTablesAsZip(array $tableNames): string
     {
         $tableNames = array_values(array_unique(array_filter($tableNames, 'is_string')));
 
@@ -66,13 +104,55 @@ class DatabaseService
             $this->assertAllowedTable($tableName, allowProtected: true);
         }
 
-        $fileName = 'backup_selected_'.now()->format('Y-m-d_H-i-s').'.sql';
-        $path = Storage::disk('local')->path('private/backups/'.$fileName);
+        if (! class_exists(ZipArchive::class)) {
+            throw new Exception('PHP Zip extension chưa được cài đặt.');
+        }
 
-        $this->ensureDirectory(dirname($path));
-        $this->runDump($tableNames, $path, 300);
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $fileName = "db_tables_{$timestamp}.zip";
+        $backupDirectory = Storage::disk('local')->path('private/backups');
+        $tempDirectory = $backupDirectory.'/.bulk-export-'.$timestamp.'-'.bin2hex(random_bytes(4));
+        $zipPath = $backupDirectory.'/'.$fileName;
 
-        return $fileName;
+        $this->ensureDirectory($backupDirectory);
+        $this->ensureDirectory($tempDirectory);
+
+        try {
+            $sqlFiles = [];
+
+            foreach ($tableNames as $tableName) {
+                $sqlPath = $tempDirectory.'/'.$tableName.'.sql';
+                $this->runDump([$tableName], $sqlPath, 180);
+                $sqlFiles[$tableName.'.sql'] = $sqlPath;
+            }
+
+            $zip = new ZipArchive();
+            $opened = $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+            if ($opened !== true) {
+                throw new Exception('Không thể tạo file ZIP export.');
+            }
+
+            try {
+                foreach ($sqlFiles as $entryName => $sqlPath) {
+                    if (! $zip->addFile($sqlPath, $entryName)) {
+                        throw new Exception("Không thể thêm {$entryName} vào file ZIP.");
+                    }
+                }
+            } finally {
+                $zip->close();
+            }
+
+            return $fileName;
+        } catch (\Throwable $e) {
+            if (is_file($zipPath)) {
+                @unlink($zipPath);
+            }
+
+            throw $e;
+        } finally {
+            $this->deleteDirectory($tempDirectory);
+        }
     }
 
     public function backupFullDatabase(): bool
@@ -216,7 +296,7 @@ class DatabaseService
     {
         $path = $this->resolveBackupIdentifier($backupId);
 
-        if ($path === null) {
+        if ($path === null || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'sql') {
             throw new Exception('Backup file not found.');
         }
 
@@ -365,20 +445,32 @@ class DatabaseService
             ...$tables,
         ];
 
-        $process = new Process($command, null, $this->processEnvironment($config));
-        $process->setTimeout($timeout);
-        $process->run();
+        $output = fopen($outputPath, 'wb');
 
-        if (! $process->isSuccessful()) {
-            Log::error('Database dump failed.', [
-                'exit_code' => $process->getExitCode(),
-                'error' => $process->getErrorOutput(),
-            ]);
-
-            throw new ProcessFailedException($process);
+        if ($output === false) {
+            throw new Exception('Không thể tạo file database dump.');
         }
 
-        file_put_contents($outputPath, $process->getOutput());
+        try {
+            $process = new Process($command, null, $this->processEnvironment($config));
+            $process->setTimeout($timeout);
+            $process->run(function (string $type, string $buffer) use ($output): void {
+                if ($type === Process::OUT) {
+                    fwrite($output, $buffer);
+                }
+            });
+
+            if (! $process->isSuccessful()) {
+                Log::error('Database dump failed.', [
+                    'exit_code' => $process->getExitCode(),
+                    'error' => $process->getErrorOutput(),
+                ]);
+
+                throw new ProcessFailedException($process);
+            }
+        } finally {
+            fclose($output);
+        }
     }
 
     private function runMysqlImport(string $inputPath, int $timeout): void
@@ -426,7 +518,7 @@ class DatabaseService
 
     private function resolveBackupIdentifier(string $backupId): ?string
     {
-        if ($backupId !== basename($backupId) || ! preg_match('/\A[A-Za-z0-9_.-]+\.sql\z/', $backupId)) {
+        if ($backupId !== basename($backupId) || ! preg_match('/\A[A-Za-z0-9_.-]+\.(?:sql|zip)\z/i', $backupId)) {
             return null;
         }
 
@@ -532,6 +624,71 @@ class DatabaseService
             flock($lock, LOCK_UN);
             fclose($lock);
         }
+    }
+
+    private function getTableModuleMap(): array
+    {
+        if ($this->tableModuleMap !== null) {
+            return $this->tableModuleMap;
+        }
+
+        $map = [];
+
+        foreach (glob(base_path('Modules/*/database/migrations/*.php')) ?: [] as $path) {
+            $relative = str_replace('\\', '/', $path);
+
+            if (! preg_match('#/Modules/([^/]+)/database/migrations/#', $relative, $moduleMatch)) {
+                continue;
+            }
+
+            foreach ($this->extractCreatedTables($path) as $table) {
+                $map[$table] ??= $moduleMatch[1];
+            }
+        }
+
+        foreach (glob(database_path('migrations/*.php')) ?: [] as $path) {
+            foreach ($this->extractCreatedTables($path) as $table) {
+                $map[$table] ??= 'Core';
+            }
+        }
+
+        return $this->tableModuleMap = $map;
+    }
+
+    private function extractCreatedTables(string $migrationPath): array
+    {
+        $content = @file_get_contents($migrationPath);
+
+        if (! is_string($content) || $content === '') {
+            return [];
+        }
+
+        preg_match_all('/Schema::create\s*\(\s*[\'\"]([A-Za-z0-9_]+)[\'\"]/', $content, $matches);
+
+        return array_values(array_unique($matches[1] ?? []));
+    }
+
+    private function deleteDirectory(string $directory): void
+    {
+        if (! is_dir($directory)) {
+            return;
+        }
+
+        foreach (scandir($directory) ?: [] as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $directory.'/'.$item;
+
+            if (is_dir($path)) {
+                $this->deleteDirectory($path);
+            } else {
+                @unlink($path);
+            }
+        }
+
+        @rmdir($directory);
     }
 
     private function backupFileName(string $tableName): string
