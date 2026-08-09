@@ -54,6 +54,27 @@ class DatabaseService
         return true;
     }
 
+    public function backupTables(array $tableNames): string
+    {
+        $tableNames = array_values(array_unique(array_filter($tableNames, 'is_string')));
+
+        if ($tableNames === []) {
+            throw new Exception('Không có bảng nào được chọn để export.');
+        }
+
+        foreach ($tableNames as $tableName) {
+            $this->assertAllowedTable($tableName, allowProtected: true);
+        }
+
+        $fileName = 'backup_selected_'.now()->format('Y-m-d_H-i-s').'.sql';
+        $path = Storage::disk('local')->path('private/backups/'.$fileName);
+
+        $this->ensureDirectory(dirname($path));
+        $this->runDump($tableNames, $path, 300);
+
+        return $fileName;
+    }
+
     public function backupFullDatabase(): bool
     {
         $timestamp = now()->format('Y-m-d_H-i-s');
@@ -70,15 +91,67 @@ class DatabaseService
     {
         $this->assertAllowedTable($tableName, allowProtected: true);
 
-        $path = Storage::disk('local')->path('private/backups/'.$this->backupFileName($tableName));
+        return $this->withTableLock($tableName, function () use ($tableName): bool {
+            $path = Storage::disk('local')->path('private/backups/'.$this->backupFileName($tableName));
 
-        if (! file_exists($path)) {
-            return false;
-        }
+            if (! file_exists($path)) {
+                return false;
+            }
 
-        $this->runMysqlImport($path, 300);
+            $this->runMysqlImport($path, 300);
 
-        return true;
+            return true;
+        });
+    }
+
+    public function importTableFromFile(string $tableName, string $inputPath): string
+    {
+        $this->assertAllowedTable($tableName);
+        $this->assertReadableSqlFile($inputPath);
+        $this->assertSingleTableDumpForTarget($inputPath, $tableName);
+
+        return $this->withTableLock($tableName, function () use ($tableName, $inputPath): string {
+            $safetyFile = 'backup_'.$tableName.'_before_import_'.now()->format('Y-m-d_H-i-s').'.sql';
+            $safetyPath = Storage::disk('local')->path('private/backups/'.$safetyFile);
+
+            $this->ensureDirectory(dirname($safetyPath));
+            $this->runDump([$tableName], $safetyPath, 180);
+
+            try {
+                $this->runMysqlImport($inputPath, 300);
+            } catch (\Throwable $importException) {
+                try {
+                    $this->runMysqlImport($safetyPath, 300);
+                } catch (\Throwable $recoveryException) {
+                    Log::critical('Table import and automatic recovery both failed.', [
+                        'table' => $tableName,
+                        'safety_backup' => $safetyFile,
+                        'import_error' => $importException->getMessage(),
+                        'recovery_error' => $recoveryException->getMessage(),
+                    ]);
+
+                    throw new Exception(
+                        'Import bảng thất bại và không thể tự phục hồi. Vui lòng kiểm tra log hệ thống.',
+                        previous: $importException,
+                    );
+                }
+
+                throw new Exception(
+                    'Import bảng thất bại. Dữ liệu cũ đã được phục hồi.',
+                    previous: $importException,
+                );
+            }
+
+            DB::purge();
+            DB::reconnect();
+
+            Log::notice('Database table imported.', [
+                'table' => $tableName,
+                'safety_backup' => $safetyFile,
+            ]);
+
+            return $safetyFile;
+        });
     }
 
     public function truncateTable(string $tableName): void
@@ -319,18 +392,28 @@ class DatabaseService
             $config['database'] ?? '',
         ];
 
-        $process = new Process($command, null, $this->processEnvironment($config));
-        $process->setInput(file_get_contents($inputPath));
-        $process->setTimeout($timeout);
-        $process->run();
+        $input = fopen($inputPath, 'rb');
 
-        if (! $process->isSuccessful()) {
-            Log::error('Database import failed.', [
-                'exit_code' => $process->getExitCode(),
-                'error' => $process->getErrorOutput(),
-            ]);
+        if ($input === false) {
+            throw new Exception('Không thể mở file SQL để import.');
+        }
 
-            throw new ProcessFailedException($process);
+        try {
+            $process = new Process($command, null, $this->processEnvironment($config));
+            $process->setInput($input);
+            $process->setTimeout($timeout);
+            $process->run();
+
+            if (! $process->isSuccessful()) {
+                Log::error('Database import failed.', [
+                    'exit_code' => $process->getExitCode(),
+                    'error' => $process->getErrorOutput(),
+                ]);
+
+                throw new ProcessFailedException($process);
+            }
+        } finally {
+            fclose($input);
         }
     }
 
@@ -380,6 +463,75 @@ class DatabaseService
             && (str_contains($sample, 'MySQL dump') || str_contains($sample, 'MariaDB dump'))
             && str_contains($sample, 'DROP TABLE IF EXISTS')
             && substr_count($sample, 'CREATE TABLE') >= 2;
+    }
+
+    private function assertReadableSqlFile(string $path): void
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            throw new Exception('Không thể đọc file SQL đã chọn.');
+        }
+
+        $size = filesize($path);
+
+        if ($size === false || $size < 20 || $size > 100 * 1024 * 1024) {
+            throw new Exception('File SQL không hợp lệ hoặc vượt quá 100 MB.');
+        }
+    }
+
+    private function assertSingleTableDumpForTarget(string $path, string $targetTable): void
+    {
+        $handle = fopen($path, 'rb');
+
+        if ($handle === false) {
+            throw new Exception('Không thể kiểm tra file SQL.');
+        }
+
+        $tables = [];
+        $hasTargetStatement = false;
+
+        try {
+            while (($line = fgets($handle)) !== false) {
+                if (preg_match_all('/\b(?:DROP\s+TABLE\s+IF\s+EXISTS|CREATE\s+TABLE|INSERT\s+INTO|LOCK\s+TABLES|ALTER\s+TABLE)\s+`?([A-Za-z0-9_]+)`?/i', $line, $matches)) {
+                    foreach ($matches[1] as $table) {
+                        $tables[$table] = true;
+                        if ($table === $targetTable) {
+                            $hasTargetStatement = true;
+                        }
+                    }
+                }
+
+                if (count($tables) > 1) {
+                    break;
+                }
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        if (! $hasTargetStatement || array_keys($tables) !== [$targetTable]) {
+            throw new Exception('File SQL không hợp lệ cho bảng đã chọn.');
+        }
+    }
+
+    private function withTableLock(string $tableName, callable $callback): mixed
+    {
+        $lockPath = storage_path('framework/database-table-'.$tableName.'.lock');
+        $lock = fopen($lockPath, 'c');
+
+        if ($lock === false || ! flock($lock, LOCK_EX | LOCK_NB)) {
+            if (is_resource($lock)) {
+                fclose($lock);
+            }
+
+            throw new Exception('Bảng đang được xử lý bởi một tiến trình khác.');
+        }
+
+        try {
+            return $callback();
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
     }
 
     private function backupFileName(string $tableName): string
