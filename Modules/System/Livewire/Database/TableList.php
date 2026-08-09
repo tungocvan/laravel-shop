@@ -2,8 +2,10 @@
 
 namespace Modules\System\Livewire\Database;
 
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\DatabaseService;
 
@@ -11,139 +13,246 @@ use Modules\System\Services\DatabaseService;
 class TableList extends Component
 {
     use AuthorizesSystemActions;
+    use WithFileUploads;
 
-    // State
-    public $search = '';
+    protected DatabaseService $service;
 
-    public $selectedTables = [];
+    public string $search = '';
 
-    public $selectAll = false;
+    public array $selectedTables = [];
 
-    // UI Feedback
-    public $loadingAction = null; // Lưu tên bảng đang được xử lý
+    public bool $selectAll = false;
 
-    public $backupFiles = [];
+    public array $backupFiles = [];
 
-    public $selectedBackupFile = null;
+    public ?string $selectedBackupFile = null;
 
-    public $showRestoreModal = false;
+    public bool $showRestoreModal = false;
 
-    public $isRestoring = false;
+    public bool $isRestoring = false;
 
-    public function boot(DatabaseService $service)
+    public bool $showImportModal = false;
+
+    public ?string $importTargetTable = null;
+
+    public $importFile = null;
+
+    public bool $isImporting = false;
+
+    public ?string $selectedExportFile = null;
+
+    public function boot(DatabaseService $service): void
     {
-        // Inject Service
         $this->service = $service;
     }
 
-    // --- Actions ---
-
-    public function updatedSearch()
+    public function updatedSearch(): void
     {
-        // $this->resetPage(); // Nếu có phân trang
+        $this->selectAll = false;
     }
 
-    public function updatedSelectAll($value)
+    public function updatedSelectAll(bool $value): void
     {
         if ($value) {
             $tables = $this->service->getAllTables($this->search);
             $this->selectedTables = array_column($tables, 'name');
-        } else {
-            $this->selectedTables = [];
+
+            return;
         }
+
+        $this->selectedTables = [];
     }
 
-    public function backupFull()
+    public function updatedSelectedTables(): void
+    {
+        $visible = array_column($this->service->getAllTables($this->search), 'name');
+        $this->selectAll = $visible !== [] && count(array_intersect($visible, $this->selectedTables)) === count($visible);
+    }
+
+    public function backupFull(): void
     {
         $this->authorizePermission('database.backup');
 
         try {
-            // Gọi service đã fix ở trên
             $this->service->backupFullDatabase();
-
-            // Thành công -> Thông báo xanh
-            $this->dispatch('notify', type: 'success', content: 'Backup toàn bộ dữ liệu thành công!');
-
-        } catch (\Exception $e) {
-            // Thất bại -> Thông báo đỏ & Hiện lỗi chi tiết
-            $this->dispatch('notify', type: 'error', content: 'Thất bại: '.$e->getMessage());
+            $this->notify('success', 'Backup toàn bộ dữ liệu thành công!');
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Full database backup failed.', $e);
+            $this->notify('error', 'Backup database thất bại. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
-    public function exportTable($tableName)
+    public function exportTable(string $tableName): void
     {
         $this->authorizePermission('database.backup');
 
         try {
             $this->service->backupTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Export bảng {$tableName} thành công!");
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: 'Lỗi export: '.$e->getMessage());
+            $this->notify('success', "Export bảng {$tableName} thành công!");
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Table export failed.', $e, ['table' => $tableName]);
+            $this->notify('error', 'Export bảng thất bại. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
-    public function restoreTable($tableName)
+    public function exportSelected(): void
+    {
+        $this->authorizePermission('database.backup');
+
+        if ($this->selectedTables === []) {
+            $this->notify('error', 'Vui lòng chọn ít nhất một bảng để export.');
+
+            return;
+        }
+
+        try {
+            $this->selectedExportFile = $this->service->backupTables($this->selectedTables);
+            $this->notify('success', 'Export các bảng đã chọn thành công!');
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Bulk table export failed.', $e, ['tables' => $this->selectedTables]);
+            $this->notify('error', 'Export các bảng đã chọn thất bại.');
+        }
+    }
+
+    public function restoreTable(string $tableName): void
     {
         $this->authorizePermission('database.restore');
 
         try {
-            $this->service->restoreTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Restore bảng {$tableName} thành công!");
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: 'Lỗi restore: '.$e->getMessage());
+            if (! $this->service->restoreTable($tableName)) {
+                $this->notify('error', 'Không tìm thấy file backup của bảng đã chọn.');
+
+                return;
+            }
+
+            $this->notify('success', "Restore bảng {$tableName} thành công!");
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Table restore failed.', $e, ['table' => $tableName]);
+            $this->notify('error', 'Restore bảng thất bại. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
-    public function truncateTable($tableName)
+    public function openImportModal(string $tableName): void
+    {
+        $this->authorizePermission('database.restore');
+
+        try {
+            $this->service->assertAllowedTable($tableName);
+            $this->resetValidation('importFile');
+            $this->importFile = null;
+            $this->importTargetTable = $tableName;
+            $this->showImportModal = true;
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Open table import rejected.', $e, ['table' => $tableName]);
+            $this->notify('error', 'Không thể import vào bảng đã chọn.');
+        }
+    }
+
+    public function closeImportModal(): void
+    {
+        if ($this->isImporting) {
+            return;
+        }
+
+        $this->showImportModal = false;
+        $this->importTargetTable = null;
+        $this->importFile = null;
+        $this->resetValidation('importFile');
+    }
+
+    public function importTable(): void
+    {
+        $this->authorizePermission('database.restore');
+
+        if ($this->isImporting || ! $this->importTargetTable) {
+            return;
+        }
+
+        $this->validate([
+            'importFile' => ['required', 'file', 'max:102400'],
+        ], [
+            'importFile.required' => 'Vui lòng chọn file SQL.',
+            'importFile.file' => 'File upload không hợp lệ.',
+            'importFile.max' => 'File SQL không được vượt quá 100 MB.',
+        ]);
+
+        if (strtolower($this->importFile->getClientOriginalExtension()) !== 'sql') {
+            $this->addError('importFile', 'Chỉ chấp nhận file .sql.');
+
+            return;
+        }
+
+        $this->isImporting = true;
+        $tableName = $this->importTargetTable;
+
+        try {
+            $path = $this->importFile->getRealPath();
+            $this->service->importTableFromFile($tableName, $path);
+            $this->notify('success', "Import bảng {$tableName} thành công!");
+            $this->closeImportStateAfterSuccess();
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Table import failed.', $e, ['table' => $tableName]);
+            $message = str_contains($e->getMessage(), 'Dữ liệu cũ đã được phục hồi')
+                ? 'Import bảng thất bại. Dữ liệu cũ đã được phục hồi.'
+                : 'Import bảng thất bại. Vui lòng kiểm tra log hệ thống.';
+            $this->notify('error', $message);
+        } finally {
+            $this->isImporting = false;
+        }
+    }
+
+    public function truncateTable(string $tableName): void
     {
         $this->authorizePermission('database.destroy');
 
         try {
             $this->service->truncateTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Đã làm sạch dữ liệu bảng {$tableName}");
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: $e->getMessage());
+            $this->notify('success', "Đã làm sạch dữ liệu bảng {$tableName}");
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Table truncate failed.', $e, ['table' => $tableName]);
+            $this->notify('error', 'Không thể làm sạch bảng đã chọn.');
         }
     }
 
-    public function dropTable($tableName)
+    public function dropTable(string $tableName): void
     {
         $this->authorizePermission('database.destroy');
 
         try {
             $this->service->dropTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Đã xóa bảng {$tableName}");
-            // Reset selection nếu bảng bị xóa đang được chọn
-            if (($key = array_search($tableName, $this->selectedTables)) !== false) {
-                unset($this->selectedTables[$key]);
-            }
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: $e->getMessage());
+            $this->notify('success', "Đã xóa bảng {$tableName}");
+            $this->selectedTables = array_values(array_filter(
+                $this->selectedTables,
+                static fn (string $selected): bool => $selected !== $tableName,
+            ));
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Table drop failed.', $e, ['table' => $tableName]);
+            $this->notify('error', 'Không thể xóa bảng đã chọn.');
         }
     }
 
-    public function render(DatabaseService $service)
-    {
-        // Lấy dữ liệu fresh mỗi lần render để update trạng thái file/rows
-        $tables = $service->getAllTables($this->search);
-
-        return view('System::livewire.database.table-list', [
-            'tables' => $tables,
-        ]);
-    }
-
-    public function openRestoreModal()
+    public function openRestoreModal(): void
     {
         $this->authorizePermission('database.restore');
 
         $this->backupFiles = array_values(array_filter(
-            app(DatabaseService::class)->getAllBackupFiles(),
+            $this->service->getAllBackupFiles(),
             static fn (array $file): bool => $file['is_full'],
         ));
         $this->showRestoreModal = true;
     }
 
-    public function restoreDatabase()
+    public function closeRestoreModal(): void
+    {
+        if ($this->isRestoring) {
+            return;
+        }
+
+        $this->showRestoreModal = false;
+        $this->selectedBackupFile = null;
+    }
+
+    public function restoreDatabase(): void
     {
         $this->authorizePermission('database.restore');
 
@@ -152,7 +261,7 @@ class TableList extends Component
         }
 
         if (! $this->selectedBackupFile) {
-            $this->dispatch('notify', type: 'error', message: 'Vui lòng chọn file backup');
+            $this->notify('error', 'Vui lòng chọn file backup.');
 
             return;
         }
@@ -160,17 +269,43 @@ class TableList extends Component
         $this->isRestoring = true;
 
         try {
-            app(DatabaseService::class)
-                ->restoreFromFile($this->selectedBackupFile);
-
-            $this->dispatch('notify', type: 'success', message: 'Restore database thành công');
-
+            $this->service->restoreFromFile($this->selectedBackupFile);
+            $this->notify('success', 'Restore database thành công.');
             $this->showRestoreModal = false;
-
+            $this->selectedBackupFile = null;
         } catch (\Throwable $e) {
-            $this->dispatch('notify', type: 'error', message: 'Restore thất bại: '.$e->getMessage());
+            $this->reportOperationError('Full database restore failed.', $e, ['backup' => $this->selectedBackupFile]);
+            $this->notify('error', 'Restore database thất bại. Vui lòng kiểm tra log hệ thống.');
         } finally {
             $this->isRestoring = false;
         }
+    }
+
+    public function render()
+    {
+        return view('System::livewire.database.table-list', [
+            'tables' => $this->service->getAllTables($this->search),
+        ]);
+    }
+
+    private function notify(string $type, string $message): void
+    {
+        $this->dispatch('notify', type: $type, content: $message, message: $message);
+    }
+
+    private function reportOperationError(string $message, \Throwable $exception, array $context = []): void
+    {
+        Log::error($message, $context + [
+            'exception' => $exception::class,
+            'error' => $exception->getMessage(),
+        ]);
+    }
+
+    private function closeImportStateAfterSuccess(): void
+    {
+        $this->showImportModal = false;
+        $this->importTargetTable = null;
+        $this->importFile = null;
+        $this->resetValidation('importFile');
     }
 }
