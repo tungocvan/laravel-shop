@@ -5,7 +5,7 @@ namespace Modules\System\Livewire\Database;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Livewire\Features\SupportFileUploads\WithFileUploads;
+use Livewire\WithFileUploads;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\DatabaseService;
 
