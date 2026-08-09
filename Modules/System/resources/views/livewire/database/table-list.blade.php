@@ -18,6 +18,14 @@
                 Restore Database
             </button>
 
+            <select wire:model.live="moduleFilter"
+                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 sm:w-52">
+                <option value="">Tất cả Module</option>
+                @foreach ($modules as $module)
+                    <option value="{{ $module }}">{{ $module }}</option>
+                @endforeach
+            </select>
+
             <div class="relative w-full sm:w-64">
                 <input wire:model.live.debounce.300ms="search" type="text"
                     class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
@@ -32,6 +40,7 @@
                 <tr>
                     <th class="w-10 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">#</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Tên bảng</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Module</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Số dòng</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Dung lượng (MB)</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Backup / Import</th>
@@ -50,6 +59,11 @@
                             @if ($table['is_protected'])
                                 <span class="ml-2 inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">Protected</span>
                             @endif
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                                {{ $table['module'] }}
+                            </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ number_format($table['rows']) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $table['size_mb'] }} MB</td>
@@ -99,10 +113,10 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-10 text-center">
+                        <td colspan="7" class="px-6 py-10 text-center">
                             <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-8">
                                 <h3 class="text-sm font-semibold text-gray-900">Không tìm thấy dữ liệu</h3>
-                                <p class="mt-1 text-sm text-gray-500">Không có bảng nào phù hợp với từ khóa hiện tại.</p>
+                                <p class="mt-1 text-sm text-gray-500">Không có bảng nào phù hợp với bộ lọc hiện tại.</p>
                             </div>
                         </td>
                     </tr>
@@ -118,13 +132,13 @@
                 @if ($selectedExportFile)
                     <a href="{{ route('admin.system.database.download', ['filename' => $selectedExportFile]) }}" target="_blank"
                         class="inline-flex items-center justify-center rounded-xl border border-green-200 bg-white px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50">
-                        Tải file export
+                        Tải ZIP export
                     </a>
                 @endif
                 <button type="button" wire:click="exportSelected" wire:loading.attr="disabled"
                     class="inline-flex items-center justify-center rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
-                    <span wire:loading.remove wire:target="exportSelected">Export Selected</span>
-                    <span wire:loading wire:target="exportSelected">Đang export...</span>
+                    <span wire:loading.remove wire:target="exportSelected">Export {{ count($selectedTables) }} bảng</span>
+                    <span wire:loading wire:target="exportSelected">Đang tạo ZIP...</span>
                 </button>
             </div>
         </div>
