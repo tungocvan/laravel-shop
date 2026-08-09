@@ -19,6 +19,8 @@ class TableList extends Component
 
     public string $search = '';
 
+    public string $moduleFilter = '';
+
     public array $selectedTables = [];
 
     public bool $selectAll = false;
@@ -48,13 +50,18 @@ class TableList extends Component
 
     public function updatedSearch(): void
     {
-        $this->selectAll = false;
+        $this->resetVisibleSelectionState();
+    }
+
+    public function updatedModuleFilter(): void
+    {
+        $this->resetVisibleSelectionState();
     }
 
     public function updatedSelectAll(bool $value): void
     {
         if ($value) {
-            $tables = $this->service->getAllTables($this->search);
+            $tables = $this->service->getAllTables($this->search, $this->moduleFilter);
             $this->selectedTables = array_column($tables, 'name');
 
             return;
@@ -65,8 +72,9 @@ class TableList extends Component
 
     public function updatedSelectedTables(): void
     {
-        $visible = array_column($this->service->getAllTables($this->search), 'name');
+        $visible = array_column($this->service->getAllTables($this->search, $this->moduleFilter), 'name');
         $this->selectAll = $visible !== [] && count(array_intersect($visible, $this->selectedTables)) === count($visible);
+        $this->selectedExportFile = null;
     }
 
     public function backupFull(): void
@@ -106,8 +114,8 @@ class TableList extends Component
         }
 
         try {
-            $this->selectedExportFile = $this->service->backupTables($this->selectedTables);
-            $this->notify('success', 'Export các bảng đã chọn thành công!');
+            $this->selectedExportFile = $this->service->backupTablesAsZip($this->selectedTables);
+            $this->notify('success', 'Đã export các bảng đã chọn thành file ZIP!');
         } catch (\Throwable $e) {
             $this->reportOperationError('Bulk table export failed.', $e, ['tables' => $this->selectedTables]);
             $this->notify('error', 'Export các bảng đã chọn thất bại.');
@@ -284,8 +292,16 @@ class TableList extends Component
     public function render()
     {
         return view('System::livewire.database.table-list', [
-            'tables' => $this->service->getAllTables($this->search),
+            'tables' => $this->service->getAllTables($this->search, $this->moduleFilter),
+            'modules' => $this->service->getModuleOptions(),
         ]);
+    }
+
+    private function resetVisibleSelectionState(): void
+    {
+        $this->selectAll = false;
+        $this->selectedTables = [];
+        $this->selectedExportFile = null;
     }
 
     private function notify(string $type, string $message): void
