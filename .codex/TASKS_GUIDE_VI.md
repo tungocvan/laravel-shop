@@ -32,27 +32,24 @@ CẬP NHẬT DOCUMENTATION
 ├── tasks/
 │   ├── analyze-md.md
 │   ├── analyze-module.md
+│   ├── analyze-livewire.md
 │   ├── create-module.md
 │   ├── create-module-from-docs.md
 │   ├── create-import-export.md
 │   ├── refactor-module.md
+│   ├── refactor-livewire.md
 │   └── rebuild-module.md
 └── TASKS_GUIDE_VI.md
 ```
 
 ### `bootstrap/`
-
 Mô tả project thực tế: Laravel/PHP, module discovery, convention, shared infrastructure, context cho AI.
 
 ### `standards/`
-
-Chuẩn kỹ thuật mà AI phải tuân thủ:
-
 - `MODULE_STANDARD.md`: kiến trúc module, Service, Model, DB, transaction, security, compatibility...
 - `ADMIN_UI_STANDARD.md`: chuẩn Blade/Livewire/Admin UI, form, table, loading, validation, responsive...
 
 ### `tasks/`
-
 Mỗi file định nghĩa một workflow cụ thể cho Codex/AI.
 
 ---
@@ -76,14 +73,6 @@ Không được ép project dùng kiến trúc từ một prompt cũ nếu repos
 
 # 3. `/analyze <ModuleName>`
 
-File:
-
-```text
-.codex/tasks/analyze-module.md
-```
-
-## Khi nào dùng?
-
 Dùng khi module **đã tồn tại** và cần hiểu chính xác module trước khi sửa/refactor/rebuild.
 
 Ví dụ:
@@ -92,9 +81,7 @@ Ví dụ:
 /analyze Administrative
 ```
 
-## Task sẽ làm gì?
-
-AI đọc:
+AI phân tích theo flow:
 
 ```text
 Route
@@ -108,7 +95,7 @@ Route
 → Migration/Database
 ```
 
-Sau đó tạo/cập nhật:
+Output:
 
 ```text
 docs/modules/Administrative/
@@ -117,41 +104,199 @@ docs/modules/Administrative/
 └── README.md
 ```
 
-## Ý nghĩa
+`/analyze` không sửa source code, không tự tạo `REFACTOR_PLAN.md` hoặc `REBUILD_SPEC.md`.
 
-- `ANALYSIS.md`: vấn đề kỹ thuật, security, performance, P0/P1/P2, khuyến nghị.
-- `INFORMATION.md`: thông tin thực tế của module.
-- `README.md`: hướng dẫn/tổng quan ngắn cho developer.
+---
 
-## Không làm gì?
+# 4. `/analyze-livewire <ModuleName> <Component>`
 
-`/analyze` **không sửa application code**, không tự tạo `REFACTOR_PLAN.md` và không tự tạo `REBUILD_SPEC.md`.
+Dùng khi chỉ muốn phân tích **một Livewire component** mà không cần mở scope cả module.
 
-## Sau `/analyze`
-
-Nếu module chỉ cần cải tiến:
+Ví dụ:
 
 ```text
-/refactor <ModuleName>
+/analyze-livewire Administrative Submissions/SubmissionDetail
 ```
 
-Nếu cần thiết kế lại lớn:
+Task kiểm tra:
 
 ```text
-/rebuild <ModuleName>
+Route / Page Blade
+      ↓
+Livewire PHP
+      ↔
+Livewire Blade
+      ↓
+Service(s)
+      ↓
+Model / Database
+
++ Shared UI
++ Permission
++ Event / Job
++ Upload / Download
++ Related tests
+```
+
+Phân tích bao gồm:
+
+- state/public/locked properties
+- lifecycle: mount, boot, hydrate...
+- validation
+- action/mutation
+- authorization từng action
+- event/dispatch/listener
+- search/filter/sort/pagination
+- upload/download
+- service call
+- query trực tiếp Model/DB
+- transaction/concurrency
+- N+1/repeated render query
+- `wire:model`, `wire:key`
+- loading/disabled/error/empty state
+- shared UI reuse
+- test coverage
+
+Output:
+
+```text
+docs/modules/<ModuleName>/livewire/<component-key>/ANALYSIS.md
+```
+
+Ví dụ:
+
+```text
+Submissions/SubmissionDetail
+→ docs/modules/Administrative/livewire/submissions-submission-detail/ANALYSIS.md
+```
+
+Task này chỉ phân tích, không sửa source.
+
+---
+
+# 5. Bổ sung chức năng cho một Livewire component
+
+Nếu muốn thêm nghiệp vụ mới cho component, quy trình khuyến nghị:
+
+```text
+/analyze-livewire <Module> <Component>
+        ↓
+ANALYSIS.md
+        ↓
+Yêu cầu AI lập CHANGE_PLAN.md
+        ↓
+STOP
+        ↓
+USER APPROVAL
+        ↓
+IMPLEMENT
+        ↓
+TEST
+```
+
+Ví dụ:
+
+```text
+/analyze-livewire Administrative Submissions/SubmissionDetail
+```
+
+Sau đó:
+
+```text
+Hãy lập kế hoạch bổ sung chức năng hoàn tác yêu cầu bổ sung hồ sơ.
+Chưa implement.
+```
+
+AI phải tạo:
+
+```text
+docs/modules/Administrative/livewire/submissions-submission-detail/CHANGE_PLAN.md
+```
+
+`CHANGE_PLAN.md` phải xác định mọi dependency bị ảnh hưởng, ví dụ:
+
+```text
+Livewire PHP
+Livewire Blade
+SubmissionService
+Permission
+Enum/status
+Model/DB
+Audit history
+Event/job
+Tests
+```
+
+Sau khi duyệt:
+
+```text
+Tôi duyệt CHANGE_PLAN.md của SubmissionDetail.
+Tiếp tục implement đúng scope.
+```
+
+Không được giấu business behavior mới bên trong một refactor.
+
+---
+
+# 6. `/refactor-livewire <ModuleName> <Component>`
+
+Dùng khi muốn refactor riêng một Livewire component.
+
+Ví dụ:
+
+```text
+/refactor-livewire Administrative Submissions/SubmissionDetail
+```
+
+Nếu chưa có component analysis, AI phải chạy tư duy `/analyze-livewire` trước.
+
+Output planning:
+
+```text
+docs/modules/Administrative/livewire/submissions-submission-detail/REFACTOR_PLAN.md
+```
+
+Sau đó AI phải STOP và chờ duyệt.
+
+Ví dụ duyệt:
+
+```text
+Tôi duyệt REFACTOR_PLAN.md của SubmissionDetail.
+Tiếp tục implement đúng plan.
+```
+
+Refactor phù hợp khi:
+
+- Livewire quá lớn
+- query Model trực tiếp
+- business logic nằm trong component
+- transaction nằm trong component
+- authorization thiếu
+- render query lặp lại
+- N+1
+- UI/state khó bảo trì
+- component chưa reuse shared UI
+- test coverage yếu
+
+Mục tiêu kiến trúc thường là:
+
+```text
+Livewire
+├── state
+├── validation
+├── authorization
+└── gọi Service
+        ↓
+Service
+├── business rule
+├── transaction
+├── persistence
+└── workflow
 ```
 
 ---
 
-# 4. `/analyze-md <MarkdownFile>`
-
-File:
-
-```text
-.codex/tasks/analyze-md.md
-```
-
-## Khi nào dùng?
+# 7. `/analyze-md <MarkdownFile>`
 
 Dùng để phân tích một tài liệu Markdown, specification, business analysis, architecture note hoặc prompt trước khi triển khai.
 
@@ -161,35 +306,17 @@ Ví dụ:
 /analyze-md docs/specs/administrative-workflow.md
 ```
 
-## Output
+Output:
 
 ```text
 docs/analysis/administrative-workflow_ANALYSIS.md
 ```
 
-Task tìm:
-
-- yêu cầu thiếu
-- mâu thuẫn
-- assumption
-- security/data integrity risk
-- performance risk
-- architecture problem
-- acceptance criteria còn thiếu
-
 Task này không thay thế `/analyze <ModuleName>`.
 
 ---
 
-# 5. `/create-module <ModuleName>`
-
-File:
-
-```text
-.codex/tasks/create-module.md
-```
-
-## Khi nào dùng?
+# 8. `/create-module <ModuleName>`
 
 Dùng khi cần tạo **module hoàn toàn mới**.
 
@@ -199,7 +326,7 @@ Ví dụ:
 /create-module StudentHealth
 ```
 
-## Quy trình
+Workflow:
 
 ```text
 Requirement
@@ -217,42 +344,17 @@ IMPLEMENT
 TEST
 ```
 
-Plan nằm tại:
+Plan:
 
 ```text
 docs/modules/StudentHealth/CREATE_PLAN.md
 ```
 
-## Cách làm khuyến nghị
-
-Lần 1:
-
-```text
-/create-module StudentHealth
-Hãy lập kế hoạch, chưa implement.
-```
-
-Sau khi đọc `CREATE_PLAN.md`, nếu đồng ý:
-
-```text
-Tôi duyệt CREATE_PLAN.md của StudentHealth. Tiếp tục implement theo plan.
-```
-
-AI chỉ được implement sau bước duyệt này.
-
 ---
 
-# 6. `/create-module-from-docs <SourceModule> <TargetModule>`
+# 9. `/create-module-from-docs <SourceModule> <TargetModule>`
 
-File:
-
-```text
-.codex/tasks/create-module-from-docs.md
-```
-
-## Khi nào dùng?
-
-Dùng khi muốn tạo một module mới dựa trên **nghiệp vụ/ý tưởng của module đã tồn tại**, nhưng module mới phải độc lập.
+Dùng khi muốn tạo module mới dựa trên nghiệp vụ/ý tưởng của module đã tồn tại nhưng module mới phải độc lập.
 
 Ví dụ:
 
@@ -260,113 +362,43 @@ Ví dụ:
 /create-module-from-docs Website WebsiteV2
 ```
 
-## Quan trọng
+Task không clone source và không implement ngay.
 
-Task này **không clone source** và **không implement ngay**.
-
-Nó đọc:
-
-```text
-Source docs
-+
-Source code để xác minh
-+
-Canonical standards
-```
-
-rồi tạo:
+Nó tạo:
 
 ```text
 docs/modules/WebsiteV2/CREATE_PLAN.md
 ```
 
-Sau đó STOP để người dùng duyệt.
-
 Sau khi duyệt, implementation phải theo canonical `/create-module` workflow.
-
-## Khi nào nên dùng?
-
-Ví dụ:
-
-```text
-Website cũ
-    ↓
-muốn WebsiteV2
-    ↓
-không muốn clone technical debt
-    ↓
-/create-module-from-docs
-```
 
 ---
 
-# 7. `/refactor <ModuleName>`
+# 10. `/refactor <ModuleName>`
 
-File:
+Dùng khi module đã hoạt động và muốn cải tiến nhưng giữ phần lớn behavior/public contract hiện tại.
 
-```text
-.codex/tasks/refactor-module.md
-```
-
-## Khi nào dùng?
-
-Dùng khi module đã hoạt động và muốn cải tiến nhưng **giữ phần lớn behavior/public contract hiện tại**.
-
-Nên chạy `/analyze` trước.
-
-Ví dụ:
+Khuyến nghị:
 
 ```text
 /analyze Administrative
-```
-
-Sau khi xem analysis:
-
-```text
+        ↓
 /refactor Administrative
 ```
 
-Task tạo:
+Output:
 
 ```text
 docs/modules/Administrative/REFACTOR_PLAN.md
 ```
 
-rồi STOP.
-
-Sau khi duyệt:
-
-```text
-Tôi duyệt REFACTOR_PLAN.md của Administrative. Tiếp tục implement.
-```
-
-## Refactor phù hợp khi
-
-- business logic đặt sai layer
-- query chậm
-- thiếu transaction
-- thiếu authorization
-- duplicate code
-- Livewire quá lớn
-- Service cần chuẩn hóa
-- test coverage thiếu
-- technical debt nhưng không cần thiết kế lại toàn module
+Sau đó STOP để người dùng duyệt.
 
 ---
 
-# 8. `/rebuild <ModuleName>`
-
-File:
-
-```text
-.codex/tasks/rebuild-module.md
-```
-
-## Khi nào dùng?
+# 11. `/rebuild <ModuleName>`
 
 Dùng khi module có vấn đề kiến trúc lớn hoặc cần thiết kế lại đáng kể.
-
-Không nên dùng rebuild chỉ để sửa vài lỗi nhỏ.
 
 Workflow:
 
@@ -388,42 +420,11 @@ USER APPROVAL
 IMPLEMENT
 ```
 
-Ví dụ:
-
-```text
-/rebuild LegacyInventory
-```
-
-Sau khi kiểm tra specification:
-
-```text
-Tôi duyệt REBUILD_SPEC.md của LegacyInventory. Tiếp tục rebuild theo spec.
-```
-
-## Rebuild cần đặc biệt kiểm tra
-
-- backward compatibility
-- route names
-- permissions
-- database/schema
-- migration strategy
-- storage paths
-- import/export
-- queue/events
-- rollback
-- test coverage
+Không nên dùng rebuild chỉ để sửa vài lỗi nhỏ.
 
 ---
 
-# 9. `/import-export <ModuleName>`
-
-File:
-
-```text
-.codex/tasks/create-import-export.md
-```
-
-## Khi nào dùng?
+# 12. `/import-export <ModuleName>`
 
 Dùng khi cần tạo mới hoặc cải tiến Import/Export cho module.
 
@@ -441,61 +442,41 @@ Modules/Shared/Services/ImportExport
 
 nếu phù hợp.
 
-## Planning
-
-Task tạo:
+Planning output:
 
 ```text
 docs/modules/Product/IMPORT_EXPORT_PLAN.md
 ```
 
-Plan phải mô tả:
-
-```text
-Import
-- format
-- headers
-- mapping
-- validation
-- duplicate handling
-- transaction
-- errors
-- chunk/batch
-- queue/progress
-- cleanup
-
-Export
-- filters
-- columns
-- query
-- large dataset
-- storage
-- download lifecycle
-```
-
-Sau đó STOP.
-
-Khi đồng ý:
-
-```text
-Tôi duyệt IMPORT_EXPORT_PLAN.md của Product. Tiếp tục implement.
-```
+Sau đó STOP để người dùng duyệt.
 
 ---
 
-# 10. Chọn task nào?
+# 13. Chọn task nào?
 
 ```text
 Tôi có MODULE ĐÃ TỒN TẠI
         │
-        ├── Muốn hiểu module
+        ├── Muốn hiểu cả module
         │       → /analyze
         │
-        ├── Muốn cải tiến
+        ├── Muốn cải tiến cả module
         │       → /analyze → /refactor
         │
-        ├── Muốn thiết kế lại
+        ├── Muốn thiết kế lại cả module
         │       → /analyze → /rebuild
+        │
+        ├── Muốn phân tích 1 Livewire
+        │       → /analyze-livewire
+        │
+        ├── Muốn refactor 1 Livewire
+        │       → /analyze-livewire → /refactor-livewire
+        │
+        ├── Muốn thêm chức năng vào 1 Livewire
+        │       → /analyze-livewire
+        │       → CHANGE_PLAN.md
+        │       → approve
+        │       → implement
         │
         └── Muốn thêm Import/Export
                 → /analyze (khuyến nghị)
@@ -516,9 +497,9 @@ Tôi có FILE MARKDOWN cần kiểm tra
 
 ---
 
-# 11. Quy trình khuyến nghị cho Production
+# 14. Quy trình khuyến nghị cho Production
 
-Đối với module đã tồn tại:
+## Module-level
 
 ```text
 /analyze
@@ -528,14 +509,8 @@ Tôi có FILE MARKDOWN cần kiểm tra
 quyết định
    │
    ├── không cần sửa
-   │
    ├── /refactor
-   │      ↓
-   │   REFACTOR_PLAN.md
-   │
    └── /rebuild
-          ↓
-       REBUILD_SPEC.md
 
 PLAN / SPEC
    ↓
@@ -544,11 +519,35 @@ USER APPROVAL
 IMPLEMENT
    ↓
 TEST
-   ↓
-/analyze lại nếu thay đổi lớn
 ```
 
-Đối với module mới:
+## Livewire-level
+
+```text
+/analyze-livewire
+        ↓
+component ANALYSIS.md
+        ↓
+        ├── Feature mới
+        │      ↓
+        │   CHANGE_PLAN.md
+        │
+        └── Refactor
+               ↓
+          /refactor-livewire
+               ↓
+          REFACTOR_PLAN.md
+
+PLAN
+ ↓
+USER APPROVAL
+ ↓
+IMPLEMENT
+ ↓
+TEST
+```
+
+## Module mới
 
 ```text
 Requirement
@@ -568,9 +567,9 @@ TEST
 
 ---
 
-# 12. Cách duyệt Plan/Spec
+# 15. Cách duyệt Plan/Spec
 
-Không cần câu lệnh đặc biệt. Người dùng chỉ cần nói rõ đã duyệt file nào.
+Không cần câu lệnh đặc biệt. Chỉ cần nói rõ file nào đã được duyệt.
 
 Ví dụ:
 
@@ -582,15 +581,15 @@ Tiếp tục implement đúng plan, không mở rộng scope.
 Hoặc:
 
 ```text
-CREATE_PLAN.md chưa ổn.
-Hãy sửa phần database, chưa được implement.
+CHANGE_PLAN.md chưa ổn.
+Hãy sửa phần permission và audit log, chưa được implement.
 ```
 
-AI phải hiểu trường hợp thứ hai là **chưa được phép coding**.
+Trường hợp thứ hai nghĩa là **chưa được phép coding**.
 
 ---
 
-# 13. Nguyên tắc chống AI tự mở rộng scope
+# 16. Nguyên tắc chống AI tự mở rộng scope
 
 Khi implement:
 
@@ -598,20 +597,18 @@ Khi implement:
 - Không tự đổi architecture ngoài plan/spec.
 - Không tự đổi database nếu plan không cho phép.
 - Không tự đổi route/permission/public contract.
-- Không refactor module khác vì "tiện thể".
+- Không refactor module/component khác vì "tiện thể".
 - Không thêm package/framework mới nếu chưa được duyệt.
 - Không rewrite migration đã áp dụng chỉ để làm code đẹp hơn.
-- Nếu phát hiện vấn đề mới ảnh hưởng scope, phải báo lại trước.
+- Nếu phát hiện vấn đề mới ảnh hưởng scope, phải cập nhật plan/spec và xin duyệt lại.
 
 ---
 
-# 14. Documentation lifecycle
-
-Các file có vai trò khác nhau:
+# 17. Documentation lifecycle
 
 ```text
 ANALYSIS.md
-    = module đang có vấn đề gì?
+    = module/component đang có vấn đề gì?
 
 INFORMATION.md
     = module hiện đang có gì?
@@ -623,10 +620,13 @@ CREATE_PLAN.md
     = module mới sẽ được tạo như thế nào?
 
 REFACTOR_PLAN.md
-    = module hiện tại sẽ được cải tiến như thế nào?
+    = module/component sẽ được cải tiến như thế nào?
+
+CHANGE_PLAN.md
+    = chức năng mới trên component sẽ thay đổi gì?
 
 REBUILD_SPEC.md
-    = kiến trúc mới phải trở thành gì?
+    = kiến trúc module mới phải trở thành gì?
 
 IMPORT_EXPORT_PLAN.md
     = import/export sẽ hoạt động như thế nào?
@@ -636,55 +636,49 @@ Không dùng một file thay cho tất cả mục đích.
 
 ---
 
-# 15. Ví dụ với Administrative
+# 18. Ví dụ với `Administrative / SubmissionDetail`
 
-Phân tích:
+Phân tích riêng component:
 
 ```text
-/analyze Administrative
+/analyze-livewire Administrative Submissions/SubmissionDetail
 ```
 
-Kết quả:
+Output:
 
 ```text
-docs/modules/Administrative/
-├── ANALYSIS.md
-├── INFORMATION.md
-└── README.md
+docs/modules/Administrative/livewire/submissions-submission-detail/ANALYSIS.md
 ```
 
 Nếu muốn refactor:
 
 ```text
-/refactor Administrative
+/refactor-livewire Administrative Submissions/SubmissionDetail
 ```
 
-Kết quả planning:
+Output:
 
 ```text
 REFACTOR_PLAN.md
 ```
 
+Nếu muốn thêm chức năng:
+
+```text
+Hãy lập CHANGE_PLAN.md để thêm chức năng hoàn tác yêu cầu bổ sung.
+Chưa implement.
+```
+
 Sau khi kiểm tra:
 
 ```text
-Tôi duyệt REFACTOR_PLAN.md của Administrative.
-Tiếp tục implement và chạy targeted tests.
+Tôi duyệt CHANGE_PLAN.md của SubmissionDetail.
+Tiếp tục implement đúng scope và chạy targeted tests.
 ```
-
-Nếu thay vào đó muốn rebuild:
-
-```text
-/rebuild Administrative
-```
-
-AI tạo `REBUILD_SPEC.md` trước và chờ duyệt.
 
 ---
 
-# 16. Checklist trước khi cho AI implement
-
-Người dùng nên kiểm tra:
+# 19. Checklist trước khi cho AI implement
 
 ```text
 [ ] Scope đúng chưa?
@@ -693,26 +687,29 @@ Người dùng nên kiểm tra:
 [ ] Route/permission có thay đổi không?
 [ ] Có phá backward compatibility không?
 [ ] Có cần migration/rollback không?
-[ ] Có ảnh hưởng module khác không?
+[ ] Có ảnh hưởng component/module khác không?
 [ ] Test plan đủ chưa?
 [ ] Import/export/storage có rủi ro không?
 [ ] Có phần nào AI đang Assumption/Unknown không?
 ```
 
-Nếu còn điểm quan trọng chưa rõ, hãy yêu cầu AI sửa plan/spec trước khi approve.
+Nếu còn điểm quan trọng chưa rõ, yêu cầu AI sửa plan/spec trước khi approve.
 
 ---
 
-# 17. Tóm tắt nhanh
+# 20. Tóm tắt nhanh
 
 | Nhu cầu | Task |
 |---|---|
-| Phân tích module | `/analyze <Module>` |
+| Phân tích cả module | `/analyze <Module>` |
+| Phân tích 1 Livewire component | `/analyze-livewire <Module> <Component>` |
+| Refactor 1 Livewire component | `/refactor-livewire <Module> <Component>` |
+| Thêm chức năng vào 1 Livewire | `/analyze-livewire` → `CHANGE_PLAN.md` → approve |
 | Phân tích Markdown/spec | `/analyze-md <file>` |
 | Tạo module mới | `/create-module <Module>` |
 | Tạo module mới dựa trên module cũ | `/create-module-from-docs <Source> <Target>` |
-| Refactor module | `/refactor <Module>` |
-| Rebuild module | `/rebuild <Module>` |
+| Refactor cả module | `/refactor <Module>` |
+| Rebuild cả module | `/rebuild <Module>` |
 | Tạo/cải tiến Import Export | `/import-export <Module>` |
 
 Quy tắc cần nhớ nhất:
