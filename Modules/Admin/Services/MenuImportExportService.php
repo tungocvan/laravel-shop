@@ -144,7 +144,7 @@ class MenuImportExportService
                     }
 
                     $seenKeys[] = $key;
-                    $existing = $this->findMenuByKey($key);
+                    $existing = $this->findMenuByKey($key, true);
 
                     if ($existing && $mode === 'skip_duplicate') {
                         $menusByKey[$key] = $existing;
@@ -164,6 +164,10 @@ class MenuImportExportService
                     ];
 
                     if ($existing) {
+                        if ($existing->trashed()) {
+                            $existing->restore();
+                        }
+
                         $existing->update($data);
                         $menu = $existing->refresh();
                     } else {
@@ -188,8 +192,12 @@ class MenuImportExportService
 
                     $parentKey = $row['parent_key'];
                     $parent = $parentKey
-                        ? ($menusByKey[$parentKey] ?? $this->findMenuByKey($parentKey))
+                        ? ($menusByKey[$parentKey] ?? $this->findMenuByKey($parentKey, true))
                         : null;
+
+                    if ($parent?->trashed()) {
+                        $parent->restore();
+                    }
 
                     $menu->update([
                         'parent_id' => $parent?->getKey(),
@@ -362,7 +370,7 @@ class MenuImportExportService
                 continue;
             }
 
-            if (! $this->findMenuByKey($row['parent_key'])) {
+            if (! $this->findMenuByKey($row['parent_key'], true)) {
                 $this->addError(
                     $report,
                     (string) ($index + 2),
@@ -455,11 +463,15 @@ class MenuImportExportService
             'sort_order' => $sort,
         ];
 
-        $menu = $this->findMenuByKey($slug);
+        $menu = $this->findMenuByKey($slug, true);
 
         if ($menu && $mode === 'skip_duplicate') {
             $report['skipped_rows']++;
         } elseif ($menu) {
+            if ($menu->trashed()) {
+                $menu->restore();
+            }
+
             $menu->update($data);
             $report['success_rows']++;
         } else {
@@ -474,19 +486,22 @@ class MenuImportExportService
         return $menu;
     }
 
-    private function findMenuByKey(?string $key): ?AdminMenu
+    private function findMenuByKey(?string $key, bool $withTrashed = false): ?AdminMenu
     {
         if ($key === null || $key === '') {
             return null;
         }
 
-        $menu = AdminMenu::query()->where('slug', $key)->first();
+        $query = $withTrashed ? AdminMenu::withTrashed() : AdminMenu::query();
+        $menu = $query->where('slug', $key)->first();
 
         if ($menu) {
             return $menu;
         }
 
-        return AdminMenu::query()
+        $fallbackQuery = $withTrashed ? AdminMenu::withTrashed() : AdminMenu::query();
+
+        return $fallbackQuery
             ->whereNull('slug')
             ->get()
             ->first(fn (AdminMenu $candidate): bool => $this->menuKey($candidate) === $key);
