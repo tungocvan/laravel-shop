@@ -16,15 +16,12 @@ class MenuImportExportService
     private string $sheet = 'menus';
 
     private array $headers = [
-        'key',
-        'parent_key',
-        'name',
-        'url',
-        'icon',
-        'can',
-        'is_active',
-        'sort_order',
+        'key', 'parent_key', 'name', 'url', 'icon', 'can', 'is_active', 'sort_order',
     ];
+
+    public function __construct(private readonly MenuService $menuService)
+    {
+    }
 
     public function defaultPath(): string
     {
@@ -46,24 +43,13 @@ class MenuImportExportService
     {
         return $this->writeSpreadsheet(collect([
             [
-                'key' => 'dashboard',
-                'parent_key' => null,
-                'name' => 'Dashboard',
-                'url' => '/admin',
-                'icon' => 'home',
-                'can' => 'admin.dashboard.view',
-                'is_active' => 1,
-                'sort_order' => 0,
+                'key' => 'dashboard', 'parent_key' => null, 'name' => 'Dashboard', 'url' => '/admin',
+                'icon' => 'home', 'can' => 'admin.dashboard.view', 'is_active' => 1, 'sort_order' => 0,
             ],
             [
-                'key' => 'system.database',
-                'parent_key' => 'system',
-                'name' => 'Database',
-                'url' => '/admin/system/database',
-                'icon' => 'database',
-                'can' => 'admin.database.view',
-                'is_active' => 0,
-                'sort_order' => 1,
+                'key' => 'system.database', 'parent_key' => 'system', 'name' => 'Database',
+                'url' => '/admin/system/database', 'icon' => 'database', 'can' => 'admin.database.view',
+                'is_active' => 0, 'sort_order' => 1,
             ],
         ]), 'menus-template');
     }
@@ -71,7 +57,6 @@ class MenuImportExportService
     public function importFromFile(string $filePath, array $options = []): array
     {
         $this->validateReadableFile($filePath);
-
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 
         if ($extension === 'json') {
@@ -105,8 +90,6 @@ class MenuImportExportService
                 ->values();
 
             $report['total_rows'] = $rows->count();
-            $report['debug']['headers'] = $this->headers;
-
             $this->validateExcelRows($rows, $report);
 
             if ($report['error_rows'] > 0) {
@@ -131,10 +114,7 @@ class MenuImportExportService
                     }
 
                     $seenKeys[] = $key;
-
-                    $existing = AdminMenu::query()
-                        ->where('slug', $key)
-                        ->first();
+                    $existing = AdminMenu::query()->where('slug', $key)->first();
 
                     if ($existing && $mode === 'skip_duplicate') {
                         $menusByKey[$key] = $existing;
@@ -166,7 +146,6 @@ class MenuImportExportService
                     }
 
                     $menu = $menusByKey[$row['key']] ?? null;
-
                     if (! $menu) {
                         continue;
                     }
@@ -196,7 +175,6 @@ class MenuImportExportService
             ]);
 
             $this->addError($report, null, null, null, 'Loi he thong khi import menu Excel. Vui long kiem tra log.');
-            $report['debug']['exception'] = $exception->getMessage();
 
             return $report;
         }
@@ -214,13 +192,11 @@ class MenuImportExportService
             }
 
             $items = json_decode($content, true);
-
             if (json_last_error() !== JSON_ERROR_NONE || ! is_array($items)) {
                 throw new \InvalidArgumentException('File JSON menu khong hop le.');
             }
 
             $this->validateTree($items, $report);
-
             if ($report['error_rows'] > 0) {
                 return $report;
             }
@@ -241,7 +217,6 @@ class MenuImportExportService
             return $report;
         } catch (\InvalidArgumentException $exception) {
             $this->addError($report, null, null, null, $exception->getMessage());
-            $report['debug']['exception'] = $exception->getMessage();
 
             return $report;
         } catch (\Throwable $exception) {
@@ -253,7 +228,6 @@ class MenuImportExportService
             ]);
 
             $this->addError($report, null, null, null, 'Loi he thong khi import menu JSON. Vui long kiem tra log.');
-            $report['debug']['exception'] = $exception->getMessage();
 
             return $report;
         }
@@ -261,7 +235,7 @@ class MenuImportExportService
 
     private function flattenMenus(array $filters): BaseCollection
     {
-        $roots = $this->query($filters)
+        $roots = $this->menuService->query($filters)
             ->with('children')
             ->whereNull('parent_id')
             ->get();
@@ -275,7 +249,6 @@ class MenuImportExportService
 
         foreach ($menus as $menu) {
             $key = $this->menuKey($menu);
-
             $rows[] = [
                 'key' => $key,
                 'parent_key' => $parentKey,
@@ -299,10 +272,8 @@ class MenuImportExportService
     {
         $directory = storage_path('app/public/exports');
         File::ensureDirectoryExists($directory);
-
-        $path = 'exports/' . $name . '-' . now()->format('Ymd-His') . '.xlsx';
-
-        (new FastExcel($rows))->export(storage_path('app/public/' . $path));
+        $path = 'exports/'.$name.'-'.now()->format('Ymd-His').'.xlsx';
+        (new FastExcel($rows))->export(storage_path('app/public/'.$path));
 
         return $path;
     }
@@ -310,7 +281,6 @@ class MenuImportExportService
     private function normalizeExcelRow(array $raw): array
     {
         $row = [];
-
         foreach ($raw as $header => $value) {
             $row[$this->normalizeHeader((string) $header)] = $value;
         }
@@ -330,37 +300,24 @@ class MenuImportExportService
     private function validateExcelRows(BaseCollection $rows, array &$report): void
     {
         $keys = [];
-
         foreach ($rows as $index => $row) {
             $rowNumber = (string) ($index + 2);
-
             if (! $row['key']) {
                 $this->addError($report, $rowNumber, 'key', null, 'Key menu khong duoc de trong.');
             }
-
             if (! $row['name']) {
                 $this->addError($report, $rowNumber, 'name', null, 'Ten menu khong duoc de trong.');
             }
-
             $keys[] = $row['key'];
         }
 
         $keySet = array_filter($keys);
-
         foreach ($rows as $index => $row) {
-            if (! $row['parent_key']) {
+            if (! $row['parent_key'] || in_array($row['parent_key'], $keySet, true)) {
                 continue;
             }
 
-            if (in_array($row['parent_key'], $keySet, true)) {
-                continue;
-            }
-
-            $parentExists = AdminMenu::query()
-                ->where('slug', $row['parent_key'])
-                ->exists();
-
-            if (! $parentExists) {
+            if (! AdminMenu::query()->where('slug', $row['parent_key'])->exists()) {
                 $this->addError(
                     $report,
                     (string) ($index + 2),
@@ -383,42 +340,16 @@ class MenuImportExportService
         return false;
     }
 
-    private function query(array $filters = [])
-    {
-        $query = AdminMenu::menu();
-
-        $search = trim((string) ($filters['search'] ?? ''));
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search): void {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('url', 'like', "%{$search}%");
-            });
-        }
-
-        $status = $filters['status'] ?? 'all';
-
-        if ($status === 'active') {
-            $query->where('is_active', true);
-        } elseif ($status === 'inactive') {
-            $query->where('is_active', false);
-        }
-
-        return $query->orderBy('sort_order');
-    }
-
     private function validateReadableFile(string $filePath): void
     {
         if (! File::exists($filePath)) {
             throw new \RuntimeException('File import menu khong ton tai.');
         }
-
         if (! is_readable($filePath)) {
             throw new \RuntimeException('File import menu khong doc duoc.');
         }
 
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-
         if (! in_array($extension, ['xlsx', 'csv', 'json'], true)) {
             throw new \RuntimeException('Menu import chi ho tro file .xlsx, .csv hoac .json.');
         }
@@ -434,29 +365,24 @@ class MenuImportExportService
                 $this->addError($report, $row, null, null, 'Menu item phai la object.');
                 continue;
             }
-
             if (trim((string) ($item['name'] ?? '')) === '') {
                 $this->addError($report, $row, 'name', $item['name'] ?? null, 'Ten menu khong duoc de trong.');
             }
-
             foreach (['url', 'icon', 'can'] as $field) {
                 if (array_key_exists($field, $item) && ! is_null($item[$field]) && ! is_scalar($item[$field])) {
                     $this->addError($report, $row, $field, null, "Truong {$field} phai la chuoi hoac null.");
                 }
             }
-
             if (array_key_exists('is_active', $item) && ! is_bool($item['is_active']) && ! in_array($item['is_active'], [0, 1, '0', '1'], true)) {
                 $this->addError($report, $row, 'is_active', $item['is_active'], 'Trang thai menu khong hop le.');
             }
-
             if (array_key_exists('children', $item) && ! is_array($item['children'])) {
                 $this->addError($report, $row, 'children', null, 'Children phai la mang.');
                 continue;
             }
 
             $children = $item['children'] ?? [];
-
-            if (! empty($children)) {
+            if ($children !== []) {
                 $this->validateTree($children, $report, $row);
             }
         }
@@ -477,9 +403,7 @@ class MenuImportExportService
             'sort_order' => $sort,
         ];
 
-        $menu = AdminMenu::query()
-            ->where('slug', $slug)
-            ->first();
+        $menu = AdminMenu::query()->where('slug', $slug)->first();
 
         if ($menu && $mode === 'skip_duplicate') {
             $report['skipped_rows']++;
@@ -500,7 +424,7 @@ class MenuImportExportService
 
     private function menuKey(AdminMenu $menu): string
     {
-        return $this->normalizeKey($menu->slug ?: $menu->name) ?: 'menu-' . $menu->getKey();
+        return $this->normalizeKey($menu->slug ?: $menu->name) ?: 'menu-'.$menu->getKey();
     }
 
     private function normalizeHeader(string $header): string
@@ -512,11 +436,7 @@ class MenuImportExportService
     {
         $value = $this->nullableString($value);
 
-        if ($value === null) {
-            return null;
-        }
-
-        return Str::slug($value);
+        return $value === null ? null : Str::slug($value);
     }
 
     private function nullableString(mixed $value): ?string
@@ -576,6 +496,6 @@ class MenuImportExportService
 
     private function nodeRow(string $path, int $index): string
     {
-        return $path . '.' . ($index + 1);
+        return $path.'.'.($index + 1);
     }
 }
