@@ -3,18 +3,36 @@
 @php
     $menuId   = data_get($menu, 'id');
     $children = data_get($menu, 'children', []);
+    $hasChildren = !empty($children) && count($children) > 0;
 @endphp
 
 @if($menuId)
-<li data-id="{{ $menuId }}" class="relative">
+<li data-id="{{ $menuId }}" class="relative" x-data="{ expanded: true }">
     <div class="{{ data_get($menu, 'is_active') ? 'bg-white' : 'bg-gray-50 opacity-75' }} border border-gray-200 rounded-lg shadow-sm p-3 flex items-center justify-between group hover:border-indigo-300 transition-colors">
 
-        <div class="flex items-center gap-3 flex-1">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
             <!-- Checkbox -->
             <input type="checkbox"
                    wire:model.live="selectedMenus"
                    value="{{ $menuId }}"
                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+
+            <!-- Collapse / Expand -->
+            @if($hasChildren)
+                <button type="button"
+                        @click.stop="expanded = !expanded"
+                        :aria-expanded="expanded.toString()"
+                        aria-label="Thu gọn hoặc mở rộng menu con"
+                        class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                    <svg class="h-4 w-4 transition-transform duration-150"
+                         :class="expanded ? 'rotate-90' : 'rotate-0'"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            @else
+                <span class="h-7 w-7 shrink-0"></span>
+            @endif
 
             <!-- Drag -->
             <div class="drag-handle cursor-move text-gray-400 hover:text-indigo-600 p-1">
@@ -24,8 +42,8 @@
             </div>
 
             <!-- Info -->
-            <div class="flex items-center gap-3">
-                <div class="h-8 w-8 rounded bg-gray-50 flex items-center justify-center text-gray-500 border border-gray-100">
+            <div class="flex min-w-0 items-center gap-3">
+                <div class="h-8 w-8 shrink-0 rounded bg-gray-50 flex items-center justify-center text-gray-500 border border-gray-100">
                     @if(data_get($menu, 'icon'))
                         <x-icon name="{{ data_get($menu, 'icon') }}" class="h-5 w-5" />
                     @else
@@ -33,9 +51,9 @@
                     @endif
                 </div>
 
-                <div>
-                    <div class="font-bold text-gray-800 text-sm flex items-center gap-2">
-                        {{ data_get($menu, 'name') }}
+                <div class="min-w-0">
+                    <div class="font-bold text-gray-800 text-sm flex flex-wrap items-center gap-2">
+                        <span>{{ data_get($menu, 'name') }}</span>
 
                         @if(empty(data_get($menu, 'url')))
                             <span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded border border-gray-200 uppercase">Section</span>
@@ -44,9 +62,15 @@
                         @if(!data_get($menu, 'is_active'))
                             <span class="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded border border-red-200 uppercase">Ẩn</span>
                         @endif
+
+                        @if($hasChildren)
+                            <span class="rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600">
+                                {{ count($children) }} menu con
+                            </span>
+                        @endif
                     </div>
 
-                    <div class="text-xs text-gray-500 font-mono">
+                    <div class="truncate text-xs text-gray-500 font-mono">
                         {{ data_get($menu, 'url') ?? '---' }}
                     </div>
                 </div>
@@ -110,8 +134,10 @@
     </div>
 
     <!-- CHILDREN -->
-    @if(!empty($children))
-        <ul class="menu-list pl-8 mt-2 space-y-2 border-l-2 border-gray-100 ml-4">
+    @if($hasChildren)
+        <ul x-show="expanded"
+            x-collapse
+            class="menu-list pl-8 mt-2 space-y-2 border-l-2 border-gray-100 ml-4">
             @foreach($children as $child)
                 <x-menu-item :menu="$child" :selected="$selected" />
             @endforeach
