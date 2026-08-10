@@ -63,7 +63,7 @@ class Sidebar extends Component
         // ======================
         'border'            => 'border-slate-200',
     ];
-  
+
     // ======================
     // MOUNT
     // ======================
