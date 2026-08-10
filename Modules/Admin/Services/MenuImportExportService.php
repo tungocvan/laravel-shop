@@ -146,7 +146,7 @@ class MenuImportExportService
                     $seenKeys[] = $key;
                     $existing = $this->findMenuByKey($key, true);
 
-                    if ($existing && $mode === 'skip_duplicate') {
+                    if ($existing && $mode === 'skip_duplicate' && ! $existing->trashed()) {
                         $menusByKey[$key] = $existing;
                         $report['skipped_rows']++;
                         continue;
@@ -168,7 +168,10 @@ class MenuImportExportService
                             $existing->restore();
                         }
 
-                        $existing->update($data);
+                        if ($mode === 'update_or_create') {
+                            $existing->update($data);
+                        }
+
                         $menu = $existing->refresh();
                     } else {
                         $menu = AdminMenu::query()->create($data);
@@ -465,14 +468,17 @@ class MenuImportExportService
 
         $menu = $this->findMenuByKey($slug, true);
 
-        if ($menu && $mode === 'skip_duplicate') {
+        if ($menu && $mode === 'skip_duplicate' && ! $menu->trashed()) {
             $report['skipped_rows']++;
         } elseif ($menu) {
             if ($menu->trashed()) {
                 $menu->restore();
             }
 
-            $menu->update($data);
+            if ($mode === 'update_or_create') {
+                $menu->update($data);
+            }
+
             $report['success_rows']++;
         } else {
             $menu = AdminMenu::query()->create($data);
