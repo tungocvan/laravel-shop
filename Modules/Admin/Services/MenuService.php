@@ -7,9 +7,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Admin\Models\AdminMenu;
+use Spatie\Permission\Models\Permission;
 
 class MenuService
 {
+    private const MAX_SORT_ITEMS = 500;
+
+    private const MAX_SORT_DEPTH = 10;
+
     public function idsForSelection(array $filters = []): array
     {
         return $this->query($filters)
@@ -36,6 +41,14 @@ class MenuService
         ];
     }
 
+    public function permissionOptions(): array
+    {
+        return Permission::query()
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
+    }
+
     public function delete(int|string $id): bool
     {
         $menu = $this->findMenu($id);
@@ -44,7 +57,11 @@ class MenuService
             return false;
         }
 
-        $menu->delete();
+        DB::transaction(function () use ($menu): void {
+            $menu->delete();
+        });
+
+        AdminMenu::clearMenuCache();
 
         return true;
     }
@@ -57,7 +74,11 @@ class MenuService
             return false;
         }
 
-        $menu->update(['is_active' => ! $menu->is_active]);
+        DB::transaction(function () use ($menu): void {
+            $menu->update(['is_active' => ! $menu->is_active]);
+        });
+
+        AdminMenu::clearMenuCache();
 
         return true;
     }
@@ -74,6 +95,8 @@ class MenuService
             $this->duplicateRecursive($original, $original->parent_id);
         });
 
+        AdminMenu::clearMenuCache();
+
         return true;
     }
 
@@ -81,45 +104,60 @@ class MenuService
     {
         $ids = $this->normalizeIds($ids);
 
-        if (empty($ids)) {
+        if ($ids === []) {
             return 0;
         }
 
-        $menus = AdminMenu::menu()->whereKey($ids)->get();
+        $count = DB::transaction(function () use ($ids): int {
+            $menus = AdminMenu::menu()->whereKey($ids)->get();
+            $menus->each->delete();
 
-        $menus->each->delete();
+            return $menus->count();
+        });
 
-        return $menus->count();
+        AdminMenu::clearMenuCache();
+
+        return $count;
     }
 
     public function bulkToggleStatus(array $ids, bool $status): int
     {
         $ids = $this->normalizeIds($ids);
 
-        if (empty($ids)) {
+        if ($ids === []) {
             return 0;
         }
 
-        $menus = AdminMenu::menu()->whereKey($ids)->get();
+        $count = DB::transaction(function () use ($ids, $status): int {
+            $menus = AdminMenu::menu()->whereKey($ids)->get();
+            $menus->each(fn (AdminMenu $menu) => $menu->update(['is_active' => $status]));
 
-        $menus->each(fn (AdminMenu $menu) => $menu->update(['is_active' => $status]));
+            return $menus->count();
+        });
 
-        return $menus->count();
+        AdminMenu::clearMenuCache();
+
+        return $count;
     }
 
     public function bulkAssignPermission(array $ids, ?string $permission): int
     {
         $ids = $this->normalizeIds($ids);
 
-        if (empty($ids)) {
+        if ($ids === []) {
             return 0;
         }
 
-        $menus = AdminMenu::menu()->whereKey($ids)->get();
+        $count = DB::transaction(function () use ($ids, $permission): int {
+            $menus = AdminMenu::menu()->whereKey($ids)->get();
+            $menus->each(fn (AdminMenu $menu) => $menu->update(['can' => $permission]));
 
-        $menus->each(fn (AdminMenu $menu) => $menu->update(['can' => $permission]));
+            return $menus->count();
+        });
 
-        return $menus->count();
+        AdminMenu::clearMenuCache();
+
+        return $count;
     }
 
     public function updateOrder(array $items): void
@@ -137,7 +175,7 @@ class MenuService
     {
         $query = AdminMenu::menu();
 
-        $search = trim((string) ($filters['search'] ?? ''));
+        $search = mb_substr(trim((string) ($filters['search'] ?? '')), 0, 100);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search): void {
@@ -165,8 +203,7 @@ class MenuService
     private function duplicateRecursive(AdminMenu $node, ?int $parentId): void
     {
         $new = $node->replicate();
-
-        $new->name = $node->name . ' (Copy)';
+        $new->name = $node->name.' (Copy)';
         $new->parent_id = $parentId;
         $new->slug = $this->generateUniqueSlug($node);
         $new->sort_order = $node->sort_order + 1;
@@ -180,8 +217,8 @@ class MenuService
     private function generateUniqueSlug(AdminMenu $original): string
     {
         $base = $original->slug
-            ? $original->slug . '-copy'
-            : Str::slug($original->name . ' copy');
+            ? $original->slug.'-copy'
+            : Str::slug($original->name.' copy');
 
         $slug = $base;
         $i = 1;
@@ -210,14 +247,19 @@ class MenuService
 
     private function validateOrderPayload(array $items): void
     {
-        $ids = $this->extractOrderIds($items);
+        $ids = [];
+        $this->collectAndValidateOrderIds($items, $ids, 1);
 
-        if (empty($ids)) {
-            return;
+        if (count($ids) > self::MAX_SORT_ITEMS) {
+            throw new \InvalidArgumentException('Payload sap xep menu vuot qua gioi han cho phep.');
         }
 
         if (count($ids) !== count(array_unique($ids))) {
             throw new \InvalidArgumentException('Payload sap xep menu co ID bi trung.');
+        }
+
+        if ($ids === []) {
+            return;
         }
 
         $validCount = AdminMenu::menu()->whereKey($ids)->count();
@@ -227,9 +269,11 @@ class MenuService
         }
     }
 
-    private function extractOrderIds(array $items): array
+    private function collectAndValidateOrderIds(array $items, array &$ids, int $depth): void
     {
-        $ids = [];
+        if ($depth > self::MAX_SORT_DEPTH) {
+            throw new \InvalidArgumentException('Payload sap xep menu vuot qua do sau cho phep.');
+        }
 
         foreach ($items as $item) {
             if (! is_array($item) || empty($item['id']) || ! is_numeric($item['id'])) {
@@ -243,11 +287,9 @@ class MenuService
                     throw new \InvalidArgumentException('Payload children khong hop le.');
                 }
 
-                $ids = array_merge($ids, $this->extractOrderIds($item['children']));
+                $this->collectAndValidateOrderIds($item['children'], $ids, $depth + 1);
             }
         }
-
-        return $ids;
     }
 
     private function normalizeIds(array $ids): array
