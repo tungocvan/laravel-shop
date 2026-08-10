@@ -5,9 +5,10 @@
 
         {{-- LOGO --}}
         <div class="flex justify-center mb-4">
-            <img src="{{ $logo }}"
-                 class="w-32 h-32 object-contain"
-                 alt="Logo {{ $login_name_line_2 }}">
+            <img src="{{ $logo && Storage::disk('public')->exists($logo)
+                ? Storage::disk('public')->url($logo)
+                : asset('storage/logo.png') }}"
+                class="w-32 h-32 object-contain" alt="Logo {{ $login_name_line_2 }}">
         </div>
 
         {{-- SCHOOL NAME --}}
@@ -34,10 +35,9 @@
             <label class="block text-gray-700 text-sm font-medium mb-2">
                 Email đăng nhập
             </label>
-            <input wire:model="email"
-                   type="email"
-                   class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 @error('email') border-red-500 @enderror"
-                   placeholder="example@gmail.com">
+            <input wire:model="email" type="email"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 @error('email') border-red-500 @enderror"
+                placeholder="example@gmail.com">
 
             @error('email')
                 <span class="text-red-500 text-xs">{{ $message }}</span>
@@ -49,10 +49,9 @@
             <label class="block text-gray-700 text-sm font-medium mb-2">
                 Mật khẩu
             </label>
-            <input wire:model="password"
-                   type="password"
-                   class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800"
-                   placeholder="••••••••">
+            <input wire:model="password" type="password"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800"
+                placeholder="••••••••">
 
             @error('password')
                 <span class="text-red-500 text-xs">{{ $message }}</span>
@@ -63,14 +62,14 @@
         <div class="flex items-center justify-between mb-6">
             <label class="flex items-center space-x-2">
                 <input wire:model="remember" type="checkbox"
-                       class="rounded border-gray-300 text-slate-900 focus:ring-slate-800">
+                    class="rounded border-gray-300 text-slate-900 focus:ring-slate-800">
                 <span class="text-sm text-gray-600">Ghi nhớ đăng nhập</span>
             </label>
         </div>
 
         {{-- BUTTON --}}
         <button type="submit"
-                class="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-lg hover:bg-slate-700 transition shadow-sm">
+            class="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-lg hover:bg-slate-700 transition shadow-sm">
 
             <span wire:loading.remove>Đăng nhập hệ thống</span>
             <span wire:loading>Đang xử lý...</span>
@@ -87,9 +86,9 @@
 
     {{-- GOOGLE LOGIN --}}
     <a href="{{ route('google') }}"
-       class="mt-5 flex items-center justify-center gap-2 w-full px-4 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition">
+        class="mt-5 flex items-center justify-center gap-2 w-full px-4 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition">
 
-     
+
         <span class="text-sm font-medium text-gray-700">
             Đăng nhập bằng Google Workspace
         </span>

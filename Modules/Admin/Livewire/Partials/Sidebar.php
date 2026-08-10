@@ -96,7 +96,7 @@ class Sidebar extends Component
     {
         $schoolName = trim((string) Setting::getValue(
             'site_name',
-            'TRƯỜNG TIỂU HỌC NGUYỄN THỊ ĐỊNH'
+            'TỪ NGỌC VÂN'
         ));
 
         $this->titleSidebar = $schoolName;
