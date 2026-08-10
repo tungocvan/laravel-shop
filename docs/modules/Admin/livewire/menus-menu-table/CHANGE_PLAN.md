@@ -1,15 +1,16 @@
-# CHANGE PLAN — Export Selected Menus + Import Duplicate Strategy
+# CHANGE PLAN — Export Selected Menus + Import Duplicate Strategy + Collapse Children
 
 ## Goal
 
-Extend `Admin / Menus / MenuTable` with two additive capabilities:
+Extend `Admin / Menus / MenuTable` with three additive capabilities:
 
 1. Export only the menus currently selected by checkbox.
 2. Let the user choose how duplicate menu rows are handled during import:
    - **Bỏ qua dữ liệu đã tồn tại** (`skip_duplicate`) — default.
    - **Cập nhật dữ liệu đã tồn tại** (`update_or_create`).
+3. Allow each parent menu to collapse/expand its child menu list in the MenuTable UI.
 
-Existing filtered export, template export, restore, bulk actions, permissions, routes, menu hierarchy and database schema must remain compatible.
+Existing filtered export, template export, restore, bulk actions, permissions, routes, menu hierarchy, drag-sort and database schema must remain compatible.
 
 ---
 
@@ -197,7 +198,7 @@ update_or_create
 
 Use the existing exported/imported menu `key` as the logical identifier.
 
-Current implementation normalizes this value and maps it to the menu `slug`.
+Current implementation maps this value to the menu `slug`.
 
 Conceptually:
 
@@ -207,7 +208,7 @@ Excel key
 AdminMenu.slug
 ```
 
-A row is considered duplicate when its normalized `key`/slug already exists.
+A row is considered duplicate when its normalized `key`/slug already exists, including soft-deleted rows when necessary to preserve unique-key integrity.
 
 Do not use menu name or URL as duplicate identity.
 
@@ -250,13 +251,15 @@ Recommended helper text:
 ### Bỏ qua
 
 ```text
-Menu có cùng key sẽ không bị thay đổi.
+Menu đang tồn tại sẽ không bị thay đổi.
+Menu đã xóa mềm có thể được khôi phục để tránh lỗi unique slug và bảo toàn cấu trúc menu.
 ```
 
 ### Cập nhật
 
 ```text
 Menu có cùng key sẽ được cập nhật theo dữ liệu trong file import.
+Menu đã xóa mềm sẽ được restore rồi cập nhật, giữ nguyên ID.
 ```
 
 The dangerous/destructive `replace all` behavior must not appear in this selector.
@@ -272,16 +275,16 @@ importMode = skip_duplicate
 and the normalized `key` already exists:
 
 ```text
-existing menu
+active existing menu
     ↓
 SKIP
     ↓
 no overwrite
 ```
 
-The import report should increment `skipped_rows`.
+If the matching row is soft-deleted, restore it so the unique slug remains valid and the imported hierarchy becomes visible again.
 
-Existing menu values must remain unchanged.
+The import report should increment `skipped_rows` for unchanged active duplicates and `success_rows` for restored rows.
 
 ## Update Mode
 
@@ -294,6 +297,13 @@ importMode = update_or_create
 and the normalized `key` already exists, update the existing record instead of deleting/recreating it.
 
 Preserve the existing database `id`.
+
+If the matching row is soft-deleted:
+
+```text
+RESTORE
+→ UPDATE
+```
 
 Update the importable fields according to the current contract:
 
@@ -317,7 +327,7 @@ The existing two-pass spreadsheet import behavior should remain:
 
 ```text
 Pass 1
-→ create/update/skips by key
+→ create/update/restore/skip by key
 
 Pass 2
 → resolve parent_key → parent_id
@@ -328,9 +338,9 @@ In `update_or_create` mode, parent relationships may therefore be updated to mat
 If `parent_key` references neither:
 
 - another valid row in the import file, nor
-- an existing database menu,
+- an existing/soft-deleted database menu that can be resolved,
 
-validation should fail before persistence as it does currently.
+validation should fail before persistence.
 
 ## Authorization
 
@@ -395,6 +405,162 @@ No raw exception/debug details may be exposed in the normal browser report.
 
 ---
 
+# Part C — Collapse / Expand Child Menus
+
+## Goal
+
+Add a lightweight UI control to each menu item that has children so users can temporarily hide/show its child list without changing menu data.
+
+This is UI state only.
+
+No database write, Livewire mutation, permission change, route change, or schema migration is required.
+
+## Primary File
+
+```text
+Modules/Admin/resources/views/components/menu-item.blade.php
+```
+
+The current component already recursively renders children through:
+
+```text
+<x-menu-item :menu="$child" :selected="$selected" />
+```
+
+and is therefore the correct place for per-node collapse behavior.
+
+## Interaction
+
+For a menu with one or more children, render a collapse/expand button near the menu name or actions.
+
+Recommended behavior:
+
+```text
+▼  expanded
+▶  collapsed
+```
+
+or equivalent chevron icons.
+
+Clicking the control:
+
+```text
+expanded → hide direct child <ul>
+collapsed → show direct child <ul>
+```
+
+Each parent menu controls only its own descendant container.
+
+Nested child menus may independently be collapsed/expanded.
+
+## Technology
+
+Use Alpine.js local UI state in the Blade component, for example conceptually:
+
+```text
+x-data="{ open: true }"
+x-show="open"
+@click="open = !open"
+```
+
+Do not create Livewire properties/actions for this visual-only state.
+
+Reason:
+
+- no server round-trip is needed;
+- collapse state is purely presentational;
+- avoids unnecessary component requests;
+- keeps `MenuTable.php` focused on domain/UI actions that require server state.
+
+## Default State
+
+Default should be:
+
+```text
+expanded = true
+```
+
+so current behavior remains backward-compatible.
+
+Do not persist collapse state to database in this feature.
+
+Optional persistence via browser/local storage can be considered later as a separate feature.
+
+## Child Count
+
+Recommended UI enhancement:
+
+For parent menus, show the number of direct children near the toggle, e.g.:
+
+```text
+Công cụ hệ thống  (4)
+```
+
+This count is display-only and should derive from the already-loaded children collection.
+
+## Drag-Sort Compatibility
+
+The collapse implementation must not break Sortable.js nesting.
+
+Requirements:
+
+- keep the child `<ul class="menu-list ...">` in the DOM;
+- hide/show visually rather than conditionally removing it from Blade/Livewire state;
+- preserve `data-id` and `.menu-list` structure;
+- ensure expanding restores drag-sort usability;
+- do not move the drag handle into the collapse button.
+
+If `x-show` causes a Sortable visual/layout issue, use a CSS/Alpine hidden-class approach while keeping the same DOM structure.
+
+## Selection Compatibility
+
+Collapsing a parent must not clear or modify checkbox selections.
+
+Example:
+
+```text
+select child menu
+→ collapse parent
+→ child remains selected
+→ bulk/export actions still include that child
+```
+
+The collapse state must not alter `selectedMenus` or `selectAll` semantics.
+
+## Search / Filter Behavior
+
+Search/status filtering continues to be controlled by Livewire.
+
+After Livewire re-renders a changed result set, newly rendered menu nodes may return to default expanded state. This is acceptable for this first version.
+
+Do not add global persisted UI state unless separately approved.
+
+## Accessibility
+
+The toggle button should include:
+
+- `type="button"`;
+- accessible label/title;
+- `aria-expanded` bound to state;
+- visible focus style;
+- adequate click target.
+
+Do not rely only on icon orientation to communicate state.
+
+## Optional Top-Level Controls
+
+Not part of this initial implementation:
+
+```text
+Collapse all
+Expand all
+Persist collapsed nodes
+```
+
+These may be added later if needed.
+
+---
+
 # Tests / Verification
 
 ## Export Selected
@@ -416,9 +582,11 @@ No raw exception/debug details may be exposed in the normal browser report.
 ```text
 [ ] default import mode is skip_duplicate
 [ ] arbitrary mode values are rejected
-[ ] duplicate key + skip mode leaves existing row unchanged
-[ ] duplicate key + skip mode increments skipped_rows
+[ ] active duplicate key + skip mode leaves row unchanged
+[ ] active duplicate key + skip mode increments skipped_rows
+[ ] soft-deleted duplicate + skip mode restores record safely
 [ ] duplicate key + update mode preserves database ID
+[ ] soft-deleted duplicate + update mode restores then updates
 [ ] duplicate key + update mode updates importable fields
 [ ] update mode can update parent relationship using parent_key
 [ ] non-existing key is created in both modes
@@ -427,15 +595,29 @@ No raw exception/debug details may be exposed in the normal browser report.
 [ ] closing/reopening modal resets mode to skip_duplicate
 ```
 
+## Collapse / Expand
+
+```text
+[ ] only menu items with children show collapse toggle
+[ ] default state is expanded
+[ ] clicking toggle hides/shows direct child list
+[ ] nested parents can be toggled independently
+[ ] selection survives collapse/expand
+[ ] drag-sort still works after expand
+[ ] no Livewire request is triggered solely by collapse/expand
+[ ] aria-expanded reflects current state
+[ ] menu items without children do not show a meaningless toggle
+```
+
 Manual verification:
 
 ```text
-1. Export a few selected menus.
-2. Edit name/url/icon in exported XLSX without changing key.
-3. Import using "Bỏ qua" and confirm DB/menu remains unchanged.
-4. Import same file using "Cập nhật" and confirm fields change while menu ID remains unchanged.
-5. Verify parent-child relationships after update import.
-6. Verify existing filtered Export Excel still behaves normally.
+1. Expand/collapse a root menu with children.
+2. Expand/collapse a nested parent independently.
+3. Select a child, collapse its parent, then export selected.
+4. Re-expand and confirm checkbox remains selected.
+5. Drag a child after re-expanding.
+6. Change search/status and confirm menu renders normally.
 ```
 
 ---
@@ -449,10 +631,11 @@ Preserve:
 - `admin.menu.export` permission;
 - `admin.menu.import` permission;
 - current XLSX/CSV headers;
-- current `skip_duplicate` default behavior;
+- current duplicate handling behavior as refined above;
 - existing default JSON restore workflow using `replace`;
 - menu database schema;
-- current hierarchy semantics.
+- current hierarchy semantics;
+- existing Sortable.js drag/drop behavior.
 
 No migration is required.
 
@@ -463,13 +646,18 @@ No migration is required.
 [ ] selected export contains exactly selected menus
 [ ] import modal lets user choose Skip or Update
 [ ] Skip remains default
-[ ] duplicate identity is based on normalized key/slug
+[ ] duplicate identity is based on canonical key/slug
+[ ] soft-deleted duplicates are handled without unique-key errors
 [ ] Update modifies existing menu without replacing its ID
 [ ] Replace is not exposed for normal upload
+[ ] parent menus have an expand/collapse control
+[ ] collapse is local UI state and does not mutate database
+[ ] nested collapse works independently
+[ ] drag-sort and checkbox selection remain compatible
 [ ] current import/export formats remain compatible
 [ ] loading/error UX remains safe and consistent
 ```
 
 ## Implementation Gate
 
-**Do not implement these features until the user explicitly approves this updated `CHANGE_PLAN.md`.**
+**Do not implement the new collapse/expand feature until the user explicitly approves this updated `CHANGE_PLAN.md`.**
