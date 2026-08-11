@@ -2,161 +2,233 @@
 
 namespace Modules\Website\Services;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Str;
-use Modules\Website\Models\Order;
-use Modules\Website\Models\OrderItem;
-use Modules\Website\Models\OrderHistory;
-use Modules\Website\Models\WpProduct;
-use Modules\Website\Models\Coupon;
 use Exception;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Modules\Website\Models\Cart;
+use Modules\Website\Models\Coupon;
+use Modules\Website\Models\Order;
+use Modules\Website\Models\OrderHistory;
+use Modules\Website\Models\OrderItem;
+use Modules\Website\Models\WpProduct;
 
 class CheckoutService
 {
-    protected $cartService;
-    protected $affiliateService;
-
-    // Inject cả CartService và AffiliateService
     public function __construct(
-        CartService $cartService,
-        AffiliateService $affiliateService
+        protected CartService $cartService,
+        protected AffiliateService $affiliateService
     ) {
-        $this->cartService = $cartService;
-        $this->affiliateService = $affiliateService;
     }
 
     /**
-     * Xử lý tạo đơn hàng (Core Logic)
+     * Tạo đơn hàng an toàn trong một transaction duy nhất.
      */
-    public function createOrder(array $data)
+    public function createOrder(array $data): Order
     {
-        // 1. Lấy dữ liệu từ CartService (Đã bao gồm tính toán Coupon, Subtotal, Total)
+        $paymentMethod = (string) ($data['payment_method'] ?? '');
 
-        $cartSummary = $this->cartService->getCartSummary();
-        $cart = $cartSummary['cart'];
-        $items = $cartSummary['items'];
-
-        // Validate giỏ hàng trống
-        if ($items->isEmpty()) {
-            throw new Exception('Giỏ hàng trống. Vui lòng chọn sản phẩm.');
+        if (!in_array($paymentMethod, ['cod', 'bank_transfer', 'momo'], true)) {
+            throw new Exception('Phương thức thanh toán không được hỗ trợ.');
         }
 
-        // 2. Validate Tồn kho (Double Check trước khi Transaction)
-        foreach ($items as $item) {
-            $product = WpProduct::find($item->product_id);
+        // Lấy đúng cart hiện tại trước khi vào transaction. Cart row sẽ được lock
+        // bên trong transaction để ngăn hai request checkout cùng một giỏ hàng.
+        $cart = $this->cartService->getCart();
+        $cartId = $cart->id;
 
-            if (!$product || !$product->is_active) {
-                throw new Exception("Sản phẩm '{$item->product->title}' hiện ngừng kinh doanh.");
+        return DB::transaction(function () use ($data, $paymentMethod, $cartId) {
+            $lockedCart = Cart::query()
+                ->whereKey($cartId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$lockedCart) {
+                throw new Exception('Giỏ hàng đã được xử lý. Vui lòng kiểm tra lại đơn hàng.');
             }
 
-            if ($product->quantity < $item->quantity) {
-                throw new Exception("Sản phẩm '{$item->product->title}' không đủ hàng (Còn lại: {$product->quantity}).");
+            $items = $lockedCart->items()->get();
+
+            if ($items->isEmpty()) {
+                throw new Exception('Giỏ hàng trống. Vui lòng chọn sản phẩm.');
             }
-        }
 
-        return DB::transaction(function () use ($data, $cartSummary, $cart, $items) {
+            // Lock toàn bộ sản phẩm theo thứ tự ID để giảm khả năng deadlock và
+            // thực hiện final stock validation ngay trong transaction.
+            $productIds = $items->pluck('product_id')->unique()->sort()->values();
+            $products = WpProduct::query()
+                ->whereIn('id', $productIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
-            // --- A. XỬ LÝ AFFILIATE ---
+            foreach ($items as $item) {
+                $product = $products->get($item->product_id);
+
+                if (!$product || !$product->is_active) {
+                    throw new Exception("Sản phẩm '{$item->product_id}' hiện ngừng kinh doanh.");
+                }
+
+                if ((int) $product->quantity < (int) $item->quantity) {
+                    throw new Exception("Sản phẩm '{$product->title}' không đủ hàng (Còn lại: {$product->quantity}).");
+                }
+            }
+
+            $subtotal = (float) $items->sum('total');
+            $discount = 0.0;
+            $coupon = null;
+
+            if ($lockedCart->coupon_id) {
+                $coupon = Coupon::query()
+                    ->whereKey($lockedCart->coupon_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($coupon && $coupon->is_valid && $subtotal >= (float) $coupon->min_order_value) {
+                    $discount = $coupon->type === 'percent'
+                        ? $subtotal * ((float) $coupon->value / 100)
+                        : (float) $coupon->value;
+                } else {
+                    $coupon = null;
+                    $lockedCart->coupon_id = null;
+                    $lockedCart->save();
+                }
+            }
+
+            $total = max(0, $subtotal - $discount);
+
+            // Affiliate được tính trên subtotal đã đóng băng của transaction này.
             $affiliateId = $this->affiliateService->getValidAffiliateId();
             $commissionAmount = 0;
             $commissionStatus = 'none';
 
-            // Chỉ tính hoa hồng nếu có affiliate và người mua != người giới thiệu
             if ($affiliateId && $affiliateId != Auth::id()) {
-                // Tính hoa hồng dựa trên Subtotal (Tổng tiền hàng chưa trừ KM)
-                $commissionAmount = $this->affiliateService->calculateCommission($cartSummary['subtotal']);
+                $commissionAmount = $this->affiliateService->calculateCommission($subtotal);
                 $commissionStatus = 'pending';
             } else {
-                $affiliateId = null; // Reset nếu trùng ID
+                $affiliateId = null;
             }
 
-            // --- B. XÁC ĐỊNH TRẠNG THÁI BAN ĐẦU ---
-            $initialStatus = match ($data['payment_method']) {
-                'momo', 'vnpay', 'bank_transfer' => 'pending_payment', // Chờ thanh toán
-                default => 'pending', // Chờ xử lý (COD)
-            };
-            $orderNew= [
-                'user_id'           => Auth::id(),
-                'order_code'        => $this->generateOrderCode(),
+            $initialStatus = $paymentMethod === 'cod' ? 'pending' : 'pending_payment';
 
-                // Affiliate Info
-                'affiliate_id'      => $affiliateId,
+            $order = Order::create([
+                'user_id' => Auth::id(),
+                'order_code' => $this->generateOrderCode(),
+                'affiliate_id' => $affiliateId,
                 'commission_status' => $commissionStatus,
                 'commission_amount' => $commissionAmount,
+                'customer_name' => $data['customer_name'],
+                'customer_phone' => $data['customer_phone'],
+                'customer_email' => $data['customer_email'] ?? null,
+                'customer_address' => $data['customer_address'],
+                'note' => $data['note'] ?? null,
+                'subtotal' => $subtotal,
+                'shipping_fee' => 0,
+                'discount' => $discount,
+                'total' => $total,
+                'coupon_code' => $coupon?->code,
+                'payment_method' => $paymentMethod,
+                'status' => $initialStatus,
+            ]);
 
-                // Customer Info
-                'customer_name'     => $data['customer_name'],
-                'customer_phone'    => $data['customer_phone'],
-                'customer_email'    => $data['customer_email'],
-                'customer_address'  => $data['customer_address'],
-                'note'              => $data['note'] ?? null,
-
-                // Financial Info (Lấy từ CartSummary)
-                'subtotal'          => $cartSummary['subtotal'],
-                'shipping_fee'      => 0, // Sau này update nếu có tính phí ship
-                'discount'          => $cartSummary['discount'], // Số tiền giảm giá
-                'total'             => $cartSummary['total'],    // Tổng phải trả
-
-                // Coupon Info (Snapshot để đối soát)
-                'coupon_code'       => $cartSummary['coupon_code'] ?? null,
-
-                // Meta
-                'payment_method'    => $data['payment_method'],
-                'status'            => $initialStatus,
-            ];
-            // --- C. TẠO ORDER ---
-
-            $order = Order::create($orderNew);
-
-            // --- D. TẠO ORDER ITEMS & TRỪ KHO ---
             foreach ($items as $item) {
+                $product = $products->get($item->product_id);
+
                 OrderItem::create([
-                    'order_id'     => $order->id,
-                    'product_id'   => $item->product_id,
-                    'product_name' => $item->product->title, // Snapshot tên
-                    'price'        => $item->price,          // Snapshot giá
-                    'quantity'     => $item->quantity,
-                    'total'        => $item->total,
-                    'options'      => null, // Mở rộng sau này (Size/Color)
+                    'order_id' => $order->id,
+                    'product_id' => $item->product_id,
+                    'product_name' => $product->title,
+                    'price' => $item->price,
+                    'quantity' => $item->quantity,
+                    'total' => $item->total,
+                    'options' => null,
                 ]);
 
-                // Trừ kho & Tăng lượt bán
-                $item->product->decrement('quantity', $item->quantity);
-                $item->product->increment('sold_count', $item->quantity);
+                $product->decrement('quantity', $item->quantity);
+                $product->increment('sold_count', $item->quantity);
             }
 
-            // --- E. XỬ LÝ COUPON (Nếu có dùng) ---
-            if ($cart->coupon_id) {
-                // Tăng số lần sử dụng của mã giảm giá
-                $cart->coupon->increment('usage_count');
+            if ($coupon) {
+                $coupon->increment('usage_count');
             }
 
-            // --- F. GHI LOG LỊCH SỬ ---
             OrderHistory::create([
-                'order_id'    => $order->id,
-                'user_id'     => Auth::id(), // User hoặc Null (Guest)
-                'action'      => 'created',
+                'order_id' => $order->id,
+                'user_id' => Auth::id(),
+                'action' => 'created',
                 'description' => 'Đơn hàng được tạo mới qua Website.',
             ]);
 
-            // --- G. DỌN DẸP ---
-            // Xóa items trong giỏ
-            $cart->items()->delete();
-            // Gỡ coupon khỏi cart và xóa cart
-            $cart->delete();
-            // 3. Xóa Session Coupon (Quan trọng)
-            $cart->coupon_id = null;
-            $cart->save(); // Save lần cuối để chắc chắn
+            // Xóa items rồi xóa cart đúng một lần. Không save model sau delete.
+            $lockedCart->items()->delete();
+            $lockedCart->delete();
+
             return $order;
-        });
+        }, 3);
     }
 
     /**
-     * Helper: Tạo mã đơn hàng chuyên nghiệp (VD: ORD-20231025-X8K2)
+     * Xác minh và xử lý kết quả MoMo. Callback không được tạo lại order,
+     * trừ kho hay tăng coupon lần nữa.
      */
-    protected function generateOrderCode()
+    public function processMomoResult(array $payload, MomoService $momoService): Order
+    {
+        if (!$momoService->verifyResultSignature($payload)) {
+            throw new Exception('Chữ ký phản hồi MoMo không hợp lệ.');
+        }
+
+        $orderCode = (string) ($payload['orderId'] ?? '');
+
+        return DB::transaction(function () use ($payload, $orderCode) {
+            $order = Order::query()
+                ->where('order_code', $orderCode)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$order || $order->payment_method !== 'momo') {
+                throw new Exception('Không tìm thấy đơn hàng MoMo hợp lệ.');
+            }
+
+            $expectedAmount = (int) round((float) $order->total);
+            $callbackAmount = (int) ($payload['amount'] ?? -1);
+
+            if ($expectedAmount !== $callbackAmount) {
+                throw new Exception('Số tiền phản hồi MoMo không khớp đơn hàng.');
+            }
+
+            // resultCode != 0: không đánh dấu đã thanh toán và không chạy lại
+            // bất kỳ side effect checkout nào.
+            if ((int) ($payload['resultCode'] ?? -1) !== 0) {
+                if ($order->status === 'pending_payment') {
+                    OrderHistory::create([
+                        'order_id' => $order->id,
+                        'user_id' => $order->user_id,
+                        'action' => 'momo_payment_failed',
+                        'description' => 'Thanh toán MoMo chưa thành công: ' . (string) ($payload['message'] ?? 'Unknown error'),
+                    ]);
+                }
+
+                return $order;
+            }
+
+            // Idempotency: callback thành công lặp lại không tạo history/side effects mới.
+            if ($order->status === 'pending_payment') {
+                $order->update(['status' => 'pending']);
+
+                OrderHistory::create([
+                    'order_id' => $order->id,
+                    'user_id' => $order->user_id,
+                    'action' => 'momo_paid',
+                    'description' => 'MoMo xác nhận thanh toán thành công. Mã giao dịch: ' . (string) ($payload['transId'] ?? ''),
+                ]);
+            }
+
+            return $order->refresh();
+        }, 3);
+    }
+
+    protected function generateOrderCode(): string
     {
         do {
             $date = now()->format('Ymd');

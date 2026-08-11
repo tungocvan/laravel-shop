@@ -3,6 +3,7 @@
 namespace Modules\Website\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CheckoutRequest extends FormRequest
 {
@@ -19,6 +20,7 @@ class CheckoutRequest extends FormRequest
             'customer_email' => 'nullable|email|max:255',
             'customer_address' => 'required|string|max:500',
             'note' => 'nullable|string|max:1000',
+            'payment_method' => ['required', Rule::in(['cod', 'bank_transfer', 'momo'])],
         ];
     }
 
@@ -29,6 +31,8 @@ class CheckoutRequest extends FormRequest
             'customer_phone.required' => 'Vui lòng nhập số điện thoại.',
             'customer_address.required' => 'Vui lòng nhập địa chỉ nhận hàng.',
             'customer_email.email' => 'Email không đúng định dạng.',
+            'payment_method.required' => 'Vui lòng chọn phương thức thanh toán.',
+            'payment_method.in' => 'Phương thức thanh toán không được hỗ trợ.',
         ];
     }
 }

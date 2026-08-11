@@ -3,15 +3,20 @@
 namespace Modules\Website\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Modules\Website\Models\Cart;
+use Modules\Website\Models\Order;
+use Modules\Website\Services\CheckoutService;
+use Modules\Website\Services\MomoService;
 
 class CheckoutController extends Controller
 {
     public function index()
     {
-        // Kiểm tra nếu giỏ hàng rỗng thì đá về trang chủ
         $sessionId = session()->getId();
-        $hasCart = \Modules\Website\Models\Cart::where('session_id', $sessionId)->exists();
+        $hasCart = Cart::where('session_id', $sessionId)->exists();
 
         if (!$hasCart) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng đang trống!');
@@ -27,10 +32,58 @@ class CheckoutController extends Controller
         }
 
         $orderCode = session('order_code');
-        // Lấy thông tin đơn hàng để hiển thị số tiền và QR
-        $order = \Modules\Website\Models\Order::where('order_code', $orderCode)->first();
+        $order = Order::where('order_code', $orderCode)->first();
+
+        if (!$order) {
+            return redirect()->route('home')->with('error', 'Không tìm thấy đơn hàng.');
+        }
 
         return view('Website::checkout.success', compact('order'));
     }
 
+    /**
+     * Redirect URL: trình duyệt khách hàng quay về từ MoMo.
+     */
+    public function momoCallback(
+        Request $request,
+        CheckoutService $checkoutService,
+        MomoService $momoService
+    ): RedirectResponse {
+        try {
+            $order = $checkoutService->processMomoResult($request->all(), $momoService);
+
+            session()->flash('order_code', $order->order_code);
+
+            if ((int) $request->input('resultCode', -1) === 0) {
+                session()->flash('success_message', 'Thanh toán MoMo thành công.');
+            } else {
+                session()->flash('payment_error', 'Thanh toán MoMo chưa thành công. Bạn có thể liên hệ cửa hàng để được hỗ trợ.');
+            }
+
+            return redirect()->route('checkout.success');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('home')->with('error', 'Không thể xác minh kết quả thanh toán MoMo.');
+        }
+    }
+
+    /**
+     * IPN URL: MoMo gọi server-to-server. Endpoint này phải idempotent.
+     */
+    public function momoIpn(
+        Request $request,
+        CheckoutService $checkoutService,
+        MomoService $momoService
+    ): JsonResponse {
+        try {
+            $checkoutService->processMomoResult($request->all(), $momoService);
+
+            return response()->json(['message' => 'received']);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'invalid payment notification'], 400);
+        }
+    }
 }

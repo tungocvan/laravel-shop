@@ -3,67 +3,54 @@
 namespace Modules\Website\Services;
 
 use Illuminate\Support\Facades\Http;
+use Modules\Website\Models\Order;
+use RuntimeException;
 
 class MomoService
 {
-    protected $partnerCode;
-    protected $accessKey;
-    protected $secretKey;
-    protected $endpoint;
+    protected string $partnerCode;
+    protected string $accessKey;
+    protected string $secretKey;
+    protected string $endpoint;
+    protected int $timeout;
 
     public function __construct()
     {
-        $this->partnerCode = config('website.website.payment.momo.partner_code');
-        $this->accessKey   = config('website.website.payment.momo.access_key');
-        $this->secretKey   = config('website.website.payment.momo.secret_key');
-        $this->endpoint    = config('website.website.payment.momo.endpoint');
+        $this->partnerCode = (string) $this->config('partner_code', '');
+        $this->accessKey = (string) $this->config('access_key', '');
+        $this->secretKey = (string) $this->config('secret_key', '');
+        $this->endpoint = (string) $this->config('endpoint', 'https://test-payment.momo.vn/v2/gateway/api/create');
+        $this->timeout = (int) $this->config('timeout', 30);
     }
 
-    public function createPayment($order)
+    public function createPayment(Order $order): array
     {
-        // 1. CẤU HÌNH (Dùng Key Mặc Định Chuẩn)
-        $endpoint = 'https://test-payment.momo.vn/v2/gateway/api/create';
-        $partnerCode = 'MOMOBKUN20180529';
-        $accessKey = 'klm05TvNBzhg7h7j';
-        $secretKey = 'at67qH6mk8w5Y1nAyMoYKMWACiEI2bsa';
+        $this->assertConfigured();
 
-        // 2. CHUẨN BỊ DỮ LIỆU
-        $requestId = (string) time();
+        $requestId = $order->order_code . '-' . now()->format('Hisv');
         $orderId = $order->order_code;
-        $amount = (string) (int) $order->total; // Ép kiểu string số nguyên
-        $orderInfo = "Thanh toan " . $orderId;
+        $amount = (string) (int) round((float) $order->total);
+        $orderInfo = 'Thanh toan ' . $orderId;
+        $redirectUrl = route('checkout.momo.callback');
+        $ipnUrl = route('checkout.momo.ipn');
+        $extraData = '';
+        $requestType = 'captureWallet';
 
-        // Lưu ý: Dùng route() có thể sinh ra http hoặc https tùy server
-        // Hãy đảm bảo url này chính xác
-        $redirectUrl = route('website.checkout.momo.callback');
-        $ipnUrl = route('website.checkout.momo.callback');
+        $rawHash = 'accessKey=' . $this->accessKey
+            . '&amount=' . $amount
+            . '&extraData=' . $extraData
+            . '&ipnUrl=' . $ipnUrl
+            . '&orderId=' . $orderId
+            . '&orderInfo=' . $orderInfo
+            . '&partnerCode=' . $this->partnerCode
+            . '&redirectUrl=' . $redirectUrl
+            . '&requestId=' . $requestId
+            . '&requestType=' . $requestType;
 
-        $extraData = ""; // Để rỗng, không null
-        $requestType = "captureWallet";
-
-        // 3. TẠO CHUỖI ĐỂ KÝ (RAW HASH)
-        // Bắt buộc đúng thứ tự A-Z
-        $rawHash = "accessKey=" . $accessKey .
-                   "&amount=" . $amount .
-                   "&extraData=" . $extraData .
-                   "&ipnUrl=" . $ipnUrl .
-                   "&orderId=" . $orderId .
-                   "&orderInfo=" . $orderInfo .
-                   "&partnerCode=" . $partnerCode .
-                   "&redirectUrl=" . $redirectUrl .
-                   "&requestId=" . $requestId .
-                   "&requestType=" . $requestType;
-
-        // 4. TẠO CHỮ KÝ
-        $signature = hash_hmac("sha256", $rawHash, $secretKey);
-
-        // 5. ĐÓNG GÓI DỮ LIỆU (QUAN TRỌNG NHẤT)
-        $data = [
-            'partnerCode' => $partnerCode,
-            'partnerName' => 'Test',
-            'storeId' => 'MomoTestStore',
+        $payload = [
+            'partnerCode' => $this->partnerCode,
             'requestId' => $requestId,
-            'amount' => $amount,
+            'amount' => (int) $amount,
             'orderId' => $orderId,
             'orderInfo' => $orderInfo,
             'redirectUrl' => $redirectUrl,
@@ -71,33 +58,83 @@ class MomoService
             'lang' => 'vi',
             'extraData' => $extraData,
             'requestType' => $requestType,
-            'signature' => $signature
+            'autoCapture' => true,
+            'signature' => hash_hmac('sha256', $rawHash, $this->secretKey),
         ];
 
-        // MẸO: Tự encode JSON để kiểm soát dấu gạch chéo (/)
-        // JSON_UNESCAPED_SLASHES: Giữ nguyên https:// thay vì https:\/\/
-        // JSON_UNESCAPED_UNICODE: Giữ nguyên tiếng Việt
-        $jsonPayload = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
         try {
-            // Gửi Raw Body thay vì để Laravel tự xử lý
-            $response = Http::withBody($jsonPayload, 'application/json')
-                ->withoutVerifying()
-                ->post($endpoint);
-
-            // Debug nếu vẫn lỗi
-            if ($response->failed() || ($response->json()['errorCode'] ?? 0) != 0) {
-                dd(
-                    'Momo Failed:', $response->json(),
-                    'Signature Created From:', $rawHash,
-                    'JSON Sent:', $jsonPayload
-                );
-            }
-
-            return $response->json();
-
-        } catch (\Exception $e) {
-            dd('Connection Error:', $e->getMessage());
+            $response = Http::acceptJson()
+                ->timeout($this->timeout)
+                ->post($this->endpoint, $payload);
+        } catch (\Throwable $e) {
+            report($e);
+            throw new RuntimeException('Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại sau.');
         }
+
+        if ($response->failed()) {
+            throw new RuntimeException('MoMo đang tạm thời không phản hồi. Vui lòng thử lại sau.');
+        }
+
+        $result = $response->json();
+
+        if (!is_array($result) || (int) ($result['resultCode'] ?? -1) !== 0 || empty($result['payUrl'])) {
+            throw new RuntimeException((string) ($result['message'] ?? 'Không thể khởi tạo thanh toán MoMo.'));
+        }
+
+        return $result;
+    }
+
+    public function verifyResultSignature(array $payload): bool
+    {
+        $this->assertConfigured();
+
+        $required = [
+            'amount', 'extraData', 'message', 'orderId', 'orderInfo', 'orderType',
+            'partnerCode', 'payType', 'requestId', 'responseTime', 'resultCode',
+            'transId', 'signature',
+        ];
+
+        foreach ($required as $key) {
+            if (!array_key_exists($key, $payload)) {
+                return false;
+            }
+        }
+
+        if ((string) $payload['partnerCode'] !== $this->partnerCode) {
+            return false;
+        }
+
+        $rawHash = 'accessKey=' . $this->accessKey
+            . '&amount=' . $payload['amount']
+            . '&extraData=' . $payload['extraData']
+            . '&message=' . $payload['message']
+            . '&orderId=' . $payload['orderId']
+            . '&orderInfo=' . $payload['orderInfo']
+            . '&orderType=' . $payload['orderType']
+            . '&partnerCode=' . $payload['partnerCode']
+            . '&payType=' . $payload['payType']
+            . '&requestId=' . $payload['requestId']
+            . '&responseTime=' . $payload['responseTime']
+            . '&resultCode=' . $payload['resultCode']
+            . '&transId=' . $payload['transId'];
+
+        $expected = hash_hmac('sha256', $rawHash, $this->secretKey);
+
+        return hash_equals($expected, (string) $payload['signature']);
+    }
+
+    protected function assertConfigured(): void
+    {
+        if ($this->partnerCode === '' || $this->accessKey === '' || $this->secretKey === '' || $this->endpoint === '') {
+            throw new RuntimeException('Cấu hình thanh toán MoMo chưa đầy đủ.');
+        }
+    }
+
+    protected function config(string $key, mixed $default = null): mixed
+    {
+        return config(
+            'website.website.payment.momo.' . $key,
+            config('website.payment.momo.' . $key, $default)
+        );
     }
 }
