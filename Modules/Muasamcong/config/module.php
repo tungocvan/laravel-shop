@@ -7,4 +7,8 @@ return array (
   'depends' => 
   array (
   ),
+  'permissions' =>
+  array (
+    'view_muasamcong',
+  ),
 );
