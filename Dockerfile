@@ -47,7 +47,9 @@ COPY docker/php/www.conf /usr/local/etc/php-fpm.d/zz-production.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod 0755 /usr/local/bin/entrypoint \
     && mkdir -p storage/app storage/framework storage/logs bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache
+    && chown -R www-data:www-data storage bootstrap/cache Modules \
+    && find Modules -type d -exec chmod 0775 {} \; \
+    && find Modules -type f -exec chmod 0664 {} \;
 ENTRYPOINT ["entrypoint"]
 CMD ["php-fpm"]
 
