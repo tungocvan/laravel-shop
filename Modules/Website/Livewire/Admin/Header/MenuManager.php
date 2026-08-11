@@ -35,6 +35,8 @@ class MenuManager extends Component
 
     public function render(HeaderMenuService $service)
     {
+        $this->authorizeAdminPermission('website.menu.manage');
+
         $currentMenu = HeaderMenu::firstOrCreate(
             ['location' => $this->location],
             ['name' => $this->menuLocations[$this->location]]
