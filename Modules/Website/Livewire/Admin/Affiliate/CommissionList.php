@@ -2,40 +2,39 @@
 
 namespace Modules\Website\Livewire\Admin\Affiliate;
 
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Website\Services\AdminAffiliateService;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\AffiliateLevel;
-use Livewire\Attributes\On;
-use Livewire\Attributes\Url;
+use Modules\Website\Services\AdminAffiliateService;
 
 class CommissionList extends Component
 {
-    use WithPagination;
+    use WithPagination, AuthorizesAdminPermissions;
 
     #[Url]
     public $statusFilter = 'all';
+
     #[Url]
     public $levelFilter = 'all';
+
     #[Url]
     public $search = '';
 
-    // Modal States
     public $selectedOrder = null;
     public $isModalOpen = false;
     public $showRejectForm = false;
     public $rejectionReason = '';
 
-    /**
-     * Duyệt hoa hồng & Kích hoạt thăng hạng tự động
-     */
     public function approve($orderId, AdminAffiliateService $service)
     {
+        $this->authorizeAdminPermission('affiliate.manage');
+
         try {
             $service->approve($orderId);
             $this->dispatch('notify', ['type' => 'success', 'message' => 'Đã duyệt hoa hồng & cập nhật hạng đối tác!']);
 
-            // Refresh dữ liệu nếu modal đang mở
             if ($this->isModalOpen && $this->selectedOrder->id == $orderId) {
                 $this->selectedOrder = $service->getOrderDetail($orderId);
             }
@@ -44,19 +43,17 @@ class CommissionList extends Component
         }
     }
 
-    /**
-     * Từ chối hoa hồng kèm lý do
-     */
     public function reject(AdminAffiliateService $service)
     {
+        $this->authorizeAdminPermission('affiliate.manage');
+
         $this->validate([
-            'rejectionReason' => 'required|min:5'
+            'rejectionReason' => 'required|min:5',
         ]);
 
         try {
             $service->reject($this->selectedOrder->id, $this->rejectionReason);
             $this->dispatch('notify', ['type' => 'success', 'message' => 'Đã từ chối chi trả hoa hồng.']);
-
             $this->showRejectForm = false;
             $this->selectedOrder = $service->getOrderDetail($this->selectedOrder->id);
         } catch (\Exception $e) {
@@ -82,13 +79,13 @@ class CommissionList extends Component
     {
         $filters = [
             'status' => $this->statusFilter,
-            'level'  => $this->levelFilter,
-            'search' => $this->search
+            'level' => $this->levelFilter,
+            'search' => $this->search,
         ];
 
         return view('Website::livewire.admin.affiliate.commission-list', [
             'commissions' => $service->getCommissions($filters),
-            'levels' => AffiliateLevel::all()
+            'levels' => AffiliateLevel::all(),
         ]);
     }
 }
