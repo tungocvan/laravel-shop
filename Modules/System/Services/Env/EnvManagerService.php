@@ -1,7 +1,9 @@
 <?php
+
 namespace Modules\System\Services\Env;
 
 use Illuminate\Support\Facades\File;
+use RuntimeException;
 
 class EnvManagerService
 {
@@ -9,19 +11,20 @@ class EnvManagerService
 
     public function __construct()
     {
-        $this->envPath = base_path('.env'); //
+        $this->envPath = base_path('.env');
     }
+
     public function exportToEnvironment(string $suffix): bool
     {
         $targetPath = base_path(".env.{$suffix}");
 
-        // Copy file .env hiện tại sang file đích
         if (File::exists($this->envPath)) {
             return File::copy($this->envPath, $targetPath);
         }
 
         return false;
     }
+
     public function getValues(): array
     {
         if (!File::exists($this->envPath)) {
@@ -32,10 +35,10 @@ class EnvManagerService
         $settings = [];
 
         foreach ($lines as $line) {
-            // Bỏ qua các dòng comment
-            if (str_starts_with(trim($line), '#')) continue;
+            if (str_starts_with(trim($line), '#')) {
+                continue;
+            }
 
-            // Tách Key và Value
             if (str_contains($line, '=')) {
                 [$key, $value] = explode('=', $line, 2);
                 $settings[trim($key)] = $this->unquoteValue(trim($value));
@@ -44,53 +47,109 @@ class EnvManagerService
 
         return $settings;
     }
+
     /**
-     * Cập nhật các biến môi trường một cách an toàn
+     * Cập nhật các biến môi trường mà không thay inode của .env.
+     *
+     * .env được bind-mount trực tiếp vào container. Vì vậy không dùng
+     * File::put()/file_put_contents() hay replace/rename file. Ghi in-place
+     * trên descriptor hiện có giúp tương thích Docker single-file bind mount.
      */
     public function update(array $data): bool
     {
-        if (!File::exists($this->envPath)) return false;
+        if (!File::exists($this->envPath)) {
+            return false;
+        }
 
         $content = File::get($this->envPath);
 
         foreach ($data as $key => $value) {
-            $key = strtoupper($key);
+            $key = strtoupper((string) $key);
             $formattedValue = $this->formatValue($value);
 
-            // Regex tìm chính xác Key ở đầu dòng
-            $pattern = "/^{$key}=.*/m";
+            $pattern = '/^' . preg_quote($key, '/') . '=.*/m';
             $newLine = "{$key}={$formattedValue}";
 
             if (preg_match($pattern, $content)) {
-                // Nếu tồn tại -> Thay thế
-                $content = preg_replace($pattern, $newLine, $content);
+                $content = preg_replace($pattern, $newLine, $content, 1);
             } else {
-                // Nếu không -> Thêm mới vào cuối file
-                $content .= "\n{$newLine}";
+                $content = rtrim($content, "\r\n") . "\n{$newLine}\n";
             }
         }
 
-        return (bool) File::put($this->envPath, $content);
+        return $this->writeInPlace($content);
     }
 
-    /**
-     * Format giá trị: Thêm ngoặc kép nếu có khoảng trắng hoặc ký tự đặc biệt
-     */
+    protected function writeInPlace(string $content): bool
+    {
+        $handle = @fopen($this->envPath, 'r+');
+
+        if ($handle === false) {
+            throw new RuntimeException("Không thể mở file .env để cập nhật: {$this->envPath}");
+        }
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('Không thể lock file .env để cập nhật.');
+            }
+
+            if (!rewind($handle)) {
+                throw new RuntimeException('Không thể rewind file .env.');
+            }
+
+            if (!ftruncate($handle, 0)) {
+                throw new RuntimeException('Không thể truncate file .env.');
+            }
+
+            $length = strlen($content);
+            $written = 0;
+
+            while ($written < $length) {
+                $result = fwrite($handle, substr($content, $written));
+
+                if ($result === false || $result === 0) {
+                    throw new RuntimeException('Không thể ghi đầy đủ nội dung file .env.');
+                }
+
+                $written += $result;
+            }
+
+            if (!fflush($handle)) {
+                throw new RuntimeException('Không thể flush file .env.');
+            }
+
+            if (function_exists('fsync')) {
+                @fsync($handle);
+            }
+
+            return true;
+        } finally {
+            @flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
 
     protected function unquoteValue(string $value): string
     {
-        return trim($value, '"\' ');
+        return trim($value, "\"' ");
     }
 
-    /**
-     * Xử lý dấu ngoặc khi ghi file (Helper)
-     */
-    protected function formatValue(string $value): string
+    protected function formatValue(mixed $value): string
     {
-        // Nếu chứa khoảng trắng hoặc ký tự đặc biệt, bọc trong dấu ngoặc kép
+        if ($value === null) {
+            $value = '';
+        } elseif (is_bool($value)) {
+            $value = $value ? 'true' : 'false';
+        } elseif (!is_scalar($value)) {
+            throw new RuntimeException('Giá trị .env phải là scalar hoặc null.');
+        }
+
+        $value = (string) $value;
+
         if (preg_match('/\s/', $value) || str_contains($value, '#')) {
             return '"' . addslashes($value) . '"';
         }
+
         return $value;
     }
 }
