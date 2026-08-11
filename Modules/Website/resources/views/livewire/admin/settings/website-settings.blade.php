@@ -1,0 +1,19 @@
+<div class="mx-auto max-w-5xl space-y-6 pb-16">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h1 class="text-2xl font-bold text-slate-900">SEO, Giao diện & Cài đặt</h1><p class="mt-1 text-sm text-slate-500">Cấu hình nhận diện và metadata toàn Website.</p></div>
+        <button wire:click="save" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="save">Lưu thay đổi</span><span wire:loading wire:target="save">Đang lưu...</span></button>
+    </div>
+    <nav class="flex overflow-x-auto border-b border-slate-200">
+        @foreach(['seo'=>'SEO','theme'=>'Logo & giao diện','advanced'=>'Nâng cao'] as $tab=>$label)<button wire:click="setTab('{{ $tab }}')" class="whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold {{ $activeTab===$tab?'border-indigo-600 text-indigo-600':'border-transparent text-slate-500' }}">{{ $label }}</button>@endforeach
+    </nav>
+    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        @if($activeTab==='seo')
+            <div class="grid gap-5"><label class="text-sm font-medium">SEO title<input wire:model="seoTitle" maxlength="70" class="mt-1 block w-full rounded-lg border-slate-300"></label><label class="text-sm font-medium">Meta description<textarea wire:model="seoDescription" rows="3" maxlength="170" class="mt-1 block w-full rounded-lg border-slate-300"></textarea></label><label class="text-sm font-medium">Canonical URL<input wire:model="canonicalUrl" type="url" class="mt-1 block w-full rounded-lg border-slate-300"></label><label class="text-sm font-medium">Robots<select wire:model="robots" class="mt-1 block w-full rounded-lg border-slate-300"><option>index,follow</option><option>index,nofollow</option><option>noindex,follow</option><option>noindex,nofollow</option></select></label><label class="text-sm font-medium">OpenGraph image URL<input wire:model="ogImage" class="mt-1 block w-full rounded-lg border-slate-300"></label><div class="rounded-lg border bg-slate-50 p-4"><p class="text-xs text-emerald-700">{{ parse_url($canonicalUrl, PHP_URL_HOST) ?: request()->getHost() }}</p><p class="mt-1 text-lg text-blue-700">{{ $seoTitle ?: 'Tiêu đề trang' }}</p><p class="mt-1 text-sm text-slate-600">{{ $seoDescription ?: 'Mô tả trang sẽ xuất hiện tại đây.' }}</p></div></div>
+        @elseif($activeTab==='theme')
+            <div class="grid gap-5 md:grid-cols-2"><label class="text-sm font-medium md:col-span-2">Tên thương hiệu<input wire:model="siteName" class="mt-1 block w-full rounded-lg border-slate-300"></label><label class="text-sm font-medium">Logo<input wire:model="newLogo" type="file" accept="image/*" class="mt-2 block w-full text-sm"></label><label class="text-sm font-medium">Favicon<input wire:model="newFavicon" type="file" accept=".png,.ico,.svg" class="mt-2 block w-full text-sm"></label></div>
+        @else
+            <div class="grid gap-5"><div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Chỉ quản trị viên có quyền cấu hình Website mới được lưu mã nâng cao. Mã sai có thể ảnh hưởng giao diện.</div><label class="text-sm font-medium">Analytics code<textarea wire:model="analyticsCode" rows="6" class="mt-1 block w-full rounded-lg border-slate-300 font-mono text-xs"></textarea></label><label class="text-sm font-medium">Header scripts<textarea wire:model="headerScript" rows="8" class="mt-1 block w-full rounded-lg border-slate-300 font-mono text-xs"></textarea></label></div>
+        @endif
+        @if($errors->any())<div class="mt-5 rounded-lg bg-red-50 p-4 text-sm text-red-700"><ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+    </div>
+</div>

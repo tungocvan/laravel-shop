@@ -5,7 +5,6 @@ namespace Modules\Website\Livewire\Admin\Banner;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\Banner;
 use Modules\Website\Services\BannerService;
 
 class BannerManager extends Component
@@ -33,6 +32,10 @@ class BannerManager extends Component
     public $order = 0;
 
     public $is_active = true;
+
+    public $starts_at;
+
+    public $ends_at;
 
     public $newImageDesktop;
 
@@ -64,11 +67,11 @@ class BannerManager extends Component
         $this->isModalOpen = true;
     }
 
-    public function edit($id)
+    public function edit($id, BannerService $service)
     {
         $this->resetForm();
         $this->isEditMode = true;
-        $banner = Banner::findOrFail($id);
+        $banner = $service->find($id);
         $this->bannerId = $banner->id;
         $this->title = $banner->title ?? '';
         $this->sub_title = $banner->sub_title ?? '';
@@ -77,6 +80,8 @@ class BannerManager extends Component
         $this->position = $banner->position;
         $this->order = $banner->order;
         $this->is_active = $banner->is_active;
+        $this->starts_at = $banner->starts_at?->format('Y-m-d\TH:i');
+        $this->ends_at = $banner->ends_at?->format('Y-m-d\TH:i');
         $this->currentImageDesktop = $banner->image_desktop;
         $this->currentImageMobile = $banner->image_mobile;
         $this->isModalOpen = true;
@@ -92,6 +97,8 @@ class BannerManager extends Component
             'order' => 'integer',
             'newImageDesktop' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
             'newImageMobile' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after:starts_at',
         ];
 
         if (! $this->isEditMode) {
@@ -109,6 +116,8 @@ class BannerManager extends Component
             'position' => $this->position,
             'order' => $this->order,
             'is_active' => $this->is_active,
+            'starts_at' => $this->starts_at ?: null,
+            'ends_at' => $this->ends_at ?: null,
         ], $this->newImageDesktop, $this->newImageMobile);
 
         $this->isModalOpen = false;
@@ -126,6 +135,6 @@ class BannerManager extends Component
 
     public function resetForm()
     {
-        $this->reset(['bannerId', 'title', 'sub_title', 'btn_text', 'link', 'position', 'order', 'is_active', 'newImageDesktop', 'newImageMobile', 'currentImageDesktop', 'currentImageMobile']);
+        $this->reset(['bannerId', 'title', 'sub_title', 'btn_text', 'link', 'position', 'order', 'is_active', 'starts_at', 'ends_at', 'newImageDesktop', 'newImageMobile', 'currentImageDesktop', 'currentImageMobile']);
     }
 }

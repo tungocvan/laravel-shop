@@ -3,7 +3,7 @@
 namespace Modules\Website\Services;
 
 use Modules\Product\Models\Product;
-use Modules\Website\Models\Wishlist;
+use Modules\Product\Models\Wishlist;
 
 class WishlistService
 {

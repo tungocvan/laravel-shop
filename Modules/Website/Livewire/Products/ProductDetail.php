@@ -5,8 +5,7 @@ namespace Modules\Website\Livewire\Products;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Livewire\Component;
-use Modules\Product\Models\Product;
-use Modules\Website\Models\Review;
+use Modules\Product\Services\ProductService;
 use Modules\Website\Services\CartService;
 
 class ProductDetail extends Component
@@ -19,13 +18,10 @@ class ProductDetail extends Component
 
     public $affiliateLink; // Link để người dùng mang đi chia sẻ
 
-    public function mount($slug, Request $request)
+    public function mount($slug, Request $request, ProductService $products)
     {
         // 1. Lấy thông tin sản phẩm
-        $this->product = Product::with(['categories', 'user']) // Eager load user nếu cần
-            ->where('slug', $slug)
-            ->where('is_active', true)
-            ->firstOrFail();
+        $this->product = $products->findActiveBySlugWithCategories($slug)->load('user');
 
         // 2. Xử lý Logic Affiliate (Người mua click vào link giới thiệu)
         if ($request->has('ref')) {
@@ -42,15 +38,14 @@ class ProductDetail extends Component
             $this->affiliateLink = route('product.detail', ['slug' => $slug]);
         }
 
-        $this->reviews = Review::where('product_id', $this->product->id)
-            ->where('is_approved', true)
-            ->latest()
-            ->get();
+        $this->reviews = $products->approvedReviews($this->product);
     }
 
     public function increment()
     {
-        $this->quantity++;
+        if ($this->quantity < $this->product->quantity) {
+            $this->quantity++;
+        }
     }
 
     public function decrement()
@@ -81,13 +76,7 @@ class ProductDetail extends Component
     // Lấy sản phẩm liên quan (Computed Property để tối ưu)
     public function getRelatedProductsProperty()
     {
-        return Product::where('id', '!=', $this->product->id)
-            ->whereHas('categories', function ($q) {
-                $q->whereIn('id', $this->product->categories->pluck('id'));
-            })
-            ->where('is_active', true)
-            ->take(4)
-            ->get();
+        return app(ProductService::class)->relatedActive($this->product);
     }
 
     public function render()

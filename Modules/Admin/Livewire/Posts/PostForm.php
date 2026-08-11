@@ -2,12 +2,12 @@
 
 namespace Modules\Admin\Livewire\Posts;
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
-use Modules\Website\Models\Post;
-use Modules\Website\Models\Category;
+use Modules\Category\Models\Category;
+use Modules\Post\Models\Post;
 use Modules\Website\Models\Tag;
 
 class PostForm extends Component
@@ -15,24 +15,33 @@ class PostForm extends Component
     use WithFileUploads;
 
     public $postId;
+
     public $isEdit = false;
 
     // Fields bảng wp_posts
     public $name;
+
     public $slug;
+
     public $summary;
+
     public $content;
+
     public $thumbnail; // Đường dẫn ảnh cũ
+
     public $new_thumbnail; // File upload mới
-    
+
     public $status = 'published';
+
     public $is_featured = false;
-    
+
     public $meta_title;
+
     public $meta_description;
 
     // Relations
     public $selectedCategories = []; // Mảng ID danh mục được chọn
+
     public $inputTags = ''; // String tags
 
     // Mount dữ liệu từ Controller truyền vào (qua View Wrapper)
@@ -41,7 +50,7 @@ class PostForm extends Component
         if ($id) {
             $this->postId = $id;
             $this->isEdit = true;
-            
+
             // Load bài viết kèm danh mục và tags
             $post = Post::with('categories', 'tags')->findOrFail($id);
 
@@ -57,7 +66,7 @@ class PostForm extends Component
 
             // Load danh mục đã chọn (Pluck ID)
             $this->selectedCategories = $post->categories->pluck('id')->toArray();
-            
+
             // Load tags (Implode name)
             $this->inputTags = $post->tags->pluck('name')->implode(', ');
         }
@@ -67,7 +76,7 @@ class PostForm extends Component
     public function updatedName($val)
     {
         // Tự động tạo Slug
-        if (!$this->isEdit || empty($this->slug)) {
+        if (! $this->isEdit || empty($this->slug)) {
             $this->slug = Str::slug($val);
         }
 
@@ -90,7 +99,7 @@ class PostForm extends Component
     {
         $this->validate([
             'name' => 'required|max:255',
-            'slug' => 'required|unique:wp_posts,slug,' . $this->postId,
+            'slug' => 'required|unique:wp_posts,slug,'.$this->postId,
             'status' => 'required|in:published,draft,hidden',
             'new_thumbnail' => 'nullable|image|max:2048',
         ]);
@@ -120,7 +129,7 @@ class PostForm extends Component
 
         // 3. Xử lý logic ngày đăng (published_at)
         // Chỉ thêm published_at = now() nếu đây là bài viết MỚI (không phải edit)
-        if (!$this->isEdit) {
+        if (! $this->isEdit) {
             $data['published_at'] = now();
         }
         // Nếu là Edit ($this->isEdit = true), ta không thêm key 'published_at' vào mảng $data
@@ -137,7 +146,7 @@ class PostForm extends Component
 
         // 6. Sync Tags
         $tagIds = [];
-        if (!empty($this->inputTags)) {
+        if (! empty($this->inputTags)) {
             $tagsArray = explode(',', $this->inputTags);
             foreach ($tagsArray as $tagName) {
                 $tagName = trim($tagName);
@@ -153,6 +162,7 @@ class PostForm extends Component
         $post->tags()->sync($tagIds);
 
         session()->flash('success', $this->isEdit ? 'Cập nhật bài viết thành công.' : 'Thêm bài viết mới thành công.');
+
         return redirect()->route('admin.posts.index');
     }
 
@@ -162,7 +172,7 @@ class PostForm extends Component
         $categories = Category::where('type', 'post')->get();
 
         return view('Admin::livewire.posts.post-form', [
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 }

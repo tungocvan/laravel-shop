@@ -1,20 +1,20 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Modules\Website\Models\Order;
-use Modules\Website\Models\WpProduct;
 use App\Models\User;
 use Faker\Factory as Faker;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use Modules\Order\Models\Order;
+use Modules\Product\Models\Product;
 
 class OrderSeeder extends Seeder
 {
     public function run(): void
     {
         $faker = Faker::create('vi_VN');
-        $products = WpProduct::all();
+        $products = Product::all();
         $users = User::all();
         $affiliates = User::take(3)->get(); // Lấy 3 user làm đối tác mẫu
 
@@ -22,13 +22,13 @@ class OrderSeeder extends Seeder
             $subtotal = 0;
             $totalCommission = 0;
             $orderItems = [];
-            
+
             $randomProducts = $products->random(rand(1, 3));
             foreach ($randomProducts as $product) {
                 $qty = rand(1, 2);
                 $price = $product->sale_price ?: $product->regular_price;
                 $lineTotal = $price * $qty;
-                
+
                 // Logic hoa hồng theo từng sản phẩm
                 $rate = $product->affiliate_commission_rate ?: 10;
                 $commissionAmount = ($lineTotal * $rate) / 100;
@@ -48,7 +48,7 @@ class OrderSeeder extends Seeder
             }
 
             $order = Order::create([
-                'order_code' => 'ORD-' . strtoupper(Str::random(6)),
+                'order_code' => 'ORD-'.strtoupper(Str::random(6)),
                 'user_id' => rand(0, 1) ? $users->random()->id : null,
                 'affiliate_id' => rand(0, 1) ? $affiliates->random()->id : null,
                 'customer_name' => $faker->name,

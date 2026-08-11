@@ -2,28 +2,29 @@
 
 namespace Modules\Website\Livewire\Cart;
 
-use Livewire\Component;
 use Illuminate\Support\Facades\App;
+use Livewire\Component;
+use Modules\Product\Services\ProductService;
 use Modules\Website\Services\CartService;
-use Modules\Website\Models\WpProduct;
 
 class AddToCart extends Component
 {
     public $productId;
+
     public $quantity = 1;
+
     public $style = 'default';
 
     // Biến để lưu trữ thông tin tồn kho
     public $productStock = 0;
 
-    public function mount($productId, $style = 'default')
+    public function mount(ProductService $products, $productId, $style = 'default')
     {
         $this->productId = $productId;
         $this->style = $style;
 
         // Lấy thông tin tồn kho ngay lúc init
-        $product = WpProduct::find($productId);
-        $this->productStock = $product ? $product->quantity : 0;
+        $this->productStock = $products->availableStock($productId);
     }
 
     public function addToCart()
@@ -31,11 +32,13 @@ class AddToCart extends Component
         // 1. Check nhanh ở frontend trước khi gọi service
         if ($this->productStock <= 0) {
             $this->dispatch('notify', ['type' => 'error', 'message' => 'Sản phẩm này đã hết hàng!']);
+
             return;
         }
 
         if ($this->quantity > $this->productStock) {
             $this->dispatch('notify', ['type' => 'error', 'message' => "Kho chỉ còn {$this->productStock} sản phẩm."]);
+
             return;
         }
 
@@ -48,7 +51,7 @@ class AddToCart extends Component
             // Thông báo thành công
             $this->dispatch('notify', [
                 'type' => 'success',
-                'message' => 'Đã thêm vào giỏ hàng!'
+                'message' => 'Đã thêm vào giỏ hàng!',
             ]);
 
             if ($this->style === 'default') {
@@ -59,7 +62,7 @@ class AddToCart extends Component
             // Bắt lỗi từ Service (VD: Hết hàng trong lúc đang thao tác)
             $this->dispatch('notify', [
                 'type' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ]);
         }
     }

@@ -2,11 +2,11 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\HeaderMenu;
-use Modules\Website\Models\HeaderMenuItem;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Modules\Website\Models\HeaderMenu;
+use Modules\Website\Models\HeaderMenuItem;
 
 class HeaderMenuService
 {
@@ -19,7 +19,9 @@ class HeaderMenuService
         return Cache::remember("menu_tree_{$location}", 3600, function () use ($location) {
             $menu = HeaderMenu::where('location', $location)->where('is_active', true)->first();
 
-            if (!$menu) return new Collection();
+            if (! $menu) {
+                return new Collection;
+            }
 
             // Lấy root items và load đệ quy children
             return $menu->rootItems()
@@ -39,6 +41,7 @@ class HeaderMenuService
     {
         $item = HeaderMenuItem::create($data);
         $this->clearMenuCache($item->header_menu_id);
+
         return $item;
     }
 
@@ -53,6 +56,7 @@ class HeaderMenuService
         if ($updated) {
             $this->clearMenuCache($item->header_menu_id);
         }
+
         return $updated;
     }
 
@@ -82,8 +86,9 @@ class HeaderMenuService
             }
         });
 
-        // Xóa cache toàn bộ menu để an toàn
-        Cache::flush();
+        HeaderMenu::query()->pluck('location')->each(
+            fn (string $location) => Cache::forget("menu_tree_{$location}")
+        );
     }
 
     protected function clearMenuCache($menuId)

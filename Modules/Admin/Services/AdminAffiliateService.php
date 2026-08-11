@@ -2,8 +2,8 @@
 
 namespace Modules\Admin\Services;
 
-use Modules\Website\Models\Order;
 use Exception;
+use Modules\Order\Models\Order;
 
 class AdminAffiliateService
 {
@@ -18,13 +18,11 @@ class AdminAffiliateService
                 $q->where('commission_status', $filters['status']);
             })
             ->when(isset($filters['search']), function ($q) use ($filters) {
-                $q->where('order_code', 'like', '%' . $filters['search'] . '%');
+                $q->where('order_code', 'like', '%'.$filters['search'].'%');
             })
             ->latest()
             ->paginate($perPage);
     }
-
-   
 
     /**
      * Từ chối hoa hồng kèm lý do
@@ -40,15 +38,16 @@ class AdminAffiliateService
 
         $order->update([
             'commission_status' => 'rejected',
-            'rejection_reason'  => $reason
+            'rejection_reason' => $reason,
         ]);
 
         return $order;
     }
+
     public function getOrderDetail($orderId)
     {
         // Eager load 'items' để lấy commission_rate và commission_amount của từng món
-        return \Modules\Website\Models\Order::with(['items', 'user', 'affiliate'])
+        return Order::with(['items', 'user', 'affiliate'])
             ->findOrFail($orderId);
     }
 
@@ -57,22 +56,21 @@ class AdminAffiliateService
      */
     public function approve($orderId)
     {
-        $order = \Modules\Website\Models\Order::findOrFail($orderId);
+        $order = Order::findOrFail($orderId);
 
         if ($order->commission_status === 'approved') {
-            throw new \Exception('Hoa hồng này đã được duyệt trước đó.');
+            throw new Exception('Hoa hồng này đã được duyệt trước đó.');
         }
 
         return \DB::transaction(function () use ($order) {
             $order->update(['commission_status' => 'approved']);
-            
+
             // GỌI LOGIC THĂNG HẠNG TẠI ĐÂY
             $rankService = app(AffiliateRankService::class);
             $rankService->checkAndUpdateRank($order->affiliate_id);
-            
+
             return $order;
         });
 
-       
     }
 }

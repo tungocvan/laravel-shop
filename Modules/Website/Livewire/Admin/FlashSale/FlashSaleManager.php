@@ -2,43 +2,43 @@
 
 namespace Modules\Website\Livewire\Admin\FlashSale;
 
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Product\Services\ProductService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\FlashSale;
 use Modules\Website\Services\FlashSaleService;
 
 class FlashSaleManager extends Component
 {
-    use WithPagination, AuthorizesAdminPermissions;
+    use AuthorizesAdminPermissions, WithPagination;
 
     public $isModalOpen = false;
+
     public $isEditMode = false;
+
     public $showProductPicker = false;
+
     public $productSearchQuery = '';
+
     public $saleId;
+
     public $title;
+
     public $start_time;
+
     public $end_time;
+
     public $is_active = true;
+
     public $items = [];
 
-    public function render()
+    public function render(FlashSaleService $service, ProductService $products)
     {
-        $sales = (new FlashSaleService())->getAll();
+        $sales = $service->getAll();
         $searchProducts = [];
 
         if ($this->showProductPicker) {
-            $query = DB::table('wp_products')
-                ->select('id', 'title', 'image', 'regular_price', 'sale_price')
-                ->where('is_active', true);
-
-            if ($this->productSearchQuery) {
-                $query->where('title', 'like', '%' . $this->productSearchQuery . '%');
-            }
-
-            $searchProducts = $query->limit(10)->get();
+            $searchProducts = $products->searchActiveForPicker($this->productSearchQuery);
         }
 
         return view('Website::livewire.admin.flash-sale.flash-sale-manager', [
@@ -53,11 +53,11 @@ class FlashSaleManager extends Component
         $this->isModalOpen = true;
     }
 
-    public function edit($id)
+    public function edit($id, FlashSaleService $service)
     {
         $this->resetForm();
         $this->isEditMode = true;
-        $sale = FlashSale::with('items.product')->findOrFail($id);
+        $sale = $service->findWithProducts($id);
         $this->saleId = $sale->id;
         $this->title = $sale->title;
         $this->start_time = $sale->start_time->format('Y-m-d\TH:i');
@@ -125,7 +125,7 @@ class FlashSaleManager extends Component
         $this->productSearchQuery = '';
     }
 
-    public function addProduct($productId)
+    public function addProduct($productId, ProductService $products)
     {
         foreach ($this->items as $item) {
             if ($item['product_id'] == $productId) {
@@ -133,7 +133,7 @@ class FlashSaleManager extends Component
             }
         }
 
-        $prod = DB::table('wp_products')->find($productId);
+        $prod = $products->findForPicker($productId);
         if ($prod) {
             $this->items[] = [
                 'product_id' => $prod->id,

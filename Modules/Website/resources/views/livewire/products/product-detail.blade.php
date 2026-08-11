@@ -1,3 +1,32 @@
+@php
+    $rating = round((float) ($product->reviews_avg_rating ?? $reviews->avg('rating') ?? 0), 1);
+    $reviewCount = (int) ($product->reviews_count ?? $reviews->count());
+    $currentPrice = (float) (($product->sale_price > 0 && $product->sale_price < $product->regular_price) ? $product->sale_price : $product->regular_price);
+@endphp
+
+@push('scripts')
+    <script type="application/ld+json">{!! json_encode([
+        '@context' => 'https://schema.org',
+        '@type' => 'Product',
+        'name' => $product->title,
+        'image' => array_values(array_filter(array_merge([$product->image_url], $product->gallery_urls ?? []))),
+        'description' => strip_tags($product->short_description ?: $product->description),
+        'sku' => (string) $product->id,
+        'offers' => [
+            '@type' => 'Offer',
+            'url' => route('product.detail', $product->slug),
+            'priceCurrency' => 'VND',
+            'price' => $currentPrice,
+            'availability' => $product->quantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        ],
+        ...($reviewCount > 0 ? ['aggregateRating' => [
+            '@type' => 'AggregateRating',
+            'ratingValue' => $rating,
+            'reviewCount' => $reviewCount,
+        ]] : []),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+@endpush
+
 <div class="bg-white" x-data="{
     activeImg: '{{ $product->image_url }}',
     activeTab: 'description',
@@ -28,7 +57,7 @@
             <div class="space-y-4">
                 {{-- Main Image --}}
                 <div class="aspect-square bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 relative group">
-                    <img :src="activeImg" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105">
+                    <img :src="activeImg" alt="{{ $product->title }}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105">
 
                     {{-- Badge Sale --}}
                     @if($product->sale_price < $product->regular_price)
@@ -44,13 +73,13 @@
                     <button @click="activeImg = '{{ $product->image_url }}'"
                             :class="activeImg === '{{ $product->image_url }}' ? 'ring-2 ring-blue-600 border-transparent' : 'border-gray-200 hover:border-gray-300'"
                             class="flex-shrink-0 w-20 h-20 rounded-xl border bg-gray-50 overflow-hidden transition-all">
-                        <img src="{{ $product->image_url }}" class="w-full h-full object-cover">
+                        <img src="{{ $product->image_url }}" alt="Ảnh chính {{ $product->title }}" class="w-full h-full object-cover">
                     </button>
                     @foreach($product->gallery_urls as $url)
                     <button @click="activeImg = '{{ $url }}'"
                             :class="activeImg === '{{ $url }}' ? 'ring-2 ring-blue-600 border-transparent' : 'border-gray-200 hover:border-gray-300'"
                             class="flex-shrink-0 w-20 h-20 rounded-xl border bg-gray-50 overflow-hidden transition-all">
-                        <img src="{{ $url }}" class="w-full h-full object-cover">
+                        <img src="{{ $url }}" alt="Ảnh bổ sung {{ $product->title }}" loading="lazy" class="w-full h-full object-cover">
                     </button>
                     @endforeach
                 </div>
@@ -65,7 +94,8 @@
                         {{ $product->categories->first()->name ?? 'Cửa hàng' }}
                     </span>
                     <div class="flex items-center gap-1 text-yellow-400 text-sm">
-                        ★★★★★ <span class="text-gray-400 ml-1">(4.9/5)</span>
+                        <span aria-hidden="true">★★★★★</span>
+                        <span class="text-gray-400 ml-1">{{ $reviewCount > 0 ? '(' . $rating . '/5 · ' . $reviewCount . ')' : '(Chưa có đánh giá)' }}</span>
                     </div>
                 </div>
 
@@ -92,17 +122,17 @@
                 <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-8">
                     <div class="flex items-center gap-4 mb-4">
                         <div class="flex items-center bg-white border border-gray-200 rounded-xl">
-                            <button wire:click="decrement" class="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-l-xl transition">-</button>
-                            <input type="text" value="{{ $quantity }}" readonly class="w-12 text-center border-none focus:ring-0 font-bold text-gray-900 bg-transparent p-0">
-                            <button wire:click="increment" class="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-r-xl transition">+</button>
+                            <button type="button" wire:click="decrement" aria-label="Giảm số lượng" class="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-l-xl transition">-</button>
+                            <input type="text" value="{{ $quantity }}" readonly aria-label="Số lượng" class="w-12 text-center border-none focus:ring-0 font-bold text-gray-900 bg-transparent p-0">
+                            <button type="button" wire:click="increment" aria-label="Tăng số lượng" @disabled($quantity >= $product->quantity) class="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-40 rounded-r-xl transition">+</button>
                         </div>
                         <span class="text-sm text-gray-500">{{ $product->quantity > 0 ? 'Còn hàng' : 'Hết hàng' }}</span>
                     </div>
 
                     <div class="flex gap-3">
-                        <button wire:click="addToCart" class="flex-1 bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg hover:shadow-blue-500/30 flex items-center justify-center gap-2">
+                        <button type="button" wire:click="addToCart" wire:loading.attr="disabled" @disabled($product->quantity <= 0) class="flex-1 bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-blue-500/30 flex items-center justify-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                            Thêm vào giỏ
+                            {{ $product->quantity > 0 ? 'Thêm vào giỏ' : 'Sản phẩm hết hàng' }}
                         </button>
                         <button class="w-14 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 transition">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
@@ -162,7 +192,7 @@
                     <button @click="activeTab = 'reviews'"
                             :class="activeTab === 'reviews' ? 'text-blue-600 border-blue-600 bg-white' : 'text-gray-500 border-transparent hover:text-gray-700 bg-gray-50'"
                             class="flex-1 py-4 font-bold text-sm uppercase tracking-wider border-b-2 transition-all">
-                        Đánh giá (0)
+                        Đánh giá ({{ $reviewCount }})
                     </button>
                 </div>
 
@@ -171,11 +201,27 @@
                     <div x-show="activeTab === 'description'" x-transition.opacity class="prose prose-blue max-w-none text-gray-600">
                         {!! $product->description !!}
                     </div>
-                    <div x-show="activeTab === 'reviews'" x-transition.opacity class="text-center py-12">
+                    <div x-show="activeTab === 'reviews'" x-transition.opacity class="py-12">
+                        @if($reviews->isNotEmpty())
+                            <div class="space-y-6">
+                                @foreach($reviews as $review)
+                                    <article class="border-b border-gray-100 pb-6 last:border-0">
+                                        <div class="flex items-center justify-between gap-4">
+                                            <p class="font-bold text-gray-900">{{ $review->user->name ?? $review->name ?? 'Khách hàng' }}</p>
+                                            <span class="text-yellow-400" aria-label="{{ $review->rating }} trên 5 sao">{{ str_repeat('★', (int) $review->rating) }}<span class="text-gray-200">{{ str_repeat('★', 5 - (int) $review->rating) }}</span></span>
+                                        </div>
+                                        <p class="mt-2 text-gray-600">{{ $review->comment ?? $review->content }}</p>
+                                    </article>
+                                @endforeach
+                            </div>
+                        @else
+                        <div class="text-center">
                         <div class="inline-block p-4 rounded-full bg-gray-50 text-gray-400 mb-4">
                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         </div>
                         <p class="text-gray-500">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -190,7 +236,7 @@
             @foreach($this->relatedProducts as $related)
                 <a href="{{ route('product.detail', $related->slug) }}" class="group block">
                     <div class="aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden mb-4 relative">
-                        <img src="{{ $related->image_url }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        <img src="{{ $related->image_url }}" alt="{{ $related->title }}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                         @if($related->sale_price < $related->regular_price)
                             <span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded">Sale</span>
                         @endif

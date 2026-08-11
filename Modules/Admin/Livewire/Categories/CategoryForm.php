@@ -2,10 +2,10 @@
 
 namespace Modules\Admin\Livewire\Categories;
 
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Website\Models\Category;
-use Illuminate\Support\Str;
+use Modules\Category\Models\Category;
 
 class CategoryForm extends Component
 {
@@ -14,14 +14,21 @@ class CategoryForm extends Component
     public $categoryId = null;
 
     // Fields
-    public $name, $slug;
+    public $name;
+
+    public $slug;
+
     public $parent_id = null;
+
     public $sort_order = 0;
+
     public $is_active = true;
+
     public $type = 'product'; // Mặc định Product
 
     // Image
     public $newImage;
+
     public $oldImage;
 
     // Load danh sách danh mục cha theo TYPE
@@ -45,12 +52,13 @@ class CategoryForm extends Component
         foreach ($categories as $category) {
             if ($category->parent_id == $parentId) {
                 // Tạo tên hiển thị dạng tree: "-- Name"
-                $category->view_name = $prefix . $category->name;
+                $category->view_name = $prefix.$category->name;
                 $result[] = $category;
-                $children = $this->buildTreeOption($categories, $category->id, $prefix . '-- ');
+                $children = $this->buildTreeOption($categories, $category->id, $prefix.'-- ');
                 $result = array_merge($result, $children);
             }
         }
+
         return $result;
     }
 
@@ -77,7 +85,7 @@ class CategoryForm extends Component
 
     public function updatedName($value)
     {
-        if (!$this->categoryId) {
+        if (! $this->categoryId) {
             $this->slug = Str::slug($value);
         }
     }
@@ -86,7 +94,7 @@ class CategoryForm extends Component
     {
         return [
             'name' => 'required|min:2',
-            'slug' => 'required|unique:categories,slug,' . $this->categoryId,
+            'slug' => 'required|unique:categories,slug,'.$this->categoryId,
             'type' => 'required|in:product,post',
             'parent_id' => 'nullable|exists:categories,id',
             'sort_order' => 'integer',

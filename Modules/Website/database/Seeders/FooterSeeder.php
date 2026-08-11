@@ -1,15 +1,16 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Modules\Website\Models\Setting;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Website\Models\FooterColumn;
 use Modules\Website\Models\FooterLink;
+use Modules\Website\Models\Setting;
 use Modules\Website\Models\SocialLink;
-use Illuminate\Support\Str;
+
 // php artisan db:seed --class="Modules\Website\database\Seeders\FooterSeeder"
 class FooterSeeder extends Seeder
 {
@@ -34,43 +35,43 @@ class FooterSeeder extends Seeder
                 'key' => 'footer.brand_description',
                 'value' => 'Nền tảng thương mại điện tử hàng đầu, mang đến trải nghiệm mua sắm đẳng cấp với những sản phẩm được tuyển chọn kỹ lưỡng và dịch vụ khách hàng tận tâm.',
                 'group_name' => 'footer',
-                'type' => 'textarea'
+                'type' => 'textarea',
             ],
             [
                 'key' => 'footer.address',
                 'value' => '36 Nguyễn Minh Hoàng, Phường Bảy Hiền, TP.HCM',
                 'group_name' => 'footer',
-                'type' => 'text'
+                'type' => 'text',
             ],
             [
                 'key' => 'footer.email',
                 'value' => 'tungocvan@gmail.com',
                 'group_name' => 'footer',
-                'type' => 'text'
+                'type' => 'text',
             ],
             [
                 'key' => 'footer.phone',
                 'value' => '0903 971 949',
                 'group_name' => 'footer',
-                'type' => 'text'
+                'type' => 'text',
             ],
             [
                 'key' => 'footer.appstore_url',
                 'value' => 'https://apps.apple.com/app-id',
                 'group_name' => 'footer',
-                'type' => 'text'
+                'type' => 'text',
             ],
             [
                 'key' => 'footer.playstore_url',
                 'value' => 'https://play.google.com/store/apps',
                 'group_name' => 'footer',
-                'type' => 'text'
+                'type' => 'text',
             ],
             [
                 'key' => 'footer.copyright',
                 'value' => '© 2026 FlexBiz. All rights reserved.',
                 'group_name' => 'footer',
-                'type' => 'text'
+                'type' => 'text',
             ],
         ];
 
@@ -90,14 +91,14 @@ class FooterSeeder extends Seeder
             'title' => 'Về FlexBiz',
             'slug' => 'about-flexbiz',
             'sort_order' => 1,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $col1->links()->createMany([
             ['label' => 'Câu chuyện thương hiệu', 'url' => '/blog/cau-chuyen-thuong-hieu', 'sort_order' => 1, 'is_active' => true],
             ['label' => 'Tuyển dụng', 'url' => '/blog/tuyen-dung', 'sort_order' => 2, 'is_active' => true],
             ['label' => 'Tin tức & Sự kiện', 'url' => '/blog', 'sort_order' => 3, 'is_active' => true],
-            ['label' => 'Liên hệ hợp tác', 'url' => '/blog/' . Str::slug('Liên hệ hợp tác'), 'sort_order' => 4, 'is_active' => true],
+            ['label' => 'Liên hệ hợp tác', 'url' => '/blog/'.Str::slug('Liên hệ hợp tác'), 'sort_order' => 4, 'is_active' => true],
         ]);
 
         // Cột 2: Hỗ trợ khách hàng
@@ -105,15 +106,15 @@ class FooterSeeder extends Seeder
             'title' => 'Hỗ Trợ Khách Hàng',
             'slug' => 'customer-support',
             'sort_order' => 2,
-            'is_active' => true
+            'is_active' => true,
         ]);
- 
+
         $col2->links()->createMany([
-            ['label' => 'Trung tâm trợ giúp', 'url' => '/blog/' . Str::slug('Trung tâm trợ giúp'), 'sort_order' => 1, 'is_active' => true],
-            ['label' => 'Hướng dẫn mua hàng', 'url' => '/blog/' . Str::slug('Hướng dẫn mua hàng'), 'sort_order' => 2, 'is_active' => true],
-            ['label' => 'Chính sách vận chuyển', 'url' => '/blog/' . Str::slug('Chính sách vận chuyển'), 'sort_order' => 3, 'is_active' => true],
-            ['label' => 'Chính sách đổi trả', 'url' => '/blog/' . Str::slug('Chính sách đổi trả'), 'sort_order' => 4, 'is_active' => true],
-            ['label' => 'Điều Khoản Dịch Vụ', 'url' => '/blog/' . Str::slug('Điều Khoản Dịch Vụ'), 'sort_order' => 5, 'is_active' => true],
+            ['label' => 'Trung tâm trợ giúp', 'url' => '/blog/'.Str::slug('Trung tâm trợ giúp'), 'sort_order' => 1, 'is_active' => true],
+            ['label' => 'Hướng dẫn mua hàng', 'url' => '/blog/'.Str::slug('Hướng dẫn mua hàng'), 'sort_order' => 2, 'is_active' => true],
+            ['label' => 'Chính sách vận chuyển', 'url' => '/blog/'.Str::slug('Chính sách vận chuyển'), 'sort_order' => 3, 'is_active' => true],
+            ['label' => 'Chính sách đổi trả', 'url' => '/blog/'.Str::slug('Chính sách đổi trả'), 'sort_order' => 4, 'is_active' => true],
+            ['label' => 'Điều Khoản Dịch Vụ', 'url' => '/blog/'.Str::slug('Điều Khoản Dịch Vụ'), 'sort_order' => 5, 'is_active' => true],
         ]);
 
         // ---------------------------------------------------------
@@ -127,7 +128,7 @@ class FooterSeeder extends Seeder
                 'icon_class' => 'fab fa-facebook', // Hoặc để trống nếu dùng SVG hardcode
                 'sort_order' => 1,
                 'is_active' => true,
-                'created_at' => now(), 'updated_at' => now()
+                'created_at' => now(), 'updated_at' => now(),
             ],
             [
                 'platform' => 'Instagram',
@@ -136,7 +137,7 @@ class FooterSeeder extends Seeder
                 'icon_class' => 'fab fa-instagram',
                 'sort_order' => 2,
                 'is_active' => true,
-                'created_at' => now(), 'updated_at' => now()
+                'created_at' => now(), 'updated_at' => now(),
             ],
             [
                 'platform' => 'YouTube',
@@ -145,7 +146,7 @@ class FooterSeeder extends Seeder
                 'icon_class' => 'fab fa-youtube',
                 'sort_order' => 3,
                 'is_active' => true,
-                'created_at' => now(), 'updated_at' => now()
+                'created_at' => now(), 'updated_at' => now(),
             ],
         ]);
 

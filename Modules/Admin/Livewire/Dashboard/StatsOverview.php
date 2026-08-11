@@ -2,17 +2,19 @@
 
 namespace Modules\Admin\Livewire\Dashboard;
 
-use Livewire\Component;
-use Modules\Website\Models\Order;
-use Modules\Website\Models\WpProduct;
 use App\Models\User;
-use Carbon\Carbon;
+use Livewire\Component;
+use Modules\Order\Models\Order;
+use Modules\Product\Models\Product as WpProduct;
 
 class StatsOverview extends Component
 {
     public $totalRevenue = 0;
+
     public $newOrdersCount = 0;
+
     public $totalProducts = 0;
+
     public $totalCustomers = 0;
 
     // Biến tính % tăng trưởng (để làm màu cho đẹp)

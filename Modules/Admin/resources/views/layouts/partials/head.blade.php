@@ -1,5 +1,5 @@
 @php
-    use Modules\Admin\Models\Setting;
+    use Modules\System\Models\Setting;
 
     $favicon = Setting::getValue('site_favicon');
     $headerScript = Setting::getValue('header_script');

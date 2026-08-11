@@ -3,60 +3,43 @@
 namespace Modules\Website\database\Seeders;
 
 use Illuminate\Database\Seeder;
-// Import các Class Seeder
-
-use Modules\Website\database\Seeders\CategorySeeder;
-use Modules\Website\database\Seeders\ProductSeeder;
-use Modules\Website\database\Seeders\OrderSeeder;
-
-
-use Modules\Website\database\Seeders\SettingSeeder;
-use Modules\Website\database\Seeders\HeaderSeeder;
-use Modules\Website\database\Seeders\PostCategorySeeder;
-use Modules\Website\database\Seeders\PostSeeder;
-use Modules\Website\database\Seeders\CouponSeeder;
-use Modules\Website\database\Seeders\FlashSaleSeeder;
-use Modules\Website\database\Seeders\FooterSeeder;
-use Modules\Website\database\Seeders\FooterPostSeeder;
-use Modules\Website\database\Seeders\ReviewSeeder;
-use Modules\Website\database\Seeders\AffiliateSeeder;
-use Modules\Website\database\Seeders\AffiliateLevelSeeder;
-use Modules\Website\database\Seeders\AffiliateSchemeSeeder;
-
 
 class WebsiteDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Chạy lệnh: php artisan db:seed --class="Modules\Website\database\Seeders\WebsiteDatabaseSeeder"
+        $this->command?->warn('Đang reset và tạo lại toàn bộ dữ liệu demo Website...');
 
         $this->call([
-            //
-
-            // 2. Tạo danh mục sản phẩm
+            WebsiteDemoResetSeeder::class,
+            WebsiteDemoUserSeeder::class,
             CategorySeeder::class,
-            // 3. Tạo sản phẩm (gắn với danh mục)
             ProductSeeder::class,
-            // Tạo danh mục bài viết
             PostCategorySeeder::class,
-            // Tạo bài viết
             PostSeeder::class,
+            FooterPostSeeder::class,
             CouponSeeder::class,
-            // Tạo slides
-           // ThemeSettingsSeeder::class,
             HeaderSeeder::class,
             SettingSeeder::class,
-            // Tạo dữ liệu mẫu Footer
             FooterSeeder::class,
-            FooterPostSeeder::class,
-            // 4. Tạo đơn hàng (gắn với User và Sản phẩm)
+            BannerSeeder::class,
+            NewsletterSeeder::class,
+            AffiliateLevelSeeder::class,
             OrderSeeder::class,
             ReviewSeeder::class,
-            // Tạo sản phẩm khuyến mãi
             FlashSaleSeeder::class,
             AffiliateSeeder::class,
-            AffiliateLevelSeeder::class,
-            AffiliateSchemeSeeder::class
+            AffiliateSchemeSeeder::class,
+            CartSeeder::class,
+            WishlistSeeder::class,
+            WebsitePageSeeder::class,
+            WebsiteSectionSeeder::class,
+            WebsiteSectionItemSeeder::class,
+            WebsiteAdminMenuSeeder::class,
         ]);
+
+        $this->command?->newLine();
+        $this->command?->info('Website demo đã sẵn sàng.');
+        $this->command?->line('Đăng nhập: demo@website.test / Demo@123456');
     }
 }

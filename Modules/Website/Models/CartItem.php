@@ -4,6 +4,7 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Product\Models\Product;
 
 class CartItem extends Model
 {
@@ -16,6 +17,6 @@ class CartItem extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(WpProduct::class, 'product_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }

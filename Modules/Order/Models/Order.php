@@ -28,6 +28,7 @@ class Order extends Model
         'shipping_fee',
         'discount',
         'total',
+        'coupon_code',
         'payment_method',
         'rejection_reason',
         'status',

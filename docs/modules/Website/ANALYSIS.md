@@ -1,5 +1,12 @@
 # Website Module Analysis
 
+> Post-refactor update (Phase 8): the original findings below are retained as
+> historical baseline. Phases 1–7 are closed and the Phase 8 CLI release gate
+> passes. Duplicate cross-domain models/services, checkout integrity defects,
+> authorization gaps, CMS limitations and production optimization items described
+> in the original analysis have been addressed. See `PHASE_8_COMPLETION.md` for
+> current release evidence and explicitly deferred compatibility items.
+
 ## Executive Summary
 
 `Modules/Website` is an enabled `domain` module responsible for the public storefront plus a substantial set of account, checkout, marketing, affiliate and admin-facing website features. Its manifest explicitly depends on `User`, `Product`, `Category`, `Post`, and `Order`.

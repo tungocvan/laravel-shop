@@ -6,8 +6,7 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Category\Models\Category;
-use Modules\Product\Models\Product;
+use Modules\Product\Services\ProductService;
 use Modules\Website\Services\CartService;
 
 class ProductList extends Component
@@ -65,66 +64,19 @@ class ProductList extends Component
         }
     }
 
-    public function render()
+    public function render(ProductService $products)
     {
         // 1. Lấy Categories cho Sidebar Filter
-        $categories = Category::withCount('products')
-            ->whereNull('parent_id') // Lấy danh mục cha
-            ->where('type', 'product')
-            ->get();
-
-        // 2. Khởi tạo Query
-        $query = Product::query()->where('is_active', true);
-
-        // Filter: Search
-        if ($this->search) {
-            $query->where(fn ($q) => $q->where('title', 'like', "%{$this->search}%")
-                ->orWhere('short_description', 'like', "%{$this->search}%")
-            );
-        }
-
-        // Filter: Categories (Ưu tiên Checkbox, sau đó đến Slug từ URL)
-        // LỌC THEO CATEGORY (Sửa ở đây)
-        if (! empty($this->selected_categories)) {
-            $query->whereHas('categories', function ($q) {
-                $q->whereIn('categories.id', $this->selected_categories);
-            });
-        } elseif ($this->categorySlug) {
-            $query->whereHas('categories', function ($q) {
-                $q->where('categories.slug', $this->categorySlug);
-            });
-        }
-
-        // Filter: Price Range (Xử lý chuỗi "min-max")
-        if ($this->price_range) {
-            $parts = explode('-', $this->price_range);
-            if (count($parts) == 2) {
-                $min = (int) $parts[0];
-                $max = (int) $parts[1];
-                // Lọc trên giá cuối cùng (Sale price nếu có, không thì Regular price)
-                $query->whereRaw('COALESCE(sale_price, regular_price) BETWEEN ? AND ?', [$min, $max]);
-            }
-        }
-
-        // 3. Sorting
-        switch ($this->sort) {
-            case 'price_asc':
-                $query->orderByRaw('COALESCE(sale_price, regular_price) ASC');
-                break;
-            case 'price_desc':
-                $query->orderByRaw('COALESCE(sale_price, regular_price) DESC');
-                break;
-            case 'name_asc':
-                $query->orderBy('title', 'asc');
-                break;
-            case 'latest':
-            default:
-                $query->latest();
-                break;
-        }
+        $categories = $products->storefrontCategories();
 
         return view('Website::livewire.products.product-list', [
-            'products' => $query->paginate(12),
+            'products' => $products->paginateStorefront([
+                'search' => $this->search,
+                'selected_categories' => $this->selected_categories,
+                'category_slug' => $this->categorySlug,
+                'price_range' => $this->price_range,
+                'sort' => $this->sort,
+            ]),
             'categories' => $categories, // Truyền biến fix lỗi Undefined
         ]);
     }

@@ -3,8 +3,7 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Post\Models\Post;
-use Modules\Website\Services\SettingsService; // Import đúng Model của bạn
+use Modules\Website\Services\HomepageContentService;
 
 class BlogHighlight extends Component
 {
@@ -32,21 +31,9 @@ class BlogHighlight extends Component
         blade;
     }
 
-    public function render(SettingsService $settings)
+    public function render(HomepageContentService $homepage)
     {
-        // 1. Lấy cấu hình số lượng từ Admin (Mặc định 3)
-        $limit = (int) $settings->get('home_blog_count', 3);
-
-        // 2. Query bài viết theo Model Post của bạn
-        $posts = Post::where('status', 'published') // Chỉ lấy bài đã xuất bản
-            ->whereNotNull('published_at')          // Phải có ngày xuất bản
-            ->whereDoesntHave('categories', function ($query) {
-                $query->where('slug', 'pages');
-                // Lưu ý: Kiểm tra lại trong DB xem slug là 'pages' hay 'pages' nhé
-            })
-            ->orderBy('published_at', 'desc')       // Mới nhất lên đầu
-            ->take($limit)
-            ->get();
+        $posts = $homepage->latestPosts();
 
         return view('Website::livewire.home.blog-highlight', [
             'posts' => $posts,

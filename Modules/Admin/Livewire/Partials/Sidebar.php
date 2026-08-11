@@ -2,11 +2,11 @@
 
 namespace Modules\Admin\Livewire\Partials;
 
-use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Component;
 use Modules\Admin\Services\SidebarService;
 use Modules\Admin\Support\ThemeManager;
-use Modules\Admin\Models\Setting;
+use Modules\System\Models\Setting;
 
 class Sidebar extends Component
 {
@@ -14,11 +14,17 @@ class Sidebar extends Component
     // STATE
     // ======================
     public $menus = [];
+
     public $theme = [];
+
     public $sidebarOpen = true;
+
     public $titleSidebar = '';
+
     public $schoolPrefix = '';
+
     public $schoolDisplayName = '';
+
     public $schoolAcronym = '';
 
     // ======================
@@ -29,39 +35,39 @@ class Sidebar extends Component
         // ======================
         // BASE
         // ======================
-        'background'        => 'bg-slate-50',
+        'background' => 'bg-slate-50',
 
         // 🔥 FIX: tăng readability
-        'text'              => 'text-slate-700',
+        'text' => 'text-slate-700',
 
-        'hover'             => 'hover:bg-slate-100',
+        'hover' => 'hover:bg-slate-100',
 
         // ======================
         // ACTIVE STATE
         // ======================
-        'active_bg'         => 'bg-indigo-600',
-        'active_text'       => 'text-white',
+        'active_bg' => 'bg-indigo-600',
+        'active_text' => 'text-white',
 
         // ======================
         // ICON
         // ======================
-        'icon_active'       => 'text-indigo-600',
-        'icon_inactive'     => 'text-slate-400',
+        'icon_active' => 'text-indigo-600',
+        'icon_inactive' => 'text-slate-400',
 
         // ======================
         // CHILD MENU (FIX QUAN TRỌNG)
         // ======================
-        'child_text'        => 'text-slate-600', // 🔥 FIX: 500 → 600 (dễ đọc hơn)
+        'child_text' => 'text-slate-600', // 🔥 FIX: 500 → 600 (dễ đọc hơn)
 
-        'child_hover'       => 'hover:bg-slate-100 hover:text-slate-900',
+        'child_hover' => 'hover:bg-slate-100 hover:text-slate-900',
 
-        'child_active_bg'   => 'bg-indigo-500/10',
+        'child_active_bg' => 'bg-indigo-500/10',
         'child_active_text' => 'text-indigo-600',
 
         // ======================
         // BORDER
         // ======================
-        'border'            => 'border-slate-200',
+        'border' => 'border-slate-200',
     ];
 
     // ======================
@@ -86,7 +92,7 @@ class Sidebar extends Component
         //     $this->defaultTheme,
         //     $selectedTheme
         // );
-         $this->theme = $themeManager->get();
+        $this->theme = $themeManager->get();
 
         $this->sidebarOpen = session('sidebar_open', true);
     }
@@ -123,7 +129,7 @@ class Sidebar extends Component
     // ======================
     public function toggleSidebar()
     {
-        $this->sidebarOpen = !$this->sidebarOpen;
+        $this->sidebarOpen = ! $this->sidebarOpen;
 
         session(['sidebar_open' => $this->sidebarOpen]);
     }

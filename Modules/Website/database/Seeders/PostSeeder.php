@@ -1,13 +1,15 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
-use Modules\Website\Models\Post;
-use Modules\Website\Models\Category;
+use Modules\Category\Models\Category;
+use Modules\Post\Models\Post;
+
 // php artisan db:seed --class="Modules\Website\database\Seeders\PostSeeder"
 class PostSeeder extends Seeder
 {
@@ -23,6 +25,7 @@ class PostSeeder extends Seeder
         $categories = Category::where('type', 'post')->get();
         if ($categories->isEmpty()) {
             $this->command->error('❌ Vui lòng chạy PostCategorySeeder trước!');
+
             return;
         }
 
@@ -37,11 +40,11 @@ class PostSeeder extends Seeder
 
         // 4. Tạo bài viết
         for ($i = 1; $i <= 41; $i++) {
-            $name = "Bài viết chuyên sâu về xu hướng " . ($i * 10) . ": " . Str::random(5);
-            if($i==41) {
-                $name = "Thể lệ chương trình khuyến mãi tháng 10";
+            $name = 'Bài viết chuyên sâu về xu hướng '.($i * 10).': '.Str::random(5);
+            if ($i == 41) {
+                $name = 'Thể lệ chương trình khuyến mãi tháng 10';
             }
-            
+
             $slug = Str::slug($name); // Đảm bảo slug chuẩn URL
 
             // Nội dung giả lập HTML
@@ -69,10 +72,10 @@ class PostSeeder extends Seeder
                 'is_featured' => ($i === 1), // Bài đầu tiên là Featured
                 'status' => 'published',
                 'views' => rand(100, 5000),
-                'user_id' => 1,
+                'user_id' => User::query()->where('email', 'demo@website.test')->value('id'),
                 'published_at' => Carbon::now()->subDays(rand(0, 30)),
                 'meta_title' => $name,
-                'meta_description' => 'Mô tả SEO...'
+                'meta_description' => 'Mô tả SEO...',
             ]);
 
             // Gắn vào 1 danh mục ngẫu nhiên

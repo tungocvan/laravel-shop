@@ -23,6 +23,11 @@ class BannerService
         return Banner::orderBy('order', 'asc')->orderBy('id', 'desc')->get();
     }
 
+    public function find(int $id): Banner
+    {
+        return Banner::query()->findOrFail($id);
+    }
+
     public function save($data, $imageDesktop = null, $imageMobile = null)
     {
         $banner = ! empty($data['id']) ? Banner::findOrFail($data['id']) : null;

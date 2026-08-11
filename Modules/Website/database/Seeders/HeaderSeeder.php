@@ -1,12 +1,12 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Website\Models\HeaderMenu;
 use Modules\Website\Models\HeaderMenuItem;
-use Illuminate\Support\Str;
 
 class HeaderSeeder extends Seeder
 {
@@ -26,7 +26,7 @@ class HeaderSeeder extends Seeder
         $primaryMenu = HeaderMenu::create([
             'name' => 'Desktop Main Menu',
             'location' => 'primary',
-            'is_active' => true
+            'is_active' => true,
         ]);
         $this->createDefaultItems($primaryMenu->id);
 
@@ -34,7 +34,7 @@ class HeaderSeeder extends Seeder
         $mobileMenu = HeaderMenu::create([
             'name' => 'Mobile Slide-over',
             'location' => 'mobile',
-            'is_active' => true
+            'is_active' => true,
         ]);
         $this->createDefaultItems($mobileMenu->id);
 
@@ -42,7 +42,7 @@ class HeaderSeeder extends Seeder
         $adminMenu = HeaderMenu::create([
             'name' => 'Admin Menu Dropdown',
             'location' => 'admin',
-            'is_active' => true
+            'is_active' => true,
         ]);
         $this->createAdminItems($adminMenu->id);
     }
@@ -58,7 +58,7 @@ class HeaderSeeder extends Seeder
             'title' => 'Trang chủ',
             'url' => '/',
             'sort_order' => 1,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Cửa hàng
@@ -67,7 +67,7 @@ class HeaderSeeder extends Seeder
             'title' => 'Cửa hàng',
             'url' => '/shop',
             'sort_order' => 2,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Dropdown Sản phẩm (Cấp 1)
@@ -76,7 +76,7 @@ class HeaderSeeder extends Seeder
             'title' => 'Sản phẩm',
             'url' => '#',
             'sort_order' => 3,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Các mục con (Cấp 2)
@@ -86,9 +86,9 @@ class HeaderSeeder extends Seeder
                 'header_menu_id' => $menuId,
                 'parent_id' => $productParent->id,
                 'title' => $cat,
-                'url' => '/shop?category=' . Str::slug($cat),
+                'url' => '/shop?category='.Str::slug($cat),
                 'sort_order' => $index,
-                'is_active' => true
+                'is_active' => true,
             ]);
         }
 
@@ -98,7 +98,7 @@ class HeaderSeeder extends Seeder
             'title' => 'Blog',
             'url' => '/blog',
             'sort_order' => 4,
-            'is_active' => true
+            'is_active' => true,
         ]);
     }
 
@@ -112,7 +112,7 @@ class HeaderSeeder extends Seeder
             'title' => 'Hồ sơ cá nhân',
             'url' => '/admin/profile', // Thay bằng route thực tế nếu có, ví dụ: route('admin.profile')
             'sort_order' => 1,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         HeaderMenuItem::create([
@@ -120,7 +120,7 @@ class HeaderSeeder extends Seeder
             'title' => 'Cài đặt',
             'url' => '/admin/settings', // Thay bằng route thực tế nếu có
             'sort_order' => 2,
-            'is_active' => true
+            'is_active' => true,
         ]);
     }
 }

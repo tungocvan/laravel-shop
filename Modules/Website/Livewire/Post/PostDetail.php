@@ -3,7 +3,7 @@
 namespace Modules\Website\Livewire\Post;
 
 use Livewire\Component;
-use Modules\Post\Models\Post;
+use Modules\Post\Services\PostService;
 
 class PostDetail extends Component
 {
@@ -13,13 +13,10 @@ class PostDetail extends Component
 
     public $readingTime;
 
-    public function mount($slug)
+    public function mount($slug, PostService $posts)
     {
         // Query bài viết
-        $this->post = Post::where('slug', $slug)
-            ->where('status', 'published')
-            ->with(['categories', 'user', 'tags'])
-            ->firstOrFail();
+        $this->post = $posts->findPublishedBySlug($slug);
 
         // Tăng view (đơn giản)
         $this->post->increment('views');
@@ -29,16 +26,7 @@ class PostDetail extends Component
         $this->readingTime = ceil($wordCount / 200);
 
         // Lấy bài liên quan
-        $this->relatedPosts = collect();
-        if ($this->post->categories->isNotEmpty()) {
-            $catIds = $this->post->categories->pluck('id');
-            $this->relatedPosts = Post::where('status', 'published')
-                ->where('id', '!=', $this->post->id)
-                ->whereHas('categories', fn ($q) => $q->whereIn('id', $catIds))
-                ->latest('published_at')
-                ->take(3)
-                ->get();
-        }
+        $this->relatedPosts = $posts->relatedPublished($this->post);
     }
 
     public function render()

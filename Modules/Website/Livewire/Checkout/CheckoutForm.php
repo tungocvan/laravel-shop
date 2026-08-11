@@ -5,27 +5,32 @@ namespace Modules\Website\Livewire\Checkout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Component;
+use Modules\Order\Services\CheckoutService;
 use Modules\Website\Http\Requests\CheckoutRequest;
-use Modules\Website\Services\CheckoutService;
 use Modules\Website\Services\MomoService;
 
 class CheckoutForm extends Component
 {
     public $customer_name;
+
     public $customer_phone;
+
     public $customer_email;
+
     public $customer_address;
+
     public $note;
+
     public $payment_method = 'cod';
 
     protected function rules()
     {
-        return (new CheckoutRequest())->rules();
+        return (new CheckoutRequest)->rules();
     }
 
     protected function messages()
     {
-        return (new CheckoutRequest())->messages();
+        return (new CheckoutRequest)->messages();
     }
 
     public function mount()

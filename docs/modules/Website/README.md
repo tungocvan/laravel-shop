@@ -2,7 +2,9 @@
 
 ## Module Overview
 
-`Modules/Website` is the public storefront/domain presentation module. It currently covers storefront pages, cart/checkout, customer account features, affiliate features, website content/settings and several admin screens.
+`Modules/Website` is the public storefront and CMS presentation module. Domain
+ownership for users, products, categories, posts and orders belongs to their
+canonical modules; Website composes those contracts for storefront delivery.
 
 The module is enabled and registered automatically by `Modules/ModuleServiceProvider.php`.
 
@@ -29,19 +31,15 @@ Public routes include:
 - `/cart`
 - `/checkout`
 - `/account/**`
+- `/sitemap.xml`
 
 Website admin pages are mounted under `/admin` for affiliate, homepage/header/footer settings, banners, flash sales, coupons and customers.
 
 ## Permissions
 
-The manifest declares:
-
-- `view_website`
-- `create_website`
-- `edit_website`
-- `delete_website`
-
-Current admin routes mainly rely on `auth:admin`; capability-level authorization must be strengthened before sensitive admin mutations are considered production-safe.
+Website admin routes and persistent Livewire mutations use named permissions in
+addition to the `admin` guard. Canonical permissions cover Website view, homepage,
+menu, banner, footer and settings management.
 
 ## Features
 
@@ -60,7 +58,8 @@ Declared domain dependencies:
 
 `User -> Product -> Category -> Post -> Order` are all referenced as dependencies of Website; they are not a sequence.
 
-Website currently also contains duplicate or cross-domain implementations that overlap with these canonical modules and with Auth/Chat/System concerns.
+Duplicate cross-domain models/services were removed during Phases 2–8. Homepage
+legacy settings remain temporarily as an explicit compatibility write contract.
 
 ## Configuration
 
@@ -71,13 +70,8 @@ Do not treat Website's nested environment/database management services as canoni
 
 ## Operational Notes
 
-Known high-priority concerns:
-
-- `checkout.momo.callback` points to a missing controller method.
-- Some admin Livewire mutations do not enforce capability authorization.
-- Checkout stock validation is vulnerable to concurrent overselling because inventory rows are not locked inside the transaction.
-- Checkout deletes a cart and then attempts to save it.
-- Some admin list/bulk behavior is effectively unbounded.
+Release status: Phases 1–7 are closed; Phase 8 release CLI gate passes. Node.js
+must be upgraded to a Vite-supported LTS version before production deployment.
 
 ## Developer Notes
 

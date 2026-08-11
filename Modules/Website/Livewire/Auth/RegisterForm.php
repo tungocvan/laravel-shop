@@ -2,16 +2,18 @@
 
 namespace Modules\Website\Livewire\Auth;
 
-use Livewire\Component;
-use App\Models\User; // Sử dụng User model mặc định của Laravel
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+use Modules\User\Services\UserRegistrationService;
 
 class RegisterForm extends Component
 {
     public $name = '';
+
     public $email = '';
+
     public $password = '';
+
     public $password_confirmation = '';
 
     protected $rules = [
@@ -26,15 +28,15 @@ class RegisterForm extends Component
         'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
     ];
 
-    public function register()
+    public function register(UserRegistrationService $registration)
     {
         $this->validate();
 
         // 1. Tạo User
-        $user = User::create([
+        $user = $registration->register([
             'name' => $this->name,
             'email' => $this->email,
-            'password' => Hash::make($this->password),
+            'password' => $this->password,
         ]);
 
         // 2. Auto Login

@@ -2,38 +2,44 @@
 
 namespace Modules\Admin\Livewire\Products;
 
+use Illuminate\Support\Str;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
-use Modules\Website\Models\WpProduct;
-use Modules\Website\Models\Category;
+use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 use Modules\Admin\Exports\ProductsExport;
 use Modules\Admin\Imports\ProductsImport;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Str;
+use Modules\Category\Models\Category;
+use Modules\Product\Models\Product as WpProduct;
 
 class ProductTable extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     // --- 1. FILTERS & PAGINATION ---
     public $search = '';
+
     public $category_id = '';
+
     public $perPage = 10;
 
     // --- 2. SORTING ---
     public $sortColumn = 'created_at';
+
     public $sortDirection = 'desc';
 
     // --- 3. BULK ACTIONS ---
     public $selected = [];
+
     public $selectAll = false;
 
     // --- 4. MODALS STATE ---
     public $importFile;
+
     public $showImportModal = false;
 
     public $showCategoryModal = false;
+
     public $bulkCategoryIds = [];
 
     // ==========================================
@@ -60,29 +66,41 @@ class ProductTable extends Component
             if ($category->parent_id == $parentId) {
                 // Tạo tên hiển thị có gạch đầu dòng
                 // Ví dụ: "Điện tử", "-- Laptop", "---- Gaming"
-                $category->view_name = $prefix . $category->name;
+                $category->view_name = $prefix.$category->name;
 
                 $result[] = $category;
 
                 // Gọi đệ quy cho con (thêm prefix dài hơn)
-                $children = $this->buildTreeOption($categories, $category->id, $prefix . '— '); // Dùng dấu gạch dài em-dash cho đẹp
+                $children = $this->buildTreeOption($categories, $category->id, $prefix.'— '); // Dùng dấu gạch dài em-dash cho đẹp
                 $result = array_merge($result, $children);
             }
         }
+
         return $result;
     }
 
     // ==========================================
     // LIFECYCLE & UPDATES
     // ==========================================
-    public function updatedSearch() { $this->resetPage(); }
-    public function updatedCategoryId() { $this->resetPage(); }
-    public function updatedPerPage() { $this->resetPage(); }
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedCategoryId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage()
+    {
+        $this->resetPage();
+    }
 
     public function updatedSelectAll($value)
     {
         if ($value) {
-            $this->selected = $this->getProductsQuery()->pluck('id')->map(fn($id) => (string)$id)->toArray();
+            $this->selected = $this->getProductsQuery()->pluck('id')->map(fn ($id) => (string) $id)->toArray();
         } else {
             $this->selected = [];
         }
@@ -120,7 +138,7 @@ class ProductTable extends Component
     {
         $product = WpProduct::find($id);
         if ($product) {
-            $product->is_active = !$product->is_active;
+            $product->is_active = ! $product->is_active;
             $product->save();
         }
     }
@@ -130,8 +148,8 @@ class ProductTable extends Component
         $product = WpProduct::with('categories')->find($id);
         if ($product) {
             $newProduct = $product->replicate();
-            $newProduct->title = $product->title . ' (Copy)';
-            $newProduct->slug = Str::slug($newProduct->title) . '-' . time();
+            $newProduct->title = $product->title.' (Copy)';
+            $newProduct->slug = Str::slug($newProduct->title).'-'.time();
             $newProduct->is_active = false;
             $newProduct->created_at = now();
             $newProduct->save();
@@ -167,7 +185,7 @@ class ProductTable extends Component
             'bulkCategoryIds' => 'required|array|min:1',
         ], ['bulkCategoryIds.required' => 'Vui lòng chọn ít nhất 1 danh mục.']);
 
-        if (!empty($this->selected)) {
+        if (! empty($this->selected)) {
             $products = WpProduct::whereIn('id', $this->selected)->get();
             foreach ($products as $product) {
                 // Thêm mới mà không xóa danh mục cũ
@@ -184,8 +202,9 @@ class ProductTable extends Component
     // ==========================================
     public function export()
     {
-        $ids = !empty($this->selected) ? $this->selected : null;
-        return Excel::download(new ProductsExport($ids), 'products_' . date('Y-m-d') . '.xlsx');
+        $ids = ! empty($this->selected) ? $this->selected : null;
+
+        return Excel::download(new ProductsExport($ids), 'products_'.date('Y-m-d').'.xlsx');
     }
 
     public function import()
@@ -206,11 +225,11 @@ class ProductTable extends Component
     private function getProductsQuery()
     {
         $query = WpProduct::with('categories')
-            ->where('title', 'like', '%' . $this->search . '%')
+            ->where('title', 'like', '%'.$this->search.'%')
             ->orderBy($this->sortColumn, $this->sortDirection);
 
-        if (!empty($this->category_id)) {
-            $query->whereHas('categories', function($q) {
+        if (! empty($this->category_id)) {
+            $query->whereHas('categories', function ($q) {
                 $q->where('id', $this->category_id);
             });
         }
@@ -238,7 +257,7 @@ class ProductTable extends Component
             : $query->paginate($this->perPage);
 
         return view('Admin::livewire.products.product-table', [
-            'products' => $products
+            'products' => $products,
         ]);
     }
 }

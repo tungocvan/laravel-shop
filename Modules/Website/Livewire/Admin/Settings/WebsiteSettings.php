@@ -1,0 +1,118 @@
+<?php
+
+namespace Modules\Website\Livewire\Admin\Settings;
+
+use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Modules\System\Services\SettingsService;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
+use Modules\Website\Models\WebsitePage;
+
+class WebsiteSettings extends Component
+{
+    use AuthorizesAdminPermissions, WithFileUploads;
+
+    public string $activeTab = 'seo';
+
+    public string $siteName = '';
+
+    public string $seoTitle = '';
+
+    public string $seoDescription = '';
+
+    public string $canonicalUrl = '';
+
+    public string $robots = 'index,follow';
+
+    public string $ogImage = '';
+
+    public string $logo = '';
+
+    public string $favicon = '';
+
+    public string $analyticsCode = '';
+
+    public string $headerScript = '';
+
+    public $newLogo;
+
+    public $newFavicon;
+
+    public function mount(SettingsService $settings): void
+    {
+        $page = WebsitePage::query()->where('slug', 'home')->first();
+        $this->siteName = (string) $settings->get('site_name', 'FlexBiz');
+        $this->logo = (string) $settings->get('site_logo', '');
+        $this->favicon = (string) $settings->get('site_favicon', '');
+        $this->canonicalUrl = (string) $settings->get('seo.canonical_url', url('/'));
+        $this->robots = (string) $settings->get('seo.robots', 'index,follow');
+        $this->analyticsCode = (string) $settings->get('analytics_code', '');
+        $this->headerScript = (string) $settings->get('header_script', '');
+        $this->seoTitle = (string) ($page?->seo_title ?: $this->siteName);
+        $this->seoDescription = (string) ($page?->seo_description ?: '');
+        $this->ogImage = (string) ($page?->seo_image ?: '');
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = in_array($tab, ['seo', 'theme', 'advanced'], true) ? $tab : 'seo';
+    }
+
+    public function save(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        $this->validate([
+            'siteName' => 'required|string|max:120',
+            'seoTitle' => 'required|string|max:70',
+            'seoDescription' => 'nullable|string|max:170',
+            'canonicalUrl' => 'nullable|url|max:255',
+            'robots' => 'required|in:index,follow,index,nofollow,noindex,follow,noindex,nofollow',
+            'newLogo' => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:3072',
+            'newFavicon' => 'nullable|mimes:png,ico,svg|max:1024',
+            'analyticsCode' => 'nullable|string|max:10000',
+            'headerScript' => 'nullable|string|max:20000',
+        ]);
+
+        $oldLogo = $this->logo;
+        $oldFavicon = $this->favicon;
+        $newLogoPath = $this->newLogo?->store('branding', 'public');
+        $newFaviconPath = $this->newFavicon?->store('branding', 'public');
+        $this->logo = $newLogoPath ?: $this->logo;
+        $this->favicon = $newFaviconPath ?: $this->favicon;
+
+        try {
+            $settings->updateMany([
+                'site_name' => $this->siteName,
+                'site_logo' => $this->logo,
+                'site_favicon' => $this->favicon,
+                'seo.canonical_url' => $this->canonicalUrl,
+                'seo.robots' => $this->robots,
+                'analytics_code' => $this->analyticsCode,
+                'header_script' => $this->headerScript,
+            ], 'website');
+            WebsitePage::query()->updateOrCreate(['slug' => 'home'], [
+                'title' => 'Trang chủ', 'status' => WebsitePage::STATUS_PUBLISHED, 'template' => 'homepage',
+                'seo_title' => $this->seoTitle, 'seo_description' => $this->seoDescription, 'seo_image' => $this->ogImage ?: null,
+            ]);
+        } catch (\Throwable $exception) {
+            foreach (array_filter([$newLogoPath, $newFaviconPath]) as $path) {
+                Storage::disk('public')->delete($path);
+            }
+            throw $exception;
+        }
+
+        foreach ([[$newLogoPath, $oldLogo], [$newFaviconPath, $oldFavicon]] as [$newPath, $oldPath]) {
+            if ($newPath && $oldPath && ! str_starts_with($oldPath, 'http')) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+        $this->reset(['newLogo', 'newFavicon']);
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu cấu hình Website.']);
+    }
+
+    public function render()
+    {
+        return view('Website::livewire.admin.settings.website-settings');
+    }
+}

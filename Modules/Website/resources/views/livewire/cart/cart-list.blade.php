@@ -81,6 +81,8 @@
 
                                         {{-- Remove Button --}}
                                         <button wire:click="remove({{ $item->id }})"
+                                                type="button"
+                                                aria-label="Xóa {{ $item->product->title ?? 'sản phẩm' }} khỏi giỏ"
                                                 class="text-gray-400 hover:text-red-500 transition p-1 rounded-full hover:bg-red-50"
                                                 title="Xóa sản phẩm">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -90,9 +92,9 @@
                                     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mt-4">
                                         {{-- Quantity Control --}}
                                         <div class="flex items-center bg-white border border-gray-300 rounded-lg w-fit shadow-sm">
-                                            <button wire:click="decrement({{ $item->id }})" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-900 rounded-l-lg transition disabled:opacity-50" @if($item->quantity <= 1) disabled @endif>-</button>
-                                            <input type="text" value="{{ $item->quantity }}" readonly class="w-10 text-center text-sm font-bold text-gray-900 border-none p-0 focus:ring-0">
-                                            <button wire:click="increment({{ $item->id }})" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-900 rounded-r-lg transition">+</button>
+                                            <button type="button" wire:click="decrement({{ $item->id }})" aria-label="Giảm số lượng {{ $item->product->title ?? 'sản phẩm' }}" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-900 rounded-l-lg transition disabled:opacity-50" @if($item->quantity <= 1) disabled @endif>-</button>
+                                            <input type="text" value="{{ $item->quantity }}" readonly aria-label="Số lượng {{ $item->product->title ?? 'sản phẩm' }}" class="w-10 text-center text-sm font-bold text-gray-900 border-none p-0 focus:ring-0">
+                                            <button type="button" wire:click="increment({{ $item->id }})" aria-label="Tăng số lượng {{ $item->product->title ?? 'sản phẩm' }}" @disabled($item->product && $item->quantity >= $item->product->quantity) class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 rounded-r-lg transition">+</button>
                                         </div>
 
                                         {{-- Price --}}
@@ -176,7 +178,8 @@
                         {{-- Coupon Input --}}
                         <div class="mt-6 pt-6 border-t border-gray-100">
                             <div class="relative">
-                                <input wire:model="couponCodeInput"
+                                <label for="cart-coupon" class="sr-only">Mã giảm giá</label>
+                                <input id="cart-coupon" wire:model="couponCodeInput"
                                        wire:keydown.enter="applyCoupon"
                                        type="text"
                                        placeholder="Mã giảm giá"

@@ -4,8 +4,8 @@ namespace Modules\Website\Livewire\Admin\Header;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Services\SettingsService;
 
 class GeneralSettings extends Component
 {

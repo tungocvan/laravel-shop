@@ -1,10 +1,10 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Website\Models\Category;
 use Illuminate\Support\Facades\DB;
+use Modules\Category\Models\Category;
 
 class PostCategorySeeder extends Seeder
 {

@@ -4,9 +4,10 @@ namespace Tests\Feature\Website;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Modules\Website\Models\Setting;
-use Modules\Website\Services\SettingsService;
+use Modules\System\Models\Setting;
+use Modules\System\Services\SettingsService;
 use Tests\TestCase;
 
 class WebsiteSettingsConfigurationTest extends TestCase
@@ -19,16 +20,18 @@ class WebsiteSettingsConfigurationTest extends TestCase
             return;
         }
 
-        Schema::dropIfExists('wp_settings');
-        Schema::create('wp_settings', function (Blueprint $table): void {
-            $table->id();
-            $table->string('key')->unique();
-            $table->text('value')->nullable();
-            $table->string('group_name')->default('general');
-            $table->string('type')->default('text');
-            $table->string('label')->nullable();
-            $table->timestamps();
-        });
+        foreach (['settings', 'wp_settings'] as $tableName) {
+            Schema::dropIfExists($tableName);
+            Schema::create($tableName, function (Blueprint $table): void {
+                $table->id();
+                $table->string('key')->unique();
+                $table->text('value')->nullable();
+                $table->string('group_name')->default('general');
+                $table->string('type')->default('text');
+                $table->string('label')->nullable();
+                $table->timestamps();
+            });
+        }
         Cache::flush();
     }
 
@@ -49,7 +52,8 @@ class WebsiteSettingsConfigurationTest extends TestCase
         $this->assertFalse(Cache::has('setting_site_name'));
         $this->assertSame('After', $service->get('site_name'));
         $this->assertSame([1, 2, 3], $service->get('home_items'));
-        $this->assertSame('json', Setting::query()->where('key', 'home_items')->value('type'));
+        $this->assertSame('json', DB::table('wp_settings')->where('key', 'home_items')->value('type'));
+        $this->assertSame('After', Setting::query()->where('key', 'site_name')->value('value'));
     }
 
     public function test_update_many_rolls_back_and_rethrows_controlled_failure(): void
@@ -60,13 +64,13 @@ class WebsiteSettingsConfigurationTest extends TestCase
             $service->updateMany(['first' => 'written', 'invalid' => ["\xB1\x31"]]);
             $this->fail('The invalid setting value should have thrown.');
         } catch (\JsonException $exception) {
-            $this->assertDatabaseMissing('wp_settings', ['key' => 'first']);
+            $this->assertDatabaseMissing('settings', ['key' => 'first']);
         }
     }
 
     public function test_phase_1c_has_no_debug_termination_or_direct_blade_setting_queries(): void
     {
-        $service = file_get_contents(base_path('Modules/Website/Services/SettingsService.php'));
+        $service = file_get_contents(base_path('Modules/System/Services/SettingsService.php'));
         $layout = file_get_contents(base_path('Modules/Website/resources/views/layouts/frontend.blade.php'));
         $home = file_get_contents(base_path('Modules/Website/resources/views/pages/home/index.blade.php'));
         $help = file_get_contents(base_path('Modules/Website/resources/views/pages/help/index.blade.php'));

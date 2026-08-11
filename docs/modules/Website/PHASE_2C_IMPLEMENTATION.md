@@ -5,8 +5,9 @@
 - Slice: `2C — Order compatibility and workflow ownership`
 - Implementation: `COMPLETE`
 - Automated tests: `PASS`
-- Manual checkout/account smoke: `PENDING USER`
-- Decision: `READY FOR USER TEST`
+- Manual checkout/account smoke: `PASS — user verified`
+- Approval: `APPROVED`
+- Decision: `CLOSED`
 
 ## Implemented
 

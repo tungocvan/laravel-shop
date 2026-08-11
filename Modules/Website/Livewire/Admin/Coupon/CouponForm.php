@@ -4,25 +4,40 @@ namespace Modules\Website\Livewire\Admin\Coupon;
 
 use Livewire\Component;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\Coupon;
+use Modules\Website\Services\CouponService;
 
 class CouponForm extends Component
 {
     use AuthorizesAdminPermissions;
 
     public $couponId;
+
     public $isEdit = false;
-    public $code, $description, $type = 'fixed', $value = 0;
-    public $min_order_value = 0, $usage_limit = null;
-    public $starts_at, $expires_at;
+
+    public $code;
+
+    public $description;
+
+    public $type = 'fixed';
+
+    public $value = 0;
+
+    public $min_order_value = 0;
+
+    public $usage_limit = null;
+
+    public $starts_at;
+
+    public $expires_at;
+
     public $is_active = true;
 
-    public function mount($id = null)
+    public function mount(CouponService $coupons, $id = null)
     {
         if ($id) {
             $this->isEdit = true;
             $this->couponId = $id;
-            $c = Coupon::findOrFail($id);
+            $c = $coupons->find($id);
             $this->code = $c->code;
             $this->description = $c->description;
             $this->type = $c->type;
@@ -35,12 +50,12 @@ class CouponForm extends Component
         }
     }
 
-    public function save()
+    public function save(CouponService $coupons)
     {
         $this->authorizeAdminPermission('marketing.coupon.manage');
 
         $rules = [
-            'code' => 'required|alpha_dash|unique:coupons,code,' . $this->couponId,
+            'code' => 'required|alpha_dash|unique:coupons,code,'.$this->couponId,
             'value' => 'required|numeric|min:0',
             'min_order_value' => 'nullable|numeric|min:0',
             'usage_limit' => 'nullable|integer|min:1',
@@ -52,7 +67,7 @@ class CouponForm extends Component
 
         $this->validate($rules);
 
-        Coupon::updateOrCreate(['id' => $this->couponId], [
+        $coupons->save($this->couponId, [
             'code' => strtoupper($this->code),
             'description' => $this->description,
             'type' => $this->type,

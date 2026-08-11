@@ -3,15 +3,13 @@
 namespace Modules\Website\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use Modules\Order\Models\Order;
+use Modules\Order\Services\OrderQueryService;
 
 class AccountController extends Controller
 {
-    public function index()
+    public function index(OrderQueryService $orders)
     {
-        // Đếm tổng số đơn hàng của User hiện tại
-        $totalOrders = Order::where('user_id', Auth::id())->count();
+        $totalOrders = $orders->countForCurrentUser();
 
         // Truyền biến sang view
         return view('Website::account.dashboard', compact('totalOrders'));

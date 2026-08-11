@@ -2,10 +2,10 @@
 
 namespace Modules\Admin\Exports;
 
-use Modules\Website\Models\WpProduct;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Modules\Product\Models\Product as WpProduct;
 
 class ProductsExport implements FromCollection, WithHeadings, WithMapping
 {
@@ -19,6 +19,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping
     public function collection()
     {
         $query = WpProduct::with('categories');
+
         return $this->ids ? $query->whereIn('id', $this->ids)->get() : $query->get();
     }
 
@@ -26,12 +27,12 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping
     {
         // Export FULL cột để Import lại được
         return [
-            'ID', 'Tên sản phẩm', 'Slug', 
-            'Giá gốc', 'Giá sale', 
-            'Mô tả ngắn', 'Chi tiết', 
-            'Ảnh đại diện', 'Album ảnh (JSON)', 
-            'Tags (JSON)', 'Danh mục (IDs)', 
-            'Trạng thái', 'Ngày tạo'
+            'ID', 'Tên sản phẩm', 'Slug',
+            'Giá gốc', 'Giá sale',
+            'Mô tả ngắn', 'Chi tiết',
+            'Ảnh đại diện', 'Album ảnh (JSON)',
+            'Tags (JSON)', 'Danh mục (IDs)',
+            'Trạng thái', 'Ngày tạo',
         ];
     }
 

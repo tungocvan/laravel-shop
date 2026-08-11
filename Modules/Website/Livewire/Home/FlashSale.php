@@ -3,38 +3,29 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Admin\Models\FlashSale as FlashSaleModel;
-use Carbon\Carbon;
+use Modules\Website\Services\HomepageContentService;
 
 class FlashSale extends Component
 {
     public $flashSale; // Chứa thông tin chương trình Sale (Title, EndTime...)
+
     public $products = []; // Danh sách sản phẩm Sale
+
     public $isActive = false;
+
     public $endTimeJs = 0; // Timestamp cho JS đếm ngược
 
-    public function mount()
+    public function mount(HomepageContentService $homepage)
     {
 
-        $now = now();
-        // DEBUG 1: Kiểm tra giờ server hiện tại
-
-        // 1. Tìm chương trình Flash Sale đang chạy
-        $this->flashSale = FlashSaleModel::where('is_active', true)
-            ->where('start_time', '<=', $now)
-            ->where('end_time', '>=', $now)
-            ->with(['items.product' => function ($q) {
-                // Eager Load sản phẩm để lấy ảnh, tên
-                $q->select('id', 'title', 'slug', 'image', 'regular_price', 'sale_price');
-            }])
-            ->first();
+        $this->flashSale = $homepage->activeFlashSale();
 
         if ($this->flashSale) {
             $this->isActive = true;
 
             // 2. Chuyển đổi EndTime sang Timestamp JS (milliseconds)
 
-            //$this->endTimeJs = Carbon::parse($this->flashSale->end_time)->timestamp * 1000;
+            // $this->endTimeJs = Carbon::parse($this->flashSale->end_time)->timestamp * 1000;
             $this->endTimeJs = $this->flashSale->end_time->timestamp * 1000;
             // dd(
             //     $this->flashSale->end_time->toDateTimeString(),
@@ -43,14 +34,16 @@ class FlashSale extends Component
             //     now()->timezoneName
             // );
 
-            //dd($this->endTimeJs);
-            //Test: Ép thời gian kết thúc là ngày mai
-            //$this->endTimeJs = now()->addDays(30)->timestamp * 1000;
+            // dd($this->endTimeJs);
+            // Test: Ép thời gian kết thúc là ngày mai
+            // $this->endTimeJs = now()->addDays(30)->timestamp * 1000;
             // 3. Format lại danh sách sản phẩm để View dễ dùng
             // Lấy tối đa 6-12 sản phẩm tùy layout
             $this->products = $this->flashSale->items->take(12)->map(function ($item) {
                 $product = $item->product;
-                if (!$product) return null;
+                if (! $product) {
+                    return null;
+                }
 
                 // Tính % giảm giá dựa trên giá gốc và giá Flash Sale
                 $discountPercent = 0;
@@ -63,15 +56,19 @@ class FlashSale extends Component
                 if ($item->quantity > 0) {
                     $soldPercent = ($item->sold / $item->quantity) * 100;
                     // Giới hạn max 100%
-                    if ($soldPercent > 100) $soldPercent = 100;
+                    if ($soldPercent > 100) {
+                        $soldPercent = 100;
+                    }
                 }
 
                 return (object) [
                     'id' => $product->id,
                     'title' => $product->title,
                     'slug' => $product->slug,
-                    'image_url' => (function() use ($product) {
-                        if (!$product->image) return 'https://placehold.co/300';
+                    'image_url' => (function () use ($product) {
+                        if (! $product->image) {
+                            return 'https://placehold.co/300';
+                        }
 
                         // Nếu là link online (bắt đầu bằng http) thì giữ nguyên
                         if (str_starts_with($product->image, 'http')) {
@@ -79,7 +76,7 @@ class FlashSale extends Component
                         }
 
                         // Nếu là ảnh upload thì thêm storage/
-                        return asset('storage/' . $product->image);
+                        return asset('storage/'.$product->image);
                     })(),
                     'regular_price' => $product->regular_price,
                     'sale_price' => $item->price, // Giá Flash Sale lấy từ bảng pivot
@@ -113,7 +110,7 @@ class FlashSale extends Component
     public function render()
     {
         // Nếu không có chương trình nào active -> Ẩn
-        if (!$this->isActive || $this->products->isEmpty()) {
+        if (! $this->isActive || $this->products->isEmpty()) {
             return <<<'blade'
                 <div></div>
             blade;

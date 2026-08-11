@@ -2,14 +2,13 @@
 
 namespace Modules\Product\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Modules\Website\Models\Wishlist;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Modules\Category\Models\Category;
 
 class Product extends Model
@@ -32,7 +31,7 @@ class Product extends Model
         'is_featured',   // <--- Đã thêm
         'user_id',       // <--- Đã thêm
         'views',          // <--- Đã thêm
-        'affiliate_commission_rate'
+        'affiliate_commission_rate',
     ];
 
     protected $casts = [
@@ -83,9 +82,10 @@ class Product extends Model
     {
         return Attribute::make(
             get: function () {
-                if (!$this->sale_price || !$this->regular_price || $this->sale_price >= $this->regular_price) {
+                if (! $this->sale_price || ! $this->regular_price || $this->sale_price >= $this->regular_price) {
                     return 0;
                 }
+
                 return round((($this->regular_price - $this->sale_price) / $this->regular_price) * 100);
             }
         );
@@ -100,6 +100,7 @@ class Product extends Model
     {
         return $query->where('is_active', true);
     }
+
     // Trong Class WpProduct
     public function getImageUrlAttribute()
     {
@@ -110,7 +111,7 @@ class Product extends Model
 
         // 2. Nếu là đường dẫn local (products/xyz.png)
         if ($this->image && Storage::disk('public')->exists($this->image)) {
-            return asset('storage/' . $this->image);
+            return asset('storage/'.$this->image);
         }
 
         // 3. Ảnh mặc định nếu không tìm thấy
@@ -122,11 +123,16 @@ class Product extends Model
         // Ép kiểu mảng nếu dữ liệu đang là string JSON
         $gallery = is_array($this->gallery) ? $this->gallery : json_decode($this->gallery, true);
 
-        if (!$gallery) return [];
+        if (! $gallery) {
+            return [];
+        }
 
         return collect($gallery)->map(function ($path) {
-            if (str_starts_with($path, 'http')) return $path;
-            return asset('storage/' . $path);
+            if (str_starts_with($path, 'http')) {
+                return $path;
+            }
+
+            return asset('storage/'.$path);
         })->toArray();
     }
 
@@ -134,8 +140,8 @@ class Product extends Model
     {
         // Lấy các đánh giá đã được duyệt, sắp xếp mới nhất
         return $this->hasMany(Review::class, 'product_id')
-                    ->where('is_approved', true)
-                    ->latest();
+            ->where('is_approved', true)
+            ->latest();
     }
 
     // Helper tính điểm trung bình sao (VD: 4.5)
@@ -149,6 +155,7 @@ class Product extends Model
     {
         return $this->reviews()->count();
     }
+
     public function wishlists(): HasMany
     {
         return $this->hasMany(Wishlist::class, 'product_id');

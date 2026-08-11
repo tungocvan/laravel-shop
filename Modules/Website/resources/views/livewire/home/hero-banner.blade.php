@@ -68,6 +68,9 @@
                         @endphp
 
                         <img src="{{ $imgDesktop }}"
+                             loading="{{ $loop->first ? 'eager' : 'lazy' }}"
+                             fetchpriority="{{ $loop->first ? 'high' : 'low' }}"
+                             decoding="async"
                              class="w-full h-full object-cover"
                              alt="{{ $slide['title'] ?? 'Banner' }}">
                     </picture>

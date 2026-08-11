@@ -2,9 +2,9 @@
 
 namespace Modules\Website\Livewire\Account\Profile;
 
-use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
-use Modules\Website\Services\Account\AddressService;
+use Livewire\Component;
+use Modules\User\Services\UserAddressService;
 
 class UserAddress extends Component
 {
@@ -12,31 +12,44 @@ class UserAddress extends Component
 
     // Modal State
     public $isModalOpen = false;
+
     public $isEditMode = false;
+
     public $editingId = null;
 
     // Form Fields
-    public $name, $phone, $address, $city, $district, $ward;
+    public $name;
+
+    public $phone;
+
+    public $address;
+
+    public $city;
+
+    public $district;
+
+    public $ward;
+
     public $is_default = false;
 
     protected $rules = [
-        'name'     => 'required|string|max:255',
-        'phone'    => 'required|string|max:20',
-        'address'  => 'required|string|max:255',
-        'city'     => 'required|string',
+        'name' => 'required|string|max:255',
+        'phone' => 'required|string|max:20',
+        'address' => 'required|string|max:255',
+        'city' => 'required|string',
         'district' => 'required|string',
-        'ward'     => 'required|string',
-        'is_default' => 'boolean'
+        'ward' => 'required|string',
+        'is_default' => 'boolean',
     ];
 
-    public function mount(AddressService $service)
+    public function mount(UserAddressService $service)
     {
         $this->loadAddresses($service);
     }
 
-    public function loadAddresses(AddressService $service)
+    public function loadAddresses(UserAddressService $service)
     {
-        $this->addresses = $service->getUserAddresses(Auth::id());
+        $this->addresses = $service->forUser(Auth::id());
     }
 
     // --- MODAL ACTIONS ---
@@ -71,7 +84,7 @@ class UserAddress extends Component
     }
 
     // --- CRUD ACTIONS ---
-    public function save(AddressService $service)
+    public function save(UserAddressService $service)
     {
         $this->validate();
 
@@ -79,7 +92,7 @@ class UserAddress extends Component
             'name' => $this->name, 'phone' => $this->phone,
             'address' => $this->address, 'city' => $this->city,
             'district' => $this->district, 'ward' => $this->ward,
-            'is_default' => $this->is_default
+            'is_default' => $this->is_default,
         ];
 
         if ($this->isEditMode) {
@@ -94,14 +107,14 @@ class UserAddress extends Component
         $this->loadAddresses($service);
     }
 
-    public function delete($id, AddressService $service)
+    public function delete($id, UserAddressService $service)
     {
         $service->delete($id, Auth::id());
         $this->loadAddresses($service);
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Đã xóa địa chỉ.']);
     }
 
-    public function setAsDefault($id, AddressService $service)
+    public function setAsDefault($id, UserAddressService $service)
     {
         $service->setDefault($id, Auth::id());
         $this->loadAddresses($service);

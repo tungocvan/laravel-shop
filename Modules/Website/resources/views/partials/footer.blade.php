@@ -20,11 +20,9 @@
             <div class="lg:col-span-4 space-y-6">
                 {{-- Logo --}}
                 <a href="/" class="flex items-center gap-2 group">
-                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-gray-900 font-black text-2xl group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                        F
-                    </div>
+                    @if(!empty($footerSettings['logo']))<img src="{{ str_starts_with($footerSettings['logo'], 'http') ? $footerSettings['logo'] : asset('storage/'.$footerSettings['logo']) }}" alt="{{ $footerSettings['brand_name'] }}" class="h-10 w-auto max-w-40 object-contain">@else<div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-gray-900 font-black text-2xl group-hover:bg-blue-500 group-hover:text-white transition-colors">{{ mb_substr($footerSettings['brand_name'] ?? 'F', 0, 1) }}</div>@endif
                     <span class="text-2xl font-bold text-white tracking-tight">
-                        FlexBiz<span class="text-blue-500">.</span>
+                        {{ $footerSettings['brand_name'] ?? 'FlexBiz' }}<span class="text-blue-500">.</span>
                     </span>
                 </a>
 
@@ -110,7 +108,7 @@
                     @foreach($socialLinks as $social)
                         <a href="{{ $social->url }}" target="_blank"
                            class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all transform hover:-translate-y-1"
-                           title="{{ $social->name }}">
+                           title="{{ $social->name }}" aria-label="{{ $social->name }}">
 
                             {{-- Render Icon FontAwesome --}}
                             @if($social->icon_class)
@@ -140,12 +138,12 @@
 
             {{-- Trust Badges / Payment Icons (Static Images for now) --}}
             <div class="flex items-center gap-4 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" class="h-6 w-auto bg-white rounded p-1">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" class="h-6 w-auto bg-white rounded p-1">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" class="h-6 w-auto bg-white rounded p-1">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" loading="lazy" class="h-6 w-auto bg-white rounded p-1">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" loading="lazy" class="h-6 w-auto bg-white rounded p-1">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" loading="lazy" class="h-6 w-auto bg-white rounded p-1">
 
                 {{-- Logo Bộ Công Thương --}}
-                <img src="https://webmedia.com.vn/images/2021/09/logo-da-thong-bao-bo-cong-thuong-mau-xanh.png" class="h-10 w-auto">
+                <img src="https://webmedia.com.vn/images/2021/09/logo-da-thong-bao-bo-cong-thuong-mau-xanh.png" alt="Đã thông báo Bộ Công Thương" loading="lazy" class="h-10 w-auto">
             </div>
         </div>
     </div>
@@ -158,7 +156,7 @@
         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-10" x-transition:enter-end="opacity-100 translate-y-0"
         x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-10"
         @click="window.scrollTo({top: 0, behavior: 'smooth'})"
-        class="fixed bottom-8 right-8 z-40 p-3 rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300"
+        aria-label="Về đầu trang" class="fixed bottom-8 right-8 z-40 p-3 rounded-full bg-blue-600 text-white shadow-xl hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300"
         style="display: none;">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
 </button>

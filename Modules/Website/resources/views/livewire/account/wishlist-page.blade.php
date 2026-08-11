@@ -7,6 +7,8 @@
                 <div class="relative">
                     {{-- Nút xóa nhanh (Dấu X) --}}
                     <button wire:click="remove({{ $product->id }})"
+                            type="button"
+                            aria-label="Xóa {{ $product->title }} khỏi danh sách yêu thích"
                             wire:loading.attr="disabled"
                             class="absolute -top-2 -right-2 z-20 bg-white text-gray-400 hover:text-red-500 rounded-full p-1 shadow-md border border-gray-100 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>

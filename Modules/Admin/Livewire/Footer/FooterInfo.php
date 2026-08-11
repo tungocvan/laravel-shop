@@ -3,18 +3,22 @@
 namespace Modules\Admin\Livewire\Footer;
 
 use Livewire\Component;
-use Modules\Website\Services\SettingsService;
+use Modules\System\Services\SettingsService;
 
 class FooterInfo extends Component
 {
     // Brand Info
     public $brand_description;
+
     public $address;
+
     public $email;
+
     public $phone;
 
     // App Links
     public $appstore_url;
+
     public $playstore_url;
 
     // Bottom Bar

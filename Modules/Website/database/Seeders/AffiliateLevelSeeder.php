@@ -1,9 +1,10 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Website\Models\AffiliateLevel;
+
 // php artisan db:seed --class="Modules\Website\database\Seeders\AffiliateLevelSeeder"
 class AffiliateLevelSeeder extends Seeder
 {
@@ -19,7 +20,7 @@ class AffiliateLevelSeeder extends Seeder
         foreach ($levels as $lv) {
             AffiliateLevel::create($lv);
         }
-        
+
         $this->command->info('✅ Đã khởi tạo 4 cấp độ đối tác thành công!');
     }
 }

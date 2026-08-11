@@ -60,6 +60,8 @@
                                     <img
                                         src="{{ $imgSrc }}"
                                         alt="{{ $category->name }}"
+                                        loading="lazy"
+                                        decoding="async"
                                         class="w-full h-full object-cover p-1 rounded-full transform transition duration-500 group-hover:scale-110"
                                     >
                                 @elseif($category->icon)

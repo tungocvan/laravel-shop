@@ -3,7 +3,7 @@
 return array (
   'name' => 'Muasamcong',
   'type' => 'domain',
-  'enabled' => false,
+  'enabled' => true,
   'depends' => 
   array (
   ),

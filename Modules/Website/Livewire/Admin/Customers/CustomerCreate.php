@@ -2,9 +2,8 @@
 
 namespace Modules\Website\Livewire\Admin\Customers;
 
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
+use Modules\User\Services\CustomerService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 
 class CustomerCreate extends Component
@@ -12,9 +11,13 @@ class CustomerCreate extends Component
     use AuthorizesAdminPermissions;
 
     public $name;
+
     public $email;
+
     public $password;
+
     public $phone;
+
     public $is_active = true;
 
     protected $rules = [
@@ -24,15 +27,15 @@ class CustomerCreate extends Component
         'phone' => 'nullable|numeric|digits_between:9,11',
     ];
 
-    public function save()
+    public function save(CustomerService $customerService)
     {
         $this->authorizeAdminPermission('customer.create');
         $this->validate();
 
-        $user = User::create([
+        $user = $customerService->create([
             'name' => $this->name,
             'email' => $this->email,
-            'password' => Hash::make($this->password),
+            'password' => $this->password,
             'phone' => $this->phone,
             'is_active' => $this->is_active,
         ]);

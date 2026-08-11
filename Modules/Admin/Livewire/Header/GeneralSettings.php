@@ -4,16 +4,20 @@ namespace Modules\Admin\Livewire\Header;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Admin\Services\SettingsService;
+use Modules\System\Services\SettingsService;
 
 class GeneralSettings extends Component
 {
     use WithFileUploads;
 
     public $hotline;
+
     public $email;
+
     public $help_url;
+
     public $order_tracking_url;
+
     public $brand_name;
 
     protected $rules = [
@@ -26,10 +30,10 @@ class GeneralSettings extends Component
 
     public function mount(SettingsService $settingsService)
     {
-        $this->hotline = $settingsService->get('header.topbar.hotline','0903971949');
-        $this->email = $settingsService->get('header.topbar.email','tungocvan@gmail.com');
-        $this->help_url = $settingsService->get('header.topbar.help_url','/');
-        $this->order_tracking_url = $settingsService->get('header.topbar.order_tracking_url','account/orders');
+        $this->hotline = $settingsService->get('header.topbar.hotline', '0903971949');
+        $this->email = $settingsService->get('header.topbar.email', 'tungocvan@gmail.com');
+        $this->help_url = $settingsService->get('header.topbar.help_url', '/');
+        $this->order_tracking_url = $settingsService->get('header.topbar.order_tracking_url', 'account/orders');
         $this->brand_name = $settingsService->get('header.brand_name', 'FlexBiz');
     }
 
@@ -50,7 +54,7 @@ class GeneralSettings extends Component
         // ✅ FIX: Sử dụng Native Livewire Event thay vì Library
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Đã lưu cấu hình Header thành công!'
+            'message' => 'Đã lưu cấu hình Header thành công!',
         ]);
     }
 

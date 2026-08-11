@@ -2,25 +2,28 @@
 
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
-
-use Modules\Website\Http\Controllers\AuthController;
 use Modules\Website\Http\Controllers\AccountController;
-use Modules\Website\Http\Controllers\WebsiteController;
-use Modules\Website\Http\Controllers\PostController;
-use Modules\Website\Http\Controllers\ProductController;
-use Modules\Website\Http\Controllers\CartController;
-use Modules\Website\Http\Controllers\CheckoutController;
-
 use Modules\Website\Http\Controllers\Admin\AffiliateController;
-use Modules\Website\Http\Controllers\Admin\HomeSettingsController;
-use Modules\Website\Http\Controllers\Admin\HeaderController;
-use Modules\Website\Http\Controllers\Admin\FooterController;
 use Modules\Website\Http\Controllers\Admin\BannerController;
-use Modules\Website\Http\Controllers\Admin\FlashSaleController;
 use Modules\Website\Http\Controllers\Admin\CouponController;
 use Modules\Website\Http\Controllers\Admin\CustomerController;
+use Modules\Website\Http\Controllers\Admin\FlashSaleController;
+use Modules\Website\Http\Controllers\Admin\FooterController;
+use Modules\Website\Http\Controllers\Admin\HeaderController;
+use Modules\Website\Http\Controllers\Admin\HomeSettingsController;
+use Modules\Website\Http\Controllers\Admin\WebsiteDashboardController;
+use Modules\Website\Http\Controllers\Admin\WebsiteSettingsController;
+use Modules\Website\Http\Controllers\AuthController;
+use Modules\Website\Http\Controllers\CartController;
+use Modules\Website\Http\Controllers\CheckoutController;
+use Modules\Website\Http\Controllers\PostController;
+use Modules\Website\Http\Controllers\ProductController;
+use Modules\Website\Http\Controllers\SitemapController;
+use Modules\Website\Http\Controllers\WebsiteController;
 
 $websitePrefix = config('website.route_prefix', 'website');
+
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::middleware('web')->group(function () use ($websitePrefix) {
     Route::controller(AuthController::class)->group(function () {
@@ -74,6 +77,14 @@ Route::middleware(['web', 'auth:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        Route::get('/website', [WebsiteDashboardController::class, 'index'])
+            ->middleware('permission:website.view,admin')
+            ->name('website.dashboard');
+
+        Route::get('/website/settings', [WebsiteSettingsController::class, 'index'])
+            ->middleware('permission:website.settings.manage,admin')
+            ->name('website.settings');
+
         Route::get('/affiliate', [AffiliateController::class, 'index'])
             ->middleware('permission:affiliate.view,admin')
             ->name('affiliate.index');
