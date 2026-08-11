@@ -2,56 +2,51 @@
 
 namespace Modules\Website\Livewire\Admin\FlashSale;
 
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Website\Services\FlashSaleService;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\FlashSale;
-use Illuminate\Support\Facades\DB;
+use Modules\Website\Services\FlashSaleService;
 
 class FlashSaleManager extends Component
 {
-    use WithPagination;
+    use WithPagination, AuthorizesAdminPermissions;
 
-    // 5. LIVEWIRE_FLASH_SALE
     public $isModalOpen = false;
     public $isEditMode = false;
     public $showProductPicker = false;
     public $productSearchQuery = '';
-
-    // Form Data
     public $saleId;
     public $title;
     public $start_time;
     public $end_time;
     public $is_active = true;
-
-    // Items (Sản phẩm trong đợt sale)
-    public $items = []; // Array chứa: product_id, name, image, price (giá sale), quantity, original_price
+    public $items = [];
 
     public function render()
     {
         $sales = (new FlashSaleService())->getAll();
-
-        // Data cho Modal Picker
         $searchProducts = [];
+
         if ($this->showProductPicker) {
-            $query = DB::table('wp_products') // LƯU Ý: Đã dùng đúng bảng wp_products theo schema bạn đưa
+            $query = DB::table('wp_products')
                 ->select('id', 'title', 'image', 'regular_price', 'sale_price')
                 ->where('is_active', true);
 
             if ($this->productSearchQuery) {
                 $query->where('title', 'like', '%' . $this->productSearchQuery . '%');
             }
+
             $searchProducts = $query->limit(10)->get();
         }
 
         return view('Website::livewire.admin.flash-sale.flash-sale-manager', [
             'sales' => $sales,
-            'searchProducts' => $searchProducts
+            'searchProducts' => $searchProducts,
         ]);
     }
 
-    // --- Actions ---
     public function create()
     {
         $this->resetForm();
@@ -62,17 +57,13 @@ class FlashSaleManager extends Component
     {
         $this->resetForm();
         $this->isEditMode = true;
-
-        $sale = FlashSale::with('items.product')->findOrFail($id); // Eager load items & product
-
+        $sale = FlashSale::with('items.product')->findOrFail($id);
         $this->saleId = $sale->id;
         $this->title = $sale->title;
-        // Format datetime cho input HTML5 (Y-m-d\TH:i)
         $this->start_time = $sale->start_time->format('Y-m-d\TH:i');
         $this->end_time = $sale->end_time->format('Y-m-d\TH:i');
         $this->is_active = $sale->is_active;
 
-        // Map items từ DB vào mảng items của Livewire
         foreach ($sale->items as $item) {
             if ($item->product) {
                 $this->items[] = [
@@ -80,9 +71,9 @@ class FlashSaleManager extends Component
                     'name' => $item->product->title,
                     'image' => $item->product->image,
                     'original_price' => $item->product->regular_price,
-                    'price' => $item->price, // Giá sale đã set
+                    'price' => $item->price,
                     'quantity' => $item->quantity,
-                    'sold' => $item->sold
+                    'sold' => $item->sold,
                 ];
             }
         }
@@ -92,11 +83,13 @@ class FlashSaleManager extends Component
 
     public function save(FlashSaleService $service)
     {
+        $this->authorizeAdminPermission('marketing.flash-sale.manage');
+
         $this->validate([
             'title' => 'required|string',
             'start_time' => 'required|date',
             'end_time' => 'required|date|after:start_time',
-            'items' => 'required|array|min:1', // Phải có ít nhất 1 sản phẩm
+            'items' => 'required|array|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.quantity' => 'required|integer|min:1',
         ]);
@@ -121,11 +114,11 @@ class FlashSaleManager extends Component
 
     public function delete($id, FlashSaleService $service)
     {
+        $this->authorizeAdminPermission('marketing.flash-sale.manage');
         $service->delete($id);
         $this->dispatch('show-toast', type: 'success', message: 'Đã xóa Flash Sale.');
     }
 
-    // --- Product Picker Logic ---
     public function openPicker()
     {
         $this->showProductPicker = true;
@@ -134,9 +127,10 @@ class FlashSaleManager extends Component
 
     public function addProduct($productId)
     {
-        // Check trùng
         foreach ($this->items as $item) {
-            if ($item['product_id'] == $productId) return;
+            if ($item['product_id'] == $productId) {
+                return;
+            }
         }
 
         $prod = DB::table('wp_products')->find($productId);
@@ -146,12 +140,11 @@ class FlashSaleManager extends Component
                 'name' => $prod->title,
                 'image' => $prod->image,
                 'original_price' => $prod->regular_price,
-                'price' => $prod->regular_price, // Mặc định lấy giá gốc, user sẽ sửa
-                'quantity' => 10, // Default qty
-                'sold' => 0
+                'price' => $prod->regular_price,
+                'quantity' => 10,
+                'sold' => 0,
             ];
         }
-        // Không đóng modal để user chọn tiếp
     }
 
     public function removeItem($index)
@@ -164,5 +157,4 @@ class FlashSaleManager extends Component
     {
         $this->reset(['saleId', 'title', 'start_time', 'end_time', 'is_active', 'items', 'isEditMode', 'isModalOpen']);
     }
-    // End 5.
 }
