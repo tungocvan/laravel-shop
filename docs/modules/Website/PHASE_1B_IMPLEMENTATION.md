@@ -5,7 +5,8 @@
 - Phase: `1B — Admin Authorization`
 - Analysis: `COMPLETE`
 - Implementation: `COMPLETE`
-- Automated runtime test: `PENDING USER RUNTIME`
+- Automated runtime test: `PASS — 12 tests / 138 assertions`
+- Permission sync: `PASS`
 - Manual admin permission smoke: `PENDING USER RUNTIME`
 - Approval: `NOT APPROVED`
 - Rule: do not start Phase 1C until this gate is tested and explicitly approved.
@@ -153,81 +154,109 @@ Modules/Website/Livewire/Admin/Affiliate/CommissionMatrix.php
 tests/Feature/Website/WebsiteAdminAuthorizationConfigurationTest.php
 ```
 
-## Required Permission Sync After Pull
+## Permission Sync After Pull
 
-The new permissions must exist in the database before manual admin testing.
+This repository currently has a PSR-4 casing inconsistency in the Role seeder path on Linux:
 
-Because this repository uses root PSR-4 mapping `Modules\\ => Modules/`, refresh Composer autoload after pulling before invoking module seeders directly.
+```text
+file path: Modules/Role/database/seeders/RolesAndPermissionsSeeder.php
+namespace declared in file: Modules\Role\database\Seeders
+```
 
-Run:
+The runtime-compatible direct Artisan class string in the current repository is:
 
 ```bash
-composer dump-autoload
-php artisan optimize:clear
-php artisan db:seed --class='Modules\Role\database\Seeders\RolesAndPermissionsSeeder'
+php artisan db:seed --class='Modules\Role\database\seeders\RolesAndPermissionsSeeder'
+```
+
+User runtime verification:
+
+```text
+INFO Seeding database.
+PASS
+```
+
+Then:
+
+```bash
 php artisan permission:cache-reset
 ```
 
-If the seeder class is still reported as missing, verify autoload resolution before retrying:
-
-```bash
-php -r "require 'vendor/autoload.php'; var_dump(class_exists('Modules\\Role\\database\\Seeders\\RolesAndPermissionsSeeder'));"
-```
-
-Expected:
+Result:
 
 ```text
-bool(true)
+Permission cache flushed.
 ```
 
-The seeder source is located at:
+The casing mismatch is recorded as repository technical debt. It is not repaired inside Website Phase 1B because that would modify the Role module outside the active phase scope.
+
+## Automated Runtime Results
+
+User executed all focused Website Phase 1B regression tests after permission sync.
+
+### Authorization configuration
 
 ```text
-Modules/Role/database/seeders/RolesAndPermissionsSeeder.php
+PASS Tests\Feature\Website\WebsiteAdminAuthorizationConfigurationTest
+✓ website manifest exposes phase 1b permissions
+✓ website admin routes have expected permission middleware
+✓ persistent livewire mutations have capability checks
+✓ authorization helper uses the admin guard explicitly
+
+Tests: 4 passed (88 assertions)
 ```
 
-and its declared namespace is:
+Classification: `PASS`.
+
+### Existing Website route regression
 
 ```text
-Modules\Role\database\Seeders
+PASS Tests\Feature\Website\WebsiteRouteConfigurationTest
+✓ blog index route uses controller action
+✓ website admin routes keep admin auth middleware
+✓ registered website admin pages use module livewire aliases
+
+Tests: 3 passed (30 assertions)
 ```
 
-The existing seeder synchronizes all active module permissions to the `Super Admin` role for guard `admin`.
+Classification: `PASS`.
 
-## Automated Test Commands
+### Phase 1A checkout regression
+
+```text
+PASS Tests\Feature\Website\WebsiteCheckoutConfigurationTest
+✓ checkout accepts only approved payment methods
+✓ momo routes map to real controller actions
+✓ momo create payment uses config and returns pay url
+✓ momo gateway failure throws controlled exception
+✓ momo result signature is verified
+
+Tests: 5 passed (20 assertions)
+```
+
+Classification: `PASS`.
+
+### Combined Website feature scope
+
+```text
+Tests: 12 passed (138 assertions)
+```
+
+Classification: `PASS`.
+
+Automated Phase 1B gate is therefore fully green.
+
+## Regression Commands
 
 ```bash
 php artisan optimize:clear
+php artisan db:seed --class='Modules\Role\database\seeders\RolesAndPermissionsSeeder'
+php artisan permission:cache-reset
 php artisan test tests/Feature/Website/WebsiteAdminAuthorizationConfigurationTest.php
 php artisan test tests/Feature/Website/WebsiteRouteConfigurationTest.php
 php artisan test tests/Feature/Website/WebsiteCheckoutConfigurationTest.php
 php artisan test tests/Feature/Website
 ```
-
-Optional route inspection:
-
-```bash
-php artisan route:list --path=admin
-```
-
-## Expected Automated Gate
-
-### Authorization configuration test
-
-Must verify:
-
-- Website manifest contains the Phase 1B permission catalog;
-- every Website Admin route has the expected permission middleware;
-- representative persistent Livewire components contain the shared authorization helper and expected permission checks;
-- helper explicitly uses the `admin` guard.
-
-### Regression
-
-Must remain green:
-
-- `WebsiteRouteConfigurationTest`
-- `WebsiteCheckoutConfigurationTest`
-- combined Website feature test scope
 
 ## Manual Phase 1B Smoke Gate
 
@@ -259,7 +288,7 @@ website.home.manage only
 - customers: denied
 - coupons: denied
 
-a marketing.coupon.view account
+marketing.coupon.view only
 - coupon list: allowed
 - coupon create/edit: denied
 
@@ -279,12 +308,11 @@ Expected denial: HTTP 403 / Livewire authorization failure before persistence.
 
 Phase 1B may be marked `TESTED / APPROVED` only after:
 
-- [ ] Composer autoload refresh completes successfully;
-- [ ] permission sync completes successfully;
-- [ ] authorization configuration test passes;
-- [ ] existing Website route test passes;
-- [ ] Phase 1A checkout regression test passes;
-- [ ] combined Website feature tests pass;
+- [x] permission sync completes successfully;
+- [x] authorization configuration test passes: `4 tests / 88 assertions`;
+- [x] existing Website route test passes: `3 tests / 30 assertions`;
+- [x] Phase 1A checkout regression test passes: `5 tests / 20 assertions`;
+- [x] combined Website feature tests pass: `12 tests / 138 assertions`;
 - [ ] Super Admin manual admin smoke passes;
 - [ ] at least one limited-permission separation smoke passes;
 - [ ] no denied mutation changes database state;
@@ -292,4 +320,4 @@ Phase 1B may be marked `TESTED / APPROVED` only after:
 
 ## Current Decision
 
-**Implementation complete. Automated/manual test gate remains open. Do not start Phase 1C yet.**
+**Automated gate: PASS. Manual authorization gate remains open. Do not start Phase 1C yet.**
