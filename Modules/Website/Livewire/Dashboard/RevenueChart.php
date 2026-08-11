@@ -2,13 +2,14 @@
 
 namespace Modules\Website\Livewire\Dashboard;
 
-use Livewire\Component;
-use Modules\Website\Models\Order;
 use Carbon\Carbon;
+use Livewire\Component;
+use Modules\Order\Models\Order;
 
 class RevenueChart extends Component
 {
     public $labels = [];
+
     public $data = [];
 
     public function mount()
@@ -22,8 +23,8 @@ class RevenueChart extends Component
 
             // Tính tổng tiền ngày đó (đơn đã completed)
             $sum = Order::whereDate('created_at', $date->format('Y-m-d'))
-                        ->where('status', 'completed')
-                        ->sum('total');
+                ->where('status', 'completed')
+                ->sum('total');
 
             $this->data[] = $sum;
         }

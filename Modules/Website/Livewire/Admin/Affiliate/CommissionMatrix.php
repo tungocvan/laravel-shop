@@ -4,26 +4,31 @@ namespace Modules\Website\Livewire\Admin\Affiliate;
 
 use App\Models\User;
 use Livewire\Component;
+use Modules\Product\Models\Product;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\AffiliateLevel;
 use Modules\Website\Models\AffiliateScheme;
-use Modules\Website\Models\WpProduct;
 
 class CommissionMatrix extends Component
 {
     use AuthorizesAdminPermissions;
 
     public $productId;
+
     public $product;
+
     public $searchUser = '';
+
     public $selectedUserId = null;
+
     public $userResults = [];
+
     public $schemes = [];
 
     public function mount($productId)
     {
         $this->productId = $productId;
-        $this->product = WpProduct::findOrFail($productId);
+        $this->product = Product::findOrFail($productId);
         $this->loadSchemes();
     }
 
@@ -38,11 +43,12 @@ class CommissionMatrix extends Component
     {
         if (strlen($this->searchUser) < 2) {
             $this->userResults = [];
+
             return;
         }
 
-        $this->userResults = User::where('name', 'like', '%' . $this->searchUser . '%')
-            ->orWhere('email', 'like', '%' . $this->searchUser . '%')
+        $this->userResults = User::where('name', 'like', '%'.$this->searchUser.'%')
+            ->orWhere('email', 'like', '%'.$this->searchUser.'%')
             ->limit(5)
             ->get();
     }

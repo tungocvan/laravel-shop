@@ -4,7 +4,7 @@ namespace Modules\Website\Livewire\Account;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Website\Models\Order;
+use Modules\Order\Models\Order;
 
 class OrderList extends Component
 {
@@ -18,7 +18,7 @@ class OrderList extends Component
             ->paginate(10);
 
         return view('Website::livewire.account.order-list', [
-            'orders' => $orders
+            'orders' => $orders,
         ]);
     }
 }

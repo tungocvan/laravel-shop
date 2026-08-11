@@ -19,8 +19,8 @@ Application source must not be changed outside the active phase scope.
 ## Current Overall Status
 
 - Phase 0 — Baseline & Safety Net: `[x] ANALYZED / TESTED / APPROVED — CLOSED`
-- Phase 1 — Stabilize & Security: `[ ] IN PROGRESS — Phase 1A next`
-- Phase 2 — Domain Ownership: `[ ] NOT STARTED`
+- Phase 1 — Stabilize & Security: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
+- Phase 2 — Domain Ownership: `[x] ANALYZED — implementation approval pending`
 - Phase 3 — Database Restructure: `[ ] NOT STARTED`
 - Phase 4 — Service Layer: `[ ] NOT STARTED`
 - Phase 5 — Website Admin CMS: `[ ] NOT STARTED`
@@ -73,11 +73,11 @@ Fix current high-risk correctness/security defects before architectural migratio
 
 ## Status
 
-- [ ] ANALYZED
-- [ ] IMPLEMENTED
-- [ ] TESTED
-- [ ] APPROVED
-- Active sub-phase: `Phase 1A — Checkout Stabilization`
+- [x] ANALYZED
+- [x] IMPLEMENTED
+- [x] TESTED
+- [x] APPROVED
+- Active sub-phase: `None — Phase 1 closed`
 
 ## Phase 1A — Checkout Stabilization
 
@@ -156,14 +156,16 @@ Other domains should eventually own their own capabilities, such as customer, ma
 
 ## Phase 1C — Settings, Script Security, Cache
 
-- [ ] Centralize Website settings mutations.
-- [ ] Fix cache invalidation consistency.
-- [ ] Remove direct DB/model queries from frontend Blade.
-- [ ] Restrict custom script editing to privileged capability.
-- [ ] Review raw HTML/script rendering.
-- [ ] Validate image upload MIME/extension/size.
-- [ ] Define old-file cleanup policy.
-- [ ] Add settings/cache/security tests.
+- [x] Centralize production Website settings mutations.
+- [x] Fix cache invalidation consistency.
+- [x] Remove direct DB/model queries from frontend Blade.
+- [x] Restrict custom script editing to privileged capability.
+- [x] Review raw HTML/script rendering.
+- [x] Validate image upload MIME/extension/size.
+- [x] Define old-file cleanup policy.
+- [x] Add settings/cache/security tests (runtime DB checks require PDO SQLite).
+
+Phase 1C implementation evidence: `docs/modules/Website/PHASE_1C_IMPLEMENTATION.md`.
 
 ## Phase 1 Approval Gate
 
@@ -185,39 +187,46 @@ Make every business concept have one canonical module owner.
 
 ## Status
 
-- [ ] NOT STARTED
-- [ ] ANALYZED
+- [x] ANALYZED
 - [ ] IMPLEMENTED
 - [ ] TESTED
 - [ ] APPROVED
+
+Canonical analysis and locked slice sequence: `docs/modules/Website/PHASE_2_ANALYSIS.md`.
 
 ## Ownership Checklist
 
 ### Product
 
 - [ ] canonical owner = `Modules/Product`
-- [ ] identify every caller of Website product model/service
+- [x] identify every caller of Website product model/service
 - [ ] migrate Website storefront to Product contracts
 - [ ] remove duplicate Product ownership only after callers migrate
 
 ### Category
 
 - [ ] canonical owner = `Modules/Category`
-- [ ] remove direct `DB::table('categories')` access from Website UI
-- [ ] consume Category query/service contract
+- [x] remove direct `DB::table('categories')` access from Website UI
+- [x] consume Category query/service contract for read-only Website callers
+
+Slice 2A implementation evidence: `docs/modules/Website/PHASE_2A_IMPLEMENTATION.md`.
 
 ### Post
 
-- [ ] canonical owner = `Modules/Post`
-- [ ] Website blog becomes presentation/composition layer
-- [ ] migrate duplicate model/query ownership
+- [x] canonical owner = `Modules/Post`
+- [x] Website blog becomes presentation/composition layer
+- [x] migrate runtime storefront model/query ownership
+
+Slice 2B implementation evidence: `docs/modules/Website/PHASE_2B_IMPLEMENTATION.md`.
 
 ### Order
 
-- [ ] canonical owner = `Modules/Order`
-- [ ] order creation belongs to canonical Order workflow
-- [ ] account order queries use Order owner
-- [ ] migrate Website Order/OrderItem/OrderHistory callers
+- [x] canonical owner = `Modules/Order`
+- [ ] order creation service class belongs to canonical Order workflow
+- [x] account order queries use Order owner
+- [x] migrate active Website Order/OrderItem/OrderHistory runtime callers
+
+Slice 2C implementation evidence: `docs/modules/Website/PHASE_2C_IMPLEMENTATION.md`.
 
 ### User / Account
 

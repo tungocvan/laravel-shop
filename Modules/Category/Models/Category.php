@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Post\Models\Post;
 use Modules\Product\Models\Product;
 
 class Category extends Model
@@ -52,9 +53,19 @@ class Category extends Model
             ->orderBy('name');
     }
 
+    public function childrenRecursive(): HasMany
+    {
+        return $this->children()->with('childrenRecursive');
+    }
+
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'category_product', 'category_id', 'product_id');
+    }
+
+    public function posts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class, 'category_post', 'category_id', 'post_id');
     }
 
     public function scopeOfType(Builder $query, string $type): Builder
@@ -70,5 +81,26 @@ class Category extends Model
     public function scopeRoots(Builder $query): Builder
     {
         return $query->whereNull('parent_id');
+    }
+
+    public function scopeRoot(Builder $query): Builder
+    {
+        return $this->scopeRoots($query);
+    }
+
+    public function scopeSorted(Builder $query): Builder
+    {
+        return $query->orderBy('sort_order')->orderBy('name');
+    }
+
+    public function getAllChildrenIds(): array
+    {
+        $ids = [(int) $this->id];
+
+        foreach ($this->childrenRecursive as $child) {
+            $ids = array_merge($ids, $child->getAllChildrenIds());
+        }
+
+        return $ids;
     }
 }

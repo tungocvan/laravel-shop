@@ -10,22 +10,36 @@ use Modules\Website\Services\BannerService;
 
 class BannerManager extends Component
 {
-    use WithFileUploads, AuthorizesAdminPermissions;
+    use AuthorizesAdminPermissions, WithFileUploads;
 
     public $banners;
+
     public $isModalOpen = false;
+
     public $isEditMode = false;
+
     public $bannerId;
+
     public $title;
+
     public $link;
+
     public $sub_title;
+
     public $btn_text;
+
     public $position = 'hero';
+
     public $order = 0;
+
     public $is_active = true;
+
     public $newImageDesktop;
+
     public $newImageMobile;
+
     public $currentImageDesktop;
+
     public $currentImageMobile;
 
     public function mount(BannerService $service)
@@ -73,13 +87,15 @@ class BannerManager extends Component
         $this->authorizeAdminPermission('website.banner.manage');
 
         $rules = [
-            'title' => 'string|max:255',
+            'title' => 'nullable|string|max:255',
             'position' => 'required',
             'order' => 'integer',
+            'newImageDesktop' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'newImageMobile' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
         ];
 
         if (! $this->isEditMode) {
-            $rules['newImageDesktop'] = 'required|image|max:3072';
+            $rules['newImageDesktop'] = 'required|image|mimes:jpg,jpeg,png,webp|max:3072';
         }
 
         $this->validate($rules);

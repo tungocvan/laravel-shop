@@ -3,7 +3,7 @@
 namespace Modules\Website\Livewire\Products;
 
 use Livewire\Component;
-use Modules\Website\Models\Category;
+use Modules\Category\Models\Category;
 
 class CategoryFilter extends Component
 {
@@ -28,7 +28,7 @@ class CategoryFilter extends Component
             ->get();
 
         return view('Website::livewire.products.category-filter', [
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 }

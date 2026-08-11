@@ -2,9 +2,9 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\WpProduct;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Product\Models\Product;
 
 class ProductService
 {
@@ -14,7 +14,7 @@ class ProductService
      */
     public function getFeaturedProducts(int $limit = 8): Collection
     {
-        return WpProduct::query()
+        return Product::query()
             ->active() // ScopeActive đã có trong Model WpProduct
             ->whereJsonContains('tags', 'featured')
             ->latest()
@@ -27,7 +27,7 @@ class ProductService
      */
     public function getNewArrivals(int $limit = 10): Collection
     {
-        return WpProduct::query()
+        return Product::query()
             ->active()
             ->latest('created_at')
             ->take($limit)
@@ -39,7 +39,7 @@ class ProductService
      */
     public function getFlashSaleProducts(int $limit = 6): Collection
     {
-        return WpProduct::query()
+        return Product::query()
             ->active()
             ->whereNotNull('sale_price')
             ->whereColumn('sale_price', '<', 'regular_price')
@@ -67,7 +67,7 @@ class ProductService
         }
 
         // 3. Fetch Product details
-        return WpProduct::query()
+        return Product::query()
             ->active()
             ->whereIn('id', $topProductIds)
             ->get()
@@ -75,6 +75,7 @@ class ProductService
                 return array_search($model->id, $topProductIds->toArray());
             });
     }
+
     public function getBestSellingProducts($limit = 5)
     {
         // TRONG THỰC TẾ (Production):
@@ -87,7 +88,7 @@ class ProductService
         // HIỆN TẠI (Demo UI):
         // Chúng ta lấy ngẫu nhiên để test giao diện Bảng Xếp Hạng.
         // Có thể ưu tiên lấy những sản phẩm có tag 'hot' nếu muốn.
-        return WpProduct::query()
+        return Product::query()
             ->where('is_active', true)
             ->with(['categories']) // Eager load để tránh lỗi N+1 ở View
             ->inRandomOrder()      // Random để mỗi lần F5 thấy sản phẩm khác nhau cho sinh động

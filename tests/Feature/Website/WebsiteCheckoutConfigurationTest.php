@@ -5,9 +5,9 @@ namespace Tests\Feature\Website;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
+use Modules\Order\Models\Order;
 use Modules\Website\Http\Controllers\CheckoutController;
 use Modules\Website\Http\Requests\CheckoutRequest;
-use Modules\Website\Models\Order;
 use Modules\Website\Services\MomoService;
 use RuntimeException;
 use Tests\TestCase;
@@ -24,7 +24,7 @@ class WebsiteCheckoutConfigurationTest extends TestCase
             'note' => null,
         ];
 
-        $rules = (new CheckoutRequest())->rules();
+        $rules = (new CheckoutRequest)->rules();
 
         foreach (['cod', 'bank_transfer', 'momo'] as $method) {
             $this->assertFalse(Validator::make($base + ['payment_method' => $method], $rules)->fails());
@@ -41,11 +41,11 @@ class WebsiteCheckoutConfigurationTest extends TestCase
         $ipn = Route::getRoutes()->getByName('checkout.momo.ipn');
 
         $this->assertNotNull($callback);
-        $this->assertSame(CheckoutController::class . '@momoCallback', $callback->getActionName());
+        $this->assertSame(CheckoutController::class.'@momoCallback', $callback->getActionName());
         $this->assertContains('GET', $callback->methods());
 
         $this->assertNotNull($ipn);
-        $this->assertSame(CheckoutController::class . '@momoIpn', $ipn->getActionName());
+        $this->assertSame(CheckoutController::class.'@momoIpn', $ipn->getActionName());
         $this->assertContains('POST', $ipn->methods());
 
         $this->assertTrue(method_exists(CheckoutController::class, 'momoCallback'));
@@ -88,7 +88,7 @@ class WebsiteCheckoutConfigurationTest extends TestCase
                 && $data['orderId'] === 'ORD-TEST-001'
                 && $data['amount'] === 120000
                 && $data['requestType'] === 'captureWallet'
-                && !empty($data['signature'])
+                && ! empty($data['signature'])
                 && str_contains($data['redirectUrl'], '/checkout/momo-callback')
                 && str_contains($data['ipnUrl'], '/checkout/momo-ipn');
         });
@@ -136,18 +136,18 @@ class WebsiteCheckoutConfigurationTest extends TestCase
         ];
 
         $rawHash = 'accessKey=TESTACCESS'
-            . '&amount=' . $payload['amount']
-            . '&extraData=' . $payload['extraData']
-            . '&message=' . $payload['message']
-            . '&orderId=' . $payload['orderId']
-            . '&orderInfo=' . $payload['orderInfo']
-            . '&orderType=' . $payload['orderType']
-            . '&partnerCode=' . $payload['partnerCode']
-            . '&payType=' . $payload['payType']
-            . '&requestId=' . $payload['requestId']
-            . '&responseTime=' . $payload['responseTime']
-            . '&resultCode=' . $payload['resultCode']
-            . '&transId=' . $payload['transId'];
+            .'&amount='.$payload['amount']
+            .'&extraData='.$payload['extraData']
+            .'&message='.$payload['message']
+            .'&orderId='.$payload['orderId']
+            .'&orderInfo='.$payload['orderInfo']
+            .'&orderType='.$payload['orderType']
+            .'&partnerCode='.$payload['partnerCode']
+            .'&payType='.$payload['payType']
+            .'&requestId='.$payload['requestId']
+            .'&responseTime='.$payload['responseTime']
+            .'&resultCode='.$payload['resultCode']
+            .'&transId='.$payload['transId'];
 
         $payload['signature'] = hash_hmac('sha256', $rawHash, 'TESTSECRET');
 

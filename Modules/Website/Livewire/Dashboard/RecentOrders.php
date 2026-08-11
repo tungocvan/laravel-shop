@@ -3,7 +3,7 @@
 namespace Modules\Website\Livewire\Dashboard;
 
 use Livewire\Component;
-use Modules\Website\Models\Order;
+use Modules\Order\Models\Order;
 
 class RecentOrders extends Component
 {
@@ -13,7 +13,7 @@ class RecentOrders extends Component
         $orders = Order::latest()->take(5)->get();
 
         return view('Website::livewire.dashboard.recent-orders', [
-            'orders' => $orders
+            'orders' => $orders,
         ]);
     }
 }

@@ -2,78 +2,105 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\Setting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Exception;
+use Modules\Website\Models\Setting;
 
 class SettingsService
 {
-    /** 
-     * Lấy giá trị setting (có Cache)
-     */
-    public function get(string $key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
-        // Cache key ngắn gọn: wp_opt_{key}
-        return Cache::rememberForever("wp_opt_{$key}", function () use ($key, $default) {
-            $setting = Setting::where('key', $key)->first();
+        return Cache::rememberForever($this->cacheKey($key), function () use ($key, $default) {
+            $setting = Setting::query()->where('key', $key)->first();
 
-            // Xử lý decode JSON nếu type là json
-            if ($setting && $setting->type === 'json') {
-                return json_decode($setting->value, true);
+            if (! $setting) {
+                return $default;
             }
 
-            return $setting ? $setting->value : $default;
+            $decoded = json_decode((string) $setting->value, true);
+            if ($setting->type === 'json' || (is_array($decoded) && json_last_error() === JSON_ERROR_NONE)) {
+                return $decoded ?? $default;
+            }
+
+            return $setting->value;
         });
     }
 
-    /**
-     * Lưu một setting (Xóa cache ngay lập tức)
-     */
-    public function set(string $key, $value, string $group = 'general', string $type = 'text'): void
+    public function getGroup(string $group): array
     {
-        // Nếu value là array, auto chuyển sang json
-        if (is_array($value)) {
-            $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-            $type = 'json';
-        }
+        return Setting::query()
+            ->where('group_name', $group)
+            ->get()
+            ->mapWithKeys(function (Setting $setting): array {
+                $key = str_starts_with($setting->key, $setting->group_name.'.')
+                    ? substr($setting->key, strlen($setting->group_name) + 1)
+                    : $setting->key;
 
-        Setting::updateOrCreate(
-            ['key' => $key],
-            [
-                'value' => $value,
-                'group_name' => $group,
-                'type' => $type
-            ]
-        );
-
-        Cache::forget("wp_opt_{$key}");
-        Cache::forget("setting_{$key}");
-      //  Cache::tags(['settings'])->flush(); // Nếu dùng Redis tags
+                return [$key => $this->get($setting->key)];
+            })
+            ->all();
     }
 
-    /**
-     * Lưu hàng loạt settings từ Form (Admin)
-     * Input: ['header_hotline' => '...', 'header_email' => '...']
-     */
-    public function updateMany(array $data, string $group = 'general'): bool
+    public function set(string $key, mixed $value, string $group = 'general', string $type = 'text'): void
     {
-        DB::beginTransaction();
-        try {
+        [$storedValue, $storedType] = $this->normalizeValue($value, $type);
+
+        Setting::query()->updateOrCreate(
+            ['key' => $key],
+            ['value' => $storedValue, 'group_name' => $group, 'type' => $storedType]
+        );
+
+        $this->forget($key);
+    }
+
+    public function updateMany(array $data, string $group = 'general'): void
+    {
+        $keys = array_keys(array_diff_key($data, array_flip(['_token', '_method'])));
+
+        DB::transaction(function () use ($data, $group): void {
             foreach ($data as $key => $value) {
-                if (in_array($key, ['_token', '_method'])) continue;
-                $this->set($key, $value, $group);
+                if (in_array($key, ['_token', '_method'], true)) {
+                    continue;
+                }
+
+                [$storedValue, $storedType] = $this->normalizeValue($value);
+                Setting::query()->updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $storedValue, 'group_name' => $group, 'type' => $storedType]
+                );
             }
-            DB::commit();
-            return true;
-        } catch (\Exception $e) { // Thêm backslash trước Exception để chắc chắn đúng class
-            DB::rollBack();
+        });
 
-            // --- DEBUG CODE (Xóa sau khi fix xong) ---
-            dd($e->getMessage());
-            // ----------------------------------------
-
-            return false;
+        foreach ($keys as $key) {
+            $this->forget((string) $key);
         }
+    }
+
+    public function updateGroup(string $group, array $data): void
+    {
+        $this->updateMany(
+            collect($data)->mapWithKeys(fn ($value, $key) => ["{$group}.{$key}" => $value])->all(),
+            $group
+        );
+    }
+
+    private function normalizeValue(mixed $value, string $type = 'text'): array
+    {
+        if (is_array($value)) {
+            return [json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'json'];
+        }
+
+        return [$value, $type];
+    }
+
+    private function forget(string $key): void
+    {
+        Cache::forget($this->cacheKey($key));
+        Cache::forget('setting_'.$key);
+    }
+
+    private function cacheKey(string $key): string
+    {
+        return 'wp_opt_'.$key;
     }
 }

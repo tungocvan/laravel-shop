@@ -2,11 +2,12 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\Setting;
 use Carbon\Carbon;
 
 class MarketingService
 {
+    public function __construct(private readonly SettingsService $settings) {}
+
     /**
      * Lấy dữ liệu Hero Banner
      * Return structure: [['image' => '...', 'title' => '...', 'link' => '...']]
@@ -21,13 +22,13 @@ class MarketingService
                 'title' => 'Bộ sưu tập mùa hè',
                 'sub_title' => 'Giảm giá tới 50%',
                 'link' => '/shop',
-                'btn_text' => 'Mua ngay'
-            ]
+                'btn_text' => 'Mua ngay',
+            ],
         ];
 
-        $data = Setting::getValue('home_hero_slides');
+        $data = $this->settings->get('home_hero_slides');
 
-        return !empty($data) ? json_decode($data, true) : $default;
+        return is_array($data) ? $data : (! empty($data) ? json_decode($data, true) : $default);
     }
 
     /**
@@ -41,8 +42,9 @@ class MarketingService
             'link' => '/category/tech',
         ];
 
-        $data = Setting::getValue('home_promo_banner');
-        return !empty($data) ? json_decode($data, true) : $default;
+        $data = $this->settings->get('home_promo_banner');
+
+        return is_array($data) ? $data : (! empty($data) ? json_decode($data, true) : $default);
     }
 
     /**
@@ -51,7 +53,7 @@ class MarketingService
     public function getFlashSaleConfig(): array
     {
         // Lấy timestamp kết thúc từ DB (Lưu dạng string '2023-10-25 00:00:00')
-        $endTimeStr = Setting::getValue('flash_sale_end_time');
+        $endTimeStr = $this->settings->get('flash_sale_end_time');
 
         if ($endTimeStr) {
             $endTime = Carbon::parse($endTimeStr);
@@ -65,7 +67,7 @@ class MarketingService
             'is_active' => $endTime->isFuture(),
             // Trả về Timestamp (miliseconds) cho JS
             'end_time_js' => $endTime->timestamp * 1000,
-            'end_time_human' => $endTime->format('H:i d/m')
+            'end_time_human' => $endTime->format('H:i d/m'),
         ];
     }
 }

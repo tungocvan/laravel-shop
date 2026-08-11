@@ -3,7 +3,7 @@
 namespace Modules\Website\Livewire\Account;
 
 use Livewire\Component;
-use Modules\Website\Models\Order;
+use Modules\Order\Models\Order;
 
 class OrderDetail extends Component
 {
@@ -23,7 +23,7 @@ class OrderDetail extends Component
             ->firstOrFail();
 
         return view('Website::livewire.account.order-detail', [
-            'order' => $order
+            'order' => $order,
         ]);
     }
 }

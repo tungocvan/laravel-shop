@@ -3,12 +3,14 @@
 namespace Modules\Website\Livewire\Post;
 
 use Livewire\Component;
-use Modules\Website\Models\Post;
+use Modules\Post\Models\Post;
 
 class PostDetail extends Component
 {
     public $post;
+
     public $relatedPosts;
+
     public $readingTime;
 
     public function mount($slug)
@@ -32,7 +34,7 @@ class PostDetail extends Component
             $catIds = $this->post->categories->pluck('id');
             $this->relatedPosts = Post::where('status', 'published')
                 ->where('id', '!=', $this->post->id)
-                ->whereHas('categories', fn($q) => $q->whereIn('id', $catIds))
+                ->whereHas('categories', fn ($q) => $q->whereIn('id', $catIds))
                 ->latest('published_at')
                 ->take(3)
                 ->get();

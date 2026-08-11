@@ -2,17 +2,19 @@
 
 namespace Modules\Website\Livewire\Dashboard;
 
-use Livewire\Component;
-use Modules\Website\Models\Order;
-use Modules\Website\Models\WpProduct;
 use App\Models\User;
-use Carbon\Carbon;
+use Livewire\Component;
+use Modules\Order\Models\Order;
+use Modules\Product\Models\Product;
 
 class StatsOverview extends Component
 {
     public $totalRevenue = 0;
+
     public $newOrdersCount = 0;
+
     public $totalProducts = 0;
+
     public $totalCustomers = 0;
 
     // Biến tính % tăng trưởng (để làm màu cho đẹp)
@@ -27,7 +29,7 @@ class StatsOverview extends Component
         $this->newOrdersCount = Order::where('status', 'pending')->count();
 
         // 3. Tổng sản phẩm đang bán
-        $this->totalProducts = WpProduct::where('is_active', true)->count();
+        $this->totalProducts = Product::where('is_active', true)->count();
 
         // 4. Tổng khách hàng
         $this->totalCustomers = User::count();

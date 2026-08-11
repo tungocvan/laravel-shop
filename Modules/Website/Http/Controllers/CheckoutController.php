@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Modules\Order\Models\Order;
 use Modules\Website\Models\Cart;
-use Modules\Website\Models\Order;
 use Modules\Website\Services\CheckoutService;
 use Modules\Website\Services\MomoService;
 
@@ -18,7 +18,7 @@ class CheckoutController extends Controller
         $sessionId = session()->getId();
         $hasCart = Cart::where('session_id', $sessionId)->exists();
 
-        if (!$hasCart) {
+        if (! $hasCart) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng đang trống!');
         }
 
@@ -27,14 +27,14 @@ class CheckoutController extends Controller
 
     public function success()
     {
-        if (!session()->has('order_code')) {
+        if (! session()->has('order_code')) {
             return redirect()->route('home');
         }
 
         $orderCode = session('order_code');
         $order = Order::where('order_code', $orderCode)->first();
 
-        if (!$order) {
+        if (! $order) {
             return redirect()->route('home')->with('error', 'Không tìm thấy đơn hàng.');
         }
 

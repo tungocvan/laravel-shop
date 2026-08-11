@@ -2,8 +2,8 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
+use Modules\Category\Models\Category;
 
 class CategoryService
 {

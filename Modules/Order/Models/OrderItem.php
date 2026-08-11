@@ -4,6 +4,7 @@ namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Product\Models\Product;
 
 class OrderItem extends Model
 {
@@ -11,7 +12,7 @@ class OrderItem extends Model
         'order_id', 'product_id',
         'product_name', 'price', 'quantity', 'total', 'options', // <--- Thêm options
         'commission_rate',   // <--- MỚI: % hoa hồng lúc mua
-        'commission_amount'  // <--- MỚI: Tiền hoa hồng của item này
+        'commission_amount',  // <--- MỚI: Tiền hoa hồng của item này
     ];
 
     // Tự động chuyển JSON sang Mảng khi lấy ra

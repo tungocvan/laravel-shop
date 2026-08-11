@@ -3,9 +3,8 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Website\Models\WpProduct;
-use Modules\Admin\Models\Setting;
-use Illuminate\Database\Eloquent\Collection;
+use Modules\Product\Models\Product;
+use Modules\Website\Services\SettingsService;
 
 class BestSellers extends Component
 {
@@ -34,20 +33,19 @@ class BestSellers extends Component
         blade;
     }
 
-    public function render()
+    public function render(SettingsService $settings)
     {
         // 1. Lấy số lượng hiển thị từ Admin (Mặc định 8)
-        $limit = Setting::where('key', 'home_best_sellers_count')->value('value');
-        $limit = $limit ? (int)$limit : 8;
+        $limit = (int) $settings->get('home_best_sellers_count', 8);
 
         // 2. Query sản phẩm bán chạy (sold_count DESC)
-        $products = WpProduct::where('is_active', true)
+        $products = Product::where('is_active', true)
             ->orderBy('sold_count', 'desc')
             ->take($limit)
             ->get(); // Không cần with('categories') nếu không hiển thị tên danh mục để tối ưu
 
         return view('Website::livewire.home.best-sellers', [
-            'products' => $products
+            'products' => $products,
         ]);
     }
 }

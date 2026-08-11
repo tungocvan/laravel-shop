@@ -2,24 +2,27 @@
 
 namespace Modules\Website\Livewire\Products;
 
-use Livewire\Component;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
-use Modules\Website\Models\WpProduct;
+use Livewire\Component;
+use Modules\Product\Models\Product;
 use Modules\Website\Models\Review;
 use Modules\Website\Services\CartService;
-use Illuminate\Http\Request;
 
 class ProductDetail extends Component
 {
     public $product;
+
     public $reviews;
+
     public $quantity = 1;
+
     public $affiliateLink; // Link để người dùng mang đi chia sẻ
 
     public function mount($slug, Request $request)
     {
         // 1. Lấy thông tin sản phẩm
-        $this->product = WpProduct::with(['categories', 'user']) // Eager load user nếu cần
+        $this->product = Product::with(['categories', 'user']) // Eager load user nếu cần
             ->where('slug', $slug)
             ->where('is_active', true)
             ->firstOrFail();
@@ -40,9 +43,9 @@ class ProductDetail extends Component
         }
 
         $this->reviews = Review::where('product_id', $this->product->id)
-                       ->where('is_approved', true)
-                       ->latest()
-                       ->get();
+            ->where('is_approved', true)
+            ->latest()
+            ->get();
     }
 
     public function increment()
@@ -65,12 +68,12 @@ class ProductDetail extends Component
             $this->dispatch('cart-updated');
             $this->dispatch('notify', [
                 'type' => 'success',
-                'message' => 'Đã thêm ' . $this->product->title . ' vào giỏ hàng!'
+                'message' => 'Đã thêm '.$this->product->title.' vào giỏ hàng!',
             ]);
         } catch (\Exception $e) {
             $this->dispatch('notify', [
                 'type' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ]);
         }
     }
@@ -78,8 +81,8 @@ class ProductDetail extends Component
     // Lấy sản phẩm liên quan (Computed Property để tối ưu)
     public function getRelatedProductsProperty()
     {
-        return WpProduct::where('id', '!=', $this->product->id)
-            ->whereHas('categories', function($q) {
+        return Product::where('id', '!=', $this->product->id)
+            ->whereHas('categories', function ($q) {
                 $q->whereIn('id', $this->product->categories->pluck('id'));
             })
             ->where('is_active', true)

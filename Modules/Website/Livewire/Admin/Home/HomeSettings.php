@@ -2,15 +2,17 @@
 
 namespace Modules\Website\Livewire\Admin\Home;
 
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Modules\Category\Models\Category;
+use Modules\Product\Models\Product;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\Setting;
+use Modules\Website\Services\SettingsService;
 
 class HomeSettings extends Component
 {
-    use WithFileUploads, AuthorizesAdminPermissions;
+    use AuthorizesAdminPermissions, WithFileUploads;
 
     public $activeTab = 'layout';
 
@@ -34,10 +36,15 @@ class HomeSettings extends Component
     ];
 
     public $productSearchQuery = '';
+
     public $showProductPicker = false;
+
     public $newArrivalsCount = 10;
+
     public $bestSellersCount = 8;
+
     public $blogCount = 3;
+
     public $newPromoImage;
 
     public $promoBanner = [
@@ -57,51 +64,48 @@ class HomeSettings extends Component
         'description' => 'Đăng ký để nhận tin tức về bộ sưu tập mới, mẹo phối đồ và các ưu đãi độc quyền chỉ dành cho thành viên.',
     ];
 
-    public function mount()
+    public function mount(SettingsService $settings)
     {
-        $this->loadSettings();
+        $this->loadSettings($settings);
     }
 
-    public function loadSettings()
+    public function loadSettings(SettingsService $settings)
     {
         foreach ($this->layout as $key => $default) {
-            $value = Setting::where('key', 'home_' . $key)->value('value');
+            $value = $settings->get('home_'.$key);
             $this->layout[$key] = $value ?? 'all';
         }
 
-        $catIds = Setting::where('key', 'home_category_ids')->value('value');
-        $this->data['category_ids'] = $catIds ? json_decode($catIds, true) : [];
+        $this->data['category_ids'] = (array) $settings->get('home_category_ids', []);
 
-        $featIds = Setting::where('key', 'home_featured_ids')->value('value');
-        $this->data['featured_ids'] = $featIds ? json_decode($featIds, true) : [];
+        $this->data['featured_ids'] = (array) $settings->get('home_featured_ids', []);
 
-        $this->newArrivalsCount = (int) (Setting::where('key', 'home_new_arrivals_count')->value('value') ?? 10);
-        $this->bestSellersCount = (int) (Setting::where('key', 'home_best_sellers_count')->value('value') ?? 8);
-        $this->blogCount = (int) (Setting::where('key', 'home_blog_count')->value('value') ?? 3);
+        $this->newArrivalsCount = (int) $settings->get('home_new_arrivals_count', 10);
+        $this->bestSellersCount = (int) $settings->get('home_best_sellers_count', 8);
+        $this->blogCount = (int) $settings->get('home_blog_count', 3);
 
-        $promoSettings = Setting::where('key', 'home_promo_banner')->value('value');
-        if ($promoSettings) {
-            $this->promoBanner = array_merge($this->promoBanner, json_decode($promoSettings, true));
+        $promoSettings = $settings->get('home_promo_banner', []);
+        if (is_array($promoSettings)) {
+            $this->promoBanner = array_merge($this->promoBanner, $promoSettings);
         }
 
-        $newsletterSettings = Setting::where('key', 'home_newsletter')->value('value');
-        if ($newsletterSettings) {
-            $this->newsletter = array_merge($this->newsletter, json_decode($newsletterSettings, true));
+        $newsletterSettings = $settings->get('home_newsletter', []);
+        if (is_array($newsletterSettings)) {
+            $this->newsletter = array_merge($this->newsletter, $newsletterSettings);
         }
 
-        $badgesJson = Setting::where('key', 'home_trust_badges')->value('value');
-        $this->data['trust_badges'] = $badgesJson ? json_decode($badgesJson, true) : [];
+        $this->data['trust_badges'] = (array) $settings->get('home_trust_badges', []);
     }
 
     public function render()
     {
-        $allCategories = DB::table('categories')->select('id', 'name')->get();
+        $allCategories = Category::query()->select('id', 'name')->orderBy('name')->get();
 
         $searchProducts = [];
         if ($this->showProductPicker) {
-            $query = DB::table('wp_products')->select('id', 'title', 'image', 'regular_price');
+            $query = Product::query()->select('id', 'title', 'image', 'regular_price');
             if (! empty($this->productSearchQuery)) {
-                $query->where('title', 'like', '%' . $this->productSearchQuery . '%');
+                $query->where('title', 'like', '%'.$this->productSearchQuery.'%');
             }
             $searchProducts = $query->limit(10)->get();
         }
@@ -110,7 +114,7 @@ class HomeSettings extends Component
         if (! empty($this->data['featured_ids'])) {
             $idsStr = implode(',', $this->data['featured_ids']);
             if ($idsStr) {
-                $selectedProducts = DB::table('wp_products')
+                $selectedProducts = Product::query()
                     ->whereIn('id', $this->data['featured_ids'])
                     ->orderByRaw("FIELD(id, $idsStr)")
                     ->select('id', 'title', 'image')
@@ -161,20 +165,24 @@ class HomeSettings extends Component
         $this->data['featured_ids'] = array_values($this->data['featured_ids']);
     }
 
-    public function save()
+    public function save(SettingsService $settings)
     {
         $this->authorizeAdminPermission('website.home.manage');
 
-        if ($this->newPromoImage) {
-            $this->validate([
-                'newPromoImage' => 'image|max:3072',
-            ]);
+        $this->validate([
+            'newPromoImage' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'newArrivalsCount' => 'required|integer|min:1|max:50',
+            'bestSellersCount' => 'required|integer|min:1|max:50',
+            'blogCount' => 'required|integer|min:1|max:10',
+        ]);
 
-            $path = $this->newPromoImage->store('banners', 'public');
-            $this->promoBanner['image'] = $path;
-            $this->newPromoImage = null;
+        $oldImage = $this->promoBanner['image'] ?? null;
+        $newImage = $this->newPromoImage?->store('banners', 'public');
+        if ($newImage) {
+            $this->promoBanner['image'] = $newImage;
         }
 
+        $values = [];
         foreach ($this->layout as $key => $value) {
             if ($value === true || $value === '1') {
                 $value = 'all';
@@ -183,27 +191,40 @@ class HomeSettings extends Component
                 $value = 'hidden';
             }
 
-            Setting::updateOrCreate(
-                ['key' => 'home_' . $key],
-                ['value' => $value, 'group_name' => 'homepage']
-            );
+            $values['home_'.$key] = $value;
         }
 
-        Setting::updateOrCreate(['key' => 'home_category_ids'], ['value' => json_encode($this->data['category_ids'])]);
-        Setting::updateOrCreate(['key' => 'home_featured_ids'], ['value' => json_encode($this->data['featured_ids'])]);
-        Setting::updateOrCreate(['key' => 'home_new_arrivals_count'], ['value' => $this->newArrivalsCount]);
-        Setting::updateOrCreate(['key' => 'home_best_sellers_count'], ['value' => $this->bestSellersCount]);
-        Setting::updateOrCreate(['key' => 'home_blog_count'], ['value' => $this->blogCount]);
-        Setting::updateOrCreate(['key' => 'home_promo_banner'], ['value' => json_encode($this->promoBanner)]);
-        Setting::updateOrCreate(['key' => 'home_newsletter'], ['value' => json_encode($this->newsletter)]);
+        $cleanBadges = array_values(array_filter(
+            $this->data['trust_badges'] ?? [],
+            fn ($item) => ! empty($item['title'])
+        ));
+        $values += [
+            'home_category_ids' => $this->data['category_ids'],
+            'home_featured_ids' => $this->data['featured_ids'],
+            'home_new_arrivals_count' => $this->newArrivalsCount,
+            'home_best_sellers_count' => $this->bestSellersCount,
+            'home_blog_count' => $this->blogCount,
+            'home_promo_banner' => $this->promoBanner,
+            'home_newsletter' => $this->newsletter,
+            'home_trust_badges' => $cleanBadges,
+        ];
 
-        if (isset($this->data['trust_badges']) && is_array($this->data['trust_badges'])) {
-            $cleanBadges = array_filter($this->data['trust_badges'], fn ($item) => ! empty($item['title']));
-            Setting::updateOrCreate(
-                ['key' => 'home_trust_badges'],
-                ['value' => json_encode(array_values($cleanBadges))]
-            );
+        try {
+            $settings->updateMany($values, 'homepage');
+        } catch (\Throwable $exception) {
+            if ($newImage) {
+                Storage::disk('public')->delete($newImage);
+                $this->promoBanner['image'] = $oldImage;
+            }
+
+            throw $exception;
         }
+
+        if ($newImage && $oldImage && $oldImage !== $newImage) {
+            Storage::disk('public')->delete($oldImage);
+        }
+
+        $this->newPromoImage = null;
 
         $this->dispatch('alert', [
             'type' => 'success',

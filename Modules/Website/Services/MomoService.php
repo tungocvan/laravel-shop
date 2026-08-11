@@ -3,15 +3,19 @@
 namespace Modules\Website\Services;
 
 use Illuminate\Support\Facades\Http;
-use Modules\Website\Models\Order;
+use Modules\Order\Models\Order;
 use RuntimeException;
 
 class MomoService
 {
     protected string $partnerCode;
+
     protected string $accessKey;
+
     protected string $secretKey;
+
     protected string $endpoint;
+
     protected int $timeout;
 
     public function __construct()
@@ -27,25 +31,25 @@ class MomoService
     {
         $this->assertConfigured();
 
-        $requestId = $order->order_code . '-' . now()->format('Hisv');
+        $requestId = $order->order_code.'-'.now()->format('Hisv');
         $orderId = $order->order_code;
         $amount = (string) (int) round((float) $order->total);
-        $orderInfo = 'Thanh toan ' . $orderId;
+        $orderInfo = 'Thanh toan '.$orderId;
         $redirectUrl = route('checkout.momo.callback');
         $ipnUrl = route('checkout.momo.ipn');
         $extraData = '';
         $requestType = 'captureWallet';
 
-        $rawHash = 'accessKey=' . $this->accessKey
-            . '&amount=' . $amount
-            . '&extraData=' . $extraData
-            . '&ipnUrl=' . $ipnUrl
-            . '&orderId=' . $orderId
-            . '&orderInfo=' . $orderInfo
-            . '&partnerCode=' . $this->partnerCode
-            . '&redirectUrl=' . $redirectUrl
-            . '&requestId=' . $requestId
-            . '&requestType=' . $requestType;
+        $rawHash = 'accessKey='.$this->accessKey
+            .'&amount='.$amount
+            .'&extraData='.$extraData
+            .'&ipnUrl='.$ipnUrl
+            .'&orderId='.$orderId
+            .'&orderInfo='.$orderInfo
+            .'&partnerCode='.$this->partnerCode
+            .'&redirectUrl='.$redirectUrl
+            .'&requestId='.$requestId
+            .'&requestType='.$requestType;
 
         $payload = [
             'partnerCode' => $this->partnerCode,
@@ -77,7 +81,7 @@ class MomoService
 
         $result = $response->json();
 
-        if (!is_array($result) || (int) ($result['resultCode'] ?? -1) !== 0 || empty($result['payUrl'])) {
+        if (! is_array($result) || (int) ($result['resultCode'] ?? -1) !== 0 || empty($result['payUrl'])) {
             throw new RuntimeException((string) ($result['message'] ?? 'Không thể khởi tạo thanh toán MoMo.'));
         }
 
@@ -95,7 +99,7 @@ class MomoService
         ];
 
         foreach ($required as $key) {
-            if (!array_key_exists($key, $payload)) {
+            if (! array_key_exists($key, $payload)) {
                 return false;
             }
         }
@@ -104,19 +108,19 @@ class MomoService
             return false;
         }
 
-        $rawHash = 'accessKey=' . $this->accessKey
-            . '&amount=' . $payload['amount']
-            . '&extraData=' . $payload['extraData']
-            . '&message=' . $payload['message']
-            . '&orderId=' . $payload['orderId']
-            . '&orderInfo=' . $payload['orderInfo']
-            . '&orderType=' . $payload['orderType']
-            . '&partnerCode=' . $payload['partnerCode']
-            . '&payType=' . $payload['payType']
-            . '&requestId=' . $payload['requestId']
-            . '&responseTime=' . $payload['responseTime']
-            . '&resultCode=' . $payload['resultCode']
-            . '&transId=' . $payload['transId'];
+        $rawHash = 'accessKey='.$this->accessKey
+            .'&amount='.$payload['amount']
+            .'&extraData='.$payload['extraData']
+            .'&message='.$payload['message']
+            .'&orderId='.$payload['orderId']
+            .'&orderInfo='.$payload['orderInfo']
+            .'&orderType='.$payload['orderType']
+            .'&partnerCode='.$payload['partnerCode']
+            .'&payType='.$payload['payType']
+            .'&requestId='.$payload['requestId']
+            .'&responseTime='.$payload['responseTime']
+            .'&resultCode='.$payload['resultCode']
+            .'&transId='.$payload['transId'];
 
         $expected = hash_hmac('sha256', $rawHash, $this->secretKey);
 
@@ -133,8 +137,8 @@ class MomoService
     protected function config(string $key, mixed $default = null): mixed
     {
         return config(
-            'website.website.payment.momo.' . $key,
-            config('website.payment.momo.' . $key, $default)
+            'website.website.payment.momo.'.$key,
+            config('website.payment.momo.'.$key, $default)
         );
     }
 }

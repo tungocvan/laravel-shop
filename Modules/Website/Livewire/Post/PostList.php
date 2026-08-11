@@ -4,14 +4,15 @@ namespace Modules\Website\Livewire\Post;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Website\Models\Post;
-use Modules\Website\Models\Category;
+use Modules\Category\Models\Category;
+use Modules\Post\Models\Post;
 
 class PostList extends Component
 {
     use WithPagination;
 
     public $categorySlug = null;
+
     public $currentCategory = null;
 
     // Slug của danh mục Trang Tĩnh cần loại bỏ
@@ -58,7 +59,7 @@ class PostList extends Component
         $heroPost = null;
         $currentPage = $this->getPage();
 
-        if ($currentPage == 1 && !$this->categorySlug) {
+        if ($currentPage == 1 && ! $this->categorySlug) {
             $heroPost = $postsQuery->first();
             // Clone query để phân trang các bài còn lại (bỏ bài Hero ra)
             $listQuery = $postsQuery->clone();
@@ -75,7 +76,7 @@ class PostList extends Component
         return view('Website::livewire.post.post-list', [
             'categories' => $categories,
             'posts' => $posts,
-            'heroPost' => $heroPost
+            'heroPost' => $heroPost,
         ]);
     }
 }

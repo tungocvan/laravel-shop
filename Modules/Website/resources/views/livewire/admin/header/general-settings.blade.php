@@ -1,3 +1,4 @@
+<div class="space-y-6">
 <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
     <h3 class="text-lg font-bold text-gray-800 mb-4">Thông tin chung & Topbar</h3>
 
@@ -57,4 +58,17 @@
             </button>
         </div>
     </form>
+</div>
+
+<div class="mt-6 bg-white p-6 rounded-lg shadow-sm border border-amber-200">
+    <h3 class="text-lg font-bold text-gray-800">Script nâng cao</h3>
+    <p class="mt-1 text-sm text-amber-700">Cấu hình tin cậy dành cho Analytics/GTM. Chỉ tài khoản có quyền quản lý Website settings mới lưu được.</p>
+    <form wire:submit.prevent="saveAdvanced" class="mt-4 space-y-4">
+        <textarea wire:model="header_script" rows="8" class="block w-full rounded-md border-gray-300 font-mono text-sm" placeholder="<script>...</script>"></textarea>
+        @error('header_script') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        <button type="submit" wire:loading.attr="disabled" wire:target="saveAdvanced" class="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+            Lưu script nâng cao
+        </button>
+    </form>
+</div>
 </div>

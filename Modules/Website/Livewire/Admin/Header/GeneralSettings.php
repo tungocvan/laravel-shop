@@ -9,13 +9,19 @@ use Modules\Website\Services\SettingsService;
 
 class GeneralSettings extends Component
 {
-    use WithFileUploads, AuthorizesAdminPermissions;
+    use AuthorizesAdminPermissions, WithFileUploads;
 
     public $hotline;
+
     public $email;
+
     public $help_url;
+
     public $order_tracking_url;
+
     public $brand_name;
+
+    public $header_script;
 
     protected $rules = [
         'hotline' => 'nullable|string|max:50',
@@ -32,6 +38,7 @@ class GeneralSettings extends Component
         $this->help_url = $settingsService->get('header.topbar.help_url', '/');
         $this->order_tracking_url = $settingsService->get('header.topbar.order_tracking_url', 'account/orders');
         $this->brand_name = $settingsService->get('header.brand_name', 'FlexBiz');
+        $this->header_script = $settingsService->get('header_script', '');
     }
 
     public function save(SettingsService $settingsService)
@@ -56,5 +63,18 @@ class GeneralSettings extends Component
     public function render()
     {
         return view('Website::livewire.admin.header.general-settings');
+    }
+
+    public function saveAdvanced(SettingsService $settingsService)
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        $this->validate(['header_script' => 'nullable|string|max:65535']);
+
+        $settingsService->set('header_script', $this->header_script, 'advanced', 'textarea');
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Đã lưu script nâng cao.',
+        ]);
     }
 }

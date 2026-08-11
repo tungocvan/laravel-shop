@@ -3,19 +3,16 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Admin\Models\Setting;
+use Modules\Website\Services\SettingsService;
 
 class PromoBanner extends Component
 {
     public array $banner = [];
 
-    public function mount()
+    public function mount(SettingsService $settings)
     {
         // 1. Lấy dữ liệu từ DB
-        $settings = Setting::where('key', 'home_promo_banner')->value('value');
-
-        // 2. Decode JSON
-        $this->banner = $settings ? json_decode($settings, true) : [];
+        $this->banner = (array) $settings->get('home_promo_banner', []);
     }
 
     public function placeholder()

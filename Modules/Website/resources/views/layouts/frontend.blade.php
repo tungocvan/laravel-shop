@@ -5,17 +5,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @php
-        use Modules\Website\Models\Setting;
-        $favicon = Setting::getValue('site_favicon');
-        $faviconType = strtolower(pathinfo((string) $favicon, PATHINFO_EXTENSION)) === 'ico'
+        $faviconType = strtolower(pathinfo((string) $siteFavicon, PATHINFO_EXTENSION)) === 'ico'
             ? 'image/x-icon'
             : 'image/png';
     @endphp
-    @if ($favicon)
-        <link id="site-favicon" rel="icon" type="{{ $faviconType }}" href="{{ asset('storage/' . $favicon) }}?v={{ md5($favicon) }}">
+    @if ($siteFavicon)
+        <link id="site-favicon" rel="icon" type="{{ $faviconType }}" href="{{ asset('storage/' . $siteFavicon) }}?v={{ md5($siteFavicon) }}">
     @endif
     <title>@yield('title', 'HOMEPAGE')</title>
-    {!! Setting::getValue('header_script') !!}
+    {{-- Privileged trusted configuration; mutation requires website.settings.manage. --}}
+    {!! $headerScript !!}
     <script>
         // window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
         // window.CHAT_CONFIG_PORT = "{{ env('NODEJS_SERVER_PORT') ?? 6001 }}";

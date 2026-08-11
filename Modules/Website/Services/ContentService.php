@@ -2,8 +2,8 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\Post;
 use Illuminate\Database\Eloquent\Collection;
+use Modules\Post\Models\Post;
 
 class ContentService
 {

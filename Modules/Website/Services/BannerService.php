@@ -2,10 +2,11 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\Banner;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver; // Hoặc Imagick nếu server có hỗ trợ
+use Modules\Website\Models\Banner; // Hoặc Imagick nếu server có hỗ trợ
 
 class BannerService
 {
@@ -14,7 +15,7 @@ class BannerService
     public function __construct()
     {
         // Khởi tạo trình quản lý ảnh (Sử dụng GD Driver mặc định của PHP)
-        $this->manager = new ImageManager(new Driver());
+        $this->manager = new ImageManager(new Driver);
     }
 
     public function getAll()
@@ -24,36 +25,41 @@ class BannerService
 
     public function save($data, $imageDesktop = null, $imageMobile = null)
     {
+        $banner = ! empty($data['id']) ? Banner::findOrFail($data['id']) : null;
+        $oldDesktop = $banner?->image_desktop;
+        $oldMobile = $banner?->image_mobile;
+        $newPaths = [];
 
-        // 1. XỬ LÝ ẢNH DESKTOP (Max 1920x600)
+        try {
+            if ($imageDesktop) {
+                $data['image_desktop'] = $newPaths[] = $this->processImage($imageDesktop, 1920, 600, 'banners');
+            }
+            if ($imageMobile) {
+                $data['image_mobile'] = $newPaths[] = $this->processImage($imageMobile, 800, 1000, 'banners');
+            }
+
+            DB::transaction(function () use (&$banner, $data): void {
+                if ($banner) {
+                    $banner->update($data);
+                } else {
+                    $banner = Banner::create($data);
+                }
+            });
+        } catch (\Throwable $exception) {
+            foreach ($newPaths as $path) {
+                $this->deleteImage($path);
+            }
+            throw $exception;
+        }
+
         if ($imageDesktop) {
-            // Xóa ảnh cũ nếu đang update
-            if (isset($data['id'])) {
-                $this->deleteImage(Banner::find($data['id'])->image_desktop);
-            }
-            $data['image_desktop'] = $this->processImage($imageDesktop, 1920, 600, 'banners');
+            $this->deleteImage($oldDesktop);
         }
-
-        // 2. XỬ LÝ ẢNH MOBILE (Max 800x1000)
         if ($imageMobile) {
-            // Xóa ảnh cũ nếu đang update
-            if (isset($data['id'])) {
-                $this->deleteImage(Banner::find($data['id'])->image_mobile);
-            }
-            $data['image_mobile'] = $this->processImage($imageMobile, 800, 1000, 'banners');
+            $this->deleteImage($oldMobile);
         }
 
-        // 3. LƯU DATABASE
-        if (isset($data['id']) && $data['id']) {
-            $banner = Banner::find($data['id']);
-            // Loại bỏ key ảnh nếu không có upload mới (để tránh ghi đè null)
-            if (!$imageDesktop) unset($data['image_desktop']);
-            if (!$imageMobile) unset($data['image_mobile']);
-
-            $banner->update($data);
-        } else {
-            Banner::create($data);
-        }
+        return $banner;
     }
 
     public function delete($id)
@@ -74,7 +80,7 @@ class BannerService
     private function processImage($file, $width, $height, $folder)
     {
         // Tạo tên file random
-        $filename = uniqid() . '.webp';
+        $filename = uniqid().'.webp';
         $path = "$folder/$filename";
 
         // Đọc ảnh

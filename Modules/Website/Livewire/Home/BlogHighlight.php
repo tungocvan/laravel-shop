@@ -3,9 +3,8 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Admin\Models\Setting;
-use Modules\Website\Models\Post; // Import đúng Model của bạn
-use Illuminate\Database\Eloquent\Collection;
+use Modules\Post\Models\Post;
+use Modules\Website\Services\SettingsService; // Import đúng Model của bạn
 
 class BlogHighlight extends Component
 {
@@ -33,11 +32,10 @@ class BlogHighlight extends Component
         blade;
     }
 
-    public function render()
+    public function render(SettingsService $settings)
     {
         // 1. Lấy cấu hình số lượng từ Admin (Mặc định 3)
-        $limit = Setting::where('key', 'home_blog_count')->value('value');
-        $limit = $limit ? (int)$limit : 3;
+        $limit = (int) $settings->get('home_blog_count', 3);
 
         // 2. Query bài viết theo Model Post của bạn
         $posts = Post::where('status', 'published') // Chỉ lấy bài đã xuất bản
@@ -51,7 +49,7 @@ class BlogHighlight extends Component
             ->get();
 
         return view('Website::livewire.home.blog-highlight', [
-            'posts' => $posts
+            'posts' => $posts,
         ]);
     }
 }

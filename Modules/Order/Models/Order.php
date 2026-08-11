@@ -2,12 +2,12 @@
 
 namespace Modules\Order\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
-use Modules\Order\Models\OrderHistory;
-//use Illuminate\Support\Facades\Http;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+// use Illuminate\Support\Facades\Http;
 
 class Order extends Model
 {
@@ -48,7 +48,8 @@ class Order extends Model
     // Helper: Badge màu trạng thái (Master UI Style)
     public function getStatusBadgeAttribute()
     {
-        return match($this->status) {
+        return match ($this->status) {
+            'pending_payment' => '<span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">Chờ thanh toán</span>',
             'pending' => '<span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Chờ xử lý</span>',
             'processing' => '<span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Đang xử lý</span>',
             'shipping' => '<span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">Đang giao</span>',
@@ -61,10 +62,10 @@ class Order extends Model
     // Helper: Tên phương thức thanh toán
     public function getPaymentMethodLabelAttribute()
     {
-        return match($this->payment_method) {
+        return match ($this->payment_method) {
             'cod' => 'Thanh toán khi nhận hàng (COD)',
             'bank_transfer' => 'Chuyển khoản ngân hàng',
-            'vnpay' => 'VNPAY',
+            'momo' => 'Ví MoMo',
             default => $this->payment_method,
         };
     }
@@ -78,15 +79,18 @@ class Order extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     // Quan hệ với người giới thiệu (Affiliate)
     public function affiliate()
     {
-        return $this->belongsTo(\App\Models\User::class, 'affiliate_id');
+        return $this->belongsTo(User::class, 'affiliate_id');
     }
+
     public function histories()
     {
         return $this->hasMany(OrderHistory::class)->orderBy('created_at', 'desc'); // Mới nhất lên đầu
     }
+
     // Thêm phương thức để tính toán lại tổng hoa hồng từ các items con
     public function recalculateTotalCommission(): float
     {

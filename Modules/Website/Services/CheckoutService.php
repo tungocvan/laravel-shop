@@ -6,20 +6,19 @@ use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Order\Models\Order;
+use Modules\Order\Models\OrderHistory;
+use Modules\Order\Models\OrderItem;
+use Modules\Product\Models\Product;
 use Modules\Website\Models\Cart;
 use Modules\Website\Models\Coupon;
-use Modules\Website\Models\Order;
-use Modules\Website\Models\OrderHistory;
-use Modules\Website\Models\OrderItem;
-use Modules\Website\Models\WpProduct;
 
 class CheckoutService
 {
     public function __construct(
         protected CartService $cartService,
         protected AffiliateService $affiliateService
-    ) {
-    }
+    ) {}
 
     /**
      * Tạo đơn hàng an toàn trong một transaction duy nhất.
@@ -28,7 +27,7 @@ class CheckoutService
     {
         $paymentMethod = (string) ($data['payment_method'] ?? '');
 
-        if (!in_array($paymentMethod, ['cod', 'bank_transfer', 'momo'], true)) {
+        if (! in_array($paymentMethod, ['cod', 'bank_transfer', 'momo'], true)) {
             throw new Exception('Phương thức thanh toán không được hỗ trợ.');
         }
 
@@ -43,7 +42,7 @@ class CheckoutService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$lockedCart) {
+            if (! $lockedCart) {
                 throw new Exception('Giỏ hàng đã được xử lý. Vui lòng kiểm tra lại đơn hàng.');
             }
 
@@ -56,7 +55,7 @@ class CheckoutService
             // Lock toàn bộ sản phẩm theo thứ tự ID để giảm khả năng deadlock và
             // thực hiện final stock validation ngay trong transaction.
             $productIds = $items->pluck('product_id')->unique()->sort()->values();
-            $products = WpProduct::query()
+            $products = Product::query()
                 ->whereIn('id', $productIds)
                 ->orderBy('id')
                 ->lockForUpdate()
@@ -66,7 +65,7 @@ class CheckoutService
             foreach ($items as $item) {
                 $product = $products->get($item->product_id);
 
-                if (!$product || !$product->is_active) {
+                if (! $product || ! $product->is_active) {
                     throw new Exception("Sản phẩm '{$item->product_id}' hiện ngừng kinh doanh.");
                 }
 
@@ -174,7 +173,7 @@ class CheckoutService
      */
     public function processMomoResult(array $payload, MomoService $momoService): Order
     {
-        if (!$momoService->verifyResultSignature($payload)) {
+        if (! $momoService->verifyResultSignature($payload)) {
             throw new Exception('Chữ ký phản hồi MoMo không hợp lệ.');
         }
 
@@ -186,7 +185,7 @@ class CheckoutService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$order || $order->payment_method !== 'momo') {
+            if (! $order || $order->payment_method !== 'momo') {
                 throw new Exception('Không tìm thấy đơn hàng MoMo hợp lệ.');
             }
 
@@ -205,7 +204,7 @@ class CheckoutService
                         'order_id' => $order->id,
                         'user_id' => $order->user_id,
                         'action' => 'momo_payment_failed',
-                        'description' => 'Thanh toán MoMo chưa thành công: ' . (string) ($payload['message'] ?? 'Unknown error'),
+                        'description' => 'Thanh toán MoMo chưa thành công: '.(string) ($payload['message'] ?? 'Unknown error'),
                     ]);
                 }
 
@@ -220,7 +219,7 @@ class CheckoutService
                     'order_id' => $order->id,
                     'user_id' => $order->user_id,
                     'action' => 'momo_paid',
-                    'description' => 'MoMo xác nhận thanh toán thành công. Mã giao dịch: ' . (string) ($payload['transId'] ?? ''),
+                    'description' => 'MoMo xác nhận thanh toán thành công. Mã giao dịch: '.(string) ($payload['transId'] ?? ''),
                 ]);
             }
 

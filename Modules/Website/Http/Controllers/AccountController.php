@@ -3,8 +3,8 @@
 namespace Modules\Website\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Website\Models\Order;
 use Illuminate\Support\Facades\Auth;
+use Modules\Order\Models\Order;
 
 class AccountController extends Controller
 {
@@ -26,6 +26,7 @@ class AccountController extends Controller
     {
         return view('Website::account.orders.show', compact('code'));
     }
+
     /**
      * Trang Dashboard Affiliate
      */
@@ -34,9 +35,12 @@ class AccountController extends Controller
         // Trả về view page (nơi chứa Livewire Component)
         return view('Website::account.affiliate');
     }
-    public function profile() {
+
+    public function profile()
+    {
         return view('Website::pages.account.profile');
     }
+
     public function wishlist()
     {
         // Chỉ trả về view, logic lấy dữ liệu sẽ do Livewire đảm nhận

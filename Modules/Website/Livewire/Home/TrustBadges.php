@@ -3,21 +3,16 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Admin\Models\Setting; // Đảm bảo import Model Setting
+use Modules\Website\Services\SettingsService;
 
 class TrustBadges extends Component
 {
     public $badges = [];
 
-    public function mount()
+    public function mount(SettingsService $settings)
     {
         // 1. Lấy dữ liệu từ bảng Settings
-        $settingData = Setting::where('key', 'home_trust_badges')->value('value');
-
-        // 2. Decode JSON
-        if ($settingData) {
-            $this->badges = json_decode($settingData, true);
-        }
+        $this->badges = (array) $settings->get('home_trust_badges', []);
 
         // 3. Fallback: Nếu không có dữ liệu, dùng dữ liệu mẫu (Hardcode)
         // Để giao diện luôn đẹp ngay cả khi chưa cấu hình

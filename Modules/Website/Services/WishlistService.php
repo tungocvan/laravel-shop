@@ -2,8 +2,8 @@
 
 namespace Modules\Website\Services;
 
+use Modules\Product\Models\Product;
 use Modules\Website\Models\Wishlist;
-use Illuminate\Support\Facades\Auth;
 
 class WishlistService
 {
@@ -13,7 +13,9 @@ class WishlistService
      */
     public function getUserWishlistIds($userId)
     {
-        if (!$userId) return [];
+        if (! $userId) {
+            return [];
+        }
 
         // Pluck chỉ lấy cột product_id -> Rất nhẹ
         return Wishlist::where('user_id', $userId)
@@ -28,17 +30,19 @@ class WishlistService
     public function toggle($userId, $productId)
     {
         $wishlist = Wishlist::where('user_id', $userId)
-                            ->where('product_id', $productId)
-                            ->first();
+            ->where('product_id', $productId)
+            ->first();
 
         if ($wishlist) {
             $wishlist->delete();
+
             return 'removed';
         } else {
             Wishlist::create([
                 'user_id' => $userId,
-                'product_id' => $productId
+                'product_id' => $productId,
             ]);
+
             return 'added';
         }
     }
@@ -50,6 +54,7 @@ class WishlistService
     {
         return Wishlist::where('user_id', $userId)->count();
     }
+
     /**
      * Lấy danh sách sản phẩm trong wishlist (có phân trang)
      */
@@ -57,7 +62,7 @@ class WishlistService
     {
         // Giả sử Model Wishlist có quan hệ 'product'
         // Hoặc query qua bảng products
-        return \Modules\Website\Models\WpProduct::whereHas('wishlists', function($q) use ($userId) {
+        return Product::whereHas('wishlists', function ($q) use ($userId) {
             $q->where('user_id', $userId);
         })->where('is_active', 1)->paginate($perPage);
     }
