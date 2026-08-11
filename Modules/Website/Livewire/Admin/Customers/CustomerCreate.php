@@ -2,12 +2,15 @@
 
 namespace Modules\Website\Livewire\Admin\Customers;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Livewire\Component;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 
 class CustomerCreate extends Component
 {
+    use AuthorizesAdminPermissions;
+
     public $name;
     public $email;
     public $password;
@@ -23,6 +26,7 @@ class CustomerCreate extends Component
 
     public function save()
     {
+        $this->authorizeAdminPermission('customer.create');
         $this->validate();
 
         $user = User::create([
@@ -31,12 +35,10 @@ class CustomerCreate extends Component
             'password' => Hash::make($this->password),
             'phone' => $this->phone,
             'is_active' => $this->is_active,
-            // 'avatar' => null, (Mặc định null, User model đã có accessor tự tạo ảnh chữ cái)
         ]);
 
         session()->flash('success', 'Thêm khách hàng mới thành công!');
 
-        // Chuyển hướng về trang chi tiết của khách vừa tạo
         return redirect()->route('admin.customers.show', $user->id);
     }
 
