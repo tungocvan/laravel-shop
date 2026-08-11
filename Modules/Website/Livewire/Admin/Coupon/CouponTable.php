@@ -2,29 +2,25 @@
 
 namespace Modules\Website\Livewire\Admin\Coupon;
 
-use Livewire\Component;
-use Livewire\WithPagination;
-use Livewire\WithFileUploads; // <--- Import
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\Coupon;
 
 class CouponTable extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, AuthorizesAdminPermissions;
 
     public $search = '';
     public $perPage = 10;
-
-    // Bulk Actions
     public $selected = [];
     public $selectAll = false;
-
-    // Import/Export
     public $showImportModal = false;
     public $importFile;
 
-    // --- RESET LOGIC ---
     public function updatedSearch() { $this->resetPage(); $this->resetSelection(); }
     public function updatingPage() { $this->resetSelection(); }
 
@@ -37,18 +33,19 @@ class CouponTable extends Component
     public function updatedSelectAll($value)
     {
         if ($value) {
-            $this->selected = $this->getQuery()->pluck('id')->map(fn($id) => (string)$id)->toArray();
+            $this->selected = $this->getQuery()->pluck('id')->map(fn ($id) => (string) $id)->toArray();
         } else {
             $this->selected = [];
         }
     }
 
-    // --- ACTIONS ---
     public function toggleStatus($id)
     {
+        $this->authorizeAdminPermission('marketing.coupon.manage');
+
         $coupon = Coupon::find($id);
         if ($coupon) {
-            $coupon->is_active = !$coupon->is_active;
+            $coupon->is_active = ! $coupon->is_active;
             $coupon->save();
             $this->dispatch('notify', content: 'Đã thay đổi trạng thái.', type: 'success');
         }
@@ -56,6 +53,7 @@ class CouponTable extends Component
 
     public function deleteSelected()
     {
+        $this->authorizeAdminPermission('marketing.coupon.manage');
         Coupon::whereIn('id', $this->selected)->delete();
         $this->resetSelection();
         $this->dispatch('notify', content: 'Đã xóa các mã đã chọn.', type: 'success');
@@ -63,11 +61,11 @@ class CouponTable extends Component
 
     public function delete($id)
     {
-        Coupon::find($id)->delete();
+        $this->authorizeAdminPermission('marketing.coupon.manage');
+        Coupon::findOrFail($id)->delete();
         $this->dispatch('notify', content: 'Đã xóa mã giảm giá.', type: 'success');
     }
 
-    // --- IMPORT / EXPORT LOGIC ---
     public function export()
     {
         $data = $this->getQuery()->get()->map(function ($item) {
@@ -75,12 +73,12 @@ class CouponTable extends Component
                 'code' => $item->code,
                 'description' => $item->description,
                 'type' => $item->type,
-                'value' => (float)$item->value,
-                'min_order_value' => (float)$item->min_order_value,
+                'value' => (float) $item->value,
+                'min_order_value' => (float) $item->min_order_value,
                 'usage_limit' => $item->usage_limit,
                 'starts_at' => $item->starts_at ? $item->starts_at->toDateTimeString() : null,
                 'expires_at' => $item->expires_at ? $item->expires_at->toDateTimeString() : null,
-                'is_active' => (bool)$item->is_active,
+                'is_active' => (bool) $item->is_active,
             ];
         });
 
@@ -93,17 +91,20 @@ class CouponTable extends Component
 
     public function import()
     {
+        $this->authorizeAdminPermission('marketing.coupon.manage');
         $this->validate(['importFile' => 'required|mimes:json,txt|max:2048']);
 
         try {
             $json = json_decode(file_get_contents($this->importFile->getRealPath()), true);
-            if (!is_array($json)) throw new \Exception("File JSON không hợp lệ.");
+            if (! is_array($json)) {
+                throw new \Exception('File JSON không hợp lệ.');
+            }
 
             $count = 0;
             DB::transaction(function () use ($json, &$count) {
                 foreach ($json as $item) {
                     Coupon::updateOrCreate(
-                        ['code' => $item['code']], // Tìm theo mã code
+                        ['code' => $item['code']],
                         [
                             'description' => $item['description'] ?? null,
                             'type' => $item['type'] ?? 'fixed',
@@ -122,25 +123,23 @@ class CouponTable extends Component
             $this->showImportModal = false;
             $this->importFile = null;
             $this->dispatch('notify', content: "Đã import thành công {$count} mã.", type: 'success');
-
         } catch (\Exception $e) {
             $this->addError('importFile', 'Lỗi: ' . $e->getMessage());
         }
     }
 
-    // --- QUERY ---
     private function getQuery()
     {
         return Coupon::query()
             ->where('code', 'like', '%' . $this->search . '%')
-            ->orderBy('is_active', 'desc') // Mã đang hoạt động lên đầu
+            ->orderBy('is_active', 'desc')
             ->orderBy('created_at', 'desc');
     }
 
     public function render()
     {
         return view('Website::livewire.admin.coupon.coupon-table', [
-            'coupons' => $this->getQuery()->paginate($this->perPage)
+            'coupons' => $this->getQuery()->paginate($this->perPage),
         ]);
     }
 }
