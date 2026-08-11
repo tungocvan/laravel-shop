@@ -3,9 +3,6 @@
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
-// =====================
-// Controllers Frontend
-// =====================
 use Modules\Website\Http\Controllers\AuthController;
 use Modules\Website\Http\Controllers\AccountController;
 use Modules\Website\Http\Controllers\WebsiteController;
@@ -14,9 +11,6 @@ use Modules\Website\Http\Controllers\ProductController;
 use Modules\Website\Http\Controllers\CartController;
 use Modules\Website\Http\Controllers\CheckoutController;
 
-// =====================
-// Controllers Admin
-// =====================
 use Modules\Website\Http\Controllers\Admin\AffiliateController;
 use Modules\Website\Http\Controllers\Admin\HomeSettingsController;
 use Modules\Website\Http\Controllers\Admin\HeaderController;
@@ -80,22 +74,51 @@ Route::middleware(['web', 'auth:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::get('/affiliate', [AffiliateController::class, 'index'])->name('affiliate.index');
-        Route::get('/homepage-settings', [HomeSettingsController::class, 'index'])->name('home.settings');
-        Route::get('/header-settings', [HeaderController::class, 'index'])->name('header.settings');
-        Route::get('/footer-settings', [FooterController::class, 'index'])->name('footer.settings');
-        Route::get('/banners', [BannerController::class, 'index'])->name('banners');
-        Route::get('/flash-sales', [FlashSaleController::class, 'index'])->name('flash-sales');
+        Route::get('/affiliate', [AffiliateController::class, 'index'])
+            ->middleware('permission:affiliate.view,admin')
+            ->name('affiliate.index');
+
+        Route::get('/homepage-settings', [HomeSettingsController::class, 'index'])
+            ->middleware('permission:website.home.manage,admin')
+            ->name('home.settings');
+
+        Route::get('/header-settings', [HeaderController::class, 'index'])
+            ->middleware('permission:website.menu.manage,admin')
+            ->name('header.settings');
+
+        Route::get('/footer-settings', [FooterController::class, 'index'])
+            ->middleware('permission:website.footer.manage,admin')
+            ->name('footer.settings');
+
+        Route::get('/banners', [BannerController::class, 'index'])
+            ->middleware('permission:website.banner.manage,admin')
+            ->name('banners');
+
+        Route::get('/flash-sales', [FlashSaleController::class, 'index'])
+            ->middleware('permission:marketing.flash-sale.view,admin')
+            ->name('flash-sales');
 
         Route::prefix('coupons')->name('coupons.')->controller(CouponController::class)->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('/create', 'create')->name('create');
-            Route::get('/{id}/edit', 'edit')->name('edit');
+            Route::get('/', 'index')
+                ->middleware('permission:marketing.coupon.view,admin')
+                ->name('index');
+            Route::get('/create', 'create')
+                ->middleware('permission:marketing.coupon.manage,admin')
+                ->name('create');
+            Route::get('/{id}/edit', 'edit')
+                ->middleware('permission:marketing.coupon.manage,admin')
+                ->name('edit');
         });
 
         Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('/create', 'create')->name('create');
-            Route::get('/{id}', 'show')->name('show');
+            Route::get('/', 'index')
+                ->middleware('permission:customer.view,admin')
+                ->name('index');
+            Route::get('/create', 'create')
+                ->middleware('permission:customer.create,admin')
+                ->name('create');
+            Route::get('/{id}', 'show')
+                ->middleware('permission:customer.view,admin')
+                ->name('show');
         });
     });
