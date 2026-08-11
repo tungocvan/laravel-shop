@@ -17,7 +17,6 @@ x-app-build: &app-build
 services:
   app:
     build: *app-build
-    env_file: .env
     restart: unless-stopped
     depends_on:
       db:
@@ -39,7 +38,6 @@ services:
     cpus: ${APP_CPU_LIMIT:-1.5}
   queue:
     build: *app-build
-    env_file: .env
     restart: unless-stopped
     command: ["php", "artisan", "queue:work", "--queue=${QUEUE_NAMES:-facebook,default}", "--sleep=${QUEUE_SLEEP:-3}", "--tries=${QUEUE_TRIES:-3}", "--timeout=${QUEUE_TIMEOUT:-660}", "--max-time=${QUEUE_MAX_TIME:-3600}"]
     stop_signal: SIGTERM
@@ -55,7 +53,7 @@ services:
       - ./.env:/var/www/html/.env
       - ./Modules:/var/www/html/Modules
     healthcheck:
-      test: ["CMD-SHELL", "tr '\\0' ' ' </proc/1/cmdline | grep -q 'queue:work'"]
+      test: ["CMD-SHELL", "tr '\0' ' ' </proc/1/cmdline | grep -q 'queue:work'"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -66,7 +64,6 @@ services:
 
   scheduler:
     build: *app-build
-    env_file: .env
     restart: unless-stopped
     command: ["php", "artisan", "schedule:work"]
     depends_on:
@@ -79,7 +76,7 @@ services:
       - ./.env:/var/www/html/.env
       - ./Modules:/var/www/html/Modules
     healthcheck:
-      test: ["CMD-SHELL", "tr '\\0' ' ' </proc/1/cmdline | grep -q 'schedule:work'"]
+      test: ["CMD-SHELL", "tr '\0' ' ' </proc/1/cmdline | grep -q 'schedule:work'"]
       interval: 30s
       timeout: 5s
       retries: 3
