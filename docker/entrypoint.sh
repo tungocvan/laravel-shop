@@ -14,8 +14,8 @@ if [ "$(id -u)" = "0" ]; then
 
     if [ -d Modules ]; then
         chown -R www-data:www-data Modules
-        find Modules -type d -exec chmod 0775 {} \;
-        find Modules -type f -exec chmod 0664 {} \;
+        find Modules -type d -exec chmod ug+rwx {} \;
+        find Modules -type f -exec chmod ug+rw {} \;
     fi
 fi
 
