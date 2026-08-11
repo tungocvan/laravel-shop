@@ -3,13 +3,15 @@
 namespace Modules\Website\Livewire\Admin\Coupon;
 
 use Livewire\Component;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\Coupon;
 
 class CouponForm extends Component
 {
+    use AuthorizesAdminPermissions;
+
     public $couponId;
     public $isEdit = false;
-
     public $code, $description, $type = 'fixed', $value = 0;
     public $min_order_value = 0, $usage_limit = null;
     public $starts_at, $expires_at;
@@ -21,21 +23,22 @@ class CouponForm extends Component
             $this->isEdit = true;
             $this->couponId = $id;
             $c = Coupon::findOrFail($id);
-
             $this->code = $c->code;
             $this->description = $c->description;
             $this->type = $c->type;
-            $this->value = $c->value; // Livewire tự convert decimal
+            $this->value = $c->value;
             $this->min_order_value = $c->min_order_value;
             $this->usage_limit = $c->usage_limit;
             $this->starts_at = $c->starts_at ? $c->starts_at->format('Y-m-d\TH:i') : null;
             $this->expires_at = $c->expires_at ? $c->expires_at->format('Y-m-d\TH:i') : null;
-            $this->is_active = (bool)$c->is_active;
+            $this->is_active = (bool) $c->is_active;
         }
     }
 
     public function save()
     {
+        $this->authorizeAdminPermission('marketing.coupon.manage');
+
         $rules = [
             'code' => 'required|alpha_dash|unique:coupons,code,' . $this->couponId,
             'value' => 'required|numeric|min:0',
@@ -49,7 +52,7 @@ class CouponForm extends Component
 
         $this->validate($rules);
 
-        $data = [
+        Coupon::updateOrCreate(['id' => $this->couponId], [
             'code' => strtoupper($this->code),
             'description' => $this->description,
             'type' => $this->type,
@@ -59,11 +62,10 @@ class CouponForm extends Component
             'starts_at' => $this->starts_at ?: null,
             'expires_at' => $this->expires_at ?: null,
             'is_active' => $this->is_active,
-        ];
-
-        Coupon::updateOrCreate(['id' => $this->couponId], $data);
+        ]);
 
         session()->flash('success', $this->isEdit ? 'Cập nhật mã thành công' : 'Tạo mã mới thành công');
+
         return redirect()->route('admin.coupons.index');
     }
 
