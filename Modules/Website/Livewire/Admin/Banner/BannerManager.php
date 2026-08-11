@@ -4,32 +4,28 @@ namespace Modules\Website\Livewire\Admin\Banner;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Website\Services\BannerService;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\Banner;
+use Modules\Website\Services\BannerService;
 
 class BannerManager extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, AuthorizesAdminPermissions;
 
-    // 2. LIVEWIRE_BANNER
     public $banners;
     public $isModalOpen = false;
     public $isEditMode = false;
-
-    // Form Fields
     public $bannerId;
     public $title;
     public $link;
     public $sub_title;
     public $btn_text;
-    public $position = 'hero'; // Default
+    public $position = 'hero';
     public $order = 0;
     public $is_active = true;
-
-    // Uploads
     public $newImageDesktop;
     public $newImageMobile;
-    public $currentImageDesktop; // Để hiển thị preview khi edit
+    public $currentImageDesktop;
     public $currentImageMobile;
 
     public function mount(BannerService $service)
@@ -47,7 +43,6 @@ class BannerManager extends Component
         return view('Website::livewire.admin.banner.banner-manager');
     }
 
-    // Actions
     public function create()
     {
         $this->resetForm();
@@ -59,52 +54,46 @@ class BannerManager extends Component
     {
         $this->resetForm();
         $this->isEditMode = true;
-
-        // Find banner manually or via service
-        $banner = Banner::find($id);
-
+        $banner = Banner::findOrFail($id);
         $this->bannerId = $banner->id;
         $this->title = $banner->title ?? '';
-        $this->sub_title = $banner->sub_title ?? ''; // Mới
-        $this->btn_text = $banner->btn_text ;   // Mới
+        $this->sub_title = $banner->sub_title ?? '';
+        $this->btn_text = $banner->btn_text;
         $this->link = $banner->link;
         $this->position = $banner->position;
         $this->order = $banner->order;
         $this->is_active = $banner->is_active;
-
         $this->currentImageDesktop = $banner->image_desktop;
         $this->currentImageMobile = $banner->image_mobile;
-
         $this->isModalOpen = true;
     }
 
     public function save(BannerService $service)
     {
+        $this->authorizeAdminPermission('website.banner.manage');
+
         $rules = [
             'title' => 'string|max:255',
             'position' => 'required',
             'order' => 'integer',
         ];
 
-        // Nếu tạo mới bắt buộc phải có ảnh desktop
-        if (!$this->isEditMode) {
-            $rules['newImageDesktop'] = 'required|image|max:3072'; // 2MB
+        if (! $this->isEditMode) {
+            $rules['newImageDesktop'] = 'required|image|max:3072';
         }
 
         $this->validate($rules);
 
-        $data = [
+        $service->save([
             'id' => $this->bannerId,
             'title' => $this->title,
-            'sub_title' => $this->sub_title, // Mới
-            'btn_text' => $this->btn_text,   // Mới
+            'sub_title' => $this->sub_title,
+            'btn_text' => $this->btn_text,
             'link' => $this->link,
             'position' => $this->position,
             'order' => $this->order,
             'is_active' => $this->is_active,
-        ];
-
-        $service->save($data, $this->newImageDesktop, $this->newImageMobile);
+        ], $this->newImageDesktop, $this->newImageMobile);
 
         $this->isModalOpen = false;
         $this->loadBanners($service);
@@ -113,6 +102,7 @@ class BannerManager extends Component
 
     public function delete($id, BannerService $service)
     {
+        $this->authorizeAdminPermission('website.banner.manage');
         $service->delete($id);
         $this->loadBanners($service);
         $this->dispatch('show-toast', type: 'success', message: 'Đã xóa Banner!');
@@ -120,8 +110,6 @@ class BannerManager extends Component
 
     public function resetForm()
     {
-        // Reset thêm biến mới
         $this->reset(['bannerId', 'title', 'sub_title', 'btn_text', 'link', 'position', 'order', 'is_active', 'newImageDesktop', 'newImageMobile', 'currentImageDesktop', 'currentImageMobile']);
     }
-    // End 2.
 }
