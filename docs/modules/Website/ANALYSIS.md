@@ -1,318 +1,383 @@
 # Website Module Analysis
 
-## 1. Module Purpose
-
-`Modules/Website` owns the public storefront and several website-admin screens: homepage, product listing/detail, blog/help pages, auth pages, cart, checkout, account/profile/wishlist/orders, affiliate dashboard, homepage/header/footer/banner/flash-sale/coupon/customer administration, and website-facing settings.
-
-The module currently overlaps with other domains named in `ROADMAP.md` such as Product, Post, Order, Account, Chat, System, and Admin. This makes Website act as both storefront and duplicate domain owner.
-
-## 2. Route List
-
-Routes are declared in `Modules/Website/routes/web.php` and `Modules/Website/routes/api.php`.
-
-| Method | URI | Name | Action | Middleware |
-|---|---|---|---|---|
-| GET | `/login` | `login` | `AuthController@login` | `web` |
-| GET | `/register` | `register` | `AuthController@register` | `web` |
-| POST | `/{websitePrefix}/logout` | `logout` | `AuthController@logout` | `web`, `auth` |
-| GET | `/` | `home` | `WebsiteController@home` | `web` |
-| GET | `/help` | `help` | `WebsiteController@help` | `web` |
-| GET | `/product` | `product.list` | `ProductController@index` | `web` |
-| GET | `/product/{slug}` | `product.detail` | `ProductController@show` | `web` |
-| GET | `/blog` | `blog.index` | closure | `web` |
-| GET | `/blog/{slug}` | `blog.detail` | `PostController@detail` | `web` |
-| GET | `/cart` | `cart.index` | `CartController@index` | `web` |
-| GET | `/checkout` | `checkout.index` | `CheckoutController@index` | `web` |
-| GET | `/checkout/success` | `checkout.success` | `CheckoutController@success` | `web` |
-| GET | `/checkout/momo-callback` | `checkout.momo.callback` | `CheckoutController@momoCallback` | `web` |
-| GET | `/account` | `account.dashboard` | `AccountController@index` | `web`, `auth` |
-| GET | `/account/profile` | `account.profile` | `AccountController@profile` | `web`, `auth` |
-| GET | `/account/affiliate` | `account.affiliate` | `AccountController@affiliate` | `web`, `auth` |
-| GET | `/account/orders` | `account.orders` | `AccountController@orders` | `web`, `auth` |
-| GET | `/account/orders/{code}` | `account.orders.detail` | `AccountController@orderDetail` | `web`, `auth` |
-| GET | `/account/wishlist` | `account.wishlist` | `AccountController@wishlist` | `web`, `auth` |
-| GET | `/admin/affiliate` | `admin.affiliate.index` | `Admin\AffiliateController@index` | `web`, `auth:admin` |
-| GET | `/admin/homepage-settings` | `admin.home.settings` | `Admin\HomeSettingsController@index` | `web`, `auth:admin` |
-| GET | `/admin/header-settings` | `admin.header.settings` | `Admin\HeaderController@index` | `web`, `auth:admin` |
-| GET | `/admin/footer-settings` | `admin.footer.settings` | `Admin\FooterController@index` | `web`, `auth:admin` |
-| GET | `/admin/banners` | `admin.banners` | `Admin\BannerController@index` | `web`, `auth:admin` |
-| GET | `/admin/flash-sales` | `admin.flash-sales` | `Admin\FlashSaleController@index` | `web`, `auth:admin` |
-| GET | `/admin/coupons` | `admin.coupons.index` | `Admin\CouponController@index` | `web`, `auth:admin` |
-| GET | `/admin/coupons/create` | `admin.coupons.create` | `Admin\CouponController@create` | `web`, `auth:admin` |
-| GET | `/admin/coupons/{id}/edit` | `admin.coupons.edit` | `Admin\CouponController@edit` | `web`, `auth:admin` |
-| GET | `/admin/customers` | `admin.customers.index` | `Admin\CustomerController@index` | `web`, `auth:admin`, permission middleware in controller |
-| GET | `/admin/customers/create` | `admin.customers.create` | `Admin\CustomerController@create` | `web`, `auth:admin`, permission middleware in controller |
-| GET | `/admin/customers/{id}` | `admin.customers.show` | `Admin\CustomerController@show` | `web`, `auth:admin`, permission middleware in controller |
-| GET | `/api/website` | unnamed | `Api\WebsiteController@index` | API route group |
-
-Route-flow issues:
-
-- P1: `Modules/Website/routes/web.php` uses a closure for `/blog`, which bypasses the required Route -> Controller flow.
-- P0: `Modules/Website/routes/web.php` admin routes mostly rely only on `auth:admin`; only `Admin\CustomerController` adds permission middleware.
-- P1: `Modules/Website/routes/web.php` declares `CheckoutController@momoCallback`, but the inspected controller scan did not show that method.
-
-## 3. Controllers
-
-Frontend controllers:
-
-- `Modules/Website/Http/Controllers/AuthController.php`: `login`, `register`, `logout`.
-- `Modules/Website/Http/Controllers/WebsiteController.php`: `home`, `help`, plus unused resource-style stubs.
-- `Modules/Website/Http/Controllers/ProductController.php`: `index`, `show`, `detail`.
-- `Modules/Website/Http/Controllers/PostController.php`: `index`, `detail`.
-- `Modules/Website/Http/Controllers/CartController.php`: `index`.
-- `Modules/Website/Http/Controllers/CheckoutController.php`: `index`, `success`.
-- `Modules/Website/Http/Controllers/AccountController.php`: `index`, `orders`, `orderDetail`, `affiliate`, `profile`, `wishlist`.
-- `Modules/Website/Http/Controllers/Api/WebsiteController.php`: `index`.
-
-Admin controllers:
-
-- `Modules/Website/Http/Controllers/Admin/AffiliateController.php`: `index`.
-- `Modules/Website/Http/Controllers/Admin/HomeSettingsController.php`: `index`.
-- `Modules/Website/Http/Controllers/Admin/HeaderController.php`: `index`.
-- `Modules/Website/Http/Controllers/Admin/FooterController.php`: `index`.
-- `Modules/Website/Http/Controllers/Admin/BannerController.php`: `index`.
-- `Modules/Website/Http/Controllers/Admin/FlashSaleController.php`: `index`.
-- `Modules/Website/Http/Controllers/Admin/CouponController.php`: `index`, `create`, `edit`.
-- `Modules/Website/Http/Controllers/Admin/CustomerController.php`: `index`, `show`, `create`.
-- `Modules/Website/Http/Controllers/Admin/ProductController.php`: `index`, but no route in `Modules/Website/routes/web.php` points to it.
-
-Controller issues:
-
-- P1: `Modules/Website/Http/Controllers/ProductController.php` queries `WpProduct` in `detail`, violating thin-controller and Service-layer rules.
-- P1: `Modules/Website/Http/Controllers/AccountController.php` counts orders directly in `index`.
-- P1: `Modules/Website/Http/Controllers/CheckoutController.php` queries `Cart` and `Order` directly in `index` and `success`.
-- P2: `Modules/Website/Http/Controllers/WebsiteController.php` contains unused resource stubs (`create`, `store`, `show`, `edit`, `update`, `destroy`).
-
-## 4. Page Blade Files
-
-Page shells observed:
-
-- Public/auth/cart/checkout/account: `Modules/Website/resources/views/auth/login.blade.php`, `auth/register.blade.php`, `cart/index.blade.php`, `checkout/index.blade.php`, `checkout/success.blade.php`, `account/dashboard.blade.php`, `account/orders/index.blade.php`, `account/orders/show.blade.php`, `account/affiliate.blade.php`, `pages/account/profile.blade.php`, `pages/account/wishlist.blade.php`.
-- Product/blog/home/help: `pages/home/index.blade.php`, `pages/help/index.blade.php`, `pages/shop.blade.php`, `pages/blog/index.blade.php`, `pages/blog/detail.blade.php`, `products/show.blade.php`, `products/index.blade.php`, `products/detail.blade.php`.
-- Admin: `pages/admin/flash-sale/index.blade.php`, `pages/admin/affiliate/index.blade.php`, `pages/admin/affiliate/product-commissions.blade.php`, `pages/admin/coupons/index.blade.php`, `pages/admin/coupons/create.blade.php`, `pages/admin/coupons/edit.blade.php`, `pages/admin/home/index.blade.php`, `pages/admin/customers/index.blade.php`, `pages/admin/customers/create.blade.php`, `pages/admin/customers/show.blade.php`, `pages/admin/header/index.blade.php`, `pages/admin/banner/index.blade.php`, `pages/admin/footer/index.blade.php`.
-
-Page Blade issues:
-
-- P1: `Modules/Website/resources/views/pages/admin/flash-sale/index.blade.php`, `pages/admin/home/index.blade.php`, `pages/admin/banner/index.blade.php`, `pages/admin/header/index.blade.php`, and `pages/admin/footer/index.blade.php` mount aliases like `admin.flash-sale.flash-sale-manager` rather than consistently using Website aliases.
-- P1: `Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php` includes `Admin::livewire.header.partials.menu-tree-manager`, crossing module view ownership.
-- P2: `Modules/Website/resources/views/pages/admin/affiliate/product-commissions.blade.php` references `admin.products.index`, but the Website admin product route is not registered in `Modules/Website/routes/web.php`.
-
-## 5. Livewire PHP Classes
-
-Livewire groups:
-
-- Auth: `Auth/LoginForm.php`, `Auth/RegisterForm.php`.
-- Cart/checkout: `Cart/AddToCart.php`, `Cart/CartList.php`, `Cart/CartIcon.php`, `Checkout/CheckoutForm.php`, `Checkout/OrderSummary.php`.
-- Product/post/home/help: `Products/*`, `Post/*`, `Home/*`, `Help/HelpList.php`.
-- Account: `Account/OrderList.php`, `Account/OrderDetail.php`, `Account/WishlistPage.php`, `Account/Affiliate/AffiliateDashboard.php`, `Account/Profile/UserProfile.php`, `Account/Profile/UserAddress.php`.
-- Admin: `Admin/Affiliate/*`, `Admin/Footer/*`, `Admin/Header/*`, `Admin/FlashSale/FlashSaleManager.php`, `Admin/Customers/*`, `Admin/Home/HomeSettings.php`, `Admin/Coupon/*`, `Admin/Banner/BannerManager.php`.
-- Other: `Chat/ChatWidget.php`, `Dashboard/*`, `Wishlist/WishlistIcon.php`.
-
-Livewire issues:
-
-- P0: `Modules/Website/Livewire/Cart/CartList.php` updates/removes `CartItem` by browser-supplied item ID without proving it belongs to the current cart.
-- P0: `Modules/Website/Livewire/Admin/Customers/CustomerTable.php` toggles and deletes users directly from Livewire without method-level permission checks.
-- P0: `Modules/Website/Livewire/Admin/Coupon/CouponTable.php` toggles, deletes, bulk deletes, imports, and exports coupons directly from Livewire without named permissions.
-- P1: `Modules/Website/Livewire/Products/ProductDetail.php` and `Modules/Website/Livewire/Products/ProductList.php` duplicate cart item persistence instead of using `CartService`.
-- P1: `Modules/Website/Livewire/Admin/Home/HomeSettings.php` performs settings persistence and product/category queries directly in Livewire instead of `HomeSettingService`.
-- P1: Many homepage components query models directly, including `Home/FeaturedProducts.php`, `Home/BestSellers.php`, `Home/NewArrivals.php`, `Home/BlogHighlight.php`, `Home/HeroBanner.php`, `Home/PromoBanner.php`, and `Home/TrustBadges.php`.
-- P1: `Modules/Website/Livewire/Post/PostList.php` and `Post/PostDetail.php` query `Post` and `Category` directly instead of a content service.
-
-## 6. Livewire Blade Views
-
-Livewire views are under `Modules/Website/resources/views/livewire/**`.
-
-Main groups:
-
-- `livewire/auth/*`
-- `livewire/cart/*`
-- `livewire/checkout/*`
-- `livewire/products/*`
-- `livewire/post/*`
-- `livewire/home/*`
-- `livewire/account/*`
-- `livewire/admin/*`
-- `livewire/chat/chat-widget.blade.php`
-- `livewire/dashboard/*`
-- `livewire/partials/pagination.blade.php`
-
-View issues:
-
-- P2: Several Livewire Blade files contain `@php` presentation calculations, including `components/product-card.blade.php`, `livewire/home/best-sellers.blade.php`, `livewire/home/hero-banner.blade.php`, and `livewire/cart/cart-list.blade.php`.
-- P1: `Modules/Website/resources/views/livewire/admin/home/home-settings.blade.php` is a very large settings UI with embedded JavaScript, increasing maintenance risk.
-- P1: `Modules/Website/resources/views/livewire/admin/header/partials/*.blade.php` include `Admin::` partials from inside Website views.
-
-## 7. Services and Public Methods
-
-Root Website services:
-
-- `ProductService`: `getFeaturedProducts`, `getNewArrivals`, `getFlashSaleProducts`, `getBestSellers`, `getBestSellingProducts`.
-- `CartService`: `getCart`, `addItem`, `updateQuantity`, `removeItem`, `applyCoupon`, `removeCoupon`, `getCartSummary`.
-- `CheckoutService`: `createOrder`.
-- `CategoryService`: `getHomeCategories`.
-- `WishlistService`: `getUserWishlistIds`, `toggle`, `count`, `getWishlistItems`.
-- `ContentService`: `getLatestPosts`.
-- `MomoService`: `createPayment`.
-- `HeaderMenuService`: `getMenuTreeByLocation`, `createItem`, `updateItem`, `deleteItem`, `reorderItems`.
-- `AffiliateRankService`: `checkAndUpdateRank`.
-- `FlashSaleService`: `getAll`, `createFlashSale`, `updateFlashSale`, `delete`.
-- `SettingsService`: `get`, `set`, `updateMany`.
-- `FooterService`: social/footer column CRUD and ordering methods.
-- `AffiliateService`: affiliate ref/stat/history/detail/commission methods.
-- `AdminAffiliateService`: `getCommissions`, `reject`, `getOrderDetail`, `approve`.
-- `MarketingService`: `getHeroSlides`, `getPromoBanner`, `getFlashSaleConfig`.
-- `BannerService`: `getAll`, `save`, `delete`.
-- `Account/ProfileService`: `updateInfo`, `updatePassword`.
-- `Account/AddressService`: `getUserAddresses`, `create`, `update`, `delete`, `setDefault`.
-
-Nested duplicate/system-like services under `Modules/Website/Services/Services`:
-
-- `DatabaseService`, `HomeSettingService`, `AuthService`, `Database/DbConnectionService`, `Env/*`, duplicate `AffiliateRankService`, duplicate `FlashSaleService`, duplicate `AdminAffiliateService`, duplicate `BannerService`, `ChatService`.
-
-Service issues:
-
-- P0: `Modules/Website/Services/Services/DatabaseService.php` contains backup, restore, truncate, drop, download-path, and restore-from-file methods inside Website. This belongs to System, not Website, and matches roadmap P0 dangerous-operation concerns.
-- P1: `Modules/Website/Services/Services/*` duplicates root services and crosses into Auth, Chat, System, and Env responsibilities.
-- P1: `Modules/Website/Services/CheckoutService.php` validates stock before the transaction and then decrements inside the transaction without row locks, so concurrent checkout can oversell.
-- P1: `Modules/Website/Services/CheckoutService.php` deletes `$cart` and then sets `coupon_id` and saves the deleted cart.
-- P1: `Modules/Website/Services/CartService.php` `removeItem($itemId)` deletes by ID only, without cart ownership validation.
-- P1: `Modules/Website/Services/Account/AddressService.php` multi-write default-address changes are not wrapped in transactions.
-
-## 8. Models and Database Tables
-
-Models observed:
-
-- `AffiliateLevel`, `AffiliateScheme`, `Banner`, `Cart`, `CartItem`, `Category`, `Coupon`, `FlashSale`, `FlashSaleItem`, `FooterColumn`, `FooterLink`, `HeaderMenu`, `HeaderMenuItem`, `Newsletter`, `Order`, `OrderHistory`, `OrderItem`, `Post`, `Review`, `Setting`, `SocialLink`, `Tag`, `UserAddress`, `Website`, `Wishlist`, `WpProduct`.
-
-Website migrations observed:
-
-- `affiliate_levels`
-- `coupons`
-- `carts`
-- `cart_items`
-- `wp_tags`
-- `newsletters`
-- `reviews`
-- `wp_banners`
-- `wp_flash_sales`
-- `wp_flash_sale_items`
-- `footer_columns`
-- `footer_links`
-- `social_links`
-- `wishlists`
-- `wp_affiliate_schemes`
-- `users` affiliate fields via `2026_04_27_214350_add_affilate_fields_to_users_table.php`
-
-Model/table issues:
-
-- P1: `Modules/Website/Models/Category.php`, `Post.php`, `WpProduct.php`, `Order.php`, and related migrations duplicate likely canonical Product/Post/Order/Category ownership described in `ROADMAP.md`.
-- P1: Migrations with filenames like `Modules/Website/database/migrations/-0001_11_30_000018_create_coupons_table.php` have malformed negative-year timestamps, risking nondeterministic/failing fresh installs.
-- P2: `Modules/Website/Models/Website.php` appears to be a placeholder model unless callers exist outside the inspected route flow.
-
-## 9. Import/Export Classes
-
-No dedicated Website import/export structure was found:
-
-- No `Modules/Website/Services/ImportExport.php`.
-- No `Modules/Website/Import`, `Modules/Website/Export`, `Modules/Website/Imports`, or `Modules/Website/Exports` files were found.
-
-Current import/export behavior:
-
-- `Modules/Website/Livewire/Admin/Coupon/CouponTable.php` implements JSON export/import directly in Livewire.
-
-Import/export issues:
-
-- P1: Coupon import/export bypasses the shared `Modules/Shared/Services/ImportExport` foundation required by project standards.
-- P1: Coupon export uses `$this->getQuery()->get()` and can load all matching coupons into memory.
-- P1: Coupon import validates only file type/size, not row-level required fields, enum values, dates, duplicate behavior, null-overwrite behavior, or dry-run behavior.
-- P1: Coupon import exposes raw exception messages via `$this->addError('importFile', 'Lỗi: ' . $e->getMessage())`.
-
-## 10. Authorization/Security Risks
-
-- P0: `Modules/Website/routes/web.php` admin routes for affiliate, homepage settings, header, footer, banners, flash sales, and coupons lack named permission middleware.
-- P0: `Modules/Website/Livewire/Admin/Coupon/CouponTable.php` mutating methods (`toggleStatus`, `deleteSelected`, `delete`, `import`) have no server-side permission checks.
-- P0: `Modules/Website/Livewire/Admin/Customers/CustomerTable.php` mutating methods (`toggleStatus`, `deleteSelected`, `delete`) have no method-level permission checks.
-- P0: `Modules/Website/Livewire/Admin/Home/HomeSettings.php`, `Admin/Header/*`, `Admin/Footer/*`, `Admin/Banner/BannerManager.php`, and `Admin/FlashSale/FlashSaleManager.php` mutate website content/settings without visible named permission checks.
-- P0: `Modules/Website/Livewire/Cart/CartList.php` and `Modules/Website/Services/CartService.php` allow item ID based cart changes without proven cart/session ownership.
-- P0: `Modules/Website/Services/Services/DatabaseService.php` is a dangerous database-operation service inside Website.
-- P1: `Modules/Website/Livewire/Auth/LoginForm.php` uses `Auth::attempt` without observed throttling/rate limiting.
-- P1: `Modules/Website/Livewire/Products/ProductDetail.php` stores `ref` directly in session without visible validation that it identifies a valid affiliate user.
-
-## 11. Validation Problems
-
-- P1: `Modules/Website/Http/Requests/CheckoutRequest.php` exists, but checkout submission in `Modules/Website/Livewire/Checkout/CheckoutForm.php` uses Livewire validation; controller request validation is not part of the active flow.
-- P1: `Modules/Website/Livewire/Admin/Home/HomeSettings.php` validates only image upload, not layout enum values, selected product/category IDs, counts, URLs, trust badge shape, or newsletter HTML/content.
-- P1: `Modules/Website/Livewire/Admin/Coupon/CouponTable.php` import lacks row validation for `code`, `type`, `value`, date ordering, usage limits, and active flags.
-- P1: `Modules/Website/Livewire/Admin/Coupon/CouponForm.php` does not validate `type` as an enum or require valid date ordering between `starts_at` and `expires_at`.
-- P1: `Modules/Website/Livewire/Admin/Customers/CustomerDetail.php` validates address fields minimally and does not validate default-address state with a transaction.
-- P1: `Modules/Website/Livewire/Home/NewsletterSignup.php` writes newsletters directly and relies on component-level validation, not a service invariant.
-
-## 12. Transaction Risks
-
-- P1: `Modules/Website/Services/CheckoutService.php` stock validation happens before transaction and product decrement lacks locking.
-- P1: `Modules/Website/Services/CheckoutService.php` cart cleanup is inconsistent because it deletes the cart and then saves it.
-- P1: `Modules/Website/Livewire/Products/ProductDetail.php` and `Modules/Website/Livewire/Products/ProductList.php` perform multi-step cart updates outside `CartService` and outside transactions.
-- P1: `Modules/Website/Livewire/Admin/Home/HomeSettings.php` saves many settings independently; partial failure can leave mixed homepage configuration.
-- P1: `Modules/Website/Livewire/Admin/Customers/CustomerDetail.php` address default reset and address create/update are not transactional.
-- P1: `Modules/Website/Services/FooterService.php` order updates loop through multiple records without wrapping every reorder method in a transaction.
-
-## 13. N+1/Query Performance Risks
-
-- P1: `Modules/Website/Providers/WebsiteServiceProvider.php` runs header/footer queries via view composers on every frontend page without an explicit cache policy.
-- P1: `Modules/Website/Livewire/Products/ProductList.php` queries categories and product pagination directly in `render`; category counts and product-card nested Livewire components can multiply queries.
-- P1: `Modules/Website/resources/views/components/product-card.blade.php` mounts wishlist and add-to-cart Livewire components for each product card.
-- P1: `Modules/Website/Livewire/Home/*` components perform repeated settings/product/post/banner queries rather than using cached service data.
-- P1: `Modules/Website/Livewire/Admin/Coupon/CouponTable.php` `updatedSelectAll()` plucks all matching IDs, not only the current page.
-- P1: `Modules/Website/Livewire/Admin/Customers/CustomerTable.php` uses `paginate(9999)` when `perPage === 'all'`.
-- P2: `Modules/Website/Livewire/Dashboard/RevenueChart.php` queries one day at a time in a loop.
-
-## 14. Duplicate Logic
-
-- P1: Cart add/update logic exists in `Modules/Website/Services/CartService.php`, `Livewire/Products/ProductDetail.php`, `Livewire/Products/ProductList.php`, and `Livewire/Cart/AddToCart.php`.
-- P1: Banner services are duplicated in `Modules/Website/Services/BannerService.php` and `Modules/Website/Services/Services/BannerService.php`.
-- P1: Flash-sale services are duplicated in `Modules/Website/Services/FlashSaleService.php` and `Modules/Website/Services/Services/FlashSaleService.php`.
-- P1: Affiliate-rank services are duplicated in `Modules/Website/Services/AffiliateRankService.php` and `Modules/Website/Services/Services/AffiliateRankService.php`.
-- P1: Admin affiliate services are duplicated in `Modules/Website/Services/AdminAffiliateService.php` and `Modules/Website/Services/Services/AdminAffiliateService.php`.
-- P1: Website owns duplicate-looking models for product, post, category, order, review, tag, and user address concepts that likely belong to canonical Product/Post/Category/Order/Account modules.
-
-## 15. Files That Look Unused
-
-These require confirmation with route/component tests before deletion:
-
-- P2: `Modules/Website/Http/Controllers/Admin/ProductController.php` appears unregistered in `Modules/Website/routes/web.php`.
-- P2: `Modules/Website/resources/views/admin/products/index.blade.php` appears tied to the unregistered admin product controller.
-- P2: `Modules/Website/resources/views/pages/admin/affiliate/product-commissions.blade.php` appears unregistered.
-- P2: `Modules/Website/resources/views/pages/dashboard.blade.php` has no observed Website route.
-- P2: `Modules/Website/resources/views/admin.blade.php` and `Modules/Website/resources/views/website.blade.php` look like placeholder/module scaffold views.
-- P2: `Modules/Website/Models/Website.php` looks like a scaffold model unless referenced outside the inspected flow.
-- P2: `Modules/Website/Http/Requests/CheckoutRequest.php` appears unused by the active Livewire checkout flow.
-- P2: `Modules/Website/Services/Services/*` looks like copied System/Admin/Auth/Chat functionality rather than active Website storefront functionality.
-- P2: `Modules/Website/Http/Middleware/TrackAffiliate.php` and `ShareWishlistData.php` were not observed in `Modules/Website/routes/web.php`.
-
-## 16. Refactor Plan
-
-### P0 Critical
-
-- P0: Add named permission middleware and Livewire method-level authorization for all admin Website routes/actions in `Modules/Website/routes/web.php` and `Modules/Website/Livewire/Admin/**`.
-- P0: Move or disable dangerous database/env/system services under `Modules/Website/Services/Services/DatabaseService.php` and `Modules/Website/Services/Services/Env/**`; align with System-module P0 hardening before exposing any UI that calls them.
-- P0: Enforce cart ownership in `Modules/Website/Services/CartService.php` and callers before updating/removing cart items by ID.
-- P0: Add account/order ownership checks around `Modules/Website/Livewire/Account/OrderDetail.php` and `Modules/Website/Services/AffiliateService.php` order detail access.
-
-### P1 Important
-
-- P1: Consolidate cart behavior into `Modules/Website/Services/CartService.php`; migrate `Livewire/Products/ProductDetail.php`, `ProductList.php`, and `Cart/AddToCart.php` to use it.
-- P1: Fix checkout consistency in `Modules/Website/Services/CheckoutService.php`: validate and lock stock inside the transaction, avoid saving deleted carts, and add retry/idempotency/payment-callback tests.
-- P1: Move product/post/home queries out of Livewire/controllers into `ProductService`, `ContentService`, `MarketingService`, and `HomeSettingService`.
-- P1: Replace coupon JSON import/export in `Modules/Website/Livewire/Admin/Coupon/CouponTable.php` with `Modules/Website/Services/ImportExport.php` and the shared import/export panel.
-- P1: Repair malformed negative-year migration names in `Modules/Website/database/migrations/*` after migration-order analysis.
-- P1: Define canonical ownership boundaries for Website versus Product, Post, Order, Category, Account, Chat, System, and Admin modules; migrate duplicate models/services after tests are in place.
-- P1: Standardize Livewire aliases in Website page blades so Website components are mounted through one consistent namespace.
-- P1: Add focused tests for route auth/permissions, cart ownership denial, checkout transaction rollback, coupon import validation, and admin mutation denial.
-
-### P2 Nice To Have
-
-- P2: Remove confirmed unused scaffold files after route/component tests prove they are unreachable.
-- P2: Add cache policy for header/footer/homepage settings in `Modules/Website/Providers/WebsiteServiceProvider.php` and frontend service classes.
-- P2: Reduce Blade `@php` calculations by moving display-only helpers into components/accessors where appropriate.
-- P2: Replace unbounded `All`/large select-all behavior in admin tables with page-scoped selection or queued/batched operations.
-- P2: Generate a Website module architecture catalog in CI after ownership boundaries are clarified.
+## Executive Summary
+
+`Modules/Website` is an enabled `domain` module responsible for the public storefront plus a substantial set of account, checkout, marketing, affiliate and admin-facing website features. Its manifest explicitly depends on `User`, `Product`, `Category`, `Post`, and `Order`.
+
+The module is functional but remains architecturally overloaded. It contains duplicate/cross-domain models and services for Product, Order, Post, User/account, Chat, Auth, database administration and environment configuration. This conflicts with the repository roadmap direction that each business concept should have one canonical domain owner.
+
+Current recommendation: **Major Refactor**. A full rebuild is not justified from the inspected evidence because large parts of the storefront and service structure are reusable, but ownership boundaries, authorization, checkout integrity, duplicate services, and tests need substantial correction.
+
+No application source code was modified by this analysis.
+
+## Module Purpose and Overview
+
+Main responsibilities currently observed:
+
+- Public home/help pages.
+- Product listing and product detail.
+- Blog listing/detail.
+- Cart and coupon handling.
+- Checkout and order creation.
+- Login/register/logout presentation.
+- Customer account/profile/address/order/wishlist pages.
+- Affiliate dashboard and commissions.
+- Website header/footer/banner/home/flash-sale settings.
+- Coupon and customer administration.
+- Website-facing API endpoint.
+
+## Bootstrap / Standards Context
+
+Repository baseline:
+
+- Laravel 12.
+- PHP 8.3.
+- Livewire 3.x.
+- First-party modular monolith under `Modules/`.
+- Module registration is controlled by `Modules/ModuleServiceProvider.php`.
+- Website manifest: `type=domain`, `enabled=true`, dependencies `User`, `Product`, `Category`, `Post`, `Order`.
+- Canonical architecture prefers `Route -> Controller -> Page Blade -> Livewire -> Service -> Model -> Database`.
+- Mutating admin actions require capability-specific authorization in addition to authentication.
+- Business workflows and multi-record writes belong in services and transactions.
+
+## Dependency Graph
+
+Primary runtime path:
+
+```text
+Website routes
+-> Website controllers
+-> Website page Blade
+-> Website Livewire components
+-> Website services
+-> Website models
+-> database
+```
+
+Declared cross-module dependencies:
+
+```text
+Website
+├── User
+├── Product
+├── Category
+├── Post
+└── Order
+```
+
+Observed ownership problem:
+
+```text
+Website
+├── owns WpProduct / Category / Post / Order-like models
+├── owns Auth/Chat helpers and services
+├── owns database/env administration services
+└── also depends on canonical Product/Category/Post/Order/User modules
+```
+
+This is a P1 module-integrity concern because the roadmap explicitly targets duplicate implementations across Website and the canonical domain modules.
+
+## Route / Controller / Blade / Livewire Analysis
+
+### Routes
+
+Main file: `Modules/Website/routes/web.php`.
+
+Public routes include login, register, home, help, product list/detail, blog list/detail, cart, checkout, checkout success, MoMo callback and authenticated account pages.
+
+Admin routes live under `/admin` with `web` + `auth:admin` and include affiliate, homepage, header, footer, banners, flash sales, coupons and customers.
+
+### Route findings
+
+**P0 - Broken checkout callback contract**
+
+- Priority: P0
+- File: `Modules/Website/routes/web.php`, `Modules/Website/Http/Controllers/CheckoutController.php`
+- Evidence: route `checkout.momo.callback` points to `CheckoutController@momoCallback`, but the controller currently exposes only `index()` and `success()`.
+- Problem: a payment-provider callback URL can resolve to a missing controller method.
+- Impact: payment callback failure and incorrect payment/order state.
+- Recommendation: restore a verified callback handler or remove/re-route the endpoint through the canonical payment/order service with signature verification and idempotency.
+
+**P0 - Admin route authorization is too broad**
+
+- Priority: P0
+- File: `Modules/Website/routes/web.php`
+- Evidence: Website admin route group uses `auth:admin`, without capability middleware at route-group level.
+- Problem: authentication alone is not sufficient for privileged mutations performed by mounted Livewire components.
+- Impact: an authenticated admin may reach actions outside their intended capability.
+- Recommendation: enforce named permissions/policies at route and mutation boundaries.
+
+Documentation drift resolved: older Website analysis stated `/blog` used a route closure. Current source routes `/blog` through `PostController@index`.
+
+### Controllers
+
+Controllers are generally page-oriented, but several directly query models.
+
+**P1 - Thin-controller rule violations**
+
+- Files: `CheckoutController.php`, `AccountController.php`, `ProductController.php`.
+- Evidence: controllers directly query Website models for cart/order/product/account data.
+- Impact: duplicated query logic and weaker testability/service boundaries.
+- Recommendation: move workflow/query responsibilities to canonical module services while preserving current routes.
+
+### Livewire
+
+Website contains Livewire groups for account, admin, auth, cart, checkout, chat, dashboard, home, post, products and wishlist.
+
+**P0 - Missing mutation authorization in customer administration**
+
+- Priority: P0
+- File: `Modules/Website/Livewire/Admin/Customers/CustomerTable.php`
+- Evidence: `toggleStatus()`, `deleteSelected()`, and `delete()` mutate `App\Models\User` directly without method-level authorization.
+- Impact: unauthorized account disable/delete operations if a user reaches the component.
+- Recommendation: require capability checks inside every mutation and delegate persistence to the canonical User/Account service.
+
+**P1 - Unbounded customer selection/list option**
+
+- Priority: P1
+- File: `Modules/Website/Livewire/Admin/Customers/CustomerTable.php`
+- Evidence: select-all plucks all matching IDs and the `all` page option maps to `paginate(9999)`.
+- Impact: memory/query growth on production datasets.
+- Recommendation: remove pseudo-unbounded pagination and implement bounded bulk-selection semantics.
+
+**Resolved prior finding - cart item ownership**
+
+Current `CartService` resolves item mutations through `getCart()->items()->whereKey(...)`, so browser-supplied item IDs are scoped to the current cart. The earlier finding that `removeItem()` deleted arbitrary `CartItem` IDs is no longer valid.
+
+## Service Analysis
+
+Primary services include cart, checkout, product/catalog presentation, content, wishlist, settings, banners, marketing, footer/header, affiliate and account/profile behavior.
+
+A second nested `Modules/Website/Services/Services` tree still exists and contains duplicate or unrelated infrastructure such as:
+
+- duplicate affiliate/banner/flash-sale services;
+- Auth service;
+- Chat service;
+- database administration service;
+- database connection service;
+- environment/configuration services;
+- home setting service.
+
+**P1 - Duplicate service tree and cross-domain ownership**
+
+- Priority: P1
+- File: `Modules/Website/Services/Services/**`
+- Evidence: parallel service implementations exist alongside root Website services and responsibilities owned by System/Auth/Chat domains.
+- Impact: ambiguous source of truth, duplicated fixes, circular dependency risk and difficult refactoring.
+- Recommendation: migrate callers toward canonical domain owners, then remove duplicates in a separate refactor task.
+
+### Checkout integrity
+
+**P0 - Checkout stock race condition**
+
+- Priority: P0
+- File: `Modules/Website/Services/CheckoutService.php`
+- Evidence: stock is checked before entering `DB::transaction`; product rows are not locked before decrement.
+- Problem: two concurrent checkouts can pass the pre-check using the same stock.
+- Impact: overselling and incorrect inventory.
+- Recommendation: re-read/lock inventory rows inside the transaction and enforce a canonical inventory/order invariant.
+
+**P1 - Deleted cart is saved again**
+
+- Priority: P1
+- File: `Modules/Website/Services/CheckoutService.php`
+- Evidence: the service deletes the cart, then assigns `coupon_id = null` and calls `save()` on the deleted model.
+- Impact: confusing/non-effective cleanup semantics and potential behavior differences if model events/scopes change.
+- Recommendation: clear required fields before deletion or simply delete after item/coupon processing.
+
+**P1 - Order ownership duplication**
+
+- Priority: P1
+- File: `Modules/Website/Services/CheckoutService.php`, `Modules/Website/Models/Order*.php`
+- Evidence: Website creates and mutates order-domain records while the manifest also depends on the `Order` module.
+- Impact: duplicate business rules and inconsistent order state handling.
+- Recommendation: Website should orchestrate storefront UX and delegate canonical order creation to `Modules/Order`.
+
+## Import / Export Analysis
+
+Not present as a canonical Website feature in the inspected module tree.
+
+Any existing coupon/customer import/export behavior embedded in admin Livewire should be migrated to the shared import/export foundation if retained. This requires targeted verification before implementation.
+
+## Shared Dependencies
+
+No evidence that Website consistently uses `Modules/Shared/Services/ImportExport` for its admin data utilities.
+
+Website also includes references crossing into Admin-owned views/components in existing documentation; these should be verified during refactor because module view ownership should point to canonical providers rather than duplicate UI trees.
+
+## Model / Migration / Database Analysis
+
+Website currently contains models for affiliate, banners, cart, category, coupons, flash sales, footer/header menus, newsletters, order/order items/history, posts, reviews, settings, tags, addresses, wishlist and products.
+
+The migration tree includes numerous old malformed names beginning with `-0001_11_30_...`, including carts, coupons, settings, banners, flash sales, footer, social links, wishlist and affiliate structures.
+
+**P1 - Migration hygiene**
+
+- Priority: P1
+- File: `Modules/Website/database/migrations/-0001_11_30_*.php`
+- Evidence: multiple migrations have malformed negative-year timestamps.
+- Impact: migration ordering/fresh-install reliability is difficult to reason about and is already a repository roadmap concern.
+- Recommendation: repair migration history through a dedicated migration-hygiene task with fresh-install verification; do not rewrite applied production migrations casually.
+
+**P1 - Duplicate database ownership**
+
+Website owns models/tables for Product, Post and Order concepts while depending on those domain modules. Canonical ownership must be established before schema refactoring.
+
+## Security
+
+Primary current risks:
+
+1. Missing capability-level authorization on admin Livewire mutations.
+2. Checkout payment callback route targets a missing method.
+3. Database/environment administration code exists inside Website's nested service tree and should not be considered a storefront responsibility.
+4. Livewire catches generic exceptions in multiple areas; raw exception messages can reach UI in some flows.
+
+No new P0 finding is asserted for cart item ID ownership because the current service scopes item resolution to the active cart.
+
+## Performance
+
+Key risks:
+
+- Customer select-all loads all matching IDs.
+- `paginate(9999)` simulates an unbounded `All` option.
+- Home/product/post Livewire components historically contain direct model queries; targeted profiling is still required.
+- Duplicate services make caching/query optimization inconsistent.
+
+## Validation and Authorization
+
+Positive observations:
+
+- A dedicated `CheckoutRequest.php` exists.
+- Cart item mutation ownership is now scoped in `CartService`.
+
+Gaps:
+
+- Admin Livewire mutations require named permissions/policies.
+- Service-level invariants should not depend exclusively on UI validation.
+- Payment callback inputs/signatures require dedicated validation once the missing callback implementation is resolved.
+
+## Transactions, Concurrency and Data Integrity
+
+Positive observation: checkout order creation is wrapped in `DB::transaction`.
+
+Material gaps:
+
+- stock validation occurs before the transaction;
+- product rows are not locked during stock decrement;
+- order creation remains in Website instead of the canonical Order domain;
+- cart cleanup saves a deleted model;
+- idempotency for payment/order callback processing is not demonstrated.
+
+## Admin UI / UX Standard Review
+
+Admin UI exists, so `ADMIN_UI_STANDARD.md` applies.
+
+Observed concerns:
+
+- large Livewire admin screens and duplicated module UI increase maintainability cost;
+- unbounded `All` behavior conflicts with bounded-list guidance;
+- dangerous actions require loading/disabled/confirmation and permission checks; targeted Blade verification is still required for each screen.
+
+## Cross-Module Dependencies
+
+Declared: User, Product, Category, Post, Order.
+
+Observed conceptual dependencies additionally include Admin/Auth/Chat/System-like responsibilities.
+
+The core architectural problem is not the existence of dependencies; it is Website retaining duplicate ownership of concepts for which canonical domain modules already exist.
+
+## Technical Debt
+
+Major debt areas:
+
+- `Services/Services` parallel tree.
+- duplicate Product/Post/Order/User models and workflows.
+- admin functionality mixed into storefront domain.
+- database/env/system utilities in Website.
+- malformed migration timestamps.
+- large Livewire components with direct persistence/query responsibilities.
+- stale documentation from prior source state.
+
+## Test Coverage
+
+No Website-specific automated test suite was identified from the repository context inspected during this analysis. The repository roadmap previously recorded only default example tests.
+
+Required future coverage should include:
+
+- Website route boot tests;
+- denied admin mutations;
+- cart ownership isolation;
+- checkout concurrency/stock behavior;
+- coupon application;
+- order ownership/authorization;
+- payment callback signature and idempotency;
+- account order ownership;
+- migration smoke tests.
+
+## Documentation Drift
+
+Existing `ANALYSIS.md` was stale in at least these areas:
+
+- `/blog` no longer uses a route closure.
+- Cart item deletion/update now scopes item IDs to the current cart service query.
+
+Still valid after verification:
+
+- missing `CheckoutController@momoCallback`.
+- broad `auth:admin` route boundary.
+- missing method-level authorization in `CustomerTable`.
+- duplicate `Services/Services` architecture.
+- checkout concurrency and deleted-cart cleanup issues.
+- duplicate domain ownership remains visible in module manifest/model/service structure.
+
+`INFORMATION.md` and `README.md` were absent before this analysis and are generated by this task.
+
+## Issue List (P0/P1/P2)
+
+| Priority | Issue | Primary file(s) |
+|---|---|---|
+| P0 | Payment callback route points to missing method | `routes/web.php`, `CheckoutController.php` |
+| P0 | Admin mutations lack capability authorization | `Livewire/Admin/Customers/CustomerTable.php` and other admin components to verify |
+| P0 | Checkout stock race can oversell | `Services/CheckoutService.php` |
+| P1 | Website duplicates canonical Product/Post/Order/User ownership | `Models/**`, `Services/**`, manifest |
+| P1 | Parallel `Services/Services` tree contains duplicate/cross-domain logic | `Services/Services/**` |
+| P1 | Deleted cart is saved after delete | `Services/CheckoutService.php` |
+| P1 | Customer `All`/select-all operations are effectively unbounded | `CustomerTable.php` |
+| P1 | Malformed migration timestamps | `database/migrations/-0001_11_30_*.php` |
+| P1 | Thin-controller/service-boundary violations remain | selected controllers/Livewire |
+| P2 | Large admin UI components need decomposition/reuse review | admin Livewire/Blade |
+| P2 | Documentation had drifted from source | `docs/modules/Website/**` |
+
+## Module Health Summary
+
+- Functional coverage: High.
+- Architectural clarity: Low-Medium.
+- Authorization maturity: Low for admin mutations.
+- Data-integrity maturity: Medium-Low around checkout concurrency.
+- Performance safety: Medium-Low due to unbounded admin options and direct queries.
+- Testability: Low until module-specific tests are added.
+- Documentation: refreshed by this analysis.
+
+## Final Recommendation
+
+**Major Refactor**
+
+Refactor in staged, behavior-preserving slices:
+
+1. close authorization and payment/checkout correctness risks;
+2. establish Order/Product/Post/User canonical ownership;
+3. migrate Website callers to canonical services/models;
+4. remove `Services/Services` duplicates and unrelated System/Auth/Chat/env/database utilities;
+5. bound list/bulk operations and profile queries;
+6. add targeted tests before deleting legacy code.
+
+Do not start a full rebuild unless dependency migration proves the existing storefront presentation layer cannot be preserved economically.
+
+## Open Questions / Unknowns
+
+- Exact production payment provider flow and expected MoMo callback contract.
+- Which Website duplicate models/tables are currently authoritative in production versus the canonical Product/Post/Order modules.
+- Exact permission names intended for Website admin capabilities.
+- Runtime route collisions with Admin/Product/Post/Order modules were not executed via `artisan route:list` in this connector-only analysis.
+- Current database schema and indexes were inferred from repository migrations/models; live production schema was not inspected.
+- Full query-count/N+1 behavior requires runtime profiling.
