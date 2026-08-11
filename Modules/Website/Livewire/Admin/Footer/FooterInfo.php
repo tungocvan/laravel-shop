@@ -3,21 +3,19 @@
 namespace Modules\Website\Livewire\Admin\Footer;
 
 use Livewire\Component;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\SettingsService;
 
 class FooterInfo extends Component
 {
-    // Brand Info
+    use AuthorizesAdminPermissions;
+
     public $brand_description;
     public $address;
     public $email;
     public $phone;
-
-    // App Links
     public $appstore_url;
     public $playstore_url;
-
-    // Bottom Bar
     public $copyright;
 
     public function mount(SettingsService $settingsService)
@@ -26,15 +24,15 @@ class FooterInfo extends Component
         $this->address = $settingsService->get('footer.address');
         $this->email = $settingsService->get('footer.email');
         $this->phone = $settingsService->get('footer.phone');
-
         $this->appstore_url = $settingsService->get('footer.appstore_url');
         $this->playstore_url = $settingsService->get('footer.playstore_url');
-
         $this->copyright = $settingsService->get('footer.copyright', '© 2024 FlexBiz. All rights reserved.');
     }
 
     public function save(SettingsService $settingsService)
     {
+        $this->authorizeAdminPermission('website.footer.manage');
+
         $settingsService->updateMany([
             'footer.brand_description' => $this->brand_description,
             'footer.address' => $this->address,
