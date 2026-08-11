@@ -157,12 +157,39 @@ tests/Feature/Website/WebsiteAdminAuthorizationConfigurationTest.php
 
 The new permissions must exist in the database before manual admin testing.
 
+Because this repository uses root PSR-4 mapping `Modules\\ => Modules/`, refresh Composer autoload after pulling before invoking module seeders directly.
+
 Run:
 
 ```bash
+composer dump-autoload
 php artisan optimize:clear
-php artisan db:seed --class="Modules\\Role\\database\\Seeders\\RolesAndPermissionsSeeder"
+php artisan db:seed --class='Modules\Role\database\Seeders\RolesAndPermissionsSeeder'
 php artisan permission:cache-reset
+```
+
+If the seeder class is still reported as missing, verify autoload resolution before retrying:
+
+```bash
+php -r "require 'vendor/autoload.php'; var_dump(class_exists('Modules\\Role\\database\\Seeders\\RolesAndPermissionsSeeder'));"
+```
+
+Expected:
+
+```text
+bool(true)
+```
+
+The seeder source is located at:
+
+```text
+Modules/Role/database/seeders/RolesAndPermissionsSeeder.php
+```
+
+and its declared namespace is:
+
+```text
+Modules\Role\database\Seeders
 ```
 
 The existing seeder synchronizes all active module permissions to the `Super Admin` role for guard `admin`.
@@ -252,6 +279,7 @@ Expected denial: HTTP 403 / Livewire authorization failure before persistence.
 
 Phase 1B may be marked `TESTED / APPROVED` only after:
 
+- [ ] Composer autoload refresh completes successfully;
 - [ ] permission sync completes successfully;
 - [ ] authorization configuration test passes;
 - [ ] existing Website route test passes;
