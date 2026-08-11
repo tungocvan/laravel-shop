@@ -12,14 +12,14 @@ Application source must not be changed outside the active phase scope.
 
 - `[ ] NOT STARTED`
 - `[x] ANALYZED`
-- `[ ] IMPLEMENTED`
-- `[ ] TESTED`
-- `[ ] APPROVED`
+- `[x] IMPLEMENTED`
+- `[x] TESTED`
+- `[x] APPROVED`
 
 ## Current Overall Status
 
-- Phase 0 — Baseline & Safety Net: `[x] ANALYZED` / runtime test pending
-- Phase 1 — Stabilize & Security: `[ ] NOT STARTED`
+- Phase 0 — Baseline & Safety Net: `[x] ANALYZED / TESTED / APPROVED — CLOSED`
+- Phase 1 — Stabilize & Security: `[ ] IN PROGRESS — Phase 1A next`
 - Phase 2 — Domain Ownership: `[ ] NOT STARTED`
 - Phase 3 — Database Restructure: `[ ] NOT STARTED`
 - Phase 4 — Service Layer: `[ ] NOT STARTED`
@@ -39,251 +39,29 @@ Create a reliable baseline of current Website behavior before code changes.
 ## Status
 
 - [x] ANALYZED
-- [ ] IMPLEMENTED — not applicable; documentation/baseline phase only
-- [ ] TESTED — runtime smoke test pending
-- [ ] APPROVED
+- [x] IMPLEMENTED — documentation/baseline artifacts completed
+- [x] TESTED
+- [x] APPROVED
+- Decision: `CLOSED`
 
-## Baseline Snapshot
+## Exit Evidence
 
-Repository: `vhdtshop-ux/source-laravel-12`
+- Static Website inventory completed.
+- Routes/controllers/Livewire/services/models/database reviewed.
+- Cross-module and database debt recorded.
+- Known pre-refactor defects registered in `PHASE_0_BASELINE.md`.
+- `WebsiteRouteConfigurationTest`: `PASS — 3 tests / 30 assertions`.
+- Full repository suite executed: `44 failed / 51 passed`; unrelated repository-wide debt recorded rather than attributed to Website.
+- Frontend manual smoke test: `PASS` (user verified).
+- Admin/backend manual smoke test: `PASS` (user verified).
+- No additional manual runtime defects reported.
 
-Branch: `main`
+Canonical Phase 0 evidence:
 
-Baseline analysis was performed against the current `main` source after Website module analysis documentation was refreshed.
+- `docs/modules/Website/PHASE_0_BASELINE.md`
+- `docs/modules/Website/PHASE_0_SMOKE_TEST.md`
 
-## Inventory Checklist
-
-- [x] Resolve `Modules/Website`
-- [x] Inventory Website routes
-- [x] Inventory controllers
-- [x] Inventory frontend Livewire components
-- [x] Inventory admin Livewire components
-- [x] Inventory services
-- [x] Inventory models
-- [x] Inventory migrations/database ownership
-- [x] Inventory frontend/admin views
-- [x] Map declared cross-module dependencies
-- [x] Inspect existing Website tests
-- [x] Record known broken behavior
-- [x] Record known architectural debt
-- [ ] Run Website runtime smoke test
-- [ ] Run Website feature test
-- [ ] Run full project test suite
-- [ ] Approve baseline
-
-## Declared Module Dependencies
-
-`Modules/Website/Config/module.php` currently declares Website as a domain module depending on:
-
-- User
-- Product
-- Category
-- Post
-- Order
-
-This dependency direction is useful for the target architecture: Website should consume canonical domain owners rather than duplicate those domains.
-
-## Frontend Baseline
-
-Main public areas currently include:
-
-- Homepage
-- Help
-- Product list
-- Product detail
-- Blog list
-- Blog detail
-- Login
-- Register
-- Logout
-- Cart
-- Checkout
-- Checkout success
-- Account dashboard
-- Profile
-- Addresses
-- Orders
-- Order detail
-- Wishlist
-- Affiliate dashboard
-- Chat/supporting widgets
-
-## Admin Baseline
-
-Website currently provides admin UI for:
-
-- Homepage settings
-- Header/menu settings
-- Footer settings
-- Banner management
-- Flash sales
-- Coupons
-- Customers
-- Affiliate administration
-
-Some of these capabilities are likely owned by other canonical business modules and will be addressed in Phase 2.
-
-## Existing Automated Website Test
-
-Current repository contains:
-
-`tests/Feature/Website/WebsiteRouteConfigurationTest.php`
-
-It currently verifies:
-
-- `blog.index` routes through `PostController@index`
-- Website admin routes retain `auth:admin`
-- selected Website admin page blades do not mount components through incorrect `admin.*` aliases
-
-This is useful but is not a sufficient regression safety net for the planned refactor.
-
-## Source-Confirmed Baseline
-
-### Confirmed fixed relative to older analysis
-
-- `blog.index` now routes to `PostController@index`; the old closure finding is stale.
-- Cart item increment/decrement/remove now resolve items through the current cart in `CartService`; the older direct foreign-cart-item ownership finding is stale.
-
-### Broken before refactor
-
-These defects already exist before Phase 1 and must not be misclassified as regressions introduced by refactoring.
-
-1. **MoMo callback route mismatch**
-   - `checkout.momo.callback` points to `CheckoutController@momoCallback`.
-   - The current controller does not define `momoCallback()`.
-
-2. **Checkout transaction defect**
-   - Current checkout workflow deletes the cart and subsequently modifies/saves the deleted model.
-
-3. **Checkout concurrency risk**
-   - Stock validation occurs before the transaction.
-   - Stock decrement does not use row locking.
-   - Concurrent checkout can potentially oversell.
-
-4. **Admin authorization gaps**
-   - Website admin routes mainly rely on `auth:admin`.
-   - Several mutating Livewire actions lack capability-specific method-level authorization.
-
-5. **Website settings coupling**
-   - Frontend layout directly reads `Setting` from Blade.
-   - Raw configured header script can be rendered into the page.
-   - Some settings mutations bypass a centralized settings service/cache invalidation path.
-
-## Known Architectural Debt
-
-These are not automatically classified as broken runtime behavior but must be addressed in later phases.
-
-### Duplicate/cross-domain models in Website
-
-Examples include:
-
-- `WpProduct`
-- `Category`
-- `Post`
-- `Order`
-- `OrderItem`
-- `OrderHistory`
-- `UserAddress`
-
-Canonical ownership will be resolved in Phase 2.
-
-### Cross-domain/system services inside Website
-
-Examples include:
-
-- `Services/Services/DatabaseService.php`
-- `Services/Services/Database/*`
-- `Services/Services/Env/*`
-- `Services/Services/AuthService.php`
-- `Services/Services/ChatService.php`
-
-These do not fit Website storefront/CMS ownership and must be migrated only after callers are verified.
-
-### Database debt
-
-Website currently owns or migrates data for multiple concerns, including:
-
-- website settings
-- banners
-- footer structures
-- carts/cart items
-- coupons
-- flash sales
-- newsletters
-- reviews
-- wishlists
-- affiliate structures
-
-Several migration files use malformed `-0001_11_30_*` names. Existing applied migrations must not be rewritten casually.
-
-## Phase 0 Runtime Smoke Test
-
-### Frontend
-
-- [ ] `/` — homepage loads
-- [ ] `/product` — product list loads
-- [ ] `/product/{slug}` — product detail loads
-- [ ] `/blog` — blog list loads
-- [ ] `/blog/{slug}` — blog detail loads
-- [ ] `/login`
-- [ ] `/register`
-- [ ] `/cart`
-- [ ] Cart add
-- [ ] Cart increment
-- [ ] Cart decrement
-- [ ] Cart remove
-- [ ] Coupon apply/remove
-- [ ] `/checkout`
-- [ ] Checkout validation
-- [ ] COD checkout when supported
-- [ ] `/checkout/success`
-- [ ] `/account`
-- [ ] `/account/profile`
-- [ ] `/account/orders`
-- [ ] `/account/orders/{code}`
-- [ ] `/account/wishlist`
-- [ ] `/account/affiliate`
-
-### Admin
-
-- [ ] `/admin/homepage-settings`
-- [ ] `/admin/header-settings`
-- [ ] `/admin/footer-settings`
-- [ ] `/admin/banners`
-- [ ] `/admin/flash-sales`
-- [ ] `/admin/coupons`
-- [ ] `/admin/customers`
-- [ ] `/admin/affiliate`
-
-Classify every runtime item as:
-
-- `PASS`
-- `BROKEN BEFORE REFACTOR`
-- `PARTIAL`
-- `UNKNOWN`
-
-## Phase 0 Automated Checks
-
-Run in the Laravel runtime environment:
-
-```bash
-php artisan optimize:clear
-php artisan route:list
-php artisan test tests/Feature/Website/WebsiteRouteConfigurationTest.php
-php artisan test
-```
-
-When Docker is used, run the equivalent commands inside the PHP/application container.
-
-## Phase 0 Approval Gate
-
-Phase 0 is approved only when:
-
-- runtime smoke test results are recorded
-- existing broken behavior is clearly separated from regressions
-- Website route test result is known
-- full test-suite result is known or its blockers are documented
-- the baseline is accepted before Phase 1 implementation
+The working frontend/admin behavior observed in Phase 0 is now the regression baseline for all later phases.
 
 ---
 
@@ -295,26 +73,35 @@ Fix current high-risk correctness/security defects before architectural migratio
 
 ## Status
 
-- [ ] NOT STARTED
 - [ ] ANALYZED
 - [ ] IMPLEMENTED
 - [ ] TESTED
 - [ ] APPROVED
+- Active sub-phase: `Phase 1A — Checkout Stabilization`
 
 ## Phase 1A — Checkout Stabilization
 
-- [ ] Resolve broken MoMo callback contract
-- [ ] Ensure callback maps to a real controller/service flow
-- [ ] Verify payment callback/signature server-side
-- [ ] Move stock verification inside transaction
-- [ ] Lock product/inventory rows before final stock check
-- [ ] Prevent overselling
-- [ ] Make order creation atomic
-- [ ] Make coupon usage atomic
-- [ ] Remove save-after-cart-delete defect
-- [ ] Prevent duplicate orders/double submit
-- [ ] Define retry/idempotency behavior
-- [ ] Add checkout regression tests
+### Scope
+
+Only checkout/payment correctness and the focused tests required to protect those changes. Do not perform Phase 2 domain migration, Phase 3 database redesign, or UI redesign in Phase 1A.
+
+### Checklist
+
+- [ ] Re-inspect checkout routes, controller, Livewire checkout flow, CheckoutService, CartService, Order/OrderItem/OrderHistory usage, Coupon usage, product stock mutation, and payment configuration.
+- [ ] Resolve broken MoMo callback contract.
+- [ ] Ensure callback maps to a real controller/service flow.
+- [ ] Verify payment callback/signature server-side when MoMo is an active supported payment method; otherwise explicitly disable/remove the broken public contract rather than leaving a dead route.
+- [ ] Move final stock verification inside transaction.
+- [ ] Lock product/inventory rows before final stock check.
+- [ ] Prevent overselling.
+- [ ] Make order creation atomic.
+- [ ] Make coupon usage atomic.
+- [ ] Remove save-after-cart-delete defect.
+- [ ] Prevent duplicate orders/double submit.
+- [ ] Define retry/idempotency behavior appropriate to the current schema/contracts.
+- [ ] Preserve existing working COD behavior.
+- [ ] Add focused checkout regression tests before/together with risky changes.
+- [ ] Do not rewrite legacy migrations in this phase.
 
 ### Phase 1A Test Gate
 
@@ -326,26 +113,32 @@ Fix current high-risk correctness/security defects before architectural migratio
 - [ ] valid coupon
 - [ ] invalid/expired coupon
 - [ ] double submit
-- [ ] valid payment callback
-- [ ] tampered callback
-- [ ] duplicate callback
+- [ ] valid payment callback when MoMo is supported
+- [ ] tampered callback when MoMo is supported
+- [ ] duplicate callback when MoMo is supported
 - [ ] rollback consistency
+- [ ] Phase 0 Website route regression test remains green
+- [ ] frontend/admin Phase 0 smoke baseline remains intact
+
+### Phase 1A Approval Gate
+
+Do not start Phase 1B until Phase 1A implementation has been tested and explicitly approved by the user.
 
 ## Phase 1B — Admin Authorization
 
-- [ ] Define capability permission matrix
-- [ ] Keep `auth:admin`
-- [ ] Add named capability checks
-- [ ] Homepage mutation authorization
-- [ ] Header/menu mutation authorization
-- [ ] Footer mutation authorization
-- [ ] Banner mutation authorization
-- [ ] Coupon mutation authorization
-- [ ] Flash-sale mutation authorization
-- [ ] Customer mutation authorization
-- [ ] Affiliate mutation authorization
-- [ ] Authorize inside sensitive Livewire methods
-- [ ] Add allowed/denied tests
+- [ ] Define capability permission matrix.
+- [ ] Keep `auth:admin`.
+- [ ] Add named capability checks.
+- [ ] Homepage mutation authorization.
+- [ ] Header/menu mutation authorization.
+- [ ] Footer mutation authorization.
+- [ ] Banner mutation authorization.
+- [ ] Coupon mutation authorization.
+- [ ] Flash-sale mutation authorization.
+- [ ] Customer mutation authorization.
+- [ ] Affiliate mutation authorization.
+- [ ] Authorize inside sensitive Livewire methods.
+- [ ] Add allowed/denied tests.
 
 Suggested capability direction:
 
@@ -363,23 +156,24 @@ Other domains should eventually own their own capabilities, such as customer, ma
 
 ## Phase 1C — Settings, Script Security, Cache
 
-- [ ] Centralize Website settings mutations
-- [ ] Fix cache invalidation consistency
-- [ ] Remove direct DB/model queries from frontend Blade
-- [ ] Restrict custom script editing to privileged capability
-- [ ] Review raw HTML/script rendering
-- [ ] Validate image upload MIME/extension/size
-- [ ] Define old-file cleanup policy
-- [ ] Add settings/cache/security tests
+- [ ] Centralize Website settings mutations.
+- [ ] Fix cache invalidation consistency.
+- [ ] Remove direct DB/model queries from frontend Blade.
+- [ ] Restrict custom script editing to privileged capability.
+- [ ] Review raw HTML/script rendering.
+- [ ] Validate image upload MIME/extension/size.
+- [ ] Define old-file cleanup policy.
+- [ ] Add settings/cache/security tests.
 
 ## Phase 1 Approval Gate
 
 Do not enter Phase 2 until:
 
-- checkout tests pass
-- authorization tests pass
-- settings/cache tests pass
-- baseline Phase 0 behavior remains intact except explicitly fixed baseline defects
+- checkout tests pass;
+- authorization tests pass;
+- settings/cache tests pass;
+- Phase 0 working behavior remains intact except explicitly repaired baseline defects;
+- user explicitly approves Phase 1.
 
 ---
 
@@ -628,30 +422,30 @@ Use canonical domain services for Product, Category, Post, Order, User/Account i
 ```text
 Route
 -> Controller
--> Website composition service
+-> Website Service
 -> canonical domain services
--> Blade / Livewire presentation
+-> Blade
 ```
 
 ## Target Admin Flow
 
 ```text
-Admin Route
--> Controller/Page Blade
+Admin route
+-> page/controller
 -> Livewire
--> Website Service
--> Website Models
--> Database
+-> Website service
+-> canonical owner/model
+-> database
 ```
 
 ## Phase 4 Test Gate
 
-- [ ] service tests
-- [ ] critical Livewire tests
+- [ ] focused service tests
+- [ ] Livewire contains no business transaction
 - [ ] controllers remain thin
-- [ ] Blade has no DB access
-- [ ] query behavior compared with baseline
-- [ ] all previous phase regression tests stay green
+- [ ] Blade performs no database access
+- [ ] query-count regression reviewed
+- [ ] previous phase tests remain green
 
 ---
 
@@ -659,7 +453,7 @@ Admin Route
 
 ## Goal
 
-Rebuild Website administration into a professional CMS/storefront management experience after backend/domain/database foundations are stable.
+Rebuild Website administration into a coherent professional CMS/storefront management surface.
 
 ## Status
 
@@ -669,97 +463,106 @@ Rebuild Website administration into a professional CMS/storefront management exp
 - [ ] TESTED
 - [ ] APPROVED
 
-## 5A Website Dashboard
+## Admin Information Architecture
 
-- [ ] website health/status summary
-- [ ] active sections
-- [ ] published pages
-- [ ] active banners
-- [ ] useful shortcuts
-- [ ] avoid unrelated heavy analytics
+Website admin should focus on Website-owned concepts:
 
-## 5B Homepage Builder
+```text
+Website
+├── Dashboard
+├── Homepage
+├── Menus
+├── Banners
+├── Footer
+├── SEO
+├── Theme
+└── Settings
+```
+
+Product, Order, Customer, marketing and other canonical domains should appear under their own owning admin areas even if rendered in the same admin shell.
+
+## Homepage Builder
 
 - [ ] section list
 - [ ] add section
+- [ ] edit section
 - [ ] enable/disable
-- [ ] edit
 - [ ] reorder
 - [ ] duplicate
-- [ ] safe delete/confirmation
+- [ ] delete confirmation
 - [ ] preview
-- [ ] responsive admin UI
 - [ ] loading state
 - [ ] empty state
+- [ ] validation state
+- [ ] responsive admin behavior
 
-Section editors to support as applicable:
+Candidate section editors:
 
-- [ ] Hero
-- [ ] Categories
-- [ ] Featured Products
-- [ ] New Arrivals
-- [ ] Best Sellers
-- [ ] Flash Sale
-- [ ] Promo Banner
-- [ ] Blog
-- [ ] Trust Badges
-- [ ] Newsletter
+- Hero
+- Categories
+- Featured Products
+- New Arrivals
+- Best Sellers
+- Flash Sale
+- Promo Banner
+- Blog
+- Trust Badges
+- Newsletter
 
-## 5C Menu Manager
+## Menu Manager
 
 - [ ] menu list
-- [ ] nested items
-- [ ] ordering/drag-drop
-- [ ] URL/reference selector
+- [ ] nested menu items
+- [ ] reorder
+- [ ] internal/external reference selector
 - [ ] validation
 - [ ] mobile behavior
 
-## 5D Banner Manager
+## Banner Manager
 
 - [ ] desktop preview
 - [ ] mobile preview
 - [ ] scheduling
-- [ ] active/inactive
+- [ ] active state
 - [ ] ordering
-- [ ] secure image validation
+- [ ] image validation
 
-## 5E Footer Manager
+## Footer Manager
 
 - [ ] column builder
 - [ ] links
 - [ ] social links
 - [ ] reorder
 
-## 5F SEO
+## SEO Manager
 
 - [ ] global SEO
 - [ ] page SEO
 - [ ] OpenGraph preview
 - [ ] canonical URL
-- [ ] robots policy
+- [ ] robots configuration
 
-## 5G Theme / Settings
+## Theme / Settings
 
 - [ ] logo
 - [ ] favicon
-- [ ] contact information
-- [ ] brand configuration
+- [ ] contact/brand configuration
 - [ ] analytics
 - [ ] restricted advanced scripts
 
-## Admin Screen Quality Gate
+## Per-Screen Gate
 
-Every completed admin screen must pass:
+Every admin screen must pass:
 
-- [ ] CRUD behavior
-- [ ] authorization
-- [ ] validation
-- [ ] responsive behavior
-- [ ] loading/disabled state
-- [ ] empty state
-- [ ] error state
-
-Complete and approve one admin area before moving to the next.
+```text
+CRUD PASS
+Authorization PASS
+Validation PASS
+Responsive PASS
+Loading PASS
+Empty state PASS
+Error state PASS
+```
 
 ---
 
@@ -767,7 +570,7 @@ Complete and approve one admin area before moving to the next.
 
 ## Goal
 
-Professionalize the storefront after architecture/database/admin foundations are approved.
+Professionalize storefront UX only after architecture/database/admin foundations are stable.
 
 ## Status
 
@@ -777,77 +580,77 @@ Professionalize the storefront after architecture/database/admin foundations are
 - [ ] TESTED
 - [ ] APPROVED
 
-## 6A Global Layout
+## Global Layout
 
 - [ ] header
 - [ ] desktop navigation
 - [ ] mobile navigation
 - [ ] footer
-- [ ] breadcrumb strategy
+- [ ] breadcrumbs
 - [ ] notifications
 - [ ] search
 - [ ] account/cart indicators
-- [ ] consistent spacing
+- [ ] spacing system
 - [ ] typography
 
-## 6B Homepage
+## Homepage
 
-For each section verify:
+For every section:
 
 - [ ] desktop
 - [ ] tablet
 - [ ] mobile
-- [ ] empty data
-- [ ] loading
-- [ ] image ratios
-- [ ] link behavior
+- [ ] empty state
+- [ ] loading state
+- [ ] image aspect ratio
+- [ ] links/actions
 - [ ] accessibility
 
-## 6C Product Listing
+## Product Listing
 
 - [ ] filters
 - [ ] search
-- [ ] sort
+- [ ] sorting
 - [ ] pagination
-- [ ] product cards
+- [ ] product card
 - [ ] empty state
 - [ ] URL query persistence
-- [ ] mobile filter UX
+- [ ] mobile filters
 
-## 6D Product Detail
+## Product Detail
 
 - [ ] gallery
 - [ ] pricing
-- [ ] stock
+- [ ] stock display
 - [ ] quantity
 - [ ] cart
 - [ ] wishlist
-- [ ] description/content
+- [ ] description
 - [ ] related products
-- [ ] SEO structured data
+- [ ] structured data
 
-## 6E Cart
+## Cart
 
 - [ ] quantity update
 - [ ] remove
 - [ ] coupon
 - [ ] totals
-- [ ] stock-change handling
+- [ ] stock changes
 - [ ] empty state
-- [ ] mobile usability
+- [ ] mobile
 
-## 6F Checkout
+## Checkout
 
-- [ ] address/customer data
+- [ ] address/customer information
 - [ ] payment method
 - [ ] order summary
-- [ ] loading/disabled submit
-- [ ] double-submit prevention
+- [ ] disabled/loading submit
+- [ ] double-submit UX protection
 - [ ] validation UX
-- [ ] success state
-- [ ] payment failure state
+- [ ] success
+- [ ] payment failure
 
-## 6G Account
+## Account
 
 - [ ] dashboard
 - [ ] profile
@@ -855,11 +658,11 @@ For each section verify:
 - [ ] orders
 - [ ] order detail
 - [ ] wishlist
-- [ ] affiliate presentation if retained
+- [ ] affiliate UI if retained
 
 ## Phase 6 Test Gate
 
-At minimum test current supported desktop browser plus mobile viewport. Frontend approval requires responsive behavior, not desktop-only success.
+Test at minimum desktop Chrome plus representative mobile viewport. Working desktop behavior alone is not sufficient.
 
 ---
 
@@ -867,7 +670,7 @@ At minimum test current supported desktop browser plus mobile viewport. Frontend
 
 ## Goal
 
-Measure and optimize production performance, SEO, cache, assets, and observability after functionality is stable.
+Optimize only after behavior and architecture are stable.
 
 ## Status
 
@@ -880,20 +683,20 @@ Measure and optimize production performance, SEO, cache, assets, and observabili
 ## Checklist
 
 - [ ] homepage query profile
-- [ ] product list query profile
-- [ ] product detail query profile
+- [ ] product-list query profile
+- [ ] product-detail query profile
 - [ ] header/menu query profile
 - [ ] footer query profile
-- [ ] eliminate N+1
-- [ ] verify indexes against real filters/sorts
-- [ ] eliminate unbounded production queries
-- [ ] cache homepage composition where justified
-- [ ] cache navigation where justified
-- [ ] cache global settings with explicit invalidation
+- [ ] remove N+1 queries
+- [ ] verify indexes
+- [ ] bounded queries/pagination
+- [ ] homepage composition caching
+- [ ] navigation caching
+- [ ] global settings caching
+- [ ] explicit cache invalidation
 - [ ] image optimization
-- [ ] lazy loading
-- [ ] frontend build verification
-- [ ] metadata/SEO review
+- [ ] lazy image loading
+- [ ] asset build review
 - [ ] sitemap
 - [ ] structured data
 - [ ] canonical URLs
@@ -902,14 +705,7 @@ Measure and optimize production performance, SEO, cache, assets, and observabili
 
 ## Performance Gate
 
-Use measured baseline numbers rather than arbitrary targets.
-
-Requirements:
-
-- [ ] no known N+1
-- [ ] no unbounded production collection for user-facing lists
-- [ ] no stale settings/navigation cache
-- [ ] critical page query counts are measured and documented
+Set measurable budgets only after collecting a real baseline. Do not invent arbitrary performance numbers before measurement.
 
 ---
 
@@ -917,7 +713,7 @@ Requirements:
 
 ## Goal
 
-Remove verified legacy code only after migrations/callers/tests are complete and prepare Website for production release.
+Remove obsolete compatibility code only after all callers have migrated and complete the production release checklist.
 
 ## Status
 
@@ -927,34 +723,33 @@ Remove verified legacy code only after migrations/callers/tests are complete and
 - [ ] TESTED
 - [ ] APPROVED
 
-## Cleanup Checklist
+## Cleanup
 
 - [ ] remove duplicate Website models with zero callers
 - [ ] remove duplicate services with zero callers
-- [ ] remove obsolete `Services/Services` tree after migration
+- [ ] remove `Services/Services` after ownership migration
 - [ ] remove dead controllers
 - [ ] remove dead views
 - [ ] remove dead routes
-- [ ] remove legacy setting keys after data migration
-- [ ] remove legacy tables/columns only when approved and safe
+- [ ] remove legacy settings keys after migration
+- [ ] remove obsolete columns/tables only when safe
 
-## Verification Checklist
+## Release Verification
 
-- [ ] Laravel Pint
-- [ ] targeted PHPUnit tests
-- [ ] full PHPUnit suite
+- [ ] Pint
+- [ ] focused Website tests
+- [ ] full PHPUnit suite with unrelated baseline failures distinguished
 - [ ] frontend build
-- [ ] migration fresh test
+- [ ] migrate fresh test
 - [ ] existing database upgrade test
 - [ ] security regression
 - [ ] payment regression
 - [ ] checkout regression
-- [ ] admin authorization regression
-- [ ] responsive smoke test
+- [ ] documentation refresh
 
-## Documentation Gate
+## Documentation
 
-Update at minimum:
+Final Website documentation must keep these synchronized:
 
 - `docs/modules/Website/ANALYSIS.md`
 - `docs/modules/Website/INFORMATION.md`
@@ -963,31 +758,31 @@ Update at minimum:
 
 ---
 
-# Working Protocol
+# Stage-Gate Working Rule
 
 For every phase:
 
 ```text
-1. Analyze active phase
-2. Freeze checklist
-3. Implement only active phase scope
-4. Run targeted tests
-5. Report PASS / FAIL / REMAINING
-6. User reviews results
-7. User explicitly approves phase
-8. Only then start the next phase
+ANALYZE
+   ↓
+LOCK CHECKLIST
+   ↓
+IMPLEMENT ONLY ACTIVE PHASE
+   ↓
+TEST
+   ↓
+REPORT PASS / FAIL / REMAINING
+   ↓
+USER APPROVAL
+   ↓
+NEXT PHASE
 ```
 
 Rules:
 
-- Do not skip phases without explicit approval.
-- Do not opportunistically refactor unrelated areas.
-- Do not delete legacy code before all callers migrate and tests pass.
-- Do not redesign UI before the relevant backend/database foundation is stable.
-- Preserve route names, Livewire aliases, database contracts, and user-facing behavior unless a phase explicitly authorizes a migration.
-- Source code is the source of truth for current behavior.
-- Tests and this document form the stage-gate record for the refactor.
-
-# Next Action
-
-Complete the Phase 0 runtime smoke test and automated checks. After the user approves Phase 0, begin **Phase 1A — Checkout Stabilization** only.
+1. Do not silently move into another phase.
+2. Do not delete legacy code before callers migrate and tests pass.
+3. Do not redesign database during an unrelated phase.
+4. Do not treat an old baseline defect as a new refactor regression.
+5. Preserve backward compatibility unless a breaking change is explicitly approved.
+6. When a phase fails its gate, fix that phase before proceeding.
