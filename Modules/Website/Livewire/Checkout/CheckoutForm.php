@@ -44,33 +44,42 @@ class CheckoutForm extends Component
         $this->validate();
 
         try {
-            $data = [
+            $order = $checkoutService->createOrder([
                 'customer_name' => $this->customer_name,
                 'customer_phone' => $this->customer_phone,
                 'customer_email' => $this->customer_email,
                 'customer_address' => $this->customer_address,
                 'note' => $this->note,
                 'payment_method' => $this->payment_method,
-            ];
-
-            $order = $checkoutService->createOrder($data);
-
-            Session::regenerate();
-            session()->flash('order_code', $order->order_code);
-
-            if ($order->payment_method === 'momo') {
-                $payment = $momoService->createPayment($order);
-
-                return redirect()->away($payment['payUrl']);
-            }
-
-            session()->flash('success_message', 'Đặt hàng thành công!');
-
-            return redirect()->route('checkout.success');
+            ]);
         } catch (\Throwable $e) {
             report($e);
             $this->addError('system', $e->getMessage());
+
+            return null;
         }
+
+        Session::regenerate();
+        session()->flash('order_code', $order->order_code);
+
+        if ($order->payment_method === 'momo') {
+            try {
+                $payment = $momoService->createPayment($order);
+
+                return redirect()->away($payment['payUrl']);
+            } catch (\Throwable $e) {
+                report($e);
+                session()->flash('payment_error', $e->getMessage());
+
+                // Order đã được tạo và giữ trạng thái pending_payment. Không quay lại
+                // checkout để tránh người dùng hiểu nhầm rằng order chưa tồn tại.
+                return redirect()->route('checkout.success');
+            }
+        }
+
+        session()->flash('success_message', 'Đặt hàng thành công!');
+
+        return redirect()->route('checkout.success');
     }
 
     public function render()
