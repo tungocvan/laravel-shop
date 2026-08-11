@@ -2,23 +2,21 @@
 
 namespace Modules\Website\Livewire\Admin\Customers;
 
-use Livewire\Component;
-use Livewire\WithPagination; // Dùng cho tab đơn hàng
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\UserAddress;
+
 class CustomerDetail extends Component
 {
-    use WithPagination;
+    use WithPagination, AuthorizesAdminPermissions;
 
     public $userId;
-    public $activeTab = 'info'; // 'info', 'addresses', 'orders'
-
-    // Form Profile
+    public $activeTab = 'info';
     public $name, $email, $phone, $is_active;
     public $new_password;
-
-    // Form Address (Modal)
     public $showAddressModal = false;
     public $isEditAddress = false;
     public $addressId;
@@ -28,16 +26,16 @@ class CustomerDetail extends Component
     {
         $this->userId = $id;
         $user = User::findOrFail($id);
-
         $this->name = $user->name;
         $this->email = $user->email;
         $this->phone = $user->phone;
-        $this->is_active = (bool)$user->is_active;
+        $this->is_active = (bool) $user->is_active;
     }
 
-    // --- TAB 1: CẬP NHẬT PROFILE ---
     public function updateProfile()
     {
+        $this->authorizeAdminPermission('customer.update');
+
         $this->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email,' . $this->userId,
@@ -45,7 +43,7 @@ class CustomerDetail extends Component
             'new_password' => 'nullable|min:6',
         ]);
 
-        $user = User::find($this->userId);
+        $user = User::findOrFail($this->userId);
         $data = [
             'name' => $this->name,
             'email' => $this->email,
@@ -58,11 +56,10 @@ class CustomerDetail extends Component
         }
 
         $user->update($data);
-        $this->new_password = ''; // Reset password field
+        $this->new_password = '';
         session()->flash('success', 'Cập nhật hồ sơ thành công.');
     }
 
-    // --- TAB 2: QUẢN LÝ ĐỊA CHỈ ---
     public function openAddressModal($id = null)
     {
         $this->resetValidation();
@@ -72,12 +69,11 @@ class CustomerDetail extends Component
             $this->isEditAddress = true;
             $this->addressId = $id;
             $addr = UserAddress::where('user_id', $this->userId)->findOrFail($id);
-
             $this->addr_name = $addr->name;
             $this->addr_phone = $addr->phone;
             $this->addr_address = $addr->address;
-            $this->addr_city = $addr->city; // Ở đây giả sử bạn nhập text, nếu dùng select Huyện/Xã thì cần thêm biến
-            $this->addr_is_default = (bool)$addr->is_default;
+            $this->addr_city = $addr->city;
+            $this->addr_is_default = (bool) $addr->is_default;
         } else {
             $this->isEditAddress = false;
         }
@@ -87,13 +83,14 @@ class CustomerDetail extends Component
 
     public function saveAddress()
     {
+        $this->authorizeAdminPermission('customer.update');
+
         $this->validate([
             'addr_name' => 'required',
             'addr_phone' => 'required',
             'addr_address' => 'required',
         ]);
 
-        // Nếu set mặc định, các địa chỉ khác phải bỏ mặc định
         if ($this->addr_is_default) {
             UserAddress::where('user_id', $this->userId)->update(['is_default' => false]);
         }
@@ -119,25 +116,21 @@ class CustomerDetail extends Component
 
     public function deleteAddress($id)
     {
+        $this->authorizeAdminPermission('customer.update');
         UserAddress::where('user_id', $this->userId)->where('id', $id)->delete();
         session()->flash('success', 'Đã xóa địa chỉ.');
     }
 
-    // --- RENDER ---
     public function render()
     {
         $user = User::withSum('orders', 'total')->findOrFail($this->userId);
-
-        // Lấy danh sách địa chỉ
         $addresses = $user->addresses()->latest()->get();
-
-        // Lấy danh sách đơn hàng (Paginate)
         $orders = $user->orders()->latest()->paginate(5);
 
         return view('Website::livewire.admin.customers.customer-detail', [
             'user' => $user,
             'addresses' => $addresses,
-            'orders' => $orders
+            'orders' => $orders,
         ]);
     }
 }
