@@ -48,8 +48,8 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod 0755 /usr/local/bin/entrypoint \
     && mkdir -p storage/app storage/framework storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache Modules \
-    && find Modules -type d -exec chmod 0775 {} \; \
-    && find Modules -type f -exec chmod 0664 {} \;
+    && find Modules -type d -exec chmod ug+rwx {} \; \
+    && find Modules -type f -exec chmod ug+rw {} \;
 ENTRYPOINT ["entrypoint"]
 CMD ["php-fpm"]
 
