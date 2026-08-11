@@ -5,7 +5,7 @@
 - Phase: `1A — Checkout Stabilization`
 - Analysis: `COMPLETE`
 - Implementation: `COMPLETE`
-- Automated runtime test: `PENDING USER RUNTIME`
+- Automated runtime test: `PASS — 8 tests / 50 assertions`
 - Manual payment smoke: `PENDING USER RUNTIME`
 - Approval: `NOT APPROVED`
 - Rule: do not start Phase 1B until this gate is tested and approved.
@@ -71,7 +71,7 @@ Implemented:
 - no `withoutVerifying()` TLS bypass;
 - no `dd()` payment failure path;
 - config/env-driven endpoint and credentials;
-- payment request uses the official `captureWallet` request shape;
+- payment request uses the approved `captureWallet` request shape;
 - customer is redirected only to a successful MoMo `payUrl`;
 - browser redirect callback: `GET /checkout/momo-callback`;
 - server-to-server IPN: `POST /checkout/momo-ipn`;
@@ -125,28 +125,79 @@ Modules/Website/routes/web.php
 tests/Feature/Website/WebsiteCheckoutConfigurationTest.php
 ```
 
+## Automated Runtime Results
+
+User executed the Phase 1A runtime commands after pulling the implementation.
+
+### Bootstrap/cache clear
+
+```text
+php artisan optimize:clear
+PASS
+```
+
+### Checkout routes
+
+```text
+GET|HEAD checkout                    checkout.index
+GET|HEAD checkout/momo-callback      checkout.momo.callback
+POST     checkout/momo-ipn           checkout.momo.ipn
+GET|HEAD checkout/success            checkout.success
+```
+
+Classification: `PASS — 4 expected checkout routes registered`.
+
+### Focused checkout configuration tests
+
+```text
+PASS Tests\Feature\Website\WebsiteCheckoutConfigurationTest
+✓ checkout accepts only approved payment methods
+✓ momo routes map to real controller actions
+✓ momo create payment uses config and returns pay url
+✓ momo gateway failure throws controlled exception
+✓ momo result signature is verified
+
+Tests: 5 passed (20 assertions)
+```
+
+Classification: `PASS`.
+
+### Existing Website route regression tests
+
+```text
+PASS Tests\Feature\Website\WebsiteRouteConfigurationTest
+✓ blog index route uses controller action
+✓ website admin routes keep admin auth middleware
+✓ registered website admin pages use module livewire aliases
+
+Tests: 3 passed (30 assertions)
+```
+
+Classification: `PASS`.
+
+### Combined Website feature scope
+
+```text
+Tests: 8 passed (50 assertions)
+```
+
+Classification: `PASS`.
+
+Automated Phase 1A regression status is therefore `PASS`. Manual payment/runtime behavior remains the only Phase 1A gate still open.
+
 ## Focused Automated Test Commands
 
-Run after `git pull`:
+For future regression runs:
 
 ```bash
 php artisan optimize:clear
 php artisan route:list --name=checkout
 php artisan test tests/Feature/Website/WebsiteCheckoutConfigurationTest.php
 php artisan test tests/Feature/Website/WebsiteRouteConfigurationTest.php
-```
-
-Then run broader Website tests if available:
-
-```bash
 php artisan test tests/Feature/Website
 ```
 
-Finally run the full suite only as regression reference; Phase 0 already recorded unrelated baseline failures:
-
-```bash
-php artisan test
-```
+The full repository suite remains a regression reference only; Phase 0 already recorded unrelated baseline failures.
 
 ## Manual Phase 1A Smoke Gate
 
@@ -193,10 +244,15 @@ php artisan test
 
 Phase 1A may be marked `TESTED / APPROVED` only after:
 
-- focused checkout configuration test passes;
-- existing Website route test passes;
-- COD manual smoke passes;
-- bank-transfer manual smoke passes;
-- MoMo test-environment smoke is completed or an explicit external-credential blocker is recorded;
-- no Phase 0 working behavior regresses;
-- user explicitly approves Phase 1A.
+- [x] focused checkout configuration test passes: `5 tests / 20 assertions`;
+- [x] existing Website route test passes: `3 tests / 30 assertions`;
+- [x] combined Website feature scope passes: `8 tests / 50 assertions`;
+- [ ] COD manual smoke passes;
+- [ ] bank-transfer manual smoke passes;
+- [ ] MoMo test-environment smoke is completed or an explicit external-credential blocker is recorded;
+- [ ] no Phase 0 working behavior regresses;
+- [ ] user explicitly approves Phase 1A.
+
+## Current Decision
+
+**Automated gate: PASS. Manual payment gate: PENDING. Phase 1A remains open.**
