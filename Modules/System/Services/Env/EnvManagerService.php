@@ -2,8 +2,10 @@
 
 namespace Modules\System\Services\Env;
 
+use Dotenv\Dotenv;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
+use Throwable;
 
 class EnvManagerService
 {
@@ -18,11 +20,9 @@ class EnvManagerService
     {
         $targetPath = base_path(".env.{$suffix}");
 
-        if (File::exists($this->envPath)) {
-            return File::copy($this->envPath, $targetPath);
-        }
-
-        return false;
+        return File::exists($this->envPath)
+            ? File::copy($this->envPath, $targetPath)
+            : false;
     }
 
     public function getValues(): array
@@ -35,25 +35,25 @@ class EnvManagerService
         $settings = [];
 
         foreach ($lines as $line) {
-            if (str_starts_with(trim($line), '#')) {
+            if (str_starts_with(trim($line), '#') || !str_contains($line, '=')) {
                 continue;
             }
 
-            if (str_contains($line, '=')) {
-                [$key, $value] = explode('=', $line, 2);
-                $settings[trim($key)] = $this->unquoteValue(trim($value));
-            }
+            [$key, $value] = explode('=', $line, 2);
+            $settings[trim($key)] = $this->unquoteValue(trim($value));
         }
 
         return $settings;
     }
 
     /**
-     * Cập nhật các biến môi trường mà không thay inode của .env.
+     * Transactional .env update for Docker single-file bind mounts.
      *
-     * .env được bind-mount trực tiếp vào container. Vì vậy không dùng
-     * File::put()/file_put_contents() hay replace/rename file. Ghi in-place
-     * trên descriptor hiện có giúp tương thích Docker single-file bind mount.
+     * - serializes values using dotenv-safe quoting
+     * - validates the complete candidate before touching .env
+     * - creates a persistent safety backup
+     * - writes in-place so the inode never changes
+     * - restores the original content in-place if the write fails
      */
     public function update(array $data): bool
     {
@@ -61,14 +61,36 @@ class EnvManagerService
             return false;
         }
 
-        $content = File::get($this->envPath);
+        $original = File::get($this->envPath);
+        $candidate = $this->buildCandidate($original, $data);
 
+        $this->validateContent($candidate);
+        $this->createSafetyBackup($original);
+
+        try {
+            return $this->writeInPlace($candidate);
+        } catch (Throwable $e) {
+            try {
+                $this->writeInPlace($original);
+            } catch (Throwable) {
+                // Keep the original exception; the persistent backup remains available.
+            }
+
+            throw $e;
+        }
+    }
+
+    protected function buildCandidate(string $content, array $data): string
+    {
         foreach ($data as $key => $value) {
             $key = strtoupper((string) $key);
-            $formattedValue = $this->formatValue($value);
 
+            if (!preg_match('/^[A-Z_][A-Z0-9_]*$/', $key)) {
+                throw new RuntimeException("Tên biến .env không hợp lệ: {$key}");
+            }
+
+            $newLine = $key . '=' . $this->formatValue($value);
             $pattern = '/^' . preg_quote($key, '/') . '=.*/m';
-            $newLine = "{$key}={$formattedValue}";
 
             if (preg_match($pattern, $content)) {
                 $content = preg_replace($pattern, $newLine, $content, 1);
@@ -77,7 +99,36 @@ class EnvManagerService
             }
         }
 
-        return $this->writeInPlace($content);
+        return $content;
+    }
+
+    protected function validateContent(string $content): void
+    {
+        try {
+            Dotenv::parse($content);
+        } catch (Throwable $e) {
+            throw new RuntimeException('Nội dung .env sau cập nhật không hợp lệ: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    protected function createSafetyBackup(string $content): void
+    {
+        $dir = storage_path('app/backups/env');
+
+        if (!File::isDirectory($dir) && !File::makeDirectory($dir, 0700, true)) {
+            throw new RuntimeException("Không thể tạo thư mục backup .env: {$dir}");
+        }
+
+        @chmod($dir, 0700);
+
+        $path = $dir . '/.env.backup_' . now()->format('Ymd_His_u');
+        $written = @file_put_contents($path, $content, LOCK_EX);
+
+        if ($written === false || $written !== strlen($content)) {
+            throw new RuntimeException("Không thể tạo backup .env: {$path}");
+        }
+
+        @chmod($path, 0600);
     }
 
     protected function writeInPlace(string $content): bool
@@ -93,12 +144,8 @@ class EnvManagerService
                 throw new RuntimeException('Không thể lock file .env để cập nhật.');
             }
 
-            if (!rewind($handle)) {
-                throw new RuntimeException('Không thể rewind file .env.');
-            }
-
-            if (!ftruncate($handle, 0)) {
-                throw new RuntimeException('Không thể truncate file .env.');
+            if (!rewind($handle) || !ftruncate($handle, 0) || !rewind($handle)) {
+                throw new RuntimeException('Không thể chuẩn bị file .env để ghi in-place.');
             }
 
             $length = strlen($content);
@@ -131,7 +178,16 @@ class EnvManagerService
 
     protected function unquoteValue(string $value): string
     {
-        return trim($value, "\"' ");
+        if (strlen($value) >= 2) {
+            $first = $value[0];
+            $last = $value[strlen($value) - 1];
+
+            if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+                return stripcslashes(substr($value, 1, -1));
+            }
+        }
+
+        return $value;
     }
 
     protected function formatValue(mixed $value): string
@@ -146,10 +202,18 @@ class EnvManagerService
 
         $value = (string) $value;
 
-        if (preg_match('/\s/', $value) || str_contains($value, '#')) {
-            return '"' . addslashes($value) . '"';
+        // Keep only conservative values unquoted. Everything else is encoded
+        // as a double-quoted dotenv value so spaces, #, $, quotes and URLs are safe.
+        if ($value !== '' && preg_match('/^[A-Za-z0-9_\.\/:@+\-]+$/', $value)) {
+            return $value;
         }
 
-        return $value;
+        $escaped = str_replace(
+            ["\\", '"', '$', "\r", "\n"],
+            ["\\\\", '\\"', '\\$', '\\r', '\\n'],
+            $value
+        );
+
+        return '"' . $escaped . '"';
     }
 }
