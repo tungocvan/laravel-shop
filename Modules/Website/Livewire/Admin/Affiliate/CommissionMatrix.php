@@ -1,23 +1,23 @@
 <?php
+
 namespace Modules\Website\Livewire\Admin\Affiliate;
 
+use App\Models\User;
 use Livewire\Component;
-use Modules\Website\Models\WpProduct;
+use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\AffiliateLevel;
 use Modules\Website\Models\AffiliateScheme;
-use App\Models\User;
+use Modules\Website\Models\WpProduct;
 
 class CommissionMatrix extends Component
 {
+    use AuthorizesAdminPermissions;
+
     public $productId;
     public $product;
-
-    // Form State cho việc thêm User đặc biệt
     public $searchUser = '';
     public $selectedUserId = null;
     public $userResults = [];
-
-    // Danh sách schemes hiện tại
     public $schemes = [];
 
     public function mount($productId)
@@ -34,20 +34,23 @@ class CommissionMatrix extends Component
             ->get();
     }
 
-    // Tìm kiếm User để thêm cấu hình đặc biệt
     public function updatedSearchUser()
     {
         if (strlen($this->searchUser) < 2) {
             $this->userResults = [];
             return;
         }
+
         $this->userResults = User::where('name', 'like', '%' . $this->searchUser . '%')
             ->orWhere('email', 'like', '%' . $this->searchUser . '%')
-            ->limit(5)->get();
+            ->limit(5)
+            ->get();
     }
 
     public function addLevelScheme($levelId)
     {
+        $this->authorizeAdminPermission('affiliate.manage');
+
         AffiliateScheme::updateOrCreate(
             ['product_id' => $this->productId, 'level_id' => $levelId, 'user_id' => null],
             ['commission_type' => 'percentage', 'percent_value' => 0]
@@ -57,6 +60,8 @@ class CommissionMatrix extends Component
 
     public function addUserScheme($userId)
     {
+        $this->authorizeAdminPermission('affiliate.manage');
+
         AffiliateScheme::updateOrCreate(
             ['product_id' => $this->productId, 'user_id' => $userId, 'level_id' => null],
             ['commission_type' => 'hybrid', 'percent_value' => 0, 'fixed_value' => 0]
@@ -68,6 +73,8 @@ class CommissionMatrix extends Component
 
     public function updateScheme($id, $field, $value)
     {
+        $this->authorizeAdminPermission('affiliate.manage');
+
         $scheme = AffiliateScheme::find($id);
         if ($scheme) {
             $scheme->update([$field => $value]);
@@ -77,15 +84,15 @@ class CommissionMatrix extends Component
 
     public function deleteScheme($id)
     {
+        $this->authorizeAdminPermission('affiliate.manage');
         AffiliateScheme::destroy($id);
         $this->loadSchemes();
     }
 
     public function render()
     {
-        $levels = AffiliateLevel::all();
         return view('Website::livewire.admin.affiliate.commission-matrix', [
-            'levels' => $levels
+            'levels' => AffiliateLevel::all(),
         ]);
     }
 }
