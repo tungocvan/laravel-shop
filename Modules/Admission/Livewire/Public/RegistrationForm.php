@@ -2,50 +2,32 @@
 
 namespace Modules\Admission\Livewire\Public;
 
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
-use Modules\Admission\Models\AdmissionApplication;
-use Modules\Admission\Models\AdmissionCatalog;
-use Modules\Admission\Models\AdmissionLocation;
-use Modules\Admission\Services\AdmissionService;
-use Modules\Admission\Services\SchoolSettingService;
+use Modules\Admission\Services\AdmissionRegistrationService;
 
 class RegistrationForm extends Component
 {
     public $currentStep = 1;
-
     public $totalSteps = 5;
-
     public $provinces = [];
-
     public $tt_wards = [];
-
     public $ht_wards = [];
-
     public $noi_sinh_wards = [];
-
     public $que_quan_wards = [];
-
     public $noi_dang_ky_khai_sinh_wards = [];
-
     public $ethnicities = [];
-
     public $religions = [];
-
     public array $registrationClasses = [];
-
     public $copyNoiSinhToQueQuan = false;
-
     public $sameAddress = false;
-
     public $applicationId = null;
-
     public $isEdit = false;
 
-    // ⚠️ QUAN TRỌNG: GIỮ NGUYÊN KEY PascalCase
+    // Keep PascalCase keys for the existing Blade/service contract.
     public $form = [
-
-        // STEP 1
         'HoVaTenHocSinh' => '',
         'GioiTinh' => '',
         'NgaySinh' => '',
@@ -63,20 +45,16 @@ class RegistrationForm extends Component
         'QueQuan' => '',
         'QueQuanPx' => '',
         'QueQuanTt' => '',
-        // STEP 2
         'TTSN' => '',
         'TTD' => '',
         'TTKP' => '',
         'TTPX' => '',
         'TTTTP' => '',
-
         'HTSN' => '',
         'HTD' => '',
         'HTKP' => '',
         'HTPX' => '',
         'HTTTP' => '',
-
-        // STEP 3
         'OChungVoi' => '',
         'QuanHeNguoiNuoiDuong' => '',
         'ConThu' => '',
@@ -86,445 +64,319 @@ class RegistrationForm extends Component
         'KhaNangHocSinh' => [],
         'SucKhoeCanLuuY' => [],
         'SucKhoeKhac' => '',
-
-        // STEP 4
         'HoTenCha' => '',
         'NamSinhCha' => '',
+        'TdvhCha' => '',
+        'TdcmCha' => '',
         'NgheNghiepCha' => 'LĐTD',
         'ChucVuCha' => '',
         'DienThoaiCha' => '',
         'CCCDCha' => '',
-
         'HoTenMe' => '',
         'NamSinhMe' => '',
+        'TdvhMe' => '',
+        'TdcmMe' => '',
         'NgheNghiepMe' => 'LĐTD',
         'ChucVuMe' => '',
         'DienThoaiMe' => '',
         'CCCDMe' => '',
-
         'HoTenNguoiGiamHo' => '',
         'QuanHeGiamHo' => '',
         'DienThoaiGiamHo' => '',
         'CCCDGiamHo' => '',
-
-        // STEP 5
         'LoaiLopDangKy' => 'Lớp thường',
         'CK_GocHocTap' => true,
         'CK_SachVo' => true,
         'CK_HopPH' => true,
         'CK_ThamGiaHD' => true,
         'CK_GanGui' => true,
-
         'Lop' => '',
         'Gvcn' => '',
         'BaoMau' => '',
-
         'NgayLamDon' => '',
         'NguoiLamDon' => '',
     ];
 
-    //     public $form = [
-    //         // STEP 1
-    //         'HoVaTenHocSinh' => 'Nguyễn Minh An',
-    //         'GioiTinh' => 'Nam',
-    //         'NgaySinh' => '2020-01-01',
-    //         'DanToc' => 'Kinh',
-    //         'MaDinhDanh' => '079120000001',
-    //         'QuocTich' => 'Việt Nam',
-    //         'TonGiao' => 'Không',
-    //         'SDTEnetViet' => '0908123456',
-
-    //         'NoiSinh' => '',
-    //         'NoiSinhPx'  => '',
-    //         'NoiSinhTt'  => '',
-    //         'NoiSinhChiTiet'   => '',
-    //         'NoiDangKyKhaiSinhPx' => '',
-    //         'NoiDangKyKhaiSinhTt' => '',
-    //         'QueQuan' => '',
-    //         'QueQuanPx' => '',
-    //         'QueQuanTt' => '',
-
-    //         // STEP 2
-    //         'TTSN' => '45',
-    //         'TTD' => 'Huỳnh Tấn Phát',
-    //         'TTKP' => 'KP 2',
-    //         'TTPX' => '',
-    //         'TTTTP' => '',
-
-    //         'HTSN' => '45',
-    //         'HTD' => 'Huỳnh Tấn Phát',
-    //         'HTKP' => 'KP 2',
-    //         'HTPX' => '',
-    //         'HTTTP' => '',
-
-    //         // STEP 3
-    //         'OChungVoi' => 'Cha mẹ',
-    //         'QuanHeNguoiNuoiDuong' => '',
-    //         'ConThu' => '1',
-    //         'TSAnhChiEm' => '2',
-    //         'HoanThanhLopLa' => 'Có',
-    //         'TruongMamNon' => 'Rạng Đông',
-    //         'KhaNangHocSinh' => [],
-    //         'SucKhoeCanLuuY' => [],
-    //         'SucKhoeKhac' => '',
-
-    //         // STEP 4
-    //         'HoTenCha' => 'Nguyễn Văn Hùng',
-    //         'NamSinhCha' => '1990',
-    //         'NgheNghiepCha' => 'LĐTD',
-    //         'ChucVuCha' => '',
-    //         'DienThoaiCha' => '0909000001',
-    //         'CCCDCha' => '079088880001
-    // ',
-
-    //         'HoTenMe' => 'Trần Thị Mai',
-    //         'NamSinhMe' => '1992',
-    //         'NgheNghiepMe' => 'LĐTD',
-    //         'ChucVuMe' => '',
-    //         'DienThoaiMe' => '0909000002',
-    //         'CCCDMe' => '079088880002',
-
-    //         'HoTenNguoiGiamHo' => '',
-    //         'QuanHeGiamHo' => '',
-    //         'DienThoaiGiamHo' => '',
-    //         'CCCDGiamHo' => '',
-
-    //         // STEP 5
-    //         'LoaiLopDangKy' => 'Lớp thường',
-    //         'CK_GocHocTap' => true,
-    //         'CK_SachVo' => true,
-    //         'CK_HopPH' => true,
-    //         'CK_ThamGiaHD' => true,
-    //         'CK_GanGui' => true,
-    // 'Lop' => '',
-    // 'Gvcn' => '',
-    // 'BaoMau' => '',
-    //         'NgayLamDon' => '',
-    //         'NguoiLamDon' => 'Trần Thị Mai',
-    //     ];
-
-    protected $rules = [
-        'form.HoVaTenHocSinh' => 'required|min:5',
-        'form.MaDinhDanh' => 'required|digits:12',
-        'form.LoaiLopDangKy' => 'required|string|max:255',
-    ];
-
-    // public function mount()
-    // {
-    //     $this->provinces = AdmissionLocation::select('province_name')->distinct()->get()->toArray();
-    //     $this->ethnicities = AdmissionCatalog::where('type', 'ethnicity')->get()->toArray();
-    //     $this->religions = AdmissionCatalog::where('type', 'religion')->get()->toArray();
-
-    //     $this->form['NgayLamDon'] = date('Y-m-d');
-    // }
-
-    public function mount($id = null)
+    public function mount($id = null): void
     {
-        // Load danh mục (giữ nguyên)
-        $this->provinces = AdmissionLocation::select('province_name')->distinct()->get()->toArray();
-        $this->ethnicities = AdmissionCatalog::where('type', 'ethnicity')->get()->toArray();
-        $this->religions = AdmissionCatalog::where('type', 'religion')->get()->toArray();
-        $this->registrationClasses = app(SchoolSettingService::class)->registrationClasses();
+        $service = app(AdmissionRegistrationService::class);
+        $options = $service->options();
+
+        $this->provinces = $options['provinces'];
+        $this->ethnicities = $options['ethnicities'];
+        $this->religions = $options['religions'];
+        $this->registrationClasses = $options['registrationClasses'];
         $this->form['LoaiLopDangKy'] = $this->registrationClasses[0] ?? '';
+        $this->form['NgayLamDon'] = now()->format('Y-m-d');
 
-        $this->form['NgayLamDon'] = date('Y-m-d');
-        // ================= EDIT MODE =================
-        if ($id) {
-
-            $this->isEdit = true;
-            $this->applicationId = $id;
-
-            $app = AdmissionApplication::findOrFail($id);
-
-            if ($app->loai_lop_dang_ky && ! in_array($app->loai_lop_dang_ky, $this->registrationClasses, true)) {
-                $this->registrationClasses[] = $app->loai_lop_dang_ky;
-            }
-            // dump($app->kha_nang_hoc_sinh, gettype($app->kha_nang_hoc_sinh));
-            // dd($this->form['KhaNangHocSinh']);
-            // dd($app->gioi_tinh);
-            // ⚠️ MAP DB → FORM (phải đúng key Service)
-            $this->form = [
-                // STEP 1
-                'HoVaTenHocSinh' => $app->ho_va_ten_hoc_sinh,
-                'Status' => $app->status,
-                'GioiTinh' => $app->gioi_tinh,
-                'NgaySinh' => $app->ngay_sinh ? Carbon::parse($app->ngay_sinh)->format('Y-m-d') : '',
-                'DanToc' => $app->dan_toc ?? 'Kinh',
-                'MaDinhDanh' => $app->ma_dinh_danh,
-                'QuocTich' => $app->quoc_tich ?? 'Việt Nam',
-                'TonGiao' => $app->ton_giao ?? 'Không',
-                'SDTEnetViet' => $app->sdt_enetviet,
-                'NoiSinh' => $app->noi_sinh,
-                'NoiSinhPx' => $app->noi_sinh_px,
-                'NoiSinhTt' => $app->noi_sinh_tt,
-                'NoiSinhChiTiet' => $app->noi_sinh_chi_tiet,
-                'NoiDangKyKhaiSinhPx' => $app->noi_dang_ky_khai_sinh_px,
-                'NoiDangKyKhaiSinhTt' => $app->noi_dang_ky_khai_sinh_tt,
-                'QueQuan' => $app->que_quan,
-                'QueQuanPx' => $app->que_quan_px,
-                'QueQuanTt' => $app->que_quan_tt,
-                // STEP 2
-                'TTSN' => $app->ttsn,
-                'TTD' => $app->ttd,
-                'TTKP' => $app->ttkp,
-                'TTPX' => $app->ttpx,
-                'TTTTP' => $app->ttttp,
-                'HTSN' => $app->htsn,
-                'HTD' => $app->htd,
-                'HTKP' => $app->htkp,
-                'HTPX' => $app->htpx,
-                'HTTTP' => $app->htttp,
-
-                // STEP 3
-                'OChungVoi' => $app->o_chung_voi,
-                'QuanHeNguoiNuoiDuong' => $app->quan_he_nguoi_nuoi_duong,
-                'ConThu' => $app->con_thu,
-                'TSAnhChiEm' => $app->ts_anh_chi_em,
-                'HoanThanhLopLa' => $app->hoan_thanh_lop_la ?? 'Có',
-                'TruongMamNon' => $app->truong_mam_non,
-
-                // ⚠️ STRING → ARRAY
-                'KhaNangHocSinh' => is_array($app->kha_nang_hoc_sinh)
-                    ? $app->kha_nang_hoc_sinh
-                    : [],
-                'SucKhoeCanLuuY' => is_array($app->suc_khoe_can_luu_y)
-                    ? $app->suc_khoe_can_luu_y
-                    : [],
-
-                // STEP 4
-                'HoTenCha' => $app->ho_ten_cha ?? '',
-                'NamSinhCha' => $app->nam_sinh_cha ?? '',
-                'TdvhCha' => $app->tdvh_cha ?? '',
-                'TdcmCha' => $app->tdcm_cha ?? '',
-                'NgheNghiepCha' => $app->nghe_nghiep_cha ?? 'LĐTD',
-                'ChuvuCha' => $app->chuc_vu_cha ?? '',
-                'DienThoaiCha' => $app->dien_thoai_cha ?? '',
-                'CCCDCha' => $app->cccd_cha ?? '',
-                'HoTenMe' => $app->ho_ten_me ?? '',
-                'NamSinhMe' => $app->nam_sinh_me ?? '',
-                'TdvhMe' => $app->tdvh_me ?? '',
-                'TdcmMe' => $app->tdcm_me ?? '',
-                'NgheNghiepMe' => $app->nghe_nghiep_me ?? 'LĐTD',
-                'ChuvuMe' => $app->chuc_vu_me ?? '',
-                'DienThoaiMe' => $app->dien_thoai_me ?? '',
-                'CCCDMe' => $app->cccd_me ?? '',
-                'HoTenNguoiGiamHo' => $app->ho_ten_nguoi_giam_ho ?? $app->ho_ten_me ?? '',
-                'DienThoaiGiamHo' => $app->dien_thoai_giam_ho ?? $app->dien_thoai_me ?? '',
-                'CCCDGiamHo' => $app->cccd_giam_ho ?? $app->cccd_me ?? '',
-
-                // STEP 5
-                'LoaiLopDangKy' => $app->loai_lop_dang_ky ?? 'Lớp thường',
-
-                'CK_GocHocTap' => $app->ck_goc_hoc_tap ? (bool) $app->ck_goc_hoc_tap : true,
-                'CK_SachVo' => $app->ck_sach_vo ? (bool) $app->ck_sach_vo : true,
-                'CK_HopPH' => $app->ck_hop_ph ? (bool) $app->ck_hop_ph : true,
-                'CK_ThamGiaHD' => $app->ck_tham_gia_hd ? (bool) $app->ck_tham_gia_hd : true,
-                'CK_GanGui' => $app->ck_gan_gui ? (bool) $app->ck_gan_gui : true,
-
-                'Lop' => $app->lop ?? '',
-                'Gvcn' => $app->gvcn ?? '',
-                'BaoMau' => $app->bao_mau ?? '',
-
-                'NguoiLamDon' => $app->nguoi_lam_don ?? '',
-            ];
-
-            // Load wards nếu có
-            $this->updated('form.TTTTP');
-            $this->updated('form.HTTTP');
-            $this->updated('form.NoiSinhTt');
-            $this->updated('form.QueQuanTt');
-            $this->updated('form.NoiDangKyKhaiSinhTt');
+        if (! $id) {
+            return;
         }
+
+        $this->authorizeAdmin('edit_admission');
+        $this->isEdit = true;
+        $this->applicationId = (int) $id;
+
+        $application = $service->findForEdit($this->applicationId);
+
+        if ($application->loai_lop_dang_ky && ! in_array($application->loai_lop_dang_ky, $this->registrationClasses, true)) {
+            $this->registrationClasses[] = $application->loai_lop_dang_ky;
+        }
+
+        $this->form = $service->toForm($application);
+        $this->loadWardLists();
     }
 
-    public function setStep($step)
+    protected function rules(): array
     {
-        $this->currentStep = $step;
+        $currentYear = (int) now()->year;
+
+        return [
+            'form.HoVaTenHocSinh' => ['required', 'string', 'min:5', 'max:255'],
+            'form.GioiTinh' => ['nullable', Rule::in(['Nam', 'Nữ'])],
+            'form.NgaySinh' => ['nullable', 'date'],
+            'form.DanToc' => ['nullable', 'string', 'max:100'],
+            'form.MaDinhDanh' => ['required', 'digits:12'],
+            'form.QuocTich' => ['nullable', 'string', 'max:100'],
+            'form.TonGiao' => ['nullable', 'string', 'max:100'],
+            'form.SDTEnetViet' => ['nullable', 'regex:/^\d{8,15}$/'],
+            'form.NoiSinh' => ['nullable', 'string', 'max:255'],
+            'form.NoiSinhPx' => ['nullable', 'string', 'max:255'],
+            'form.NoiSinhTt' => ['nullable', 'string', 'max:255'],
+            'form.NoiSinhChiTiet' => ['nullable', 'string', 'max:255'],
+            'form.NoiDangKyKhaiSinhPx' => ['nullable', 'string', 'max:255'],
+            'form.NoiDangKyKhaiSinhTt' => ['nullable', 'string', 'max:255'],
+            'form.QueQuan' => ['nullable', 'string', 'max:255'],
+            'form.QueQuanPx' => ['nullable', 'string', 'max:255'],
+            'form.QueQuanTt' => ['nullable', 'string', 'max:255'],
+            'form.TTSN' => ['nullable', 'string', 'max:100'],
+            'form.TTD' => ['nullable', 'string', 'max:255'],
+            'form.TTKP' => ['nullable', 'string', 'max:255'],
+            'form.TTPX' => ['nullable', 'string', 'max:255'],
+            'form.TTTTP' => ['nullable', 'string', 'max:255'],
+            'form.HTSN' => ['nullable', 'string', 'max:100'],
+            'form.HTD' => ['nullable', 'string', 'max:255'],
+            'form.HTKP' => ['nullable', 'string', 'max:255'],
+            'form.HTPX' => ['nullable', 'string', 'max:255'],
+            'form.HTTTP' => ['nullable', 'string', 'max:255'],
+            'form.OChungVoi' => ['nullable', 'string', 'max:255'],
+            'form.QuanHeNguoiNuoiDuong' => ['nullable', 'string', 'max:255'],
+            'form.ConThu' => ['nullable', 'integer', 'min:0', 'max:30'],
+            'form.TSAnhChiEm' => ['nullable', 'integer', 'min:0', 'max:30'],
+            'form.HoanThanhLopLa' => ['nullable', 'string', 'max:100'],
+            'form.TruongMamNon' => ['nullable', 'string', 'max:255'],
+            'form.KhaNangHocSinh' => ['array'],
+            'form.KhaNangHocSinh.*' => ['string', 'max:255'],
+            'form.SucKhoeCanLuuY' => ['array'],
+            'form.SucKhoeCanLuuY.*' => ['string', 'max:255'],
+            'form.SucKhoeKhac' => ['nullable', 'string', 'max:255'],
+            'form.HoTenCha' => ['nullable', 'string', 'max:255'],
+            'form.NamSinhCha' => ['nullable', 'integer', 'min:1900', 'max:'.$currentYear],
+            'form.TdvhCha' => ['nullable', 'string', 'max:100'],
+            'form.TdcmCha' => ['nullable', 'string', 'max:100'],
+            'form.NgheNghiepCha' => ['nullable', 'string', 'max:255'],
+            'form.ChucVuCha' => ['nullable', 'string', 'max:255'],
+            'form.DienThoaiCha' => ['nullable', 'regex:/^\d{8,15}$/'],
+            'form.CCCDCha' => ['nullable', 'regex:/^\d{9,12}$/'],
+            'form.HoTenMe' => ['nullable', 'string', 'max:255'],
+            'form.NamSinhMe' => ['nullable', 'integer', 'min:1900', 'max:'.$currentYear],
+            'form.TdvhMe' => ['nullable', 'string', 'max:100'],
+            'form.TdcmMe' => ['nullable', 'string', 'max:100'],
+            'form.NgheNghiepMe' => ['nullable', 'string', 'max:255'],
+            'form.ChucVuMe' => ['nullable', 'string', 'max:255'],
+            'form.DienThoaiMe' => ['nullable', 'regex:/^\d{8,15}$/'],
+            'form.CCCDMe' => ['nullable', 'regex:/^\d{9,12}$/'],
+            'form.HoTenNguoiGiamHo' => ['nullable', 'string', 'max:255'],
+            'form.QuanHeGiamHo' => ['nullable', 'string', 'max:255'],
+            'form.DienThoaiGiamHo' => ['nullable', 'regex:/^\d{8,15}$/'],
+            'form.CCCDGiamHo' => ['nullable', 'regex:/^\d{9,12}$/'],
+            'form.LoaiLopDangKy' => ['required', 'string', 'max:255', Rule::in($this->registrationClasses)],
+            'form.CK_GocHocTap' => ['boolean'],
+            'form.CK_SachVo' => ['boolean'],
+            'form.CK_HopPH' => ['boolean'],
+            'form.CK_ThamGiaHD' => ['boolean'],
+            'form.CK_GanGui' => ['boolean'],
+            'form.Lop' => ['nullable', 'string', 'max:100'],
+            'form.Gvcn' => ['nullable', 'string', 'max:255'],
+            'form.BaoMau' => ['nullable', 'string', 'max:255'],
+            'form.NgayLamDon' => ['nullable', 'date'],
+            'form.NguoiLamDon' => ['nullable', 'string', 'max:255'],
+        ];
     }
 
-    public function updated($field)
+    public function setStep($step): void
     {
-        if ($field === 'form.TTTTP') {
-            $this->tt_wards = AdmissionLocation::where('province_name', $this->form['TTTTP'])->get()->toArray();
+        $target = max(1, min($this->totalSteps, (int) $step));
+
+        if ($target > $this->currentStep) {
+            $this->validateCurrentStep();
+            $target = min($target, $this->currentStep + 1);
         }
 
-        if ($field === 'form.HTTTP') {
-            $this->ht_wards = AdmissionLocation::where('province_name', $this->form['HTTTP'])->get()->toArray();
-        }
-
-        if ($field === 'form.NoiSinhTt') {
-            $this->noi_sinh_wards = AdmissionLocation::where('province_name', $this->form['NoiSinhTt'])->get()->toArray();
-        }
-
-        if ($field === 'form.NoiDangKyKhaiSinhTt') {
-            $this->noi_dang_ky_khai_sinh_wards = AdmissionLocation::where('province_name', $this->form['NoiDangKyKhaiSinhTt'])->get()->toArray();
-        }
-
-        if ($field === 'form.QueQuanTt') {
-            $this->que_quan_wards = AdmissionLocation::where('province_name', $this->form['QueQuanTt'])->get()->toArray();
-        }
+        $this->currentStep = $target;
     }
 
-    public function updatedCopyNoiSinhToQueQuan($value)
+    public function updated($field): void
     {
-        if ($value) {
+        $service = app(AdmissionRegistrationService::class);
 
-            $this->form['QueQuanPx'] = $this->form['NoiSinhPx'];
-            $this->form['QueQuanTt'] = $this->form['NoiSinhTt'];
+        $map = [
+            'form.TTTTP' => 'tt_wards',
+            'form.HTTTP' => 'ht_wards',
+            'form.NoiSinhTt' => 'noi_sinh_wards',
+            'form.NoiDangKyKhaiSinhTt' => 'noi_dang_ky_khai_sinh_wards',
+            'form.QueQuanTt' => 'que_quan_wards',
+        ];
+
+        if (isset($map[$field])) {
+            $province = $this->form[str_replace('form.', '', $field)] ?? '';
+            $this->{$map[$field]} = $service->wardsForProvince($province);
         }
     }
-    // ================= SAME ADDRESS =================
 
-    public function updatedSameAddress($value)
+    public function updatedCopyNoiSinhToQueQuan($value): void
     {
-        if ($value) {
-            $this->form['HTSN'] = $this->form['TTSN'];
-            $this->form['HTD'] = $this->form['TTD'];
-            $this->form['HTKP'] = $this->form['TTKP'];
-            $this->form['HTTTP'] = $this->form['TTTTP'];
-            $this->form['HTPX'] = $this->form['TTPX'];
-
-            $this->ht_wards = $this->tt_wards;
+        if (! $value) {
+            return;
         }
+
+        $this->form['QueQuanPx'] = $this->form['NoiSinhPx'];
+        $this->form['QueQuanTt'] = $this->form['NoiSinhTt'];
+        $this->que_quan_wards = $this->noi_sinh_wards;
     }
 
-    public function updatedForm($value, $key)
+    public function updatedSameAddress($value): void
     {
-        if ($this->sameAddress) {
-
-            $map = [
-                'TTSN' => 'HTSN',
-                'TTD' => 'HTD',
-                'TTKP' => 'HTKP',
-                'TTTTP' => 'HTTTP',
-                'TTPX' => 'HTPX',
-            ];
-
-            if (isset($map[$key])) {
-                $this->form[$map[$key]] = $value;
-            }
+        if (! $value) {
+            return;
         }
+
+        $this->form['HTSN'] = $this->form['TTSN'];
+        $this->form['HTD'] = $this->form['TTD'];
+        $this->form['HTKP'] = $this->form['TTKP'];
+        $this->form['HTTTP'] = $this->form['TTTTP'];
+        $this->form['HTPX'] = $this->form['TTPX'];
+        $this->ht_wards = $this->tt_wards;
     }
 
-    // ================= STEP =================
-
-    public function nextStep()
+    public function updatedForm($value, $key): void
     {
-        if ($this->currentStep < $this->totalSteps) {
-            $this->currentStep++;
+        if (! $this->sameAddress) {
+            return;
+        }
+
+        $map = [
+            'TTSN' => 'HTSN',
+            'TTD' => 'HTD',
+            'TTKP' => 'HTKP',
+            'TTTTP' => 'HTTTP',
+            'TTPX' => 'HTPX',
+        ];
+
+        if (isset($map[$key])) {
+            $this->form[$map[$key]] = $value;
         }
     }
 
-    public function prevStep()
+    public function nextStep(): void
+    {
+        if ($this->currentStep >= $this->totalSteps) {
+            return;
+        }
+
+        $this->validateCurrentStep();
+        $this->currentStep++;
+    }
+
+    public function prevStep(): void
     {
         if ($this->currentStep > 1) {
             $this->currentStep--;
         }
     }
 
-    // ================= SAVE =================
-
-    // public function save(AdmissionService $service)
-    // {
-    //     $this->validate();
-
-    //     try {
-
-    //         // ⚠️ CLONE DATA (QUAN TRỌNG)
-    //         $data = $this->form;
-
-    //         // ===== STEP 3 =====
-
-    //         // Khả năng
-    //         $data['KhaNangHocSinh'] = !empty($data['KhaNangHocSinh'])
-    //             ? implode(', ', $data['KhaNangHocSinh'])
-    //             : null;
-
-    //         // Sức khỏe
-    //         $health = $data['SucKhoeCanLuuY'] ?? [];
-
-    //         if (!empty($data['SucKhoeKhac'])) {
-    //             $health[] = $data['SucKhoeKhac'];
-    //         }
-
-    //         $data['SucKhoeCanLuuY'] = !empty($health)
-    //             ? implode(', ', $health)
-    //             : null;
-
-    //         // Người nuôi dưỡng
-    //         if (($data['OChungVoi'] ?? null) === 'other') {
-    //             $data['OChungVoi'] = $data['QuanHeNguoiNuoiDuong'] ?? null;
-    //         }
-
-    //         // Trim
-    //         $data = array_map(fn($v) => is_string($v) ? trim($v) : $v, $data);
-
-    //         // SAVE
-    //         $application = $service->createRegistration($data);
-
-    //         if ($application && $application->id) {
-
-    //             $this->dispatch('show-success-modal', [
-    //                 'name' => $application->ho_va_ten_hoc_sinh,
-    //                 'redirectUrl' => route('admission.register')
-    //             ]);
-    //         }
-    //     } catch (\Exception $e) {
-
-    //         \Log::error("Lỗi lưu đơn: " . $e->getMessage());
-
-    //         session()->flash('error', 'Có lỗi xảy ra khi lưu.');
-    //     }
-    // }
-
-    public function save(AdmissionService $service)
+    public function save(AdmissionRegistrationService $service): void
     {
+        $this->authorizeAdmin($this->isEdit ? 'edit_admission' : 'create_admission');
         $this->validate();
 
         try {
             $data = $this->form;
+            $data['KhaNangHocSinh'] = is_array($data['KhaNangHocSinh'] ?? null) ? $data['KhaNangHocSinh'] : [];
+            $data['SucKhoeCanLuuY'] = is_array($data['SucKhoeCanLuuY'] ?? null) ? $data['SucKhoeCanLuuY'] : [];
 
-            // FORMAT giống bạn đang làm
-            $data['KhaNangHocSinh'] = is_array($data['KhaNangHocSinh'])
-                ? $data['KhaNangHocSinh']
-                : [];
-
-            $data['SucKhoeCanLuuY'] = is_array($data['SucKhoeCanLuuY'])
-                ? $data['SucKhoeCanLuuY']
-                : [];
+            if (! empty($data['SucKhoeKhac'])) {
+                $data['SucKhoeCanLuuY'][] = trim((string) $data['SucKhoeKhac']);
+            }
 
             if (($data['OChungVoi'] ?? null) === 'other') {
                 $data['OChungVoi'] = $data['QuanHeNguoiNuoiDuong'] ?? null;
             }
 
-            // ================= EDIT / CREATE =================
             if ($this->isEdit) {
-
-                if ($data['Lop'] !== '' && $data['Gvcn'] !== '') {
-                    $data['Status'] = 'approved';
-                } else {
-                    $data['Status'] = 'pending';
-                }
-
-                $application = $service->updateRegistration($this->applicationId, $data);
-                $this->dispatch('show-success-modal', [
-                    'name' => $application->ho_va_ten_hoc_sinh,
-                    'redirectUrl' => route('admin.admission.index'),
-                ]);
+                $application = $service->update((int) $this->applicationId, $data);
+                $redirectUrl = route('admin.admission.index');
             } else {
-                $application = $service->createRegistration($data);
-                $this->dispatch('show-success-modal', [
-                    'name' => $application->ho_va_ten_hoc_sinh,
-                    'redirectUrl' => route('admission.register'),
-                ]);
+                $application = $service->create($data);
+                $redirectUrl = route('admission.register');
             }
-        } catch (\Exception $e) {
-            \Log::error('Lỗi lưu đơn: '.$e->getMessage());
+
+            $this->dispatch('show-success-modal', [
+                'name' => $application->ho_va_ten_hoc_sinh,
+                'redirectUrl' => $redirectUrl,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Admission registration save failed.', [
+                'application_id' => $this->isEdit ? (int) $this->applicationId : null,
+                'mode' => $this->isEdit ? 'edit' : 'create',
+                'exception' => $e::class,
+            ]);
+
+            session()->flash('error', 'Có lỗi xảy ra khi lưu hồ sơ. Vui lòng thử lại.');
         }
     }
 
     public function render()
     {
         return view('Admission::livewire.admission.registration-form');
+    }
+
+    private function validateCurrentStep(): void
+    {
+        $allRules = $this->rules();
+        $fields = match ((int) $this->currentStep) {
+            1 => ['HoVaTenHocSinh', 'GioiTinh', 'NgaySinh', 'DanToc', 'MaDinhDanh', 'QuocTich', 'TonGiao', 'SDTEnetViet', 'NoiSinh', 'NoiSinhPx', 'NoiSinhTt', 'NoiSinhChiTiet', 'NoiDangKyKhaiSinhPx', 'NoiDangKyKhaiSinhTt', 'QueQuan', 'QueQuanPx', 'QueQuanTt'],
+            2 => ['TTSN', 'TTD', 'TTKP', 'TTPX', 'TTTTP', 'HTSN', 'HTD', 'HTKP', 'HTPX', 'HTTTP'],
+            3 => ['OChungVoi', 'QuanHeNguoiNuoiDuong', 'ConThu', 'TSAnhChiEm', 'HoanThanhLopLa', 'TruongMamNon', 'KhaNangHocSinh', 'SucKhoeCanLuuY', 'SucKhoeKhac'],
+            4 => ['HoTenCha', 'NamSinhCha', 'TdvhCha', 'TdcmCha', 'NgheNghiepCha', 'ChucVuCha', 'DienThoaiCha', 'CCCDCha', 'HoTenMe', 'NamSinhMe', 'TdvhMe', 'TdcmMe', 'NgheNghiepMe', 'ChucVuMe', 'DienThoaiMe', 'CCCDMe', 'HoTenNguoiGiamHo', 'QuanHeGiamHo', 'DienThoaiGiamHo', 'CCCDGiamHo'],
+            5 => ['LoaiLopDangKy', 'CK_GocHocTap', 'CK_SachVo', 'CK_HopPH', 'CK_ThamGiaHD', 'CK_GanGui', 'Lop', 'Gvcn', 'BaoMau', 'NgayLamDon', 'NguoiLamDon'],
+            default => [],
+        };
+
+        $rules = collect($allRules)
+            ->filter(fn ($rule, $key) => collect($fields)->contains(fn ($field) => $key === "form.{$field}" || str_starts_with($key, "form.{$field}.")))
+            ->all();
+
+        $this->validate($rules);
+    }
+
+    private function loadWardLists(): void
+    {
+        $service = app(AdmissionRegistrationService::class);
+
+        $this->tt_wards = $service->wardsForProvince($this->form['TTTTP'] ?? null);
+        $this->ht_wards = $service->wardsForProvince($this->form['HTTTP'] ?? null);
+        $this->noi_sinh_wards = $service->wardsForProvince($this->form['NoiSinhTt'] ?? null);
+        $this->que_quan_wards = $service->wardsForProvince($this->form['QueQuanTt'] ?? null);
+        $this->noi_dang_ky_khai_sinh_wards = $service->wardsForProvince($this->form['NoiDangKyKhaiSinhTt'] ?? null);
+    }
+
+    private function authorizeAdmin(string $permission): int
+    {
+        $admin = Auth::guard('admin')->user();
+
+        abort_unless($admin && $admin->can($permission), 403);
+
+        return (int) $admin->getAuthIdentifier();
     }
 }
