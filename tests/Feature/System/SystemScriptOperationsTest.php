@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\System;
 
+use Illuminate\Support\Facades\Route;
 use InvalidArgumentException;
 use Modules\System\Services\SystemScriptOperationService;
 use Tests\TestCase;
@@ -68,6 +69,42 @@ class SystemScriptOperationsTest extends TestCase
         $this->assertStringContainsString('is_readable($candidate)', $contents);
         $this->assertStringNotContainsString('shell_exec(', $contents);
         $this->assertStringNotContainsString('exec(', $contents);
+    }
+
+    public function test_scripts_admin_route_has_expected_authorization(): void
+    {
+        $route = Route::getRoutes()->getByName('admin.system.scripts');
+
+        $this->assertNotNull($route);
+        $this->assertSame('admin/system/scripts', $route->uri());
+        $middleware = $route->gatherMiddleware();
+        $this->assertContains('auth:admin', $middleware);
+        $this->assertContains('permission:system.commands.run,admin', $middleware);
+    }
+
+    public function test_scripts_admin_page_mounts_restricted_livewire_component(): void
+    {
+        $contents = file_get_contents(base_path('Modules/System/resources/views/pages/settings/scripts.blade.php'));
+
+        $this->assertStringContainsString('<livewire:system.settings.sh-script />', $contents);
+    }
+
+    public function test_scripts_admin_menu_uses_command_permission(): void
+    {
+        $menus = json_decode(
+            file_get_contents(base_path('Modules/Admin/data/menus.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        $systemMenu = collect($menus)->firstWhere('name', 'Công cụ Hệ thống');
+        $this->assertNotNull($systemMenu);
+
+        $scriptsMenu = collect($systemMenu['children'] ?? [])->firstWhere('url', '/admin/system/scripts');
+        $this->assertNotNull($scriptsMenu);
+        $this->assertSame('Thao tác Script', $scriptsMenu['name']);
+        $this->assertSame('system.commands.run', $scriptsMenu['can']);
+        $this->assertTrue((bool) ($scriptsMenu['is_active'] ?? false));
     }
 
     public function test_production_containment_still_forces_sh_script_component_disabled(): void
