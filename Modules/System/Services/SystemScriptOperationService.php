@@ -2,6 +2,7 @@
 
 namespace Modules\System\Services;
 
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use RuntimeException;
@@ -12,19 +13,16 @@ class SystemScriptOperationService
 {
     private const MAX_OUTPUT_BYTES = 32768;
 
-    private const OPERATIONS = [
-        // Intentionally empty until individual server-owned scripts are reviewed
-        // and explicitly registered here with a fixed path and fixed arguments.
-    ];
-
     public function operations(): array
     {
-        return collect(self::OPERATIONS)
+        return collect($this->registry())
             ->map(fn (array $operation, string $id): array => [
                 'id' => $id,
+                'group' => $operation['group'],
                 'label' => $operation['label'],
                 'description' => $operation['description'],
-                'confirmation' => $operation['confirmation'] ?? true,
+                'confirmation' => $operation['confirmation'],
+                'timeout' => $operation['timeout'],
             ])
             ->values()
             ->all();
@@ -32,7 +30,7 @@ class SystemScriptOperationService
 
     public function execute(string $operationId, ?int $actorId = null): array
     {
-        $operation = self::OPERATIONS[$operationId] ?? null;
+        $operation = $this->registry()[$operationId] ?? null;
 
         if ($operation === null) {
             Log::warning('Rejected unknown System script operation.', [
@@ -44,8 +42,8 @@ class SystemScriptOperationService
         }
 
         $scriptPath = $this->resolveRegisteredScriptPath($operation['script']);
-        $timeout = (float) ($operation['timeout'] ?? 60);
-        $arguments = array_values($operation['arguments'] ?? []);
+        $timeout = (float) $operation['timeout'];
+        $arguments = array_values($operation['arguments']);
 
         $context = [
             'actor_id' => $actorId,
@@ -82,6 +80,34 @@ class SystemScriptOperationService
 
             throw $e;
         }
+    }
+
+    private function registry(): array
+    {
+        $path = base_path('Modules/System/config/script_operations.php');
+        $operations = File::exists($path) ? File::getRequire($path) : [];
+
+        if (! is_array($operations)) {
+            throw new InvalidArgumentException('Invalid System script operation registry.');
+        }
+
+        foreach ($operations as $id => $operation) {
+            if (! is_string($id)
+                || ! is_array($operation)
+                || ! isset($operation['group'], $operation['label'], $operation['description'], $operation['script'], $operation['arguments'], $operation['timeout'], $operation['confirmation'])
+                || ! is_string($operation['group'])
+                || ! is_string($operation['label'])
+                || ! is_string($operation['description'])
+                || ! is_string($operation['script'])
+                || ! is_array($operation['arguments'])
+                || ! is_numeric($operation['timeout'])
+                || (float) $operation['timeout'] <= 0
+                || ! is_bool($operation['confirmation'])) {
+                throw new InvalidArgumentException('Invalid System script operation definition.');
+            }
+        }
+
+        return $operations;
     }
 
     private function resolveRegisteredScriptPath(string $relativePath): string
