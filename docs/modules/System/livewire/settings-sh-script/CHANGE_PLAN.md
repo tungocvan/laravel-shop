@@ -4,33 +4,29 @@ Plan date: 2026-08-12
 
 Scope: add a dedicated Admin route/page/menu entry for the already-refactored `Settings/ShScript` component.
 
-Status: **Awaiting explicit approval before implementation.**
+Status: **Implemented 2026-08-12.**
 
 ## 1. Change Goal
 
 Expose the restricted server-owned script operation panel through the Admin sidebar under the existing **Công cụ Hệ thống** group.
 
-The new entry must:
+Implemented behavior:
 
-- open a dedicated System page that mounts `system.settings.sh-script`;
-- require `system.commands.run` at menu, route, and Livewire action boundaries;
-- reuse the refactored `ShScript` component and `SystemScriptOperationService`;
-- not restore script create/edit/delete behavior;
-- not restore browser-controlled filename/path/content execution;
-- preserve existing System-tab production containment;
-- show the safe empty state while the approved script registry remains empty.
+- dedicated page mounts `system.settings.sh-script`;
+- menu, route and Livewire execution all use `system.commands.run`;
+- refactored `ShScript` and `SystemScriptOperationService` are reused unchanged;
+- script create/edit/delete behavior remains removed;
+- browser-controlled filename/path/content execution remains removed;
+- existing System-tab production containment remains unchanged;
+- safe empty state remains visible while the approved script registry is empty.
 
 ## 2. Current Safety State
 
-`ShScript` has already been refactored so the browser can no longer create, edit, delete, or directly execute arbitrary shell content.
+`ShScript` is a restricted server-owned operation runner. The browser cannot create, edit, delete, or directly execute arbitrary shell content.
 
-`SystemScriptOperationService` owns the server-side registry. The initial registry is intentionally empty because no repository-owned script under the approved `app/sh` root was available for review.
+`SystemScriptOperationService` owns the server-side registry. The initial registry remains intentionally empty because no repository-owned script under `app/sh` has been reviewed and approved.
 
-Therefore the dedicated Admin page is safe to expose only as a restricted operation surface; it will initially display that no scripts have been approved.
-
-## 3. Proposed Route
-
-Add to `Modules/System/routes/web.php`:
+## 3. Implemented Route
 
 ```text
 GET /admin/system/scripts
@@ -38,43 +34,41 @@ name: admin.system.scripts
 middleware: auth:admin + permission:system.commands.run,admin
 ```
 
-The route should point to a narrow `SettingController::scripts()` method.
+Controller method:
+
+`SettingController::scripts()`
 
 ## 4. Controller / Page
 
-Update:
+Implemented:
 
 `Modules/System/Http/Controllers/SettingController.php`
 
-Add:
+with `scripts()` returning:
 
-```text
-scripts() -> System::pages.settings.scripts
-```
+`System::pages.settings.scripts`
 
-Create:
+Created:
 
 `Modules/System/resources/views/pages/settings/scripts.blade.php`
 
-The page should use the existing Admin layout and mount only:
+which mounts:
 
 ```blade
 <livewire:system.settings.sh-script />
 ```
 
-No shell/process logic belongs in the controller or page.
-
 ## 5. Admin Menu
 
-Update canonical menu source:
+Updated canonical menu source:
 
 `Modules/Admin/data/menus.json`
 
-Under parent:
+Under:
 
 `Công cụ Hệ thống`
 
-add a child adjacent to `Thao tác Artisan`:
+added:
 
 ```text
 Name: Thao tác Script
@@ -83,89 +77,77 @@ Can: system.commands.run
 Active: true
 ```
 
-No new permission is required.
+No new permission was added.
 
 ## 6. Existing Admin Menu Database Data
 
-`AdminMenuSeeder` skips when `admin_menus` already contains data, so changing `menus.json` alone does not update an existing installation.
+`AdminMenuSeeder` still intentionally skips when `admin_menus` already contains data. No menu table reset or global reseed was added.
 
-Implementation must not reset or reseed the whole menu table.
-
-After implementation, provide an idempotent `updateOrCreate` post-deploy command for existing installations, scoped only to `/admin/system/scripts` under the current `Công cụ Hệ thống` parent.
+For existing installations, use a narrowly-scoped idempotent `updateOrCreate` for `/admin/system/scripts` under the current `Công cụ Hệ thống` parent.
 
 ## 7. Authorization
 
-The following layers must agree:
+Aligned layers:
 
-1. Menu visibility: `can = system.commands.run`.
+1. Menu visibility: `system.commands.run`.
 2. Route middleware: `permission:system.commands.run,admin`.
-3. Livewire execution: existing `authorizePermission('system.commands.run')` remains enforced.
-
-No new permission or migration is needed.
+3. Livewire execution: `authorizePermission('system.commands.run')`.
 
 ## 8. Production Containment
 
-Preserve unchanged:
+Preserved unchanged:
 
-- the System tab for `system.settings.sh-script` remains disabled;
-- `SystemConfigService` continues forcing that tab disabled in production normalization.
+- System tab for `system.settings.sh-script` remains disabled;
+- `SystemConfigService` continues forcing the tab disabled.
 
-The dedicated route is a separately authorized surface for the refactored restricted runner. It does not re-enable the original tab or arbitrary shell execution.
+The dedicated route is a separately authorized surface for the restricted runner only.
 
 ## 9. Tests
 
-Update `tests/Feature/System/SystemScriptOperationsTest.php` to verify:
+Updated:
+
+`tests/Feature/System/SystemScriptOperationsTest.php`
+
+Coverage now includes:
 
 - route `admin.system.scripts` exists;
-- route has `auth:admin`;
-- route has `permission:system.commands.run,admin`;
+- route uses `auth:admin`;
+- route uses `permission:system.commands.run,admin`;
 - dedicated page mounts `system.settings.sh-script`;
-- canonical menu JSON contains `Thao tác Script` with `/admin/system/scripts` and `system.commands.run`;
-- script registry remains empty until explicitly approved scripts are added;
-- no editor/create/delete/arbitrary shell behavior is reintroduced;
-- existing production containment remains intact.
+- canonical menu contains `Thao tác Script` with `/admin/system/scripts` and `system.commands.run`;
+- registry remains empty until scripts are explicitly approved;
+- shell editor/create/delete behavior remains absent;
+- production containment remains intact.
 
-## 10. Files to Change
-
-Application/config:
+## 10. Files Changed
 
 - `Modules/System/routes/web.php`
 - `Modules/System/Http/Controllers/SettingController.php`
-- `Modules/System/resources/views/pages/settings/scripts.blade.php` (new)
+- `Modules/System/resources/views/pages/settings/scripts.blade.php`
 - `Modules/Admin/data/menus.json`
-
-Tests:
-
 - `tests/Feature/System/SystemScriptOperationsTest.php`
-
-Documentation:
-
 - `docs/modules/System/livewire/settings-sh-script/ANALYSIS.md`
 - `docs/modules/System/livewire/settings-sh-script/CHANGE_PLAN.md`
 
-Explicitly unchanged:
+Unchanged security core:
 
 - `Modules/System/Livewire/Settings/ShScript.php`
 - `Modules/System/Services/SystemScriptOperationService.php`
 - System permission manifest
 - database schema
-- `SystemConfigService` production containment
+- `SystemConfigService`
 
 ## 11. Acceptance Criteria
 
-- [ ] `Công cụ Hệ thống` contains `Thao tác Script`.
-- [ ] menu URL is `/admin/system/scripts`.
-- [ ] menu capability is exactly `system.commands.run`.
-- [ ] route is named `admin.system.scripts`.
-- [ ] route requires `auth:admin` and `permission:system.commands.run,admin`.
-- [ ] page mounts `system.settings.sh-script`.
-- [ ] empty approved-script registry is displayed safely.
-- [ ] browser still cannot create/edit/delete shell scripts.
-- [ ] no arbitrary filename/path/content execution returns.
-- [ ] production tab containment remains unchanged.
-- [ ] no menu-table reset/reseed occurs.
-- [ ] focused tests pass.
-
-## 12. Approval Gate
-
-This is a feature/change extension to the completed ShScript refactor. Implementation must not begin until the user explicitly approves this `CHANGE_PLAN.md`.
+- [x] `Công cụ Hệ thống` contains `Thao tác Script`.
+- [x] menu URL is `/admin/system/scripts`.
+- [x] menu capability is exactly `system.commands.run`.
+- [x] route is named `admin.system.scripts`.
+- [x] route requires `auth:admin` and `permission:system.commands.run,admin`.
+- [x] page mounts `system.settings.sh-script`.
+- [x] empty approved-script registry is displayed safely.
+- [x] browser still cannot create/edit/delete shell scripts.
+- [x] no arbitrary filename/path/content execution returns.
+- [x] production tab containment remains unchanged.
+- [x] no menu-table reset/reseed occurs.
+- [ ] focused tests must be run in the target Laravel runtime after pull/merge.
