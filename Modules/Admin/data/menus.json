@@ -120,6 +120,14 @@
                 "children": []
             },
             {
+                "name": "Thao tác Script",
+                "url": "\/admin\/system\/scripts",
+                "icon": null,
+                "can": "system.commands.run",
+                "is_active": true,
+                "children": []
+            },
+            {
                 "name": "Quản lý Database",
                 "url": "\/admin\/system\/database",
                 "icon": "home",
