@@ -15,9 +15,13 @@ class SystemSettingsImagesTest extends TestCase
         $this->assertStringContainsString('AuthorizesSystemActions', $component);
         $this->assertGreaterThanOrEqual(2, substr_count($component, "authorizePermission('system.settings.update')"));
         $this->assertStringNotContainsString('Setting::setValue', $component);
+        $this->assertStringContainsString('function get(string $key', $service);
+        $this->assertStringContainsString('function set(string $key', $service);
+        $this->assertStringContainsString('function replaceImage(', $service);
+        $this->assertStringContainsString('function removeImage(', $service);
         $this->assertStringContainsString('$newPath = $upload->store', $service);
         $this->assertStringContainsString('$disk->delete($newPath);', $service);
-        $this->assertStringContainsString('Setting::setValue($key, null);', $service);
+        $this->assertStringContainsString('$this->set($key, null', $service);
         $this->assertStringContainsString('mimes:png,jpg,jpeg', $component);
         $this->assertStringNotContainsString('image/svg+xml', $view);
         $this->assertStringContainsString('wire:confirm', $view);
