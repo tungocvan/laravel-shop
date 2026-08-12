@@ -2,10 +2,9 @@
 
 namespace Tests\Feature\Admission;
 
-use Database\Seeders\RolesAndPermissionsSeeder;
+use App\Modules\ModulePermissionManager;
 use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\DataProvider;
-use ReflectionMethod;
 use Tests\TestCase;
 
 class AdmissionRouteConfigurationTest extends TestCase
@@ -36,12 +35,10 @@ class AdmissionRouteConfigurationTest extends TestCase
             ]);
     }
 
-    public function test_permission_seeder_reads_admission_lowercase_module_config(): void
+    public function test_permission_manager_reads_admission_lowercase_module_config(): void
     {
-        $method = new ReflectionMethod(RolesAndPermissionsSeeder::class, 'loadModulePermissions');
-        $method->setAccessible(true);
-
-        $permissions = $method->invoke(new RolesAndPermissionsSeeder());
+        $groups = app(ModulePermissionManager::class)->activeGroups();
+        $permissions = collect($groups)->flatten()->all();
 
         $this->assertContains('view_admission', $permissions);
         $this->assertContains('manage_admission_locations', $permissions);

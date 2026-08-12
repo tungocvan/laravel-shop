@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
 use Modules\Invoices\Livewire\GdtInvoice;
@@ -16,6 +17,11 @@ use Tests\TestCase;
 
 class InvoicesModuleTest extends TestCase
 {
+    public function test_invoices_module_is_enabled(): void
+    {
+        $this->assertTrue((bool) config('invoices.module.enabled'));
+    }
+
     public function test_captcha_and_login_keep_token_only_in_server_cache(): void
     {
         config([
@@ -98,6 +104,9 @@ class InvoicesModuleTest extends TestCase
 
     public function test_excel_import_supports_sold_and_purchase(): void
     {
+        $migration = require base_path('Modules/Invoices/database/migrations/2025_11_21_045614_invoices.php');
+        $migration->up();
+
         $file = storage_path('app/invoices-module-test.xlsx');
         (new FastExcel([[
             'Mã tra cứu' => 'test-lookup',
@@ -139,6 +148,7 @@ class InvoicesModuleTest extends TestCase
                 ->assertSee('Test');
         } finally {
             DB::rollBack();
+            Schema::dropIfExists('invoices');
 
             if (file_exists($file)) {
                 unlink($file);

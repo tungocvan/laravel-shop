@@ -5,6 +5,7 @@ namespace Modules\Invoices\Services;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Modules\Invoices\Models\Invoices;
 
 class InvoiceService
@@ -50,16 +51,20 @@ class InvoiceService
 
     public function dashboard(): array
     {
+        $yearExpression = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%Y', issued_date) AS INTEGER)"
+            : 'YEAR(issued_date)';
+
         return [
             'sold_amount' => Invoices::query()->where('invoice_type', 'sold')->sum('total_amount'),
             'purchase_amount' => Invoices::query()->where('invoice_type', 'purchase')->sum('total_amount'),
             'sold_customers' => Invoices::query()->where('invoice_type', 'sold')->distinct()->count('name'),
             'purchase_customers' => Invoices::query()->where('invoice_type', 'purchase')->distinct()->count('name'),
             'yearly' => Invoices::query()->selectRaw(
-                'YEAR(issued_date) as year,
+                $yearExpression.' as year,
                 SUM(CASE WHEN invoice_type="sold" THEN total_amount ELSE 0 END) as sold_total,
                 SUM(CASE WHEN invoice_type="purchase" THEN total_amount ELSE 0 END) as purchase_total'
-            )->groupBy('year')->orderByDesc('year')->get()->toArray(),
+            )->groupByRaw($yearExpression)->orderByDesc('year')->get()->toArray(),
         ];
     }
 

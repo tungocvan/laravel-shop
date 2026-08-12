@@ -32,10 +32,16 @@ class PharmaImportExportTest extends TestCase
 
     public function test_medicine_excel_fixture_passes_dry_run(): void
     {
-        $report = app(MedicineImportExport::class)->import(
-            storage_path('app/import/hssp.xlsx'),
-            ['mode' => 'update_or_create', 'dry_run' => true]
-        );
+        $path = $this->createMedicineFixture();
+
+        try {
+            $report = app(MedicineImportExport::class)->import(
+                $path,
+                ['mode' => 'update_or_create', 'dry_run' => true]
+            );
+        } finally {
+            @unlink($path);
+        }
 
         $this->assertTrue($report['success']);
         $this->assertSame(42, $report['total_rows']);
@@ -45,10 +51,16 @@ class PharmaImportExportTest extends TestCase
 
     public function test_bid_award_semicolon_fixture_passes_dry_run(): void
     {
-        $report = app(DrugBidAwardImportExport::class)->import(
-            storage_path('app/import/thong-tin-trung-thau.csv'),
-            ['mode' => 'update_or_create', 'dry_run' => true]
-        );
+        $path = $this->createBidAwardFixture();
+
+        try {
+            $report = app(DrugBidAwardImportExport::class)->import(
+                $path,
+                ['mode' => 'update_or_create', 'dry_run' => true]
+            );
+        } finally {
+            @unlink($path);
+        }
 
         $this->assertTrue($report['success']);
         $this->assertSame(32, $report['total_rows']);
@@ -163,6 +175,67 @@ class PharmaImportExportTest extends TestCase
         $this->assertSame('325.00', $tracking->invoice_difference_fee);
         $this->assertSame('4075.00', $tracking->cost_price);
         $this->assertSame('47.70', $tracking->gross_profit_percent);
+    }
+
+    private function createMedicineFixture(): string
+    {
+        $path = sys_get_temp_dir().'/pharma-medicine-fixture-'.uniqid('', true).'.xlsx';
+        $rows = collect(range(1, 42))->map(fn (int $index): array => [
+            'STT' => $index,
+            'Số thứ tự theo thông tư' => (string) $index,
+            'Phân nhóm theo thông tư' => '1',
+            'Tên hoạt chất' => 'Meloxicam',
+            'Nồng độ - Hàm lượng' => '15mg',
+            'Tên thuốc' => "Trosicam {$index} 15mg",
+            'Dạng bào chế' => 'Viên nén',
+            'Đường dùng' => 'Uống',
+            'Đơn vị tính' => 'Viên',
+            'Quy cách đóng gói' => "Hộp {$index} vỉ x 10 viên",
+            'Giấy phép lưu hành sản phẩm' => 'VN-'.(20000 + $index).'-26',
+            'Hạn dùng' => '36 tháng',
+            'Cơ sở đăng ký' => 'Công ty đăng ký',
+            'Cơ sở sản xuất' => 'Nhà máy sản xuất',
+            'Nước sản xuất' => 'Việt Nam',
+            'Hiệu lực Visa' => '31/12/2027',
+            'GMP Cơ sở sản xuất' => '31/12/2027',
+            'Giá kê khai' => 8500 + $index,
+            'Link Hồ sơ sản phẩm' => 'https://example.com/medicine/'.$index,
+            'Hoạt chất kiểm soát đặc biệt' => 'Không',
+            'Ghi chú' => 'Fixture regression',
+        ]);
+
+        (new FastExcel($rows))->export($path);
+
+        return $path;
+    }
+
+    private function createBidAwardFixture(): string
+    {
+        $path = sys_get_temp_dir().'/pharma-bid-fixture-'.uniqid('', true).'.csv';
+        $lines = [
+            'STT;Tên thuốc;Quy cách đóng gói;Số lượng;Đơn giá trúng thầu;Mã thông báo mời thầu;Tên Chủ đầu tư;Số quyết định;Ngày ban hành quyết định;Thời hạn hiệu lực;Công ty trúng thầu;Link quyết định trúng thầu',
+        ];
+
+        foreach (range(1, 32) as $index) {
+            $lines[] = implode(';', [
+                $index,
+                "Trosicam {$index} 15mg",
+                "Hộp {$index} vỉ x 10 viên",
+                '600.000',
+                '7.791',
+                sprintf('IB%04d', $index),
+                'Bệnh viện A',
+                sprintf('QD-%03d', $index),
+                '13/10/2025',
+                '24 tháng',
+                "Công ty {$index}",
+                "https://example.com/decision/{$index}",
+            ]);
+        }
+
+        file_put_contents($path, implode("\n", $lines));
+
+        return $path;
     }
 
     private function medicineData(): array

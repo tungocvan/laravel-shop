@@ -3,7 +3,7 @@
 return array (
   'name' => 'Invoices',
   'type' => 'domain',
-  'enabled' => false,
+  'enabled' => true,
   'depends' => 
   array (
   ),
