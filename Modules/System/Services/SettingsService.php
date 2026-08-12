@@ -2,178 +2,90 @@
 
 namespace Modules\System\Services;
 
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 use Modules\System\Models\Setting;
+use Throwable;
 
 class SettingsService
 {
-    public function get(string $key, mixed $default = null): mixed
+    private const GENERAL_KEYS = ['site_name', 'site_email', 'site_hotline', 'site_address'];
+    private const IMAGE_KEYS = ['site_logo', 'site_favicon'];
+
+    public function getGeneral(): array
     {
-        if (! Schema::hasTable('settings') && ! Schema::hasTable('wp_settings')) {
-            return $default;
+        $values = [];
+        foreach (self::GENERAL_KEYS as $key) {
+            $values[$key] = Setting::getValue($key, '');
         }
-
-        return Cache::rememberForever($this->cacheKey($key), function () use ($key, $default): mixed {
-            if ($this->isLegacyHomepageKey($key) && Schema::hasTable('wp_settings')) {
-                $setting = DB::table('wp_settings')->where('key', $key)->first();
-
-                return $setting ? $this->decode($setting->value, $setting->type) : $default;
-            }
-
-            $setting = Setting::query()->where('key', $key)->first();
-
-            if (! $setting && Schema::hasTable('wp_settings')) {
-                $setting = DB::table('wp_settings')->where('key', $key)->first();
-            }
-
-            return $setting ? $this->decode($setting->value, $setting->type) : $default;
-        });
+        return $values;
     }
 
-    public function getGroup(string $group): array
+    public function saveGeneral(array $values): void
     {
-        if (! Schema::hasTable('settings') && ! Schema::hasTable('wp_settings')) {
-            return [];
-        }
-
-        return Cache::rememberForever($this->groupCacheKey($group), function () use ($group): array {
-            if ($group === 'homepage' && Schema::hasTable('wp_settings')) {
-                return DB::table('wp_settings')
-                    ->where('group_name', $group)
-                    ->orderBy('key')
-                    ->get()
-                    ->mapWithKeys(fn (object $setting): array => [
-                        $setting->key => $this->decode($setting->value, $setting->type),
-                    ])->all();
-            }
-
-            return Setting::query()
-                ->where('group_name', $group)
-                ->orderBy('key')
-                ->get()
-                ->mapWithKeys(fn (Setting $setting): array => [
-                    $setting->key => $this->decode($setting->value, $setting->type),
-                ])->all();
-        });
-    }
-
-    public function set(string $key, mixed $value, string $group = 'general', string $type = 'text'): void
-    {
-        [$storedValue, $storedType] = $this->normalize($value, $type);
-
-        if ($this->isLegacyHomepageKey($key)) {
-            DB::table('wp_settings')->updateOrInsert(
-                ['key' => $key],
-                [
-                    'value' => $storedValue,
-                    'group_name' => $group,
-                    'type' => $storedType,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ],
-            );
-            $this->forget($key);
-            Cache::forget($this->groupCacheKey($group));
-
-            return;
-        }
-
-        Setting::query()->updateOrCreate(
-            ['key' => $key],
-            ['value' => $storedValue, 'group_name' => $group, 'type' => $storedType]
-        );
-
-        $this->forget($key);
-        Cache::forget($this->groupCacheKey($group));
-    }
-
-    public function updateMany(array $values, string $group = 'general'): void
-    {
-        $filtered = array_diff_key($values, array_flip(['_token', '_method']));
-
-        DB::transaction(function () use ($filtered, $group): void {
-            foreach ($filtered as $key => $value) {
-                [$storedValue, $storedType] = $this->normalize($value);
-                $this->persist((string) $key, $storedValue, $storedType, $group);
+        DB::transaction(function () use ($values): void {
+            foreach (self::GENERAL_KEYS as $key) {
+                $value = $values[$key] ?? null;
+                $value = is_string($value) ? trim($value) : $value;
+                Setting::setValue($key, $value === '' && $key !== 'site_name' ? null : $value);
             }
         });
-
-        foreach (array_keys($filtered) as $key) {
-            $this->forget((string) $key);
-        }
-        Cache::forget($this->groupCacheKey($group));
     }
 
-    public function updateGroup(string $group, array $values): void
+    public function getImages(): array
     {
-        $this->updateMany(
-            collect($values)->mapWithKeys(fn ($value, $key): array => ["{$group}.{$key}" => $value])->all(),
-            $group,
-        );
+        return [
+            'site_logo' => Setting::getValue('site_logo'),
+            'site_favicon' => Setting::getValue('site_favicon'),
+        ];
     }
 
-    private function decode(mixed $value, string $type): mixed
+    public function replaceImage(string $type, UploadedFile $upload): string
     {
-        if ($type !== 'json') {
-            return $value;
-        }
+        $key = $this->imageKey($type);
+        $disk = Storage::disk('public');
+        $oldPath = Setting::getValue($key);
+        $newPath = $upload->store('settings', 'public');
 
-        return json_decode((string) $value, true, flags: JSON_THROW_ON_ERROR);
-    }
-
-    private function persist(string $key, mixed $value, string $type, string $group): void
-    {
-        if ($this->isLegacyHomepageKey($key)) {
-            DB::table('wp_settings')->updateOrInsert(
-                ['key' => $key],
-                [
-                    'value' => $value,
-                    'group_name' => $group,
-                    'type' => $type,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ],
-            );
-
-            return;
+        try {
+            Setting::setValue($key, $newPath);
+        } catch (Throwable $e) {
+            $disk->delete($newPath);
+            throw $e;
         }
 
-        Setting::query()->updateOrCreate(
-            ['key' => $key],
-            ['value' => $value, 'group_name' => $group, 'type' => $type]
-        );
-    }
-
-    private function normalize(mixed $value, string $type = 'text'): array
-    {
-        if (is_array($value)) {
-            return [json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'json'];
+        if ($oldPath && $oldPath !== $newPath) {
+            $disk->delete($oldPath);
         }
 
-        return [$value, $type];
+        return $newPath;
     }
 
-    private function forget(string $key): void
+    public function removeImage(string $type): void
     {
-        Cache::forget($this->cacheKey($key));
-        Cache::forget('wp_opt_'.$key);
-        Cache::forget('setting_'.$key);
+        $key = $this->imageKey($type);
+        $disk = Storage::disk('public');
+        $oldPath = Setting::getValue($key);
+
+        Setting::setValue($key, null);
+        if ($oldPath) {
+            $disk->delete($oldPath);
+        }
     }
 
-    private function cacheKey(string $key): string
+    private function imageKey(string $type): string
     {
-        return 'system.setting.'.$key;
-    }
+        $key = match ($type) {
+            'logo' => 'site_logo',
+            'favicon' => 'site_favicon',
+            default => throw new InvalidArgumentException('Unsupported settings image type.'),
+        };
 
-    private function groupCacheKey(string $group): string
-    {
-        return 'system.settings.group.'.$group;
-    }
-
-    private function isLegacyHomepageKey(string $key): bool
-    {
-        return str_starts_with($key, 'home_');
+        if (!in_array($key, self::IMAGE_KEYS, true)) {
+            throw new InvalidArgumentException('Unsupported settings image key.');
+        }
+        return $key;
     }
 }

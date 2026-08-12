@@ -4,122 +4,84 @@ namespace Modules\System\Livewire\Settings\Partials;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\System\Models\Setting;
-use Illuminate\Support\Facades\Storage;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\SettingsService;
+use Throwable;
 
 class Images extends Component
 {
+    use AuthorizesSystemActions;
     use WithFileUploads;
 
-    // ==============================
-    // CURRENT VALUES (DB)
-    // ==============================
     public $site_logo;
     public $site_favicon;
-
-    // ==============================
-    // NEW UPLOAD
-    // ==============================
     public $new_logo;
     public $new_favicon;
+    public bool $canUpdate = false;
 
-    // ==============================
-    // INIT
-    // ==============================
-    public function mount()
+    public function mount(SettingsService $service): void
     {
-        $this->site_logo = Setting::getValue('site_logo');
-        $this->site_favicon = Setting::getValue('site_favicon');
+        $images = $service->getImages();
+        $this->site_logo = $images['site_logo'];
+        $this->site_favicon = $images['site_favicon'];
+        $this->canUpdate = (bool) (auth('admin')->user() ?: auth()->user())?->can('system.settings.update');
     }
 
-    // ==============================
-    // VALIDATION RULES
-    // ==============================
-    protected function rules()
+    protected function rules(): array
     {
         return [
-            'new_logo'    => 'nullable|image|max:2048', // 2MB
-            'new_favicon' => 'nullable|file|mimes:png,ico|max:1024', // 1MB
+            'new_logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
+            'new_favicon' => ['nullable', 'file', 'mimes:png,ico', 'max:1024'],
         ];
     }
 
-    // ==============================
-    // SAVE
-    // ==============================
-    public function save()
+    public function save(SettingsService $service): void
     {
+        $this->authorizePermission('system.settings.update');
         $this->validate();
 
-        // ----------------------
-        // LOGO
-        // ----------------------
-        if ($this->new_logo) {
-
-            // delete old
-            if ($this->site_logo && Storage::disk('public')->exists($this->site_logo)) {
-                Storage::disk('public')->delete($this->site_logo);
+        try {
+            if ($this->new_logo) {
+                $path = $service->replaceImage('logo', $this->new_logo);
+                $this->site_logo = $path;
+                $this->new_logo = null;
+                $this->dispatch('logo-updated', url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)));
             }
 
-            $path = $this->new_logo->store('settings', 'public');
-
-            Setting::setValue('site_logo', $path);
-
-            $this->site_logo = $path;
-            $this->new_logo = null;
-
-            $this->dispatch(
-                'logo-updated',
-                url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)),
-            );
-        }
-
-        // ----------------------
-        // FAVICON
-        // ----------------------
-        if ($this->new_favicon) {
-
-            if ($this->site_favicon && Storage::disk('public')->exists($this->site_favicon)) {
-                Storage::disk('public')->delete($this->site_favicon);
+            if ($this->new_favicon) {
+                $path = $service->replaceImage('favicon', $this->new_favicon);
+                $this->site_favicon = $path;
+                $this->new_favicon = null;
+                $this->dispatch('favicon-updated', url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)), type: strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'ico' ? 'image/x-icon' : 'image/png');
             }
 
-            $path = $this->new_favicon->store('settings', 'public');
-
-            Setting::setValue('site_favicon', $path);
-
-            $this->site_favicon = $path;
-            $this->new_favicon = null;
-
-            $this->dispatch(
-                'favicon-updated',
-                url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)),
-                type: strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'ico' ? 'image/x-icon' : 'image/png',
-            );
+            $this->dispatch('notify', type: 'success', message: 'Đã cập nhật hình ảnh');
+        } catch (Throwable $e) {
+            report($e);
+            $this->dispatch('notify', type: 'error', message: 'Không thể cập nhật hình ảnh. Vui lòng kiểm tra log hệ thống.');
         }
-
-        $this->dispatch('notify', type: 'success', message: 'Đã cập nhật hình ảnh');
     }
 
-    // ==============================
-    // REMOVE IMAGE (OPTIONAL)
-    // ==============================
-    public function remove($type)
+    public function remove(string $type, SettingsService $service): void
     {
-        if ($type === 'logo' && $this->site_logo) {
-            Storage::disk('public')->delete($this->site_logo);
-            Setting::setValue('site_logo', null);
-            $this->site_logo = null;
-        }
+        $this->authorizePermission('system.settings.update');
 
-        if ($type === 'favicon' && $this->site_favicon) {
-            Storage::disk('public')->delete($this->site_favicon);
-            Setting::setValue('site_favicon', null);
-            $this->site_favicon = null;
+        try {
+            $service->removeImage($type);
+            if ($type === 'logo') {
+                $this->site_logo = null;
+                $this->dispatch('logo-updated', url: '');
+            } elseif ($type === 'favicon') {
+                $this->site_favicon = null;
+                $this->dispatch('favicon-updated', url: '', type: 'image/png');
+            }
+            $this->dispatch('notify', type: 'success', message: 'Đã xóa hình ảnh');
+        } catch (Throwable $e) {
+            report($e);
+            $this->dispatch('notify', type: 'error', message: 'Không thể xóa hình ảnh. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
-    // ==============================
-    // RENDER
-    // ==============================
     public function render()
     {
         return view('System::livewire.settings.partials.images');
