@@ -3,8 +3,6 @@
 namespace Modules\Admission\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 
 class AdmissionApplication extends Model
 {
@@ -13,6 +11,10 @@ class AdmissionApplication extends Model
     protected $fillable = [
         'mhs',
         'status',
+        'approved_at',
+        'approved_by',
+        'rejected_at',
+        'rejected_by',
         // Bước 1: Thông tin học sinh
         'ho_va_ten_hoc_sinh',
         'gioi_tinh',
@@ -90,11 +92,13 @@ class AdmissionApplication extends Model
         'gvcn',
         'bao_mau',
         'pdf_path',
-        'word_path'
+        'word_path',
     ];
 
     protected $casts = [
         'ngay_sinh' => 'date:Y-m-d',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'skills' => 'array',
         'ck_goc_hoc_tap' => 'boolean',
         'kha_nang_hoc_sinh' => 'array',
@@ -104,70 +108,62 @@ class AdmissionApplication extends Model
     protected static function booted()
     {
         /**
-         * 🔥 1. AUTO RESET STATUS → pending khi có chỉnh sửa
+         * AUTO RESET STATUS → pending khi có chỉnh sửa.
          */
         static::updating(function ($model) {
-
             $originalStatus = $model->getOriginal('status');
 
-            // chỉ reset khi:
-            // - trước đó đã có trạng thái (approved/rejected)
-            // - và có thay đổi data (trừ status)
             if (
                 in_array($originalStatus, ['approved', 'rejected']) &&
                 $model->isDirty() &&
-                !$model->isDirty('status')
+                ! $model->isDirty('status')
             ) {
                 $model->status = 'pending';
 
                 \Log::info('STATUS AUTO RESET → pending', [
                     'id' => $model->id,
-                    'from' => $originalStatus
+                    'from' => $originalStatus,
                 ]);
             }
         });
 
         /**
-         * 🔥 2. DISPATCH JOB khi approved
+         * DISPATCH JOB khi approved.
          */
         static::updated(function ($model) {
-
             if ($model->wasChanged('status') && $model->status === 'approved') {
-
-                // ❗ tránh duplicate job
-                if (!empty($model->pdf_path)) {
+                if (! empty($model->pdf_path)) {
                     \Log::info('SKIP DISPATCH: PDF đã tồn tại', [
-                        'id' => $model->id
+                        'id' => $model->id,
                     ]);
                     return;
                 }
 
                 \Log::info('DISPATCH GENERATE PDF JOB', [
-                    'id' => $model->id
+                    'id' => $model->id,
                 ]);
 
-                // 🔥 QUAN TRỌNG: sau khi DB commit xong mới chạy job
                 \Modules\Admission\Jobs\GenerateAdmissionPdfJob::dispatch($model->id)
                     ->afterCommit();
             }
         });
 
         /**
-         * 🔥 3. DELETE FILE khi xóa record
+         * DELETE FILE khi xóa record.
          */
         static::deleting(function ($model) {
-
             foreach (['pdf_path', 'word_path'] as $field) {
-
                 $path = $model->$field;
 
-                if (!$path) continue;
+                if (! $path) {
+                    continue;
+                }
 
                 $fullPath = storage_path('app/' . $path);
 
-                if (!file_exists($fullPath)) {
+                if (! file_exists($fullPath)) {
                     \Log::warning('FILE NOT FOUND WHEN DELETING', [
-                        'path' => $fullPath
+                        'path' => $fullPath,
                     ]);
                     continue;
                 }
@@ -176,12 +172,12 @@ class AdmissionApplication extends Model
                     unlink($fullPath);
 
                     \Log::info('FILE DELETED', [
-                        'path' => $fullPath
+                        'path' => $fullPath,
                     ]);
                 } catch (\Throwable $e) {
                     \Log::error('DELETE FILE ERROR', [
                         'path' => $fullPath,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
