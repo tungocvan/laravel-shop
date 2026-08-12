@@ -13,18 +13,24 @@ class ModuleRouteManager
     public function rows(): array
     {
         $savedTitles = ModuleRouteTitle::query()->pluck('title', 'route_key');
+        $menuUrls = AdminMenu::query()
+            ->whereNotNull('url')
+            ->pluck('url')
+            ->filter(fn (mixed $url): bool => is_string($url) && $url !== '')
+            ->map(fn (string $url): string => $this->normalizeMenuUrl($url))
+            ->flip();
 
         return collect(Route::getRoutes()->getRoutes())
             ->filter(fn (LaravelRoute $route): bool => in_array('GET', $route->methods(), true))
-            ->map(function (LaravelRoute $route) use ($savedTitles): ?array {
+            ->map(function (LaravelRoute $route) use ($savedTitles, $menuUrls): ?array {
                 $module = $this->moduleName($route);
                 if ($module === null) {
                     return null;
                 }
 
                 $uri = $this->normalizeUri($route->uri());
-                $key = sha1($module . '|' . ($route->getName() ?? '') . '|' . $uri);
-                $url = $uri === '/' ? '/' : '/' . $uri;
+                $key = sha1($module.'|'.($route->getName() ?? '').'|'.$uri);
+                $url = $uri === '/' ? '/' : '/'.$uri;
 
                 return [
                     'key' => $key,
@@ -34,13 +40,13 @@ class ModuleRouteManager
                     'url' => $url,
                     'title' => $savedTitles[$key] ?? $this->suggestTitle($route, $module),
                     'permission' => $this->permission($route),
-                    'in_menu' => AdminMenu::query()->whereIn('url', [$url, $uri])->exists(),
+                    'in_menu' => $menuUrls->has($this->normalizeMenuUrl($url)),
                     'is_dynamic' => str_contains($uri, '{'),
                 ];
             })
             ->filter()
-            ->unique(fn (array $row): string => $row['module'] . '|' . $row['uri'])
-            ->sortBy(fn (array $row): string => $row['module'] . '|' . $row['uri'])
+            ->unique(fn (array $row): string => $row['module'].'|'.$row['uri'])
+            ->sortBy(fn (array $row): string => $row['module'].'|'.$row['uri'])
             ->values()
             ->all();
     }
@@ -133,13 +139,24 @@ class ModuleRouteManager
         return trim($uri, '/') ?: '/';
     }
 
+    private function normalizeMenuUrl(string $url): string
+    {
+        $normalized = trim($url);
+
+        if ($normalized === '' || $normalized === '/') {
+            return '/';
+        }
+
+        return '/'.trim($normalized, '/');
+    }
+
     private function uniqueSlug(string $title): string
     {
         $base = Str::slug($title) ?: 'menu';
         $slug = $base;
         $suffix = 1;
         while (AdminMenu::query()->where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $suffix++;
+            $slug = $base.'-'.$suffix++;
         }
 
         return $slug;
