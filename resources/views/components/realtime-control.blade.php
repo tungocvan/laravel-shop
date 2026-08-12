@@ -1,4 +1,4 @@
-@props(['enabled' => false, 'status' => []])
+@props(['enabled' => false, 'status' => [], 'canUpdate' => true])
 
 @php
     $state = $status['status'] ?? 'offline';
@@ -24,6 +24,9 @@
             <p class="mt-1 text-sm text-gray-600">
                 Tắt để frontend không tải Socket.IO client và backend không gửi realtime event. Không cần build lại frontend.
             </p>
+            @if (! $canUpdate)
+                <p class="mt-2 text-xs font-medium text-amber-700">Bạn chỉ có quyền xem. Cần quyền system.modules.update để thay đổi realtime.</p>
+            @endif
             @if (! empty($status['url']))
                 <p class="mt-2 break-all font-mono text-xs text-gray-500">Health: {{ $status['url'] }}</p>
             @endif
@@ -34,11 +37,14 @@
 
         <div class="flex items-center gap-3">
             <button type="button" wire:click="refreshRealtimeStatus"
-                    class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    wire:loading.attr="disabled" wire:target="refreshRealtimeStatus"
+                    class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60">
                 Kiểm tra lại
             </button>
-            <button type="button" wire:click="toggleRealtime" wire:loading.attr="disabled"
-                    class="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 {{ $enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700' }}">
+            <button type="button" wire:click="toggleRealtime" wire:loading.attr="disabled" wire:target="toggleRealtime"
+                    @disabled(! $canUpdate)
+                    wire:confirm="Bạn có chắc muốn thay đổi trạng thái Realtime / Socket.IO?"
+                    class="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 {{ $enabled ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700' }}">
                 {{ $enabled ? 'Tắt realtime' : 'Bật realtime' }}
             </button>
         </div>
