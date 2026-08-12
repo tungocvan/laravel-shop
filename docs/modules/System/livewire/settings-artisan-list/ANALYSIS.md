@@ -2,255 +2,156 @@
 
 Analysis date: 2026-08-12
 
-Scope: `Modules/System/Livewire/Settings/ArtisanList.php` and direct dependencies only. Documentation-only analysis; application source code is unchanged.
+Implementation status: **Refactored 2026-08-12**
+
+Scope: `Modules/System/Livewire/Settings/ArtisanList.php` and direct dependencies.
 
 ## Executive Summary
 
-`Settings/ArtisanList` is a browser-accessible Artisan command terminal. Its current PHP action accepts arbitrary command text from Livewire state and passes it directly to `Artisan::call()`. The component has no action-level authorization, no command allowlist, no validation beyond non-empty input, no audit trail, and returns command exception messages/output to the UI.
+`Settings/ArtisanList` is no longer a free-form browser Artisan terminal. The P0 arbitrary command execution surface has been removed.
 
-The immediate production risk is partially contained because `Modules/System/Services/SystemConfigService.php` forcibly disables `system.settings.artisan-list` during tab normalization, and the core tab is also configured with `enabled => false`. This containment is important and must not be weakened. The source remains a P0 latent remote-administration surface if mounted through another path or if the containment is removed.
+The component now exposes only two server-defined operation IDs:
 
-Recommended direction: **remove the free-form terminal from production architecture or replace it with explicitly allowlisted operations implemented behind `system.commands.run` authorization.** Do not simply add one permission check and keep unrestricted arbitrary command execution as the long-term design.
+- `artisan.list` -> fixed Artisan command `list`;
+- `cache.optimize-clear` -> fixed Artisan command `optimize:clear`.
 
-## Component Purpose
+Browser-controlled command text and command arguments are no longer accepted. Execution requires `system.commands.run` at the Livewire action boundary and is delegated to `Modules/System/Services/SystemOperationService.php`.
 
-- PHP: `Modules/System/Livewire/Settings/ArtisanList.php`
-- Blade: `Modules/System/resources/views/livewire/settings/artisan-list.blade.php`
-- Alias: `system.settings.artisan-list`
-- Intended purpose: execute Laravel Artisan commands from the admin UI and display output.
-- Core tab: `Modules/System/config/system_tabs.php`, `id=artisan`, disabled by default.
-- Production containment: `SystemConfigService::DISABLED_PRODUCTION_COMPONENTS` forces the component disabled.
+Production containment remains unchanged: the System tab is disabled by default and `SystemConfigService` continues to force `system.settings.artisan-list` disabled during normalization.
 
-## Dependency Flow
+## Current Dependency Flow
 
 ```text
-/admin/system
-  -> SystemController
-  -> SystemConfigService::getTabs()
-  -> production normalization forces artisan-list disabled
-
-If component is mounted:
 Livewire ArtisanList
-  -> Artisan facade
-  -> Laravel console commands
-  -> potentially filesystem / database / cache / secrets / queues / application state
+  -> authorize system.commands.run
+  -> SystemOperationService
+      -> fixed operation registry
+      -> Artisan::call(fixed command, fixed arguments)
+      -> safe application logging
+  -> escaped output / generic browser-facing failure
 ```
 
-No dedicated service layer is used.
+## Livewire PHP
 
-## Livewire PHP Analysis
+Current public state:
 
-Public state:
+- `$selectedOperation` defaults to `artisan.list`;
+- `$commandOutput`;
+- `$errorMessage`.
 
-- `$artisanCommand`
-- `$commandOutput`
-- `$errorMessage`
+`executeOperation()`:
 
-Main mutation:
+1. authorizes `system.commands.run`;
+2. clears previous output/error state;
+3. passes only the selected operation ID and actor ID to `SystemOperationService`;
+4. shows safe output on success;
+5. catches failures without copying exception details into browser state.
 
-```text
-executeArtisanCommand()
-  -> trim/non-empty check
-  -> Artisan::call($this->artisanCommand)
-  -> Artisan::output()
-```
+The component no longer imports the Artisan facade and no longer contains `Artisan::call()`.
 
-There is no command parser/allowlist, no capability check, no production environment guard inside the component, no rate/concurrency guard, and no audit record.
+## Operation Service
 
-This violates the repository's `MODULE_STANDARD.md` requirement that sensitive mutations enforce authorization at the action boundary and that Livewire delegate domain/operational workflows to services.
+`Modules/System/Services/SystemOperationService.php` owns the allowlist.
 
-## Livewire Blade Analysis
+Registry:
 
-The UI contains:
+| ID | Command | Confirmation |
+|---|---|---|
+| `artisan.list` | `list` | No |
+| `cache.optimize-clear` | `optimize:clear` | Yes |
 
-- free-form command text input;
-- execution button with loading/disabled state;
-- terminal output display;
-- common-command shortcuts.
+Unknown operation IDs are rejected before Artisan execution.
 
-The shortcuts currently include:
+The service logs safe metadata for start/completion/failure:
 
-- `list`
-- `key:generate`
-- `optimize:clear`
-- `db:seed`
-- `migrate:fresh`
+- actor ID;
+- operation ID;
+- fixed command name;
+- result/exit code;
+- exception class on failure.
 
-`key:generate` can rotate the application key, and `migrate:fresh` is destructive to database contents. Presenting these as common production commands materially increases operational risk.
+No arbitrary request payload or command arguments are logged.
 
-Positive UI behavior:
+## Blade UI
 
-- action button uses `wire:loading.attr="disabled"`;
-- command output uses escaped Blade output (`{{ }}`), reducing direct HTML injection risk from console output.
+The former terminal command input and dangerous shortcuts were removed.
 
-UI concerns:
+Removed examples include:
 
-- badge says `Production Mode` while exposing a terminal design;
-- no destructive-operation confirmation;
-- no command-specific explanation of impact;
-- no permission/role information;
-- inline `<style>` exists rather than shared UI utilities.
+- `key:generate`;
+- `db:seed`;
+- `migrate:fresh`.
 
-## State / Validation / Actions
+The UI now renders only operation cards provided by the service, shows an impact description, marks read-only vs mutation operations, uses confirmation for `cache.optimize-clear`, preserves loading/disabled state, and renders output through escaped Blade output.
 
-Validation is insufficient for the risk level:
-
-- only an empty-string check exists;
-- command name and arguments are unrestricted;
-- no maximum input size;
-- no denial of destructive commands;
-- no allowlist of safe commands.
-
-The method accepts one string into Laravel's console kernel. Exact parsing behavior is framework-controlled, but arbitrary Artisan access is sufficient to classify the component as a privileged execution surface.
+Component-local scrollbar CSS was removed.
 
 ## Authorization
 
-**P0 finding.**
-
-`Modules/System/config/module.php` defines the specific permission `system.commands.run`, but `ArtisanList` does not use `AuthorizesSystemActions` and does not call authorization before execution.
-
-The `/admin/system` page has `system.manage`, but repository standards explicitly require sensitive Livewire mutations to enforce authorization at the action boundary rather than relying only on page access.
-
-Production tab normalization currently reduces exposure by forcing this alias disabled. This is containment, not authorization.
-
-## Service / Model Dependencies
-
-Direct dependency:
-
-- `Illuminate\Support\Facades\Artisan`
-
-No System service encapsulates command execution. This makes Livewire directly responsible for a privileged operational workflow.
-
-No direct model is used, but commands executed through Artisan may themselves mutate any application subsystem.
-
-## Performance
-
-Potential concerns if enabled:
-
-- commands can be long-running and block the Livewire request;
-- output is retained in component state and returned to the browser;
-- repeated clicks are UI-disabled while loading, but there is no server-side idempotency/concurrency policy;
-- users can trigger cache rebuilds, migrations, seeds or other resource-intensive operations.
-
-## Security / Data Integrity
-
-### P0-1 — Arbitrary privileged Artisan execution
-
-**Evidence:** `executeArtisanCommand()` passes user-controlled `$artisanCommand` to `Artisan::call()`.
-
-**Impact:** depending on registered commands, an authorized page user could mutate database/schema, configuration, users, caches, files, queues, secrets or other production state.
-
-**Recommendation:** remove free-form execution. Replace with a small server-side operation registry where every operation has a stable ID, fixed command/arguments, explicit permission, confirmation policy, timeout and audit record.
-
-### P0-2 — Missing action-level authorization
-
-**Evidence:** manifest contains `system.commands.run`; component does not enforce it.
-
-**Impact:** authorization boundary is weaker than repository standard and depends on outer rendering/middleware behavior.
-
-**Recommendation:** any retained operational action must call `authorizePermission('system.commands.run')` or an equivalent canonical authorization mechanism before execution.
-
-### P0-3 — Destructive commands promoted in UI
-
-**Evidence:** UI suggestions include `migrate:fresh`, `db:seed`, and `key:generate`.
-
-**Impact:** accidental destructive or environment-changing execution is made easier.
-
-**Recommendation:** remove these shortcuts even in development unless an explicit safe workflow requires them.
-
-### P1-1 — Exception/output disclosure
-
-**Evidence:** caught exception messages are sent directly to `$errorMessage`; Artisan output is displayed to the browser.
-
-**Impact:** command output can reveal filesystem paths, table names, internal configuration context or operational details.
-
-**Recommendation:** log detailed errors server-side and return sanitized operator messages.
-
-### P1-2 — No audit trail
-
-**Impact:** production command execution would not have a durable actor/action/outcome trail within this component.
-
-**Recommendation:** privileged operations should log actor, operation ID, timestamp, result and safe metadata without secrets.
-
-## UI/UX Compliance
-
-Partial compliance:
-
-- responsive layout;
-- loading state;
-- escaped output;
-- clear command/output areas.
-
-Non-compliance/material concerns:
-
-- dangerous action lacks confirmation;
-- unrestricted free-form terminal is not a safe admin operation pattern;
-- inline CSS duplicates styling concerns;
-- the UI does not distinguish read-only vs destructive commands;
-- `wire:model.live.debounce.500ms` is unnecessary for a command field that only needs its value on submit.
-
-## Test Coverage
-
-Repository test trees under `tests/Feature` and `tests/Unit` contain no System-specific test suite for this component.
-
-Required tests if any replacement is retained:
-
-- user without `system.commands.run` cannot execute;
-- allowlisted operation executes expected fixed command only;
-- arbitrary command text is impossible/rejected;
-- destructive operations require explicit confirmation/policy;
-- production-disabled behavior cannot be overridden through System tab JSON;
-- errors are sanitized and audit records are generated.
-
-## Issue List
-
-### P0 — Free-form Artisan terminal
-
-**File:** `Modules/System/Livewire/Settings/ArtisanList.php`
-
-**Evidence:** user-controlled command is passed to `Artisan::call()`.
-
-**Problem:** unrestricted privileged command execution.
-
-**Impact:** production control, data-loss and secret/configuration risk.
-
-**Recommendation:** remove or replace with allowlisted operational actions.
-
-### P0 — Missing `system.commands.run` authorization
-
-**File:** `Modules/System/Livewire/Settings/ArtisanList.php`
-
-**Evidence:** permission exists in `Modules/System/config/module.php`, but no action authorization is performed.
-
-**Impact:** mutation boundary does not meet repository security standard.
-
-**Recommendation:** enforce permission on every retained operation.
-
-### P1 — Raw operational output/error exposure
-
-**File:** PHP + Blade pair.
-
-**Recommendation:** sanitize browser-facing errors and keep detailed diagnostics in protected logs.
-
-## Recommended Direction
-
-**Refactor/replacement, with current production disablement preserved until complete.**
-
-Preferred target:
+`ArtisanList` now uses `AuthorizesSystemActions` and calls:
 
 ```text
-Livewire UI
-  -> authorize system.commands.run
-  -> SystemOperationService
-  -> fixed operation registry / allowlist
-  -> Process/Artisan with fixed arguments + timeout
-  -> audit log
+authorizePermission('system.commands.run')
 ```
 
-Do not restore a generic web terminal in production.
+before operation lookup/execution.
 
-## Open Questions / Unknowns
+This closes the previous action-boundary authorization gap.
 
-- Whether another module/page directly mounts `system.settings.artisan-list` outside `SystemConfigService` was not proven within the allowed component-level scope.
-- Whether external infrastructure blocks Livewire access to this alias cannot be established from this component alone.
-- Exact approved audit-log infrastructure for privileged System actions should be resolved before implementation.
+## Security / Data Integrity Status
+
+### Resolved P0 — Arbitrary Artisan execution
+
+No browser-controlled command string reaches `Artisan::call()`.
+
+### Resolved P0 — Missing command authorization
+
+`system.commands.run` is enforced in the Livewire mutation action.
+
+### Resolved P0 — Destructive quick commands
+
+`key:generate`, `db:seed`, and `migrate:fresh` are no longer exposed.
+
+### Resolved P1 — Raw exception disclosure
+
+Detailed exception messages are no longer stored in Livewire error state. The UI receives a generic operator-safe message.
+
+### Improved P1 — Operational auditability
+
+Operation attempts/results are recorded through Laravel application logging with safe structured metadata.
+
+## Production Containment
+
+Containment remains defense-in-depth and was not weakened:
+
+- `Modules/System/config/system_tabs.php` keeps the Artisan tab disabled by default;
+- `Modules/System/Services/SystemConfigService.php` continues to force `system.settings.artisan-list` disabled.
+
+Authorization and containment remain independent controls.
+
+## Tests
+
+Added:
+
+`tests/Feature/System/SystemArtisanOperationsTest.php`
+
+Coverage includes:
+
+- exact allowlist IDs;
+- fixed command mapping for `list` and `optimize:clear` using Artisan mocks;
+- unknown operation rejection before Artisan execution;
+- component authorization/security contract;
+- removal of destructive/free-form command UI;
+- preservation of production containment.
+
+## Remaining Risks / Follow-up
+
+- Operations still execute synchronously inside the Livewire request. This is acceptable for the two approved short operations; future long-running operations require a separate plan.
+- Application logging is the current audit mechanism. Migration to a future canonical persistent Audit Log framework is cross-cutting work outside this component refactor.
+- The component remains intentionally unavailable through normal production System tab configuration.
+
+## Refactor Decision
+
+**Refactor complete for the approved scope.**
+
+Do not add new Artisan operations by accepting command text or arbitrary arguments. Any future operation must be added explicitly to the server-side registry and reviewed for permission, confirmation, runtime impact and audit requirements.
