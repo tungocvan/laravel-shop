@@ -15,7 +15,7 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
         $this->assertStringContainsString("Auth::guard('admin')->user()", $source);
         $this->assertStringContainsString("'create_admission'", $source);
         $this->assertStringContainsString("'edit_admission'", $source);
-        $this->assertStringContainsString("$this->authorizeAdmin('edit_admission')", $source);
+        $this->assertStringContainsString('$this->authorizeAdmin(\'edit_admission\')', $source);
     }
 
     public function test_registration_form_does_not_own_approval_transition(): void
@@ -23,7 +23,7 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
         $source = file_get_contents(base_path('Modules/Admission/Livewire/Public/RegistrationForm.php'));
 
         $this->assertStringNotContainsString("'Status' => 'approved'", $source);
-        $this->assertStringNotContainsString("$data['Status'] = 'approved'", $source);
+        $this->assertStringNotContainsString('$data[\'Status\'] = \'approved\'', $source);
         $this->assertStringNotContainsString('approve_admission', $source);
     }
 
@@ -31,8 +31,8 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Admission/Services/AdmissionRegistrationService.php'));
 
-        $this->assertStringContainsString("$form['Status'] = 'pending'", $source);
-        $this->assertStringContainsString("unset($form['Status'])", $source);
+        $this->assertStringContainsString('$form[\'Status\'] = \'pending\'', $source);
+        $this->assertStringContainsString('unset($form[\'Status\'])', $source);
     }
 
     public function test_db_to_form_mapping_preserves_known_round_trip_fields(): void
