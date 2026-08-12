@@ -17,6 +17,9 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         Route::get('/artisan', [SettingController::class, 'artisan'])
             ->middleware('permission:system.commands.run,admin')
             ->name('artisan');
+        Route::get('/scripts', [SettingController::class, 'scripts'])
+            ->middleware('permission:system.commands.run,admin')
+            ->name('scripts');
         Route::get('/settings', [SettingController::class, 'index'])
             ->middleware('permission:system.settings.view,admin')
             ->name('settings.index');
