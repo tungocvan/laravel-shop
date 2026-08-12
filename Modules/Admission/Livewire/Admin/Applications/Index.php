@@ -2,24 +2,22 @@
 
 namespace Modules\Admission\Livewire\Admin\Applications;
 
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Admission\Models\AdmissionApplication;
-use Illuminate\Support\Facades\Auth;
-use Maatwebsite\Excel\Facades\Excel;
-use Modules\Admission\Exports\ApplicationsExport;
+use Modules\Admission\Services\AdmissionApplicationAdminService;
 
 class Index extends Component
 {
     use WithPagination;
 
+    private const PER_PAGE_OPTIONS = [5, 10, 20, 50];
+
     public $search = '';
     public $filterStatus = '';
     public $filterClass = '';
- 
     public $perPage = 10;
-
-    public $selected = []; 
+    public $selected = [];
     public $selectAll = false;
 
     protected $queryString = [
@@ -29,109 +27,110 @@ class Index extends Component
         'perPage' => ['except' => 10],
     ];
 
-    public function updated($field)
+    public function updated($field): void
     {
-        if (in_array($field, ['search', 'filterStatus', 'filterClass', 'perPage'])) {
+        if ($field === 'perPage') {
+            $this->perPage = in_array((int) $this->perPage, self::PER_PAGE_OPTIONS, true)
+                ? (int) $this->perPage
+                : 10;
+        }
+
+        if (in_array($field, ['search', 'filterStatus', 'filterClass', 'perPage'], true)) {
             $this->resetPage();
             $this->resetSelection();
         }
     }
 
-    protected function resetSelection()
+    protected function resetSelection(): void
     {
         $this->selected = [];
         $this->selectAll = false;
     }
 
-    public function updatedSelectAll($value)
+    public function updatedSelectAll($value): void
     {
-        if ($value) {
-            $this->selected = $this->applications->pluck('id')->toArray();
-        } else {
-            $this->selected = [];
+        if (! $this->adminCan('delete_admission')) {
+            $this->resetSelection();
+            return;
         }
+
+        $this->selected = $value
+            ? $this->applications->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [];
     }
 
     public function getApplicationsProperty()
     {
-        $query = AdmissionApplication::query()
-            ->when($this->search, function ($q) {
-                $q->where(function ($qq) {
-                    $qq->where('ho_va_ten_hoc_sinh', 'like', '%' . $this->search . '%')
-                        ->orWhere('ma_dinh_danh', 'like', '%' . $this->search . '%')
-                        ->orWhere('sdt_enetviet', 'like', '%' . $this->search . '%');
-                });
-            })
-            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
-            ->when($this->filterClass, fn($q) => $q->where('loai_lop_dang_ky', $this->filterClass))
-            ->orderByDesc('updated_at')
-            ->orderByDesc('created_at');
-
-        if ($this->perPage === 'all') {
-            return $query->get();
-        }
-
-        return $query->paginate($this->perPage);
+        return app(AdmissionApplicationAdminService::class)
+            ->paginate($this->filters(), (int) $this->perPage);
     }
 
-    // ACTIONS
-    public function approve($id)
+    public function approve($id): void
     {
+        $adminId = $this->authorizeAdmin('approve_admission');
 
-        $item = AdmissionApplication::findOrFail($id);
-        if ($item->status !== 'pending') return;
-
-        $item->update([
-            'status' => 'approved',
-            'approved_at' => now(),
-            'approved_by' => Auth::id(),
-        ]);
+        app(AdmissionApplicationAdminService::class)->approve((int) $id, $adminId);
     }
 
-    public function reject($id)
+    public function reject($id): void
     {
-        $item = AdmissionApplication::findOrFail($id);
-        if ($item->status !== 'pending') return;
+        $adminId = $this->authorizeAdmin('reject_admission');
 
-        $item->update([
-            'status' => 'rejected',
-            'rejected_at' => now(),
-            'rejected_by' => Auth::id(),
-        ]);
+        app(AdmissionApplicationAdminService::class)->reject((int) $id, $adminId);
     }
 
-    public function deleteSelected()
+    public function deleteSelected(): void
     {
-        AdmissionApplication::whereIn('id', $this->selected)
-            ->get()
-            ->each
-            ->delete();
+        $this->authorizeAdmin('delete_admission');
 
+        app(AdmissionApplicationAdminService::class)->deleteMany($this->selected);
         $this->resetSelection();
     }
 
-    public function delete($id)
+    public function delete($id): void
     {
-        $this->selected = [$id];
-        $this->deleteSelected();
+        $this->authorizeAdmin('delete_admission');
+
+        app(AdmissionApplicationAdminService::class)->deleteMany([(int) $id]);
+        $this->resetSelection();
     }
 
     public function export()
     {
-        return Excel::download(
-            new ApplicationsExport(
-                $this->search,
-                $this->filterStatus,
-                $this->filterClass
-            ),
-            'applications.xlsx'
-        );
+        $this->authorizeAdmin('export_admission');
+
+        return app(AdmissionApplicationAdminService::class)->downloadExport($this->filters());
     }
 
     public function render()
     {
         return view('Admission::livewire.admin.applications.index', [
-            'applications' => $this->applications
+            'applications' => $this->applications,
         ]);
+    }
+
+    private function filters(): array
+    {
+        return [
+            'search' => $this->search,
+            'status' => $this->filterStatus,
+            'class' => $this->filterClass,
+        ];
+    }
+
+    private function authorizeAdmin(string $permission): int
+    {
+        $admin = Auth::guard('admin')->user();
+
+        abort_unless($admin && $admin->can($permission), 403);
+
+        return (int) $admin->getAuthIdentifier();
+    }
+
+    private function adminCan(string $permission): bool
+    {
+        $admin = Auth::guard('admin')->user();
+
+        return (bool) ($admin && $admin->can($permission));
     }
 }
