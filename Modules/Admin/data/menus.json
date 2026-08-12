@@ -99,7 +99,7 @@
                 "name": "Quản lý ENV",
                 "url": "/admin/system/settings/env",
                 "icon": null,
-                "can": "view_role",
+                "can": "system.env.view",
                 "is_active": true,
                 "children": []
             },
