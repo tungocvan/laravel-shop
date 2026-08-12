@@ -25,9 +25,9 @@
     {!! $headerScript !!}
     {!! $analyticsCode ?? '' !!}
     <script>
-        // window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
+       // window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
         // window.CHAT_CONFIG_PORT = "{{ env('NODEJS_SERVER_PORT') ?? 6001 }}";
-        window.CHAT_CONFIG_HOST = window.location.origin;
+        window.CHAT_CONFIG_HOST =  @json(config('realtime.host') ?: request()->getSchemeAndHttpHost());
     </script>
     {{-- <script src="https://unpkg.com/@tailwindcss/browser@4"></script> --}}
     <x-realtime-config />

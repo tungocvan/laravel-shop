@@ -6,9 +6,8 @@
     <title>@yield('title', 'HOMEPAGE')</title>
     @yield('css')
     <script>
-        // window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
-        // window.CHAT_CONFIG_PORT = "{{ env('NODEJS_SERVER_PORT') ?? 6001 }}";
-        window.CHAT_CONFIG_HOST = window.location.origin;
+       //window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
+       window.CHAT_CONFIG_HOST =  @json(config('realtime.host') ?: request()->getSchemeAndHttpHost());
     </script>
     <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
