@@ -12,6 +12,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdmissionApplicationAdminService
 {
+    private const PER_PAGE_OPTIONS = [5, 10, 20, 50];
+
     public function query(array $filters = []): Builder
     {
         $search = trim((string) ($filters['search'] ?? ''));
@@ -34,6 +36,8 @@ class AdmissionApplicationAdminService
 
     public function paginate(array $filters, int $perPage): LengthAwarePaginator
     {
+        $perPage = in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
+
         return $this->query($filters)->paginate($perPage);
     }
 
