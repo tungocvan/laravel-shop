@@ -2,147 +2,125 @@
 
 namespace Modules\System\Livewire\Settings\Partials;
 
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\System\Models\Setting;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\CustomSettingsService;
+use Throwable;
 
 class Custom extends Component
 {
+    use AuthorizesSystemActions;
     use WithFileUploads;
 
-    public $customSettings = [];
+    public array $customSettings = [];
+    public array $dynamicValues = [];
+    public array $dynamicImages = [];
+    public array $galleryUploads = [];
+    public bool $canUpdate = false;
 
-    public $dynamicValues = [];
-    public $dynamicImages = [];
-    public $galleryUploads = [];
-
-    public $newField = [
+    public array $newField = [
         'label' => '',
-        'key'   => '',
-        'type'  => 'text',
+        'key' => '',
+        'type' => 'text',
     ];
 
-    // ==============================
-    // INIT
-    // ==============================
-    public function mount()
+    public function mount(CustomSettingsService $service): void
     {
-        $this->loadSettings();
+        $this->canUpdate = (bool) auth('admin')->user()?->can('system.settings.update');
+        $this->loadSettings($service);
     }
 
-    public function loadSettings()
+    public function loadSettings(?CustomSettingsService $service = null): void
     {
-        $this->customSettings = Setting::where('group_name', 'custom')->get();
+        $service ??= app(CustomSettingsService::class);
+        $this->customSettings = $service->all();
+        $this->dynamicValues = [];
 
         foreach ($this->customSettings as $setting) {
-
-            if ($setting->type === 'gallery') {
-                $this->dynamicValues[$setting->id] = json_decode($setting->value, true) ?? [];
-            } elseif ($setting->type === 'image') {
-                continue;
-            } else {
-                $this->dynamicValues[$setting->id] = $setting->value;
+            if ($setting['type'] === 'gallery') {
+                $decoded = json_decode((string) ($setting['value'] ?? ''), true);
+                $this->dynamicValues[$setting['id']] = is_array($decoded) ? array_values($decoded) : [];
+            } elseif ($setting['type'] !== 'image') {
+                $this->dynamicValues[$setting['id']] = $setting['value'];
             }
         }
     }
 
-    // ==============================
-    // ADD FIELD
-    // ==============================
-    public function addField()
+    public function addField(CustomSettingsService $service): void
     {
-        $this->validate([
-            'newField.label' => 'required|string|max:255',
-            'newField.key'   => 'required|alpha_dash|unique:settings,key',
-            'newField.type'  => 'required|in:text,textarea,image,html,gallery',
+        $this->authorizePermission('system.settings.update');
+        $validated = $this->validate([
+            'newField.label' => ['required', 'string', 'max:255'],
+            'newField.key' => ['required', 'alpha_dash', 'max:255'],
+            'newField.type' => ['required', 'in:text,textarea,image,html,gallery'],
         ]);
 
-        Setting::create([
-            'label'      => $this->newField['label'],
-            'key'        => Str::slug($this->newField['key'], '_'),
-            'type'       => $this->newField['type'],
-            'group_name' => 'custom',
-        ]);
-
-        $this->reset('newField');
-        $this->loadSettings();
-
-        $this->dispatch('notify', type: 'success', message: 'Đã thêm field');
+        try {
+            $service->create($validated['newField'], auth('admin')->id());
+            $this->newField = ['label' => '', 'key' => '', 'type' => 'text'];
+            $this->loadSettings($service);
+            $this->dispatch('notify', type: 'success', message: 'Đã thêm field');
+        } catch (Throwable $e) {
+            Log::warning('Custom setting create failed.', ['exception' => $e::class]);
+            $this->dispatch('notify', type: 'error', message: 'Không thể thêm cấu hình. Vui lòng kiểm tra dữ liệu hoặc log hệ thống.');
+        }
     }
 
-    // ==============================
-    // DELETE
-    // ==============================
-    public function deleteField($id)
+    public function deleteField(int $id, CustomSettingsService $service): void
     {
-        Setting::destroy($id);
-        $this->loadSettings();
+        $this->authorizePermission('system.settings.update');
+
+        try {
+            $service->delete($id, auth('admin')->id());
+            $this->loadSettings($service);
+            $this->dispatch('notify', type: 'success', message: 'Đã xóa field');
+        } catch (Throwable $e) {
+            Log::warning('Custom setting delete failed.', ['setting_id' => $id, 'exception' => $e::class]);
+            $this->dispatch('notify', type: 'error', message: 'Không thể xóa cấu hình. Vui lòng kiểm tra log hệ thống.');
+        }
     }
 
-    // ==============================
-    // GALLERY REMOVE
-    // ==============================
-    public function removeGalleryImage($id, $index)
+    public function removeGalleryImage(int $id, int $index): void
     {
+        $this->authorizePermission('system.settings.update');
         $images = $this->dynamicValues[$id] ?? [];
 
-        unset($images[$index]);
+        if (! is_array($images) || ! array_key_exists($index, $images)) {
+            return;
+        }
 
+        unset($images[$index]);
         $this->dynamicValues[$id] = array_values($images);
     }
 
-    // ==============================
-    // SAVE
-    // ==============================
-    public function save()
+    public function save(CustomSettingsService $service): void
     {
-        foreach ($this->customSettings as $setting) {
+        $this->authorizePermission('system.settings.update');
 
-            // IMAGE
-            if ($setting->type === 'image') {
-                if (isset($this->dynamicImages[$setting->id])) {
+        $this->validate([
+            'dynamicImages.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'galleryUploads.*' => ['nullable', 'array', 'max:20'],
+            'galleryUploads.*.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
 
-                    if ($setting->value && Storage::disk('public')->exists($setting->value)) {
-                        Storage::disk('public')->delete($setting->value);
-                    }
+        try {
+            $service->save(
+                $this->dynamicValues,
+                $this->dynamicImages,
+                $this->galleryUploads,
+                auth('admin')->id(),
+            );
 
-                    $path = $this->dynamicImages[$setting->id]->store('settings/custom', 'public');
-
-                    $setting->update(['value' => $path]);
-                }
-            }
-
-            // GALLERY
-            elseif ($setting->type === 'gallery') {
-
-                $current = $this->dynamicValues[$setting->id] ?? [];
-
-                if (!empty($this->galleryUploads[$setting->id])) {
-                    foreach ($this->galleryUploads[$setting->id] as $file) {
-                        $current[] = $file->store('settings/gallery', 'public');
-                    }
-                }
-
-                $setting->update([
-                    'value' => json_encode($current)
-                ]);
-
-                $this->dynamicValues[$setting->id] = $current;
-            }
-
-            // TEXT / HTML
-            else {
-                $setting->update([
-                    'value' => $this->dynamicValues[$setting->id] ?? null
-                ]);
-            }
+            $this->dynamicImages = [];
+            $this->galleryUploads = [];
+            $this->loadSettings($service);
+            $this->dispatch('notify', type: 'success', message: 'Đã lưu cấu hình');
+        } catch (Throwable $e) {
+            Log::warning('Custom settings save failed in Livewire.', ['exception' => $e::class]);
+            $this->dispatch('notify', type: 'error', message: 'Không thể lưu cấu hình. Vui lòng kiểm tra log hệ thống.');
         }
-
-        $this->loadSettings();
-
-        $this->dispatch('notify', type: 'success', message: 'Đã lưu cấu hình');
     }
 
     public function render()
