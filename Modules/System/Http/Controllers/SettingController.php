@@ -25,4 +25,9 @@ class SettingController extends Controller
     {
         return view('System::pages.settings.artisan');
     }
+
+    public function scripts()
+    {
+        return view('System::pages.settings.scripts');
+    }
 }
