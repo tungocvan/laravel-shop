@@ -6,37 +6,34 @@ use Livewire\Component;
 
 class SettingForm extends Component
 {
+    private const TAB_COMPONENTS = [
+        'theme' => 'admin.theme-switcher',
+        'general' => 'system.settings.partials.general',
+        'menu' => 'admin.header.menu-manager',
+        'images' => 'system.settings.partials.images',
+        'seo' => 'system.settings.partials.seo',
+        'custom' => 'system.settings.partials.custom',
+    ];
+
     public array $tabs = [
         'theme' => 'Quản lý Themes',
         'general' => 'Cấu hình chung',
         'menu' => 'Quản lý Menu',
-        'images'  => 'Hình ảnh',
-        'seo'     => 'SEO/Mạng xã hội',
-        'custom'  => 'Cấu hình tùy chỉnh',
+        'images' => 'Hình ảnh',
+        'seo' => 'SEO/Mạng xã hội',
+        'custom' => 'Cấu hình tùy chỉnh',
     ];
 
     public string $activeTab = 'theme';
 
     public function setTab(string $tab): void
     {
-        if (!array_key_exists($tab, $this->tabs)) {
-            $tab = 'theme';
-        }
-
-        $this->activeTab = $tab;
+        $this->activeTab = array_key_exists($tab, self::TAB_COMPONENTS) ? $tab : 'theme';
     }
 
     public function getTabComponent(): string
     {
-        return match ($this->activeTab) {
-            'general' => 'system.settings.partials.general',
-            'theme' => 'admin.theme-switcher',
-            'menu' => 'admin.header.menu-manager',
-            'images'  => 'system.settings.partials.images',
-            'seo'     => 'system.settings.partials.seo',
-            'custom'  => 'system.settings.partials.custom',
-            default   => 'admin.theme-switcher',
-        };
+        return self::TAB_COMPONENTS[$this->activeTab] ?? self::TAB_COMPONENTS['theme'];
     }
 
     public function render()
