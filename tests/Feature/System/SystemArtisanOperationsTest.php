@@ -3,6 +3,7 @@
 namespace Tests\Feature\System;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 use InvalidArgumentException;
 use Modules\System\Services\SystemOperationService;
 use Tests\TestCase;
@@ -80,6 +81,40 @@ class SystemArtisanOperationsTest extends TestCase
         $this->assertStringNotContainsString('key:generate', $contents);
         $this->assertStringNotContainsString('artisanCommand', $contents);
         $this->assertStringContainsString('executeOperation', $contents);
+    }
+
+    public function test_artisan_admin_route_requires_specific_permission(): void
+    {
+        $route = Route::getRoutes()->getByName('admin.system.artisan');
+
+        $this->assertNotNull($route);
+        $this->assertSame('admin/system/artisan', $route->uri());
+        $this->assertContains('auth:admin', $route->gatherMiddleware());
+        $this->assertContains('permission:system.commands.run,admin', $route->gatherMiddleware());
+    }
+
+    public function test_artisan_admin_page_mounts_restricted_livewire_component(): void
+    {
+        $contents = file_get_contents(base_path('Modules/System/resources/views/pages/settings/artisan.blade.php'));
+
+        $this->assertStringContainsString("@livewire('system.settings.artisan-list')", $contents);
+    }
+
+    public function test_admin_menu_contains_artisan_entry_with_specific_permission(): void
+    {
+        $menus = json_decode(
+            file_get_contents(base_path('Modules/Admin/data/menus.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        $systemMenu = collect($menus)->firstWhere('name', 'Công cụ Hệ thống');
+        $artisanMenu = collect($systemMenu['children'] ?? [])->firstWhere('url', '/admin/system/artisan');
+
+        $this->assertNotNull($artisanMenu);
+        $this->assertSame('Thao tác Artisan', $artisanMenu['name']);
+        $this->assertSame('system.commands.run', $artisanMenu['can']);
+        $this->assertTrue((bool) $artisanMenu['is_active']);
     }
 
     public function test_production_containment_still_forces_artisan_component_disabled(): void

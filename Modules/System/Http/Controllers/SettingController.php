@@ -10,12 +10,19 @@ class SettingController extends Controller
     {
         return view('System::pages.settings.index');
     }
+
     public function profile()
     {
         return view('System::pages.settings.profile');
     }
+
     public function modules()
     {
         return view('System::pages.settings.modules');
+    }
+
+    public function artisan()
+    {
+        return view('System::pages.settings.artisan');
     }
 }
