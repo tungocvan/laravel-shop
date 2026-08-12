@@ -1,127 +1,82 @@
 # System Livewire Analysis — Settings/EnvManager
 
 Analysis date: 2026-08-12
+Refactor status: **Implemented — pending local focused test verification.**
 
 ## Executive Summary
 
-`Modules/System/Livewire/Settings/EnvManager.php` creates `.env.<suffix>` snapshots by copying the current `.env`. The component is **P1 / Refactor or remove** because `exportEnv()` has no authorization, the suffix is supplied to the service without an explicit allowlist at the component/service boundary, and `render()` calls an unfinished `getTabsDefinition()` method that returns nothing.
+`EnvManager` has been refactored from an unauthorised project-root `.env.<suffix>` copier into a narrow private snapshot toolbar for the existing ENV administration page.
 
-## Component Purpose
+The component now delegates filesystem work to `EnvSnapshotService`, enforces `system.env.update`, exposes only the fixed `production` and `local` operation IDs, and no longer owns unrelated tab state.
 
-Path: `Modules/System/Livewire/Settings/EnvManager.php`
+## Current Architecture
 
-Alias: `system.settings.env-manager`
+```text
+/admin/system/settings/env
+→ system.settings.env-manager
+→ system.env.update
+→ EnvSnapshotService
+→ storage/app/private/backups/env-snapshots/
+```
 
-View: `System::livewire.settings.env-manager`
+The page/menu remains protected by `system.env.view`. Snapshot mutation is independently protected by `system.env.update`.
 
-Current visible UI offers two fixed actions:
+## Security Model
 
-- Snapshot Production
-- Snapshot Local
+`EnvSnapshotService` owns the fixed operation registry:
 
-## Dependency Flow
+- `production`
+- `local`
 
-Env settings UI
-→ `EnvManager`
-→ `EnvManagerService::exportToEnvironment($suffix)`
-→ copy `.env` to `.env.<suffix>`
+The browser cannot supply a destination path, filename or arbitrary suffix. Unsupported operation IDs are rejected before filesystem work.
 
-## Livewire PHP Analysis
+Snapshots are stored outside the project root under private storage. The service best-effort enforces directory mode `0700` and file mode `0600`, serializes creation with `Cache::lock('system:env-snapshot:create', ...)`, generates collision-resistant server-owned filenames, and keeps only the latest five matching snapshots per type.
 
-`exportEnv(string $envType, EnvManagerService $service)` directly passes a caller-supplied suffix into `exportToEnvironment()`.
+Retention only considers the service-owned `env-<type>-*.env` pattern and does not delete unrelated files.
 
-`render()` calls `getTabsDefinition()` and passes `$tabs` to the view, but the private method currently has only a comment and returns nothing. The current Blade does not use `$tabs`, so this defect may be latent rather than immediately visible.
+## Livewire Boundary
 
-No authorization is enforced.
+`EnvManager` now uses `AuthorizesSystemActions` and exposes one mutation:
 
-## Livewire Blade Analysis
+```php
+createSnapshot(string $operation, EnvSnapshotService $service)
+```
 
-The Blade currently exposes only two hard-coded buttons (`production`, `local`), which reduces ordinary UI input risk. However, Livewire public actions should not rely on the Blade being the only caller.
+It enforces `system.env.update` before service execution. Technical failures are reported server-side and the browser receives a generic error message. Snapshot contents and filesystem paths are never returned to the UI.
 
-Production button has loading/disabled state. Local button lacks equivalent loading state.
+The old `activeTab`, `getTabsDefinition()` and `exportEnv()` logic were removed.
 
-## State / Validation / Actions
+## UI / Integration
 
-Action:
+The component is intentionally mounted in the header of the existing `/admin/system/settings/env` page. It does not have a standalone route or Admin Menu entry.
 
-- `exportEnv($envType)`
+The toolbar provides fixed Production/Local actions, confirmation, loading/disabled states, a private-secret warning and read-only behavior for users without update permission.
 
-The component and service should enforce a strict allowlist of supported snapshot suffixes instead of trusting a string argument.
+## Legacy Service Note
 
-## Authorization
+`EnvManagerService::exportToEnvironment()` remains in the repository for compatibility but is no longer used by this Livewire component. New snapshot workflows must use `EnvSnapshotService` and must not write `.env.production` / `.env.local` in the project root.
 
-**P1:** environment snapshots contain all application secrets and should require `system.env.update` or a dedicated env-backup capability.
+## Admin Menu
 
-## Service / Model Dependencies
+No new menu was created. Canonical entry remains:
 
-`EnvManagerService::exportToEnvironment()` currently constructs `base_path(".env.{$suffix}")` directly and copies `.env` there if present.
-
-Unlike `update()`, snapshot export does not validate or normalize the suffix itself.
-
-## Performance
-
-Negligible. File copy size is the size of `.env`.
-
-## Security / Data Integrity
-
-### P1 — Missing authorization
-
-Creating secret-bearing environment copies is a privileged operation.
-
-### P1 — Unvalidated suffix at service boundary
-
-Although the current UI only sends `production`/`local`, the public Livewire action accepts arbitrary strings. The service should reject anything outside an explicit allowlist or a conservative suffix pattern and expected names.
-
-### P1 — Secret proliferation
-
-Every snapshot creates another plaintext copy of all environment secrets in the project root. File permissions, retention and backup policy need to be explicit.
-
-### P2 — Dead/incomplete tabs logic
-
-`getTabsDefinition()` returns nothing and should either be completed or removed if obsolete.
-
-## UI/UX Compliance
-
-Positive:
-
-- simple explicit snapshot choices;
-- production action has progress/disabled state.
-
-Needs improvement:
-
-- consistent loading state on both actions;
-- confirmation before production snapshot;
-- clear destination/retention explanation;
-- success should identify snapshot name without exposing path details unnecessarily.
+```text
+Công cụ Hệ thống
+└── Quản lý ENV
+    /admin/system/settings/env
+    system.env.view
+```
 
 ## Test Coverage
 
-No System-specific test was found.
+Focused test file:
 
-Missing tests:
+`tests/Feature/System/SystemEnvSnapshotTest.php`
 
-- unauthorized export rejection;
-- unsupported suffix rejection;
-- expected file permissions and destination;
-- missing `.env` behavior;
-- no overwrite/retention collision issues.
+It locks the main source-level invariants: update authorization, fixed/private snapshot service, lock/retention/permission policy, active ENV-page mount, fixed UI actions and removal of legacy Livewire snapshot delegation.
 
-## Issue List
+Local runtime test verification is still required after pulling the implementation.
 
-### P1 — Missing env snapshot authorization
+## Remaining Scope
 
-### P1 — Snapshot suffix not validated at component/service boundary
-
-### P1 — Plaintext secret copies lack documented retention/permission policy
-
-### P2 — `getTabsDefinition()` is incomplete/dead logic
-
-## Recommended Direction
-
-**Minor-to-Major Refactor depending on intended use.** If environment snapshots are still required, secure and simplify the component. If not operationally required, remove the component rather than completing unused tab logic.
-
-## Open Questions / Unknowns
-
-- Whether `.env.production` and `.env.local` are deployed artifacts or only manual snapshots.
-- Required retention and filesystem permissions for env snapshots.
-- Whether this component is currently mounted anywhere in active System UI.
+Restore, download, listing and delete snapshot capabilities were intentionally not added. Any such feature should receive a separate privileged workflow analysis/refactor plan.
