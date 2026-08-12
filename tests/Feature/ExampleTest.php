@@ -2,18 +2,19 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
+use Modules\Website\Http\Controllers\WebsiteController;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_homepage_route_is_registered_to_website_controller(): void
     {
-        $response = $this->get('/');
+        $route = Route::getRoutes()->getByName('home');
 
-        $response->assertStatus(200);
+        $this->assertNotNull($route);
+        $this->assertSame('/', $route->uri());
+        $this->assertSame(WebsiteController::class.'@home', $route->getActionName());
+        $this->assertContains('web', $route->gatherMiddleware());
     }
 }
