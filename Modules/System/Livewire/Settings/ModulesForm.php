@@ -3,15 +3,20 @@
 namespace Modules\System\Livewire\Settings;
 
 use App\Modules\ModuleLifecycleManager;
-use App\Modules\ModulePermissionManager;
 use App\Services\RealtimeManager;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use LogicException;
 use Modules\Admin\Services\ModuleRouteManager;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\SystemModuleControlService;
+use Throwable;
 
 class ModulesForm extends Component
 {
-    public $modules = [];
+    use AuthorizesSystemActions;
+
+    public array $modules = [];
     public bool $realtimeEnabled = false;
     public array $realtimeStatus = [];
     public array $moduleRoutes = [];
@@ -19,22 +24,27 @@ class ModulesForm extends Component
     public string $routeTitle = '';
     public string $routeSearch = '';
     public string $routeModuleFilter = '';
+    public bool $canUpdate = false;
 
-    public function mount()
+    public function mount(): void
     {
+        $this->canUpdate = (bool) (auth('admin')->user()?->can('system.modules.update'));
         $this->loadModules();
         $this->refreshRealtimeStatus();
         $this->loadModuleRoutes();
     }
 
-    public function toggleRealtime(RealtimeManager $realtime): void
+    public function toggleRealtime(RealtimeManager $realtime, SystemModuleControlService $control): void
     {
+        $this->authorizePermission('system.modules.update');
+
         try {
-            $realtime->setEnabled(! $this->realtimeEnabled);
+            $control->toggleRealtime($realtime, $this->realtimeEnabled, auth('admin')->id());
             $this->refreshRealtimeStatus();
-            session()->flash('message', 'Realtime Socket.IO đã được ' . ($this->realtimeEnabled ? 'bật' : 'tắt') . '. Không cần build lại frontend.');
-        } catch (\Throwable $e) {
-            session()->flash('error', 'Không thể cập nhật realtime: ' . $e->getMessage());
+            session()->flash('message', 'Realtime Socket.IO đã được '.($this->realtimeEnabled ? 'bật' : 'tắt').'. Không cần build lại frontend.');
+        } catch (Throwable $e) {
+            Log::warning('ModulesForm realtime mutation failed.', ['exception' => $e::class]);
+            session()->flash('error', 'Không thể cập nhật realtime. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
@@ -42,122 +52,97 @@ class ModulesForm extends Component
     {
         $realtime = app(RealtimeManager::class);
         $this->realtimeEnabled = $realtime->enabled();
-        $this->realtimeStatus = $realtime->health();
+
+        try {
+            $this->realtimeStatus = $realtime->health();
+        } catch (Throwable $e) {
+            Log::warning('ModulesForm realtime health check failed.', ['exception' => $e::class]);
+            $this->realtimeStatus = ['ok' => false];
+        }
     }
 
-    public function loadModules()
+    public function loadModules(): void
     {
         $registry = config('modules.registry', []);
         $lifecycle = app(ModuleLifecycleManager::class);
-        $this->modules = collect($registry)->map(function ($module, $name) use ($registry, $lifecycle) {
-            $usedBy = collect($registry)
-                ->filter(fn ($candidate) => ($candidate['enabled'] ?? false)
-                    && in_array($name, $candidate['depends'] ?? [], true))
-                ->keys()
-                ->values()
-                ->all();
 
-            try {
-                $database = $lifecycle->databaseStatus($module);
-            } catch (\Throwable $e) {
-                $database = ['tables' => [], 'missing_tables' => [], 'ready' => false, 'error' => $e->getMessage()];
-            }
+        $this->modules = collect(is_array($registry) ? $registry : [])
+            ->map(function (array $module, string $name) use ($registry, $lifecycle): array {
+                $usedBy = collect($registry)
+                    ->filter(fn (array $candidate): bool => (bool) ($candidate['enabled'] ?? false)
+                        && in_array($name, $candidate['depends'] ?? [], true))
+                    ->keys()
+                    ->values()
+                    ->all();
 
-            return [
-                'name' => $name,
-                'type' => $module['type'],
-                'enabled' => $module['enabled'],
-                'required' => $module['required'] ?? $module['type'] === 'shell',
-                'depends' => $module['depends'] ?? [],
-                'used_by' => $usedBy,
-                'path' => $module['path'],
-                'source' => $module['source'],
-                'database' => $database,
-            ];
-        })->sortBy(['type', 'name'])->values()->all();
+                try {
+                    $database = $lifecycle->databaseStatus($module + ['name' => $name]);
+                } catch (Throwable $e) {
+                    Log::warning('Module database status check failed.', [
+                        'module' => $name,
+                        'exception' => $e::class,
+                    ]);
+                    $database = ['tables' => [], 'missing_tables' => [], 'ready' => false, 'error' => true];
+                }
+
+                return [
+                    'name' => $name,
+                    'type' => $module['type'] ?? 'feature',
+                    'enabled' => (bool) ($module['enabled'] ?? false),
+                    'required' => (bool) ($module['required'] ?? (($module['type'] ?? null) === 'shell')),
+                    'depends' => $module['depends'] ?? [],
+                    'used_by' => $usedBy,
+                    'path' => $module['path'] ?? '',
+                    'source' => $module['source'] ?? '',
+                    'database' => $database,
+                ];
+            })
+            ->sortBy(fn (array $module): string => ($module['type'] ?? '').'|'.$module['name'])
+            ->values()
+            ->all();
     }
 
-    public function toggleModule($moduleName, ModuleLifecycleManager $lifecycle, ModulePermissionManager $permissions)
+    public function toggleModule(string $moduleName, SystemModuleControlService $control): void
     {
-        $module = collect($this->modules)->firstWhere('name', $moduleName);
-        if (!$module) return;
-
-        $newEnabled = !$module['enabled'];
-
-        if (! $newEnabled && $module['required']) {
-            session()->flash('error', "{$moduleName} là Shell Module bắt buộc và không thể tắt.");
-            return;
-        }
-
-        if ($newEnabled) {
-            $disabledDependencies = collect($module['depends'])
-                ->filter(fn ($dependency) => ! collect($this->modules)->firstWhere('name', $dependency)['enabled'])
-                ->values();
-            if ($disabledDependencies->isNotEmpty()) {
-                session()->flash('error', "Hãy bật module phụ thuộc trước: {$disabledDependencies->join(', ')}.");
-                return;
-            }
-
-            try {
-                $migration = $lifecycle->migrateIfNeeded($module);
-            } catch (\Throwable $e) {
-                session()->flash('error', "Không thể bật module {$moduleName}: {$e->getMessage()}");
-                return;
-            }
-        } else {
-            $dependents = collect($this->modules)
-                ->filter(fn ($candidate) => $candidate['enabled'] && in_array($moduleName, $candidate['depends'], true))
-                ->pluck('name')->values();
-            if ($dependents->isNotEmpty()) {
-                session()->flash('error', "Không thể tắt module {$moduleName} vì đang được sử dụng bởi: {$dependents->join(', ')}. Hãy tắt các module phụ thuộc trước.");
-                return;
-            }
-        }
+        $this->authorizePermission('system.modules.update');
 
         try {
-            $permissionCount = $newEnabled ? $permissions->sync($module) : 0;
-        } catch (\Throwable $e) {
-            session()->flash('error', "Không thể đồng bộ phân quyền module {$moduleName}: {$e->getMessage()}");
-            return;
-        }
-
-        // Update manifest file
-        $success = $this->updateModuleManifest($module['path'], $newEnabled);
-
-        if ($success) {
-            // Update in-memory config
-            config(['modules.registry.' . $moduleName . '.enabled' => $newEnabled]);
-
-            if (! $newEnabled) {
-                $permissions->forgetCache();
-            }
-
-            // Reload modules
+            $result = $control->toggle($moduleName, auth('admin')->id());
             $this->loadModules();
 
-            $suffix = $newEnabled && ($migration['migrated'] ?? false) ? ' và đã migrate database' : '';
-            $suffix .= $newEnabled && $permissionCount > 0 ? "; đã đồng bộ {$permissionCount} quyền" : '';
-            session()->flash('message', 'Module ' . $moduleName . ' đã được ' . ($newEnabled ? 'bật' : 'tắt') . $suffix);
-        }
-        // If not successful, error message is already set in updateModuleManifest
-    }
+            $suffix = $result['enabled'] && $result['migrated'] ? ' và đã migrate database' : '';
+            $suffix .= $result['enabled'] && $result['permission_count'] > 0
+                ? "; đã đồng bộ {$result['permission_count']} quyền"
+                : '';
 
-    public function deleteModule(string $moduleName, ModuleLifecycleManager $lifecycle): void
-    {
-        $module = collect($this->modules)->firstWhere('name', $moduleName);
-        if (! $module) {
-            return;
-        }
-
-        try {
-            $registry = config('modules.registry', []);
-            $destination = $lifecycle->archive($module, $registry);
-            unset($registry[$moduleName]);
-            config(['modules.registry' => $registry]);
-            $this->loadModules();
-            session()->flash('message', "Đã gỡ module {$moduleName}. Bản phục hồi: {$destination}. Database được giữ nguyên.");
-        } catch (\Throwable $e) {
+            session()->flash('message', 'Module '.$moduleName.' đã được '.($result['enabled'] ? 'bật' : 'tắt').$suffix.'.');
+        } catch (LogicException $e) {
             session()->flash('error', $e->getMessage());
+        } catch (Throwable $e) {
+            Log::warning('ModulesForm module toggle failed.', [
+                'module' => $moduleName,
+                'exception' => $e::class,
+            ]);
+            session()->flash('error', "Không thể cập nhật module {$moduleName}. Vui lòng kiểm tra log hệ thống.");
+        }
+    }
+
+    public function deleteModule(string $moduleName, SystemModuleControlService $control): void
+    {
+        $this->authorizePermission('system.modules.update');
+
+        try {
+            $result = $control->archive($moduleName, auth('admin')->id());
+            $this->loadModules();
+            session()->flash('message', "Đã lưu trữ module {$moduleName}. Bản phục hồi: {$result['archive']}. Database được giữ nguyên.");
+        } catch (LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        } catch (Throwable $e) {
+            Log::warning('ModulesForm module archive failed.', [
+                'module' => $moduleName,
+                'exception' => $e::class,
+            ]);
+            session()->flash('error', "Không thể lưu trữ module {$moduleName}. Vui lòng kiểm tra log hệ thống.");
         }
     }
 
@@ -202,30 +187,41 @@ class ModulesForm extends Component
         }
 
         $this->editingRouteKey = $key;
-        $this->routeTitle = $row['title'];
+        $this->routeTitle = (string) $row['title'];
     }
 
     public function saveRouteTitle(ModuleRouteManager $routes): void
     {
+        $this->authorizePermission('system.modules.update');
+        $this->validate([
+            'routeTitle' => ['required', 'string', 'max:255'],
+        ]);
+
         $row = collect($this->moduleRoutes)->firstWhere('key', $this->editingRouteKey);
         if (! $row) {
+            session()->flash('error', 'Route Module không còn tồn tại.');
             return;
         }
 
         try {
             $routes->saveTitle($row, $this->routeTitle);
             $this->editingRouteKey = null;
+            $this->routeTitle = '';
             $this->loadModuleRoutes();
             session()->flash('message', 'Đã cập nhật Title Module.');
-        } catch (\Throwable $e) {
-            session()->flash('error', $e->getMessage());
+        } catch (Throwable $e) {
+            Log::warning('ModulesForm route title update failed.', ['exception' => $e::class]);
+            session()->flash('error', 'Không thể cập nhật Title Module. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
     public function addRouteToMenu(string $key, ModuleRouteManager $routes): void
     {
+        $this->authorizePermission('system.modules.update');
+
         $row = collect($this->moduleRoutes)->firstWhere('key', $key);
         if (! $row) {
+            session()->flash('error', 'Route Module không còn tồn tại.');
             return;
         }
 
@@ -233,50 +229,12 @@ class ModulesForm extends Component
             $routes->addMenu($row);
             $this->loadModuleRoutes();
             session()->flash('message', "Đã thêm {$row['url']} vào menu.");
-        } catch (\Throwable $e) {
+        } catch (LogicException $e) {
             session()->flash('error', $e->getMessage());
+        } catch (Throwable $e) {
+            Log::warning('ModulesForm add route to menu failed.', ['exception' => $e::class]);
+            session()->flash('error', 'Không thể thêm route vào menu. Vui lòng kiểm tra log hệ thống.');
         }
-    }
-
-    private function updateModuleManifest($modulePath, $enabled)
-    {
-        $manifestPaths = [
-            $modulePath . '/config/module.php',
-            $modulePath . '/Config/module.php',
-        ];
-
-        foreach ($manifestPaths as $manifestPath) {
-            if (File::exists($manifestPath)) {
-                try {
-                    // Check if file is writable
-                    if (!File::isWritable($manifestPath)) {
-                        throw new \Exception("File không có quyền ghi: {$manifestPath}");
-                    }
-
-                    $manifest = require $manifestPath;
-
-                    if (is_array($manifest)) {
-                        $manifest['enabled'] = $enabled;
-
-                        $content = "<?php\n\nreturn " . var_export($manifest, true) . ";\n";
-                        File::put($manifestPath, $content);
-                        clearstatcache(true, $manifestPath);
-
-                        if (function_exists('opcache_invalidate')) {
-                            opcache_invalidate($manifestPath, true);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    // Log error and show user-friendly message
-                    \Log::error("Không thể cập nhật manifest module: " . $e->getMessage());
-                    session()->flash('error', 'Không thể cập nhật module: ' . $e->getMessage());
-                    return false;
-                }
-                break;
-            }
-        }
-
-        return true;
     }
 
     public function render()
