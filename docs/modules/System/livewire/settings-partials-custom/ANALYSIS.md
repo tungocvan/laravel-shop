@@ -2,177 +2,158 @@
 
 Analysis date: 2026-08-12
 
+Implementation status: **Refactored 2026-08-12**
+
 ## Executive Summary
 
-`Modules/System/Livewire/Settings/Partials/Custom.php` provides dynamic custom settings with text, textarea, HTML, image and gallery field types. It is **P1 / Major Refactor** because it performs model creation/deletion/updates and public file storage directly in Livewire, has no `system.settings.update` authorization, does not validate uploaded image/gallery files before storage, and supports HTML content without a clearly documented sanitization/rendering policy.
+`Settings/Partials/Custom` has been refactored from a direct Eloquent/public-storage Livewire component into a thin privileged UI backed by `Modules/System/Services/CustomSettingsService.php`.
 
-## Component Purpose
+The previous P1 findings were addressed in the approved scope:
 
-Path: `Modules/System/Livewire/Settings/Partials/Custom.php`
+- every mutation now enforces `system.settings.update`;
+- Livewire no longer directly creates/deletes/updates `Setting` records;
+- Livewire no longer directly stores/deletes public files;
+- image/gallery uploads are restricted to JPG/JPEG/PNG/WebP and 5 MB per file;
+- SVG is not accepted;
+- gallery uploads are bounded to 20 files per setting per save;
+- new files are staged before persistence and cleaned on persistence failure;
+- replaced/removed old files are deleted only after successful DB persistence;
+- delete is scoped to `group_name=custom` and cleanup is restricted to approved storage roots;
+- `Setting::getValue()` cache keys are invalidated after custom writes/deletes;
+- browser-facing errors are generic while exception class/operation metadata are logged server-side;
+- delete confirmation, loading states, validation feedback and view-only UI state were added.
 
-Alias: `system.settings.partials.custom`
+HTML remains an intentional trusted-admin setting type. This refactor does not silently strip HTML; consumers that render HTML raw must apply the project's approved trust/sanitization policy.
 
-View: `System::livewire.settings.partials.custom`
+## Current Flow
 
-Responsibilities:
+```text
+/admin/system/settings
+  -> system.settings.view
+  -> SettingForm
+  -> Custom partial
+      -> mutation boundary: system.settings.update
+      -> CustomSettingsService
+          -> canonical custom Setting query
+          -> DB transaction where useful
+          -> public storage under approved roots only
+          -> staged-file compensation
+          -> setting cache invalidation
+```
 
-- list custom `Setting` records;
-- add dynamic settings fields;
-- delete fields;
-- edit text/textarea/HTML values;
-- upload image and gallery files;
-- persist all custom values.
+## Service Boundary
 
-## Dependency Flow
+`CustomSettingsService` now owns:
 
-`SettingForm`
-→ `Custom`
-→ `Modules\System\Models\Setting`
-→ `settings` table
+- listing custom settings;
+- normalized/unique custom-field creation;
+- group-scoped deletion;
+- associated image/gallery cleanup;
+- text/textarea/html persistence;
+- image replacement ordering;
+- gallery append/removal persistence;
+- storage-root enforcement;
+- cache invalidation;
+- structured operation logging.
 
-and
+Approved public roots are fixed in source:
 
-`Custom`
-→ public Storage disk
-→ `storage/settings/custom` / `storage/settings/gallery`
+- `settings/custom`
+- `settings/gallery`
 
-## Livewire PHP Analysis
+Browser-provided destination paths are not supported.
 
-`loadSettings()` runs `Setting::where('group_name', 'custom')->get()` and populates public arrays.
+## Upload / File Integrity
 
-`addField()` validates label/key/type and directly creates a `Setting` model.
+Livewire validates:
 
-`deleteField()` directly destroys a record by ID.
+```text
+dynamicImages.*       -> image + jpg/jpeg/png/webp + max 5120 KB
+galleryUploads.*      -> array + max 20
+galleryUploads.*.*    -> image + jpg/jpeg/png/webp + max 5120 KB
+```
 
-`save()` iterates all settings and directly performs:
+Replacement ordering is now:
 
-- old-file deletion;
-- new image storage;
-- gallery upload storage;
-- JSON encoding;
-- model updates.
+```text
+store new
+→ persist DB
+→ delete old
+```
 
-There is no service layer or transaction around the multi-setting/multi-file save workflow.
+On DB/persistence failure:
 
-No explicit capability authorization is present.
+```text
+delete newly staged files
+→ preserve previously persisted value/files
+```
 
-## Livewire Blade Analysis
+Gallery removals remain pending in Livewire state until Save. The service re-resolves the persisted gallery and only accepts retained paths that were already part of that setting, preventing crafted public paths from becoming delete targets.
 
-The Blade provides creation controls, dynamic rendering per type, `x-editor` for HTML fields, public image previews, gallery removal and a global Save action.
+## Authorization
 
-Important UI findings:
+Page/menu visibility:
 
-- delete-field action has no confirmation;
-- image/gallery upload inputs do not show validation errors;
-- save has no loading/disabled state;
-- grid uses fixed 12-column spans without responsive fallbacks on the create-field row;
-- empty state exists.
+`system.settings.view`
 
-## State / Validation / Actions
-
-Actions:
+Mutation actions:
 
 - `addField()`
 - `deleteField()`
 - `removeGalleryImage()`
 - `save()`
 
-Only `addField()` validates its input. `save()` does not validate `dynamicImages` or `galleryUploads` before writing them to public storage.
+all enforce:
 
-This is a major correctness/security gap for uploads.
+`system.settings.update`
 
-## Authorization
+via `AuthorizesSystemActions`.
 
-**P1:** every mutation should enforce `system.settings.update` at the action boundary.
+## Admin Menu
 
-The parent settings page uses view-level access; child Livewire components must not assume parent visibility equals mutation permission.
+`Custom` remains a tab inside `/admin/system/settings`; no duplicate route/menu was created.
 
-## Service / Model Dependencies
+The existing settings menu was normalized to:
 
-The component bypasses a service layer and owns persistence/file workflows directly. This conflicts with the repository module standard, where Livewire should own UI state/validation and delegate business/persistence workflows to services.
+```text
+Name: Thiết lập Hệ thống
+URL: /admin/system/settings
+Can: system.settings.view
+```
 
-The `Setting` model is also shared with settings data whose migration ownership is outside System, so service-level ownership would make that boundary clearer.
+## HTML Trust Policy
 
-## Performance
+`html` remains a privileged field type because it is existing product behavior. The editor now displays an explicit warning.
 
-`loadSettings()` loads all custom settings with unbounded `get()`. This may be acceptable while the configuration set is intentionally small, but the component allows operators to create arbitrary additional fields, so the collection can grow without a hard bound.
+Persistence does not sanitize or strip HTML in this component-level refactor. Any consumer that uses raw rendering must treat the setting as trusted-admin HTML or apply an approved sanitizer before output.
 
-Every `save()` loops over every custom setting and may perform multiple file/model writes.
+Do not broaden this into arbitrary script/storage/path input.
 
-## Security / Data Integrity
+## Tests
 
-### P1 — Missing mutation authorization
+Focused coverage added:
 
-All create/delete/save actions lack `system.settings.update` checks.
+`tests/Feature/System/SystemCustomSettingsTest.php`
 
-### P1 — Unvalidated public uploads
+The tests lock:
 
-`dynamicImages` and `galleryUploads` are stored without image/mime/size validation. Files are written to the public disk.
+- route/menu permission contract;
+- action-level update authorization;
+- absence of direct persistence/storage logic in Livewire;
+- image type/size and gallery-count policy;
+- group/root scoping;
+- staged-file compensation ordering;
+- setting cache invalidation;
+- delete confirmation/loading/validation/HTML warning UX.
 
-### P1 — Non-atomic multi-resource save
+## Remaining Follow-up
 
-Database updates and file operations are interleaved without a transaction/compensation strategy. Partial failures can leave settings and files out of sync.
+- Add behavioral DB/storage-fake integration tests if the repository standardizes an isolated System settings database fixture.
+- Audit consumers of custom HTML values before introducing any additional raw HTML renderer.
+- Custom settings remain intentionally small configuration data; no pagination/hard field-count cap was invented without business evidence.
 
-### P1 — HTML content policy unclear
+## Refactor Decision
 
-HTML fields are accepted through `x-editor` and persisted directly. Whether this is safe depends on every renderer that later outputs those settings. A sanitization/trusted-admin policy must be explicit and tested.
+**Major refactor complete for the approved scope.**
 
-### P1 — Deleting a field does not clean associated files
-
-`deleteField()` calls `Setting::destroy($id)` without inspecting/removing image/gallery files referenced by that setting. This can orphan public files.
-
-## UI/UX Compliance
-
-Positive:
-
-- clear type-specific controls;
-- empty state;
-- existing image/gallery previews.
-
-Needs improvement:
-
-- confirmation for delete;
-- upload validation errors;
-- loading/disabled save/delete actions;
-- responsive create-field layout;
-- explicit HTML trust warning/sanitization semantics.
-
-## Test Coverage
-
-No System-specific test was found.
-
-Critical missing tests:
-
-- unauthorized mutations rejected;
-- invalid/non-image upload rejected;
-- upload size limits;
-- HTML storage/render policy;
-- file cleanup on delete/replacement;
-- partial failure rollback/compensation;
-- duplicate custom key behavior;
-- large custom settings collection behavior.
-
-## Issue List
-
-### P1 — Missing `system.settings.update` authorization
-
-### P1 — Arbitrary/unvalidated files can be stored on public disk
-
-### P1 — Business/persistence logic lives directly in Livewire
-
-### P1 — Multi-file/multi-model save is not atomic or compensating
-
-### P1 — HTML trust/sanitization contract is undocumented
-
-### P2 — Delete lacks confirmation and may orphan files
-
-## Recommended Direction
-
-**Major Refactor.** Introduce a System settings service responsible for validated custom-field CRUD, upload policy, file cleanup and transactional/compensating writes. Keep Livewire focused on state and UX. Do not rebuild the feature unless the dynamic-setting requirement itself is being removed.
-
-## Open Questions / Unknowns
-
-- Where custom HTML settings are rendered and whether they are escaped or output raw.
-- Whether SVG or other active-content formats are intended for custom images.
-- Expected maximum number of custom fields/gallery items.
-- Whether deleting a custom field should permanently delete associated public files.
+Do not restore direct Eloquent/storage mutation in Livewire, unvalidated public uploads, SVG uploads, arbitrary storage paths, or view-only mutation access.
