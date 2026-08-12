@@ -19,22 +19,9 @@ class AdmissionRegistrationService
     public function options(): array
     {
         return [
-            'provinces' => AdmissionLocation::query()
-                ->select('province_name')
-                ->distinct()
-                ->orderBy('province_name')
-                ->get()
-                ->toArray(),
-            'ethnicities' => AdmissionCatalog::query()
-                ->where('type', 'ethnicity')
-                ->orderBy('value')
-                ->get()
-                ->toArray(),
-            'religions' => AdmissionCatalog::query()
-                ->where('type', 'religion')
-                ->orderBy('value')
-                ->get()
-                ->toArray(),
+            'provinces' => AdmissionLocation::query()->select('province_name')->distinct()->orderBy('province_name')->get()->toArray(),
+            'ethnicities' => AdmissionCatalog::query()->where('type', 'ethnicity')->orderBy('value')->get()->toArray(),
+            'religions' => AdmissionCatalog::query()->where('type', 'religion')->orderBy('value')->get()->toArray(),
             'registrationClasses' => $this->schoolSettingService->registrationClasses(),
         ];
     }
@@ -73,7 +60,7 @@ class AdmissionRegistrationService
             'NoiSinh' => $application->noi_sinh ?? '',
             'NoiSinhPx' => $application->noi_sinh_px ?? '',
             'NoiSinhTt' => $application->noi_sinh_tt ?? '',
-            'NoiSinhChiTiet' => $application->noi_sinh_chi_tiet ?? '',
+            'NoiSinhChiTiet' => $application->noi_sinh_chi_tiet ?? $application->noi_sinh ?? '',
             'NoiDangKyKhaiSinhPx' => $application->noi_dang_ky_khai_sinh_px ?? '',
             'NoiDangKyKhaiSinhTt' => $application->noi_dang_ky_khai_sinh_tt ?? '',
             'QueQuan' => $application->que_quan ?? '',
@@ -134,6 +121,7 @@ class AdmissionRegistrationService
 
     public function create(array $form): AdmissionApplication
     {
+        $form = $this->normalizeBirthplace($form);
         $form['Status'] = 'pending';
 
         return DB::transaction(function () use ($form) {
@@ -146,6 +134,7 @@ class AdmissionRegistrationService
 
     public function update(int $id, array $form): AdmissionApplication
     {
+        $form = $this->normalizeBirthplace($form);
         unset($form['Status']);
 
         return DB::transaction(function () use ($id, $form) {
@@ -154,6 +143,20 @@ class AdmissionRegistrationService
 
             return $application->fresh();
         });
+    }
+
+    private function normalizeBirthplace(array $form): array
+    {
+        $detail = trim((string) ($form['NoiSinhChiTiet'] ?? ''));
+        $form['NoiSinhChiTiet'] = $detail;
+
+        // Preserve the legacy noi_sinh contract used by document generation while
+        // keeping the dedicated detail column authoritative for the form.
+        if ($detail !== '') {
+            $form['NoiSinh'] = $detail;
+        }
+
+        return $form;
     }
 
     private function syncBirthplaceDetail(AdmissionApplication $application, array $form): void
