@@ -1,29 +1,42 @@
-# Settings/StorageConfig — P2 Retirement Plan
+# Settings/StorageConfig — P2 Review Decision
 
-Status: **Approved as part of the 2026-08-12 two-component P2 batch.**
+Status: **Keep / runtime contract restored 2026-08-12.**
 
-## Decision
+## Corrected Decision
 
-Retire `StorageConfig` instead of implementing a feature inside a dead placeholder.
+`StorageConfig` must not be retired yet.
 
-Evidence:
+The initial retirement review was incomplete because it searched direct Livewire alias references but missed the runtime composition contract in `EnvConfigController::$rawTabs`. `/admin/system/settings/env` includes:
 
-- component only renders a view;
-- view is only `<div></div>`;
-- no repository reference to `system.settings.storage-config` was found;
-- no route/tab/menu contract points to this component;
-- commented imports are abandoned design noise.
+```text
+storage → system.settings.storage-config
+```
 
-## Implementation
+and the ENV page dynamically mounts every ready tab component. Removing the class therefore caused `Livewire\Exceptions\ComponentNotFoundException` before the page could render.
 
-- delete `Modules/System/Livewire/Settings/StorageConfig.php`;
-- delete `Modules/System/resources/views/livewire/settings/storage-config.blade.php`;
-- add regression coverage asserting the stale component/view remain absent;
-- do not create replacement route, permission, menu, service or migration;
-- if storage configuration is needed later, define a new feature contract first and follow ENV secret-handling rules.
+## Implemented Correction
+
+- restored `Modules/System/Livewire/Settings/StorageConfig.php`;
+- restored `Modules/System/resources/views/livewire/settings/storage-config.blade.php`;
+- kept the current empty placeholder behavior to avoid inventing an unapproved cloud-storage feature;
+- added regression coverage tying the ENV controller tab contract to the component/view existence;
+- no route, permission, Admin Menu, migration, service, or storage behavior was added.
+
+## Future Refactor Rule
+
+`StorageConfig` can only be removed after the ENV tab contract is deliberately removed/replaced and runtime page coverage confirms `/admin/system/settings/env` renders successfully. If cloud storage is implemented later, create a dedicated feature plan with ENV secret-handling and provider boundaries first.
 
 ## Acceptance
 
-- no active repository reference is broken;
-- focused retirement test passes;
-- full `tests/Feature/System` suite has 0 failures.
+```bash
+php artisan test tests/Feature/System/SystemRetiredSettingsPlaceholdersTest.php
+php artisan test tests/Feature/System
+```
+
+Then manually smoke-test:
+
+```text
+/admin/system/settings/env
+```
+
+Expected: page renders without `ComponentNotFoundException`.
