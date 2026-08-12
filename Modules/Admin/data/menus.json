@@ -112,6 +112,14 @@
                 "children": []
             },
             {
+                "name": "Thao tác Artisan",
+                "url": "\/admin\/system\/artisan",
+                "icon": null,
+                "can": "system.commands.run",
+                "is_active": true,
+                "children": []
+            },
+            {
                 "name": "Quản lý Database",
                 "url": "\/admin\/system\/database",
                 "icon": "home",
