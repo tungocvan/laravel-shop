@@ -2,9 +2,6 @@
 
 @section('content')
 <div class="py-12 bg-gray-100 min-h-screen">
-    @php
-        $siteLogo = \Modules\Admin\Models\Setting::getValue('site_logo');
-    @endphp
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
         <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl p-6">
@@ -13,7 +10,7 @@
             <div class="flex items-center gap-4 mb-8 border-b pb-6">
 
                 {{-- LOGO --}}
-                <img src="{{ $siteLogo ? asset('storage/' . $siteLogo) : asset('storage/admission/img/logo.png') }}"
+                <img src="{{ asset('storage/admission/img/logo.png') }}"
                      alt="Logo"
                      class="w-16 h-16 object-contain rounded-xl border border-gray-200 shadow-sm">
 
