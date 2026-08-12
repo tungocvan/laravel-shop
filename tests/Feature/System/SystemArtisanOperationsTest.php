@@ -15,20 +15,18 @@ class SystemArtisanOperationsTest extends TestCase
         $operations = app(SystemOperationService::class)->operations();
 
         $this->assertSame(
-            ['artisan.list', 'cache.optimize-clear'],
+            ['artisan.list', 'route.list', 'about', 'cache.optimize-clear', 'queue.restart'],
             array_column($operations, 'id'),
         );
+        $this->assertSame(['Thông tin', 'Thông tin', 'Thông tin', 'Cache', 'Queue'], array_column($operations, 'group'));
+        $this->assertArrayNotHasKey('command', $operations[0]);
+        $this->assertArrayNotHasKey('arguments', $operations[0]);
     }
 
     public function test_artisan_list_maps_to_fixed_command(): void
     {
-        Artisan::shouldReceive('call')
-            ->once()
-            ->with('list', [])
-            ->andReturn(0);
-        Artisan::shouldReceive('output')
-            ->once()
-            ->andReturn('Laravel Framework commands');
+        Artisan::shouldReceive('call')->once()->with('list', [])->andReturn(0);
+        Artisan::shouldReceive('output')->once()->andReturn('Laravel Framework commands');
 
         $result = app(SystemOperationService::class)->execute('artisan.list', 123);
 
@@ -38,13 +36,8 @@ class SystemArtisanOperationsTest extends TestCase
 
     public function test_optimize_clear_maps_to_fixed_command(): void
     {
-        Artisan::shouldReceive('call')
-            ->once()
-            ->with('optimize:clear', [])
-            ->andReturn(0);
-        Artisan::shouldReceive('output')
-            ->once()
-            ->andReturn('Caches cleared');
+        Artisan::shouldReceive('call')->once()->with('optimize:clear', [])->andReturn(0);
+        Artisan::shouldReceive('output')->once()->andReturn('Caches cleared');
 
         $result = app(SystemOperationService::class)->execute('cache.optimize-clear', 123);
 
@@ -52,19 +45,26 @@ class SystemArtisanOperationsTest extends TestCase
         $this->assertSame('Caches cleared', $result['output']);
     }
 
+    public function test_dangerous_commands_are_not_registered(): void
+    {
+        $registry = require base_path('Modules/System/config/artisan_operations.php');
+        $commands = array_column($registry, 'command');
+
+        foreach (['migrate:fresh', 'db:wipe', 'db:seed', 'key:generate'] as $forbidden) {
+            $this->assertNotContains($forbidden, $commands);
+        }
+    }
+
     public function test_unknown_operation_is_rejected_before_artisan_execution(): void
     {
         Artisan::shouldReceive('call')->never();
-
         $this->expectException(InvalidArgumentException::class);
-
         app(SystemOperationService::class)->execute('migrate.fresh', 123);
     }
 
     public function test_livewire_component_enforces_command_permission_and_has_no_free_form_execution(): void
     {
         $contents = file_get_contents(base_path('Modules/System/Livewire/Settings/ArtisanList.php'));
-
         $this->assertStringContainsString('AuthorizesSystemActions', $contents);
         $this->assertStringContainsString("authorizePermission('system.commands.run')", $contents);
         $this->assertStringContainsString('SystemOperationService', $contents);
@@ -72,21 +72,18 @@ class SystemArtisanOperationsTest extends TestCase
         $this->assertStringNotContainsString('Artisan::call', $contents);
     }
 
-    public function test_artisan_ui_does_not_expose_destructive_or_free_form_commands(): void
+    public function test_artisan_ui_is_grouped_and_has_no_free_form_commands(): void
     {
         $contents = file_get_contents(base_path('Modules/System/resources/views/livewire/settings/artisan-list.blade.php'));
-
-        $this->assertStringNotContainsString('migrate:fresh', $contents);
-        $this->assertStringNotContainsString('db:seed', $contents);
-        $this->assertStringNotContainsString('key:generate', $contents);
-        $this->assertStringNotContainsString('artisanCommand', $contents);
+        $this->assertStringContainsString("groupBy('group')", $contents);
         $this->assertStringContainsString('executeOperation', $contents);
+        $this->assertStringNotContainsString('artisanCommand', $contents);
+        $this->assertStringNotContainsString('migrate:fresh', $contents);
     }
 
     public function test_artisan_admin_route_requires_specific_permission(): void
     {
         $route = Route::getRoutes()->getByName('admin.system.artisan');
-
         $this->assertNotNull($route);
         $this->assertSame('admin/system/artisan', $route->uri());
         $this->assertContains('auth:admin', $route->gatherMiddleware());
@@ -96,21 +93,14 @@ class SystemArtisanOperationsTest extends TestCase
     public function test_artisan_admin_page_mounts_restricted_livewire_component(): void
     {
         $contents = file_get_contents(base_path('Modules/System/resources/views/pages/settings/artisan.blade.php'));
-
         $this->assertStringContainsString("@livewire('system.settings.artisan-list')", $contents);
     }
 
     public function test_admin_menu_contains_artisan_entry_with_specific_permission(): void
     {
-        $menus = json_decode(
-            file_get_contents(base_path('Modules/Admin/data/menus.json')),
-            true,
-            flags: JSON_THROW_ON_ERROR,
-        );
-
+        $menus = json_decode(file_get_contents(base_path('Modules/Admin/data/menus.json')), true, flags: JSON_THROW_ON_ERROR);
         $systemMenu = collect($menus)->firstWhere('name', 'Công cụ Hệ thống');
         $artisanMenu = collect($systemMenu['children'] ?? [])->firstWhere('url', '/admin/system/artisan');
-
         $this->assertNotNull($artisanMenu);
         $this->assertSame('Thao tác Artisan', $artisanMenu['name']);
         $this->assertSame('system.commands.run', $artisanMenu['can']);
@@ -122,7 +112,6 @@ class SystemArtisanOperationsTest extends TestCase
         $contents = file_get_contents(base_path('Modules/System/Services/SystemConfigService.php'));
         $tabs = require base_path('Modules/System/config/system_tabs.php');
         $artisanTab = collect($tabs)->firstWhere('component', 'system.settings.artisan-list');
-
         $this->assertStringContainsString("'system.settings.artisan-list'", $contents);
         $this->assertNotNull($artisanTab);
         $this->assertFalse((bool) ($artisanTab['enabled'] ?? true));

@@ -3,34 +3,19 @@
 namespace Modules\System\Services;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Throwable;
 
 class SystemOperationService
 {
-    private const OPERATIONS = [
-        'artisan.list' => [
-            'label' => 'Danh sách Artisan',
-            'description' => 'Hiển thị các câu lệnh Artisan đang được đăng ký trong ứng dụng.',
-            'command' => 'list',
-            'arguments' => [],
-            'confirmation' => false,
-        ],
-        'cache.optimize-clear' => [
-            'label' => 'Xóa cache framework',
-            'description' => 'Xóa config, route, view và các cache tối ưu của Laravel.',
-            'command' => 'optimize:clear',
-            'arguments' => [],
-            'confirmation' => true,
-        ],
-    ];
-
     public function operations(): array
     {
-        return collect(self::OPERATIONS)
+        return collect($this->registry())
             ->map(fn (array $operation, string $id): array => [
                 'id' => $id,
+                'group' => $operation['group'],
                 'label' => $operation['label'],
                 'description' => $operation['description'],
                 'confirmation' => $operation['confirmation'],
@@ -41,7 +26,7 @@ class SystemOperationService
 
     public function execute(string $operationId, ?int $actorId = null): array
     {
-        $operation = self::OPERATIONS[$operationId] ?? null;
+        $operation = $this->registry()[$operationId] ?? null;
 
         if ($operation === null) {
             Log::warning('Rejected unknown System operation.', [
@@ -79,5 +64,31 @@ class SystemOperationService
 
             throw $e;
         }
+    }
+
+    private function registry(): array
+    {
+        $path = base_path('Modules/System/config/artisan_operations.php');
+        $operations = File::exists($path) ? File::getRequire($path) : [];
+
+        if (! is_array($operations)) {
+            throw new InvalidArgumentException('Invalid System Artisan operation registry.');
+        }
+
+        foreach ($operations as $id => $operation) {
+            if (! is_string($id)
+                || ! is_array($operation)
+                || ! isset($operation['group'], $operation['label'], $operation['description'], $operation['command'], $operation['arguments'], $operation['confirmation'])
+                || ! is_string($operation['group'])
+                || ! is_string($operation['label'])
+                || ! is_string($operation['description'])
+                || ! is_string($operation['command'])
+                || ! is_array($operation['arguments'])
+                || ! is_bool($operation['confirmation'])) {
+                throw new InvalidArgumentException('Invalid System Artisan operation definition.');
+            }
+        }
+
+        return $operations;
     }
 }
