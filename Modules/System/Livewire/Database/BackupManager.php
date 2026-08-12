@@ -4,45 +4,43 @@ declare(strict_types=1);
 
 namespace Modules\System\Livewire\Database;
 
-use Exception;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Http;
 use Modules\System\Jobs\SendDatabaseBackupEmail;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\DatabaseService;
+use Throwable;
 
 class BackupManager extends Component
 {
     use AuthorizesSystemActions, WithFileUploads;
 
+    private const RECENT_BACKUP_LIMIT = 50;
+
     public $sqlFile;
-
     public string $googleDriveUrl = '';
-
     public bool $showEmailModal = false;
-
     public string $emailBackupFile = '';
-
     public string $backupEmail = '';
 
-    /**
-     * Lắng nghe sự kiện để cập nhật danh sách khi có file mới được tạo
-     */
     #[On('backup-updated')]
     public function refresh(): void
     {
-        // Livewire tự động re-render khi state thay đổi hoặc có event
+        // Event-driven re-render only.
     }
 
-    /**
-     * Render danh sách file từ Service
-     */
     public function render(DatabaseService $service)
     {
+        $allBackups = $service->getAllBackupFiles();
+        $backups = array_slice($allBackups, 0, self::RECENT_BACKUP_LIMIT);
+
         return view('System::livewire.database.backup-manager', [
-            'backups' => $service->getAllBackupFiles(),
+            'backups' => $backups,
+            'backupHistoryLimit' => self::RECENT_BACKUP_LIMIT,
+            'backupHistoryTruncated' => count($allBackups) > self::RECENT_BACKUP_LIMIT,
             'backupDirectories' => [
                 'storage/app/private/backups',
                 'storage/app/backups (thư mục cũ)',
@@ -50,21 +48,17 @@ class BackupManager extends Component
         ]);
     }
 
-    /**
-     * Xử lý khôi phục dữ liệu
-     */
     public function restoreBackup(string $fileName, DatabaseService $service): void
     {
         $this->authorizePermission('database.restore');
 
         try {
-            $success = $service->restoreFromFile($fileName);
-
-            if ($success) {
-                $this->dispatch('notify', type: 'success', message: 'Khôi phục dữ liệu thành công!');
+            if ($service->restoreFromFile($fileName)) {
+                $this->notify('success', 'Khôi phục dữ liệu thành công!');
             }
-        } catch (Exception $e) {
-            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        } catch (Throwable $e) {
+            $this->reportOperationError('Database backup restore failed.', $e, ['backup' => $fileName]);
+            $this->notify('error', 'Khôi phục dữ liệu thất bại. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
@@ -75,8 +69,9 @@ class BackupManager extends Component
         try {
             $service->deleteBackup($fileName);
             session()->flash('success', "Đã xóa backup {$fileName}.");
-        } catch (Exception $e) {
-            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        } catch (Throwable $e) {
+            $this->reportOperationError('Database backup delete failed.', $e, ['backup' => $fileName]);
+            $this->notify('error', 'Không thể xóa file backup. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
@@ -98,8 +93,11 @@ class BackupManager extends Component
             );
             $this->reset('sqlFile');
             session()->flash('success', "Đã tải lên {$name}. Hãy kiểm tra và bấm RESTORE khi sẵn sàng.");
-        } catch (Exception $e) {
-            $this->addError('sqlFile', $e->getMessage());
+        } catch (Throwable $e) {
+            $this->reportOperationError('Database backup upload failed.', $e, [
+                'original_name' => $validated['sqlFile']->getClientOriginalName(),
+            ]);
+            $this->addError('sqlFile', 'Không thể nhập file backup. Vui lòng kiểm tra file SQL và log hệ thống.');
         }
     }
 
@@ -133,14 +131,15 @@ class BackupManager extends Component
                 ]);
 
             if (! $response->successful()) {
-                throw new Exception('Google Drive trả về HTTP '.$response->status().'. Hãy kiểm tra quyền chia sẻ file.');
+                throw new \RuntimeException('Google Drive download failed with HTTP '.$response->status());
             }
 
             $name = $service->importBackupFile($temporaryPath, 'google-drive-'.$matches[1].'.sql');
             $this->googleDriveUrl = '';
             session()->flash('success', "Đã tải {$name} từ Google Drive. Hãy kiểm tra và bấm RESTORE khi sẵn sàng.");
-        } catch (Exception $e) {
-            $this->addError('googleDriveUrl', $e->getMessage());
+        } catch (Throwable $e) {
+            $this->reportOperationError('Google Drive backup import failed.', $e, ['drive_file_id' => $matches[1]]);
+            $this->addError('googleDriveUrl', 'Không thể tải hoặc nhập backup từ Google Drive. Vui lòng kiểm tra quyền chia sẻ và log hệ thống.');
         } finally {
             @unlink($temporaryPath);
         }
@@ -153,14 +152,12 @@ class BackupManager extends Component
         $path = $service->getDownloadPath($fileName);
 
         if ($path === null) {
-            $this->dispatch('notify', type: 'error', message: 'File backup không tồn tại.');
-
+            $this->notify('error', 'File backup không tồn tại.');
             return;
         }
 
         if (filesize($path) > SendDatabaseBackupEmail::MAX_ATTACHMENT_BYTES) {
-            $this->dispatch('notify', type: 'error', message: 'Chỉ gửi được file backup có dung lượng tối đa 10MB.');
-
+            $this->notify('error', 'Chỉ gửi được file backup có dung lượng tối đa 10MB.');
             return;
         }
 
@@ -186,23 +183,38 @@ class BackupManager extends Component
 
         if ($path === null) {
             $this->addError('emailBackupFile', 'File backup không còn tồn tại.');
-
             return;
         }
 
         if (filesize($path) > SendDatabaseBackupEmail::MAX_ATTACHMENT_BYTES) {
             $this->addError('emailBackupFile', 'File backup vượt quá giới hạn 10MB.');
-
             return;
         }
 
-        SendDatabaseBackupEmail::dispatch(
-            $validated['emailBackupFile'],
-            $validated['backupEmail'],
-        );
+        SendDatabaseBackupEmail::dispatch($validated['emailBackupFile'], $validated['backupEmail']);
+
+        Log::info('Database backup email delivery queued.', [
+            'actor_id' => (auth('admin')->user() ?: auth()->user())?->getAuthIdentifier(),
+            'backup' => $validated['emailBackupFile'],
+            'recipient' => $validated['backupEmail'],
+        ]);
 
         $this->showEmailModal = false;
         $this->emailBackupFile = '';
         session()->flash('success', 'Đã đưa yêu cầu gửi backup vào hàng đợi email.');
+    }
+
+    private function notify(string $type, string $message): void
+    {
+        $this->dispatch('notify', type: $type, content: $message, message: $message);
+    }
+
+    private function reportOperationError(string $message, Throwable $exception, array $context = []): void
+    {
+        Log::error($message, $context + [
+            'actor_id' => (auth('admin')->user() ?: auth()->user())?->getAuthIdentifier(),
+            'exception' => $exception::class,
+            'error' => $exception->getMessage(),
+        ]);
     }
 }
