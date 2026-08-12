@@ -2,283 +2,196 @@
 
 Analysis date: 2026-08-12
 
-Scope: `Modules/System/Livewire/Settings/ShScript.php` and direct dependencies only. Documentation-only analysis; application source code is unchanged.
+Implementation status: **Refactored 2026-08-12**
+
+Scope: `Modules/System/Livewire/Settings/ShScript.php` and direct dependencies.
 
 ## Executive Summary
 
-`Settings/ShScript` is a privileged browser shell-script editor and executor. It can list files under `app/sh`, read a selected file, create/update files, set executable permissions, execute them with `shell_exec("bash {$scriptPath}")`, and delete them. The component performs these operations directly inside Livewire without action-level authorization, a service boundary, strict filename validation, path canonicalization, audit logging, execution timeout, or server-side concurrency controls.
+The previous browser shell-script editor/executor has been removed. `Settings/ShScript` no longer allows an admin browser to create, edit, delete, chmod, select arbitrary filenames, or execute arbitrary shell content.
 
-Current production exposure is partially contained because `Modules/System/Services/SystemConfigService.php` forcibly disables `system.settings.sh-script` during tab normalization, and the core System tab is disabled by default. This containment is essential and should remain in place.
+The component is now a restricted operation panel backed by `SystemScriptOperationService`. Only server-owned scripts explicitly registered in the service may be executed, and every execution requires `system.commands.run` at the Livewire action boundary.
 
-The component remains a **P0 latent remote-code-execution / production-control surface** if it is mounted by another path or if the production disablement is relaxed. The preferred direction is removal from production-facing architecture or replacement with a narrowly allowlisted operational-job system. Adding only a permission check is not sufficient as the final design.
+At implementation time the repository contains no `app/sh` directory, so the initial approved registry is intentionally empty. The UI therefore presents a safe empty state instead of discovering or running arbitrary shell files.
 
-## Component Purpose
+Production containment remains unchanged: the System tab remains disabled by default and `SystemConfigService` continues to force `system.settings.sh-script` disabled.
 
-- PHP: `Modules/System/Livewire/Settings/ShScript.php`
-- Blade: `Modules/System/resources/views/livewire/settings/sh-script.blade.php`
-- Alias: `system.settings.sh-script`
-- Managed directory: `app_path('sh')`
-- Intended features: list, read, create, update, chmod, execute, and delete `.sh` scripts.
-- Core tab: disabled by default.
-- Production normalization: component alias is always forced disabled by `SystemConfigService`.
-
-## Dependency Flow
+## Current Dependency Flow
 
 ```text
-/admin/system
-  -> SystemConfigService::getTabs()
-  -> production normalization forces sh-script disabled
-
-If mounted:
 Livewire ShScript
-  -> File facade
-  -> app/sh/*
-  -> chmod(..., 0755)
-  -> shell_exec("bash {$scriptPath}")
-  -> operating system / application filesystem / external services
+  -> authorize system.commands.run
+  -> SystemScriptOperationService
+      -> fixed server-side registry
+      -> canonical path under app/sh
+      -> /bin/bash + fixed script + fixed args
+      -> Symfony Process timeout
+      -> bounded output
+      -> structured Laravel logging
+  -> escaped output / generic browser-facing error
 ```
 
-No dedicated service layer is used.
+## Livewire PHP
 
-## Livewire PHP Analysis
+Current public state is limited to:
 
-Public state includes:
+- `$selectedOperation`;
+- `$executionOutput`;
+- `$errorMessage`.
 
-- `$scripts`
-- `$selectedScript`
-- `$scriptContent`
-- `$errorMessage`
-- `$newScriptName`
-- `$executionOutput`
+Removed browser-controlled state:
 
-Lifecycle:
+- `$scripts`;
+- `$selectedScript`;
+- `$scriptContent`;
+- `$newScriptName`.
 
-- `mount()` calls `loadScripts()`.
-- `loadScripts()` creates `app/sh` with mode `0755` if absent and lists all files in that directory.
+Removed methods/workflows:
 
-Mutating/privileged actions:
+- arbitrary file discovery;
+- `selectScript()`;
+- `saveScript()`;
+- `deleteScript()`;
+- direct filesystem mutation;
+- native shell execution.
 
-- `selectScript()` reads selected file content.
-- `saveScript()` writes arbitrary script content and executes `chmod(..., 0755)`.
-- `executeScript()` invokes the selected script via `shell_exec()`.
-- `deleteScript()` deletes the selected file.
+`executeOperation()` now:
 
-The component directly owns filesystem and OS execution behavior, which violates the repository preference that Livewire own UI state/validation and delegate privileged workflows to services.
+1. enforces `system.commands.run`;
+2. requires a registered operation ID;
+3. delegates to `SystemScriptOperationService`;
+4. returns bounded safe output on success;
+5. catches failures and exposes only a generic operator-safe message.
 
-## Livewire Blade Analysis
+## SystemScriptOperationService
 
-The UI provides:
+New file:
 
-- select box of existing scripts;
-- editable filename input;
-- full script-content textarea;
-- create/update action;
-- execute action;
-- delete action;
-- terminal output.
+`Modules/System/Services/SystemScriptOperationService.php`
 
-Positive UX points:
+Responsibilities:
 
-- selected script name is escaped in Blade;
-- execution output is rendered with escaped `{{ }}` syntax;
-- an execution loading indicator exists.
+- owns the explicit script operation registry;
+- rejects unknown operation IDs before process execution;
+- accepts only fixed server-side script paths and fixed arguments;
+- resolves scripts only below `app_path('sh')`;
+- rejects absolute paths and dot-segment traversal in registered paths;
+- canonicalizes root/target with `realpath()`;
+- requires an existing readable regular file;
+- verifies the resolved path remains inside the approved root;
+- invokes Symfony Process with argument-array execution using `/bin/bash`;
+- applies a per-operation timeout with a 60-second default;
+- handles non-zero exit codes as failures;
+- truncates browser-visible combined stdout/stderr to 32 KB;
+- logs actor, operation ID, script basename, result and exception class without script content or request secrets.
 
-Material UI concerns:
+## Initial Registry
 
-- save/update/delete buttons do not show server-side loading/disabled protection;
-- delete has no `wire:confirm` in the inspected Blade;
-- execute has no explicit confirmation despite arbitrary OS-level effect;
-- the page states “Hệ thống ổn định”, which does not communicate the risk of running shell scripts;
-- filename and script content use `wire:model.live`, creating unnecessary request traffic for fields that need synchronization only on action;
-- inline `<style>` is present.
+The initial registry is intentionally empty.
 
-## State / Validation / Actions
+Reason: the repository currently has no `app/sh` directory and therefore no repository-owned script can be reviewed and approved from evidence.
 
-Validation is critically insufficient:
+This is deliberate security behavior. Future scripts must be reviewed individually and added explicitly to the registry. Automatic discovery of all `.sh` files is forbidden.
 
-- `newScriptName` is checked only for non-empty text;
-- no `.sh` extension requirement;
-- no character allowlist;
-- no basename/canonicalization enforcement;
-- no path traversal rejection;
-- no maximum filename length;
-- no content size limit;
-- no command/content allowlist;
-- no execution timeout.
+## Blade UI
 
-`selectedScript` also reaches `app_path("sh/{$script}")` / `app_path("sh/{$this->selectedScript}")` without explicit basename/canonical path checks inside the component.
+The old script manager/editor UI has been removed.
 
-Because Livewire public state originates from the client boundary, server-side path validation is required even if normal UI options come from a server-generated list.
+Removed:
+
+- arbitrary script file selector;
+- filename input;
+- script content textarea;
+- create/update button;
+- delete button;
+- arbitrary execute button tied to a client-selected file;
+- inline component scrollbar CSS.
+
+Current UI:
+
+- renders only service-provided approved operation cards;
+- shows a restricted-security badge;
+- requires confirmation for registered operations by default;
+- uses loading/disabled state during execution;
+- keeps output escaped through Blade `{{ }}`;
+- shows a safe empty state when no operation is registered.
 
 ## Authorization
 
-**P0 finding.**
+Resolved P0 gap:
 
-`Modules/System/config/module.php` defines `system.commands.run`, but `ShScript` does not use `AuthorizesSystemActions` and none of its privileged actions enforce a permission.
-
-The outer `/admin/system` route has `system.manage`, but repository standards require authorization at sensitive mutation boundaries.
-
-Production tab normalization currently forces the component disabled, which is valuable containment but not an authorization implementation.
-
-## Service / Model Dependencies
-
-Direct dependency:
-
-- `Illuminate\Support\Facades\File`
-- native `chmod()`
-- native `shell_exec()`
-
-No dedicated service owns:
-
-- safe path resolution;
-- script registry;
-- execution policy;
-- timeouts;
-- output limits;
-- auditing;
-- concurrency;
-- environment restrictions.
-
-No direct Eloquent model is used.
-
-## Performance
-
-Potential production issues if enabled:
-
-- `shell_exec()` is synchronous and can block indefinitely based on script behavior;
-- command output is captured into Livewire state and can become large;
-- no output-size cap;
-- no timeout;
-- no queue/background orchestration;
-- no lock preventing repeated/concurrent execution of the same script;
-- `wire:model.live` on large script content can produce unnecessary network requests while editing.
-
-## Security / Data Integrity
-
-### P0-1 — Remote arbitrary shell-code execution capability
-
-**Evidence:** browser-edited `$scriptContent` is written to an executable file and later passed to `bash` through `shell_exec()`.
-
-**Impact:** if exposed, a permitted or compromised admin session could execute arbitrary OS commands with the PHP process user's privileges, affecting files, secrets, database credentials, deployments, network calls, application availability and data integrity.
-
-**Recommendation:** do not provide arbitrary shell editing/execution in production. Replace it with fixed operational jobs/scripts whose identifiers and arguments are server controlled.
-
-### P0-2 — Missing action-level authorization
-
-**Evidence:** no permission guard exists in save, execute, delete, select/read, or script-list operations.
-
-**Recommendation:** any retained privileged operation must require `system.commands.run` or more granular permissions, ideally split into read/run/manage capabilities.
-
-### P0-3 — Unsafe path construction / traversal risk
-
-**Evidence:** `newScriptName` and `selectedScript` are concatenated into `app/sh` paths without basename/canonicalization or an allowlisted filename pattern.
-
-**Impact:** manipulated Livewire state may target paths outside the intended script directory depending on path value and filesystem behavior.
-
-**Recommendation:** resolve through a service that accepts only stable script IDs or strict filenames, rejects separators and dot segments, canonicalizes the final path, and verifies it remains under the approved root.
-
-### P1-1 — No execution timeout/output bound
-
-**Impact:** resource exhaustion, hung PHP workers, oversized Livewire payloads.
-
-**Recommendation:** if script execution remains in any form, use Symfony Process with fixed executable/arguments, timeout, output limits and explicit exit-code handling.
-
-### P1-2 — No audit trail
-
-**Impact:** no durable record of actor, script/operation, execution time, outcome, or destructive modifications.
-
-**Recommendation:** audit all privileged system operations with safe metadata.
-
-### P1-3 — Direct raw exception/output behavior
-
-`selectScript()` swallows read exceptions and resets content, while execution only distinguishes null output from non-null output. Exit codes/stderr are not modeled, reducing operational correctness and observability.
-
-## UI/UX Compliance
-
-Partial compliance:
-
-- responsive layout;
-- escaped output;
-- execution loading indicator;
-- clear editor/output areas.
-
-Material non-compliance:
-
-- no confirmation for delete or execute;
-- mutation buttons generally lack disabled/loading states;
-- live binding is excessive for large content;
-- no explicit warning of production/destructive scope;
-- no controlled operation model;
-- inline styling duplicates UI concerns.
-
-## Test Coverage
-
-No System-specific tests for this component were found in the repository's `tests/Feature` or `tests/Unit` trees.
-
-Required tests for any safe replacement:
-
-- denied user cannot read/manage/run scripts;
-- production-disabled tab cannot be overridden;
-- unsafe script identifiers/path traversal are rejected;
-- only registered operations/scripts may execute;
-- timeout and non-zero exit code are handled;
-- output is bounded/sanitized;
-- audit record contains actor and result;
-- destructive actions require explicit confirmation/policy.
-
-## Issue List
-
-### P0 — Arbitrary shell execution
-
-**File:** `Modules/System/Livewire/Settings/ShScript.php`
-
-**Evidence:** editable script content is written and executed with `bash` via `shell_exec()`.
-
-**Problem:** browser-accessible arbitrary OS command capability.
-
-**Impact:** production compromise/data-loss/secret exposure risk.
-
-**Recommendation:** remove from production architecture or replace with an allowlisted operation runner.
-
-### P0 — Missing authorization
-
-**Evidence:** `system.commands.run` exists in the manifest but actions do not enforce it.
-
-**Recommendation:** enforce action-level permission on every retained privileged operation.
-
-### P0 — Path validation missing
-
-**Evidence:** client-controlled filename/selection is concatenated into filesystem paths.
-
-**Recommendation:** strict identifier validation and canonical root enforcement.
-
-### P1 — Synchronous unbounded execution
-
-**Evidence:** native `shell_exec()` without timeout/output policy.
-
-**Recommendation:** fixed Symfony Process operations with timeout and bounded output, or queue a controlled operational job.
-
-## Recommended Direction
-
-**Remove/replace; keep production disablement until replacement is complete.**
-
-Preferred architecture:
+`ShScript` now uses `AuthorizesSystemActions` and executes:
 
 ```text
-Livewire UI
-  -> authorize explicit operation permission
-  -> SystemOperationService
-  -> server-owned operation registry
-  -> fixed script/executable + fixed/validated args
-  -> Symfony Process timeout
-  -> bounded output
-  -> audit log
+authorizePermission('system.commands.run')
 ```
 
-The browser should never be allowed to author arbitrary production shell code.
+before any registered operation can run.
 
-## Open Questions / Unknowns
+## Security / Data Integrity Status
 
-- Whether another page/module mounts this alias directly outside `SystemConfigService` is not proven in this component-level scope.
-- Existing scripts under `app/sh` were not enumerated because their contents are not required to establish the component-level P0 issue.
-- The repository's canonical audit implementation for privileged system operations needs to be selected during the implementation/refactor task.
+### Resolved P0 — Browser-authored shell code
+
+No script content can be authored or sent from Livewire state.
+
+### Resolved P0 — Browser-controlled filesystem path
+
+No client filename/path reaches the process runner. Only server registry entries are resolved.
+
+### Resolved P0 — Native arbitrary shell execution
+
+`shell_exec()` was removed. Symfony Process receives an argument array with `/bin/bash`, a canonical registered script path and fixed arguments.
+
+### Resolved P0 — Missing action authorization
+
+`system.commands.run` is enforced at the mutation boundary.
+
+### Improved P1 — Timeout/output/resource handling
+
+Execution has a timeout and browser output is bounded to 32 KB.
+
+### Improved P1 — Operational auditability
+
+Structured Laravel logs record safe operation metadata.
+
+## Concurrency
+
+No per-operation lock was added in this implementation because the approved registry is empty, so no script can currently execute. When the first executable operation is proposed, its change review should decide whether the operation requires a cache lock based on idempotency and runtime behavior before enabling it.
+
+## Production Containment
+
+Unchanged defense-in-depth:
+
+- `Modules/System/config/system_tabs.php` keeps the ShScript tab disabled;
+- `SystemConfigService` continues to force `system.settings.sh-script` disabled.
+
+No dedicated route or Admin Menu entry was added for ShScript.
+
+## Tests
+
+Added:
+
+`tests/Feature/System/SystemScriptOperationsTest.php`
+
+Coverage includes:
+
+- registry is empty until explicit approval;
+- unknown operation rejection;
+- Livewire has no shell editor/direct filesystem/shell execution primitives;
+- action-level `system.commands.run` authorization contract;
+- Blade has no create/edit/delete/free-form shell UI;
+- Symfony Process argument-array use;
+- `/bin/bash`, timeout, output bound and `app/sh` root safety controls;
+- production forced-disable containment.
+
+## Remaining Risks / Follow-up
+
+- No script is currently executable because no repository-owned script has been reviewed. This is intentional.
+- When adding the first approved script, review its code, fixed arguments, timeout, idempotency, required lock, side effects and rollback path before registration.
+- Laravel application logs remain the audit mechanism until a canonical persistent Audit Log framework is introduced.
+
+## Refactor Decision
+
+**Refactor complete for the approved scope.**
+
+Do not restore browser shell authoring, arbitrary file discovery, arbitrary paths, arbitrary arguments, or generic command execution. Any future script operation must be an explicit reviewed server-owned registry entry.
