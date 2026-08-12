@@ -3,39 +3,47 @@
 namespace Modules\System\Livewire\Settings\Partials;
 
 use Livewire\Component;
-use Modules\System\Models\Setting;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\SettingsService;
+use Throwable;
 
 class General extends Component
 {
-    public $settings = [
-        'site_name' => '',
-        'site_email' => '',
-        'site_hotline' => '',
-        'site_address' => '',
-    ];
+    use AuthorizesSystemActions;
 
-    public function mount()
+    public array $settings = [];
+    public bool $canUpdate = false;
+
+    public function mount(SettingsService $service): void
     {
-        foreach ($this->settings as $key => $value) {
-            $this->settings[$key] = Setting::getValue($key);
-        }
+        $this->settings = $service->getGeneral();
+        $this->canUpdate = (bool) (auth('admin')->user() ?: auth()->user())?->can('system.settings.update');
     }
 
-    public function save()
+    protected function rules(): array
     {
-        $this->validate([
-            'settings.site_name' => 'required|string|max:255',
-            'settings.site_email' => 'nullable|email',
-            'settings.site_hotline' => 'nullable|string|max:50',
-            'settings.site_address' => 'nullable|string|max:500',
-        ]);
+        return [
+            'settings.site_name' => ['required', 'string', 'max:255'],
+            'settings.site_email' => ['nullable', 'email', 'max:255'],
+            'settings.site_hotline' => ['nullable', 'string', 'max:50'],
+            'settings.site_address' => ['nullable', 'string', 'max:500'],
+        ];
+    }
 
-        foreach ($this->settings as $key => $value) {
-            Setting::setValue($key, $value);
+    public function save(SettingsService $service): void
+    {
+        $this->authorizePermission('system.settings.update');
+        $validated = $this->validate();
+
+        try {
+            $service->saveGeneral($validated['settings']);
+            $this->settings = $service->getGeneral();
+            $this->dispatch('site-name-updated');
+            $this->dispatch('notify', type: 'success', message: 'Đã lưu cấu hình chung');
+        } catch (Throwable $e) {
+            report($e);
+            $this->dispatch('notify', type: 'error', message: 'Không thể lưu cấu hình chung. Vui lòng kiểm tra log hệ thống.');
         }
-
-        $this->dispatch('site-name-updated');
-        $this->dispatch('notify', type: 'success', message: 'Đã lưu cấu hình chung');
     }
 
     public function render()
