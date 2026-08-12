@@ -39,13 +39,18 @@
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Lịch sử Backup
+            Lịch sử Backup gần đây
         </h3>
         <div class="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
             @foreach ($backupDirectories as $directory)
                 <code class="rounded bg-white px-2 py-1 ring-1 ring-gray-200">{{ $directory }}</code>
             @endforeach
         </div>
+        @if ($backupHistoryTruncated)
+            <p class="mt-2 text-xs text-amber-700">Đang hiển thị {{ $backupHistoryLimit }} bản backup gần nhất để giữ giao diện ổn định. Các file cũ hơn vẫn được giữ theo chính sách storage hiện tại.</p>
+        @else
+            <p class="mt-2 text-xs text-gray-500">Hiển thị tối đa {{ $backupHistoryLimit }} bản backup gần nhất.</p>
+        @endif
     </div>
 
     <div class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
@@ -61,8 +66,7 @@
                     </div>
                 </div>
 
-                <div class="mt-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {{-- Nút Download thông qua Controller chuẩn --}}
+                <div class="mt-3 flex flex-wrap items-center gap-2 opacity-100 transition-opacity lg:opacity-80 lg:group-hover:opacity-100">
                     <a href="{{ route('admin.system.database.download', $file['name']) }}"
                         class="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-medium hover:bg-blue-100">
                         Download
@@ -91,7 +95,8 @@
 
                     <button wire:click="deleteBackup('{{ $file['name'] }}')"
                         wire:confirm="Xóa vĩnh viễn file backup '{{ $file['name'] }}'? Thao tác này không thể hoàn tác."
-                        class="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-red-600 hover:bg-red-50">
+                        wire:loading.attr="disabled"
+                        class="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">
                         Xóa
                     </button>
                 </div>
