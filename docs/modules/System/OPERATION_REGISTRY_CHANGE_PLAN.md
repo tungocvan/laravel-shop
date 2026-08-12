@@ -2,185 +2,93 @@
 
 Plan date: 2026-08-12
 
-Status: **Awaiting explicit approval before implementation.**
+Status: **Implemented 2026-08-12.**
 
 ## Goal
 
 Move approved Artisan and shell-script operation registries out of service constants into developer-owned Module config files, add grouping metadata for the Admin UI, and provide safe demo operations that show how future operations should be registered.
 
-This change must preserve the security model introduced by the `ArtisanList` and `ShScript` refactors: the browser selects only an operation ID; commands, script paths and arguments remain server-owned allowlist data deployed with source code.
+The browser continues to submit only an operation ID. Commands, script paths and arguments remain server-owned allowlist data deployed with source code.
 
-## Proposed config files
-
-Create:
+## Implemented registry files
 
 - `Modules/System/config/artisan_operations.php`
 - `Modules/System/config/script_operations.php`
 
-`SystemOperationService` and `SystemScriptOperationService` will load these config files instead of private `OPERATIONS` constants.
+Services load these fixed Module-owned PHP config files directly. No request-controlled config path and no Admin CRUD editor exist.
 
-No Admin CRUD editor will be added for these files.
+## Artisan registry
 
-## Group metadata
+Initial approved operations:
 
-Each operation supports a developer-owned `group` field so the existing Admin pages can render operations by group.
+- `artisan.list` → group `Thông tin` → `list`
+- `route.list` → group `Thông tin` → `route:list`
+- `about` → group `Thông tin` → `about`
+- `cache.optimize-clear` → group `Cache` → `optimize:clear`
+- `queue.restart` → group `Queue` → `queue:restart`
 
-Initial groups:
+Dangerous commands such as `migrate:fresh`, `db:wipe`, `db:seed` and `key:generate` are intentionally absent.
 
-- `Thông tin`
-- `Cache`
-- `Queue`
-- `Kiểm tra hệ thống`
-- `Demo an toàn`
+## Script registry
 
-The group value is display metadata only and never becomes a command/path/argument.
+Approved root remains `app/sh`.
 
-## Initial approved Artisan operations
+Initial read-only demo operations:
 
-The initial config should include safe/useful examples:
+- `demo.system-info` → `app/sh/demo-system-info.sh` → group `Demo an toàn`
+- `demo.disk-usage` → `app/sh/demo-disk-usage.sh` → group `Kiểm tra hệ thống`
 
-1. `artisan.list`
-   - group: `Thông tin`
-   - command: `list`
-   - confirmation: false
+Both demos use fixed paths, fixed arguments, 10-second timeouts and no browser input.
 
-2. `route.list`
-   - group: `Thông tin`
-   - command: `route:list`
-   - confirmation: false
+## Service behavior
 
-3. `about`
-   - group: `Thông tin`
-   - command: `about`
-   - confirmation: false
+`SystemOperationService` now validates the registry and exposes only display-safe metadata (`id`, `group`, `label`, `description`, `confirmation`) to Livewire. Command/arguments stay internal.
 
-4. `cache.optimize-clear`
-   - group: `Cache`
-   - command: `optimize:clear`
-   - confirmation: true
+`SystemScriptOperationService` validates the registry, exposes display-safe metadata, preserves canonical `app/sh` path enforcement, `/bin/bash` argument-array execution, timeout handling and the 32 KB output bound.
 
-5. `queue.restart`
-   - group: `Queue`
-   - command: `queue:restart`
-   - confirmation: true
+## Admin UI
 
-Explicitly do NOT include destructive/demo commands such as `migrate:fresh`, `db:wipe`, `db:seed`, `key:generate`, arbitrary `migrate`, arbitrary command text, or user-controlled arguments.
+Both operation pages now group entries by `group`:
 
-## Initial approved demo scripts
+- `/admin/system/artisan`
+- `/admin/system/scripts`
 
-Create the approved root `app/sh` and two repository-owned read-only diagnostic/demo scripts:
+Both remain protected by `system.commands.run`. No command, path or argument editor was introduced.
 
-### `app/sh/demo-system-info.sh`
+## Registering a new Artisan operation
 
-Purpose: demonstrate safe script registration without mutating application/server state.
+Edit only:
 
-Expected behavior:
+`Modules/System/config/artisan_operations.php`
 
-- print a clear demo heading;
-- print current UTC date/time;
-- print PHP CLI version;
-- print current working directory basename or application-path context without dumping environment variables/secrets;
-- exit 0.
+Add a fixed operation ID with developer-owned group, label, description, command, fixed arguments and confirmation policy. Never accept command text/arguments from browser state.
 
-Registry ID: `demo.system-info`
-Group: `Demo an toàn`
-Confirmation: false
-Timeout: 10 seconds
-Arguments: none
+## Registering a new script operation
 
-### `app/sh/demo-disk-usage.sh`
-
-Purpose: demonstrate a bounded read-only server diagnostic.
-
-Expected behavior:
-
-- print a clear demo heading;
-- run `df -h` for the filesystem containing the Laravel application path/current working directory;
-- do not enumerate arbitrary paths supplied by the browser;
-- exit with the diagnostic command status.
-
-Registry ID: `demo.disk-usage`
-Group: `Kiểm tra hệ thống`
-Confirmation: false
-Timeout: 10 seconds
-Arguments: none
-
-These scripts must contain no writes, package/service restart, sudo, credential output, `.env` output, network calls, or browser-controlled arguments.
-
-## Service changes
-
-### SystemOperationService
-
-- load operations from `config('system-artisan-operations')` or an equivalent Module-owned registered config key;
-- validate registry shape before execution;
-- expose only display-safe fields to Livewire: id, group, label, description, confirmation;
-- keep command and arguments private to the service;
-- reject missing/unknown/invalid operation definitions before `Artisan::call()`;
-- preserve structured logging.
-
-### SystemScriptOperationService
-
-- load operations from Module config;
-- validate registry shape;
-- expose only display-safe fields;
-- preserve canonical `app/sh` path enforcement;
-- preserve `/bin/bash` argument-array execution, timeout and 32 KB output bound;
-- preserve fixed server-owned arguments;
-- preserve structured logging.
-
-## UI changes
-
-Update both Admin Livewire views to group operation cards/selectable entries by the registry `group` field.
-
-The UI must not expose editable command, script path or arguments.
-
-`ArtisanList` remains available at `/admin/system/artisan`.
-`ShScript` remains available at `/admin/system/scripts`.
-Both remain protected by `system.commands.run`.
-
-## Config registration
-
-Use the Module's existing config/service-provider pattern so both registry files are loaded consistently in normal Laravel runtime and tests. Do not read arbitrary PHP files based on request input.
+1. Review and commit the script under `app/sh`.
+2. Add a fixed entry to `Modules/System/config/script_operations.php`.
+3. Define group, label, description, fixed relative script path, fixed arguments, timeout and confirmation policy.
+4. Add/adjust focused tests for side effects, timeout, locking requirements and rollback semantics before enabling any mutating script.
 
 ## Tests
 
-Update focused tests to verify:
+Focused test suites were updated:
 
-- services load registry data from Module config;
-- group metadata is exposed but command/script internals are not;
-- approved Artisan IDs map to fixed commands;
-- dangerous commands are absent;
-- demo script IDs map only to fixed repository-owned paths;
-- demo scripts exist under `app/sh` and contain no mutation/sudo/env-dump/network behavior;
-- path traversal and unknown script IDs remain rejected;
-- timeout/output bounds remain enforced;
-- Admin UI groups operations;
-- browser cannot submit command/path/arguments;
-- existing route/menu/permission and production containment tests remain valid.
+- `tests/Feature/System/SystemArtisanOperationsTest.php`
+- `tests/Feature/System/SystemScriptOperationsTest.php`
 
-## Documentation
-
-Update:
-
-- `docs/modules/System/livewire/settings-artisan-list/ANALYSIS.md`
-- `docs/modules/System/livewire/settings-sh-script/ANALYSIS.md`
-
-Add a short developer section explaining how to register a new operation safely by editing the corresponding config file and, for scripts, committing the reviewed script under `app/sh`.
+They cover registry IDs/group metadata, hidden execution internals, dangerous-command absence, demo-script safety, route/menu permission contracts, UI grouping and production containment.
 
 ## Acceptance criteria
 
-- [ ] Artisan registry lives in Module config, not a service constant.
-- [ ] Script registry lives in Module config, not a service constant.
-- [ ] Admin UI groups operations by `group`.
-- [ ] Safe Artisan demos/examples are visible after deploy.
-- [ ] Two read-only demo scripts are committed and visible after deploy.
-- [ ] No Admin CRUD for commands/scripts exists.
-- [ ] No browser-controlled command/path/argument reaches execution.
-- [ ] `system.commands.run` remains enforced.
-- [ ] ShScript canonical-path, Process timeout and output bounds remain enforced.
-- [ ] Dangerous Artisan commands are not registered.
-- [ ] Focused tests pass.
-
-## Approval gate
-
-This changes the approved operation surface and adds executable repository-owned demo scripts. Implementation must not begin until the user explicitly approves this plan.
+- [x] Artisan registry lives in Module config, not a service constant.
+- [x] Script registry lives in Module config, not a service constant.
+- [x] Admin UI groups operations by `group`.
+- [x] Safe Artisan examples are registered.
+- [x] Two read-only demo scripts are committed and registered.
+- [x] No Admin CRUD for commands/scripts exists.
+- [x] No browser-controlled command/path/argument reaches execution.
+- [x] `system.commands.run` remains enforced.
+- [x] ShScript canonical-path, Process timeout and output bounds remain enforced.
+- [x] Dangerous Artisan commands are not registered.
+- [ ] Focused tests must be run in the project runtime after pull/merge.
