@@ -1,47 +1,78 @@
 <?php
+
 namespace Modules\System\Livewire\Settings;
 
 use Livewire\Component;
-use Modules\System\Services\Env\EnvManagerService;
-use Illuminate\Support\Facades\Http;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\Env\MomoConfigService;
+use Throwable;
 
 class MomoConfig extends Component
 {
+    use AuthorizesSystemActions;
+
     public array $form = [
-        'MOMO_ENDPOINT' => '',
+        'MOMO_ENDPOINT' => 'https://test-payment.momo.vn',
         'MOMO_PARTNER_CODE' => '',
         'MOMO_ACCESS_KEY' => '',
         'MOMO_SECRET_KEY' => '',
     ];
 
     public string $statusMessage = '';
+    public bool $canUpdate = false;
 
-    public function mount(EnvManagerService $envManager)
+    public function mount(MomoConfigService $service): void
     {
-        $currentEnv = $envManager->getValues();
-        foreach ($this->form as $key => $value) {
-            $this->form[$key] = $currentEnv[$key] ?? $value;
-        }
+        $this->form = $service->publicValues();
+        $this->canUpdate = (bool) (auth('admin')->user() ?: auth()->user())?->can('system.env.update');
     }
 
-    public function testEndpoint()
+    protected function rules(): array
     {
+        return [
+            'form.MOMO_ENDPOINT' => ['required', 'url:https', 'max:2048'],
+            'form.MOMO_PARTNER_CODE' => ['required', 'string', 'max:128'],
+            'form.MOMO_ACCESS_KEY' => ['nullable', 'string', 'max:512'],
+            'form.MOMO_SECRET_KEY' => ['nullable', 'string', 'max:512'],
+        ];
+    }
+
+    public function testEndpoint(MomoConfigService $service): void
+    {
+        $this->authorizePermission('system.env.update');
+        $this->validateOnly('form.MOMO_ENDPOINT');
+
         try {
-            $response = Http::timeout(5)->get($this->form['MOMO_ENDPOINT'] ?: 'https://test-payment.momo.vn');
-            $this->statusMessage = $response->successful() ? '✅ Endpoint hoạt động' : '❌ Endpoint lỗi: ' . $response->status();
-        } catch (\Exception $e) {
-            $this->statusMessage = '❌ Không thể kết nối';
+            $result = $service->testEndpoint($this->form['MOMO_ENDPOINT']);
+            $this->statusMessage = $result['message'];
+            $this->dispatch('notify', type: $result['success'] ? 'success' : 'error', message: $result['message']);
+        } catch (Throwable $e) {
+            report($e);
+            $this->statusMessage = 'Không thể kiểm tra endpoint MoMo.';
+            $this->dispatch('notify', type: 'error', message: 'Endpoint MoMo không hợp lệ hoặc không thể kết nối.');
         }
     }
 
-    public function save(EnvManagerService $envManager)
+    public function save(MomoConfigService $service): void
     {
-        $envManager->update($this->form);
-        $this->dispatch('notify', type: 'success', message: 'Cấu hình Momo đã được lưu và sao lưu!');
+        $this->authorizePermission('system.env.update');
+        $this->validate();
+
+        try {
+            if (!$service->save($this->form)) {
+                throw new \RuntimeException('Environment update failed.');
+            }
+            $this->form['MOMO_ACCESS_KEY'] = '';
+            $this->form['MOMO_SECRET_KEY'] = '';
+            $this->dispatch('notify', type: 'success', message: 'Cấu hình MoMo đã được cập nhật.');
+        } catch (Throwable $e) {
+            report($e);
+            $this->dispatch('notify', type: 'error', message: 'Không thể cập nhật cấu hình MoMo. Vui lòng kiểm tra log hệ thống.');
+        }
     }
 
     public function render()
     {
-        return view('Admin::livewire.settings.momo-config');
+        return view('System::livewire.settings.momo-config');
     }
 }
