@@ -117,7 +117,12 @@ class ModulesForm extends Component
 
             session()->flash('message', 'Module '.$moduleName.' đã được '.($result['enabled'] ? 'bật' : 'tắt').$suffix.'.');
         } catch (LogicException $e) {
-            session()->flash('error', $e->getMessage());
+            Log::notice('ModulesForm module toggle rejected by lifecycle rule.', [
+                'module' => $moduleName,
+                'exception' => $e::class,
+                'reason' => $e->getMessage(),
+            ]);
+            session()->flash('error', "Không thể thay đổi trạng thái module {$moduleName} do ràng buộc hệ thống.");
         } catch (Throwable $e) {
             Log::warning('ModulesForm module toggle failed.', [
                 'module' => $moduleName,
@@ -136,7 +141,12 @@ class ModulesForm extends Component
             $this->loadModules();
             session()->flash('message', "Đã lưu trữ module {$moduleName}. Bản phục hồi: {$result['archive']}. Database được giữ nguyên.");
         } catch (LogicException $e) {
-            session()->flash('error', $e->getMessage());
+            Log::notice('ModulesForm module archive rejected by lifecycle rule.', [
+                'module' => $moduleName,
+                'exception' => $e::class,
+                'reason' => $e->getMessage(),
+            ]);
+            session()->flash('error', "Không thể lưu trữ module {$moduleName} do ràng buộc hệ thống.");
         } catch (Throwable $e) {
             Log::warning('ModulesForm module archive failed.', [
                 'module' => $moduleName,
@@ -230,7 +240,12 @@ class ModulesForm extends Component
             $this->loadModuleRoutes();
             session()->flash('message', "Đã thêm {$row['url']} vào menu.");
         } catch (LogicException $e) {
-            session()->flash('error', $e->getMessage());
+            Log::notice('ModulesForm add route to menu rejected by route rule.', [
+                'route_key' => $key,
+                'exception' => $e::class,
+                'reason' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Không thể thêm route vào menu do ràng buộc hệ thống.');
         } catch (Throwable $e) {
             Log::warning('ModulesForm add route to menu failed.', ['exception' => $e::class]);
             session()->flash('error', 'Không thể thêm route vào menu. Vui lòng kiểm tra log hệ thống.');
