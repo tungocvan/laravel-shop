@@ -4,7 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
-use Modules\Admin\Models\Setting;
+use Modules\System\Models\Setting;
 use Throwable;
 
 final class RealtimeManager
@@ -74,6 +74,6 @@ final class RealtimeManager
     private function healthUrl(): string
     {
         return (string) (config('realtime.health_url')
-            ?: rtrim((string) config('services.nodejs.url'), '/') . '/health');
+            ?: rtrim((string) config('services.nodejs.url'), '/').'/health');
     }
 }

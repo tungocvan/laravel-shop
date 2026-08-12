@@ -1,10 +1,13 @@
 <div class="max-w-6xl mx-auto pb-20">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Quản trị Trang Chủ</h1>
             <p class="text-sm text-gray-500 mt-1">Tùy chỉnh bố cục, nội dung hiển thị và các khối chức năng.</p>
         </div>
+        <div class="flex flex-wrap items-center gap-2">
+        <a href="{{ route('home') }}" target="_blank" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Xem trước ↗</a>
         <button wire:click="save" wire:loading.attr="disabled"
             class="btn-primary flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition-all">
             <svg wire:loading wire:target="save" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none"
@@ -18,6 +21,7 @@
             <span wire:loading.remove wire:target="save">Lưu thay đổi</span>
             <span wire:loading wire:target="save">Đang lưu...</span>
         </button>
+        </div>
     </div>
     <div class="border-b border-gray-200 mb-6">
         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
@@ -37,7 +41,14 @@
 
         {{-- TAB 1: LAYOUT CONTROL --}}
         @if ($activeTab === 'layout')
-            <div class="grid grid-cols-1 gap-4 animate-fadeIn">
+            <div class="grid grid-cols-1 gap-4 animate-fadeIn"
+                x-data
+                x-init="Sortable.create($el, {
+                    handle: '.section-drag-handle',
+                    animation: 160,
+                    ghostClass: 'opacity-40',
+                    onEnd() { $wire.reorderSections(this.toArray()) }
+                })">
                 @php
                     $sections = [
                         'show_hero' => ['Banner Slider', 'Slider chính đầu trang'],
@@ -53,25 +64,32 @@
                     ];
                 @endphp
 
-                @foreach ($sections as $key => $info)
-                    <div
+                @foreach ($sectionOrder as $key)
+                    @php
+                        $baseKey = preg_replace('/_copy_\d+$/', '', $key);
+                        $info = $sections[$baseKey] ?? [str($baseKey)->after('show_')->replace('_', ' ')->title(), 'Section tùy chỉnh'];
+                        $isCopy = str_contains($key, '_copy_');
+                    @endphp
+                    <div data-id="{{ $key }}" wire:key="homepage-layout-{{ $key }}"
                         class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white hover:border-indigo-300 transition shadow-sm">
 
                         <div class="flex items-center gap-3">
-                            <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <button type="button" title="Kéo để thay đổi vị trí"
+                                class="section-drag-handle p-2 bg-indigo-50 text-indigo-600 rounded-lg cursor-grab active:cursor-grabbing touch-none">
                                 {{-- Icon tùy biến hoặc mặc định --}}
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
-                            </div>
+                            </button>
                             <div>
-                                <h3 class="text-sm font-bold text-gray-900">{{ $info[0] }}</h3>
+                                <h3 class="text-sm font-bold text-gray-900">{{ $info[0] }} @if($isCopy)<span class="text-xs font-medium text-indigo-600">(Bản sao)</span>@endif</h3>
                                 <p class="text-xs text-gray-500">{{ $info[1] }}</p>
                             </div>
                         </div>
 
-                        <div class="w-48">
+                        <div class="flex items-start gap-2">
+                        <div class="w-44">
                             <select wire:model="layout.{{ $key }}"
                                 class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 cursor-pointer">
                                 <option value="all">Hiện tất cả</option>
@@ -92,6 +110,13 @@
                                     <span class="text-[10px] text-gray-400 font-medium">● Đang ẩn</span>
                                 @endif
                             </div>
+                        </div>
+                        <button type="button" wire:click="duplicateSection('{{ $key }}')" wire:loading.attr="disabled" title="Nhân bản section" class="rounded-md border border-gray-300 p-2 text-gray-500 hover:border-indigo-300 hover:text-indigo-600">⧉</button>
+                        @if(($layout[$key] ?? 'all') === 'hidden' || ($layout[$key] ?? 'all') === 'none')
+                            <button type="button" wire:click="restoreSection('{{ $key }}')" class="rounded-md border border-emerald-300 p-2 text-emerald-600" title="Khôi phục">↻</button>
+                        @else
+                            <button type="button" wire:click="removeSection('{{ $key }}')" wire:confirm="Bạn chắc chắn muốn {{ $isCopy ? 'xóa' : 'ẩn' }} section này?" class="rounded-md border border-red-200 p-2 text-red-500 hover:bg-red-50" title="{{ $isCopy ? 'Xóa' : 'Ẩn' }} section">×</button>
+                        @endif
                         </div>
                     </div>
                 @endforeach

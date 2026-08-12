@@ -4,7 +4,7 @@ namespace Modules\Auth\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
-use Modules\Admin\Models\Setting;
+use Modules\System\Services\SettingsService;
 
 class LoginForm extends Component
 {
@@ -27,16 +27,16 @@ class LoginForm extends Component
         'password' => 'required',
     ];
 
-    public function mount(): void
+    public function mount(SettingsService $settings): void
     {
-        $logo = Setting::getValue('site_logo');
+        $logo = $settings->get('site_logo');
         $this->logo = $logo
             ? asset('storage/'.$logo).'?v='.md5($logo)
             : asset('storage/img/logo.png');
 
-        $this->login_name_line_1 = Setting::getValue('site_name_line_1') ?? config('app.school_managing_agency', '');
-        $this->login_name_line_2 = Setting::getValue('site_name_line_2') ?? 'CÔNG TY TNHH INAFO VIỆT NAM';
-        $this->login_description = Setting::getValue('login_description') ?? config('app.school_login_description', 'Hệ thống quản trị');
+        $this->login_name_line_1 = $settings->get('site_name_line_1') ?? config('app.school_managing_agency', '');
+        $this->login_name_line_2 = $settings->get('site_name_line_2') ?? 'CÔNG TY TNHH INAFO VIỆT NAM';
+        $this->login_description = $settings->get('login_description') ?? config('app.school_login_description', 'Hệ thống quản trị');
 
         $this->loadSchoolSettings();
     }

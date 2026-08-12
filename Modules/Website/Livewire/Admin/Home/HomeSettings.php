@@ -7,8 +7,11 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
+use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Services\SettingsService;
+use Modules\Website\Services\HomepageContentService;
+use Modules\Website\Services\HomepageContentWriteService;
+use Modules\Website\Services\HomepageSectionManagerService;
 
 class HomeSettings extends Component
 {
@@ -28,6 +31,10 @@ class HomeSettings extends Component
         'show_trust_badges' => 'all',
         'show_newsletter' => 'all',
     ];
+
+    public array $sectionOrder = [];
+
+    public array $sectionTypes = [];
 
     public $data = [
         'category_ids' => [],
@@ -64,9 +71,12 @@ class HomeSettings extends Component
         'description' => 'Đăng ký để nhận tin tức về bộ sưu tập mới, mẹo phối đồ và các ưu đãi độc quyền chỉ dành cho thành viên.',
     ];
 
-    public function mount(SettingsService $settings)
+    public function mount(SettingsService $settings, HomepageContentService $homepage)
     {
         $this->loadSettings($settings);
+        $this->layout = array_merge($this->layout, $homepage->visibility());
+        $this->sectionOrder = array_map(fn (string $key): string => 'show_'.$key, $homepage->order());
+        $this->sectionTypes = $homepage->sectionTypes();
     }
 
     public function loadSettings(SettingsService $settings)
@@ -165,7 +175,54 @@ class HomeSettings extends Component
         $this->data['featured_ids'] = array_values($this->data['featured_ids']);
     }
 
-    public function save(SettingsService $settings)
+    public function reorderSections(array $orderedKeys): void
+    {
+        $allowed = array_keys($this->layout);
+        $ordered = collect($orderedKeys)->map(fn ($key): string => (string) $key)
+            ->filter(fn (string $key): bool => in_array($key, $allowed, true))
+            ->unique()->values();
+
+        $this->sectionOrder = $ordered->merge(array_diff($allowed, $ordered->all()))->values()->all();
+    }
+
+    public function duplicateSection(string $layoutKey, HomepageSectionManagerService $manager): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $key = str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
+        $copy = $manager->duplicate($key);
+        $copyLayoutKey = 'show_'.$copy->key;
+        $position = array_search($layoutKey, $this->sectionOrder, true);
+        array_splice($this->sectionOrder, $position === false ? count($this->sectionOrder) : $position + 1, 0, [$copyLayoutKey]);
+        $this->layout[$copyLayoutKey] = 'all';
+        $this->sectionTypes[$copy->key] = $copy->type;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã nhân bản section. Hãy bấm Lưu thay đổi.']);
+    }
+
+    public function removeSection(string $layoutKey, HomepageSectionManagerService $manager): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $key = str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
+        $manager->remove($key);
+
+        if (str_contains($key, '_copy_')) {
+            unset($this->layout[$layoutKey], $this->sectionTypes[$key]);
+            $this->sectionOrder = array_values(array_diff($this->sectionOrder, [$layoutKey]));
+        } else {
+            $this->layout[$layoutKey] = 'none';
+        }
+
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã cập nhật section.']);
+    }
+
+    public function restoreSection(string $layoutKey, HomepageSectionManagerService $manager): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $key = str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
+        $manager->restore($key);
+        $this->layout[$layoutKey] = 'all';
+    }
+
+    public function save(HomepageContentWriteService $writer)
     {
         $this->authorizeAdminPermission('website.home.manage');
 
@@ -210,7 +267,7 @@ class HomeSettings extends Component
         ];
 
         try {
-            $settings->updateMany($values, 'homepage');
+            $writer->save($values, $this->sectionOrder);
         } catch (\Throwable $exception) {
             if ($newImage) {
                 Storage::disk('public')->delete($newImage);

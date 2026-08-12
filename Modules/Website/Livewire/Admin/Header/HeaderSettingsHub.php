@@ -3,20 +3,25 @@
 namespace Modules\Website\Livewire\Admin\Header;
 
 use Livewire\Component;
+use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\HeaderMenuItem;
 use Modules\Website\Services\HeaderMenuService;
-use Modules\Website\Services\SettingsService;
 
 class HeaderSettingsHub extends Component
 {
     use AuthorizesAdminPermissions;
 
     public $activeTab = 'general';
+
     public $generalData = [];
+
     public $currentLocation = 'primary';
+
     public $isModalOpen = false;
+
     public $editingId = null;
+
     public $formData = [
         'title' => '',
         'url' => '',
@@ -56,7 +61,7 @@ class HeaderSettingsHub extends Component
         ]);
     }
 
-    public function openModal($id = null, HeaderMenuService $menuService)
+    public function openModal($id, HeaderMenuService $menuService)
     {
         $this->resetErrorBag();
 

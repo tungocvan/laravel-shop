@@ -1,18 +1,18 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Website\Models\HeaderMenu;
 use Modules\Website\Models\HeaderMenuItem;
-use Illuminate\Support\Str;
 
 class HeaderSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * php artisan db:seed --class="Modules\Website\database\Seeders\HeaderSeeder"
+     * php artisan db:seed --class="Modules\\Website\\database\\Seeders\\HeaderSeeder"
      */
     public function run(): void
     {
@@ -26,7 +26,7 @@ class HeaderSeeder extends Seeder
         $primaryMenu = HeaderMenu::create([
             'name' => 'Desktop Main Menu',
             'location' => 'primary',
-            'is_active' => true
+            'is_active' => true,
         ]);
         $this->createDefaultItems($primaryMenu->id);
 
@@ -34,7 +34,7 @@ class HeaderSeeder extends Seeder
         $mobileMenu = HeaderMenu::create([
             'name' => 'Mobile Slide-over',
             'location' => 'mobile',
-            'is_active' => true
+            'is_active' => true,
         ]);
         $this->createDefaultItems($mobileMenu->id);
 
@@ -42,7 +42,7 @@ class HeaderSeeder extends Seeder
         $adminMenu = HeaderMenu::create([
             'name' => 'Admin Menu Dropdown',
             'location' => 'admin',
-            'is_active' => true
+            'is_active' => true,
         ]);
         $this->createAdminItems($adminMenu->id);
     }
@@ -52,53 +52,53 @@ class HeaderSeeder extends Seeder
      */
     private function createDefaultItems($menuId)
     {
-        // Trang chủ
         HeaderMenuItem::create([
             'header_menu_id' => $menuId,
             'title' => 'Trang chủ',
             'url' => '/',
+            'route_name' => 'home',
             'sort_order' => 1,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
-        // Cửa hàng
         HeaderMenuItem::create([
             'header_menu_id' => $menuId,
             'title' => 'Cửa hàng',
-            'url' => '/shop',
+            'url' => '/product',
+            'route_name' => 'product.list',
             'sort_order' => 2,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
-        // Dropdown Sản phẩm (Cấp 1)
         $productParent = HeaderMenuItem::create([
             'header_menu_id' => $menuId,
             'title' => 'Sản phẩm',
             'url' => '#',
             'sort_order' => 3,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
-        // Các mục con (Cấp 2)
         $categories = ['Điện Thoại & Tablet', 'Laptop & Đồ Họa', 'Thời Trang Nam'];
         foreach ($categories as $index => $cat) {
             HeaderMenuItem::create([
                 'header_menu_id' => $menuId,
                 'parent_id' => $productParent->id,
                 'title' => $cat,
-                'url' => '/shop?category=' . Str::slug($cat),
+                'url' => '/product?categorySlug='.Str::slug($cat),
+                'route_name' => 'product.list',
+                'params' => ['categorySlug' => Str::slug($cat)],
                 'sort_order' => $index,
-                'is_active' => true
+                'is_active' => true,
             ]);
         }
 
-        // Blog
         HeaderMenuItem::create([
             'header_menu_id' => $menuId,
             'title' => 'Blog',
             'url' => '/blog',
+            'route_name' => 'blog.index',
             'sort_order' => 4,
-            'is_active' => true
+            'is_active' => true,
         ]);
     }
 
@@ -110,17 +110,17 @@ class HeaderSeeder extends Seeder
         HeaderMenuItem::create([
             'header_menu_id' => $menuId,
             'title' => 'Hồ sơ cá nhân',
-            'url' => '/admin/profile', // Thay bằng route thực tế nếu có, ví dụ: route('admin.profile')
+            'url' => '/admin/profile',
             'sort_order' => 1,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         HeaderMenuItem::create([
             'header_menu_id' => $menuId,
             'title' => 'Cài đặt',
-            'url' => '/admin/settings', // Thay bằng route thực tế nếu có
+            'url' => '/admin/settings',
             'sort_order' => 2,
-            'is_active' => true
+            'is_active' => true,
         ]);
     }
 }

@@ -1,20 +1,24 @@
 <?php
+
 namespace Modules\Admin\Livewire\Affiliate;
 
+use App\Models\User;
 use Livewire\Component;
-use Modules\Website\Models\WpProduct;
 use Modules\Admin\Models\AffiliateLevel;
 use Modules\Admin\Models\AffiliateScheme;
-use App\Models\User;
+use Modules\Product\Models\Product as WpProduct;
 
 class CommissionMatrix extends Component
 {
     public $productId;
+
     public $product;
-    
+
     // Form State cho việc thêm User đặc biệt
     public $searchUser = '';
+
     public $selectedUserId = null;
+
     public $userResults = [];
 
     // Danh sách schemes hiện tại
@@ -39,10 +43,11 @@ class CommissionMatrix extends Component
     {
         if (strlen($this->searchUser) < 2) {
             $this->userResults = [];
+
             return;
         }
-        $this->userResults = User::where('name', 'like', '%' . $this->searchUser . '%')
-            ->orWhere('email', 'like', '%' . $this->searchUser . '%')
+        $this->userResults = User::where('name', 'like', '%'.$this->searchUser.'%')
+            ->orWhere('email', 'like', '%'.$this->searchUser.'%')
             ->limit(5)->get();
     }
 
@@ -84,8 +89,9 @@ class CommissionMatrix extends Component
     public function render()
     {
         $levels = AffiliateLevel::all();
+
         return view('Admin::livewire.affiliate.commission-matrix', [
-            'levels' => $levels
+            'levels' => $levels,
         ]);
     }
 }

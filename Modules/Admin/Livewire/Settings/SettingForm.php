@@ -2,11 +2,11 @@
 
 namespace Modules\Admin\Livewire\Settings;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Modules\Admin\Models\Setting;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Modules\System\Models\Setting;
 
 class SettingForm extends Component
 {
@@ -28,9 +28,11 @@ class SettingForm extends Component
     ];
 
     public $site_logo;      // Path ảnh cũ
+
     public $new_logo;       // File mới upload
 
     public $site_favicon;   // Path ảnh cũ
+
     public $new_favicon;    // File mới upload
 
     // ==========================================
@@ -39,14 +41,16 @@ class SettingForm extends Component
     public $customSettings = []; // Danh sách Settings lấy từ DB
 
     public $dynamicValues = [];  // Chứa giá trị: Text, HTML, Mảng Gallery (ảnh cũ)
+
     public $dynamicImages = [];  // Chứa file upload: Image đơn
+
     public $galleryUploads = []; // Chứa file upload: Gallery (nhiều ảnh)
 
     // Form thêm mới
     public $newField = [
         'label' => '',
-        'key'   => '',
-        'type'  => 'text',
+        'key' => '',
+        'type' => 'text',
     ];
 
     public $activeTab = 'general';
@@ -66,7 +70,7 @@ class SettingForm extends Component
             'new_favicon.max' => 'Dung lượng icon không được vượt quá 512 KB.',
         ]);
 
-        if (!$this->new_favicon) {
+        if (! $this->new_favicon) {
             return;
         }
 
@@ -74,13 +78,13 @@ class SettingForm extends Component
         $width = $imageSize[0] ?? null;
         $height = $imageSize[1] ?? null;
 
-        if (!$width || !$height) {
+        if (! $width || ! $height) {
             throw ValidationException::withMessages([
                 'new_favicon' => 'Không thể đọc file icon. Vui lòng chọn file PNG hoặc ICO hợp lệ.',
             ]);
         }
 
-        if ($width !== $height || !in_array($width, [32, 64], true)) {
+        if ($width !== $height || ! in_array($width, [32, 64], true)) {
             throw ValidationException::withMessages([
                 'new_favicon' => "Icon phải là ảnh vuông 32x32 hoặc 64x64 pixel (file hiện tại: {$width}x{$height}).",
             ]);
@@ -149,18 +153,18 @@ class SettingForm extends Component
     {
         $this->validate([
             'newField.label' => 'required|string|max:255',
-            'newField.key'   => 'required|alpha_dash|unique:settings,key',
-            'newField.type'  => 'required|in:text,textarea,image,html,gallery',
+            'newField.key' => 'required|alpha_dash|unique:settings,key',
+            'newField.type' => 'required|in:text,textarea,image,html,gallery',
         ], [
             'newField.key.unique' => 'Key này đã tồn tại.',
             'newField.key.alpha_dash' => 'Key không được chứa dấu cách hoặc ký tự đặc biệt.',
         ]);
 
         Setting::create([
-            'label'      => $this->newField['label'],
-            'key'        => Str::slug($this->newField['key'], '_'),
-            'type'       => $this->newField['type'],
-            'value'      => null,
+            'label' => $this->newField['label'],
+            'key' => Str::slug($this->newField['key'], '_'),
+            'type' => $this->newField['type'],
+            'value' => null,
             'group_name' => 'custom',
         ]);
 
@@ -220,7 +224,7 @@ class SettingForm extends Component
 
             $this->dispatch(
                 'logo-updated',
-                url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)),
+                url: asset('storage/'.$path).'?v='.md5($path.microtime(true)),
             );
         }
 
@@ -233,7 +237,7 @@ class SettingForm extends Component
 
             $this->dispatch(
                 'favicon-updated',
-                url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)),
+                url: asset('storage/'.$path).'?v='.md5($path.microtime(true)),
                 type: strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'ico' ? 'image/x-icon' : 'image/png',
             );
         }
@@ -257,10 +261,12 @@ class SettingForm extends Component
 
                 // Lấy mảng ảnh hiện tại (đã trừ đi những ảnh bị xóa bởi removeGalleryImage)
                 $currentImages = $this->dynamicValues[$setting->id] ?? [];
-                if (!is_array($currentImages)) $currentImages = [];
+                if (! is_array($currentImages)) {
+                    $currentImages = [];
+                }
 
                 // Xử lý file mới upload
-                if (!empty($this->galleryUploads[$setting->id])) {
+                if (! empty($this->galleryUploads[$setting->id])) {
                     foreach ($this->galleryUploads[$setting->id] as $photo) {
                         $path = $photo->store('settings/gallery', 'public');
                         $currentImages[] = $path;
@@ -268,7 +274,7 @@ class SettingForm extends Component
                     // Reset upload
                     unset($this->galleryUploads[$setting->id]);
                 }
- 
+
                 // Cập nhật vào DB (Encode JSON)
                 $setting->update(['value' => json_encode($currentImages)]);
 

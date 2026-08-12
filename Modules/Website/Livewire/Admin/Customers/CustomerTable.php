@@ -2,24 +2,42 @@
 
 namespace Modules\Website\Livewire\Admin\Customers;
 
-use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\User\Services\CustomerService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 
 class CustomerTable extends Component
 {
-    use WithPagination, AuthorizesAdminPermissions;
+    use AuthorizesAdminPermissions, WithPagination;
 
     public $search = '';
+
     public $perPage = 10;
+
     public $filterStatus = '';
+
     public $selected = [];
+
     public $selectAll = false;
 
-    public function updatedSearch() { $this->resetPage(); $this->resetSelection(); }
-    public function updatedFilterStatus() { $this->resetPage(); $this->resetSelection(); }
-    public function updatingPage() { $this->resetSelection(); }
+    public function updatedSearch()
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedFilterStatus()
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatingPage()
+    {
+        $this->resetSelection();
+    }
 
     public function resetSelection()
     {
@@ -36,51 +54,34 @@ class CustomerTable extends Component
         }
     }
 
-    public function toggleStatus($id)
+    public function toggleStatus($id, CustomerService $customerService)
     {
         $this->authorizeAdminPermission('customer.update');
 
-        $user = User::find($id);
-        if ($user) {
-            $user->is_active = ! $user->is_active;
-            $user->save();
-        }
+        $customerService->toggleStatus((int) $id);
     }
 
-    public function deleteSelected()
+    public function deleteSelected(CustomerService $customerService)
     {
         $this->authorizeAdminPermission('customer.delete');
-        User::whereIn('id', $this->selected)->delete();
+        $customerService->deleteMany($this->selected);
         $this->resetSelection();
         session()->flash('success', 'Đã chuyển khách hàng vào thùng rác.');
     }
 
-    public function delete($id)
+    public function delete($id, CustomerService $customerService)
     {
         $this->authorizeAdminPermission('customer.delete');
-        User::findOrFail($id)->delete();
+        $customerService->delete((int) $id);
         session()->flash('success', 'Đã xóa khách hàng.');
     }
 
-    private function getQuery()
+    private function getQuery(): Builder
     {
-        return User::query()
-            ->withCount('orders')
-            ->withSum('orders', 'total')
-            ->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('email', 'like', '%' . $this->search . '%')
-                    ->orWhere('phone', 'like', '%' . $this->search . '%');
-            })
-            ->when($this->filterStatus, function ($q) {
-                if ($this->filterStatus === 'active') {
-                    $q->where('is_active', true);
-                }
-                if ($this->filterStatus === 'inactive') {
-                    $q->where('is_active', false);
-                }
-            })
-            ->latest();
+        return app(CustomerService::class)->query([
+            'search' => $this->search,
+            'status' => $this->filterStatus,
+        ]);
     }
 
     public function render()

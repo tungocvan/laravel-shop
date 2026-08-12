@@ -3,16 +3,16 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Website\Services\SettingsService;
+use Modules\Website\Services\HomepageContentService;
 
 class PromoBanner extends Component
 {
     public array $banner = [];
 
-    public function mount(SettingsService $settings)
+    public function mount(HomepageContentService $homepage)
     {
         // 1. Lấy dữ liệu từ DB
-        $this->banner = (array) $settings->get('home_promo_banner', []);
+        $this->banner = $homepage->config('promo_banner', 'home_promo_banner');
     }
 
     public function placeholder()

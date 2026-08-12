@@ -9,7 +9,7 @@
         {{-- Nhúng Livewire Component tại đây --}}
         {{-- Lưu ý: Tên này dựa trên namespace Modules\Admin\Livewire\Home\HomeSettings --}}
 
-        @livewire('admin.home.home-settings')
+        @livewire('website.admin.home.home-settings')
 
     </div>
 @endsection

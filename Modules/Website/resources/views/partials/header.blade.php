@@ -9,16 +9,16 @@
     <div class="container mx-auto px-4 flex justify-between items-center">
         <div class="flex items-center gap-4">
             {{-- Hotline --}}
-            <span class="flex items-center gap-1">
+            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $headerSettings['hotline'] ?? '') }}" class="flex items-center gap-1 hover:text-yellow-400">
                 <svg class="w-3 h-3 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                 {{ $headerSettings['hotline'] ?? '1900 xxxx' }}
-            </span>
+            </a>
             <span class="text-gray-600">|</span>
             {{-- Email --}}
-            <span class="flex items-center gap-1">
+            <a href="mailto:{{ $headerSettings['email'] ?? '' }}" class="flex items-center gap-1 hover:text-yellow-400">
                 <svg class="w-3 h-3 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                 {{ $headerSettings['email'] ?? 'contact@domain.com' }}
-            </span>
+            </a>
         </div>
         <div class="flex items-center gap-4">
             <a href="{{ $headerSettings['help_url'] ?? '#' }}" class="hover:text-yellow-400 transition">Trợ giúp</a>
@@ -43,7 +43,7 @@
             {{-- LEFT SECTION: LOGO & HAMBURGER --}}
             <div class="flex items-center gap-3 md:gap-8">
                 {{-- Hamburger Button (Mobile) --}}
-                <button @click="mobileMenuOpen = true" class="lg:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition">
+                <button type="button" @click="mobileMenuOpen = true" aria-label="Mở menu điều hướng" :aria-expanded="mobileMenuOpen" class="lg:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
 
@@ -51,7 +51,7 @@
                 <a href="/" class="flex-shrink-0 flex items-center gap-2 group">
                     @if(!empty($headerSettings['logo']))
                         <img
-                            src="{{ asset('storage/' . $headerSettings['logo']) }}?v={{ md5($headerSettings['logo']) }}"
+                            src="{{ str_starts_with($headerSettings['logo'], 'http') ? $headerSettings['logo'] : asset('storage/' . $headerSettings['logo']).'?v='.md5($headerSettings['logo']) }}"
                             alt="{{ $headerSettings['brand_name'] ?? 'Logo website' }}"
                             class="h-10 w-auto max-w-40 object-contain md:h-12">
                     @else
@@ -69,8 +69,9 @@
             <div class="hidden lg:flex flex-1 max-w-xl relative">
                 {{-- Giả sử route product.list đã có --}}
                 <form action="{{ Route::has('product.list') ? route('product.list') : '#' }}" method="GET" class="w-full">
-                    <input type="text" name="search" placeholder="Tìm kiếm sản phẩm, thương hiệu..." class="w-full bg-gray-100 border-none rounded-full py-2.5 pl-5 pr-12 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-500">
-                    <button type="submit" class="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-full text-gray-500 hover:text-blue-600 shadow-sm hover:shadow transition">
+                    <label for="desktop-product-search" class="sr-only">Tìm kiếm sản phẩm</label>
+                    <input id="desktop-product-search" type="search" name="search" value="{{ request('search') }}" placeholder="Tìm kiếm sản phẩm, thương hiệu..." class="w-full bg-gray-100 border-none rounded-full py-2.5 pl-5 pr-12 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-500">
+                    <button type="submit" aria-label="Tìm kiếm" class="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-full text-gray-500 hover:text-blue-600 shadow-sm hover:shadow transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </button>
                 </form>
@@ -79,7 +80,7 @@
             {{-- RIGHT SECTION: NAVIGATION & ICONS --}}
             <div class="flex items-center gap-1 md:gap-6">
                 {{-- Mobile Search Toggle --}}
-                <button @click="mobileSearchOpen = !mobileSearchOpen" class="lg:hidden p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition">
+                <button type="button" @click="mobileSearchOpen = !mobileSearchOpen" aria-label="Mở tìm kiếm" :aria-expanded="mobileSearchOpen" class="lg:hidden p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </button>
 
@@ -168,7 +169,8 @@
         {{-- 3. MOBILE SEARCH BAR (Slide Down) --}}
         <div x-show="mobileSearchOpen" x-transition class="lg:hidden pb-4" style="display: none;">
             <form action="{{ Route::has('product.list') ? route('product.list') : '#' }}" method="GET" class="relative">
-                <input type="text" name="search" placeholder="Tìm kiếm sản phẩm..." class="w-full bg-gray-100 border-none rounded-xl py-3 pl-12 pr-4 text-gray-900 focus:ring-2 focus:ring-blue-500">
+                <label for="mobile-product-search" class="sr-only">Tìm kiếm sản phẩm</label>
+                <input id="mobile-product-search" type="search" name="search" value="{{ request('search') }}" placeholder="Tìm kiếm sản phẩm..." class="w-full bg-gray-100 border-none rounded-xl py-3 pl-12 pr-4 text-gray-900 focus:ring-2 focus:ring-blue-500">
                 <svg class="w-5 h-5 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </form>
         </div>
@@ -194,7 +196,7 @@
                 <div class="p-6 bg-gray-900 text-white shrink-0">
                     <div class="flex justify-between items-start mb-6">
                         <span class="text-xl font-bold">Menu</span>
-                        <button @click="mobileMenuOpen = false" class="text-gray-400 hover:text-white p-1">
+                        <button type="button" @click="mobileMenuOpen = false" aria-label="Đóng menu điều hướng" class="text-gray-400 hover:text-white p-1">
                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>

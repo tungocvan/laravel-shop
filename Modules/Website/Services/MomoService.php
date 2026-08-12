@@ -3,10 +3,11 @@
 namespace Modules\Website\Services;
 
 use Illuminate\Support\Facades\Http;
+use Modules\Order\Contracts\PaymentResultVerifier;
 use Modules\Order\Models\Order;
 use RuntimeException;
 
-class MomoService
+class MomoService implements PaymentResultVerifier
 {
     protected string $partnerCode;
 

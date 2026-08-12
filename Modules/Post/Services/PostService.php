@@ -20,6 +20,45 @@ class PostService
 
     public const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
+    public function findPublishedBySlug(string $slug): Post
+    {
+        return Post::query()->where('slug', $slug)->where('status', 'published')
+            ->with(['categories', 'user', 'tags'])->firstOrFail();
+    }
+
+    public function relatedPublished(Post $post, int $limit = 3): Collection
+    {
+        if ($post->categories->isEmpty()) {
+            return collect();
+        }
+
+        return Post::query()->where('status', 'published')->whereKeyNot($post->id)
+            ->whereHas('categories', fn ($query) => $query->whereIn('id', $post->categories->pluck('id')))
+            ->latest('published_at')->limit($limit)->get();
+    }
+
+    public function storefrontCategories(string $excludedSlug = 'pages'): Collection
+    {
+        return Category::query()->where('type', 'post')->where('slug', '!=', $excludedSlug)
+            ->where('is_active', true)->withCount(['posts' => fn ($query) => $query->where('status', 'published')])->get();
+    }
+
+    public function findCategoryBySlug(?string $slug): ?Category
+    {
+        return $slug ? Category::query()->where('slug', $slug)->first() : null;
+    }
+
+    public function paginateStorefront(?string $categorySlug, int $page, int $perPage = 9): array
+    {
+        $query = Post::query()->where('status', 'published')->with(['categories', 'user'])->latest('published_at');
+        $query->when($categorySlug, fn ($posts) => $posts->whereHas('categories', fn ($categories) => $categories->where('slug', $categorySlug)),
+            fn ($posts) => $posts->whereDoesntHave('categories', fn ($categories) => $categories->where('slug', 'pages')));
+        $hero = $page === 1 && ! $categorySlug ? (clone $query)->first() : null;
+        $list = clone $query;
+
+        return ['hero' => $hero, 'posts' => $hero ? $list->whereKeyNot($hero->id)->paginate($perPage) : $list->paginate($perPage)];
+    }
+
     public function paginateForAdmin(array $filters = []): LengthAwarePaginator
     {
         return $this->adminQuery($filters)
@@ -88,7 +127,7 @@ class PostService
                 ->findOrFail($id);
 
             $clone = $original->replicate();
-            $clone->name = $original->name . ' (Copy)';
+            $clone->name = $original->name.' (Copy)';
             $clone->slug = $this->uniqueSlug(Str::slug($clone->name));
             $clone->status = 'draft';
             $clone->views = 0;
@@ -282,8 +321,8 @@ class PostService
             ->with(['author:id,name', 'categories:id,name'])
             ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
                 $query->where(function (Builder $nested) use ($search): void {
-                    $nested->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('slug', 'like', '%' . $search . '%');
+                    $nested->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('slug', 'like', '%'.$search.'%');
                 });
             })
             ->when($filters['status'] ?? null, function (Builder $query, string $status): void {
@@ -367,7 +406,7 @@ class PostService
         $counter = 2;
 
         while (Post::query()->where('slug', $candidate)->exists()) {
-            $candidate = $base . '-' . $counter;
+            $candidate = $base.'-'.$counter;
             $counter++;
         }
 
@@ -381,7 +420,7 @@ class PostService
         $counter = 2;
 
         while (Category::query()->where('slug', $candidate)->exists()) {
-            $candidate = $base . '-' . $counter;
+            $candidate = $base.'-'.$counter;
             $counter++;
         }
 
@@ -395,7 +434,7 @@ class PostService
         $counter = 2;
 
         while (Tag::query()->where('slug', $candidate)->exists()) {
-            $candidate = $base . '-' . $counter;
+            $candidate = $base.'-'.$counter;
             $counter++;
         }
 

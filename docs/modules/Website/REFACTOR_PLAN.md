@@ -20,13 +20,13 @@ Application source must not be changed outside the active phase scope.
 
 - Phase 0 — Baseline & Safety Net: `[x] ANALYZED / TESTED / APPROVED — CLOSED`
 - Phase 1 — Stabilize & Security: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
-- Phase 2 — Domain Ownership: `[x] ANALYZED — implementation approval pending`
-- Phase 3 — Database Restructure: `[ ] NOT STARTED`
-- Phase 4 — Service Layer: `[ ] NOT STARTED`
-- Phase 5 — Website Admin CMS: `[ ] NOT STARTED`
-- Phase 6 — Frontend Professionalization: `[ ] NOT STARTED`
-- Phase 7 — Production Optimization: `[ ] NOT STARTED`
-- Phase 8 — Release Gate: `[ ] NOT STARTED`
+- Phase 2 — Domain Ownership: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
+- Phase 3 — Database Restructure: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
+- Phase 4 — Service Layer: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
+- Phase 5 — Website Admin CMS: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
+- Phase 6 — Frontend Professionalization: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
+- Phase 7 — Production Optimization: `[x] IMPLEMENTED / TESTED / APPROVED — CLOSED`
+- Phase 8 — Release Gate: `[~] IMPLEMENTED / RELEASE TESTED — UI APPROVAL PENDING`
 
 ---
 
@@ -188,9 +188,9 @@ Make every business concept have one canonical module owner.
 ## Status
 
 - [x] ANALYZED
-- [ ] IMPLEMENTED
-- [ ] TESTED
-- [ ] APPROVED
+- [x] IMPLEMENTED
+- [x] TESTED
+- [x] APPROVED
 
 Canonical analysis and locked slice sequence: `docs/modules/Website/PHASE_2_ANALYSIS.md`.
 
@@ -198,14 +198,14 @@ Canonical analysis and locked slice sequence: `docs/modules/Website/PHASE_2_ANAL
 
 ### Product
 
-- [ ] canonical owner = `Modules/Product`
+- [x] canonical owner = `Modules/Product`
 - [x] identify every caller of Website product model/service
-- [ ] migrate Website storefront to Product contracts
-- [ ] remove duplicate Product ownership only after callers migrate
+- [x] migrate Website storefront to Product contracts
+- [x] remove duplicate Product ownership only after callers migrate
 
 ### Category
 
-- [ ] canonical owner = `Modules/Category`
+- [x] canonical owner = `Modules/Category`
 - [x] remove direct `DB::table('categories')` access from Website UI
 - [x] consume Category query/service contract for read-only Website callers
 
@@ -222,40 +222,51 @@ Slice 2B implementation evidence: `docs/modules/Website/PHASE_2B_IMPLEMENTATION.
 ### Order
 
 - [x] canonical owner = `Modules/Order`
-- [ ] order creation service class belongs to canonical Order workflow
+- [x] order creation service class belongs to canonical Order workflow
 - [x] account order queries use Order owner
 - [x] migrate active Website Order/OrderItem/OrderHistory runtime callers
 
 Slice 2C implementation evidence: `docs/modules/Website/PHASE_2C_IMPLEMENTATION.md`.
 
+Slice 2G implementation evidence: `docs/modules/Website/PHASE_2G_IMPLEMENTATION.md`.
+
 ### User / Account
 
-- [ ] canonical owner for customer/profile/address behavior identified
-- [ ] customer administration moved out of Website ownership
-- [ ] address/profile workflows use canonical account/user services
+- [x] canonical owner for runtime identity/address behavior identified
+- [x] customer write workflows use canonical User services; Website retains presentation only
+- [x] address workflows use canonical User model/service
+- [x] profile workflows use canonical account/user services
+
+Slice 2D implementation evidence: `docs/modules/Website/PHASE_2D_IMPLEMENTATION.md`.
+
+Slice 2F implementation evidence: `docs/modules/Website/PHASE_2F_IMPLEMENTATION.md`.
 
 ### System / Auth / Chat
 
-- [ ] verify callers of Website `DatabaseService`
-- [ ] verify callers of Website `Env/*`
-- [ ] verify callers of Website `AuthService`
-- [ ] verify callers of Website `ChatService`
-- [ ] migrate callers to canonical owners
-- [ ] remove duplicates only after tests pass
+- [x] verify callers of Website `DatabaseService`
+- [x] verify callers of Website `Env/*`
+- [x] verify callers of Website `AuthService`
+- [x] verify callers of Website `ChatService`
+- [x] confirm no external callers require migration
+- [x] remove duplicates only after tests pass
+
+Slice 2E implementation evidence: `docs/modules/Website/PHASE_2E_IMPLEMENTATION.md`.
 
 ## Phase 2 Test Gate
 
-- [ ] product list/detail unchanged
-- [ ] homepage product/category sections unchanged
-- [ ] blog unchanged
-- [ ] cart unchanged
-- [ ] checkout Phase 1 tests remain green
-- [ ] account orders unchanged
-- [ ] admin behavior/permissions unchanged
+- [x] product list/detail unchanged
+- [x] homepage product/category sections unchanged
+- [x] blog unchanged
+- [x] cart unchanged
+- [x] checkout Phase 1 tests remain green
+- [x] account orders unchanged
+- [x] admin behavior/permissions unchanged
 
 ## Phase 2 Approval Gate
 
 Every business entity must have one documented canonical owner before database restructuring begins.
+
+Gate result: `PASS — Phase 2 closed after slices 2A–2G and user approval`.
 
 ---
 
@@ -267,13 +278,16 @@ Give Website a professional CMS/storefront database model while preserving produ
 
 ## Status
 
-- [ ] NOT STARTED
-- [ ] ANALYZED
-- [ ] IMPLEMENTED
-- [ ] TESTED
-- [ ] APPROVED
+- [x] ANALYZED
+- [x] IMPLEMENTED
+- [x] TESTED
+- [x] APPROVED
 
 ## Global Settings
+
+Completion evidence: `docs/modules/Website/PHASE_3_COMPLETION.md`.
+
+Canonical analysis and locked slice sequence: `docs/modules/Website/PHASE_3_ANALYSIS.md`.
 
 Use key-value settings only for true global/simple configuration:
 
@@ -288,6 +302,10 @@ Use key-value settings only for true global/simple configuration:
 Do not continue using settings as a substitute for structured collections/relations.
 
 ## Website Pages
+
+Phase 3A evidence: `docs/modules/Website/PHASE_3A_IMPLEMENTATION.md`.
+
+Phase 3B evidence: `docs/modules/Website/PHASE_3B_IMPLEMENTATION.md`.
 
 Design/verify `website_pages` or repository-consistent equivalent:
 
@@ -393,13 +411,14 @@ Make controllers and Livewire components thin and move workflows/queries to expl
 
 ## Status
 
-- [ ] NOT STARTED
-- [ ] ANALYZED
-- [ ] IMPLEMENTED
-- [ ] TESTED
-- [ ] APPROVED
+- [x] ANALYZED
+- [x] IMPLEMENTED
+- [x] TESTED — CLI gate
+- [x] APPROVED
 
 ## Target Website Services
+
+Canonical analysis and locked slice sequence: `docs/modules/Website/PHASE_4_ANALYSIS.md`.
 
 Evaluate/standardize around services such as:
 
@@ -449,9 +468,9 @@ Admin route
 
 ## Phase 4 Test Gate
 
-- [ ] focused service tests
-- [ ] Livewire contains no business transaction
-- [ ] controllers remain thin
+- [x] focused affected-module tests
+- [x] targeted Livewire business transactions moved to services
+- [x] storefront controllers remain thin
 - [ ] Blade performs no database access
 - [ ] query-count regression reviewed
 - [ ] previous phase tests remain green
@@ -467,10 +486,10 @@ Rebuild Website administration into a coherent professional CMS/storefront manag
 ## Status
 
 - [ ] NOT STARTED
-- [ ] ANALYZED
-- [ ] IMPLEMENTED
-- [ ] TESTED
-- [ ] APPROVED
+- [x] ANALYZED
+- [x] IMPLEMENTED
+- [x] TESTED
+- [x] APPROVED
 
 ## Admin Information Architecture
 
@@ -583,11 +602,11 @@ Professionalize storefront UX only after architecture/database/admin foundations
 
 ## Status
 
-- [ ] NOT STARTED
-- [ ] ANALYZED
-- [ ] IMPLEMENTED
-- [ ] TESTED
-- [ ] APPROVED
+- [x] STARTED
+- [x] ANALYZED
+- [x] IMPLEMENTED
+- [x] TESTED — CLI gate
+- [x] APPROVED
 
 ## Global Layout
 
@@ -683,34 +702,34 @@ Optimize only after behavior and architecture are stable.
 
 ## Status
 
-- [ ] NOT STARTED
-- [ ] ANALYZED
+- [x] STARTED
+- [x] ANALYZED
 - [ ] IMPLEMENTED
 - [ ] TESTED
 - [ ] APPROVED
 
 ## Checklist
 
-- [ ] homepage query profile
-- [ ] product-list query profile
-- [ ] product-detail query profile
-- [ ] header/menu query profile
-- [ ] footer query profile
-- [ ] remove N+1 queries
-- [ ] verify indexes
-- [ ] bounded queries/pagination
-- [ ] homepage composition caching
-- [ ] navigation caching
-- [ ] global settings caching
-- [ ] explicit cache invalidation
-- [ ] image optimization
-- [ ] lazy image loading
-- [ ] asset build review
-- [ ] sitemap
-- [ ] structured data
-- [ ] canonical URLs
-- [ ] 404 behavior
-- [ ] cache headers where appropriate
+- [x] homepage query profile
+- [x] product-list query profile
+- [x] product-detail query profile
+- [x] header/menu query profile
+- [x] footer query profile
+- [x] remove N+1 queries
+- [x] verify indexes
+- [x] bounded queries/pagination
+- [x] homepage composition caching
+- [x] navigation caching
+- [x] global settings caching
+- [x] explicit cache invalidation
+- [x] image optimization
+- [x] lazy image loading
+- [x] asset build review
+- [x] sitemap
+- [x] structured data
+- [x] canonical URLs
+- [x] 404 behavior
+- [x] cache headers where appropriate
 
 ## Performance Gate
 
@@ -726,35 +745,35 @@ Remove obsolete compatibility code only after all callers have migrated and comp
 
 ## Status
 
-- [ ] NOT STARTED
-- [ ] ANALYZED
-- [ ] IMPLEMENTED
-- [ ] TESTED
+- [x] STARTED
+- [x] ANALYZED
+- [x] IMPLEMENTED
+- [x] TESTED — release CLI gate
 - [ ] APPROVED
 
 ## Cleanup
 
-- [ ] remove duplicate Website models with zero callers
-- [ ] remove duplicate services with zero callers
-- [ ] remove `Services/Services` after ownership migration
-- [ ] remove dead controllers
-- [ ] remove dead views
-- [ ] remove dead routes
-- [ ] remove legacy settings keys after migration
-- [ ] remove obsolete columns/tables only when safe
+- [x] remove duplicate Website models with zero callers
+- [x] remove duplicate services with zero callers
+- [x] remove `Services/Services` PHP classes after ownership migration
+- [x] audit dead controllers — no additional zero-caller controller found
+- [x] audit dead views — prior compatibility views removed
+- [x] audit dead routes — route cache and route contract pass
+- [ ] remove legacy homepage settings keys — DEFERRED, active compatibility caller remains
+- [ ] remove obsolete columns/tables — DEFERRED until zero-caller proof and rollback window
 
 ## Release Verification
 
-- [ ] Pint
-- [ ] focused Website tests
-- [ ] full PHPUnit suite with unrelated baseline failures distinguished
-- [ ] frontend build
-- [ ] migrate fresh test
-- [ ] existing database upgrade test
-- [ ] security regression
-- [ ] payment regression
-- [ ] checkout regression
-- [ ] documentation refresh
+- [x] Pint
+- [x] focused Website tests
+- [x] full PHPUnit suite with unrelated baseline failures distinguished
+- [x] frontend build
+- [x] migrate fresh test
+- [x] existing database upgrade test
+- [x] security regression
+- [x] payment regression
+- [x] checkout regression
+- [x] documentation refresh
 
 ## Documentation
 

@@ -41,12 +41,12 @@ class="min-h-screen bg-gray-50 font-sans">
 
                     <div class="px-4 flex items-center justify-between mb-4">
                         <h2 class="text-lg font-medium text-gray-900">Bộ lọc</h2>
-                        <button @click="mobileFilterOpen = false" class="-mr-2 w-10 h-10 bg-white p-2 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-500">
+                        <button type="button" @click="mobileFilterOpen = false" aria-label="Đóng bộ lọc" class="-mr-2 w-10 h-10 bg-white p-2 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-500 focus-visible:ring-2 focus-visible:ring-blue-600">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
 
-                    <div class="px-4">
+                    <div id="mobile-product-filters" class="px-4">
                         @include('Website::livewire.products.partials.filters')
                     </div>
                 </div>
@@ -61,7 +61,7 @@ class="min-h-screen bg-gray-50 font-sans">
             <main class="w-full lg:w-3/4">
 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-6 border-b border-gray-200 gap-4">
-                    <button @click="mobileFilterOpen = true" class="lg:hidden flex items-center gap-2 text-gray-700 font-medium hover:text-blue-600">
+                    <button type="button" @click="mobileFilterOpen = true" :aria-expanded="mobileFilterOpen" aria-controls="mobile-product-filters" class="lg:hidden flex items-center gap-2 text-gray-700 font-medium hover:text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                         Lọc sản phẩm
                     </button>
@@ -70,7 +70,8 @@ class="min-h-screen bg-gray-50 font-sans">
 
                     <div class="flex items-center gap-4">
                         <div class="relative">
-                            <select wire:model.live="sort" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md cursor-pointer hover:bg-gray-50 transition">
+                            <label for="product-sort" class="sr-only">Sắp xếp sản phẩm</label>
+                            <select id="product-sort" wire:model.live="sort" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md cursor-pointer hover:bg-gray-50 transition">
                                 <option value="latest">Mới nhất</option>
                                 <option value="price_asc">Giá: Thấp đến Cao</option>
                                 <option value="price_desc">Giá: Cao đến Thấp</option>
@@ -136,9 +137,9 @@ class="min-h-screen bg-gray-50 font-sans">
                                         </div>
 
                                         <div x-show="viewMode === 'grid'" class="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-20">
-                                            <button wire:click="addToCart({{ $product->id }})" class="w-full bg-gray-900 text-white font-medium py-3 rounded-lg shadow-lg hover:bg-black flex items-center justify-center gap-2">
+                                            <button type="button" wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled" @disabled($product->quantity <= 0) class="w-full bg-gray-900 text-white font-medium py-3 rounded-lg shadow-lg hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                                                Thêm vào giỏ
+                                                {{ $product->quantity > 0 ? 'Thêm vào giỏ' : 'Hết hàng' }}
                                             </button>
                                         </div>
                                     </div>
@@ -149,16 +150,16 @@ class="min-h-screen bg-gray-50 font-sans">
                                         </p>
 
                                         <h3 class="text-sm font-bold text-gray-900 leading-snug mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
-                                            <a href="#">{{ $product->title }}</a>
+                                            <a href="{{ route('product.detail', $product->slug) }}">{{ $product->title }}</a>
                                         </h3>
 
                                         <div class="flex items-center mb-3">
                                             <div class="flex text-yellow-400 text-xs">
                                                 @for($i=1; $i<=5; $i++)
-                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                                    <svg class="w-4 h-4 {{ $i <= round((float) $product->reviews_avg_rating) ? 'text-yellow-400' : 'text-gray-200' }}" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                                                 @endfor
                                             </div>
-                                            <span class="text-xs text-gray-400 ml-1">(12 đánh giá)</span>
+                                            <span class="text-xs text-gray-400 ml-1">({{ $product->reviews_count }} đánh giá)</span>
                                         </div>
 
                                         <div class="flex items-center gap-3">
@@ -171,8 +172,8 @@ class="min-h-screen bg-gray-50 font-sans">
                                         </div>
 
                                         <div x-show="viewMode === 'list'" class="mt-4">
-                                            <button wire:click="addToCart({{ $product->id }})" class="px-6 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition">
-                                                Thêm vào giỏ hàng
+                                            <button type="button" wire:click="addToCart({{ $product->id }})" wire:loading.attr="disabled" @disabled($product->quantity <= 0) class="px-6 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed transition">
+                                                {{ $product->quantity > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng' }}
                                             </button>
                                         </div>
                                     </div>

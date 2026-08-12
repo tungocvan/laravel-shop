@@ -3,18 +3,27 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Admin\Services\HomeSettingService;
+use Modules\Website\Services\HomepageContentService;
 
 class HomeList extends Component
 {
     // Mảng chứa toàn bộ cấu hình (Layout + Data IDs)
     public $settings = [];
 
+    public array $sectionOrder = [];
+
+    public array $sectionTypes = [];
+
+    public array $categoryIds = [];
+
     // Inject Service vào mount để lấy dữ liệu chuẩn
-    public function mount(HomeSettingService $service)
+    public function mount(HomepageContentService $service)
     {
         // 1. Lấy toàn bộ cấu hình từ Admin thông qua Service
-        $this->settings = $service->getHomeSettings();
+        $this->settings = $service->visibility();
+        $this->sectionOrder = $service->order();
+        $this->sectionTypes = $service->sectionTypes();
+        $this->categoryIds = $service->referenceIds('categories', 'category', 'home_category_ids');
     }
 
     /**
@@ -28,10 +37,10 @@ class HomeList extends Component
 
         return match ($state) {
             'desktop' => 'hidden md:block', // Ẩn mobile, hiện từ tablet/pc trở lên
-            'mobile'  => 'block md:hidden', // Hiện mobile, ẩn từ tablet/pc trở lên
-            'none'    => 'hidden',          // Ẩn hoàn toàn (dùng class hidden của Tailwind)
-            'hidden'  => 'hidden',          // Case dự phòng nếu lưu là 'hidden'
-            default   => 'block'            // Hiện tất cả ('all')
+            'mobile' => 'block md:hidden', // Hiện mobile, ẩn từ tablet/pc trở lên
+            'none' => 'hidden',          // Ẩn hoàn toàn (dùng class hidden của Tailwind)
+            'hidden' => 'hidden',          // Case dự phòng nếu lưu là 'hidden'
+            default => 'block'            // Hiện tất cả ('all')
         };
     }
 

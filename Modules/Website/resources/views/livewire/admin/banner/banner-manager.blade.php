@@ -7,8 +7,8 @@
         </button>
     </div>
 
-    <div class="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-        <table class="min-w-full divide-y divide-gray-200">
+    <div class="bg-white shadow-sm rounded-lg overflow-x-auto border border-gray-200">
+        <table class="min-w-[900px] w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hình ảnh</th>
@@ -23,7 +23,7 @@
                 @forelse($banners as $banner)
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <img src="{{ asset('storage/'.$banner->image_desktop) }}" class="h-12 w-20 object-cover rounded border">
+                        <img src="{{ str_starts_with($banner->image_desktop, 'http') ? $banner->image_desktop : asset('storage/'.$banner->image_desktop) }}" class="h-12 w-20 object-cover rounded border">
                     </td>
                     <td class="px-6 py-4">
                         <div class="text-sm font-medium text-gray-900">{{ $banner->title }}</div>
@@ -38,9 +38,13 @@
                         {{ $banner->order }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $banner->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                            {{ $banner->is_active ? 'Hiển thị' : 'Ẩn' }}
+                        @php
+                            $status = ['active'=>['Đang chạy','bg-green-100 text-green-800'],'scheduled'=>['Sắp diễn ra','bg-blue-100 text-blue-800'],'expired'=>['Đã kết thúc','bg-amber-100 text-amber-800'],'inactive'=>['Đang ẩn','bg-gray-100 text-gray-700']][$banner->schedule_status];
+                        @endphp
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $status[1] }}">
+                            {{ $status[0] }}
                         </span>
+                        @if($banner->starts_at || $banner->ends_at)<div class="mt-1 text-[10px] text-gray-500">{{ $banner->starts_at?->format('d/m H:i') ?? 'Ngay' }} → {{ $banner->ends_at?->format('d/m H:i') ?? 'Không giới hạn' }}</div>@endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button wire:click="edit({{ $banner->id }})" class="text-indigo-600 hover:text-indigo-900 mr-3">Sửa</button>
@@ -79,7 +83,7 @@
                                     @if($newImageDesktop)
                                         <img src="{{ $newImageDesktop->temporaryUrl() }}" class="mt-2 w-full h-auto rounded border shadow-sm">
                                     @elseif($currentImageDesktop)
-                                        <img src="{{ asset('storage/'.$currentImageDesktop) }}" class="mt-2 w-full h-auto rounded border shadow-sm">
+                                        <img src="{{ str_starts_with($currentImageDesktop, 'http') ? $currentImageDesktop : asset('storage/'.$currentImageDesktop) }}" class="mt-2 w-full h-auto rounded border shadow-sm">
                                     @endif
                                     @error('newImageDesktop') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                                 </div>
@@ -94,11 +98,17 @@
                                     @if($newImageMobile)
                                         <img src="{{ $newImageMobile->temporaryUrl() }}" class="mt-2 w-1/2 mx-auto h-auto rounded border shadow-sm">
                                     @elseif($currentImageMobile)
-                                        <img src="{{ asset('storage/'.$currentImageMobile) }}" class="mt-2 w-1/2 mx-auto h-auto rounded border shadow-sm">
+                                        <img src="{{ str_starts_with($currentImageMobile, 'http') ? $currentImageMobile : asset('storage/'.$currentImageMobile) }}" class="mt-2 w-1/2 mx-auto h-auto rounded border shadow-sm">
                                     @else
                                          <div class="mt-4 text-center text-xs text-gray-400 italic">Chưa có ảnh mobile (Sẽ dùng ảnh Desktop)</div>
                                     @endif
                                 </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+                                <div><label class="block text-sm font-medium text-gray-700">Bắt đầu hiển thị</label><input type="datetime-local" wire:model="starts_at" class="mt-1 block w-full rounded-md border border-gray-300 p-2 text-sm">@error('starts_at')<span class="text-xs text-red-500">{{ $message }}</span>@enderror</div>
+                                <div><label class="block text-sm font-medium text-gray-700">Kết thúc hiển thị</label><input type="datetime-local" wire:model="ends_at" class="mt-1 block w-full rounded-md border border-gray-300 p-2 text-sm">@error('ends_at')<span class="text-xs text-red-500">{{ $message }}</span>@enderror</div>
+                                <p class="text-xs text-gray-500 sm:col-span-2">Để trống cả hai trường nếu Banner luôn được hiển thị.</p>
                             </div>
 
                             {{-- 2. THÔNG TIN CHỮ (TEXT CONTENT) --}}

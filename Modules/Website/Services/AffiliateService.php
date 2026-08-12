@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Modules\Admin\Models\AffiliateScheme;
 use Modules\Order\Models\Order;
+use Modules\Product\Models\Product;
 
 class AffiliateService
 {
@@ -97,7 +98,7 @@ class AffiliateService
 
         foreach ($cartItems as $item) {
             // 1. Lấy thông tin sản phẩm từ DB để lấy % hoa hồng cấu hình riêng
-            $product = \Modules\Website\Models\WpProduct::find($item['product_id']);
+            $product = Product::find($item['product_id']);
 
             // 2. Xác định tỷ lệ: Ưu tiên rate tại SP, nếu null thì dùng mặc định
             $rate = ($product && $product->affiliate_commission_rate !== null)
@@ -152,7 +153,7 @@ class AffiliateService
             $fixed = (float) $scheme->fixed_value;
         } else {
             // Mức 3: Lấy từ bảng wp_products
-            $product = WpProduct::find($productId);
+            $product = Product::find($productId);
             $percent = $product->affiliate_commission_rate ?? 10; // Mức 4: Mặc định 10%
         }
 

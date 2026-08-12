@@ -3,7 +3,7 @@
 namespace Modules\Website\Livewire\Products;
 
 use Livewire\Component;
-use Modules\Category\Models\Category;
+use Modules\Product\Services\ProductService;
 
 class CategoryFilter extends Component
 {
@@ -19,13 +19,10 @@ class CategoryFilter extends Component
         $this->dispatch('filter-category-updated', slug: $this->activeSlug);
     }
 
-    public function render()
+    public function render(ProductService $products)
     {
         // Lấy danh mục cha
-        $categories = Category::active()
-            ->root()
-            ->orderBy('sort_order')
-            ->get();
+        $categories = $products->storefrontRootCategories();
 
         return view('Website::livewire.products.category-filter', [
             'categories' => $categories,

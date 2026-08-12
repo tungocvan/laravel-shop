@@ -2,37 +2,58 @@
 
 namespace Modules\Admin\Livewire\Posts;
 
-use Livewire\Component;
-use Livewire\WithPagination;
-use Livewire\WithFileUploads; // <--- 1. Import
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Modules\Website\Models\Post;
-use Modules\Website\Models\Category;
+use Illuminate\Support\Str;
+use Livewire\Component; // <--- 1. Import
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
+use Modules\Category\Models\Category;
+use Modules\Post\Models\Post;
 use Modules\Website\Models\Tag;
 
 class PostTable extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     public $search = '';
+
     public $filterCategory = '';
+
     public $filterStatus = '';
-    
+
     // --- BIẾN MỚI ---
     public $selected = []; // Mảng chứa ID các bài viết được chọn
+
     public $selectAll = false; // Trạng thái checkbox "Chọn tất cả"
-    
-    public $importFile; 
+
+    public $importFile;
+
     public $isImporting = false;
 
     // Reset khi search/filter
-    public function updatedSearch() { $this->resetPage(); $this->resetSelection(); }
-    public function updatedFilterCategory() { $this->resetPage(); $this->resetSelection(); }
-    public function updatedFilterStatus() { $this->resetPage(); $this->resetSelection(); }
-    
+    public function updatedSearch()
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedFilterCategory()
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedFilterStatus()
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
     // Khi chuyển trang thì bỏ chọn
-    public function updatingPage() { $this->resetSelection(); }
+    public function updatingPage()
+    {
+        $this->resetSelection();
+    }
 
     public function resetSelection()
     {
@@ -45,7 +66,7 @@ class PostTable extends Component
     {
         if ($value) {
             // Chỉ chọn những bài viết đang hiển thị ở trang hiện tại (tối ưu hiệu năng)
-            $this->selected = $this->getQuery()->pluck('id')->map(fn($id) => (string)$id)->toArray();
+            $this->selected = $this->getQuery()->pluck('id')->map(fn ($id) => (string) $id)->toArray();
         } else {
             $this->selected = [];
         }
@@ -55,38 +76,47 @@ class PostTable extends Component
     private function getQuery()
     {
         $query = Post::with(['author', 'categories']);
-        if ($this->search) $query->where('name', 'like', '%' . $this->search . '%');
-        if ($this->filterStatus) $query->where('status', $this->filterStatus);
+        if ($this->search) {
+            $query->where('name', 'like', '%'.$this->search.'%');
+        }
+        if ($this->filterStatus) {
+            $query->where('status', $this->filterStatus);
+        }
         if ($this->filterCategory) {
             $query->whereHas('categories', function ($q) {
                 $q->where('categories.id', $this->filterCategory);
             });
         }
+
         return $query->latest();
     }
 
     // --- LOGIC 2: XÓA HÀNG LOẠT ---
     public function deleteSelected()
     {
-        if (empty($this->selected)) return;
+        if (empty($this->selected)) {
+            return;
+        }
 
         Post::whereIn('id', $this->selected)->delete();
-        
+
         $this->resetSelection();
         session()->flash('success', 'Đã xóa các bài viết được chọn.');
     }
-    
+
     // --- LOGIC 3: NHÂN BẢN BÀI VIẾT (CLONE) ---
     public function clone($id)
     {
         $original = Post::with(['categories', 'tags'])->find($id);
-        if (!$original) return;
+        if (! $original) {
+            return;
+        }
 
         DB::transaction(function () use ($original) {
             // 1. Sao chép bài viết
             $clone = $original->replicate();
-            $clone->name = $original->name . ' (Copy)';
-            $clone->slug = Str::slug($clone->name) . '-' . time(); // Đảm bảo slug unique
+            $clone->name = $original->name.' (Copy)';
+            $clone->slug = Str::slug($clone->name).'-'.time(); // Đảm bảo slug unique
             $clone->status = 'draft'; // Nhân bản xong nên để nháp
             $clone->created_at = now();
             $clone->push(); // Lưu lại
@@ -110,14 +140,15 @@ class PostTable extends Component
                 'summary' => $post->summary,
                 'content' => $post->content,
                 'status' => $post->status,
-                'is_featured' => (bool)$post->is_featured,
+                'is_featured' => (bool) $post->is_featured,
                 'thumbnail' => $post->thumbnail,
                 'categories' => $post->categories->pluck('name')->toArray(),
                 'tags' => $post->tags->pluck('name')->toArray(),
             ];
         });
 
-        $fileName = 'posts-export-' . date('Y-m-d-His') . '.json';
+        $fileName = 'posts-export-'.date('Y-m-d-His').'.json';
+
         return response()->streamDownload(function () use ($posts) {
             echo $posts->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         }, $fileName);
@@ -130,8 +161,10 @@ class PostTable extends Component
 
         try {
             $json = json_decode(file_get_contents($this->importFile->getRealPath()), true);
-            
-            if (!is_array($json)) throw new \Exception("File JSON không hợp lệ.");
+
+            if (! is_array($json)) {
+                throw new \Exception('File JSON không hợp lệ.');
+            }
 
             $countNew = 0;
             $countSkip = 0;
@@ -148,6 +181,7 @@ class PostTable extends Component
 
                     if ($exists) {
                         $countSkip++;
+
                         continue; // Nhảy sang item tiếp theo
                     }
 
@@ -165,7 +199,7 @@ class PostTable extends Component
                     ]);
 
                     // Xử lý Categories
-                    if (!empty($item['categories'])) {
+                    if (! empty($item['categories'])) {
                         $catIds = [];
                         foreach ($item['categories'] as $catName) {
                             $cat = Category::firstOrCreate(
@@ -178,7 +212,7 @@ class PostTable extends Component
                     }
 
                     // Xử lý Tags
-                    if (!empty($item['tags'])) {
+                    if (! empty($item['tags'])) {
                         $tagIds = [];
                         foreach ($item['tags'] as $tagName) {
                             $tag = Tag::firstOrCreate(
@@ -198,7 +232,7 @@ class PostTable extends Component
             session()->flash('success', "Import hoàn tất! Thêm mới: {$countNew}, Bỏ qua (trùng): {$countSkip}.");
 
         } catch (\Exception $e) {
-            $this->addError('importFile', 'Lỗi: ' . $e->getMessage());
+            $this->addError('importFile', 'Lỗi: '.$e->getMessage());
         }
     }
 
@@ -216,7 +250,7 @@ class PostTable extends Component
 
         return view('Admin::livewire.posts.post-table', [
             'posts' => $posts,
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 }

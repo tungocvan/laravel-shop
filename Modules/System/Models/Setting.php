@@ -3,18 +3,18 @@
 namespace Modules\System\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
+use Modules\System\Services\SettingsService;
 
 class Setting extends Model
 {
-    //protected $table = 'settings';
+    protected $table = 'settings';
 
     protected $fillable = [
         'key',
         'value',
         'group_name',
         'type', // text, textarea, editor, json, image, boolean
-        'label'
+        'label',
     ];
 
     // ✅ UPDATE: Tự động cast value dựa trên type nếu cần thiết,
@@ -28,26 +28,17 @@ class Setting extends Model
         ];
     }
 
-    // Helper: Lấy giá trị (giữ nguyên logic cache của bạn)
-    public static function getValue($key, $default = null)
+    public static function getValue(string $key, mixed $default = null): mixed
     {
-        return Cache::rememberForever('setting_' . $key, function () use ($key, $default) {
-            $setting = self::where('key', $key)->first();
-            return $setting ? $setting->value : $default;
-        });
+        return app(SettingsService::class)->get($key, $default);
     }
 
-    public static function setValue($key, $value, $group = 'general')
-    {
-        // Xử lý array -> json trước khi lưu nếu cần
-        if (is_array($value)) {
-            $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-        }
-
-        self::updateOrCreate(
-            ['key' => $key],
-            ['value' => $value, 'group_name' => $group]
-        );
-        Cache::forget('setting_' . $key);
+    public static function setValue(
+        string $key,
+        mixed $value,
+        string $group = 'general',
+        string $type = 'text',
+    ): void {
+        app(SettingsService::class)->set($key, $value, $group, $type);
     }
 }

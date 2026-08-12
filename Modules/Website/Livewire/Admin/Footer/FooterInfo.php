@@ -3,19 +3,25 @@
 namespace Modules\Website\Livewire\Admin\Footer;
 
 use Livewire\Component;
+use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Services\SettingsService;
 
 class FooterInfo extends Component
 {
     use AuthorizesAdminPermissions;
 
     public $brand_description;
+
     public $address;
+
     public $email;
+
     public $phone;
+
     public $appstore_url;
+
     public $playstore_url;
+
     public $copyright;
 
     public function mount(SettingsService $settingsService)

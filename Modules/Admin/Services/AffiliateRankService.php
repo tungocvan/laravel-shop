@@ -1,9 +1,10 @@
 <?php
+
 namespace Modules\Admin\Services;
 
 use App\Models\User;
 use Modules\Admin\Models\AffiliateLevel;
-use Modules\Website\Models\Order;
+use Modules\Order\Models\Order;
 
 class AffiliateRankService
 {
@@ -28,7 +29,7 @@ class AffiliateRankService
         // 3. Nếu tìm thấy level mới cao hơn level hiện tại thì cập nhật
         if ($eligibleLevel && $user->affiliate_level_id !== $eligibleLevel->id) {
             $user->update([
-                'affiliate_level_id' => $eligibleLevel->id
+                'affiliate_level_id' => $eligibleLevel->id,
             ]);
 
             // TODO: Bắn Notification/Email chúc mừng cho Đối tác

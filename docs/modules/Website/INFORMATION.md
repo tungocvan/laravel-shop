@@ -2,7 +2,8 @@
 
 ## Purpose
 
-`Modules/Website` provides the public storefront and website-facing customer/admin experience.
+`Modules/Website` provides the public storefront and Website CMS experience on
+top of canonical User, Product, Category, Post and Order domain services.
 
 ## Features
 
@@ -16,7 +17,7 @@
 - Affiliate dashboard and commissions.
 - Website header/footer/banner/home/flash-sale settings.
 - Coupon and customer administration.
-- Website API endpoint.
+- Public XML sitemap.
 
 ## Registration
 
@@ -27,7 +28,7 @@ The repository auto-discovers the module through `Modules/ModuleServiceProvider.
 - type: `domain`
 - enabled: `true`
 - dependencies: `User`, `Product`, `Category`, `Post`, `Order`
-- manifest permissions: `view_website`, `create_website`, `edit_website`, `delete_website`
+- named permissions for Website view/home/menu/banner/footer/settings and related marketing features
 
 ## Routes
 
@@ -40,11 +41,12 @@ Public route groups include home, help, product, blog, cart, checkout and accoun
 
 Admin routes use `/admin` with `web` and `auth:admin` middleware.
 
-Known route limitation: `checkout.momo.callback` currently targets `CheckoutController@momoCallback`, but the method is absent from the controller.
+Checkout includes working COD, bank-transfer and signed MoMo callback/IPN routes.
 
 ## Permissions
 
-The module manifest declares generic Website CRUD-style permissions, but the inspected admin route group does not apply capability-specific permission middleware. Individual Livewire mutation authorization is incomplete.
+Admin routes and persistent Livewire mutations enforce capability-specific
+permissions through the admin guard.
 
 ## Controllers
 

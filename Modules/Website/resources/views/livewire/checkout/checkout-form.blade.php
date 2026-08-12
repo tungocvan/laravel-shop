@@ -24,32 +24,32 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
-                    <label class="text-sm font-bold text-gray-700">Họ và tên <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model.blur="customer_name" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_name') border-red-500 @enderror" placeholder="Ví dụ: Nguyễn Văn A">
+                    <label for="checkout-name" class="text-sm font-bold text-gray-700">Họ và tên <span class="text-red-500">*</span></label>
+                    <input id="checkout-name" type="text" autocomplete="name" wire:model.blur="customer_name" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_name') border-red-500 @enderror" placeholder="Ví dụ: Nguyễn Văn A">
                     @error('customer_name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-sm font-bold text-gray-700">Số điện thoại <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model.blur="customer_phone" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_phone') border-red-500 @enderror" placeholder="Ví dụ: 0903..." maxlength="20">
+                    <label for="checkout-phone" class="text-sm font-bold text-gray-700">Số điện thoại <span class="text-red-500">*</span></label>
+                    <input id="checkout-phone" type="tel" inputmode="tel" autocomplete="tel" wire:model.blur="customer_phone" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_phone') border-red-500 @enderror" placeholder="Ví dụ: 0903..." maxlength="20">
                     @error('customer_phone') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="space-y-2 md:col-span-2">
-                    <label class="text-sm font-bold text-gray-700">Email</label>
-                    <input type="email" wire:model.blur="customer_email" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_email') border-red-500 @enderror" placeholder="email@example.com">
+                    <label for="checkout-email" class="text-sm font-bold text-gray-700">Email</label>
+                    <input id="checkout-email" type="email" autocomplete="email" wire:model.blur="customer_email" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_email') border-red-500 @enderror" placeholder="email@example.com">
                     @error('customer_email') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="space-y-2 md:col-span-2">
-                    <label class="text-sm font-bold text-gray-700">Địa chỉ chi tiết <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model.blur="customer_address" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_address') border-red-500 @enderror" placeholder="Số nhà, đường, phường/xã, quận/huyện...">
+                    <label for="checkout-address" class="text-sm font-bold text-gray-700">Địa chỉ chi tiết <span class="text-red-500">*</span></label>
+                    <input id="checkout-address" type="text" autocomplete="street-address" wire:model.blur="customer_address" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 @error('customer_address') border-red-500 @enderror" placeholder="Số nhà, đường, phường/xã, quận/huyện...">
                     @error('customer_address') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="space-y-2 md:col-span-2">
-                    <label class="text-sm font-bold text-gray-700">Ghi chú giao hàng</label>
-                    <textarea wire:model="note" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3" placeholder="Ví dụ: Giao giờ hành chính..."></textarea>
+                    <label for="checkout-note" class="text-sm font-bold text-gray-700">Ghi chú giao hàng</label>
+                    <textarea id="checkout-note" wire:model="note" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3" placeholder="Ví dụ: Giao giờ hành chính..."></textarea>
                     @error('note') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
             </div>

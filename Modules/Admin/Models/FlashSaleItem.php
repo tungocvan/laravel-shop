@@ -4,7 +4,8 @@ namespace Modules\Admin\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Website\Models\WpProduct;
+use Modules\Product\Models\Product as WpProduct;
+
 class FlashSaleItem extends Model
 {
     // 3. KHOI_TAO_MODEL_FLASHSALE_ITEM

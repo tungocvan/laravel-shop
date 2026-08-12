@@ -12,10 +12,102 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
+use Modules\Product\Models\Review;
 use Throwable;
 
 class ProductService
 {
+    public function findActiveBySlugWithCategories(string $slug): Product
+    {
+        return Product::query()
+            ->with('categories')
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->firstOrFail();
+    }
+
+    public function relatedActive(Product $product, int $limit = 4): EloquentCollection
+    {
+        $categoryIds = $product->categories->pluck('id');
+
+        return Product::query()
+            ->with('categories')
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
+            ->where('is_active', true)
+            ->whereKeyNot($product->getKey())
+            ->whereHas('categories', fn (Builder $query) => $query->whereIn('categories.id', $categoryIds))
+            ->limit($limit)
+            ->get();
+    }
+
+    public function approvedReviews(Product $product): EloquentCollection
+    {
+        return Review::query()->with('user:id,name')->where('product_id', $product->id)->where('is_approved', true)->latest()->get();
+    }
+
+    public function availableStock(int $productId): int
+    {
+        return (int) (Product::query()->whereKey($productId)->value('quantity') ?? 0);
+    }
+
+    public function searchActiveForPicker(string $search, int $limit = 10): EloquentCollection
+    {
+        return Product::query()->select(['id', 'title', 'image', 'regular_price', 'sale_price'])
+            ->where('is_active', true)
+            ->when($search !== '', fn ($query) => $query->where('title', 'like', '%'.$search.'%'))
+            ->limit($limit)->get();
+    }
+
+    public function findForPicker(int $productId): ?Product
+    {
+        return Product::query()->select(['id', 'title', 'image', 'regular_price'])->find($productId);
+    }
+
+    public function storefrontCategories(): EloquentCollection
+    {
+        return Category::query()->withCount('products')->whereNull('parent_id')->where('type', 'product')->get();
+    }
+
+    public function storefrontRootCategories(): EloquentCollection
+    {
+        return Category::query()->active()->root()->orderBy('sort_order')->get();
+    }
+
+    public function paginateStorefront(array $filters, int $perPage = 12): LengthAwarePaginator
+    {
+        $query = Product::query()
+            ->with('categories')
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
+            ->where('is_active', true);
+        $search = trim((string) ($filters['search'] ?? ''));
+        $selected = (array) ($filters['selected_categories'] ?? []);
+        $slug = $filters['category_slug'] ?? null;
+
+        $query->when($search !== '', fn ($q) => $q->where(fn ($nested) => $nested
+            ->where('title', 'like', "%{$search}%")
+            ->orWhere('short_description', 'like', "%{$search}%")));
+        $query->when($selected !== [], fn ($q) => $q->whereHas('categories', fn ($category) => $category->whereIn('categories.id', $selected)))
+            ->when($selected === [] && $slug, fn ($q) => $q->whereHas('categories', fn ($category) => $category->where('categories.slug', $slug)));
+
+        $range = explode('-', (string) ($filters['price_range'] ?? ''));
+        if (count($range) === 2) {
+            $query->whereRaw('COALESCE(sale_price, regular_price) BETWEEN ? AND ?', [(int) $range[0], (int) $range[1]]);
+        }
+
+        match ($filters['sort'] ?? 'latest') {
+            'price_asc' => $query->orderByRaw('COALESCE(sale_price, regular_price) ASC'),
+            'price_desc' => $query->orderByRaw('COALESCE(sale_price, regular_price) DESC'),
+            'name_asc' => $query->orderBy('title'),
+            default => $query->latest(),
+        };
+
+        return $query->paginate($perPage);
+    }
+
     private const SORTABLE_COLUMNS = [
         'title',
         'regular_price',

@@ -3,15 +3,19 @@
 namespace Modules\Website\Services;
 
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
+use Modules\Product\Models\Product;
 use Modules\Website\Models\Cart;
-use Modules\Website\Models\CartItem;
 use Modules\Website\Models\Coupon;
-use Modules\Website\Models\WpProduct;
 
 class CartService
 {
+    public function existsForSession(string $sessionId): bool
+    {
+        return Cart::query()->where('session_id', $sessionId)->exists();
+    }
+
     /**
      * Lấy giỏ hàng hiện tại
      */
@@ -41,7 +45,7 @@ class CartService
 
         // Guest
         return Cart::with(['items.product', 'coupon'])->firstOrCreate([
-            'session_id' => Session::getId()
+            'session_id' => Session::getId(),
         ]);
     }
 
@@ -67,6 +71,7 @@ class CartService
     public function addItem($productId, $quantity = 1)
     {
         $cart = $this->getCart();
+
         return $this->addItemToCart($cart, $productId, $quantity);
     }
 
@@ -75,7 +80,7 @@ class CartService
      */
     protected function addItemToCart(Cart $cart, $productId, $quantity)
     {
-        $product = WpProduct::findOrFail($productId);
+        $product = Product::findOrFail($productId);
 
         // 1. Logic Giá: Ưu tiên giá Sale nếu có và hợp lệ
         // Giả sử logic là: nếu sale_price > 0 thì dùng, ko thì dùng regular
@@ -89,21 +94,21 @@ class CartService
         // 3. CHECK TỒN KHO (Quan trọng)
         // Cột tồn kho của bạn là 'quantity' hay 'stock'? Hãy thay đúng tên cột
         if ($product->quantity < $newQty) {
-             throw new \Exception("Sản phẩm '{$product->title}' chỉ còn {$product->quantity} cái.");
+            throw new \Exception("Sản phẩm '{$product->title}' chỉ còn {$product->quantity} cái.");
         }
 
         if ($cartItem) {
             $cartItem->update([
                 'quantity' => $newQty,
-                'price'    => $realPrice, // Cập nhật lại giá mới nhất (lỡ admin đổi giá)
-                'total'    => $newQty * $realPrice
+                'price' => $realPrice, // Cập nhật lại giá mới nhất (lỡ admin đổi giá)
+                'total' => $newQty * $realPrice,
             ]);
         } else {
             $cart->items()->create([
                 'product_id' => $productId,
-                'price'      => $realPrice,
-                'quantity'   => $quantity,
-                'total'      => $quantity * $realPrice
+                'price' => $realPrice,
+                'quantity' => $quantity,
+                'total' => $quantity * $realPrice,
             ]);
         }
 
@@ -112,13 +117,15 @@ class CartService
 
     public function updateQuantity($itemId, $quantity)
     {
-        if ($quantity <= 0) return $this->removeItem($itemId);
+        if ($quantity <= 0) {
+            return $this->removeItem($itemId);
+        }
 
         $item = $this->getCartItemForCurrentCart($itemId, ['product']);
 
         // Check tồn kho khi update
         if ($item->product->quantity < $quantity) {
-             throw new \Exception("Kho chỉ còn {$item->product->quantity} sản phẩm.");
+            throw new \Exception("Kho chỉ còn {$item->product->quantity} sản phẩm.");
         }
 
         // Lấy lại giá hiện tại để tính total chính xác
@@ -126,8 +133,8 @@ class CartService
 
         $item->update([
             'quantity' => $quantity,
-            'price'    => $realPrice,
-            'total'    => $quantity * $realPrice
+            'price' => $realPrice,
+            'total' => $quantity * $realPrice,
         ]);
 
         return true;
@@ -157,14 +164,14 @@ class CartService
         $coupon = Coupon::where('code', $code)->first();
         $cart = $this->getCart();
 
-        if (!$coupon || !$coupon->is_valid) {
-            throw new \Exception("Mã giảm giá không hợp lệ hoặc đã hết hạn.");
+        if (! $coupon || ! $coupon->is_valid) {
+            throw new \Exception('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
         }
 
         // Check min order
         $subtotal = $cart->items->sum('total');
         if ($subtotal < $coupon->min_order_value) {
-            throw new \Exception("Đơn hàng phải từ " . number_format($coupon->min_order_value) . "đ mới được dùng mã này.");
+            throw new \Exception('Đơn hàng phải từ '.number_format($coupon->min_order_value).'đ mới được dùng mã này.');
         }
 
         $cart->coupon_id = $coupon->id;
@@ -211,12 +218,12 @@ class CartService
         $total = max(0, $subtotal - $discountAmount);
 
         return [
-            'cart'        => $cart,
-            'items'       => $cart->items,
-            'subtotal'    => $subtotal,
-            'discount'    => $discountAmount,
+            'cart' => $cart,
+            'items' => $cart->items,
+            'subtotal' => $subtotal,
+            'discount' => $discountAmount,
             'coupon_code' => $cart->coupon ? $cart->coupon->code : null,
-            'total'       => $total
+            'total' => $total,
         ];
     }
 
@@ -231,7 +238,7 @@ class CartService
         return $query->whereKey($itemId)->firstOrFail();
     }
 
-    protected function getProductPrice(WpProduct $product)
+    protected function getProductPrice(Product $product)
     {
         return ($product->sale_price > 0 && $product->sale_price < $product->regular_price)
             ? $product->sale_price

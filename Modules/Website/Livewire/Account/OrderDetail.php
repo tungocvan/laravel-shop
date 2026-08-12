@@ -3,7 +3,7 @@
 namespace Modules\Website\Livewire\Account;
 
 use Livewire\Component;
-use Modules\Order\Models\Order;
+use Modules\Order\Services\OrderQueryService;
 
 class OrderDetail extends Component
 {
@@ -14,13 +14,10 @@ class OrderDetail extends Component
         $this->orderCode = $code;
     }
 
-    public function render()
+    public function render(OrderQueryService $orders)
     {
         // Lấy đơn hàng theo code VÀ phải thuộc về user đang đăng nhập (Bảo mật)
-        $order = Order::with('items')
-            ->where('order_code', $this->orderCode)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+        $order = $orders->findForCurrentUser($this->orderCode);
 
         return view('Website::livewire.account.order-detail', [
             'order' => $order,

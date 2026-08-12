@@ -3,11 +3,12 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Website\Models\Newsletter;
+use Modules\Website\Services\NewsletterService;
 
 class NewsletterSignup extends Component
 {
     public $email = '';
+
     public $subscribed = false;
 
     // Rules validation
@@ -26,16 +27,13 @@ class NewsletterSignup extends Component
         $this->validateOnly('email');
     }
 
-    public function subscribe()
+    public function subscribe(NewsletterService $newsletter)
     {
         $this->validate();
 
         // 1. Lưu vào DB
         // Nếu chưa có bảng newsletters, hãy chạy migration
-        Newsletter::create(['email' => $this->email]);
-
-        // 2. Giả lập độ trễ mạng để hiển thị loading cho đẹp (UX)
-        sleep(1);
+        $newsletter->subscribe($this->email);
 
         // 3. Hiển thị trạng thái thành công
         $this->subscribed = true;

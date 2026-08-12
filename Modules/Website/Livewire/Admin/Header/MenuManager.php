@@ -13,6 +13,7 @@ class MenuManager extends Component
     use AuthorizesAdminPermissions;
 
     public $location = 'primary';
+
     public $menuLocations = [
         'primary' => 'Desktop Main Menu',
         'mobile' => 'Mobile Slide-over',
@@ -20,8 +21,20 @@ class MenuManager extends Component
     ];
 
     public $isModalOpen = false;
+
     public $editingId = null;
-    public $title, $url, $parent_id, $icon, $sort_order = 0, $is_active = true;
+
+    public $title;
+
+    public $url;
+
+    public $parent_id;
+
+    public $icon;
+
+    public $sort_order = 0;
+
+    public $is_active = true;
 
     protected $listeners = ['refreshMenu' => '$refresh'];
 

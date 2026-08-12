@@ -1,5 +1,5 @@
 @php
-    use Modules\Admin\Models\Setting;
+    use Modules\System\Models\Setting;
 
     $favicon = Setting::getValue('site_favicon');
     $headerScript = Setting::getValue('header_script');
@@ -39,9 +39,9 @@
     @yield('css')
 
     <script>
-        // window.CHAT_CONFIG_HOST = @json(env('NODEJS_SERVER_URL'));
+        //  window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
         // window.CHAT_CONFIG_PORT = @json(env('NODEJS_SERVER_PORT') ?? 6001);
-        window.CHAT_CONFIG_HOST = window.location.origin;
+         window.CHAT_CONFIG_HOST =  @json(config('realtime.host') ?: request()->getSchemeAndHttpHost());
         window.adminLayout = function (config) {
             return {
                 sidebarOpen: true,

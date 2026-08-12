@@ -3,16 +3,16 @@
 namespace Modules\Website\Livewire\Home;
 
 use Livewire\Component;
-use Modules\Website\Services\SettingsService;
+use Modules\Website\Services\HomepageContentService;
 
 class TrustBadges extends Component
 {
     public $badges = [];
 
-    public function mount(SettingsService $settings)
+    public function mount(HomepageContentService $homepage)
     {
         // 1. Lấy dữ liệu từ bảng Settings
-        $this->badges = (array) $settings->get('home_trust_badges', []);
+        $this->badges = $homepage->itemConfigs('trust_badges', 'home_trust_badges');
 
         // 3. Fallback: Nếu không có dữ liệu, dùng dữ liệu mẫu (Hardcode)
         // Để giao diện luôn đẹp ngay cả khi chưa cấu hình

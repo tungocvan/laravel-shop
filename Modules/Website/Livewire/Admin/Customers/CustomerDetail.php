@@ -3,24 +3,46 @@
 namespace Modules\Website\Livewire\Admin\Customers;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\User\Models\UserAddress;
+use Modules\User\Services\CustomerService;
+use Modules\User\Services\UserAddressService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\UserAddress;
 
 class CustomerDetail extends Component
 {
-    use WithPagination, AuthorizesAdminPermissions;
+    use AuthorizesAdminPermissions, WithPagination;
 
     public $userId;
+
     public $activeTab = 'info';
-    public $name, $email, $phone, $is_active;
+
+    public $name;
+
+    public $email;
+
+    public $phone;
+
+    public $is_active;
+
     public $new_password;
+
     public $showAddressModal = false;
+
     public $isEditAddress = false;
+
     public $addressId;
-    public $addr_name, $addr_phone, $addr_address, $addr_city, $addr_is_default;
+
+    public $addr_name;
+
+    public $addr_phone;
+
+    public $addr_address;
+
+    public $addr_city;
+
+    public $addr_is_default;
 
     public function mount($id)
     {
@@ -32,18 +54,17 @@ class CustomerDetail extends Component
         $this->is_active = (bool) $user->is_active;
     }
 
-    public function updateProfile()
+    public function updateProfile(CustomerService $customerService)
     {
         $this->authorizeAdminPermission('customer.update');
 
         $this->validate([
             'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $this->userId,
+            'email' => 'required|email|unique:users,email,'.$this->userId,
             'phone' => 'nullable|numeric|digits_between:9,11',
             'new_password' => 'nullable|min:6',
         ]);
 
-        $user = User::findOrFail($this->userId);
         $data = [
             'name' => $this->name,
             'email' => $this->email,
@@ -51,11 +72,8 @@ class CustomerDetail extends Component
             'is_active' => $this->is_active,
         ];
 
-        if ($this->new_password) {
-            $data['password'] = Hash::make($this->new_password);
-        }
-
-        $user->update($data);
+        $data['password'] = $this->new_password;
+        $customerService->update($this->userId, $data);
         $this->new_password = '';
         session()->flash('success', 'Cập nhật hồ sơ thành công.');
     }
@@ -81,7 +99,7 @@ class CustomerDetail extends Component
         $this->showAddressModal = true;
     }
 
-    public function saveAddress()
+    public function saveAddress(UserAddressService $addressService)
     {
         $this->authorizeAdminPermission('customer.update');
 
@@ -91,12 +109,7 @@ class CustomerDetail extends Component
             'addr_address' => 'required',
         ]);
 
-        if ($this->addr_is_default) {
-            UserAddress::where('user_id', $this->userId)->update(['is_default' => false]);
-        }
-
         $data = [
-            'user_id' => $this->userId,
             'name' => $this->addr_name,
             'phone' => $this->addr_phone,
             'address' => $this->addr_address,
@@ -105,19 +118,19 @@ class CustomerDetail extends Component
         ];
 
         if ($this->isEditAddress) {
-            UserAddress::where('user_id', $this->userId)->where('id', $this->addressId)->update($data);
+            $addressService->update($this->addressId, $this->userId, $data);
         } else {
-            UserAddress::create($data);
+            $addressService->create($this->userId, $data);
         }
 
         $this->showAddressModal = false;
         session()->flash('success', 'Đã lưu địa chỉ.');
     }
 
-    public function deleteAddress($id)
+    public function deleteAddress($id, UserAddressService $addressService)
     {
         $this->authorizeAdminPermission('customer.update');
-        UserAddress::where('user_id', $this->userId)->where('id', $id)->delete();
+        $addressService->delete($id, $this->userId);
         session()->flash('success', 'Đã xóa địa chỉ.');
     }
 

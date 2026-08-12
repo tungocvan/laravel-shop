@@ -2,11 +2,11 @@
 
 namespace Modules\Admin\Livewire\Products;
 
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Website\Models\WpProduct;
-use Modules\Website\Models\Category;
-use Illuminate\Support\Str;
+use Modules\Category\Models\Category;
+use Modules\Product\Models\Product as WpProduct;
 
 class ProductForm extends Component
 {
@@ -15,20 +15,36 @@ class ProductForm extends Component
     public $productId = null;
 
     // --- Basic Info ---
-    public $title, $slug, $short_description, $description;
-    public $regular_price, $sale_price;
+    public $title;
+
+    public $slug;
+
+    public $short_description;
+
+    public $description;
+
+    public $regular_price;
+
+    public $sale_price;
+
     public $is_active = true;
+
     public $category_ids = [];
+
     public $affiliate_commission_rate;
+
     // --- Images ---
     public $newImage;   // Ảnh đại diện mới
+
     public $oldImage;   // Ảnh đại diện cũ
 
     // --- BỔ SUNG: GALLERY & TAGS ---
     public $gallery = [];      // Mảng chứa đường dẫn ảnh cũ (từ DB)
+
     public $newGallery = [];   // Mảng chứa file ảnh mới upload (Livewire Upload)
 
     public $tags = [];         // Mảng chứa các tag đã add
+
     public $tagInput = '';     // Biến tạm để nhập tag
 
     // --- Load Data ---
@@ -49,7 +65,7 @@ class ProductForm extends Component
             $this->oldImage = $product->image;
             $this->affiliate_commission_rate = $product->affiliate_commission_rate;
             // Danh mục
-            $this->category_ids = $product->categories->pluck('id')->map(fn($i)=>(string)$i)->toArray();
+            $this->category_ids = $product->categories->pluck('id')->map(fn ($i) => (string) $i)->toArray();
 
             // Gallery & Tags (Decode JSON nếu cần, hoặc Laravel cast tự xử lý)
             $this->gallery = $product->gallery ?? [];
@@ -59,7 +75,7 @@ class ProductForm extends Component
 
     public function getCategoriesProperty()
     {
-        return \Modules\Website\Models\Category::where('type', 'product')
+        return Category::where('type', 'product')
             ->whereNull('parent_id') // Chỉ lấy ông Tổ
             ->with(['children.children']) // Eager load con và cháu
             ->orderBy('sort_order')
@@ -69,9 +85,9 @@ class ProductForm extends Component
     // --- Logic TAGS ---
     public function addTag()
     {
-        if (!empty($this->tagInput)) {
+        if (! empty($this->tagInput)) {
             // Thêm vào mảng nếu chưa tồn tại
-            if (!in_array($this->tagInput, $this->tags)) {
+            if (! in_array($this->tagInput, $this->tags)) {
                 $this->tags[] = $this->tagInput;
             }
             $this->tagInput = ''; // Reset ô nhập
@@ -103,7 +119,7 @@ class ProductForm extends Component
     {
         return [
             'title' => 'required|min:3',
-            'slug' => 'required|unique:wp_products,slug,' . $this->productId,
+            'slug' => 'required|unique:wp_products,slug,'.$this->productId,
             'regular_price' => 'required|numeric|min:0',
             'category_ids' => 'array',
             'newImage' => 'nullable|image|max:5120',

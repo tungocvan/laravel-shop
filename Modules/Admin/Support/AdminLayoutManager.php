@@ -2,8 +2,8 @@
 
 namespace Modules\Admin\Support;
 
-use Modules\Admin\Models\Setting;
 use Illuminate\Support\Facades\Cache;
+use Modules\System\Models\Setting;
 
 class AdminLayoutManager
 {

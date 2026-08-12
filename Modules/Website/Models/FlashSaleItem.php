@@ -4,7 +4,8 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Website\Models\WpProduct;
+use Modules\Product\Models\Product;
+
 class FlashSaleItem extends Model
 {
     // 3. KHOI_TAO_MODEL_FLASHSALE_ITEM
@@ -30,7 +31,7 @@ class FlashSaleItem extends Model
     public function product(): BelongsTo
     {
         // LƯU Ý: Namespace Product này có thể thay đổi tùy cấu trúc module Product của bạn
-        return $this->belongsTo(WpProduct::class, 'product_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
     // End 3.
 }

@@ -4,18 +4,16 @@ namespace Modules\Website\Livewire\Account;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Order\Models\Order;
+use Modules\Order\Services\OrderQueryService;
 
 class OrderList extends Component
 {
     use WithPagination;
 
-    public function render()
+    public function render(OrderQueryService $orders)
     {
         // Lấy đơn hàng của user đang đăng nhập
-        $orders = Order::where('user_id', auth()->id())
-            ->latest()
-            ->paginate(10);
+        $orders = $orders->paginateForCurrentUser();
 
         return view('Website::livewire.account.order-list', [
             'orders' => $orders,

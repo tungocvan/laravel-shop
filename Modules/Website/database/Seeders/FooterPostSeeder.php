@@ -1,12 +1,12 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Modules\Website\Models\Post;
-use Modules\Website\Models\Category;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
+use Modules\Category\Models\Category;
+use Modules\Post\Models\Post;
+
 // php artisan db:seed --class="Modules\Website\database\Seeders\FooterPostSeeder"
 class FooterPostSeeder extends Seeder
 {
@@ -18,7 +18,7 @@ class FooterPostSeeder extends Seeder
             [
                 'name' => 'Trang Tĩnh',
                 'type' => 'post',
-                'is_active' => false // Ẩn khỏi menu chính nếu cần
+                'is_active' => false, // Ẩn khỏi menu chính nếu cần
             ]
         );
 
@@ -36,7 +36,7 @@ class FooterPostSeeder extends Seeder
                     <p>Chúng tôi không chỉ bán sản phẩm, chúng tôi bán sự an tâm và phong cách sống. Mỗi sản phẩm trên FlexBiz đều được tuyển chọn kỹ lưỡng từ các thương hiệu uy tín toàn cầu.</p>
                     <h3>Tầm nhìn</h3>
                     <p>Trở thành biểu tượng niềm tin hàng đầu về thương mại điện tử tại Đông Nam Á vào năm 2030.</p>
-                '
+                ',
             ],
             [
                 'name' => 'Tuyển Dụng',
@@ -50,13 +50,13 @@ class FooterPostSeeder extends Seeder
                         <li>Bảo hiểm sức khỏe cao cấp PVI.</li>
                     </ul>
                     <p>Vui lòng gửi CV về email: <strong>hr@flexbiz.com</strong></p>
-                '
+                ',
             ],
             [
                 'name' => 'Liên Hệ Hợp Tác',
                 'slug' => 'lien-he-hop-tac',
                 'summary' => 'Cùng nhau phát triển mạng lưới kinh doanh bền vững.',
-                'content' => '<p>Bạn là nhà cung cấp? Bạn muốn đưa sản phẩm lên FlexBiz? Hãy liên hệ bộ phận kinh doanh qua hotline <strong>1900 123 456</strong>.</p>'
+                'content' => '<p>Bạn là nhà cung cấp? Bạn muốn đưa sản phẩm lên FlexBiz? Hãy liên hệ bộ phận kinh doanh qua hotline <strong>1900 123 456</strong>.</p>',
             ],
 
             // --- NHÓM HỖ TRỢ KHÁCH HÀNG ---
@@ -70,7 +70,7 @@ class FooterPostSeeder extends Seeder
                         <li><strong>Thêm vào giỏ:</strong> Chọn màu sắc, kích thước và nhấn "Thêm vào giỏ".</li>
                         <li><strong>Thanh toán:</strong> Nhập địa chỉ nhận hàng và chọn phương thức thanh toán an toàn.</li>
                     </ol>
-                '
+                ',
             ],
             [
                 'name' => 'Hướng Dẫn Mua Hàng',
@@ -82,7 +82,7 @@ class FooterPostSeeder extends Seeder
                         <li><strong>Thêm vào giỏ:</strong> Chọn màu sắc, kích thước và nhấn "Thêm vào giỏ".</li>
                         <li><strong>Thanh toán:</strong> Nhập địa chỉ nhận hàng và chọn phương thức thanh toán an toàn.</li>
                     </ol>
-                '
+                ',
             ],
             [
                 'name' => 'Chính Sách Vận Chuyển',
@@ -94,7 +94,7 @@ class FooterPostSeeder extends Seeder
                         <li><strong>Nội thành:</strong> 1-2 ngày (Freeship đơn > 500k).</li>
                         <li><strong>Ngoại thành:</strong> 3-5 ngày.</li>
                     </ul>
-                '
+                ',
             ],
             [
                 'name' => 'Chính Sách Đổi Trả',
@@ -107,19 +107,19 @@ class FooterPostSeeder extends Seeder
                         <li>Sản phẩm không đúng mô tả.</li>
                         <li>Kích cỡ không vừa (hỗ trợ đổi size).</li>
                     </ul>
-                '
+                ',
             ],
             [
                 'name' => 'Chính Sách Bảo Mật',
                 'slug' => 'chinh-sach-bao-mat',
                 'summary' => 'Chúng tôi coi trọng và bảo vệ dữ liệu cá nhân của bạn.',
-                'content' => '<p>FlexBiz cam kết không chia sẻ thông tin cá nhân của khách hàng với bất kỳ bên thứ ba nào ngoại trừ các đối tác vận chuyển để phục vụ đơn hàng.</p>'
+                'content' => '<p>FlexBiz cam kết không chia sẻ thông tin cá nhân của khách hàng với bất kỳ bên thứ ba nào ngoại trừ các đối tác vận chuyển để phục vụ đơn hàng.</p>',
             ],
             [
                 'name' => 'Điều Khoản Dịch Vụ',
                 'slug' => 'dieu-khoan-dich-vu',
                 'summary' => 'Các quy định chung khi sử dụng website FlexBiz.',
-                'content' => '<p>Bằng việc truy cập website, bạn đồng ý tuân thủ các quy định về bản quyền, hành vi sử dụng và quy tắc cộng đồng của chúng tôi.</p>'
+                'content' => '<p>Bằng việc truy cập website, bạn đồng ý tuân thủ các quy định về bản quyền, hành vi sử dụng và quy tắc cộng đồng của chúng tôi.</p>',
             ],
         ];
 

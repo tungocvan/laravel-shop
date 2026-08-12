@@ -3,9 +3,9 @@
 namespace Modules\Admin\Livewire\Header;
 
 use Livewire\Component;
-use Modules\Admin\Services\SettingsService;
+use Modules\Admin\Models\HeaderMenuItem;
 use Modules\Admin\Services\HeaderMenuService;
-use \Modules\Admin\Models\HeaderMenuItem;
+use Modules\System\Services\SettingsService;
 
 class HeaderSettingsHub extends Component
 {
@@ -17,15 +17,18 @@ class HeaderSettingsHub extends Component
 
     // Dữ liệu cho Menu Tab
     public $currentLocation = 'primary';
+
     // State cho Modal
     public $isModalOpen = false;
+
     public $editingId = null;
+
     public $formData = [
         'title' => '',
         'url' => '',
         'parent_id' => null,
         'sort_order' => 0,
-        'is_active' => true
+        'is_active' => true,
     ];
 
     public function mount(SettingsService $settingsService)
@@ -52,7 +55,7 @@ class HeaderSettingsHub extends Component
 
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Cập nhật cấu hình chung thành công!'
+            'message' => 'Cập nhật cấu hình chung thành công!',
         ]);
     }
 
@@ -64,53 +67,55 @@ class HeaderSettingsHub extends Component
             'menuTree' => $menuService->getMenuTree($this->currentLocation),
         ]);
     }
-    public function openModal($id = null, HeaderMenuService $menuService)
-{
-    $this->resetErrorBag();
-    if ($id) {
-        $this->editingId = $id;
-        $item = HeaderMenuItem::find($id);
-        $this->formData = [
-            'title' => $item->title,
-            'url' => $item->url,
-            'parent_id' => $item->parent_id,
-            'sort_order' => $item->sort_order,
-            'is_active' => $item->is_active
-        ];
-    } else {
-        $this->editingId = null;
-        $this->formData = ['title' => '', 'url' => '', 'parent_id' => null, 'sort_order' => 0, 'is_active' => true];
+
+    public function openModal($id, HeaderMenuService $menuService)
+    {
+        $this->resetErrorBag();
+        if ($id) {
+            $this->editingId = $id;
+            $item = HeaderMenuItem::find($id);
+            $this->formData = [
+                'title' => $item->title,
+                'url' => $item->url,
+                'parent_id' => $item->parent_id,
+                'sort_order' => $item->sort_order,
+                'is_active' => $item->is_active,
+            ];
+        } else {
+            $this->editingId = null;
+            $this->formData = ['title' => '', 'url' => '', 'parent_id' => null, 'sort_order' => 0, 'is_active' => true];
+        }
+        $this->isModalOpen = true;
     }
-    $this->isModalOpen = true;
-}
 
-public function saveMenuItem(HeaderMenuService $menuService)
-{
-    $this->validate([
-        'formData.title' => 'required|string|max:100',
-        'formData.url' => 'nullable|string',
-    ]);
+    public function saveMenuItem(HeaderMenuService $menuService)
+    {
+        $this->validate([
+            'formData.title' => 'required|string|max:100',
+            'formData.url' => 'nullable|string',
+        ]);
 
-    // Tìm hoặc tạo Menu cha cho vị trí hiện tại
-    $menu = $menuService->findOrCreateMenu($this->currentLocation);
+        // Tìm hoặc tạo Menu cha cho vị trí hiện tại
+        $menu = $menuService->findOrCreateMenu($this->currentLocation);
 
-    $data = array_merge($this->formData, ['header_menu_id' => $menu->id]);
+        $data = array_merge($this->formData, ['header_menu_id' => $menu->id]);
 
-    $menuService->saveItem($data, $this->editingId);
+        $menuService->saveItem($data, $this->editingId);
 
-    $this->isModalOpen = false;
-    $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Cập nhật mục menu thành công!']);
-}
-/**
- * Xóa Menu Item thông qua Service
- */
-public function deleteMenuItem($id, HeaderMenuService $menuService)
-{
-    $menuService->deleteItem($id);
+        $this->isModalOpen = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Cập nhật mục menu thành công!']);
+    }
 
-    $this->dispatch('show-toast', [
-        'type' => 'success',
-        'message' => 'Đã xóa mục menu thành công!'
-    ]);
-}
+    /**
+     * Xóa Menu Item thông qua Service
+     */
+    public function deleteMenuItem($id, HeaderMenuService $menuService)
+    {
+        $menuService->deleteItem($id);
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Đã xóa mục menu thành công!',
+        ]);
+    }
 }

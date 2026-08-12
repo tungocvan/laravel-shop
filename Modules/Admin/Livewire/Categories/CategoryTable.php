@@ -2,9 +2,9 @@
 
 namespace Modules\Admin\Livewire\Categories;
 
-use Livewire\Component;
-use Modules\Website\Models\Category;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Modules\Category\Models\Category;
 
 class CategoryTable extends Component
 {
@@ -32,8 +32,8 @@ class CategoryTable extends Component
     public function toggleStatus($id)
     {
         $category = Category::find($id);
-        if($category){
-            $category->is_active = !$category->is_active;
+        if ($category) {
+            $category->is_active = ! $category->is_active;
             $category->save();
         }
     }
@@ -43,18 +43,18 @@ class CategoryTable extends Component
         // Load danh mục theo TYPE và cấu trúc 3 cấp (Cha -> Con -> Cháu)
         $categories = Category::where('type', $this->type)
             ->whereNull('parent_id')
-            ->with(['children' => function($q) {
+            ->with(['children' => function ($q) {
                 $q->orderBy('sort_order', 'asc')
-                  ->with(['children' => function($q2) { // Cấp 3
-                      $q2->orderBy('sort_order', 'asc');
-                  }]);
+                    ->with(['children' => function ($q2) { // Cấp 3
+                        $q2->orderBy('sort_order', 'asc');
+                    }]);
             }])
             ->withCount('products') // Đếm sản phẩm (nếu có relation)
             ->orderBy('sort_order', 'asc')
             ->get();
 
         return view('Admin::livewire.categories.category-table', [
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 }

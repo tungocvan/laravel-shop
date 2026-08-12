@@ -2,37 +2,57 @@
 
 namespace Modules\Admin\Livewire\Customers;
 
-use Livewire\Component;
-use Livewire\WithPagination; // Dùng cho tab đơn hàng
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use Modules\Website\Models\UserAddress;
+use Illuminate\Support\Facades\Hash; // Dùng cho tab đơn hàng
+use Livewire\Component;
+use Livewire\WithPagination;
+use Modules\User\Models\UserAddress;
+
 class CustomerDetail extends Component
 {
     use WithPagination;
 
     public $userId;
+
     public $activeTab = 'info'; // 'info', 'addresses', 'orders'
 
     // Form Profile
-    public $name, $email, $phone, $is_active;
+    public $name;
+
+    public $email;
+
+    public $phone;
+
+    public $is_active;
+
     public $new_password;
 
     // Form Address (Modal)
     public $showAddressModal = false;
+
     public $isEditAddress = false;
+
     public $addressId;
-    public $addr_name, $addr_phone, $addr_address, $addr_city, $addr_is_default;
+
+    public $addr_name;
+
+    public $addr_phone;
+
+    public $addr_address;
+
+    public $addr_city;
+
+    public $addr_is_default;
 
     public function mount($id)
     {
         $this->userId = $id;
         $user = User::findOrFail($id);
-        
+
         $this->name = $user->name;
         $this->email = $user->email;
         $this->phone = $user->phone;
-        $this->is_active = (bool)$user->is_active;
+        $this->is_active = (bool) $user->is_active;
     }
 
     // --- TAB 1: CẬP NHẬT PROFILE ---
@@ -40,7 +60,7 @@ class CustomerDetail extends Component
     {
         $this->validate([
             'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $this->userId,
+            'email' => 'required|email|unique:users,email,'.$this->userId,
             'phone' => 'nullable|numeric|digits_between:9,11',
             'new_password' => 'nullable|min:6',
         ]);
@@ -67,21 +87,21 @@ class CustomerDetail extends Component
     {
         $this->resetValidation();
         $this->reset(['addr_name', 'addr_phone', 'addr_address', 'addr_city', 'addr_is_default', 'addressId']);
-        
+
         if ($id) {
             $this->isEditAddress = true;
             $this->addressId = $id;
             $addr = UserAddress::where('user_id', $this->userId)->findOrFail($id);
-            
+
             $this->addr_name = $addr->name;
             $this->addr_phone = $addr->phone;
             $this->addr_address = $addr->address;
             $this->addr_city = $addr->city; // Ở đây giả sử bạn nhập text, nếu dùng select Huyện/Xã thì cần thêm biến
-            $this->addr_is_default = (bool)$addr->is_default;
+            $this->addr_is_default = (bool) $addr->is_default;
         } else {
             $this->isEditAddress = false;
         }
-        
+
         $this->showAddressModal = true;
     }
 
@@ -127,7 +147,7 @@ class CustomerDetail extends Component
     public function render()
     {
         $user = User::withSum('orders', 'total')->findOrFail($this->userId);
-        
+
         // Lấy danh sách địa chỉ
         $addresses = $user->addresses()->latest()->get();
 
@@ -137,7 +157,7 @@ class CustomerDetail extends Component
         return view('Admin::livewire.customers.customer-detail', [
             'user' => $user,
             'addresses' => $addresses,
-            'orders' => $orders
+            'orders' => $orders,
         ]);
     }
 }

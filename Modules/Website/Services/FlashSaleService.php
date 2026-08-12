@@ -2,12 +2,17 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Website\Models\FlashSale;
-// use Modules\Website\Models\FlashSaleItem;
 use Illuminate\Support\Facades\DB;
+// use Modules\Website\Models\FlashSaleItem;
+use Modules\Website\Models\FlashSale;
 
 class FlashSaleService
 {
+    public function findWithProducts(int $id): FlashSale
+    {
+        return FlashSale::query()->with('items.product')->findOrFail($id);
+    }
+
     // 4. SERVICE_FLASH_SALE
     public function getAll()
     {
@@ -24,9 +29,10 @@ class FlashSaleService
                     'product_id' => $item['product_id'],
                     'price' => $item['price'],
                     'quantity' => $item['quantity'],
-                    'sold' => 0
+                    'sold' => 0,
                 ]);
             }
+
             return $flashSale;
         });
     }
@@ -46,9 +52,10 @@ class FlashSaleService
                     'price' => $item['price'],
                     'quantity' => $item['quantity'],
                     // Giữ lại 'sold' nếu cần logic phức tạp hơn, ở đây reset về 0 hoặc map lại từ db cũ nếu muốn
-                    'sold' => $item['sold'] ?? 0
+                    'sold' => $item['sold'] ?? 0,
                 ]);
             }
+
             return $flashSale;
         });
     }

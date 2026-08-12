@@ -1,11 +1,11 @@
 <?php
 
-namespace Modules\Website\Database\Seeders;
+namespace Modules\Website\database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Website\Models\Category;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Modules\Category\Models\Category;
 
 class CategorySeeder extends Seeder
 {
