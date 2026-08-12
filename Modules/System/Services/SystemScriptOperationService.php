@@ -56,7 +56,7 @@ class SystemScriptOperationService
         Log::notice('System script operation started.', $context);
 
         try {
-            $process = new Process(array_merge(['bash', $scriptPath], $arguments), base_path());
+            $process = new Process(array_merge(['/bin/bash', $scriptPath], $arguments), base_path());
             $process->setTimeout($timeout);
             $process->run();
 
@@ -90,11 +90,11 @@ class SystemScriptOperationService
             throw new RuntimeException('Invalid registered System script path.');
         }
 
-        $root = realpath(base_path('scripts/system'));
-        $candidate = realpath(base_path('scripts/system/'.$relativePath));
+        $root = realpath(app_path('sh'));
+        $candidate = realpath(app_path('sh/'.$relativePath));
 
-        if ($root === false || $candidate === false || ! is_file($candidate)) {
-            throw new RuntimeException('Registered System script does not exist.');
+        if ($root === false || $candidate === false || ! is_file($candidate) || ! is_readable($candidate)) {
+            throw new RuntimeException('Registered System script does not exist or is not readable.');
         }
 
         $rootPrefix = rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
