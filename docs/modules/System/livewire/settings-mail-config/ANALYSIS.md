@@ -1,148 +1,117 @@
 # System Livewire Analysis — Settings/MailConfig
 
 Analysis date: 2026-08-12
+Refactor status: **Implemented; focused test pending user execution.**
 
 ## Executive Summary
 
-`Modules/System/Livewire/Settings/MailConfig.php` edits SMTP environment values and can send a test email. It is **P1 / Major Refactor** because `save()` and `sendTest()` do not enforce `system.env.update`, SMTP password is hydrated into public Livewire state, and validation only covers sender/test-email fields while host, port, username, password, encryption and mailer configuration remain weakly constrained.
+`Modules/System/Livewire/Settings/MailConfig.php` remains the SMTP tab under `/admin/system/settings/env`, but the previous P1 findings have now been addressed in source.
 
-## Component Purpose
+The component is now a thin authorized UI over `SystemMailConfigService`. It no longer hydrates the current `MAIL_PASSWORD` into public Livewire state, both `sendTest()` and `save()` enforce `system.env.update`, SMTP configuration is validated/allowlisted, and the current password is resolved only server-side when the replacement field is blank.
 
-Path: `Modules/System/Livewire/Settings/MailConfig.php`
+`MailConfigService` now treats SMTP test configuration as temporary runtime state: it captures existing mail config, applies the candidate, sends the test, returns safe messages, restores original runtime config in `finally`, and purges the SMTP mailer so the candidate password is not retained in the runtime mailer instance.
 
-Alias: `system.settings.mail-config`
-
-View: `System::livewire.settings.mail-config`
-
-Responsibilities:
-
-- load SMTP configuration from `.env`;
-- edit mailer, host, port, username, password, encryption, sender address/name;
-- send a test email;
-- persist configuration through `EnvManagerService`.
-
-## Dependency Flow
+## Current Architecture
 
 `/admin/system/settings/env`
-→ env page/tab
-→ `MailConfig`
-→ `MailConfigService` / `EnvManagerService`
-→ mail transport / `.env`
-
-## Livewire PHP Analysis
-
-`mount()` hydrates all current mail environment values, including `MAIL_PASSWORD`, into public form state.
-
-`sendTest()` validates only:
-
-- test recipient email;
-- sender email;
-- sender name.
-
-`save()` validates only sender email/name before writing the complete form to `.env`.
-
-No capability check is present.
-
-## Livewire Blade Analysis
-
-The Blade is clear and responsive, provides separate SMTP configuration and test-send areas, masks password input, shows validation feedback for sender fields, and uses a loading-disabled state for test mail.
-
-The Save action does not expose an explicit loading-disabled state.
-
-## State / Validation / Actions
-
-Actions:
-
-- `sendTest()`
-- `save()`
-
-Validation gaps:
-
-- mailer allowlist;
-- host format/length;
-- numeric port/range;
-- encryption allowlist semantics;
-- username/password length constraints;
-- replacement-secret behavior;
-- test-send rate/abuse controls.
+→ `EnvConfigController`
+→ `system.settings.mail-config`
+→ `SystemMailConfigService`
+→ `MailConfigService` for temporary test send
+→ `EnvManagerService` for canonical `.env` persistence
 
 ## Authorization
 
-**P1:** `system.env.update` is defined for the System module but is not enforced inside either action.
+Page/menu visibility:
 
-Sending mail is also an externally visible side effect and should not be permitted merely because an operator can view the env page.
+`system.env.view`
 
-## Service / Model Dependencies
+Sensitive actions:
 
-`EnvManagerService` supplies robust file-level update safeguards and should remain the canonical env writer.
+- `sendTest()` → `system.env.update`
+- `save()` → `system.env.update`
 
-`MailConfigService` handles the actual test-send workflow. This is the correct layer for transport configuration and technical failure handling; Livewire should authorize and validate before invoking it.
+Server-side authorization remains authoritative even though the Blade also disables controls for view-only users.
 
-## Performance
+## Secret Handling
 
-Test email is synchronous from the Livewire request unless the service queues it. This can make the UI wait on SMTP timeout. A bounded timeout or queued test operation should be considered if production SMTP endpoints can be slow.
+Current SMTP password is not returned from `SystemMailConfigService::publicConfig()` and is never mounted into browser state.
 
-## Security / Data Integrity
+The public password field is a write-only replacement value:
 
-### P1 — Missing mutation authorization
+- blank → preserve current server-side `MAIL_PASSWORD`;
+- non-blank → use the replacement;
+- after successful save → reset browser field to blank.
 
-Both save and test-send need `system.env.update` or a more specific capability if introduced.
+Logs contain only safe metadata such as whether a password was replaced; password contents are not logged.
 
-### P1 — SMTP password in public Livewire state
+## Validation / Allowlist
 
-Existing `MAIL_PASSWORD` is hydrated into the browser-side component payload. Masked HTML input is not sufficient protection.
+The UI is intentionally SMTP-only:
 
-### P1 — Incomplete validation
+- mailer: `smtp` only;
+- host: required bounded string;
+- port: integer 1–65535;
+- username: optional bounded string;
+- password replacement: optional bounded string;
+- encryption: `tls`, `ssl`, or `none`;
+- from address: valid email;
+- from name: bounded string;
+- test recipient: valid bounded email.
 
-The component can persist arbitrary mail host/port/encryption values without complete validation.
+The orchestration service accepts only the fixed MAIL_* key set and forces `MAIL_MAILER=smtp` server-side.
 
-### P2 — External-side-effect abuse
+`none` encryption is normalized to an empty persisted env value rather than literal `null`.
 
-Repeated test sends could be abused by an authorized-but-low-privilege admin or accidental repeated clicks. Loading state reduces double-clicking, but authorization and optional throttling should be evaluated.
+## Test-send Safety
 
-## UI/UX Compliance
+Test email remains synchronous for backward compatibility.
 
-Positive:
+Safeguards now include:
 
-- responsive layout;
-- masked password field;
-- inline validation for sender fields;
-- loading state for test send.
+- action authorization;
+- per-admin short cooldown;
+- per-admin concurrent lock;
+- safe generic browser errors;
+- runtime config restoration after success/failure;
+- SMTP mailer purge after candidate application and after restoration.
 
-Needs improvement:
+No real test email is expected from automated tests.
 
-- inline validation for all fields;
-- save loading/disabled state;
-- replacement-password UX;
-- safe test-send result messages without leaking transport secrets.
+## Persistence
+
+`SystemMailConfigService::save()` serializes updates with an application lock, writes only fixed mail keys through `EnvManagerService`, and clears Laravel config cache only after the env update succeeds.
+
+`EnvManagerService` remains the canonical safety boundary for dotenv validation, backup, lock, in-place write and rollback.
+
+Long-running queue/runtime processes may still require operational restart after an env change; the web UI does not restart them.
+
+## Admin Menu
+
+No dedicated MailConfig menu is created.
+
+Canonical parent entry remains:
+
+```text
+Quản lý ENV
+/admin/system/settings/env
+system.env.view
+```
 
 ## Test Coverage
 
-No System-specific component test was found.
+Focused test added:
 
-Missing tests:
+`tests/Feature/System/SystemMailConfigTest.php`
 
-- unauthorized save/send-test rejection;
-- validation of port/encryption/mailer;
-- preserve existing password when replacement is blank;
-- successful and failed test mail behavior;
-- error redaction.
+It covers route/menu contract, authorization contract, secret non-hydration, SMTP/encryption validation, orchestration guards, runtime-config restoration/redaction, Blade UX, and absence of duplicate route/menu.
 
-## Issue List
+## Residual Notes
 
-### P1 — Missing `system.env.update` action authorization
+- SMTP test send is still synchronous and may wait for transport timeout.
+- Process restart/reload is operational, not automatic.
+- A future platform-level rate limiter may replace the local cooldown if a shared convention is introduced.
 
-### P1 — Existing SMTP secret hydrated into public state
+## Current Recommendation
 
-### P1 — Partial validation only
-
-### P2 — Save action lacks explicit loading/disabled UX
-
-## Recommended Direction
-
-**Major Refactor.** Keep the existing env and mail services; improve authorization, secret handling, validation, safe error mapping and tests.
-
-## Open Questions / Unknowns
-
-- Whether test email should run synchronously or through queue in production.
-- Whether the current `MailConfigService` mutates runtime mail config globally during the request and reliably restores it afterward.
+No further major refactor is required for this component once the focused test passes. Treat future changes as incremental hardening unless SMTP configuration requirements materially change.
