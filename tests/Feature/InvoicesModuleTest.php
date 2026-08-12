@@ -16,6 +16,11 @@ use Tests\TestCase;
 
 class InvoicesModuleTest extends TestCase
 {
+    public function test_invoices_module_is_enabled(): void
+    {
+        $this->assertTrue((bool) config('invoices.module.enabled'));
+    }
+
     public function test_captcha_and_login_keep_token_only_in_server_cache(): void
     {
         config([
