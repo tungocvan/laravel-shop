@@ -60,10 +60,12 @@ class SystemScriptOperationsTest extends TestCase
         $contents = file_get_contents(base_path('Modules/System/Services/SystemScriptOperationService.php'));
 
         $this->assertStringContainsString('new Process(', $contents);
-        $this->assertStringContainsString("['bash', \$scriptPath]", $contents);
+        $this->assertStringContainsString("['/bin/bash', \$scriptPath]", $contents);
         $this->assertStringContainsString('setTimeout(', $contents);
         $this->assertStringContainsString('MAX_OUTPUT_BYTES', $contents);
-        $this->assertStringContainsString("base_path('scripts/system')", $contents);
+        $this->assertStringContainsString("app_path('sh')", $contents);
+        $this->assertStringContainsString("str_contains(\$relativePath, '..')", $contents);
+        $this->assertStringContainsString('is_readable($candidate)', $contents);
         $this->assertStringNotContainsString('shell_exec(', $contents);
         $this->assertStringNotContainsString('exec(', $contents);
     }
