@@ -1,177 +1,149 @@
 # System Livewire Analysis — Settings/DatabaseConfig
 
 Analysis date: 2026-08-12
+Refactor status: **Implemented — pending local focused test verification.**
 
 ## Executive Summary
 
-`Modules/System/Livewire/Settings/DatabaseConfig.php` manages database connection values in `.env`, tests a temporary connection, creates a backup, writes the new environment values, and clears Laravel config cache. The underlying `EnvManagerService` now provides dotenv validation, safety backup, file locking, in-place writes, and rollback-on-write-failure, which is a strong service-level safeguard.
+`Settings/DatabaseConfig` has been refactored from a privileged Livewire component that directly hydrated `.env` secrets and orchestrated connection testing/env writes into a thin UI over `DatabaseConfigService`.
 
-The component remains **P1 / Major Refactor** because sensitive mutations do not enforce `system.env.update` at the Livewire action boundary, database credentials including `DB_PASSWORD` are hydrated into public Livewire state, validation is incomplete, and `render()` points to an Admin-owned view instead of the System view that exists in this module.
+The previous P1 gaps are addressed in source:
 
-## Component Purpose
+- `testConnection()` and `save()` enforce `system.env.update` at the Livewire action boundary;
+- the current `DB_PASSWORD` is never returned by the service or hydrated into public Livewire state;
+- a blank password field means preserve the current server-side password;
+- mysql/pgsql are explicitly allowlisted and all connection fields are validated;
+- `DbConnectionService` returns generic failure messages and purges the temporary connection in `finally`;
+- `.env` write orchestration is owned by `DatabaseConfigService`, which reuses `EnvManagerService` safety backup/validation/file-lock/in-place-write/rollback behavior;
+- redundant direct `EnvBackupService` orchestration was removed from DatabaseConfig;
+- save is serialized with `system:database-config:update` application lock;
+- the component now renders the canonical System-owned Blade;
+- the canonical `Quản lý ENV` Admin Menu entry uses `system.env.view`.
 
-Path: `Modules/System/Livewire/Settings/DatabaseConfig.php`
+## Component Boundary After Refactor
 
-Expected alias: `system.settings.database-config`
-
-View declared by PHP: `Admin::livewire.settings.database-config`
-
-System-local view also exists: `Modules/System/resources/views/livewire/settings/database-config.blade.php`.
-
-Responsibilities:
-
-- Read current database environment variables.
-- Test proposed connection settings.
-- Backup `.env` before save.
-- Persist database settings.
-- Clear Laravel config cache.
-
-## Dependency Flow
+Route/page:
 
 `/admin/system/settings/env`
-→ `EnvConfigController`
-→ dynamic System env tab
-→ `DatabaseConfig`
-→ `DbConnectionService` / `EnvBackupService` / `EnvManagerService`
-→ `.env` / database connection
+→ `system.env.view`
+→ Env settings page
+→ `system.settings.database-config`
 
-## Livewire PHP Analysis
+Mutation flow:
 
-Public state includes `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`.
+`DatabaseConfig Livewire`
+→ `system.env.update`
+→ validation
+→ `DatabaseConfigService`
+→ `DbConnectionService` temporary connection test
+→ `EnvManagerService::update()`
+→ `config:clear`
 
-`mount()` loads existing `.env` values into public component state.
+## Secret Handling
 
-`testConnection()` delegates to `DbConnectionService::testConnection()`.
+The public form contains an empty `DB_PASSWORD` replacement field only.
 
-`save()`:
+`DatabaseConfigService::publicConfig()` returns only:
 
-1. Retests the connection.
-2. Creates an env backup.
-3. Calls `EnvManagerService::update()`.
-4. Calls `Artisan::call('config:clear')`.
+- DB_CONNECTION
+- DB_HOST
+- DB_PORT
+- DB_DATABASE
+- DB_USERNAME
 
-The component contains no explicit capability authorization.
-
-## Livewire Blade Analysis
-
-The System-local Blade has clear DB fields, password input, connection status, loading states, and disables Save until the connection status is `connected`.
-
-However, the PHP component currently renders an Admin module view instead of this System-local view, creating cross-module UI ownership drift.
-
-A password input only masks display. Because the secret is stored in a public Livewire property, the current DB password is part of Livewire component state once mounted.
-
-## State / Validation / Actions
-
-Actions:
-
-- `testConnection()`
-- `save()`
-
-There is no explicit field validation in the component before testing/saving. `DbConnectionService` indexes several expected array keys directly and accepts the driver supplied through `DB_CONNECTION`.
-
-Recommended validation should cover allowed driver, host, port range, database/username length, and intentional password handling.
+When the replacement password is blank, the service reads the current password from `.env` server-side and uses it only for the effective connection candidate/persisted values. The existing password is not returned to Livewire.
 
 ## Authorization
 
-**P1 finding:** module manifest defines `system.env.update`, but this component does not enforce it.
+Page/menu visibility:
 
-The env page route uses a view capability. Sensitive save/test actions must enforce capability-specific authorization independently of page visibility.
+`system.env.view`
 
-## Service / Model Dependencies
+Sensitive actions:
 
-### EnvManagerService
+- `testConnection()` → `system.env.update`
+- `save()` → `system.env.update`
 
-Strong current safeguards:
+This keeps view-only operators read-only while ensuring crafted Livewire action requests still meet the mutation capability.
 
-- validates candidate dotenv content before write;
-- creates persistent safety backups;
-- uses file locking;
-- writes in-place for Docker bind-mount compatibility;
-- attempts restoration of original content on failure.
+## Validation and Driver Policy
 
-### DbConnectionService
+Livewire validates:
 
-Creates a temporary Laravel DB connection and attempts PDO connection. Current error response includes the caught exception message, which may expose infrastructure details to the admin UI.
+- DB_CONNECTION: mysql or pgsql only;
+- DB_HOST: required bounded string;
+- DB_PORT: integer 1–65535;
+- DB_DATABASE: required bounded string;
+- DB_USERNAME: required bounded string;
+- DB_PASSWORD: nullable replacement string, max 4096.
 
-## Performance
+The orchestration service defensively rechecks the fixed driver/key boundary before infrastructure operations.
 
-No significant query-volume issue. Connection tests are synchronous network operations and can block the Livewire request until the database timeout behavior resolves.
+## Connection Test Hardening
 
-## Security / Data Integrity
+`DbConnectionService` now:
 
-### P1 — Missing mutation authorization
+- supports mysql/pgsql candidates only;
+- builds driver-appropriate temporary connection config;
+- returns generic success/failure text;
+- logs only safe metadata and exception class;
+- never returns raw PDO/driver exception messages to Livewire;
+- always calls `DB::purge()` in `finally`;
+- clears the temporary runtime config after use.
 
-`testConnection()` and `save()` do not enforce `system.env.update`.
+## Env Write Integrity
 
-### P1 — Secret hydration
+`DatabaseConfigService::save()`:
 
-Existing `DB_PASSWORD` is loaded into public Livewire state. Prefer a write-only replacement-secret pattern: do not prefill the current password; preserve the existing secret unless an authorized operator explicitly supplies a replacement.
+1. acquires `system:database-config:update` lock;
+2. resolves the effective password server-side;
+3. re-tests the candidate connection;
+4. aborts without touching `.env` if the test fails;
+5. updates only the fixed DB env keys through `EnvManagerService`;
+6. relies on EnvManagerService's dotenv validation, safety backup, file lock, in-place write and rollback-on-write-failure;
+7. clears Laravel configuration cache after successful env write.
 
-### P1 — Infrastructure error disclosure
+The older explicit `EnvBackupService::createBackup()` call was intentionally removed from this workflow because EnvManagerService already performs the stronger canonical safety backup.
 
-`DbConnectionService` returns raw connection exception messages. These may contain host/driver/network details.
+## View / UX
 
-### P1 — Cross-module rendering
+The component now renders:
 
-The component renders an Admin view despite a System-owned Blade existing. This weakens module ownership and makes future changes harder to reason about.
+`System::livewire.settings.database-config`
 
-## UI/UX Compliance
+The System Blade includes:
 
-Positive:
+- explicit mysql/pgsql driver selector;
+- inline validation errors;
+- write-only password guidance;
+- read-only notice for users without `system.env.update`;
+- connection-test/loading states;
+- production-impact warning;
+- save confirmation;
+- deployment note explaining that long-lived PHP/queue processes may require manual reload and that no migrations/restarts are run automatically.
 
-- responsive form layout;
-- password masking;
-- loading/disabled states;
-- connection status feedback.
+## Admin Menu
 
-Needs improvement:
+No new DatabaseConfig menu was added because this component remains a tab under `/admin/system/settings/env`.
 
-- validation errors for all connection fields;
-- explicit confirmation/warning before replacing production DB connection;
-- avoid showing an existing secret as public component state;
-- resolve System/Admin view ownership.
+Canonical entry:
 
-## Test Coverage
+```text
+Quản lý ENV
+/admin/system/settings/env
+system.env.view
+```
 
-No System-specific Feature or Unit test was found in the current `tests/Feature` or `tests/Unit` trees for this component.
+Existing installations may require the targeted idempotent menu-row update documented in deployment guidance.
 
-Critical missing tests:
+## Focused Tests
 
-- unauthorized save/test rejection;
-- preserve existing password when replacement is blank;
-- invalid DB configuration rejection;
-- `.env` rollback on failed update;
-- config cache behavior;
-- System-local view ownership.
+Added:
 
-## Issue List
+`tests/Feature/System/SystemDatabaseConfigTest.php`
 
-### P1 — Missing `system.env.update` action authorization
+Coverage includes route/menu permission contract, action authorization source contract, secret non-hydration, blank-password preservation, explicit replacement handling, driver/port validation contract, generic temporary-connection errors, purge behavior, workflow lock, canonical EnvManager ownership, System view ownership, confirmation/read-only UI and connection-status reset behavior.
 
-**File:** `Modules/System/Livewire/Settings/DatabaseConfig.php`
+## Remaining Operational Note
 
-**Impact:** an authenticated admin able to reach or invoke the component may attempt a production database configuration mutation without the intended capability check at the mutation boundary.
-
-**Recommendation:** enforce `system.env.update` inside sensitive actions through the System authorization concern/pattern.
-
-### P1 — Existing database password exposed through public Livewire state
-
-**Recommendation:** do not hydrate the current password; use an optional replacement password and preserve current value when empty.
-
-### P1 — Incomplete validation and raw connection errors
-
-**Recommendation:** validate all connection fields and map connection failures to safe operator messages while logging technical details server-side.
-
-### P2 — Cross-module Blade ownership drift
-
-**Recommendation:** render the canonical System view unless there is a documented reason for Admin ownership.
-
-## Recommended Direction
-
-**Major Refactor, not rebuild.** Keep `EnvManagerService` and its transactional file-write safeguards. Refactor authorization, secret handling, validation, error redaction, and view ownership around the existing service.
-
-## Open Questions / Unknowns
-
-- Whether the Admin-owned database-config Blade is intentionally canonical or leftover duplication.
-- Whether production policy should allow database connection changes from the web UI at all.
-- Whether config reload/restart is required for all deployed PHP runtime models after changing DB settings.
+Changing `.env` and clearing config cache does not force all long-running workers/processes to reload their environment. Production deployment procedures may still require PHP-FPM/queue/process reload depending on runtime architecture. This refactor intentionally does not expose process restart or migration operations through DatabaseConfig.
