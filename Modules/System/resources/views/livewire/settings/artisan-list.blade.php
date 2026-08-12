@@ -1,131 +1,92 @@
-<div>
 <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-    <!-- Header Section -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Artisan Terminal</h1>
-            <p class="text-sm text-gray-500 mt-1">Thực thi các câu lệnh hệ thống Laravel trực tiếp từ giao diện.</p>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Thao tác bảo trì hệ thống</h1>
+            <p class="mt-1 text-sm text-gray-500">Chỉ các thao tác đã được hệ thống cho phép mới có thể thực thi.</p>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-700 text-xs font-medium">
-                <span class="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>
-                Production Mode
-            </span>
-        </div>
+        <span class="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+            Restricted Operations
+        </span>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Command Input & Instructions -->
-        <div class="lg:col-span-1 space-y-6">
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Cấu hình lệnh</h3>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-sm font-medium text-gray-600">Câu lệnh Artisan</label>
-                        <div class="relative mt-1">
-                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 font-mono text-sm select-none">
-                                php artisan
-                            </span>
-                            <input 
-                                type="text" 
-                                wire:model.live.debounce.500ms="artisanCommand" 
-                                placeholder="list, migrate, optimize:clear..." 
-                                class="w-full rounded-xl border border-gray-300 pl-[6.5rem] pr-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all outline-none text-sm font-mono"
-                            />
+    @if ($errorMessage)
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {{ $errorMessage }}
+        </div>
+    @endif
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="space-y-4 lg:col-span-1">
+            @foreach ($operations as $operation)
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h2 class="font-semibold text-gray-900">{{ $operation['label'] }}</h2>
+                            <p class="mt-1 text-sm leading-6 text-gray-500">{{ $operation['description'] }}</p>
                         </div>
-                        <p class="mt-2 text-xs text-gray-400">Lưu ý: Bỏ qua tiền tố "php artisan"</p>
+                        @if ($operation['confirmation'])
+                            <span class="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase text-amber-700">Mutation</span>
+                        @else
+                            <span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">Read only</span>
+                        @endif
                     </div>
 
-                    @if($errorMessage)
-                        <div class="p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm">
-                            <div class="flex">
-                                <svg class="h-5 w-5 text-rose-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                </svg>
-                                {{ $errorMessage }}
-                            </div>
-                        </div>
-                    @endif
-
-                    <button 
-                        wire:click="executeArtisanCommand"
-                        wire:loading.attr="disabled"
-                        class="w-full inline-flex items-center justify-center rounded-xl px-4 py-3 font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors focus:ring-4 focus:ring-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    <button
+                        type="button"
+                        wire:click="$set('selectedOperation', '{{ $operation['id'] }}')"
+                        class="mt-4 w-full rounded-xl border px-4 py-2.5 text-sm font-semibold transition
+                            {{ $selectedOperation === $operation['id']
+                                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}"
                     >
-                        <span wire:loading.remove wire:target="executeArtisanCommand">Thực thi lệnh</span>
-                        <span wire:loading wire:target="executeArtisanCommand" class="flex items-center">
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Đang xử lý...
-                        </span>
+                        {{ $selectedOperation === $operation['id'] ? 'Đã chọn' : 'Chọn thao tác' }}
                     </button>
                 </div>
-            </div>
+            @endforeach
 
-            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-                <h4 class="text-sm font-semibold text-gray-800 mb-3 uppercase tracking-wider">Gợi ý lệnh phổ biến</h4>
-                <div class="flex flex-wrap gap-2">
-                    @foreach(['list', 'key:generate', 'optimize:clear', 'db:seed', 'migrate:fresh'] as $cmd)
-                        <button 
-                            wire:click="$set('artisanCommand', '{{ $cmd }}')"
-                            class="px-3 py-1.5 bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-600 rounded-lg text-xs font-medium text-gray-600 transition-all"
-                        >
-                            {{ $cmd }}
-                        </button>
-                    @endforeach
-                </div>
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <p class="text-xs text-gray-500 leading-relaxed">
-                        <span class="font-bold text-gray-700">Ví dụ Livewire:</span><br>
-                        make:livewire user.user-list
-                    </p>
-                </div>
-            </div>
+            @php
+                $selected = collect($operations)->firstWhere('id', $selectedOperation);
+            @endphp
+
+            <button
+                type="button"
+                wire:click="executeOperation"
+                wire:loading.attr="disabled"
+                @if (($selected['confirmation'] ?? false))
+                    wire:confirm="Thao tác này sẽ thay đổi trạng thái cache runtime của Laravel. Bạn có chắc chắn muốn tiếp tục?"
+                @endif
+                class="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                <span wire:loading.remove wire:target="executeOperation">Thực hiện thao tác</span>
+                <span wire:loading wire:target="executeOperation">Đang xử lý...</span>
+            </button>
         </div>
 
-        <!-- Terminal Output -->
         <div class="lg:col-span-2">
-            <div class="bg-gray-900 rounded-2xl shadow-xl overflow-hidden flex flex-col h-full min-h-[500px]">
-                <div class="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700">
-                    <div class="flex items-center gap-1.5">
-                        <div class="w-3 h-3 rounded-full bg-rose-500"></div>
-                        <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                        <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                        <span class="ml-2 text-xs font-medium text-gray-400 font-mono">terminal — artisan@laravel</span>
-                    </div>
-                    <button 
-                        onclick="navigator.clipboard.writeText(document.getElementById('terminal-output').innerText)"
-                        class="text-gray-400 hover:text-white transition-colors"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                    </button>
+            <div class="flex min-h-[420px] flex-col overflow-hidden rounded-2xl bg-gray-900 shadow-xl">
+                <div class="flex items-center justify-between border-b border-gray-700 bg-gray-800 px-4 py-3">
+                    <span class="text-xs font-medium text-gray-400">system-operation output</span>
+                    @if ($commandOutput)
+                        <button
+                            type="button"
+                            onclick="navigator.clipboard.writeText(document.getElementById('system-operation-output').innerText)"
+                            class="text-xs font-medium text-gray-400 transition hover:text-white"
+                        >
+                            Sao chép
+                        </button>
+                    @endif
                 </div>
-                <div class="p-6 flex-grow overflow-y-auto font-mono text-sm leading-relaxed custom-scrollbar">
-                    @if($commandOutput)
-                        <pre id="terminal-output" class="text-emerald-400 whitespace-pre-wrap">{{ $commandOutput }}</pre>
+
+                <div class="flex-grow overflow-y-auto p-6 font-mono text-sm leading-relaxed">
+                    @if ($commandOutput)
+                        <pre id="system-operation-output" class="whitespace-pre-wrap text-emerald-400">{{ $commandOutput }}</pre>
                     @else
-                        <div class="h-full flex flex-col items-center justify-center text-gray-500 space-y-3">
-                            <svg class="w-12 h-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <p class="text-xs">Chưa có dữ liệu output. Vui lòng nhập lệnh và nhấn thực thi.</p>
+                        <div class="flex h-full min-h-[320px] items-center justify-center text-center text-sm text-gray-500">
+                            Chọn một thao tác được cho phép và bấm “Thực hiện thao tác”.
                         </div>
                     @endif
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-<style>
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-</style>
 </div>
