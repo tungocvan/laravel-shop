@@ -1,4 +1,4 @@
-@props(['routes', 'modules' => [], 'total' => 0, 'editingRouteKey' => null])
+@props(['routes', 'modules' => [], 'total' => 0, 'editingRouteKey' => null, 'canUpdate' => true])
 
 <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
     <div class="border-b border-gray-200 px-6 py-4">
@@ -6,6 +6,9 @@
             <div>
                 <h3 class="text-lg font-medium text-gray-900">GET Routes của Modules</h3>
                 <p class="mt-1 text-sm text-gray-600">Title được tự động gợi ý và có thể chỉnh sửa trước khi thêm route vào Sidebar Menu.</p>
+                @if (! $canUpdate)
+                    <p class="mt-1 text-xs font-medium text-amber-700">Chế độ chỉ xem — cần quyền system.modules.update để sửa title hoặc thêm menu.</p>
+                @endif
             </div>
             <div class="grid gap-3 sm:grid-cols-2 lg:w-1/2">
                 <label>
@@ -48,23 +51,26 @@
                         <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-600">{{ $route['name'] ?: '—' }}</td>
                         <td class="px-4 py-3 font-mono text-xs text-indigo-700">{{ $route['url'] }}</td>
                         <td class="px-4 py-3">
-                            @if ($editingRouteKey === $route['key'])
-                                <input type="text" wire:model="routeTitle" wire:keydown.enter="saveRouteTitle" class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            @if ($editingRouteKey === $route['key'] && $canUpdate)
+                                <input type="text" wire:model="routeTitle" wire:keydown.enter="saveRouteTitle" maxlength="255" class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                @error('routeTitle') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             @else
                                 <span class="font-medium text-gray-800">{{ $route['title'] }}</span>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-right">
-                            @if ($editingRouteKey === $route['key'])
-                                <button type="button" wire:click="saveRouteTitle" class="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500">Lưu</button>
+                            @if ($editingRouteKey === $route['key'] && $canUpdate)
+                                <button type="button" wire:click="saveRouteTitle" wire:loading.attr="disabled" wire:target="saveRouteTitle" class="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60">Lưu</button>
                                 <button type="button" wire:click="$set('editingRouteKey', null)" class="ml-1 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200">Hủy</button>
                             @else
-                                <button type="button" wire:click="editRouteTitle('{{ $route['key'] }}')" class="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200">Edit</button>
+                                <button type="button" wire:click="editRouteTitle('{{ $route['key'] }}')" @disabled(! $canUpdate) class="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50">Edit</button>
                                 <button
                                     type="button"
                                     wire:click="addRouteToMenu('{{ $route['key'] }}')"
-                                    {{ ($route['in_menu'] || $route['is_dynamic']) ? 'disabled' : '' }}
-                                    class="ml-1 rounded-md px-3 py-1.5 text-xs font-semibold {{ $route['in_menu'] ? 'cursor-not-allowed bg-emerald-50 text-emerald-600' : ($route['is_dynamic'] ? 'cursor-not-allowed bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white hover:bg-indigo-500') }}"
+                                    wire:loading.attr="disabled"
+                                    wire:target="addRouteToMenu"
+                                    @disabled(! $canUpdate || $route['in_menu'] || $route['is_dynamic'])
+                                    class="ml-1 rounded-md px-3 py-1.5 text-xs font-semibold {{ $route['in_menu'] ? 'cursor-not-allowed bg-emerald-50 text-emerald-600' : ($route['is_dynamic'] ? 'cursor-not-allowed bg-gray-100 text-gray-400' : 'bg-indigo-600 text-white hover:bg-indigo-500') }} disabled:opacity-50"
                                 >{{ $route['in_menu'] ? 'Đã có Menu' : ($route['is_dynamic'] ? 'Route động' : 'Add Menu') }}</button>
                             @endif
                         </td>
