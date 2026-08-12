@@ -1,7 +1,7 @@
 <div>
     @php
-        $siteName = \Modules\Admin\Models\Setting::getValue('site_name', $schoolSettings['school_name']);
-        $siteLogo = \Modules\Admin\Models\Setting::getValue('site_logo');
+        $siteName = $schoolSettings['school_name'] ?? '';
+        $siteLogo = asset('storage/admission/img/logo.png');
     @endphp
     <form wire:submit.prevent="login">
 
@@ -69,7 +69,7 @@
             {{-- HEADER --}}
             <div class="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-4 md:mb-6 text-center md:text-left">
 
-                <img src="{{ $siteLogo ? asset('storage/' . $siteLogo) : asset('storage/admission/img/logo.png') }}"
+                <img src="{{ $siteLogo }}"
                      class="hidden md:block w-16 h-16 md:w-28 md:h-28 object-contain">
 
                 <div class="text-sm md:text-xl leading-tight">
