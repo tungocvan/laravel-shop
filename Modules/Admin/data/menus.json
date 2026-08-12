@@ -136,10 +136,10 @@
                 "children": []
             },
             {
-                "name": "Thiết lập Biến",
+                "name": "Thiết lập Hệ thống",
                 "url": "/admin/system/settings",
                 "icon": null,
-                "can": "view_staff",
+                "can": "system.settings.view",
                 "is_active": true,
                 "children": []
             },
