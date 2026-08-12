@@ -2,7 +2,7 @@
 
 Analysis date: 2026-08-12
 
-Implementation status: **Refactored 2026-08-12**
+Implementation status: **Refactored 2026-08-12; dedicated Admin route/menu added 2026-08-12**
 
 Scope: `Modules/System/Livewire/Settings/ShScript.php` and direct dependencies.
 
@@ -14,21 +14,28 @@ The component is now a restricted operation panel backed by `SystemScriptOperati
 
 At implementation time the repository contains no `app/sh` directory, so the initial approved registry is intentionally empty. The UI therefore presents a safe empty state instead of discovering or running arbitrary shell files.
 
+A dedicated Admin page is now available at `/admin/system/scripts`, route name `admin.system.scripts`, protected by `auth:admin` and `permission:system.commands.run,admin`. The canonical Admin menu contains `Công cụ Hệ thống -> Thao tác Script` with the same capability.
+
 Production containment remains unchanged: the System tab remains disabled by default and `SystemConfigService` continues to force `system.settings.sh-script` disabled.
 
 ## Current Dependency Flow
 
 ```text
-Livewire ShScript
-  -> authorize system.commands.run
-  -> SystemScriptOperationService
-      -> fixed server-side registry
-      -> canonical path under app/sh
-      -> /bin/bash + fixed script + fixed args
-      -> Symfony Process timeout
-      -> bounded output
-      -> structured Laravel logging
-  -> escaped output / generic browser-facing error
+Admin Menu: Công cụ Hệ thống -> Thao tác Script
+  -> GET /admin/system/scripts
+  -> auth:admin
+  -> permission:system.commands.run,admin
+  -> System::pages.settings.scripts
+  -> Livewire ShScript
+      -> authorize system.commands.run
+      -> SystemScriptOperationService
+          -> fixed server-side registry
+          -> canonical path under app/sh
+          -> /bin/bash + fixed script + fixed args
+          -> Symfony Process timeout
+          -> bounded output
+          -> structured Laravel logging
+      -> escaped output / generic browser-facing error
 ```
 
 ## Livewire PHP
@@ -116,6 +123,29 @@ Current UI:
 - keeps output escaped through Blade `{{ }}`;
 - shows a safe empty state when no operation is registered.
 
+## Admin Route / Menu
+
+Dedicated page:
+
+- URL: `/admin/system/scripts`
+- Route: `admin.system.scripts`
+- Middleware: `auth:admin`, `permission:system.commands.run,admin`
+- Controller: `SettingController::scripts()`
+- Page: `System::pages.settings.scripts`
+- Mounted component: `system.settings.sh-script`
+
+Canonical menu source:
+
+`Modules/Admin/data/menus.json`
+
+contains:
+
+`Công cụ Hệ thống -> Thao tác Script`
+
+with `can = system.commands.run`.
+
+Existing installations are not automatically reset/reseeded because `AdminMenuSeeder` intentionally skips non-empty menu tables. The deployment update for an existing database must therefore use a narrowly-scoped idempotent menu upsert rather than destructive reseeding.
+
 ## Authorization
 
 Resolved P0 gap:
@@ -127,6 +157,8 @@ authorizePermission('system.commands.run')
 ```
 
 before any registered operation can run.
+
+The dedicated route and Admin menu use the same permission, so visibility, page access and execution are aligned.
 
 ## Security / Data Integrity Status
 
@@ -144,7 +176,7 @@ No client filename/path reaches the process runner. Only server registry entries
 
 ### Resolved P0 — Missing action authorization
 
-`system.commands.run` is enforced at the mutation boundary.
+`system.commands.run` is enforced at the route and mutation boundaries.
 
 ### Improved P1 — Timeout/output/resource handling
 
@@ -165,15 +197,11 @@ Unchanged defense-in-depth:
 - `Modules/System/config/system_tabs.php` keeps the ShScript tab disabled;
 - `SystemConfigService` continues to force `system.settings.sh-script` disabled.
 
-No dedicated route or Admin Menu entry was added for ShScript.
+The dedicated Admin route is a separately-authorized surface for the restricted runner; it does not re-enable the old tab or restore arbitrary shell functionality.
 
 ## Tests
 
-Added:
-
-`tests/Feature/System/SystemScriptOperationsTest.php`
-
-Coverage includes:
+`tests/Feature/System/SystemScriptOperationsTest.php` covers:
 
 - registry is empty until explicit approval;
 - unknown operation rejection;
@@ -182,6 +210,9 @@ Coverage includes:
 - Blade has no create/edit/delete/free-form shell UI;
 - Symfony Process argument-array use;
 - `/bin/bash`, timeout, output bound and `app/sh` root safety controls;
+- route `admin.system.scripts` and middleware;
+- dedicated page mounts `system.settings.sh-script`;
+- canonical Admin menu uses `/admin/system/scripts` and `system.commands.run`;
 - production forced-disable containment.
 
 ## Remaining Risks / Follow-up
@@ -192,6 +223,6 @@ Coverage includes:
 
 ## Refactor Decision
 
-**Refactor complete for the approved scope.**
+**Refactor and approved Admin exposure complete for the current scope.**
 
 Do not restore browser shell authoring, arbitrary file discovery, arbitrary paths, arbitrary arguments, or generic command execution. Any future script operation must be an explicit reviewed server-owned registry entry.
