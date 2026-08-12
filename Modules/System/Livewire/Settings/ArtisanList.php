@@ -3,39 +3,45 @@
 namespace Modules\System\Livewire\Settings;
 
 use Livewire\Component;
-use Illuminate\Support\Facades\Artisan;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\SystemOperationService;
+use Throwable;
 
 class ArtisanList extends Component
 {
+    use AuthorizesSystemActions;
 
-    public $artisanCommand;
-    public $commandOutput;
-    public $errorMessage = '';
+    public string $selectedOperation = 'artisan.list';
 
-    public function executeArtisanCommand()
+    public string $commandOutput = '';
+
+    public string $errorMessage = '';
+
+    public function executeOperation(SystemOperationService $service): void
     {
-        // Kiểm tra nếu câu lệnh không được để trống
-        if (empty(trim($this->artisanCommand))) {
-            $this->errorMessage = 'Câu lệnh không được để trống.';
-            return;
-        }
+        $this->authorizePermission('system.commands.run');
 
-        // Thực hiện câu lệnh artisan
+        $this->commandOutput = '';
+        $this->errorMessage = '';
+
         try {
-            Artisan::call($this->artisanCommand);
-            $this->commandOutput = Artisan::output(); // Lấy đầu ra của câu lệnh
-            $this->errorMessage = ''; // Reset thông báo lỗi
-        } catch (\Exception $e) {
-            $this->errorMessage = 'Có lỗi xảy ra: ' . $e->getMessage();
-            $this->commandOutput = '';
+            $result = $service->execute(
+                $this->selectedOperation,
+                auth('admin')->id() ?: auth()->id(),
+            );
+
+            $this->commandOutput = $result['output'] !== ''
+                ? $result['output']
+                : 'Thao tác đã hoàn tất.';
+        } catch (Throwable) {
+            $this->errorMessage = 'Không thể thực hiện thao tác hệ thống. Vui lòng kiểm tra log.';
         }
-
-        // Reset ô input
-        $this->artisanCommand = '';
     }
 
-    public function render()
+    public function render(SystemOperationService $service)
     {
-        return view('System::livewire.settings.artisan-list');
+        return view('System::livewire.settings.artisan-list', [
+            'operations' => $service->operations(),
+        ]);
     }
-} 
+}
