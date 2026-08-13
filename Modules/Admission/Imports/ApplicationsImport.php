@@ -19,6 +19,8 @@ use Throwable;
 
 class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 {
+    private const RESTORABLE_STATUSES = ['pending', 'approved', 'rejected', 'import'];
+
     private int $totalRows = 0;
     private int $successRows = 0;
     private int $failedRows = 0;
@@ -27,8 +29,10 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 
     private DataTransformer $transformer;
 
-    public function __construct(private readonly AdmissionImportRun $run)
-    {
+    public function __construct(
+        private readonly AdmissionImportRun $run,
+        private readonly bool $restoreStatus = false,
+    ) {
         $this->transformer = app(DataTransformer::class);
     }
 
@@ -80,6 +84,8 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             $row['ngay_sinh'] = $this->normalizeDate($row['ngay_sinh']);
         }
 
+        $restoredStatus = $this->resolveRestoredStatus($row['status'] ?? null);
+
         $row['ma_dinh_danh'] = $maDinhDanh;
         $row['mhs'] = $mhs;
 
@@ -97,19 +103,45 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         $data = $this->transformer->transformInput($model, $data);
         $record = $this->resolveRecord($maDinhDanh, $mhs);
 
-        DB::transaction(function () use ($record, $data): void {
+        DB::transaction(function () use ($record, $data, $restoredStatus): void {
             if ($record) {
-                // Preserve lifecycle status and avoid approval/reset model hooks during spreadsheet data correction.
+                if ($this->restoreStatus && $restoredStatus !== null) {
+                    $data['status'] = $restoredStatus;
+                }
+
+                // Direct query preserves the imported lifecycle value without triggering approval/file jobs.
                 AdmissionApplication::query()->whereKey($record->id)->update($data);
                 $this->updatedRows++;
 
                 return;
             }
 
-            $data['status'] = 'pending';
+            $data['status'] = $this->restoreStatus && $restoredStatus !== null
+                ? $restoredStatus
+                : 'pending';
+
             AdmissionApplication::query()->create($data);
             $this->createdRows++;
         });
+    }
+
+    private function resolveRestoredStatus(mixed $value): ?string
+    {
+        if (! $this->restoreStatus) {
+            return null;
+        }
+
+        $status = strtolower(trim((string) $value));
+
+        if ($status === '') {
+            return null;
+        }
+
+        if (! in_array($status, self::RESTORABLE_STATUSES, true)) {
+            throw new AdmissionImportRowException('invalid_status', 'status', 'Trạng thái trong file không hợp lệ.');
+        }
+
+        return $status;
     }
 
     private function resolveRecord(?string $maDinhDanh, ?string $mhs): ?AdmissionApplication
@@ -219,6 +251,7 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
                 'mhs' => $this->cleanString($row['mhs'] ?? null),
                 'ho_va_ten_hoc_sinh' => $this->cleanString($row['ho_va_ten_hoc_sinh'] ?? null),
                 'ngay_sinh' => $field === 'ngay_sinh' ? ($row['ngay_sinh'] ?? null) : null,
+                'status' => $field === 'status' ? ($row['status'] ?? null) : null,
             ], static fn (mixed $value): bool => $value !== null && $value !== ''),
         ]);
 
