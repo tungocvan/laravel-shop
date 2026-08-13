@@ -87,13 +87,13 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString('bool $docx = true', $service);
         $this->assertStringContainsString('bool $pdf = false', $service);
         $this->assertStringContainsString('use Batchable', $job);
-        $this->assertStringContainsString("$this->onQueue('admission-documents')", $job);
+        $this->assertStringContainsString('$this->onQueue(\'admission-documents\')', $job);
         $this->assertStringContainsString('public bool $generateDocx = true', $job);
         $this->assertStringContainsString('public ?bool $generatePdf = null', $job);
         $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $job);
         $this->assertStringContainsString("env('ENABLE_PDF_CONVERT', false)", $config);
         $this->assertStringContainsString("Schema::hasTable('job_batches')", $migration);
-        $this->assertStringContainsString("'Don_' . $this->id", $job);
+        $this->assertStringContainsString("'Don_' . \$this->id", $job);
     }
 
     public function test_blade_uses_capability_specific_gates_and_bounded_page_sizes(): void
