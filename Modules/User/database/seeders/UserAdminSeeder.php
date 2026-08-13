@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\User\Database\Seeders;
+namespace Modules\User\database\seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
@@ -28,7 +28,7 @@ class UserAdminSeeder extends Seeder
             $attributes['is_active'] = true;
         }
 
-        $userAdmin = User::query()->firstOrCreate(
+        $userAdmin = User::query()->updateOrCreate(
             ['email' => 'tungocvan@gmail.com'],
             $attributes
         );

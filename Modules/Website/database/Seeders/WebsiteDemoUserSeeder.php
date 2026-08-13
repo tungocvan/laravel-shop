@@ -13,7 +13,6 @@ class WebsiteDemoUserSeeder extends Seeder
         foreach ([
             ['name' => 'Nguyễn Minh Anh', 'email' => 'demo@website.test', 'phone' => '0901000001'],
             ['name' => 'Trần Hoàng Nam', 'email' => 'affiliate@website.test', 'phone' => '0901000002'],
-            ['name' => 'Từ Ngọc Vân', 'email' => 'tungocvan@gmail.com', 'phone' => '0903971494'],
             ['name' => 'Lê Thu Hà', 'email' => 'customer2@website.test', 'phone' => '0901000003'],
         ] as $data) {
             User::withTrashed()->updateOrCreate(['email' => $data['email']], $data + [
