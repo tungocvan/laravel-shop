@@ -11,6 +11,32 @@
         </div>
     @endif
 
+    @if (session('import_summary'))
+        @php($summary = session('import_summary'))
+        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:p-5 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <div class="font-semibold text-blue-900">Kết quả Import #{{ $summary['run_id'] }}</div>
+                    <div class="text-sm text-blue-800 mt-1">
+                        Tổng {{ $summary['total'] }} · Thành công {{ $summary['success'] }} · Lỗi {{ $summary['failed'] }} · Tạo mới {{ $summary['created'] }} · Cập nhật {{ $summary['updated'] }}
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @if (($summary['failed'] ?? 0) > 0)
+                        <a href="{{ route('admin.admission.imports.errors', $summary['run_id']) }}"
+                           class="inline-flex items-center px-4 h-10 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700">
+                            Xem {{ $summary['failed'] }} lỗi Import
+                        </a>
+                    @endif
+                    <a href="{{ route('admin.admission.imports.index') }}"
+                       class="inline-flex items-center px-4 h-10 rounded-xl border border-blue-300 bg-white text-blue-700 text-sm font-semibold hover:bg-blue-100">
+                        Lịch sử Import
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Hồ sơ tuyển sinh</h2>
 
@@ -71,19 +97,25 @@
             @endcan
 
             @can('import_admission')
-                <form action="{{ route('admin.admission.import') }}" method="POST" enctype="multipart/form-data"
-                    x-data="{ fileName: '' }" class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    @csrf
-                    <label class="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-300 bg-white text-sm text-gray-600 cursor-pointer hover:bg-gray-50 transition-colors">
-                        <span x-text="fileName || 'Chọn file Excel'"></span>
-                        <input type="file" name="file" class="hidden" accept=".xlsx,.xls"
-                            @change="fileName = $event.target.files[0]?.name">
-                    </label>
-                    <button type="submit" :disabled="!fileName"
-                        class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                        Import
-                    </button>
-                </form>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <a href="{{ route('admin.admission.imports.index') }}"
+                       class="inline-flex items-center justify-center px-4 h-11 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                        Lịch sử Import
+                    </a>
+                    <form action="{{ route('admin.admission.import') }}" method="POST" enctype="multipart/form-data"
+                        x-data="{ fileName: '' }" class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        @csrf
+                        <label class="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-300 bg-white text-sm text-gray-600 cursor-pointer hover:bg-gray-50 transition-colors">
+                            <span x-text="fileName || 'Chọn file Excel'"></span>
+                            <input type="file" name="file" class="hidden" accept=".xlsx,.xls"
+                                @change="fileName = $event.target.files[0]?.name">
+                        </label>
+                        <button type="submit" :disabled="!fileName"
+                            class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                            Import
+                        </button>
+                    </form>
+                </div>
             @endcan
         </div>
     @endcanany
