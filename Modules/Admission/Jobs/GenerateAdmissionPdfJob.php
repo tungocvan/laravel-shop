@@ -58,7 +58,7 @@ class GenerateAdmissionPdfJob implements ShouldQueue
 
         try {
             $data = $service->getDataForTemplate($this->id);
-            $name = 'Don_' . \Str::slug($data['HoVaTenHocSinh'] ?? 'unknown', '_');
+            $name = 'Don_' . $this->id . '_' . \Str::slug($data['HoVaTenHocSinh'] ?? 'unknown', '_');
 
             $relativeDir = 'admission/';
             $fullDir = storage_path('app/' . $relativeDir);
@@ -71,9 +71,10 @@ class GenerateAdmissionPdfJob implements ShouldQueue
             $pdfRelative = $relativeDir . $name . '.pdf';
             $wordFull = $fullDir . $name . '.docx';
             $pdfFull = $fullDir . $name . '.pdf';
+            $wordExistedBefore = file_exists($wordFull);
 
             // PDF conversion needs a DOCX source, so create it when either output requires it.
-            if (($this->generateDocx || $pdfEnabled) && ! file_exists($wordFull)) {
+            if (($this->generateDocx || $pdfEnabled) && ! $wordExistedBefore) {
                 $template = storage_path('app/templates/application.docx');
                 $converter->generate($template, $data, $wordFull);
 
@@ -104,12 +105,15 @@ class GenerateAdmissionPdfJob implements ShouldQueue
                 $app->updateQuietly($updates);
             }
 
+            // A PDF-only request may need a temporary DOCX source. Remove it if this job created it.
+            if (! $this->generateDocx && ! $wordExistedBefore && file_exists($wordFull)) {
+                @unlink($wordFull);
+            }
+
             \Log::info('Admission document job done.', [
                 'id' => $this->id,
                 'docx_requested' => $this->generateDocx,
                 'pdf_requested' => $pdfEnabled,
-                'docx_exists' => file_exists($wordFull),
-                'pdf_exists' => file_exists($pdfFull),
                 'batch_id' => $this->batchId,
             ]);
         } catch (\Throwable $e) {
