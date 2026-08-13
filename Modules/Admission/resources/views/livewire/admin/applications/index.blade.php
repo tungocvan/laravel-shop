@@ -11,6 +11,12 @@
         </div>
     @endif
 
+    @error('documents')
+        <div class="px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+            {{ $message }}
+        </div>
+    @enderror
+
     @if (session('import_summary'))
         @php($summary = session('import_summary'))
         <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:p-5 space-y-3">
@@ -19,6 +25,9 @@
                     <div class="font-semibold text-blue-900">Kết quả Import #{{ $summary['run_id'] }}</div>
                     <div class="text-sm text-blue-800 mt-1">
                         Tổng {{ $summary['total'] }} · Thành công {{ $summary['success'] }} · Lỗi {{ $summary['failed'] }} · Tạo mới {{ $summary['created'] }} · Cập nhật {{ $summary['updated'] }}
+                        @if ($summary['restore_status'] ?? false)
+                            · Đã khôi phục trạng thái
+                        @endif
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -83,6 +92,26 @@
         </select>
     </div>
 
+    @can('download_admission_documents')
+        @if ($filterStatus === 'approved')
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <div class="text-sm font-semibold text-emerald-900">Tài liệu hồ sơ đã duyệt</div>
+                    <div class="text-xs text-emerald-700 mt-1">
+                        Tạo lại các file còn thiếu theo bộ lọc hiện tại. Word luôn được tạo; PDF chỉ tạo khi ENABLE_PDF_CONVERT=true.
+                    </div>
+                </div>
+                <button type="button" wire:click="generateDocuments"
+                    wire:confirm="Đưa tất cả hồ sơ Đã duyệt đang thiếu file theo bộ lọc hiện tại vào hàng đợi tạo tài liệu?"
+                    wire:loading.attr="disabled" wire:target="generateDocuments"
+                    class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-emerald-700 text-white text-sm font-semibold hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span wire:loading.remove wire:target="generateDocuments">Tạo file còn thiếu</span>
+                    <span wire:loading wire:target="generateDocuments">Đang đưa vào hàng đợi...</span>
+                </button>
+            </div>
+        @endif
+    @endcan
+
     @canany(['export_admission', 'import_admission'])
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             @can('export_admission')
@@ -103,17 +132,28 @@
                         Lịch sử Import
                     </a>
                     <form action="{{ route('admin.admission.import') }}" method="POST" enctype="multipart/form-data"
-                        x-data="{ fileName: '' }" class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        x-data="{ fileName: '' }" class="flex flex-col gap-2">
                         @csrf
-                        <label class="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-300 bg-white text-sm text-gray-600 cursor-pointer hover:bg-gray-50 transition-colors">
-                            <span x-text="fileName || 'Chọn file Excel'"></span>
-                            <input type="file" name="file" class="hidden" accept=".xlsx,.xls"
-                                @change="fileName = $event.target.files[0]?.name">
-                        </label>
-                        <button type="submit" :disabled="!fileName"
-                            class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                            Import
-                        </button>
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <label class="flex items-center gap-2 px-3 h-11 rounded-xl border border-gray-300 bg-white text-sm text-gray-600 cursor-pointer hover:bg-gray-50 transition-colors">
+                                <span x-text="fileName || 'Chọn file Excel'"></span>
+                                <input type="file" name="file" class="hidden" accept=".xlsx,.xls"
+                                    @change="fileName = $event.target.files[0]?.name">
+                            </label>
+                            <button type="submit" :disabled="!fileName"
+                                class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                                Import
+                            </button>
+                        </div>
+                        @can('approve_admission')
+                            <label class="inline-flex items-start gap-2 text-xs text-gray-600 max-w-lg">
+                                <input type="checkbox" name="restore_status" value="1"
+                                    class="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span>
+                                    Khôi phục trạng thái từ file export (pending/approved/rejected/import). Chỉ dùng khi phục hồi dữ liệu đã export từ hệ thống.
+                                </span>
+                            </label>
+                        @endcan
                     </form>
                 </div>
             @endcan
