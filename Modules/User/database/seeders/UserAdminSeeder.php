@@ -16,7 +16,7 @@ class UserAdminSeeder extends Seeder
 
         $attributes = [
             'name' => 'Từ Ngọc Vân',
-            'password' => bcrypt('123456'),
+            'password' => bcrypt('12345678'),
         ];
 
         // Các cột này thuộc module Account/Identity, không thuộc schema lõi User.
