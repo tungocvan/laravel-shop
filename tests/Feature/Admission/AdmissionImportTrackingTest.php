@@ -71,9 +71,9 @@ class AdmissionImportTrackingTest extends TestCase
 
         $this->assertStringContainsString('RESTORABLE_STATUSES', $source);
         $this->assertStringContainsString("['pending', 'approved', 'rejected', 'import']", $source);
-        $this->assertStringContainsString("? ($restoredStatus ?? 'pending')", $source);
+        $this->assertStringContainsString('? ($restoredStatus ?? \'pending\')', $source);
         $this->assertStringContainsString(": 'pending'", $source);
-        $this->assertStringContainsString("$data['status'] = $targetStatus", $source);
+        $this->assertStringContainsString('$data[\'status\'] = $targetStatus', $source);
         $this->assertStringContainsString("'row_snapshot'", $source);
         $this->assertStringContainsString("'ho_va_ten_hoc_sinh'", $source);
 
