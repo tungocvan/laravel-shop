@@ -4,6 +4,7 @@ namespace Modules\Admission\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Admission\Imports\ApplicationsImport;
@@ -71,5 +72,27 @@ class AdmissionImportService
         return $run->errors()
             ->orderBy('row_number')
             ->paginate($perPage);
+    }
+
+    public function clearLogs(): int
+    {
+        return DB::transaction(function (): int {
+            $count = AdmissionImportRun::query()->count();
+
+            // admission_import_errors are removed by the FK cascade.
+            AdmissionImportRun::query()->delete();
+
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'mysql' || $driver === 'mariadb') {
+                DB::statement('ALTER TABLE `admission_import_runs` AUTO_INCREMENT = 1');
+                DB::statement('ALTER TABLE `admission_import_errors` AUTO_INCREMENT = 1');
+            } elseif ($driver === 'sqlite') {
+                DB::table('sqlite_sequence')
+                    ->whereIn('name', ['admission_import_runs', 'admission_import_errors'])
+                    ->delete();
+            }
+
+            return $count;
+        });
     }
 }
