@@ -148,10 +148,18 @@ class AdmissionController extends Controller
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+            'restore_status' => ['nullable', 'boolean'],
         ]);
 
+        $restoreStatus = $request->boolean('restore_status');
+        $admin = $request->user('admin');
+
+        if ($restoreStatus) {
+            abort_unless($admin && $admin->can('approve_admission'), 403);
+        }
+
         try {
-            $run = $service->import($validated['file'], $request->user('admin')?->id);
+            $run = $service->import($validated['file'], $admin?->id, $restoreStatus);
 
             $summary = [
                 'run_id' => $run->id,
@@ -160,14 +168,16 @@ class AdmissionController extends Controller
                 'failed' => $run->failed_rows,
                 'created' => $run->created_rows,
                 'updated' => $run->updated_rows,
+                'restore_status' => $restoreStatus,
             ];
 
             return back()
                 ->with('success', sprintf(
-                    'Import hoàn tất: %d dòng — %d thành công, %d lỗi.',
+                    'Import hoàn tất: %d dòng — %d thành công, %d lỗi.%s',
                     $run->total_rows,
                     $run->success_rows,
                     $run->failed_rows,
+                    $restoreStatus ? ' Đã bật chế độ khôi phục trạng thái.' : '',
                 ))
                 ->with('import_summary', $summary);
         } catch (Throwable $e) {
