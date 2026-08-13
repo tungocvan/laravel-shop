@@ -39,6 +39,7 @@ class AdmissionImportTrackingTest extends TestCase
         $this->assertStringContainsString("'mimes:xlsx,xls'", $source);
         $this->assertStringContainsString("'restore_status' => ['nullable', 'boolean']", $source);
         $this->assertStringContainsString("can('approve_admission')", $source);
+        $this->assertStringContainsString('clearImportLogs', $source);
         $this->assertStringNotContainsString('GenericImport', $source);
     }
 
@@ -60,18 +61,19 @@ class AdmissionImportTrackingTest extends TestCase
 
         $this->assertStringContainsString('foreach ($rows as $index => $row)', $source);
         $this->assertStringContainsString('recordError(', $source);
-        $this->assertStringContainsString('DB::transaction(function () use ($record, $data, $restoredStatus)', $source);
+        $this->assertStringContainsString('DB::transaction(function () use ($record, $data)', $source);
         $this->assertStringNotContainsString('DB::transaction(function () use ($rows)', $source);
     }
 
-    public function test_importer_defaults_new_rows_to_pending_but_can_restore_exported_status(): void
+    public function test_importer_defaults_all_normal_imports_to_pending_but_can_restore_exported_status(): void
     {
         $source = file_get_contents(base_path('Modules/Admission/Imports/ApplicationsImport.php'));
 
         $this->assertStringContainsString('RESTORABLE_STATUSES', $source);
         $this->assertStringContainsString("['pending', 'approved', 'rejected', 'import']", $source);
-        $this->assertStringContainsString('? $restoredStatus', $source);
+        $this->assertStringContainsString("? ($restoredStatus ?? 'pending')", $source);
         $this->assertStringContainsString(": 'pending'", $source);
+        $this->assertStringContainsString("$data['status'] = $targetStatus", $source);
         $this->assertStringContainsString("'row_snapshot'", $source);
         $this->assertStringContainsString("'ho_va_ten_hoc_sinh'", $source);
 
@@ -91,14 +93,21 @@ class AdmissionImportTrackingTest extends TestCase
         $this->assertStringContainsString("route('admin.admission.imports.errors'", $blade);
         $this->assertStringContainsString('name="restore_status"', $blade);
         $this->assertStringContainsString('Khôi phục trạng thái từ file export', $blade);
+        $this->assertStringContainsString('blank($item->status)', $blade);
     }
 
-    public function test_import_tracking_pages_are_present_and_paginated(): void
+    public function test_import_tracking_pages_are_present_paginated_and_clearable(): void
     {
         $history = file_get_contents(base_path('Modules/Admission/resources/views/pages/admin/imports/index.blade.php'));
         $errors = file_get_contents(base_path('Modules/Admission/resources/views/pages/admin/imports/errors.blade.php'));
+        $routes = file_get_contents(base_path('Modules/Admission/routes/web.php'));
+        $service = file_get_contents(base_path('Modules/Admission/Services/AdmissionImportService.php'));
 
         $this->assertStringContainsString('$runs->links()', $history);
+        $this->assertStringContainsString('Clear logs Import', $history);
+        $this->assertStringContainsString("route('admin.admission.imports.clear')", $history);
+        $this->assertStringContainsString("name('imports.clear')", $routes);
+        $this->assertStringContainsString('function clearLogs', $service);
         $this->assertStringContainsString('$errors->links()', $errors);
         $this->assertStringContainsString('Dòng Excel', $errors);
         $this->assertStringContainsString('error_code', $errors);
