@@ -68,21 +68,18 @@ class Index extends Component
     public function approve($id): void
     {
         $adminId = $this->authorizeAdmin('approve_admission');
-
         app(AdmissionApplicationAdminService::class)->approve((int) $id, $adminId);
     }
 
     public function reject($id): void
     {
         $adminId = $this->authorizeAdmin('reject_admission');
-
         app(AdmissionApplicationAdminService::class)->reject((int) $id, $adminId);
     }
 
     public function deleteSelected(): void
     {
         $this->authorizeAdmin('delete_admission');
-
         app(AdmissionApplicationAdminService::class)->deleteMany($this->selected);
         $this->resetSelection();
         $this->resetPage();
@@ -91,7 +88,6 @@ class Index extends Component
     public function deleteAll(): void
     {
         $this->authorizeAdmin('delete_admission');
-
         app(AdmissionApplicationAdminService::class)->deleteAllAndResetIncrement();
         $this->resetSelection();
         $this->resetPage();
@@ -100,9 +96,28 @@ class Index extends Component
     public function delete($id): void
     {
         $this->authorizeAdmin('delete_admission');
-
         app(AdmissionApplicationAdminService::class)->deleteMany([(int) $id]);
         $this->resetSelection();
+    }
+
+    public function generateDocuments(): void
+    {
+        $this->authorizeAdmin('download_admission_documents');
+
+        if ($this->filterStatus !== 'approved') {
+            $this->addError('documents', 'Hãy chọn trạng thái Đã duyệt trước khi tạo file hàng loạt.');
+            return;
+        }
+
+        $queued = app(AdmissionApplicationAdminService::class)
+            ->queueDocumentsForFilters($this->filters());
+
+        session()->flash(
+            'success',
+            $queued > 0
+                ? "Đã đưa {$queued} hồ sơ thiếu file vào hàng đợi tạo tài liệu."
+                : 'Không có hồ sơ đã duyệt nào thiếu file cần tạo.'
+        );
     }
 
     public function export()
@@ -131,7 +146,6 @@ class Index extends Component
     private function authorizeAdmin(string $permission): int
     {
         $admin = Auth::guard('admin')->user();
-
         abort_unless($admin && $admin->can($permission), 403);
 
         return (int) $admin->getAuthIdentifier();
