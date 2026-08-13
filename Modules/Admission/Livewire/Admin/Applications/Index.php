@@ -3,6 +3,7 @@
 namespace Modules\Admission\Livewire\Admin\Applications;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Bus;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Admission\Services\AdmissionApplicationAdminService;
@@ -19,6 +20,9 @@ class Index extends Component
     public $perPage = 10;
     public $selected = [];
     public $selectAll = false;
+    public bool $generateDocx = true;
+    public bool $generatePdf = false;
+    public ?string $documentBatchId = null;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -26,6 +30,11 @@ class Index extends Component
         'filterClass' => ['except' => ''],
         'perPage' => ['except' => 10],
     ];
+
+    public function mount(): void
+    {
+        $this->documentBatchId = session('admission_document_batch_id');
+    }
 
     public function updated($field): void
     {
@@ -63,6 +72,11 @@ class Index extends Component
     {
         return app(AdmissionApplicationAdminService::class)
             ->paginate($this->filters(), (int) $this->perPage);
+    }
+
+    public function getDocumentBatchProperty()
+    {
+        return $this->documentBatchId ? Bus::findBatch($this->documentBatchId) : null;
     }
 
     public function approve($id): void
@@ -104,14 +118,20 @@ class Index extends Component
     {
         $this->authorizeAdmin('download_admission_documents');
 
-        $queued = app(AdmissionApplicationAdminService::class)
-            ->queueDocumentsForIds($this->selected);
+        if (! $this->validateDocumentFormats()) {
+            return;
+        }
+
+        $batch = app(AdmissionApplicationAdminService::class)
+            ->queueDocumentsForIds($this->selected, $this->generateDocx, $this->generatePdf);
+
+        $this->rememberDocumentBatch($batch?->id);
 
         session()->flash(
             'success',
-            $queued > 0
-                ? "Đã đưa {$queued} hồ sơ đã chọn còn thiếu file vào hàng đợi tạo tài liệu."
-                : 'Các hồ sơ đã chọn không có hồ sơ Đã duyệt nào thiếu file cần tạo.'
+            $batch
+                ? "Đã tạo batch {$batch->totalJobs} hồ sơ trên queue admission-documents."
+                : 'Các hồ sơ đã chọn không có hồ sơ Đã duyệt nào thiếu định dạng file đã chọn.'
         );
     }
 
@@ -124,14 +144,20 @@ class Index extends Component
             return;
         }
 
-        $queued = app(AdmissionApplicationAdminService::class)
-            ->queueDocumentsForFilters($this->filters());
+        if (! $this->validateDocumentFormats()) {
+            return;
+        }
+
+        $batch = app(AdmissionApplicationAdminService::class)
+            ->queueDocumentsForFilters($this->filters(), $this->generateDocx, $this->generatePdf);
+
+        $this->rememberDocumentBatch($batch?->id);
 
         session()->flash(
             'success',
-            $queued > 0
-                ? "Đã đưa {$queued} hồ sơ thiếu file vào hàng đợi tạo tài liệu."
-                : 'Không có hồ sơ đã duyệt nào thiếu file cần tạo.'
+            $batch
+                ? "Đã tạo batch {$batch->totalJobs} hồ sơ trên queue admission-documents."
+                : 'Không có hồ sơ đã duyệt nào thiếu định dạng file đã chọn.'
         );
     }
 
@@ -146,7 +172,30 @@ class Index extends Component
     {
         return view('Admission::livewire.admin.applications.index', [
             'applications' => $this->applications,
+            'documentBatch' => $this->documentBatch,
         ]);
+    }
+
+    private function validateDocumentFormats(): bool
+    {
+        $this->resetErrorBag('documents');
+
+        if (! $this->generateDocx && ! $this->generatePdf) {
+            $this->addError('documents', 'Chọn ít nhất một định dạng: DOCX hoặc PDF.');
+            return false;
+        }
+
+        return true;
+    }
+
+    private function rememberDocumentBatch(?string $batchId): void
+    {
+        if (! $batchId) {
+            return;
+        }
+
+        $this->documentBatchId = $batchId;
+        session()->put('admission_document_batch_id', $batchId);
     }
 
     private function filters(): array
