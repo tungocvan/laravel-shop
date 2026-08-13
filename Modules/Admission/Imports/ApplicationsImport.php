@@ -85,6 +85,9 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         }
 
         $restoredStatus = $this->resolveRestoredStatus($row['status'] ?? null);
+        $targetStatus = $this->restoreStatus
+            ? ($restoredStatus ?? 'pending')
+            : 'pending';
 
         $row['ma_dinh_danh'] = $maDinhDanh;
         $row['mhs'] = $mhs;
@@ -101,24 +104,17 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         }
 
         $data = $this->transformer->transformInput($model, $data);
+        $data['status'] = $targetStatus;
         $record = $this->resolveRecord($maDinhDanh, $mhs);
 
-        DB::transaction(function () use ($record, $data, $restoredStatus): void {
+        DB::transaction(function () use ($record, $data): void {
             if ($record) {
-                if ($this->restoreStatus && $restoredStatus !== null) {
-                    $data['status'] = $restoredStatus;
-                }
-
-                // Direct query preserves the imported lifecycle value without triggering approval/file jobs.
+                // Direct query avoids approval/file hooks while intentionally applying the imported lifecycle state.
                 AdmissionApplication::query()->whereKey($record->id)->update($data);
                 $this->updatedRows++;
 
                 return;
             }
-
-            $data['status'] = $this->restoreStatus && $restoredStatus !== null
-                ? $restoredStatus
-                : 'pending';
 
             AdmissionApplication::query()->create($data);
             $this->createdRows++;
