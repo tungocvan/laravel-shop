@@ -46,6 +46,14 @@ Route::middleware(['web', 'auth:admin'])
             ->middleware('permission:import_admission,admin')
             ->name('import');
 
+        Route::get('/imports', [AdmissionController::class, 'importHistory'])
+            ->middleware('permission:import_admission,admin')
+            ->name('imports.index');
+
+        Route::get('/imports/{run}/errors', [AdmissionController::class, 'importErrors'])
+            ->middleware('permission:import_admission,admin')
+            ->name('imports.errors');
+
         Route::get('/dvhc', [AdmissionController::class, 'dvhc'])
             ->middleware('permission:manage_admission_locations,admin')
             ->name('dvhc');
