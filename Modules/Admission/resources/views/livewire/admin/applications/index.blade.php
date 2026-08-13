@@ -17,6 +17,33 @@
         </div>
     @enderror
 
+    @if ($documentBatch)
+        <div wire:poll.2s="$refresh" class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 sm:p-5 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <div class="font-semibold text-indigo-900">Tiến độ tạo tài liệu</div>
+                    <div class="text-sm text-indigo-800 mt-1">
+                        Tổng {{ $documentBatch->totalJobs }} · Đã xử lý {{ $documentBatch->processedJobs() }} · Lỗi {{ $documentBatch->failedJobs }} · Còn lại {{ $documentBatch->pendingJobs }}
+                    </div>
+                </div>
+                <div class="text-sm font-bold text-indigo-900">{{ $documentBatch->progress() }}%</div>
+            </div>
+            <div class="h-2.5 rounded-full bg-indigo-100 overflow-hidden">
+                <div class="h-full bg-indigo-600 transition-all" style="width: {{ $documentBatch->progress() }}%"></div>
+            </div>
+            <div class="text-xs text-indigo-700">
+                Queue: <strong>admission-documents</strong>
+                @if ($documentBatch->finished())
+                    · Hoàn tất batch
+                @elseif ($documentBatch->cancelled())
+                    · Batch đã hủy
+                @else
+                    · Đang xử lý nền
+                @endif
+            </div>
+        </div>
+    @endif
+
     @if (session('import_summary'))
         @php($summary = session('import_summary'))
         <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:p-5 space-y-3">
@@ -93,20 +120,41 @@
     </div>
 
     @can('download_admission_documents')
+        @if ($filterStatus === 'approved' || count($selected) > 0)
+            <div class="bg-white border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <div class="text-sm font-semibold text-gray-900">Định dạng tài liệu</div>
+                    <div class="text-xs text-gray-500 mt-1">DOCX được chọn mặc định. Tick PDF khi bạn muốn xuất thêm PDF cho batch này.</div>
+                </div>
+                <div class="flex items-center gap-5">
+                    <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <input type="checkbox" wire:model.live="generateDocx"
+                            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                        DOCX
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <input type="checkbox" wire:model.live="generatePdf"
+                            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                        PDF
+                    </label>
+                </div>
+            </div>
+        @endif
+
         @if ($filterStatus === 'approved')
             <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <div class="text-sm font-semibold text-emerald-900">Tài liệu hồ sơ đã duyệt</div>
                     <div class="text-xs text-emerald-700 mt-1">
-                        Tạo lại các file còn thiếu theo bộ lọc hiện tại. Word luôn được tạo; PDF chỉ tạo khi ENABLE_PDF_CONVERT=true.
+                        Tạo các định dạng còn thiếu theo toàn bộ bộ lọc hiện tại bằng batch queue riêng.
                     </div>
                 </div>
                 <button type="button" wire:click="generateDocuments"
-                    wire:confirm="Đưa tất cả hồ sơ Đã duyệt đang thiếu file theo bộ lọc hiện tại vào hàng đợi tạo tài liệu?"
+                    wire:confirm="Đưa tất cả hồ sơ Đã duyệt đang thiếu định dạng đã chọn vào batch tạo tài liệu?"
                     wire:loading.attr="disabled" wire:target="generateDocuments"
                     class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-emerald-700 text-white text-sm font-semibold hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span wire:loading.remove wire:target="generateDocuments">Tạo file còn thiếu</span>
-                    <span wire:loading wire:target="generateDocuments">Đang đưa vào hàng đợi...</span>
+                    <span wire:loading wire:target="generateDocuments">Đang tạo batch...</span>
                 </button>
             </div>
         @endif
@@ -116,15 +164,15 @@
                 <div>
                     <div class="text-sm font-semibold text-emerald-900">Tạo tài liệu cho hồ sơ đã chọn</div>
                     <div class="text-xs text-emerald-700 mt-1">
-                        Đã chọn {{ count($selected) }} hồ sơ. Chỉ hồ sơ có trạng thái Đã duyệt và đang thiếu file mới được đưa vào Queue.
+                        Đã chọn {{ count($selected) }} hồ sơ. Chỉ hồ sơ Đã duyệt và thiếu định dạng bạn chọn mới được đưa vào batch.
                     </div>
                 </div>
                 <button type="button" wire:click="generateSelectedDocuments"
-                    wire:confirm="Tạo Word/PDF còn thiếu cho các hồ sơ Đã duyệt đã chọn?"
+                    wire:confirm="Tạo các định dạng đã chọn cho những hồ sơ Đã duyệt đang được tick?"
                     wire:loading.attr="disabled" wire:target="generateSelectedDocuments"
                     class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-emerald-700 text-white text-sm font-semibold hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span wire:loading.remove wire:target="generateSelectedDocuments">Tạo file đã chọn ({{ count($selected) }})</span>
-                    <span wire:loading wire:target="generateSelectedDocuments">Đang đưa vào hàng đợi...</span>
+                    <span wire:loading wire:target="generateSelectedDocuments">Đang tạo batch...</span>
                 </button>
             </div>
         @endif
