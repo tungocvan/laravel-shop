@@ -60,6 +60,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString('deleteAllAndResetIncrement', $source);
         $this->assertStringContainsString('queueDocumentsForIds', $source);
         $this->assertStringContainsString('queueDocumentsForFilters', $source);
+        $this->assertStringContainsString('Bus::findBatch', $source);
         $this->assertStringNotContainsString('AdmissionApplication::', $source);
         $this->assertStringNotContainsString("'all'", $source);
     }
@@ -74,18 +75,25 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringNotContainsString('truncate()', $source);
     }
 
-    public function test_bulk_documents_are_queue_based_and_pdf_flag_is_module_scoped(): void
+    public function test_bulk_documents_use_batch_queue_and_selectable_formats(): void
     {
         $service = file_get_contents(base_path('Modules/Admission/Services/AdmissionApplicationAdminService.php'));
         $job = file_get_contents(base_path('Modules/Admission/Jobs/GenerateAdmissionPdfJob.php'));
         $config = file_get_contents(base_path('Modules/Admission/config/module.php'));
+        $migration = file_get_contents(base_path('Modules/Admission/database/migrations/2026_08_13_000003_create_job_batches_table_if_missing.php'));
 
-        $this->assertStringContainsString('GenerateAdmissionPdfJob::dispatch', $service);
-        $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $service);
+        $this->assertStringContainsString('Bus::batch($jobs)', $service);
+        $this->assertStringContainsString("->onQueue('admission-documents')", $service);
+        $this->assertStringContainsString('bool $docx = true', $service);
+        $this->assertStringContainsString('bool $pdf = false', $service);
+        $this->assertStringContainsString('use Batchable', $job);
+        $this->assertStringContainsString("$this->onQueue('admission-documents')", $job);
+        $this->assertStringContainsString('public bool $generateDocx = true', $job);
+        $this->assertStringContainsString('public ?bool $generatePdf = null', $job);
         $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $job);
         $this->assertStringContainsString("env('ENABLE_PDF_CONVERT', false)", $config);
-        $this->assertStringContainsString('if (! file_exists($wordFull))', $job);
-        $this->assertStringContainsString('if ($pdfEnabled && ! file_exists($pdfFull))', $job);
+        $this->assertStringContainsString("Schema::hasTable('job_batches')", $migration);
+        $this->assertStringContainsString("'Don_' . $this->id", $job);
     }
 
     public function test_blade_uses_capability_specific_gates_and_bounded_page_sizes(): void
@@ -111,6 +119,10 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString('wire:click="deleteAll"', $blade);
         $this->assertStringContainsString('wire:click="generateSelectedDocuments"', $blade);
         $this->assertStringContainsString('wire:click="generateDocuments"', $blade);
+        $this->assertStringContainsString('wire:model.live="generateDocx"', $blade);
+        $this->assertStringContainsString('wire:model.live="generatePdf"', $blade);
+        $this->assertStringContainsString('Tiến độ tạo tài liệu', $blade);
+        $this->assertStringContainsString('wire:poll.2s="$refresh"', $blade);
         $this->assertStringContainsString('Tạo file đã chọn', $blade);
         $this->assertStringContainsString('Tạo file còn thiếu', $blade);
         $this->assertStringContainsString('name="restore_status"', $blade);
