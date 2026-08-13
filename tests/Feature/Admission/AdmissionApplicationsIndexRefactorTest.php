@@ -46,6 +46,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
             ['deleteSelected', 'delete_admission'],
             ['deleteAll', 'delete_admission'],
             ['delete', 'delete_admission'],
+            ['generateDocuments', 'download_admission_documents'],
             ['export', 'export_admission'],
         ];
     }
@@ -56,6 +57,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
 
         $this->assertStringContainsString('AdmissionApplicationAdminService', $source);
         $this->assertStringContainsString('deleteAllAndResetIncrement', $source);
+        $this->assertStringContainsString('queueDocumentsForFilters', $source);
         $this->assertStringNotContainsString('AdmissionApplication::', $source);
         $this->assertStringNotContainsString("'all'", $source);
     }
@@ -68,6 +70,20 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString('$application->delete()', $source);
         $this->assertStringContainsString('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1', $source);
         $this->assertStringNotContainsString('truncate()', $source);
+    }
+
+    public function test_bulk_documents_are_queue_based_and_pdf_flag_is_module_scoped(): void
+    {
+        $service = file_get_contents(base_path('Modules/Admission/Services/AdmissionApplicationAdminService.php'));
+        $job = file_get_contents(base_path('Modules/Admission/Jobs/GenerateAdmissionPdfJob.php'));
+        $config = file_get_contents(base_path('Modules/Admission/config/module.php'));
+
+        $this->assertStringContainsString('GenerateAdmissionPdfJob::dispatch', $service);
+        $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $service);
+        $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $job);
+        $this->assertStringContainsString("env('ENABLE_PDF_CONVERT', false)", $config);
+        $this->assertStringContainsString("if (! file_exists($wordFull))", $job);
+        $this->assertStringContainsString('if ($pdfEnabled && ! file_exists($pdfFull))', $job);
     }
 
     public function test_blade_uses_capability_specific_gates_and_bounded_page_sizes(): void
@@ -91,6 +107,9 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString('wire:loading.attr="disabled"', $blade);
         $this->assertStringContainsString('wire:click="deleteSelected"', $blade);
         $this->assertStringContainsString('wire:click="deleteAll"', $blade);
+        $this->assertStringContainsString('wire:click="generateDocuments"', $blade);
+        $this->assertStringContainsString('Tạo file còn thiếu', $blade);
+        $this->assertStringContainsString('name="restore_status"', $blade);
         $this->assertStringContainsString('Xóa đã chọn', $blade);
         $this->assertStringContainsString('Xóa tất cả', $blade);
         $this->assertStringContainsString('Không có hồ sơ phù hợp với bộ lọc hiện tại.', $blade);
