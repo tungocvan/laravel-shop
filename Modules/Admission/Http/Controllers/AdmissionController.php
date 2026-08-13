@@ -200,6 +200,15 @@ class AdmissionController extends Controller
         ]);
     }
 
+    public function clearImportLogs(AdmissionImportService $service)
+    {
+        $deleted = $service->clearLogs();
+
+        return redirect()
+            ->route('admin.admission.imports.index')
+            ->with('success', "Đã xóa {$deleted} lịch sử Import và toàn bộ lỗi liên quan.");
+    }
+
     public function download($id, $type)
     {
         $item = AdmissionApplication::findOrFail($id);
