@@ -4,7 +4,7 @@ return array (
   'name' => 'Admission',
   'type' => 'domain',
   'enabled' => true,
-  'enable_pdf_convert' => false,
+  'enable_pdf_convert' => env('ENABLE_PDF_CONVERT', false),
   'seeders' => 
   array (
     0 => 'Modules\\Admission\\database\\seeders\\DatabaseSeeder',
