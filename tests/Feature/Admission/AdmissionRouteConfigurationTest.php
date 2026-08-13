@@ -65,6 +65,8 @@ class AdmissionRouteConfigurationTest extends TestCase
             ['admin.admission.export-pdf', 'admin/admission/export-pdf/{id}', 'download_admission_documents'],
             ['admin.admission.export', 'admin/admission/export', 'export_admission'],
             ['admin.admission.import', 'admin/admission/import', 'import_admission'],
+            ['admin.admission.imports.index', 'admin/admission/imports', 'import_admission'],
+            ['admin.admission.imports.errors', 'admin/admission/imports/{run}/errors', 'import_admission'],
             ['admin.admission.dvhc', 'admin/admission/dvhc', 'manage_admission_locations'],
             ['admin.admission.list-class', 'admin/admission/list-class', 'view_admission'],
             ['admission.register', 'admission/register', 'create_admission'],
