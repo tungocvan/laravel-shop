@@ -85,6 +85,16 @@ class Index extends Component
 
         app(AdmissionApplicationAdminService::class)->deleteMany($this->selected);
         $this->resetSelection();
+        $this->resetPage();
+    }
+
+    public function deleteAll(): void
+    {
+        $this->authorizeAdmin('delete_admission');
+
+        app(AdmissionApplicationAdminService::class)->deleteAllAndResetIncrement();
+        $this->resetSelection();
+        $this->resetPage();
     }
 
     public function delete($id): void
