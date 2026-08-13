@@ -82,7 +82,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $service);
         $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $job);
         $this->assertStringContainsString("env('ENABLE_PDF_CONVERT', false)", $config);
-        $this->assertStringContainsString("if (! file_exists($wordFull))", $job);
+        $this->assertStringContainsString('if (! file_exists($wordFull))', $job);
         $this->assertStringContainsString('if ($pdfEnabled && ! file_exists($pdfFull))', $job);
     }
 
