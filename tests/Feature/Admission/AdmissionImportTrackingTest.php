@@ -30,13 +30,15 @@ class AdmissionImportTrackingTest extends TestCase
         $this->assertSame('array', $error->getCasts()['row_snapshot']);
     }
 
-    public function test_admission_controller_uses_tracked_import_service_instead_of_generic_import(): void
+    public function test_admission_controller_uses_tracked_import_service_and_guards_restore_mode(): void
     {
         $source = file_get_contents(base_path('Modules/Admission/Http/Controllers/AdmissionController.php'));
 
         $this->assertStringContainsString('AdmissionImportService', $source);
         $this->assertStringContainsString("'import_summary'", $source);
         $this->assertStringContainsString("'mimes:xlsx,xls'", $source);
+        $this->assertStringContainsString("'restore_status' => ['nullable', 'boolean']", $source);
+        $this->assertStringContainsString("can('approve_admission')", $source);
         $this->assertStringNotContainsString('GenericImport', $source);
     }
 
@@ -48,6 +50,7 @@ class AdmissionImportTrackingTest extends TestCase
             'missing_identity',
             'invalid_ma_dinh_danh',
             'invalid_date',
+            'invalid_status',
             'identity_conflict',
             'ambiguous_identity',
             'persistence_failed',
@@ -57,26 +60,28 @@ class AdmissionImportTrackingTest extends TestCase
 
         $this->assertStringContainsString('foreach ($rows as $index => $row)', $source);
         $this->assertStringContainsString('recordError(', $source);
-        $this->assertStringContainsString('DB::transaction(function () use ($record, $data)', $source);
+        $this->assertStringContainsString('DB::transaction(function () use ($record, $data, $restoredStatus)', $source);
         $this->assertStringNotContainsString('DB::transaction(function () use ($rows)', $source);
     }
 
-    public function test_importer_preserves_lifecycle_status_and_limits_error_snapshot(): void
+    public function test_importer_defaults_new_rows_to_pending_but_can_restore_exported_status(): void
     {
         $source = file_get_contents(base_path('Modules/Admission/Imports/ApplicationsImport.php'));
 
-        $this->assertStringContainsString("'status'", $source);
-        $this->assertStringContainsString('$data[\'status\'] = \'pending\'', $source);
+        $this->assertStringContainsString('RESTORABLE_STATUSES', $source);
+        $this->assertStringContainsString("['pending', 'approved', 'rejected', 'import']", $source);
+        $this->assertStringContainsString("? $restoredStatus", $source);
+        $this->assertStringContainsString(": 'pending'", $source);
         $this->assertStringContainsString("'row_snapshot'", $source);
         $this->assertStringContainsString("'ho_va_ten_hoc_sinh'", $source);
 
         foreach (['cccd_cha', 'cccd_me', 'dien_thoai_cha', 'dien_thoai_me', 'suc_khoe_can_luu_y'] as $sensitiveField) {
             $snapshotSection = substr($source, strpos($source, "'row_snapshot'"));
-            $this->assertStringNotContainsString("'{$sensitiveField}'", substr($snapshotSection, 0, 1000));
+            $this->assertStringNotContainsString("'{$sensitiveField}'", substr($snapshotSection, 0, 1200));
         }
     }
 
-    public function test_admin_index_exposes_import_summary_history_and_error_actions(): void
+    public function test_admin_index_exposes_import_summary_history_restore_and_error_actions(): void
     {
         $blade = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admin/applications/index.blade.php'));
 
@@ -84,6 +89,8 @@ class AdmissionImportTrackingTest extends TestCase
         $this->assertStringContainsString('Lịch sử Import', $blade);
         $this->assertStringContainsString('Xem {{ $summary[\'failed\'] }} lỗi Import', $blade);
         $this->assertStringContainsString("route('admin.admission.imports.errors'", $blade);
+        $this->assertStringContainsString('name="restore_status"', $blade);
+        $this->assertStringContainsString('Khôi phục trạng thái từ file export', $blade);
     }
 
     public function test_import_tracking_pages_are_present_and_paginated(): void
