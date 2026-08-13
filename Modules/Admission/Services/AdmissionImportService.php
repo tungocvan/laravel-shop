@@ -12,7 +12,7 @@ use Throwable;
 
 class AdmissionImportService
 {
-    public function import(UploadedFile $file, ?int $adminId): AdmissionImportRun
+    public function import(UploadedFile $file, ?int $adminId, bool $restoreStatus = false): AdmissionImportRun
     {
         $run = AdmissionImportRun::query()->create([
             'original_filename' => $file->getClientOriginalName(),
@@ -21,7 +21,7 @@ class AdmissionImportService
             'started_at' => now(),
         ]);
 
-        $importer = new ApplicationsImport($run);
+        $importer = new ApplicationsImport($run, $restoreStatus);
 
         try {
             Excel::import($importer, $file);
