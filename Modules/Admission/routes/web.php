@@ -50,6 +50,10 @@ Route::middleware(['web', 'auth:admin'])
             ->middleware('permission:import_admission,admin')
             ->name('imports.index');
 
+        Route::delete('/imports', [AdmissionController::class, 'clearImportLogs'])
+            ->middleware('permission:import_admission,admin')
+            ->name('imports.clear');
+
         Route::get('/imports/{run}/errors', [AdmissionController::class, 'importErrors'])
             ->middleware('permission:import_admission,admin')
             ->name('imports.errors');
