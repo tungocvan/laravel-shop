@@ -36,6 +36,7 @@ services:
     logging: *logging
     mem_limit: ${APP_MEMORY_LIMIT:-1200m}
     cpus: ${APP_CPU_LIMIT:-1.5}
+
   queue:
     build: *app-build
     restart: unless-stopped
@@ -61,6 +62,32 @@ services:
     logging: *logging
     mem_limit: ${QUEUE_MEMORY_LIMIT:-1400m}
     cpus: ${QUEUE_CPU_LIMIT:-1.5}
+
+  queue-admission-documents:
+    build: *app-build
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--queue=admission-documents", "--sleep=${ADMISSION_QUEUE_SLEEP:-2}", "--tries=${ADMISSION_QUEUE_TRIES:-3}", "--timeout=${ADMISSION_QUEUE_TIMEOUT:-180}", "--max-jobs=${ADMISSION_QUEUE_MAX_JOBS:-100}", "--max-time=${ADMISSION_QUEUE_MAX_TIME:-3600}"]
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+      - ./.env:/var/www/html/.env
+      - ./Modules:/var/www/html/Modules
+    healthcheck:
+      test: ["CMD-SHELL", "tr '\0' ' ' </proc/1/cmdline | grep -q 'queue:work' && tr '\0' ' ' </proc/1/cmdline | grep -q 'admission-documents'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+    mem_limit: ${ADMISSION_QUEUE_MEMORY_LIMIT:-768m}
+    cpus: ${ADMISSION_QUEUE_CPU_LIMIT:-1.0}
 
   scheduler:
     build: *app-build
@@ -104,6 +131,7 @@ services:
     logging: *logging
     mem_limit: ${SOCKET_MEMORY_LIMIT:-256m}
     cpus: ${SOCKET_CPU_LIMIT:-0.25}
+
   web:
     build:
       context: .
