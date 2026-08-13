@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('user_identity_profiles')) {
+            return;
+        }
+
         Schema::create('user_identity_profiles', function (Blueprint $table) {
             $table->id()->comment('ID hồ sơ định danh người dùng');
 
