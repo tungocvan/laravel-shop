@@ -49,7 +49,7 @@ class Index extends Component
 
     public function updatedSelectAll($value): void
     {
-        if (! $this->adminCan('delete_admission')) {
+        if (! $this->adminCan('delete_admission') && ! $this->adminCan('download_admission_documents')) {
             $this->resetSelection();
             return;
         }
@@ -98,6 +98,21 @@ class Index extends Component
         $this->authorizeAdmin('delete_admission');
         app(AdmissionApplicationAdminService::class)->deleteMany([(int) $id]);
         $this->resetSelection();
+    }
+
+    public function generateSelectedDocuments(): void
+    {
+        $this->authorizeAdmin('download_admission_documents');
+
+        $queued = app(AdmissionApplicationAdminService::class)
+            ->queueDocumentsForIds($this->selected);
+
+        session()->flash(
+            'success',
+            $queued > 0
+                ? "Đã đưa {$queued} hồ sơ đã chọn còn thiếu file vào hàng đợi tạo tài liệu."
+                : 'Các hồ sơ đã chọn không có hồ sơ Đã duyệt nào thiếu file cần tạo.'
+        );
     }
 
     public function generateDocuments(): void
