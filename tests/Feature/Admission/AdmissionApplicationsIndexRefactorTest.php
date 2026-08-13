@@ -44,6 +44,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
             ['approve', 'approve_admission'],
             ['reject', 'reject_admission'],
             ['deleteSelected', 'delete_admission'],
+            ['deleteAll', 'delete_admission'],
             ['delete', 'delete_admission'],
             ['export', 'export_admission'],
         ];
@@ -54,8 +55,19 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $source = file_get_contents(base_path('Modules/Admission/Livewire/Admin/Applications/Index.php'));
 
         $this->assertStringContainsString('AdmissionApplicationAdminService', $source);
+        $this->assertStringContainsString('deleteAllAndResetIncrement', $source);
         $this->assertStringNotContainsString('AdmissionApplication::', $source);
         $this->assertStringNotContainsString("'all'", $source);
+    }
+
+    public function test_delete_all_service_preserves_model_hooks_and_resets_mysql_auto_increment(): void
+    {
+        $source = file_get_contents(base_path('Modules/Admission/Services/AdmissionApplicationAdminService.php'));
+
+        $this->assertStringContainsString('function deleteAllAndResetIncrement', $source);
+        $this->assertStringContainsString('$application->delete()', $source);
+        $this->assertStringContainsString('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1', $source);
+        $this->assertStringNotContainsString('truncate()', $source);
     }
 
     public function test_blade_uses_capability_specific_gates_and_bounded_page_sizes(): void
@@ -77,6 +89,10 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringNotContainsString('<option value="all">', $blade);
         $this->assertStringContainsString('wire:confirm=', $blade);
         $this->assertStringContainsString('wire:loading.attr="disabled"', $blade);
+        $this->assertStringContainsString('wire:click="deleteSelected"', $blade);
+        $this->assertStringContainsString('wire:click="deleteAll"', $blade);
+        $this->assertStringContainsString('Xóa đã chọn', $blade);
+        $this->assertStringContainsString('Xóa tất cả', $blade);
         $this->assertStringContainsString('Không có hồ sơ phù hợp với bộ lọc hiện tại.', $blade);
     }
 }
