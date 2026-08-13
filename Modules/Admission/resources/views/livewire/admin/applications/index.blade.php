@@ -110,6 +110,24 @@
                 </button>
             </div>
         @endif
+
+        @if (count($selected) > 0)
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <div class="text-sm font-semibold text-emerald-900">Tạo tài liệu cho hồ sơ đã chọn</div>
+                    <div class="text-xs text-emerald-700 mt-1">
+                        Đã chọn {{ count($selected) }} hồ sơ. Chỉ hồ sơ có trạng thái Đã duyệt và đang thiếu file mới được đưa vào Queue.
+                    </div>
+                </div>
+                <button type="button" wire:click="generateSelectedDocuments"
+                    wire:confirm="Tạo Word/PDF còn thiếu cho các hồ sơ Đã duyệt đã chọn?"
+                    wire:loading.attr="disabled" wire:target="generateSelectedDocuments"
+                    class="inline-flex items-center justify-center px-4 h-11 rounded-xl bg-emerald-700 text-white text-sm font-semibold hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span wire:loading.remove wire:target="generateSelectedDocuments">Tạo file đã chọn ({{ count($selected) }})</span>
+                    <span wire:loading wire:target="generateSelectedDocuments">Đang đưa vào hàng đợi...</span>
+                </button>
+            </div>
+        @endif
     @endcan
 
     @canany(['export_admission', 'import_admission'])
@@ -199,13 +217,13 @@
             <table class="min-w-full text-sm align-middle">
                 <thead class="bg-gray-50/75 border-b border-gray-200">
                     <tr>
-                        @can('delete_admission')
+                        @canany(['delete_admission', 'download_admission_documents'])
                             <th class="px-6 py-4">
                                 <label class="sr-only" for="admission-select-all">Chọn tất cả hồ sơ trên trang</label>
                                 <input id="admission-select-all" type="checkbox" wire:model.live="selectAll"
                                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             </th>
-                        @endcan
+                        @endcanany
                         <th class="px-6 py-4 text-left font-semibold text-gray-600">Học sinh</th>
                         <th class="px-6 py-4 text-left font-semibold text-gray-600">Lớp</th>
                         <th class="px-6 py-4 text-left font-semibold text-gray-600">Loại lớp</th>
@@ -218,13 +236,13 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($applications as $item)
                         <tr wire:key="admission-application-{{ $item->id }}" class="hover:bg-gray-50/50">
-                            @can('delete_admission')
+                            @canany(['delete_admission', 'download_admission_documents'])
                                 <td class="px-6 py-4">
                                     <label class="sr-only" for="admission-select-{{ $item->id }}">Chọn hồ sơ {{ $item->ho_va_ten_hoc_sinh }}</label>
                                     <input id="admission-select-{{ $item->id }}" type="checkbox" value="{{ $item->id }}"
                                         wire:model.live="selected" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                                 </td>
-                            @endcan
+                            @endcanany
 
                             <td class="px-6 py-4">
                                 <div class="font-semibold text-gray-900">{{ $item->ho_va_ten_hoc_sinh }}</div>
