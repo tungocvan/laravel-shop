@@ -121,21 +121,36 @@
     @endcanany
 
     @can('delete_admission')
-        @if (count($selected) > 0)
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
-                <span class="text-sm font-medium text-indigo-800">Đã chọn {{ count($selected) }} hồ sơ</span>
-                <div class="flex items-center gap-2">
-                    <button type="button" wire:click="deleteSelected" wire:confirm="Bạn có chắc muốn xóa các hồ sơ đã chọn?"
-                        wire:loading.attr="disabled" wire:target="deleteSelected"
-                        class="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span wire:loading.remove wire:target="deleteSelected">Xóa</span>
-                        <span wire:loading wire:target="deleteSelected">Đang xóa...</span>
-                    </button>
-                    <button type="button" wire:click="$set('selected', [])"
-                        class="px-4 py-2 bg-white border border-gray-300 rounded-xl text-sm hover:bg-gray-50">Bỏ chọn</button>
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-rose-50 border border-rose-100 p-4 rounded-2xl">
+            <div>
+                <div class="text-sm font-semibold text-rose-900">Xóa hồ sơ</div>
+                <div class="text-xs text-rose-700 mt-1">
+                    Đã chọn {{ count($selected) }} hồ sơ. “Xóa tất cả” sẽ xóa toàn bộ hồ sơ và đưa ID tự tăng về 1.
                 </div>
             </div>
-        @endif
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" wire:click="deleteSelected"
+                    wire:confirm="Bạn có chắc muốn xóa các hồ sơ đã chọn? Hành động này không thể hoàn tác."
+                    wire:loading.attr="disabled" wire:target="deleteSelected" @disabled(count($selected) === 0)
+                    class="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span wire:loading.remove wire:target="deleteSelected">Xóa đã chọn ({{ count($selected) }})</span>
+                    <span wire:loading wire:target="deleteSelected">Đang xóa...</span>
+                </button>
+
+                <button type="button" wire:click="deleteAll"
+                    wire:confirm="CẢNH BÁO: Bạn sắp xóa TOÀN BỘ hồ sơ tuyển sinh. Tất cả dữ liệu hồ sơ và file PDF/Word liên quan sẽ bị xóa, ID sẽ quay về 1. Hành động này KHÔNG THỂ hoàn tác. Bạn có chắc chắn?"
+                    wire:loading.attr="disabled" wire:target="deleteAll" @disabled($applications->total() === 0)
+                    class="px-4 py-2 bg-red-800 text-white rounded-xl text-sm font-semibold hover:bg-red-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span wire:loading.remove wire:target="deleteAll">Xóa tất cả</span>
+                    <span wire:loading wire:target="deleteAll">Đang xóa tất cả...</span>
+                </button>
+
+                @if (count($selected) > 0)
+                    <button type="button" wire:click="$set('selected', [])"
+                        class="px-4 py-2 bg-white border border-gray-300 rounded-xl text-sm hover:bg-gray-50">Bỏ chọn</button>
+                @endif
+            </div>
+        </div>
     @endcan
 
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
