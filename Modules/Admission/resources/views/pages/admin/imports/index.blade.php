@@ -2,15 +2,34 @@
 
 @section('content')
 <div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+    @if (session('success'))
+        <div class="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+            {{ session('success') }}
+        </div>
+    @endif
+
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Lịch sử Import tuyển sinh</h1>
             <p class="text-sm text-gray-500 mt-1">Theo dõi kết quả từng lần import và các dòng cần chỉnh sửa.</p>
         </div>
-        <a href="{{ route('admin.admission.index') }}"
-           class="inline-flex items-center justify-center px-4 h-10 rounded-xl border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50">
-            ← Hồ sơ tuyển sinh
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            @if ($runs->total() > 0)
+                <form action="{{ route('admin.admission.imports.clear') }}" method="POST"
+                      onsubmit="return confirm('Xóa toàn bộ lịch sử Import và tất cả log lỗi liên quan? Hành động này không thể hoàn tác.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="inline-flex items-center justify-center px-4 h-10 rounded-xl bg-rose-700 text-white text-sm font-semibold hover:bg-rose-800">
+                        Clear logs Import
+                    </button>
+                </form>
+            @endif
+            <a href="{{ route('admin.admission.index') }}"
+               class="inline-flex items-center justify-center px-4 h-10 rounded-xl border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50">
+                ← Hồ sơ tuyển sinh
+            </a>
+        </div>
     </div>
 
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
