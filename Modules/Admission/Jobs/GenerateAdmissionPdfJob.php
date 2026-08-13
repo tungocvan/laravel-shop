@@ -68,7 +68,7 @@ class GenerateAdmissionPdfJob implements ShouldQueue
                 }
             }
 
-            $pdfEnabled = (bool) config('admission.enable_pdf_convert', false);
+            $pdfEnabled = (bool) config('admission.module.enable_pdf_convert', false);
 
             if ($pdfEnabled && ! file_exists($pdfFull)) {
                 $convertedPdf = $converter->toPdf($wordFull, $fullDir);
