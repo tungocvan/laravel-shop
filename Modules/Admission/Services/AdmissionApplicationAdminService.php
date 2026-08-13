@@ -155,7 +155,7 @@ class AdmissionApplicationAdminService
     private function queueDocumentQuery(Builder $query): int
     {
         $queued = 0;
-        $pdfEnabled = (bool) config('admission.enable_pdf_convert', false);
+        $pdfEnabled = (bool) config('admission.module.enable_pdf_convert', false);
 
         $query->where('status', 'approved')
             ->reorder('id')
