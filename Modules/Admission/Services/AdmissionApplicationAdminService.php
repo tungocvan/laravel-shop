@@ -2,8 +2,10 @@
 
 namespace Modules\Admission\Services;
 
+use Illuminate\Bus\Batch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Admission\Exports\ApplicationsExport;
@@ -130,7 +132,7 @@ class AdmissionApplicationAdminService
         return $deleted;
     }
 
-    public function queueDocumentsForIds(array $ids): int
+    public function queueDocumentsForIds(array $ids, bool $docx = true, bool $pdf = false): ?Batch
     {
         $ids = collect($ids)
             ->filter(fn ($id) => is_numeric($id) && (int) $id > 0)
@@ -139,55 +141,74 @@ class AdmissionApplicationAdminService
             ->values();
 
         if ($ids->isEmpty()) {
-            return 0;
+            return null;
         }
 
         return $this->queueDocumentQuery(
-            AdmissionApplication::query()->whereIn('id', $ids)
+            AdmissionApplication::query()->whereIn('id', $ids),
+            $docx,
+            $pdf,
         );
     }
 
-    public function queueDocumentsForFilters(array $filters): int
+    public function queueDocumentsForFilters(array $filters, bool $docx = true, bool $pdf = false): ?Batch
     {
-        return $this->queueDocumentQuery($this->query($filters));
+        return $this->queueDocumentQuery($this->query($filters), $docx, $pdf);
     }
 
-    private function queueDocumentQuery(Builder $query): int
+    private function queueDocumentQuery(Builder $query, bool $docx, bool $pdf): ?Batch
     {
-        $queued = 0;
-        $pdfEnabled = (bool) config('admission.module.enable_pdf_convert', false);
+        if (! $docx && ! $pdf) {
+            throw new RuntimeException('Phải chọn ít nhất một định dạng tài liệu.');
+        }
+
+        $jobs = [];
 
         $query->where('status', 'approved')
             ->reorder('id')
-            ->chunkById(100, function ($applications) use (&$queued, $pdfEnabled) {
+            ->chunkById(100, function ($applications) use (&$jobs, $docx, $pdf) {
                 foreach ($applications as $application) {
-                    if (! $this->documentMissing($application, $pdfEnabled)) {
+                    if (! $this->documentMissing($application, $docx, $pdf)) {
                         continue;
                     }
 
-                    GenerateAdmissionPdfJob::dispatch($application->id);
-                    $queued++;
+                    $jobs[] = new GenerateAdmissionPdfJob($application->id, $docx, $pdf);
                 }
             });
 
-        return $queued;
+        if ($jobs === []) {
+            return null;
+        }
+
+        return Bus::batch($jobs)
+            ->name('Admission documents ' . now()->format('Y-m-d H:i:s'))
+            ->allowFailures()
+            ->onConnection(config('queue.default'))
+            ->onQueue('admission-documents')
+            ->dispatch();
     }
 
-    private function documentMissing(AdmissionApplication $application, bool $pdfEnabled): bool
+    private function documentMissing(AdmissionApplication $application, bool $docx, bool $pdf): bool
     {
-        $wordExists = $application->word_path
-            && file_exists(storage_path('app/' . $application->word_path));
+        if ($docx) {
+            $wordExists = $application->word_path
+                && file_exists(storage_path('app/' . $application->word_path));
 
-        if (! $wordExists) {
-            return true;
+            if (! $wordExists) {
+                return true;
+            }
         }
 
-        if (! $pdfEnabled) {
-            return false;
+        if ($pdf) {
+            $pdfExists = $application->pdf_path
+                && file_exists(storage_path('app/' . $application->pdf_path));
+
+            if (! $pdfExists) {
+                return true;
+            }
         }
 
-        return ! $application->pdf_path
-            || ! file_exists(storage_path('app/' . $application->pdf_path));
+        return false;
     }
 
     private function resetAutoIncrement(): void
