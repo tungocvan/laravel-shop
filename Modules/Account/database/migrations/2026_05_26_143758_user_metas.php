@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('user_metas')) {
+            return;
+        }
+
         Schema::create('user_metas', function (Blueprint $table) {
             $table->id()->comment('ID dữ liệu mở rộng của user');
 
