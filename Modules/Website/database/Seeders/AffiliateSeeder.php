@@ -3,55 +3,53 @@
 namespace Modules\Website\database\Seeders;
 
 use App\Models\User;
-use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 use Modules\Order\Models\Order;
 use Modules\Product\Models\Product;
 
 class AffiliateSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        $faker = Faker::create('vi_VN');
-
-        // 1. Xác định User làm đối tác (Affiliate)
-        $affiliateUser = User::where('email', 'tungocvan@gmail.com')->first();
+        $affiliateUser = User::query()->where('email', 'tungocvan@gmail.com')->first();
 
         if (! $affiliateUser) {
-            $this->command->error('❌ Không tìm thấy user tungocvan@gmail.com. Vui lòng kiểm tra lại bảng users!');
+            $this->command?->error('❌ Không tìm thấy user tungocvan@gmail.com. Vui lòng kiểm tra lại bảng users!');
 
             return;
         }
 
-        // 2. Lấy danh sách sản phẩm để tạo đơn hàng giả lập
-        $products = Product::all();
+        $products = Product::query()->get()->values();
         if ($products->isEmpty()) {
-            $this->command->error('❌ Cần chạy ProductSeeder trước khi chạy AffiliateSeeder!');
+            $this->command?->error('❌ Cần chạy ProductSeeder trước khi chạy AffiliateSeeder!');
 
             return;
         }
 
-        $this->command->info('👤 Đang tạo dữ liệu mẫu cho Đối tác: '.$affiliateUser->name);
+        $this->command?->info('👤 Đang tạo dữ liệu mẫu cho Đối tác: '.$affiliateUser->name);
 
-        // 3. Tạo 15 đơn hàng với các kịch bản khác nhau
-        $statuses = ['pending', 'approved', 'rejected'];
+        $commissionStatuses = ['pending', 'approved', 'rejected'];
+        $rejectionReasons = ['Đơn hàng bị hoàn trả', 'Phát hiện gian lận click', 'Khách hàng hủy đơn'];
+        $customerNames = ['Nguyễn Hải Nam', 'Trần Thu Trang', 'Phạm Minh Khang', 'Lê Ngọc Anh', 'Võ Thanh Tùng'];
+        $customerAddresses = [
+            '15 Nguyễn Huệ, Quận 1, TP.HCM',
+            '72 Lê Duẩn, Hải Châu, Đà Nẵng',
+            '30 Tràng Tiền, Hoàn Kiếm, Hà Nội',
+            '101 Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ',
+            '48 Phan Đình Phùng, TP. Huế',
+        ];
 
         for ($i = 1; $i <= 15; $i++) {
             $orderItemsData = [];
             $totalSubtotal = 0;
             $totalCommission = 0;
+            $itemCount = 1 + (($i - 1) % min(3, $products->count()));
 
-            // Mỗi đơn hàng giả lập có từ 1 đến 3 sản phẩm khác nhau
-            $randomProducts = $products->random(rand(1, 3));
-
-            foreach ($randomProducts as $product) {
-                $qty = rand(1, 2);
+            for ($offset = 0; $offset < $itemCount; $offset++) {
+                $product = $products[(($i - 1) + $offset) % $products->count()];
+                $qty = 1 + (($i + $offset) % 2);
                 $price = $product->sale_price ?: $product->regular_price;
                 $lineTotal = $price * $qty;
-
-                // Lấy tỷ lệ % hoa hồng đã cấu hình tại Giai đoạn 1 & 3
-                // Nếu sản phẩm không có % riêng, mặc định dùng 10%
                 $rate = $product->affiliate_commission_rate ?: 10;
                 $commissionAmount = ($lineTotal * $rate) / 100;
 
@@ -65,39 +63,38 @@ class AffiliateSeeder extends Seeder
                     'quantity' => $qty,
                     'total' => $lineTotal,
                     'commission_rate' => $rate,
-                    'commission_amount' => $commissionAmount, // Snapshot quan trọng!
+                    'commission_amount' => $commissionAmount,
                 ];
             }
 
-            $commissionStatus = $faker->randomElement($statuses);
+            $commissionStatus = $commissionStatuses[($i - 1) % count($commissionStatuses)];
 
-            // 4. Tạo Order
-            $order = Order::create([
-                'user_id' => null, // Khách mua là người lạ
+            $order = Order::query()->create([
+                'user_id' => null,
                 'affiliate_id' => $affiliateUser->id,
                 'commission_status' => $commissionStatus,
                 'commission_amount' => $totalCommission,
-                'rejection_reason' => ($commissionStatus === 'rejected') ? $faker->randomElement(['Đơn hàng bị hoàn trả', 'Phát hiện gian lận click', 'Khách hàng hủy đơn']) : null,
-
-                'order_code' => 'AFF-'.strtoupper(Str::random(8)),
-                'customer_name' => $faker->name,
-                'customer_phone' => $faker->phoneNumber,
-                'customer_email' => $faker->safeEmail,
-                'customer_address' => $faker->address,
-
+                'rejection_reason' => $commissionStatus === 'rejected'
+                    ? $rejectionReasons[($i - 1) % count($rejectionReasons)]
+                    : null,
+                'order_code' => 'AFF-'.str_pad((string) $i, 8, '0', STR_PAD_LEFT),
+                'customer_name' => $customerNames[($i - 1) % count($customerNames)],
+                'customer_phone' => '0912'.str_pad((string) $i, 6, '0', STR_PAD_LEFT),
+                'customer_email' => 'affiliate-customer-'.$i.'@website.test',
+                'customer_address' => $customerAddresses[($i - 1) % count($customerAddresses)],
                 'subtotal' => $totalSubtotal,
-                'total' => $totalSubtotal + 30000, // Cộng phí ship giả định
-                'status' => ($commissionStatus === 'approved') ? 'completed' : 'pending',
-                'payment_method' => $faker->randomElement(['cod', 'bank_transfer']),
-                'created_at' => $faker->dateTimeBetween('-1 month', 'now'),
+                'total' => $totalSubtotal + 30000,
+                'status' => $commissionStatus === 'approved' ? 'completed' : 'pending',
+                'payment_method' => $i % 2 === 0 ? 'bank_transfer' : 'cod',
+                'created_at' => now()->subDays(($i * 2) % 30),
+                'updated_at' => now()->subDays(($i * 2) % 30),
             ]);
 
-            // 5. Lưu chi tiết Order Items (Quan trọng để test Modal chi tiết)
             foreach ($orderItemsData as $item) {
                 $order->items()->create($item);
             }
         }
 
-        $this->command->info('✅ Đã tạo 15 đơn hàng đối soát mẫu thành công!');
+        $this->command?->info('✅ Đã tạo 15 đơn hàng đối soát mẫu thành công!');
     }
 }
