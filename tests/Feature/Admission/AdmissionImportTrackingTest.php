@@ -66,7 +66,7 @@ class AdmissionImportTrackingTest extends TestCase
         $source = file_get_contents(base_path('Modules/Admission/Imports/ApplicationsImport.php'));
 
         $this->assertStringContainsString("'status'", $source);
-        $this->assertStringContainsString("$data['status'] = 'pending'", $source);
+        $this->assertStringContainsString('$data[\'status\'] = \'pending\'', $source);
         $this->assertStringContainsString("'row_snapshot'", $source);
         $this->assertStringContainsString("'ho_va_ten_hoc_sinh'", $source);
 
