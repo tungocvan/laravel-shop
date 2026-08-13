@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Admission\Exports\ApplicationsExport;
+use Modules\Admission\Jobs\GenerateAdmissionPdfJob;
 use Modules\Admission\Models\AdmissionApplication;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdmissionApplicationAdminService
 {
@@ -102,7 +103,6 @@ class AdmissionApplicationAdminService
             ->whereIn('id', $ids)
             ->orderBy('id')
             ->each(function (AdmissionApplication $application) use (&$deleted) {
-                // Delete one model at a time so the existing model file-cleanup hook remains intact.
                 $application->delete();
                 $deleted++;
             });
@@ -117,7 +117,6 @@ class AdmissionApplicationAdminService
         AdmissionApplication::query()
             ->orderBy('id')
             ->each(function (AdmissionApplication $application) use (&$deleted) {
-                // Keep Eloquent deleting hooks so PDF/Word files are cleaned up.
                 $application->delete();
                 $deleted++;
             });
@@ -131,13 +130,72 @@ class AdmissionApplicationAdminService
         return $deleted;
     }
 
+    public function queueDocumentsForIds(array $ids): int
+    {
+        $ids = collect($ids)
+            ->filter(fn ($id) => is_numeric($id) && (int) $id > 0)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return 0;
+        }
+
+        return $this->queueDocumentQuery(
+            AdmissionApplication::query()->whereIn('id', $ids)
+        );
+    }
+
+    public function queueDocumentsForFilters(array $filters): int
+    {
+        return $this->queueDocumentQuery($this->query($filters));
+    }
+
+    private function queueDocumentQuery(Builder $query): int
+    {
+        $queued = 0;
+        $pdfEnabled = (bool) config('admission.enable_pdf_convert', false);
+
+        $query->where('status', 'approved')
+            ->reorder('id')
+            ->chunkById(100, function ($applications) use (&$queued, $pdfEnabled) {
+                foreach ($applications as $application) {
+                    if (! $this->documentMissing($application, $pdfEnabled)) {
+                        continue;
+                    }
+
+                    GenerateAdmissionPdfJob::dispatch($application->id);
+                    $queued++;
+                }
+            });
+
+        return $queued;
+    }
+
+    private function documentMissing(AdmissionApplication $application, bool $pdfEnabled): bool
+    {
+        $wordExists = $application->word_path
+            && file_exists(storage_path('app/' . $application->word_path));
+
+        if (! $wordExists) {
+            return true;
+        }
+
+        if (! $pdfEnabled) {
+            return false;
+        }
+
+        return ! $application->pdf_path
+            || ! file_exists(storage_path('app/' . $application->pdf_path));
+    }
+
     private function resetAutoIncrement(): void
     {
         $driver = DB::connection()->getDriverName();
 
         if ($driver === 'mysql' || $driver === 'mariadb') {
             DB::statement('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1');
-
             return;
         }
 
