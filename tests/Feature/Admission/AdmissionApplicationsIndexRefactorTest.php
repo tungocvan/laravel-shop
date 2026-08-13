@@ -46,6 +46,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
             ['deleteSelected', 'delete_admission'],
             ['deleteAll', 'delete_admission'],
             ['delete', 'delete_admission'],
+            ['generateSelectedDocuments', 'download_admission_documents'],
             ['generateDocuments', 'download_admission_documents'],
             ['export', 'export_admission'],
         ];
@@ -57,6 +58,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
 
         $this->assertStringContainsString('AdmissionApplicationAdminService', $source);
         $this->assertStringContainsString('deleteAllAndResetIncrement', $source);
+        $this->assertStringContainsString('queueDocumentsForIds', $source);
         $this->assertStringContainsString('queueDocumentsForFilters', $source);
         $this->assertStringNotContainsString('AdmissionApplication::', $source);
         $this->assertStringNotContainsString("'all'", $source);
@@ -107,7 +109,9 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString('wire:loading.attr="disabled"', $blade);
         $this->assertStringContainsString('wire:click="deleteSelected"', $blade);
         $this->assertStringContainsString('wire:click="deleteAll"', $blade);
+        $this->assertStringContainsString('wire:click="generateSelectedDocuments"', $blade);
         $this->assertStringContainsString('wire:click="generateDocuments"', $blade);
+        $this->assertStringContainsString('Tạo file đã chọn', $blade);
         $this->assertStringContainsString('Tạo file còn thiếu', $blade);
         $this->assertStringContainsString('name="restore_status"', $blade);
         $this->assertStringContainsString('Xóa đã chọn', $blade);
