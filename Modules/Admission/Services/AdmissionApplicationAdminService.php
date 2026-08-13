@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Modules\Admission\Exports\ApplicationsExport;
 use Modules\Admission\Models\AdmissionApplication;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use RuntimeException;
 
 class AdmissionApplicationAdminService
 {
@@ -107,6 +108,44 @@ class AdmissionApplicationAdminService
             });
 
         return $deleted;
+    }
+
+    public function deleteAllAndResetIncrement(): int
+    {
+        $deleted = 0;
+
+        AdmissionApplication::query()
+            ->orderBy('id')
+            ->each(function (AdmissionApplication $application) use (&$deleted) {
+                // Keep Eloquent deleting hooks so PDF/Word files are cleaned up.
+                $application->delete();
+                $deleted++;
+            });
+
+        if (AdmissionApplication::query()->exists()) {
+            throw new RuntimeException('Không thể reset ID vì bảng admission_applications chưa rỗng hoàn toàn.');
+        }
+
+        $this->resetAutoIncrement();
+
+        return $deleted;
+    }
+
+    private function resetAutoIncrement(): void
+    {
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            DB::statement('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1');
+
+            return;
+        }
+
+        if ($driver === 'sqlite') {
+            DB::table('sqlite_sequence')
+                ->where('name', 'admission_applications')
+                ->delete();
+        }
     }
 
     public function downloadExport(array $filters): BinaryFileResponse
