@@ -5,6 +5,20 @@ return array (
   'type' => 'domain',
   'enabled' => true,
   'enable_pdf_convert' => env('ENABLE_PDF_CONVERT', false),
+  'queues' =>
+  array (
+    0 =>
+    array (
+      'name' => 'admission-documents',
+      'workers' => 1,
+      'timeout' => 180,
+      'tries' => 3,
+      'sleep' => 2,
+      'max_jobs' => 100,
+      'max_time' => 3600,
+      'description' => 'Tạo DOCX/PDF cho hồ sơ tuyển sinh đã duyệt.',
+    ),
+  ),
   'seeders' => 
   array (
     0 => 'Modules\\Admission\\database\\seeders\\DatabaseSeeder',
