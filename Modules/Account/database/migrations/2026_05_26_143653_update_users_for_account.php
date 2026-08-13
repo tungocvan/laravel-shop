@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('account_type', 30)
-                ->default('customer')
-                ->after('avatar')
-                ->comment('Loại tài khoản: employee = nhân viên công ty, customer = khách hàng cá nhân');
-
-        });
+        if (! Schema::hasColumn('users', 'account_type')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('account_type', 30)
+                    ->default('customer')
+                    ->after('avatar')
+                    ->comment('Loại tài khoản: employee = nhân viên công ty, customer = khách hàng cá nhân');
+            });
+        }
     }
 
     /**
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        // Intentionally left empty to preserve existing production data.
     }
 };
