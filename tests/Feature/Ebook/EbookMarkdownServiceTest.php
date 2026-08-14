@@ -54,6 +54,43 @@ class EbookMarkdownServiceTest extends TestCase
         $this->assertStringContainsString('language-php', $result['html']);
     }
 
+    public function test_fenced_code_is_decorated_with_copy_control(): void
+    {
+        $result = app(MarkdownService::class)->render(
+            $this->document(),
+            "```bash\nphp artisan test\n```"
+        );
+
+        $this->assertStringContainsString('ebook-code-block', $result['html']);
+        $this->assertStringContainsString('Sao chép', $result['html']);
+        $this->assertStringContainsString('navigator.clipboard.writeText', $result['html']);
+        $this->assertStringContainsString('language-bash', $result['html']);
+    }
+
+    public function test_external_http_link_opens_safely_in_new_tab(): void
+    {
+        $result = app(MarkdownService::class)->render(
+            $this->document(),
+            '[Laravel](https://laravel.com/docs)'
+        );
+
+        $this->assertStringContainsString('target="_blank"', $result['html']);
+        $this->assertStringContainsString('rel="noopener noreferrer"', $result['html']);
+        $this->assertStringContainsString('ebook-external-link', $result['html']);
+        $this->assertStringContainsString('↗', $result['html']);
+    }
+
+    public function test_anchor_link_remains_internal(): void
+    {
+        $result = app(MarkdownService::class)->render(
+            $this->document(),
+            '[Setup](#setup)'
+        );
+
+        $this->assertStringContainsString('href="#setup"', $result['html']);
+        $this->assertStringNotContainsString('target="_blank"', $result['html']);
+    }
+
     public function test_relative_image_is_rewritten_to_protected_asset_route(): void
     {
         $result = app(MarkdownService::class)->render(
@@ -65,6 +102,20 @@ class EbookMarkdownServiceTest extends TestCase
             'document' => 10,
             'path' => 'images/architecture.png',
         ]), $result['html']);
+    }
+
+    public function test_image_is_decorated_for_responsive_lightbox_and_caption(): void
+    {
+        $result = app(MarkdownService::class)->render(
+            $this->document(),
+            '![Architecture Diagram](images/architecture.png)'
+        );
+
+        $this->assertStringContainsString('cursor-zoom-in', $result['html']);
+        $this->assertStringContainsString('loading="lazy"', $result['html']);
+        $this->assertStringContainsString('x-data="{ open: false }"', $result['html']);
+        $this->assertStringContainsString('Phóng to hình ảnh', $result['html']);
+        $this->assertStringContainsString('Architecture Diagram', $result['html']);
     }
 
     public function test_asset_path_may_move_within_root_but_cannot_escape_root(): void
