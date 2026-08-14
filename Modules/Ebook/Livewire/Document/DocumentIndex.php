@@ -21,11 +21,24 @@ class DocumentIndex extends Component
     public int $sortOrder = 0;
     public bool $isActive = true;
     public ?string $expectedHash = null;
+    public string $workspace = 'editor';
     public $upload;
 
     public function mount(): void
     {
         $this->authorizeAdmin('ebook.view');
+    }
+
+    public function showEditor(): void
+    {
+        $this->authorizeAdmin('ebook.view');
+        $this->workspace = 'editor';
+    }
+
+    public function showList(): void
+    {
+        $this->authorizeAdmin('ebook.view');
+        $this->workspace = 'list';
     }
 
     public function edit(int $id): void
@@ -41,6 +54,7 @@ class DocumentIndex extends Component
         $this->sortOrder = (int) $document->sort_order;
         $this->isActive = (bool) $document->is_active;
         $this->expectedHash = $document->content_hash;
+        $this->workspace = 'editor';
     }
 
     public function save(): void
@@ -109,6 +123,7 @@ class DocumentIndex extends Component
     {
         $this->reset(['documentId', 'title', 'slug', 'description', 'content', 'sortOrder', 'expectedHash', 'upload']);
         $this->isActive = true;
+        $this->workspace = 'editor';
     }
 
     public function render()
