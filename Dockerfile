@@ -46,7 +46,7 @@ COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/10-opcache-production.ini
 COPY docker/php/www.conf /usr/local/etc/php-fpm.d/zz-production.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod 0755 /usr/local/bin/entrypoint \
-    && mkdir -p storage/app storage/framework storage/logs bootstrap/cache \
+    && mkdir -p storage/app storage/app/system storage/framework storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache Modules \
     && find Modules -type d -exec chmod ug+rwx {} \; \
     && find Modules -type f -exec chmod ug+rw {} \;
