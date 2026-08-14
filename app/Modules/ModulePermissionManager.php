@@ -14,15 +14,16 @@ class ModulePermissionManager
     {
         $permissions = $this->permissionsFromPath($module['path']);
 
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->forgetCache();
 
         foreach ($permissions as $permission) {
             Permission::findOrCreate($permission, 'admin');
         }
 
+        $this->forgetCache();
         $superAdmin = Role::findOrCreate('Super Admin', 'admin');
         $superAdmin->givePermissionTo($permissions);
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->forgetCache();
 
         return count($permissions);
     }
@@ -116,6 +117,11 @@ class ModulePermissionManager
             foreach ($permissions as $permission) {
                 Permission::findOrCreate($permission, 'admin');
             }
+
+            // Spatie caches the permission collection. On a fresh database the
+            // permissions above were created after that cache was first loaded,
+            // so refresh it before resolving names in givePermissionTo().
+            $this->forgetCache();
 
             Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissions->all());
         });
