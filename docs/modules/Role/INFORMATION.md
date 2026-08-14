@@ -8,30 +8,23 @@ Updated: 2026-08-14
 
 ## Features
 
-- List, search and paginate roles.
-- Create/edit roles.
-- Assign permissions.
-- Delete unused non-protected roles.
-- Generate permission records for named module/action combinations.
-- Import/export role configuration through the shared import/export foundation.
+- List/search/paginate admin roles.
+- Create/edit roles through `RoleService`.
+- Assign permissions from the active server-owned module catalog.
+- Protect `Super Admin` from normal edit/delete workflows.
+- Delete unused roles singly or in bulk through transactional service methods.
+- Synchronize declared module permissions from the Role UI only for `Super Admin` and only when the requested permission names are present in the active module catalog.
+- Import/export through the Shared Import/Export foundation.
 
 ## Routes
 
-Canonical web routes:
+- `GET /admin/roles` -> `admin.role.index` -> `view_role`
+- `GET /admin/roles/create` -> `admin.role.create` -> `create_role`
+- `GET /admin/roles/{id}/edit` -> `admin.role.edit` -> `edit_role`
 
-- `GET /admin/roles` -> `admin.role.index`
-- `GET /admin/roles/create` -> `admin.role.create`
-- `GET /admin/roles/{id}/edit` -> `admin.role.edit`
-
-Legacy redirects exist from `/admin/role...`.
-
-API placeholder:
-
-- `GET /api/role`
+Legacy `/admin/role...` redirects remain.
 
 ## Permissions
-
-Declared in `Modules/Role/config/module.php`:
 
 - `view_role`
 - `create_role`
@@ -40,63 +33,35 @@ Declared in `Modules/Role/config/module.php`:
 - `import_role`
 - `export_role`
 
-Important limitation: current Role web routes and Livewire CRUD mutations do not consistently enforce these capabilities.
+Sensitive Livewire mutations now re-authorize independently of route access.
 
 ## Controllers
 
 - `Modules\Role\Http\Controllers\RoleController`
-- `Modules\Role\Http\Controllers\Api\RoleController`
+- `Modules\Role\Http\Controllers\Api\RoleController` (placeholder; cleanup deferred)
 
 ## Livewire Components
 
-- `Modules\Role\Livewire\RoleTable` -> `role.role-table`
-- `Modules\Role\Livewire\RoleForm` -> `role.role-form`
-
-## Blade Views
-
-Page views live under:
-
-- `Modules/Role/resources/views/pages/roles/`
-
-Livewire views:
-
-- `Modules/Role/resources/views/livewire/role-table.blade.php`
-- `Modules/Role/resources/views/livewire/role-form.blade.php`
+- `role.role-table`
+- `role.role-form`
 
 ## Services
 
+- `Modules\Role\Services\RoleService`
+  - admin-guard role resolution/query
+  - transactional create/update + permission sync
+  - protected-role invariant
+  - transactional single/bulk delete
+  - server-approved permission validation
 - `Modules\Role\Services\ImportExport`
+  - Shared/FastExcel import-export
+  - admin guard only
+  - rejects unknown or unsynced permissions
+  - no arbitrary permission creation from uploaded data
 
-The service extends:
+## Models / Database
 
-- `Modules\Shared\Services\ImportExport\BaseImportExportService`
-
-## Imports / Exports
-
-Role import/export uses FastExcel through the shared import/export architecture.
-
-Current import behavior:
-
-- supports dry-run,
-- does not support replace mode,
-- uses `(name, guard_name)` duplicate identity,
-- validates rows,
-- wraps non-dry-run writes in a transaction,
-- protects `Super Admin` from non-Super-Admin actors,
-- can currently create permission records named by imported data.
-
-## Models
-
-Active persistence uses Spatie models directly:
-
-- `Spatie\Permission\Models\Role`
-- `Spatie\Permission\Models\Permission`
-
-No module-local Role model is required by the inspected workflows.
-
-## Database Tables
-
-Primary Spatie tables:
+Persistence uses Spatie models and tables:
 
 - `roles`
 - `permissions`
@@ -104,59 +69,39 @@ Primary Spatie tables:
 - `model_has_permissions`
 - `role_has_permissions`
 
-Role migration directory also contains a migration for `module_migrations`; its canonical ownership should be reviewed.
+No schema change was introduced by this refactor.
 
-## Relationships
+## Dependencies
 
-Spatie relationships used by current code include:
-
-- Role -> permissions
-- Role -> users/model role assignments
-
-`RoleTable` uses `withCount('users')` to protect in-use roles from deletion.
-
-## Shared / Cross-Module Dependencies
-
-Manifest declares:
-
-- `User`
-
-Observed dependencies include:
-
-- `Modules/Shared/Services/ImportExport`
-- `App/Modules/ModulePermissionManager`
-- `App/Models/User`
 - `spatie/laravel-permission`
+- `App\Modules\ModulePermissionManager`
+- `Modules/Shared/Services/ImportExport`
+- `User` module as currently declared by manifest
 
-## Events / Jobs
+## Security Invariants
 
-No Role-specific event/job workflow was proven in this analysis.
+- Role UI is admin-guard only.
+- Direct Livewire save/delete/bulk-delete calls require the appropriate named permission.
+- Permission-catalog mutation requires `Super Admin`.
+- `Super Admin` cannot be edited or deleted through normal Role UI/service workflows.
+- Role assignment/import cannot create arbitrary permission rows from browser/upload values.
 
-## Configuration / Environment Variables
+## Known Deferred Work
 
-Manifest:
+- manifest `shell` vs architectural `support` drift
+- malformed historical migration filenames
+- `module_migrations` ownership
+- public placeholder API route
+- broader UI authorization visibility/polish
 
-- `Modules/Role/config/module.php`
+## Verification
 
-Current manifest declares:
+Implementation branch: `agent/refactor-role`.
 
-- `name = Role`
-- `type = shell`
-- `enabled = true`
-- `depends = User`
+Run locally before merge:
 
-No Role-specific environment variable was identified.
-
-## Known Limitations
-
-- Capability authorization is missing from core Role CRUD Livewire mutations/routes.
-- `Super Admin` can still be edited/renamed through `RoleForm`.
-- Permission creation/import can create capabilities outside the active module manifest catalog.
-- Role save and bulk delete workflows are not fully transactional.
-- Manifest type conflicts with bootstrap architectural description of Role as a support module.
-- Negative-year migration filenames remain.
-- Placeholder API endpoint remains.
-
-## Maintenance Notes
-
-Treat Role as a security-sensitive module. Any refactor should preserve existing route names, Spatie table contracts and Livewire aliases unless a compatibility migration is explicitly planned. Add denied-access and protected-role tests before broad implementation changes.
+```bash
+php artisan test tests/Feature/Role/RoleRouteAuthorizationTest.php
+php artisan test
+./vendor/bin/pint Modules/Role tests/Feature/Role
+```
