@@ -4,6 +4,7 @@
             <div>
                 <h2 class="text-xl font-semibold text-gray-900">Quản lý Module</h2>
                 <p class="mt-1 text-sm text-gray-600">Bật/tắt, kiểm tra dependency, route và trạng thái database của các module.</p>
+                <p class="mt-1 text-xs text-gray-500">Trạng thái bật/tắt runtime được lưu tại <code>storage/app/system/module-state.json</code> và không sửa manifest của module.</p>
                 @if (! $canUpdate)
                     <p class="mt-2 text-xs font-semibold text-amber-700">Chế độ chỉ xem — cần quyền system.modules.update để thay đổi cấu hình module.</p>
                 @endif
@@ -53,7 +54,16 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div class="min-w-0 flex-1">
                                     <h4 class="text-sm font-medium text-gray-900">{{ $module['name'] }}</h4>
-                                    <p class="mt-1 text-xs text-gray-500">{{ ucfirst($module['type']) }} • {{ $module['source'] === 'manifest' ? 'Config' : 'Default' }}</p>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        {{ ucfirst($module['type']) }} •
+                                        @if ($module['source'] === 'runtime')
+                                            <span class="font-semibold text-indigo-700">Runtime</span>
+                                        @elseif ($module['source'] === 'manifest')
+                                            <span>Manifest</span>
+                                        @else
+                                            <span>Default</span>
+                                        @endif
+                                    </p>
 
                                     @if ($module['required'])
                                         <p class="mt-1 text-xs font-semibold text-red-600">Bắt buộc bật — không thể tắt</p>
