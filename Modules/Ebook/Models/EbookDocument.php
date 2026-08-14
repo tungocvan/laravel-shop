@@ -2,8 +2,10 @@
 
 namespace Modules\Ebook\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class EbookDocument extends Model
 {
@@ -34,5 +36,11 @@ class EbookDocument extends Model
     public function folder(): BelongsTo
     {
         return $this->belongsTo(EbookFolder::class, 'folder_id');
+    }
+
+    public function viewers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'ebook_document_users', 'ebook_document_id', 'user_id')
+            ->withTimestamps();
     }
 }
