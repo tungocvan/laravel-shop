@@ -18,8 +18,13 @@
                     👁 Xem tài liệu
                 </a>
             @endif
-            <button type="button" wire:click="resetForm"
+            <button type="button" wire:click="startNew" wire:dirty.remove
                     class="inline-flex items-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300">
+                + Tài liệu mới
+            </button>
+            <button type="button" wire:click="startNew" wire:dirty
+                    wire:confirm="Bạn đang có thay đổi chưa lưu. Bỏ các thay đổi này và tạo tài liệu mới?"
+                    class="inline-flex items-center rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                 + Tài liệu mới
             </button>
         </div>
@@ -95,6 +100,7 @@
                         <div>
                             <label for="ebook-document-title" class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tiêu đề tài liệu</label>
                             <input id="ebook-document-title" type="text" wire:model="title"
+                                   x-on:ebook-editor-focus-title.window="$nextTick(() => $el.focus())"
                                    class="block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-base font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 dark:text-gray-100 dark:ring-gray-600"
                                    placeholder="Ví dụ: Laravel Deployment Guide">
                             @error('title') <p class="mt-1 text-sm font-medium text-red-600">{{ $message }}</p> @enderror
