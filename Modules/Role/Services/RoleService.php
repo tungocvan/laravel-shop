@@ -6,6 +6,7 @@ use App\Modules\ModulePermissionManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -73,6 +74,17 @@ class RoleService
         if ($unknown->isNotEmpty()) {
             throw ValidationException::withMessages([
                 'selectedPermissions' => 'Có quyền không hợp lệ hoặc không còn thuộc catalog đang được hệ thống cho phép.',
+            ]);
+        }
+
+        $persistedPermissionNames = Permission::query()
+            ->where('guard_name', self::ADMIN_GUARD)
+            ->whereIn('name', $requested)
+            ->pluck('name');
+
+        if ($requested->diff($persistedPermissionNames)->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'selectedPermissions' => 'Có quyền chưa được đồng bộ vào hệ thống permissions.',
             ]);
         }
 
