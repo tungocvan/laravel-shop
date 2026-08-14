@@ -140,6 +140,7 @@ class MarkdownService
             $language = trim((string) ($matches[1] ?? ''));
             $label = $language !== '' ? strtoupper($language) : 'CODE';
             $class = $language !== '' ? ' class="language-'.e($language).'"' : '';
+            $highlighted = app(SyntaxHighlighterService::class)->highlight($matches[2], $language);
 
             return '<div class="ebook-code-block relative my-5 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-sm" x-data="{ copied: false }">'
                 .'<div class="flex items-center justify-between border-b border-slate-800 px-3 py-2 text-xs font-semibold text-slate-400">'
@@ -147,7 +148,7 @@ class MarkdownService
                 .'<button type="button" class="rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-indigo-500 hover:text-white" '
                 .'@click="navigator.clipboard.writeText($refs.code.innerText).then(() => { copied = true; setTimeout(() => copied = false, 1600) })">'
                 .'<span x-show="!copied">⧉ Sao chép</span><span x-cloak x-show="copied">✓ Đã sao chép</span></button></div>'
-                .'<pre class="m-0 overflow-x-auto rounded-none border-0 bg-slate-950 p-4"><code x-ref="code"'.$class.'>'.$matches[2].'</code></pre>'
+                .'<pre class="m-0 overflow-x-auto rounded-none border-0 bg-slate-950 p-4"><code x-ref="code"'.$class.'>'.$highlighted.'</code></pre>'
                 .'</div>';
         }, $html) ?? $html;
     }
