@@ -4,7 +4,9 @@
         tocOpen: false,
         query: '',
         fullscreen: false,
+        activeHeading: '',
         documents: @js($documentPicker),
+        observer: null,
         get filteredDocuments() {
             const needle = this.query.trim().toLocaleLowerCase();
             if (!needle) return this.documents;
@@ -20,9 +22,28 @@
             } else {
                 await document.exitFullscreen();
             }
+        },
+        initTocSpy() {
+            if (this.observer) this.observer.disconnect();
+            const headings = Array.from(this.$refs.reader.querySelectorAll('.ebook-markdown h1[id], .ebook-markdown h2[id], .ebook-markdown h3[id], .ebook-markdown h4[id], .ebook-markdown h5[id], .ebook-markdown h6[id]'));
+            if (!headings.length) return;
+
+            this.activeHeading = headings[0].id;
+            this.observer = new IntersectionObserver((entries) => {
+                const visible = entries
+                    .filter(entry => entry.isIntersecting)
+                    .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+                if (visible.length) this.activeHeading = visible[0].target.id;
+            }, {
+                root: null,
+                rootMargin: '-12% 0px -72% 0px',
+                threshold: [0, 1]
+            });
+
+            headings.forEach(heading => this.observer.observe(heading));
         }
      }"
-     x-init="document.addEventListener('fullscreenchange', () => fullscreen = !!document.fullscreenElement)">
+     x-init="$nextTick(() => initTocSpy()); document.addEventListener('fullscreenchange', () => { fullscreen = !!document.fullscreenElement; $nextTick(() => initTocSpy()); })">
 
     <header class="border-b border-slate-200 pb-4 dark:border-slate-700">
         <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -64,25 +85,6 @@
                     @foreach ($breadcrumbs as $item)<span class="text-slate-300">/</span><span>{{ $item['name'] }}</span>@endforeach
                     <span class="text-slate-300">/</span><span class="truncate font-medium text-slate-700 dark:text-slate-200">{{ $document->title }}</span>
                 </nav>
-
-                @if ($adjacent['previous'] || $adjacent['next'])
-                    <nav class="mt-3 flex flex-wrap items-center gap-2" aria-label="Điều hướng tài liệu nhanh">
-                        @if ($adjacent['previous'])
-                            <a href="{{ route('admin.ebook.document.show', $adjacent['previous']['id']) }}"
-                               class="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                <span aria-hidden="true">←</span>
-                                <span class="min-w-0"><span class="block text-[11px] uppercase tracking-wide text-slate-400">Trước</span><span class="block max-w-64 truncate font-medium">{{ $adjacent['previous']['title'] }}</span></span>
-                            </a>
-                        @endif
-                        @if ($adjacent['next'])
-                            <a href="{{ route('admin.ebook.document.show', $adjacent['next']['id']) }}"
-                               class="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                <span class="min-w-0 text-right"><span class="block text-[11px] uppercase tracking-wide text-slate-400">Tiếp</span><span class="block max-w-64 truncate font-medium">{{ $adjacent['next']['title'] }}</span></span>
-                                <span aria-hidden="true">→</span>
-                            </a>
-                        @endif
-                    </nav>
-                @endif
             </div>
 
             <div class="flex shrink-0 flex-wrap items-center gap-2">
@@ -109,7 +111,11 @@
             </div>
             <nav class="p-3">
                 @forelse ($toc as $item)
-                    <a href="#{{ $item['id'] }}" @click="tocOpen = false" class="block rounded-lg py-2 pr-2 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-300" style="padding-left: {{ 0.7 + min(3, max(0, $item['level'] - 1)) * 0.65 }}rem;">{{ $item['title'] }}</a>
+                    <a href="#{{ $item['id'] }}"
+                       @click="tocOpen = false"
+                       class="block rounded-lg border-l-2 py-2 pr-2 text-sm transition"
+                       :class="activeHeading === @js($item['id']) ? 'border-indigo-500 bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300' : 'border-transparent text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-300'"
+                       style="padding-left: {{ 0.7 + min(3, max(0, $item['level'] - 1)) * 0.65 }}rem;">{{ $item['title'] }}</a>
                 @empty
                     <p class="p-4 text-sm text-slate-500">Tài liệu chưa có heading.</p>
                 @endforelse
@@ -127,6 +133,24 @@
             @if ($readingMode)
                 <main class="mx-auto w-full" :class="fullscreen ? 'max-w-screen-2xl' : 'max-w-5xl'">
                     <article class="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                        @if ($adjacent['previous'] || $adjacent['next'])
+                            <nav class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6" aria-label="Điều hướng tài liệu nhanh">
+                                <div class="min-w-0">
+                                    @if ($adjacent['previous'])
+                                        <a href="{{ route('admin.ebook.document.show', $adjacent['previous']['id']) }}" class="group inline-flex max-w-full items-center gap-2 text-sm text-slate-500 transition hover:text-indigo-700 dark:text-slate-400 dark:hover:text-indigo-300">
+                                            <span aria-hidden="true">←</span><span class="truncate"><span class="text-xs uppercase tracking-wide">Trước</span><span class="ml-1 font-semibold text-slate-700 group-hover:text-indigo-700 dark:text-slate-200">{{ $adjacent['previous']['title'] }}</span></span>
+                                        </a>
+                                    @endif
+                                </div>
+                                <div class="min-w-0 text-right">
+                                    @if ($adjacent['next'])
+                                        <a href="{{ route('admin.ebook.document.show', $adjacent['next']['id']) }}" class="group inline-flex max-w-full items-center gap-2 text-sm text-slate-500 transition hover:text-indigo-700 dark:text-slate-400 dark:hover:text-indigo-300">
+                                            <span class="truncate"><span class="text-xs uppercase tracking-wide">Tiếp</span><span class="ml-1 font-semibold text-slate-700 group-hover:text-indigo-700 dark:text-slate-200">{{ $adjacent['next']['title'] }}</span></span><span aria-hidden="true">→</span>
+                                        </a>
+                                    @endif
+                                </div>
+                            </nav>
+                        @endif
                         <div class="ebook-markdown mx-auto overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:px-10 lg:py-10" :class="fullscreen ? 'max-w-6xl' : 'max-w-5xl'">{!! $html !!}</div>
                     </article>
                 </main>
@@ -137,7 +161,10 @@
                             <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800"><h2 class="text-sm font-bold">Mục lục</h2><p class="mt-1 text-xs text-slate-500">Đi tới nhanh từng phần.</p></div>
                             <nav class="max-h-[calc(100dvh-15rem)] overflow-y-auto p-3">
                                 @forelse ($toc as $item)
-                                    <a href="#{{ $item['id'] }}" class="block rounded-lg py-1.5 pr-2 text-[13px] leading-5 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-300" style="padding-left: {{ 0.6 + min(3, max(0, $item['level'] - 1)) * 0.55 }}rem;">{{ $item['title'] }}</a>
+                                    <a href="#{{ $item['id'] }}"
+                                       class="block rounded-lg border-l-2 py-1.5 pr-2 text-[13px] leading-5 transition"
+                                       :class="activeHeading === @js($item['id']) ? 'border-indigo-500 bg-indigo-50 font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300' : 'border-transparent text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-300'"
+                                       style="padding-left: {{ 0.6 + min(3, max(0, $item['level'] - 1)) * 0.55 }}rem;">{{ $item['title'] }}</a>
                                 @empty
                                     <div class="p-4 text-center text-xs text-slate-500">Tài liệu chưa có heading.</div>
                                 @endforelse
@@ -146,6 +173,24 @@
                     </aside>
                     <main class="min-w-0 w-full">
                         <article class="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                            @if ($adjacent['previous'] || $adjacent['next'])
+                                <nav class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6" aria-label="Điều hướng tài liệu nhanh">
+                                    <div class="min-w-0">
+                                        @if ($adjacent['previous'])
+                                            <a href="{{ route('admin.ebook.document.show', $adjacent['previous']['id']) }}" class="group inline-flex max-w-full items-center gap-2 text-sm text-slate-500 transition hover:text-indigo-700 dark:text-slate-400 dark:hover:text-indigo-300">
+                                                <span aria-hidden="true">←</span><span class="truncate"><span class="text-xs uppercase tracking-wide">Trước</span><span class="ml-1 font-semibold text-slate-700 group-hover:text-indigo-700 dark:text-slate-200">{{ $adjacent['previous']['title'] }}</span></span>
+                                            </a>
+                                        @endif
+                                    </div>
+                                    <div class="min-w-0 text-right">
+                                        @if ($adjacent['next'])
+                                            <a href="{{ route('admin.ebook.document.show', $adjacent['next']['id']) }}" class="group inline-flex max-w-full items-center gap-2 text-sm text-slate-500 transition hover:text-indigo-700 dark:text-slate-400 dark:hover:text-indigo-300">
+                                                <span class="truncate"><span class="text-xs uppercase tracking-wide">Tiếp</span><span class="ml-1 font-semibold text-slate-700 group-hover:text-indigo-700 dark:text-slate-200">{{ $adjacent['next']['title'] }}</span></span><span aria-hidden="true">→</span>
+                                            </a>
+                                        @endif
+                                    </div>
+                                </nav>
+                            @endif
                             <div class="ebook-markdown mx-auto overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:px-10 lg:py-10" :class="fullscreen ? 'max-w-6xl' : 'max-w-5xl'">{!! $html !!}</div>
                         </article>
                     </main>
