@@ -1,12 +1,15 @@
-# Hướng dẫn sử dụng `/create-module`
+# Hướng dẫn phân tích và tạo Module mới
 
 ## Mục tiêu
 
-Tài liệu này hướng dẫn sử dụng workflow:
+Tài liệu này hướng dẫn hai workflow liên tiếp:
 
-`.codex/tasks/create-module.md`
+```text
+.codex/tasks/analyze-new-module.md
+.codex/tasks/create-module.md
+```
 
-để tạo Module mới đúng kiến trúc hiện tại của dự án.
+để biến một ý tưởng nghiệp vụ thành Module mới đúng kiến trúc hiện tại của dự án.
 
 Điểm quan trọng nhất:
 
@@ -14,37 +17,182 @@ Tài liệu này hướng dẫn sử dụng workflow:
 
 Module mới phải phù hợp với provider này, không tự tạo một module system hoặc registration path khác.
 
-## 1. Khi nào dùng
+## 1. Chọn đúng workflow
 
-Dùng `/create-module` khi cần tạo một Module hoàn toàn mới, ví dụ:
+Có hai trường hợp.
+
+### Trường hợp A — Chỉ có ý tưởng hoặc file `.md` thô
+
+Không gọi `/create-module` ngay.
+
+Dùng:
+
+```text
+/analyze-new-module <idea-file.md>
+```
+
+Luồng chuẩn:
+
+```text
+Ý tưởng / file .md thô
+        ↓
+/analyze-new-module
+        ↓
+Business + architecture analysis
+        ↓
+CREATE-MODULE READINESS
+        ↓
+User review / clarification
+        ↓
+REQUIREMENTS.md
+        ↓
+User approval
+        ↓
+/create-module <ModuleName>
+        ↓
+CREATE_PLAN.md
+        ↓
+Approval Gate
+        ↓
+Implementation
+```
+
+### Trường hợp B — Requirement đã rõ và đã được duyệt
+
+Có thể đi thẳng vào:
+
+```text
+/create-module <ModuleName>
+```
+
+với business specification chính thức, ưu tiên:
+
+```text
+docs/modules/<ModuleName>/REQUIREMENTS.md
+```
+
+Không dùng `/analyze-module` cho Module chưa tồn tại. `/analyze-module` dành cho việc phân tích source của một Module hiện hữu.
+
+## 2. `/analyze-new-module` dùng để làm gì
+
+Workflow này chỉ phân tích và chuẩn hóa ý tưởng trước khi tạo Module.
+
+Nó phải:
+
+- đọc toàn bộ tài liệu ý tưởng được cung cấp
+- phân biệt requirement đã xác định và requirement còn mơ hồ
+- phân tích actors, roles, business rules và workflow
+- phân tích state transitions khi có
+- dự kiến domain entities/database ở mức thiết kế
+- phân tích permissions, Admin UI, API/Web, files/import/export, jobs/events khi applicable
+- kiểm tra cross-module dependencies
+- tìm 1–3 Reference Modules phù hợp
+- kiểm tra compatibility với `Modules/ModuleServiceProvider.php`
+- đề xuất Bootstrap Contract
+- phân loại MUST HAVE / SHOULD HAVE / FUTURE
+- thực hiện Gap Analysis
+- đánh giá `CREATE-MODULE READINESS`
+
+Workflow này KHÔNG được:
+
+- tạo Module
+- tạo migration
+- tạo application code
+- tự chạy `/create-module`
+- tự tạo `CREATE_PLAN.md`
+- tự sửa file ý tưởng gốc
+
+## 3. CREATE-MODULE READINESS
+
+Cuối `/analyze-new-module`, AI phải đánh giá tối thiểu:
+
+```text
+Business requirements : READY / NOT READY
+Module boundaries      : READY / NOT READY
+Dependencies           : READY / NOT READY
+Database               : READY / NOT READY
+Permissions            : READY / NOT READY
+Workflow               : READY / NOT READY
+Bootstrap Contract     : READY / NOT READY
+
+Overall:
+READY FOR /create-module
+hoặc
+NOT READY FOR /create-module
+```
+
+Nếu `NOT READY`, phải nêu chính xác các quyết định còn thiếu. Không được tự điền business rule để ép trạng thái thành READY.
+
+## 4. Chuẩn hóa thành `REQUIREMENTS.md`
+
+Khi phân tích đã được người dùng duyệt, bước tiếp theo là chuẩn hóa requirement thành:
+
+```text
+docs/modules/<ModuleName>/REQUIREMENTS.md
+```
+
+Ví dụ prompt:
+
+```text
+Tôi đồng ý với phân tích.
+
+Hãy chuẩn hóa kết quả đã được duyệt thành:
+docs/modules/News/REQUIREMENTS.md
+
+REQUIREMENTS.md phải là tài liệu nghiệp vụ chính thức,
+không chứa những giả định chưa được tôi duyệt.
+
+Chưa chạy /create-module.
+```
+
+Người dùng review `REQUIREMENTS.md` lần cuối trước khi chuyển sang `/create-module`.
+
+## 5. Prompt phân tích ý tưởng mẫu
+
+```text
+/analyze-new-module docs/ideas/news-module.md
+
+Đây là tài liệu ý tưởng ban đầu cho Module mới.
+
+Hãy thực hiện đúng:
+.codex/tasks/analyze-new-module.md
+
+Yêu cầu:
+- chỉ phân tích và chuẩn hóa requirement
+- đọc repository thực tế
+- tuân thủ Modules/ModuleServiceProvider.php
+- tìm 1–3 Reference Modules
+- phân tích business workflow, dependency, database, permission và Bootstrap Contract
+- thực hiện Gap Analysis
+- kết luận CREATE-MODULE READINESS
+
+Chưa tạo Module.
+Chưa tạo migration/code.
+Chưa chạy /create-module.
+```
+
+## 6. Cách gọi `/create-module`
+
+Sau khi requirement đã READY và được duyệt:
 
 ```text
 /create-module News
-/create-module CustomerCare
-/create-module Reports
+
+Business specification:
+docs/modules/News/REQUIREMENTS.md
+
+Hãy thực hiện đúng:
+.codex/tasks/create-module.md
+
+Đặc biệt phải tuân thủ:
+Modules/ModuleServiceProvider.php
+
+Thực hiện Phase phân tích và tạo CREATE_PLAN.md trước.
+DỪNG tại Approval Gate.
+Chưa implementation cho đến khi tôi duyệt CREATE_PLAN.md.
 ```
 
-Không dùng cho refactor một Module đã tồn tại; trường hợp đó dùng workflow analyze/refactor tương ứng.
-
-## 2. Cách gọi cơ bản
-
-Ví dụ:
-
-```text
-/create-module News
-
-Yêu cầu nghiệp vụ:
-- Quản lý tin tức
-- Admin CRUD
-- Danh mục
-- Public listing/detail
-- Có phân quyền
-- Có upload ảnh đại diện
-```
-
-AI phải đọc `.codex/tasks/create-module.md` và các tài liệu bắt buộc trước khi code.
-
-## 3. AI phải đọc gì trước
+## 7. AI phải đọc gì trước khi create
 
 Tối thiểu:
 
@@ -60,7 +208,7 @@ Tối thiểu:
 
 Nếu có import/export thì đọc thêm `.codex/prompts/import-export.md`.
 
-## 4. Quy trình chuẩn
+## 8. Quy trình `/create-module`
 
 ### Phase 1 — Resolve Scope
 
@@ -114,7 +262,7 @@ Runtime state     : supported
 
 Nếu requirement không thể đi qua provider hiện tại, AI phải STOP và đề xuất provider-level change riêng trước.
 
-## 5. Quy tắc `Modules/ModuleServiceProvider.php`
+## 9. Quy tắc `Modules/ModuleServiceProvider.php`
 
 Provider hiện tại là integration contract chính.
 
@@ -141,7 +289,7 @@ Không tự thêm:
 - manual provider registration ở bootstrap khác
 - custom discovery trùng với root provider
 
-## 6. Chống duplicate registration
+## 10. Chống duplicate registration
 
 Nếu Module có:
 
@@ -157,7 +305,7 @@ Phải tránh:
 - duplicate Livewire registration
 - duplicate Blade registration
 
-## 7. Manifest và Runtime State
+## 11. Manifest và Runtime State
 
 Manifest là source/default state trong Git.
 
@@ -184,7 +332,7 @@ git status
 
 phải vẫn sạch.
 
-## 8. Dependency
+## 12. Dependency
 
 Khi khai báo `depends` phải kiểm tra:
 
@@ -196,7 +344,7 @@ Khi khai báo `depends` phải kiểm tra:
 
 Không hard-code graph dependency ở nhiều nơi.
 
-## 9. `CREATE_PLAN.md` và Approval Gate
+## 13. `CREATE_PLAN.md` và Approval Gate
 
 Trước khi code application, AI phải tạo:
 
@@ -229,7 +377,7 @@ Sau khi tạo plan, AI phải STOP.
 
 Chỉ code sau khi người dùng đồng ý.
 
-## 10. Implementation theo MR
+## 14. Implementation theo MR
 
 Một Module vừa/lớn có thể chia:
 
@@ -247,7 +395,7 @@ MR-8 — Final regression + manual smoke
 
 Đây là template; module nhỏ có thể gộp.
 
-## 11. Service và Livewire
+## 15. Service và Livewire
 
 Luồng ưu tiên:
 
@@ -263,7 +411,7 @@ Không đưa business logic lớn vào Blade hoặc Livewire method.
 
 Sensitive mutation phải authorize server-side.
 
-## 12. Permission và Admin UI
+## 16. Permission và Admin UI
 
 Nếu có Admin UI:
 
@@ -273,7 +421,7 @@ Nếu có Admin UI:
 - Super Admin behavior phải theo convention hiện tại
 - không chỉ ẩn button mà bỏ backend authorization
 
-## 13. Database
+## 17. Database
 
 Nếu có database:
 
@@ -283,7 +431,7 @@ Nếu có database:
 - không dùng `migrate:fresh` để chữa bug
 - test schema và enable/migration lifecycle khi relevant
 
-## 14. Seeder
+## 18. Seeder
 
 Seeder phải production/Docker-safe.
 
@@ -293,7 +441,7 @@ Không phụ thuộc Faker nếu production dependencies có thể không chứa
 
 Demo seeder không được ghi đè production data/admin credential.
 
-## 15. Docker / runtime storage
+## 19. Docker / runtime storage
 
 Nếu module tạo runtime file/directory:
 
@@ -304,7 +452,7 @@ Nếu module tạo runtime file/directory:
 - phân biệt `root` CLI và PHP-FPM `www-data`
 - không dùng `chmod 777`
 
-## 16. Test strategy
+## 20. Test strategy
 
 Thực hiện theo tầng:
 
@@ -330,7 +478,7 @@ Runtime-state applicable phải test:
 - manifest không bị sửa
 - Git clean
 
-## 17. Manual UI smoke
+## 21. Manual UI smoke
 
 Nếu có UI, kiểm tra:
 
@@ -347,7 +495,7 @@ Nếu có UI, kiểm tra:
 - dependency/required rules
 - Git clean
 
-## 18. Completion Criteria
+## 22. Completion Criteria
 
 Chỉ kết luận Module hoàn thành khi applicable gates PASS:
 
@@ -373,37 +521,30 @@ Chỉ kết luận Module hoàn thành khi applicable gates PASS:
 
 Sau đó mới đề xuất merge vào `main`.
 
-## 19. Ví dụ prompt hoàn chỉnh
+## 23. Phân biệt ba command
 
 ```text
-/create-module News
+/analyze-new-module <idea.md>
+    → Module CHƯA tồn tại
+    → phân tích ý tưởng và readiness
 
-Nghiệp vụ:
-- Admin quản lý tin tức
-- Danh mục tin
-- Public list/detail
-- Upload thumbnail
-- Permission view/create/update/delete
+/analyze <ModuleName>
+    → Module ĐÃ tồn tại
+    → phân tích source hiện tại và tạo documentation
 
-Hãy tuân thủ .codex/tasks/create-module.md.
-Đặc biệt phải tuân theo Modules/ModuleServiceProvider.php.
-
-Trước tiên:
-1. đọc repository
-2. chọn 1–3 reference modules
-3. phân tích architecture/dependency
-4. tạo docs/modules/News/CREATE_PLAN.md
-5. STOP để tôi review
-
-Chưa code application trước khi tôi duyệt CREATE_PLAN.md.
+/create-module <ModuleName>
+    → requirement đã đủ rõ
+    → tạo CREATE_PLAN.md trước, implementation sau approval
 ```
 
-## 20. Source of Truth
+Không thay thế lẫn nhau.
+
+## 24. Source of Truth
 
 Nếu hướng dẫn trong tài liệu này và implementation thực tế có khác biệt, ưu tiên:
 
 1. code hiện tại của `Modules/ModuleServiceProvider.php`
-2. `.codex/tasks/create-module.md`
+2. `.codex/tasks/analyze-new-module.md` hoặc `.codex/tasks/create-module.md` tương ứng với phase hiện tại
 3. standards/bootstrap hiện hành
 4. tài liệu hướng dẫn này
 
