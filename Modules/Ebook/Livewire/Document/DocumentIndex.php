@@ -7,6 +7,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Ebook\Models\EbookDocument;
 use Modules\Ebook\Models\EbookFolder;
+use Modules\Ebook\Services\EbookAccessService;
 use Modules\Ebook\Services\EbookDocumentService;
 use Modules\Ebook\Services\MarkdownService;
 
@@ -74,6 +75,7 @@ class DocumentIndex extends Component
     {
         $this->authorizeAdmin('ebook.update');
         $document = app(EbookDocumentService::class)->find($id);
+        app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $document);
         $this->hydrateFromDocument($document);
         $this->workspace = 'editor';
         $this->editorMode = 'source';
@@ -112,6 +114,8 @@ class DocumentIndex extends Component
             $document = $service->create($payload);
             $document->viewers()->syncWithoutDetaching([(int) auth('admin')->id()]);
         } else {
+            $current = $service->find((int) $this->documentId);
+            app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $current);
             $payload['expected_hash'] = $this->expectedHash;
             $document = $service->update((int) $this->documentId, $payload);
         }
@@ -143,6 +147,8 @@ class DocumentIndex extends Component
     public function delete(int $id): void
     {
         $this->authorizeAdmin('ebook.delete');
+        $document = app(EbookDocumentService::class)->find($id);
+        app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $document);
         app(EbookDocumentService::class)->delete($id);
         if ($this->documentId === $id) {
             $this->resetForm();
@@ -165,11 +171,21 @@ class DocumentIndex extends Component
             ? EbookDocument::query()->find($this->documentId)
             : null;
 
+        if ($previewDocument !== null) {
+            app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $previewDocument);
+        }
+
         $preview = app(MarkdownService::class)->renderPreview($this->content, $previewDocument);
+        $documents = app(EbookAccessService::class)
+            ->visibleDocuments(auth('admin')->user())
+            ->with('folder:id,name')
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->paginate(10);
 
         return view('Ebook::livewire.document.document-index', [
             'folders' => EbookFolder::query()->orderBy('name')->get(['id', 'name']),
-            'documents' => EbookDocument::query()->with('folder:id,name')->orderBy('sort_order')->orderBy('title')->paginate(10),
+            'documents' => $documents,
             'previewHtml' => $preview['html'],
         ]);
     }
