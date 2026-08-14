@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Ebook\Models\EbookDocument;
 use Modules\Ebook\Models\EbookFolder;
 
 class EbookFolderService
@@ -80,8 +81,19 @@ class EbookFolderService
         }
 
         try {
-            DB::transaction(function () use ($folder, $payload): void {
+            DB::transaction(function () use ($folder, $payload, $oldPath, $newPath): void {
                 $folder->update($payload);
+
+                if ($oldPath !== $newPath) {
+                    EbookDocument::query()
+                        ->where('file_path', 'like', $oldPath.'/%')
+                        ->get()
+                        ->each(function (EbookDocument $document) use ($oldPath, $newPath): void {
+                            $document->update([
+                                'file_path' => $newPath.substr($document->file_path, strlen($oldPath)),
+                            ]);
+                        });
+                }
             });
         } catch (\Throwable $e) {
             if ($oldPath !== $newPath && $disk->exists($newPath) && ! $disk->exists($oldPath)) {
@@ -99,6 +111,10 @@ class EbookFolderService
 
         if ($folder->children()->exists()) {
             throw ValidationException::withMessages(['folder' => 'Không thể xóa thư mục đang có thư mục con.']);
+        }
+
+        if ($folder->documents()->exists()) {
+            throw ValidationException::withMessages(['folder' => 'Không thể xóa thư mục đang có tài liệu.']);
         }
 
         $path = $this->pathForFolder($folder);
