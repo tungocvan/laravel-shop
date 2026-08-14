@@ -74,15 +74,7 @@ class DocumentIndex extends Component
     {
         $this->authorizeAdmin('ebook.update');
         $document = app(EbookDocumentService::class)->find($id);
-        $this->documentId = (int) $document->id;
-        $this->folderId = (int) $document->folder_id;
-        $this->title = $document->title;
-        $this->slug = $document->slug;
-        $this->description = (string) ($document->description ?? '');
-        $this->content = app(EbookDocumentService::class)->content($document);
-        $this->sortOrder = (int) $document->sort_order;
-        $this->isActive = (bool) $document->is_active;
-        $this->expectedHash = $document->content_hash;
+        $this->hydrateFromDocument($document);
         $this->workspace = 'editor';
         $this->editorMode = 'source';
     }
@@ -117,13 +109,19 @@ class DocumentIndex extends Component
         $service = app(EbookDocumentService::class);
         if ($this->documentId) {
             $payload['expected_hash'] = $this->expectedHash;
-            $service->update($this->documentId, $payload);
+            $document = $service->update($this->documentId, $payload);
         } else {
-            $service->create($payload);
+            $document = $service->create($payload);
         }
 
-        $this->resetForm();
-        session()->flash('ebook_document_success', 'Đã lưu tài liệu.');
+        $currentMode = $this->editorMode;
+        $this->hydrateFromDocument($document, preserveContent: true);
+        $this->workspace = 'editor';
+        $this->editorMode = $currentMode;
+        $this->resetValidation();
+        $this->reset('upload');
+
+        session()->flash('ebook_document_success', 'Đã lưu tài liệu. Bạn có thể tiếp tục soạn thảo.');
     }
 
     public function uploadMarkdown(): void
@@ -171,6 +169,21 @@ class DocumentIndex extends Component
             'documents' => EbookDocument::query()->with('folder:id,name')->orderBy('sort_order')->orderBy('title')->paginate(10),
             'previewHtml' => $preview['html'],
         ]);
+    }
+
+    private function hydrateFromDocument(EbookDocument $document, bool $preserveContent = false): void
+    {
+        $this->documentId = (int) $document->id;
+        $this->folderId = (int) $document->folder_id;
+        $this->title = $document->title;
+        $this->slug = $document->slug;
+        $this->description = (string) ($document->description ?? '');
+        if (! $preserveContent) {
+            $this->content = app(EbookDocumentService::class)->content($document);
+        }
+        $this->sortOrder = (int) $document->sort_order;
+        $this->isActive = (bool) $document->is_active;
+        $this->expectedHash = $document->content_hash;
     }
 
     private function authorizeAdmin(string $permission): void
