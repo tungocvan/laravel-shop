@@ -64,6 +64,25 @@
                     @foreach ($breadcrumbs as $item)<span class="text-slate-300">/</span><span>{{ $item['name'] }}</span>@endforeach
                     <span class="text-slate-300">/</span><span class="truncate font-medium text-slate-700 dark:text-slate-200">{{ $document->title }}</span>
                 </nav>
+
+                @if ($adjacent['previous'] || $adjacent['next'])
+                    <nav class="mt-3 flex flex-wrap items-center gap-2" aria-label="Điều hướng tài liệu nhanh">
+                        @if ($adjacent['previous'])
+                            <a href="{{ route('admin.ebook.document.show', $adjacent['previous']['id']) }}"
+                               class="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                <span aria-hidden="true">←</span>
+                                <span class="min-w-0"><span class="block text-[11px] uppercase tracking-wide text-slate-400">Trước</span><span class="block max-w-64 truncate font-medium">{{ $adjacent['previous']['title'] }}</span></span>
+                            </a>
+                        @endif
+                        @if ($adjacent['next'])
+                            <a href="{{ route('admin.ebook.document.show', $adjacent['next']['id']) }}"
+                               class="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                <span class="min-w-0 text-right"><span class="block text-[11px] uppercase tracking-wide text-slate-400">Tiếp</span><span class="block max-w-64 truncate font-medium">{{ $adjacent['next']['title'] }}</span></span>
+                                <span aria-hidden="true">→</span>
+                            </a>
+                        @endif
+                    </nav>
+                @endif
             </div>
 
             <div class="flex shrink-0 flex-wrap items-center gap-2">
@@ -98,7 +117,7 @@
         </aside>
     </div>
 
-    <div x-ref="reader" class="bg-slate-50 dark:bg-slate-950" :class="fullscreen ? 'h-screen w-screen overflow-y-auto p-3 sm:p-5 lg:p-6' : ''">
+    <div x-ref="reader" class="bg-slate-50 dark:bg-slate-950" :class="fullscreen ? 'h-screen w-screen overflow-y-auto p-4 sm:p-6' : ''">
         <div :class="fullscreen ? 'mx-auto w-full max-w-screen-2xl' : ''">
             <div x-show="fullscreen" class="mb-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="min-w-0"><div class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Ebook</div><div class="truncate font-bold">{{ $document->title }}</div></div>
@@ -106,15 +125,13 @@
             </div>
 
             @if ($readingMode)
-                <main :class="fullscreen ? 'w-full' : 'mx-auto w-full max-w-5xl'">
+                <main class="mx-auto w-full" :class="fullscreen ? 'max-w-screen-2xl' : 'max-w-5xl'">
                     <article class="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                        <div class="ebook-markdown mx-auto overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:px-10 lg:py-10"
-                             :class="fullscreen ? 'max-w-6xl' : 'max-w-4xl'">{!! $html !!}</div>
+                        <div class="ebook-markdown mx-auto overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:px-10 lg:py-10" :class="fullscreen ? 'max-w-6xl' : 'max-w-5xl'">{!! $html !!}</div>
                     </article>
                 </main>
             @else
-                <div class="grid grid-cols-1 gap-5 lg:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[280px_minmax(0,1fr)]"
-                     :class="fullscreen ? 'lg:!grid-cols-1 2xl:!grid-cols-1' : ''">
+                <div class="grid grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)] 2xl:grid-cols-[250px_minmax(0,1fr)]" :class="fullscreen ? '!grid-cols-1' : ''">
                     <aside class="hidden min-w-0 lg:block" :class="fullscreen ? '!hidden' : ''">
                         <div class="sticky top-4 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                             <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800"><h2 class="text-sm font-bold">Mục lục</h2><p class="mt-1 text-xs text-slate-500">Đi tới nhanh từng phần.</p></div>
@@ -127,10 +144,9 @@
                             </nav>
                         </div>
                     </aside>
-                    <main class="min-w-0" :class="fullscreen ? 'w-full' : ''">
+                    <main class="min-w-0 w-full">
                         <article class="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                            <div class="ebook-markdown mx-auto overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:px-10 lg:py-10"
-                                 :class="fullscreen ? 'max-w-6xl' : 'max-w-4xl'">{!! $html !!}</div>
+                            <div class="ebook-markdown mx-auto overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:px-10 lg:py-10" :class="fullscreen ? 'max-w-6xl' : 'max-w-5xl'">{!! $html !!}</div>
                         </article>
                     </main>
                 </div>
