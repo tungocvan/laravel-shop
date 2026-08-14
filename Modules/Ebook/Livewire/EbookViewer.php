@@ -46,8 +46,9 @@ class EbookViewer extends Component
 
         return view('Ebook::livewire.ebook-viewer', [
             'document' => $document,
-            'tree' => $navigation->tree(),
             'breadcrumbs' => $navigation->breadcrumbs($document),
+            'documentPicker' => $navigation->documentPicker(),
+            'adjacent' => $navigation->adjacent($document),
             'html' => $rendered['html'],
             'toc' => $rendered['toc'],
         ]);
