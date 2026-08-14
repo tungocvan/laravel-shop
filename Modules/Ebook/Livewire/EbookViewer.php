@@ -4,7 +4,7 @@ namespace Modules\Ebook\Livewire;
 
 use Livewire\Component;
 use Modules\Ebook\Services\EbookDocumentService;
-use Modules\Ebook\Services\EbookFolderService;
+use Modules\Ebook\Services\EbookNavigationService;
 use Modules\Ebook\Services\MarkdownService;
 
 class EbookViewer extends Component
@@ -30,30 +30,15 @@ class EbookViewer extends Component
         $documents = app(EbookDocumentService::class);
         $document = $documents->find($this->documentId);
         $rendered = app(MarkdownService::class)->render($document, $documents->content($document));
+        $navigation = app(EbookNavigationService::class);
 
         return view('Ebook::livewire.ebook-viewer', [
             'document' => $document,
-            'tree' => app(EbookFolderService::class)->tree(),
-            'breadcrumbs' => $this->breadcrumbs($document->folder),
+            'tree' => $navigation->tree(),
+            'breadcrumbs' => $navigation->breadcrumbs($document),
             'html' => $rendered['html'],
             'toc' => $rendered['toc'],
         ]);
-    }
-
-    private function breadcrumbs($folder): array
-    {
-        $items = [];
-        $current = $folder;
-
-        while ($current !== null) {
-            array_unshift($items, [
-                'id' => (int) $current->id,
-                'name' => $current->name,
-            ]);
-            $current = $current->parent()->first();
-        }
-
-        return $items;
     }
 
     private function authorizeAdmin(string $permission): void
