@@ -12,20 +12,19 @@ class ModulePermissionManager
 {
     public function sync(array $module): int
     {
-        $permissions = $this->permissionsFromPath($module['path']);
+        $permissionNames = $this->permissionsFromPath($module['path']);
 
         $this->forgetCache();
 
-        foreach ($permissions as $permission) {
-            Permission::findOrCreate($permission, 'admin');
-        }
+        $permissionModels = collect($permissionNames)
+            ->map(fn (string $permission): Permission => Permission::findOrCreate($permission, 'admin'))
+            ->values();
 
-        $this->forgetCache();
         $superAdmin = Role::findOrCreate('Super Admin', 'admin');
-        $superAdmin->givePermissionTo($permissions);
+        $superAdmin->givePermissionTo($permissionModels);
         $this->forgetCache();
 
-        return count($permissions);
+        return $permissionModels->count();
     }
 
     public function activeGroups(): array
@@ -119,16 +118,18 @@ class ModulePermissionManager
     public function syncAllActiveToSuperAdmin(): array
     {
         $before = $this->previewActiveSync();
-        $permissions = collect($this->activeGroups())->flatten()->unique()->values();
+        $permissionNames = collect($this->activeGroups())->flatten()->unique()->values();
 
-        DB::transaction(function () use ($permissions): void {
-            foreach ($permissions as $permission) {
-                Permission::findOrCreate($permission, 'admin');
-            }
+        DB::transaction(function () use ($permissionNames): void {
+            $permissionModels = $permissionNames
+                ->map(fn (string $permission): Permission => Permission::findOrCreate($permission, 'admin'))
+                ->values();
 
-            $this->forgetCache();
-
-            Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissions->all());
+            // Pass persisted Permission models directly. This avoids a second
+            // name lookup through Spatie's cached permission collection, which
+            // can still be stale in Docker/Redis-backed environments during a
+            // fresh seed.
+            Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissionModels);
         });
 
         $this->forgetCache();
