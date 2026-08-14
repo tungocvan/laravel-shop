@@ -69,6 +69,6 @@ class ModuleStateResolverTest extends TestCase
         $resolved = (new ModuleStateResolver($states))->resolve('Admin', ['enabled' => false], 'manifest', true);
 
         $this->assertTrue($resolved['enabled']);
-        $this->assertSame('runtime-required', $resolved['source']);
+        $this->assertSame('manifest', $resolved['source']);
     }
 }

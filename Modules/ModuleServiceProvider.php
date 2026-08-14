@@ -2,6 +2,7 @@
 
 namespace Modules;
 
+use App\Modules\ModuleStateResolver;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
@@ -112,18 +113,26 @@ class ModuleServiceProvider extends ServiceProvider
             $source = 'fallback';
         }
 
+        $required = $type === 'shell';
+        $state = $this->app->make(ModuleStateResolver::class)->resolve(
+            $module,
+            $manifest,
+            $source,
+            $required,
+        );
+
         return [
             'name' => $module,
             'path' => $modulePath,
             'lower_name' => Str::lower($module),
             'type' => $type,
-            'enabled' => (bool) ($manifest['enabled'] ?? true),
-            'required' => $type === 'shell',
+            'enabled' => $state['enabled'],
+            'required' => $required,
             'depends' => array_values(array_unique(array_map(
                 static fn(mixed $dependency): string => Str::studly((string) $dependency),
                 is_array($manifest['depends'] ?? null) ? $manifest['depends'] : []
             ))),
-            'source' => $source,
+            'source' => $state['source'],
         ];
     }
 

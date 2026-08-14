@@ -19,7 +19,7 @@ class ModuleStateResolver
         if ($required) {
             return [
                 'enabled' => true,
-                'source' => $runtimeEnabled !== null ? 'runtime-required' : $manifestSource,
+                'source' => $manifestSource,
             ];
         }
 
