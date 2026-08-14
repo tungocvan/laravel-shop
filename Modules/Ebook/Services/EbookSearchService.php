@@ -27,7 +27,8 @@ class EbookSearchService
         $disk = Storage::disk((string) config('ebook.ebook.disk', 'local'));
         $totalBytes = 0;
 
-        $documents = EbookDocument::query()
+        $documents = app(EbookAccessService::class)
+            ->visibleDocuments(auth('admin')->user())
             ->with('folder:id,name,parent_id')
             ->where('is_active', true)
             ->orderBy('id')
