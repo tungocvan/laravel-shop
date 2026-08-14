@@ -16,6 +16,8 @@ class EbookSearchEngagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $actingAdmin;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,6 +30,9 @@ class EbookSearchEngagementTest extends TestCase
             'ebook.ebook.search.max_total_kb' => 256,
             'ebook.ebook.recent_limit' => 2,
         ]);
+
+        $this->actingAdmin = $this->user('acting@example.test');
+        $this->actingAs($this->actingAdmin, 'admin');
     }
 
     public function test_search_finds_title_filename_and_description_metadata(): void
@@ -105,7 +110,7 @@ class EbookSearchEngagementTest extends TestCase
         $path = 'ebooks/docs/'.$fileName;
         Storage::disk('local')->put($path, $content);
 
-        return EbookDocument::query()->create([
+        $document = EbookDocument::query()->create([
             'folder_id' => $folder->id,
             'title' => $title,
             'slug' => pathinfo($fileName, PATHINFO_FILENAME),
@@ -118,6 +123,10 @@ class EbookSearchEngagementTest extends TestCase
             'is_favorite' => false,
             'content_hash' => hash('sha256', $content),
         ]);
+
+        $document->viewers()->sync(User::query()->pluck('id')->all());
+
+        return $document;
     }
 
     private function user(string $email): User
