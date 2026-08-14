@@ -11,21 +11,12 @@ class MarkdownService
 {
     public function render(EbookDocument $document, string $markdown): array
     {
-        $html = Str::markdown($markdown, [
-            'html_input' => 'strip',
-            'allow_unsafe_links' => false,
-        ]);
+        return $this->renderMarkdown($markdown, $document);
+    }
 
-        [$html, $toc] = $this->decorateHeadings($html);
-        $html = $this->rewriteRelativeImages($document, $html);
-        $html = $this->decorateCodeBlocks($html);
-        $html = $this->decorateLinks($html);
-        $html = $this->decorateImages($html);
-
-        return [
-            'html' => $html,
-            'toc' => $toc,
-        ];
+    public function renderPreview(string $markdown, ?EbookDocument $document = null): array
+    {
+        return $this->renderMarkdown($markdown, $document);
     }
 
     public function resolveAssetPath(EbookDocument $document, string $path): string
@@ -69,6 +60,29 @@ class MarkdownService
     public function assetExists(EbookDocument $document, string $path): bool
     {
         return Storage::disk($this->disk())->exists($this->resolveAssetPath($document, $path));
+    }
+
+    private function renderMarkdown(string $markdown, ?EbookDocument $document): array
+    {
+        $html = Str::markdown($markdown, [
+            'html_input' => 'strip',
+            'allow_unsafe_links' => false,
+        ]);
+
+        [$html, $toc] = $this->decorateHeadings($html);
+
+        if ($document !== null && $document->exists) {
+            $html = $this->rewriteRelativeImages($document, $html);
+        }
+
+        $html = $this->decorateCodeBlocks($html);
+        $html = $this->decorateLinks($html);
+        $html = $this->decorateImages($html);
+
+        return [
+            'html' => $html,
+            'toc' => $toc,
+        ];
     }
 
     private function decorateHeadings(string $html): array
