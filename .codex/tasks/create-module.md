@@ -78,6 +78,10 @@ Do NOT add any of the following unless `Modules/ModuleServiceProvider.php` expli
 - a second module registry
 - custom discovery code that duplicates the root provider
 
+If `Modules/<ModuleName>/Providers/<ModuleName>ServiceProvider.php` exists, do not manually re-register routes, migrations, config, Livewire components, Blade components, console commands, or other resources already automatically handled by `Modules/ModuleServiceProvider.php` unless the module has a documented special requirement.
+
+Avoid duplicate route names, duplicate migrations, duplicate component registration, duplicate config loading, and duplicate resource registration.
+
 If a requirement cannot be supported cleanly by the current provider, STOP and propose a provider-level architecture change separately before implementing the module.
 
 ## Phase 3 — Module Manifest and Runtime State
@@ -150,6 +154,23 @@ The plan must include:
 - Files to create/change.
 - Suggested MR/phase breakdown.
 - Risks and unresolved questions.
+
+`CREATE_PLAN.md` must also contain a concise **Bootstrap Contract** table or block proving compatibility with `Modules/ModuleServiceProvider.php`, covering at least:
+
+- Manifest: `config/module.php`
+- Type: `domain` / `support` / `shell`
+- Dependencies: explicit module list
+- Module Provider: required / not required
+- Config: yes / no
+- Web routes: yes / no
+- API routes: yes / no
+- Migrations: yes / no
+- Livewire: yes / no
+- Blade components: yes / no
+- Console commands: yes / no
+- Runtime state: supported / not applicable
+
+The Bootstrap Contract must describe only mechanisms actually supported by the current root provider. Do not use the plan to justify parallel registration infrastructure.
 
 ## Approval Gate
 
