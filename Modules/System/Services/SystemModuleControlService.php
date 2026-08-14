@@ -100,6 +100,10 @@ class SystemModuleControlService
 
             try {
                 $destination = $this->lifecycle->archive($module, $registry);
+
+                Log::notice('System module archive stage.', $context + ['stage' => 'runtime_state_cleanup']);
+                $this->states->forget($moduleName);
+
                 unset($registry[$moduleName]);
                 config(['modules.registry' => $registry]);
 
