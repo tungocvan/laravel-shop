@@ -55,12 +55,17 @@ class ModulePermissionManager
             $manifest = $this->manifestPath($module['path']);
             $permissions = $manifest ? $this->permissionsFromPath($module['path']) : [];
             $manifestConfig = $manifest ? (array) require $manifest : [];
+            $permissionsRequired = $manifest !== null
+                ? (bool) ($manifestConfig['permissions_required'] ?? true)
+                : true;
 
             $status = 'ok';
             if (! $registered) {
                 $status = 'missing_registry';
             } elseif ($manifest === null) {
                 $status = 'missing_manifest';
+            } elseif (! $permissionsRequired) {
+                $status = 'no_permission_required';
             } elseif ($permissions === []) {
                 $status = 'missing_permissions';
             }
@@ -72,6 +77,7 @@ class ModulePermissionManager
                 'registry_enabled' => $registered ? (bool) ($registryModule['enabled'] ?? false) : false,
                 'manifest' => $manifest !== null,
                 'manifest_enabled' => $manifest !== null ? (bool) ($manifestConfig['enabled'] ?? false) : false,
+                'permissions_required' => $permissionsRequired,
                 'permission_count' => count($permissions),
                 'permissions' => $permissions,
                 'status' => $status,
@@ -88,6 +94,7 @@ class ModulePermissionManager
         $superAdmin = Role::query()->where('name', 'Super Admin')->where('guard_name', 'admin')->first();
         $assigned = $superAdmin ? $superAdmin->permissions->pluck('name')->intersect($permissions) : collect();
         $discovered = collect($this->discoverModules());
+        $warningStatuses = ['missing_registry', 'missing_manifest', 'missing_permissions'];
 
         return [
             'modules' => count(config('modules.registry', [])),
@@ -97,7 +104,8 @@ class ModulePermissionManager
             'modules_without_permissions' => $discovered->where('status', 'missing_permissions')->pluck('name')->values()->all(),
             'modules_without_manifest' => $discovered->where('status', 'missing_manifest')->pluck('name')->values()->all(),
             'modules_without_registry' => $discovered->where('status', 'missing_registry')->pluck('name')->values()->all(),
-            'audit_warnings' => $discovered->where('status', '!=', 'ok')->values()->all(),
+            'modules_without_permission_requirement' => $discovered->where('status', 'no_permission_required')->pluck('name')->values()->all(),
+            'audit_warnings' => $discovered->whereIn('status', $warningStatuses)->values()->all(),
             'module_audit' => $discovered->values()->all(),
             'total' => $permissions->count(),
             'existing' => $existing->count(),
@@ -118,9 +126,6 @@ class ModulePermissionManager
                 Permission::findOrCreate($permission, 'admin');
             }
 
-            // Spatie caches the permission collection. On a fresh database the
-            // permissions above were created after that cache was first loaded,
-            // so refresh it before resolving names in givePermissionTo().
             $this->forgetCache();
 
             Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissions->all());
