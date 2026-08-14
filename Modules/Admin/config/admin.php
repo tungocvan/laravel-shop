@@ -5,7 +5,7 @@ return [
 
     'layout' => [
         'preset' => env('ADMIN_LAYOUT_PRESET', 'default'),
-        'container' => env('ADMIN_LAYOUT_CONTAINER', '7xl'),
+        'container' => env('ADMIN_LAYOUT_CONTAINER', 'screen-2xl'),
         'density' => env('ADMIN_LAYOUT_DENSITY', 'comfortable'),
         'sticky_header' => true,
         'show_footer' => false,
