@@ -29,20 +29,30 @@ class EbookBootstrapTest extends TestCase
         ], $manifest['permissions']);
     }
 
-    public function test_admin_route_is_registered_with_auth_and_view_permission(): void
+    public function test_admin_routes_are_registered_with_auth_and_view_permission(): void
     {
-        $route = Route::getRoutes()->getByName('admin.ebook.index');
+        $routes = [
+            'admin.ebook.index' => 'admin/ebook',
+            'admin.ebook.document.show' => 'admin/ebook/document/{document}',
+            'admin.ebook.asset' => 'admin/ebook/document/{document}/asset',
+        ];
 
-        $this->assertNotNull($route, 'Route admin.ebook.index is not registered.');
-        $this->assertContains('web', $route->gatherMiddleware());
-        $this->assertContains('auth:admin', $route->gatherMiddleware());
-        $this->assertContains('permission:ebook.view,admin', $route->gatherMiddleware());
-        $this->assertSame('admin/ebook', $route->uri());
+        foreach ($routes as $name => $uri) {
+            $route = Route::getRoutes()->getByName($name);
+
+            $this->assertNotNull($route, "Route {$name} is not registered.");
+            $this->assertContains('web', $route->gatherMiddleware());
+            $this->assertContains('auth:admin', $route->gatherMiddleware());
+            $this->assertContains('permission:ebook.view,admin', $route->gatherMiddleware());
+            $this->assertSame($uri, $route->uri());
+        }
     }
 
     public function test_ebook_view_namespace_is_registered(): void
     {
         $this->assertTrue(view()->exists('Ebook::pages.ebook.index'));
+        $this->assertTrue(view()->exists('Ebook::pages.ebook.show'));
+        $this->assertTrue(view()->exists('Ebook::livewire.ebook-viewer'));
     }
 
     public function test_root_provider_respects_runtime_disabled_override(): void
