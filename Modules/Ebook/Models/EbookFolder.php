@@ -40,4 +40,11 @@ class EbookFolder extends Model
     {
         return $this->children()->with('childrenRecursive');
     }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(EbookDocument::class, 'folder_id')
+            ->orderBy('sort_order')
+            ->orderBy('title');
+    }
 }
