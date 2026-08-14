@@ -2,12 +2,13 @@
 
 namespace Modules\Role\Livewire;
 
+use App\Modules\ModulePermissionManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Role\Services\RoleService;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleTable extends Component
@@ -22,7 +23,6 @@ class RoleTable extends Component
 
     public $selectAll = false;
 
-    // --- VARIABLES CHO ADD MODULE ---
     public $showPermissionModal = false;
 
     public $newModuleName = '';
@@ -32,63 +32,91 @@ class RoleTable extends Component
         'create' => true,
         'edit' => true,
         'delete' => true,
-        'export' => false, // Mặc định tắt
+        'export' => false,
     ];
-    // --- LOGIC MỚI: TẠO MODULE QUYỀN ---
 
-    public function openPermissionModal()
+    public function mount(): void
     {
+        $this->authorizeCapability('view_role');
+    }
+
+    public function openPermissionModal(): void
+    {
+        $this->authorizeSuperAdmin();
         $this->reset(['newModuleName']);
         $this->newModuleActions = [
-            'view' => true, 'create' => true, 'edit' => true, 'delete' => true, 'export' => false,
+            'view' => true,
+            'create' => true,
+            'edit' => true,
+            'delete' => true,
+            'export' => false,
         ];
         $this->showPermissionModal = true;
     }
 
-    public function createModulePermissions()
+    public function createModulePermissions(ModulePermissionManager $modulePermissions): void
     {
+        $this->authorizeSuperAdmin();
+
         $this->validate([
-            'newModuleName' => 'required|alpha_dash|min:3', // Chỉ cho phép chữ cái, số, gạch ngang
+            'newModuleName' => ['required', 'alpha_dash', 'min:2'],
+            'newModuleActions' => ['array'],
+            'newModuleActions.*' => ['boolean'],
         ], [
-            'newModuleName.required' => 'Vui lòng nhập tên Module (VD: blog, marketing)',
+            'newModuleName.required' => 'Vui lòng nhập tên Module.',
             'newModuleName.alpha_dash' => 'Tên module không được chứa khoảng trắng hoặc ký tự đặc biệt.',
         ]);
 
-        // Chuẩn hóa tên module: blog_post -> blog_post
-        $module = Str::lower($this->newModuleName);
-        $guard = 'admin'; // Cố định guard admin
+        $module = Str::lower((string) $this->newModuleName);
+        $groups = collect($modulePermissions->activeGroups());
+        $group = $groups->first(function (array $permissions, string $moduleName) use ($module): bool {
+            return Str::lower($moduleName) === $module;
+        });
+
+        if (! is_array($group)) {
+            $this->addError('newModuleName', 'Module này không tồn tại trong catalog module đang hoạt động.');
+            return;
+        }
+
+        $requested = collect($this->newModuleActions)
+            ->filter(fn (bool $selected): bool => $selected)
+            ->keys()
+            ->map(fn (string $action): string => $action.'_'.$module)
+            ->values();
+
+        $approved = $requested->intersect($group)->values();
+
+        if ($approved->count() !== $requested->count()) {
+            $this->addError('newModuleActions', 'Một hoặc nhiều quyền được chọn không được module khai báo trong catalog.');
+            return;
+        }
+
         $createdCount = 0;
 
-        DB::transaction(function () use ($module, $guard, &$createdCount) {
-            foreach ($this->newModuleActions as $action => $isSelected) {
-                if ($isSelected) {
-                    // Tạo quyền: action_module (VD: view_blog)
-                    $permName = $action.'_'.$module;
+        DB::transaction(function () use ($approved, &$createdCount): void {
+            foreach ($approved as $permissionName) {
+                $permission = Permission::firstOrCreate([
+                    'name' => $permissionName,
+                    'guard_name' => RoleService::ADMIN_GUARD,
+                ]);
 
-                    $perm = Permission::firstOrCreate(
-                        ['name' => $permName, 'guard_name' => $guard]
-                    );
-
-                    if ($perm->wasRecentlyCreated) {
-                        $createdCount++;
-                    }
+                if ($permission->wasRecentlyCreated) {
+                    $createdCount++;
                 }
             }
         });
 
-        // Xóa cache của Spatie để hệ thống nhận diện quyền mới ngay lập tức
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
-
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->showPermissionModal = false;
 
-        if ($createdCount > 0) {
-            $this->dispatch('notify', content: "Đã tạo {$createdCount} quyền mới cho module '{$module}'.", type: 'success');
-        } else {
-            $this->dispatch('notify', content: "Các quyền của module '{$module}' đã tồn tại từ trước.", type: 'warning');
-        }
+        $this->dispatch(
+            'notify',
+            content: $createdCount > 0
+                ? "Đã đồng bộ {$createdCount} quyền được module '{$module}' khai báo."
+                : "Các quyền được module '{$module}' khai báo đã tồn tại.",
+            type: $createdCount > 0 ? 'success' : 'warning'
+        );
     }
-    // Reset & Select logic (Giống CustomerTable - Tôi lược bỏ cho ngắn gọn, bạn copy từ CustomerTable sang nhé)
-    // ... include: updatedSearch, updatingPage, updatedSelectAll, resetSelection ...
 
     public function updatedSearch(): void
     {
@@ -104,10 +132,12 @@ class RoleTable extends Component
 
     public function updatedSelectAll(bool $value): void
     {
+        $roles = app(RoleService::class);
+
         $this->selected = $value
-            ? $this->queryRoles()
-                ->where('name', '!=', 'Super Admin')
-                ->paginate($this->perPage)
+            ? $roles->queryRoles((string) $this->search)
+                ->where('name', '!=', RoleService::PROTECTED_ROLE)
+                ->paginate((int) $this->perPage)
                 ->pluck('id')
                 ->map(fn (int $id): string => (string) $id)
                 ->all()
@@ -120,80 +150,68 @@ class RoleTable extends Component
         $this->selectAll = false;
     }
 
-    public function deleteSelected()
+    public function deleteSelected(RoleService $roles): void
     {
-        $roles = Role::withCount('users')
-            ->whereIn('id', $this->selected)
-            ->get();
+        $this->authorizeCapability('delete_role');
 
-        $deletedCount = 0;
-        $blockedCount = 0;
-
-        foreach ($roles as $role) {
-            if ($role->name === 'Super Admin' || $role->users_count > 0) {
-                $blockedCount++;
-
-                continue;
-            }
-
-            $role->delete();
-            $deletedCount++;
-        }
-
+        $result = $roles->deleteMany(array_map('intval', $this->selected));
         $this->resetSelection();
 
-        if ($deletedCount > 0 && $blockedCount > 0) {
-            $this->dispatch('notify', content: "Đã xóa {$deletedCount} vai trò. {$blockedCount} vai trò bị chặn vì là Super Admin hoặc đang có tài khoản sử dụng.", type: 'warning');
-
+        if ($result['deleted'] > 0 && $result['blocked'] > 0) {
+            $this->dispatch('notify', content: "Đã xóa {$result['deleted']} vai trò. {$result['blocked']} vai trò bị chặn vì là Super Admin hoặc đang có tài khoản sử dụng.", type: 'warning');
             return;
         }
 
-        if ($deletedCount > 0) {
-            $this->dispatch('notify', content: "Đã xóa {$deletedCount} vai trò.", type: 'success');
-
+        if ($result['deleted'] > 0) {
+            $this->dispatch('notify', content: "Đã xóa {$result['deleted']} vai trò.", type: 'success');
             return;
         }
 
         $this->dispatch('notify', content: 'Không thể xóa vai trò đang có tài khoản sử dụng hoặc vai trò Super Admin.', type: 'error');
     }
 
-    public function delete($id)
+    public function delete($id, RoleService $roles): void
     {
-        $role = Role::withCount('users')->find($id);
+        $this->authorizeCapability('delete_role');
 
-        if (! $role) {
-            $this->dispatch('notify', content: 'Không tìm thấy vai trò.', type: 'error');
+        $result = $roles->delete((int) $id);
 
-            return;
-        }
-
-        if ($role->name === 'Super Admin') {
+        if ($result === 'protected') {
             $this->dispatch('notify', content: 'Không thể xóa Super Admin!', type: 'error');
-
             return;
         }
 
-        if ($role->users_count > 0) {
-            $this->dispatch('notify', content: "Không thể xóa vai trò '{$role->name}' vì đang có {$role->users_count} tài khoản sử dụng.", type: 'error');
-
+        if ($result === 'in_use') {
+            $this->dispatch('notify', content: 'Không thể xóa vai trò vì đang có tài khoản sử dụng.', type: 'error');
             return;
         }
 
-        $role->delete();
         $this->dispatch('notify', content: 'Đã xóa vai trò.', type: 'success');
     }
 
-    public function render()
+    public function render(RoleService $roles)
     {
-        $roles = $this->queryRoles()->paginate($this->perPage);
+        $this->authorizeCapability('view_role');
 
-        return view('Role::livewire.role-table', ['roles' => $roles]);
+        return view('Role::livewire.role-table', [
+            'roles' => $roles->queryRoles((string) $this->search)->paginate((int) $this->perPage),
+        ]);
     }
 
-    private function queryRoles()
+    private function authorizeCapability(string $permission): void
     {
-        return Role::withCount('users')
-            ->where('name', 'like', '%'.$this->search.'%')
-            ->latest();
+        $actor = auth('admin')->user();
+
+        abort_unless(auth('admin')->check() && $actor?->can($permission), 403);
+    }
+
+    private function authorizeSuperAdmin(): void
+    {
+        $actor = auth('admin')->user();
+
+        abort_unless(
+            auth('admin')->check() && $actor?->hasRole(RoleService::PROTECTED_ROLE),
+            403
+        );
     }
 }
