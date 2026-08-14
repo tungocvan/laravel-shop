@@ -60,12 +60,15 @@ class DocumentIndex extends Component
         $payload = [
             'folder_id' => $data['folderId'],
             'title' => $data['title'],
-            'slug' => $data['slug'],
             'description' => $data['description'],
             'content' => $data['content'],
             'sort_order' => $data['sortOrder'],
             'is_active' => $data['isActive'],
         ];
+
+        if (filled($data['slug'] ?? null)) {
+            $payload['slug'] = $data['slug'];
+        }
 
         $service = app(EbookDocumentService::class);
         if ($this->documentId) {
@@ -84,7 +87,7 @@ class DocumentIndex extends Component
         $this->authorizeAdmin('ebook.upload');
         $this->validate([
             'folderId' => ['required', 'integer', 'exists:ebook_folders,id'],
-            'upload' => ['required', 'file', 'mimes:md,txt', 'max:'.config('ebook.ebook.upload_max_kb', 2048)],
+            'upload' => ['required', 'file', 'extensions:md', 'max:'.config('ebook.ebook.upload_max_kb', 2048)],
         ]);
 
         app(EbookDocumentService::class)->upload((int) $this->folderId, $this->upload);
