@@ -12,11 +12,19 @@
             </nav>
         </div>
 
-        <button type="button" wire:click="toggleReadingMode" wire:loading.attr="disabled" wire:target="toggleReadingMode"
-            class="inline-flex shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
-            <span wire:loading.remove wire:target="toggleReadingMode">{{ $readingMode ? 'Thoát chế độ đọc' : 'Chế độ đọc' }}</span>
-            <span wire:loading wire:target="toggleReadingMode">Đang chuyển...</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" wire:click="toggleFavorite" wire:loading.attr="disabled" wire:target="toggleFavorite"
+                class="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-60 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-300">
+                <span wire:loading.remove wire:target="toggleFavorite">{{ $document->is_favorite ? '★ Đã yêu thích' : '☆ Yêu thích' }}</span>
+                <span wire:loading wire:target="toggleFavorite">Đang lưu...</span>
+            </button>
+
+            <button type="button" wire:click="toggleReadingMode" wire:loading.attr="disabled" wire:target="toggleReadingMode"
+                class="inline-flex shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                <span wire:loading.remove wire:target="toggleReadingMode">{{ $readingMode ? 'Thoát chế độ đọc' : 'Chế độ đọc' }}</span>
+                <span wire:loading wire:target="toggleReadingMode">Đang chuyển...</span>
+            </button>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 gap-6 {{ $readingMode ? '' : 'lg:grid-cols-12' }}">
