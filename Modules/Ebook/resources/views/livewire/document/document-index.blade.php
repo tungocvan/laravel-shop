@@ -37,6 +37,7 @@
                     editorFullscreen: false,
                     insertText(text) {
                         const el = this.$refs.editor;
+                        if (!el) return;
                         const start = el.selectionStart;
                         const end = el.selectionEnd;
                         el.setRangeText(text, start, end, 'end');
@@ -45,6 +46,7 @@
                     },
                     wrap(before, after = before, placeholder = 'nội dung') {
                         const el = this.$refs.editor;
+                        if (!el) return;
                         const start = el.selectionStart;
                         const end = el.selectionEnd;
                         const selected = el.value.slice(start, end) || placeholder;
@@ -54,6 +56,7 @@
                     },
                     prefix(prefix) {
                         const el = this.$refs.editor;
+                        if (!el) return;
                         const start = el.selectionStart;
                         const end = el.selectionEnd;
                         const before = el.value.slice(0, start);
@@ -111,14 +114,12 @@
                                 <input id="ebook-document-slug" type="text" wire:model="slug"
                                        class="mt-2 block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 dark:text-gray-100 dark:ring-gray-600"
                                        placeholder="Để trống để tự tạo">
-                                @error('slug') <p class="mt-1 text-sm font-medium text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div class="lg:col-span-6">
                                 <label for="ebook-document-description" class="block text-sm font-semibold text-gray-900 dark:text-gray-100">Mô tả</label>
                                 <input id="ebook-document-description" type="text" wire:model="description"
                                        class="mt-2 block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-900 dark:text-gray-100 dark:ring-gray-600"
                                        placeholder="Tóm tắt ngắn nội dung tài liệu">
-                                @error('description') <p class="mt-1 text-sm font-medium text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div class="lg:col-span-2">
                                 <label for="ebook-document-order" class="block text-sm font-semibold text-gray-900 dark:text-gray-100">Thứ tự</label>
@@ -148,46 +149,81 @@
                 </div>
 
                 <div class="border-b border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/70">
-                    <div class="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Thanh công cụ Markdown">
-                        <button type="button" @click="wrap('**', '**', 'in đậm')" class="ebook-md-tool font-bold" title="In đậm">B</button>
-                        <button type="button" @click="wrap('*', '*', 'in nghiêng')" class="ebook-md-tool italic" title="In nghiêng">I</button>
-                        <button type="button" @click="wrap('~~', '~~', 'gạch ngang')" class="ebook-md-tool line-through" title="Gạch ngang">S</button>
-                        <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                        <button type="button" @click="prefix('# ')" class="ebook-md-tool" title="Heading 1">H1</button>
-                        <button type="button" @click="prefix('## ')" class="ebook-md-tool" title="Heading 2">H2</button>
-                        <button type="button" @click="prefix('### ')" class="ebook-md-tool" title="Heading 3">H3</button>
-                        <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                        <button type="button" @click="prefix('- ')" class="ebook-md-tool" title="Danh sách">• List</button>
-                        <button type="button" @click="prefix('1. ')" class="ebook-md-tool" title="Danh sách đánh số">1. List</button>
-                        <button type="button" @click="prefix('- [ ] ')" class="ebook-md-tool" title="Task list">☑ Task</button>
-                        <button type="button" @click="prefix('> ')" class="ebook-md-tool" title="Trích dẫn">❝ Quote</button>
-                        <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                        <button type="button" @click="wrap('[', '](https://)', 'liên kết')" class="ebook-md-tool" title="Liên kết">🔗 Link</button>
-                        <button type="button" @click="insertText('![Mô tả ảnh](images/)')" class="ebook-md-tool" title="Hình ảnh">🖼 Image</button>
-                        <button type="button" @click="wrap('`', '`', 'code')" class="ebook-md-tool" title="Inline code">&lt;/&gt;</button>
-                        <button type="button" @click="insertText('\n```php\n\n```\n')" class="ebook-md-tool" title="Code block">Code block</button>
-                        <button type="button" @click="insertText('\n| Cột 1 | Cột 2 |\n|---|---|\n| Giá trị | Giá trị |\n')" class="ebook-md-tool" title="Bảng">Table</button>
-                        <button type="button" @click="insertText('\n---\n')" class="ebook-md-tool" title="Đường phân cách">— HR</button>
-                        <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                        <button type="button" @click="$refs.editor.focus(); document.execCommand('undo')" class="ebook-md-tool" title="Undo">↶</button>
-                        <button type="button" @click="$refs.editor.focus(); document.execCommand('redo')" class="ebook-md-tool" title="Redo">↷</button>
-                        <button type="button" @click="toggleEditorFullscreen()" class="ebook-md-tool ml-auto" title="Toàn màn hình editor">
-                            <span x-text="editorFullscreen ? '⊠ Thoát' : '⛶ Editor'"></span>
-                        </button>
+                    <div class="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+                        <div class="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Thanh công cụ Markdown">
+                            <button type="button" @click="wrap('**', '**', 'in đậm')" class="ebook-md-tool font-bold" title="In đậm">B</button>
+                            <button type="button" @click="wrap('*', '*', 'in nghiêng')" class="ebook-md-tool italic" title="In nghiêng">I</button>
+                            <button type="button" @click="wrap('~~', '~~', 'gạch ngang')" class="ebook-md-tool line-through" title="Gạch ngang">S</button>
+                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
+                            <button type="button" @click="prefix('# ')" class="ebook-md-tool" title="Heading 1">H1</button>
+                            <button type="button" @click="prefix('## ')" class="ebook-md-tool" title="Heading 2">H2</button>
+                            <button type="button" @click="prefix('### ')" class="ebook-md-tool" title="Heading 3">H3</button>
+                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
+                            <button type="button" @click="prefix('- ')" class="ebook-md-tool" title="Danh sách">• List</button>
+                            <button type="button" @click="prefix('1. ')" class="ebook-md-tool" title="Danh sách đánh số">1. List</button>
+                            <button type="button" @click="prefix('- [ ] ')" class="ebook-md-tool" title="Task list">☑ Task</button>
+                            <button type="button" @click="prefix('> ')" class="ebook-md-tool" title="Trích dẫn">❝ Quote</button>
+                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
+                            <button type="button" @click="wrap('[', '](https://)', 'liên kết')" class="ebook-md-tool" title="Liên kết">🔗 Link</button>
+                            <button type="button" @click="insertText('![Mô tả ảnh](images/)')" class="ebook-md-tool" title="Hình ảnh">🖼 Image</button>
+                            <button type="button" @click="wrap('`', '`', 'code')" class="ebook-md-tool" title="Inline code">&lt;/&gt;</button>
+                            <button type="button" @click="insertText('\n```php\n\n```\n')" class="ebook-md-tool" title="Code block">Code</button>
+                            <button type="button" @click="insertText('\n| Cột 1 | Cột 2 |\n|---|---|\n| Giá trị | Giá trị |\n')" class="ebook-md-tool" title="Bảng">Table</button>
+                            <button type="button" @click="insertText('\n---\n')" class="ebook-md-tool" title="Đường phân cách">— HR</button>
+                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
+                            <button type="button" @click="$refs.editor?.focus(); document.execCommand('undo')" class="ebook-md-tool" title="Undo">↶</button>
+                            <button type="button" @click="$refs.editor?.focus(); document.execCommand('redo')" class="ebook-md-tool" title="Redo">↷</button>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-1">
+                            <div class="inline-flex rounded-lg border border-gray-300 bg-white p-1 shadow-sm dark:border-gray-600 dark:bg-gray-800" aria-label="Chế độ editor">
+                                <button type="button" wire:click="showSource" class="rounded-md px-2.5 py-1.5 text-xs font-semibold {{ $editorMode === 'source' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }}">Soạn thảo</button>
+                                <button type="button" wire:click="showSplit" class="hidden rounded-md px-2.5 py-1.5 text-xs font-semibold md:inline-flex {{ $editorMode === 'split' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }}">Chia đôi</button>
+                                <button type="button" wire:click="showPreview" class="rounded-md px-2.5 py-1.5 text-xs font-semibold {{ $editorMode === 'preview' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }}">Xem trước</button>
+                            </div>
+                            <button type="button" @click="toggleEditorFullscreen()" class="ebook-md-tool" title="Toàn màn hình editor">
+                                <span x-text="editorFullscreen ? '⊠ Thoát' : '⛶ Editor'"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-gray-950">
-                    <textarea id="ebook-document-content" x-ref="editor" wire:model="content" spellcheck="false"
-                              class="block min-h-[65vh] w-full resize-y border-0 bg-gray-950 px-5 py-5 font-mono text-[14px] leading-7 text-gray-100 outline-none ring-0 placeholder:text-gray-600 focus:ring-0 sm:px-6"
-                              :class="editorFullscreen ? 'min-h-[calc(100vh-15rem)]' : ''"
-                              placeholder="# Tiêu đề tài liệu\n\nBắt đầu soạn Markdown..."></textarea>
-                </div>
+                @if ($editorMode === 'source')
+                    <div class="bg-gray-950">
+                        <textarea id="ebook-document-content" x-ref="editor" wire:model="content" spellcheck="false"
+                                  class="block min-h-[65vh] w-full resize-y border-0 bg-gray-950 px-5 py-5 font-mono text-[14px] leading-7 text-gray-100 outline-none ring-0 placeholder:text-gray-600 focus:ring-0 sm:px-6"
+                                  :class="editorFullscreen ? 'min-h-[calc(100vh-15rem)]' : ''"
+                                  placeholder="# Tiêu đề tài liệu\n\nBắt đầu soạn Markdown..."></textarea>
+                    </div>
+                @elseif ($editorMode === 'split')
+                    <div class="grid min-h-[65vh] grid-cols-1 md:grid-cols-2">
+                        <div class="min-w-0 border-b border-gray-700 bg-gray-950 md:border-b-0 md:border-r">
+                            <div class="border-b border-gray-800 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-400">Markdown</div>
+                            <textarea id="ebook-document-content" x-ref="editor" wire:model="content" spellcheck="false"
+                                      class="block min-h-[61vh] w-full resize-none border-0 bg-gray-950 px-5 py-5 font-mono text-[14px] leading-7 text-gray-100 outline-none ring-0 placeholder:text-gray-600 focus:ring-0"
+                                      placeholder="# Tiêu đề tài liệu\n\nBắt đầu soạn Markdown..."></textarea>
+                        </div>
+                        <div class="min-w-0 bg-white dark:bg-gray-900">
+                            <div class="border-b border-gray-200 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700">Preview</div>
+                            <div class="ebook-markdown max-h-[61vh] overflow-y-auto px-6 py-5 text-slate-800 dark:text-slate-200">
+                                {!! $previewHtml ?: '<p class="text-sm text-gray-400">Chưa có nội dung để xem trước.</p>' !!}
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="min-h-[65vh] bg-white dark:bg-gray-900">
+                        <div class="border-b border-gray-200 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700">Preview an toàn · cùng renderer với Ebook Viewer</div>
+                        <div class="ebook-markdown mx-auto max-w-5xl px-6 py-8 text-slate-800 dark:text-slate-200 sm:px-8 lg:px-10">
+                            {!! $previewHtml ?: '<p class="text-sm text-gray-400">Chưa có nội dung để xem trước.</p>' !!}
+                        </div>
+                    </div>
+                @endif
+
                 @error('content') <p class="bg-red-50 px-5 py-2 text-sm font-medium text-red-600">{{ $message }}</p> @enderror
 
                 <div class="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                        Markdown thuần · H1–H6 · Table · Task list · Code · Link · Image
+                        Markdown thuần · Preview dùng safe renderer · H1–H6 · Table · Task list · Code · Link · Image
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         @if ($documentId)
