@@ -2,7 +2,6 @@
 
 namespace Modules\Ebook\Livewire\Document;
 
-use App\Models\User;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -26,8 +25,6 @@ class DocumentIndex extends Component
     public ?string $expectedHash = null;
     public string $workspace = 'editor';
     public string $editorMode = 'source';
-    public string $viewerSearch = '';
-    public array $viewerIds = [];
     public $upload;
 
     public function mount(): void
@@ -84,7 +81,8 @@ class DocumentIndex extends Component
 
     public function save(): void
     {
-        $permission = $this->documentId ? 'ebook.update' : 'ebook.create';
+        $isCreating = $this->documentId === null;
+        $permission = $isCreating ? 'ebook.create' : 'ebook.update';
         $this->authorizeAdmin($permission);
         $data = $this->validate([
             'folderId' => ['required', 'integer', 'exists:ebook_folders,id'],
@@ -94,8 +92,6 @@ class DocumentIndex extends Component
             'content' => ['nullable', 'string'],
             'sortOrder' => ['integer', 'min:0'],
             'isActive' => ['boolean'],
-            'viewerIds' => ['array'],
-            'viewerIds.*' => ['integer', 'distinct', 'exists:users,id'],
         ]);
 
         $payload = [
@@ -112,22 +108,13 @@ class DocumentIndex extends Component
         }
 
         $service = app(EbookDocumentService::class);
-        if ($this->documentId) {
-            $payload['expected_hash'] = $this->expectedHash;
-            $document = $service->update($this->documentId, $payload);
-        } else {
+        if ($isCreating) {
             $document = $service->create($payload);
+            $document->viewers()->syncWithoutDetaching([(int) auth('admin')->id()]);
+        } else {
+            $payload['expected_hash'] = $this->expectedHash;
+            $document = $service->update((int) $this->documentId, $payload);
         }
-
-        $viewerIds = collect($data['viewerIds'] ?? [])
-            ->map(fn ($id): int => (int) $id)
-            ->filter()
-            ->push((int) auth('admin')->id())
-            ->unique()
-            ->values()
-            ->all();
-
-        $document->viewers()->sync($viewerIds);
 
         $currentMode = $this->editorMode;
         $this->hydrateFromDocument($document, preserveContent: true);
@@ -136,7 +123,7 @@ class DocumentIndex extends Component
         $this->resetValidation();
         $this->reset('upload');
 
-        session()->flash('ebook_document_success', 'Đã lưu tài liệu và danh sách người được xem. Bạn có thể tiếp tục soạn thảo.');
+        session()->flash('ebook_document_success', 'Đã lưu tài liệu. Bạn có thể tiếp tục soạn thảo.');
     }
 
     public function uploadMarkdown(): void
@@ -165,7 +152,7 @@ class DocumentIndex extends Component
 
     public function resetForm(): void
     {
-        $this->reset(['documentId', 'folderId', 'title', 'slug', 'description', 'content', 'sortOrder', 'expectedHash', 'upload', 'viewerSearch', 'viewerIds']);
+        $this->reset(['documentId', 'folderId', 'title', 'slug', 'description', 'content', 'sortOrder', 'expectedHash', 'upload']);
         $this->resetValidation();
         $this->isActive = true;
         $this->workspace = 'editor';
@@ -179,29 +166,11 @@ class DocumentIndex extends Component
             : null;
 
         $preview = app(MarkdownService::class)->renderPreview($this->content, $previewDocument);
-        $search = trim($this->viewerSearch);
-
-        $availableUsers = User::query()
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($inner) use ($search): void {
-                    $inner->where('name', 'like', '%'.$search.'%')
-                        ->orWhere('email', 'like', '%'.$search.'%');
-                });
-            })
-            ->orderBy('name')
-            ->limit(30)
-            ->get(['id', 'name', 'email']);
-
-        $selectedUsers = $this->viewerIds === []
-            ? collect()
-            : User::query()->whereIn('id', $this->viewerIds)->orderBy('name')->get(['id', 'name', 'email']);
 
         return view('Ebook::livewire.document.document-index', [
             'folders' => EbookFolder::query()->orderBy('name')->get(['id', 'name']),
             'documents' => EbookDocument::query()->with('folder:id,name')->orderBy('sort_order')->orderBy('title')->paginate(10),
             'previewHtml' => $preview['html'],
-            'availableUsers' => $availableUsers,
-            'selectedUsers' => $selectedUsers,
         ]);
     }
 
@@ -218,7 +187,6 @@ class DocumentIndex extends Component
         $this->sortOrder = (int) $document->sort_order;
         $this->isActive = (bool) $document->is_active;
         $this->expectedHash = $document->content_hash;
-        $this->viewerIds = $document->viewers()->pluck('users.id')->map(fn ($id): int => (int) $id)->all();
     }
 
     private function authorizeAdmin(string $permission): void
