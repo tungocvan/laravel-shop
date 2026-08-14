@@ -2,24 +2,36 @@
 
 namespace Modules\User\database\seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
-use Illuminate\Support\Facades\Schema;
 
 class UserAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $name = (string) config('seed.admin.name', 'Từ Ngọc Vân');
+        $email = (string) config('seed.admin.email', 'tungocvan@gmail.com');
+        $configuredPassword = config('seed.admin.password');
+        $password = is_string($configuredPassword) && $configuredPassword !== ''
+            ? $configuredPassword
+            : (app()->isProduction() ? null : '12345678');
+
+        if ($password === null) {
+            throw new RuntimeException('SEED_ADMIN_PASSWORD is required when running UserAdminSeeder in production.');
+        }
 
         $attributes = [
-            'name' => 'Từ Ngọc Vân',
-            'password' => bcrypt('12345678'),
+            'name' => $name,
+            'password' => Hash::make($password),
         ];
 
-        // Các cột này thuộc module Account/Identity, không thuộc schema lõi User.
         if (Schema::hasColumn('users', 'account_type')) {
             $attributes['account_type'] = 'system';
         }
@@ -29,14 +41,13 @@ class UserAdminSeeder extends Seeder
         }
 
         $userAdmin = User::query()->updateOrCreate(
-            ['email' => 'tungocvan@gmail.com'],
+            ['email' => $email],
             $attributes
         );
 
-        $role = Role::findByName('Super Admin', 'admin');
+        $role = Role::findOrCreate('Super Admin', 'admin');
+        $userAdmin->syncRoles([$role]);
 
-        $userAdmin->assignRole($role);
-
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
