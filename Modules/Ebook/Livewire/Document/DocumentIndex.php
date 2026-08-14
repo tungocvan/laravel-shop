@@ -61,6 +61,13 @@ class DocumentIndex extends Component
         $this->editorMode = 'preview';
     }
 
+    public function startNew(): void
+    {
+        $this->authorizeAdmin('ebook.create');
+        $this->resetForm();
+        $this->dispatch('ebook-editor-focus-title');
+    }
+
     public function edit(int $id): void
     {
         $this->authorizeAdmin('ebook.update');
@@ -142,7 +149,18 @@ class DocumentIndex extends Component
 
     public function resetForm(): void
     {
-        $this->reset(['documentId', 'title', 'slug', 'description', 'content', 'sortOrder', 'expectedHash', 'upload']);
+        $this->reset([
+            'documentId',
+            'folderId',
+            'title',
+            'slug',
+            'description',
+            'content',
+            'sortOrder',
+            'expectedHash',
+            'upload',
+        ]);
+        $this->resetValidation();
         $this->isActive = true;
         $this->workspace = 'editor';
         $this->editorMode = 'source';
