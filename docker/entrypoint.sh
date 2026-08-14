@@ -3,6 +3,7 @@ set -eu
 
 mkdir -p \
   storage/app \
+  storage/app/system \
   storage/framework/cache \
   storage/framework/sessions \
   storage/framework/views \
