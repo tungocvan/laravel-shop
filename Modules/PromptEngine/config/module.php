@@ -5,4 +5,5 @@ return [
     'type' => 'support',
     'enabled' => false,
     'depends' => [],
+    'permissions_required' => false,
 ];
