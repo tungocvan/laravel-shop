@@ -37,16 +37,17 @@ class EbookEngagementService
             );
 
             $limit = max(1, (int) config('ebook.ebook.recent_limit', 20));
-            $staleIds = EbookDocumentRecent::query()
+            $keepIds = EbookDocumentRecent::query()
                 ->where('user_id', $userId)
                 ->orderByDesc('viewed_at')
                 ->orderByDesc('id')
-                ->skip($limit)
+                ->limit($limit)
                 ->pluck('id');
 
-            if ($staleIds->isNotEmpty()) {
-                EbookDocumentRecent::query()->whereIn('id', $staleIds)->delete();
-            }
+            EbookDocumentRecent::query()
+                ->where('user_id', $userId)
+                ->when($keepIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $keepIds))
+                ->delete();
         });
     }
 
