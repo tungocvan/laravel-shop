@@ -3,6 +3,7 @@
 namespace Modules\Role\Services;
 
 use App\Models\User;
+use App\Modules\ModulePermissionManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,10 +21,7 @@ class ImportExport extends BaseImportExportService
 
     protected string $defaultSheetName = 'roles';
 
-    protected array $requiredHeaders = [
-        'name',
-        'guard_name',
-    ];
+    protected array $requiredHeaders = ['name', 'guard_name'];
 
     protected array $rules = [
         'name' => ['required', 'string', 'max:255'],
@@ -32,10 +30,7 @@ class ImportExport extends BaseImportExportService
         'permissions.*' => ['string', 'max:255'],
     ];
 
-    protected array $uniqueBy = [
-        'name',
-        'guard_name',
-    ];
+    protected array $uniqueBy = ['name', 'guard_name'];
 
     protected array $headerAliases = [
         'name' => ['name', 'role_name', 'ten_vai_tro', 'tên_vai_trò', 'vai_tro', 'vai_trò'],
@@ -60,19 +55,15 @@ class ImportExport extends BaseImportExportService
 
         if ($mode === 'replace') {
             $this->addError($this->defaultSheetName, null, 'mode', 'Module Role không hỗ trợ replace để tránh mất phân quyền.');
-
             return $this->report(false);
         }
 
         try {
             $this->validateImportFile($filePath);
-
             $rows = (new FastExcel)->import($filePath);
 
             $this->addDebug('sheets', [$this->defaultSheetName]);
-            $this->addDebug('sheet_counts', [
-                $this->defaultSheetName => $rows->count(),
-            ]);
+            $this->addDebug('sheet_counts', [$this->defaultSheetName => $rows->count()]);
 
             if (! $dryRun) {
                 DB::beginTransaction();
@@ -82,17 +73,14 @@ class ImportExport extends BaseImportExportService
             foreach ($rows as $index => $rawRow) {
                 $rowNumber = $index + 2;
                 $this->totalRows++;
-
                 $row = $this->normalizeRowHeaders((array) $rawRow);
 
                 if (! $this->hasRequiredHeaders($row)) {
                     $this->addError($this->defaultSheetName, $rowNumber, null, 'File thiếu cột bắt buộc.');
-
                     continue;
                 }
 
                 $row = $this->normalizeRow($row);
-
                 $validator = Validator::make($row, $this->rules);
 
                 if ($validator->fails()) {
@@ -101,7 +89,15 @@ class ImportExport extends BaseImportExportService
                             $this->addError($this->defaultSheetName, $rowNumber, $column, $message, $row[$column] ?? null);
                         }
                     }
+                    continue;
+                }
 
+                if ($row['guard_name'] !== RoleService::ADMIN_GUARD) {
+                    $this->addError($this->defaultSheetName, $rowNumber, 'guard_name', 'Module Role chỉ hỗ trợ guard admin.', $row['guard_name']);
+                    continue;
+                }
+
+                if (! $this->validatePermissionCatalog($row, $rowNumber)) {
                     continue;
                 }
 
@@ -111,7 +107,6 @@ class ImportExport extends BaseImportExportService
 
                 if ($dryRun) {
                     $this->successRows++;
-
                     continue;
                 }
 
@@ -145,14 +140,12 @@ class ImportExport extends BaseImportExportService
     public function export(array $filters = []): string
     {
         $this->authorizeAny(['export_role', 'view_role']);
-
         return parent::export($filters);
     }
 
     public function exportTemplate(): string
     {
         $this->authorizeAny(['import_role', 'create_role']);
-
         return parent::exportTemplate();
     }
 
@@ -165,7 +158,7 @@ class ImportExport extends BaseImportExportService
     {
         return [
             'name' => $this->cleanString($row['name'] ?? null),
-            'guard_name' => $this->cleanString($row['guard_name'] ?? null) ?: 'admin',
+            'guard_name' => $this->cleanString($row['guard_name'] ?? null) ?: RoleService::ADMIN_GUARD,
             'permissions' => $this->normalizePermissions($row['permissions'] ?? null),
         ];
     }
@@ -175,6 +168,7 @@ class ImportExport extends BaseImportExportService
         return Role::query()
             ->select('id', 'name', 'guard_name', 'created_at', 'updated_at')
             ->with('permissions:id,name,guard_name')
+            ->where('guard_name', RoleService::ADMIN_GUARD)
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where('name', 'like', "%{$search}%");
             })
@@ -196,40 +190,70 @@ class ImportExport extends BaseImportExportService
     {
         return [
             'name' => 'Quan ly kho',
-            'guard_name' => 'admin',
+            'guard_name' => RoleService::ADMIN_GUARD,
             'permissions' => 'view_product, create_product, edit_product',
         ];
     }
 
     private function persistRoleRow(array $row, string $mode, int $rowNumber): void
     {
-        $unique = [
-            'name' => $row['name'],
-            'guard_name' => $row['guard_name'],
-        ];
-
+        $unique = ['name' => $row['name'], 'guard_name' => RoleService::ADMIN_GUARD];
         $existing = Role::query()->where($unique)->first();
 
         if ($mode === 'skip_duplicate' && $existing) {
             $this->skippedRows++;
-
             return;
         }
 
         if ($mode === 'create_only' && $existing) {
             $this->addError($this->defaultSheetName, $rowNumber, 'name', 'Vai trò đã tồn tại cho guard này.', $row['name']);
-
             return;
         }
 
         $role = Role::query()->updateOrCreate($unique, $unique);
+        $role->syncPermissions($this->permissionNamesForSync($row['permissions']));
+        $this->successRows++;
+    }
 
-        if (! empty($row['permissions'])) {
-            $permissionNames = $this->permissionNamesForSync($row['permissions'], $row['guard_name']);
-            $role->syncPermissions($permissionNames);
+    private function validatePermissionCatalog(array $row, int $rowNumber): bool
+    {
+        $approved = collect(app(ModulePermissionManager::class)->activeGroups())
+            ->flatten()
+            ->unique()
+            ->values();
+
+        $unknown = collect($row['permissions'])->diff($approved);
+
+        if ($unknown->isNotEmpty()) {
+            $this->addError(
+                $this->defaultSheetName,
+                $rowNumber,
+                'permissions',
+                'File chứa quyền không thuộc catalog module đang hoạt động.',
+                $unknown->implode(', ')
+            );
+            return false;
         }
 
-        $this->successRows++;
+        $existing = Permission::query()
+            ->where('guard_name', RoleService::ADMIN_GUARD)
+            ->whereIn('name', $row['permissions'])
+            ->pluck('name');
+
+        $missing = collect($row['permissions'])->diff($existing);
+
+        if ($missing->isNotEmpty()) {
+            $this->addError(
+                $this->defaultSheetName,
+                $rowNumber,
+                'permissions',
+                'Quyền hợp lệ nhưng chưa được đồng bộ vào bảng permissions.',
+                $missing->implode(', ')
+            );
+            return false;
+        }
+
+        return true;
     }
 
     private function validateProtectedRole(array $row, int $rowNumber): bool
@@ -239,17 +263,14 @@ class ImportExport extends BaseImportExportService
         }
 
         $this->addError($this->defaultSheetName, $rowNumber, 'name', 'Bạn không có quyền import/cập nhật vai trò Super Admin.', $row['name']);
-
         return false;
     }
 
     private function normalizePermissions(mixed $value): array
     {
-        if (is_array($value)) {
-            $permissions = $value;
-        } else {
-            $permissions = preg_split('/[,;|]+/', (string) $value) ?: [];
-        }
+        $permissions = is_array($value)
+            ? $value
+            : (preg_split('/[,;|]+/', (string) $value) ?: []);
 
         return collect($permissions)
             ->map(fn (mixed $permission): ?string => $this->cleanString($permission))
@@ -259,22 +280,18 @@ class ImportExport extends BaseImportExportService
             ->all();
     }
 
-    private function permissionNamesForSync(array $permissions, string $guardName): array
+    private function permissionNamesForSync(array $permissions): array
     {
-        return collect($permissions)
-            ->map(function (string $permission) use ($guardName): string {
-                return Permission::query()->firstOrCreate([
-                    'name' => $permission,
-                    'guard_name' => $guardName,
-                ])->name;
-            })
+        return Permission::query()
+            ->where('guard_name', RoleService::ADMIN_GUARD)
+            ->whereIn('name', $permissions)
+            ->pluck('name')
             ->all();
     }
 
     private function actorIsSuperAdmin(): bool
     {
         $actor = auth('admin')->user();
-
         return $actor instanceof User && $actor->hasRole(self::ROLE_SUPER_ADMIN);
     }
 
