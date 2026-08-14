@@ -41,6 +41,49 @@ class EbookNavigationService
         return $items;
     }
 
+    public function documentPicker(): array
+    {
+        return EbookDocument::query()
+            ->with('folder:id,name')
+            ->where('is_active', true)
+            ->orderByDesc('is_favorite')
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get(['id', 'folder_id', 'title', 'is_favorite'])
+            ->map(fn (EbookDocument $document): array => [
+                'id' => (int) $document->id,
+                'title' => $document->title,
+                'folder' => $document->folder?->name ?? 'Thư mục gốc',
+                'favorite' => (bool) $document->is_favorite,
+            ])
+            ->all();
+    }
+
+    public function adjacent(EbookDocument $document): array
+    {
+        $documents = EbookDocument::query()
+            ->where('is_active', true)
+            ->orderBy('folder_id')
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->orderBy('id')
+            ->get(['id', 'title']);
+
+        $index = $documents->search(fn (EbookDocument $item): bool => (int) $item->id === (int) $document->id);
+
+        if ($index === false) {
+            return ['previous' => null, 'next' => null];
+        }
+
+        $previous = $index > 0 ? $documents->get($index - 1) : null;
+        $next = $index < $documents->count() - 1 ? $documents->get($index + 1) : null;
+
+        return [
+            'previous' => $previous ? ['id' => (int) $previous->id, 'title' => $previous->title] : null,
+            'next' => $next ? ['id' => (int) $next->id, 'title' => $next->title] : null,
+        ];
+    }
+
     private function buildLevel(Collection $folders, Collection $documents, ?int $parentId): array
     {
         return $folders
