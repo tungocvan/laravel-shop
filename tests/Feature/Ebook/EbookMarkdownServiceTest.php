@@ -116,6 +116,26 @@ class EbookMarkdownServiceTest extends TestCase
         ]), $result['html']);
     }
 
+    public function test_shared_root_image_alias_is_independent_of_document_depth(): void
+    {
+        $service = app(MarkdownService::class);
+        $document = $this->document();
+
+        $this->assertSame('ebooks/images/1.png', $service->resolveAssetPath($document, '@/images/1.png'));
+
+        $result = $service->render($document, '![Shared](@/images/1.png)');
+        $this->assertStringContainsString(route('admin.ebook.asset', [
+            'document' => 10,
+            'path' => '@/images/1.png',
+        ]), $result['html']);
+    }
+
+    public function test_shared_root_image_alias_cannot_escape_ebook_root(): void
+    {
+        $this->expectException(ValidationException::class);
+        app(MarkdownService::class)->resolveAssetPath($this->document(), '@/../secret.png');
+    }
+
     public function test_image_is_decorated_for_responsive_lightbox_and_caption(): void
     {
         $result = app(MarkdownService::class)->render(
