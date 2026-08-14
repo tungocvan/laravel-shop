@@ -7,6 +7,7 @@ use Livewire\WithFileUploads;
 use Modules\Ebook\Models\EbookDocument;
 use Modules\Ebook\Models\EbookFolder;
 use Modules\Ebook\Services\EbookDocumentService;
+use Modules\Ebook\Services\MarkdownService;
 
 class DocumentIndex extends Component
 {
@@ -22,6 +23,7 @@ class DocumentIndex extends Component
     public bool $isActive = true;
     public ?string $expectedHash = null;
     public string $workspace = 'editor';
+    public string $editorMode = 'source';
     public $upload;
 
     public function mount(): void
@@ -41,6 +43,24 @@ class DocumentIndex extends Component
         $this->workspace = 'list';
     }
 
+    public function showSource(): void
+    {
+        $this->authorizeAdmin('ebook.view');
+        $this->editorMode = 'source';
+    }
+
+    public function showSplit(): void
+    {
+        $this->authorizeAdmin('ebook.view');
+        $this->editorMode = 'split';
+    }
+
+    public function showPreview(): void
+    {
+        $this->authorizeAdmin('ebook.view');
+        $this->editorMode = 'preview';
+    }
+
     public function edit(int $id): void
     {
         $this->authorizeAdmin('ebook.update');
@@ -55,6 +75,7 @@ class DocumentIndex extends Component
         $this->isActive = (bool) $document->is_active;
         $this->expectedHash = $document->content_hash;
         $this->workspace = 'editor';
+        $this->editorMode = 'source';
     }
 
     public function save(): void
@@ -124,13 +145,21 @@ class DocumentIndex extends Component
         $this->reset(['documentId', 'title', 'slug', 'description', 'content', 'sortOrder', 'expectedHash', 'upload']);
         $this->isActive = true;
         $this->workspace = 'editor';
+        $this->editorMode = 'source';
     }
 
     public function render()
     {
+        $previewDocument = $this->documentId
+            ? EbookDocument::query()->find($this->documentId)
+            : null;
+
+        $preview = app(MarkdownService::class)->renderPreview($this->content, $previewDocument);
+
         return view('Ebook::livewire.document.document-index', [
             'folders' => EbookFolder::query()->orderBy('name')->get(['id', 'name']),
             'documents' => EbookDocument::query()->with('folder:id,name')->orderBy('sort_order')->orderBy('title')->paginate(10),
+            'previewHtml' => $preview['html'],
         ]);
     }
 
