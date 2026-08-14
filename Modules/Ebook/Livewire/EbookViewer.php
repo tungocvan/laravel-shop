@@ -4,6 +4,7 @@ namespace Modules\Ebook\Livewire;
 
 use Livewire\Component;
 use Modules\Ebook\Services\EbookDocumentService;
+use Modules\Ebook\Services\EbookEngagementService;
 use Modules\Ebook\Services\EbookNavigationService;
 use Modules\Ebook\Services\MarkdownService;
 
@@ -17,12 +18,23 @@ class EbookViewer extends Component
     {
         $this->authorizeAdmin('ebook.view');
         $this->documentId = $documentId;
+
+        app(EbookEngagementService::class)->recordRecent(
+            (int) auth('admin')->id(),
+            $documentId
+        );
     }
 
     public function toggleReadingMode(): void
     {
         $this->authorizeAdmin('ebook.view');
         $this->readingMode = ! $this->readingMode;
+    }
+
+    public function toggleFavorite(): void
+    {
+        $this->authorizeAdmin('ebook.update');
+        app(EbookEngagementService::class)->toggleFavorite($this->documentId);
     }
 
     public function render()
