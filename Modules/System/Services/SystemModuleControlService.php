@@ -4,13 +4,12 @@ namespace Modules\System\Services;
 
 use App\Modules\ModuleLifecycleManager;
 use App\Modules\ModulePermissionManager;
+use App\Modules\ModuleStateRepository;
 use App\Services\RealtimeManager;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use LogicException;
-use RuntimeException;
 use Throwable;
 
 class SystemModuleControlService
@@ -21,6 +20,7 @@ class SystemModuleControlService
     public function __construct(
         private readonly ModuleLifecycleManager $lifecycle,
         private readonly ModulePermissionManager $permissions,
+        private readonly ModuleStateRepository $states,
     ) {
     }
 
@@ -54,10 +54,10 @@ class SystemModuleControlService
                     $permissionCount = $this->permissions->sync($module);
                 }
 
-                Log::notice('System module control stage.', $context + ['stage' => 'manifest']);
-                $this->writeEnabledManifest($module, $newEnabled);
-
+                Log::notice('System module control stage.', $context + ['stage' => 'runtime_state']);
+                $this->states->set($moduleName, $newEnabled);
                 config(["modules.registry.{$moduleName}.enabled" => $newEnabled]);
+                config(["modules.registry.{$moduleName}.source" => 'runtime']);
 
                 if (! $newEnabled) {
                     $this->permissions->forgetCache();
@@ -100,6 +100,10 @@ class SystemModuleControlService
 
             try {
                 $destination = $this->lifecycle->archive($module, $registry);
+
+                Log::notice('System module archive stage.', $context + ['stage' => 'runtime_state_cleanup']);
+                $this->states->forget($moduleName);
+
                 unset($registry[$moduleName]);
                 config(['modules.registry' => $registry]);
 
@@ -198,39 +202,6 @@ class SystemModuleControlService
 
         if ($dependents->isNotEmpty()) {
             throw new LogicException('Hãy tắt các module đang phụ thuộc trước: '.$dependents->join(', ').'.');
-        }
-    }
-
-    private function writeEnabledManifest(array $module, bool $enabled): void
-    {
-        $manifestPath = collect([
-            $module['path'].'/config/module.php',
-            $module['path'].'/Config/module.php',
-        ])->first(fn (string $path): bool => File::exists($path));
-
-        if ($manifestPath === null) {
-            throw new RuntimeException('Module manifest is missing.');
-        }
-
-        if (! File::isWritable($manifestPath)) {
-            throw new RuntimeException('Module manifest is not writable.');
-        }
-
-        $manifest = require $manifestPath;
-        if (! is_array($manifest)) {
-            throw new RuntimeException('Module manifest is invalid.');
-        }
-
-        $manifest['enabled'] = $enabled;
-        $content = "<?php\n\nreturn ".var_export($manifest, true).";\n";
-
-        if (File::put($manifestPath, $content) === false) {
-            throw new RuntimeException('Module manifest could not be written.');
-        }
-
-        clearstatcache(true, $manifestPath);
-        if (function_exists('opcache_invalidate')) {
-            opcache_invalidate($manifestPath, true);
         }
     }
 
