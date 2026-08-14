@@ -35,6 +35,8 @@
         <section x-data="{
                     metadataOpen: false,
                     editorFullscreen: false,
+                    scrollSync: true,
+                    syncingScroll: false,
                     insertText(text) {
                         const el = this.$refs.editor;
                         if (!el) return;
@@ -66,6 +68,15 @@
                         el.setRangeText(replacement, lineStart, end, 'select');
                         el.dispatchEvent(new Event('input', { bubbles: true }));
                         el.focus();
+                    },
+                    syncScroll(source, target) {
+                        if (!this.scrollSync || this.syncingScroll || !source || !target) return;
+                        const sourceMax = source.scrollHeight - source.clientHeight;
+                        const targetMax = target.scrollHeight - target.clientHeight;
+                        if (sourceMax <= 0 || targetMax <= 0) return;
+                        this.syncingScroll = true;
+                        target.scrollTop = (source.scrollTop / sourceMax) * targetMax;
+                        requestAnimationFrame(() => this.syncingScroll = false);
                     },
                     async toggleEditorFullscreen() {
                         const target = this.$refs.editorShell;
@@ -150,32 +161,46 @@
 
                 <div class="border-b border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/70">
                     <div class="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-                        <div class="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Thanh công cụ Markdown">
-                            <button type="button" @click="wrap('**', '**', 'in đậm')" class="ebook-md-tool font-bold" title="In đậm">B</button>
-                            <button type="button" @click="wrap('*', '*', 'in nghiêng')" class="ebook-md-tool italic" title="In nghiêng">I</button>
-                            <button type="button" @click="wrap('~~', '~~', 'gạch ngang')" class="ebook-md-tool line-through" title="Gạch ngang">S</button>
-                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                            <button type="button" @click="prefix('# ')" class="ebook-md-tool" title="Heading 1">H1</button>
-                            <button type="button" @click="prefix('## ')" class="ebook-md-tool" title="Heading 2">H2</button>
-                            <button type="button" @click="prefix('### ')" class="ebook-md-tool" title="Heading 3">H3</button>
-                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                            <button type="button" @click="prefix('- ')" class="ebook-md-tool" title="Danh sách">• List</button>
-                            <button type="button" @click="prefix('1. ')" class="ebook-md-tool" title="Danh sách đánh số">1. List</button>
-                            <button type="button" @click="prefix('- [ ] ')" class="ebook-md-tool" title="Task list">☑ Task</button>
-                            <button type="button" @click="prefix('> ')" class="ebook-md-tool" title="Trích dẫn">❝ Quote</button>
-                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                            <button type="button" @click="wrap('[', '](https://)', 'liên kết')" class="ebook-md-tool" title="Liên kết">🔗 Link</button>
-                            <button type="button" @click="insertText('![Mô tả ảnh](images/)')" class="ebook-md-tool" title="Hình ảnh">🖼 Image</button>
-                            <button type="button" @click="wrap('`', '`', 'code')" class="ebook-md-tool" title="Inline code">&lt;/&gt;</button>
-                            <button type="button" @click="insertText('\n```php\n\n```\n')" class="ebook-md-tool" title="Code block">Code</button>
-                            <button type="button" @click="insertText('\n| Cột 1 | Cột 2 |\n|---|---|\n| Giá trị | Giá trị |\n')" class="ebook-md-tool" title="Bảng">Table</button>
-                            <button type="button" @click="insertText('\n---\n')" class="ebook-md-tool" title="Đường phân cách">— HR</button>
-                            <span class="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600"></span>
-                            <button type="button" @click="$refs.editor?.focus(); document.execCommand('undo')" class="ebook-md-tool" title="Undo">↶</button>
-                            <button type="button" @click="$refs.editor?.focus(); document.execCommand('redo')" class="ebook-md-tool" title="Redo">↷</button>
+                        <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Thanh công cụ Markdown">
+                            <div class="ebook-md-group" aria-label="Định dạng chữ">
+                                <button type="button" @click="wrap('**', '**', 'in đậm')" class="ebook-md-tool font-bold" title="In đậm">B</button>
+                                <button type="button" @click="wrap('*', '*', 'in nghiêng')" class="ebook-md-tool italic" title="In nghiêng">I</button>
+                                <button type="button" @click="wrap('~~', '~~', 'gạch ngang')" class="ebook-md-tool line-through" title="Gạch ngang">S</button>
+                            </div>
+                            <div class="ebook-md-group" aria-label="Heading">
+                                <button type="button" @click="prefix('# ')" class="ebook-md-tool" title="Heading 1">H1</button>
+                                <button type="button" @click="prefix('## ')" class="ebook-md-tool" title="Heading 2">H2</button>
+                                <button type="button" @click="prefix('### ')" class="ebook-md-tool" title="Heading 3">H3</button>
+                            </div>
+                            <div class="ebook-md-group" aria-label="Danh sách và trích dẫn">
+                                <button type="button" @click="prefix('- ')" class="ebook-md-tool" title="Danh sách">• List</button>
+                                <button type="button" @click="prefix('1. ')" class="ebook-md-tool" title="Danh sách đánh số">1. List</button>
+                                <button type="button" @click="prefix('- [ ] ')" class="ebook-md-tool" title="Task list">☑ Task</button>
+                                <button type="button" @click="prefix('> ')" class="ebook-md-tool" title="Trích dẫn">❝ Quote</button>
+                            </div>
+                            <div class="ebook-md-group" aria-label="Chèn nội dung">
+                                <button type="button" @click="wrap('[', '](https://)', 'liên kết')" class="ebook-md-tool" title="Liên kết">🔗 Link</button>
+                                <button type="button" @click="insertText('![Mô tả ảnh](images/)')" class="ebook-md-tool" title="Hình ảnh">🖼 Image</button>
+                                <button type="button" @click="wrap('`', '`', 'code')" class="ebook-md-tool" title="Inline code">&lt;/&gt;</button>
+                                <button type="button" @click="insertText('\n```php\n\n```\n')" class="ebook-md-tool" title="Code block">Code</button>
+                                <button type="button" @click="insertText('\n| Cột 1 | Cột 2 |\n|---|---|\n| Giá trị | Giá trị |\n')" class="ebook-md-tool" title="Bảng">Table</button>
+                                <button type="button" @click="insertText('\n---\n')" class="ebook-md-tool" title="Đường phân cách">— HR</button>
+                            </div>
+                            <div class="ebook-md-group" aria-label="Lịch sử">
+                                <button type="button" @click="$refs.editor?.focus(); document.execCommand('undo')" class="ebook-md-tool" title="Undo">↶</button>
+                                <button type="button" @click="$refs.editor?.focus(); document.execCommand('redo')" class="ebook-md-tool" title="Redo">↷</button>
+                            </div>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-1">
+                            @if ($editorMode === 'split')
+                                <button type="button" @click="scrollSync = !scrollSync"
+                                        class="rounded-lg border px-2.5 py-2 text-xs font-semibold transition"
+                                        :class="scrollSync ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300' : 'border-gray-300 bg-white text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400'"
+                                        :title="scrollSync ? 'Tắt đồng bộ cuộn' : 'Bật đồng bộ cuộn'">
+                                    <span x-text="scrollSync ? '⇅ Sync cuộn' : '⇅ Cuộn riêng'"></span>
+                                </button>
+                            @endif
                             <div class="inline-flex rounded-lg border border-gray-300 bg-white p-1 shadow-sm dark:border-gray-600 dark:bg-gray-800" aria-label="Chế độ editor">
                                 <button type="button" wire:click="showSource" class="rounded-md px-2.5 py-1.5 text-xs font-semibold {{ $editorMode === 'source' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }}">Soạn thảo</button>
                                 <button type="button" wire:click="showSplit" class="hidden rounded-md px-2.5 py-1.5 text-xs font-semibold md:inline-flex {{ $editorMode === 'split' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }}">Chia đôi</button>
@@ -198,22 +223,30 @@
                 @elseif ($editorMode === 'split')
                     <div class="grid min-h-[65vh] grid-cols-1 md:grid-cols-2">
                         <div class="min-w-0 border-b border-gray-700 bg-gray-950 md:border-b-0 md:border-r">
-                            <div class="border-b border-gray-800 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-400">Markdown</div>
+                            <div class="sticky top-0 z-10 flex items-center justify-between border-b border-gray-800 bg-gray-950 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+                                <span>Markdown</span><span class="font-medium normal-case tracking-normal text-gray-500">Source</span>
+                            </div>
                             <textarea id="ebook-document-content" x-ref="editor" wire:model="content" spellcheck="false"
-                                      class="block min-h-[61vh] w-full resize-none border-0 bg-gray-950 px-5 py-5 font-mono text-[14px] leading-7 text-gray-100 outline-none ring-0 placeholder:text-gray-600 focus:ring-0"
+                                      @scroll="syncScroll($event.target, $refs.previewScroll)"
+                                      class="block min-h-[61vh] max-h-[61vh] w-full resize-none overflow-y-auto border-0 bg-gray-950 px-5 py-5 font-mono text-[14px] leading-7 text-gray-100 outline-none ring-0 placeholder:text-gray-600 focus:ring-0"
                                       placeholder="# Tiêu đề tài liệu\n\nBắt đầu soạn Markdown..."></textarea>
                         </div>
                         <div class="min-w-0 bg-white dark:bg-gray-900">
-                            <div class="border-b border-gray-200 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700">Preview</div>
-                            <div class="ebook-markdown max-h-[61vh] overflow-y-auto px-6 py-5 text-slate-800 dark:text-slate-200">
+                            <div class="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900">
+                                <span>Preview</span><span class="font-medium normal-case tracking-normal text-gray-400">Safe renderer</span>
+                            </div>
+                            <div x-ref="previewScroll" @scroll="syncScroll($event.target, $refs.editor)"
+                                 class="ebook-markdown max-h-[61vh] min-h-[61vh] overflow-y-auto px-7 py-6 text-slate-800 dark:text-slate-200 lg:px-9 xl:px-10">
                                 {!! $previewHtml ?: '<p class="text-sm text-gray-400">Chưa có nội dung để xem trước.</p>' !!}
                             </div>
                         </div>
                     </div>
                 @else
                     <div class="min-h-[65vh] bg-white dark:bg-gray-900">
-                        <div class="border-b border-gray-200 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700">Preview an toàn · cùng renderer với Ebook Viewer</div>
-                        <div class="ebook-markdown mx-auto max-w-5xl px-6 py-8 text-slate-800 dark:text-slate-200 sm:px-8 lg:px-10">
+                        <div class="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900">
+                            <span>Preview</span><span class="font-medium normal-case tracking-normal text-gray-400">Cùng renderer với Ebook Viewer</span>
+                        </div>
+                        <div class="ebook-markdown mx-auto max-w-5xl px-6 py-9 text-slate-800 dark:text-slate-200 sm:px-8 lg:px-10 xl:px-12">
                             {!! $previewHtml ?: '<p class="text-sm text-gray-400">Chưa có nội dung để xem trước.</p>' !!}
                         </div>
                     </div>
@@ -288,6 +321,16 @@
     @endif
 
     <style>
+        .ebook-md-group {
+            display: inline-flex;
+            align-items: center;
+            gap: .125rem;
+            border: 1px solid rgb(229 231 235);
+            border-radius: .625rem;
+            background: rgba(255,255,255,.78);
+            padding: .125rem;
+        }
+        .dark .ebook-md-group { border-color: rgb(75 85 99); background: rgba(31,41,55,.75); }
         .ebook-md-tool {
             display: inline-flex;
             min-height: 2rem;
