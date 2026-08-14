@@ -31,6 +31,18 @@ class EbookMarkdownServiceTest extends TestCase
         $this->assertStringNotContainsString('javascript:', $result['html']);
     }
 
+    public function test_preview_uses_same_safe_rendering_pipeline(): void
+    {
+        $result = app(MarkdownService::class)->renderPreview(
+            "# Draft\n\n<script>alert('xss')</script>\n\n[Laravel](https://laravel.com/docs)\n\n```bash\nphp artisan test\n```"
+        );
+
+        $this->assertStringNotContainsString('<script', $result['html']);
+        $this->assertStringContainsString('<h1 id="draft">', $result['html']);
+        $this->assertStringContainsString('ebook-external-link', $result['html']);
+        $this->assertStringContainsString('ebook-code-block', $result['html']);
+    }
+
     public function test_render_generates_stable_unique_heading_ids_and_toc(): void
     {
         $result = app(MarkdownService::class)->render(
@@ -145,6 +157,7 @@ class EbookMarkdownServiceTest extends TestCase
             'is_active' => true,
         ]);
         $document->id = 10;
+        $document->exists = true;
 
         return $document;
     }
