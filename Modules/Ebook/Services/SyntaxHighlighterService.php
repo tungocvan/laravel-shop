@@ -25,6 +25,12 @@ class SyntaxHighlighterService
 
         $offset = 0;
         $html = '';
+        $classes = [
+            'comment' => 'ebook-syntax-comment text-slate-500 italic',
+            'string' => 'ebook-syntax-string text-emerald-300',
+            'number' => 'ebook-syntax-number text-amber-300',
+            'keyword' => 'ebook-syntax-keyword font-semibold text-fuchsia-300',
+        ];
 
         preg_match_all($pattern, $code, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER);
 
@@ -41,7 +47,7 @@ class SyntaxHighlighterService
                 }
             }
 
-            $html .= '<span class="ebook-syntax-'.$type.'">'.e($text).'</span>';
+            $html .= '<span class="'.$classes[$type].'">'.e($text).'</span>';
             $offset = $position + strlen($text);
         }
 
@@ -74,11 +80,11 @@ class SyntaxHighlighterService
             'bash' => ['case', 'do', 'done', 'elif', 'else', 'esac', 'export', 'fi', 'for', 'function', 'if', 'in', 'local', 'readonly', 'return', 'then', 'until', 'while'],
             'shell' => ['case', 'do', 'done', 'elif', 'else', 'esac', 'export', 'fi', 'for', 'function', 'if', 'in', 'local', 'readonly', 'return', 'then', 'until', 'while'],
             'sh' => ['case', 'do', 'done', 'elif', 'else', 'esac', 'export', 'fi', 'for', 'function', 'if', 'in', 'local', 'readonly', 'return', 'then', 'until', 'while'],
-            'css' => ['@import', '@media', '@supports', 'important'],
+            'css' => ['import', 'media', 'supports', 'important'],
             'html' => ['doctype', 'html', 'head', 'body', 'script', 'style', 'div', 'span', 'a', 'img', 'table', 'form', 'input', 'button'],
             'yaml' => ['false', 'null', 'true'],
             'yml' => ['false', 'null', 'true'],
-            'dockerfile' => ['add', 'arg', 'cmd', 'copy', 'entrypoint', 'env', 'expose', 'from', 'healthcheck', 'label', 'run', 'shell', 'stopSignal', 'user', 'volume', 'workdir'],
+            'dockerfile' => ['add', 'arg', 'cmd', 'copy', 'entrypoint', 'env', 'expose', 'from', 'healthcheck', 'label', 'run', 'shell', 'stopsignal', 'user', 'volume', 'workdir'],
             'nginx' => ['events', 'http', 'include', 'listen', 'location', 'proxy_pass', 'return', 'server', 'server_name', 'upstream'],
             'md' => [],
             'markdown' => [],
