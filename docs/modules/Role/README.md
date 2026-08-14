@@ -2,29 +2,23 @@
 
 ## Module Overview
 
-`Modules/Role` is the administrator authorization-management module built on `spatie/laravel-permission`. It provides role listing, role create/edit, permission assignment, protected deletion rules, permission generation and import/export.
+`Modules/Role` is the administrator authorization-management module built on `spatie/laravel-permission`.
 
 ## Registration
 
-The module is auto-discovered by `Modules\ModuleServiceProvider`.
-
-Manifest:
-
-- `Modules/Role/config/module.php`
-
-Current runtime manifest declares Role as `shell`, enabled, and dependent on `User`.
+The module is auto-discovered by `Modules\ModuleServiceProvider`. Its current manifest remains `shell`, enabled, and dependent on `User`; manifest-type cleanup is deferred.
 
 ## Main Routes
 
-- `/admin/roles`
-- `/admin/roles/create`
-- `/admin/roles/{id}/edit`
+- `/admin/roles` -> `view_role`
+- `/admin/roles/create` -> `create_role`
+- `/admin/roles/{id}/edit` -> `edit_role`
 
-Legacy `/admin/role...` URLs redirect to the plural route set.
+Legacy `/admin/role...` redirects are preserved.
 
 ## Permissions
 
-Declared capabilities:
+Declared capabilities remain unchanged:
 
 - `view_role`
 - `create_role`
@@ -33,16 +27,17 @@ Declared capabilities:
 - `import_role`
 - `export_role`
 
-Current source still needs capability enforcement on Role CRUD routes/Livewire actions.
+Role routes and sensitive Livewire actions now enforce capability-specific authorization. Permission-catalog mutation is restricted to `Super Admin`.
 
 ## Features
 
 - Role search and pagination.
-- Role creation/editing.
-- Permission assignment from the active module permission catalog.
-- Single/bulk delete protection for `Super Admin` and roles in use.
-- Module-style permission creation.
-- FastExcel import/export through the Shared import/export service.
+- Transactional role create/edit and permission sync through `Modules\Role\Services\RoleService`.
+- Admin-guard-only role management.
+- Protected `Super Admin` role cannot be edited or deleted through normal Role UI workflows.
+- Single/bulk deletion blocks roles that are in use.
+- Permission assignment is restricted to the active server-owned module catalog plus preserved historical permissions already attached to an edited role.
+- FastExcel import/export through Shared Import/Export; import rejects non-admin guards and unknown/unsynced permissions.
 
 ## Dependencies
 
@@ -51,38 +46,33 @@ Current source still needs capability enforcement on Role CRUD routes/Livewire a
 - Shared import/export infrastructure
 - `App\Modules\ModulePermissionManager`
 
-## Configuration
-
-`Modules/Role/config/module.php` defines module type, enabled state, dependencies and permission capabilities.
-
-No Role-specific environment variables were identified.
-
 ## Operational Notes
 
-Role is security-sensitive. Changes to role names, permission catalogs, guards or Spatie tables can affect global authorization behavior.
-
-`Super Admin` is especially important because `Modules\ModuleServiceProvider` grants it a global `Gate::before` bypass.
+Role is security-sensitive. Before merging, verify locally that at least one `Super Admin` account still authenticates and retains the global `Gate::before` bypass.
 
 ## Developer Notes
 
-- Keep controllers thin.
-- Authorize every sensitive Livewire mutation.
-- Keep role mutation workflows in a service rather than Livewire.
-- Preserve Spatie table/route/Livewire compatibility during refactors.
-- Use Shared import/export infrastructure rather than creating a second engine.
-- Do not allow uploaded/browser-provided permission names to create arbitrary capabilities without a server-side allowlist.
+- Keep route and Livewire authorization fail-closed.
+- Keep mutation/domain invariants in `RoleService`.
+- Do not create permissions directly from browser/upload input unless they are declared by the active server-owned module catalog.
+- Preserve route names, Livewire aliases and Spatie table contracts.
 
-See `ANALYSIS.md` for the current technical assessment.
+## Verification Status
 
-## Future Improvements
+Implementation is present on `agent/refactor-role`. GitHub-side static review is complete; local PHP/Pint/PHPUnit execution remains required before merge.
 
-Current analysis recommends a **Major Refactor**, focused on:
+Recommended local checks:
 
-1. capability authorization,
-2. protected-role invariants,
-3. canonical Role service,
-4. server-approved permission catalog,
-5. import guard/catalog hardening,
-6. transactional writes,
-7. targeted security/regression tests,
-8. manifest/dependency/migration hygiene.
+```bash
+php artisan test tests/Feature/Role/RoleRouteAuthorizationTest.php
+php artisan test
+./vendor/bin/pint Modules/Role tests/Feature/Role
+```
+
+## Deferred Improvements
+
+- manifest `shell` -> `support` architecture decision
+- migration filename hygiene and `module_migrations` ownership
+- placeholder `/api/role` cleanup
+- broader permission-matrix UI polish
+- immutable protected-role key/schema if required later
