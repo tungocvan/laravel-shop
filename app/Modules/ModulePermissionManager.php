@@ -39,27 +39,65 @@ class ModulePermissionManager
             ->all();
     }
 
+    public function discoverModules(): array
+    {
+        $registry = collect(config('modules.registry', []));
+        $directories = collect(File::directories(base_path('Modules')))
+            ->map(fn (string $path): array => ['name' => basename($path), 'path' => $path])
+            ->sortBy(fn (array $module): string => strtolower($module['name']))
+            ->values();
+
+        return $directories->map(function (array $module) use ($registry): array {
+            $registryKey = $registry->keys()->first(fn (string $name): bool => strcasecmp($name, $module['name']) === 0);
+            $registered = $registryKey !== null;
+            $registryModule = $registered ? (array) $registry->get($registryKey) : [];
+            $manifest = $this->manifestPath($module['path']);
+            $permissions = $manifest ? $this->permissionsFromPath($module['path']) : [];
+            $manifestConfig = $manifest ? (array) require $manifest : [];
+
+            $status = 'ok';
+            if (! $registered) {
+                $status = 'missing_registry';
+            } elseif ($manifest === null) {
+                $status = 'missing_manifest';
+            } elseif ($permissions === []) {
+                $status = 'missing_permissions';
+            }
+
+            return [
+                'name' => $module['name'],
+                'path' => $module['path'],
+                'registered' => $registered,
+                'registry_enabled' => $registered ? (bool) ($registryModule['enabled'] ?? false) : false,
+                'manifest' => $manifest !== null,
+                'manifest_enabled' => $manifest !== null ? (bool) ($manifestConfig['enabled'] ?? false) : false,
+                'permission_count' => count($permissions),
+                'permissions' => $permissions,
+                'status' => $status,
+            ];
+        })->all();
+    }
+
     public function previewActiveSync(): array
     {
         $groups = $this->activeGroups();
         $permissions = collect($groups)->flatten()->unique()->sort()->values();
-        $existing = Permission::query()
-            ->where('guard_name', 'admin')
-            ->whereIn('name', $permissions)
-            ->pluck('name');
+        $existing = Permission::query()->where('guard_name', 'admin')->whereIn('name', $permissions)->pluck('name');
         $missing = $permissions->diff($existing)->values();
-        $superAdmin = Role::query()
-            ->where('name', 'Super Admin')
-            ->where('guard_name', 'admin')
-            ->first();
-        $assigned = $superAdmin
-            ? $superAdmin->permissions->pluck('name')->intersect($permissions)
-            : collect();
+        $superAdmin = Role::query()->where('name', 'Super Admin')->where('guard_name', 'admin')->first();
+        $assigned = $superAdmin ? $superAdmin->permissions->pluck('name')->intersect($permissions) : collect();
+        $discovered = collect($this->discoverModules());
 
         return [
             'modules' => count(config('modules.registry', [])),
             'active_modules' => collect(config('modules.registry', []))->where('enabled', true)->count(),
+            'filesystem_modules' => $discovered->count(),
             'modules_with_permissions' => count($groups),
+            'modules_without_permissions' => $discovered->where('status', 'missing_permissions')->pluck('name')->values()->all(),
+            'modules_without_manifest' => $discovered->where('status', 'missing_manifest')->pluck('name')->values()->all(),
+            'modules_without_registry' => $discovered->where('status', 'missing_registry')->pluck('name')->values()->all(),
+            'audit_warnings' => $discovered->where('status', '!=', 'ok')->values()->all(),
+            'module_audit' => $discovered->values()->all(),
             'total' => $permissions->count(),
             'existing' => $existing->count(),
             'missing' => $missing->all(),
@@ -72,16 +110,14 @@ class ModulePermissionManager
     public function syncAllActiveToSuperAdmin(): array
     {
         $before = $this->previewActiveSync();
-        $groups = $this->activeGroups();
-        $permissions = collect($groups)->flatten()->unique()->values();
+        $permissions = collect($this->activeGroups())->flatten()->unique()->values();
 
         DB::transaction(function () use ($permissions): void {
             foreach ($permissions as $permission) {
                 Permission::findOrCreate($permission, 'admin');
             }
 
-            $superAdmin = Role::findOrCreate('Super Admin', 'admin');
-            $superAdmin->givePermissionTo($permissions->all());
+            Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissions->all());
         });
 
         $this->forgetCache();
@@ -92,6 +128,7 @@ class ModulePermissionManager
             'assigned' => count($before['super_admin_missing']),
             'total' => $after['total'],
             'modules_with_permissions' => $after['modules_with_permissions'],
+            'audit_warnings' => count($after['audit_warnings']),
         ];
     }
 
@@ -100,13 +137,15 @@ class ModulePermissionManager
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
+    private function manifestPath(string $modulePath): ?string
+    {
+        return collect([$modulePath.'/config/module.php', $modulePath.'/Config/module.php'])
+            ->first(fn (string $path): bool => File::exists($path));
+    }
+
     private function permissionsFromPath(string $modulePath): array
     {
-        $manifest = collect([
-            $modulePath . '/config/module.php',
-            $modulePath . '/Config/module.php',
-        ])->first(fn (string $path): bool => File::exists($path));
-
+        $manifest = $this->manifestPath($modulePath);
         if ($manifest === null) {
             return [];
         }
@@ -116,8 +155,6 @@ class ModulePermissionManager
         return collect($config['permissions'] ?? [])
             ->filter(fn (mixed $permission): bool => is_string($permission) && trim($permission) !== '')
             ->map(fn (string $permission): string => trim($permission))
-            ->unique()
-            ->values()
-            ->all();
+            ->unique()->values()->all();
     }
 }
