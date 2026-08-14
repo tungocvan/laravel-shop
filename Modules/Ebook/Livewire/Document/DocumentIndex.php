@@ -2,6 +2,7 @@
 
 namespace Modules\Ebook\Livewire\Document;
 
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Ebook\Models\EbookDocument;
@@ -61,11 +62,12 @@ class DocumentIndex extends Component
         $this->editorMode = 'preview';
     }
 
+    #[On('ebook-start-new-document')]
     public function startNew(): void
     {
         $this->authorizeAdmin('ebook.create');
         $this->resetForm();
-        $this->dispatch('ebook-editor-focus-title');
+        $this->dispatch('ebook-focus-document-title');
     }
 
     public function edit(int $id): void
@@ -149,17 +151,7 @@ class DocumentIndex extends Component
 
     public function resetForm(): void
     {
-        $this->reset([
-            'documentId',
-            'folderId',
-            'title',
-            'slug',
-            'description',
-            'content',
-            'sortOrder',
-            'expectedHash',
-            'upload',
-        ]);
+        $this->reset(['documentId', 'folderId', 'title', 'slug', 'description', 'content', 'sortOrder', 'expectedHash', 'upload']);
         $this->resetValidation();
         $this->isActive = true;
         $this->workspace = 'editor';
