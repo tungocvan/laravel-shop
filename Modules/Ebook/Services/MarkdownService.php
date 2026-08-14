@@ -22,13 +22,20 @@ class MarkdownService
     public function resolveAssetPath(EbookDocument $document, string $path): string
     {
         $path = rawurldecode($path);
+        $root = trim((string) config('ebook.ebook.root', 'ebooks'), '/');
 
-        if ($path === '' || str_contains($path, "\0") || str_starts_with($path, '/') || preg_match('/^[a-z][a-z0-9+.-]*:/i', $path)) {
-            throw ValidationException::withMessages(['asset' => 'Đường dẫn tài nguyên không hợp lệ.']);
+        if (str_starts_with($path, '@/')) {
+            $path = $root.'/'.ltrim(substr($path, 2), '/');
+            $segments = explode('/', trim($path, '/'));
+        } else {
+            if ($path === '' || str_contains($path, "\0") || str_starts_with($path, '/') || preg_match('/^[a-z][a-z0-9+.-]*:/i', $path)) {
+                throw ValidationException::withMessages(['asset' => 'Đường dẫn tài nguyên không hợp lệ.']);
+            }
+
+            $documentDirectory = dirname(str_replace('\\', '/', $document->file_path));
+            $segments = explode('/', trim($documentDirectory.'/'.$path, '/'));
         }
 
-        $documentDirectory = dirname(str_replace('\\', '/', $document->file_path));
-        $segments = explode('/', trim($documentDirectory.'/'.$path, '/'));
         $normalized = [];
 
         foreach ($segments as $segment) {
@@ -48,7 +55,6 @@ class MarkdownService
         }
 
         $resolved = implode('/', $normalized);
-        $root = trim((string) config('ebook.ebook.root', 'ebooks'), '/');
 
         if ($resolved !== $root && ! str_starts_with($resolved, $root.'/')) {
             throw ValidationException::withMessages(['asset' => 'Đường dẫn tài nguyên vượt khỏi Ebook root.']);
