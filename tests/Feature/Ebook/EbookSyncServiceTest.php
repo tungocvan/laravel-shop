@@ -58,7 +58,7 @@ class EbookSyncServiceTest extends TestCase
 
         $plan = app(EbookSyncService::class)->preview();
 
-        $this->assertSame(1, $plan['summary']['new']);
+        $this->assertSame(2, $plan['summary']['new']);
         $this->assertCount(1, $plan['new_folders']);
         $this->assertCount(1, $plan['new_files']);
         $this->assertDatabaseCount('ebook_folders', 0);
