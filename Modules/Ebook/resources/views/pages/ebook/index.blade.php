@@ -9,7 +9,7 @@
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600 dark:text-indigo-400">Knowledge Base</p>
                 <h1 class="mt-1 text-2xl font-bold tracking-tight text-gray-950 dark:text-gray-100">Ebook</h1>
                 <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
-                    Workspace quản trị tài liệu Markdown, thư mục, tìm kiếm và đồng bộ filesystem.
+                    Workspace quản trị tài liệu Markdown, thư mục, quyền xem, tìm kiếm và đồng bộ filesystem.
                 </p>
             </div>
 
@@ -53,6 +53,15 @@
                         <span class="flex-1">Thư mục</span>
                     </button>
 
+                    @can('ebook.update')
+                        <button type="button" @click="workspace = 'access'; mobileNav = false"
+                                class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition"
+                                :class="workspace === 'access' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'">
+                            <span class="w-5 text-center">👥</span>
+                            <span class="flex-1">Quyền xem</span>
+                        </button>
+                    @endcan
+
                     <button type="button" @click="workspace = 'search'; mobileNav = false"
                             class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition"
                             :class="workspace === 'search' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'">
@@ -71,7 +80,7 @@
 
                     <div class="my-2 border-t border-gray-100 dark:border-gray-700"></div>
                     <div class="px-3 py-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                        <strong class="font-semibold text-gray-600 dark:text-gray-300">Tài liệu</strong> là workspace soạn thảo/danh sách. Dùng <strong>+ Tài liệu mới</strong> khi muốn khởi tạo nội dung mới.
+                        User có <strong class="font-semibold text-gray-600 dark:text-gray-300">ebook.view</strong> chỉ thấy tài liệu đã được cấp trong <strong>Quyền xem</strong>.
                     </div>
                 </div>
             </aside>
@@ -84,6 +93,12 @@
                 <div x-show="workspace === 'folders'" x-cloak>
                     @livewire('ebook.folder.folder-index')
                 </div>
+
+                @can('ebook.update')
+                    <div x-show="workspace === 'access'" x-cloak>
+                        @livewire('ebook.ebook-access-manager')
+                    </div>
+                @endcan
 
                 <div x-show="workspace === 'search'" x-cloak>
                     @livewire('ebook.ebook-search')
