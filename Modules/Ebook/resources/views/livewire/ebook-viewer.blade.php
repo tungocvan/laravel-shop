@@ -191,7 +191,7 @@
                                     </div>
                                 </nav>
                             @endif
-                            <div class="ebook-markdown mx-auto overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:px-10 lg:py-10" :class="fullscreen ? 'max-w-6xl' : 'max-w-5xl'">{!! $html !!}</div>
+                            <div class="ebook-markdown overflow-x-auto px-5 py-7 text-slate-800 dark:text-slate-200 sm:px-8 sm:py-9 lg:ml-6 lg:max-w-5xl lg:px-10 lg:py-10 2xl:ml-8" :class="fullscreen ? 'mx-auto max-w-6xl' : ''">{!! $html !!}</div>
                         </article>
                     </main>
                 </div>
@@ -199,12 +199,14 @@
         </div>
     </div>
 
-    <nav class="grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:grid-cols-2" aria-label="Tài liệu trước và sau">
+    <nav class="flex flex-col gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:flex-row sm:items-stretch sm:justify-between" aria-label="Tài liệu trước và sau">
         @if ($adjacent['previous'])
-            <a href="{{ route('admin.ebook.document.show', $adjacent['previous']['id']) }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900"><span class="text-xs text-slate-500">← Tài liệu trước</span><strong class="mt-1 block text-sm">{{ $adjacent['previous']['title'] }}</strong></a>
-        @else<div></div>@endif
+            <a href="{{ route('admin.ebook.document.show', $adjacent['previous']['id']) }}" class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900 sm:w-auto sm:min-w-72"><span class="text-xs text-slate-500">← Tài liệu trước</span><strong class="mt-1 block truncate text-sm">{{ $adjacent['previous']['title'] }}</strong></a>
+        @else
+            <div class="hidden sm:block"></div>
+        @endif
         @if ($adjacent['next'])
-            <a href="{{ route('admin.ebook.document.show', $adjacent['next']['id']) }}" class="rounded-xl border border-slate-200 bg-white p-4 text-right shadow-sm transition hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900"><span class="text-xs text-slate-500">Tài liệu tiếp theo →</span><strong class="mt-1 block text-sm">{{ $adjacent['next']['title'] }}</strong></a>
+            <a href="{{ route('admin.ebook.document.show', $adjacent['next']['id']) }}" class="ml-auto w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 text-right shadow-sm transition hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900 sm:w-auto sm:min-w-72"><span class="text-xs text-slate-500">Tài liệu tiếp theo →</span><strong class="mt-1 block truncate text-sm">{{ $adjacent['next']['title'] }}</strong></a>
         @endif
     </nav>
 
