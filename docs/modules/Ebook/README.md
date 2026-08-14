@@ -7,46 +7,27 @@ Ebook is a Laravel 12 domain module for managing an internal Markdown-based know
 The module uses a dual-storage model:
 
 - Markdown content is stored on the filesystem under `storage/app/ebooks/`.
-- Metadata, hierarchy, favorites and recent-view history are stored in MySQL.
+- Metadata, hierarchy, favorites, recent-view history and per-document reader assignments are stored in MySQL.
 
 The module is designed for Admin users and is not a public document library.
 
 ## 2. Registration / Bootstrap
 
-Ebook is discovered by the repository's root module bootstrap:
+Ebook is discovered by the repository root bootstrap `Modules\ModuleServiceProvider.php` and does not use `nwidart/laravel-modules`, `module.json`, or a second provider/registry system.
 
-```text
-Modules\ModuleServiceProvider.php
-```
+Manifest: `Modules/Ebook/config/module.php`.
 
-The module does not use `nwidart/laravel-modules`, `module.json`, or a second provider/registry system.
-
-Manifest:
-
-```text
-Modules/Ebook/config/module.php
-```
-
-Current module contract:
+Current contract:
 
 - name: `Ebook`
 - type: `domain`
 - default enabled: `true`
 - dependencies: `[]`
-
-Runtime module enable/disable behavior uses the existing repository module-state infrastructure.
+- runtime enable/disable: existing repository module-state infrastructure
 
 ## 3. Main Routes
 
-Main Admin routes use:
-
-```text
-web
-admin guard
-permission:ebook.view,admin
-```
-
-Primary paths:
+Admin routes use the existing Admin guard and capability middleware. Primary paths are:
 
 ```text
 /admin/ebook
@@ -54,7 +35,7 @@ Primary paths:
 /admin/ebook/document/{document}/asset
 ```
 
-All Ebook pages are internal Admin routes.
+All Ebook pages and protected assets are internal Admin routes.
 
 ## 4. Permissions
 
@@ -69,346 +50,207 @@ ebook.upload
 ebook.sync
 ```
 
-Route-level permission middleware protects page/asset access.
+Route-level permission middleware protects page/asset access. Mutating Livewire actions perform server-side authorization; UI visibility is not treated as the security boundary.
 
-Mutating Livewire actions also perform server-side authorization. UI visibility is not treated as the security boundary.
+Document-level read access is additionally enforced for non-Super-Admin users through `EbookAccessService` and `ebook_document_users`.
 
 ## 5. Database Tables
 
 ### `ebook_folders`
 
-Stores folder hierarchy and metadata.
-
-Important fields:
-
-- `parent_id`
-- `name`
-- `slug`
-- `description`
-- `sort_order`
-- `is_active`
-
-Sibling folder slugs are unique.
-
-Folder delete is blocked while the folder contains child folders or files.
+Stores hierarchy and folder metadata. Sibling folder slugs are unique. A folder cannot be moved below itself/its descendant and non-empty folder deletion is blocked.
 
 ### `ebook_documents`
 
-Stores Markdown document metadata.
-
-Important fields:
-
-- `folder_id`
-- `title`
-- `slug`
-- `file_name`
-- `file_path`
-- `source_type`
-- `description`
-- `sort_order`
-- `is_active`
-- `is_favorite`
-- `content_hash`
-- `file_mtime`
-
-Markdown content itself is not persisted in this table.
+Stores document metadata, canonical file path, favorite state, content hash and file mtime. Markdown content itself remains on the filesystem.
 
 ### `ebook_document_recents`
 
-Stores Recently Viewed data per Admin user.
+Stores bounded Recently Viewed entries per Admin user using the existing `users.id` identity.
 
-The `admin` guard uses the existing `users` provider and `App\Models\User`, therefore Recent records reference `users.id`; no separate Admin identity table/model is introduced.
+### `ebook_document_users`
 
-History is bounded by configuration.
+Stores per-document reader assignments between `ebook_documents` and the canonical `users` table.
+
+The module manifest declares all four Ebook-owned tables.
 
 ## 6. Filesystem
 
-Configured Ebook root:
+Configured root:
 
 ```text
 storage/app/ebooks/
 ```
 
-Filesystem content is private and must not be exposed as a raw public directory.
+Filesystem content is private and is not exposed through a public storage symlink. Application-created folders/files use Laravel Storage. Database paths are canonical relative paths below the configured Ebook root.
 
-Application-created folders and files are accessed through Laravel Storage.
-
-Database paths are canonical relative paths below the configured Ebook root.
-
-Path rules include:
-
-- no arbitrary absolute paths from requests
-- no `../` traversal
-- no path escape outside Ebook root
-- no silent overwrite of an existing destination
-- relative image assets are served through an authenticated Ebook asset endpoint
+Security rules include no arbitrary absolute paths, no `../` escape, no silent overwrite, protected relative-image delivery, and external-edit conflict detection.
 
 ## 7. Folder Management
 
 Implemented features:
 
-- create folder
-- edit folder
-- nested folders
-- move folder
-- sort order
+- create/edit/nested folders
+- move and sort order
 - active/inactive state
 - sibling-slug collision protection
 - descendant-cycle prevention
 - safe delete guard
 - filesystem + metadata coordination
 
-When a folder path changes, document metadata paths below that folder are updated to remain consistent with the physical filesystem.
+When a folder path changes, descendant document paths are coordinated with the physical filesystem.
 
 ## 8. Document Management
 
 Implemented features:
 
-- create Markdown document
+- create/edit/delete Markdown document
 - upload `.md`
-- edit Markdown content
-- move document between folders
-- delete document
+- move between folders
 - description/sort/active state
 - title extraction from first H1 on upload
 - slug/filename normalization
 - duplicate destination protection
-- external-edit conflict detection using SHA-256 `content_hash`
+- SHA-256 `content_hash` conflict protection
+- per-document reader assignment
 
-If a file has changed externally since the Admin began editing, the service rejects the save instead of silently overwriting the external change.
+Create and upload attach the current Admin as a reader. Final Hardening also guarantees that a new document imported through Scan & Sync is attached to the authenticated Admin who applies the sync, so the sync actor can immediately read the reconciled document.
+
+The management workspace now filters its document list through `EbookAccessService::visibleDocuments()` and checks document access before edit/update/delete/preview operations. This prevents a user with only `ebook.view` from seeing or mutating metadata for documents that were not assigned to that user.
 
 ## 9. Markdown Viewer
 
-The viewer provides:
+The viewer provides a responsive technical-document reading experience with Sidebar/Content/TOC behavior, breadcrumb, Reading Mode, fullscreen mode, document picker, previous/next navigation, TOC scroll spy, copy-code action, image lightbox and safe external-link behavior.
 
-```text
-Desktop: Sidebar | Content | Table of Contents
-```
+Markdown support includes H1-H6, paragraphs, lists, fenced code blocks, tables/task-list behavior through Laravel CommonMark support, stable heading anchors, relative images and TOC generation.
 
-It also supports responsive behavior and Reading Mode.
+Raw dangerous HTML is stripped and unsafe links are blocked by renderer configuration.
 
-Implemented Markdown behavior includes:
+### Syntax Highlighting
 
-- H1-H6
-- paragraphs
-- lists
-- fenced code blocks
-- language metadata such as `language-php`
-- tables/task-list behavior provided by Laravel CommonMark support
-- heading anchors
-- Table of Contents
-- relative image handling
-- breadcrumb/navigation tree
+Phase 1 Final Hardening adds real dependency-free token highlighting for fenced technical code blocks while preserving `language-*` metadata. The highlighter supports the Phase 1 language families used by the Ebook viewer, including PHP, JavaScript/TypeScript, SQL, JSON, Bash/Shell, CSS, HTML, YAML, Dockerfile, Nginx and Markdown. Unsupported/unknown languages safely fall back to escaped plain code.
 
-Raw dangerous HTML is stripped and unsafe links are blocked by Markdown renderer configuration.
-
-No third-party syntax-highlighting package/CDN was added during MVP. Code blocks preserve language metadata for future highlighting integration.
+Highlighting is presentation-only and runs after safe Markdown rendering; it does not replace the Markdown parser or sanitizer.
 
 ## 10. Search
 
-`EbookSearchService` provides bounded synchronous search across:
+`EbookSearchService` provides bounded synchronous search across title, filename, description and Markdown file content. Search limits are configuration-driven and result snippets remain escaped/safe.
 
-- title
-- filename
-- description
-- Markdown file content
-
-Filesystem content search is constrained by configuration such as maximum documents, file size and total bytes processed per request.
-
-Search results expose safe snippets; no Elasticsearch, vector database, semantic search or AI search is part of MVP.
+No Elasticsearch, vector database, semantic search or AI search is part of Phase 1.
 
 ## 11. Favorites
 
-MVP Favorites are global metadata:
-
-```text
-ebook_documents.is_favorite
-```
-
-This matches the approved Phase 1 scope.
-
-Per-user Favorites are deferred unless separately approved.
+Phase 1 Favorites remain global metadata through `ebook_documents.is_favorite`. Per-user Favorites remain a later enhancement.
 
 ## 12. Recently Viewed
 
-Recently Viewed is persisted per Admin user.
-
-Viewing a document records or refreshes the `(user_id, ebook_document_id)` entry.
-
-The retained set is bounded and the implementation is compatible with both MySQL and SQLite test execution.
+Recently Viewed is persisted per Admin user, updated on view and bounded by configuration.
 
 ## 13. Scan & Sync
 
-Scan & Sync follows the mandatory workflow:
+Scan & Sync follows:
 
 ```text
-Scan
--> Preview
--> User selection / confirmation
--> Apply
--> Re-scan
+Scan -> Preview -> explicit selection/confirmation -> Apply -> Re-scan
 ```
 
-Preview does not mutate metadata.
-
-Detected categories:
-
-- New
-- Changed
-- Missing
-- Moved/Renamed candidate
-- Ambiguous
+Detected categories are New, Changed, Missing, Moved/Renamed candidate and Ambiguous.
 
 Safety rules:
 
-- Missing files/folders do not trigger automatic metadata deletion.
-- A move/rename is proposed only when a strong unique content-hash match exists.
-- Ambiguous hash matches are never auto-moved.
-- Apply performs a fresh server-side scan and does not trust stale browser preview data as authority.
-- Stale candidates are skipped rather than forced.
+- Preview does not mutate metadata.
+- Missing content never causes automatic metadata deletion.
+- Move/rename requires a unique strong content-hash match.
+- Ambiguous matches never auto-move.
+- Apply performs a fresh server-side scan and stale candidates are skipped.
+- Newly reconciled documents are assigned to the authenticated sync actor.
 
-Manual Local VPS verification completed successfully with a Markdown file placed directly under `storage/app/ebooks/`; Scan detected one folder + one file, Apply reconciled metadata, and the subsequent scan returned all categories to zero.
+Manual Local VPS Scan & Sync verification has previously passed with direct filesystem content.
 
 ## 14. Main Services
 
-### `EbookFolderService`
-
-Folder tree, CRUD, move, path resolution, hierarchy validation and safe deletion.
-
-### `EbookDocumentService`
-
-Document CRUD, upload, content reads/writes, path coordination, content hash conflict protection and filesystem/DB compensation where applicable.
-
-### `MarkdownService`
-
-Markdown rendering, sanitization, heading anchors, TOC extraction and protected relative asset rewriting.
-
-### `EbookNavigationService`
-
-Viewer tree and breadcrumb construction.
-
-### `EbookSearchService`
-
-Bounded metadata and filesystem-content search.
-
-### `EbookEngagementService`
-
-Favorites and per-user Recently Viewed persistence.
-
-### `EbookSyncService`
-
-Filesystem scan, preview classification, conservative move detection and confirmed reconciliation.
-
-## 15. Livewire Components
-
-Main components include:
-
 ```text
-ebook.folder.folder-index
-ebook.document.document-index
-ebook.ebook-viewer
-ebook.ebook-search
-ebook.ebook-sync-panel
+EbookFolderService       folder tree/CRUD/path safety
+EbookDocumentService     document CRUD/storage/conflict handling
+MarkdownService          safe rendering/TOC/assets/code decoration
+SyntaxHighlighterService fenced-code token highlighting
+EbookNavigationService   viewer tree/breadcrumb
+EbookSearchService       bounded search
+EbookEngagementService   favorites/recent
+EbookAccessService       document-level visibility/access
+EbookSyncService         scan/preview/conservative apply
 ```
 
-Livewire manages UI state, validation and orchestration; core filesystem/business behavior remains in Services.
+Livewire owns UI state/orchestration; filesystem/domain behavior remains service-owned.
 
-## 16. Admin UI
+## 15. Livewire / Admin UI
 
-Ebook follows:
+Main components include folder management, document workspace, viewer, search, access manager and sync panel. The module uses `Admin::layouts.master` and repository-aligned Tailwind patterns with responsive/dark-mode-compatible classes, loading states, validation feedback, empty states and destructive confirmations.
 
-```text
-.codex/standards/ADMIN_UI_STANDARD.md
-```
+The document workspace provides source/split/preview modes and an editor-first workflow without introducing Monaco/CodeMirror.
 
-The module uses `Admin::layouts.master` and repository-aligned Tailwind UI patterns.
+## 16. Configuration
 
-Implemented UX includes:
-
-- card/section hierarchy
-- responsive grid
-- clear labels and validation feedback
-- loading/disabled mutation states
-- empty states
-- delete/sync confirmation
-- responsive document list
-- dark-mode-compatible classes
-- Reading Mode
-
-## 17. Configuration
-
-Primary config:
+Primary configuration:
 
 ```text
 Modules/Ebook/config/ebook.php
 Modules/Ebook/config/module.php
 ```
 
-Runtime settings include Ebook disk/root, upload limits, search bounding and recent-history limit.
+Runtime settings include Ebook disk/root, upload limits, search bounds and recent-history limit.
 
-## 18. Tests
+## 17. Tests
 
-Focused Ebook test suites:
+Focused Ebook suites cover bootstrap, folder service, document service, Markdown/security, search/engagement, sync, document access and Final Hardening behavior.
 
-```text
-EbookBootstrapTest
-EbookFolderServiceTest
-EbookDocumentServiceTest
-EbookMarkdownServiceTest
-EbookSearchEngagementTest
-EbookSyncServiceTest
-```
+Final Hardening adds focused coverage for:
 
-Latest completed Ebook regression before MR-7 final gate:
+- sync actor automatically gaining reader access to newly reconciled documents
+- real syntax tokens in fenced PHP rendering
 
-```text
-34 tests
-102 assertions
-0 failed
-```
+A fresh Local VPS test run is required after pulling these changes; documentation must not claim a new passing count until that run completes.
 
-MR-7 still requires final full-project regression before merge.
+## 18. Runtime / Deployment Notes
 
-## 19. Local VPS Notes
+Current implementation target remains Local VPS. Before merge/deployment verify PHP-FPM user/group, CLI user, ownership/permissions of `storage/app/ebooks/`, web write access and CLI interoperability. Do not use `chmod 777`.
 
-Current implementation target is Local VPS directly, not Docker.
+Docker-specific persistence/volume verification remains deferred to a later deployment validation phase.
 
-Before merge/deployment, verify:
+## 19. Phase 1 Final Hardening
 
-- PHP-FPM user/group
-- CLI user
-- ownership and permissions of `storage/app/ebooks/`
-- PHP-FPM can create/read/update files
-- CLI maintenance does not leave files inaccessible to PHP-FPM
+Final Hardening closes four audit items discovered after comparing Phase 1 implementation against `REQUIREMENTS.md` and `CREATE_PLAN.md`:
 
-Do not use `chmod 777`.
+1. Sync-created documents grant access to the authenticated sync actor.
+2. Management document listing/actions enforce document-level access.
+3. Fenced code blocks receive real syntax highlighting rather than language metadata only.
+4. Documentation and manifest metadata are reconciled with the implemented access table and current Phase 1 state.
 
-Docker-specific persistence/volume verification is deferred to a later deployment validation phase.
+These changes do not introduce a new module architecture or public API.
 
 ## 20. Out of Scope / Future Work
 
-Not included in Phase 1 MVP:
+Still deferred beyond Phase 1:
 
 - tags
 - version history
 - bulk folder import/export
-- Monaco/CodeMirror
 - full internal Markdown-to-Markdown link resolver
-- advanced syntax highlighter dependency
-- per-user favorites
-- AI summary/search/tags
-- semantic/vector search
+- advanced editor package
+- keyboard shortcuts beyond current viewer/editor interactions
+- drag/drop sorting
+- per-user Favorites
+- AI/semantic/vector search
 - Elasticsearch
 - trash/soft-delete workflow
 - Docker deployment changes
 
-## 21. Source Documents
-
-Design and implementation history:
+## 21. Canonical Documentation
 
 ```text
 docs/modules/Ebook/REQUIREMENTS.md
 docs/modules/Ebook/CREATE_PLAN.md
 docs/modules/Ebook/README.md
 docs/modules/Ebook/INFORMATION.md
+docs/modules/Ebook/PHASE_1_FINAL_HARDENING.md
 ```

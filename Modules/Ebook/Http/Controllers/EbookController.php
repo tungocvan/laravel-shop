@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Modules\Ebook\Services\EbookAccessService;
 use Modules\Ebook\Services\EbookDocumentService;
 use Modules\Ebook\Services\MarkdownService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -19,7 +20,8 @@ class EbookController extends Controller
 
     public function show(int $document): View
     {
-        app(EbookDocumentService::class)->find($document);
+        $ebookDocument = app(EbookDocumentService::class)->find($document);
+        app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $ebookDocument);
 
         return view('Ebook::pages.ebook.show', [
             'documentId' => $document,
@@ -29,6 +31,8 @@ class EbookController extends Controller
     public function asset(Request $request, int $document): StreamedResponse
     {
         $ebookDocument = app(EbookDocumentService::class)->find($document);
+        app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $ebookDocument);
+
         $resolved = app(MarkdownService::class)->resolveAssetPath(
             $ebookDocument,
             (string) $request->query('path', '')

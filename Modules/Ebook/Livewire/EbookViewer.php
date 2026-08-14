@@ -3,6 +3,7 @@
 namespace Modules\Ebook\Livewire;
 
 use Livewire\Component;
+use Modules\Ebook\Services\EbookAccessService;
 use Modules\Ebook\Services\EbookDocumentService;
 use Modules\Ebook\Services\EbookEngagementService;
 use Modules\Ebook\Services\EbookNavigationService;
@@ -18,6 +19,9 @@ class EbookViewer extends Component
     {
         $this->authorizeAdmin('ebook.view');
         $this->documentId = $documentId;
+
+        $document = app(EbookDocumentService::class)->find($documentId);
+        app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $document);
 
         app(EbookEngagementService::class)->recordRecent(
             (int) auth('admin')->id(),
@@ -41,13 +45,16 @@ class EbookViewer extends Component
     {
         $documents = app(EbookDocumentService::class);
         $document = $documents->find($this->documentId);
+        app(EbookAccessService::class)->authorizeView(auth('admin')->user(), $document);
+
         $rendered = app(MarkdownService::class)->render($document, $documents->content($document));
         $navigation = app(EbookNavigationService::class);
 
         return view('Ebook::livewire.ebook-viewer', [
             'document' => $document,
-            'tree' => $navigation->tree(),
             'breadcrumbs' => $navigation->breadcrumbs($document),
+            'documentPicker' => $navigation->documentPicker(),
+            'adjacent' => $navigation->adjacent($document),
             'html' => $rendered['html'],
             'toc' => $rendered['toc'],
         ]);

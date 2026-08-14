@@ -7,9 +7,11 @@
 - Bootstrap: `Modules\ModuleServiceProvider.php`
 - Runtime state: repository module-state infrastructure
 - Development target: Local VPS
-- Phase: Phase 1 MVP implementation complete through MR-6; MR-7 final validation in progress
-- Last completed Ebook regression: `34 tests / 102 assertions / 0 failed`
-- Manual Scan & Sync smoke: PASS
+- Phase: Phase 1 MVP + Final Hardening implementation complete in source
+- Manual Scan & Sync smoke: previously PASS
+- Final regression after Final Hardening: **PENDING Local VPS execution**
+
+Do not reuse the earlier `34 tests / 102 assertions` or `44 tests / 130 assertions` counts as the final gate after these changes. A fresh run is required.
 
 ## 2. Architecture Summary
 
@@ -23,9 +25,7 @@ Route
   -> MySQL / storage/app/ebooks/
 ```
 
-Filesystem is authoritative for Markdown content.
-
-Database is authoritative for managed metadata and Admin interaction state.
+Filesystem is authoritative for Markdown content. Database is authoritative for managed metadata and Admin interaction/access state.
 
 ## 3. Filesystem Root
 
@@ -33,9 +33,7 @@ Database is authoritative for managed metadata and Admin interaction state.
 storage/app/ebooks/
 ```
 
-The root is private. Markdown and image assets are not exposed through a public storage symlink as an Ebook API.
-
-Relative image assets are resolved through a controlled Admin Ebook asset route with path-boundary validation.
+The root is private. Markdown and image assets are not exposed through a public storage symlink as an Ebook API. Relative images use the controlled authenticated Ebook asset route with path-boundary validation.
 
 ## 4. Database Tables
 
@@ -43,27 +41,33 @@ Relative image assets are resolved through a controlled Admin Ebook asset route 
 ebook_folders
 ebook_documents
 ebook_document_recents
+ebook_document_users
 ```
 
-### Metadata ownership
+`ebook_document_users` is now part of the canonical module manifest table contract and stores per-document reader assignments to the existing `users` identity.
 
-`ebook_folders` owns hierarchy metadata.
+## 5. Admin Identity and Access
 
-`ebook_documents` owns document metadata, canonical file path and sync/hash hints.
+`auth:admin` uses the existing users provider and canonical `App\Models\User` model.
 
-`ebook_document_recents` owns per-user recent view entries.
-
-## 5. Admin Identity
-
-`auth:admin` uses the existing `users` provider.
-
-Canonical identity model:
+Document access rules:
 
 ```text
-App\Models\User
+Super Admin
+-> may view all Ebook documents
+
+Other Admin user
+-> requires normal Ebook capability permission
+-> and must be assigned to the document through ebook_document_users
 ```
 
-Recently Viewed references the existing `users.id` key.
+`EbookAccessService` is the central document visibility/access service.
+
+Phase 1 Final Hardening extends this boundary to the management workspace:
+
+- document list uses `visibleDocuments()`
+- edit/update/delete/preview re-check document access
+- an unassigned reader cannot discover restricted document metadata through the document management list
 
 ## 6. Permissions
 
@@ -76,7 +80,7 @@ ebook.upload
 ebook.sync
 ```
 
-Mutation authorization is checked server-side in Livewire actions in addition to route/page access controls.
+Mutation authorization is checked server-side in addition to route/page access controls.
 
 ## 7. Implemented Capabilities
 
@@ -98,15 +102,24 @@ Mutation authorization is checked server-side in Livewire actions in addition to
 - title extraction
 - normalized slug/file naming
 - external-edit conflict protection using `content_hash`
+- per-document user assignment
+
+Create/upload attach the acting Admin as a viewer. Final Hardening also attaches the authenticated Admin applying Scan & Sync to each newly reconciled document.
 
 ### Viewer
 
-- Sidebar / Content / TOC layout
+- Sidebar / Content / TOC
 - breadcrumb
 - navigation tree
 - Reading Mode
+- fullscreen
+- document picker
+- previous/next navigation
+- TOC scroll spy
+- copy code
+- image lightbox
+- safe external links
 - responsive/dark-compatible Admin UI
-- protected relative images
 
 ### Markdown
 
@@ -115,7 +128,11 @@ Mutation authorization is checked server-side in Livewire actions in addition to
 - unsafe-link protection
 - stable unique heading anchors
 - Table of Contents
+- protected relative image rewriting
 - fenced-code language metadata
+- real Phase 1 syntax token highlighting
+
+`SyntaxHighlighterService` performs presentation-only token highlighting after Markdown rendering. Supported technical language families include PHP, JavaScript/TypeScript, SQL, JSON, Bash/Shell, CSS, HTML, YAML, Dockerfile, Nginx and Markdown; unknown languages fall back to safely escaped plain code.
 
 ### Search
 
@@ -143,72 +160,55 @@ Mutation authorization is checked server-side in Livewire actions in addition to
 - explicit confirmed Apply
 - server-side revalidation before Apply
 - no automatic metadata delete for Missing items
+- newly imported document becomes readable to the sync actor
 
-## 8. Known MVP Decisions
+## 8. Known Phase 1 Decisions
 
-- Documents require a folder in the current implementation.
+- Documents require a folder.
 - Favorite is global, not per user.
 - Recent is per user.
+- Reader assignment is per document/user.
 - Search is synchronous and bounded.
 - Move/rename detection uses unique strong content-hash matching only.
 - Ambiguous candidates require manual resolution.
 - Missing metadata cleanup is not automatic.
 - No recursive folder deletion.
 - No raw public Ebook filesystem exposure.
-- No new Markdown Composer dependency was required for MVP.
-- No syntax-highlighting JS dependency was added; language metadata is preserved for future integration.
+- No new Markdown Composer dependency is required.
+- Syntax highlighting is dependency-free and server-rendered.
 
 ## 9. Test Inventory
 
 ```text
 tests/Feature/Ebook/EbookBootstrapTest.php
-tests/Feature/Ebook/EbookFolderServiceTest.php
+tests/Feature/Ebook/EbookDocumentAccessTest.php
 tests/Feature/Ebook/EbookDocumentServiceTest.php
+tests/Feature/Ebook/EbookFolderServiceTest.php
 tests/Feature/Ebook/EbookMarkdownServiceTest.php
 tests/Feature/Ebook/EbookSearchEngagementTest.php
 tests/Feature/Ebook/EbookSyncServiceTest.php
+tests/Feature/Ebook/EbookFinalHardeningTest.php
 ```
 
-Verified scenarios include:
+Final Hardening focused scenarios include:
 
-- module manifest/routes/runtime override
-- folder create/nesting/cycle/delete/tree
-- document create/upload/move/delete/conflict
-- Markdown sanitization/TOC/code metadata/assets
-- metadata/content search
-- favorites
-- Recent per-admin and retention
-- Sync preview/apply/change/missing/move/ambiguity/stale revalidation
+- sync-created document grants reader access to authenticated sync actor
+- highlighted fenced code contains real syntax token spans
+- management workspace source is wired through `EbookAccessService::visibleDocuments()` and explicit document authorization
 
-## 10. Manual Verification Completed
+## 10. Manual Verification Already Completed
 
 ### Admin UI
 
-The Ebook Admin page was manually reviewed on Local VPS after the UI compliance pass. Folder/document management UI was accepted as professional and aligned with the repository Admin style.
+The Ebook Admin page and viewer were manually reviewed on Local VPS during the Phase 1 polish cycle.
 
 ### Scan & Sync
 
-A file was created directly on disk:
+A Markdown file placed directly under `storage/app/ebooks/` was detected, previewed, explicitly applied and returned a zero-difference re-scan. This verified the external-filesystem reconciliation path before Final Hardening.
 
-```text
-storage/app/ebooks/manual-test/hello-sync.md
-```
+Final Hardening requires re-running this smoke with a non-Super-Admin sync actor to verify immediate viewer access.
 
-Observed flow:
-
-```text
-Quét lại
--> NEW = 2
--> new folder + new file displayed
--> both selected
--> Apply confirmed
--> re-scan
--> NEW/CHANGED/MISSING/MOVED/AMBIGUOUS = 0
-```
-
-This verifies the external-filesystem reconciliation path on Local VPS.
-
-## 11. MR Delivery Status
+## 11. Phase 1 Delivery Status
 
 ```text
 MR-1 Skeleton + Bootstrap + Permissions        PASS
@@ -217,26 +217,35 @@ MR-3 Document Storage + CRUD                   PASS
 MR-4 Markdown Viewer + UI Compliance           PASS
 MR-5 Search + Favorites + Recently Viewed      PASS
 MR-6 Scan & Sync                               PASS
-MR-7 UX + Regression + Docs                    IN PROGRESS
+MR-7 UX + Regression + Docs                    IMPLEMENTED
+Final Hardening                                IMPLEMENTED / TEST GATE PENDING
 ```
 
-## 12. MR-7 Remaining Gates
+## 12. Final Hardening Changes
+
+1. `EbookSyncService`: newly reconciled document attaches authenticated sync actor via `viewers()->syncWithoutDetaching()`.
+2. `DocumentIndex`: management listing is filtered by `EbookAccessService::visibleDocuments()` and document actions enforce document-level authorization.
+3. `MarkdownService` + `SyntaxHighlighterService`: fenced code receives real syntax token highlighting with safe fallback.
+4. `config/module.php` + docs: `ebook_document_users` and current access/highlighting behavior are reflected in the canonical implementation documentation.
+
+See `docs/modules/Ebook/PHASE_1_FINAL_HARDENING.md` for the requirements/plan reconciliation addendum.
+
+## 13. Remaining Release Gates
 
 Before merge to `main`:
 
-1. Pull final MR-7 documentation changes on Local VPS.
-2. Verify Local VPS ownership/write access for Ebook storage.
-3. Run Ebook regression again.
-4. Run System/module-bootstrap regression if applicable.
-5. Run full project regression.
-6. Perform final Admin UI smoke.
-7. Verify `git status` is clean.
-8. Review branch diff against `main`.
-9. Merge only after all gates pass.
+1. Pull Final Hardening commits on Local VPS.
+2. Run focused Ebook regression.
+3. Run System/module-bootstrap regression.
+4. Run full project regression.
+5. Test non-Super-Admin sync actor access after importing a new Markdown file.
+6. Perform final Viewer/Admin smoke, including syntax-highlighted code.
+7. Verify storage ownership/write access.
+8. Verify `git status` clean.
+9. Review branch diff against `main`.
+10. Merge only after all gates pass.
 
-## 13. Local VPS Storage Verification
-
-Recommended diagnostic commands (read-only except optional touch test):
+## 14. Local VPS Storage Verification
 
 ```bash
 whoami
@@ -245,93 +254,80 @@ ls -ld storage storage/app storage/app/ebooks
 find storage/app/ebooks -maxdepth 2 -printf '%u:%g %m %p\n' | head -50
 ```
 
-Do not apply `chmod 777`.
+Do not use `chmod 777`.
 
-If web-created and CLI-created files use different owners, use the project's existing deployment group/ACL convention rather than broad world-write permissions.
-
-## 14. Final Regression Commands
-
-Focused Ebook:
+## 15. Final Regression Commands
 
 ```bash
 php artisan test tests/Feature/Ebook
-```
-
-System runtime bootstrap regression:
-
-```bash
 php artisan test tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
-```
-
-Final project gate:
-
-```bash
 php artisan test
+git status
 ```
 
-## 15. Definition of Done Tracking
+If frontend CSS has not been rebuilt since pulling Final Hardening, also run the normal project Vite build so Tailwind includes the syntax-token utility classes referenced by `SyntaxHighlighterService`.
+
+## 16. Definition of Done Tracking
 
 ### Functional
 
 - [x] Folder CRUD/hierarchy
 - [x] Document create/upload/edit/move/delete
-- [x] Markdown content remains on filesystem
-- [x] Metadata remains in database
+- [x] Markdown content filesystem ownership
+- [x] metadata database ownership
 - [x] Viewer + TOC + breadcrumb
-- [x] Reading Mode
-- [x] Search metadata + Markdown content
+- [x] Reading Mode/fullscreen/navigation polish
+- [x] metadata + content search
 - [x] Favorite
 - [x] Recently Viewed
 - [x] Scan & Sync preview/apply
+- [x] per-document reader assignment
+- [x] sync actor assignment on new sync document
+- [x] real fenced-code syntax highlighting
 
 ### Safety
 
-- [x] path-boundary tests
+- [x] path-boundary protections
 - [x] raw HTML/unsafe links blocked
 - [x] external edit conflict protection
 - [x] duplicate destination protection
 - [x] Missing does not auto-delete metadata
 - [x] ambiguous sync does not auto-move
 - [x] Apply revalidates stale preview
-
-### UX
-
-- [x] Admin layout standard
-- [x] responsive structure
-- [x] dark-compatible utilities
-- [x] loading/disabled states
-- [x] empty states
-- [x] destructive confirmation
-- [x] manual desktop UI smoke
+- [x] management document list/actions enforce document access
 
 ### Release gate
 
-- [ ] Local VPS ownership/write verification
-- [ ] final Ebook regression after MR-7 docs pull
+- [ ] fresh Ebook regression after Final Hardening
 - [ ] final System runtime regression
 - [ ] full project regression
+- [ ] Local VPS sync-actor smoke
+- [ ] final UI syntax-highlighting smoke
+- [ ] Local VPS ownership/write verification
 - [ ] final `git status` clean
 - [ ] branch review / merge to `main`
 
-## 16. Deferred Phase 2/3 Items
+## 17. Deferred Phase 2/3 Items
 
 - Tags
 - Version History
 - Import Folder / Export
 - complete internal Markdown link resolver
-- advanced editor
-- advanced syntax highlighting package
+- advanced editor package
+- drag/drop sorting
+- expanded keyboard shortcuts
 - per-user Favorites
 - AI features
 - semantic/vector search
 - Elasticsearch
 - Docker deployment/persistence validation
 
-## 17. Canonical Documentation
+## 18. Canonical Documentation
 
 ```text
-docs/modules/Ebook/REQUIREMENTS.md   # approved requirements
-docs/modules/Ebook/CREATE_PLAN.md    # approved implementation plan
-docs/modules/Ebook/README.md         # developer/operator overview
-docs/modules/Ebook/INFORMATION.md    # current implementation/release state
+docs/modules/Ebook/REQUIREMENTS.md
+docs/modules/Ebook/CREATE_PLAN.md
+docs/modules/Ebook/README.md
+docs/modules/Ebook/INFORMATION.md
+docs/modules/Ebook/PHASE_1_FINAL_HARDENING.md
 ```

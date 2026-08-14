@@ -17,5 +17,6 @@ return [
         'ebook_folders',
         'ebook_documents',
         'ebook_document_recents',
+        'ebook_document_users',
     ],
 ];

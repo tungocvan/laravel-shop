@@ -183,7 +183,7 @@ class EbookSyncService
         $title = $this->extractTitle($content) ?: Str::headline(pathinfo($fileName, PATHINFO_FILENAME));
         $slug = Str::slug(pathinfo($fileName, PATHINFO_FILENAME));
 
-        return EbookDocument::query()->create([
+        $document = EbookDocument::query()->create([
             'folder_id' => $folder->id,
             'title' => $title,
             'slug' => $slug,
@@ -196,6 +196,12 @@ class EbookSyncService
             'content_hash' => $hash,
             'file_mtime' => $mtime,
         ]);
+
+        if (auth('admin')->check()) {
+            $document->viewers()->syncWithoutDetaching([(int) auth('admin')->id()]);
+        }
+
+        return $document;
     }
 
     private function applyMove(array $item): void
