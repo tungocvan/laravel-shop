@@ -16,7 +16,7 @@ class EbookNavigationService
             ->orderBy('name')
             ->get(['id', 'parent_id', 'name']);
 
-        $documents = EbookDocument::query()
+        $documents = $this->visibleDocuments()
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('title')
@@ -43,7 +43,7 @@ class EbookNavigationService
 
     public function documentPicker(): array
     {
-        return EbookDocument::query()
+        return $this->visibleDocuments()
             ->with('folder:id,name')
             ->where('is_active', true)
             ->orderByDesc('is_favorite')
@@ -61,7 +61,7 @@ class EbookNavigationService
 
     public function adjacent(EbookDocument $document): array
     {
-        $documents = EbookDocument::query()
+        $documents = $this->visibleDocuments()
             ->where('is_active', true)
             ->orderBy('folder_id')
             ->orderBy('sort_order')
@@ -84,6 +84,11 @@ class EbookNavigationService
         ];
     }
 
+    private function visibleDocuments()
+    {
+        return app(EbookAccessService::class)->visibleDocuments(auth('admin')->user());
+    }
+
     private function buildLevel(Collection $folders, Collection $documents, ?int $parentId): array
     {
         return $folders
@@ -103,6 +108,7 @@ class EbookNavigationService
                     'children' => $this->buildLevel($folders, $documents, (int) $folder->id),
                 ];
             })
+            ->filter(fn (array $folder): bool => $folder['documents'] !== [] || $folder['children'] !== [])
             ->values()
             ->all();
     }
