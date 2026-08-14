@@ -5,4 +5,5 @@ return [
     'type' => 'shell',
     'enabled' => true,
     'depends' => [],
+    'permissions_required' => false,
 ];
