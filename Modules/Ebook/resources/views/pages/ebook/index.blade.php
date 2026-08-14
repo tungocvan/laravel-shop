@@ -9,7 +9,7 @@
                 <p class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Knowledge Base</p>
                 <h1 class="mt-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Ebook</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Quản lý cây thư mục, tài liệu Markdown và mở nội dung trong chế độ đọc có mục lục.
+                    Quản lý cây thư mục, tài liệu Markdown, tìm kiếm nội dung và mở tài liệu trong chế độ đọc có mục lục.
                 </p>
             </div>
 
@@ -19,6 +19,7 @@
             </div>
         </div>
 
+        @livewire('ebook.ebook-search')
         @livewire('ebook.folder.folder-index')
         @livewire('ebook.document.document-index')
     </div>
