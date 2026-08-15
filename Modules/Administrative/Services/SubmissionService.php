@@ -19,6 +19,8 @@ use Throwable;
 
 class SubmissionService
 {
+    private const ADMIN_PAGE_SIZES = [10, 25, 50, 100];
+
     public function __construct(private readonly AdministrativeFileService $files) {}
 
     public function submit(AdministrativeProcedure $procedure, array $data, array $uploads): array
@@ -40,7 +42,6 @@ class SubmissionService
                 $submittedAt = now();
                 $submission = AdministrativeSubmission::query()->create([
                     'procedure_id' => $procedure->id,
-                    // 4 ký tự tiền tố + ULID 26 ký tự, luôn nằm trong varchar(32).
                     'submission_code' => $this->temporarySubmissionCode(),
                     'lookup_token_hash' => Hash::make($lookupToken),
                     'applicant_name' => trim($data['applicant_name']),
@@ -83,7 +84,7 @@ class SubmissionService
         return AdministrativeSubmission::query()->with('procedure:id,name')->findOrFail($id);
     }
 
-    public function listForAdmin(array $filters, string|int $perPage = 10): LengthAwarePaginator|Collection
+    public function listForAdmin(array $filters, string|int $perPage = 10): LengthAwarePaginator
     {
         $search = trim((string) ($filters['search'] ?? ''));
         $status = trim((string) ($filters['status'] ?? ''));
@@ -107,7 +108,7 @@ class SubmissionService
             ->when($dateTo, fn ($query) => $query->whereDate('submitted_at', '<=', $dateTo))
             ->latest('submitted_at');
 
-        return $perPage === 'All' ? $query->get() : $query->paginate((int) $perPage);
+        return $query->paginate($this->normalizeAdminPageSize($perPage));
     }
 
     public function adminStats(): array
@@ -138,16 +139,27 @@ class SubmissionService
         ])->findOrFail($id);
     }
 
-    public function softDeleteMany(array $ids): int
+    public function softDeleteMany(array $ids, int $adminId): int
     {
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn (int $id): bool => $id > 0)));
         if ($ids === []) {
             return 0;
         }
 
-        return DB::transaction(function () use ($ids): int {
+        return DB::transaction(function () use ($ids, $adminId): int {
             $submissions = AdministrativeSubmission::query()->whereKey($ids)->lockForUpdate()->get();
-            $submissions->each->delete();
+
+            foreach ($submissions as $submission) {
+                $submission->statusHistories()->create([
+                    'from_status' => $submission->status,
+                    'to_status' => $submission->status,
+                    'action' => SubmissionAction::Archived,
+                    'actor_type' => HistoryActorType::Admin,
+                    'actor_id' => $adminId,
+                    'metadata' => ['soft_delete' => true],
+                ]);
+                $submission->delete();
+            }
 
             return $submissions->count();
         });
@@ -275,6 +287,13 @@ class SubmissionService
         if ($submission->status !== SubmissionStatus::Pending || $submission->version !== $expectedVersion) {
             throw ValidationException::withMessages(['processing' => 'Hồ sơ đã được người khác xử lý hoặc dữ liệu đã thay đổi. Vui lòng tải lại trang.']);
         }
+    }
+
+    private function normalizeAdminPageSize(string|int $perPage): int
+    {
+        $perPage = (int) $perPage;
+
+        return in_array($perPage, self::ADMIN_PAGE_SIZES, true) ? $perPage : 10;
     }
 
     public function formatSubmissionCode(int $id, \DateTimeInterface $submittedAt): string
