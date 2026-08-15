@@ -3,6 +3,7 @@
 namespace Modules\Invoices\Livewire;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -32,6 +33,7 @@ class SearchHoadon extends Component
     public array $availableFiles = [];
     public ?string $selectedFile = null;
     public $uploadFile;
+    public string $googleDriveUrl = '';
 
     public function boot(
         GdtInvoiceService $invoiceService,
@@ -187,10 +189,19 @@ class SearchHoadon extends Component
     public function importSelectedFile(): void
     {
         $this->authorizePermission('invoices-create');
-        [$direction, $filename, $path] = $this->resolveSelectedFile();
+        [$direction, , $path] = $this->resolveSelectedFile();
 
         abort_unless(is_readable($path), 404);
         $this->runImport($path, $direction === 'vat_in' ? 'purchase' : 'sold');
+    }
+
+    public function downloadSelectedFile()
+    {
+        $this->authorizePermission('invoices-create');
+        [, $filename, $path] = $this->resolveSelectedFile();
+        abort_unless(is_readable($path), 404);
+
+        return response()->download($path, $filename);
     }
 
     public function deleteSelectedFile(): void
@@ -212,22 +223,76 @@ class SearchHoadon extends Component
         $this->log('🗑️ Đã xóa file Excel: '.$filename);
     }
 
-    public function importUploadedFile(): void
+    public function stageUploadedFile(): void
     {
         $this->authorizePermission('invoices-create');
         $this->validate([
             'uploadFile' => ['required', 'file', 'mimes:xlsx,csv', 'max:20480'],
         ]);
 
-        $stored = $this->uploadFile->store('invoices-imports');
-        $path = storage_path('app/'.$stored);
+        $direction = (bool) $this->vatIn ? 'vat_in' : 'vat_out';
+        $folder = $this->ensureSyncFolder($direction);
+        $filename = $this->uniqueFilename($folder, $this->sanitizeFilename($this->uploadFile->getClientOriginalName()));
+        $target = $folder.DIRECTORY_SEPARATOR.$filename;
 
-        try {
-            $this->runImport($path, (bool) $this->vatIn ? 'purchase' : 'sold');
-        } finally {
-            @unlink($path);
-            $this->reset('uploadFile');
+        if (! @copy($this->uploadFile->getRealPath(), $target)) {
+            throw new RuntimeException('Không thể lưu file upload vào kho file đồng bộ. Kiểm tra quyền ghi thư mục storage.');
         }
+
+        $this->reset('uploadFile');
+        $this->refreshAvailableFiles();
+        $this->selectedFile = $direction.'|'.$filename;
+        $this->log('📥 Đã đưa file upload vào File đã đồng bộ: '.$filename);
+    }
+
+    public function stageGoogleDriveFile(): void
+    {
+        $this->authorizePermission('invoices-create');
+        $this->validate([
+            'googleDriveUrl' => ['required', 'url', 'max:2048'],
+        ]);
+
+        $fileId = $this->extractGoogleDriveFileId($this->googleDriveUrl);
+        if ($fileId === null) {
+            $this->addError('googleDriveUrl', 'Link Google Drive không hợp lệ hoặc không phải link chia sẻ file.');
+            return;
+        }
+
+        $response = Http::connectTimeout(10)
+            ->timeout(60)
+            ->withOptions(['allow_redirects' => true])
+            ->get('https://drive.usercontent.google.com/download', [
+                'id' => $fileId,
+                'export' => 'download',
+                'confirm' => 't',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Không thể tải file từ Google Drive. Hãy kiểm tra quyền chia sẻ công khai của file.');
+        }
+
+        $body = $response->body();
+        if ($body === '' || strlen($body) > 20 * 1024 * 1024) {
+            throw new RuntimeException('File Google Drive rỗng hoặc vượt quá giới hạn 20 MB.');
+        }
+
+        $filename = $this->filenameFromGoogleResponse($response->header('Content-Disposition'), $response->header('Content-Type'), $fileId);
+        $direction = (bool) $this->vatIn ? 'vat_in' : 'vat_out';
+        $folder = $this->ensureSyncFolder($direction);
+        $filename = $this->uniqueFilename($folder, $filename);
+        $target = $folder.DIRECTORY_SEPARATOR.$filename;
+        $temp = $target.'.part-'.Str::random(8);
+
+        if (file_put_contents($temp, $body, LOCK_EX) === false || ! @rename($temp, $target)) {
+            @unlink($temp);
+            throw new RuntimeException('Không thể lưu file Google Drive vào kho file đồng bộ. Kiểm tra quyền ghi thư mục storage.');
+        }
+
+        $this->googleDriveUrl = '';
+        $this->resetValidation('googleDriveUrl');
+        $this->refreshAvailableFiles();
+        $this->selectedFile = $direction.'|'.$filename;
+        $this->log('☁️ Đã đưa file Google Drive vào File đã đồng bộ: '.$filename);
     }
 
     private function runImport(string $path, string $invoiceType): void
@@ -260,6 +325,85 @@ class SearchHoadon extends Component
         abort_unless(is_file($path), 404);
 
         return [$direction, $filename, $path];
+    }
+
+    private function ensureSyncFolder(string $direction): string
+    {
+        $folder = $this->syncFolder($direction);
+        if (! is_dir($folder) && ! @mkdir($folder, 0775, true) && ! is_dir($folder)) {
+            throw new RuntimeException('Không thể tạo thư mục lưu file đồng bộ: '.$folder);
+        }
+        if (! is_writable($folder)) {
+            throw new RuntimeException('Thư mục lưu file đồng bộ không có quyền ghi: '.$folder);
+        }
+
+        return $folder;
+    }
+
+    private function sanitizeFilename(string $filename): string
+    {
+        $filename = basename(trim($filename));
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if (! in_array($extension, ['xlsx', 'csv'], true)) {
+            throw new RuntimeException('Chỉ hỗ trợ file XLSX hoặc CSV.');
+        }
+
+        $name = pathinfo($filename, PATHINFO_FILENAME);
+        $name = preg_replace('/[^A-Za-z0-9._-]+/u', '-', $name) ?: 'invoice-file';
+        $name = trim($name, '-._') ?: 'invoice-file';
+
+        return Str::limit($name, 120, '').'.'.$extension;
+    }
+
+    private function uniqueFilename(string $folder, string $filename): string
+    {
+        if (! is_file($folder.DIRECTORY_SEPARATOR.$filename)) {
+            return $filename;
+        }
+
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $name = pathinfo($filename, PATHINFO_FILENAME);
+
+        return $name.'_'.now()->format('Ymd_His').'_'.Str::lower(Str::random(4)).'.'.$extension;
+    }
+
+    private function extractGoogleDriveFileId(string $url): ?string
+    {
+        $parts = parse_url(trim($url));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (! in_array($host, ['drive.google.com', 'docs.google.com'], true)) {
+            return null;
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        if (preg_match('~/file/d/([A-Za-z0-9_-]+)~', $path, $matches)) {
+            return $matches[1];
+        }
+
+        parse_str((string) ($parts['query'] ?? ''), $query);
+        $id = $query['id'] ?? null;
+
+        return is_string($id) && preg_match('/^[A-Za-z0-9_-]+$/', $id) ? $id : null;
+    }
+
+    private function filenameFromGoogleResponse(?string $contentDisposition, ?string $contentType, string $fileId): string
+    {
+        $filename = null;
+        if (is_string($contentDisposition) && preg_match('/filename\*?=(?:UTF-8\'\')?"?([^";]+)"?/i', $contentDisposition, $matches)) {
+            $filename = rawurldecode(trim($matches[1]));
+        }
+
+        if (! is_string($filename) || $filename === '') {
+            $type = strtolower((string) $contentType);
+            $extension = str_contains($type, 'csv') ? 'csv'
+                : (str_contains($type, 'spreadsheetml') || str_contains($type, 'excel') ? 'xlsx' : null);
+            if ($extension === null) {
+                throw new RuntimeException('Google Drive không trả về tên hoặc định dạng XLSX/CSV hợp lệ.');
+            }
+            $filename = 'google-drive-'.$fileId.'.'.$extension;
+        }
+
+        return $this->sanitizeFilename($filename);
     }
 
     private function syncFolder(string $direction): string
