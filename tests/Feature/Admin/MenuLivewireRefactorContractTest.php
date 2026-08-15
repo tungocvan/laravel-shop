@@ -10,8 +10,9 @@ class MenuLivewireRefactorContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Menus/MenuTable.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/menus/menu-table.blade.php'));
+        $selectionBranch = '$this->selectedMenus === []';
 
-        $this->assertStringContainsString("$this->selectedMenus === []", $component);
+        $this->assertStringContainsString($selectionBranch, $component);
         $this->assertStringContainsString('exportSelected($this->selectedMenus)', $component);
         $this->assertStringContainsString('public function requestBulkDelete(): void', $component);
         $this->assertStringContainsString('public bool $showBulkDeleteModal = false;', $component);
