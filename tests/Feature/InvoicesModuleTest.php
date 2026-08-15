@@ -11,6 +11,7 @@ use Livewire\Livewire;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
 use Modules\Invoices\Livewire\GdtInvoice;
 use Modules\Invoices\Livewire\HoadonList;
+use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\InvoiceImportExportService;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -168,7 +169,7 @@ class InvoicesModuleTest extends TestCase
                 $this->assertSame(0, $second['success_rows']);
                 $this->assertSame(1, $second['skipped_rows']);
                 $this->assertSame(1, DB::table('invoices')->where('lookup_code', 'shared-lookup')->count());
-                $this->assertSame('1234.56', (string) DB::table('invoices')->where('lookup_code', 'shared-lookup')->value('vat_amount'));
+                $this->assertSame('1234.56', Invoices::query()->where('lookup_code', 'shared-lookup')->value('vat_amount'));
             } finally {
                 if (file_exists($file)) {
                     unlink($file);
@@ -206,8 +207,10 @@ class InvoicesModuleTest extends TestCase
                 $this->assertSame(0, $second['success_rows']);
                 $this->assertSame(1, $second['skipped_rows']);
                 $this->assertSame(1, DB::table('invoices')->where('lookup_code', 'identity-lookup')->count());
-                $this->assertSame('Original Name', DB::table('invoices')->where('lookup_code', 'identity-lookup')->value('name'));
-                $this->assertSame('1100.00', (string) DB::table('invoices')->where('lookup_code', 'identity-lookup')->value('total_amount'));
+
+                $invoice = Invoices::query()->where('lookup_code', 'identity-lookup')->firstOrFail();
+                $this->assertSame('Original Name', $invoice->name);
+                $this->assertSame('1100.00', $invoice->total_amount);
             } finally {
                 @unlink($firstFile);
                 @unlink($secondFile);
