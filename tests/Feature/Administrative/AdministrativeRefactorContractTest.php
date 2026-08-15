@@ -67,4 +67,28 @@ class AdministrativeRefactorContractTest extends TestCase
         $this->assertSame(3, substr_count($source, 'authorizeAnyPermission('.$permissionPair.')'));
         $this->assertStringContainsString('Gate::forUser($user)->any($permissions)', $source);
     }
+
+    public function test_delete_all_is_permission_protected_and_audited(): void
+    {
+        $component = file_get_contents(base_path('Modules/Administrative/Livewire/Submissions/SubmissionTable.php'));
+        $service = file_get_contents(base_path('Modules/Administrative/Services/SubmissionService.php'));
+
+        $this->assertStringContainsString('public function requestDeleteAll()', $component);
+        $this->assertStringContainsString("authorizePermission('administrative.submission.delete')", $component);
+        $this->assertStringContainsString('public function softDeleteAll(int $adminId): int', $service);
+        $this->assertStringContainsString("'source' => 'delete_all'", $service);
+        $this->assertStringContainsString('SubmissionAction::Archived', $service);
+    }
+
+    public function test_administrative_tables_use_custom_indigo_pagination(): void
+    {
+        $submissionView = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/submissions/submission-table.blade.php'));
+        $procedureView = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/procedures/procedure-table.blade.php'));
+        $paginationView = file_get_contents(base_path('Modules/Administrative/resources/views/components/pagination.blade.php'));
+
+        $this->assertStringContainsString("links('Administrative::components.pagination')", $submissionView);
+        $this->assertStringContainsString("links('Administrative::components.pagination')", $procedureView);
+        $this->assertStringContainsString('bg-indigo-600', $paginationView);
+        $this->assertStringNotContainsString('bg-gray-800', $paginationView);
+    }
 }
