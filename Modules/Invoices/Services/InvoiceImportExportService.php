@@ -99,7 +99,7 @@ class InvoiceImportExportService extends BaseImportExportService
         $row['address'] = $this->cleanString($row['address'] ?? null);
         $row['email'] = $this->cleanString($row['email'] ?? null);
         $row['phone'] = $this->cleanString($row['phone'] ?? null);
-        $row['tax_rate'] = $this->normalizeDecimal($row['tax_rate'] ?? null);
+        $row['tax_rate'] = $this->normalizeTaxRate($row['tax_rate'] ?? null);
         $row['vat_amount'] = $this->normalizeDecimal($row['vat_amount'] ?? null);
         $row['amount_before_vat'] = $this->normalizeDecimal($row['amount_before_vat'] ?? null);
         $row['total_amount'] = $this->normalizeDecimal($row['total_amount'] ?? null);
@@ -243,6 +243,28 @@ class InvoiceImportExportService extends BaseImportExportService
         }
 
         return $value;
+    }
+
+    protected function normalizeTaxRate(mixed $value): ?string
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return null;
+        }
+
+        $value = strtoupper(trim((string) $value));
+        $value = str_replace(["\u{00A0}", ' '], '', $value);
+
+        // GDT may return textual tax categories that cannot be represented by
+        // the current nullable DECIMAL tax_rate column. Preserve importability
+        // by storing them as NULL instead of rejecting the whole invoice row.
+        if (in_array($value, ['KCT', 'KKKNT', 'KHAC', 'N/A', 'NA', '-'], true)) {
+            return null;
+        }
+
+        $value = rtrim($value, '%');
+        $value = str_replace(',', '.', $value);
+
+        return is_numeric($value) ? $value : null;
     }
 
     protected function normalizeDecimal(mixed $value): ?string
