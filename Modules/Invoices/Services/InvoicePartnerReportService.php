@@ -72,18 +72,17 @@ class InvoicePartnerReportService
         if (filled($filters['invoice_type'] ?? null)) {
             $query->where('invoice_type', $filters['invoice_type']);
         }
+        if (filled($filters['name'] ?? null)) {
+            $query->where('name', $filters['name']);
+        }
+        if (filled($filters['tax_code'] ?? null)) {
+            $query->where('tax_code', $filters['tax_code']);
+        }
         if (filled($filters['issued_date_from'] ?? null)) {
             $query->whereDate('issued_date', '>=', $filters['issued_date_from']);
         }
         if (filled($filters['issued_date_to'] ?? null)) {
             $query->whereDate('issued_date', '<=', $filters['issued_date_to']);
-        }
-        if (filled($filters['search'] ?? null)) {
-            $search = trim((string) $filters['search']);
-            $query->where(function (Builder $nested) use ($search) {
-                $nested->where('name', 'like', "%{$search}%")
-                    ->orWhere('tax_code', 'like', "%{$search}%");
-            });
         }
 
         return $query;
