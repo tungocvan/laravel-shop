@@ -1,12 +1,14 @@
 @php
     $status = $submission->status->value;
     $statusLabel = ['pending' => 'Chờ duyệt', 'need_supplement' => 'Yêu cầu bổ sung', 'approved' => 'Đã duyệt', 'rejected' => 'Bị từ chối'][$status] ?? $status;
+    $adminUser = auth('admin')->user();
+    $canProcess = $adminUser?->can('administrative.submission.process') || $adminUser?->can('administrative.submission.edit');
 @endphp
 <div class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div><a href="{{ route('admin.administrative.submissions.index') }}" class="text-sm font-semibold text-indigo-600">← Danh sách hồ sơ</a><h1 class="mt-2 text-2xl font-bold text-gray-900">{{ $submission->submission_code }}</h1><p class="mt-1 text-sm text-gray-500">{{ $submission->procedure->name }}</p></div>
         <div class="flex flex-wrap gap-3">
-            @if($submission->status === $pendingStatus && auth('admin')->user()?->can('administrative.submission.process'))
+            @if($submission->status === $pendingStatus && $canProcess)
                 <button wire:click="$set('showSupplement', true)" class="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white">Yêu cầu bổ sung</button>
                 <button wire:click="$set('showReject', true)" class="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white">Từ chối</button>
                 <button wire:click="$set('showApprove', true)" class="rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white">Phê duyệt</button>
@@ -27,9 +29,9 @@
         </div>
         <aside class="space-y-6">
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><h2 class="font-semibold">Thông tin xử lý</h2><dl class="mt-4 space-y-4 text-sm"><div><dt class="text-gray-500">Người xử lý</dt><dd class="font-medium">{{ $submission->processor?->name ?? '-' }}</dd></div><div><dt class="text-gray-500">Thời gian</dt><dd class="font-medium">{{ $submission->processed_at?->format('d/m/Y H:i') ?? '-' }}</dd></div><div><dt class="text-gray-500">Số lần bổ sung</dt><dd class="font-medium">{{ $submission->revision_count }}</dd></div>@if($submission->response)<div><dt class="text-gray-500">Phản hồi</dt><dd class="whitespace-pre-line font-medium">{{ $submission->response }}</dd></div>@endif @if($submission->supplement_reason)<div><dt class="text-amber-600">Yêu cầu bổ sung</dt><dd class="whitespace-pre-line font-medium text-amber-800">{{ $submission->supplement_reason }}</dd></div>@endif @if($submission->rejection_reason)<div><dt class="text-red-500">Lý do từ chối</dt><dd class="whitespace-pre-line font-medium text-red-700">{{ $submission->rejection_reason }}</dd></div>@endif</dl></section>
-            @can('administrative.history.view', 'admin')
+            @if($adminUser?->can('administrative.history.view'))
                 <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><h2 class="font-semibold">Lịch sử</h2><ol class="mt-4 space-y-4">@foreach($submission->statusHistories as $history)<li class="border-l-2 border-indigo-200 pl-4"><div class="text-sm font-medium">{{ $history->action->value }}</div><div class="text-xs text-gray-500">{{ $history->created_at->format('d/m/Y H:i') }} · {{ $history->actorAdmin?->name ?? ucfirst($history->actor_type->value) }}</div>@if($history->reason)<p class="mt-1 text-xs text-red-600">{{ $history->reason }}</p>@endif</li>@endforeach</ol></section>
-            @endcan
+            @endif
         </aside>
     </div>
 
