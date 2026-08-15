@@ -21,7 +21,6 @@ class ImportExport extends BaseImportExportService
     protected array $requiredHeaders = [
         'submission_code',
         'procedure_code',
-        'lookup_token',
         'applicant_name',
         'phone',
         'student_name',
@@ -50,7 +49,7 @@ class ImportExport extends BaseImportExportService
     protected array $rules = [
         'submission_code' => ['required', 'string', 'max:32'],
         'procedure_code' => ['required', 'string', 'max:50'],
-        'lookup_token' => ['required', 'string', 'min:8', 'max:200'],
+        'lookup_token' => ['nullable', 'string', 'min:8', 'max:200'],
         'applicant_name' => ['required', 'string', 'max:255'],
         'phone' => ['required', 'string', 'max:30'],
         'email' => ['nullable', 'email', 'max:255'],
@@ -116,6 +115,7 @@ class ImportExport extends BaseImportExportService
 
         $row['submission_code'] = Str::upper((string) ($row['submission_code'] ?? ''));
         $row['procedure_code'] = Str::upper((string) ($row['procedure_code'] ?? ''));
+        $row['lookup_token'] = $this->nullable($row['lookup_token'] ?? null);
         $row['phone'] = preg_replace('/\s+/', '', (string) ($row['phone'] ?? ''));
         $row['email'] = $this->nullable(isset($row['email']) ? mb_strtolower((string) $row['email']) : null);
         $row['student_code'] = $this->nullable($row['student_code'] ?? null);
@@ -145,12 +145,24 @@ class ImportExport extends BaseImportExportService
         $procedure = AdministrativeProcedure::query()
             ->where('code', $data['procedure_code'])
             ->firstOrFail();
-        $lookupToken = (string) $data['lookup_token'];
+        $existing = AdministrativeSubmission::withTrashed()
+            ->where('submission_code', $data['submission_code'])
+            ->first();
+        $lookupToken = $this->nullable($data['lookup_token'] ?? null);
 
         unset($data['procedure_code'], $data['lookup_token']);
 
         $data['procedure_id'] = $procedure->id;
-        $data['lookup_token_hash'] = Hash::make($lookupToken);
+
+        if ($lookupToken !== null) {
+            $data['lookup_token_hash'] = Hash::make($lookupToken);
+        } elseif ($existing) {
+            $data['lookup_token_hash'] = $existing->lookup_token_hash;
+        } else {
+            throw ValidationException::withMessages([
+                'lookup_token' => 'Hồ sơ mới phải có lookup_token. File export không cần cột này khi import ngược để cập nhật hồ sơ đã tồn tại.',
+            ]);
+        }
 
         $status = SubmissionStatus::from((string) $data['status']);
 
@@ -168,11 +180,17 @@ class ImportExport extends BaseImportExportService
 
     protected function persistRow(array $data, string $mode): Model
     {
-        $existing = AdministrativeSubmission::query()
+        $existing = AdministrativeSubmission::withTrashed()
             ->where('submission_code', $data['submission_code'])
             ->first();
 
         if ($mode === 'create_only') {
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'submission_code' => 'Mã hồ sơ đã tồn tại, kể cả trong dữ liệu đã lưu trữ.',
+                ]);
+            }
+
             $submission = AdministrativeSubmission::query()->create($this->newSubmissionPayload($data));
             $this->writeImportedHistory($submission, null, $submission->status);
 
@@ -190,6 +208,10 @@ class ImportExport extends BaseImportExportService
             $this->writeImportedHistory($submission, null, $submission->status);
 
             return $submission;
+        }
+
+        if ($existing->trashed()) {
+            $existing->restore();
         }
 
         $fromStatus = $existing->status;
@@ -210,31 +232,19 @@ class ImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
+        $selectedIds = array_values(array_unique(array_filter(
+            array_map('intval', (array) ($filters['selected_ids'] ?? [])),
+            fn (int $id): bool => $id > 0
+        )));
+
         $query = AdministrativeSubmission::query()->with([
             'procedure:id,code,name',
             'processor:id,name',
         ]);
-        $search = trim((string) ($filters['search'] ?? ''));
-        $status = trim((string) ($filters['status'] ?? ''));
-        $procedureId = $filters['procedure_id'] ?? null;
-        $dateFrom = $filters['date_from'] ?? null;
-        $dateTo = $filters['date_to'] ?? null;
 
-        $query
-            ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
-                $nested->where('submission_code', 'like', "%{$search}%")
-                    ->orWhere('applicant_name', 'like', "%{$search}%")
-                    ->orWhere('student_name', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            }))
-            ->when(
-                in_array($status, array_column(SubmissionStatus::cases(), 'value'), true),
-                fn ($query) => $query->where('status', $status)
-            )
-            ->when($procedureId, fn ($query) => $query->where('procedure_id', $procedureId))
-            ->when($dateFrom, fn ($query) => $query->whereDate('submitted_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($query) => $query->whereDate('submitted_at', '<=', $dateTo));
+        if ($selectedIds !== []) {
+            $query->whereKey($selectedIds);
+        }
 
         return $query->latest('submitted_at')->limit(5000)->get();
     }
