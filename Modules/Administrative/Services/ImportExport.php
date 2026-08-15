@@ -19,8 +19,14 @@ class ImportExport extends BaseImportExportService
     protected string $defaultSheetName = 'ho_so_hanh_chinh';
 
     protected array $requiredHeaders = [
-        'submission_code', 'procedure_code', 'lookup_token', 'applicant_name',
-        'phone', 'student_name', 'status', 'submitted_at',
+        'submission_code',
+        'procedure_code',
+        'lookup_token',
+        'applicant_name',
+        'phone',
+        'student_name',
+        'status',
+        'submitted_at',
     ];
 
     protected array $headerAliases = [
@@ -66,6 +72,7 @@ class ImportExport extends BaseImportExportService
     ];
 
     protected array $uniqueBy = ['submission_code'];
+
     protected string $mode = 'update_or_create';
 
     protected function modelClass(): string
@@ -77,12 +84,18 @@ class ImportExport extends BaseImportExportService
     {
         if (($options['mode'] ?? $this->mode) === 'replace') {
             $this->resetReport();
-            $this->addError($this->defaultSheetName, null, null,
-                'Mode replace bị vô hiệu cho hồ sơ hành chính. Hãy dùng chức năng Xóa tất cả để bảo toàn soft-delete và audit.');
+            $this->addError(
+                $this->defaultSheetName,
+                null,
+                null,
+                'Mode replace bị vô hiệu cho hồ sơ hành chính. Hãy dùng chức năng Xóa tất cả để bảo toàn soft-delete và audit.'
+            );
+
             return $this->report(false);
         }
 
         $report = parent::import($filePath, $options);
+
         foreach ($report['errors'] as &$error) {
             if (($error['column'] ?? null) === 'lookup_token') {
                 $error['value'] = '[REDACTED]';
@@ -119,7 +132,9 @@ class ImportExport extends BaseImportExportService
         $row['wants_email_receipt'] = $this->normalizeBoolean($row['wants_email_receipt'] ?? false);
 
         if (! AdministrativeProcedure::query()->where('code', $row['procedure_code'])->exists()) {
-            throw ValidationException::withMessages(['procedure_code' => "Không tìm thấy thủ tục có mã {$row['procedure_code']}."]);
+            throw ValidationException::withMessages([
+                'procedure_code' => "Không tìm thấy thủ tục có mã {$row['procedure_code']}.",
+            ]);
         }
 
         return $row;
@@ -127,18 +142,23 @@ class ImportExport extends BaseImportExportService
 
     protected function beforePersist(array $data, array $row, int $rowNumber, string $sheet): array
     {
-        $procedure = AdministrativeProcedure::query()->where('code', $data['procedure_code'])->firstOrFail();
+        $procedure = AdministrativeProcedure::query()
+            ->where('code', $data['procedure_code'])
+            ->firstOrFail();
         $lookupToken = (string) $data['lookup_token'];
+
         unset($data['procedure_code'], $data['lookup_token']);
 
         $data['procedure_id'] = $procedure->id;
         $data['lookup_token_hash'] = Hash::make($lookupToken);
 
         $status = SubmissionStatus::from((string) $data['status']);
+
         if ($status !== SubmissionStatus::Rejected) {
             $data['rejection_reason_code'] = null;
             $data['rejection_reason'] = null;
         }
+
         if ($status !== SubmissionStatus::NeedSupplement) {
             $data['supplement_reason'] = null;
         }
@@ -148,27 +168,33 @@ class ImportExport extends BaseImportExportService
 
     protected function persistRow(array $data, string $mode): Model
     {
-        $existing = AdministrativeSubmission::query()->where('submission_code', $data['submission_code'])->first();
+        $existing = AdministrativeSubmission::query()
+            ->where('submission_code', $data['submission_code'])
+            ->first();
 
         if ($mode === 'create_only') {
             $submission = AdministrativeSubmission::query()->create($this->newSubmissionPayload($data));
             $this->writeImportedHistory($submission, null, $submission->status);
+
             return $submission;
         }
 
         if ($mode === 'skip_duplicate' && $existing) {
             $this->skippedRows++;
+
             return $existing;
         }
 
         if (! $existing) {
             $submission = AdministrativeSubmission::query()->create($this->newSubmissionPayload($data));
             $this->writeImportedHistory($submission, null, $submission->status);
+
             return $submission;
         }
 
         $fromStatus = $existing->status;
         $payload = $data;
+        $payload['lookup_token_hash'] = $existing->lookup_token_hash;
         $payload['version'] = $existing->version + 1;
         $payload['revision_count'] = $existing->revision_count;
         $this->applyProcessingMetadata($payload);
@@ -184,20 +210,28 @@ class ImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
-        $query = AdministrativeSubmission::query()->with(['procedure:id,code,name', 'processor:id,name']);
+        $query = AdministrativeSubmission::query()->with([
+            'procedure:id,code,name',
+            'processor:id,name',
+        ]);
         $search = trim((string) ($filters['search'] ?? ''));
         $status = trim((string) ($filters['status'] ?? ''));
         $procedureId = $filters['procedure_id'] ?? null;
         $dateFrom = $filters['date_from'] ?? null;
         $dateTo = $filters['date_to'] ?? null;
 
-        $query->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
-            $nested->where('submission_code', 'like', "%{$search}%")
-                ->orWhere('applicant_name', 'like', "%{$search}%")
-                ->orWhere('student_name', 'like', "%{$search}%")
-                ->orWhere('phone', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%");
-        }))->when(in_array($status, array_column(SubmissionStatus::cases(), 'value'), true), fn ($query) => $query->where('status', $status))
+        $query
+            ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
+                $nested->where('submission_code', 'like', "%{$search}%")
+                    ->orWhere('applicant_name', 'like', "%{$search}%")
+                    ->orWhere('student_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            }))
+            ->when(
+                in_array($status, array_column(SubmissionStatus::cases(), 'value'), true),
+                fn ($query) => $query->where('status', $status)
+            )
             ->when($procedureId, fn ($query) => $query->where('procedure_id', $procedureId))
             ->when($dateFrom, fn ($query) => $query->whereDate('submitted_at', '>=', $dateFrom))
             ->when($dateTo, fn ($query) => $query->whereDate('submitted_at', '<=', $dateTo));
@@ -238,30 +272,49 @@ class ImportExport extends BaseImportExportService
     protected function templateSampleRow(): array
     {
         return [
-            'submission_code' => 'HC-DEMO-0001', 'procedure_code' => 'HC-001',
-            'lookup_token' => 'DEMO-LOOKUP-2026', 'applicant_name' => 'Nguyễn Văn A',
-            'phone' => '0901234567', 'email' => 'demo@example.com', 'wants_email_receipt' => 1,
-            'student_name' => 'Nguyễn Văn B', 'student_code' => 'HS001', 'date_of_birth' => '2012-01-15',
-            'current_class' => '8A1', 'academic_year' => '2026-2027', 'relationship' => 'Cha',
-            'relationship_other' => '', 'status' => 'pending', 'response' => '',
-            'rejection_reason_code' => '', 'rejection_reason' => '', 'supplement_reason' => '',
-            'submitted_at' => now()->format('Y-m-d H:i:s'), 'processed_at' => '',
+            'submission_code' => 'HC-DEMO-0001',
+            'procedure_code' => 'HC-001',
+            'lookup_token' => 'DEMO-LOOKUP-2026',
+            'applicant_name' => 'Nguyễn Văn A',
+            'phone' => '0901234567',
+            'email' => 'demo@example.com',
+            'wants_email_receipt' => 1,
+            'student_name' => 'Nguyễn Văn B',
+            'student_code' => 'HS001',
+            'date_of_birth' => '2012-01-15',
+            'current_class' => '8A1',
+            'academic_year' => '2026-2027',
+            'relationship' => 'Cha',
+            'relationship_other' => '',
+            'status' => 'pending',
+            'response' => '',
+            'rejection_reason_code' => '',
+            'rejection_reason' => '',
+            'supplement_reason' => '',
+            'submitted_at' => now()->format('Y-m-d H:i:s'),
+            'processed_at' => '',
         ];
     }
 
     private function newSubmissionPayload(array $data): array
     {
-        $payload = $data + ['version' => 1, 'revision_count' => 0];
+        $payload = $data + [
+            'version' => 1,
+            'revision_count' => 0,
+        ];
         $this->applyProcessingMetadata($payload);
+
         return $payload;
     }
 
     private function applyProcessingMetadata(array &$payload): void
     {
         $status = SubmissionStatus::from((string) $payload['status']);
+
         if ($status === SubmissionStatus::Pending) {
             $payload['processed_by'] = null;
             $payload['processed_at'] = null;
+
             return;
         }
 
@@ -269,15 +322,21 @@ class ImportExport extends BaseImportExportService
         $payload['processed_at'] = $payload['processed_at'] ?? now();
     }
 
-    private function writeImportedHistory(AdministrativeSubmission $submission, ?SubmissionStatus $from, SubmissionStatus $to): void
-    {
+    private function writeImportedHistory(
+        AdministrativeSubmission $submission,
+        ?SubmissionStatus $from,
+        SubmissionStatus $to
+    ): void {
         $metadata = ['source' => 'administrative_import'];
 
         if ($from === null && $to !== SubmissionStatus::Pending) {
             $submission->statusHistories()->create([
-                'from_status' => null, 'to_status' => SubmissionStatus::Pending,
-                'action' => SubmissionAction::Submitted, 'actor_type' => HistoryActorType::Admin,
-                'actor_id' => auth('admin')->id(), 'metadata' => $metadata,
+                'from_status' => null,
+                'to_status' => SubmissionStatus::Pending,
+                'action' => SubmissionAction::Submitted,
+                'actor_type' => HistoryActorType::Admin,
+                'actor_id' => auth('admin')->id(),
+                'metadata' => $metadata,
             ]);
             $from = SubmissionStatus::Pending;
         }
@@ -290,10 +349,16 @@ class ImportExport extends BaseImportExportService
         };
 
         $submission->statusHistories()->create([
-            'from_status' => $from, 'to_status' => $to, 'action' => $action,
-            'actor_type' => HistoryActorType::Admin, 'actor_id' => auth('admin')->id(),
-            'note' => $submission->response, 'reason_code' => $submission->rejection_reason_code,
-            'reason' => $to === SubmissionStatus::NeedSupplement ? $submission->supplement_reason : $submission->rejection_reason,
+            'from_status' => $from,
+            'to_status' => $to,
+            'action' => $action,
+            'actor_type' => HistoryActorType::Admin,
+            'actor_id' => auth('admin')->id(),
+            'note' => $submission->response,
+            'reason_code' => $submission->rejection_reason_code,
+            'reason' => $to === SubmissionStatus::NeedSupplement
+                ? $submission->supplement_reason
+                : $submission->rejection_reason,
             'metadata' => $metadata,
         ]);
     }
@@ -303,12 +368,18 @@ class ImportExport extends BaseImportExportService
         if (is_bool($value)) {
             return $value;
         }
-        return in_array(mb_strtolower(trim((string) $value)), ['1', 'true', 'yes', 'y', 'co', 'có'], true);
+
+        return in_array(
+            mb_strtolower(trim((string) $value)),
+            ['1', 'true', 'yes', 'y', 'co', 'có'],
+            true
+        );
     }
 
     private function nullable(mixed $value): ?string
     {
         $value = trim((string) $value);
+
         return $value === '' ? null : $value;
     }
 }
