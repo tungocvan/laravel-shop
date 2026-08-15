@@ -68,7 +68,7 @@
                                 @if ($pdfStatus === 'available')
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Đã có PDF</span>
-                                        <a href="{{ route('admin.invoices.download', ['lookup_code' => $invoice->lookup_code]) }}" target="_blank" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Mở</a>
+                                        <a href="{{ route('admin.invoices.download-invoice', ['invoice' => $invoice->id]) }}" target="_blank" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Mở</a>
                                         @if (auth('admin')->user()?->can('invoices-download'))
                                             <button type="button" wire:click="downloadPdf({{ $invoice->id }}, true)" wire:loading.attr="disabled" wire:target="downloadPdf({{ $invoice->id }}, true)" class="text-xs font-semibold text-gray-600 hover:text-gray-900 disabled:opacity-50">
                                                 <span wire:loading.remove wire:target="downloadPdf({{ $invoice->id }}, true)">Tải lại</span>
@@ -77,7 +77,7 @@
                                         @endif
                                     </div>
                                 @elseif ($pdfStatus === 'unsupported')
-                                    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500">Thiếu mã tra cứu</span>
+                                    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500">Thiếu định danh GDT</span>
                                 @else
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Chưa có PDF</span>
