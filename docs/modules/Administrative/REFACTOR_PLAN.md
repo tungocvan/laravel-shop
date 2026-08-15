@@ -2,188 +2,277 @@
 
 ## Status
 
-**COMPLETED / VERIFIED — 2026-08-15**
+**ROUND 2 — PLANNING COMPLETE / AWAITING APPROVAL — 2026-08-15**
 
-Local verification supplied by the user:
+This is a follow-up refactor/closure pass after the first Administrative refactor was merged and verified.
+
+The first refactor remains valid and completed. This second pass exists because the module has since gained additional behavior and shared UI work:
+
+- Public branding hotfix.
+- Larger deterministic demo seeders.
+- Delete-all and selected-delete UX.
+- Custom bounded pagination styling.
+- Administrative Import/Export.
+- Shared Import/Export success modal behavior.
+- Shared Admin form-control standard/components.
+- Updates to Codex Admin UI / module / import-export task standards.
+
+No application source should be changed further under `/refactor-module Administrative` until this Round 2 plan is approved.
+
+## Verified Current State
+
+User-supplied verification from the current branch includes:
 
 ```text
-vendor/bin/pint --test Modules/Administrative tests/Feature/Administrative
-PASS — 47 files
+Administrative targeted tests:
+14 passed / 120 assertions (earlier checkpoint)
 
-php artisan test
-PASS — 353 tests / 12,815 assertions
-Duration: 22.73s
+Full project regression:
+356 passed / 12,858 assertions
+Duration: 19.00s
 ```
+
+The user also manually verified the current Administrative UI flows including:
+
+- Delete all.
+- Export all when no checkbox is selected.
+- Export only selected records when checkboxes are selected.
+- Importing an exported file back into the module.
 
 ## Goal
 
-Refactor `Modules/Administrative` safely from the verified `/analyze Administrative` findings while preserving existing public/admin contracts and avoiding a rebuild.
+Close the current Administrative branch safely by reconciling documentation/tests/contracts with the implemented behavior, finishing UI consistency work, and validating the final branch before merge.
 
-## Implemented Scope
+This is **not** a rebuild and should not introduce new domain architecture.
+
+## Findings / Drift To Resolve
+
+### P1 — Documentation drift
+
+`INFORMATION.md` and `README.md` still describe the earlier refactor state and do not fully document:
+
+- `administrative.submission.import_export` permission.
+- Import/Export service and shared panel integration.
+- Selected export semantics.
+- Delete-all and selected-delete modal behavior.
+- Demo seeders.
+- Public branding model fix.
+- Current regression evidence (`356 / 12,858`).
+
+`IMPORT_EXPORT_PLAN.md` is stale: it still states `AWAITING USER APPROVAL` even though implementation was explicitly approved, implemented and manually tested.
+
+### P1 — Import/Export contract closure
+
+Confirm and document the implemented contract:
 
 ```text
-Modules/Administrative/**
-tests/Feature/Administrative/**
-docs/modules/Administrative/**
+selected_ids empty     -> export all records in approved export scope
+selected_ids not empty -> export only selected records
 ```
 
-No database migration was required. No unrelated module was refactored.
+Also preserve:
 
-## Completed Changes
+- exported data can be imported back for update/upsert when safe;
+- existing submission updates do not overwrite system-owned lookup/version fields;
+- new rows require a safe lookup-token path;
+- lookup secrets are never exported/logged;
+- soft-deleted matching submissions can be restored when the import mode/business rule allows it;
+- unsafe raw replace behavior remains blocked;
+- successful import/dry-run/export uses the shared success modal + explicit refresh action.
 
-### P1.1 — Admin file download correctness
+### P1 — Destructive action UX closure
 
-Completed:
+Confirm both destructive list actions use centered modal confirmation:
 
-- Added `Modules\Administrative\Models\AdministrativeFile` import to `AdministrativeFileService`.
-- Preserved submission/file ownership scoping and private Storage download behavior.
-- Added regression contract coverage for the model resolution defect.
+- Delete selected.
+- Delete all.
 
-### P1.2 — Permission contract normalization
+Both must retain backend authorization, loading/disabled state, soft-delete semantics and audit history.
 
-Completed with backward compatibility:
+### P2 — Form UI consistency
 
-- Dashboard canonical permission: `administrative.dashboard.view`.
-- Legacy fallback: `administrative.submission.view`.
-- Approve/reject/request-supplement canonical permission: `administrative.submission.process`.
-- Legacy fallback: `administrative.submission.edit`.
-- History UI honors `administrative.history.view` with legacy submission-view fallback.
-- Sensitive Livewire mutations continue to authorize inside action methods.
-- Procedure edit/update/archive UI actions are permission-aware.
+Shared Admin form primitives now exist under:
 
-No existing permission string was removed.
+```text
+Modules/Admin/resources/views/components/form/input.blade.php
+Modules/Admin/resources/views/components/form/textarea.blade.php
+Modules/Admin/resources/views/components/form/select.blade.php
+Modules/Admin/resources/views/components/form/error.blade.php
+```
 
-### P1.3 — Bounded admin pagination
+The Administrative refactor should adopt these components only where doing so is low-risk and directly improves the affected Administrative screens. Do not broaden scope into a repository-wide form migration.
 
-Completed:
+Specialized Admin controls (`currency-input`, `category-select`) were aligned to the new visible-border visual language. `image-upload` remains specialized and does not need forced conversion.
 
-- Removed `All` from procedure/submission table page-size options.
-- Allowed sizes are now `10, 25, 50, 100`.
-- Services normalize invalid page-size values server-side.
-- Admin list services always return `LengthAwarePaginator`.
-- Unbounded user-triggered `get()` branch was removed.
+### P2 — Regression contract updates
 
-### P1.4 — Archive audit behavior
+Ensure focused tests lock the implemented behaviors that are easy to regress:
 
-Completed:
+- delete all remains permission-protected and audited;
+- selected delete uses modal confirmation contract;
+- bounded/indigo pagination remains in place;
+- Import/Export uses shared foundation;
+- selected export IDs are passed reactively;
+- Import/Export permission is declared;
+- lookup secret is excluded from export;
+- shared success modal/refresh behavior remains available.
 
-- Added `SubmissionAction::Archived`.
-- `softDeleteMany()` now accepts the acting admin ID.
-- Each archived submission receives an audit history entry before soft delete.
-- Audit includes actor and `soft_delete` metadata.
-- History creation and soft delete remain inside the same transaction.
-- Existing submission status value is not changed by archive.
+Do not add brittle tests for irrelevant Tailwind class ordering.
 
-### P1.5 — Regression coverage
+## Compatibility Constraints
 
-Completed:
+Must preserve:
 
-- Updated `AdministrativeSubmissionRouteTest` for the dashboard permission contract.
-- Added `AdministrativeRefactorContractTest` covering:
-  - file-service model import regression;
-  - bounded admin page sizes;
-  - paginator return contracts;
-  - removal of `All` branches;
-  - archive action/audit contract;
-  - canonical processing permission plus legacy fallback.
-
-The pre-existing Administrative route/schema tests remain in place.
-
-### P2.1 — Admin UX polish
-
-Completed for affected screens:
-
-- Permission-aware action visibility.
-- Loading/disabled states on approve/reject/supplement/archive/bulk archive.
-- Clearer archive wording instead of implying physical deletion.
-- Pagination UI no longer branches on `All`.
-
-## Compatibility Preserved
-
-The refactor preserved:
-
-- Public route URLs and names.
-- Admin route URLs and names.
-- Existing tables/columns.
-- Existing status values: `pending`, `need_supplement`, `approved`, `rejected`.
+- Existing public/admin route names and URLs.
+- Existing table/column names.
+- Existing status values.
+- Private storage paths/access semantics.
 - Public lookup hashing/session semantics.
-- Existing storage roots.
 - Existing Livewire aliases.
-- Existing legacy permission strings through fallback compatibility.
-- Soft delete rather than physical deletion.
+- Existing permission strings and backward-compatible fallbacks.
+- Soft-delete/archive semantics.
+- Transaction + row lock + optimistic version behavior for workflow transitions.
 
 ## Database / Migration Impact
 
-**None.**
+Expected: **none**.
 
-The existing status-history schema was sufficient for the archive audit action, so no migration or historical migration rewrite was necessary.
+Do not rewrite historical migrations.
 
-## Security / Data Integrity Result
+## Security / Authorization
 
-Post-refactor guarantees retained or improved:
+Final verification must confirm:
 
-- `auth:admin` + named permission boundaries remain.
-- Private file storage remains controlled by server routes.
-- File download remains submission-scoped.
-- Public lookup remains non-enumerating and rate limited.
-- Processing still uses transaction + `lockForUpdate()` + optimistic version checks.
-- Archive audit and soft delete are atomic.
-- Unbounded admin list loading is removed.
+- sensitive mutations authorize server-side;
+- checkbox visibility is not treated as authorization;
+- Import/Export is gated by `administrative.submission.import_export`;
+- lookup token plaintext is not exported, persisted accidentally, or leaked into error reports/logs;
+- file downloads remain controlled/private;
+- destructive operations remain soft-delete + audit rather than raw hard delete.
 
-## Verification
+## Performance
 
-Verified locally on 2026-08-15:
+Keep:
 
-```bash
-vendor/bin/pint --test Modules/Administrative tests/Feature/Administrative
-```
+- bounded pagination (`10/25/50/100`);
+- no user-triggered `All` query branch;
+- export scope independent from the current paginator page;
+- synchronous export bounded by the current Administrative Import/Export implementation limit.
 
-Result:
+Do not introduce an unbounded list query simply to support bulk UI.
+
+## Files Expected To Change After Approval
+
+Likely documentation/tests only, plus narrowly scoped Administrative UI adoption if necessary:
 
 ```text
-PASS — 47 files
+docs/modules/Administrative/ANALYSIS.md
+docs/modules/Administrative/INFORMATION.md
+docs/modules/Administrative/README.md
+docs/modules/Administrative/REFACTOR_PLAN.md
+docs/modules/Administrative/IMPORT_EXPORT_PLAN.md
+tests/Feature/Administrative/AdministrativeRefactorContractTest.php
 ```
 
-Full application regression:
+Potential low-risk UI files only if verification finds drift from the new shared form standard:
+
+```text
+Modules/Administrative/resources/views/livewire/**
+```
+
+No unrelated module refactor is approved by this plan.
+
+Shared files already changed on this branch should only receive further edits if required to fix a verified shared regression:
+
+```text
+Modules/Shared/Livewire/ImportExport/**
+Modules/Admin/resources/views/components/form/**
+.codex/standards/ADMIN_UI_STANDARD.md
+.codex/tasks/create-module.md
+.codex/tasks/refactor-module.md
+.codex/tasks/refactor-livewire.md
+.codex/tasks/create-import-export.md
+```
+
+## Test Strategy
+
+After implementation/closure updates:
+
+1. Formatting:
+
+```bash
+vendor/bin/pint --test Modules/Administrative Modules/Admin Modules/Shared/Livewire/ImportExport tests/Feature/Administrative
+```
+
+2. Administrative regression:
+
+```bash
+php artisan test tests/Feature/Administrative
+```
+
+3. Admin/shared regression if shared UI components changed:
+
+```bash
+php artisan test tests/Feature/Admin
+```
+
+4. Frontend build when Blade/Tailwind-visible changes are included:
+
+```bash
+npm run build
+```
+
+5. Full regression before merge:
 
 ```bash
 php artisan test
 ```
 
-Result:
+## Manual UI Acceptance
 
-```text
-353 passed
-12,815 assertions
-0 failed
-Duration: 22.73s
-```
+Before merge verify:
+
+- Public `/thu-tuc-hanh-chinh` loads without branding model error.
+- Demo data renders correctly.
+- Search/filter/reset and bounded pagination work.
+- Selected delete opens centered modal and completes safely.
+- Delete all opens centered modal and completes safely.
+- No checkbox selected -> export all approved-scope records.
+- Checkbox selected -> export only selected records.
+- Exported file can be imported back for update/upsert where supported.
+- Import validation/error reporting does not expose lookup secrets.
+- Import/Export success modal appears and OK refresh synchronizes the list.
+- Admin form controls remain visibly bounded when empty.
+
+## Explicit Non-Goals
+
+- Full rebuild of Administrative.
+- New migrations/statuses/routes.
+- Repository-wide migration of all legacy form controls.
+- Import/export of attachment binaries.
+- Export of lookup secrets.
+- Raw hard-delete/replace semantics.
+- New queue infrastructure without measured need.
 
 ## Acceptance Criteria
 
-- [x] Admin file download class-resolution defect fixed.
-- [x] No unbounded `All` page-size option remains.
-- [x] Permission contract normalized with backward-compatible fallback.
-- [x] Sensitive mutations authorize at action boundary.
-- [x] Archive remains soft delete and is auditable.
-- [x] Route/status/schema/storage contracts preserved.
-- [x] Regression contract tests added.
-- [x] Pint PASS.
-- [x] Full regression PASS.
-- [x] Documentation updated to implemented reality.
+Round 2 is complete only when:
 
-## Remaining Non-Blocking Improvements
+- [ ] Documentation matches current implemented reality.
+- [ ] `IMPORT_EXPORT_PLAN.md` reflects implementation/verification rather than awaiting approval.
+- [ ] Permission documentation includes `administrative.submission.import_export`.
+- [ ] Selected export contract is documented and regression-covered.
+- [ ] Destructive selected/all actions use modal confirmation.
+- [ ] Shared success modal behavior is verified.
+- [ ] No lookup secret leakage exists in export/error contracts.
+- [ ] Administrative targeted tests pass.
+- [ ] Pint passes for affected scope.
+- [ ] Frontend build passes when required.
+- [ ] Full regression passes.
+- [ ] Manual Administrative UI smoke passes.
 
-Not required to close this refactor:
+## Approval Gate
 
-- Deeper behavioral tests for real upload MIME rejection/cleanup.
-- Explicit service tests for each approve/reject/supplement concurrency path.
-- Lookup-session expiry/result-file integration tests.
-- Search optimization after production profiling.
-- Formal `Account` dependency declaration if the repository standardizes manifest dependencies.
+**AWAITING USER APPROVAL**
 
-## Final Decision
-
-`Modules/Administrative` remains a **Major Refactor success; Full Rebuild is not warranted**.
-
-The module is ready to proceed through the repository's normal branch review/merge workflow.
+Do not modify additional application source for this `/refactor-module Administrative` round until the user explicitly approves this Round 2 plan.
