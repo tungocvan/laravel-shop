@@ -17,15 +17,7 @@ Người nộp không cần đăng nhập. Tra cứu dùng mã hồ sơ + mã b�
 
 ## Registration
 
-Module được auto-discover bởi `Modules\ModuleServiceProvider`.
-
-```text
-Modules/Administrative/config/module.php
-```
-
-Type: `domain`.
-
-Không dùng `nwidart/laravel-modules` hay `module.json`.
+Module được auto-discover bởi `Modules\ModuleServiceProvider` từ `Modules/Administrative/config/module.php` với type `domain`. Không dùng `nwidart/laravel-modules` hay `module.json`.
 
 ## Main Routes
 
@@ -59,7 +51,7 @@ administrative.file.download
 administrative.history.view
 ```
 
-Permission contract cần được reconcile trong refactor: một số permission đang được khai báo nhưng enforcement hiện dùng capability khác.
+Sau refactor, `dashboard.view`, `submission.process` và `history.view` được dùng đúng nghĩa. Quyền cũ `submission.view`/`submission.edit` vẫn được giữ làm fallback ở các boundary liên quan để tránh breaking change cho role hiện hữu.
 
 ## Features
 
@@ -73,7 +65,8 @@ Permission contract cần được reconcile trong refactor: một số permissi
 - Supplement resubmission.
 - Status history.
 - Optimistic version + row locking chống xử lý đồng thời.
-- Soft-delete/archive hồ sơ.
+- Soft-delete/archive hồ sơ có audit history.
+- Admin list dùng bounded pagination 10/25/50/100; không còn `All`.
 
 ## Dependencies
 
@@ -112,35 +105,38 @@ Per-procedure settings may override file limits.
 
 ## Tests
 
-Dedicated feature tests exist under:
+Dedicated feature tests nằm trong `tests/Feature/Administrative/`, bao gồm route/schema tests và `AdministrativeRefactorContractTest.php` khóa các contract vừa refactor.
+
+Local verification ngày 2026-08-15:
 
 ```text
-tests/Feature/Administrative/
+vendor/bin/pint --test Modules/Administrative tests/Feature/Administrative
+PASS — 47 files
+
+php artisan test
+PASS — 353 tests / 12,815 assertions
 ```
 
-Coverage hiện có chủ yếu bảo vệ database structure và route contracts. Cần bổ sung service/Livewire/security regression tests cho file download, upload validation, state transitions, concurrency, lookup/session expiry và archive audit.
+## Refactor Status
 
-## Developer Notes
+`/refactor-module Administrative`: **COMPLETED / VERIFIED**.
 
-Kết quả `/analyze Administrative`: **Major Refactor**, không Full Rebuild.
-
-Ưu tiên cho task `/refactor-module Administrative` sau này:
+Đã hoàn tất:
 
 ```text
-1. Fix AdministrativeFileService admin download model import.
-2. Reconcile permission matrix.
-3. Add critical workflow regression tests.
-4. Remove/bound admin `All` queries.
-5. Add audit semantics for submission archive.
-6. Profile search + verify UI screenshots/responsive behavior.
-7. Declare Account dependency in module metadata if confirmed canonical.
+1. Fix AdministrativeFileService model import.
+2. Reconcile permission matrix với backward-compatible fallback.
+3. Remove unbounded admin `All` queries.
+4. Add archive audit history + actor.
+5. Add regression contract tests.
+6. Polish permission-aware actions/loading/destructive UX.
+7. Full regression PASS.
 ```
 
-Chi tiết evidence và P0/P1/P2 nằm trong `ANALYSIS.md`. Factual module inventory nằm trong `INFORMATION.md`.
+Chi tiết evidence và lịch sử quyết định nằm trong `ANALYSIS.md` và `REFACTOR_PLAN.md`; factual inventory nằm trong `INFORMATION.md`.
 
 ## Future Improvements
 
-- Bounded/streamed bulk workflows instead of unbounded list loading.
-- Better search strategy only after measured production profiling.
-- Stronger audit trail for administrative archive actions.
-- Expanded regression coverage and UI quality verification.
+- Bổ sung sâu hơn service/Livewire behavioral tests cho actual upload/download/state-transition/session-expiry nếu cần coverage cao hơn.
+- Tối ưu search chỉ sau khi có profiling production thực tế.
+- Xem xét khai báo dependency `Account` trong module metadata khi chuẩn dependency manifest của repository được thống nhất.
