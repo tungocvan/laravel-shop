@@ -44,7 +44,7 @@ class SubmissionDetail extends Component
 
     public function approve(SubmissionService $service, ReceiptService $receipts): void
     {
-        $this->authorizePermission('administrative.submission.edit');
+        $this->authorizePermission('administrative.submission.process');
         $validated = $this->validate(['response' => ['nullable', 'string', 'max:5000']]);
         $submission = $service->approve($this->submissionId, $this->version, (int) Auth::guard('admin')->id(), $validated['response'] ?: null);
         $this->queueStatusEmailWhenAvailable($submission, $receipts);
@@ -55,7 +55,7 @@ class SubmissionDetail extends Component
 
     public function reject(SubmissionService $service, ReceiptService $receipts): void
     {
-        $this->authorizePermission('administrative.submission.edit');
+        $this->authorizePermission('administrative.submission.process');
         $validated = $this->validate([
             'reason_code' => ['required', 'in:wrong_form,missing_signature,missing_documents,unreadable_file,mismatched_information,ineligible,other'],
             'rejection_reason' => ['required', 'string', 'min:10', 'max:5000'],
@@ -70,7 +70,7 @@ class SubmissionDetail extends Component
 
     public function requestSupplement(SubmissionService $service, ReceiptService $receipts): void
     {
-        $this->authorizePermission('administrative.submission.edit');
+        $this->authorizePermission('administrative.submission.process');
         $validated = $this->validate([
             'supplement_reason' => ['required', 'string', 'min:10', 'max:5000'],
             'response' => ['nullable', 'string', 'max:5000'],
