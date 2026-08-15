@@ -14,6 +14,7 @@ use Modules\Invoices\Livewire\HoadonList;
 use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\InvoiceImportExportService;
+use Modules\Invoices\Services\InvoiceService;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Tests\TestCase;
 
@@ -218,6 +219,71 @@ class InvoicesModuleTest extends TestCase
         });
     }
 
+    public function test_statistics_are_aggregated_in_one_query_and_preserve_filter_semantics(): void
+    {
+        $this->withInvoicesTable(function () {
+            DB::table('invoices')->insert([
+                $this->invoiceRow('stats-5', 'sold', '5', '100.00', '5.00', '2026-08-15', 'Customer A'),
+                $this->invoiceRow('stats-8', 'sold', '8', '200.00', '16.00', '2026-08-15', 'Customer B'),
+                $this->invoiceRow('stats-10', 'purchase', '10', '300.00', '30.00', '2026-08-15', 'Customer C'),
+                $this->invoiceRow('stats-other', 'sold', '7', '400.00', '28.00', '2026-08-15', 'Customer D'),
+            ]);
+
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+
+            $stats = app(InvoiceService::class)->statistics([
+                'invoice_type' => 'sold',
+                'issued_date_from' => '2026-08-01',
+                'issued_date_to' => '2026-08-31',
+                'tax_rate' => 'all',
+            ]);
+
+            $queries = DB::getQueryLog();
+            DB::disableQueryLog();
+
+            $this->assertCount(1, $queries);
+            $this->assertSame(3, $stats['count']);
+            $this->assertEquals(700.0, (float) $stats['total_amount']);
+            $this->assertEquals(49.0, (float) $stats['vat_amount']);
+            $this->assertEquals(100.0, (float) $stats['by_tax_rate'][5]);
+            $this->assertEquals(200.0, (float) $stats['by_tax_rate'][8]);
+            $this->assertEquals(0.0, (float) $stats['by_tax_rate'][10]);
+            $this->assertEquals(400.0, (float) $stats['by_tax_rate']['other']);
+        });
+    }
+
+    public function test_dashboard_uses_two_queries_and_preserves_yearly_totals(): void
+    {
+        $this->withInvoicesTable(function () {
+            DB::table('invoices')->insert([
+                $this->invoiceRow('dash-sold-2026-a', 'sold', '10', '100.00', '10.00', '2026-08-15', 'Customer A'),
+                $this->invoiceRow('dash-sold-2026-b', 'sold', '10', '200.00', '20.00', '2026-07-15', 'Customer A'),
+                $this->invoiceRow('dash-purchase-2026', 'purchase', '8', '300.00', '24.00', '2026-06-15', 'Vendor A'),
+                $this->invoiceRow('dash-sold-2025', 'sold', '5', '400.00', '20.00', '2025-06-15', 'Customer B'),
+            ]);
+
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+
+            $dashboard = app(InvoiceService::class)->dashboard();
+
+            $queries = DB::getQueryLog();
+            DB::disableQueryLog();
+
+            $this->assertCount(2, $queries);
+            $this->assertEquals(700.0, (float) $dashboard['sold_amount']);
+            $this->assertEquals(300.0, (float) $dashboard['purchase_amount']);
+            $this->assertSame(2, $dashboard['sold_customers']);
+            $this->assertSame(1, $dashboard['purchase_customers']);
+            $this->assertSame(2026, (int) $dashboard['yearly'][0]['year']);
+            $this->assertEquals(300.0, (float) $dashboard['yearly'][0]['sold_total']);
+            $this->assertEquals(300.0, (float) $dashboard['yearly'][0]['purchase_total']);
+            $this->assertSame(2025, (int) $dashboard['yearly'][1]['year']);
+            $this->assertEquals(400.0, (float) $dashboard['yearly'][1]['sold_total']);
+        });
+    }
+
     public function test_invoice_export_honors_filters_and_selected_ids(): void
     {
         $this->withInvoicesTable(function () {
@@ -253,27 +319,35 @@ class InvoicesModuleTest extends TestCase
         try {
             $callback();
         } finally {
+            DB::disableQueryLog();
             Schema::dropIfExists('invoices');
         }
     }
 
-    private function invoiceRow(string $lookupCode, string $type, string $taxRate): array
-    {
+    private function invoiceRow(
+        string $lookupCode,
+        string $type,
+        string $taxRate,
+        string $totalAmount = '1100.00',
+        string $vatAmount = '100.00',
+        string $issuedDate = '2026-08-15',
+        ?string $name = null
+    ): array {
         return [
             'lookup_code' => $lookupCode,
             'symbol' => '1/C26T',
             'invoice_number' => $lookupCode,
             'type' => 'Hóa đơn GTGT',
-            'issued_date' => '2026-08-15',
+            'issued_date' => $issuedDate,
             'tax_code' => 'tax-'.$lookupCode,
-            'name' => 'Test '.$lookupCode,
+            'name' => $name ?? 'Test '.$lookupCode,
             'address' => '',
             'email' => '',
             'phone' => '',
             'tax_rate' => $taxRate,
-            'vat_amount' => '100.00',
+            'vat_amount' => $vatAmount,
             'amount_before_vat' => '1000.00',
-            'total_amount' => '1100.00',
+            'total_amount' => $totalAmount,
             'invoice_type' => $type,
             'created_at' => now(),
             'updated_at' => now(),
