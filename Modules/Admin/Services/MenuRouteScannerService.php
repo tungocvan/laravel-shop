@@ -91,9 +91,15 @@ class MenuRouteScannerService
             return false;
         }
 
+        $middleware = array_values(array_filter($route->gatherMiddleware(), 'is_string'));
+        if (! in_array('auth:admin', $middleware, true)) {
+            return false;
+        }
+
         $blocked = [
             'livewire', 'debugbar', 'telescope', 'horizon', 'ignition', 'storage',
             'sanctum', 'health', 'up', 'broadcasting/auth', 'csrf-cookie',
+            'login', 'logout', 'password', 'forgot', 'reset-password',
         ];
 
         $haystack = strtolower($name.' '.$uri);
@@ -112,7 +118,7 @@ class MenuRouteScannerService
             $segments = explode('.', substr($routeName, 6));
             $first = $segments[0] ?? 'admin';
 
-            return $first === 'menus' ? 'admin' : $first;
+            return in_array($first, ['menus', 'dashboard'], true) ? 'admin' : $first;
         }
 
         $segments = array_values(array_filter(explode('/', trim($uri, '/'))));
