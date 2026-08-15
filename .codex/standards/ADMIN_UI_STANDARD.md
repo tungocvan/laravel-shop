@@ -130,6 +130,50 @@ Do not hide critical validation, destructive warnings or required workflow state
 - Disabled/read-only states must be visually clear.
 - Avoid placing a long primary editor inside a narrow form column merely to keep another table visible beside it.
 
+### Form Control Visual Standard
+
+Admin form controls MUST remain visibly identifiable even when empty. Do not rely on placeholder text, background contrast or browser defaults to show that a field exists.
+
+For ordinary light-theme text inputs, selects, date/number controls and textareas, the preferred baseline visual language is:
+
+```text
+w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900
+placeholder:text-gray-400
+focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100
+```
+
+Add `mt-1` when the control follows a label directly and the surrounding field component does not already own vertical spacing.
+
+Example:
+
+```html
+<input
+    wire:model="applicant_name"
+    type="text"
+    autocomplete="name"
+    class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+>
+```
+
+Canonical states:
+
+- Normal: `border-gray-300 bg-white text-gray-900`.
+- Hover when useful: `hover:border-gray-400`.
+- Focus: `border-indigo-500 ring-2 ring-indigo-100` with no heavy/dark outline.
+- Validation error: `border-red-400 focus:border-red-500 focus:ring-red-100`; show the error text immediately below the field.
+- Disabled: `cursor-not-allowed border-gray-200 bg-gray-100 text-gray-500 opacity-75`.
+- Read-only: visually distinguish it from editable controls, normally `bg-gray-50 text-gray-600`, while retaining a visible border.
+
+Additional rules:
+
+- Do not ship borderless ordinary admin inputs unless a deliberately designed specialized control (for example inline table editing, command palette, or editor surface) clearly requires it.
+- `border-transparent`, `border-0`, or an input whose border visually disappears into its card/background is not the default admin form style.
+- Selects and textareas should use the same border radius, border color, focus treatment and text sizing as text inputs unless their interaction requires otherwise.
+- Search/filter inputs may be slightly more compact, but must still have a visible border and focus state.
+- Prefix/suffix/icon controls must preserve the same visible outer boundary; do not make the input appear detached from its icon/action.
+- Placeholder text is supplementary guidance, not a replacement for a visible label when a label is required.
+- When a canonical shared input/form component exists, update/reuse that component instead of copying long utility-class strings across every module.
+
 ## Searchable Select / Combobox
 
 Reuse the repository's approved searchable-select component (for example `x-select-search`) when it satisfies the requirement. Do not build another combobox implementation without a documented reason.
@@ -201,6 +245,7 @@ For list workspaces with more than a trivial dataset:
 - Provide `Xóa bộ lọc` / reset behavior when more than one filter can be active.
 - Avoid database work from Blade; filtering belongs in component/service/query layers.
 - Keep filter values bounded and validated where they can affect query shape.
+- Search/filter inputs and selects must retain a visible border in their resting state; do not make an empty filter row look like blank whitespace.
 
 ## Row Selection and Bulk Actions
 
@@ -317,6 +362,8 @@ Avoid:
 - Database queries in Blade.
 - Business logic in Blade.
 - Inconsistent form control sizing.
+- Borderless or visually invisible ordinary admin form controls.
+- Using placeholder text as the only visual evidence that an input exists.
 - Non-responsive tables.
 - Missing validation feedback.
 - Missing empty/loading states where needed.
@@ -340,6 +387,7 @@ Before UI work is complete, verify:
 - It matches the repository's current admin layout and shared components.
 - The screen has a clear primary task and secondary functions use progressive disclosure where appropriate.
 - Form validation UX is clear.
+- Ordinary inputs/selects/textareas are visibly bounded in their resting state and have consistent focus/error/disabled/read-only states.
 - Loading/disabled states prevent accidental repeated mutations where needed.
 - Empty states exist for empty collections.
 - Tables are responsive and paginated/bounded when necessary.
