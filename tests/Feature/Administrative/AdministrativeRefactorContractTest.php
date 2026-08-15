@@ -89,16 +89,17 @@ class AdministrativeRefactorContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Administrative/Services/ImportExport.php'));
         $view = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/submissions/submission-table.blade.php'));
         $module = require base_path('Modules/Administrative/config/module.php');
+        $unsafeLookupExport = "'lookup_token_hash' => ".'$model';
 
         $this->assertStringContainsString('extends BaseImportExportService', $service);
         $this->assertStringContainsString("'lookup_token'", $service);
         $this->assertStringContainsString('Hash::make($lookupToken)', $service);
         $this->assertStringContainsString("'[REDACTED]'", $service);
         $this->assertStringContainsString("'source' => 'administrative_import'", $service);
-        $this->assertStringContainsString("Mode replace bị vô hiệu", $service);
+        $this->assertStringContainsString('Mode replace bị vô hiệu', $service);
         $this->assertStringContainsString("@livewire('shared.import-export.panel'", $view);
         $this->assertStringContainsString("'permission' => 'administrative.submission.import_export'", $view);
         $this->assertContains('administrative.submission.import_export', $module['permissions']);
-        $this->assertStringNotContainsString("'lookup_token_hash' => $model", $service);
+        $this->assertStringNotContainsString($unsafeLookupExport, $service);
     }
 }
