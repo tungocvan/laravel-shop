@@ -50,18 +50,34 @@
 
     @if ($showRouteScannerModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
-            <div class="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div x-data="{ moduleFilter: 'all' }" class="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
                 <div class="border-b border-gray-200 p-6">
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div><h3 class="text-lg font-bold text-gray-900">Quét GET routes chưa có trong Menu</h3><p class="mt-1 text-sm text-gray-500">Tên hiển thị được gợi ý tự động và có thể chỉnh sửa trước khi thêm vào Menu.</p></div>
-                        @if($routeCandidates !== [])<button type="button" wire:click="selectAllRouteCandidates" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Chọn tất cả {{ count($routeCandidates) }}</button>@endif
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Quét GET routes chưa có trong Menu</h3>
+                            <p class="mt-1 text-sm text-gray-500">Tên hiển thị được gợi ý tự động và có thể chỉnh sửa trước khi thêm vào Menu.</p>
+                        </div>
+                        @if($routeCandidates !== [])
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                <div class="min-w-52">
+                                    <label for="route-module-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Lọc theo Module</label>
+                                    <select id="route-module-filter" x-model="moduleFilter" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                        <option value="all">Tất cả Module</option>
+                                        @foreach(collect($routeCandidates)->pluck('group')->unique()->sort()->values() as $moduleGroup)
+                                            <option value="{{ $moduleGroup }}">{{ \Illuminate\Support\Str::headline($moduleGroup) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <button type="button" wire:click="selectAllRouteCandidates" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Chọn tất cả {{ count($routeCandidates) }}</button>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
                 <div class="overflow-y-auto p-6">
                     @forelse(collect($routeCandidates)->groupBy('group') as $group => $candidates)
-                        <div class="mb-6 last:mb-0">
-                            <h4 class="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">{{ \Illuminate\Support\Str::headline($group) }}</h4>
+                        <div x-show="moduleFilter === 'all' || moduleFilter === @js((string) $group)" x-cloak class="mb-6 last:mb-0">
+                            <h4 class="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">{{ \Illuminate\Support\Str::headline($group) }} <span class="font-medium text-gray-400">({{ count($candidates) }})</span></h4>
                             <div class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
                                 @foreach($candidates as $candidate)
                                     <div class="grid gap-3 bg-white p-4 hover:bg-indigo-50/40 md:grid-cols-[auto,minmax(0,1fr),minmax(220px,0.8fr)] md:items-start">
