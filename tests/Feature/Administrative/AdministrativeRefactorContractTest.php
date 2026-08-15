@@ -73,6 +73,16 @@ class AdministrativeRefactorContractTest extends TestCase
         $this->assertStringContainsString('SubmissionAction::Archived', $service);
     }
 
+    public function test_delete_selected_uses_modal_confirmation(): void
+    {
+        $view = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/submissions/submission-table.blade.php'));
+        $modal = file_get_contents(base_path('Modules/Administrative/resources/views/components/delete-selected-modal.blade.php'));
+
+        $this->assertStringContainsString('<x-Administrative::delete-selected-modal', $view);
+        $this->assertStringContainsString('fixed inset-0 z-50', $modal);
+        $this->assertStringContainsString('wire:click="deleteSelected"', $modal);
+    }
+
     public function test_administrative_tables_use_custom_indigo_pagination(): void
     {
         $submissionView = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/submissions/submission-table.blade.php'));
@@ -89,6 +99,8 @@ class AdministrativeRefactorContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Administrative/Services/ImportExport.php'));
         $view = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/submissions/submission-table.blade.php'));
         $panel = file_get_contents(base_path('Modules/Shared/Livewire/ImportExport/Panel.php'));
+        $panelView = file_get_contents(base_path('Modules/Shared/Resources/views/livewire/import-export/panel.blade.php'));
+        $task = file_get_contents(base_path('.codex/tasks/create-import-export.md'));
         $module = require base_path('Modules/Administrative/config/module.php');
         $unsafeLookupExport = "'lookup_token_hash' => ".'$model';
         $selectedIdsBinding = "'selected_ids' => ".'$selectedIds';
@@ -98,6 +110,11 @@ class AdministrativeRefactorContractTest extends TestCase
         $this->assertStringContainsString('AdministrativeSubmission::withTrashed()', $service);
         $this->assertStringContainsString($selectedIdsBinding, $view);
         $this->assertStringContainsString('#[Reactive]', $panel);
+        $this->assertStringContainsString('showSuccessModal', $panel);
+        $this->assertStringContainsString('acknowledgeSuccess', $panel);
+        $this->assertStringContainsString('OK — tải lại', $panelView);
+        $this->assertStringContainsString('selected_ids empty', $task);
+        $this->assertStringContainsString('selected_ids not empty', $task);
         $this->assertStringContainsString('Hash::make($lookupToken)', $service);
         $this->assertStringContainsString("'[REDACTED]'", $service);
         $this->assertStringContainsString("'source' => 'administrative_import'", $service);
