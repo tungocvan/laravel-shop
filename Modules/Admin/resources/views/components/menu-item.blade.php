@@ -8,7 +8,7 @@
 @endphp
 
 @if($menuId)
-<li data-id="{{ $menuId }}" class="relative" x-data="{ expanded: true }">
+<li data-id="{{ $menuId }}" class="relative" x-data="{ expanded: false }">
     <div class="{{ data_get($menu, 'is_active') ? 'bg-white' : 'bg-gray-50 opacity-75' }} group flex items-center justify-between rounded-lg border border-gray-200 p-3 shadow-sm transition-colors hover:border-indigo-300">
         <div class="flex min-w-0 flex-1 items-center gap-3">
             <input
