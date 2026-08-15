@@ -19,6 +19,24 @@ class InvoiceImportExportService extends BaseImportExportService
         'tax_code',
     ];
 
+    protected array $headerAliases = [
+        'lookup_code' => ['lookup_code', 'Mã tra cứu', 'ma_tra_cuu'],
+        'symbol' => ['symbol', 'Ký hiệu', 'ky_hieu'],
+        'invoice_number' => ['invoice_number', 'Số hóa đơn', 'Số HĐ', 'so_hoa_don', 'so_hd'],
+        'type' => ['type', 'Loại'],
+        'issued_date' => ['issued_date', 'Ngày lập', 'ngay_lap'],
+        'tax_code' => ['tax_code', 'Mã số thuế', 'ma_so_thue'],
+        'name' => ['name', 'Đơn vị', 'don_vi'],
+        'address' => ['address', 'Địa chỉ', 'dia_chi'],
+        'email' => ['email', 'Email'],
+        'phone' => ['phone', 'Phone', 'Số điện thoại', 'so_dien_thoai'],
+        'tax_rate' => ['tax_rate', 'Thuế suất', 'thue_suat'],
+        'vat_amount' => ['vat_amount', 'VAT', 'Tiền VAT', 'tien_vat'],
+        'amount_before_vat' => ['amount_before_vat', 'Trước VAT', 'truoc_vat'],
+        'total_amount' => ['total_amount', 'Thành tiền', 'thanh_tien'],
+        'invoice_type' => ['invoice_type', 'Loại hóa đơn', 'loai_hoa_don'],
+    ];
+
     protected array $rules = [
         'lookup_code' => ['nullable', 'string', 'max:255'],
         'symbol' => ['nullable', 'string', 'max:255'],
@@ -70,32 +88,6 @@ class InvoiceImportExportService extends BaseImportExportService
 
     protected function normalizeRow(array $row): array
     {
-        $aliases = [
-            'ma_tra_cuu' => 'lookup_code',
-            'ky_hieu' => 'symbol',
-            'so_hd' => 'invoice_number',
-            'so_hoa_don' => 'invoice_number',
-            'loai' => 'type',
-            'loai_hoa_don' => 'invoice_type',
-            'ngay_lap' => 'issued_date',
-            'ma_so_thue' => 'tax_code',
-            'don_vi' => 'name',
-            'dia_chi' => 'address',
-            'so_dien_thoai' => 'phone',
-            'phone' => 'phone',
-            'thue_suat' => 'tax_rate',
-            'vat' => 'vat_amount',
-            'tien_vat' => 'vat_amount',
-            'truoc_vat' => 'amount_before_vat',
-            'thanh_tien' => 'total_amount',
-        ];
-
-        foreach ($aliases as $source => $target) {
-            if (! array_key_exists($target, $row) && array_key_exists($source, $row)) {
-                $row[$target] = $row[$source];
-            }
-        }
-
         $row['lookup_code'] = $this->cleanString($row['lookup_code'] ?? null);
         $row['symbol'] = $this->cleanString($row['symbol'] ?? null);
         $row['invoice_number'] = $this->cleanString($row['invoice_number'] ?? null);
