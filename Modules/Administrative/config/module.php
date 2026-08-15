@@ -17,6 +17,7 @@ return [
         'administrative.submission.process',
         'administrative.submission.edit',
         'administrative.submission.delete',
+        'administrative.submission.import_export',
         'administrative.file.download',
         'administrative.history.view',
     ],
