@@ -41,9 +41,7 @@ class InvoicesController extends Controller
             abort(404);
         }
 
-        $filename = $service->storageKey($invoice).'.pdf';
-
-        return response()->download($filePath, $filename);
+        return response()->download($filePath, $service->filenameForInvoice($invoice));
     }
 
     public function download(string $lookup_code, InvoiceFileService $service): BinaryFileResponse
