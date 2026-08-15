@@ -4,6 +4,7 @@ namespace Modules\Invoices\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
+use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Services\InvoiceFileService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -30,6 +31,19 @@ class InvoicesController extends Controller
     public function createToken(): View
     {
         return view('Invoices::pages.invoices.authenticate');
+    }
+
+    public function downloadInvoice(Invoices $invoice, InvoiceFileService $service): BinaryFileResponse
+    {
+        try {
+            $filePath = $service->pdfPathForInvoice($invoice);
+        } catch (\RuntimeException) {
+            abort(404);
+        }
+
+        $filename = $service->storageKey($invoice).'.pdf';
+
+        return response()->download($filePath, $filename);
     }
 
     public function download(string $lookup_code, InvoiceFileService $service): BinaryFileResponse
