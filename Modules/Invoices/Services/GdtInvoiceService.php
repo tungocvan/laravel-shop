@@ -65,11 +65,17 @@ class GdtInvoiceService
             $state = $nextState && $nextState !== $state ? $nextState : null;
         } while ($state && $items && count($invoices) < $total);
 
+        if ($total !== null && count($invoices) < $total) {
+            throw new \RuntimeException(
+                "GDT trả thiếu dữ liệu: nhận ".count($invoices)."/{$total} hóa đơn. Vui lòng đồng bộ lại."
+            );
+        }
+
         return ['items' => $invoices, 'total' => $total ?? count($invoices)];
     }
 
     /**
-     * Xử lý dữ liệu theo khoảng thời gian
+     * Xử lý dữ liệu theo khoảng thời gian.
      */
     public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false)
     {
@@ -77,12 +83,11 @@ class GdtInvoiceService
 
         $show('[GDT] Bắt đầu processRange...');
         $vatIn = (bool) $vatIn;
-
         $show($vatIn ? '[GDT] Hóa đơn đầu vào' : '[GDT] Hóa đơn đầu ra');
 
         $token = Cache::get(config('invoices.gdt.cache_key'));
         if (! $token) {
-            return $show('[GDT] ❌ Không có token trong cache');
+            throw new \RuntimeException('Không có token GDT trong cache.');
         }
 
         $start = Carbon::parse($startDate);
@@ -100,38 +105,26 @@ class GdtInvoiceService
             $show("[GDT] Gọi API tháng: {$chunkStart->format('d/m/Y')} → {$chunkEnd->format('d/m/Y')}");
 
             $invoices = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn);
-
             $show('[GDT] Thu được '.count($invoices).' hóa đơn tháng này');
 
             $all = array_merge($all, $invoices);
             $start = $chunkEnd->copy()->addDay();
-            $this->appendLog('[GDT] Thu được '.count($invoices).' hóa đơn tháng này');
         }
 
         $show('[GDT] Tổng cộng: '.count($all).' hóa đơn');
 
         $file = $this->exportExcel($all, $vatIn, $filename);
-
         $show('[GDT] File Excel tạo ra: '.$file);
 
         return $file;
     }
 
-    // Phương thức appendLog:
-    private function appendLog($msg)
-    {
-        $logs = Cache::get('gdt_log', []);
-        $logs[] = '['.now()->format('H:i:s').'] '.$msg;
-        Cache::put('gdt_log', $logs, 3600);
-    }
-
     /**
-     * Lấy hóa đơn theo từng tháng
+     * Lấy hóa đơn theo từng tháng và bắt buộc phải lấy đủ total GDT trả về.
      */
-    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn)
+    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
-
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
         $pageSize = 50;
 
@@ -163,53 +156,72 @@ class GdtInvoiceService
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', [
                     'action' => $action,
                     'page' => $page,
+                    'processed' => $processed,
+                    'total' => $total,
                     'error' => $exception->getMessage(),
                 ]);
-                $show("❌ Không thể kết nối GDT ở Page {$page}.");
-                break;
+
+                throw new \RuntimeException(
+                    "Mất kết nối GDT ở page {$page}; đã nhận {$processed}".($total !== null ? "/{$total}" : '').' hóa đơn. Không tạo file thiếu.',
+                    previous: $exception
+                );
+            }
+
+            if ($res->status() === 401) {
+                Cache::forget(config('invoices.gdt.cache_key'));
+                throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.');
             }
 
             if (! $res->successful()) {
-                if ($res->status() === 401) {
-                    Cache::forget(config('invoices.gdt.cache_key'));
-                    $show('❌ Phiên đăng nhập GDT đã hết hạn.');
-                } else {
-                    $show("❌ API GDT trả lỗi ở Page {$page} (HTTP {$res->status()}).");
-                }
-                break;
+                throw new \RuntimeException(
+                    "API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu."
+                );
             }
 
             $data = $res->json();
-            $items = $data['datas'] ?? [];
-            $total ??= (int) ($data['total'] ?? 0);
+            $items = is_array($data['datas'] ?? null) ? $data['datas'] : [];
+            $total ??= (int) ($data['total'] ?? count($items));
 
             if ($page === 1) {
                 if ($total === 0) {
                     $show('ℹ Không có hóa đơn tháng này.');
-
                     return [];
                 }
 
-                $show("📄 Tổng: {$total}");
+                $show("📄 GDT báo tổng: {$total}");
             }
 
             foreach ($items as $item) {
                 $result[] = $this->mapInvoice($item, $vatIn);
                 $processed++;
 
-                if ($processed % 50 == 0) {
-                    $show("🔔 Đã xử lý {$processed} hóa đơn");
+                if ($processed % 50 === 0) {
+                    $show("🔔 Đã xử lý {$processed}/{$total} hóa đơn");
                 }
             }
 
-            $nextState = $data['state'] ?? null;
-            $state = $nextState && $nextState !== $state ? $nextState : null;
-            $page++;
-        } while ($state && $items && $processed < $total);
+            if ($processed >= $total) {
+                break;
+            }
 
-        if ($processed % 50 !== 0) {
-            $show("✅ Tổng xử lý: {$processed}");
+            $nextState = $data['state'] ?? null;
+            if (! $nextState || $nextState === $state) {
+                throw new \RuntimeException(
+                    "GDT dừng phân trang khi mới nhận {$processed}/{$total} hóa đơn. Không tạo file thiếu."
+                );
+            }
+
+            $state = $nextState;
+            $page++;
+        } while ($processed < $total);
+
+        if ($processed !== $total) {
+            throw new \RuntimeException(
+                "Đồng bộ không đầy đủ: nhận {$processed}/{$total} hóa đơn. Không tạo file Excel."
+            );
         }
+
+        $show("✅ Đã nhận đủ {$processed}/{$total} hóa đơn");
 
         return $result;
     }
@@ -228,25 +240,24 @@ class GdtInvoiceService
     }
 
     /**
-     * Map hóa đơn về dạng Excel
+     * Map hóa đơn về dạng Excel. Với đầu vào, đối tác là người bán (nb*);
+     * với đầu ra, đối tác là người mua (nm*).
      */
-    private function mapInvoice($item, $vatIn)
+    private function mapInvoice($item, $vatIn): array
     {
-        $isIn = ! $vatIn;
+        $counterpartyIsBuyer = ! $vatIn;
 
         return [
-            'Mã tra cứu' => $item['cttkhac'][16]['dlieu'] ?? '',
+            'Mã tra cứu' => $this->extractLookupCode($item),
             'Ký hiệu' => ($item['khmshdon'] ?? '').'/'.($item['khhdon'] ?? ''),
             'Số hóa đơn' => $item['shdon'] ?? '',
             'Loại hóa đơn' => $item['thdon'] ?? '',
             'Ngày lập' => isset($item['tdlap']) ? Carbon::parse($item['tdlap'])->format('d/m/Y') : '',
-
-            'Mã số thuế' => $isIn ? ($item['nmmst'] ?? '') : ($item['nbmst'] ?? ''),
-            'Đơn vị' => $isIn ? ($item['nmten'] ?? '') : ($item['nbten'] ?? ''),
-            'Địa chỉ' => $isIn ? ($item['nmdchi'] ?? '') : ($item['nbdchi'] ?? ''),
-            'Email' => $isIn ? ($item['nmdctdtu'] ?? '') : ($item['nbdctdtu'] ?? ''),
-            'Phone' => $isIn ? ($item['nmsdthoai'] ?? '') : ($item['nbsdthoai'] ?? ''),
-
+            'Mã số thuế' => $counterpartyIsBuyer ? ($item['nmmst'] ?? '') : ($item['nbmst'] ?? ''),
+            'Đơn vị' => $counterpartyIsBuyer ? ($item['nmten'] ?? '') : ($item['nbten'] ?? ''),
+            'Địa chỉ' => $counterpartyIsBuyer ? ($item['nmdchi'] ?? '') : ($item['nbdchi'] ?? ''),
+            'Email' => $counterpartyIsBuyer ? ($item['nmdctdtu'] ?? '') : ($item['nbdctdtu'] ?? ''),
+            'Phone' => $counterpartyIsBuyer ? ($item['nmsdthoai'] ?? '') : ($item['nbsdthoai'] ?? ''),
             'Thuế suất' => $item['thttltsuat'][0]['tsuat'] ?? '',
             'Tiền VAT' => $item['tgtthue'] ?? 0,
             'Trước VAT' => $item['tgtcthue'] ?? 0,
@@ -254,9 +265,17 @@ class GdtInvoiceService
         ];
     }
 
-    /**
-     * Xuất Excel
-     */
+    private function extractLookupCode(array $item): string
+    {
+        foreach ($item['cttkhac'] ?? [] as $field) {
+            if (($field['ttruong'] ?? null) === 'TransactionID' && filled($field['dlieu'] ?? null)) {
+                return trim((string) $field['dlieu']);
+            }
+        }
+
+        return '';
+    }
+
     private function exportExcel(array $data, bool $vatIn, $filename)
     {
         $baseFolder = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
@@ -264,13 +283,11 @@ class GdtInvoiceService
             ? storage_path("app/{$baseFolder}/vat_in")
             : storage_path("app/{$baseFolder}/vat_out");
 
-        if (! is_dir($folder)) {
-            mkdir($folder, 0777, true);
+        if (! is_dir($folder) && ! mkdir($folder, 0775, true) && ! is_dir($folder)) {
+            throw new \RuntimeException('Không thể tạo thư mục lưu Excel GDT.');
         }
-        // vat_out_2025-11-01_2025-11-27.xlsx
-        // $file = $folder . '/' . ($vatIn ? 'vat_in_' : 'vat_out_') . date('Ymd_His') . '.xlsx';
-        $file = $folder.'/'.($vatIn ? 'vat_in_' : 'vat_out_').$filename;
 
+        $file = $folder.'/'.($vatIn ? 'vat_in_' : 'vat_out_').$filename;
         (new FastExcel($data))->export($file);
 
         return $file;
