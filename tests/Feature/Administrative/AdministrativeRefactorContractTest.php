@@ -6,7 +6,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Modules\Administrative\Enums\SubmissionAction;
 use Modules\Administrative\Livewire\Procedures\ProcedureTable;
 use Modules\Administrative\Livewire\Submissions\SubmissionTable;
-use Modules\Administrative\Services\AdministrativeFileService;
 use Modules\Administrative\Services\ProcedureService;
 use Modules\Administrative\Services\SubmissionService;
 use ReflectionClass;
@@ -43,9 +42,10 @@ class AdministrativeRefactorContractTest extends TestCase
 
         $procedureSource = file_get_contents(base_path('Modules/Administrative/Services/ProcedureService.php'));
         $submissionSource = file_get_contents(base_path('Modules/Administrative/Services/SubmissionService.php'));
+        $allBranch = '$perPage'." === 'All'";
 
-        $this->assertStringNotContainsString("$perPage === 'All'", $procedureSource);
-        $this->assertStringNotContainsString("$perPage === 'All'", $submissionSource);
+        $this->assertStringNotContainsString($allBranch, $procedureSource);
+        $this->assertStringNotContainsString($allBranch, $submissionSource);
         $this->assertStringContainsString('normalizeAdminPageSize($perPage)', $procedureSource);
         $this->assertStringContainsString('normalizeAdminPageSize($perPage)', $submissionSource);
     }
