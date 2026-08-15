@@ -14,6 +14,8 @@ use Throwable;
 
 class ProcedureService
 {
+    private const ADMIN_PAGE_SIZES = [10, 25, 50, 100];
+
     public function listActiveForPublic(): Collection
     {
         return AdministrativeProcedure::query()->active()->ordered()->get();
@@ -24,7 +26,7 @@ class ProcedureService
         return AdministrativeProcedure::query()->active()->findOrFail($id);
     }
 
-    public function listForAdmin(array $filters, string|int $perPage = 10): LengthAwarePaginator|Collection
+    public function listForAdmin(array $filters, string|int $perPage = 10): LengthAwarePaginator
     {
         $search = trim((string) ($filters['search'] ?? ''));
         $status = (string) ($filters['status'] ?? '');
@@ -40,7 +42,7 @@ class ProcedureService
             ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
             ->ordered();
 
-        return $perPage === 'All' ? $query->get() : $query->paginate((int) $perPage);
+        return $query->paginate($this->normalizeAdminPageSize($perPage));
     }
 
     public function findForEdit(int $id): AdministrativeProcedure
@@ -145,6 +147,13 @@ class ProcedureService
     public function normalizeSlug(?string $slug, string $name): string
     {
         return Str::slug(trim((string) $slug) ?: $name);
+    }
+
+    private function normalizeAdminPageSize(string|int $perPage): int
+    {
+        $perPage = (int) $perPage;
+
+        return in_array($perPage, self::ADMIN_PAGE_SIZES, true) ? $perPage : 10;
     }
 
     private function normalize(array $data, ?array $stored): array
