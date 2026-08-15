@@ -120,6 +120,61 @@
             </div>
         </div>
 
+        @php
+            $pdfSize = (int) ($fileSummary['size'] ?? 0);
+            $pdfSizeLabel = $pdfSize >= 1048576
+                ? number_format($pdfSize / 1048576, 2).' MB'
+                : number_format($pdfSize / 1024, 1).' KB';
+        @endphp
+
+        <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Kho PDF theo bộ lọc</h3>
+                    <p class="mt-1 text-xs text-slate-500">Metadata file, dung lượng và đóng gói lưu trữ theo kỳ đang chọn.</p>
+                </div>
+                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">{{ $pdfSizeLabel }}</span>
+            </div>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-4">
+                <div class="rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Tổng hóa đơn</p>
+                    <p class="mt-1 text-xl font-bold text-slate-900">{{ number_format($fileSummary['total']) }}</p>
+                </div>
+                <div class="rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Đã có PDF</p>
+                    <p class="mt-1 text-xl font-bold text-emerald-700">{{ number_format($fileSummary['available']) }}</p>
+                </div>
+                <div class="rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Chưa có</p>
+                    <p class="mt-1 text-xl font-bold text-amber-700">{{ number_format($fileSummary['missing']) }}</p>
+                </div>
+                <div class="rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Lỗi tải</p>
+                    <p class="mt-1 text-xl font-bold text-red-700">{{ number_format($fileSummary['error']) }}</p>
+                </div>
+            </div>
+
+            @if (auth('admin')->user()?->can('invoices-download'))
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button type="button" wire:click="reconcilePdfMetadata" wire:loading.attr="disabled" wire:target="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="reconcilePdfMetadata">Quét metadata PDF</span>
+                        <span wire:loading wire:target="reconcilePdfMetadata">Đang quét…</span>
+                    </button>
+
+                    <button type="button" wire:click="downloadMissingPdfs" wire:loading.attr="disabled" wire:target="downloadMissingPdfs" @disabled(($fileSummary['missing'] + $fileSummary['error']) === 0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span wire:loading.remove wire:target="downloadMissingPdfs">Tải 25 PDF còn thiếu</span>
+                        <span wire:loading wire:target="downloadMissingPdfs">Đang tải batch…</span>
+                    </button>
+
+                    <button type="button" wire:click="downloadPdfZip" wire:loading.attr="disabled" wire:target="downloadPdfZip" @disabled($fileSummary['available'] === 0) class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span wire:loading.remove wire:target="downloadPdfZip">Tải ZIP PDF</span>
+                        <span wire:loading wire:target="downloadPdfZip">Đang đóng gói…</span>
+                    </button>
+                </div>
+            @endif
+        </div>
+
         <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5">
             <div class="flex flex-wrap items-center gap-3">
                 <select wire:model.live="perPage" class="h-11 rounded-xl border border-gray-300 px-4 text-sm" aria-label="Số hóa đơn mỗi trang">

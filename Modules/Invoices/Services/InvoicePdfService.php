@@ -10,6 +10,7 @@ class InvoicePdfService
         private readonly GdtPdfService $gdtPdfService,
         private readonly MeInvoiceService $meInvoiceService,
         private readonly InvoiceFileService $fileService,
+        private readonly InvoiceFileManagerService $fileManager,
     ) {}
 
     public function statusForInvoice(Invoices $invoice): string
@@ -30,21 +31,38 @@ class InvoicePdfService
         }
 
         if (! $force && $this->fileService->existsForInvoice($invoice)) {
-            return $this->fileService->pdfPathForInvoice($invoice);
+            $path = $this->fileService->pdfPathForInvoice($invoice);
+            $provider = str_contains(str_replace('\\', '/', $path), '/hoadon_temp/') ? 'legacy' : 'local';
+            $this->fileManager->recordAvailable($invoice, $path, $provider);
+
+            return $path;
         }
 
         try {
-            return $this->gdtPdfService->downloadInvoice($invoice, $force);
+            $path = $this->gdtPdfService->downloadInvoice($invoice, $force);
+            $this->fileManager->recordAvailable($invoice, $path, 'gdt');
+
+            return $path;
         } catch (\Throwable $gdtException) {
             $lookupCode = trim((string) $invoice->lookup_code);
+
             if ($lookupCode !== '' && config('invoices.meinvoice.token')) {
-                return $this->meInvoiceService->downloadOne(
-                    $lookupCode,
-                    $force,
-                    $this->fileService->targetPdfPathForInvoice($invoice)
-                );
+                try {
+                    $path = $this->meInvoiceService->downloadOne(
+                        $lookupCode,
+                        $force,
+                        $this->fileService->targetPdfPathForInvoice($invoice)
+                    );
+                    $this->fileManager->recordAvailable($invoice, $path, 'meinvoice');
+
+                    return $path;
+                } catch (\Throwable $meInvoiceException) {
+                    $this->fileManager->recordFailure($invoice, 'meinvoice', $meInvoiceException->getMessage());
+                    throw $meInvoiceException;
+                }
             }
 
+            $this->fileManager->recordFailure($invoice, 'gdt', $gdtException->getMessage());
             throw $gdtException;
         }
     }

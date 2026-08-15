@@ -7,6 +7,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Invoices\Exports\InvoicesSelectedExport;
+use Modules\Invoices\Services\InvoiceFileManagerService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
 
@@ -16,6 +17,7 @@ class HoadonList extends Component
 
     protected InvoiceService $invoiceService;
     protected InvoicePdfService $pdfService;
+    protected InvoiceFileManagerService $fileManager;
 
     public ?string $downloadStatus = null;
     public ?string $pdfNotice = null;
@@ -42,10 +44,14 @@ class HoadonList extends Component
         'year', 'month', 'sort', 'perPage',
     ];
 
-    public function boot(InvoiceService $invoiceService, InvoicePdfService $pdfService): void
-    {
+    public function boot(
+        InvoiceService $invoiceService,
+        InvoicePdfService $pdfService,
+        InvoiceFileManagerService $fileManager,
+    ): void {
         $this->invoiceService = $invoiceService;
         $this->pdfService = $pdfService;
+        $this->fileManager = $fileManager;
     }
 
     public function mount(): void
@@ -185,11 +191,74 @@ class HoadonList extends Component
         }
     }
 
+    public function reconcilePdfMetadata(): void
+    {
+        $this->authorizePermission('invoices-download');
+        $this->pdfNotice = null;
+        $this->pdfError = null;
+
+        try {
+            $result = $this->fileManager->reconcile($this->filters());
+            $this->pdfNotice = "Đã quét {$result['scanned']} hóa đơn · Có PDF: {$result['available']} · Chưa có: {$result['missing']}.";
+        } catch (\Throwable $exception) {
+            $this->pdfError = $exception->getMessage();
+        }
+    }
+
+    public function downloadMissingPdfs(): void
+    {
+        $this->authorizePermission('invoices-download');
+        $this->pdfNotice = null;
+        $this->pdfError = null;
+
+        try {
+            $this->fileManager->reconcile($this->filters());
+            $ids = $this->fileManager->missingInvoiceIds($this->filters(), 25);
+
+            if ($ids === []) {
+                $this->pdfNotice = 'Không còn PDF nào thiếu trong bộ lọc hiện tại.';
+                return;
+            }
+
+            $result = $this->pdfService->downloadSelected($ids);
+            $remaining = $this->fileManager->summary($this->filters())['missing'];
+            $message = "Batch PDF: mới {$result['downloaded']} · đã có {$result['existing']} · lỗi {$result['failed']} · còn thiếu {$remaining}.";
+
+            if ($result['failed'] > 0) {
+                $detail = $result['errors'][0] ?? null;
+                $this->pdfError = $detail ? $message.' · '.$detail : $message;
+            } else {
+                $this->pdfNotice = $message;
+            }
+        } catch (\Throwable $exception) {
+            $this->pdfError = $exception->getMessage();
+        }
+    }
+
+    public function downloadPdfZip()
+    {
+        $this->authorizePermission('invoices-download');
+        $this->pdfNotice = null;
+        $this->pdfError = null;
+
+        try {
+            $this->fileManager->reconcile($this->filters());
+            $archive = $this->fileManager->createZip($this->filters());
+            $this->pdfNotice = "Đã đóng gói {$archive['count']} PDF.";
+
+            return response()->download($archive['path'], $archive['filename']);
+        } catch (\Throwable $exception) {
+            $this->pdfError = $exception->getMessage();
+            return null;
+        }
+    }
+
     public function render()
     {
         $filters = $this->filters();
         $dashboard = $this->invoiceService->dashboard();
         $filterStats = $this->invoiceService->statistics($filters);
+        $fileSummary = $this->fileManager->summary($filters);
         $invoices = $this->invoiceService->paginate($filters, $this->perPage);
         $pdfStatuses = collect($invoices->items())->mapWithKeys(fn ($invoice) => [
             $invoice->id => $this->pdfService->statusForInvoice($invoice),
@@ -199,6 +268,7 @@ class HoadonList extends Component
             'invoices' => $invoices,
             'pdfStatuses' => $pdfStatuses,
             'filterStats' => $filterStats,
+            'fileSummary' => $fileSummary,
             'totalSoldAmount' => $dashboard['sold_amount'],
             'totalPurchaseAmount' => $dashboard['purchase_amount'],
             'totalSoldCustomers' => $dashboard['sold_customers'],

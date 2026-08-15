@@ -142,6 +142,11 @@ class InvoiceService
         return $returnBuilder ? $query : $query->get();
     }
 
+    public function filteredBuilder(array $filters = []): Builder
+    {
+        return $this->filteredQuery($filters);
+    }
+
     private function orderedQuery(array $filters): Builder
     {
         $query = $this->filteredQuery($filters);
