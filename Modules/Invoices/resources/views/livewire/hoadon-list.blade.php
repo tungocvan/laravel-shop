@@ -22,27 +22,136 @@
     </div>
 
     <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-            <select wire:model.live="type" class="rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="">Tất cả loại</option><option value="sold">Bán ra</option><option value="purchase">Mua vào</option></select>
-            <select wire:model.live="name" class="rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="">Tất cả đối tác</option>@foreach ($nameList as $item)<option value="{{ $item }}">{{ $item }}</option>@endforeach</select>
-            <select wire:model.live="tax_code" class="rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="">Tất cả MST</option>@foreach ($taxCodeList as $item)<option value="{{ $item }}">{{ $item }}</option>@endforeach</select>
-            <input type="date" wire:model.live="from_date" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-            <input type="date" wire:model.live="to_date" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-            <select wire:model.live="taxRateFilter" class="rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="all">Mọi thuế suất</option><option value="5">5%</option><option value="8">8%</option><option value="10">10%</option><option value="other">Khác</option></select>
+        <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h3 class="text-base font-semibold text-gray-900">Bộ lọc hóa đơn</h3>
+                <p class="mt-1 text-sm text-gray-500">Lọc theo kỳ, đối tác, MST và sắp xếp dữ liệu kế toán.</p>
+            </div>
+
+            @if ($year !== '')
+                <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">
+                    Kỳ: {{ $month !== '' ? 'Tháng '.str_pad($month, 2, '0', STR_PAD_LEFT).' / ' : '' }}{{ $year }}
+                </span>
+            @endif
         </div>
 
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-3">
-                <select wire:model.live="perPage" class="h-11 rounded-xl border border-gray-300 px-4 text-sm" aria-label="Số hóa đơn mỗi trang">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} / trang</option>@endforeach</select>
-                @if (count($selected) > 0)<span class="inline-flex h-9 items-center rounded-full bg-indigo-50 px-3 text-sm font-semibold text-indigo-700">Đã chọn {{ number_format(count($selected)) }} hóa đơn</span>@endif
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <select wire:model.live="type" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
+                <option value="">Tất cả loại</option>
+                <option value="sold">Bán ra</option>
+                <option value="purchase">Mua vào</option>
+            </select>
+
+            <x-select-search id="invoice-partner-search" wire:model="name" options-wire="nameList" placeholder="Tìm đối tác...">
+                <option value="">Tất cả đối tác</option>
+                @foreach ($nameList as $item)
+                    <option value="{{ $item }}" @selected($name === $item)>{{ $item }}</option>
+                @endforeach
+            </x-select-search>
+
+            <x-select-search id="invoice-tax-code-search" wire:model="tax_code" options-wire="taxCodeList" placeholder="Tìm mã số thuế...">
+                <option value="">Tất cả MST</option>
+                @foreach ($taxCodeList as $item)
+                    <option value="{{ $item }}" @selected($tax_code === $item)>{{ $item }}</option>
+                @endforeach
+            </x-select-search>
+
+            <select wire:model.live="year" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
+                <option value="">Tất cả năm</option>
+                @foreach ($yearOptions as $yearOption)
+                    <option value="{{ $yearOption }}">Năm {{ $yearOption }}</option>
+                @endforeach
+            </select>
+
+            <select wire:model.live="month" @disabled($year === '') class="rounded-xl border border-gray-300 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400">
+                <option value="">Cả năm</option>
+                @for ($monthOption = 1; $monthOption <= 12; $monthOption++)
+                    <option value="{{ $monthOption }}">Tháng {{ str_pad((string) $monthOption, 2, '0', STR_PAD_LEFT) }}</option>
+                @endfor
+            </select>
+
+            <select wire:model.live="taxRateFilter" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
+                <option value="all">Mọi thuế suất</option>
+                <option value="5">5%</option>
+                <option value="8">8%</option>
+                <option value="10">10%</option>
+                <option value="other">Khác</option>
+            </select>
+        </div>
+
+        <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Từ ngày</span>
+                <input type="date" wire:model.live="from_date" class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">
+            </label>
+
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Đến ngày</span>
+                <input type="date" wire:model.live="to_date" class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">
+            </label>
+
+            <label class="space-y-1.5 md:col-span-2 xl:col-span-2">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Sắp xếp</span>
+                <select wire:model.live="sort" class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">
+                    <option value="date_desc">Ngày mới nhất</option>
+                    <option value="date_asc">Ngày cũ nhất</option>
+                    <option value="amount_desc">Số tiền: cao → thấp</option>
+                    <option value="amount_asc">Số tiền: thấp → cao</option>
+                    <option value="invoice_desc">Số hóa đơn: giảm dần</option>
+                    <option value="invoice_asc">Số hóa đơn: tăng dần</option>
+                    <option value="partner_asc">Đối tác: A → Z</option>
+                    <option value="partner_desc">Đối tác: Z → A</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Trong bộ lọc</p>
+                <p class="mt-1 text-lg font-bold text-gray-900">{{ number_format($filterStats['count']) }} hóa đơn</p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <button type="button" wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 px-4 text-sm font-semibold hover:bg-gray-50">Đặt lại bộ lọc</button>
-                @if (auth('admin')->user()?->can('invoices-export'))
-                    <button type="button" wire:click="exportSelected" wire:loading.attr="disabled" wire:target="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="exportSelected">{{ count($selected) > 0 ? 'Xuất '.count($selected).' hóa đơn' : 'Xuất theo bộ lọc' }}</span><span wire:loading wire:target="exportSelected">Đang xuất…</span></button>
+            <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Tiền VAT</p>
+                <p class="mt-1 text-lg font-bold text-gray-900">{{ number_format((float) $filterStats['vat_amount']) }} ₫</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Tổng thanh toán</p>
+                <p class="mt-1 text-lg font-bold text-gray-900">{{ number_format((float) $filterStats['total_amount']) }} ₫</p>
+            </div>
+        </div>
+
+        <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5">
+            <div class="flex flex-wrap items-center gap-3">
+                <select wire:model.live="perPage" class="h-11 rounded-xl border border-gray-300 px-4 text-sm" aria-label="Số hóa đơn mỗi trang">
+                    @foreach ($perPageOptions as $option)
+                        <option value="{{ $option }}">{{ $option }} / trang</option>
+                    @endforeach
+                </select>
+
+                @if (count($selected) > 0)
+                    <span class="inline-flex h-9 items-center rounded-full bg-indigo-50 px-3 text-sm font-semibold text-indigo-700">
+                        Đã chọn {{ number_format(count($selected)) }} hóa đơn
+                    </span>
                 @endif
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button type="button" wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 px-4 text-sm font-semibold hover:bg-gray-50">
+                    Đặt lại bộ lọc
+                </button>
+
+                @if (auth('admin')->user()?->can('invoices-export'))
+                    <button type="button" wire:click="exportSelected" wire:loading.attr="disabled" wire:target="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="exportSelected">{{ count($selected) > 0 ? 'Xuất '.count($selected).' hóa đơn' : 'Xuất theo bộ lọc' }}</span>
+                        <span wire:loading wire:target="exportSelected">Đang xuất…</span>
+                    </button>
+                @endif
+
                 @if (auth('admin')->user()?->can('invoices-download'))
-                    <button type="button" wire:click="downloadSelected" wire:loading.attr="disabled" wire:target="downloadSelected" @disabled(count($selected) === 0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><span wire:loading.remove wire:target="downloadSelected">{{ count($selected) > 0 ? 'Tải PDF ('.count($selected).')' : 'Tải PDF' }}</span><span wire:loading wire:target="downloadSelected">Đang tải…</span></button>
+                    <button type="button" wire:click="downloadSelected" wire:loading.attr="disabled" wire:target="downloadSelected" @disabled(count($selected) === 0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span wire:loading.remove wire:target="downloadSelected">{{ count($selected) > 0 ? 'Tải PDF ('.count($selected).')' : 'Tải PDF' }}</span>
+                        <span wire:loading wire:target="downloadSelected">Đang tải…</span>
+                    </button>
                 @endif
             </div>
         </div>
@@ -52,7 +161,16 @@
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
-                    <tr><th class="px-4 py-3"></th><th class="px-4 py-3">Số HĐ</th><th class="px-4 py-3">Ngày</th><th class="px-4 py-3">Đối tác</th><th class="px-4 py-3">MST</th><th class="px-4 py-3">Loại</th><th class="px-4 py-3">PDF</th><th class="px-4 py-3 text-right">Tổng tiền</th></tr>
+                    <tr>
+                        <th class="px-4 py-3"></th>
+                        <th class="px-4 py-3">Số HĐ</th>
+                        <th class="px-4 py-3">Ngày</th>
+                        <th class="px-4 py-3">Đối tác</th>
+                        <th class="px-4 py-3">MST</th>
+                        <th class="px-4 py-3">Loại</th>
+                        <th class="px-4 py-3">PDF</th>
+                        <th class="px-4 py-3 text-right">Tổng tiền</th>
+                    </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($invoices as $invoice)
@@ -63,7 +181,11 @@
                             <td class="px-4 py-3">{{ $invoice->issued_date?->format('d/m/Y') ?? '-' }}</td>
                             <td class="px-4 py-3">{{ $invoice->name ?: '-' }}</td>
                             <td class="px-4 py-3">{{ $invoice->tax_code ?: '-' }}</td>
-                            <td class="px-4 py-3"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $invoice->invoice_type === 'sold' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700' }}">{{ $invoice->invoice_type === 'sold' ? 'Bán ra' : 'Mua vào' }}</span></td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $invoice->invoice_type === 'sold' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700' }}">
+                                    {{ $invoice->invoice_type === 'sold' ? 'Bán ra' : 'Mua vào' }}
+                                </span>
+                            </td>
                             <td class="px-4 py-3">
                                 @if ($pdfStatus === 'available')
                                     <div class="flex flex-wrap items-center gap-2">
@@ -98,6 +220,9 @@
                 </tbody>
             </table>
         </div>
-        @if ($invoices->hasPages())<div class="border-t border-gray-200 px-4 py-4">{{ $invoices->links() }}</div>@endif
+
+        @if ($invoices->hasPages())
+            <div class="border-t border-gray-200 px-4 py-4">{{ $invoices->links() }}</div>
+        @endif
     </div>
 </div>
