@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Admin\Services\MenuImportExportService;
+use Modules\Admin\Services\MenuRouteScannerService;
 use Modules\Admin\Services\MenuService;
 
 class MenuTable extends Component
@@ -13,37 +14,34 @@ class MenuTable extends Component
     use WithFileUploads;
 
     protected MenuService $menuService;
-
     protected MenuImportExportService $importExportService;
+    protected MenuRouteScannerService $routeScannerService;
 
     public string $search = '';
-
     public string $filterStatus = 'active';
-
     public array $selectedMenus = [];
-
     public bool $selectAll = false;
-
     public bool $showImportModal = false;
-
     public $importFile = null;
-
     public string $importMode = 'skip_duplicate';
-
     public ?array $importReport = null;
-
     public bool $showBulkPermissionsModal = false;
-
     public bool $showBulkDeleteModal = false;
-
+    public bool $showRouteScannerModal = false;
+    public array $routeCandidates = [];
+    public array $selectedRouteCandidates = [];
     public ?string $bulkPermission = null;
 
     protected $queryString = ['search', 'filterStatus'];
 
-    public function boot(MenuService $menuService, MenuImportExportService $importExportService): void
-    {
+    public function boot(
+        MenuService $menuService,
+        MenuImportExportService $importExportService,
+        MenuRouteScannerService $routeScannerService,
+    ): void {
         $this->menuService = $menuService;
         $this->importExportService = $importExportService;
+        $this->routeScannerService = $routeScannerService;
     }
 
     protected function rules(): array
@@ -70,12 +68,23 @@ class MenuTable extends Component
         $this->selectedMenus = $value ? $this->menuService->idsForSelection($this->filters()) : [];
     }
 
-    public function updatedSelectedMenus(): void
+    public function toggleMenuSelection(int|string $menuId): void
     {
+        $branchIds = $this->menuService->idsForBranch($menuId);
+        if ($branchIds === []) {
+            return;
+        }
+
+        $selected = array_map('strval', $this->selectedMenus);
+        $rootId = (string) $menuId;
+        $shouldSelect = ! in_array($rootId, $selected, true);
+
+        $this->selectedMenus = $shouldSelect
+            ? array_values(array_unique(array_merge($selected, $branchIds)))
+            : array_values(array_diff($selected, $branchIds));
+
         $visible = $this->menuService->idsForSelection($this->filters());
-        $selected = array_values(array_intersect($visible, array_map('strval', $this->selectedMenus)));
-        $this->selectedMenus = $selected;
-        $this->selectAll = $visible !== [] && count($selected) === count($visible);
+        $this->selectAll = $visible !== [] && count(array_intersect($visible, $this->selectedMenus)) === count($visible);
     }
 
     public function updatedImportFile(): void
@@ -106,6 +115,43 @@ class MenuTable extends Component
         $this->resetValidation();
     }
 
+    public function openRouteScannerModal(): void
+    {
+        $this->authorizePermission('admin.menu.view');
+        $this->routeCandidates = $this->routeScannerService->candidates();
+        $this->selectedRouteCandidates = [];
+        $this->showRouteScannerModal = true;
+    }
+
+    public function closeRouteScannerModal(): void
+    {
+        $this->showRouteScannerModal = false;
+        $this->routeCandidates = [];
+        $this->selectedRouteCandidates = [];
+    }
+
+    public function selectAllRouteCandidates(): void
+    {
+        $this->selectedRouteCandidates = array_values(array_map(
+            fn (array $candidate): string => (string) $candidate['id'],
+            $this->routeCandidates,
+        ));
+    }
+
+    public function addSelectedRouteCandidates(): void
+    {
+        $this->authorizePermission('admin.menu.create');
+
+        if ($this->selectedRouteCandidates === []) {
+            $this->notify('Vui long chon it nhat mot route de them vao menu.', 'warning');
+            return;
+        }
+
+        $count = $this->routeScannerService->persistSelected($this->selectedRouteCandidates);
+        $this->closeRouteScannerModal();
+        $this->notify("Da them {$count} route GET vao menu.", 'success', 'reload');
+    }
+
     public function restoreDefaultMenu(): void
     {
         $this->authorizePermission('admin.menu.restore');
@@ -115,63 +161,52 @@ class MenuTable extends Component
             $this->importReport = $this->publicImportReport($report);
 
             if (($report['success'] ?? false) !== true) {
-                $this->notify('Khoi phuc menu mac dinh that bai. Vui long kiem tra report.', 'error');
-
+                $this->notify('Khoi phuc menu that bai. Vui long kiem tra report.', 'error');
                 return;
             }
 
-            $this->notify("Khoi phuc menu mac dinh hoan tat: {$report['success_rows']} dong, {$report['skipped_rows']} bo qua.", 'success', 'reload', 100);
+            $this->notify("Khoi phuc menu hoan tat: {$report['success_rows']} dong, {$report['skipped_rows']} bo qua.", 'success', 'reload', 100);
         } catch (\Throwable $exception) {
             report($exception);
-            $this->notify('Khoi phuc menu mac dinh that bai. Vui long kiem tra log.', 'error');
+            $this->notify($exception->getMessage(), 'error');
         }
     }
 
     public function delete($id): void
     {
         $this->authorizePermission('admin.menu.delete');
-
         if (! $this->menuService->delete($id)) {
             return;
         }
-
         $this->notify('Da xoa menu thanh cong.', 'success', 'reload');
     }
 
     public function toggleStatus($id): void
     {
         $this->authorizePermission('admin.menu.update');
-
         if (! $this->menuService->toggleStatus($id)) {
             return;
         }
-
         $this->notify('Da cap nhat trang thai menu.');
     }
 
     public function duplicate($id): void
     {
         $this->authorizePermission('admin.menu.create');
-
         if (! $this->menuService->duplicate($id)) {
             $this->notify('Menu khong ton tai.', 'warning');
-
             return;
         }
-
         $this->notify('Da nhan ban menu thanh cong.', 'success', 'reload');
     }
 
     public function requestBulkDelete(): void
     {
         $this->authorizePermission('admin.menu.delete');
-
         if ($this->selectedMenus === []) {
             $this->notify('Vui long chon menu can xoa.', 'warning');
-
             return;
         }
-
         $this->showBulkDeleteModal = true;
     }
 
@@ -183,11 +218,9 @@ class MenuTable extends Component
     public function bulkDelete(): void
     {
         $this->authorizePermission('admin.menu.delete');
-
         if ($this->selectedMenus === []) {
             $this->showBulkDeleteModal = false;
             $this->notify('Vui long chon menu can xoa.', 'warning');
-
             return;
         }
 
@@ -200,10 +233,8 @@ class MenuTable extends Component
     public function bulkToggleStatus($status): void
     {
         $this->authorizePermission('admin.menu.update');
-
         if ($this->selectedMenus === []) {
             $this->notify('Vui long chon menu.', 'warning');
-
             return;
         }
 
@@ -215,13 +246,10 @@ class MenuTable extends Component
     public function openBulkPermissionsModal(): void
     {
         $this->authorizePermission('admin.menu.update');
-
         if ($this->selectedMenus === []) {
             $this->notify('Vui long chon menu.', 'warning');
-
             return;
         }
-
         $this->showBulkPermissionsModal = true;
     }
 
@@ -235,10 +263,8 @@ class MenuTable extends Component
     public function bulkAssignPermissions(): void
     {
         $this->authorizePermission('admin.menu.update');
-
         if ($this->selectedMenus === []) {
             $this->notify('Vui long chon menu can cap nhat.', 'warning');
-
             return;
         }
 
@@ -258,7 +284,6 @@ class MenuTable extends Component
             $this->menuService->updateOrder((array) $list);
         } catch (\InvalidArgumentException $exception) {
             $this->notify($exception->getMessage(), 'error');
-
             return;
         }
 
@@ -311,7 +336,6 @@ class MenuTable extends Component
 
             if (($report['success'] ?? false) !== true) {
                 $this->addError('importFile', 'Import menu co loi. Vui long kiem tra report ben duoi.');
-
                 return;
             }
 
