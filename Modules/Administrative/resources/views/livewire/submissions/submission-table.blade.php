@@ -3,6 +3,24 @@
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">@foreach([''=>'Tổng hồ sơ','pending'=>'Chờ duyệt','need_supplement'=>'Chờ bổ sung','approved'=>'Đã duyệt','rejected'=>'Bị từ chối'] as $key=>$label)<button wire:click="setStatus('{{ $key }}')" class="rounded-2xl border bg-white p-5 text-left shadow-sm {{ $status === $key ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-gray-200' }}"><div class="text-sm text-gray-500">{{ $label }}</div><div class="mt-2 text-2xl font-bold text-gray-900">{{ $key === '' ? $stats['total'] : $stats[$key] }}</div></button>@endforeach</div>
 
+    @if(auth('admin')->user()?->can('administrative.submission.import_export'))
+        <div class="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
+            @livewire('shared.import-export.panel', [
+                'serviceClass' => \Modules\Administrative\Services\ImportExport::class,
+                'title' => 'Import / Export hồ sơ hành chính',
+                'description' => 'Tải file mẫu, dry-run, import Excel/CSV hoặc export hồ sơ theo bộ lọc hiện tại.',
+                'filters' => [
+                    'search' => $search,
+                    'status' => $status,
+                    'procedure_id' => $procedure_id,
+                    'date_from' => $date_from,
+                    'date_to' => $date_to,
+                ],
+                'permission' => 'administrative.submission.import_export',
+            ], key('administrative-submission-import-export'))
+        </div>
+    @endif
+
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="grid gap-4 border-b border-gray-200 p-4 md:grid-cols-2 lg:grid-cols-7">
             <input wire:model.live.debounce.300ms="search" type="search" placeholder="Mã, người nộp, học sinh..." class="rounded-xl border border-gray-300 px-4 py-3 text-sm lg:col-span-2">
