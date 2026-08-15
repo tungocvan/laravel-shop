@@ -1,4 +1,55 @@
 <div class="space-y-6">
+    <div wire:loading.flex wire:target="reconcilePdfMetadata" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                <svg class="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+            </div>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">Đang quét metadata PDF</h3>
+            <p class="mt-2 text-sm text-slate-500">Hệ thống đang kiểm tra file PDF trong kỳ hiện tại. Vui lòng không tải lại trang cho đến khi hoàn tất.</p>
+        </div>
+    </div>
+
+    <div wire:loading.flex wire:target="downloadMissingPdfs" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <svg class="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+            </div>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">Đang tải tối đa 25 PDF</h3>
+            <p class="mt-2 text-sm text-slate-500">Đang lấy dữ liệu hóa đơn từ GDT và tạo file PDF. Thời gian xử lý phụ thuộc tốc độ phản hồi của GDT.</p>
+            <div class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">Không đóng tab hoặc refresh trang trong lúc batch đang chạy.</div>
+        </div>
+    </div>
+
+    <div wire:loading.flex wire:target="retryPdfErrors" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                <svg class="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+            </div>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">Đang thử lại PDF lỗi</h3>
+            <p class="mt-2 text-sm text-slate-500">Hệ thống đang retry tối đa 25 hóa đơn lỗi trong bộ lọc hiện tại.</p>
+        </div>
+    </div>
+
+    <div wire:loading.flex wire:target="downloadPdfZip" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                <svg class="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+            </div>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">Đang đóng gói ZIP</h3>
+            <p class="mt-2 text-sm text-slate-500">Đang gom các PDF đã có trong bộ lọc hiện tại thành file ZIP.</p>
+        </div>
+    </div>
+
+    <div wire:loading.flex wire:target="deleteSelectedPdfs" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <svg class="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+            </div>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">Đang xóa PDF đã chọn</h3>
+            <p class="mt-2 text-sm text-slate-500">Chỉ file PDF của các hóa đơn đã checkbox được xử lý. Dữ liệu hóa đơn trong database không bị xóa.</p>
+        </div>
+    </div>
+
     @if ($pdfNotice)<div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">{{ $pdfNotice }}</div>@endif
     @if ($pdfError)<div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-800">{{ $pdfError }}</div>@endif
 
@@ -24,22 +75,23 @@
             <label class="space-y-1.5"><span class="text-xs font-semibold uppercase text-gray-500">Đến ngày</span><input type="date" wire:model.live="to_date" class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
             <label class="space-y-1.5 md:col-span-2"><span class="text-xs font-semibold uppercase text-gray-500">Sắp xếp</span><select wire:model.live="sort" class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="date_desc">Ngày mới nhất</option><option value="date_asc">Ngày cũ nhất</option><option value="amount_desc">Số tiền: cao → thấp</option><option value="amount_asc">Số tiền: thấp → cao</option><option value="invoice_desc">Số hóa đơn: giảm dần</option><option value="invoice_asc">Số hóa đơn: tăng dần</option><option value="partner_asc">Đối tác: A → Z</option><option value="partner_desc">Đối tác: Z → A</option></select></label>
         </div>
-        <div class="mt-5 grid gap-3 sm:grid-cols-3">@foreach([['Trong bộ lọc',number_format($filterStats['count']).' hóa đơn'],['Tiền VAT',number_format((float)$filterStats['vat_amount']).' ₫'],['Tổng thanh toán',number_format((float)$filterStats['total_amount']).' ₫']] as [$l,$v])<div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"><p class="text-xs font-medium uppercase text-gray-500">{{ $l }}</p><p class="mt-1 text-lg font-bold text-gray-900">{{ $v }}</p></div>@endforeach</div>
+        <div class="mt-5 grid gap-3 sm:grid-cols-3">@foreach([['Trong bộ lọc',number_format($filterStats['count']).' hóa đơn'],['Tiền VAT',number_format((float)$filterStats['vat_amount']).' ₫'],['Tổng thanh toán',number_format((float)$filterStats['total_amount']).' ₫']] as [$label,$value])<div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"><p class="text-xs font-medium uppercase text-gray-500">{{ $label }}</p><p class="mt-1 text-lg font-bold text-gray-900">{{ $value }}</p></div>@endforeach</div>
 
         @php $pdfSize=(int)($fileSummary['size']??0);$pdfSizeLabel=$pdfSize>=1048576?number_format($pdfSize/1048576,2).' MB':number_format($pdfSize/1024,1).' KB'; @endphp
         <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-            <div class="flex flex-wrap items-start justify-between gap-4"><div><h3 class="text-sm font-bold text-slate-900">Kho PDF theo bộ lọc</h3><p class="mt-1 text-xs text-slate-500">Quản lý file theo kỳ, retry lỗi, ZIP và dung lượng lưu trữ.</p></div><span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">{{ $pdfSizeLabel }}</span></div>
-            <div class="mt-4 grid gap-3 sm:grid-cols-4">@foreach([['Tổng hóa đơn',$fileSummary['total'],'text-slate-900'],['Đã có PDF',$fileSummary['available'],'text-emerald-700'],['Chưa có',$fileSummary['missing'],'text-amber-700'],['Lỗi tải',$fileSummary['error'],'text-red-700']] as [$l,$v,$c])<div class="rounded-xl bg-white px-4 py-3 shadow-sm"><p class="text-xs text-slate-500">{{ $l }}</p><p class="mt-1 text-xl font-bold {{ $c }}">{{ number_format($v) }}</p></div>@endforeach</div>
+            <div class="flex flex-wrap items-start justify-between gap-4"><div><h3 class="text-sm font-bold text-slate-900">Kho PDF theo bộ lọc</h3><p class="mt-1 text-xs text-slate-500">Bộ lọc chỉ thu hẹp danh sách; xóa PDF chỉ áp dụng cho hóa đơn được checkbox chọn.</p></div><span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">{{ $pdfSizeLabel }}</span></div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-4">@foreach([['Tổng hóa đơn',$fileSummary['total'],'text-slate-900'],['Đã có PDF',$fileSummary['available'],'text-emerald-700'],['Chưa có',$fileSummary['missing'],'text-amber-700'],['Lỗi tải',$fileSummary['error'],'text-red-700']] as [$label,$value,$class])<div class="rounded-xl bg-white px-4 py-3 shadow-sm"><p class="text-xs text-slate-500">{{ $label }}</p><p class="mt-1 text-xl font-bold {{ $class }}">{{ number_format($value) }}</p></div>@endforeach</div>
             @if(auth('admin')->user()?->can('invoices-download'))
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <button type="button" wire:click="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Quét metadata</button>
-                    <button type="button" wire:click="downloadMissingPdfs" @disabled(($fileSummary['missing']+$fileSummary['error'])===0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200">Tải 25 PDF còn thiếu</button>
-                    @if($fileSummary['error'] > 0)
-                        <button type="button" wire:click="retryPdfErrors" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">Thử lại {{ min(25, $fileSummary['error']) }} lỗi</button>
+                    <button type="button" wire:click="reconcilePdfMetadata" wire:loading.attr="disabled" wire:target="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">Quét metadata</button>
+                    <button type="button" wire:click="downloadMissingPdfs" wire:loading.attr="disabled" wire:target="downloadMissingPdfs" @disabled(($fileSummary['missing']+$fileSummary['error'])===0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200">Tải 25 PDF còn thiếu</button>
+                    @if($fileSummary['error'] > 0)<button type="button" wire:click="retryPdfErrors" wire:loading.attr="disabled" wire:target="retryPdfErrors" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-50">Thử lại {{ min(25, $fileSummary['error']) }} lỗi</button>@endif
+                    <button type="button" wire:click="downloadPdfZip" wire:loading.attr="disabled" wire:target="downloadPdfZip" @disabled($fileSummary['available']===0) class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-200">Tải ZIP PDF</button>
+                    @if(count($selected) > 0)
+                        <button type="button" wire:click="deleteSelectedPdfs" wire:loading.attr="disabled" wire:target="deleteSelectedPdfs" wire:confirm="Xóa PDF của {{ count($selected) }} hóa đơn đã chọn? Dữ liệu hóa đơn trong database không bị xóa." class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50">Xóa PDF đã chọn ({{ count($selected) }})</button>
                     @endif
-                    <button type="button" wire:click="downloadPdfZip" @disabled($fileSummary['available']===0) class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-200">Tải ZIP PDF</button>
-                    <button type="button" wire:click="deleteFilteredPdfs" wire:confirm="Xóa toàn bộ PDF trong bộ lọc hiện tại? Dữ liệu hóa đơn trong database không bị xóa." @disabled($fileSummary['available']===0) class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300">Xóa PDF theo bộ lọc</button>
                 </div>
+                @if(count($selected)===0)<p class="mt-3 text-xs text-slate-500">Muốn xóa PDF: lọc danh sách → checkbox các hóa đơn cần xóa → nút <span class="font-semibold text-red-700">Xóa PDF đã chọn</span> sẽ xuất hiện.</p>@endif
             @endif
             @if(count($pdfErrors)>0)<div class="mt-5 rounded-xl border border-red-100 bg-white p-4"><div class="mb-3 flex items-center justify-between"><h4 class="text-sm font-bold text-red-800">Lỗi PDF gần nhất</h4><span class="text-xs text-gray-500">Hiển thị tối đa 10 lỗi</span></div><div class="space-y-2">@foreach($pdfErrors as $error)<div class="rounded-lg bg-red-50 px-3 py-2 text-xs"><div class="font-semibold text-red-800">HĐ {{ $error['invoice_number'] ?: $error['invoice_id'] }} · {{ $error['partner'] ?: 'Không rõ đối tác' }}</div><div class="mt-1 text-red-700">{{ $error['error'] }}</div><div class="mt-1 text-gray-500">{{ strtoupper($error['provider'] ?: '-') }} · {{ $error['updated_at'] }}</div></div>@endforeach</div></div>@endif
             @if(count($storageBreakdown)>0)<div class="mt-5 overflow-x-auto rounded-xl border border-slate-200 bg-white"><table class="min-w-full text-xs"><thead class="bg-slate-50 text-left text-slate-500"><tr><th class="px-3 py-2">Kỳ</th><th class="px-3 py-2">Loại</th><th class="px-3 py-2 text-right">File</th><th class="px-3 py-2 text-right">Dung lượng</th></tr></thead><tbody>@foreach($storageBreakdown as $row)<tr class="border-t"><td class="px-3 py-2">{{ str_pad((string)$row['month'],2,'0',STR_PAD_LEFT) }}/{{ $row['year'] }}</td><td class="px-3 py-2">{{ $row['invoice_type']==='sold'?'Bán ra':'Mua vào' }}</td><td class="px-3 py-2 text-right">{{ number_format($row['files']) }}</td><td class="px-3 py-2 text-right">{{ number_format($row['bytes']/1048576,2) }} MB</td></tr>@endforeach</tbody></table></div>@endif

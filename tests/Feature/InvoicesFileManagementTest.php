@@ -2,9 +2,7 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Modules\Invoices\Models\InvoiceFile;
 use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Services\InvoiceFileManagerService;
 use Modules\Invoices\Services\InvoiceFileService;
@@ -43,10 +41,7 @@ class InvoicesFileManagementTest extends TestCase
                 $this->assertSame(1, $summary['available']);
                 $this->assertSame(1, $summary['missing']);
                 $this->assertSame(0, $summary['error']);
-                $this->assertDatabaseHas('invoice_files', [
-                    'invoice_id' => $available->id,
-                    'status' => 'available',
-                ]);
+                $this->assertDatabaseHas('invoice_files', ['invoice_id' => $available->id, 'status' => 'available']);
             } finally {
                 @unlink($path);
                 $this->removeEmptyParents(dirname($path), storage_path('app/invoices/pdf'));
@@ -71,6 +66,40 @@ class InvoicesFileManagementTest extends TestCase
             $this->assertSame(0, $summary['available']);
             $this->assertSame(0, $summary['missing']);
             $this->assertSame(1, $summary['error']);
+        });
+    }
+
+    public function test_delete_files_by_ids_only_removes_selected_pdf(): void
+    {
+        $this->withInvoiceFileTables(function () {
+            $selected = Invoices::query()->create($this->invoiceData('FM-DEL-1', 'purchase', '2026-08-13'));
+            $untouched = Invoices::query()->create($this->invoiceData('FM-DEL-2', 'purchase', '2026-08-13'));
+            $fileService = app(InvoiceFileService::class);
+
+            $selectedPath = $fileService->targetPdfPathForInvoice($selected);
+            $untouchedPath = $fileService->targetPdfPathForInvoice($untouched);
+            @mkdir(dirname($selectedPath), 0775, true);
+            file_put_contents($selectedPath, '%PDF-selected');
+            file_put_contents($untouchedPath, '%PDF-untouched');
+
+            try {
+                $manager = app(InvoiceFileManagerService::class);
+                $manager->reconcile(['invoice_type' => 'purchase']);
+                $result = $manager->deleteFilesByIds([$selected->id]);
+
+                $this->assertSame(1, $result['deleted']);
+                $this->assertSame(0, $result['failed']);
+                $this->assertFileDoesNotExist($selectedPath);
+                $this->assertFileExists($untouchedPath);
+                $this->assertDatabaseHas('invoice_files', ['invoice_id' => $selected->id, 'status' => 'missing']);
+                $this->assertDatabaseHas('invoice_files', ['invoice_id' => $untouched->id, 'status' => 'available']);
+                $this->assertDatabaseHas('invoices', ['id' => $selected->id]);
+                $this->assertDatabaseHas('invoices', ['id' => $untouched->id]);
+            } finally {
+                @unlink($selectedPath);
+                @unlink($untouchedPath);
+                $this->removeEmptyParents(dirname($selectedPath), storage_path('app/invoices/pdf'));
+            }
         });
     }
 
@@ -105,7 +134,6 @@ class InvoicesFileManagementTest extends TestCase
             try {
                 $this->assertSame(1, $archive['count']);
                 $this->assertFileExists($archive['path']);
-
                 $zip = new \ZipArchive();
                 $this->assertTrue($zip->open($archive['path']) === true);
                 $this->assertSame(1, $zip->numFiles);
