@@ -37,7 +37,10 @@ class InvoiceFileManagerService
             [
                 'provider' => $provider,
                 'status' => 'error',
+                'path' => null,
+                'size' => null,
                 'last_error' => Str::limit($error, 2000, ''),
+                'downloaded_at' => null,
             ]
         );
     }
@@ -82,20 +85,23 @@ class InvoiceFileManagerService
         $missing = 0;
 
         foreach ($invoices as $invoice) {
+            $file = InvoiceFile::query()->where('invoice_id', $invoice->getKey())->first();
+
             if ($this->fileService->existsForInvoice($invoice)) {
                 $path = $this->fileService->pdfPathForInvoice($invoice);
-                $provider = str_contains(str_replace('\\', '/', $path), '/hoadon_temp/') ? 'legacy' : 'local';
+                $detectedProvider = str_contains(str_replace('\\', '/', $path), '/hoadon_temp/') ? 'legacy' : 'local';
+                $provider = $file?->provider ?: $detectedProvider;
                 $this->recordAvailable($invoice, $path, $provider);
                 $available++;
                 continue;
             }
 
-            $file = InvoiceFile::query()->where('invoice_id', $invoice->getKey())->first();
             if ($file?->status === 'available') {
                 $file->update([
                     'status' => 'missing',
                     'path' => null,
                     'size' => null,
+                    'downloaded_at' => null,
                 ]);
             }
             $missing++;
