@@ -17,15 +17,27 @@ class MenuRouteScannerService
 
     public function candidates(): array
     {
-        $existingUrls = AdminMenu::menu()
-            ->whereNotNull('url')
+        $visibleMenus = AdminMenu::menu()
+            ->with('parent')
+            ->where(function ($query): void {
+                $query->whereNull('parent_id')->orWhereHas('parent');
+            })
+            ->get();
+
+        $existingUrls = $visibleMenus
             ->pluck('url')
-            ->map(fn ($url): string => $this->normalizeUrl((string) $url))
             ->filter()
+            ->map(fn ($url): string => $this->normalizeUrl((string) $url))
             ->values()
             ->all();
 
-        $existingSlugs = AdminMenu::menu()->whereNotNull('slug')->pluck('slug')->map(fn ($slug): string => (string) $slug)->all();
+        $existingSlugs = $visibleMenus
+            ->pluck('slug')
+            ->filter()
+            ->map(fn ($slug): string => (string) $slug)
+            ->values()
+            ->all();
+
         $candidates = [];
 
         foreach ($this->router->getRoutes() as $route) {
