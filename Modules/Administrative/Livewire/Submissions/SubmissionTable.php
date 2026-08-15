@@ -64,7 +64,10 @@ class SubmissionTable extends Component
 
     public function toggleSelectPage(array $ids): void
     {
-        $this->authorizePermission('administrative.submission.delete');
+        $this->authorizeAnyPermission([
+            'administrative.submission.delete',
+            'administrative.submission.import_export',
+        ]);
         $ids = array_values(array_unique(array_map('intval', $ids)));
         $this->selectAll = ! $this->selectAll;
         $this->selectedIds = $this->selectAll
@@ -130,5 +133,12 @@ class SubmissionTable extends Component
         $user = Auth::guard('admin')->user();
         abort_unless($user, 403);
         Gate::forUser($user)->authorize($permission);
+    }
+
+    private function authorizeAnyPermission(array $permissions): void
+    {
+        $user = Auth::guard('admin')->user();
+        abort_unless($user, 403);
+        abort_unless(Gate::forUser($user)->any($permissions), 403);
     }
 }
