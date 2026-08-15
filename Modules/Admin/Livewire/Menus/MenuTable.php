@@ -30,6 +30,7 @@ class MenuTable extends Component
     public bool $showRouteScannerModal = false;
     public array $routeCandidates = [];
     public array $selectedRouteCandidates = [];
+    public array $routeCandidateNames = [];
     public ?string $bulkPermission = null;
 
     protected $queryString = ['search', 'filterStatus'];
@@ -50,6 +51,7 @@ class MenuTable extends Component
             'importFile' => 'nullable|file|mimes:xlsx,csv|max:'.config('menu.import.max_file_size', 10240),
             'importMode' => 'required|in:skip_duplicate,update_or_create',
             'bulkPermission' => 'nullable|exists:permissions,name',
+            'routeCandidateNames.*' => 'nullable|string|max:255',
         ];
     }
 
@@ -120,6 +122,9 @@ class MenuTable extends Component
         $this->authorizePermission('admin.menu.view');
         $this->routeCandidates = $this->routeScannerService->candidates();
         $this->selectedRouteCandidates = [];
+        $this->routeCandidateNames = collect($this->routeCandidates)
+            ->mapWithKeys(fn (array $candidate): array => [(string) $candidate['id'] => (string) $candidate['name']])
+            ->all();
         $this->showRouteScannerModal = true;
     }
 
@@ -128,6 +133,7 @@ class MenuTable extends Component
         $this->showRouteScannerModal = false;
         $this->routeCandidates = [];
         $this->selectedRouteCandidates = [];
+        $this->routeCandidateNames = [];
     }
 
     public function selectAllRouteCandidates(): void
@@ -147,7 +153,8 @@ class MenuTable extends Component
             return;
         }
 
-        $count = $this->routeScannerService->persistSelected($this->selectedRouteCandidates);
+        $this->validate(['routeCandidateNames.*' => 'nullable|string|max:255']);
+        $count = $this->routeScannerService->persistSelected($this->selectedRouteCandidates, $this->routeCandidateNames);
         $this->closeRouteScannerModal();
         $this->notify("Da them {$count} route GET vao menu.", 'success', 'reload');
     }
