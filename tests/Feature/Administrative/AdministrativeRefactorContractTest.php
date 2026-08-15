@@ -91,4 +91,19 @@ class AdministrativeRefactorContractTest extends TestCase
         $this->assertStringContainsString('bg-indigo-600', $paginationView);
         $this->assertStringNotContainsString('bg-gray-800', $paginationView);
     }
+
+    public function test_administrative_import_export_uses_shared_foundation_and_permission(): void
+    {
+        $service = file_get_contents(base_path('Modules/Administrative/Services/ImportExport.php'));
+        $view = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/submissions/submission-table.blade.php'));
+        $module = require base_path('Modules/Administrative/config/module.php');
+
+        $this->assertStringContainsString('extends BaseImportExportService', $service);
+        $this->assertStringContainsString("'procedure_code'", $service);
+        $this->assertStringContainsString('Hash::make(Str::random(40))', $service);
+        $this->assertStringNotContainsString('lookup_token_hash\' => $model', $service);
+        $this->assertStringContainsString("@livewire('shared.import-export.panel'", $view);
+        $this->assertStringContainsString("'permission' => 'administrative.submission.import_export'", $view);
+        $this->assertContains('administrative.submission.import_export', $module['permissions']);
+    }
 }
