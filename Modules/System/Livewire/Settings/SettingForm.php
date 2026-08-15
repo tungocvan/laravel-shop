@@ -9,6 +9,7 @@ class SettingForm extends Component
     private const TAB_COMPONENTS = [
         'theme' => 'admin.theme-switcher',
         'general' => 'system.settings.partials.general',
+        'login_redirect' => 'system.settings.partials.login-redirect',
         'menu' => 'admin.header.menu-manager',
         'images' => 'system.settings.partials.images',
         'seo' => 'system.settings.partials.seo',
@@ -18,6 +19,7 @@ class SettingForm extends Component
     public array $tabs = [
         'theme' => 'Quản lý Themes',
         'general' => 'Cấu hình chung',
+        'login_redirect' => 'Đăng nhập & Điều hướng',
         'menu' => 'Quản lý Menu',
         'images' => 'Hình ảnh',
         'seo' => 'SEO/Mạng xã hội',
