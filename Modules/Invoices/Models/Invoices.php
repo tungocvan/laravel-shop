@@ -3,6 +3,7 @@
 namespace Modules\Invoices\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Invoices extends Model
 {
@@ -33,6 +34,11 @@ class Invoices extends Model
         'amount_before_vat' => 'decimal:2',
         'total_amount' => 'decimal:2',
     ];
+
+    public function file(): HasOne
+    {
+        return $this->hasOne(InvoiceFile::class, 'invoice_id');
+    }
 
     public static function headers()
     {
