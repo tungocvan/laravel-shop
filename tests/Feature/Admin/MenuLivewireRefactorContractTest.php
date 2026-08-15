@@ -47,4 +47,43 @@ class MenuLivewireRefactorContractTest extends TestCase
         $this->assertStringContainsString('<x-admin::form.select', $view);
         $this->assertStringNotContainsString('border-0', $view);
     }
+
+    public function test_parent_selection_cascades_and_route_scanner_is_service_backed(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Menus/MenuTable.php'));
+        $service = file_get_contents(base_path('Modules/Admin/Services/MenuService.php'));
+        $item = file_get_contents(base_path('Modules/Admin/resources/views/components/menu-item.blade.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/menus/menu-table.blade.php'));
+
+        $this->assertStringContainsString('public function toggleMenuSelection(', $component);
+        $this->assertStringContainsString('idsForBranch($menuId)', $component);
+        $this->assertStringContainsString('public function idsForBranch(', $service);
+        $this->assertStringContainsString('wire:click="toggleMenuSelection(', $item);
+        $this->assertStringContainsString('openRouteScannerModal', $component);
+        $this->assertStringContainsString('MenuRouteScannerService', $component);
+        $this->assertStringContainsString('Quét Module chưa có trong Menu', $view);
+        $this->assertStringContainsString('@if ($showRouteScannerModal)', $view);
+    }
+
+    public function test_full_export_uses_private_storage_snapshot_and_selected_export_does_not_refresh_it(): void
+    {
+        $service = file_get_contents(base_path('Modules/Admin/Services/MenuImportExportService.php'));
+
+        $this->assertStringContainsString("storage_path('app/menu/menus.json')", $service);
+        $this->assertStringContainsString('$this->refreshRestoreSnapshot();', $service);
+        $this->assertStringContainsString('public function exportSelected(array $menuIds): string', $service);
+        $this->assertSame(1, substr_count($service, '$this->refreshRestoreSnapshot();'));
+        $this->assertStringNotContainsString("base_path('Modules/Admin/data/menus.json')", $service);
+    }
+
+    public function test_route_scanner_only_targets_named_get_admin_routes_without_required_parameters(): void
+    {
+        $scanner = file_get_contents(base_path('Modules/Admin/Services/MenuRouteScannerService.php'));
+
+        $this->assertStringContainsString("in_array('GET', $methods, true)", $scanner);
+        $this->assertStringContainsString("str_starts_with($name, 'admin.')", $scanner);
+        $this->assertStringContainsString("str_starts_with($uri, 'admin/')", $scanner);
+        $this->assertStringContainsString("str_contains($uri, '{')", $scanner);
+        $this->assertStringContainsString("str_starts_with($middleware, 'permission:')", $scanner);
+    }
 }
