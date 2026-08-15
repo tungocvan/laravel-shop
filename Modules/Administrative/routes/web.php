@@ -37,7 +37,7 @@ Route::middleware(['web', 'auth:admin'])
     ->name('admin.administrative.')
     ->group(function (): void {
         Route::get('/', [SubmissionController::class, 'index'])
-            ->middleware('permission:administrative.dashboard.view,admin')
+            ->middleware('permission:administrative.dashboard.view|administrative.submission.view,admin')
             ->name('dashboard');
         Route::get('/submissions', [SubmissionController::class, 'index'])
             ->middleware('permission:administrative.submission.view,admin')
