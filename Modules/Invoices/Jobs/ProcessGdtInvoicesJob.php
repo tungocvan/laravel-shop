@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\Invoices\Services\GdtInvoiceService;
+use RuntimeException;
 use Throwable;
 
 class ProcessGdtInvoicesJob implements ShouldQueue
@@ -45,12 +46,20 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             $this->vatIn
         );
 
-        $this->updateStatus('completed', 'Đồng bộ hoàn tất.', [
-            'file' => is_string($file) ? $file : null,
+        if (! is_string($file) || ! is_file($file) || ! is_readable($file)) {
+            throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
+        }
+
+        $this->updateStatus('completed', 'Đồng bộ hoàn tất và file Excel đã được tạo.', [
+            'file' => basename($file),
+            'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
             'finished_at' => now()->toIso8601String(),
         ]);
 
-        Log::info('[GDT JOB] Hoàn tất xử lý hóa đơn.', ['sync_id' => $this->syncId]);
+        Log::info('[GDT JOB] Hoàn tất xử lý hóa đơn.', [
+            'sync_id' => $this->syncId,
+            'file' => $file,
+        ]);
     }
 
     public function failed(Throwable $exception): void

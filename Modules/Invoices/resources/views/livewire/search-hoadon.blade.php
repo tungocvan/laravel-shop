@@ -65,7 +65,7 @@
             <p class="mt-3 text-sm text-gray-700">{{ $syncMessage }}</p>
         @endif
         @if ($syncFile)
-            <p class="mt-2 break-all text-xs text-gray-500">File: {{ basename($syncFile) }}</p>
+            <p class="mt-2 text-xs font-medium text-emerald-700">File đã tạo: {{ $syncFile }}</p>
         @endif
     </div>
 
@@ -74,7 +74,7 @@
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h3 class="text-base font-semibold text-gray-900">Import vào Database</h3>
-                    <p class="mt-1 text-sm text-gray-500">Chọn file Excel đã đồng bộ từ GDT hoặc upload file XLSX/CSV từ máy tính.</p>
+                    <p class="mt-1 text-sm text-gray-500">Hiển thị chung các file đã đồng bộ của cả Bán ra và Mua vào, hoặc upload XLSX/CSV từ máy tính.</p>
                 </div>
                 <button wire:click="refreshAvailableFiles" class="h-10 rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-700">Làm mới danh sách</button>
             </div>
@@ -86,14 +86,17 @@
                 <div class="max-h-80 space-y-2 overflow-y-auto pr-1">
                     @forelse ($availableFiles as $file)
                         <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3 hover:bg-gray-50">
-                            <input type="radio" wire:model.live="selectedFile" value="{{ $file['name'] }}" class="mt-1 border-gray-300 text-indigo-600">
+                            <input type="radio" wire:model.live="selectedFile" value="{{ $file['token'] }}" class="mt-1 border-gray-300 text-indigo-600">
                             <span class="min-w-0 flex-1">
-                                <span class="block truncate text-sm font-medium text-gray-800">{{ $file['name'] }}</span>
+                                <span class="flex flex-wrap items-center gap-2">
+                                    <span class="block truncate text-sm font-medium text-gray-800">{{ $file['name'] }}</span>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $file['direction'] === 'vat_in' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700' }}">{{ $file['type_label'] }}</span>
+                                </span>
                                 <span class="mt-1 block text-xs text-gray-500">{{ number_format($file['size'] / 1024, 1) }} KB · {{ $file['modified_at'] }}</span>
                             </span>
                         </label>
                     @empty
-                        <div class="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">Chưa có file {{ $vatIn ? 'mua vào' : 'bán ra' }} đã đồng bộ.</div>
+                        <div class="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">Chưa tìm thấy file XLSX/CSV trong thư mục đồng bộ GDT.</div>
                     @endforelse
                 </div>
                 <button wire:click="importSelectedFile" wire:loading.attr="disabled" @disabled(!$selectedFile)
@@ -106,7 +109,7 @@
 
             <div class="rounded-xl border border-gray-200 bg-gray-50 p-5">
                 <p class="text-sm font-semibold text-gray-900">Upload file để import</p>
-                <p class="mt-1 text-xs text-gray-500">Hỗ trợ XLSX/CSV, tối đa 20 MB. File upload tạm sẽ bị xóa sau khi import.</p>
+                <p class="mt-1 text-xs text-gray-500">Hỗ trợ XLSX/CSV, tối đa 20 MB. Loại import lấy theo lựa chọn Bán ra/Mua vào phía trên.</p>
                 <input type="file" wire:model="uploadFile" accept=".xlsx,.csv"
                     class="mt-4 block w-full rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-700">
                 @error('uploadFile') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
