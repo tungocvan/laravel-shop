@@ -9,5 +9,6 @@ enum SubmissionAction: string
     case Rejected = 'rejected';
     case SupplementRequested = 'supplement_requested';
     case Resubmitted = 'resubmitted';
+    case Archived = 'archived';
     case EmailSent = 'email_sent';
 }
