@@ -5,7 +5,7 @@ namespace Modules\Invoices\Livewire;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Livewire\Component;
-use Livewire\Features\SupportFileUploads\WithFileUploads;
+use Livewire\WithFileUploads;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\GdtInvoiceService;
@@ -73,14 +73,13 @@ class SearchHoadon extends Component
         if ($this->useQueue) {
             $this->syncId = (string) Str::uuid();
             $this->syncState = 'queued';
-            $status = [
+            Cache::put($this->statusKey(), [
                 'state' => 'queued',
                 'message' => 'Đã đưa tác vụ vào hàng đợi.',
                 'logs' => ['['.now()->format('H:i:s').'] Đã đưa tác vụ vào hàng đợi.'],
                 'started_at' => now()->toIso8601String(),
                 'file' => null,
-            ];
-            Cache::put($this->statusKey(), $status, now()->addHours(24));
+            ], now()->addHours(24));
 
             ProcessGdtInvoicesJob::dispatch(
                 $this->start_date,
@@ -141,11 +140,9 @@ class SearchHoadon extends Component
 
     public function refreshAvailableFiles(): void
     {
-        $base = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
-        $direction = (bool) $this->vatIn ? 'vat_in' : 'vat_out';
-        $folder = storage_path("app/{$base}/{$direction}");
-
+        $folder = $this->syncFolder();
         $this->availableFiles = [];
+
         if (! is_dir($folder)) {
             return;
         }
@@ -155,12 +152,11 @@ class SearchHoadon extends Component
 
         $this->availableFiles = array_map(static fn (string $path): array => [
             'name' => basename($path),
-            'path' => $path,
             'size' => filesize($path) ?: 0,
             'modified_at' => date('Y-m-d H:i:s', filemtime($path) ?: time()),
         ], array_slice($files, 0, 50));
 
-        if ($this->selectedFile && ! collect($this->availableFiles)->contains('path', $this->selectedFile)) {
+        if ($this->selectedFile && ! collect($this->availableFiles)->contains('name', $this->selectedFile)) {
             $this->selectedFile = null;
         }
     }
@@ -174,12 +170,16 @@ class SearchHoadon extends Component
     public function importSelectedFile(): void
     {
         $this->authorizePermission('invoices-create');
-        $this->validate(['selectedFile' => ['required', 'string']]);
+        $this->validate(['selectedFile' => ['required', 'string', 'max:255']]);
 
-        $allowed = collect($this->availableFiles)->pluck('path')->all();
-        abort_unless(in_array($this->selectedFile, $allowed, true), 422);
+        $filename = basename($this->selectedFile);
+        abort_unless($filename === $this->selectedFile, 422);
+        abort_unless(in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), ['xlsx', 'csv'], true), 422);
 
-        $this->runImport($this->selectedFile);
+        $path = $this->syncFolder().DIRECTORY_SEPARATOR.$filename;
+        abort_unless(is_file($path) && is_readable($path), 404);
+
+        $this->runImport($path);
     }
 
     public function importUploadedFile(): void
@@ -215,6 +215,14 @@ class SearchHoadon extends Component
         } catch (\Throwable $exception) {
             $this->log('❌ '.$exception->getMessage());
         }
+    }
+
+    private function syncFolder(): string
+    {
+        $base = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
+        $direction = (bool) $this->vatIn ? 'vat_in' : 'vat_out';
+
+        return storage_path("app/{$base}/{$direction}");
     }
 
     private function statusKey(): string
