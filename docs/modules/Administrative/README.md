@@ -17,7 +17,7 @@ Người nộp không cần đăng nhập. Tra cứu dùng mã hồ sơ + mã b�
 
 ## Registration
 
-Module được auto-discover bởi `Modules\ModuleServiceProvider` từ `Modules/Administrative/config/module.php` với type `domain`. Không dùng `nwidart/laravel-modules` hay `module.json`.
+Module được auto-discover bởi `Modules\ModuleServiceProvider` từ `Modules/Administrative/config/module.php` với type `domain`.
 
 ## Main Routes
 
@@ -47,11 +47,10 @@ administrative.submission.view
 administrative.submission.process
 administrative.submission.edit
 administrative.submission.delete
+administrative.submission.import_export
 administrative.file.download
 administrative.history.view
 ```
-
-Sau refactor, `dashboard.view`, `submission.process` và `history.view` được dùng đúng nghĩa. Quyền cũ `submission.view`/`submission.edit` vẫn được giữ làm fallback ở các boundary liên quan để tránh breaking change cho role hiện hữu.
 
 ## Features
 
@@ -63,35 +62,63 @@ Sau refactor, `dashboard.view`, `submission.process` và `history.view` được
 - Admin search/filter/detail/download.
 - Approve/reject/request supplement.
 - Supplement resubmission.
-- Status history.
-- Optimistic version + row locking chống xử lý đồng thời.
+- Status history + optimistic version + row locking.
 - Soft-delete/archive hồ sơ có audit history.
-- Admin list dùng bounded pagination 10/25/50/100; không còn `All`.
+- Delete selected và Delete all dùng modal xác nhận.
+- Bounded pagination `10/25/50/100` với active state indigo.
+- Import/Export hồ sơ bằng shared framework.
+- Không chọn checkbox -> export toàn bộ approved scope.
+- Có chọn checkbox -> export đúng hồ sơ được chọn.
+- File export có thể import ngược cho update/upsert khi an toàn.
+- Import/Export success modal có nút refresh.
+- Deterministic demo seeders, không dùng Faker.
+- Public branding dùng `Modules\System\Models\Setting`.
 
-## Dependencies
+## Import / Export
 
-- Laravel 12 / PHP 8.3.
-- Livewire 3.
-- Spatie Permission.
-- Laravel private Storage / RateLimiter / session / mail/queue.
-- DOMPDF dependency for receipt generation.
-- `Modules\Account\Models\User` for `processed_by` relationship.
-
-## Configuration
-
-```dotenv
-ADMINISTRATIVE_STORAGE_DISK=local
-```
-
-Default upload policy:
+Service:
 
 ```text
-Extensions: pdf, doc, docx, jpg, jpeg, png
-Max size:   10 MB/file
-Max files:  5
+Modules\Administrative\Services\ImportExport
 ```
 
-Per-procedure settings may override file limits.
+Shared UI:
+
+```text
+shared.import-export.panel
+```
+
+Canonical selected export contract:
+
+```text
+selected_ids empty     -> export all approved-scope records
+selected_ids not empty -> export selected records only
+```
+
+Security rules:
+
+- không export `lookup_token` hoặc `lookup_token_hash`;
+- existing system-owned lookup/version fields không bị overwrite khi update;
+- unsafe raw `replace` bị chặn;
+- import errors redact lookup secret.
+
+## Demo Seeder
+
+```bash
+php artisan db:seed --class="Modules\\Administrative\\database\\seeders\\DatabaseSeeder" --force
+```
+
+Seeder dùng dữ liệu deterministic để test nhiều thủ tục/trạng thái, phù hợp demo/Docker/VPS.
+
+## UI Standard
+
+Administrative tuân thủ `.codex/standards/ADMIN_UI_STANDARD.md`:
+
+- bounded pagination;
+- filter/reset;
+- destructive modal;
+- visible bordered form controls;
+- ưu tiên shared form components `x-admin::form.input`, `textarea`, `select`, `error` khi phù hợp.
 
 ## Operational Notes
 
@@ -100,43 +127,31 @@ Per-procedure settings may override file limits.
 - Chỉ `pending` được approve/reject/request supplement.
 - `need_supplement` có thể resubmit về `pending`.
 - State transitions phải giữ transaction + locking/version semantics.
-- Production nên dùng HTTPS và shared session/cache/queue khi chạy nhiều instance.
+- Import/Export phải tiếp tục dùng shared infrastructure.
 - Backup cả database và private administrative storage.
 
-## Tests
+## Verification
 
-Dedicated feature tests nằm trong `tests/Feature/Administrative/`, bao gồm route/schema tests và `AdministrativeRefactorContractTest.php` khóa các contract vừa refactor.
-
-Local verification ngày 2026-08-15:
+Latest supplied full regression checkpoint:
 
 ```text
-vendor/bin/pint --test Modules/Administrative tests/Feature/Administrative
-PASS — 47 files
-
-php artisan test
-PASS — 353 tests / 12,815 assertions
+356 passed
+12,858 assertions
+0 failed
+Duration: 19.00s
 ```
+
+User manual UI verification đã PASS các luồng chính: delete all, selected/all export, import-back và Administrative list workflow.
+
+Round 2 cần một lượt Pint + targeted tests + frontend build/full regression cuối sau khi pull documentation/shared UI changes mới nhất.
 
 ## Refactor Status
 
-`/refactor-module Administrative`: **COMPLETED / VERIFIED**.
-
-Đã hoàn tất:
+`/refactor-module Administrative`:
 
 ```text
-1. Fix AdministrativeFileService model import.
-2. Reconcile permission matrix với backward-compatible fallback.
-3. Remove unbounded admin `All` queries.
-4. Add archive audit history + actor.
-5. Add regression contract tests.
-6. Polish permission-aware actions/loading/destructive UX.
-7. Full regression PASS.
+Round 1: COMPLETED / MERGED
+Round 2: IMPLEMENTED / FINAL VERIFICATION PENDING
 ```
 
-Chi tiết evidence và lịch sử quyết định nằm trong `ANALYSIS.md` và `REFACTOR_PLAN.md`; factual inventory nằm trong `INFORMATION.md`.
-
-## Future Improvements
-
-- Bổ sung sâu hơn service/Livewire behavioral tests cho actual upload/download/state-transition/session-expiry nếu cần coverage cao hơn.
-- Tối ưu search chỉ sau khi có profiling production thực tế.
-- Xem xét khai báo dependency `Account` trong module metadata khi chuẩn dependency manifest của repository được thống nhất.
+Chi tiết nằm trong `ANALYSIS.md`, `INFORMATION.md`, `REFACTOR_PLAN.md`, `IMPORT_EXPORT_PLAN.md`.

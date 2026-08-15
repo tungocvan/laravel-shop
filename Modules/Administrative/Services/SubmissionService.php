@@ -150,19 +150,35 @@ class SubmissionService
             $submissions = AdministrativeSubmission::query()->whereKey($ids)->lockForUpdate()->get();
 
             foreach ($submissions as $submission) {
-                $submission->statusHistories()->create([
-                    'from_status' => $submission->status,
-                    'to_status' => $submission->status,
-                    'action' => SubmissionAction::Archived,
-                    'actor_type' => HistoryActorType::Admin,
-                    'actor_id' => $adminId,
-                    'metadata' => ['soft_delete' => true],
-                ]);
-                $submission->delete();
+                $this->archiveSubmission($submission, $adminId, ['soft_delete' => true, 'source' => 'selected']);
             }
 
             return $submissions->count();
         });
+    }
+
+    public function softDeleteAll(int $adminId): int
+    {
+        $count = 0;
+
+        AdministrativeSubmission::query()
+            ->select(['id'])
+            ->orderBy('id')
+            ->chunkById(100, function (Collection $rows) use ($adminId, &$count): void {
+                $ids = $rows->pluck('id')->all();
+
+                $count += DB::transaction(function () use ($ids, $adminId): int {
+                    $submissions = AdministrativeSubmission::query()->whereKey($ids)->lockForUpdate()->get();
+
+                    foreach ($submissions as $submission) {
+                        $this->archiveSubmission($submission, $adminId, ['soft_delete' => true, 'source' => 'delete_all']);
+                    }
+
+                    return $submissions->count();
+                });
+            });
+
+        return $count;
     }
 
     public function approve(int $id, int $expectedVersion, int $adminId, ?string $response): AdministrativeSubmission
@@ -280,6 +296,19 @@ class SubmissionService
 
             return $submission->refresh();
         });
+    }
+
+    private function archiveSubmission(AdministrativeSubmission $submission, int $adminId, array $metadata): void
+    {
+        $submission->statusHistories()->create([
+            'from_status' => $submission->status,
+            'to_status' => $submission->status,
+            'action' => SubmissionAction::Archived,
+            'actor_type' => HistoryActorType::Admin,
+            'actor_id' => $adminId,
+            'metadata' => $metadata,
+        ]);
+        $submission->delete();
     }
 
     private function ensurePendingVersion(AdministrativeSubmission $submission, int $expectedVersion): void

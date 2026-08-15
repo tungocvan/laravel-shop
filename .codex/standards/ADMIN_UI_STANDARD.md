@@ -130,6 +130,50 @@ Do not hide critical validation, destructive warnings or required workflow state
 - Disabled/read-only states must be visually clear.
 - Avoid placing a long primary editor inside a narrow form column merely to keep another table visible beside it.
 
+### Form Control Visual Standard
+
+Admin form controls MUST remain visibly identifiable even when empty. Do not rely on placeholder text, background contrast or browser defaults to show that a field exists.
+
+For ordinary light-theme text inputs, selects, date/number controls and textareas, the preferred baseline visual language is:
+
+```text
+w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900
+placeholder:text-gray-400
+focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100
+```
+
+Add `mt-1` when the control follows a label directly and the surrounding field component does not already own vertical spacing.
+
+Example:
+
+```html
+<input
+    wire:model="applicant_name"
+    type="text"
+    autocomplete="name"
+    class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+>
+```
+
+Canonical states:
+
+- Normal: `border-gray-300 bg-white text-gray-900`.
+- Hover when useful: `hover:border-gray-400`.
+- Focus: `border-indigo-500 ring-2 ring-indigo-100` with no heavy/dark outline.
+- Validation error: `border-red-400 focus:border-red-500 focus:ring-red-100`; show the error text immediately below the field.
+- Disabled: `cursor-not-allowed border-gray-200 bg-gray-100 text-gray-500 opacity-75`.
+- Read-only: visually distinguish it from editable controls, normally `bg-gray-50 text-gray-600`, while retaining a visible border.
+
+Additional rules:
+
+- Do not ship borderless ordinary admin inputs unless a deliberately designed specialized control (for example inline table editing, command palette, or editor surface) clearly requires it.
+- `border-transparent`, `border-0`, or an input whose border visually disappears into its card/background is not the default admin form style.
+- Selects and textareas should use the same border radius, border color, focus treatment and text sizing as text inputs unless their interaction requires otherwise.
+- Search/filter inputs may be slightly more compact, but must still have a visible border and focus state.
+- Prefix/suffix/icon controls must preserve the same visible outer boundary; do not make the input appear detached from its icon/action.
+- Placeholder text is supplementary guidance, not a replacement for a visible label when a label is required.
+- When a canonical shared input/form component exists, update/reuse that component instead of copying long utility-class strings across every module.
+
 ## Searchable Select / Combobox
 
 Reuse the repository's approved searchable-select component (for example `x-select-search`) when it satisfies the requirement. Do not build another combobox implementation without a documented reason.
@@ -159,7 +203,91 @@ Tables/lists should include, when relevant:
 
 Do not render unbounded production datasets merely to support an `All` option.
 
+For operational/admin datasets, the default list workspace SHOULD also evaluate and implement when applicable:
+
+- Keyword search.
+- Domain-relevant filters such as status, category/type, owner, date range or related entity.
+- A clear reset-filter action.
+- Row selection with checkboxes when bulk actions or selected export are supported.
+- Bulk actions that are permission-aware and explicitly confirmed when destructive.
+- Import/Export through the repository's canonical shared infrastructure when the dataset is reasonably portable and the business workflow benefits from it.
+
+Do not add meaningless filters or Import/Export only to satisfy a checklist. Document why they are not applicable when omitted from a newly created operational module.
+
 If a table is secondary to an editor/workflow, place it in its own workspace tab or mode rather than permanently shrinking the primary task surface.
+
+## Pagination Standard
+
+Potentially large admin datasets MUST use bounded pagination.
+
+Canonical expectations:
+
+- Never offer an unbounded `All` page-size option for production-capable datasets.
+- Recommended page-size choices are `10`, `25`, `50`, `100` unless domain constraints justify a different bounded set.
+- Invalid/tampered page-size values must normalize to a safe default.
+- Pagination controls must match the admin visual language; active pages should use the repository accent/indigo treatment rather than a visually heavy black/dark block unless the active theme explicitly requires dark styling.
+- Previous/next controls, disabled state and current page must remain clear and keyboard usable.
+- Pagination belongs below the dataset with stable spacing and should not visually dominate the table.
+- Changing search/filter/page-size must reset pagination when the current page may become invalid.
+- Selection semantics must be explicit: selecting the page is not the same as selecting the entire dataset.
+- Do not accidentally export only the current page when export scope is intended to be all or selected records.
+
+When a canonical/shared pagination view exists, reuse it rather than creating module-specific variants. A module-specific pagination view is acceptable only when no shared equivalent exists yet and it follows this standard closely enough to be extracted later.
+
+## Filters and Search Standard
+
+For list workspaces with more than a trivial dataset:
+
+- Keep the most useful search/filter controls visible without overwhelming the page.
+- Use debounce for free-text live search when appropriate.
+- Reset page and row selection when filters change.
+- Make the active scope understandable to the operator.
+- Provide `Xóa bộ lọc` / reset behavior when more than one filter can be active.
+- Avoid database work from Blade; filtering belongs in component/service/query layers.
+- Keep filter values bounded and validated where they can affect query shape.
+- Search/filter inputs and selects must retain a visible border in their resting state; do not make an empty filter row look like blank whitespace.
+
+## Row Selection and Bulk Actions
+
+When checkboxes are present:
+
+- Selection state belongs to the owning Livewire component.
+- A header checkbox should mean the visible page unless the UI explicitly states "select all matching records".
+- Show selected count when bulk actions are available.
+- Destructive bulk actions require a clear modal confirmation, not a subtle inline message far from the initiating button.
+- Confirmation modal copy must state the number/scope of affected records when known.
+- Buttons must use `type="button"` unless they intentionally submit a form.
+- Loading/disabled state must prevent duplicate execution.
+- Authorization must be enforced server-side for the action; hiding the button is not sufficient.
+
+## Import / Export UI
+
+When Import/Export is applicable, reuse:
+
+```text
+Modules/Shared/Services/ImportExport
+Modules/Shared/Livewire/ImportExport
+shared.import-export.panel
+```
+
+and follow `.codex/tasks/create-import-export.md`.
+
+Canonical selected export behavior for checkbox-enabled list screens:
+
+```text
+selected_ids empty     -> export all records in the approved export scope
+selected_ids not empty -> export only selected records
+```
+
+Additional UI requirements:
+
+- Do not silently equate "no selection" with "current page only".
+- Checkbox visibility must support users allowed to export selected rows even if they do not have delete permission.
+- Import/Export is a secondary tool: keep it visually subordinate to the primary list/workflow, using a collapsible/secondary panel where useful.
+- Show loading/disabled states for template generation, import and export.
+- Successful import/dry-run/export should use the canonical success modal when available, with an explicit OK/refresh action.
+- Row-level import errors should remain inspectable inline after failure.
+- Exported files should be importable back for update/upsert when safe and practical; never expose secrets merely to achieve round-trip compatibility.
 
 ## Reading / Viewer Experiences
 
@@ -180,6 +308,10 @@ Recommended principles:
 Actions such as save, delete, bulk actions, import and export should expose loading/disabled state when they can take noticeable time or can be double-submitted.
 
 Dangerous actions should be visually distinct and use confirmation where appropriate.
+
+For destructive list actions, prefer centered modal confirmation with overlay, clear scope, Cancel and explicit destructive confirmation. Avoid rendering the confirmation at the bottom of a long list where the operator may not see it.
+
+Successful operations that materially change the dataset should provide explicit feedback. When refresh is needed to synchronize parent/child Livewire state, use the canonical success modal with an `OK — tải lại` style action rather than relying only on transient flash text.
 
 ## Livewire
 
@@ -230,6 +362,8 @@ Avoid:
 - Database queries in Blade.
 - Business logic in Blade.
 - Inconsistent form control sizing.
+- Borderless or visually invisible ordinary admin form controls.
+- Using placeholder text as the only visual evidence that an input exists.
 - Non-responsive tables.
 - Missing validation feedback.
 - Missing empty/loading states where needed.
@@ -241,6 +375,10 @@ Avoid:
 - Nested `mx-auto/max-w-*` wrappers that create unexplained dead space inside an already constrained admin shell.
 - Giving secondary tables/navigation more space than the primary authoring/workflow surface.
 - Using WYSIWYG HTML as a shortcut when the domain source of truth is Markdown or another structured text format.
+- Unbounded `All` pagination.
+- Black/heavy active pagination styling that conflicts with the repository accent treatment.
+- Destructive confirmation rendered far below the action that triggered it.
+- Export that ignores selected rows or exports only the visible page by accident.
 
 ## Quality Gate
 
@@ -249,9 +387,14 @@ Before UI work is complete, verify:
 - It matches the repository's current admin layout and shared components.
 - The screen has a clear primary task and secondary functions use progressive disclosure where appropriate.
 - Form validation UX is clear.
+- Ordinary inputs/selects/textareas are visibly bounded in their resting state and have consistent focus/error/disabled/read-only states.
 - Loading/disabled states prevent accidental repeated mutations where needed.
 - Empty states exist for empty collections.
 - Tables are responsive and paginated/bounded when necessary.
+- List screens have appropriate search/filter/reset controls or document why they are unnecessary.
+- Pagination follows the bounded page-size and accent-style standard.
+- Bulk selection/actions have clear scope, selected count and modal confirmation when destructive.
+- Import/Export follows the shared selected-export and success-feedback contracts when applicable.
 - Currency/number fields store clean values.
 - Long-form editor/viewer surfaces use the available viewport intentionally.
 - Workspace/editor/viewer proportions have been visually inspected in real screenshots.

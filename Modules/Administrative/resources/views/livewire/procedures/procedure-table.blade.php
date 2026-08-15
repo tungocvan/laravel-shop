@@ -30,7 +30,7 @@
                 </tbody>
             </table>
         </div>
-        @if ($procedures->hasPages()) <div class="border-t border-gray-200 px-4 py-4">{{ $procedures->links() }}</div> @endif
+        @if ($procedures->hasPages()) <div class="border-t border-gray-200 px-4 py-4">{{ $procedures->links('Administrative::components.pagination') }}</div> @endif
     </div>
 
     @if($pendingArchiveId)

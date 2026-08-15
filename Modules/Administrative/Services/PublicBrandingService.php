@@ -2,7 +2,7 @@
 
 namespace Modules\Administrative\Services;
 
-use Modules\Admin\Models\Setting;
+use Modules\System\Models\Setting;
 
 class PublicBrandingService
 {

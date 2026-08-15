@@ -32,6 +32,8 @@ class SubmissionTable extends Component
 
     public bool $confirmingDelete = false;
 
+    public bool $confirmingDeleteAll = false;
+
     public function mount(): void
     {
         $this->authorizePermission('administrative.submission.view');
@@ -62,7 +64,10 @@ class SubmissionTable extends Component
 
     public function toggleSelectPage(array $ids): void
     {
-        $this->authorizePermission('administrative.submission.delete');
+        $this->authorizeAnyPermission([
+            'administrative.submission.delete',
+            'administrative.submission.import_export',
+        ]);
         $ids = array_values(array_unique(array_map('intval', $ids)));
         $this->selectAll = ! $this->selectAll;
         $this->selectedIds = $this->selectAll
@@ -86,7 +91,23 @@ class SubmissionTable extends Component
         $this->authorizePermission('administrative.submission.delete');
         $count = $service->softDeleteMany($this->selectedIds, (int) Auth::guard('admin')->id());
         $this->reset(['selectedIds', 'selectAll', 'confirmingDelete']);
+        $this->resetPage();
         $this->dispatch('notify', content: "Đã lưu trữ {$count} hồ sơ.", type: 'success');
+    }
+
+    public function requestDeleteAll(): void
+    {
+        $this->authorizePermission('administrative.submission.delete');
+        $this->confirmingDeleteAll = true;
+    }
+
+    public function deleteAll(SubmissionService $service): void
+    {
+        $this->authorizePermission('administrative.submission.delete');
+        $count = $service->softDeleteAll((int) Auth::guard('admin')->id());
+        $this->reset(['selectedIds', 'selectAll', 'confirmingDelete', 'confirmingDeleteAll']);
+        $this->resetPage();
+        $this->dispatch('notify', content: "Đã lưu trữ toàn bộ {$count} hồ sơ.", type: 'success');
     }
 
     public function render(SubmissionService $service)
@@ -112,5 +133,12 @@ class SubmissionTable extends Component
         $user = Auth::guard('admin')->user();
         abort_unless($user, 403);
         Gate::forUser($user)->authorize($permission);
+    }
+
+    private function authorizeAnyPermission(array $permissions): void
+    {
+        $user = Auth::guard('admin')->user();
+        abort_unless($user, 403);
+        abort_unless(Gate::forUser($user)->any($permissions), 403);
     }
 }

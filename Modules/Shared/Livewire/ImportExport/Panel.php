@@ -4,6 +4,7 @@ namespace Modules\Shared\Livewire\ImportExport;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
@@ -26,9 +27,16 @@ class Panel extends Component
 
     public ?array $report = null;
 
+    #[Reactive]
     public array $filters = [];
 
     public ?string $permission = null;
+
+    public bool $showSuccessModal = false;
+
+    public string $successTitle = '';
+
+    public string $successMessage = '';
 
     public function mount(
         string $serviceClass,
@@ -74,7 +82,12 @@ class Panel extends Component
         $this->file = null;
 
         if (($this->report['success'] ?? false) === true) {
-            session()->flash('success', 'Import hoàn tất.');
+            $this->openSuccessModal(
+                $this->dryRun ? 'Dry-run thành công' : 'Import thành công',
+                $this->dryRun
+                    ? 'Dữ liệu hợp lệ và chưa ghi vào database. Nhấn OK để tải lại màn hình.'
+                    : 'Dữ liệu đã được import thành công. Nhấn OK để tải lại màn hình và xem dữ liệu mới nhất.'
+            );
             $this->dispatch('import-export-completed', serviceClass: $this->serviceClass);
         } else {
             session()->flash('error', 'Import có lỗi, vui lòng kiểm tra bảng lỗi.');
@@ -87,6 +100,14 @@ class Panel extends Component
         $service = app($this->serviceClass);
 
         $path = $service->export($this->filters);
+        $selectedCount = count($this->filters['selected_ids'] ?? []);
+
+        $this->openSuccessModal(
+            'Export thành công',
+            $selectedCount > 0
+                ? "Đã tạo file export cho {$selectedCount} bản ghi đã chọn. Nhấn OK để tải lại màn hình."
+                : 'Đã tạo file export dữ liệu. Nhấn OK để tải lại màn hình.'
+        );
 
         return Storage::disk('public')->download($path);
     }
@@ -101,9 +122,23 @@ class Panel extends Component
         return Storage::disk('public')->download($path);
     }
 
+    public function acknowledgeSuccess()
+    {
+        $this->showSuccessModal = false;
+
+        return redirect()->to(request()->header('Referer') ?: url()->current());
+    }
+
     public function render(): View
     {
         return view('Shared::livewire.import-export.panel');
+    }
+
+    private function openSuccessModal(string $title, string $message): void
+    {
+        $this->successTitle = $title;
+        $this->successMessage = $message;
+        $this->showSuccessModal = true;
     }
 
     private function authorizeAction(): void
