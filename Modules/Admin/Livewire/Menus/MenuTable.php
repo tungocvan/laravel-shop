@@ -154,7 +154,15 @@ class MenuTable extends Component
         }
 
         $this->validate(['routeCandidateNames.*' => 'nullable|string|max:255']);
-        $count = $this->routeScannerService->persistSelected($this->selectedRouteCandidates, $this->routeCandidateNames);
+
+        try {
+            $count = $this->routeScannerService->persistSelected($this->selectedRouteCandidates, $this->routeCandidateNames);
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->notify('Khong the them route vao Menu. Vui long thu lai hoac kiem tra log he thong.', 'error');
+            return;
+        }
+
         $this->closeRouteScannerModal();
         $this->notify("Da them {$count} route GET vao menu.", 'success', 'reload');
     }
