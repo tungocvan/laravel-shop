@@ -1,4 +1,16 @@
 <div class="space-y-6">
+    @if ($pdfNotice)
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
+            {{ $pdfNotice }}
+        </div>
+    @endif
+
+    @if ($pdfError)
+        <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-800">
+            {{ $pdfError }}
+        </div>
+    @endif
+
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @foreach ([['Bán ra', $totalSoldAmount, $totalSoldCustomers], ['Mua vào', $totalPurchaseAmount, $totalPurchaseCustomers]] as [$label, $amount, $customers])
             <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
@@ -25,12 +37,12 @@
                 @if (count($selected) > 0)<span class="inline-flex h-9 items-center rounded-full bg-indigo-50 px-3 text-sm font-semibold text-indigo-700">Đã chọn {{ number_format(count($selected)) }} hóa đơn</span>@endif
             </div>
             <div class="flex flex-wrap gap-2">
-                <button wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 px-4 text-sm font-semibold hover:bg-gray-50">Đặt lại bộ lọc</button>
+                <button type="button" wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 px-4 text-sm font-semibold hover:bg-gray-50">Đặt lại bộ lọc</button>
                 @if (auth('admin')->user()?->can('invoices-export'))
-                    <button wire:click="exportSelected" wire:loading.attr="disabled" wire:target="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="exportSelected">{{ count($selected) > 0 ? 'Xuất '.count($selected).' hóa đơn' : 'Xuất theo bộ lọc' }}</span><span wire:loading wire:target="exportSelected">Đang xuất…</span></button>
+                    <button type="button" wire:click="exportSelected" wire:loading.attr="disabled" wire:target="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="exportSelected">{{ count($selected) > 0 ? 'Xuất '.count($selected).' hóa đơn' : 'Xuất theo bộ lọc' }}</span><span wire:loading wire:target="exportSelected">Đang xuất…</span></button>
                 @endif
                 @if (auth('admin')->user()?->can('invoices-download'))
-                    <button wire:click="downloadSelected" wire:loading.attr="disabled" wire:target="downloadSelected" @disabled(count($selected) === 0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><span wire:loading.remove wire:target="downloadSelected">{{ count($selected) > 0 ? 'Tải PDF ('.count($selected).')' : 'Tải PDF' }}</span><span wire:loading wire:target="downloadSelected">Đang tải…</span></button>
+                    <button type="button" wire:click="downloadSelected" wire:loading.attr="disabled" wire:target="downloadSelected" @disabled(count($selected) === 0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><span wire:loading.remove wire:target="downloadSelected">{{ count($selected) > 0 ? 'Tải PDF ('.count($selected).')' : 'Tải PDF' }}</span><span wire:loading wire:target="downloadSelected">Đang tải…</span></button>
                 @endif
             </div>
         </div>
@@ -57,14 +69,24 @@
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Đã có PDF</span>
                                         <a href="{{ route('admin.invoices.download', ['lookup_code' => $invoice->lookup_code]) }}" target="_blank" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Mở</a>
-                                        @if (auth('admin')->user()?->can('invoices-download'))<button wire:click="downloadPdf({{ $invoice->id }}, true)" wire:loading.attr="disabled" class="text-xs font-semibold text-gray-600 hover:text-gray-900">Tải lại</button>@endif
+                                        @if (auth('admin')->user()?->can('invoices-download'))
+                                            <button type="button" wire:click="downloadPdf({{ $invoice->id }}, true)" wire:loading.attr="disabled" wire:target="downloadPdf({{ $invoice->id }}, true)" class="text-xs font-semibold text-gray-600 hover:text-gray-900 disabled:opacity-50">
+                                                <span wire:loading.remove wire:target="downloadPdf({{ $invoice->id }}, true)">Tải lại</span>
+                                                <span wire:loading wire:target="downloadPdf({{ $invoice->id }}, true)">Đang tải…</span>
+                                            </button>
+                                        @endif
                                     </div>
                                 @elseif ($pdfStatus === 'unsupported')
                                     <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500">Thiếu mã tra cứu</span>
                                 @else
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Chưa có PDF</span>
-                                        @if (auth('admin')->user()?->can('invoices-download'))<button wire:click="downloadPdf({{ $invoice->id }})" wire:loading.attr="disabled" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Tải PDF</button>@endif
+                                        @if (auth('admin')->user()?->can('invoices-download'))
+                                            <button type="button" wire:click="downloadPdf({{ $invoice->id }})" wire:loading.attr="disabled" wire:target="downloadPdf({{ $invoice->id }})" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50">
+                                                <span wire:loading.remove wire:target="downloadPdf({{ $invoice->id }})">Tải PDF</span>
+                                                <span wire:loading wire:target="downloadPdf({{ $invoice->id }})">Đang tải…</span>
+                                            </button>
+                                        @endif
                                     </div>
                                 @endif
                             </td>
