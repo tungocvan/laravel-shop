@@ -191,18 +191,7 @@ class InvoiceImportExportService extends BaseImportExportService
         ];
     }
 
-    private function cleanString(mixed $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim((string) $value);
-
-        return $value === '' ? null : $value;
-    }
-
-    private function normalizeDate(mixed $value): ?string
+    protected function normalizeDate(mixed $value): ?string
     {
         if ($value instanceof \DateTimeInterface) {
             return Carbon::instance($value)->format('Y-m-d');
@@ -224,7 +213,7 @@ class InvoiceImportExportService extends BaseImportExportService
         return $value;
     }
 
-    private function normalizeDecimal(mixed $value): ?string
+    protected function normalizeDecimal(mixed $value): ?string
     {
         if ($value === null || $value === '' || $value === false) {
             return '0';
