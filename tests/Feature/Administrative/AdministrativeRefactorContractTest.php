@@ -16,7 +16,6 @@ class AdministrativeRefactorContractTest extends TestCase
     public function test_admin_file_service_imports_the_administrative_file_model(): void
     {
         $source = file_get_contents(base_path('Modules/Administrative/Services/AdministrativeFileService.php'));
-
         $this->assertStringContainsString('use Modules\\Administrative\\Models\\AdministrativeFile;', $source);
         $this->assertStringContainsString('AdministrativeFile::query()', $source);
     }
@@ -25,7 +24,6 @@ class AdministrativeRefactorContractTest extends TestCase
     {
         $procedure = new ProcedureTable;
         $submission = new SubmissionTable;
-
         $this->assertSame([10, 25, 50, 100], $procedure->perPageOptions);
         $this->assertSame([10, 25, 50, 100], $submission->perPageOptions);
         $this->assertIsInt($procedure->perPage);
@@ -36,14 +34,12 @@ class AdministrativeRefactorContractTest extends TestCase
     {
         $procedureMethod = (new ReflectionClass(ProcedureService::class))->getMethod('listForAdmin');
         $submissionMethod = (new ReflectionClass(SubmissionService::class))->getMethod('listForAdmin');
-
         $this->assertSame(LengthAwarePaginator::class, (string) $procedureMethod->getReturnType());
         $this->assertSame(LengthAwarePaginator::class, (string) $submissionMethod->getReturnType());
 
         $procedureSource = file_get_contents(base_path('Modules/Administrative/Services/ProcedureService.php'));
         $submissionSource = file_get_contents(base_path('Modules/Administrative/Services/SubmissionService.php'));
         $allBranch = '$perPage'." === 'All'";
-
         $this->assertStringNotContainsString($allBranch, $procedureSource);
         $this->assertStringNotContainsString($allBranch, $submissionSource);
         $this->assertStringContainsString('normalizeAdminPageSize($perPage)', $procedureSource);
@@ -53,7 +49,6 @@ class AdministrativeRefactorContractTest extends TestCase
     public function test_archive_action_is_part_of_the_history_contract(): void
     {
         $this->assertSame('archived', SubmissionAction::Archived->value);
-
         $source = file_get_contents(base_path('Modules/Administrative/Services/SubmissionService.php'));
         $this->assertStringContainsString('SubmissionAction::Archived', $source);
         $this->assertStringContainsString("'soft_delete' => true", $source);
@@ -63,7 +58,6 @@ class AdministrativeRefactorContractTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Administrative/Livewire/Submissions/SubmissionDetail.php'));
         $permissionPair = "['administrative.submission.process', 'administrative.submission.edit']";
-
         $this->assertSame(3, substr_count($source, 'authorizeAnyPermission('.$permissionPair.')'));
         $this->assertStringContainsString('Gate::forUser($user)->any($permissions)', $source);
     }
@@ -72,7 +66,6 @@ class AdministrativeRefactorContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Administrative/Livewire/Submissions/SubmissionTable.php'));
         $service = file_get_contents(base_path('Modules/Administrative/Services/SubmissionService.php'));
-
         $this->assertStringContainsString('public function requestDeleteAll()', $component);
         $this->assertStringContainsString("authorizePermission('administrative.submission.delete')", $component);
         $this->assertStringContainsString('public function softDeleteAll(int $adminId): int', $service);
@@ -85,7 +78,6 @@ class AdministrativeRefactorContractTest extends TestCase
         $submissionView = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/submissions/submission-table.blade.php'));
         $procedureView = file_get_contents(base_path('Modules/Administrative/resources/views/livewire/procedures/procedure-table.blade.php'));
         $paginationView = file_get_contents(base_path('Modules/Administrative/resources/views/components/pagination.blade.php'));
-
         $this->assertStringContainsString("links('Administrative::components.pagination')", $submissionView);
         $this->assertStringContainsString("links('Administrative::components.pagination')", $procedureView);
         $this->assertStringContainsString('bg-indigo-600', $paginationView);
@@ -99,11 +91,14 @@ class AdministrativeRefactorContractTest extends TestCase
         $module = require base_path('Modules/Administrative/config/module.php');
 
         $this->assertStringContainsString('extends BaseImportExportService', $service);
-        $this->assertStringContainsString("'procedure_code'", $service);
-        $this->assertStringContainsString('Hash::make(Str::random(40))', $service);
-        $this->assertStringNotContainsString('lookup_token_hash\' => $model', $service);
+        $this->assertStringContainsString("'lookup_token'", $service);
+        $this->assertStringContainsString('Hash::make($lookupToken)', $service);
+        $this->assertStringContainsString("'[REDACTED]'", $service);
+        $this->assertStringContainsString("'source' => 'administrative_import'", $service);
+        $this->assertStringContainsString("Mode replace bị vô hiệu", $service);
         $this->assertStringContainsString("@livewire('shared.import-export.panel'", $view);
         $this->assertStringContainsString("'permission' => 'administrative.submission.import_export'", $view);
         $this->assertContains('administrative.submission.import_export', $module['permissions']);
+        $this->assertStringNotContainsString("'lookup_token_hash' => $model", $service);
     }
 }
