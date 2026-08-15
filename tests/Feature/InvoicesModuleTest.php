@@ -177,6 +177,44 @@ class InvoicesModuleTest extends TestCase
         });
     }
 
+    public function test_duplicate_identity_does_not_overwrite_existing_invoice_data(): void
+    {
+        $this->withInvoicesTable(function () {
+            $firstFile = storage_path('app/invoices-idempotent-first.xlsx');
+            $secondFile = storage_path('app/invoices-idempotent-second.xlsx');
+
+            $base = [
+                'Mã tra cứu' => 'identity-lookup',
+                'Ký hiệu' => '1/C26T',
+                'Số hóa đơn' => 'ID-001',
+                'Loại' => 'Hóa đơn GTGT',
+                'Ngày lập' => '15/08/2026',
+                'Mã số thuế' => 'identity-tax',
+                'Thuế suất' => '10',
+                'Loại hóa đơn' => 'sold',
+            ];
+
+            (new FastExcel([[...$base, 'Đơn vị' => 'Original Name', 'Thành tiền' => '1100']]))->export($firstFile);
+            (new FastExcel([[...$base, 'Đơn vị' => 'Changed Name', 'Thành tiền' => '9999']]))->export($secondFile);
+
+            try {
+                $service = app(InvoiceImportExportService::class);
+                $first = $service->importForType($firstFile, 'sold');
+                $second = $service->importForType($secondFile, 'sold');
+
+                $this->assertSame(1, $first['success_rows']);
+                $this->assertSame(0, $second['success_rows']);
+                $this->assertSame(1, $second['skipped_rows']);
+                $this->assertSame(1, DB::table('invoices')->where('lookup_code', 'identity-lookup')->count());
+                $this->assertSame('Original Name', DB::table('invoices')->where('lookup_code', 'identity-lookup')->value('name'));
+                $this->assertSame('1100.00', (string) DB::table('invoices')->where('lookup_code', 'identity-lookup')->value('total_amount'));
+            } finally {
+                @unlink($firstFile);
+                @unlink($secondFile);
+            }
+        });
+    }
+
     public function test_invoice_export_honors_filters_and_selected_ids(): void
     {
         $this->withInvoicesTable(function () {
