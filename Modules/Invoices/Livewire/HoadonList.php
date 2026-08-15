@@ -144,7 +144,7 @@ class HoadonList extends Component
         $dashboard = $this->invoiceService->dashboard();
         $invoices = $this->invoiceService->paginate($this->filters(), $this->perPage);
         $pdfStatuses = collect($invoices->items())->mapWithKeys(fn ($invoice) => [
-            $invoice->id => $this->pdfService->statusFor((string) $invoice->lookup_code),
+            $invoice->id => $this->pdfService->statusForInvoice($invoice),
         ])->all();
 
         return view('Invoices::livewire.hoadon-list', [
