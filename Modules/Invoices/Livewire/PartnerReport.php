@@ -29,6 +29,7 @@ class PartnerReport extends Component
     public array $yearOptions = [];
     public array $nameList = [];
     public array $taxCodeList = [];
+    public ?array $partnerDetail = null;
 
     protected $queryString = ['type', 'name', 'tax_code', 'year', 'month', 'from_date', 'to_date', 'sort', 'perPage'];
 
@@ -59,6 +60,16 @@ class PartnerReport extends Component
     public function updatedFromDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
     public function updatedToDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
 
+    public function showPartnerDetail(string $name, string $taxCode): void
+    {
+        $this->partnerDetail = $this->reportService->partnerDetail($this->filters(), $name, $taxCode);
+    }
+
+    public function closePartnerDetail(): void
+    {
+        $this->partnerDetail = null;
+    }
+
     public function resetFilters(): void
     {
         $this->type = null;
@@ -69,6 +80,7 @@ class PartnerReport extends Component
         $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
         $this->to_date = Carbon::now()->format('Y-m-d');
         $this->sort = 'sold_desc';
+        $this->partnerDetail = null;
         $this->refreshOptions();
         $this->resetPage();
         $this->dispatch('filters-reset');
@@ -130,6 +142,7 @@ class PartnerReport extends Component
 
     private function resetReportState(bool $refreshOptions = false): void
     {
+        $this->partnerDetail = null;
         if ($refreshOptions) $this->refreshOptions();
         $this->resetPage();
     }
