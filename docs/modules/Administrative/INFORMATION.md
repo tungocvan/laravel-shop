@@ -17,60 +17,39 @@
 - Session-bound lookup grant 15 phút.
 - Tải file kết quả được phép công khai.
 - Bổ sung hồ sơ khi trạng thái `need_supplement`.
+- Public branding dùng `Modules\System\Models\Setting`.
 
 ### Admin
 
 - Danh sách hồ sơ với search/filter/date/procedure/status.
-- Bounded pagination: 10/25/50/100.
-- Xem chi tiết hồ sơ.
-- Tải file hồ sơ qua route có kiểm tra quyền.
-- Phê duyệt, từ chối, yêu cầu bổ sung.
-- Xem lịch sử trạng thái theo permission.
-- Soft-delete/archive hồ sơ theo permission và ghi audit history.
+- Bounded pagination: `10/25/50/100` với pagination accent/indigo.
+- Checkbox selection và selected count.
+- Xóa hồ sơ đã chọn bằng modal xác nhận.
+- Xóa tất cả bằng modal xác nhận.
+- Soft-delete/archive và ghi audit history.
+- Xem chi tiết/tải file/phê duyệt/từ chối/yêu cầu bổ sung.
 - Quản lý thủ tục: create/edit/active-inactive/archive.
-- Upload/download biểu mẫu thủ tục.
+- Import/Export hồ sơ qua shared Import/Export foundation.
+- Export all khi không chọn checkbox; export selected khi có chọn checkbox.
+- Import file export trở lại cho update/upsert khi an toàn.
+- Success modal + refresh sau Import/Export.
+
+## Demo Data
+
+Module có deterministic demo seeders, không phụ thuộc Faker, tạo bộ thủ tục/hồ sơ đa trạng thái để test UI/workflow trên demo/VPS/Docker.
+
+Seeder entrypoint:
+
+```text
+Modules\Administrative\database\seeders\DatabaseSeeder
+```
 
 ## Registration
 
 Module được auto-discover bởi `Modules\ModuleServiceProvider` từ `Modules/Administrative/`.
-
-Manifest: `Modules/Administrative/config/module.php`  
-Type: `domain`.
-
-Views được đăng ký dưới namespace `Administrative::` và `administrative::`; Livewire aliases được auto-register theo path.
-
-## Routes
-
-Public:
-
-```text
-GET /thu-tuc-hanh-chinh
-GET /thu-tuc-hanh-chinh/{procedure:slug}
-GET /thu-tuc-hanh-chinh/{procedure:slug}/bieu-mau
-GET /thu-tuc-hanh-chinh/{procedure:slug}/nop-ho-so
-GET /thu-tuc-hanh-chinh/nop-thanh-cong/{receipt}
-GET /thu-tuc-hanh-chinh/nop-thanh-cong/{receipt}/bien-nhan.pdf
-GET /tra-cuu-ho-so
-GET /tra-cuu-ho-so/{accessToken}
-GET /tra-cuu-ho-so/{accessToken}/files/{file}
-```
-
-Admin:
-
-```text
-GET /admin/administrative
-GET /admin/administrative/submissions
-GET /admin/administrative/submissions/{id}
-GET /admin/administrative/submissions/{submission}/files/{file}
-GET /admin/administrative/procedures
-GET /admin/administrative/procedures/create
-GET /admin/administrative/procedures/{id}/template
-GET /admin/administrative/procedures/{id}/edit
-```
+Manifest: `Modules/Administrative/config/module.php`; type: `domain`.
 
 ## Permissions
-
-Declared permissions:
 
 ```text
 administrative.dashboard.view
@@ -82,40 +61,16 @@ administrative.submission.view
 administrative.submission.process
 administrative.submission.edit
 administrative.submission.delete
+administrative.submission.import_export
 administrative.file.download
 administrative.history.view
 ```
 
-Current post-refactor behavior:
+Compatibility:
 
-- Dashboard canonical permission: `administrative.dashboard.view`, with `administrative.submission.view` fallback for backward compatibility.
-- Approve/reject/request-supplement canonical permission: `administrative.submission.process`, with `administrative.submission.edit` fallback.
-- History UI is gated by `administrative.history.view` or legacy `administrative.submission.view` fallback.
-- Sensitive Livewire mutations still authorize at action boundary.
-
-## Controllers
-
-```text
-ProcedureController
-PublicLookupController
-PublicProcedureController
-SubmissionController
-```
-
-Controllers remain thin HTTP/page/download adapters; core workflows belong to services/Livewire.
-
-## Livewire Components
-
-```text
-Procedures/ProcedureForm.php
-Procedures/ProcedureTable.php
-Public/LookupForm.php
-Public/PublicHeader.php
-Public/SubmissionForm.php
-Public/SupplementForm.php
-Submissions/SubmissionDetail.php
-Submissions/SubmissionTable.php
-```
+- dashboard canonical: `administrative.dashboard.view`, fallback `administrative.submission.view`;
+- processing canonical: `administrative.submission.process`, fallback `administrative.submission.edit`;
+- history canonical: `administrative.history.view`, legacy submission-view fallback retained where implemented.
 
 ## Services
 
@@ -126,13 +81,24 @@ ProcedureService
 PublicBrandingService
 ReceiptService
 SubmissionService
+ImportExport
 ```
 
-Key post-refactor facts:
+Key contracts:
 
-- `AdministrativeFileService` correctly imports `Modules\Administrative\Models\AdministrativeFile`.
-- `ProcedureService::listForAdmin()` and `SubmissionService::listForAdmin()` always paginate with normalized bounded page sizes.
-- `SubmissionService::softDeleteMany()` writes `SubmissionAction::Archived` history with admin actor metadata before soft delete.
+- admin list services always paginate with bounded sizes;
+- archive/delete is soft delete + audit;
+- ImportExport extends shared `BaseImportExportService`;
+- selected export contract:
+
+```text
+selected_ids empty     -> export all approved-scope records
+selected_ids not empty -> export selected records only
+```
+
+- lookup secrets are never exported;
+- existing lookup/version system fields are preserved during import update/upsert;
+- raw `replace` import mode is blocked for Administrative.
 
 ## Models / Tables
 
@@ -154,6 +120,8 @@ administrative_files
 administrative_status_histories
 ```
 
+No Round 2 migration is required.
+
 ## Status Workflow
 
 ```text
@@ -164,7 +132,7 @@ pending
       └── resubmit -> pending
 ```
 
-Only `pending` may be approved/rejected/requested for supplement. State changes retain transaction + row lock + optimistic version checking.
+State transitions retain transaction + row lock + optimistic version checking.
 
 ## File Policy
 
@@ -174,38 +142,30 @@ Default allowed extensions:
 pdf, doc, docx, jpg, jpeg, png
 ```
 
-Default max size: 10 MB/file.  
-Default max count: 5 files.
-
-Private storage remains mandatory.
-
-## Dependencies
-
-- Laravel 12 / PHP 8.3.
-- Livewire 3.
-- Spatie Permission.
-- Laravel Storage, RateLimiter, session, queue/mail.
-- DOMPDF.
-- `Modules\Account\Models\User` for processor relationship.
-
-Known metadata note: source depends on `Account`; manifest dependency declaration remains a future repository-level consistency item.
+Default max size: 10 MB/file. Default max count: 5 files. Private storage remains mandatory.
 
 ## Tests / Verification
 
-Tests under `tests/Feature/Administrative` now include the original route/schema suite plus `AdministrativeRefactorContractTest.php`.
+Administrative regression contracts cover route/schema plus Round 1/2 contracts including bounded pagination, delete-all audit, selected-delete modal and Import/Export integration.
 
-Verified on Local, 2026-08-15:
+Latest supplied full regression checkpoint:
 
 ```text
-Pint: PASS — 47 files
-Full regression: PASS — 353 tests / 12,815 assertions
-Duration: 22.73s
+356 passed
+12,858 assertions
+0 failed
+Duration: 19.00s
 ```
+
+Final post-Round-2 closure verification is required before merge.
 
 ## Maintenance Notes
 
 - Preserve route names, table names, storage paths and status values.
 - Preserve private file access through controlled routes.
-- Keep archive as soft delete with audit entry.
-- Do not restore unbounded `All` list behavior; use export/streaming if bulk access becomes necessary.
-- Keep transaction/locking/version semantics when modifying workflow logic.
+- Keep destructive actions soft-delete + audit.
+- Do not restore unbounded `All` list behavior.
+- Keep transaction/locking/version semantics.
+- Keep Import/Export on shared infrastructure.
+- Never expose lookup-token plaintext in export/log/error output.
+- Admin form controls should follow `.codex/standards/ADMIN_UI_STANDARD.md` and prefer `x-admin::form.*` primitives when applicable.
