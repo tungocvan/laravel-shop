@@ -10,9 +10,6 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InvoicesController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         return redirect()->route('admin.invoices.hoadon-list');
@@ -26,6 +23,11 @@ class InvoicesController extends Controller
     public function hoadonList(): View
     {
         return view('Invoices::pages.invoices.index');
+    }
+
+    public function partnerReport(): View
+    {
+        return view('Invoices::pages.invoices.partner-report');
     }
 
     public function createToken(): View
