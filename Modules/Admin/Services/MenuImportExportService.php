@@ -25,7 +25,7 @@ class MenuImportExportService
 
     public function defaultPath(): string
     {
-        return base_path('Modules/Admin/data/menus.json');
+        return storage_path('app/menu/menus.json');
     }
 
     public function export(array $filters = []): string
@@ -36,7 +36,35 @@ class MenuImportExportService
             throw new \RuntimeException('Khong co du lieu menu de export.');
         }
 
+        $this->refreshRestoreSnapshot();
+
         return $this->writeSpreadsheet($rows, 'menus');
+    }
+
+    public function refreshRestoreSnapshot(): string
+    {
+        $roots = AdminMenu::menu()
+            ->with('children')
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        $snapshot = $this->snapshotTree($roots);
+        $path = $this->defaultPath();
+        $directory = dirname($path);
+        File::ensureDirectoryExists($directory);
+
+        $json = json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $temporary = $path.'.tmp';
+        File::put($temporary, $json.PHP_EOL, true);
+
+        if (! File::move($temporary, $path)) {
+            File::delete($temporary);
+            throw new \RuntimeException('Khong the cap nhat snapshot menu moi nhat.');
+        }
+
+        return $path;
     }
 
     public function exportSelected(array $menuIds): string
@@ -98,9 +126,13 @@ class MenuImportExportService
 
     public function restoreDefaults(): array
     {
+        if (! File::exists($this->defaultPath())) {
+            throw new \RuntimeException('Chua co ban sao luu menu de khoi phuc. Hay Export tat ca menu truoc.');
+        }
+
         return $this->importFromJson(File::get($this->defaultPath()), [
             'mode' => 'replace',
-            'source' => 'default_json',
+            'source' => 'latest_storage_snapshot',
         ]);
     }
 
@@ -280,6 +312,23 @@ class MenuImportExportService
 
             return $report;
         }
+    }
+
+    private function snapshotTree(Collection $menus): array
+    {
+        return $menus->map(function (AdminMenu $menu): array {
+            $menu->loadMissing('children');
+
+            return [
+                'key' => $this->menuKey($menu),
+                'name' => $menu->name,
+                'url' => $menu->url,
+                'icon' => $menu->icon,
+                'can' => $menu->can,
+                'is_active' => (bool) $menu->is_active,
+                'children' => $this->snapshotTree($menu->children),
+            ];
+        })->values()->all();
     }
 
     private function flattenMenus(array $filters): BaseCollection
