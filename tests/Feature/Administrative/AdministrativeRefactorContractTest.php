@@ -59,11 +59,12 @@ class AdministrativeRefactorContractTest extends TestCase
         $this->assertStringContainsString("'soft_delete' => true", $source);
     }
 
-    public function test_processing_actions_use_the_process_permission(): void
+    public function test_processing_actions_keep_process_as_canonical_with_edit_fallback(): void
     {
         $source = file_get_contents(base_path('Modules/Administrative/Livewire/Submissions/SubmissionDetail.php'));
+        $permissionPair = "['administrative.submission.process', 'administrative.submission.edit']";
 
-        $this->assertSame(3, substr_count($source, "authorizePermission('administrative.submission.process')"));
-        $this->assertStringNotContainsString("authorizePermission('administrative.submission.edit')", $source);
+        $this->assertSame(3, substr_count($source, 'authorizeAnyPermission('.$permissionPair.')'));
+        $this->assertStringContainsString('Gate::forUser($user)->any($permissions)', $source);
     }
 }
