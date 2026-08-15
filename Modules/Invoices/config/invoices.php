@@ -25,7 +25,10 @@ return [
     ],
 
     'backup' => [
-        // Keep raw file payload conservative because email attachments grow after MIME/base64 encoding.
         'email_chunk_bytes' => (int) env('INVOICES_BACKUP_EMAIL_CHUNK_BYTES', 12 * 1024 * 1024),
+        'recipient' => env('INVOICES_BACKUP_EMAIL'),
+        'automatic_enabled' => env('INVOICES_BACKUP_AUTOMATIC_ENABLED', false),
+        'schedule_day' => (int) env('INVOICES_BACKUP_SCHEDULE_DAY', 1),
+        'schedule_time' => env('INVOICES_BACKUP_SCHEDULE_TIME', '00:15'),
     ],
 ];

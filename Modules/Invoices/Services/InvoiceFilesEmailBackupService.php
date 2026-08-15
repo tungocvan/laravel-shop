@@ -12,15 +12,17 @@ class InvoiceFilesEmailBackupService
 {
     public function send(string $email): array
     {
+        return $this->sendFiles($email, $this->files());
+    }
+
+    public function sendFiles(string $email, array $files): array
+    {
         if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('Địa chỉ email nhận backup không hợp lệ.');
         }
-
-        $files = $this->files();
         if ($files === []) {
             throw new RuntimeException('Không có File đã đồng bộ để backup.');
         }
-
         if (! class_exists(ZipArchive::class)) {
             throw new RuntimeException('PHP chưa cài extension zip (ZipArchive).');
         }
@@ -56,10 +58,15 @@ class InvoiceFilesEmailBackupService
             }
         }
 
-        return ['emails_sent' => $sent, 'files_backed_up' => $totalFiles, 'parts' => $totalParts];
+        return [
+            'emails_sent' => $sent,
+            'files_backed_up' => $totalFiles,
+            'parts' => $totalParts,
+            'bytes_total' => array_sum(array_column($files, 'size')),
+        ];
     }
 
-    private function files(): array
+    public function files(): array
     {
         $base = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
         $result = [];
@@ -71,12 +78,16 @@ class InvoiceFilesEmailBackupService
             foreach (glob($folder.'/*.{xlsx,csv}', GLOB_BRACE) ?: [] as $path) {
                 $name = basename($path);
                 $lower = strtolower($name);
-                if (($direction === 'vat_in' && ! str_starts_with($lower, 'vat_in_')) || ($direction === 'vat_out' && ! str_starts_with($lower, 'vat_out_'))) {
-                    continue;
-                }
+                if (($direction === 'vat_in' && ! str_starts_with($lower, 'vat_in_')) || ($direction === 'vat_out' && ! str_starts_with($lower, 'vat_out_'))) continue;
                 if (! is_file($path) || ! is_readable($path)) continue;
 
-                $result[] = ['path' => $path, 'name' => $direction.'/'.$name, 'size' => filesize($path) ?: 0];
+                $result[] = [
+                    'path' => $path,
+                    'name' => $direction.'/'.$name,
+                    'size' => filesize($path) ?: 0,
+                    'mtime' => filemtime($path) ?: 0,
+                    'fingerprint' => sha1($direction.'/'.$name.'|'.(filesize($path) ?: 0).'|'.(filemtime($path) ?: 0)),
+                ];
             }
         }
 
