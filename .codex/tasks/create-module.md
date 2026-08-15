@@ -11,6 +11,7 @@ Before planning or writing code, read:
 - `.codex/bootstrap/AI_PROJECT_CONTEXT.md`
 - `.codex/standards/MODULE_STANDARD.md`
 - `.codex/standards/ADMIN_UI_STANDARD.md`
+- `.codex/tasks/create-import-export.md` when the module owns portable/admin tabular data
 - `.codex/prompts/import-export.md` when import/export is in scope
 - `ROADMAP.md`
 - `Modules/ModuleServiceProvider.php`
@@ -28,6 +29,7 @@ Before planning or writing code, read:
 4. Mark unclear or risky business decisions explicitly. Do not invent domain rules silently.
 5. Classify the module as `shell`, `support`, or `domain` based on its actual responsibility and dependency role.
 6. Identify whether the module needs Admin UI, public web routes, API routes, background jobs, queue workers, runtime storage, external services, or Docker-specific support.
+7. If the module has an Admin list/workspace with more than trivial data, explicitly evaluate search, filters, bounded pagination, row selection/bulk actions and Import/Export. These are default design considerations, not optional afterthoughts.
 
 ## Phase 2 — Inspect Repository Conventions
 
@@ -41,12 +43,14 @@ For each reference module, record what convention is being reused, for example:
 - service boundaries
 - Livewire conventions
 - models/migrations
+- list/filter/pagination patterns
+- bulk action/modal patterns
 - import/export
 - events/jobs
 - tests
 - module documentation
 
-Do not copy an existing module blindly. Reuse only conventions that still match the current repository architecture.
+Do not copy an existing module blindly. Reuse only conventions that still match the current repository architecture and standards.
 
 ## Hard Rule — Follow `Modules\ModuleServiceProvider`
 
@@ -145,6 +149,7 @@ The plan must include:
 - Database/model design.
 - Service boundaries and transaction rules.
 - Livewire/UI design.
+- List workspace design when applicable: search, filters, reset behavior, pagination, selection and bulk actions.
 - Import/export design when applicable.
 - Events/jobs/queue/console design when applicable.
 - Runtime storage and Docker considerations when applicable.
@@ -154,6 +159,24 @@ The plan must include:
 - Files to create/change.
 - Suggested MR/phase breakdown.
 - Risks and unresolved questions.
+
+For a new operational/Admin data module, the plan MUST explicitly evaluate these capabilities:
+
+```text
+Search
+Domain filters
+Reset filters
+Bounded pagination
+Checkbox selection
+Bulk actions
+Import / Export
+Selected-row export
+Success/loading/confirmation UX
+```
+
+If a capability is not appropriate, document why instead of silently omitting it.
+
+Import/Export is strongly recommended when the module owns portable tabular business data that administrators reasonably need to back up, migrate, bulk-load, review in Excel/CSV, or transfer between environments. It is not mandatory for configuration-only, ephemeral, security-sensitive, or non-tabular domains where such portability would be harmful or meaningless.
 
 `CREATE_PLAN.md` must also contain a concise **Bootstrap Contract** table or block proving compatibility with `Modules/ModuleServiceProvider.php`, covering at least:
 
@@ -191,6 +214,12 @@ After approval:
 7. Preserve current folder casing and namespace conventions.
 8. Add focused tests as each meaningful implementation batch is completed.
 9. Update module documentation so it reflects implemented reality.
+10. When Admin list UI is applicable, implement useful search/filter/reset controls, bounded pagination and clear empty/loading states from the beginning rather than adding them as late polish.
+11. For potentially large datasets, use bounded page sizes; recommended defaults are `10`, `25`, `50`, `100`. Do not create an unbounded `All` option.
+12. When row selection is useful, show selected count and use explicit modal confirmation for destructive bulk actions.
+13. When Import/Export is applicable, reuse the canonical shared foundation and follow `.codex/tasks/create-import-export.md` rather than building module-private infrastructure.
+14. For checkbox-enabled export, no selection exports all approved records; selected IDs export only those records.
+15. Successful import/export or destructive actions that materially change visible data should provide explicit success feedback and a clean refresh path.
 
 ## Implementation Phases / MR Guidance
 
@@ -202,7 +231,7 @@ Prefer small coherent batches. A typical module may use:
 - MR-3 — services / business logic
 - MR-4 — routes / Admin / Livewire
 - MR-5 — permissions + menu integration
-- MR-6 — import/export / jobs / external integration when applicable
+- MR-6 — filters / bulk UX / import-export / jobs / external integration when applicable
 - MR-7 — tests + documentation
 - MR-8 — final regression + manual smoke
 
@@ -230,8 +259,13 @@ When Admin UI is required:
 - authorize every sensitive Livewire mutation server-side
 - validate bounded input
 - do not expose raw internal exceptions to the browser
-- provide loading/error/confirmation states where appropriate
+- provide loading/error/confirmation/success states where appropriate
 - keep business logic in services
+- use filters that match real domain questions, not decorative controls
+- reset pagination and selection when filter scope changes
+- keep pagination bounded and visually aligned with the repository accent/indigo treatment
+- use centered modal confirmation for destructive selected/all actions
+- treat Import/Export as a secondary tool so it does not overpower the primary workspace
 
 ## Seeder Rules
 
@@ -265,6 +299,8 @@ Choose tests according to actual scope. Consider:
 - service tests
 - model/database tests
 - Livewire feature tests
+- search/filter/pagination tests
+- selection/bulk-action tests
 - import/export tests
 - job/queue/console tests
 - dependency tests
@@ -304,11 +340,18 @@ For modules with UI, verify before merge:
 - route accessibility
 - permissions
 - CRUD/actions
+- search/filter/reset behavior
+- pagination/page-size behavior
+- selection/bulk actions
+- destructive confirmation modals
+- Import/Export, including all-vs-selected export when applicable
 - validation
+- success/loading/error states
 - refresh/persistence behavior
 - Livewire behavior
 - no unexpected 404/500
 - no important browser console errors
+- desktop/mobile usability
 - module enable/disable behavior when applicable
 - dependency/required rules when applicable
 - Git remains clean after runtime operations
@@ -337,6 +380,8 @@ Do not declare the module complete until applicable criteria pass:
 - routes pass
 - permissions pass
 - UI/Livewire pass when applicable
+- list search/filter/pagination/bulk UX passes when applicable
+- Import/Export passes when applicable
 - seeders pass when applicable
 - Docker/runtime storage pass when applicable
 - focused tests pass
@@ -360,3 +405,4 @@ Only after these gates pass should the module be proposed for merge into `main`.
 - Do not introduce a new framework or module system that conflicts with the repository.
 - Do not implement unresolved high-risk assumptions without explicit approval.
 - Do not mutate tracked module manifests to represent runtime enable/disable state.
+- For Admin UI, `.codex/standards/ADMIN_UI_STANDARD.md` is a completion contract, not optional visual guidance.
