@@ -27,13 +27,20 @@ class HoadonList extends Component
     public string $from_date = '';
     public string $to_date = '';
     public string $taxRateFilter = 'all';
+    public string $year = '';
+    public string $month = '';
+    public string $sort = 'date_desc';
+    public array $yearOptions = [];
     public array $nameList = [];
     public array $taxCodeList = [];
     public array $selected = [];
     public int $perPage = 10;
     public array $perPageOptions = [10, 25, 50, 100];
 
-    protected $queryString = ['type', 'name', 'tax_code', 'from_date', 'to_date', 'taxRateFilter', 'perPage'];
+    protected $queryString = [
+        'type', 'name', 'tax_code', 'from_date', 'to_date', 'taxRateFilter',
+        'year', 'month', 'sort', 'perPage',
+    ];
 
     public function boot(InvoiceService $invoiceService, InvoicePdfService $pdfService): void
     {
@@ -44,17 +51,58 @@ class HoadonList extends Component
     public function mount(): void
     {
         $this->perPage = $this->normalizedPerPage($this->perPage);
-        $this->from_date = $this->from_date ?: Carbon::now()->startOfYear()->format('Y-m-d');
-        $this->to_date = $this->to_date ?: Carbon::now()->format('Y-m-d');
+        $this->yearOptions = $this->invoiceService->years();
+
+        if ($this->year !== '') {
+            $this->applyPeriodSelection(false);
+        } elseif ($this->from_date === '' && $this->to_date === '') {
+            $this->year = (string) now()->year;
+            $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
+            $this->to_date = Carbon::now()->format('Y-m-d');
+        }
+
         $this->refreshOptions();
     }
 
-    public function updatedType(): void { $this->name = ''; $this->tax_code = ''; $this->taxRateFilter = 'all'; $this->resetListState(true); }
-    public function updatedName(): void { $this->tax_code = ''; $this->resetListState(true); }
-    public function updatedTaxCode(): void { $this->resetListState(); }
-    public function updatedFromDate(): void { $this->resetListState(true); }
-    public function updatedToDate(): void { $this->resetListState(true); }
+    public function updatedType(): void { $this->resetListState(true); }
+    public function updatedName(): void { $this->resetListState(true); }
+    public function updatedTaxCode(): void { $this->resetListState(true); }
     public function updatedTaxRateFilter(): void { $this->resetListState(); }
+    public function updatedSort(): void { $this->resetListState(); }
+
+    public function updatedYear(): void
+    {
+        if ($this->year === '') {
+            $this->month = '';
+            $this->from_date = '';
+            $this->to_date = '';
+            $this->resetListState(true);
+            return;
+        }
+
+        $this->applyPeriodSelection();
+    }
+
+    public function updatedMonth(): void
+    {
+        if ($this->month !== '' && $this->year === '') {
+            $this->year = (string) now()->year;
+        }
+
+        $this->applyPeriodSelection();
+    }
+
+    public function updatedFromDate(): void
+    {
+        $this->clearPeriodPreset();
+        $this->resetListState(true);
+    }
+
+    public function updatedToDate(): void
+    {
+        $this->clearPeriodPreset();
+        $this->resetListState(true);
+    }
 
     public function updatedPerPage(mixed $value): void
     {
@@ -63,38 +111,36 @@ class HoadonList extends Component
         $this->resetPage();
     }
 
-    public function resetTomSelect(string $refName): void
-    {
-        $refName === 'nameSelect' ? $this->tax_code = '' : $this->name = '';
-        $this->resetListState(true);
-    }
-
     public function resetFilters(): void
     {
         $this->type = null;
         $this->name = '';
         $this->tax_code = '';
+        $this->year = (string) now()->year;
+        $this->month = '';
         $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
         $this->to_date = Carbon::now()->format('Y-m-d');
         $this->taxRateFilter = 'all';
+        $this->sort = 'date_desc';
         $this->selected = [];
         $this->pdfNotice = null;
         $this->pdfError = null;
         $this->refreshOptions();
         $this->resetPage();
+        $this->dispatch('filters-reset');
     }
-
-    public function getFilteredTotalAmountProperty(): mixed { return $this->statistics()['total_amount']; }
-    public function getFilteredInvoiceCountProperty(): int { return $this->statistics()['count']; }
-    public function getFilteredTotalByTaxRateProperty(): array { return $this->statistics()['by_tax_rate']; }
-    public function getFilteredTotalVatProperty(): mixed { return $this->statistics()['vat_amount']; }
 
     public function exportSelected()
     {
         $this->authorizePermission('invoices-export');
-        $records = $this->selected === [] ? $this->invoiceService->filter($this->filters()) : $this->invoiceService->selected($this->selected);
+        $records = $this->selected === []
+            ? $this->invoiceService->filter($this->filters())
+            : $this->invoiceService->selected($this->selected);
 
-        return Excel::download(new InvoicesSelectedExport($records), 'hoadon_'.($this->selected === [] ? 'loc' : 'chon').'_'.now()->format('Ymd_His').'.xlsx');
+        return Excel::download(
+            new InvoicesSelectedExport($records),
+            'hoadon_'.($this->selected === [] ? 'loc' : 'chon').'_'.now()->format('Ymd_His').'.xlsx'
+        );
     }
 
     public function downloadSelected(): void
@@ -141,8 +187,10 @@ class HoadonList extends Component
 
     public function render()
     {
+        $filters = $this->filters();
         $dashboard = $this->invoiceService->dashboard();
-        $invoices = $this->invoiceService->paginate($this->filters(), $this->perPage);
+        $filterStats = $this->invoiceService->statistics($filters);
+        $invoices = $this->invoiceService->paginate($filters, $this->perPage);
         $pdfStatuses = collect($invoices->items())->mapWithKeys(fn ($invoice) => [
             $invoice->id => $this->pdfService->statusForInvoice($invoice),
         ])->all();
@@ -150,6 +198,7 @@ class HoadonList extends Component
         return view('Invoices::livewire.hoadon-list', [
             'invoices' => $invoices,
             'pdfStatuses' => $pdfStatuses,
+            'filterStats' => $filterStats,
             'totalSoldAmount' => $dashboard['sold_amount'],
             'totalPurchaseAmount' => $dashboard['purchase_amount'],
             'totalSoldCustomers' => $dashboard['sold_customers'],
@@ -158,10 +207,50 @@ class HoadonList extends Component
         ]);
     }
 
+    private function applyPeriodSelection(bool $reset = true): void
+    {
+        $year = (int) $this->year;
+        if ($year < 2000 || $year > 2100) {
+            $this->year = '';
+            $this->month = '';
+            return;
+        }
+
+        if ($this->month !== '') {
+            $month = (int) $this->month;
+            if ($month < 1 || $month > 12) {
+                $this->month = '';
+            }
+        }
+
+        if ($this->month === '') {
+            $start = Carbon::create($year, 1, 1)->startOfDay();
+            $end = Carbon::create($year, 12, 31)->endOfDay();
+        } else {
+            $start = Carbon::create($year, (int) $this->month, 1)->startOfMonth();
+            $end = $start->copy()->endOfMonth();
+        }
+
+        $this->from_date = $start->format('Y-m-d');
+        $this->to_date = $end->format('Y-m-d');
+
+        if ($reset) {
+            $this->resetListState(true);
+        }
+    }
+
+    private function clearPeriodPreset(): void
+    {
+        $this->year = '';
+        $this->month = '';
+    }
+
     private function resetListState(bool $refreshOptions = false): void
     {
         $this->selected = [];
-        if ($refreshOptions) { $this->refreshOptions(); }
+        if ($refreshOptions) {
+            $this->refreshOptions();
+        }
         $this->resetPage();
     }
 
@@ -172,8 +261,6 @@ class HoadonList extends Component
         $this->taxCodeList = $options['tax_codes'];
     }
 
-    private function statistics(): array { return $this->invoiceService->statistics($this->filters()); }
-
     private function filters(): array
     {
         return [
@@ -183,6 +270,7 @@ class HoadonList extends Component
             'issued_date_from' => $this->from_date,
             'issued_date_to' => $this->to_date,
             'tax_rate' => $this->taxRateFilter,
+            'sort' => $this->sort,
         ];
     }
 
