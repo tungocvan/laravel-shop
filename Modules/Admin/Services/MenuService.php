@@ -30,18 +30,7 @@ class MenuService
             return [];
         }
 
-        $ids = [];
-        $queue = [(int) $root->getKey()];
-        $depth = 0;
-
-        while ($queue !== [] && $depth < self::MAX_SORT_DEPTH) {
-            $current = array_values(array_unique(array_map('intval', $queue)));
-            $ids = array_merge($ids, $current);
-            $queue = AdminMenu::menu()->whereIn('parent_id', $current)->pluck('id')->map(fn ($id): int => (int) $id)->all();
-            $depth++;
-        }
-
-        return collect($ids)->unique()->map(fn ($id): string => (string) $id)->values()->all();
+        return $this->branchIdsFromRoots([(int) $root->getKey()]);
     }
 
     public function menusByIds(array $ids): Collection
@@ -151,7 +140,11 @@ class MenuService
                     })
                     ->first();
 
-                if ($existing && ! $existing->trashed()) {
+                $existingIsVisible = $existing
+                    && ! $existing->trashed()
+                    && ($existing->parent_id === null || AdminMenu::query()->whereKey($existing->parent_id)->exists());
+
+                if ($existingIsVisible) {
                     continue;
                 }
 
@@ -205,7 +198,9 @@ class MenuService
                 ];
 
                 if ($existing) {
-                    $existing->restore();
+                    if ($existing->trashed()) {
+                        $existing->restore();
+                    }
                     $existing->fill($data)->save();
                 } else {
                     AdminMenu::query()->create($data);
@@ -229,7 +224,10 @@ class MenuService
             return false;
         }
 
-        DB::transaction(fn () => $menu->delete());
+        DB::transaction(function () use ($menu): void {
+            $branchIds = array_map('intval', $this->branchIdsFromRoots([(int) $menu->getKey()]));
+            AdminMenu::query()->whereKey($branchIds)->get()->each->delete();
+        });
         AdminMenu::clearMenuCache();
 
         return true;
@@ -269,7 +267,8 @@ class MenuService
         }
 
         $count = DB::transaction(function () use ($ids): int {
-            $menus = AdminMenu::menu()->whereKey($ids)->get();
+            $branchIds = array_map('intval', $this->branchIdsFromRoots($ids));
+            $menus = AdminMenu::query()->whereKey($branchIds)->get();
             $menus->each->delete();
 
             return $menus->count();
@@ -340,6 +339,26 @@ class MenuService
         }
 
         return $query->orderBy('sort_order');
+    }
+
+    private function branchIdsFromRoots(array $rootIds): array
+    {
+        $ids = [];
+        $queue = $this->normalizeIds($rootIds);
+        $depth = 0;
+
+        while ($queue !== [] && $depth < self::MAX_SORT_DEPTH) {
+            $current = array_values(array_unique(array_map('intval', $queue)));
+            $ids = array_merge($ids, $current);
+            $queue = AdminMenu::query()
+                ->whereIn('parent_id', $current)
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+            $depth++;
+        }
+
+        return collect($ids)->unique()->map(fn ($id): string => (string) $id)->values()->all();
     }
 
     private function findMenu(int|string $id): ?AdminMenu
