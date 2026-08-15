@@ -58,7 +58,7 @@ class MenuRouteScannerService
         return $candidates;
     }
 
-    public function persistSelected(array $candidateIds): int
+    public function persistSelected(array $candidateIds, array $displayNames = []): int
     {
         $candidateIds = array_values(array_unique(array_filter(array_map('strval', $candidateIds))));
         if ($candidateIds === []) {
@@ -67,6 +67,12 @@ class MenuRouteScannerService
 
         $approved = collect($this->candidates())
             ->filter(fn (array $candidate): bool => in_array($candidate['id'], $candidateIds, true))
+            ->map(function (array $candidate) use ($displayNames): array {
+                $name = trim((string) ($displayNames[$candidate['id']] ?? $candidate['name']));
+                $candidate['name'] = mb_substr($name !== '' ? $name : $candidate['name'], 0, 255);
+
+                return $candidate;
+            })
             ->values()
             ->all();
 
@@ -129,10 +135,19 @@ class MenuRouteScannerService
     private function displayName(string $routeName, string $uri): string
     {
         $segments = explode('.', $routeName);
-        $tail = array_values(array_filter(array_slice($segments, 1), fn (string $segment): bool => ! in_array($segment, ['index', 'show', 'create', 'edit'], true)));
-        $source = end($tail) ?: basename(trim($uri, '/')) ?: 'Menu';
+        $segments = array_values(array_filter(array_slice($segments, 1)));
 
-        return Str::headline(str_replace(['-', '_'], ' ', (string) $source));
+        $ignoredActions = ['index', 'show', 'create', 'edit', 'list', 'view'];
+        $meaningful = array_values(array_filter($segments, fn (string $segment): bool => ! in_array($segment, $ignoredActions, true)));
+
+        if ($meaningful !== []) {
+            $source = implode(' ', $meaningful);
+        } else {
+            $uriSegments = array_values(array_filter(explode('/', trim($uri, '/'))));
+            $source = implode(' ', array_slice($uriSegments, 1)) ?: 'Menu';
+        }
+
+        return Str::headline(str_replace(['-', '_', '.'], ' ', $source));
     }
 
     private function permissionFromMiddleware(Route $route): ?string
