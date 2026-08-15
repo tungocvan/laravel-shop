@@ -60,9 +60,21 @@ class PartnerReport extends Component
     public function updatedFromDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
     public function updatedToDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
 
-    public function showPartnerDetail(string $name, string $taxCode): void
+    public function showPartnerDetail(string $key): void
     {
-        $this->partnerDetail = $this->reportService->partnerDetail($this->filters(), $name, $taxCode);
+        $decoded = base64_decode($key, true);
+        $payload = $decoded !== false ? json_decode($decoded, true) : null;
+
+        if (! is_array($payload) || ! isset($payload['name'], $payload['tax_code'])) {
+            $this->partnerDetail = null;
+            return;
+        }
+
+        $this->partnerDetail = $this->reportService->partnerDetail(
+            $this->filters(),
+            (string) $payload['name'],
+            (string) $payload['tax_code']
+        );
     }
 
     public function closePartnerDetail(): void
