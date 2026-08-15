@@ -80,10 +80,10 @@ class MenuLivewireRefactorContractTest extends TestCase
     {
         $scanner = file_get_contents(base_path('Modules/Admin/Services/MenuRouteScannerService.php'));
 
-        $this->assertStringContainsString("in_array('GET', $methods, true)", $scanner);
-        $this->assertStringContainsString("str_starts_with($name, 'admin.')", $scanner);
-        $this->assertStringContainsString("str_starts_with($uri, 'admin/')", $scanner);
-        $this->assertStringContainsString("str_contains($uri, '{')", $scanner);
-        $this->assertStringContainsString("str_starts_with($middleware, 'permission:')", $scanner);
+        $this->assertStringContainsString("in_array('GET', \$methods, true)", $scanner);
+        $this->assertStringContainsString("str_starts_with(\$name, 'admin.')", $scanner);
+        $this->assertStringContainsString("str_starts_with(\$uri, 'admin/')", $scanner);
+        $this->assertStringContainsString("str_contains(\$uri, '{')", $scanner);
+        $this->assertStringContainsString("str_starts_with(\$middleware, 'permission:')", $scanner);
     }
 }
