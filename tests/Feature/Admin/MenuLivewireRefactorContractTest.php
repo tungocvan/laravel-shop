@@ -105,4 +105,18 @@ class MenuLivewireRefactorContractTest extends TestCase
         $this->assertStringContainsString("moduleFilter === 'all'", $view);
         $this->assertStringContainsString('x-data="{ expanded: false }"', $item);
     }
+
+    public function test_scanned_menu_creation_reuses_soft_deleted_slugs_and_handles_failures_in_livewire(): void
+    {
+        $service = file_get_contents(base_path('Modules/Admin/Services/MenuService.php'));
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Menus/MenuTable.php'));
+
+        $this->assertStringContainsString('AdminMenu::withTrashed()', $service);
+        $this->assertStringContainsString("->where('slug', \$parentSlug)->first()", $service);
+        $this->assertStringContainsString('if ($parent->trashed())', $service);
+        $this->assertStringContainsString('$parent->restore();', $service);
+        $this->assertStringContainsString('$existing->restore();', $service);
+        $this->assertStringContainsString('try {', $component);
+        $this->assertStringContainsString('Khong the them route vao Menu.', $component);
+    }
 }
