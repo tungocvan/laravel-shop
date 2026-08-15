@@ -32,6 +32,8 @@ class SubmissionTable extends Component
 
     public bool $confirmingDelete = false;
 
+    public bool $confirmingDeleteAll = false;
+
     public function mount(): void
     {
         $this->authorizePermission('administrative.submission.view');
@@ -86,7 +88,23 @@ class SubmissionTable extends Component
         $this->authorizePermission('administrative.submission.delete');
         $count = $service->softDeleteMany($this->selectedIds, (int) Auth::guard('admin')->id());
         $this->reset(['selectedIds', 'selectAll', 'confirmingDelete']);
+        $this->resetPage();
         $this->dispatch('notify', content: "Đã lưu trữ {$count} hồ sơ.", type: 'success');
+    }
+
+    public function requestDeleteAll(): void
+    {
+        $this->authorizePermission('administrative.submission.delete');
+        $this->confirmingDeleteAll = true;
+    }
+
+    public function deleteAll(SubmissionService $service): void
+    {
+        $this->authorizePermission('administrative.submission.delete');
+        $count = $service->softDeleteAll((int) Auth::guard('admin')->id());
+        $this->reset(['selectedIds', 'selectAll', 'confirmingDelete', 'confirmingDeleteAll']);
+        $this->resetPage();
+        $this->dispatch('notify', content: "Đã lưu trữ toàn bộ {$count} hồ sơ.", type: 'success');
     }
 
     public function render(SubmissionService $service)
