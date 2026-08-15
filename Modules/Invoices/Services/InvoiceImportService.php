@@ -37,13 +37,27 @@ class InvoiceImportService
         $report = $this->importExportService->importForType($filePath, $type);
         $success = (int) ($report['success_rows'] ?? 0);
         $skipped = (int) ($report['skipped_rows'] ?? 0);
+        $errors = (int) ($report['error_rows'] ?? 0);
+        $total = (int) ($report['total_rows'] ?? ($success + $skipped + $errors));
+        $ok = (bool) ($report['success'] ?? false);
 
-        if (! ($report['ok'] ?? false) && ! empty($report['errors'])) {
-            $first = $report['errors'][0]['message'] ?? 'Import hóa đơn không thành công.';
-            $callback && $callback("❌ {$first}");
+        if ($errors > 0) {
+            $first = $report['errors'][0]['reason'] ?? 'Có dòng dữ liệu không hợp lệ.';
+
+            if ($success > 0 || $skipped > 0) {
+                $callback && $callback(
+                    "⚠️ Import một phần: {$success} thành công, {$skipped} bỏ qua, {$errors} lỗi. Lỗi đầu tiên: {$first}"
+                );
+            } else {
+                $callback && $callback("❌ Import thất bại: {$errors}/{$total} dòng lỗi. Lỗi đầu tiên: {$first}");
+            }
+        } elseif ($ok) {
+            $callback && $callback('✅ Dữ liệu hợp lệ, không phát hiện lỗi import.');
         }
 
-        $callback && $callback("🎉 Hoàn tất! Import: {$success} – Bỏ qua: {$skipped}");
+        $callback && $callback(
+            "🎉 Hoàn tất! Tổng: {$total} – Import: {$success} – Bỏ qua: {$skipped} – Lỗi: {$errors}"
+        );
 
         return $success;
     }
