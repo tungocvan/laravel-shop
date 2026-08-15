@@ -19,28 +19,17 @@ class HoadonList extends Component
     protected MeInvoiceService $meInvoiceService;
 
     public ?string $downloadStatus = null;
-
     public ?string $type = null;
-
     public string $name = '';
-
     public string $tax_code = '';
-
     public string $from_date = '';
-
     public string $to_date = '';
-
     public string $taxRateFilter = 'all';
-
     public array $nameList = [];
-
     public array $taxCodeList = [];
-
     public array $selected = [];
-
-    public string|int $perPage = 10;
-
-    public array $perPageOptions = [10, 25, 50, 100, 'All'];
+    public int $perPage = 10;
+    public array $perPageOptions = [10, 25, 50, 100];
 
     protected $queryString = [
         'type', 'name', 'tax_code', 'from_date', 'to_date', 'taxRateFilter', 'perPage',
@@ -54,103 +43,70 @@ class HoadonList extends Component
 
     public function mount(): void
     {
+        $this->perPage = $this->normalizedPerPage($this->perPage);
         $this->from_date = $this->from_date ?: Carbon::now()->startOfYear()->format('Y-m-d');
         $this->to_date = $this->to_date ?: Carbon::now()->format('Y-m-d');
         $this->refreshOptions();
     }
 
-    public function updatedType(): void
-    {
-        $this->name = '';
-        $this->tax_code = '';
-        $this->taxRateFilter = 'all';
-        $this->refreshOptions();
-        $this->resetPage();
-    }
+    public function updatedType(): void { $this->name = ''; $this->tax_code = ''; $this->taxRateFilter = 'all'; $this->resetListState(true); }
+    public function updatedName(): void { $this->tax_code = ''; $this->resetListState(true); }
+    public function updatedTaxCode(): void { $this->resetListState(); }
+    public function updatedFromDate(): void { $this->resetListState(true); }
+    public function updatedToDate(): void { $this->resetListState(true); }
+    public function updatedTaxRateFilter(): void { $this->resetListState(); }
 
-    public function updatedName(): void
+    public function updatedPerPage(mixed $value): void
     {
-        $this->tax_code = '';
-        $this->refreshOptions();
-        $this->resetPage();
-    }
-
-    public function updatedTaxCode(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedFromDate(): void
-    {
-        $this->refreshOptions();
-        $this->resetPage();
-    }
-
-    public function updatedToDate(): void
-    {
-        $this->refreshOptions();
-        $this->resetPage();
-    }
-
-    public function updatedPerPage(): void
-    {
+        $this->perPage = $this->normalizedPerPage($value);
+        $this->selected = [];
         $this->resetPage();
     }
 
     public function resetTomSelect(string $refName): void
     {
         $refName === 'nameSelect' ? $this->tax_code = '' : $this->name = '';
-        $this->refreshOptions();
+        $this->resetListState(true);
     }
 
     public function resetFilters(): void
     {
+        $this->type = null;
         $this->name = '';
         $this->tax_code = '';
+        $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
+        $this->to_date = Carbon::now()->format('Y-m-d');
         $this->taxRateFilter = 'all';
+        $this->selected = [];
         $this->refreshOptions();
         $this->resetPage();
     }
 
-    public function getFilteredTotalAmountProperty(): mixed
-    {
-        return $this->statistics()['total_amount'];
-    }
-
-    public function getFilteredInvoiceCountProperty(): int
-    {
-        return $this->statistics()['count'];
-    }
-
-    public function getFilteredTotalByTaxRateProperty(): array
-    {
-        return $this->statistics()['by_tax_rate'];
-    }
-
-    public function getFilteredTotalVatProperty(): mixed
-    {
-        return $this->statistics()['vat_amount'];
-    }
+    public function getFilteredTotalAmountProperty(): mixed { return $this->statistics()['total_amount']; }
+    public function getFilteredInvoiceCountProperty(): int { return $this->statistics()['count']; }
+    public function getFilteredTotalByTaxRateProperty(): array { return $this->statistics()['by_tax_rate']; }
+    public function getFilteredTotalVatProperty(): mixed { return $this->statistics()['vat_amount']; }
 
     public function exportSelected()
     {
-        if ($this->selected === []) {
-            $this->dispatch('alert', type: 'warning', message: 'Vui lòng chọn hóa đơn trước khi xuất.');
+        $this->authorizePermission('invoices-export');
 
-            return null;
-        }
+        $records = $this->selected === []
+            ? $this->invoiceService->filter($this->filters())
+            : $this->invoiceService->selected($this->selected);
 
         return Excel::download(
-            new InvoicesSelectedExport($this->invoiceService->selected($this->selected)),
-            'hoadon_chon_'.now()->format('Ymd_His').'.xlsx'
+            new InvoicesSelectedExport($records),
+            'hoadon_'.($this->selected === [] ? 'loc' : 'chon').'_'.now()->format('Ymd_His').'.xlsx'
         );
     }
 
     public function downloadSelected(): void
     {
-        if ($this->selected === []) {
-            $this->dispatch('alert', type: 'warning', message: 'Vui lòng chọn hóa đơn trước khi tải.');
+        $this->authorizePermission('invoices-download');
 
+        if ($this->selected === []) {
+            $this->dispatch('alert', type: 'warning', message: 'Vui lòng chọn hóa đơn trước khi tải PDF.');
             return;
         }
 
@@ -180,6 +136,15 @@ class HoadonList extends Component
         ]);
     }
 
+    private function resetListState(bool $refreshOptions = false): void
+    {
+        $this->selected = [];
+        if ($refreshOptions) {
+            $this->refreshOptions();
+        }
+        $this->resetPage();
+    }
+
     private function refreshOptions(): void
     {
         $options = $this->invoiceService->filterOptions($this->filters());
@@ -187,10 +152,7 @@ class HoadonList extends Component
         $this->taxCodeList = $options['tax_codes'];
     }
 
-    private function statistics(): array
-    {
-        return $this->invoiceService->statistics($this->filters());
-    }
+    private function statistics(): array { return $this->invoiceService->statistics($this->filters()); }
 
     private function filters(): array
     {
@@ -202,5 +164,16 @@ class HoadonList extends Component
             'issued_date_to' => $this->to_date,
             'tax_rate' => $this->taxRateFilter,
         ];
+    }
+
+    private function normalizedPerPage(mixed $value): int
+    {
+        $value = (int) $value;
+        return in_array($value, $this->perPageOptions, true) ? $value : 10;
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }
