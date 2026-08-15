@@ -18,6 +18,9 @@ class HoadonList extends Component
     protected InvoicePdfService $pdfService;
 
     public ?string $downloadStatus = null;
+    public ?string $pdfNotice = null;
+    public ?string $pdfError = null;
+    public ?int $pdfProcessingId = null;
     public ?string $type = null;
     public string $name = '';
     public string $tax_code = '';
@@ -75,6 +78,8 @@ class HoadonList extends Component
         $this->to_date = Carbon::now()->format('Y-m-d');
         $this->taxRateFilter = 'all';
         $this->selected = [];
+        $this->pdfNotice = null;
+        $this->pdfError = null;
         $this->refreshOptions();
         $this->resetPage();
     }
@@ -95,8 +100,11 @@ class HoadonList extends Component
     public function downloadSelected(): void
     {
         $this->authorizePermission('invoices-download');
+        $this->pdfNotice = null;
+        $this->pdfError = null;
+
         if ($this->selected === []) {
-            $this->dispatch('alert', type: 'warning', message: 'Vui lòng chọn hóa đơn trước khi tải PDF.');
+            $this->pdfError = 'Vui lòng chọn hóa đơn trước khi tải PDF.';
             return;
         }
 
@@ -104,18 +112,30 @@ class HoadonList extends Component
         $result = $this->pdfService->downloadSelected($this->selected);
         $this->downloadStatus = $result['failed'] > 0 ? 'error' : 'success';
         $message = "PDF mới: {$result['downloaded']} · Đã có: {$result['existing']} · Lỗi: {$result['failed']}";
-        $this->dispatch($result['failed'] > 0 ? 'alert' : 'download-success', type: $result['failed'] > 0 ? 'warning' : 'success', message: $message);
+
+        if ($result['failed'] > 0) {
+            $detail = $result['errors'][0] ?? null;
+            $this->pdfError = $detail ? $message.' · '.$detail : $message;
+        } else {
+            $this->pdfNotice = $message;
+        }
     }
 
     public function downloadPdf(int $invoiceId, bool $force = false): void
     {
         $this->authorizePermission('invoices-download');
+        $this->pdfNotice = null;
+        $this->pdfError = null;
+        $this->pdfProcessingId = $invoiceId;
 
         try {
-            $this->pdfService->downloadInvoice($invoiceId, $force);
-            $this->dispatch('download-success', type: 'success', message: $force ? 'Đã tải lại PDF hóa đơn.' : 'Đã tải PDF hóa đơn.');
+            $path = $this->pdfService->downloadInvoice($invoiceId, $force);
+            $filename = basename($path);
+            $this->pdfNotice = ($force ? 'Đã tải lại PDF hóa đơn: ' : 'Đã tải PDF hóa đơn: ').$filename;
         } catch (\Throwable $exception) {
-            $this->dispatch('alert', type: 'error', message: $exception->getMessage());
+            $this->pdfError = $exception->getMessage();
+        } finally {
+            $this->pdfProcessingId = null;
         }
     }
 
