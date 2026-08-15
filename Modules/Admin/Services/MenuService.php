@@ -145,13 +145,13 @@ class MenuService
                     continue;
                 }
 
-                $exists = AdminMenu::menu()
+                $existing = AdminMenu::withTrashed()
                     ->where(function (Builder $query) use ($routeName, $url): void {
                         $query->where('slug', $routeName)->orWhere('url', $url);
                     })
-                    ->exists();
+                    ->first();
 
-                if ($exists) {
+                if ($existing && ! $existing->trashed()) {
                     continue;
                 }
 
@@ -159,9 +159,22 @@ class MenuService
                 if ($group !== '') {
                     if (! array_key_exists($group, $parents)) {
                         $parentSlug = 'module-'.Str::slug($group);
-                        $parent = AdminMenu::menu()->where('slug', $parentSlug)->first();
+                        $parent = AdminMenu::withTrashed()->where('slug', $parentSlug)->first();
 
-                        if (! $parent) {
+                        if ($parent) {
+                            if ($parent->trashed()) {
+                                $parent->restore();
+                            }
+
+                            $parent->fill([
+                                'name' => Str::headline($group),
+                                'url' => null,
+                                'icon' => 'folder',
+                                'can' => null,
+                                'parent_id' => null,
+                                'is_active' => true,
+                            ])->save();
+                        } else {
                             $parent = AdminMenu::query()->create([
                                 'name' => Str::headline($group),
                                 'slug' => $parentSlug,
@@ -180,7 +193,7 @@ class MenuService
                     $parentId = $parents[$group];
                 }
 
-                AdminMenu::query()->create([
+                $data = [
                     'name' => $name,
                     'slug' => $routeName,
                     'url' => $url,
@@ -189,7 +202,15 @@ class MenuService
                     'parent_id' => $parentId,
                     'is_active' => true,
                     'sort_order' => ((int) AdminMenu::menu()->where('parent_id', $parentId)->max('sort_order')) + 1,
-                ]);
+                ];
+
+                if ($existing) {
+                    $existing->restore();
+                    $existing->fill($data)->save();
+                } else {
+                    AdminMenu::query()->create($data);
+                }
+
                 $count++;
             }
 
