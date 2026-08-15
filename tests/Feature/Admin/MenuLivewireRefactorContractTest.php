@@ -87,7 +87,7 @@ class MenuLivewireRefactorContractTest extends TestCase
         $this->assertStringContainsString("str_starts_with(\$middleware, 'permission:')", $scanner);
     }
 
-    public function test_scanner_display_name_is_editable_and_submenus_start_collapsed(): void
+    public function test_scanner_display_name_is_editable_module_filterable_and_submenus_start_collapsed(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Menus/MenuTable.php'));
         $scanner = file_get_contents(base_path('Modules/Admin/Services/MenuRouteScannerService.php'));
@@ -99,6 +99,10 @@ class MenuLivewireRefactorContractTest extends TestCase
         $this->assertStringContainsString('public function persistSelected(array $candidateIds, array $displayNames = []): int', $scanner);
         $this->assertStringContainsString('wire:model="routeCandidateNames.', $view);
         $this->assertStringContainsString('Tên hiển thị gợi ý', $view);
+        $this->assertStringContainsString('id="route-module-filter"', $view);
+        $this->assertStringContainsString('x-model="moduleFilter"', $view);
+        $this->assertStringContainsString('Tất cả Module', $view);
+        $this->assertStringContainsString("moduleFilter === 'all'", $view);
         $this->assertStringContainsString('x-data="{ expanded: false }"', $item);
     }
 }
