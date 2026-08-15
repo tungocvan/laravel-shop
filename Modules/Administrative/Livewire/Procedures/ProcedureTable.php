@@ -16,9 +16,9 @@ class ProcedureTable extends Component
 
     public string $status = '';
 
-    public string|int $perPage = 10;
+    public int $perPage = 10;
 
-    public array $perPageOptions = [10, 25, 50, 100, 'All'];
+    public array $perPageOptions = [10, 25, 50, 100];
 
     public ?int $pendingArchiveId = null;
 
