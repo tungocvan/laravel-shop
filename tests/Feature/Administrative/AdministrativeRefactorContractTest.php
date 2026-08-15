@@ -91,11 +91,12 @@ class AdministrativeRefactorContractTest extends TestCase
         $panel = file_get_contents(base_path('Modules/Shared/Livewire/ImportExport/Panel.php'));
         $module = require base_path('Modules/Administrative/config/module.php');
         $unsafeLookupExport = "'lookup_token_hash' => ".'$model';
+        $selectedIdsBinding = "'selected_ids' => ".'$selectedIds';
 
         $this->assertStringContainsString('extends BaseImportExportService', $service);
         $this->assertStringContainsString("'lookup_token' => ['nullable'", $service);
         $this->assertStringContainsString('AdministrativeSubmission::withTrashed()', $service);
-        $this->assertStringContainsString("'selected_ids' => $selectedIds", $view);
+        $this->assertStringContainsString($selectedIdsBinding, $view);
         $this->assertStringContainsString('#[Reactive]', $panel);
         $this->assertStringContainsString('Hash::make($lookupToken)', $service);
         $this->assertStringContainsString("'[REDACTED]'", $service);
