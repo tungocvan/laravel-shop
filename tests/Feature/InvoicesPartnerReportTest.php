@@ -23,6 +23,7 @@ class InvoicesPartnerReportTest extends TestCase
             $filters = ['issued_date_from'=>'2026-08-01','issued_date_to'=>'2026-08-31'];
             $summary = $service->summary($filters);
             $partners = $service->exportRows($filters);
+            $detail = $service->partnerDetail($filters, 'Công ty A', '0312345678');
 
             $this->assertSame(2, $summary['invoice_count']);
             $this->assertSame('1000', (string) $summary['sold_total']);
@@ -30,6 +31,13 @@ class InvoicesPartnerReportTest extends TestCase
             $this->assertCount(1, $partners);
             $this->assertSame(2, (int) $partners->first()->invoice_count);
             $this->assertSame('600', (string) $partners->first()->net_total);
+
+            $this->assertSame(1, $detail['sold_count']);
+            $this->assertSame(1, $detail['purchase_count']);
+            $this->assertSame('100', (string) $detail['sold_vat']);
+            $this->assertSame('40', (string) $detail['purchase_vat']);
+            $this->assertSame(600.0, $detail['total_difference']);
+            $this->assertSame(60.0, $detail['vat_difference']);
         } finally {
             Schema::dropIfExists('invoice_files');
             Schema::dropIfExists('invoices');
