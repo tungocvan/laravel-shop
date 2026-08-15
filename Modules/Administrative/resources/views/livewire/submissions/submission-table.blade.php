@@ -8,13 +8,9 @@
             @livewire('shared.import-export.panel', [
                 'serviceClass' => \Modules\Administrative\Services\ImportExport::class,
                 'title' => 'Import / Export hồ sơ hành chính',
-                'description' => 'Tải file mẫu, dry-run, import Excel/CSV hoặc export hồ sơ theo bộ lọc hiện tại.',
+                'description' => 'Không chọn hồ sơ: export toàn bộ. Có chọn checkbox: chỉ export các hồ sơ đã chọn. File export có thể import ngược để cập nhật dữ liệu.',
                 'filters' => [
-                    'search' => $search,
-                    'status' => $status,
-                    'procedure_id' => $procedure_id,
-                    'date_from' => $date_from,
-                    'date_to' => $date_to,
+                    'selected_ids' => $selectedIds,
                 ],
                 'permission' => 'administrative.submission.import_export',
             ], key('administrative-submission-import-export'))
@@ -31,25 +27,28 @@
             <button type="button" wire:click="resetFilters" class="text-sm font-semibold text-indigo-600 lg:col-span-7 lg:justify-self-end">Xóa bộ lọc</button>
         </div>
 
-        @if(auth('admin')->user()?->can('administrative.submission.delete'))
+        @php($canSelect = auth('admin')->user()?->can('administrative.submission.delete') || auth('admin')->user()?->can('administrative.submission.import_export'))
+        @if($canSelect)
             <div class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <span class="text-sm text-gray-600">Đã chọn: <strong>{{ count($selectedIds) }}</strong> hồ sơ</span>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" wire:click="requestDelete" @disabled($selectedIds === []) class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Xóa hồ sơ đã chọn</button>
-                    <button type="button" wire:click="requestDeleteAll" @disabled($stats['total'] === 0) class="rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">Xóa tất cả</button>
-                </div>
+                @if(auth('admin')->user()?->can('administrative.submission.delete'))
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" wire:click="requestDelete" @disabled($selectedIds === []) class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Xóa hồ sơ đã chọn</button>
+                        <button type="button" wire:click="requestDeleteAll" @disabled($stats['total'] === 0) class="rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">Xóa tất cả</button>
+                    </div>
+                @endif
             </div>
         @endif
 
         <div wire:loading.delay class="px-4 py-3 text-sm text-indigo-600">Đang tải dữ liệu...</div>
         <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-gray-50"><tr>
-            @if(auth('admin')->user()?->can('administrative.submission.delete'))<th class="w-12 px-4 py-3"><input type="checkbox" wire:click="toggleSelectPage({{ Illuminate\Support\Js::from($submissions->pluck('id')->values()) }})" @checked($selectAll) aria-label="Chọn tất cả hồ sơ trên trang"></th>@endif
+            @if($canSelect)<th class="w-12 px-4 py-3"><input type="checkbox" wire:click="toggleSelectPage({{ Illuminate\Support\Js::from($submissions->pluck('id')->values()) }})" @checked($selectAll) aria-label="Chọn tất cả hồ sơ trên trang"></th>@endif
             @foreach(['Mã hồ sơ','Thủ tục','Người nộp / Học sinh','Ngày nộp','Trạng thái','Xử lý',''] as $heading)<th class="px-4 py-3 text-left font-semibold text-gray-700">{{ $heading }}</th>@endforeach
         </tr></thead><tbody class="divide-y divide-gray-200 bg-white">
         @forelse($submissions as $item)@php($s=$item->status->value)<tr>
-            @if(auth('admin')->user()?->can('administrative.submission.delete'))<td class="px-4 py-4"><input type="checkbox" wire:model.live="selectedIds" value="{{ $item->id }}" aria-label="Chọn hồ sơ {{ $item->submission_code }}"></td>@endif
+            @if($canSelect)<td class="px-4 py-4"><input type="checkbox" wire:model.live="selectedIds" value="{{ $item->id }}" aria-label="Chọn hồ sơ {{ $item->submission_code }}"></td>@endif
             <td class="whitespace-nowrap px-4 py-4 font-semibold text-indigo-700">{{ $item->submission_code }}</td><td class="max-w-xs px-4 py-4"><div class="font-medium text-gray-900">{{ $item->procedure->name }}</div><div class="text-xs text-gray-500">{{ $item->procedure->code }}</div></td><td class="px-4 py-4"><div>{{ $item->applicant_name }}</div><div class="text-xs text-gray-500">HS: {{ $item->student_name }} · {{ $item->phone }}</div></td><td class="whitespace-nowrap px-4 py-4 text-gray-600">{{ $item->submitted_at->format('d/m/Y H:i') }}</td><td class="px-4 py-4"><span class="rounded-full px-3 py-1 text-xs font-medium {{ $s === 'pending' ? 'bg-amber-50 text-amber-700' : ($s === 'approved' ? 'bg-green-50 text-green-700' : ($s === 'need_supplement' ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700')) }}">{{ ['pending'=>'Chờ duyệt','need_supplement'=>'Chờ bổ sung','approved'=>'Đã duyệt','rejected'=>'Bị từ chối'][$s] }}</span></td><td class="px-4 py-4 text-gray-600">{{ $item->processor?->name ?? '-' }}</td><td class="px-4 py-4 text-right"><a href="{{ route('admin.administrative.submissions.show', $item->id) }}" class="font-semibold text-indigo-600">Chi tiết</a></td>
-        </tr>@empty<tr><td colspan="{{ auth('admin')->user()?->can('administrative.submission.delete') ? 8 : 7 }}" class="p-8 text-center"><h3 class="font-semibold text-gray-900">Không có hồ sơ</h3><p class="mt-1 text-sm text-gray-500">Thử thay đổi bộ lọc tìm kiếm.</p></td></tr>@endforelse
+        </tr>@empty<tr><td colspan="{{ $canSelect ? 8 : 7 }}" class="p-8 text-center"><h3 class="font-semibold text-gray-900">Không có hồ sơ</h3><p class="mt-1 text-sm text-gray-500">Thử thay đổi bộ lọc tìm kiếm.</p></td></tr>@endforelse
         </tbody></table></div>
         @if($submissions->hasPages())<div class="border-t border-gray-200 px-4 py-4">{{ $submissions->links('Administrative::components.pagination') }}</div>@endif
     </div>
