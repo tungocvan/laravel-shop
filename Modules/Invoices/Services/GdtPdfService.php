@@ -15,17 +15,12 @@ class GdtPdfService
 
     public function downloadInvoice(Invoices $invoice, bool $force = false): string
     {
-        $lookupCode = trim((string) $invoice->lookup_code);
-        if ($lookupCode === '') {
-            throw new RuntimeException('Hóa đơn chưa có mã tra cứu.');
-        }
-
-        if (! $force && $this->fileService->exists($lookupCode)) {
-            return $this->fileService->pdfPath($lookupCode);
+        if (! $force && $this->fileService->existsForInvoice($invoice)) {
+            return $this->fileService->pdfPathForInvoice($invoice);
         }
 
         $detail = $this->fetchDetail($invoice);
-        $path = $this->fileService->targetPdfPath($lookupCode);
+        $path = $this->fileService->targetPdfPathForInvoice($invoice);
         $directory = dirname($path);
 
         if (! is_dir($directory) && ! mkdir($directory, 0775, true) && ! is_dir($directory)) {

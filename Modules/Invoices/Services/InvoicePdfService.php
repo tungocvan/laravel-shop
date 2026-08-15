@@ -12,43 +12,36 @@ class InvoicePdfService
         private readonly InvoiceFileService $fileService,
     ) {}
 
-    public function statusFor(string $lookupCode): string
+    public function statusForInvoice(Invoices $invoice): string
     {
-        if ($lookupCode === '') {
+        if (! $this->canResolveGdtIdentity($invoice)) {
             return 'unsupported';
         }
 
-        return $this->fileService->exists($lookupCode) ? 'available' : 'missing';
+        return $this->fileService->existsForInvoice($invoice) ? 'available' : 'missing';
     }
 
     public function downloadInvoice(int $invoiceId, bool $force = false): string
     {
         $invoice = Invoices::query()->findOrFail($invoiceId);
-        $lookupCode = trim((string) $invoice->lookup_code);
 
-        if ($lookupCode === '') {
-            throw new \RuntimeException('Hóa đơn chưa có mã tra cứu nên không thể tải PDF.');
+        if (! $this->canResolveGdtIdentity($invoice)) {
+            throw new \RuntimeException('Hóa đơn thiếu thông tin định danh để lấy PDF từ GDT.');
         }
 
-        if (! $force && $this->fileService->exists($lookupCode)) {
-            return $this->fileService->pdfPath($lookupCode);
+        if (! $force && $this->fileService->existsForInvoice($invoice)) {
+            return $this->fileService->pdfPathForInvoice($invoice);
         }
 
         try {
             return $this->gdtPdfService->downloadInvoice($invoice, $force);
         } catch (\Throwable $gdtException) {
-            if (! config('invoices.meinvoice.token')) {
-                throw new \RuntimeException('Không thể tạo PDF từ GDT: '.$gdtException->getMessage(), previous: $gdtException);
+            $lookupCode = trim((string) $invoice->lookup_code);
+            if ($lookupCode !== '' && config('invoices.meinvoice.token')) {
+                return $this->meInvoiceService->downloadOne($lookupCode, $force);
             }
 
-            try {
-                return $this->meInvoiceService->downloadOne($lookupCode, $force);
-            } catch (\Throwable $meInvoiceException) {
-                throw new \RuntimeException(
-                    'GDT: '.$gdtException->getMessage().' | MeInvoice: '.$meInvoiceException->getMessage(),
-                    previous: $meInvoiceException
-                );
-            }
+            throw $gdtException;
         }
     }
 
@@ -65,13 +58,13 @@ class InvoicePdfService
         foreach ($ids as $id) {
             try {
                 $invoice = Invoices::query()->find($id);
-                if (! $invoice || ! $invoice->lookup_code) {
+                if (! $invoice || ! $this->canResolveGdtIdentity($invoice)) {
                     $result['failed']++;
-                    $result['errors'][] = "ID {$id}: thiếu mã tra cứu.";
+                    $result['errors'][] = "ID {$id}: thiếu thông tin định danh GDT.";
                     continue;
                 }
 
-                $alreadyExists = $this->fileService->exists((string) $invoice->lookup_code);
+                $alreadyExists = $this->fileService->existsForInvoice($invoice);
                 $this->downloadInvoice($id, $force);
 
                 if ($alreadyExists && ! $force) {
@@ -86,5 +79,12 @@ class InvoicePdfService
         }
 
         return $result;
+    }
+
+    private function canResolveGdtIdentity(Invoices $invoice): bool
+    {
+        return trim((string) $invoice->tax_code) !== ''
+            && trim((string) $invoice->symbol) !== ''
+            && trim((string) $invoice->invoice_number) !== '';
     }
 }
