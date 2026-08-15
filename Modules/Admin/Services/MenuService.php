@@ -19,6 +19,31 @@ class MenuService
         return $this->query($filters)->pluck('id')->map(fn ($id): string => (string) $id)->toArray();
     }
 
+    public function idsForBranch(int|string $menuId): array
+    {
+        if (! is_numeric($menuId)) {
+            return [];
+        }
+
+        $root = AdminMenu::menu()->whereKey((int) $menuId)->first();
+        if (! $root) {
+            return [];
+        }
+
+        $ids = [];
+        $queue = [(int) $root->getKey()];
+        $depth = 0;
+
+        while ($queue !== [] && $depth < self::MAX_SORT_DEPTH) {
+            $current = array_values(array_unique(array_map('intval', $queue)));
+            $ids = array_merge($ids, $current);
+            $queue = AdminMenu::menu()->whereIn('parent_id', $current)->pluck('id')->map(fn ($id): int => (int) $id)->all();
+            $depth++;
+        }
+
+        return collect($ids)->unique()->map(fn ($id): string => (string) $id)->values()->all();
+    }
+
     public function menusByIds(array $ids): Collection
     {
         $ids = $this->normalizeIds($ids);
@@ -98,6 +123,82 @@ class MenuService
 
             return $menu;
         });
+    }
+
+    public function createScannedMenus(array $candidates): int
+    {
+        if ($candidates === []) {
+            return 0;
+        }
+
+        $created = DB::transaction(function () use ($candidates): int {
+            $count = 0;
+            $parents = [];
+
+            foreach ($candidates as $candidate) {
+                $routeName = trim((string) ($candidate['route_name'] ?? ''));
+                $url = $this->nullableString($candidate['url'] ?? null);
+                $name = trim((string) ($candidate['name'] ?? ''));
+                $group = trim((string) ($candidate['group'] ?? ''));
+
+                if ($routeName === '' || $url === null || $name === '') {
+                    continue;
+                }
+
+                $exists = AdminMenu::menu()
+                    ->where(function (Builder $query) use ($routeName, $url): void {
+                        $query->where('slug', $routeName)->orWhere('url', $url);
+                    })
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                $parentId = null;
+                if ($group !== '') {
+                    if (! array_key_exists($group, $parents)) {
+                        $parentSlug = 'module-'.Str::slug($group);
+                        $parent = AdminMenu::menu()->where('slug', $parentSlug)->first();
+
+                        if (! $parent) {
+                            $parent = AdminMenu::query()->create([
+                                'name' => Str::headline($group),
+                                'slug' => $parentSlug,
+                                'url' => null,
+                                'icon' => 'folder',
+                                'can' => null,
+                                'parent_id' => null,
+                                'is_active' => true,
+                                'sort_order' => ((int) AdminMenu::menu()->max('sort_order')) + 1,
+                            ]);
+                        }
+
+                        $parents[$group] = (int) $parent->getKey();
+                    }
+
+                    $parentId = $parents[$group];
+                }
+
+                AdminMenu::query()->create([
+                    'name' => $name,
+                    'slug' => $routeName,
+                    'url' => $url,
+                    'icon' => $this->nullableString($candidate['icon'] ?? null),
+                    'can' => $this->nullableString($candidate['permission'] ?? null),
+                    'parent_id' => $parentId,
+                    'is_active' => true,
+                    'sort_order' => ((int) AdminMenu::menu()->where('parent_id', $parentId)->max('sort_order')) + 1,
+                ]);
+                $count++;
+            }
+
+            return $count;
+        });
+
+        AdminMenu::clearMenuCache();
+
+        return $created;
     }
 
     public function delete(int|string $id): bool
