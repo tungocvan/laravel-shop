@@ -4,7 +4,7 @@
 
 `Invoices` is the electronic-invoice domain module for GDT integration, sold/purchase invoice synchronization, local invoice storage, reporting, Excel import/export and PDF retrieval.
 
-Current analysis recommendation: **Major Refactor**, not a rebuild.
+Refactor status: **Major Refactor implemented through R6** on `agent/invoices-refactor`.
 
 ## Registration
 
@@ -15,17 +15,9 @@ Modules/ModuleServiceProvider.php
 Modules/Invoices/config/module.php
 ```
 
-Module type:
+Module type: `domain`.
 
-```text
-domain
-```
-
-Owned table:
-
-```text
-invoices
-```
+Owned table: `invoices`.
 
 Do not use the legacy `module.json` as the architectural source of truth.
 
@@ -40,14 +32,14 @@ Admin prefix:
 Important routes:
 
 ```text
-admin.invoices.index
-admin.invoices.create-token
-admin.invoices.hoadon
-admin.invoices.hoadon-list
-admin.invoices.download
+admin.invoices.index          -> invoices-list
+admin.invoices.create-token   -> invoices-configure
+admin.invoices.hoadon         -> invoices-create
+admin.invoices.hoadon-list    -> invoices-list
+admin.invoices.download       -> invoices-download
 ```
 
-Legacy `/invoices/*` aliases are retained for compatibility.
+Legacy `/invoices/*` aliases are retained for bookmark compatibility.
 
 API:
 
@@ -70,37 +62,85 @@ invoices-download
 invoices-configure
 ```
 
-Future refactor should align route and Livewire actions to these capability-specific permissions.
+Sensitive Livewire mutations for configuration, export and PDF download enforce capability checks server-side. The invoice list UI also hides actions the current admin cannot perform.
 
-## Features
+## Refactor Results
 
-- GDT captcha/login.
-- Server-side GDT token cache.
-- Sold and purchase invoice queries.
-- Queue-based synchronization.
-- Local invoice persistence.
-- Invoice filtering and dashboard statistics.
-- Excel import/export.
-- Selected invoice export.
-- PDF download workflow.
-- MeInvoice integration.
-- Sanctum API.
+### R1 — Authorization / GDT hardening
 
-## Dependencies
+- Route capabilities aligned with module permissions.
+- GDT configuration/login/token actions require `invoices-configure`.
+- Export requires `invoices-export`.
+- PDF actions require `invoices-download`.
+- GDT password is never hydrated back into Livewire public state.
+- GDT config validation rejects newline injection and invalid cache keys.
 
-Main packages/services:
+Runtime `.env` mutation remains a production-risk area and should eventually move to a persistent settings/secrets mechanism; this was not rewritten during the compatibility-focused refactor.
 
-- Laravel HTTP Client.
-- Laravel Cache.
-- Laravel Queue.
-- Laravel Sanctum.
-- Maatwebsite Excel.
-- FastExcel.
-- PhpSpreadsheet.
-- GDT electronic invoice API.
-- MeInvoice API.
+### R2 — List / pagination / admin UX
 
-The module should migrate toward the repository's canonical `Modules/Shared/Services/ImportExport` infrastructure during refactor.
+- Removed unbounded `All` pagination.
+- Allowed page sizes are `10/25/50/100`.
+- Invalid page-size input is normalized server-side.
+- Selection resets when filter/page-size state changes.
+- Invoice list actions are permission-aware.
+- Selected invoice count and clearer export/PDF action labels were added.
+
+### R3 — Import / Export
+
+Canonical service:
+
+```text
+Modules/Invoices/Services/InvoiceImportExportService.php
+```
+
+It extends:
+
+```text
+Modules/Shared/Services/ImportExport/BaseImportExportService.php
+```
+
+Behavior:
+
+- XLSX/CSV import.
+- Vietnamese header aliases.
+- `sold` / `purchase` support.
+- Default `skip_duplicate` mode.
+- Legacy `gdt:import-excel` compatibility through `InvoiceImportService` adapter.
+- Export current filter scope when no row is selected.
+- Export selected IDs when selection exists.
+- Decimal values are normalized as strings rather than through PHP float conversion.
+- Shared export filenames include collision-resistant entropy.
+
+See `IMPORT_EXPORT_PLAN.md` for the detailed contract.
+
+### R4 — Data integrity / idempotency
+
+Current application identity remains:
+
+```text
+lookup_code + invoice_number + issued_date + tax_code
+```
+
+Import duplicate detection uses a date-aware query plus a short cache lock to reduce concurrent duplicate creation. Existing invoice data is not overwritten by a later `skip_duplicate` import with the same identity.
+
+A database unique constraint is intentionally deferred until this identity is validated against production data.
+
+### R5 — Query / statistics / dashboard
+
+- Filtered statistics were consolidated from multiple repeated aggregate queries into one aggregate query.
+- Dashboard totals/customer counts are consolidated into one summary query plus one yearly query.
+- Pagination uses deterministic `issued_date DESC, id DESC` ordering.
+- Selected IDs are sanitized before query use.
+
+### R6 — Final polish
+
+- Permission-aware invoice-list buttons.
+- Bounded pagination UI cleanup.
+- Selected count feedback.
+- Clear distinction between `Xuất theo bộ lọc` and selected-row export.
+- Stale `All` pagination conditions removed from Blade.
+- Documentation updated to match the implemented architecture.
 
 ## Configuration
 
@@ -131,28 +171,15 @@ PDF directory:    hoadon_temp
 
 ## Operational Notes
 
-- GDT token must remain server-side; never expose it to browser/Livewire public state.
-- Stored GDT password must not be hydrated into Livewire state.
+- GDT token stays server-side in cache.
+- Stored GDT password is not exposed through Livewire state.
 - PDF paths are server-controlled through `InvoiceFileService`.
-- Large invoice lists must remain paginated.
-- Imports/exports may become long-running and should support chunk/queue strategies.
-- Current runtime `.env` editing is considered high risk and should be restricted/refactored before broader production use.
+- Invoice lists are always bounded/paginated.
+- Import duplicate behavior is `skip_duplicate`, not update/replace.
+- Runtime root `.env` editing is still considered a production-risk area.
+- Shared Import/Export currently materializes collections; very large datasets may still require chunk/queue/stream improvements at the Shared layer.
 
-## Developer Notes
-
-Main flow:
-
-```text
-Route
--> Controller
--> Page Blade
--> Livewire
--> Service
--> Invoices model
--> invoices table
-```
-
-Important classes:
+## Important Classes
 
 ```text
 Modules/Invoices/Http/Controllers/InvoicesController.php
@@ -164,38 +191,43 @@ Modules/Invoices/Services/GdtApiService.php
 Modules/Invoices/Services/GdtConfigService.php
 Modules/Invoices/Services/GdtInvoiceService.php
 Modules/Invoices/Services/InvoiceService.php
+Modules/Invoices/Services/InvoiceImportExportService.php
 Modules/Invoices/Services/InvoiceImportService.php
-Modules/Invoices/Services/InvoiceExportService.php
 Modules/Invoices/Services/InvoiceFileService.php
 Modules/Invoices/Models/Invoices.php
 ```
 
-Primary test:
+## Verification
 
-```text
-tests/Feature/InvoicesModuleTest.php
+Primary regression suite:
+
+```bash
+php artisan test tests/Feature/InvoicesModuleTest.php
 ```
 
-Before changing this module, read:
+Latest user-verified checkpoint before R6 UI/docs polish:
+
+```text
+10 tests passed
+53 assertions
+```
+
+After pulling the final R6 commits, run the targeted suite again before merge, then run the full project regression.
+
+## Remaining Deferred Work
+
+1. Validate invoice identity against production records before adding any database unique constraint.
+2. Replace runtime `.env` mutation with a production-grade settings/secrets store.
+3. Add chunk/queue/stream behavior for genuinely large import/export datasets at the Shared layer.
+4. Remove legacy placeholders/artifacts only after compatibility usage is verified.
+
+## Related Documentation
 
 ```text
 docs/modules/Invoices/ANALYSIS.md
 docs/modules/Invoices/INFORMATION.md
+docs/modules/Invoices/REFACTOR_PLAN.md
+docs/modules/Invoices/IMPORT_EXPORT_PLAN.md
 .codex/standards/MODULE_STANDARD.md
 .codex/standards/ADMIN_UI_STANDARD.md
 ```
-
-## Future Improvements
-
-Recommended order:
-
-1. Enforce action-level permissions for configuration, export and download.
-2. Harden/remove browser-driven root `.env` mutation.
-3. Remove unbounded `All` pagination and normalize query-string page size.
-4. Consolidate import/export on Shared infrastructure.
-5. Define invoice identity and database-level idempotency protection.
-6. Replace float-based money normalization.
-7. Optimize repeated statistics/dashboard queries.
-8. Queue/chunk large exports and imports.
-9. Expand authorization, security, duplicate and performance regression tests.
-10. Remove verified legacy/placeholder artifacts only after compatibility checks.
