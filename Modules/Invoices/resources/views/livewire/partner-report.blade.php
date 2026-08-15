@@ -1,17 +1,98 @@
 <div class="space-y-6">
     <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div><h2 class="text-base font-bold text-gray-900">Bộ lọc báo cáo</h2><p class="mt-1 text-sm text-gray-500">Tổng hợp bán ra, mua vào và VAT theo từng đối tác.</p></div>
-            <a href="{{ route('admin.invoices.hoadon-list') }}" class="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Danh sách hóa đơn</a>
+            <div>
+                <h2 class="text-base font-bold text-gray-900">Bộ lọc báo cáo</h2>
+                <p class="mt-1 text-sm text-gray-500">Tổng hợp bán ra, mua vào và VAT theo từng đối tác.</p>
+            </div>
+            <a href="{{ route('admin.invoices.hoadon-list') }}" class="inline-flex h-11 items-center rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Danh sách hóa đơn</a>
         </div>
-        <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <select wire:model.live="type" class="h-11 rounded-xl border-gray-300 text-sm"><option value="">Tất cả loại</option><option value="sold">Bán ra</option><option value="purchase">Mua vào</option></select>
-            <input wire:model.live.debounce.400ms="search" type="search" placeholder="Tìm công ty / MST" class="h-11 rounded-xl border-gray-300 text-sm xl:col-span-2">
-            <select wire:model.live="year" class="h-11 rounded-xl border-gray-300 text-sm"><option value="">Tất cả năm</option>@foreach($yearOptions as $option)<option value="{{ $option }}">Năm {{ $option }}</option>@endforeach</select>
-            <select wire:model.live="month" class="h-11 rounded-xl border-gray-300 text-sm"><option value="">Cả năm</option>@for($m=1;$m<=12;$m++)<option value="{{ $m }}">Tháng {{ str_pad((string)$m,2,'0',STR_PAD_LEFT) }}</option>@endfor</select>
-            <select wire:model.live="sort" class="h-11 rounded-xl border-gray-300 text-sm"><option value="sold_desc">Bán ra cao nhất</option><option value="purchase_desc">Mua vào cao nhất</option><option value="invoice_desc">Nhiều hóa đơn nhất</option><option value="vat_desc">VAT cao nhất</option><option value="net_desc">Chênh lệch cao nhất</option><option value="partner_asc">Đối tác A → Z</option><option value="partner_desc">Đối tác Z → A</option></select>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Loại hóa đơn</span>
+                <select wire:model.live="type" class="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm">
+                    <option value="">Tất cả loại</option>
+                    <option value="sold">Bán ra</option>
+                    <option value="purchase">Mua vào</option>
+                </select>
+            </label>
+
+            <div class="space-y-1.5 xl:col-span-2">
+                <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Đối tác</span>
+                <x-select-search id="partner-report-name-search" wire:model="name" options-wire="nameList" placeholder="Tìm đối tác...">
+                    <option value="">Tất cả đối tác</option>
+                    @foreach($nameList as $item)
+                        <option value="{{ $item }}" @selected($name === $item)>{{ $item }}</option>
+                    @endforeach
+                </x-select-search>
+            </div>
+
+            <div class="space-y-1.5">
+                <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Mã số thuế</span>
+                <x-select-search id="partner-report-tax-code-search" wire:model="tax_code" options-wire="taxCodeList" placeholder="Tìm MST...">
+                    <option value="">Tất cả MST</option>
+                    @foreach($taxCodeList as $item)
+                        <option value="{{ $item }}" @selected($tax_code === $item)>{{ $item }}</option>
+                    @endforeach
+                </x-select-search>
+            </div>
+
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Năm</span>
+                <select wire:model.live="year" class="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm">
+                    <option value="">Tất cả năm</option>
+                    @foreach($yearOptions as $option)
+                        <option value="{{ $option }}">Năm {{ $option }}</option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tháng</span>
+                <select wire:model.live="month" @disabled($year === '') class="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400">
+                    <option value="">Cả năm</option>
+                    @for($m=1;$m<=12;$m++)
+                        <option value="{{ $m }}">Tháng {{ str_pad((string)$m,2,'0',STR_PAD_LEFT) }}</option>
+                    @endfor
+                </select>
+            </label>
         </div>
-        <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label class="text-xs font-semibold uppercase text-gray-500">Từ ngày<input wire:model.live="from_date" type="date" class="mt-1 block h-11 w-full rounded-xl border-gray-300 text-sm"></label><label class="text-xs font-semibold uppercase text-gray-500">Đến ngày<input wire:model.live="to_date" type="date" class="mt-1 block h-11 w-full rounded-xl border-gray-300 text-sm"></label><div class="flex items-end gap-2 xl:col-span-2"><button type="button" wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 px-4 text-sm font-semibold">Đặt lại</button>@if(auth('admin')->user()?->can('invoices-export'))<button type="button" wire:click="exportExcel" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">Xuất Excel báo cáo</button>@endif</div></div>
+
+        <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Từ ngày</span>
+                <input wire:model.live="from_date" type="date" class="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm">
+            </label>
+
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Đến ngày</span>
+                <input wire:model.live="to_date" type="date" class="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm">
+            </label>
+
+            <label class="space-y-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Sắp xếp</span>
+                <select wire:model.live="sort" class="h-11 w-full rounded-xl border border-gray-300 px-4 text-sm">
+                    <option value="sold_desc">Bán ra cao nhất</option>
+                    <option value="purchase_desc">Mua vào cao nhất</option>
+                    <option value="invoice_desc">Nhiều hóa đơn nhất</option>
+                    <option value="vat_desc">VAT cao nhất</option>
+                    <option value="net_desc">Chênh lệch cao nhất</option>
+                    <option value="partner_asc">Đối tác A → Z</option>
+                    <option value="partner_desc">Đối tác Z → A</option>
+                </select>
+            </label>
+
+            <div class="flex items-end justify-end gap-2">
+                <button type="button" wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Đặt lại</button>
+                @if(auth('admin')->user()?->can('invoices-export'))
+                    <button type="button" wire:click="exportExcel" wire:loading.attr="disabled" wire:target="exportExcel" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="exportExcel">Xuất Excel báo cáo</span>
+                        <span wire:loading wire:target="exportExcel">Đang xuất…</span>
+                    </button>
+                @endif
+            </div>
+        </div>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
