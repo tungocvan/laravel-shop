@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ProcedureSeeder::class,
             AdministrativeMenuSeeder::class,
+            AdministrativeDemoSeeder::class,
         ]);
     }
 }
