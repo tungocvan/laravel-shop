@@ -11,6 +11,7 @@ use ZipArchive;
 class InvoiceFileManagerService
 {
     public function __construct(private readonly InvoiceService $invoiceService, private readonly InvoiceFileService $fileService) {}
+
     public function recordAvailable(Invoices $invoice,string $path,string $provider):InvoiceFile{return InvoiceFile::query()->updateOrCreate(['invoice_id'=>$invoice->getKey()],['provider'=>$provider,'status'=>'available','path'=>$this->relativeStoragePath($path),'size'=>is_file($path)?filesize($path):null,'last_error'=>null,'downloaded_at'=>now()]);}
     public function recordFailure(Invoices $invoice,string $provider,string $error):InvoiceFile{return InvoiceFile::query()->updateOrCreate(['invoice_id'=>$invoice->getKey()],['provider'=>$provider,'status'=>'error','path'=>null,'size'=>null,'last_error'=>Str::limit($error,2000,''),'downloaded_at'=>null]);}
     public function summary(array $filters):array{$base=$filters;$base['pdf_status']='all';$ids=$this->invoiceService->filteredBuilder($base)->select('id');$total=(clone$ids)->count();$available=InvoiceFile::query()->whereIn('invoice_id',clone$ids)->where('status','available')->count();$errors=InvoiceFile::query()->whereIn('invoice_id',clone$ids)->where('status','error')->count();$size=(int)InvoiceFile::query()->whereIn('invoice_id',clone$ids)->where('status','available')->sum('size');return['total'=>$total,'available'=>$available,'error'=>$errors,'missing'=>max(0,$total-$available-$errors),'size'=>$size];}
@@ -19,7 +20,25 @@ class InvoiceFileManagerService
     public function missingInvoiceIds(array $filters,int $limit=25):array{$base=$filters;$base['pdf_status']='all';return $this->invoiceService->filteredBuilder($base)->whereDoesntHave('file',fn($q)=>$q->where('status','available'))->orderByDesc('issued_date')->limit(max(1,min($limit,100)))->pluck('id')->map(fn($id)=>(int)$id)->all();}
     public function errorInvoiceIds(array $filters,int $limit=25):array{$base=$filters;$base['pdf_status']='all';return $this->invoiceService->filteredBuilder($base)->whereHas('file',fn($q)=>$q->where('status','error'))->orderByDesc('issued_date')->limit(max(1,min($limit,100)))->pluck('id')->map(fn($id)=>(int)$id)->all();}
     public function storageBreakdown(array $filters):array{$base=$filters;$base['pdf_status']='all';$ids=$this->invoiceService->filteredBuilder($base)->select('id');return InvoiceFile::query()->with('invoice:id,issued_date,invoice_type')->whereIn('invoice_id',$ids)->where('status','available')->get()->filter(fn($f)=>$f->invoice?->issued_date)->groupBy(fn($f)=>$f->invoice->issued_date->format('Y-m').'|'.$f->invoice->invoice_type)->map(function($group){$first=$group->first();return['year'=>(int)$first->invoice->issued_date->format('Y'),'month'=>(int)$first->invoice->issued_date->format('m'),'invoice_type'=>$first->invoice->invoice_type,'files'=>$group->count(),'bytes'=>(int)$group->sum('size')];})->sortByDesc(fn($r)=>sprintf('%04d%02d',$r['year'],$r['month']))->values()->all();}
-    public function deleteFiles(array $filters):array{$base=$filters;$base['pdf_status']='all';$invoices=$this->invoiceService->filteredBuilder($base)->with('file')->get();$deleted=0;$failed=0;foreach($invoices as $invoice){if(!$this->fileService->existsForInvoice($invoice))continue;$path=$this->fileService->pdfPathForInvoice($invoice);if(is_file($path)&&@unlink($path)){$invoice->file?->update(['status'=>'missing','path'=>null,'size'=>null,'last_error'=>null,'downloaded_at'=>null]);$deleted++;}else$failed++;}return['deleted'=>$deleted,'failed'=>$failed];}
+
+    public function deleteFilesByIds(array $ids): array
+    {
+        $ids=collect($ids)->filter(fn($id)=>filter_var($id,FILTER_VALIDATE_INT)!==false&&(int)$id>0)->map(fn($id)=>(int)$id)->unique()->values()->all();
+        if($ids===[])throw new RuntimeException('Vui lòng chọn ít nhất một hóa đơn để xóa PDF.');
+
+        $invoices=Invoices::query()->whereKey($ids)->with('file')->get();
+        $deleted=0;$skipped=0;$failed=0;
+        foreach($invoices as $invoice){
+            if(!$this->fileService->existsForInvoice($invoice)){$skipped++;continue;}
+            $path=$this->fileService->pdfPathForInvoice($invoice);
+            if(is_file($path) && unlink($path)){
+                $invoice->file?->update(['status'=>'missing','path'=>null,'size'=>null,'last_error'=>null,'downloaded_at'=>null]);
+                $deleted++;
+            }else{$failed++;}
+        }
+        return['deleted'=>$deleted,'skipped'=>$skipped,'failed'=>$failed];
+    }
+
     public function createZip(array $filters):array{if(!class_exists(ZipArchive::class))throw new RuntimeException('PHP chưa cài extension zip (ZipArchive).');$base=$filters;$base['pdf_status']='all';$invoices=$this->invoiceService->filter($base);$dir=storage_path('app/invoices/archives');if(!is_dir($dir)&&!mkdir($dir,0775,true)&&!is_dir($dir))throw new RuntimeException('Không thể tạo thư mục lưu ZIP hóa đơn. Kiểm tra quyền ghi storage/app/invoices.');$filename=$this->archiveFilename($base);$path=$dir.'/'.$filename;$zip=new ZipArchive();if($zip->open($path,ZipArchive::CREATE|ZipArchive::OVERWRITE)!==true)throw new RuntimeException('Không thể tạo file ZIP hóa đơn.');$added=0;foreach($invoices as $invoice){if(!$this->fileService->existsForInvoice($invoice))continue;$pdf=$this->fileService->pdfPathForInvoice($invoice);$zip->addFile($pdf,$this->fileService->filenameForInvoice($invoice));$added++;}$zip->close();if($added===0){@unlink($path);throw new RuntimeException('Bộ lọc hiện tại chưa có PDF nào để đóng gói ZIP.');}return['path'=>$path,'filename'=>$filename,'count'=>$added];}
     private function archiveFilename(array $filters):string{$type=match($filters['invoice_type']??null){'sold'=>'ban-ra','purchase'=>'mua-vao',default=>'tat-ca'};$from=preg_replace('/[^0-9-]/','',(string)($filters['issued_date_from']??''))?:'all';$to=preg_replace('/[^0-9-]/','',(string)($filters['issued_date_to']??''))?:'all';return "hoa-don_{$type}_{$from}_{$to}.zip";}
     private function relativeStoragePath(string $path):string{$root=rtrim(str_replace('\\','/',storage_path('app')),'/').'/';$normalized=str_replace('\\','/',$path);return str_starts_with($normalized,$root)?substr($normalized,strlen($root)):basename($normalized);}
