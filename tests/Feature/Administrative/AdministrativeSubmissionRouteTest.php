@@ -23,6 +23,7 @@ class AdministrativeSubmissionRouteTest extends TestCase
             $this->assertContains('auth:admin', $route->gatherMiddleware());
         }
 
+        $this->assertContains('permission:administrative.dashboard.view|administrative.submission.view,admin', $dashboard->gatherMiddleware());
         $this->assertContains('permission:administrative.submission.view,admin', $index->gatherMiddleware());
         $this->assertContains('permission:administrative.submission.view,admin', $show->gatherMiddleware());
         $this->assertContains('permission:administrative.file.download,admin', $download->gatherMiddleware());

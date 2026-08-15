@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Administrative\Enums\AdministrativeFileType;
+use Modules\Administrative\Models\AdministrativeFile;
 use Modules\Administrative\Models\AdministrativeProcedure;
 use Modules\Administrative\Models\AdministrativeSubmission;
 use Symfony\Component\HttpFoundation\StreamedResponse;
