@@ -54,21 +54,46 @@ class InvoicesPdfStorageTest extends TestCase
                 'invoice_type' => 'purchase',
             ]);
 
+            $service = app(InvoiceFileService::class);
+            $structuredPath = $service->targetPdfPathForInvoice($invoice);
+            $structuredBackup = null;
+
+            if (is_file($structuredPath)) {
+                $structuredBackup = $structuredPath.'.test-backup-'.uniqid('', true);
+                if (! rename($structuredPath, $structuredBackup)) {
+                    $this->fail('Không thể cô lập PDF structured đang tồn tại cho legacy resolver test.');
+                }
+            }
+
             $legacyDir = storage_path('app/hoadon_temp');
             if (! is_dir($legacyDir)) {
                 mkdir($legacyDir, 0775, true);
             }
 
             $legacyPath = $legacyDir.'/legacy-lookup.pdf';
+            $legacyBackup = null;
+            if (is_file($legacyPath)) {
+                $legacyBackup = $legacyPath.'.test-backup-'.uniqid('', true);
+                if (! rename($legacyPath, $legacyBackup)) {
+                    $this->fail('Không thể cô lập legacy PDF đang tồn tại cho test.');
+                }
+            }
+
             file_put_contents($legacyPath, '%PDF-legacy-test');
 
             try {
-                $service = app(InvoiceFileService::class);
-
                 $this->assertTrue($service->existsForInvoice($invoice));
                 $this->assertSame($legacyPath, $service->pdfPathForInvoice($invoice));
             } finally {
                 @unlink($legacyPath);
+
+                if ($legacyBackup !== null && is_file($legacyBackup)) {
+                    @rename($legacyBackup, $legacyPath);
+                }
+
+                if ($structuredBackup !== null && is_file($structuredBackup)) {
+                    @rename($structuredBackup, $structuredPath);
+                }
             }
         });
     }
