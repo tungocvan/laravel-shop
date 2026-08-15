@@ -9,9 +9,7 @@
                 'serviceClass' => \Modules\Administrative\Services\ImportExport::class,
                 'title' => 'Import / Export hồ sơ hành chính',
                 'description' => 'Không chọn hồ sơ: export toàn bộ. Có chọn checkbox: chỉ export các hồ sơ đã chọn. File export có thể import ngược để cập nhật dữ liệu.',
-                'filters' => [
-                    'selected_ids' => $selectedIds,
-                ],
+                'filters' => ['selected_ids' => $selectedIds],
                 'permission' => 'administrative.submission.import_export',
             ], key('administrative-submission-import-export'))
         </div>
@@ -53,22 +51,15 @@
         @if($submissions->hasPages())<div class="border-t border-gray-200 px-4 py-4">{{ $submissions->links('Administrative::components.pagination') }}</div>@endif
     </div>
 
-    @if($confirmingDelete)<div class="rounded-2xl border border-red-200 bg-red-50 p-5"><h2 class="font-semibold text-red-900">Xác nhận lưu trữ {{ count($selectedIds) }} hồ sơ?</h2><p class="mt-1 text-sm text-red-700">Hồ sơ sẽ được lưu trữ bằng soft delete; file và lịch sử vẫn được giữ lại và thao tác được ghi vào lịch sử kiểm toán.</p><div class="mt-4 flex gap-3"><button type="button" wire:click="deleteSelected" wire:loading.attr="disabled" wire:target="deleteSelected" class="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"><span wire:loading.remove wire:target="deleteSelected">Xác nhận lưu trữ</span><span wire:loading wire:target="deleteSelected">Đang lưu trữ...</span></button><button type="button" wire:click="$set('confirmingDelete', false)" wire:loading.attr="disabled" wire:target="deleteSelected" class="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 disabled:opacity-60">Hủy</button></div></div>@endif
+    @if($confirmingDelete)
+        <x-Administrative::delete-selected-modal :count="count($selectedIds)" />
+    @endif
 
     @if($confirmingDeleteAll)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-all-title">
             <div class="w-full max-w-lg rounded-2xl border border-red-200 bg-white p-6 shadow-2xl">
-                <div class="flex items-start gap-4">
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">!</div>
-                    <div>
-                        <h2 id="delete-all-title" class="text-lg font-bold text-gray-900">Xóa tất cả {{ $stats['total'] }} hồ sơ?</h2>
-                        <p class="mt-2 text-sm leading-6 text-gray-600">Thao tác áp dụng cho toàn bộ hồ sơ hiện có, không phụ thuộc bộ lọc. Hệ thống dùng soft delete, vẫn giữ file và lịch sử, đồng thời ghi audit cho từng hồ sơ.</p>
-                    </div>
-                </div>
-                <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                    <button type="button" wire:click="$set('confirmingDeleteAll', false)" wire:loading.attr="disabled" wire:target="deleteAll" class="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60">Hủy</button>
-                    <button type="button" wire:click="deleteAll" wire:loading.attr="disabled" wire:target="deleteAll" class="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"><span wire:loading.remove wire:target="deleteAll">Xác nhận xóa tất cả</span><span wire:loading wire:target="deleteAll">Đang xử lý...</span></button>
-                </div>
+                <div class="flex items-start gap-4"><div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">!</div><div><h2 id="delete-all-title" class="text-lg font-bold text-gray-900">Xóa tất cả {{ $stats['total'] }} hồ sơ?</h2><p class="mt-2 text-sm leading-6 text-gray-600">Thao tác áp dụng cho toàn bộ hồ sơ hiện có, không phụ thuộc bộ lọc. Hệ thống dùng soft delete, vẫn giữ file và lịch sử, đồng thời ghi audit cho từng hồ sơ.</p></div></div>
+                <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" wire:click="$set('confirmingDeleteAll', false)" wire:loading.attr="disabled" wire:target="deleteAll" class="rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60">Hủy</button><button type="button" wire:click="deleteAll" wire:loading.attr="disabled" wire:target="deleteAll" class="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"><span wire:loading.remove wire:target="deleteAll">Xác nhận xóa tất cả</span><span wire:loading wire:target="deleteAll">Đang xử lý...</span></button></div>
             </div>
         </div>
     @endif
