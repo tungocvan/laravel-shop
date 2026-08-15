@@ -10,6 +10,7 @@ use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\GdtInvoiceService;
 use Modules\Invoices\Services\InvoiceImportService;
+use RuntimeException;
 
 class SearchHoadon extends Component
 {
@@ -79,6 +80,7 @@ class SearchHoadon extends Component
                 'logs' => ['['.now()->format('H:i:s').'] Đã đưa tác vụ vào hàng đợi.'],
                 'started_at' => now()->toIso8601String(),
                 'file' => null,
+                'direction' => (bool) $this->vatIn ? 'vat_in' : 'vat_out',
             ], now()->addHours(24));
 
             ProcessGdtInvoicesJob::dispatch(
@@ -100,9 +102,14 @@ class SearchHoadon extends Component
                 fn ($msg) => $this->log($msg),
                 (bool) $this->vatIn
             );
+
+            if (! is_string($file) || ! is_file($file) || ! is_readable($file)) {
+                throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
+            }
+
             $this->syncState = 'completed';
-            $this->syncMessage = 'Đồng bộ hoàn tất.';
-            $this->syncFile = is_string($file) ? $file : null;
+            $this->syncMessage = 'Đồng bộ hoàn tất và file Excel đã được tạo.';
+            $this->syncFile = basename($file);
             $this->log('Hoàn tất xử lý!');
             $this->refreshAvailableFiles();
         } catch (\Throwable $exception) {
@@ -140,46 +147,57 @@ class SearchHoadon extends Component
 
     public function refreshAvailableFiles(): void
     {
-        $folder = $this->syncFolder();
-        $this->availableFiles = [];
+        $files = [];
 
-        if (! is_dir($folder)) {
-            return;
+        foreach (['vat_out' => 'Bán ra', 'vat_in' => 'Mua vào'] as $direction => $label) {
+            $folder = $this->syncFolder($direction);
+            if (! is_dir($folder)) {
+                continue;
+            }
+
+            foreach (glob($folder.'/*.{xlsx,csv}', GLOB_BRACE) ?: [] as $path) {
+                $files[] = [
+                    'token' => $direction.'|'.basename($path),
+                    'name' => basename($path),
+                    'direction' => $direction,
+                    'type_label' => $label,
+                    'size' => filesize($path) ?: 0,
+                    'modified_at' => date('Y-m-d H:i:s', filemtime($path) ?: time()),
+                    'mtime' => filemtime($path) ?: 0,
+                ];
+            }
         }
 
-        $files = glob($folder.'/*.{xlsx,csv}', GLOB_BRACE) ?: [];
-        usort($files, fn ($a, $b) => filemtime($b) <=> filemtime($a));
+        usort($files, fn (array $a, array $b) => $b['mtime'] <=> $a['mtime']);
+        $this->availableFiles = array_map(function (array $file): array {
+            unset($file['mtime']);
+            return $file;
+        }, array_slice($files, 0, 50));
 
-        $this->availableFiles = array_map(static fn (string $path): array => [
-            'name' => basename($path),
-            'size' => filesize($path) ?: 0,
-            'modified_at' => date('Y-m-d H:i:s', filemtime($path) ?: time()),
-        ], array_slice($files, 0, 50));
-
-        if ($this->selectedFile && ! collect($this->availableFiles)->contains('name', $this->selectedFile)) {
+        if ($this->selectedFile && ! collect($this->availableFiles)->contains('token', $this->selectedFile)) {
             $this->selectedFile = null;
         }
     }
 
     public function updatedVatIn(): void
     {
-        $this->selectedFile = null;
         $this->refreshAvailableFiles();
     }
 
     public function importSelectedFile(): void
     {
         $this->authorizePermission('invoices-create');
-        $this->validate(['selectedFile' => ['required', 'string', 'max:255']]);
+        $this->validate(['selectedFile' => ['required', 'string', 'max:320']]);
 
-        $filename = basename($this->selectedFile);
-        abort_unless($filename === $this->selectedFile, 422);
+        [$direction, $filename] = array_pad(explode('|', $this->selectedFile, 2), 2, null);
+        abort_unless(in_array($direction, ['vat_in', 'vat_out'], true), 422);
+        abort_unless(is_string($filename) && basename($filename) === $filename, 422);
         abort_unless(in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), ['xlsx', 'csv'], true), 422);
 
-        $path = $this->syncFolder().DIRECTORY_SEPARATOR.$filename;
+        $path = $this->syncFolder($direction).DIRECTORY_SEPARATOR.$filename;
         abort_unless(is_file($path) && is_readable($path), 404);
 
-        $this->runImport($path);
+        $this->runImport($path, $direction === 'vat_in' ? 'purchase' : 'sold');
     }
 
     public function importUploadedFile(): void
@@ -193,14 +211,14 @@ class SearchHoadon extends Component
         $path = storage_path('app/'.$stored);
 
         try {
-            $this->runImport($path);
+            $this->runImport($path, (bool) $this->vatIn ? 'purchase' : 'sold');
         } finally {
             @unlink($path);
             $this->reset('uploadFile');
         }
     }
 
-    private function runImport(string $path): void
+    private function runImport(string $path, string $invoiceType): void
     {
         $this->logs = [];
         $this->log('Bắt đầu import: '.basename($path));
@@ -208,7 +226,7 @@ class SearchHoadon extends Component
         try {
             $count = $this->importService->import(
                 $path,
-                (bool) $this->vatIn ? 'purchase' : 'sold',
+                $invoiceType,
                 fn ($message) => $this->log($message)
             );
             $this->log("🎯 Import hoàn tất: {$count} hóa đơn mới.");
@@ -217,10 +235,9 @@ class SearchHoadon extends Component
         }
     }
 
-    private function syncFolder(): string
+    private function syncFolder(string $direction): string
     {
         $base = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
-        $direction = (bool) $this->vatIn ? 'vat_in' : 'vat_out';
 
         return storage_path("app/{$base}/{$direction}");
     }
