@@ -112,6 +112,24 @@ class InvoiceImportExportService extends BaseImportExportService
         ]));
     }
 
+    protected function persistSkipDuplicate(string $modelClass, array $data): Model
+    {
+        $existing = $modelClass::query()
+            ->where('lookup_code', $data['lookup_code'] ?? null)
+            ->where('invoice_number', $data['invoice_number'] ?? null)
+            ->whereDate('issued_date', $data['issued_date'] ?? null)
+            ->where('tax_code', $data['tax_code'] ?? null)
+            ->first();
+
+        if ($existing) {
+            $this->skippedRows++;
+
+            return $existing;
+        }
+
+        return $modelClass::query()->create($data);
+    }
+
     protected function exportRows(array $filters = []): Collection
     {
         $query = Invoices::query();
