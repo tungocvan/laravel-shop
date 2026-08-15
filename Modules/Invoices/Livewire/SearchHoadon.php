@@ -187,17 +187,29 @@ class SearchHoadon extends Component
     public function importSelectedFile(): void
     {
         $this->authorizePermission('invoices-create');
-        $this->validate(['selectedFile' => ['required', 'string', 'max:320']]);
+        [$direction, $filename, $path] = $this->resolveSelectedFile();
 
-        [$direction, $filename] = array_pad(explode('|', $this->selectedFile, 2), 2, null);
-        abort_unless(in_array($direction, ['vat_in', 'vat_out'], true), 422);
-        abort_unless(is_string($filename) && basename($filename) === $filename, 422);
-        abort_unless(in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), ['xlsx', 'csv'], true), 422);
-
-        $path = $this->syncFolder($direction).DIRECTORY_SEPARATOR.$filename;
-        abort_unless(is_file($path) && is_readable($path), 404);
-
+        abort_unless(is_readable($path), 404);
         $this->runImport($path, $direction === 'vat_in' ? 'purchase' : 'sold');
+    }
+
+    public function deleteSelectedFile(): void
+    {
+        $this->authorizePermission('invoices-create');
+        [, $filename, $path] = $this->resolveSelectedFile();
+
+        if (! @unlink($path)) {
+            $this->log('❌ Không thể xóa file: '.$filename);
+            return;
+        }
+
+        if ($this->syncFile === $filename) {
+            $this->syncFile = null;
+        }
+
+        $this->selectedFile = null;
+        $this->refreshAvailableFiles();
+        $this->log('🗑️ Đã xóa file Excel: '.$filename);
     }
 
     public function importUploadedFile(): void
@@ -233,6 +245,21 @@ class SearchHoadon extends Component
         } catch (\Throwable $exception) {
             $this->log('❌ '.$exception->getMessage());
         }
+    }
+
+    private function resolveSelectedFile(): array
+    {
+        $this->validate(['selectedFile' => ['required', 'string', 'max:320']]);
+
+        [$direction, $filename] = array_pad(explode('|', (string) $this->selectedFile, 2), 2, null);
+        abort_unless(in_array($direction, ['vat_in', 'vat_out'], true), 422);
+        abort_unless(is_string($filename) && basename($filename) === $filename, 422);
+        abort_unless(in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), ['xlsx', 'csv'], true), 422);
+
+        $path = $this->syncFolder($direction).DIRECTORY_SEPARATOR.$filename;
+        abort_unless(is_file($path), 404);
+
+        return [$direction, $filename, $path];
     }
 
     private function syncFolder(string $direction): string

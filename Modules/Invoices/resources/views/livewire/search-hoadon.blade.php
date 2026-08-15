@@ -99,11 +99,21 @@
                         <div class="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">Chưa tìm thấy file XLSX/CSV trong thư mục đồng bộ GDT.</div>
                     @endforelse
                 </div>
-                <button wire:click="importSelectedFile" wire:loading.attr="disabled" @disabled(!$selectedFile)
-                    class="mt-4 h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
-                    <span wire:loading.remove wire:target="importSelectedFile">Import file đã chọn</span>
-                    <span wire:loading wire:target="importSelectedFile">Đang import…</span>
-                </button>
+
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button wire:click="importSelectedFile" wire:loading.attr="disabled" @disabled(!$selectedFile)
+                        class="h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
+                        <span wire:loading.remove wire:target="importSelectedFile">Import file đã chọn</span>
+                        <span wire:loading wire:target="importSelectedFile">Đang import…</span>
+                    </button>
+                    <button wire:click="deleteSelectedFile"
+                        wire:confirm="Bạn chắc chắn muốn xóa file Excel đã chọn? Thao tác này không thể hoàn tác."
+                        wire:loading.attr="disabled" @disabled(!$selectedFile)
+                        class="h-11 rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40">
+                        <span wire:loading.remove wire:target="deleteSelectedFile">Xóa file đã chọn</span>
+                        <span wire:loading wire:target="deleteSelectedFile">Đang xóa…</span>
+                    </button>
+                </div>
                 @error('selectedFile') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
