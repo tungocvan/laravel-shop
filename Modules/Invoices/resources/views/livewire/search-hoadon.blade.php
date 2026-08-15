@@ -1,4 +1,12 @@
 <div class="space-y-6" @if ($syncId && in_array($syncState, ['queued', 'processing'], true)) wire:poll.2s="pollStatus" @endif>
+    <div wire:loading.flex wire:target="backupFilesToEmail" class="fixed inset-0 z-[120] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">Đang tạo và gửi backup qua Email</h3>
+            <p class="mt-2 text-sm text-slate-500">Hệ thống đang nén File đã đồng bộ và có thể chia thành nhiều email nếu dung lượng lớn. Vui lòng không refresh trang.</p>
+        </div>
+    </div>
+
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="grid gap-4 p-6 md:grid-cols-3">
             <div><label class="text-sm font-medium text-gray-700">Từ ngày</label><input type="date" wire:model.live="start_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('start_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
@@ -23,6 +31,19 @@
                 <div class="max-h-96 space-y-2 overflow-y-auto pr-1">@forelse($availableFiles as $file)<label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3 transition hover:border-indigo-200 hover:bg-indigo-50/30"><input type="radio" wire:model.live="selectedFile" value="{{ $file['token'] }}" class="mt-1 border-gray-300 text-indigo-600"><span class="min-w-0 flex-1"><span class="flex flex-wrap items-center gap-2"><span class="block truncate text-sm font-medium text-gray-800">{{ $file['name'] }}</span><span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $file['direction']==='vat_in'?'bg-blue-50 text-blue-700':'bg-emerald-50 text-emerald-700' }}">{{ $file['type_label'] }}</span></span><span class="mt-1 block text-xs text-gray-500">{{ number_format($file['size']/1024,1) }} KB · {{ $file['modified_at'] }}</span></span></label>@empty<div class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">Chưa có file XLSX/CSV đúng quy ước trong kho.</div>@endforelse</div>
                 <div class="mt-4 flex flex-wrap gap-2"><button wire:click="importSelectedFile" wire:loading.attr="disabled" @disabled(!$selectedFile) class="h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white disabled:opacity-40"><span wire:loading.remove wire:target="importSelectedFile">Import file đã chọn</span><span wire:loading wire:target="importSelectedFile">Đang import…</span></button><button wire:click="downloadSelectedFile" wire:loading.attr="disabled" @disabled(!$selectedFile) class="h-11 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white disabled:opacity-40">Download về máy</button><button wire:click="deleteSelectedFile" wire:confirm="Bạn chắc chắn muốn xóa file đã chọn? Thao tác này không xóa dữ liệu hóa đơn đã import." wire:loading.attr="disabled" @disabled(!$selectedFile) class="h-11 rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-700 disabled:opacity-40">Xóa file đã chọn</button></div>
                 @error('selectedFile')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+
+                <div class="mt-5 rounded-2xl border border-violet-100 bg-violet-50/60 p-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div><p class="text-sm font-semibold text-gray-900">Backup File đã đồng bộ qua Email</p><p class="mt-1 text-xs text-gray-600">Gửi bản sao toàn bộ file vat_in_* / vat_out_* dưới dạng ZIP. File gốc trên server không bị xóa.</p></div>
+                        <span class="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-violet-700">Tự chia email nếu lớn</span>
+                    </div>
+                    <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+                        <input type="email" wire:model="backupEmail" placeholder="email-nhan-backup@example.com" class="h-11 min-w-0 flex-1 rounded-xl border border-violet-200 bg-white px-4 text-sm">
+                        <button wire:click="backupFilesToEmail" wire:loading.attr="disabled" @disabled(trim($backupEmail)==='' || count($availableFiles)===0) class="h-11 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"><span wire:loading.remove wire:target="backupFilesToEmail">Gửi Backup qua Email</span><span wire:loading wire:target="backupFilesToEmail">Đang gửi…</span></button>
+                    </div>
+                    @error('backupEmail')<p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>@enderror
+                    <p class="mt-2 text-[11px] text-gray-500">Mỗi gói dùng ngưỡng khoảng 12 MB dữ liệu gốc để giảm nguy cơ vượt giới hạn attachment của nhà cung cấp email.</p>
+                </div>
             </div>
             <div class="space-y-4">
                 <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5"><p class="text-sm font-semibold text-gray-900">Upload từ máy tính</p><p class="mt-1 text-xs text-gray-500">XLSX/CSV tối đa 20 MB. Hệ thống tự nhận dạng theo tên file; upload chỉ lưu vào kho, chưa import database.</p><div class="mt-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"><strong>Quy ước:</strong> <code>vat_in_*</code> = Mua vào · <code>vat_out_*</code> = Bán ra. Tên khác sẽ bị từ chối để tránh import nhầm loại.</div><input type="file" wire:model="uploadFile" accept=".xlsx,.csv" class="mt-4 block w-full rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-700">@error('uploadFile')<p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>@enderror @if($uploadFile)<p class="mt-2 truncate text-xs text-gray-600">Đã chọn: {{ $uploadFile->getClientOriginalName() }}</p>@endif<button wire:click="stageUploadedFile" wire:loading.attr="disabled" @disabled(!$uploadFile) class="mt-4 h-11 rounded-xl bg-slate-800 px-5 text-sm font-semibold text-white disabled:opacity-40"><span wire:loading.remove wire:target="stageUploadedFile">Đưa vào File đã đồng bộ</span><span wire:loading wire:target="stageUploadedFile">Đang kiểm tra & upload…</span></button></div>

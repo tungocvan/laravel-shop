@@ -23,4 +23,9 @@ return [
         'export_directory' => 'gdt',
         'pdf_directory' => 'hoadon_temp',
     ],
+
+    'backup' => [
+        // Keep raw file payload conservative because email attachments grow after MIME/base64 encoding.
+        'email_chunk_bytes' => (int) env('INVOICES_BACKUP_EMAIL_CHUNK_BYTES', 12 * 1024 * 1024),
+    ],
 ];
