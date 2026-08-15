@@ -4,6 +4,7 @@ namespace Modules\Auth\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Modules\System\Services\AdminLoginRedirectService;
 use Modules\System\Services\SettingsService;
 
 class LoginForm extends Component
@@ -41,14 +42,14 @@ class LoginForm extends Component
         $this->loadSchoolSettings();
     }
 
-    public function login()
+    public function login(AdminLoginRedirectService $redirect)
     {
         $this->validate();
 
         if (Auth::guard('admin')->attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
-            return redirect()->route('admin.dashboard');
+            return redirect()->route($redirect->configuredRoute());
         }
 
         $this->addError('email', 'Thông tin đăng nhập không chính xác.');
