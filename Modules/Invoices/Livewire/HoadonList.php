@@ -7,16 +7,15 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Invoices\Exports\InvoicesSelectedExport;
+use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
-use Modules\Invoices\Services\MeInvoiceService;
 
 class HoadonList extends Component
 {
     use WithPagination;
 
     protected InvoiceService $invoiceService;
-
-    protected MeInvoiceService $meInvoiceService;
+    protected InvoicePdfService $pdfService;
 
     public ?string $downloadStatus = null;
     public ?string $type = null;
@@ -31,14 +30,12 @@ class HoadonList extends Component
     public int $perPage = 10;
     public array $perPageOptions = [10, 25, 50, 100];
 
-    protected $queryString = [
-        'type', 'name', 'tax_code', 'from_date', 'to_date', 'taxRateFilter', 'perPage',
-    ];
+    protected $queryString = ['type', 'name', 'tax_code', 'from_date', 'to_date', 'taxRateFilter', 'perPage'];
 
-    public function boot(InvoiceService $invoiceService, MeInvoiceService $meInvoiceService): void
+    public function boot(InvoiceService $invoiceService, InvoicePdfService $pdfService): void
     {
         $this->invoiceService = $invoiceService;
-        $this->meInvoiceService = $meInvoiceService;
+        $this->pdfService = $pdfService;
     }
 
     public function mount(): void
@@ -90,34 +87,34 @@ class HoadonList extends Component
     public function exportSelected()
     {
         $this->authorizePermission('invoices-export');
+        $records = $this->selected === [] ? $this->invoiceService->filter($this->filters()) : $this->invoiceService->selected($this->selected);
 
-        $records = $this->selected === []
-            ? $this->invoiceService->filter($this->filters())
-            : $this->invoiceService->selected($this->selected);
-
-        return Excel::download(
-            new InvoicesSelectedExport($records),
-            'hoadon_'.($this->selected === [] ? 'loc' : 'chon').'_'.now()->format('Ymd_His').'.xlsx'
-        );
+        return Excel::download(new InvoicesSelectedExport($records), 'hoadon_'.($this->selected === [] ? 'loc' : 'chon').'_'.now()->format('Ymd_His').'.xlsx');
     }
 
     public function downloadSelected(): void
     {
         $this->authorizePermission('invoices-download');
-
         if ($this->selected === []) {
             $this->dispatch('alert', type: 'warning', message: 'Vui lòng chọn hóa đơn trước khi tải PDF.');
             return;
         }
 
         $this->downloadStatus = 'processing';
+        $result = $this->pdfService->downloadSelected($this->selected);
+        $this->downloadStatus = $result['failed'] > 0 ? 'error' : 'success';
+        $message = "PDF mới: {$result['downloaded']} · Đã có: {$result['existing']} · Lỗi: {$result['failed']}";
+        $this->dispatch($result['failed'] > 0 ? 'alert' : 'download-success', type: $result['failed'] > 0 ? 'warning' : 'success', message: $message);
+    }
+
+    public function downloadPdf(int $invoiceId, bool $force = false): void
+    {
+        $this->authorizePermission('invoices-download');
 
         try {
-            $count = $this->meInvoiceService->downloadSelected($this->selected);
-            $this->downloadStatus = 'success';
-            $this->dispatch('download-success', type: 'success', message: "Đã lưu {$count} hóa đơn PDF.");
-        } catch (\RuntimeException $exception) {
-            $this->downloadStatus = 'error';
+            $this->pdfService->downloadInvoice($invoiceId, $force);
+            $this->dispatch('download-success', type: 'success', message: $force ? 'Đã tải lại PDF hóa đơn.' : 'Đã tải PDF hóa đơn.');
+        } catch (\Throwable $exception) {
             $this->dispatch('alert', type: 'error', message: $exception->getMessage());
         }
     }
@@ -125,9 +122,14 @@ class HoadonList extends Component
     public function render()
     {
         $dashboard = $this->invoiceService->dashboard();
+        $invoices = $this->invoiceService->paginate($this->filters(), $this->perPage);
+        $pdfStatuses = collect($invoices->items())->mapWithKeys(fn ($invoice) => [
+            $invoice->id => $this->pdfService->statusFor((string) $invoice->lookup_code),
+        ])->all();
 
         return view('Invoices::livewire.hoadon-list', [
-            'invoices' => $this->invoiceService->paginate($this->filters(), $this->perPage),
+            'invoices' => $invoices,
+            'pdfStatuses' => $pdfStatuses,
             'totalSoldAmount' => $dashboard['sold_amount'],
             'totalPurchaseAmount' => $dashboard['purchase_amount'],
             'totalSoldCustomers' => $dashboard['sold_customers'],
@@ -139,9 +141,7 @@ class HoadonList extends Component
     private function resetListState(bool $refreshOptions = false): void
     {
         $this->selected = [];
-        if ($refreshOptions) {
-            $this->refreshOptions();
-        }
+        if ($refreshOptions) { $this->refreshOptions(); }
         $this->resetPage();
     }
 
