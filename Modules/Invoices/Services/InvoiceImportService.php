@@ -2,12 +2,12 @@
 
 namespace Modules\Invoices\Services;
 
-use Carbon\Carbon;
-use Modules\Invoices\Models\Invoices;
-use Rap2hpoutre\FastExcel\FastExcel;
-
 class InvoiceImportService
 {
+    public function __construct(
+        private readonly InvoiceImportExportService $importExportService
+    ) {}
+
     public function importExportedRange(
         string $startDate,
         string $endDate,
@@ -24,87 +24,27 @@ class InvoiceImportService
     }
 
     /**
-     * Import Excel vào bảng invoices
+     * Backward-compatible adapter for existing GDT workflows and CLI commands.
      */
-    public function import(string $filePath, string $type = 'sold', ?callable $callback = null)
+    public function import(string $filePath, string $type = 'sold', ?callable $callback = null): int
     {
-        if (! file_exists($filePath)) {
-            throw new \Exception("File không tồn tại: $filePath");
+        if (! in_array($type, ['sold', 'purchase'], true)) {
+            throw new \InvalidArgumentException('Loại hóa đơn chỉ được là sold hoặc purchase.');
         }
 
-        $callback && $callback("📂 Đang đọc file Excel: $filePath");
+        $callback && $callback("📂 Đang đọc file Excel: {$filePath}");
 
-        $rows = (new FastExcel)->import($filePath);
-        $count = 0;
-        $skipped = 0;
+        $report = $this->importExportService->importForType($filePath, $type);
+        $success = (int) ($report['success_rows'] ?? 0);
+        $skipped = (int) ($report['skipped_rows'] ?? 0);
 
-        foreach ($rows as $row) {
-            try {
-                $lookup = trim($row['Mã tra cứu'] ?? '');
-                $number = trim($row['Số hóa đơn'] ?? '');
-                $tax = trim($row['Mã số thuế'] ?? '');
-
-                $issued = ! empty($row['Ngày lập'])
-                    ? Carbon::createFromFormat('d/m/Y', trim($row['Ngày lập']))->format('Y-m-d')
-                    : null;
-
-                // 🔍 kiểm tra hóa đơn đã tồn tại?
-                $exists = Invoices::where('lookup_code', $lookup)
-                    ->where('invoice_number', $number)
-                    ->where('issued_date', $issued)
-                    ->where('tax_code', $tax)
-                    ->exists();
-
-                if ($exists) {
-                    $skipped++;
-                    $callback && $callback("⚠️ Bỏ qua (đã tồn tại): HĐ số $number – MST $tax");
-
-                    continue;
-                }
-
-                // 🧩 Create mới
-                Invoices::create([
-                    'lookup_code' => $lookup,
-                    'symbol' => trim($row['Ký hiệu'] ?? ''),
-                    'invoice_number' => $number,
-                    'type' => trim($row['Loại hóa đơn'] ?? ''),
-                    'issued_date' => $issued,
-
-                    'tax_code' => $tax,
-                    'name' => trim($row['Đơn vị'] ?? ''),
-                    'address' => trim($row['Địa chỉ'] ?? ''),
-                    'email' => trim($row['Email'] ?? ''),
-                    'phone' => trim($row['Phone'] ?? ''),
-
-                    'tax_rate' => $this->toDecimal($row['Thuế suất'] ?? 0),
-                    'vat_amount' => $this->toDecimal($row['Tiền VAT'] ?? 0),
-                    'amount_before_vat' => $this->toDecimal($row['Trước VAT'] ?? 0),
-                    'total_amount' => $this->toDecimal($row['Thành tiền'] ?? 0),
-                    'invoice_type' => $type === 'sold' ? 'sold' : 'purchase',
-                ]);
-
-                $count++;
-                $callback && $callback('✔ Đã import hóa đơn số: '.($number ?: 'N/A'));
-
-            } catch (\Throwable $e) {
-                $callback && $callback('❌ Lỗi import HĐ số: '.($row['Số hóa đơn'] ?? 'N/A').' – '.$e->getMessage());
-            }
+        if (! ($report['ok'] ?? false) && ! empty($report['errors'])) {
+            $first = $report['errors'][0]['message'] ?? 'Import hóa đơn không thành công.';
+            $callback && $callback("❌ {$first}");
         }
 
-        $callback && $callback("🎉 Hoàn tất! Import: $count – Bỏ qua: $skipped");
+        $callback && $callback("🎉 Hoàn tất! Import: {$success} – Bỏ qua: {$skipped}");
 
-        return $count;
-    }
-
-    private function toDecimal($value)
-    {
-        if ($value === null || $value === '' || $value === false) {
-            return 0;
-        }
-
-        // chuyển 1.234.567,89 → 1234567.89
-        $value = str_replace(['.', ','], ['', '.'], $value);
-
-        return floatval($value);
+        return $success;
     }
 }
