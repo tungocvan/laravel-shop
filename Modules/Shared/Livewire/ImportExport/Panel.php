@@ -4,6 +4,7 @@ namespace Modules\Shared\Livewire\ImportExport;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
@@ -26,6 +27,7 @@ class Panel extends Component
 
     public ?array $report = null;
 
+    #[Reactive]
     public array $filters = [];
 
     public ?string $permission = null;
