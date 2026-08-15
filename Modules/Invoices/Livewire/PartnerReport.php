@@ -18,7 +18,8 @@ class PartnerReport extends Component
     protected InvoiceService $invoiceService;
 
     public ?string $type = null;
-    public string $search = '';
+    public string $name = '';
+    public string $tax_code = '';
     public string $year = '';
     public string $month = '';
     public string $from_date = '';
@@ -26,8 +27,10 @@ class PartnerReport extends Component
     public string $sort = 'sold_desc';
     public int $perPage = 25;
     public array $yearOptions = [];
+    public array $nameList = [];
+    public array $taxCodeList = [];
 
-    protected $queryString = ['type', 'search', 'year', 'month', 'from_date', 'to_date', 'sort', 'perPage'];
+    protected $queryString = ['type', 'name', 'tax_code', 'year', 'month', 'from_date', 'to_date', 'sort', 'perPage'];
 
     public function boot(InvoicePartnerReportService $reportService, InvoiceService $invoiceService): void
     {
@@ -43,27 +46,32 @@ class PartnerReport extends Component
             $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
             $this->to_date = Carbon::now()->format('Y-m-d');
         }
+        $this->refreshOptions();
     }
 
-    public function updatedType(): void { $this->resetPage(); }
-    public function updatedSearch(): void { $this->resetPage(); }
+    public function updatedType(): void { $this->resetReportState(true); }
+    public function updatedName(): void { $this->resetReportState(true); }
+    public function updatedTaxCode(): void { $this->resetReportState(true); }
     public function updatedSort(): void { $this->resetPage(); }
     public function updatedPerPage(): void { $this->perPage = in_array((int) $this->perPage, [10,25,50,100], true) ? (int) $this->perPage : 25; $this->resetPage(); }
     public function updatedYear(): void { $this->applyPeriod(); }
     public function updatedMonth(): void { $this->applyPeriod(); }
-    public function updatedFromDate(): void { $this->year = ''; $this->month = ''; $this->resetPage(); }
-    public function updatedToDate(): void { $this->year = ''; $this->month = ''; $this->resetPage(); }
+    public function updatedFromDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
+    public function updatedToDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
 
     public function resetFilters(): void
     {
         $this->type = null;
-        $this->search = '';
+        $this->name = '';
+        $this->tax_code = '';
         $this->year = (string) now()->year;
         $this->month = '';
         $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
         $this->to_date = Carbon::now()->format('Y-m-d');
         $this->sort = 'sold_desc';
+        $this->refreshOptions();
         $this->resetPage();
+        $this->dispatch('filters-reset');
     }
 
     public function exportExcel()
@@ -90,7 +98,7 @@ class PartnerReport extends Component
             $this->month = '';
             $this->from_date = '';
             $this->to_date = '';
-            $this->resetPage();
+            $this->resetReportState(true);
             return;
         }
         $year = (int) $this->year;
@@ -103,11 +111,38 @@ class PartnerReport extends Component
             $this->from_date = $date->copy()->startOfMonth()->format('Y-m-d');
             $this->to_date = $date->copy()->endOfMonth()->format('Y-m-d');
         }
+        $this->resetReportState(true);
+    }
+
+    private function refreshOptions(): void
+    {
+        $filters = [
+            'invoice_type' => $this->type,
+            'issued_date_from' => $this->from_date,
+            'issued_date_to' => $this->to_date,
+            'tax_rate' => 'all',
+            'pdf_status' => 'all',
+        ];
+        $options = $this->invoiceService->filterOptions($filters);
+        $this->nameList = $options['names'];
+        $this->taxCodeList = $options['tax_codes'];
+    }
+
+    private function resetReportState(bool $refreshOptions = false): void
+    {
+        if ($refreshOptions) $this->refreshOptions();
         $this->resetPage();
     }
 
     private function filters(): array
     {
-        return ['invoice_type'=>$this->type,'search'=>$this->search,'issued_date_from'=>$this->from_date,'issued_date_to'=>$this->to_date,'sort'=>$this->sort];
+        return [
+            'invoice_type' => $this->type,
+            'name' => $this->name,
+            'tax_code' => $this->tax_code,
+            'issued_date_from' => $this->from_date,
+            'issued_date_to' => $this->to_date,
+            'sort' => $this->sort,
+        ];
     }
 }
