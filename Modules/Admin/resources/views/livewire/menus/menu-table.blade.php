@@ -53,7 +53,7 @@
             <div class="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
                 <div class="border-b border-gray-200 p-6">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div><h3 class="text-lg font-bold text-gray-900">Quét GET routes chưa có trong Menu</h3><p class="mt-1 text-sm text-gray-500">Chỉ hiển thị named GET Admin routes không có tham số bắt buộc và chưa tồn tại trong menu.</p></div>
+                        <div><h3 class="text-lg font-bold text-gray-900">Quét GET routes chưa có trong Menu</h3><p class="mt-1 text-sm text-gray-500">Tên hiển thị được gợi ý tự động và có thể chỉnh sửa trước khi thêm vào Menu.</p></div>
                         @if($routeCandidates !== [])<button type="button" wire:click="selectAllRouteCandidates" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Chọn tất cả {{ count($routeCandidates) }}</button>@endif
                     </div>
                 </div>
@@ -64,10 +64,11 @@
                             <h4 class="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">{{ \Illuminate\Support\Str::headline($group) }}</h4>
                             <div class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
                                 @foreach($candidates as $candidate)
-                                    <label class="flex cursor-pointer items-start gap-3 bg-white p-4 hover:bg-indigo-50/40">
-                                        <input type="checkbox" wire:model.live="selectedRouteCandidates" value="{{ $candidate['id'] }}" class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                        <span class="min-w-0 flex-1"><span class="block text-sm font-semibold text-gray-900">{{ $candidate['name'] }}</span><span class="mt-1 block truncate font-mono text-xs text-gray-500">{{ $candidate['route_name'] }} · {{ $candidate['url'] }}</span>@if($candidate['permission'])<span class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">{{ $candidate['permission'] }}</span>@endif</span>
-                                    </label>
+                                    <div class="grid gap-3 bg-white p-4 hover:bg-indigo-50/40 md:grid-cols-[auto,minmax(0,1fr),minmax(220px,0.8fr)] md:items-start">
+                                        <input type="checkbox" wire:model.live="selectedRouteCandidates" value="{{ $candidate['id'] }}" class="mt-3 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" aria-label="Chọn route {{ $candidate['route_name'] }}">
+                                        <div class="min-w-0"><span class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Route</span><span class="mt-1 block truncate font-mono text-xs text-gray-600">{{ $candidate['route_name'] }}</span><span class="mt-1 block truncate font-mono text-xs text-gray-400">{{ $candidate['url'] }}</span>@if($candidate['permission'])<span class="mt-2 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">{{ $candidate['permission'] }}</span>@endif</div>
+                                        <div><label for="route-name-{{ $candidate['id'] }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Tên hiển thị gợi ý</label><input id="route-name-{{ $candidate['id'] }}" type="text" wire:model="routeCandidateNames.{{ $candidate['id'] }}" maxlength="255" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 placeholder:text-gray-400 hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" placeholder="Tên menu hiển thị"></div>
+                                    </div>
                                 @endforeach
                             </div>
                         </div>
