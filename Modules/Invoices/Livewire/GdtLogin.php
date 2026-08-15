@@ -13,7 +13,7 @@ class GdtLogin extends Component
 {
     protected GdtApiService $service;
 
-    public $captchaSvg = ''; // gán mặc định rỗng
+    public $captchaSvg = '';
 
     public $ckey;
 
@@ -38,6 +38,8 @@ class GdtLogin extends Component
 
     public function mount(GdtConfigService $configService): void
     {
+        $this->authorizePermission('invoices-configure');
+
         try {
             if ($configService->ensureDefaults()) {
                 Artisan::call('config:clear');
@@ -49,7 +51,6 @@ class GdtLogin extends Component
         $this->gdtConfig = [
             'base_url' => (string) config('invoices.gdt.base_url'),
             'username' => (string) config('invoices.gdt.username'),
-            // Không hydrate password vào public state của Livewire.
             'password' => '',
             'verify_ssl' => (bool) config('invoices.gdt.verify_ssl', true),
             'timeout' => (int) config('invoices.gdt.timeout', 15),
@@ -68,6 +69,7 @@ class GdtLogin extends Component
 
     public function refreshCaptcha(): void
     {
+        $this->authorizePermission('invoices-configure');
         $this->captchaSvg = '';
         $this->ckey = null;
         $this->cvalue = null;
@@ -83,6 +85,8 @@ class GdtLogin extends Component
 
     public function saveGdtConfig(GdtConfigService $configService): void
     {
+        $this->authorizePermission('invoices-configure');
+
         $validated = $this->validate([
             'gdtConfig.base_url' => ['required', 'url:http,https', 'max:500'],
             'gdtConfig.username' => ['required', 'string', 'max:255', 'not_regex:/[\r\n]/'],
@@ -127,13 +131,14 @@ class GdtLogin extends Component
 
     public function login(): void
     {
+        $this->authorizePermission('invoices-configure');
+
         $this->validate([
             'cvalue' => ['required', 'string', 'max:20'],
         ], [
             'cvalue.required' => 'Vui lòng nhập captcha.',
         ]);
 
-        // Kiểm tra token trong cache trước
         if (! $this->authenticated) {
             if (! $this->cvalue || ! $this->ckey) {
                 session()->flash('error', 'Captcha chưa sẵn sàng hoặc chưa được nhập.');
@@ -160,6 +165,7 @@ class GdtLogin extends Component
 
     public function deleteToken(): void
     {
+        $this->authorizePermission('invoices-configure');
         $this->service->forgetToken();
         $this->authenticated = false;
         $this->redirectRoute('admin.invoices.create-token');
@@ -168,5 +174,10 @@ class GdtLogin extends Component
     public function render(): View
     {
         return view('Invoices::livewire.gdt-login');
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }

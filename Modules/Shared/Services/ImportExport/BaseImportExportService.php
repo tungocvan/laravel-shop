@@ -159,9 +159,12 @@ abstract class BaseImportExportService
                         $this->defaultSheetName
                     );
 
+                    $skippedBeforePersist = $this->skippedRows;
                     $this->persistRow($data, $mode);
 
-                    $this->successRows++;
+                    if ($this->skippedRows === $skippedBeforePersist) {
+                        $this->successRows++;
+                    }
                 } catch (\Throwable $exception) {
                     Log::warning('Import row failed', [
                         'service' => static::class,

@@ -1,73 +1,24 @@
 <div class="space-y-6">
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        @foreach ([
-            ['Bán ra', $totalSoldAmount, $totalSoldCustomers],
-            ['Mua vào', $totalPurchaseAmount, $totalPurchaseCustomers],
-        ] as [$label, $amount, $customers])
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-1 lg:col-span-2">
-                <p class="text-sm text-gray-500">{{ $label }}</p>
-                <p class="mt-2 text-2xl font-bold text-gray-900">{{ number_format($amount) }} ₫</p>
-                <p class="mt-1 text-sm text-gray-500">{{ number_format($customers) }} đối tác</p>
-            </div>
-        @endforeach
-    </div>
+    <div wire:loading.flex wire:target="reconcilePdfMetadata,downloadMissingPdfs,retryPdfErrors,downloadPdfZip,deleteSelectedPdfs" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl"><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div><h3 class="mt-4 text-lg font-bold text-slate-900">Đang xử lý dữ liệu hóa đơn</h3><p class="mt-2 text-sm text-slate-500">Vui lòng không đóng tab hoặc refresh trang cho đến khi tác vụ hoàn tất.</p></div></div>
+    @if($pdfNotice)<div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">{{ $pdfNotice }}</div>@endif
+    @if($pdfError)<div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-800">{{ $pdfError }}</div>@endif
+
+    <div class="grid gap-4 sm:grid-cols-2">@foreach([['Bán ra',$totalSoldAmount,$totalSoldCustomers],['Mua vào',$totalPurchaseAmount,$totalPurchaseCustomers]] as [$label,$amount,$customers])<div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><p class="text-sm text-gray-500">{{ $label }}</p><p class="mt-2 text-2xl font-bold text-gray-900">{{ number_format($amount) }} ₫</p><p class="mt-1 text-sm text-gray-500">{{ number_format($customers) }} đối tác</p></div>@endforeach</div>
 
     <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-            <select wire:model.live="type" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-                <option value="">Tất cả loại</option><option value="sold">Bán ra</option><option value="purchase">Mua vào</option>
-            </select>
-            <select wire:model.live="name" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-                <option value="">Tất cả đối tác</option>
-                @foreach ($nameList as $item)<option value="{{ $item }}">{{ $item }}</option>@endforeach
-            </select>
-            <select wire:model.live="tax_code" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-                <option value="">Tất cả MST</option>
-                @foreach ($taxCodeList as $item)<option value="{{ $item }}">{{ $item }}</option>@endforeach
-            </select>
-            <input type="date" wire:model.live="from_date" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-            <input type="date" wire:model.live="to_date" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-            <select wire:model.live="taxRateFilter" class="rounded-xl border border-gray-300 px-4 py-3 text-sm">
-                <option value="all">Mọi thuế suất</option><option value="5">5%</option><option value="8">8%</option><option value="10">10%</option><option value="other">Khác</option>
-            </select>
-        </div>
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <select wire:model.live="perPage" class="h-11 rounded-xl border border-gray-300 px-4 text-sm">
-                @foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach
-            </select>
-            <div class="flex gap-2">
-                <button wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 px-4 text-sm font-semibold">Đặt lại</button>
-                <button wire:click="exportSelected" wire:loading.attr="disabled" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:opacity-50">Xuất đã chọn</button>
-                <button wire:click="downloadSelected" wire:loading.attr="disabled" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50">Tải PDF</button>
-            </div>
-        </div>
+        <div class="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h3 class="text-base font-semibold text-gray-900">Bộ lọc hóa đơn</h3><p class="mt-1 text-sm text-gray-500">Lọc theo kỳ, đối tác, MST, trạng thái PDF và sắp xếp dữ liệu kế toán.</p></div>@if($year!=='')<span class="rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">Kỳ: {{ $month!==''?'Tháng '.str_pad($month,2,'0',STR_PAD_LEFT).' / ':'' }}{{ $year }}</span>@endif</div>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7"><select wire:model.live="type" class="rounded-xl border-gray-300 px-4 py-3 text-sm"><option value="">Tất cả loại</option><option value="sold">Bán ra</option><option value="purchase">Mua vào</option></select><x-select-search id="invoice-partner-search" wire:model="name" options-wire="nameList" placeholder="Tìm đối tác..."><option value="">Tất cả đối tác</option>@foreach($nameList as $item)<option value="{{ $item }}" @selected($name===$item)>{{ $item }}</option>@endforeach</x-select-search><x-select-search id="invoice-tax-code-search" wire:model="tax_code" options-wire="taxCodeList" placeholder="Tìm MST..."><option value="">Tất cả MST</option>@foreach($taxCodeList as $item)<option value="{{ $item }}" @selected($tax_code===$item)>{{ $item }}</option>@endforeach</x-select-search><select wire:model.live="year" class="rounded-xl border-gray-300 px-4 py-3 text-sm"><option value="">Tất cả năm</option>@foreach($yearOptions as $yearOption)<option value="{{ $yearOption }}">Năm {{ $yearOption }}</option>@endforeach</select><select wire:model.live="month" @disabled($year==='') class="rounded-xl border-gray-300 px-4 py-3 text-sm"><option value="">Cả năm</option>@for($m=1;$m<=12;$m++)<option value="{{ $m }}">Tháng {{ str_pad((string)$m,2,'0',STR_PAD_LEFT) }}</option>@endfor</select><select wire:model.live="taxRateFilter" class="rounded-xl border-gray-300 px-4 py-3 text-sm"><option value="all">Mọi thuế suất</option><option value="5">5%</option><option value="8">8%</option><option value="10">10%</option><option value="other">Khác</option></select><select wire:model.live="pdfStatusFilter" class="rounded-xl border-gray-300 px-4 py-3 text-sm"><option value="all">Mọi trạng thái PDF</option><option value="available">Đã có PDF</option><option value="missing">Chưa có PDF</option><option value="error">Lỗi tải PDF</option></select></div>
+        <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4"><label class="space-y-1"><span class="text-xs font-semibold uppercase text-gray-500">Từ ngày</span><input type="date" wire:model.live="from_date" class="w-full rounded-xl border-gray-300 px-4 py-3 text-sm"></label><label class="space-y-1"><span class="text-xs font-semibold uppercase text-gray-500">Đến ngày</span><input type="date" wire:model.live="to_date" class="w-full rounded-xl border-gray-300 px-4 py-3 text-sm"></label><label class="space-y-1 md:col-span-2"><span class="text-xs font-semibold uppercase text-gray-500">Sắp xếp</span><select wire:model.live="sort" class="w-full rounded-xl border-gray-300 px-4 py-3 text-sm"><option value="date_desc">Ngày mới nhất</option><option value="date_asc">Ngày cũ nhất</option><option value="amount_desc">Số tiền: cao → thấp</option><option value="amount_asc">Số tiền: thấp → cao</option><option value="invoice_desc">Số hóa đơn: giảm dần</option><option value="invoice_asc">Số hóa đơn: tăng dần</option><option value="partner_asc">Đối tác: A → Z</option><option value="partner_desc">Đối tác: Z → A</option></select></label></div>
+        <div class="mt-5 grid gap-3 sm:grid-cols-3">@foreach([['Trong bộ lọc',number_format($filterStats['count']).' hóa đơn'],['Tiền VAT',number_format((float)$filterStats['vat_amount']).' ₫'],['Tổng thanh toán',number_format((float)$filterStats['total_amount']).' ₫']] as [$label,$value])<div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"><p class="text-xs font-medium uppercase text-gray-500">{{ $label }}</p><p class="mt-1 text-lg font-bold">{{ $value }}</p></div>@endforeach</div>
+
+        <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5"><div class="flex items-start justify-between"><div><h3 class="text-sm font-bold">Kho PDF theo bộ lọc</h3><p class="mt-1 text-xs text-slate-500">Bộ lọc chỉ thu hẹp danh sách; xóa PDF chỉ áp dụng cho hóa đơn checkbox.</p></div></div><div class="mt-4 grid gap-3 sm:grid-cols-4">@foreach([['Tổng',$fileSummary['total']],['Đã có PDF',$fileSummary['available']],['Chưa có',$fileSummary['missing']],['Lỗi tải',$fileSummary['error']]] as [$label,$value])<div class="rounded-xl bg-white px-4 py-3 shadow-sm"><p class="text-xs text-slate-500">{{ $label }}</p><p class="mt-1 text-xl font-bold">{{ number_format($value) }}</p></div>@endforeach</div>@if(auth('admin')->user()?->can('invoices-download'))<div class="mt-4 flex flex-wrap gap-2"><button wire:click="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Quét metadata</button><button wire:click="downloadMissingPdfs" @disabled(($fileSummary['missing']+$fileSummary['error'])===0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải 25 PDF còn thiếu</button>@if($fileSummary['error']>0)<button wire:click="retryPdfErrors" class="rounded-xl bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-800">Thử lại {{ min(25,$fileSummary['error']) }} lỗi</button>@endif<button wire:click="downloadPdfZip" @disabled($fileSummary['available']===0) class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải ZIP PDF</button>@if(count($selected)>0)<button wire:click="deleteSelectedPdfs" wire:confirm="Xóa PDF của {{ count($selected) }} hóa đơn đã chọn? Dữ liệu hóa đơn không bị xóa." class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700">Xóa PDF đã chọn ({{ count($selected) }})</button>@endif</div>@endif</div>
+
+        <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5"><div class="flex items-center gap-3"><select wire:model.live="perPage" class="h-11 rounded-xl border-gray-300 px-4 text-sm">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} / trang</option>@endforeach</select>@if(count($selected)>0)<span class="rounded-full bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">Đã chọn {{ count($selected) }} hóa đơn</span><button wire:click="clearSelection" class="text-sm font-semibold text-gray-500">Bỏ chọn</button>@endif</div><div class="flex gap-2"><button wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 px-4 text-sm font-semibold">Đặt lại bộ lọc</button>@if(auth('admin')->user()?->can('invoices-export'))<button wire:click="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white">{{ count($selected)>0?'Xuất '.count($selected).' hóa đơn':'Xuất theo bộ lọc' }}</button>@endif @if(auth('admin')->user()?->can('invoices-download'))<button wire:click="downloadSelected" @disabled(count($selected)===0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-40">Tải PDF ({{ count($selected) }})</button>@endif</div></div>
     </div>
 
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
-                    <tr><th class="px-4 py-3"></th><th class="px-4 py-3">Số HĐ</th><th class="px-4 py-3">Ngày</th><th class="px-4 py-3">Đối tác</th><th class="px-4 py-3">MST</th><th class="px-4 py-3">Loại</th><th class="px-4 py-3 text-right">Tổng tiền</th></tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse ($invoices as $invoice)
-                        <tr>
-                            <td class="px-4 py-3"><input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300"></td>
-                            <td class="px-4 py-3">{{ $invoice->invoice_number ?: '-' }}</td>
-                            <td class="px-4 py-3">{{ $invoice->issued_date?->format('d/m/Y') ?? '-' }}</td>
-                            <td class="px-4 py-3">{{ $invoice->name ?: '-' }}</td>
-                            <td class="px-4 py-3">{{ $invoice->tax_code ?: '-' }}</td>
-                            <td class="px-4 py-3">{{ $invoice->invoice_type === 'sold' ? 'Bán ra' : 'Mua vào' }}</td>
-                            <td class="px-4 py-3 text-right">{{ number_format($invoice->total_amount) }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="7" class="px-4 py-12 text-center text-gray-500">Không có hóa đơn phù hợp bộ lọc.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        @if ($perPage !== 'All' && $invoices->hasPages())
-            <div class="border-t border-gray-200 px-4 py-4">{{ $invoices->links() }}</div>
-        @endif
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        @if($selectPage && !$selectAllFiltered && $invoices->total()>count($selected))<div class="border-b border-indigo-100 bg-indigo-50 px-4 py-3 text-center text-sm text-indigo-800">Đã chọn {{ count($selected) }} hóa đơn trên trang này. <button wire:click="selectAllFilteredResults" class="font-bold underline">Chọn toàn bộ {{ number_format($invoices->total()) }} hóa đơn theo bộ lọc</button></div>@elseif($selectAllFiltered)<div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800">Đã chọn toàn bộ {{ number_format(count($selected)) }} hóa đơn theo bộ lọc. <button wire:click="clearSelection" class="underline">Bỏ chọn tất cả</button></div>@endif
+        <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th class="px-4 py-3"><input type="checkbox" wire:model.live="selectPage" wire:change="togglePageSelection" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" title="Chọn tất cả hóa đơn trang hiện tại"></th><th class="px-4 py-3">Số HĐ</th><th class="px-4 py-3">Ngày</th><th class="px-4 py-3">Đối tác</th><th class="px-4 py-3">MST</th><th class="px-4 py-3">Loại</th><th class="px-4 py-3">PDF</th><th class="px-4 py-3 text-right">Tổng tiền</th></tr></thead><tbody class="divide-y divide-gray-100">@forelse($invoices as $invoice)@php($pdfStatus=$pdfStatuses[$invoice->id]??'missing')<tr class="hover:bg-gray-50"><td class="px-4 py-3"><input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></td><td class="px-4 py-3 font-medium">{{ $invoice->invoice_number?:'-' }}</td><td class="px-4 py-3">{{ $invoice->issued_date?->format('d/m/Y')??'-' }}</td><td class="px-4 py-3">{{ $invoice->name?:'-' }}</td><td class="px-4 py-3">{{ $invoice->tax_code?:'-' }}</td><td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $invoice->invoice_type==='sold'?'bg-sky-50 text-sky-700':'bg-amber-50 text-amber-700' }}">{{ $invoice->invoice_type==='sold'?'Bán ra':'Mua vào' }}</span></td><td class="px-4 py-3">@if($pdfStatus==='available')<span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">Đã có PDF</span> <a href="{{ route('admin.invoices.download-invoice',['invoice'=>$invoice->id]) }}" target="_blank" class="ml-2 text-xs font-semibold text-indigo-600">Mở</a>@elseif($pdfStatus==='error')<span class="text-xs font-semibold text-red-700">Lỗi tải</span>@elseif($pdfStatus==='unsupported')<span class="text-xs text-gray-500">Thiếu định danh</span>@else<span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">Chưa có PDF</span>@endif</td><td class="px-4 py-3 text-right font-semibold">{{ number_format($invoice->total_amount) }} ₫</td></tr>@empty<tr><td colspan="8" class="px-4 py-12 text-center text-gray-500">Không có hóa đơn phù hợp bộ lọc.</td></tr>@endforelse</tbody></table></div>
+        @if($invoices->hasPages())<div class="border-t border-gray-200 px-4 py-4">{{ $invoices->links('Invoices::components.invoice-pagination') }}</div>@endif
     </div>
 </div>

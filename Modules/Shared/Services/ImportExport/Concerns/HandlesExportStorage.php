@@ -16,7 +16,9 @@ trait HandlesExportStorage
     {
         $filename = Str::slug($prefix)
             . '-'
-            . now()->format('Ymd-His')
+            . now()->format('Ymd-His-u')
+            . '-'
+            . Str::lower(Str::random(6))
             . '.'
             . $extension;
 
