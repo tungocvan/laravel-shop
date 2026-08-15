@@ -7,6 +7,7 @@ use Modules\Invoices\Models\Invoices;
 class InvoicePdfService
 {
     public function __construct(
+        private readonly GdtPdfService $gdtPdfService,
         private readonly MeInvoiceService $meInvoiceService,
         private readonly InvoiceFileService $fileService,
     ) {}
@@ -33,7 +34,22 @@ class InvoicePdfService
             return $this->fileService->pdfPath($lookupCode);
         }
 
-        return $this->meInvoiceService->downloadOne($lookupCode, $force);
+        try {
+            return $this->gdtPdfService->downloadInvoice($invoice, $force);
+        } catch (\Throwable $gdtException) {
+            if (! config('invoices.meinvoice.token')) {
+                throw new \RuntimeException('Không thể tạo PDF từ GDT: '.$gdtException->getMessage(), previous: $gdtException);
+            }
+
+            try {
+                return $this->meInvoiceService->downloadOne($lookupCode, $force);
+            } catch (\Throwable $meInvoiceException) {
+                throw new \RuntimeException(
+                    'GDT: '.$gdtException->getMessage().' | MeInvoice: '.$meInvoiceException->getMessage(),
+                    previous: $meInvoiceException
+                );
+            }
+        }
     }
 
     public function downloadSelected(array $ids, bool $force = false): array

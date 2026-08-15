@@ -28,6 +28,15 @@ class InvoiceFileService
         return $path;
     }
 
+    public function targetPdfPath(string $lookupCode): string
+    {
+        if ($lookupCode === '' || basename($lookupCode) !== $lookupCode) {
+            throw new \RuntimeException('Mã tra cứu không hợp lệ.');
+        }
+
+        return $this->path($lookupCode);
+    }
+
     private function path(string $lookupCode): string
     {
         $directory = trim((string) config('invoices.storage.pdf_directory', 'hoadon_temp'), '/');
