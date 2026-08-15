@@ -12,9 +12,7 @@ class InvoiceService
 {
     public function paginate(array $filters, int $perPage = 10): LengthAwarePaginator
     {
-        return $this->filteredQuery($filters)
-            ->orderByDesc('issued_date')
-            ->orderByDesc('id')
+        return $this->orderedQuery($filters)
             ->paginate($this->normalizePerPage($perPage));
     }
 
@@ -38,6 +36,24 @@ class InvoiceService
                 ->pluck('tax_code')
                 ->all(),
         ];
+    }
+
+    public function years(): array
+    {
+        $yearExpression = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%Y', issued_date) AS INTEGER)"
+            : 'YEAR(issued_date)';
+
+        return Invoices::query()
+            ->whereNotNull('issued_date')
+            ->selectRaw($yearExpression.' as year')
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year')
+            ->filter()
+            ->map(fn ($year) => (int) $year)
+            ->values()
+            ->all();
     }
 
     public function statistics(array $filters): array
@@ -121,11 +137,27 @@ class InvoiceService
 
     public function filter(array $filters = [], bool $returnBuilder = false): Builder|Collection
     {
-        $query = $this->filteredQuery($filters)
-            ->orderByDesc('issued_date')
-            ->orderByDesc('id');
+        $query = $this->orderedQuery($filters);
 
         return $returnBuilder ? $query : $query->get();
+    }
+
+    private function orderedQuery(array $filters): Builder
+    {
+        $query = $this->filteredQuery($filters);
+
+        [$column, $direction] = match ($filters['sort'] ?? 'date_desc') {
+            'date_asc' => ['issued_date', 'asc'],
+            'amount_desc' => ['total_amount', 'desc'],
+            'amount_asc' => ['total_amount', 'asc'],
+            'invoice_desc' => ['invoice_number', 'desc'],
+            'invoice_asc' => ['invoice_number', 'asc'],
+            'partner_asc' => ['name', 'asc'],
+            'partner_desc' => ['name', 'desc'],
+            default => ['issued_date', 'desc'],
+        };
+
+        return $query->orderBy($column, $direction)->orderByDesc('id');
     }
 
     private function filteredQuery(array $filters, bool $includeTaxRate = true): Builder
