@@ -27,16 +27,18 @@ class MeInvoiceService
         return $count;
     }
 
-    public function downloadOne(string $lookupCode, bool $force = false): string
+    public function downloadOne(string $lookupCode, bool $force = false, ?string $targetFile = null): string
     {
         if ($lookupCode === '' || basename($lookupCode) !== $lookupCode) {
             throw new \RuntimeException('Mã tra cứu không hợp lệ.');
         }
 
-        $directory = trim((string) config('invoices.storage.pdf_directory', 'hoadon_temp'), '/');
-        $targetDirectory = storage_path("app/{$directory}");
-        $targetFile = $targetDirectory.'/'.$lookupCode.'.pdf';
+        if ($targetFile === null) {
+            $directory = trim((string) config('invoices.storage.pdf_directory', 'hoadon_temp'), '/');
+            $targetFile = storage_path("app/{$directory}/{$lookupCode}.pdf");
+        }
 
+        $targetDirectory = dirname($targetFile);
         if (! is_dir($targetDirectory) && ! mkdir($targetDirectory, 0775, true) && ! is_dir($targetDirectory)) {
             throw new \RuntimeException('Không thể tạo thư mục lưu PDF.');
         }

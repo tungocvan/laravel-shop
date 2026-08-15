@@ -38,7 +38,11 @@ class InvoicePdfService
         } catch (\Throwable $gdtException) {
             $lookupCode = trim((string) $invoice->lookup_code);
             if ($lookupCode !== '' && config('invoices.meinvoice.token')) {
-                return $this->meInvoiceService->downloadOne($lookupCode, $force);
+                return $this->meInvoiceService->downloadOne(
+                    $lookupCode,
+                    $force,
+                    $this->fileService->targetPdfPathForInvoice($invoice)
+                );
             }
 
             throw $gdtException;
