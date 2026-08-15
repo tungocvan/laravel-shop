@@ -22,9 +22,9 @@ class SubmissionTable extends Component
 
     public string $date_to = '';
 
-    public string|int $perPage = 10;
+    public int $perPage = 10;
 
-    public array $perPageOptions = [10, 25, 50, 100, 'All'];
+    public array $perPageOptions = [10, 25, 50, 100];
 
     public array $selectedIds = [];
 
@@ -40,6 +40,9 @@ class SubmissionTable extends Component
     public function updated($property): void
     {
         if (in_array($property, ['search', 'status', 'procedure_id', 'date_from', 'date_to', 'perPage'], true)) {
+            if ($property === 'perPage' && ! in_array($this->perPage, $this->perPageOptions, true)) {
+                $this->perPage = 10;
+            }
             $this->reset(['selectedIds', 'selectAll']);
             $this->resetPage();
         }
@@ -81,7 +84,7 @@ class SubmissionTable extends Component
     public function deleteSelected(SubmissionService $service): void
     {
         $this->authorizePermission('administrative.submission.delete');
-        $count = $service->softDeleteMany($this->selectedIds);
+        $count = $service->softDeleteMany($this->selectedIds, (int) Auth::guard('admin')->id());
         $this->reset(['selectedIds', 'selectAll', 'confirmingDelete']);
         $this->dispatch('notify', content: "Đã lưu trữ {$count} hồ sơ.", type: 'success');
     }
