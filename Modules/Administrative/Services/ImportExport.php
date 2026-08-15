@@ -2,7 +2,9 @@
 
 namespace Modules\Administrative\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Administrative\Enums\SubmissionStatus;
@@ -23,7 +25,7 @@ class ImportExport extends BaseImportExportService
 
     protected array $rules = [
         'procedure_code' => ['required', 'string', 'max:50'],
-        'submission_code' => ['nullable', 'string', 'max:100'],
+        'submission_code' => ['nullable', 'string', 'max:32'],
         'applicant_name' => ['required', 'string', 'max:255'],
         'phone' => ['required', 'string', 'max:30'],
         'email' => ['nullable', 'email', 'max:255'],
@@ -31,8 +33,8 @@ class ImportExport extends BaseImportExportService
         'student_code' => ['nullable', 'string', 'max:100'],
         'date_of_birth' => ['nullable', 'date'],
         'current_class' => ['nullable', 'string', 'max:100'],
-        'academic_year' => ['nullable', 'string', 'max:50'],
-        'relationship' => ['nullable', 'string', 'max:100'],
+        'academic_year' => ['nullable', 'string', 'max:20'],
+        'relationship' => ['nullable', 'string', 'max:50'],
         'status' => ['nullable', 'in:pending,approved,rejected,need_supplement'],
         'submitted_at' => ['nullable', 'date'],
     ];
@@ -82,14 +84,15 @@ class ImportExport extends BaseImportExportService
         }
 
         unset($data['procedure_code']);
+
         $data['procedure_id'] = $procedure->id;
-        $data['lookup_token_hash'] = null;
+        $data['lookup_token_hash'] = Hash::make(Str::random(40));
         $data['wants_email_receipt'] = false;
         $data['version'] = 1;
         $data['revision_count'] = 0;
 
         if (empty($data['submission_code'])) {
-            $data['submission_code'] = 'IMP-'.now()->format('Ymd').'-'.Str::upper(Str::random(10));
+            $data['submission_code'] = 'IMP-'.now()->format('ymd').'-'.Str::upper(Str::random(10));
         }
 
         return $data;
@@ -121,35 +124,36 @@ class ImportExport extends BaseImportExportService
         return $query->latest('submitted_at')->get();
     }
 
-    protected function mapExportRow($item): array
+    protected function mapExportRow(Model $model): array
     {
+        /** @var AdministrativeSubmission $model */
         return [
-            'procedure_code' => $item->procedure?->code,
-            'procedure_name' => $item->procedure?->name,
-            'submission_code' => $item->submission_code,
-            'applicant_name' => $item->applicant_name,
-            'phone' => $item->phone,
-            'email' => $item->email,
-            'student_name' => $item->student_name,
-            'student_code' => $item->student_code,
-            'date_of_birth' => $item->date_of_birth?->format('Y-m-d'),
-            'current_class' => $item->current_class,
-            'academic_year' => $item->academic_year,
-            'relationship' => $item->relationship,
-            'status' => $item->status->value,
-            'submitted_at' => $item->submitted_at?->format('Y-m-d H:i:s'),
-            'processed_by' => $item->processor?->name,
-            'processed_at' => $item->processed_at?->format('Y-m-d H:i:s'),
-            'response' => $item->response,
-            'rejection_reason' => $item->rejection_reason,
-            'supplement_reason' => $item->supplement_reason,
+            'procedure_code' => $model->procedure?->code,
+            'procedure_name' => $model->procedure?->name,
+            'submission_code' => $model->submission_code,
+            'applicant_name' => $model->applicant_name,
+            'phone' => $model->phone,
+            'email' => $model->email,
+            'student_name' => $model->student_name,
+            'student_code' => $model->student_code,
+            'date_of_birth' => $model->date_of_birth?->format('Y-m-d'),
+            'current_class' => $model->current_class,
+            'academic_year' => $model->academic_year,
+            'relationship' => $model->relationship,
+            'status' => $model->status->value,
+            'submitted_at' => $model->submitted_at?->format('Y-m-d H:i:s'),
+            'processed_by' => $model->processor?->name,
+            'processed_at' => $model->processed_at?->format('Y-m-d H:i:s'),
+            'response' => $model->response,
+            'rejection_reason' => $model->rejection_reason,
+            'supplement_reason' => $model->supplement_reason,
         ];
     }
 
-    protected function templateRows(): Collection
+    protected function templateSampleRow(): array
     {
-        return collect([[
-            'procedure_code' => 'HC01',
+        return [
+            'procedure_code' => 'HC-001',
             'submission_code' => '',
             'applicant_name' => 'Nguyễn Văn A',
             'phone' => '0901234567',
@@ -162,7 +166,7 @@ class ImportExport extends BaseImportExportService
             'relationship' => 'Cha',
             'status' => 'pending',
             'submitted_at' => now()->format('Y-m-d H:i:s'),
-        ]]);
+        ];
     }
 
     private function nullable(mixed $value): ?string
