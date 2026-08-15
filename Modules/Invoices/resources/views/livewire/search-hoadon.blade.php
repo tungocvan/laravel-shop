@@ -86,7 +86,7 @@
                 <div class="max-h-80 space-y-2 overflow-y-auto pr-1">
                     @forelse ($availableFiles as $file)
                         <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3 hover:bg-gray-50">
-                            <input type="radio" wire:model.live="selectedFile" value="{{ $file['path'] }}" class="mt-1 border-gray-300 text-indigo-600">
+                            <input type="radio" wire:model.live="selectedFile" value="{{ $file['name'] }}" class="mt-1 border-gray-300 text-indigo-600">
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-sm font-medium text-gray-800">{{ $file['name'] }}</span>
                                 <span class="mt-1 block text-xs text-gray-500">{{ number_format($file['size'] / 1024, 1) }} KB · {{ $file['modified_at'] }}</span>
