@@ -5,6 +5,7 @@ namespace Modules\Invoices\Services;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Modules\Invoices\Models\Invoices;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
 
@@ -114,20 +115,41 @@ class InvoiceImportExportService extends BaseImportExportService
 
     protected function persistSkipDuplicate(string $modelClass, array $data): Model
     {
-        $existing = $modelClass::query()
+        $lock = Cache::lock($this->identityLockKey($data), 10);
+
+        return $lock->block(5, function () use ($modelClass, $data): Model {
+            $existing = $this->findExistingInvoice($modelClass, $data);
+
+            if ($existing) {
+                $this->skippedRows++;
+
+                return $existing;
+            }
+
+            return $modelClass::query()->create($data);
+        });
+    }
+
+    protected function findExistingInvoice(string $modelClass, array $data): ?Model
+    {
+        return $modelClass::query()
             ->where('lookup_code', $data['lookup_code'] ?? null)
             ->where('invoice_number', $data['invoice_number'] ?? null)
             ->whereDate('issued_date', $data['issued_date'] ?? null)
             ->where('tax_code', $data['tax_code'] ?? null)
             ->first();
+    }
 
-        if ($existing) {
-            $this->skippedRows++;
+    protected function identityLockKey(array $data): string
+    {
+        $identity = [
+            'lookup_code' => $data['lookup_code'] ?? null,
+            'invoice_number' => $data['invoice_number'] ?? null,
+            'issued_date' => $data['issued_date'] ?? null,
+            'tax_code' => $data['tax_code'] ?? null,
+        ];
 
-            return $existing;
-        }
-
-        return $modelClass::query()->create($data);
+        return 'invoices:import:identity:'.hash('sha256', json_encode($identity, JSON_UNESCAPED_UNICODE));
     }
 
     protected function exportRows(array $filters = []): Collection
