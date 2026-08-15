@@ -200,7 +200,7 @@ class MenuImportExportService
                             $existing->restore();
                         }
 
-                        if ($mode === 'update_or_create') {
+                        if (in_array($mode, ['update_or_create', 'replace'], true)) {
                             $existing->update($data);
                         }
 
@@ -524,7 +524,7 @@ class MenuImportExportService
                 $menu->restore();
             }
 
-            if ($mode === 'update_or_create') {
+            if (in_array($mode, ['update_or_create', 'replace'], true)) {
                 $menu->update($data);
             }
 
