@@ -8,6 +8,43 @@ use RuntimeException;
 
 class KqlcntService
 {
+    public function __construct(private readonly MuaSamCongService $muasamcong)
+    {
+    }
+
+    public function resolveByNotifyNo(string $notifyNo, string $contractorCode): array
+    {
+        $notifyNo = trim($notifyNo);
+        $contractorCode = trim($contractorCode);
+
+        if ($notifyNo === '' || $contractorCode === '') {
+            throw new RuntimeException('Thiếu dữ liệu để tra cứu KQLCNT.');
+        }
+
+        $year = $this->yearFromNotifyNo($notifyNo);
+        $search = $this->muasamcong->searchHsmt(
+            $notifyNo,
+            $year.'-01-01',
+            now()->addYear()->endOfYear()->toDateString()
+        );
+
+        if (! ($search['success'] ?? false)) {
+            throw new RuntimeException($search['message'] ?? 'Không thể xác định TBMT trên Cổng Mua sắm công.');
+        }
+
+        $item = collect($search['data']['items'] ?? [])
+            ->first(fn (mixed $row): bool => is_array($row)
+                && trim((string) ($row['notifyNo'] ?? '')) === $notifyNo);
+
+        $notifyId = is_array($item) ? trim((string) ($item['id'] ?? '')) : '';
+
+        if ($notifyId === '') {
+            throw new RuntimeException('Không xác định được notifyId của TBMT '.$notifyNo.'.');
+        }
+
+        return $this->resolve($notifyId, $notifyNo, $contractorCode);
+    }
+
     public function resolve(string $notifyId, string $notifyNo, string $contractorCode): array
     {
         $notifyId = trim($notifyId);
@@ -133,16 +170,32 @@ class KqlcntService
         return is_array($decoded) ? $decoded : [];
     }
 
+    private function yearFromNotifyNo(string $notifyNo): int
+    {
+        if (preg_match('/^[A-Z]{2}(\d{2})/i', $notifyNo, $matches) === 1) {
+            return 2000 + (int) $matches[1];
+        }
+
+        return 2021;
+    }
+
     private function request(): PendingRequest
     {
-        return Http::withHeaders([
+        $headers = [
             'Accept' => 'application/json, text/plain, */*',
             'Content-Type' => 'application/json',
             'Origin' => config('muasamcong.origin'),
             'Referer' => config('muasamcong.referers.kqlcnt'),
             'User-Agent' => config('muasamcong.user_agent'),
-            'Cookie' => config('muasamcong.session_cookie'),
-        ])->timeout((int) config('muasamcong.timeout', 20))
+        ];
+
+        $cookie = trim((string) config('muasamcong.session_cookie'));
+        if ($cookie !== '') {
+            $headers['Cookie'] = $cookie;
+        }
+
+        return Http::withHeaders($headers)
+            ->timeout((int) config('muasamcong.timeout', 20))
             ->withOptions(['verify' => (bool) config('muasamcong.verify_ssl', true)]);
     }
 
