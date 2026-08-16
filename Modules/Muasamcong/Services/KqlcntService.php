@@ -87,13 +87,10 @@ class KqlcntService
                 continue;
             }
 
-            $passList = $this->decodeList($contract['contractorPassList'] ?? null);
+            $contractWinners = $this->contractWinners($contract);
+            $contractNo = trim((string) ($contract['contractNo'] ?? ''));
 
-            foreach ($passList as $winner) {
-                if (! is_array($winner)) {
-                    continue;
-                }
-
+            foreach ($contractWinners as $winner) {
                 $winnerCode = trim((string) ($winner['contractorCode'] ?? ''));
                 $winnerName = trim((string) ($winner['contractorName'] ?? ''));
 
@@ -109,14 +106,13 @@ class KqlcntService
                     'contracts' => [],
                 ];
 
-                $contractNo = trim((string) ($contract['contractNo'] ?? ''));
                 if ($contractNo !== '' && ! in_array($contractNo, $allWinners[$key]['contracts'], true)) {
                     $allWinners[$key]['contracts'][] = $contractNo;
                 }
             }
 
             $matchedContractors = array_values(array_filter(
-                $passList,
+                $contractWinners,
                 fn (array $item): bool => trim((string) ($item['contractorCode'] ?? '')) === $contractorCode
             ));
 
@@ -146,10 +142,10 @@ class KqlcntService
                 ?? data_get($tbmt, 'bidoNotifyContractorM.bidId'),
             'investor_code' => data_get($tbmt, 'bidoNotifyContractorM.investorCode')
                 ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.investorCode')
-                ?? ($matchedContracts[0]['investorCode'] ?? null),
+                ?? ($matchedContracts[0]['investorCode'] ?? $contracts[0]['investorCode'] ?? null),
             'investor_name' => data_get($tbmt, 'bidoNotifyContractorM.investorName')
                 ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.investorName')
-                ?? ($matchedContracts[0]['investorName'] ?? null),
+                ?? ($matchedContracts[0]['investorName'] ?? $contracts[0]['investorName'] ?? null),
             'contractor_code' => $contractorCode,
             'current_contractor_won' => $matchedContracts !== [],
             'contracts' => $matchedContracts,
@@ -158,6 +154,81 @@ class KqlcntService
             'tbmt_raw' => $tbmt,
             'contracts_raw' => $contracts,
         ];
+    }
+
+    public function normalizeStored(array $record): array
+    {
+        $contractsRaw = is_array($record['contracts_raw'] ?? null) ? $record['contracts_raw'] : [];
+        $allWinners = is_array($record['all_winners'] ?? null) ? $record['all_winners'] : [];
+
+        if ($allWinners === [] && $contractsRaw !== []) {
+            $aggregated = [];
+            foreach ($contractsRaw as $contract) {
+                if (! is_array($contract)) {
+                    continue;
+                }
+
+                $contractNo = trim((string) ($contract['contractNo'] ?? ''));
+                foreach ($this->contractWinners($contract) as $winner) {
+                    $code = trim((string) ($winner['contractorCode'] ?? ''));
+                    $name = trim((string) ($winner['contractorName'] ?? ''));
+                    if ($code === '' && $name === '') {
+                        continue;
+                    }
+
+                    $key = $code !== '' ? $code : mb_strtoupper($name);
+                    $aggregated[$key] ??= [
+                        'contractorCode' => $code ?: null,
+                        'contractorName' => $name ?: null,
+                        'contractorAddress' => $winner['contractorAddress'] ?? null,
+                        'contracts' => [],
+                    ];
+                    if ($contractNo !== '' && ! in_array($contractNo, $aggregated[$key]['contracts'], true)) {
+                        $aggregated[$key]['contracts'][] = $contractNo;
+                    }
+                }
+            }
+            $allWinners = array_values($aggregated);
+        }
+
+        return [
+            'notify_no' => $record['notify_no'] ?? null,
+            'notify_id' => $record['notify_id'] ?? null,
+            'bid_id' => $record['bid_id'] ?? null,
+            'bid_name' => $record['bid_name'] ?? null,
+            'contractor_code' => $record['contractor_code'] ?? null,
+            'investor_code' => $record['investor_code'] ?? null,
+            'investor_name' => $record['investor_name'] ?? null,
+            'status' => $record['status'] ?? null,
+            'published' => (bool) ($record['published'] ?? false),
+            'current_contractor_won' => (bool) ($record['current_contractor_won'] ?? false),
+            'contracts' => is_array($record['contracts'] ?? null) ? $record['contracts'] : [],
+            'all_winners' => $allWinners,
+            'verified_lots' => is_array($record['verified_lots'] ?? null) ? $record['verified_lots'] : [],
+            'tbmt_raw' => is_array($record['tbmt_raw'] ?? null) ? $record['tbmt_raw'] : [],
+            'contracts_raw' => $contractsRaw,
+            'source' => 'server',
+            'synced_at' => $record['synced_at'] ?? null,
+        ];
+    }
+
+    private function contractWinners(array $contract): array
+    {
+        $directCode = trim((string) ($contract['contractorCode'] ?? ''));
+        $directName = trim((string) ($contract['newContractorName'] ?? $contract['contractorName'] ?? ''));
+
+        if ($directCode !== '' || $directName !== '') {
+            return [[
+                'contractorCode' => $directCode ?: null,
+                'contractorName' => $directName ?: null,
+                'contractorAddress' => $contract['contractorAddress'] ?? null,
+            ]];
+        }
+
+        return array_values(array_filter(
+            $this->decodeList($contract['contractorPassList'] ?? null),
+            fn (mixed $winner): bool => is_array($winner)
+        ));
     }
 
     private function extractVerifiedLots(array $contract, string $contractorCode): array
