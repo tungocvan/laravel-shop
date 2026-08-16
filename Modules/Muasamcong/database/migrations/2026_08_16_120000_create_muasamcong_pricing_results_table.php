@@ -24,8 +24,8 @@ return new class extends Migration
             $table->dateTime('ngay_dang_tai_kqlcnt')->nullable();
             $table->json('dia_diem')->nullable();
             $table->decimal('don_gia', 20, 4)->nullable();
-            $table->text('ten_thuoc')->nullable();
-            $table->text('ten_hoat_chat')->nullable();
+            $table->string('ten_thuoc', 500)->nullable()->index();
+            $table->string('ten_hoat_chat', 500)->nullable()->index();
             $table->text('nong_do')->nullable();
             $table->text('duong_dung')->nullable();
             $table->text('dang_bao_che')->nullable();
@@ -43,9 +43,6 @@ return new class extends Migration
             $table->unsignedBigInteger('synced_by')->nullable()->index();
             $table->timestamp('synced_at')->useCurrent();
             $table->timestamps();
-
-            $table->index('ten_thuoc');
-            $table->index('ten_hoat_chat');
         });
     }
 
