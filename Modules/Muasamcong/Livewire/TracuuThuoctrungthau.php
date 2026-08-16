@@ -46,6 +46,8 @@ class TracuuThuoctrungthau extends Component
 
     public bool $loading = false;
 
+    public bool $showSelectedSummary = false;
+
     public string $error = '';
 
     public string $syncStatus = '';
@@ -214,6 +216,30 @@ class TracuuThuoctrungthau extends Component
         $this->wishlistMessage = $added ? 'Đã thêm vào Wishlist.' : 'Đã bỏ khỏi Wishlist.';
     }
 
+    public function toggleCurrentPageSelection(): void
+    {
+        $pageIds = $this->currentPageSelectableIds();
+
+        if ($pageIds === []) {
+            return;
+        }
+
+        $selectedLookup = array_fill_keys($this->selectedSourceIds, true);
+        $allSelected = collect($pageIds)->every(fn (string $id): bool => isset($selectedLookup[$id]));
+
+        if ($allSelected) {
+            $pageLookup = array_fill_keys($pageIds, true);
+            $this->selectedSourceIds = array_values(array_filter(
+                $this->selectedSourceIds,
+                fn (string $id): bool => ! isset($pageLookup[$id])
+            ));
+
+            return;
+        }
+
+        $this->selectedSourceIds = array_values(array_unique(array_merge($this->selectedSourceIds, $pageIds)));
+    }
+
     public function selectAllUnsynced(): void
     {
         $synced = array_fill_keys($this->syncedSourceIds, true);
@@ -229,6 +255,24 @@ class TracuuThuoctrungthau extends Component
     public function clearSelection(): void
     {
         $this->selectedSourceIds = [];
+        $this->showSelectedSummary = false;
+    }
+
+    public function toggleSelectedSummary(): void
+    {
+        $this->showSelectedSummary = ! $this->showSelectedSummary;
+    }
+
+    public function removeSelected(string $sourceId): void
+    {
+        $this->selectedSourceIds = array_values(array_filter(
+            $this->selectedSourceIds,
+            fn (string $id): bool => $id !== $sourceId
+        ));
+
+        if ($this->selectedSourceIds === []) {
+            $this->showSelectedSummary = false;
+        }
     }
 
     public function openDetail(string $sourceId): void
@@ -281,6 +325,7 @@ class TracuuThuoctrungthau extends Component
             || (bool) ($freshResult['data']['capped'] ?? false);
         $this->syncedSourceIds = $syncService->existingSourceIds($this->results);
         $this->selectedSourceIds = [];
+        $this->showSelectedSummary = false;
 
         $inserted = (int) ($report['inserted'] ?? 0);
         $duplicates = (int) ($report['duplicates'] ?? 0);
@@ -313,12 +358,28 @@ class TracuuThuoctrungthau extends Component
         $pageCount = max(1, (int) ceil(count($filteredResults) / self::RESULTS_PER_PAGE));
         $this->resultPage = max(1, min($this->resultPage, $pageCount));
         $offset = ($this->resultPage - 1) * self::RESULTS_PER_PAGE;
+        $displayResults = array_slice($filteredResults, $offset, self::RESULTS_PER_PAGE);
+        $selectedLookup = array_fill_keys($this->selectedSourceIds, true);
+        $syncedLookup = array_fill_keys($this->syncedSourceIds, true);
+        $currentSelectableIds = collect($displayResults)
+            ->pluck('id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '' && ! isset($syncedLookup[$id]))
+            ->values()
+            ->all();
 
         return view('Muasamcong::livewire.tracuu-thuoctrungthau', [
-            'displayResults' => array_slice($filteredResults, $offset, self::RESULTS_PER_PAGE),
+            'displayResults' => $displayResults,
             'filteredResultCount' => count($filteredResults),
             'resultPageCount' => $pageCount,
             'resultOffset' => $offset,
+            'currentPageSelectableCount' => count($currentSelectableIds),
+            'currentPageSelectedCount' => count(array_filter(
+                $currentSelectableIds,
+                fn (string $id): bool => isset($selectedLookup[$id])
+            )),
+            'currentPageAllSelected' => $currentSelectableIds !== []
+                && collect($currentSelectableIds)->every(fn (string $id): bool => isset($selectedLookup[$id])),
+            'selectedItems' => $this->selectedItems(),
         ]);
     }
 
@@ -375,6 +436,7 @@ class TracuuThuoctrungthau extends Component
         $this->error = $this->syncStatus = $this->syncMessage = $this->wishlistMessage = '';
         $this->results = $this->selectedSourceIds = $this->syncedSourceIds = [];
         $this->detailItem = null;
+        $this->showSelectedSummary = false;
         $this->resetResultFilters();
         $this->resultPage = 1;
         $this->sourceTotal = 0;
@@ -394,6 +456,41 @@ class TracuuThuoctrungthau extends Component
             || (bool) ($result['data']['capped'] ?? false);
         $this->syncedSourceIds = $syncService->existingSourceIds($this->results);
         $this->wishlistSourceIds = $this->currentWishlistSourceIds($wishlistService);
+    }
+
+    private function currentPageSelectableIds(): array
+    {
+        $offset = ($this->resultPage - 1) * self::RESULTS_PER_PAGE;
+        $synced = array_fill_keys($this->syncedSourceIds, true);
+
+        return collect(array_slice($this->filteredResults(), $offset, self::RESULTS_PER_PAGE))
+            ->pluck('id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '' && ! isset($synced[$id]))
+            ->values()
+            ->all();
+    }
+
+    private function selectedItems(): array
+    {
+        if ($this->selectedSourceIds === []) {
+            return [];
+        }
+
+        $selected = array_fill_keys($this->selectedSourceIds, true);
+
+        return collect($this->results)
+            ->filter(fn (mixed $item): bool => is_array($item)
+                && is_string($item['id'] ?? null)
+                && isset($selected[$item['id']]))
+            ->map(fn (array $item): array => [
+                'id' => (string) $item['id'],
+                'tenThuoc' => (string) ($item['tenThuoc'] ?? ''),
+                'tenHoatChat' => (string) ($item['tenHoatChat'] ?? ''),
+                'nhomThuoc' => (string) ($item['nhomThuoc'] ?? $item['groupMedicine'] ?? ''),
+                'maTbmt' => (string) ($item['maTbmt'] ?? ''),
+            ])
+            ->values()
+            ->all();
     }
 
     private function resultPageCount(): int
