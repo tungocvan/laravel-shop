@@ -16,23 +16,41 @@ use Throwable;
 class ContractorHistory extends Component
 {
     public string $companyKeyword = '';
+
     public string $contractorCode = '';
+
     public string $contractorName = '';
+
     public string $fromDate = '2021-01-01';
+
     public ?string $toDate = null;
+
     public array $companies = [];
+
     public array $results = [];
+
     public array $selected = [];
+
     public ?array $detail = null;
+
     public ?array $kqlcnt = null;
+
     public ?array $hsmt = null;
+
     public ?string $hsmtCacheKey = null;
+
     public string $hsmtSearch = '';
+
     public string $hsmtGroup = '';
+
     public int $hsmtPage = 1;
+
     public int $hsmtPerPage = 20;
+
     public ?string $error = null;
+
     public ?string $notice = null;
+
     public int $reportedTotal = 0;
 
     public function searchCompany(MuaSamCongService $pricing): void
@@ -144,6 +162,7 @@ class ContractorHistory extends Component
 
             if (ContractorBid::query()->where('contractor_code', $this->contractorCode)->where('notify_no', $notifyNo)->exists()) {
                 $skipped++;
+
                 continue;
             }
 

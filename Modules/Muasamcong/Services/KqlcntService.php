@@ -8,9 +8,7 @@ use RuntimeException;
 
 class KqlcntService
 {
-    public function __construct(private readonly MuaSamCongService $muasamcong)
-    {
-    }
+    public function __construct(private readonly MuaSamCongService $muasamcong) {}
 
     public function resolveByNotifyNo(string $notifyNo, string $contractorCode): array
     {
