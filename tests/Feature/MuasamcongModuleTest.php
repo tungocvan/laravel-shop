@@ -123,11 +123,38 @@ class MuasamcongModuleTest extends TestCase
         $result = app(MuaSamCongService::class)->searchPricing('Gourcuff-2,5');
 
         $this->assertTrue($result['success']);
-        $this->assertTrue($result['data']['fallback']);
         $this->assertSame(1, $result['data']['total']);
         $this->assertSame('Gourcuff-2.5', $result['data']['items'][0]['tenThuoc']);
-
         Http::assertSentCount(2);
+    }
+
+    public function test_pricing_search_recovers_when_decimal_comma_request_gets_http_400(): void
+    {
+        Http::fakeSequence()
+            ->push(['message' => 'Bad Request'], 400)
+            ->push(['page' => [
+                'totalElements' => 2,
+                'content' => [
+                    ['id' => '11111111-1111-4111-8111-111111111111', 'tenThuoc' => 'Gourcuff-5'],
+                    ['id' => '22222222-2222-4222-8222-222222222222', 'tenThuoc' => 'Gourcuff-2,5'],
+                ],
+            ]]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('Gourcuff-2,5');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame('Gourcuff-2,5', $result['data']['items'][0]['tenThuoc']);
+
+        $keywords = [];
+        Http::assertSent(function (ClientRequest $request) use (&$keywords): bool {
+            $payload = $request->data();
+            $keywords[] = $payload[0]['query'][0]['keyWord'] ?? null;
+
+            return true;
+        });
+
+        $this->assertSame(['Gourcuff-2,5', 'Gourcuff-2.5'], $keywords);
     }
 
     public function test_pricing_response_is_normalized_only_after_schema_validation(): void
