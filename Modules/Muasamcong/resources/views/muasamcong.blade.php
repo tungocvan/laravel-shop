@@ -10,10 +10,20 @@
                 <p class="mt-1 text-sm text-gray-500">Tra cứu đơn giá thuốc trúng thầu từ Hệ thống mạng đấu thầu quốc gia.</p>
             </div>
 
-            <a href="{{ route('muasamcong.contractors') }}"
-               class="inline-flex items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-100">
-                Lịch sử nhà thầu
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('muasamcong.synced') }}"
+                   class="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm hover:border-emerald-300 hover:bg-emerald-100">
+                    Danh sách đã đồng bộ
+                </a>
+                <a href="{{ route('muasamcong.wishlist') }}"
+                   class="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 shadow-sm hover:border-rose-300 hover:bg-rose-100">
+                    ♥ Wishlist thuốc
+                </a>
+                <a href="{{ route('muasamcong.contractors') }}"
+                   class="inline-flex items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-100">
+                    Lịch sử nhà thầu
+                </a>
+            </div>
         </div>
 
         <section class="space-y-3">
