@@ -7,8 +7,10 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
+use Modules\Muasamcong\Services\ContractorHistoryService;
 use Modules\Muasamcong\Services\MuasamcongConfigService;
 use Modules\Muasamcong\Services\MuaSamCongService;
+use Modules\Muasamcong\Services\PersonalSessionService;
 use Throwable;
 
 class ConfigManager extends Component
@@ -31,15 +33,23 @@ class ConfigManager extends Component
 
     public array $environmentStatus = [];
 
+    public array $personalSessionStatus = [];
+
     public bool $hasSmartToken = false;
 
     public bool $hasSessionCookie = false;
+
+    public string $personalSessionCookie = '';
 
     public string $tokenTestStatus = '';
 
     public string $tokenTestMessage = '';
 
-    public function mount(MuasamcongConfigService $configService): void
+    public string $sessionTestStatus = '';
+
+    public string $sessionTestMessage = '';
+
+    public function mount(MuasamcongConfigService $configService, PersonalSessionService $personalSessions): void
     {
         $this->form = [
             'origin' => (string) config('muasamcong.origin'),
@@ -48,7 +58,6 @@ class ConfigManager extends Component
                 : (bool) config('muasamcong.verify_ssl', true),
             'timeout' => (int) config('muasamcong.timeout', 20),
             'user_agent' => (string) config('muasamcong.user_agent'),
-            // Secret không được hydrate vào public state của Livewire.
             'smart_token' => '',
             'session_cookie' => '',
             'pricing_endpoint' => (string) config('muasamcong.endpoints.pricing'),
@@ -60,6 +69,7 @@ class ConfigManager extends Component
 
         $this->hasSmartToken = trim((string) config('muasamcong.smart_token')) !== '';
         $this->hasSessionCookie = trim((string) config('muasamcong.session_cookie')) !== '';
+        $this->personalSessionStatus = $personalSessions->status();
         $this->loadEnvironmentStatus($configService);
     }
 
@@ -75,10 +85,7 @@ class ConfigManager extends Component
 
         if ($configService->isDockerRuntime()) {
             $this->loadEnvironmentStatus($configService);
-            session()->flash(
-                'error',
-                'Đang chạy trong Docker. Không sửa .env bên trong container; hãy cập nhật .env ở host rồi rebuild/redeploy.'
-            );
+            session()->flash('error', 'Đang chạy trong Docker. Không sửa .env bên trong container; hãy cập nhật .env ở host rồi rebuild/redeploy.');
 
             return;
         }
@@ -88,10 +95,7 @@ class ConfigManager extends Component
 
             if ($added !== []) {
                 Artisan::call('config:clear');
-                session()->flash(
-                    'success',
-                    'Đã bổ sung '.count($added).' biến MUASAMCONG_* còn thiếu vào .env bằng giá trị mặc định.'
-                );
+                session()->flash('success', 'Đã bổ sung '.count($added).' biến MUASAMCONG_* còn thiếu vào .env bằng giá trị mặc định.');
             } else {
                 session()->flash('success', 'Các biến MUASAMCONG_* trong .env đã đầy đủ.');
             }
@@ -108,10 +112,7 @@ class ConfigManager extends Component
 
         if ($configService->isDockerRuntime()) {
             $this->loadEnvironmentStatus($configService);
-            session()->flash(
-                'error',
-                'Docker runtime không lưu .env trong container. Hãy cập nhật .env ở host và rebuild/redeploy Docker.'
-            );
+            session()->flash('error', 'Docker runtime không lưu .env trong container. Hãy cập nhật .env ở host và rebuild/redeploy Docker.');
 
             return;
         }
@@ -171,6 +172,49 @@ class ConfigManager extends Component
         $this->redirectRoute('muasamcong.config');
     }
 
+    public function savePersonalSession(PersonalSessionService $personalSessions): void
+    {
+        $this->authorizeManageConfig();
+
+        $validated = $this->validate([
+            'personalSessionCookie' => ['required', 'string', 'min:20', 'max:20000', 'not_regex:/[\r\n]/'],
+        ]);
+
+        $user = Auth::guard('admin')->user();
+
+        try {
+            $personalSessions->save($validated['personalSessionCookie'], $user ? (int) $user->getAuthIdentifier() : null);
+            $this->personalSessionCookie = '';
+            $this->personalSessionStatus = $personalSessions->status();
+            $this->sessionTestStatus = '';
+            $this->sessionTestMessage = 'Đã lưu Personal Page Session vào database ở dạng mã hóa. Hãy bấm Kiểm tra Session.';
+        } catch (Throwable $e) {
+            report($e);
+            $this->sessionTestStatus = 'error';
+            $this->sessionTestMessage = 'Không thể lưu Personal Page Session.';
+        }
+    }
+
+    public function testPersonalSession(ContractorHistoryService $history, PersonalSessionService $personalSessions): void
+    {
+        $this->authorizeManageConfig();
+        $this->sessionTestStatus = '';
+        $this->sessionTestMessage = '';
+
+        try {
+            $result = $history->testSession();
+            $personalSessions->markVerified();
+            $this->personalSessionStatus = $personalSessions->status();
+            $this->sessionTestStatus = 'success';
+            $this->sessionTestMessage = 'Personal Page Session hợp lệ. API lịch sử nhà thầu phản hồi thành công; tài khoản hiện có '.((int) ($result['total'] ?? 0)).' gói.';
+        } catch (Throwable $e) {
+            $personalSessions->markFailed($e->getMessage());
+            $this->personalSessionStatus = $personalSessions->status();
+            $this->sessionTestStatus = 'error';
+            $this->sessionTestMessage = 'Personal Page Session không hợp lệ hoặc đã hết hạn. Hãy lấy Cookie mới từ request get-list-notify-contractor-join trên trình duyệt.';
+        }
+    }
+
     public function testToken(MuaSamCongService $service): void
     {
         $this->authorizeManageConfig();
@@ -184,12 +228,8 @@ class ConfigManager extends Component
         $this->tokenTestMessage = '';
 
         $result = $service->testSmartToken(
-            $validated['form']['smart_token'] !== ''
-                ? $validated['form']['smart_token']
-                : null,
-            $validated['form']['session_cookie'] !== ''
-                ? $validated['form']['session_cookie']
-                : null
+            $validated['form']['smart_token'] !== '' ? $validated['form']['smart_token'] : null,
+            $validated['form']['session_cookie'] !== '' ? $validated['form']['session_cookie'] : null
         );
 
         if ($result['success'] ?? false) {
