@@ -8,6 +8,7 @@ use Modules\Muasamcong\Models\ContractorBid;
 use Modules\Muasamcong\Models\KqlcntRecord;
 use Modules\Muasamcong\Services\ContractorHistoryService;
 use Modules\Muasamcong\Services\HsmtDetailService;
+use Modules\Muasamcong\Services\HsmtSnapshotService;
 use Modules\Muasamcong\Services\KqlcntService;
 use Modules\Muasamcong\Services\MuaSamCongService;
 use Throwable;
@@ -42,12 +43,14 @@ class ContractorHistory extends Component
 
         if (mb_strlen($keyword) < 3) {
             $this->error = 'Nhập ít nhất 3 ký tự tên doanh nghiệp.';
+
             return;
         }
 
         $response = $pricing->searchPricing($keyword);
         if (! ($response['success'] ?? false)) {
             $this->error = $response['message'] ?? 'Không thể tìm doanh nghiệp.';
+
             return;
         }
 
@@ -97,11 +100,13 @@ class ContractorHistory extends Component
 
         if ($this->contractorCode === '') {
             $this->error = 'Chưa chọn doanh nghiệp.';
+
             return;
         }
 
         if ($this->toDate && $this->toDate < $this->fromDate) {
             $this->error = 'Đến ngày phải lớn hơn hoặc bằng Từ ngày.';
+
             return;
         }
 
@@ -184,21 +189,86 @@ class ContractorHistory extends Component
 
         if ($this->contractorCode === '') {
             $this->error = 'Chưa chọn doanh nghiệp để đối chiếu KQLCNT.';
+
             return;
         }
 
         try {
+            $stored = KqlcntRecord::query()
+                ->where('contractor_code', $this->contractorCode)
+                ->where('notify_no', $notifyNo)
+                ->first();
+
+            if ($stored) {
+                $this->kqlcnt = $service->normalizeStored($stored->toArray());
+
+                return;
+            }
+
             $this->kqlcnt = $service->resolveByNotifyNo($notifyNo, $this->contractorCode);
+            $this->kqlcnt['source'] = 'api';
         } catch (Throwable $e) {
             report($e);
             $this->error = $e->getMessage() ?: 'Không thể tải KQLCNT.';
         }
     }
 
-    public function loadHsmt(HsmtDetailService $service): void
+    public function loadHsmt(HsmtDetailService $service, HsmtSnapshotService $snapshots): void
     {
         if (! is_array($this->kqlcnt) || empty($this->kqlcnt['notify_id'])) {
             $this->error = 'Chưa có notifyId để tải HSMT.';
+
+            return;
+        }
+
+        $notifyNo = trim((string) ($this->kqlcnt['notify_no'] ?? ''));
+        if ($notifyNo === '') {
+            $this->error = 'KQLCNT không có mã TBMT hợp lệ.';
+
+            return;
+        }
+
+        $this->error = null;
+        $this->clearHsmtCache();
+
+        try {
+            $record = KqlcntRecord::query()
+                ->where('contractor_code', $this->contractorCode)
+                ->where('notify_no', $notifyNo)
+                ->first();
+
+            $snapshot = $record ? $snapshots->load($record->hsmt_json_path) : null;
+            $snapshot ??= $snapshots->loadForNotifyNo($notifyNo);
+
+            if ($snapshot) {
+                $this->hydrateHsmtSnapshot($snapshot);
+
+                return;
+            }
+
+            $data = $service->fetch((string) $this->kqlcnt['notify_id'], 'LDT');
+            $metadata = $snapshots->store($notifyNo, $data);
+            $this->persistHsmtMetadata($record, $metadata);
+            $this->hydrateHsmtSnapshot($data);
+            $this->notice = 'Đã tải và lưu snapshot HSMT trên server.';
+        } catch (Throwable $e) {
+            report($e);
+            $this->error = $e->getMessage() ?: 'Không thể tải danh mục HSMT.';
+        }
+    }
+
+    public function syncHsmt(HsmtDetailService $service, HsmtSnapshotService $snapshots): void
+    {
+        if (! is_array($this->kqlcnt) || empty($this->kqlcnt['notify_id'])) {
+            $this->error = 'Chưa có notifyId để đồng bộ lại HSMT.';
+
+            return;
+        }
+
+        $notifyNo = trim((string) ($this->kqlcnt['notify_no'] ?? ''));
+        if ($notifyNo === '') {
+            $this->error = 'KQLCNT không có mã TBMT hợp lệ.';
+
             return;
         }
 
@@ -207,23 +277,17 @@ class ContractorHistory extends Component
 
         try {
             $data = $service->fetch((string) $this->kqlcnt['notify_id'], 'LDT');
-            $items = $data['items'] ?? [];
-            unset($data['items']);
-
-            $this->hsmtCacheKey = 'muasamcong:hsmt:'.hash('sha256', implode('|', [
-                (string) ($this->kqlcnt['notify_id'] ?? ''),
-                $this->contractorCode,
-                (string) auth('admin')->id(),
-            ]));
-            Cache::put($this->hsmtCacheKey, $items, now()->addMinutes(15));
-
-            $this->hsmt = $data;
-            $this->hsmtPage = 1;
-            $this->hsmtSearch = '';
-            $this->hsmtGroup = '';
+            $metadata = $snapshots->store($notifyNo, $data);
+            $record = KqlcntRecord::query()
+                ->where('contractor_code', $this->contractorCode)
+                ->where('notify_no', $notifyNo)
+                ->first();
+            $this->persistHsmtMetadata($record, $metadata);
+            $this->hydrateHsmtSnapshot($data);
+            $this->notice = 'Đã đồng bộ lại snapshot HSMT từ Cổng Mua sắm công.';
         } catch (Throwable $e) {
             report($e);
-            $this->error = $e->getMessage() ?: 'Không thể tải danh mục HSMT.';
+            $this->error = $e->getMessage() ?: 'Không thể đồng bộ lại danh mục HSMT.';
         }
     }
 
@@ -299,44 +363,94 @@ class ContractorHistory extends Component
         }
     }
 
-    public function syncKqlcnt(): void
+    private function hydrateHsmtSnapshot(array $data): void
+    {
+        $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+        unset($data['items']);
+
+        $this->hsmtCacheKey = 'muasamcong:hsmt:'.hash('sha256', implode('|', [
+            (string) ($this->kqlcnt['notify_id'] ?? ''),
+            $this->contractorCode,
+            (string) auth('admin')->id(),
+        ]));
+        Cache::put($this->hsmtCacheKey, $items, now()->addMinutes(30));
+
+        $this->hsmt = $data;
+        $this->hsmtPage = 1;
+        $this->hsmtSearch = '';
+        $this->hsmtGroup = '';
+    }
+
+    private function persistHsmtMetadata(?KqlcntRecord $record, array $metadata): void
+    {
+        if (! $record) {
+            return;
+        }
+
+        $record->update([
+            'hsmt_json_path' => $metadata['json_path'] ?? null,
+            'hsmt_excel_path' => $metadata['excel_path'] ?? null,
+            'hsmt_total_items' => $metadata['total'] ?? null,
+            'hsmt_checksum' => $metadata['checksum'] ?? null,
+            'hsmt_synced_at' => now(),
+        ]);
+    }
+
+    public function syncKqlcnt(KqlcntService $service): void
     {
         if (! is_array($this->kqlcnt) || $this->contractorCode === '') {
             $this->error = 'Chưa có dữ liệu KQLCNT để đồng bộ.';
+
             return;
         }
 
         $notifyNo = trim((string) ($this->kqlcnt['notify_no'] ?? ''));
         if ($notifyNo === '') {
             $this->error = 'KQLCNT không có mã TBMT hợp lệ.';
+
             return;
         }
 
-        $winner = collect($this->kqlcnt['contracts'] ?? [])
-            ->flatMap(fn (array $contract): array => $contract['contractorPassListParsed'] ?? [])
-            ->first(fn (mixed $item): bool => is_array($item)
-                && trim((string) ($item['contractorCode'] ?? '')) === $this->contractorCode);
+        try {
+            if (($this->kqlcnt['source'] ?? 'api') === 'server') {
+                $notifyId = trim((string) ($this->kqlcnt['notify_id'] ?? ''));
+                $this->kqlcnt = $notifyId !== ''
+                    ? $service->resolve($notifyId, $notifyNo, $this->contractorCode)
+                    : $service->resolveByNotifyNo($notifyNo, $this->contractorCode);
+                $this->kqlcnt['source'] = 'api';
+            }
 
-        KqlcntRecord::updateOrCreate(
-            ['contractor_code' => $this->contractorCode, 'notify_no' => $notifyNo],
-            [
-                'notify_id' => $this->kqlcnt['notify_id'] ?? null,
-                'bid_id' => $this->kqlcnt['bid_id'] ?? null,
-                'bid_name' => $this->kqlcnt['bid_name'] ?? null,
-                'contractor_name' => is_array($winner) ? ($winner['contractorName'] ?? $this->contractorName) : $this->contractorName,
-                'investor_code' => $this->kqlcnt['investor_code'] ?? null,
-                'investor_name' => $this->kqlcnt['investor_name'] ?? null,
-                'status' => $this->kqlcnt['status'] ?? null,
-                'published' => (bool) ($this->kqlcnt['published'] ?? false),
-                'contracts' => $this->kqlcnt['contracts'] ?? [],
-                'verified_lots' => $this->kqlcnt['verified_lots'] ?? [],
-                'tbmt_raw' => $this->kqlcnt['tbmt_raw'] ?? [],
-                'contracts_raw' => $this->kqlcnt['contracts_raw'] ?? [],
-                'synced_at' => now(),
-            ]
-        );
+            $winner = collect($this->kqlcnt['all_winners'] ?? [])
+                ->first(fn (mixed $item): bool => is_array($item)
+                    && trim((string) ($item['contractorCode'] ?? '')) === $this->contractorCode);
 
-        $this->notice = 'Đã đồng bộ KQLCNT '.$notifyNo.' cho '.$this->contractorName.'.';
+            $record = KqlcntRecord::updateOrCreate(
+                ['contractor_code' => $this->contractorCode, 'notify_no' => $notifyNo],
+                [
+                    'notify_id' => $this->kqlcnt['notify_id'] ?? null,
+                    'bid_id' => $this->kqlcnt['bid_id'] ?? null,
+                    'bid_name' => $this->kqlcnt['bid_name'] ?? null,
+                    'contractor_name' => is_array($winner) ? ($winner['contractorName'] ?? $this->contractorName) : $this->contractorName,
+                    'investor_code' => $this->kqlcnt['investor_code'] ?? null,
+                    'investor_name' => $this->kqlcnt['investor_name'] ?? null,
+                    'status' => $this->kqlcnt['status'] ?? null,
+                    'published' => (bool) ($this->kqlcnt['published'] ?? false),
+                    'current_contractor_won' => (bool) ($this->kqlcnt['current_contractor_won'] ?? false),
+                    'contracts' => $this->kqlcnt['contracts'] ?? [],
+                    'all_winners' => $this->kqlcnt['all_winners'] ?? [],
+                    'verified_lots' => $this->kqlcnt['verified_lots'] ?? [],
+                    'tbmt_raw' => $this->kqlcnt['tbmt_raw'] ?? [],
+                    'contracts_raw' => $this->kqlcnt['contracts_raw'] ?? [],
+                    'synced_at' => now(),
+                ]
+            );
+
+            $this->kqlcnt = $service->normalizeStored($record->fresh()->toArray());
+            $this->notice = 'Đã đồng bộ KQLCNT '.$notifyNo.' vào server.';
+        } catch (Throwable $e) {
+            report($e);
+            $this->error = $e->getMessage() ?: 'Không thể đồng bộ KQLCNT.';
+        }
     }
 
     public function closeDetail(): void
