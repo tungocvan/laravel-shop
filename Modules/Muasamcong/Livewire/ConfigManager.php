@@ -4,6 +4,8 @@ namespace Modules\Muasamcong\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Modules\Muasamcong\Services\MuasamcongConfigService;
 use Modules\Muasamcong\Services\MuaSamCongService;
@@ -11,6 +13,8 @@ use Throwable;
 
 class ConfigManager extends Component
 {
+    private const MANAGE_PERMISSION = 'muasamcong.config.manage';
+
     public array $form = [
         'origin' => '',
         'verify_ssl' => true,
@@ -33,19 +37,13 @@ class ConfigManager extends Component
 
     public string $tokenTestMessage = '';
 
-    public function mount(MuasamcongConfigService $configService): void
+    public function mount(): void
     {
-        try {
-            if ($configService->ensureDefaults()) {
-                Artisan::call('config:clear');
-            }
-        } catch (Throwable) {
-            session()->flash('error', 'Không thể tự động bổ sung các biến MUASAMCONG_* vào file .env.');
-        }
-
         $this->form = [
             'origin' => (string) config('muasamcong.origin'),
-            'verify_ssl' => (bool) config('muasamcong.verify_ssl', true),
+            'verify_ssl' => app()->environment('production')
+                ? true
+                : (bool) config('muasamcong.verify_ssl', true),
             'timeout' => (int) config('muasamcong.timeout', 20),
             'user_agent' => (string) config('muasamcong.user_agent'),
             // Secret không được hydrate vào public state của Livewire.
@@ -57,25 +55,34 @@ class ConfigManager extends Component
             'pricing_referer' => (string) config('muasamcong.referers.pricing'),
             'page_size' => (int) config('muasamcong.page_size', 20),
         ];
+
         $this->hasSmartToken = trim((string) config('muasamcong.smart_token')) !== '';
         $this->hasSessionCookie = trim((string) config('muasamcong.session_cookie')) !== '';
     }
 
     public function save(MuasamcongConfigService $configService): void
     {
+        $this->authorizeManageConfig();
+
         $validated = $this->validate([
-            'form.origin' => ['required', 'url:http,https', 'max:500'],
+            'form.origin' => ['required', 'url:https', 'max:500'],
             'form.verify_ssl' => ['required', 'boolean'],
             'form.timeout' => ['required', 'integer', 'min:1', 'max:120'],
             'form.user_agent' => ['required', 'string', 'max:500', 'not_regex:/[\r\n]/'],
             'form.smart_token' => ['nullable', 'string', 'max:4000', 'not_regex:/[\r\n]/'],
             'form.session_cookie' => ['nullable', 'string', 'max:16000', 'not_regex:/[\r\n]/'],
-            'form.pricing_endpoint' => ['required', 'url:http,https', 'max:1000'],
-            'form.contractor_endpoint' => ['required', 'url:http,https', 'max:1000'],
-            'form.portal_referer' => ['required', 'url:http,https', 'max:1000'],
-            'form.pricing_referer' => ['required', 'url:http,https', 'max:1000'],
+            'form.pricing_endpoint' => ['required', 'url:https', 'max:1000'],
+            'form.contractor_endpoint' => ['required', 'url:https', 'max:1000'],
+            'form.portal_referer' => ['required', 'url:https', 'max:1000'],
+            'form.pricing_referer' => ['required', 'url:https', 'max:1000'],
             'form.page_size' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
+
+        if (app()->environment('production') && ! $validated['form']['verify_ssl']) {
+            $this->addError('form.verify_ssl', 'Không được tắt xác minh SSL trong môi trường production.');
+
+            return;
+        }
 
         $values = [
             'MUASAMCONG_ORIGIN' => rtrim($validated['form']['origin'], '/'),
@@ -101,7 +108,7 @@ class ConfigManager extends Component
             $configService->update($values);
             Artisan::call('config:clear');
         } catch (Throwable) {
-            session()->flash('error', 'Không thể lưu cấu hình Mua sắm công. Vui lòng kiểm tra quyền ghi file .env.');
+            session()->flash('error', 'Không thể lưu cấu hình Mua sắm công. Vui lòng kiểm tra dữ liệu và quyền ghi file .env.');
 
             return;
         }
@@ -114,6 +121,8 @@ class ConfigManager extends Component
 
     public function testToken(MuaSamCongService $service): void
     {
+        $this->authorizeManageConfig();
+
         $validated = $this->validate([
             'form.smart_token' => ['nullable', 'string', 'max:4000', 'not_regex:/[\r\n]/'],
             'form.session_cookie' => ['nullable', 'string', 'max:16000', 'not_regex:/[\r\n]/'],
@@ -146,5 +155,15 @@ class ConfigManager extends Component
     public function render(): View
     {
         return view('Muasamcong::livewire.config-manager');
+    }
+
+    private function authorizeManageConfig(): void
+    {
+        $user = Auth::guard('admin')->user();
+
+        abort_unless(
+            $user !== null && Gate::forUser($user)->allows(self::MANAGE_PERMISSION),
+            403
+        );
     }
 }
