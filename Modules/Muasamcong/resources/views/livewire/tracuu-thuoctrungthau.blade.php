@@ -10,15 +10,37 @@
     <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <form wire:submit="search" class="flex flex-col gap-3 lg:flex-row lg:items-end">
             <div class="flex-1">
-                <label for="pricing-keyword" class="text-sm font-semibold text-gray-800">Tên thuốc, hoạt chất hoặc mã TBMT</label>
-                <p class="mt-1 text-xs text-gray-500">Tra cứu dữ liệu đơn giá trúng thầu thuốc từ Hệ thống mạng đấu thầu quốc gia.</p>
-                <input id="pricing-keyword" type="search" wire:model="keyword" placeholder="Ví dụ: Gourcuff-2,5, Unafen, Ibuprofen, IB2500539527" class="mt-3 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <label for="pricing-keyword" class="text-sm font-semibold text-gray-800">Tên thuốc, hoạt chất, mã TBMT hoặc công ty trúng thầu</label>
+                <p class="mt-1 text-xs text-gray-500">Từ khóa đã tra cứu sẽ ưu tiên đọc kết quả đã lưu trên server. Chỉ dùng “Tìm kiếm mới” khi cần lấy lại dữ liệu từ API.</p>
+                <input id="pricing-keyword" type="search" wire:model="keyword" placeholder="Ví dụ: Gourcuff-2,5, Ibuprofen, IB2500539527, INAFO" class="mt-3 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                 @error('keyword') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
-            <button type="submit" wire:loading.attr="disabled" wire:target="search" class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60">
-                <span wire:loading.remove wire:target="search">Tìm kiếm</span><span wire:loading wire:target="search">Đang tìm...</span>
+            <button type="submit" wire:loading.attr="disabled" wire:target="search,searchRecent" class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60">
+                <span wire:loading.remove wire:target="search,searchRecent">Tra cứu</span><span wire:loading wire:target="search,searchRecent">Đang tải...</span>
+            </button>
+            <button type="button" wire:click="refreshSearch" wire:loading.attr="disabled" wire:target="refreshSearch" class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60">
+                <span wire:loading.remove wire:target="refreshSearch">Tìm kiếm mới</span><span wire:loading wire:target="refreshSearch">Đang gọi API...</span>
             </button>
         </form>
+
+        @if ($recentSearches !== [])
+            <div class="mt-5 border-t border-gray-100 pt-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tra cứu gần đây</p>
+                    <p class="text-xs text-gray-400">Bấm để mở lại từ database, không gọi API.</p>
+                </div>
+                <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
+                    @foreach ($recentSearches as $recent)
+                        <button type="button" wire:click="searchRecent(@js($recent['keyword']))" class="min-w-52 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-left hover:border-indigo-200 hover:bg-indigo-50/50">
+                            <p class="truncate text-sm font-semibold text-gray-800">{{ $recent['keyword'] }}</p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{ $recent['loaded_total'] }} kết quả · {{ $recent['searched_at'] ? \Illuminate\Support\Carbon::parse($recent['searched_at'])->format('d/m/Y H:i') : '—' }}
+                            </p>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
 
     @if ($canWishlistPricing && $wishlistItems !== [])
@@ -41,9 +63,9 @@
     @if ($error)<div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $error }}</div>@endif
     @if ($syncMessage !== '')<div role="status" class="rounded-xl border px-4 py-3 text-sm {{ $syncStatus === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($syncStatus === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-700') }}">{{ $syncMessage }}</div>@endif
 
-    <div wire:loading.flex wire:target="search,searchWishlist" class="items-center justify-center rounded-2xl border border-gray-200 bg-white p-8 text-sm text-gray-500 shadow-sm">Đang tải đầy đủ dữ liệu từ Hệ thống mạng đấu thầu quốc gia...</div>
+    <div wire:loading.flex wire:target="search,searchRecent,refreshSearch,searchWishlist" class="items-center justify-center rounded-2xl border border-gray-200 bg-white p-8 text-sm text-gray-500 shadow-sm">Đang tải dữ liệu tra cứu...</div>
 
-    <div wire:loading.remove wire:target="search,searchWishlist" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div wire:loading.remove wire:target="search,searchRecent,refreshSearch,searchWishlist" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         @if ($results !== [])
             <div class="border-b border-gray-200 bg-gray-50/70 px-4 py-4">
                 <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -52,9 +74,17 @@
                             <p class="text-sm font-semibold text-gray-900">Kết quả tra cứu</p>
                             <span class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ $filteredResultCount }} / {{ count($results) }} đã tải</span>
                             @if ($sourceTotal > count($results))<span class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Nguồn báo {{ $sourceTotal }} kết quả</span>@endif
+                            @if ($searchDataSource === 'database')
+                                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Từ database</span>
+                            @elseif ($searchDataSource === 'api')
+                                <span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">Mới từ API</span>
+                            @endif
                         </div>
                         <p class="mt-1 text-xs text-gray-500">Hiển thị 20 dòng/trang. Các bộ lọc dưới đây chỉ lọc trong toàn bộ dữ liệu đã tải, không gọi lại API.</p>
-                        @if ($sourcePartial)<p class="mt-1 text-xs font-medium text-amber-700">Cảnh báo: chưa tải hết toàn bộ kết quả từ nguồn. Hãy thử tìm kiếm lại.</p>@endif
+                        @if ($searchSnapshotAt)
+                            <p class="mt-1 text-xs font-medium text-gray-600">Thời gian tra cứu nguồn gần nhất: {{ \Illuminate\Support\Carbon::parse($searchSnapshotAt)->format('d/m/Y H:i:s') }}</p>
+                        @endif
+                        @if ($sourcePartial)<p class="mt-1 text-xs font-medium text-amber-700">Cảnh báo: chưa tải hết toàn bộ kết quả từ nguồn. Hãy bấm “Tìm kiếm mới” để thử lại.</p>@endif
                     </div>
                     @if ($canSyncPricing)
                         <div class="flex flex-wrap items-center gap-2">
@@ -138,7 +168,7 @@
                 </div>
             @endif
         @else
-            <div class="p-10 text-center"><p class="text-sm font-medium text-gray-700">Chưa có dữ liệu tra cứu</p><p class="mt-1 text-sm text-gray-500">Nhập tên thuốc, hoạt chất hoặc mã TBMT để bắt đầu.</p></div>
+            <div class="p-10 text-center"><p class="text-sm font-medium text-gray-700">Chưa có dữ liệu tra cứu</p><p class="mt-1 text-sm text-gray-500">Nhập tên thuốc, hoạt chất, mã TBMT hoặc công ty trúng thầu để bắt đầu.</p></div>
         @endif
     </div>
 
