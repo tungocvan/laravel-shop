@@ -21,6 +21,12 @@ class TracuuThuoctrungthau extends Component
 
     public string $keyword = '';
 
+    public string $medicineNameFilter = '';
+
+    public string $activeIngredientFilter = '';
+
+    public string $medicineGroupFilter = '';
+
     public string $winningCompanyFilter = '';
 
     public array $results = [];
@@ -71,7 +77,7 @@ class TracuuThuoctrungthau extends Component
         $this->error = $this->syncStatus = $this->syncMessage = $this->wishlistMessage = '';
         $this->results = $this->selectedSourceIds = $this->syncedSourceIds = [];
         $this->detailItem = null;
-        $this->winningCompanyFilter = '';
+        $this->resetResultFilters();
         $this->resultPage = 1;
         $this->sourceTotal = 0;
         $this->sourcePartial = false;
@@ -109,8 +115,29 @@ class TracuuThuoctrungthau extends Component
         $this->search($service, $tbmtPaginationService, $syncService, $wishlistService);
     }
 
+    public function updatedMedicineNameFilter(): void
+    {
+        $this->resultPage = 1;
+    }
+
+    public function updatedActiveIngredientFilter(): void
+    {
+        $this->resultPage = 1;
+    }
+
+    public function updatedMedicineGroupFilter(): void
+    {
+        $this->resultPage = 1;
+    }
+
     public function updatedWinningCompanyFilter(): void
     {
+        $this->resultPage = 1;
+    }
+
+    public function clearResultFilters(): void
+    {
+        $this->resetResultFilters();
         $this->resultPage = 1;
     }
 
@@ -187,8 +214,11 @@ class TracuuThuoctrungthau extends Component
         $this->detailItem = null;
     }
 
-    public function syncSelected(MuaSamCongService $sourceService, PricingResultSyncService $syncService): void
-    {
+    public function syncSelected(
+        MuaSamCongService $sourceService,
+        PricingTbmtPaginationService $tbmtPaginationService,
+        PricingResultSyncService $syncService
+    ): void {
         $this->authorizeSync();
         $this->syncStatus = $this->syncMessage = '';
 
@@ -202,6 +232,10 @@ class TracuuThuoctrungthau extends Component
         $validated = $this->validate(['keyword' => ['required', 'string', 'min:2', 'max:200']]);
         $freshResult = $sourceService->searchPricing($validated['keyword']);
 
+        if ($tbmtPaginationService->isTbmtKeyword($validated['keyword'])) {
+            $freshResult = $tbmtPaginationService->loadAll($validated['keyword'], $freshResult);
+        }
+
         if (! ($freshResult['success'] ?? false)) {
             $this->syncStatus = 'error';
             $this->syncMessage = 'Không thể xác minh lại dữ liệu nguồn trước khi đồng bộ. Vui lòng thử lại.';
@@ -213,6 +247,9 @@ class TracuuThuoctrungthau extends Component
         $report = $syncService->syncSelected($freshItems, $this->selectedSourceIds, $this->adminUserId());
 
         $this->results = $freshItems;
+        $this->sourceTotal = max(count($freshItems), (int) ($freshResult['data']['total'] ?? count($freshItems)));
+        $this->sourcePartial = (bool) ($freshResult['data']['partial'] ?? false)
+            || (bool) ($freshResult['data']['capped'] ?? false);
         $this->syncedSourceIds = $syncService->existingSourceIds($this->results);
         $this->selectedSourceIds = [];
 
@@ -263,28 +300,72 @@ class TracuuThuoctrungthau extends Component
 
     private function filteredResults(): array
     {
-        $needle = mb_strtolower(trim($this->winningCompanyFilter));
+        $medicineNeedle = $this->normalizeFilter($this->medicineNameFilter);
+        $ingredientNeedle = $this->normalizeFilter($this->activeIngredientFilter);
+        $groupNeedle = $this->normalizeFilter($this->medicineGroupFilter);
+        $winnerNeedle = $this->normalizeFilter($this->winningCompanyFilter);
 
-        if ($needle === '') {
+        if ($medicineNeedle === '' && $ingredientNeedle === '' && $groupNeedle === '' && $winnerNeedle === '') {
             return $this->results;
         }
 
         return collect($this->results)
-            ->filter(function (mixed $item) use ($needle): bool {
+            ->filter(function (mixed $item) use ($medicineNeedle, $ingredientNeedle, $groupNeedle, $winnerNeedle): bool {
                 if (! is_array($item)) {
                     return false;
                 }
 
-                foreach ((array) ($item['winningName'] ?? []) as $name) {
-                    if (is_scalar($name) && str_contains(mb_strtolower((string) $name), $needle)) {
-                        return true;
-                    }
+                if ($medicineNeedle !== '' && ! $this->containsFilter($item['tenThuoc'] ?? null, $medicineNeedle)) {
+                    return false;
                 }
 
-                return false;
+                if ($ingredientNeedle !== '' && ! $this->containsFilter($item['tenHoatChat'] ?? null, $ingredientNeedle)) {
+                    return false;
+                }
+
+                if ($groupNeedle !== ''
+                    && ! $this->containsFilter($item['nhomThuoc'] ?? $item['groupMedicine'] ?? null, $groupNeedle)) {
+                    return false;
+                }
+
+                if ($winnerNeedle !== '' && ! $this->winnerMatches($item, $winnerNeedle)) {
+                    return false;
+                }
+
+                return true;
             })
             ->values()
             ->all();
+    }
+
+    private function winnerMatches(array $item, string $needle): bool
+    {
+        foreach ((array) ($item['winningName'] ?? []) as $name) {
+            if ($this->containsFilter($name, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function containsFilter(mixed $value, string $needle): bool
+    {
+        return is_scalar($value)
+            && str_contains($this->normalizeFilter((string) $value), $needle);
+    }
+
+    private function normalizeFilter(string $value): string
+    {
+        return mb_strtolower(trim($value));
+    }
+
+    private function resetResultFilters(): void
+    {
+        $this->medicineNameFilter = '';
+        $this->activeIngredientFilter = '';
+        $this->medicineGroupFilter = '';
+        $this->winningCompanyFilter = '';
     }
 
     private function refreshWishlist(PricingWishlistService $wishlistService): void
