@@ -10,6 +10,25 @@ use Throwable;
 
 class PricingResultSyncService
 {
+    public function existingSourceIds(array $results): array
+    {
+        $ids = collect($results)
+            ->pluck('id')
+            ->filter(fn (mixed $id): bool => is_string($id) && Str::isUuid($id))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return PricingResult::query()
+            ->whereIn('source_id', $ids)
+            ->pluck('source_id')
+            ->all();
+    }
+
     public function syncSelected(array $results, array $selectedSourceIds, ?int $userId = null): array
     {
         $selected = collect($selectedSourceIds)
@@ -18,12 +37,7 @@ class PricingResultSyncService
             ->values();
 
         if ($selected->isEmpty()) {
-            return [
-                'inserted' => 0,
-                'duplicates' => 0,
-                'missing' => 0,
-                'selected' => 0,
-            ];
+            return ['inserted' => 0, 'duplicates' => 0, 'missing' => 0, 'selected' => 0];
         }
 
         $resultMap = collect($results)
@@ -36,12 +50,7 @@ class PricingResultSyncService
         $missing = $selected->count() - $available->count();
 
         if ($available->isEmpty()) {
-            return [
-                'inserted' => 0,
-                'duplicates' => 0,
-                'missing' => $missing,
-                'selected' => $selected->count(),
-            ];
+            return ['inserted' => 0, 'duplicates' => 0, 'missing' => $missing, 'selected' => $selected->count()];
         }
 
         $existing = PricingResult::query()
@@ -50,22 +59,15 @@ class PricingResultSyncService
             ->all();
 
         $existingLookup = array_fill_keys($existing, true);
-        $newIds = $available
-            ->reject(fn (string $id): bool => isset($existingLookup[$id]))
-            ->values();
-
+        $newIds = $available->reject(fn (string $id): bool => isset($existingLookup[$id]))->values();
         $now = now();
         $rows = $newIds
             ->map(fn (string $id): array => $this->mapRow($resultMap->get($id), $userId, $now))
             ->all();
 
-        $inserted = 0;
-
-        if ($rows !== []) {
-            $inserted = DB::transaction(
-                fn (): int => DB::table('muasamcong_pricing_results')->insertOrIgnore($rows)
-            );
-        }
+        $inserted = $rows === []
+            ? 0
+            : DB::transaction(fn (): int => DB::table('muasamcong_pricing_results')->insertOrIgnore($rows));
 
         return [
             'inserted' => $inserted,
@@ -128,9 +130,7 @@ class PricingResultSyncService
 
     private function text(mixed $value): ?string
     {
-        return is_scalar($value) && trim((string) $value) !== ''
-            ? trim((string) $value)
-            : null;
+        return is_scalar($value) && trim((string) $value) !== '' ? trim((string) $value) : null;
     }
 
     private function number(mixed $value): int|float|null
