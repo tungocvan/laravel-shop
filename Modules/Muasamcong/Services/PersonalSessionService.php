@@ -3,7 +3,9 @@
 namespace Modules\Muasamcong\Services;
 
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Schema;
 use Modules\Muasamcong\Models\PersonalSession;
+use RuntimeException;
 use Throwable;
 
 class PersonalSessionService
@@ -12,7 +14,7 @@ class PersonalSessionService
 
     public function cookie(): ?string
     {
-        $record = PersonalSession::query()->where('key', self::KEY)->first();
+        $record = $this->record();
 
         if ($record && is_string($record->cookie_encrypted) && $record->cookie_encrypted !== '') {
             try {
@@ -35,6 +37,10 @@ class PersonalSessionService
             throw new \InvalidArgumentException('Cookie Personal Page không được để trống.');
         }
 
+        if (! $this->tableExists()) {
+            throw new RuntimeException('Chưa có bảng muasamcong_personal_sessions. Hãy chạy php artisan migrate.');
+        }
+
         PersonalSession::query()->updateOrCreate(
             ['key' => self::KEY],
             [
@@ -49,6 +55,10 @@ class PersonalSessionService
 
     public function markVerified(): void
     {
+        if (! $this->tableExists()) {
+            return;
+        }
+
         PersonalSession::query()->where('key', self::KEY)->update([
             'verified_at' => now(),
             'last_failed_at' => null,
@@ -58,6 +68,10 @@ class PersonalSessionService
 
     public function markFailed(string $message): void
     {
+        if (! $this->tableExists()) {
+            return;
+        }
+
         PersonalSession::query()->where('key', self::KEY)->update([
             'last_failed_at' => now(),
             'last_error' => mb_substr($message, 0, 1000),
@@ -66,7 +80,7 @@ class PersonalSessionService
 
     public function status(): array
     {
-        $record = PersonalSession::query()->where('key', self::KEY)->first();
+        $record = $this->record();
 
         return [
             'has_database_session' => $record !== null,
@@ -77,5 +91,17 @@ class PersonalSessionService
             'last_failed_at' => $record?->last_failed_at,
             'last_error' => $record?->last_error,
         ];
+    }
+
+    private function record(): ?PersonalSession
+    {
+        return $this->tableExists()
+            ? PersonalSession::query()->where('key', self::KEY)->first()
+            : null;
+    }
+
+    private function tableExists(): bool
+    {
+        return Schema::hasTable('muasamcong_personal_sessions');
     }
 }
