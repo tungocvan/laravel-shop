@@ -8,6 +8,8 @@ use RuntimeException;
 
 class ContractorHistoryService
 {
+    public function __construct(private readonly PersonalSessionService $sessions) {}
+
     public function search(string $contractorCode, ?string $fromDate = null, ?string $toDate = null): array
     {
         $contractorCode = trim($contractorCode);
@@ -16,8 +18,8 @@ class ContractorHistoryService
             throw new RuntimeException('Thiếu mã nhà thầu để tra cứu lịch sử.');
         }
 
-        if (blank(config('muasamcong.session_cookie'))) {
-            throw new RuntimeException('Chưa cấu hình MUASAMCONG_SESSION_COOKIE cho Personal Page.');
+        if ($this->sessions->cookie() === null) {
+            throw new RuntimeException('Chưa cấu hình Personal Page Session cho lịch sử nhà thầu.');
         }
 
         $rows = [];
@@ -56,6 +58,33 @@ class ContractorHistoryService
         ];
     }
 
+    public function testSession(): array
+    {
+        if ($this->sessions->cookie() === null) {
+            throw new RuntimeException('Chưa cấu hình Personal Page Session.');
+        }
+
+        $json = $this->request()->post($this->endpoint(), [
+            'pageSize' => 1,
+            'pageNumber' => 1,
+            'request' => [
+                'bidName' => '',
+                'orgCode' => null,
+                'fromDate' => '2021-01-01T00:00:00.000Z',
+                'toDate' => null,
+            ],
+        ])->throw()->json();
+
+        if (! is_array($json) || ! is_array(data_get($json, 'listBid.content'))) {
+            throw new RuntimeException('Personal Page Session trả về dữ liệu không hợp lệ.');
+        }
+
+        return [
+            'total' => (int) data_get($json, 'listBid.totalElements', 0),
+            'pages' => (int) data_get($json, 'listBid.totalPages', 0),
+        ];
+    }
+
     private function payload(string $contractorCode, int $page, ?string $fromDate, ?string $toDate): array
     {
         return [
@@ -77,13 +106,19 @@ class ContractorHistoryService
 
     private function request(): PendingRequest
     {
+        $cookie = $this->sessions->cookie();
+
+        if ($cookie === null) {
+            throw new RuntimeException('Chưa cấu hình Personal Page Session.');
+        }
+
         return Http::withHeaders([
             'Accept' => 'application/json, text/plain, */*',
             'Content-Type' => 'application/json',
             'Origin' => config('muasamcong.origin'),
             'Referer' => config('muasamcong.referers.contractor_joined_bids'),
             'User-Agent' => config('muasamcong.user_agent'),
-            'Cookie' => config('muasamcong.session_cookie'),
+            'Cookie' => $cookie,
         ])->timeout((int) config('muasamcong.timeout', 20))
             ->withOptions(['verify' => (bool) config('muasamcong.verify_ssl', true)]);
     }
