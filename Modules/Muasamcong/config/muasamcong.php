@@ -29,6 +29,14 @@ return [
             'MUASAMCONG_CONTRACTOR_JOINED_BIDS_ENDPOINT',
             'https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/get-list-notify-contractor-join'
         ),
+        'kqlcnt_tbmt_detail' => env(
+            'MUASAMCONG_KQLCNT_TBMT_ENDPOINT',
+            'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/lcnt_tbmt_ttc_ldt'
+        ),
+        'kqlcnt_contracts' => env(
+            'MUASAMCONG_KQLCNT_CONTRACT_ENDPOINT',
+            'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/econsign/contract-info/list-contract-for-po'
+        ),
     ],
 
     'referers' => [
@@ -40,6 +48,10 @@ return [
         'contractor_joined_bids' => env(
             'MUASAMCONG_CONTRACTOR_JOINED_BIDS_REFERER',
             'https://muasamcong.mpi.gov.vn/web/guest/profile-info?p_p_id=egpportalpersonalpage_WAR_egpportalpersonalpage&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalpersonalpage_WAR_egpportalpersonalpage_render=personalUrl&menu=tender-pakage-list'
+        ),
+        'kqlcnt' => env(
+            'MUASAMCONG_KQLCNT_REFERER',
+            'https://muasamcong.mpi.gov.vn/web/guest/contractor-selection'
         ),
     ],
 
