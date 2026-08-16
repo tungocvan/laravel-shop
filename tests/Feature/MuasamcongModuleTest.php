@@ -108,6 +108,28 @@ class MuasamcongModuleTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_pricing_search_falls_back_for_punctuation_and_keeps_the_exact_normalized_medicine_name(): void
+    {
+        Http::fakeSequence()
+            ->push(['page' => ['totalElements' => 0, 'content' => []]])
+            ->push(['page' => [
+                'totalElements' => 2,
+                'content' => [
+                    ['id' => '11111111-1111-4111-8111-111111111111', 'tenThuoc' => 'Gourcuff-5'],
+                    ['id' => '22222222-2222-4222-8222-222222222222', 'tenThuoc' => 'Gourcuff-2.5'],
+                ],
+            ]]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('Gourcuff-2,5');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['data']['fallback']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame('Gourcuff-2.5', $result['data']['items'][0]['tenThuoc']);
+
+        Http::assertSentCount(2);
+    }
+
     public function test_pricing_response_is_normalized_only_after_schema_validation(): void
     {
         Http::fake([
