@@ -82,6 +82,7 @@
                     <tbody class="divide-y divide-gray-100 bg-white">
                     @forelse ($results as $row)
                         @php($isSynced = isset($syncedNotifyNos[$row['notifyNo'] ?? '']))
+                        @php($isKqlcntSynced = isset($syncedKqlcntNotifyNos[$row['notifyNo'] ?? '']))
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3"><input type="checkbox" wire:model="selected" value="{{ $row['notifyNo'] ?? '' }}" @disabled($isSynced) class="rounded border-gray-300"></td>
                             <td class="whitespace-nowrap px-4 py-3 font-medium text-indigo-700">{{ $row['notifyNo'] ?? '—' }}</td>
@@ -89,11 +90,16 @@
                             <td class="whitespace-nowrap px-4 py-3 text-gray-600">{{ isset($row['createdDate']) ? \Illuminate\Support\Carbon::parse($row['createdDate'])->format('d/m/Y') : '—' }}</td>
                             <td class="px-4 py-3 text-gray-600">{{ $row['dateYear'] ?? '—' }}</td>
                             <td class="px-4 py-3">
-                                @if ($isSynced)
-                                    <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã đồng bộ</span>
-                                @else
-                                    <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">Đã tham gia</span>
-                                @endif
+                                <div class="flex flex-wrap gap-1">
+                                    @if ($isSynced)
+                                        <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã đồng bộ</span>
+                                    @else
+                                        <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">Đã tham gia</span>
+                                    @endif
+                                    @if ($isKqlcntSynced)
+                                        <span class="rounded-full bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">KQLCNT đã lưu</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-right">
                                 <button wire:click="showDetail('{{ $row['notifyNo'] ?? '' }}')" class="text-sm font-medium text-gray-600 hover:text-gray-900">Chi tiết</button>
@@ -131,6 +137,7 @@
     @endif
 
     @if ($kqlcnt)
+        @php($currentKqlcntSynced = isset($syncedKqlcntNotifyNos[$kqlcnt['notify_no'] ?? '']))
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 p-4" wire:click.self="closeKqlcnt">
             <div class="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
                 <div class="flex items-start justify-between border-b border-gray-100 px-6 py-5">
@@ -139,18 +146,27 @@
                         <h3 class="mt-1 text-xl font-bold text-gray-900">{{ $kqlcnt['notify_no'] ?? '' }}</h3>
                         <p class="mt-1 text-sm text-gray-500">{{ $kqlcnt['bid_name'] ?? '—' }}</p>
                     </div>
-                    <button wire:click="closeKqlcnt" class="text-2xl text-gray-400 hover:text-gray-700">&times;</button>
+                    <div class="flex items-center gap-3">
+                        <button wire:click="syncKqlcnt" wire:loading.attr="disabled"
+                                class="rounded-lg px-4 py-2 text-sm font-semibold {{ $currentKqlcntSynced ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'bg-emerald-600 text-white hover:bg-emerald-700' }} disabled:opacity-50">
+                            {{ $currentKqlcntSynced ? 'Đồng bộ lại KQLCNT' : 'Đồng bộ KQLCNT' }}
+                        </button>
+                        <button wire:click="closeKqlcnt" class="text-2xl text-gray-400 hover:text-gray-700">&times;</button>
+                    </div>
                 </div>
 
                 <div class="max-h-[calc(92vh-82px)] overflow-y-auto p-6">
-                    <div class="grid gap-4 md:grid-cols-4">
+                    <div class="grid gap-4 md:grid-cols-5">
                         <div class="rounded-xl border border-gray-200 p-4">
                             <div class="text-xs uppercase text-gray-500">Trạng thái</div>
                             <div class="mt-1 font-semibold text-gray-900">{{ ($kqlcnt['status'] ?? '') === 'PUB_KQLCNT' ? 'Đã công bố KQLCNT' : ($kqlcnt['status'] ?? '—') }}</div>
                         </div>
-                        <div class="rounded-xl border border-gray-200 p-4">
-                            <div class="text-xs uppercase text-gray-500">Mã nhà thầu đang xem</div>
-                            <div class="mt-1 font-semibold text-gray-900">{{ $kqlcnt['contractor_code'] ?? '—' }}</div>
+                        <div class="rounded-xl border border-gray-200 p-4 md:col-span-2">
+                            <div class="text-xs uppercase text-gray-500">Chủ đầu tư</div>
+                            <div class="mt-1 font-semibold text-gray-900">{{ $kqlcnt['investor_name'] ?? '—' }}</div>
+                            @if (!empty($kqlcnt['investor_code']))
+                                <div class="mt-1 text-xs text-gray-500">{{ $kqlcnt['investor_code'] }}</div>
+                            @endif
                         </div>
                         <div class="rounded-xl border border-gray-200 p-4">
                             <div class="text-xs uppercase text-gray-500">Số hợp đồng phù hợp</div>
@@ -160,6 +176,13 @@
                             <div class="text-xs uppercase text-gray-500">Lô đã xác minh</div>
                             <div class="mt-1 text-xl font-bold text-gray-900">{{ count($kqlcnt['verified_lots'] ?? []) }}</div>
                         </div>
+                    </div>
+
+                    <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-800">
+                        Nhà thầu đang xem: <strong>{{ $contractorName }}</strong> <span class="text-indigo-500">({{ $kqlcnt['contractor_code'] ?? '—' }})</span>
+                        @if ($currentKqlcntSynced)
+                            <span class="ml-2 rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">KQLCNT đã đồng bộ</span>
+                        @endif
                     </div>
 
                     <section class="mt-6">
