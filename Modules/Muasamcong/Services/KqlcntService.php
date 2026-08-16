@@ -80,6 +80,7 @@ class KqlcntService
 
         $matchedContracts = [];
         $verifiedLots = [];
+        $allWinners = [];
 
         foreach ($contracts as $contract) {
             if (! is_array($contract)) {
@@ -87,6 +88,33 @@ class KqlcntService
             }
 
             $passList = $this->decodeList($contract['contractorPassList'] ?? null);
+
+            foreach ($passList as $winner) {
+                if (! is_array($winner)) {
+                    continue;
+                }
+
+                $winnerCode = trim((string) ($winner['contractorCode'] ?? ''));
+                $winnerName = trim((string) ($winner['contractorName'] ?? ''));
+
+                if ($winnerCode === '' && $winnerName === '') {
+                    continue;
+                }
+
+                $key = $winnerCode !== '' ? $winnerCode : mb_strtoupper($winnerName);
+                $allWinners[$key] ??= [
+                    'contractorCode' => $winnerCode ?: null,
+                    'contractorName' => $winnerName ?: null,
+                    'contractorAddress' => $winner['contractorAddress'] ?? null,
+                    'contracts' => [],
+                ];
+
+                $contractNo = trim((string) ($contract['contractNo'] ?? ''));
+                if ($contractNo !== '' && ! in_array($contractNo, $allWinners[$key]['contracts'], true)) {
+                    $allWinners[$key]['contracts'][] = $contractNo;
+                }
+            }
+
             $matchedContractors = array_values(array_filter(
                 $passList,
                 fn (array $item): bool => trim((string) ($item['contractorCode'] ?? '')) === $contractorCode
@@ -123,7 +151,9 @@ class KqlcntService
                 ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.investorName')
                 ?? ($matchedContracts[0]['investorName'] ?? null),
             'contractor_code' => $contractorCode,
+            'current_contractor_won' => $matchedContracts !== [],
             'contracts' => $matchedContracts,
+            'all_winners' => array_values($allWinners),
             'verified_lots' => array_values($verifiedLots),
             'tbmt_raw' => $tbmt,
             'contracts_raw' => $contracts,
