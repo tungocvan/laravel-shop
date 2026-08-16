@@ -2,78 +2,42 @@
 
 ## Purpose
 
-`Modules/Muasamcong` integrates the application with public-procurement search endpoints used by `muasamcong.mpi.gov.vn`.
+`Modules/Muasamcong` integrates the application with procurement-search endpoints on `muasamcong.mpi.gov.vn`.
 
-It currently supports:
+Current capabilities:
 
 - awarded-drug/pricing lookup;
-- HSMT/procurement-notice lookup by keyword and date range;
-- selected-row XLSX export for HSMT results;
-- upstream token/cookie and connection configuration;
-- authenticated internal pricing-search API;
+- HSMT lookup by keyword/date range;
+- selected-row XLSX export;
+- privileged upstream connection/token/cookie configuration;
+- authenticated internal pricing API;
 - console smoke-test commands.
 
-The active module does not persist procurement data locally.
+No procurement data is persisted locally.
 
 ## Features
 
-### Pricing / awarded-drug search
-
-Entry page:
+### Pricing search
 
 ```text
-/muasamcong
-```
-
-Livewire:
-
-```text
+/admin/muasamcong
 Modules\Muasamcong\Livewire\TracuuThuoctrungthau
-```
-
-Service method:
-
-```text
 MuaSamCongService::searchPricing()
 ```
 
-Search fields sent upstream include drug name, active ingredient and procurement notice code fields according to the current payload builder.
-
 ### HSMT search
 
-Entry page:
-
 ```text
-/muasamcong/hsmt
-```
-
-Livewire:
-
-```text
+/admin/muasamcong/hsmt
 Modules\Muasamcong\Livewire\SearchHsmt
-```
-
-Service method:
-
-```text
 MuaSamCongService::searchHsmt()
 ```
 
-Inputs:
+The module requests upstream page zero only. Page size is clamped to 1–100.
 
-- keyword;
-- from date;
-- to date.
+### HSMT export
 
-Current behavior requests page zero only. Page size is clamped to 1–100 by the service.
-
-### HSMT XLSX export
-
-Current export scope:
-
-```text
-selected rows from the currently loaded first page
-```
+Export scope is selected rows from the currently loaded bounded page.
 
 Files:
 
@@ -83,155 +47,60 @@ Modules/Muasamcong/Livewire/SearchHsmt.php
 Modules/Muasamcong/Services/MuaSamCongService.php
 ```
 
-Columns:
-
-- Tên gói thầu
-- Mã TBMT
-- Ngày đăng tải
-- Đóng thầu
-- Bên mời thầu
-- Tỉnh
-
-### Configuration management
-
-Page:
+### Configuration
 
 ```text
-/muasamcong/config
-```
-
-Livewire:
-
-```text
+/admin/muasamcong/config
 Modules\Muasamcong\Livewire\ConfigManager
-```
-
-Service:
-
-```text
 Modules\Muasamcong\Services\MuasamcongConfigService
 ```
 
-Current UI exposes:
-
-- origin;
-- SSL verification flag;
-- timeout;
-- user agent;
-- smart token;
-- session cookie;
-- pricing endpoint;
-- contractor endpoint;
-- portal referer;
-- pricing referer;
-- page size.
-
-Important: current source has a configuration consistency issue. The UI/config service writes many `MUASAMCONG_*` values to `.env`, while `config/muasamcong.php` currently reads environment values only for smart token and session cookie. See `ANALYSIS.md` before changing this flow.
+`mount()` is read-only. `save()` and `testToken()` require `muasamcong.config.manage` inside the Livewire action.
 
 ## Routes
 
 ### Web
 
-Defined in:
+| Method | URI | Name | Permission |
+|---|---|---|---|
+| GET | `/admin/muasamcong` | `muasamcong.index` | `view_muasamcong` |
+| GET | `/admin/muasamcong/hsmt` | `muasamcong.hsmt` | `view_muasamcong` |
+| GET | `/admin/muasamcong/config` | `muasamcong.config` | `muasamcong.config.manage` |
 
-```text
-Modules/Muasamcong/routes/web.php
-```
-
-| Method | URI | Name |
-|---|---|---|
-| GET | `/muasamcong` | `muasamcong.index` |
-| GET | `/muasamcong/hsmt` | `muasamcong.hsmt` |
-| GET | `/muasamcong/config` | `muasamcong.config` |
-
-Default configured middleware:
-
-```text
-web
-auth:admin
-permission:view_muasamcong,admin
-```
+All web routes use `auth:admin`.
 
 ### API
 
-Defined in:
-
 ```text
-Modules/Muasamcong/routes/api.php
+GET  /api/muasamcong
+POST /api/muasamcong/search-pricing
 ```
 
-| Method | URI | Purpose |
-|---|---|---|
-| GET | `/api/muasamcong` | integration/API availability response |
-| POST | `/api/muasamcong/search-pricing` | pricing lookup |
-
-Default API middleware:
-
-```text
-api
-auth:sanctum
-```
+Default API middleware remains `api` + `auth:sanctum`.
 
 ## Permissions
 
-Manifest file:
-
-```text
-Modules/Muasamcong/config/module.php
-```
-
-Current declared permission:
+Declared in `Modules/Muasamcong/config/module.php`:
 
 ```text
 view_muasamcong
+muasamcong.config.manage
 ```
 
-Current security analysis recommends splitting privileged configuration management from read/search access. Do not treat `view_muasamcong` as sufficient long-term authorization for `.env`/endpoint/TLS changes.
+`view_muasamcong` covers search pages. `muasamcong.config.manage` covers the configuration page and its mutations.
 
 ## Controllers
 
-### Web controller
-
 ```text
 Modules/Muasamcong/Http/Controllers/MuasamcongController.php
-```
-
-Methods:
-
-```text
-index()
-hsmt()
-config()
-```
-
-Responsibilities are limited to returning Blade page shells.
-
-### API controller
-
-```text
 Modules/Muasamcong/Http/Controllers/Api/MuasamcongController.php
 ```
 
-Methods:
-
-```text
-index()
-searchPricing()
-```
-
-`searchPricing()` validates `keyword` and delegates to `MuaSamCongService`.
+The web controller only returns page shells. The API controller validates `keyword` and delegates to `MuaSamCongService`.
 
 ## Livewire Components
 
-### Active
-
-```text
-Modules\Muasamcong\Livewire\TracuuThuoctrungthau
-Modules\Muasamcong\Livewire\SearchHsmt
-Modules\Muasamcong\Livewire\ConfigManager
-```
-
-Aliases under the current module loader:
+Active:
 
 ```text
 muasamcong.tracuu-thuoctrungthau
@@ -239,225 +108,87 @@ muasamcong.search-hsmt
 muasamcong.config-manager
 ```
 
-### Scaffold / currently unused
+Unused scaffold still present:
 
 ```text
 Modules\Muasamcong\Livewire\Hsmt
 ```
 
-Alias:
-
-```text
-muasamcong.hsmt
-```
-
-This component is separate from the route name `muasamcong.hsmt` and is not the active HSMT search component.
-
 ## Blade Views
 
-Page shells:
+Page shells use `Admin::layouts.master`.
 
-```text
-Modules/Muasamcong/resources/views/muasamcong.blade.php
-Modules/Muasamcong/resources/views/hsmt.blade.php
-Modules/Muasamcong/resources/views/config.blade.php
-```
-
-Livewire views:
-
-```text
-Modules/Muasamcong/resources/views/livewire/tracuu-thuoctrungthau.blade.php
-Modules/Muasamcong/resources/views/livewire/search-hsmt.blade.php
-Modules/Muasamcong/resources/views/livewire/config-manager.blade.php
-Modules/Muasamcong/resources/views/livewire/hsmt.blade.php
-```
-
-Admin layout dependency:
-
-```text
-Admin::layouts.master
-```
+Config UI includes secure-host guidance, secret masking, standard bordered controls, loading states and production-disabled SSL toggle.
 
 ## Services
 
 ### MuaSamCongService
 
-```text
-Modules/Muasamcong/Services/MuaSamCongService.php
-```
-
 Responsibilities:
 
-- pricing request payload;
-- HSMT request payload;
-- token/cookie attachment;
-- upstream HTTP calls;
-- response schema validation;
-- safe error normalization;
-- first-page result normalization;
-- selected HSMT export-row mapping.
+- construct pricing/HSMT payloads;
+- validate approved upstream endpoint/origin/referer;
+- attach token/cookie only after destination validation;
+- perform bounded HTTPS requests;
+- normalize upstream responses/errors;
+- map selected HSMT export rows.
 
-Return convention:
+Approved host:
 
-```php
-[
-    'success' => bool,
-    'status' => int,
-    'data' => mixed,
-    'message' => ?string,
-]
+```text
+muasamcong.mpi.gov.vn
 ```
+
+Redirect following is disabled. Production SSL verification is forced on.
 
 ### MuasamcongConfigService
 
-```text
-Modules/Muasamcong/Services/MuasamcongConfigService.php
-```
-
 Responsibilities:
 
-- check root `.env` for supported keys;
-- append missing defaults;
-- update allowlisted `MUASAMCONG_*` values;
-- quote dotenv values.
-
-This is a privileged production-control service. Read `ANALYSIS.md` before changing or calling it from new UI/actions.
+- update only allowlisted `MUASAMCONG_*` values;
+- reject CR/LF values;
+- validate all network URLs against the approved HTTPS host;
+- prevent disabling SSL verification in production;
+- perform one locked `.env` write after full validation.
 
 ## Imports / Exports
 
-### Import
+Import: `Not present`.
 
-```text
-Not present
-```
+Export: `HsmtExport` using Maatwebsite Excel (`FromArray`, `WithHeadings`).
 
-### Export
+## Models / Database
 
-```text
-Modules/Muasamcong/Exports/HsmtExport.php
-```
+`Modules/Muasamcong/Models/Muasamcong.php` is an unused scaffold.
 
-Library:
-
-```text
-maatwebsite/excel
-```
-
-Implementation:
-
-```text
-FromArray
-WithHeadings
-```
-
-Canonical repository shared import/export foundation is currently not used.
-
-## Models
-
-```text
-Modules/Muasamcong/Models/Muasamcong.php
-```
-
-Status:
-
-```text
-unused scaffold
-```
-
-No active service/controller/Livewire flow in the inspected source uses this model.
-
-## Database Tables
-
-```text
-None owned by the active module
-```
-
-No `database/migrations` or `Database/Migrations` directory was found under the module during analysis.
-
-## Relationships
-
-```text
-Not present
-```
-
-No active Eloquent relationships exist because the module does not currently persist domain data.
+Database tables/migrations/relationships: `Not present`.
 
 ## Shared / Cross-Module Dependencies
 
-### Admin
+- Admin layout;
+- canonical `Modules\ModuleServiceProvider`;
+- Sanctum;
+- Spatie Permission;
+- Maatwebsite Excel.
 
-Used for page layout:
-
-```text
-Admin::layouts.master
-```
-
-### Shared
-
-Canonical import/export infrastructure exists in the repository but is not currently used by Muasamcong export.
-
-### Root module loader
-
-```text
-Modules\ModuleServiceProvider
-```
-
-The root loader discovers `Muasamcong`, reads `config/module.php`, registers the module-specific provider if present and also performs generic config/route/resource/Livewire/console registration.
-
-This overlaps with:
-
-```text
-Modules\Muasamcong\Providers\MuasamcongServiceProvider
-```
-
-See `ANALYSIS.md` for the duplicate-registration finding.
+The module-specific provider now only merges/publishes Muasamcong config; generic boot work is handled by the canonical loader.
 
 ## Events / Jobs
 
-```text
-Not present
-```
+`Not present`.
 
-All upstream searches are currently synchronous.
+Searches remain synchronous.
 
 ## Console Commands
-
-```text
-Modules/Muasamcong/Console/Commands/TestHsmtCommand.php
-Modules/Muasamcong/Console/Commands/TestPricingCommand.php
-```
-
-Commands:
 
 ```bash
 php artisan msc:test-hsmt "thuốc generic" "2026-07-01:2026-07-31"
 php artisan msc:test --payload=Modules/Muasamcong/examples/pricing-payload.json
 ```
 
-These are smoke/integration helpers and do not persist data.
-
 ## Configuration / Environment Variables
 
-Module config:
-
-```text
-Modules/Muasamcong/config/muasamcong.php
-```
-
-Environment example:
-
-```text
-Modules/Muasamcong/.env.example
-```
-
-Current `.env.example` contains only:
-
-```text
-MUASAMCONG_SMART_TOKEN
-MUASAMCONG_SESSION_COOKIE
-```
-
-`MuasamcongConfigService` knows the following key set:
+Runtime config consumes:
 
 ```text
 MUASAMCONG_ORIGIN
@@ -473,63 +204,43 @@ MUASAMCONG_PRICING_REFERER
 MUASAMCONG_PAGE_SIZE
 ```
 
-Current runtime config file only sources token/cookie from env. This must be reconciled before relying on UI changes to the other keys.
+See `Modules/Muasamcong/.env.example` for placeholders/defaults. Never commit real token/cookie values.
 
-## Upstream Contracts
+## Upstream Contract
 
-Current default origin:
+All configured origin/endpoint/referer URLs must use HTTPS and the exact host:
 
 ```text
-https://muasamcong.mpi.gov.vn
+muasamcong.mpi.gov.vn
 ```
 
-Pricing path defaults to the current smart pricing endpoint under the same host.
-
-HSMT/contractor search defaults to the contractor-selection smart search endpoint under the same host.
-
-These endpoints are integration dependencies rather than repository-owned contracts and may change independently.
+Explicit non-443 ports and embedded URL credentials are rejected.
 
 ## Tests
 
-Targeted test file:
-
 ```text
 tests/Feature/MuasamcongModuleTest.php
+tests/Feature/Muasamcong/MuasamcongRouteAuthorizationTest.php
 ```
 
-Current coverage includes:
-
-- secret hydration protection;
-- temporary token test;
-- upstream schema normalization;
-- safe schema failure;
-- safe connection failure;
-- missing HSMT token failure;
-- XLSX generation.
-
-See `ANALYSIS.md` for missing security and route-boot coverage.
+Coverage includes secret non-hydration, read-only mount, mutation denial, SSRF blocking, upstream error/schema behavior, XLSX generation and route/permission/provider contracts.
 
 ## Known Limitations
 
-- only upstream page zero is requested;
-- current export only includes selected rows already loaded into Livewire state;
-- upstream token/cookie may expire;
-- upstream response schema is outside repository control;
-- synchronous searches depend on upstream latency;
-- no local database history/cache exists;
-- current configuration UI/source mapping is inconsistent;
-- current module-specific provider overlaps canonical repository registration.
+- page zero only;
+- selected-row export only;
+- token/cookie may expire;
+- upstream schema is external and can change;
+- synchronous upstream latency affects request duration;
+- no local history/cache;
+- API has Sanctum auth but no module-specific rate/capability policy yet.
 
 ## Maintenance Notes
 
-Before modifying this module:
-
-1. Read `docs/modules/Muasamcong/ANALYSIS.md`.
-2. Preserve existing public routes and Livewire aliases unless a compatibility plan is documented.
-3. Never hard-code or log smart token/session cookie.
-4. Do not allow browser-controlled arbitrary upstream hosts.
-5. Keep SSL verification enabled in production.
-6. Do not reintroduce a second module boot mechanism merely for portability.
-7. Keep searches/exports bounded.
-8. Add tests before changing provider/config/authorization behavior.
-9. Do not create database tables unless a new persistence requirement is explicitly approved.
+- preserve route names and API URIs;
+- keep config mutations capability-protected;
+- never relax approved-host validation when secrets can be forwarded;
+- keep production SSL verification on;
+- keep result/export scope bounded;
+- do not add persistence without explicit business scope;
+- run targeted tests and route-list verification before merge.
