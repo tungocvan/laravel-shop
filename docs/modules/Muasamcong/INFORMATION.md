@@ -1,246 +1,216 @@
 # Muasamcong Module Information
 
+> Cập nhật 2026-08-16. Đây là inventory kỹ thuật hiện tại. Xem `AI_HANDOFF.md` để có bối cảnh nghiệp vụ, endpoint đã điều tra và các quyết định quan trọng.
+
 ## Purpose
 
-`Modules/Muasamcong` integrates the application with procurement-search endpoints on `muasamcong.mpi.gov.vn`.
+`Modules/Muasamcong` tích hợp ứng dụng với dữ liệu đấu thầu tại `muasamcong.mpi.gov.vn`, đồng thời có persistence cục bộ để lưu snapshot tra cứu, wishlist, lịch sử nhà thầu/KQLCNT/HSMT snapshot và các thuốc đã chọn đồng bộ.
 
-Current capabilities:
+## Active Features
 
-- awarded-drug/pricing lookup;
-- HSMT lookup by keyword/date range;
-- selected-row XLSX export;
-- privileged upstream connection/token/cookie configuration;
-- authenticated internal pricing API;
-- console smoke-test commands.
+- Smart Pricing search theo thuốc/hoạt chất/TBMT/winner upstream hỗ trợ.
+- Database-first search snapshots + `Tìm kiếm mới` để force refresh upstream.
+- Full-page loading cho TBMT lớn, sau đó local pagination 20 rows/page.
+- Local filters: tên thuốc, hoạt chất, nhóm thuốc, đơn vị trúng thầu.
+- Cross-page checkbox selection và selected-items review trước sync.
+- Persist selected pricing results.
+- Manage synced pricing results: search, paginate, edit winner/KQLCNT metadata, bulk delete.
+- Wishlist persistence theo user.
+- Contractor participation history.
+- KQLCNT/contract/winner metadata.
+- HSMT detail + medicine catalogue parsing + snapshot.
+- HSMT search/XLSX export.
+- Privileged upstream integration configuration and environment doctor.
+- Authenticated internal pricing API.
 
-No procurement data is persisted locally.
+## Architecture
 
-## Features
-
-### Pricing search
-
-```text
-/admin/muasamcong
-Modules\Muasamcong\Livewire\TracuuThuoctrungthau
-MuaSamCongService::searchPricing()
-```
-
-### HSMT search
+Canonical loader:
 
 ```text
-/admin/muasamcong/hsmt
-Modules\Muasamcong\Livewire\SearchHsmt
-MuaSamCongService::searchHsmt()
+Modules\ModuleServiceProvider
 ```
 
-The module requests upstream page zero only. Page size is clamped to 1–100.
+Không dùng giả định `nwidart/laravel-modules`.
 
-### HSMT export
-
-Export scope is selected rows from the currently loaded bounded page.
-
-Files:
+Preferred flow:
 
 ```text
-Modules/Muasamcong/Exports/HsmtExport.php
-Modules/Muasamcong/Livewire/SearchHsmt.php
-Modules/Muasamcong/Services/MuaSamCongService.php
+Route -> Controller/Page Blade -> Livewire -> Service -> DB hoặc upstream HTTP
 ```
 
-### Configuration
+## Admin Routes
 
-```text
-/admin/muasamcong/config
-Modules\Muasamcong\Livewire\ConfigManager
-Modules\Muasamcong\Services\MuasamcongConfigService
-```
-
-`mount()` is read-only. `save()` and `testToken()` require `muasamcong.config.manage` inside the Livewire action.
-
-## Routes
-
-### Web
-
-| Method | URI | Name | Permission |
+| Method | URI | Name | Purpose |
 |---|---|---|---|
-| GET | `/admin/muasamcong` | `muasamcong.index` | `view_muasamcong` |
-| GET | `/admin/muasamcong/hsmt` | `muasamcong.hsmt` | `view_muasamcong` |
-| GET | `/admin/muasamcong/config` | `muasamcong.config` | `muasamcong.config.manage` |
+| GET | `/admin/muasamcong` | `muasamcong.index` | Smart Pricing |
+| GET | `/admin/muasamcong/contractors` | `muasamcong.contractors` | Lịch sử nhà thầu |
+| GET | `/admin/muasamcong/hsmt` | `muasamcong.hsmt` | HSMT search/export |
+| GET | `/admin/muasamcong/synced` | `muasamcong.synced` | Thuốc đã đồng bộ |
+| GET | `/admin/muasamcong/wishlist` | `muasamcong.wishlist` | Wishlist |
+| GET | `/admin/muasamcong/config` | `muasamcong.config` | Integration config |
 
-All web routes use `auth:admin`.
-
-### API
+API:
 
 ```text
 GET  /api/muasamcong
 POST /api/muasamcong/search-pricing
 ```
 
-Default API middleware remains `api` + `auth:sanctum`.
+Web search pages dùng `auth:admin` + `view_muasamcong`; config dùng `muasamcong.config.manage`. Sync mutations dùng permission chuyên biệt theo code hiện tại.
 
-## Permissions
+## Main Livewire Components
 
-Declared in `Modules/Muasamcong/config/module.php`:
-
-```text
-view_muasamcong
-muasamcong.config.manage
-```
-
-`view_muasamcong` covers search pages. `muasamcong.config.manage` covers the configuration page and its mutations.
-
-## Controllers
-
-```text
-Modules/Muasamcong/Http/Controllers/MuasamcongController.php
-Modules/Muasamcong/Http/Controllers/Api/MuasamcongController.php
-```
-
-The web controller only returns page shells. The API controller validates `keyword` and delegates to `MuaSamCongService`.
-
-## Livewire Components
-
-Active:
-
-```text
-muasamcong.tracuu-thuoctrungthau
-muasamcong.search-hsmt
-muasamcong.config-manager
-```
-
-Unused scaffold still present:
-
-```text
-Modules\Muasamcong\Livewire\Hsmt
-```
-
-## Blade Views
-
-Page shells use `Admin::layouts.master`.
-
-Config UI includes secure-host guidance, secret masking, standard bordered controls, loading states and production-disabled SSL toggle.
+- `TracuuThuoctrungthau` — pricing search, snapshot reuse, filter, pagination, cross-page selection, sync, wishlist interaction.
+- `ContractorHistory` — contractor lookup/history + KQLCNT/HSMT interactions.
+- `SyncedPricingList` — quản lý dữ liệu đã sync.
+- `SearchHsmt` — HSMT search/export.
+- `ConfigManager` — cấu hình integration + doctor.
 
 ## Services
 
-### MuaSamCongService
+### `MuaSamCongService`
 
-Responsibilities:
+HTTP integration nền tảng: tạo payload, validate destination, attach token/cookie sau host validation, gọi Smart Pricing/HSMT endpoints, normalize response/errors.
 
-- construct pricing/HSMT payloads;
-- validate approved upstream endpoint/origin/referer;
-- attach token/cookie only after destination validation;
-- perform bounded HTTPS requests;
-- normalize upstream responses/errors;
-- map selected HSMT export rows.
+### `PricingTbmtPaginationService`
 
-Approved host:
+Nhận page đầu Smart Pricing cho TBMT, xác định total, tải các page tiếp theo, merge/chống duplicate. Không được regression về page 0-only.
 
-```text
-muasamcong.mpi.gov.vn
-```
+### `PricingSearchSnapshotService`
 
-Redirect following is disabled. Production SSL verification is forced on.
+Normalize keyword, persist full search response, `searched_at`, `last_accessed_at`, `access_count`; keyword cũ ưu tiên database.
 
-### MuasamcongConfigService
+### `PricingResultSyncService`
 
-Responsibilities:
+Map các source rows được checkbox vào `PricingResult`, giữ `raw_payload`, `synced_by`, `synced_at`.
 
-- update only allowlisted `MUASAMCONG_*` values;
-- reject CR/LF values;
-- validate all network URLs against the approved HTTPS host;
-- prevent disabling SSL verification in production;
-- perform one locked `.env` write after full validation.
+### `PricingWishlistService`
 
-## Imports / Exports
+Wishlist per-user với snapshot thuốc; unique theo user + source row.
 
-Import: `Not present`.
+### `ContractorHistoryService`
 
-Export: `HsmtExport` using Maatwebsite Excel (`FromArray`, `WithHeadings`).
+Lấy lịch sử gói thầu nhà thầu đã tham dự; hỗ trợ date range và pagination upstream theo code hiện tại.
 
-## Models / Database
+### `KqlcntService`
 
-`Modules/Muasamcong/Models/Muasamcong.php` is an unused scaffold.
+Lấy/normalize KQLCNT, contract, all winners; hỗ trợ dữ liệu `contractorCode/contractorName` trực tiếp hoặc `contractorPassList` JSON string tùy response.
 
-Database tables/migrations/relationships: `Not present`.
+### `HsmtDetailService`
 
-## Shared / Cross-Module Dependencies
+Parse `lcnt_tbmt_hsmt`, đọc các form như `BD.DT.02.1854`, `BD.MT.02.1220`, `BD_DATA_TABLE`, extract catalogue/medicine rows.
 
-- Admin layout;
-- canonical `Modules\ModuleServiceProvider`;
-- Sanctum;
-- Spatie Permission;
-- Maatwebsite Excel.
+### `HsmtSnapshotService`
 
-The module-specific provider now only merges/publishes Muasamcong config; generic boot work is handled by the canonical loader.
+Persist/reuse HSMT catalogue snapshot để không gọi upstream mỗi lần modal mở; refresh có chủ đích.
 
-## Events / Jobs
+### `MuasamcongConfigService`
 
-`Not present`.
+Allowlisted env mutation, URL validation, SSL/security policy và upstream config management.
 
-Searches remain synchronous.
+## Models / Persistence
 
-## Console Commands
+### `PricingResult`
 
-```bash
-php artisan msc:test-hsmt "thuốc generic" "2026-07-01:2026-07-31"
-php artisan msc:test --payload=Modules/Muasamcong/examples/pricing-payload.json
-```
+Bảng: `muasamcong_pricing_results`.
 
-## Configuration / Environment Variables
+Lưu dữ liệu thuốc đã chọn đồng bộ, gồm drug metadata, pricing, TBMT, buyer/investor, winner code/name, decision metadata, manufacturer/country, `raw_payload`, sync audit fields.
 
-Runtime config consumes:
+### `PricingWishlist`
 
-```text
-MUASAMCONG_ORIGIN
-MUASAMCONG_VERIFY_SSL
-MUASAMCONG_TIMEOUT
-MUASAMCONG_USER_AGENT
-MUASAMCONG_SMART_TOKEN
-MUASAMCONG_SESSION_COOKIE
-MUASAMCONG_PRICING_ENDPOINT
-MUASAMCONG_CONTRACTOR_ENDPOINT
-MUASAMCONG_PORTAL_REFERER
-MUASAMCONG_PRICING_REFERER
-MUASAMCONG_PAGE_SIZE
-```
+Bảng: `muasamcong_pricing_wishlists`.
 
-See `Modules/Muasamcong/.env.example` for placeholders/defaults. Never commit real token/cookie values.
+Wishlist per user, snapshot row và search keyword.
 
-## Upstream Contract
+### `PricingSearchSnapshot`
 
-All configured origin/endpoint/referer URLs must use HTTPS and the exact host:
+Bảng: `muasamcong_pricing_search_snapshots`.
 
-```text
-muasamcong.mpi.gov.vn
-```
+Cache/lịch sử search theo normalized keyword + hash; lưu full result payload và source/loaded totals.
 
-Explicit non-443 ports and embedded URL credentials are rejected.
+### `ContractorBid`
+
+Persistence lịch sử tham dự thầu được đồng bộ/chuẩn hóa bởi contractor history workflow.
+
+### `KqlcntRecord`
+
+Persistence KQLCNT và server-side snapshots liên quan contract/winners/HSMT catalogue theo fields/migrations hiện tại.
+
+Trước khi thay schema phải đọc toàn bộ migrations `Modules/Muasamcong/database/migrations` và Models hiện hành.
+
+## Important Data Rules
+
+- `winningName` upstream có => giữ và hiển thị (đã thấy dữ liệu 2026).
+- `winningName` thiếu => không suy đoán; UI dùng `Nguồn không cung cấp`.
+- Danh sách winner của TBMT KHÔNG đồng nghĩa winner của từng medicine.
+- Hiện chưa có mapping đáng tin cậy contractor ↔ lot/medicine.
+- HSMT medicine catalogue và contract winner data là hai nguồn độc lập cho tới khi tìm được join key xác thực.
+
+## Upstream Findings to Preserve
+
+### `list-contract-for-po`
+
+Payload `{"notifyNo":"IB..."}`. Có case trả contract/winners (ví dụ `IB2500539527`), nhưng `IB2600099293` đã test HTTP 200 + empty array.
+
+### `lcnt_tbmt_hsmt`
+
+Payload dạng `{"id":"<notifyId>","processApply":"LDT"}`. Case `IB2600008930` trả 285 medicine rows có `lotNo`/`medicineCode` nhưng không có contractor/winner fields trên từng row.
+
+### `get-result-replace`
+
+Đã test một `resultId`; chỉ trả `replaceResultsList` rỗng/không có mapping winner-lot cần thiết trong case đó.
+
+Chi tiết xem `AI_HANDOFF.md`.
+
+## UI Contracts
+
+- Input search có border rõ theo Admin UI standard.
+- Pricing result local pagination = 20 rows/page.
+- Selection tồn tại xuyên trang.
+- Header checkbox = current page only.
+- Winner modal phải search + giới hạn render ban đầu.
+- KQLCNT/HSMT modal phải scroll trong viewport, footer truy cập được, bảng wide horizontal-scroll.
+- Các danh sách lớn tách page riêng: contractor history, synced, wishlist.
+
+## Security
+
+- HTTPS only, approved host `muasamcong.mpi.gov.vn`.
+- Không hard-code/commit/log token, cookie, Authorization.
+- Không hydrate secret vào Livewire public state.
+- Production SSL verification luôn bật.
+- HTTP 200 vẫn phải inspect body/count/schema.
+- Upstream endpoints/schema/token/cookie không có stability guarantee.
 
 ## Tests
 
+Feature suite nằm trong:
+
 ```text
+tests/Feature/Muasamcong/
 tests/Feature/MuasamcongModuleTest.php
-tests/Feature/Muasamcong/MuasamcongRouteAuthorizationTest.php
 ```
 
-Coverage includes secret non-hydration, read-only mount, mutation denial, SSRF blocking, upstream error/schema behavior, XLSX generation and route/permission/provider contracts.
+Coverage hiện có cho route authorization, contractor history, HSMT detail, KQLCNT, environment doctor, pricing sync, wishlist, search snapshots và module contracts.
 
-## Known Limitations
+## Pre-Merge Commands
 
-- page zero only;
-- selected-row export only;
-- token/cookie may expire;
-- upstream schema is external and can change;
-- synchronous upstream latency affects request duration;
-- no local history/cache;
-- API has Sanctum auth but no module-specific rate/capability policy yet.
+```bash
+php artisan optimize:clear
+php artisan migrate:status
+php artisan route:list --path=muasamcong
+vendor/bin/pint --test Modules/Muasamcong tests/Feature/Muasamcong
+php artisan test tests/Feature/Muasamcong
+```
 
-## Maintenance Notes
+Sau targeted PASS, chạy full regression repository trước merge main.
 
-- preserve route names and API URIs;
-- keep config mutations capability-protected;
-- never relax approved-host validation when secrets can be forwarded;
-- keep production SSL verification on;
-- keep result/export scope bounded;
-- do not add persistence without explicit business scope;
-- run targeted tests and route-list verification before merge.
+## Known Limitation / Primary Open Problem
+
+Chưa xác định được nguồn/khóa mapping chính xác:
+
+```text
+winning contractor -> exact PP/lotNo/medicine
+```
+
+Không implement heuristic mapping. Mọi AI tiếp quản phải đọc `AI_HANDOFF.md` trước khi tiếp tục phần này.
