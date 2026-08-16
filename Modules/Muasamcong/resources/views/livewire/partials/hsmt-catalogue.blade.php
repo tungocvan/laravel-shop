@@ -45,15 +45,16 @@
             </div>
         </div>
 
-        <div class="mt-4 max-h-[55vh] overflow-auto overscroll-contain rounded-xl border border-gray-200 bg-white">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <div class="mt-4 rounded-xl border border-gray-200 bg-white"
+             style="max-height:48vh; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable both-edges;">
+            <table class="divide-y divide-gray-200 text-sm" style="min-width:1280px; width:1280px;">
                 <thead class="sticky top-0 z-10 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 shadow-sm">
                 <tr>
                     <th class="whitespace-nowrap px-4 py-3">Mã lô</th>
-                    <th class="min-w-56 px-4 py-3">Hoạt chất / Thuốc</th>
-                    <th class="min-w-40 px-4 py-3">Nồng độ</th>
-                    <th class="min-w-40 px-4 py-3">Đường dùng</th>
-                    <th class="min-w-36 px-4 py-3">Nhóm thuốc</th>
+                    <th class="px-4 py-3" style="min-width:250px;">Hoạt chất / Thuốc</th>
+                    <th class="px-4 py-3" style="min-width:170px;">Nồng độ</th>
+                    <th class="px-4 py-3" style="min-width:190px;">Đường dùng</th>
+                    <th class="px-4 py-3" style="min-width:120px;">Nhóm thuốc</th>
                     <th class="whitespace-nowrap px-4 py-3 text-right">Số lượng</th>
                     <th class="whitespace-nowrap px-4 py-3 text-right">Giá KH</th>
                     <th class="whitespace-nowrap px-4 py-3 text-right">Giá lô</th>
