@@ -3,6 +3,8 @@
 namespace Tests\Feature\Muasamcong;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Modules\Muasamcong\Livewire\TracuuThuoctrungthau;
 use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Services\PricingResultSyncService;
 use Tests\TestCase;
@@ -44,6 +46,18 @@ class MuasamcongPricingSyncTest extends TestCase
         $this->assertSame(1, $second['duplicates']);
         $this->assertDatabaseCount('muasamcong_pricing_results', 1);
         $this->assertSame([$item['id']], $service->existingSourceIds([$item]));
+    }
+
+    public function test_pricing_sync_action_requires_dedicated_permission(): void
+    {
+        $item = $this->sampleItem();
+
+        Livewire::test(TracuuThuoctrungthau::class)
+            ->set('keyword', 'Unafen')
+            ->set('results', [$item])
+            ->set('selectedSourceIds', [$item['id']])
+            ->call('syncSelected')
+            ->assertForbidden();
     }
 
     private function sampleItem(): array
