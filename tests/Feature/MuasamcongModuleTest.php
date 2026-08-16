@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Http\Client\Request as ClientRequest;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Maatwebsite\Excel\Excel as ExcelFormat;
@@ -29,7 +31,26 @@ class MuasamcongModuleTest extends TestCase
             ->assertDontSee('server-only-cookie');
     }
 
-    public function test_config_ui_can_test_a_token_without_saving_it(): void
+    public function test_config_mount_is_read_only_and_does_not_clear_config_cache(): void
+    {
+        Artisan::spy();
+
+        Livewire::test(ConfigManager::class)
+            ->assertSet('form.smart_token', '')
+            ->assertSet('form.session_cookie', '');
+
+        Artisan::shouldNotHaveReceived('call');
+    }
+
+    public function test_config_token_test_requires_privileged_admin_capability(): void
+    {
+        Livewire::test(ConfigManager::class)
+            ->set('form.smart_token', 'temporary-test-token')
+            ->call('testToken')
+            ->assertForbidden();
+    }
+
+    public function test_service_can_test_temporary_token_without_persisting_it(): void
     {
         Http::fake([
             '*' => Http::response([
@@ -40,12 +61,51 @@ class MuasamcongModuleTest extends TestCase
             ]),
         ]);
 
-        Livewire::test(ConfigManager::class)
-            ->set('form.smart_token', 'temporary-test-token')
-            ->call('testToken')
-            ->assertSet('tokenTestStatus', 'success')
-            ->assertSee('Token hợp lệ')
-            ->assertSet('form.smart_token', 'temporary-test-token');
+        $result = app(MuaSamCongService::class)->testSmartToken(
+            'temporary-test-token',
+            'session=value'
+        );
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(2, $result['data']['total']);
+
+        Http::assertSent(function (ClientRequest $request): bool {
+            return str_contains($request->url(), 'token=temporary-test-token')
+                && $request->hasHeader('Cookie', 'session=value');
+        });
+    }
+
+    public function test_unapproved_upstream_host_is_rejected_before_any_http_request(): void
+    {
+        config([
+            'muasamcong.endpoints.contractor_search' => 'https://127.0.0.1/internal',
+        ]);
+
+        Http::fake();
+
+        $result = app(MuaSamCongService::class)->testSmartToken(
+            'secret-token',
+            'secret-cookie'
+        );
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(500, $result['status']);
+        Http::assertNothingSent();
+    }
+
+    public function test_http_upstream_url_is_rejected_even_on_the_approved_host(): void
+    {
+        config([
+            'muasamcong.endpoints.pricing' => 'http://muasamcong.mpi.gov.vn/internal',
+        ]);
+
+        Http::fake();
+
+        $result = app(MuaSamCongService::class)->searchPricing('paracetamol');
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(500, $result['status']);
+        Http::assertNothingSent();
     }
 
     public function test_pricing_response_is_normalized_only_after_schema_validation(): void
