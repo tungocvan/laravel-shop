@@ -128,8 +128,12 @@ class MuaSamCongService
         ?string $tokenOverride = null,
         ?string $cookieOverride = null
     ): array {
-        if (! filter_var($url, FILTER_VALIDATE_URL)) {
-            return $this->error('Endpoint Mua sắm công chưa được cấu hình.');
+        $origin = (string) config('muasamcong.origin');
+
+        if (! $this->isApprovedUrl($url)
+            || ! $this->isApprovedUrl($referer)
+            || ! $this->isApprovedUrl($origin)) {
+            return $this->error('Cấu hình kết nối Mua sắm công không hợp lệ.', 500);
         }
 
         $token = trim($tokenOverride ?? (string) config('muasamcong.smart_token'));
@@ -139,7 +143,7 @@ class MuaSamCongService
         }
 
         try {
-            $request = $this->client($referer, $cookieOverride);
+            $request = $this->client($origin, $referer, $cookieOverride);
 
             if ($requiresToken) {
                 $request = $request->withQueryParameters(['token' => $token]);
@@ -242,12 +246,12 @@ class MuaSamCongService
             : '';
     }
 
-    private function client(string $referer, ?string $cookieOverride = null): PendingRequest
+    private function client(string $origin, string $referer, ?string $cookieOverride = null): PendingRequest
     {
         $headers = [
             'Accept' => 'application/json, text/plain, */*',
             'Content-Type' => 'application/json',
-            'Origin' => (string) config('muasamcong.origin'),
+            'Origin' => $origin,
             'Referer' => $referer,
             'User-Agent' => (string) config('muasamcong.user_agent'),
         ];
@@ -260,9 +264,25 @@ class MuaSamCongService
 
         return Http::withHeaders($headers)
             ->withOptions([
-                'verify' => (bool) config('muasamcong.verify_ssl', true),
+                'verify' => app()->environment('production')
+                    ? true
+                    : (bool) config('muasamcong.verify_ssl', true),
+                'allow_redirects' => false,
             ])
-            ->timeout((int) config('muasamcong.timeout', 20));
+            ->timeout(max(1, min(120, (int) config('muasamcong.timeout', 20))));
+    }
+
+    private function isApprovedUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+        $allowedHost = (string) config('muasamcong.allowed_host', 'muasamcong.mpi.gov.vn');
+
+        return is_array($parts)
+            && ($parts['scheme'] ?? null) === 'https'
+            && strcasecmp((string) ($parts['host'] ?? ''), $allowedHost) === 0
+            && ! isset($parts['user'])
+            && ! isset($parts['pass'])
+            && (! isset($parts['port']) || (int) $parts['port'] === 443);
     }
 
     private function error(string $message, int $status = 0): array
