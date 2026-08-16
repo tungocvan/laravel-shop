@@ -2,9 +2,7 @@
 
 namespace Modules\Muasamcong\Services;
 
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Throwable;
 
 class PricingTbmtPaginationService
@@ -22,9 +20,7 @@ class PricingTbmtPaginationService
             return $firstResult;
         }
 
-        $firstItems = is_array($firstResult['data']['items'] ?? null)
-            ? $firstResult['data']['items']
-            : [];
+        $firstItems = is_array($firstResult['data']['items'] ?? null) ? $firstResult['data']['items'] : [];
         $total = max(count($firstItems), (int) ($firstResult['data']['total'] ?? 0));
         $pageSize = $this->pageSize();
         $totalPages = max(1, (int) ceil($total / $pageSize));
@@ -43,13 +39,11 @@ class PricingTbmtPaginationService
 
         for ($page = 1; $page < $pagesToFetch; $page++) {
             $next = $this->fetchPage(trim($keyword), $page);
-
             if (! ($next['success'] ?? false)) {
                 $firstResult['data']['partial'] = true;
                 $firstResult['data']['partial_message'] = $next['message'] ?? 'Không thể tải đầy đủ các trang kết quả.';
                 break;
             }
-
             $this->mergeItems($itemsByKey, $next['items'] ?? []);
         }
 
@@ -92,7 +86,7 @@ class PricingTbmtPaginationService
                 ])
                 ->timeout(max(1, min(120, (int) config('muasamcong.timeout', 20))))
                 ->post($url, $this->payload($keyword, $pageNumber));
-        } catch (ConnectionException|Throwable $exception) {
+        } catch (Throwable) {
             return ['success' => false, 'message' => 'Không thể tải trang tiếp theo từ Cổng Mua sắm công.'];
         }
 
@@ -101,11 +95,6 @@ class PricingTbmtPaginationService
         }
 
         $page = $response->json('page');
-        if (! is_array($page)) {
-            $json = $response->json();
-            $page = is_array($json) && is_array($json['page'] ?? null) ? $json['page'] : null;
-        }
-
         if (! is_array($page) || ! is_array($page['content'] ?? null)) {
             return ['success' => false, 'message' => 'Dữ liệu trang kết quả không đúng cấu trúc.'];
         }
