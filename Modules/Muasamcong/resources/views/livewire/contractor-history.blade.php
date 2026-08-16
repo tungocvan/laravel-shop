@@ -192,7 +192,6 @@
                                 <p class="text-sm text-gray-500">Chỉ hiển thị hợp đồng có contractorPassList khớp đúng mã nhà thầu đang xem.</p>
                             </div>
                         </div>
-
                         <div class="space-y-3">
                             @forelse (($kqlcnt['contracts'] ?? []) as $contract)
                                 @php($winner = $contract['contractorPassListParsed'][0] ?? [])
@@ -215,9 +214,7 @@
                                     </div>
                                 </div>
                             @empty
-                                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                                    Chưa tìm thấy hợp đồng/KQLCNT có mã nhà thầu {{ $contractorCode }} trong dữ liệu nguồn hiện tại.
-                                </div>
+                                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Chưa tìm thấy hợp đồng/KQLCNT có mã nhà thầu {{ $contractorCode }} trong dữ liệu nguồn hiện tại.</div>
                             @endforelse
                         </div>
                     </section>
@@ -227,13 +224,10 @@
                             <h4 class="text-base font-bold text-gray-900">Danh mục lô / thuốc của nhà thầu</h4>
                             <p class="mt-1 text-sm text-gray-500">Hệ thống chỉ hiển thị lô khi dữ liệu nguồn có khóa xác minh trực tiếp lô ↔ nhà thầu.</p>
                         </div>
-
                         @if (!empty($kqlcnt['verified_lots']))
                             <div class="mt-3 overflow-x-auto rounded-xl border border-gray-200">
                                 <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                    <thead class="bg-gray-50 text-left text-xs font-semibold uppercase text-gray-500">
-                                    <tr><th class="px-4 py-3">Mã lô</th><th class="px-4 py-3">Tên lô / thuốc</th><th class="px-4 py-3">Số lượng</th><th class="px-4 py-3">Đơn giá / Giá</th></tr>
-                                    </thead>
+                                    <thead class="bg-gray-50 text-left text-xs font-semibold uppercase text-gray-500"><tr><th class="px-4 py-3">Mã lô</th><th class="px-4 py-3">Tên lô / thuốc</th><th class="px-4 py-3">Số lượng</th><th class="px-4 py-3">Đơn giá / Giá</th></tr></thead>
                                     <tbody class="divide-y divide-gray-100">
                                     @foreach ($kqlcnt['verified_lots'] as $lot)
                                         <tr>
@@ -247,11 +241,11 @@
                                 </table>
                             </div>
                         @else
-                            <div class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                                Chưa xác định được danh mục lô thuộc nhà thầu này từ dữ liệu nguồn hiện có. Hệ thống không hiển thị toàn bộ lot của TBMT để tránh gán sai thuốc cho nhà thầu.
-                            </div>
+                            <div class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">Chưa xác định được danh mục lô thuộc nhà thầu này từ dữ liệu nguồn hiện có. Hệ thống không hiển thị toàn bộ lot của TBMT để tránh gán sai thuốc cho nhà thầu.</div>
                         @endif
                     </section>
+
+                    @include('Muasamcong::livewire.partials.hsmt-catalogue')
                 </div>
             </div>
         </div>
