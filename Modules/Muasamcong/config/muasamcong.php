@@ -25,6 +25,10 @@ return [
             'MUASAMCONG_CONTRACTOR_ENDPOINT',
             'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search'
         ),
+        'contractor_joined_bids' => env(
+            'MUASAMCONG_CONTRACTOR_JOINED_BIDS_ENDPOINT',
+            'https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/get-list-notify-contractor-join'
+        ),
     ],
 
     'referers' => [
@@ -33,7 +37,13 @@ return [
             'MUASAMCONG_PRICING_REFERER',
             'https://muasamcong.mpi.gov.vn/web/guest/profile-info?menu=bid-pricing'
         ),
+        'contractor_joined_bids' => env(
+            'MUASAMCONG_CONTRACTOR_JOINED_BIDS_REFERER',
+            'https://muasamcong.mpi.gov.vn/web/guest/profile-info?p_p_id=egpportalpersonalpage_WAR_egpportalpersonalpage&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalpersonalpage_WAR_egpportalpersonalpage_render=personalUrl&menu=tender-pakage-list'
+        ),
     ],
 
     'page_size' => max(1, min(100, (int) env('MUASAMCONG_PAGE_SIZE', 20))),
+    'contractor_history_page_size' => max(1, min(50, (int) env('MUASAMCONG_CONTRACTOR_HISTORY_PAGE_SIZE', 10))),
+    'contractor_history_max_pages' => max(1, min(100, (int) env('MUASAMCONG_CONTRACTOR_HISTORY_MAX_PAGES', 50))),
 ];
