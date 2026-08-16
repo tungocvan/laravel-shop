@@ -3,6 +3,8 @@
         $winningNames = is_array($detailItem['winningName'] ?? null) ? $detailItem['winningName'] : [];
         $winningCodes = is_array($detailItem['winningCode'] ?? null) ? $detailItem['winningCode'] : [];
         $locations = is_array($detailItem['diaDiem'] ?? null) ? $detailItem['diaDiem'] : [];
+        $detailSourceId = is_string($detailItem['id'] ?? null) ? $detailItem['id'] : '';
+        $detailWishlisted = $detailSourceId !== '' && isset($wishlistLookup[$detailSourceId]);
     @endphp
 
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="pricing-detail-title">
@@ -69,8 +71,15 @@
                 </div>
             </div>
 
-            <div class="flex justify-end border-t border-gray-200 bg-gray-50 px-5 py-4 sm:px-6">
-                <button type="button" wire:click="closeDetail" class="inline-flex min-h-10 items-center rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800">Đóng</button>
+            <div class="flex flex-col-reverse gap-2 border-t border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+                @if ($canWishlistPricing && $detailSourceId !== '')
+                    <button type="button" wire:click="toggleWishlist('{{ $detailSourceId }}')"
+                        class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold {{ $detailWishlisted ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'border-gray-300 bg-white text-gray-700 hover:border-rose-200 hover:text-rose-600' }}">
+                        <span class="text-lg">{{ $detailWishlisted ? '♥' : '♡' }}</span>
+                        {{ $detailWishlisted ? 'Đã lưu Wishlist' : 'Thêm vào Wishlist' }}
+                    </button>
+                @endif
+                <button type="button" wire:click="closeDetail" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800">Đóng</button>
             </div>
         </div>
     </div>
