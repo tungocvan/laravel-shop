@@ -4,6 +4,7 @@ namespace Modules\Muasamcong\Livewire;
 
 use Livewire\Component;
 use Modules\Muasamcong\Models\ContractorBid;
+use Modules\Muasamcong\Models\KqlcntRecord;
 use Modules\Muasamcong\Services\ContractorHistoryService;
 use Modules\Muasamcong\Services\KqlcntService;
 use Modules\Muasamcong\Services\MuaSamCongService;
@@ -185,6 +186,49 @@ class ContractorHistory extends Component
         }
     }
 
+    public function syncKqlcnt(): void
+    {
+        if (! is_array($this->kqlcnt) || $this->contractorCode === '') {
+            $this->error = 'Chưa có dữ liệu KQLCNT để đồng bộ.';
+            return;
+        }
+
+        $notifyNo = trim((string) ($this->kqlcnt['notify_no'] ?? ''));
+        if ($notifyNo === '') {
+            $this->error = 'KQLCNT không có mã TBMT hợp lệ.';
+            return;
+        }
+
+        $winner = collect($this->kqlcnt['contracts'] ?? [])
+            ->flatMap(fn (array $contract): array => $contract['contractorPassListParsed'] ?? [])
+            ->first(fn (mixed $item): bool => is_array($item)
+                && trim((string) ($item['contractorCode'] ?? '')) === $this->contractorCode);
+
+        KqlcntRecord::updateOrCreate(
+            [
+                'contractor_code' => $this->contractorCode,
+                'notify_no' => $notifyNo,
+            ],
+            [
+                'notify_id' => $this->kqlcnt['notify_id'] ?? null,
+                'bid_id' => $this->kqlcnt['bid_id'] ?? null,
+                'bid_name' => $this->kqlcnt['bid_name'] ?? null,
+                'contractor_name' => is_array($winner) ? ($winner['contractorName'] ?? $this->contractorName) : $this->contractorName,
+                'investor_code' => $this->kqlcnt['investor_code'] ?? null,
+                'investor_name' => $this->kqlcnt['investor_name'] ?? null,
+                'status' => $this->kqlcnt['status'] ?? null,
+                'published' => (bool) ($this->kqlcnt['published'] ?? false),
+                'contracts' => $this->kqlcnt['contracts'] ?? [],
+                'verified_lots' => $this->kqlcnt['verified_lots'] ?? [],
+                'tbmt_raw' => $this->kqlcnt['tbmt_raw'] ?? [],
+                'contracts_raw' => $this->kqlcnt['contracts_raw'] ?? [],
+                'synced_at' => now(),
+            ]
+        );
+
+        $this->notice = 'Đã đồng bộ KQLCNT '.$notifyNo.' cho '.$this->contractorName.'.';
+    }
+
     public function closeDetail(): void
     {
         $this->detail = null;
@@ -201,8 +245,13 @@ class ContractorHistory extends Component
             ->where('contractor_code', $this->contractorCode)
             ->pluck('notify_no')->all();
 
+        $kqlcntSynced = $this->contractorCode === '' ? [] : KqlcntRecord::query()
+            ->where('contractor_code', $this->contractorCode)
+            ->pluck('notify_no')->all();
+
         return view('Muasamcong::livewire.contractor-history', [
             'syncedNotifyNos' => array_fill_keys($synced, true),
+            'syncedKqlcntNotifyNos' => array_fill_keys($kqlcntSynced, true),
         ]);
     }
 }
