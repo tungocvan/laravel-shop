@@ -14,14 +14,50 @@ class MuaSamCongService
 {
     public function searchPricing(string $keyword): array
     {
-        $result = $this->post(
-            (string) config('muasamcong.endpoints.pricing'),
-            $this->pricingPayload($keyword),
-            false,
-            (string) config('muasamcong.referers.pricing')
+        $keyword = trim($keyword);
+        $result = $this->pricingRequest($keyword, 'exact');
+        $normalized = $this->normalizePage($result, 'giá thuốc');
+
+        if (! ($normalized['success'] ?? false)
+            || (int) ($normalized['data']['total'] ?? 0) > 0) {
+            return $normalized;
+        }
+
+        // Upstream Elasticsearch có thể tokenize dấu phẩy/gạch nối khác với
+        // chuỗi người dùng nhập (ví dụ Gourcuff-2,5). Khi exact không có kết
+        // quả, fallback sang any-0 rồi ưu tiên các tên thuốc tương đương sau
+        // khi chuẩn hóa dấu câu.
+        $fallback = $this->normalizePage(
+            $this->pricingRequest($keyword, 'any-0'),
+            'giá thuốc'
         );
 
-        return $this->normalizePage($result, 'giá thuốc');
+        if (! ($fallback['success'] ?? false)) {
+            return $fallback;
+        }
+
+        $items = is_array($fallback['data']['items'] ?? null)
+            ? $fallback['data']['items']
+            : [];
+        $needle = $this->normalizedMedicineName($keyword);
+
+        $exactNameMatches = array_values(array_filter(
+            $items,
+            fn (mixed $item): bool => is_array($item)
+                && $this->normalizedMedicineName((string) ($item['tenThuoc'] ?? '')) === $needle
+        ));
+
+        if ($needle !== '' && $exactNameMatches !== []) {
+            $fallback['data']['items'] = $exactNameMatches;
+            $fallback['data']['total'] = count($exactNameMatches);
+            $fallback['data']['fallback'] = true;
+
+            return $fallback;
+        }
+
+        $fallback['data']['fallback'] = true;
+
+        return $fallback;
     }
 
     public function searchHsmt(string $keyword, string $fromDate, string $toDate): array
@@ -76,7 +112,17 @@ class MuaSamCongService
             ->all();
     }
 
-    private function pricingPayload(string $keyword): array
+    private function pricingRequest(string $keyword, string $matchType): array
+    {
+        return $this->post(
+            (string) config('muasamcong.endpoints.pricing'),
+            $this->pricingPayload($keyword, $matchType),
+            false,
+            (string) config('muasamcong.referers.pricing')
+        );
+    }
+
+    private function pricingPayload(string $keyword, string $matchType = 'exact'): array
     {
         return [[
             'pageSize' => $this->pageSize(),
@@ -85,7 +131,7 @@ class MuaSamCongService
                 'index' => 'es-smart-pricing',
                 'keyWord' => $keyword,
                 'keyWordNotMatch' => '',
-                'matchType' => 'exact',
+                'matchType' => $matchType,
                 'matchFields' => ['ten_thuoc', 'ten_hoat_chat', 'ma_tbmt'],
                 'filters' => [
                     ['fieldName' => 'medicines', 'searchType' => 'in', 'fieldValues' => ['0']],
@@ -216,6 +262,14 @@ class MuaSamCongService
             ],
             'message' => null,
         ];
+    }
+
+    private function normalizedMedicineName(string $value): string
+    {
+        $value = Str::lower(Str::ascii(trim($value)));
+        $value = str_replace(',', '.', $value);
+
+        return preg_replace('/[^a-z0-9]+/', '', $value) ?? '';
     }
 
     private function pageSize(): int
