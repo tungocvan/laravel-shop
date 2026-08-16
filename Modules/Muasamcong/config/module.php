@@ -1,14 +1,12 @@
 <?php
 
-return array (
-  'name' => 'Muasamcong',
-  'type' => 'domain',
-  'enabled' => true,
-  'depends' => 
-  array (
-  ),
-  'permissions' =>
-  array (
-    'view_muasamcong',
-  ),
-);
+return [
+    'name' => 'Muasamcong',
+    'type' => 'domain',
+    'enabled' => true,
+    'depends' => [],
+    'permissions' => [
+        'view_muasamcong',
+        'muasamcong.config.manage',
+    ],
+];
