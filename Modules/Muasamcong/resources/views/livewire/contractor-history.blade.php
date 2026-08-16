@@ -5,10 +5,10 @@
                 <label class="mb-1 block text-sm font-medium text-gray-700">Tên doanh nghiệp</label>
                 <input type="text" wire:model="companyKeyword" wire:keydown.enter="searchCompany"
                        placeholder="Ví dụ: CÔNG TY TNHH INAFO VIỆT NAM"
-                       class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                       class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
             </div>
             <button type="button" wire:click="searchCompany" wire:loading.attr="disabled"
-                    class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+                    class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">
                 Tìm doanh nghiệp
             </button>
         </div>
@@ -45,13 +45,13 @@
                     <div class="flex flex-wrap items-end gap-2">
                         <div>
                             <label class="mb-1 block text-xs font-medium text-gray-500">Từ ngày</label>
-                            <input type="date" wire:model="fromDate" class="rounded-lg border-gray-300 text-sm">
+                            <input type="date" wire:model="fromDate" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                         </div>
                         <div>
                             <label class="mb-1 block text-xs font-medium text-gray-500">Đến ngày</label>
-                            <input type="date" wire:model="toDate" class="rounded-lg border-gray-300 text-sm">
+                            <input type="date" wire:model="toDate" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                         </div>
-                        <button wire:click="loadHistory" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50">Tra cứu</button>
+                        <button wire:click="loadHistory" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50">Tra cứu</button>
                     </div>
                 </div>
             </div>
