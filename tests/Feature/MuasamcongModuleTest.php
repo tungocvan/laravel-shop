@@ -108,6 +108,42 @@ class MuasamcongModuleTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_pricing_search_includes_winning_name_and_returns_bidder_results_without_medicine_fallback(): void
+    {
+        Http::fake([
+            '*' => Http::response([
+                'page' => [
+                    'totalElements' => 1,
+                    'content' => [[
+                        'id' => '33333333-3333-4333-8333-333333333333',
+                        'tenThuoc' => 'Pidoncam',
+                        'winningName' => ['CÔNG TY CỔ PHẦN DƯỢC PHẨM NAM SƠN - NAMPHACO'],
+                    ]],
+                ],
+            ]),
+        ]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('NAM SƠN');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame('Pidoncam', $result['data']['items'][0]['tenThuoc']);
+
+        Http::assertSentCount(1);
+        Http::assertSent(function (ClientRequest $request): bool {
+            $query = $request->data()[0]['query'][0] ?? [];
+
+            return ($query['keyWord'] ?? null) === 'NAM SƠN'
+                && ($query['matchType'] ?? null) === 'exact'
+                && ($query['matchFields'] ?? null) === [
+                    'ten_thuoc',
+                    'ten_hoat_chat',
+                    'ma_tbmt',
+                    'winning_name',
+                ];
+        });
+    }
+
     public function test_pricing_search_falls_back_for_punctuation_and_keeps_the_exact_normalized_medicine_name(): void
     {
         Http::fakeSequence()
