@@ -17,11 +17,7 @@ class HsmtSnapshotService
             throw new RuntimeException('Danh mục HSMT không có dữ liệu để lưu snapshot.');
         }
 
-        $directory = 'muasamcong/hsmt/'.$notifyNo;
-        $jsonPath = $directory.'/catalogue.json';
-        $excelPath = $directory.'/catalogue.xlsx';
-        $metadataPath = $directory.'/metadata.json';
-
+        $paths = $this->paths($notifyNo);
         $snapshot = [
             'notify_no' => $notifyNo,
             'notify_id' => $payload['notify_id'] ?? null,
@@ -40,9 +36,9 @@ class HsmtSnapshotService
             throw new RuntimeException('Không thể mã hóa snapshot HSMT.');
         }
 
-        Storage::disk('local')->put($jsonPath, $json);
+        Storage::disk('local')->put($paths['json'], $json);
 
-        $absoluteExcelPath = Storage::disk('local')->path($excelPath);
+        $absoluteExcelPath = Storage::disk('local')->path($paths['excel']);
         $parent = dirname($absoluteExcelPath);
         if (! is_dir($parent) && ! mkdir($parent, 0755, true) && ! is_dir($parent)) {
             throw new RuntimeException('Không thể tạo thư mục lưu Excel HSMT.');
@@ -56,13 +52,13 @@ class HsmtSnapshotService
             'notify_id' => $snapshot['notify_id'],
             'total' => count($items),
             'checksum' => $checksum,
-            'json_path' => $jsonPath,
-            'excel_path' => $excelPath,
+            'json_path' => $paths['json'],
+            'excel_path' => $paths['excel'],
             'synced_at' => now()->toIso8601String(),
         ];
 
         Storage::disk('local')->put(
-            $metadataPath,
+            $paths['metadata'],
             json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
         );
 
@@ -81,11 +77,28 @@ class HsmtSnapshotService
         return is_array($decoded) ? $decoded : null;
     }
 
+    public function loadForNotifyNo(string $notifyNo): ?array
+    {
+        return $this->load($this->paths($notifyNo)['json']);
+    }
+
     public function exists(?string $jsonPath): bool
     {
         $jsonPath = trim((string) $jsonPath);
 
         return $jsonPath !== '' && Storage::disk('local')->exists($jsonPath);
+    }
+
+    public function paths(string $notifyNo): array
+    {
+        $notifyNo = $this->sanitizeNotifyNo($notifyNo);
+        $directory = 'muasamcong/hsmt/'.$notifyNo;
+
+        return [
+            'json' => $directory.'/catalogue.json',
+            'excel' => $directory.'/catalogue.xlsx',
+            'metadata' => $directory.'/metadata.json',
+        ];
     }
 
     private function sanitizeNotifyNo(string $notifyNo): string
