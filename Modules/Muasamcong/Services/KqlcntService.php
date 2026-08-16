@@ -116,6 +116,12 @@ class KqlcntService
                 ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.isMedicine', false)),
             'bid_id' => data_get($tbmt, 'bidoBidStatus.bidId')
                 ?? data_get($tbmt, 'bidoNotifyContractorM.bidId'),
+            'investor_code' => data_get($tbmt, 'bidoNotifyContractorM.investorCode')
+                ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.investorCode')
+                ?? ($matchedContracts[0]['investorCode'] ?? null),
+            'investor_name' => data_get($tbmt, 'bidoNotifyContractorM.investorName')
+                ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.investorName')
+                ?? ($matchedContracts[0]['investorName'] ?? null),
             'contractor_code' => $contractorCode,
             'contracts' => $matchedContracts,
             'verified_lots' => array_values($verifiedLots),
