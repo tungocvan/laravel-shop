@@ -92,7 +92,7 @@ class TracuuThuoctrungthau extends Component
         $this->detailItem = null;
     }
 
-    public function syncSelected(PricingResultSyncService $syncService): void
+    public function syncSelected(MuaSamCongService $sourceService, PricingResultSyncService $syncService): void
     {
         $this->authorizeSync();
         $this->syncStatus = '';
@@ -105,9 +105,31 @@ class TracuuThuoctrungthau extends Component
             return;
         }
 
-        $user = Auth::guard('admin')->user();
-        $report = $syncService->syncSelected($this->results, $this->selectedSourceIds, $user?->getAuthIdentifier());
+        $validated = $this->validate([
+            'keyword' => ['required', 'string', 'min:2', 'max:200'],
+        ]);
 
+        $freshResult = $sourceService->searchPricing($validated['keyword']);
+
+        if (! ($freshResult['success'] ?? false)) {
+            $this->syncStatus = 'error';
+            $this->syncMessage = 'Không thể xác minh lại dữ liệu nguồn trước khi đồng bộ. Vui lòng thử lại.';
+
+            return;
+        }
+
+        $freshItems = is_array($freshResult['data']['items'] ?? null)
+            ? $freshResult['data']['items']
+            : [];
+        $user = Auth::guard('admin')->user();
+        $userId = $user?->getAuthIdentifier();
+        $report = $syncService->syncSelected(
+            $freshItems,
+            $this->selectedSourceIds,
+            $userId === null ? null : (int) $userId
+        );
+
+        $this->results = $freshItems;
         $this->syncedSourceIds = $syncService->existingSourceIds($this->results);
         $this->selectedSourceIds = [];
 
@@ -117,14 +139,14 @@ class TracuuThuoctrungthau extends Component
 
         if ($inserted > 0) {
             $this->syncStatus = 'success';
-            $this->syncMessage = "Đã đồng bộ {$inserted} bản ghi mới.";
+            $this->syncMessage = "Đã đồng bộ {$inserted} bản ghi mới từ dữ liệu nguồn đã xác minh.";
 
             if ($duplicates > 0) {
                 $this->syncMessage .= " Bỏ qua {$duplicates} bản ghi đã tồn tại.";
             }
 
             if ($missing > 0) {
-                $this->syncMessage .= " Có {$missing} bản ghi không còn trong kết quả hiện tại.";
+                $this->syncMessage .= " Có {$missing} bản ghi không còn trong kết quả nguồn hiện tại.";
             }
 
             return;
