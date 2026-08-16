@@ -21,43 +21,18 @@ class MuasamcongConfigService
         'MUASAMCONG_PAGE_SIZE',
     ];
 
-    private const DEFAULTS = [
-        'MUASAMCONG_ORIGIN' => 'https://muasamcong.mpi.gov.vn',
-        'MUASAMCONG_VERIFY_SSL' => 'true',
-        'MUASAMCONG_TIMEOUT' => '20',
-        'MUASAMCONG_USER_AGENT' => 'Mozilla/5.0 (compatible; Laravel Muasamcong Module)',
-        'MUASAMCONG_SMART_TOKEN' => '',
-        'MUASAMCONG_SESSION_COOKIE' => '',
-        'MUASAMCONG_PRICING_ENDPOINT' => 'https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/smart/search_prc',
-        'MUASAMCONG_CONTRACTOR_ENDPOINT' => 'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search',
-        'MUASAMCONG_PORTAL_REFERER' => 'https://muasamcong.mpi.gov.vn/',
-        'MUASAMCONG_PRICING_REFERER' => 'https://muasamcong.mpi.gov.vn/web/guest/profile-info?menu=bid-pricing',
-        'MUASAMCONG_PAGE_SIZE' => '20',
+    private const NETWORK_KEYS = [
+        'MUASAMCONG_ORIGIN',
+        'MUASAMCONG_PRICING_ENDPOINT',
+        'MUASAMCONG_CONTRACTOR_ENDPOINT',
+        'MUASAMCONG_PORTAL_REFERER',
+        'MUASAMCONG_PRICING_REFERER',
     ];
-
-    public function ensureDefaults(): bool
-    {
-        $content = $this->content();
-        $missing = array_filter(
-            self::DEFAULTS,
-            fn (string $value, string $key): bool => preg_match(
-                '/^'.preg_quote($key, '/').'\\s*=/m',
-                $content
-            ) !== 1,
-            ARRAY_FILTER_USE_BOTH
-        );
-
-        if ($missing === []) {
-            return false;
-        }
-
-        $this->update($missing);
-
-        return true;
-    }
 
     public function update(array $values): void
     {
+        $this->validateValues($values);
+
         $content = $this->content();
 
         foreach (self::ENV_KEYS as $key) {
@@ -66,11 +41,6 @@ class MuasamcongConfigService
             }
 
             $value = (string) $values[$key];
-
-            if (str_contains($value, "\n") || str_contains($value, "\r")) {
-                throw new RuntimeException("Giá trị {$key} không hợp lệ.");
-            }
-
             $line = $key.'='.$this->quote($value);
             $pattern = '/^'.preg_quote($key, '/').'\\s*=.*$/m';
 
@@ -83,6 +53,46 @@ class MuasamcongConfigService
 
         if (File::put(base_path('.env'), $content, true) === false) {
             throw new RuntimeException('Không thể cập nhật file .env.');
+        }
+    }
+
+    private function validateValues(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            if (! in_array($key, self::ENV_KEYS, true)) {
+                throw new RuntimeException("Biến cấu hình {$key} không được phép cập nhật.");
+            }
+
+            $value = (string) $value;
+
+            if (str_contains($value, "\n") || str_contains($value, "\r")) {
+                throw new RuntimeException("Giá trị {$key} không hợp lệ.");
+            }
+
+            if (in_array($key, self::NETWORK_KEYS, true)) {
+                $this->assertApprovedUrl($key, $value);
+            }
+        }
+
+        if (app()->environment('production')
+            && array_key_exists('MUASAMCONG_VERIFY_SSL', $values)
+            && filter_var($values['MUASAMCONG_VERIFY_SSL'], FILTER_VALIDATE_BOOL) !== true) {
+            throw new RuntimeException('Không được tắt xác minh SSL trong môi trường production.');
+        }
+    }
+
+    private function assertApprovedUrl(string $key, string $url): void
+    {
+        $parts = parse_url($url);
+        $allowedHost = (string) config('muasamcong.allowed_host', 'muasamcong.mpi.gov.vn');
+
+        if (! is_array($parts)
+            || ($parts['scheme'] ?? null) !== 'https'
+            || strcasecmp((string) ($parts['host'] ?? ''), $allowedHost) !== 0
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || (isset($parts['port']) && (int) $parts['port'] !== 443)) {
+            throw new RuntimeException("Giá trị {$key} phải dùng HTTPS và host {$allowedHost}.");
         }
     }
 
