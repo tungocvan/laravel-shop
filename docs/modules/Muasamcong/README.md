@@ -1,176 +1,198 @@
-# Muasamcong Module
+# Muasamcong Module — Documentation Index
 
-## Module Overview
+> Cập nhật: 2026-08-16. Tài liệu này là entry point cho AI/lập trình viên tiếp quản module.
 
-`Muasamcong` is a domain integration module for searching public-procurement data from `muasamcong.mpi.gov.vn`.
+## 1. Module làm gì?
 
-Current capabilities:
+`Modules/Muasamcong` là module tích hợp dữ liệu Hệ thống mạng đấu thầu quốc gia (`muasamcong.mpi.gov.vn`) phục vụ tra cứu và lưu trữ nghiệp vụ thuốc/đấu thầu.
 
-- awarded-drug/pricing search;
-- HSMT search by keyword/date range;
-- selected-row XLSX export;
-- authenticated pricing-search API;
-- privileged upstream integration configuration.
+Các chức năng hiện tại:
 
-The module does not persist procurement data locally.
+- Tra cứu Smart Pricing theo thuốc, hoạt chất, mã TBMT và dữ liệu winner upstream hỗ trợ.
+- Tải đủ các page khi tra cứu TBMT lớn, sau đó phân trang local.
+- Lưu snapshot lịch sử tra cứu: từ khóa cũ ưu tiên database; `Tìm kiếm mới` mới force API.
+- Filter local theo tên thuốc, hoạt chất, nhóm thuốc, đơn vị trúng thầu.
+- Checkbox lựa chọn thuốc xuyên nhiều trang và đồng bộ các thuốc đã chọn vào database.
+- Quản lý danh sách thuốc đã đồng bộ: search, pagination, cross-page selection, edit winner/KQLCNT metadata, bulk delete.
+- Wishlist thuốc cần theo dõi theo user.
+- Tra cứu lịch sử nhà thầu/doanh nghiệp.
+- Xem KQLCNT và danh sách các đơn vị trúng thầu của TBMT.
+- Lấy và snapshot HSMT/danh mục hàng hóa-thuốc.
+- Tra cứu HSMT và export XLSX.
+- Quản trị cấu hình upstream với security boundary riêng.
 
-## Registration
+**Quan trọng:** README cũ từng ghi module không persistence/database và chỉ tải page đầu. Điều đó KHÔNG còn đúng. Module hiện có migrations/models/snapshots/wishlist/synced results và pagination đầy đủ cho luồng TBMT.
 
-Canonical loader:
+## 2. Tài liệu phải đọc
+
+AI/lập trình viên mở chat mới đọc theo thứ tự:
+
+1. `docs/modules/Muasamcong/README.md` — entry point và invariants.
+2. `docs/modules/Muasamcong/AI_HANDOFF.md` — tài liệu bàn giao chi tiết nhất, bao gồm endpoint đã điều tra, case thực tế, các kết luận và việc chưa giải quyết.
+3. `docs/modules/Muasamcong/INFORMATION.md` — inventory/lịch sử module.
+4. `docs/modules/Muasamcong/ANALYSIS.md` — phân tích kiến trúc trước đó; có thể chứa thông tin lịch sử đã cũ.
+5. `docs/modules/Muasamcong/ENV_DOCTOR.md` — chẩn đoán cấu hình môi trường.
+6. Code + tests hiện tại — source of truth cuối cùng.
+
+Nếu tài liệu lịch sử mâu thuẫn code hiện tại, phải báo rõ và ưu tiên code/tests hiện tại.
+
+## 3. Kiến trúc repository
+
+Dự án dùng module architecture riêng qua:
 
 ```text
 Modules\ModuleServiceProvider
 ```
 
-Manifest:
+Không giả định `nwidart/laravel-modules`.
+
+Luồng chuẩn:
 
 ```text
-Modules/Muasamcong/config/module.php
+Route -> Controller/Page Blade -> Livewire -> Service -> Model/DB hoặc upstream HTTP
 ```
 
-The module-specific `MuasamcongServiceProvider` is intentionally minimal and only preserves root config merge/publishing. Route/view/Livewire/console registration belongs to the canonical loader.
+Integration parsing, persistence và UI state phải tiếp tục tách thành services; không gom lại vào Livewire.
 
-## Main Routes
-
-### Admin Web
+## 4. Trang admin
 
 ```text
-GET /admin/muasamcong
-GET /admin/muasamcong/hsmt
-GET /admin/muasamcong/config
+/admin/muasamcong              Tra cứu thuốc / Smart Pricing
+/admin/muasamcong/contractors  Lịch sử nhà thầu
+/admin/muasamcong/hsmt         Tra cứu HSMT
+/admin/muasamcong/synced       Danh sách thuốc đã đồng bộ
+/admin/muasamcong/wishlist     Wishlist thuốc cần theo dõi
+/admin/muasamcong/config       Cấu hình tích hợp
 ```
 
-Route names remain:
-
-```text
-muasamcong.index
-muasamcong.hsmt
-muasamcong.config
-```
-
-### API
+API:
 
 ```text
 GET  /api/muasamcong
 POST /api/muasamcong/search-pricing
 ```
 
-## Permissions
+Các route search/admin dùng `auth:admin` + permission `view_muasamcong`; config có permission riêng `muasamcong.config.manage`. Mutation sync sử dụng permission chuyên biệt theo code hiện tại.
+
+## 5. Chức năng và service chịu trách nhiệm
+
+| Chức năng | Thành phần chính | Trách nhiệm |
+|---|---|---|
+| Smart Pricing | `TracuuThuoctrungthau`, `MuaSamCongService` | Tra cứu thuốc/TBMT và normalize kết quả |
+| Full TBMT pagination | `PricingTbmtPaginationService` | Tải đủ page upstream, merge/chống trùng |
+| Search snapshot | `PricingSearchSnapshotService` | Database-first cho từ khóa cũ, timestamp/access count, force refresh |
+| Đồng bộ thuốc | `PricingResultSyncService` | Map selected source rows vào `PricingResult` |
+| Synced list | `SyncedPricingList` | Search, pagination, checkbox xuyên trang, edit/bulk delete |
+| Wishlist | `PricingWishlistService`, `PricingWishlist` | Danh sách thuốc theo dõi theo user |
+| Lịch sử nhà thầu | `ContractorHistory`, `ContractorHistoryService` | Tìm doanh nghiệp và các TBMT đã tham gia |
+| KQLCNT | `KqlcntService` | Contract/winner metadata của TBMT |
+| HSMT detail | `HsmtDetailService` | Parse form HSMT/danh mục thuốc |
+| HSMT snapshot | `HsmtSnapshotService` | Lưu và tái sử dụng dữ liệu HSMT |
+| Config | `MuasamcongConfigService` | Quản lý integration config an toàn |
+
+## 6. Invariants nghiệp vụ không được phá
+
+### Search/cache
+
+- Từ khóa đã tra cứu: ưu tiên database snapshot, không gọi API lại.
+- UI phải hiển thị thời gian dữ liệu được tra cứu/lấy nguồn gần nhất.
+- `Tìm kiếm mới` là hành động rõ ràng để gọi upstream lại và refresh snapshot.
+
+### Pagination
+
+- TBMT có >20 rows phải tải đủ upstream pages.
+- Sau khi tải full set, UI phân trang local 20 rows/page.
+- Không regression về chỉ page 0.
+
+### Checkbox
+
+- Selection phải giữ xuyên trang.
+- Header checkbox thao tác trang hiện tại.
+- Có thao tác chọn tất cả kết quả/bỏ tất cả/xem danh sách đã chọn.
+- Sync phải nhận toàn bộ selected IDs ở nhiều trang.
+
+### Winner
+
+- Upstream có `winningName` (đã thấy ở dữ liệu 2026) => hiển thị bình thường.
+- Upstream không có `winningName` (thường gặp 2025) => hiển thị `Nguồn không cung cấp`.
+- Không suy đoán/gán winner toàn TBMT vào từng medicine.
+- Chưa có mapping đáng tin cậy winner ↔ lot/medicine.
+
+### HSMT
+
+- HSMT catalogue có thể rất lớn; modal phải scroll đúng cả ngang/dọc.
+- Dữ liệu đã snapshot ưu tiên local; refresh chỉ khi người dùng chủ động đồng bộ lại.
+
+## 7. Kết luận điều tra winner ↔ thuốc
+
+Đã xác minh hai nguồn độc lập:
 
 ```text
-view_muasamcong
-muasamcong.config.manage
+list-contract-for-po
+ -> danh sách contract / các công ty trúng thầu của TBMT
+
+lcnt_tbmt_hsmt
+ -> toàn bộ danh mục lô/thuốc HSMT của TBMT
 ```
 
-`view_muasamcong` is for search pages. `muasamcong.config.manage` is required for the configuration page and is re-checked inside config mutation methods.
+Chưa tìm được khóa chính xác nối contractor với từng `lotNo`/medicine.
 
-## Features
+Case `IB2600008930`, notifyId `894fb581-2622-421e-aada-320c53332745`: HSMT trả 285 rows và có `lotNo`, `medicineCode`, nhưng không có `contractorCode`, `contractorName`, `winningCode`, `resultId` trên medicine rows.
 
-### Pricing search
+Case `IB2600099293`: `list-contract-for-po` đã test HTTP 200 nhưng response `[]`; bấm đồng bộ lại không thể tạo winner từ một source rỗng.
 
-```text
-TracuuThuoctrungthau
--> MuaSamCongService::searchPricing()
--> approved procurement endpoint
-```
+Chi tiết endpoint, payload và các thử nghiệm thất bại/thành công nằm trong `AI_HANDOFF.md`.
 
-### HSMT search/export
+## 8. Security
 
-```text
-SearchHsmt
--> MuaSamCongService::searchHsmt()
--> first upstream page (max 100)
--> selected rows
--> HsmtExport
-```
+- Không hard-code token/cookie.
+- Không commit secret.
+- Không đưa secret vào Livewire public state/HTML/JS/log.
+- Chỉ HTTPS và host allowlist `muasamcong.mpi.gov.vn`.
+- SSL verification production phải bật.
+- Endpoint/schema/token/cookie upstream có thể thay đổi.
+- HTTP 200 phải kiểm tra body/count/schema, không mặc định là success có dữ liệu.
 
-### Configuration
-
-```text
-ConfigManager
--> MuasamcongConfigService
--> root .env
-```
-
-Config page mount is read-only. Save/test actions require the dedicated management permission.
-
-## Security Boundaries
-
-All outbound Muasamcong URLs must:
-
-- use HTTPS;
-- use exact host `muasamcong.mpi.gov.vn`;
-- avoid embedded credentials;
-- avoid non-443 explicit ports.
-
-Redirects are disabled. Production SSL verification is forced on. Token/cookie values are never hydrated back into public Livewire state and must not be logged.
-
-## Configuration
-
-Runtime config reads the full documented `MUASAMCONG_*` set from environment. See:
-
-```text
-Modules/Muasamcong/.env.example
-```
-
-Never commit real token/cookie values.
-
-## Dependencies
-
-```text
-Laravel 12
-Livewire 3
-Laravel HTTP client
-Laravel Sanctum
-Spatie Laravel Permission
-Maatwebsite Excel
-Admin::layouts.master
-```
-
-## Operational Notes
-
-- upstream endpoints/schema can change independently;
-- token/cookie may expire;
-- searches are synchronous;
-- only page zero is currently fetched;
-- HSMT export is selected-row-only and bounded;
-- no local procurement history/cache is stored.
-
-## Verification
-
-Run locally before merge:
+## 9. Pre-merge verification
 
 ```bash
 php artisan optimize:clear
+php artisan migrate:status
 php artisan route:list --path=muasamcong
-php artisan test tests/Feature/MuasamcongModuleTest.php
-php artisan test tests/Feature/Muasamcong/MuasamcongRouteAuthorizationTest.php
-vendor/bin/pint --test Modules/Muasamcong tests/Feature/MuasamcongModuleTest.php tests/Feature/Muasamcong/MuasamcongRouteAuthorizationTest.php
+vendor/bin/pint --test Modules/Muasamcong tests/Feature/Muasamcong
+php artisan test tests/Feature/Muasamcong
 ```
 
-Expected route contract is exactly five Muasamcong routes: two API routes and three `/admin/muasamcong...` routes.
+Sau module regression nên chạy full project regression trước khi merge `main`.
 
-## Developer Notes
+Manual smoke tối thiểu:
 
-Preferred flow:
+1. Keyword mới -> API.
+2. Keyword cũ -> DB snapshot.
+3. `Tìm kiếm mới` -> API refresh.
+4. TBMT >20 rows -> đủ dữ liệu + local pagination.
+5. Filter thuốc/hoạt chất/nhóm/winner.
+6. Chọn checkbox ở nhiều trang -> selection giữ nguyên -> sync đủ.
+7. Winner 2026 vẫn hiện khi source có `winningName`.
+8. Source thiếu winner không bị suy đoán.
+9. Synced list edit/bulk delete/cross-page checkbox.
+10. Wishlist persistence.
+11. Contractor history + KQLCNT modal.
+12. HSMT snapshot/catalogue scroll.
+
+## 10. Khi mở chat mới
+
+Dùng prompt:
 
 ```text
-Route -> Controller -> Page Blade -> Livewire -> Service -> upstream HTTP
+Hãy tiếp tục Modules/Muasamcong. Trước tiên đọc toàn bộ:
+- docs/modules/Muasamcong/README.md
+- docs/modules/Muasamcong/AI_HANDOFF.md
+- docs/modules/Muasamcong/INFORMATION.md
+- docs/modules/Muasamcong/ANALYSIS.md
+- code/tests hiện tại của Modules/Muasamcong
+
+Không implement ngay. Hãy tóm tắt kiến trúc hiện tại, chức năng đã hoàn thành, invariants, các endpoint/source dữ liệu, vấn đề winner ↔ lot/medicine chưa giải quyết và đề xuất kế hoạch thay đổi. Nếu docs lịch sử mâu thuẫn code/tests, dùng code/tests làm source of truth và nêu rõ mâu thuẫn.
 ```
 
-Keep integration logic in services, mutation authorization inside sensitive Livewire actions, result sets bounded, and network destinations server-allowlisted.
-
-## Future Improvements
-
-Potential later tasks:
-
-- true upstream pagination;
-- explicit API rate/capability policy once the repository standardizes one;
-- deliberate export-all design if upstream crawling is approved;
-- removal of confirmed unused Hsmt/model scaffolds.
-
-Current recommendation:
-
-```text
-No Structural Refactor Required
-```
+Xem `AI_HANDOFF.md` để có tài liệu bàn giao đầy đủ nhất.
