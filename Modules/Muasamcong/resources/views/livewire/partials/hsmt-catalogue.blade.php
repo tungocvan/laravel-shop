@@ -7,6 +7,7 @@
                     <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
                         {{ number_format($hsmt['total'] ?? 0, 0, ',', '.') }} mặt hàng
                     </span>
+                    <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Snapshot server</span>
                 @endif
             </div>
             <p class="mt-1 text-sm text-gray-500">
@@ -14,13 +15,21 @@
             </p>
         </div>
 
-        @if (!$hsmt)
-            <button type="button" wire:click="loadHsmt" wire:loading.attr="disabled" wire:target="loadHsmt"
-                    class="inline-flex items-center justify-center rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm hover:bg-indigo-50 disabled:opacity-50">
-                <span wire:loading.remove wire:target="loadHsmt">Tải danh mục HSMT</span>
-                <span wire:loading wire:target="loadHsmt">Đang tải dữ liệu lớn...</span>
-            </button>
-        @endif
+        <div class="flex flex-wrap gap-2">
+            @if (!$hsmt)
+                <button type="button" wire:click="loadHsmt" wire:loading.attr="disabled" wire:target="loadHsmt"
+                        class="inline-flex items-center justify-center rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm hover:bg-indigo-50 disabled:opacity-50">
+                    <span wire:loading.remove wire:target="loadHsmt">Tải danh mục HSMT</span>
+                    <span wire:loading wire:target="loadHsmt">Đang tải dữ liệu lớn...</span>
+                </button>
+            @else
+                <button type="button" wire:click="syncHsmt" wire:loading.attr="disabled" wire:target="syncHsmt"
+                        class="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm hover:bg-amber-50 disabled:opacity-50">
+                    <span wire:loading.remove wire:target="syncHsmt">Đồng bộ lại HSMT</span>
+                    <span wire:loading wire:target="syncHsmt">Đang đồng bộ lại...</span>
+                </button>
+            @endif
+        </div>
     </div>
 
     @if ($hsmt)
