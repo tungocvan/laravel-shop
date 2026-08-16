@@ -1,261 +1,212 @@
 # Muasamcong Module Analysis
 
+> Cập nhật 2026-08-16 sau khi module mở rộng từ integration stateless thành module có persistence, snapshots, contractor history, KQLCNT/HSMT và quản lý dữ liệu đã đồng bộ.
+>
+> Tài liệu bàn giao chi tiết nhất: `docs/modules/Muasamcong/AI_HANDOFF.md`.
+
 ## Executive Summary
 
-`Modules/Muasamcong` is a stateless domain-integration module for procurement searches against `muasamcong.mpi.gov.vn`.
+`Modules/Muasamcong` hiện là một domain integration + persistence module cho dữ liệu đấu thầu/thuốc từ `muasamcong.mpi.gov.vn`.
 
-The approved Major Refactor has been implemented on `agent/muasamcong-refactor`. The working search core was preserved; changes focused on security, authorization, admin-route normalization, runtime config correctness, provider cleanup and focused regression coverage.
-
-Post-refactor structural recommendation:
+Kiến trúc tổng thể vẫn phù hợp với repository và KHÔNG cần structural rebuild. Hướng đúng là tiếp tục incremental changes trên các service boundary hiện tại.
 
 ```text
-No Structural Rebuild Required
+Recommendation: No Structural Rebuild Required
 ```
 
-Local verification is still required before merge.
+## Architecture Assessment
 
-## Module Purpose and Overview
+Repository dùng `Modules\ModuleServiceProvider` làm canonical loader. Module-specific provider/config chỉ phục vụ cấu hình riêng; không chuyển sang `nwidart/laravel-modules`.
 
-Active capabilities:
-
-- awarded-drug/pricing search;
-- HSMT search by keyword/date range;
-- selected-row XLSX export from the currently loaded bounded page;
-- authenticated internal pricing-search API;
-- privileged connection/token/cookie configuration;
-- console smoke commands.
-
-The module owns no procurement database table or migration.
-
-## Bootstrap / Standards Context
-
-Repository stack: Laravel 12, PHP 8.3, Livewire 3, first-party modules under `Modules/`.
-
-`Modules\ModuleServiceProvider` remains the canonical module loader. `Modules\Muasamcong\Providers\MuasamcongServiceProvider` is now minimal: it keeps the root `config('muasamcong.*')` merge and publish behavior only. Generic route/view/Livewire/console registration is left to the repository loader.
-
-## Dependency Graph
+Luồng hiện tại:
 
 ```text
-/admin/muasamcong
--> Controller
--> Page Blade
--> TracuuThuoctrungthau
--> MuaSamCongService::searchPricing()
--> approved HTTPS upstream
-
-/admin/muasamcong/hsmt
--> Controller
--> Page Blade
--> SearchHsmt
--> MuaSamCongService::searchHsmt()
--> approved HTTPS upstream
--> selected rows
--> HsmtExport
-
-/admin/muasamcong/config
--> permission:muasamcong.config.manage,admin
--> ConfigManager::mount() [read-only]
--> save()/testToken() [action authorization]
--> config/integration services
+Admin Route
+ -> thin Controller / page shell
+ -> Livewire component
+ -> domain/integration Service
+ -> Eloquent persistence hoặc upstream HTTP
 ```
 
-## Route / Controller / Blade / Livewire Analysis
+Điểm tốt hiện tại:
 
-Current web contract:
+- upstream HTTP tập trung ở services;
+- pagination/cache/sync/wishlist/KQLCNT/HSMT đã tách thành service riêng;
+- admin route permission tách search/config;
+- token/cookie không nằm trong public UI state;
+- persistence có models/migrations rõ;
+- kết quả lớn không render toàn bộ cùng lúc;
+- selection state xuyên trang được xử lý ở Livewire.
 
-| Method | URI | Name | Permission |
-|---|---|---|---|
-| GET | `/admin/muasamcong` | `muasamcong.index` | `view_muasamcong` |
-| GET | `/admin/muasamcong/hsmt` | `muasamcong.hsmt` | `view_muasamcong` |
-| GET | `/admin/muasamcong/config` | `muasamcong.config` | `muasamcong.config.manage` |
+## Current Functional Domains
 
-API remains unchanged:
+### 1. Smart Pricing
+
+`TracuuThuoctrungthau` + `MuaSamCongService`.
+
+Có database-first snapshot, force refresh, local filters, local pagination và cross-page selection.
+
+### 2. TBMT Full Pagination
+
+`PricingTbmtPaginationService` giải quyết lỗi lịch sử chỉ tải 20 dòng/page đầu. Với keyword TBMT, full upstream pages được merge trước khi UI paginate local.
+
+### 3. Search Snapshot / Cache
+
+`PricingSearchSnapshotService` persist full result theo normalized keyword. Đây là business cache có timestamp/access audit; không phải transient framework cache.
+
+### 4. Pricing Sync
+
+`PricingResultSyncService` + `PricingResult` persist selected medicine rows và raw upstream payload.
+
+### 5. Synced Management
+
+`SyncedPricingList` cho phép search, pagination, cross-page selection, edit KQLCNT/winner metadata và bulk delete.
+
+### 6. Wishlist
+
+`PricingWishlistService` + `PricingWishlist`, scoped theo user.
+
+### 7. Contractor History
+
+`ContractorHistory` + `ContractorHistoryService` tra lịch sử TBMT nhà thầu đã tham gia và mở KQLCNT/HSMT context.
+
+### 8. KQLCNT
+
+`KqlcntService` normalize contracts/winners và persistence liên quan `KqlcntRecord`.
+
+### 9. HSMT Catalogue
+
+`HsmtDetailService` parse HSMT forms và medicine tables; `HsmtSnapshotService` reuse server snapshot để giảm upstream calls.
+
+### 10. Integration Config
+
+`ConfigManager` + `MuasamcongConfigService` giữ security boundary cho token/cookie/endpoint/SSL.
+
+## Database Analysis
+
+Module hiện có migrations/tables; nhận định lịch sử `stateless/no database` không còn đúng.
+
+Các domain persistence chính:
+
+- `muasamcong_pricing_results`
+- `muasamcong_pricing_wishlists`
+- `muasamcong_contractor_bids`
+- `muasamcong_kqlcnt_records`
+- `muasamcong_pricing_search_snapshots`
+- các field snapshot bổ sung theo migrations hiện tại
+
+Trước bất kỳ schema change nào phải đọc migrations + models hiện tại và giữ backward compatibility nếu không có lý do nghiệp vụ rõ.
+
+## Performance Analysis
+
+Cải thiện quan trọng:
+
+- keyword cũ đọc DB snapshot, giảm upstream calls;
+- TBMT fetch full pages một lần, sau đó local pagination;
+- HSMT catalogue ưu tiên server snapshot;
+- winner modal giới hạn render và có search/load more;
+- UI tables paginate 20 rows/page.
+
+Rủi ro còn lại:
+
+- TBMT rất lớn vẫn fetch upstream synchronously;
+- search snapshot payload có thể lớn và tăng storage;
+- HSMT raw response/catalogue có thể rất lớn;
+- cần cân nhắc retention/queue nếu scale tăng.
+
+## Data Integrity Analysis
+
+Nguyên tắc quan trọng nhất là tách `source data` khỏi `manual administrative enrichment`.
+
+- `raw_payload` giữ source snapshot.
+- manual edit winner trên synced list không được giả vờ là dữ liệu upstream.
+- không tự join contractor và medicine khi thiếu join key.
+- `HTTP 200` không được xem là có dữ liệu nếu body rỗng.
+
+## Winner / Lot Analysis
+
+Đây là open problem chính.
+
+Đã xác minh:
 
 ```text
-GET  /api/muasamcong
-POST /api/muasamcong/search-pricing
+list-contract-for-po
+ -> có thể trả danh sách contract/winner của TBMT
+
+lcnt_tbmt_hsmt
+ -> trả danh mục HSMT/medicine rows
 ```
 
-Route names and active Livewire aliases are preserved.
+Nhưng chưa có mapping tin cậy:
 
-The web controller remains thin. Page Blade files remain shells using `Admin::layouts.master`. Search components still own UI state/validation and delegate integration work to `MuaSamCongService`.
+```text
+contractor -> exact PP lotNo / medicine row
+```
 
-`ConfigManager::mount()` no longer writes `.env`, creates missing keys or clears configuration cache. `save()` and `testToken()` both enforce `muasamcong.config.manage` against the authenticated admin user.
+Case HSMT thực tế có `lotNo`, `medicineCode` nhưng không có contractor fields trên medicine rows. Một số contract có `lotResultDTO` nhưng các table lists đã quan sát rỗng. `get-result-replace` trong case test không cung cấp mapping.
 
-## Service Analysis
+Không được implement heuristic mapping.
 
-### MuaSamCongService
+## Security Analysis
 
-The service still owns payload building, upstream calls, response validation/error normalization and HSMT export-row mapping.
+Các invariant phải giữ:
 
-Before any outbound request it now validates endpoint, referer and origin:
+- HTTPS only;
+- exact approved host `muasamcong.mpi.gov.vn`;
+- redirects/security policy theo service hiện tại;
+- production SSL verify on;
+- secret không commit/log/hydrate public;
+- config mutation capability-protected;
+- upstream payload/response errors được normalize, không leak secret.
 
-- scheme must be `https`;
-- host must exactly equal `muasamcong.mpi.gov.vn`;
-- URL user/password are rejected;
-- explicit ports other than 443 are rejected;
-- redirects are disabled;
-- production SSL verification is always forced on;
-- token/cookie are resolved/sent only after the destination boundary passes.
+## UI/UX Analysis
 
-This resolves the previous arbitrary-host/SSRF secret-forwarding risk.
+Các quyết định UI đã chốt:
 
-### MuasamcongConfigService
-
-The configuration writer now:
-
-- accepts only a fixed `MUASAMCONG_*` key allowlist;
-- rejects CR/LF injection;
-- validates editable network URLs against the approved HTTPS host;
-- refuses `VERIFY_SSL=false` in production;
-- validates the complete payload before writing;
-- performs one locked `.env` write per explicit save.
-
-The old `ensureDefaults()` page-load mutation path has been removed.
-
-## Import / Export Analysis
-
-Import: **Not present**.
-
-HSMT export remains intentionally bounded and selected-row-only from page zero (`page_size <= 100`). No fetch-all crawler or new import behavior was introduced.
-
-The shared import/export foundation was not forced into this refactor because the current data source is ephemeral upstream data rather than a persistent local dataset.
-
-## Model / Migration / Database Analysis
-
-No active database model/table/migration is required. `Models/Muasamcong.php` remains an unused scaffold and is a later cleanup candidate only.
-
-## Security
-
-Resolved P0 findings:
-
-1. config route no longer shares the read-only permission;
-2. config mutations authorize again inside Livewire actions;
-3. arbitrary/private/HTTP upstream destinations are rejected at service boundaries;
-4. production SSL verification cannot be disabled;
-5. GET/config mount has no `.env`/`config:clear` side effect;
-6. existing token/cookie values stay out of public Livewire state and logs.
-
-Remaining policy decision:
-
-- API stays protected by `auth:sanctum`; no repository-wide canonical API capability/rate-limit convention was found, so this refactor does not invent one.
-
-## Performance
-
-Current bounds remain:
-
-- one upstream page per search;
-- page size 1–100;
-- timeout 1–120 seconds;
-- no redirect following;
-- no fetch-all export;
-- no unbounded database loading.
-
-External requests remain synchronous and therefore depend on upstream latency.
-
-## Validation and Authorization
-
-Search validation remains unchanged. Config URL fields require HTTPS at UI validation and are revalidated by the config/integration services. Config actions require `muasamcong.config.manage` independently of route middleware.
-
-## Transactions, Concurrency and Data Integrity
-
-No database transaction is applicable. `.env` remains a high-risk global configuration file, so updates are allowlisted, fully validated before mutation and written only on an explicit privileged save.
-
-## Admin UI / UX Standard Review
-
-Config UI now provides:
-
-- visible bordered controls and standard focus treatment;
-- non-live bindings for fields that do not need immediate round trips;
-- explicit approved-host guidance;
-- masked/non-hydrated stored secrets;
-- production-disabled SSL toggle;
-- existing loading/success/error feedback.
-
-Search UI was not broadly redesigned.
-
-## Cross-Module Dependencies
-
-- `Admin::layouts.master`;
-- `Modules\ModuleServiceProvider`;
-- Laravel Sanctum;
-- Spatie Permission;
-- Maatwebsite Excel.
-
-No cross-domain model ownership exists.
-
-## Technical Debt
-
-Non-blocking remaining items:
-
-- unused `Livewire/Hsmt.php`, tiny matching Blade scaffold and `Models/Muasamcong.php`;
-- no upstream pagination beyond page zero;
-- no module-specific API rate/capability policy beyond Sanctum;
-- portable legacy metadata/docs under `Modules/Muasamcong` may be reconciled separately.
+- main search page nhẹ, các domain lớn tách route riêng;
+- bordered search inputs;
+- result tables horizontal-scroll khi wide;
+- modal KQLCNT/HSMT không tràn header/footer và có internal scroll;
+- winner list search + bounded render;
+- local pagination 20 rows/page;
+- checkbox selection xuyên trang và có selected-state review.
 
 ## Test Coverage
 
-Added/updated coverage includes:
+Feature suite hiện mở rộng tại:
 
-- secret non-hydration;
-- read-only config mount with no config-cache clear;
-- unauthorized config token-test denial;
-- temporary token service request;
-- private/unapproved host rejection before any HTTP send;
-- HTTP destination rejection;
-- upstream schema/error normalization;
-- missing token behavior;
-- XLSX generation;
-- `/admin/muasamcong` route contract;
-- read/config permission separation;
-- unchanged API URIs;
-- exactly five Muasamcong routes after provider cleanup.
+```text
+tests/Feature/Muasamcong/
+tests/Feature/MuasamcongModuleTest.php
+```
 
-These tests must be executed locally before merge.
+Các nhóm coverage gồm route authorization, config/security, contractor history, KQLCNT, HSMT detail, pricing sync, wishlist, search snapshots và module contracts.
 
-## Documentation Drift
+Trước merge cần chạy local Pint + targeted tests + full project regression.
 
-`docs/modules/Muasamcong/*` now reflects the refactored repository implementation. Historical standalone-install guidance in `Modules/Muasamcong/README.md` should not override these repository-specific docs.
+## Technical Debt / Follow-up
 
-## Issue List
+P1/P2 tiếp theo:
 
-### Resolved P0
-
-- configuration permission boundary;
-- SSRF/arbitrary-host boundary;
-- config-page mutation side effect;
-- production SSL disable path.
-
-### Resolved P1
-
-- env/runtime configuration mismatch;
-- duplicate provider boot responsibilities;
-- missing route/security regression guardrails.
-
-### Open P2
-
-- unused scaffolds;
-- optional API rate/capability policy;
-- future upstream pagination/export-all design.
-
-## Module Health Summary
-
-Architecture: good after targeted cleanup.  
-Security: materially improved; local tests required.  
-Performance: bounded for the current first-page contract.  
-Database: not applicable.  
-Maintainability: improved by explicit config/permission/provider boundaries.
+1. Tìm join key winner ↔ lot/medicine từ Network/API chính thức.
+2. Tăng automated coverage cho cross-page selected state và synced bulk management nếu chưa đủ.
+3. Xem xét audit fields rõ hơn cho manual winner edits.
+4. Xem xét retention strategy cho search snapshots.
+5. Xem xét queue/background refresh cho TBMT/HSMT rất lớn.
+6. Reconcile/remove unused scaffolds chỉ trong task cleanup riêng, không trộn vào feature work.
 
 ## Final Recommendation
 
+Module hiện có kiến trúc hợp lý cho tiếp tục phát triển. Trước merge `main`, ưu tiên quality gate thay vì refactor thêm:
+
 ```text
-No Structural Refactor Required after this implementation.
+1. docs sync
+2. migrations/routes review
+3. Pint
+4. targeted Muasamcong tests
+5. manual smoke critical flows
+6. full regression
+7. merge main
 ```
 
-Future work should be incremental rather than a rebuild.
-
-## Open Questions / Unknowns
-
-- Whether true upstream pagination/export-all is desired later.
-- Whether the project will define a common API capability/rate policy for external integrations.
-- Whether the unused portable/scaffold artifacts should be removed in a separate cleanup task.
+Đọc `AI_HANDOFF.md` trước mọi task mới để không lặp lại các điều tra endpoint và không phá invariants đã chốt.

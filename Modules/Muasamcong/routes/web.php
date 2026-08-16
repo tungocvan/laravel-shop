@@ -10,7 +10,10 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
         Route::middleware(config('muasamcong.view_middleware', ['permission:view_muasamcong,admin']))
             ->group(function () {
                 Route::get('/', [MuasamcongController::class, 'index'])->name('index');
+                Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
                 Route::get('/hsmt', [MuasamcongController::class, 'hsmt'])->name('hsmt');
+                Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
+                Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
             });
 
         Route::get('/config', [MuasamcongController::class, 'config'])

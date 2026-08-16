@@ -108,6 +108,112 @@ class MuasamcongModuleTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_pricing_company_search_expands_filters_and_deduplicates_results(): void
+    {
+        Http::fake([
+            '*' => Http::response([
+                'page' => [
+                    'totalElements' => 1,
+                    'content' => [[
+                        'id' => '33333333-3333-4333-8333-333333333333',
+                        'tenThuoc' => 'Pidoncam',
+                        'ngayBanHanhQuyetDinh' => '2026-06-11T23:59:59',
+                        'winningName' => ['CÔNG TY CỔ PHẦN DƯỢC PHẨM NAM SƠN - NAMPHACO'],
+                    ]],
+                ],
+            ]),
+        ]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('NAM SƠN');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['data']['expanded_company_search']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame('Pidoncam', $result['data']['items'][0]['tenThuoc']);
+
+        $winningNameOnlyRequests = 0;
+        Http::assertSent(function (ClientRequest $request) use (&$winningNameOnlyRequests): bool {
+            $query = $request->data()[0]['query'][0] ?? [];
+
+            if (($query['matchFields'] ?? null) === ['winning_name']) {
+                $winningNameOnlyRequests++;
+            }
+
+            return true;
+        });
+
+        $this->assertGreaterThanOrEqual(4, $winningNameOnlyRequests);
+    }
+
+    public function test_pricing_search_falls_back_for_punctuation_and_keeps_the_exact_normalized_medicine_name(): void
+    {
+        Http::fakeSequence()
+            ->push(['page' => ['totalElements' => 0, 'content' => []]])
+            ->push(['page' => [
+                'totalElements' => 2,
+                'content' => [
+                    ['id' => '11111111-1111-4111-8111-111111111111', 'tenThuoc' => 'Gourcuff-5'],
+                    ['id' => '22222222-2222-4222-8222-222222222222', 'tenThuoc' => 'Gourcuff-2.5'],
+                ],
+            ]]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('Gourcuff-2,5');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame('Gourcuff-2.5', $result['data']['items'][0]['tenThuoc']);
+        Http::assertSentCount(2);
+    }
+
+    public function test_pricing_search_uses_base_name_when_dosage_suffix_queries_are_empty(): void
+    {
+        Http::fakeSequence()
+            ->push(['page' => ['totalElements' => 0, 'content' => []]])
+            ->push(['page' => ['totalElements' => 0, 'content' => []]])
+            ->push(['page' => [
+                'totalElements' => 2,
+                'content' => [
+                    ['id' => '11111111-1111-4111-8111-111111111111', 'tenThuoc' => 'Gourcuff-5'],
+                    ['id' => '22222222-2222-4222-8222-222222222222', 'tenThuoc' => 'Gourcuff-2.5'],
+                ],
+            ]]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('Gourcuff-2,5');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame('Gourcuff-2.5', $result['data']['items'][0]['tenThuoc']);
+
+        $keywords = [];
+        Http::assertSent(function (ClientRequest $request) use (&$keywords): bool {
+            $payload = $request->data();
+            $keywords[] = $payload[0]['query'][0]['keyWord'] ?? null;
+
+            return true;
+        });
+
+        $this->assertSame(['Gourcuff-2,5', 'Gourcuff-2.5', 'Gourcuff'], $keywords);
+    }
+
+    public function test_pricing_search_recovers_when_decimal_comma_request_gets_http_400(): void
+    {
+        Http::fakeSequence()
+            ->push(['message' => 'Bad Request'], 400)
+            ->push(['page' => [
+                'totalElements' => 2,
+                'content' => [
+                    ['id' => '11111111-1111-4111-8111-111111111111', 'tenThuoc' => 'Gourcuff-5'],
+                    ['id' => '22222222-2222-4222-8222-222222222222', 'tenThuoc' => 'Gourcuff-2,5'],
+                ],
+            ]]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('Gourcuff-2,5');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame('Gourcuff-2,5', $result['data']['items'][0]['tenThuoc']);
+    }
+
     public function test_pricing_response_is_normalized_only_after_schema_validation(): void
     {
         Http::fake([

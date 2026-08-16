@@ -29,6 +29,8 @@ class ConfigManager extends Component
         'page_size' => 20,
     ];
 
+    public array $environmentStatus = [];
+
     public bool $hasSmartToken = false;
 
     public bool $hasSessionCookie = false;
@@ -37,7 +39,7 @@ class ConfigManager extends Component
 
     public string $tokenTestMessage = '';
 
-    public function mount(): void
+    public function mount(MuasamcongConfigService $configService): void
     {
         $this->form = [
             'origin' => (string) config('muasamcong.origin'),
@@ -58,11 +60,61 @@ class ConfigManager extends Component
 
         $this->hasSmartToken = trim((string) config('muasamcong.smart_token')) !== '';
         $this->hasSessionCookie = trim((string) config('muasamcong.session_cookie')) !== '';
+        $this->loadEnvironmentStatus($configService);
+    }
+
+    public function checkEnvironment(MuasamcongConfigService $configService): void
+    {
+        $this->authorizeManageConfig();
+        $this->loadEnvironmentStatus($configService);
+    }
+
+    public function repairEnvironment(MuasamcongConfigService $configService): void
+    {
+        $this->authorizeManageConfig();
+
+        if ($configService->isDockerRuntime()) {
+            $this->loadEnvironmentStatus($configService);
+            session()->flash(
+                'error',
+                'Đang chạy trong Docker. Không sửa .env bên trong container; hãy cập nhật .env ở host rồi rebuild/redeploy.'
+            );
+
+            return;
+        }
+
+        try {
+            $added = $configService->ensureDefaults();
+
+            if ($added !== []) {
+                Artisan::call('config:clear');
+                session()->flash(
+                    'success',
+                    'Đã bổ sung '.count($added).' biến MUASAMCONG_* còn thiếu vào .env bằng giá trị mặc định.'
+                );
+            } else {
+                session()->flash('success', 'Các biến MUASAMCONG_* trong .env đã đầy đủ.');
+            }
+        } catch (Throwable) {
+            session()->flash('error', 'Không thể kiểm tra/bổ sung .env. Vui lòng kiểm tra file và quyền đọc/ghi.');
+        }
+
+        $this->loadEnvironmentStatus($configService);
     }
 
     public function save(MuasamcongConfigService $configService): void
     {
         $this->authorizeManageConfig();
+
+        if ($configService->isDockerRuntime()) {
+            $this->loadEnvironmentStatus($configService);
+            session()->flash(
+                'error',
+                'Docker runtime không lưu .env trong container. Hãy cập nhật .env ở host và rebuild/redeploy Docker.'
+            );
+
+            return;
+        }
 
         $validated = $this->validate([
             'form.origin' => ['required', 'url:https', 'max:500'],
@@ -154,7 +206,26 @@ class ConfigManager extends Component
 
     public function render(): View
     {
-        return view('Muasamcong::livewire.config-manager');
+        return view('Muasamcong::livewire.config-manager-shell');
+    }
+
+    private function loadEnvironmentStatus(MuasamcongConfigService $configService): void
+    {
+        try {
+            $this->environmentStatus = $configService->inspectEnvironment();
+        } catch (Throwable) {
+            $this->environmentStatus = [
+                'docker' => $configService->isDockerRuntime(),
+                'exists' => false,
+                'readable' => false,
+                'writable' => false,
+                'total' => 0,
+                'present' => 0,
+                'missing' => [],
+                'complete' => false,
+                'snippet' => '',
+            ];
+        }
     }
 
     private function authorizeManageConfig(): void
