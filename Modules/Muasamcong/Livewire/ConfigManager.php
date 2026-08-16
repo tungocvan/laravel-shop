@@ -206,7 +206,7 @@ class ConfigManager extends Component
 
     public function render(): View
     {
-        return view('Muasamcong::livewire.config-manager');
+        return view('Muasamcong::livewire.config-manager-shell');
     }
 
     private function loadEnvironmentStatus(MuasamcongConfigService $configService): void
