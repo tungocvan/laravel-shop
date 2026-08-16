@@ -4,6 +4,7 @@
         $wishlistLookup = array_fill_keys($wishlistSourceIds, true);
         $canSyncPricing = auth('admin')->check() && auth('admin')->user()->can('muasamcong.pricing.sync');
         $canWishlistPricing = auth('admin')->check() && auth('admin')->user()->can('muasamcong.pricing.wishlist');
+        $hasResultFilters = $medicineNameFilter !== '' || $activeIngredientFilter !== '' || $medicineGroupFilter !== '' || $winningCompanyFilter !== '';
     @endphp
 
     <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
@@ -44,25 +45,50 @@
 
     <div wire:loading.remove wire:target="search,searchWishlist" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         @if ($results !== [])
-            <div class="border-b border-gray-200 bg-gray-50/70 px-4 py-3">
-                <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+            <div class="border-b border-gray-200 bg-gray-50/70 px-4 py-4">
+                <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                     <div>
                         <div class="flex flex-wrap items-center gap-2">
                             <p class="text-sm font-semibold text-gray-900">Kết quả tra cứu</p>
                             <span class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ $filteredResultCount }} / {{ count($results) }} đã tải</span>
                             @if ($sourceTotal > count($results))<span class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Nguồn báo {{ $sourceTotal }} kết quả</span>@endif
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Hiển thị 20 dòng/trang. Tra cứu bằng mã TBMT sẽ tự tải các trang dữ liệu nguồn trước khi phân trang tại đây.</p>
+                        <p class="mt-1 text-xs text-gray-500">Hiển thị 20 dòng/trang. Các bộ lọc dưới đây chỉ lọc trong toàn bộ dữ liệu đã tải, không gọi lại API.</p>
                         @if ($sourcePartial)<p class="mt-1 text-xs font-medium text-amber-700">Cảnh báo: chưa tải hết toàn bộ kết quả từ nguồn. Hãy thử tìm kiếm lại.</p>@endif
                     </div>
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <div class="min-w-72">
-                            <label class="mb-1 block text-xs font-semibold text-gray-600">Đơn vị trúng thầu</label>
-                            <div class="relative"><input type="search" wire:model.live.debounce.250ms="winningCompanyFilter" placeholder="Ví dụ: INAFO, NAM SƠN..." class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 pr-9 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@if ($winningCompanyFilter !== '')<button type="button" wire:click="$set('winningCompanyFilter', '')" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">×</button>@endif</div>
+                    @if ($canSyncPricing)
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" wire:click="selectAllUnsynced" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Chọn tất cả chưa đồng bộ</button>
+                            <button type="button" wire:click="syncSelected" wire:loading.attr="disabled" class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">Đồng bộ ({{ count($selectedSourceIds) }})</button>
                         </div>
-                        @if ($canSyncPricing)<div class="flex flex-wrap items-center gap-2"><button type="button" wire:click="selectAllUnsynced" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Chọn tất cả chưa đồng bộ</button><button type="button" wire:click="syncSelected" wire:loading.attr="disabled" class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">Đồng bộ ({{ count($selectedSourceIds) }})</button></div>@endif
+                    @endif
+                </div>
+
+                <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold text-gray-600">Tên thuốc</label>
+                        <x-search wire:model.live.debounce.250ms="medicineNameFilter" placeholder="Ví dụ: Acetylcystein..." />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold text-gray-600">Hoạt chất</label>
+                        <x-search wire:model.live.debounce.250ms="activeIngredientFilter" placeholder="Ví dụ: Piracetam..." />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold text-gray-600">Nhóm thuốc</label>
+                        <x-search wire:model.live.debounce.250ms="medicineGroupFilter" placeholder="Ví dụ: N2, Nhóm 4..." />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold text-gray-600">Đơn vị trúng thầu</label>
+                        <x-search wire:model.live.debounce.250ms="winningCompanyFilter" placeholder="Ví dụ: INAFO, NAM SƠN..." />
                     </div>
                 </div>
+
+                @if ($hasResultFilters)
+                    <div class="mt-3 flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2">
+                        <p class="text-xs text-indigo-700">Đang lọc <span class="font-semibold">{{ $filteredResultCount }}</span> / {{ count($results) }} kết quả đã tải.</p>
+                        <button type="button" wire:click="clearResultFilters" class="shrink-0 text-xs font-semibold text-indigo-700 hover:text-indigo-900">Xóa bộ lọc</button>
+                    </div>
+                @endif
             </div>
 
             <div class="overflow-x-auto">
@@ -92,7 +118,7 @@
                                 <td class="px-4 py-4 text-center">@if($sourceId)<button wire:click="openDetail('{{ $sourceId }}')" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">Xem</button>@endif</td>
                             </tr>
                         @empty
-                            <tr><td colspan="13" class="px-5 py-10 text-center text-gray-500">Không có kết quả phù hợp với đơn vị trúng thầu đang lọc.</td></tr>
+                            <tr><td colspan="13" class="px-5 py-10 text-center text-gray-500">Không có kết quả phù hợp với các bộ lọc đang chọn.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
