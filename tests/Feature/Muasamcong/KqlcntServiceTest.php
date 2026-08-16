@@ -45,6 +45,8 @@ class KqlcntServiceTest extends TestCase
                         'bidName' => 'Gói Thầu Thuốc Generic',
                         'isMedicine' => 1,
                         'bidId' => 'bid-1',
+                        'investorCode' => 'vn2000269822',
+                        'investorName' => 'Sở Y tế Cà Mau',
                     ],
                     'bidoBidStatus' => [
                         'status' => 'PUB_KQLCNT',
@@ -85,6 +87,8 @@ class KqlcntServiceTest extends TestCase
 
         $this->assertSame('PUB_KQLCNT', $result['status']);
         $this->assertTrue($result['published']);
+        $this->assertSame('vn2000269822', $result['investor_code']);
+        $this->assertSame('Sở Y tế Cà Mau', $result['investor_name']);
         $this->assertCount(1, $result['contracts']);
         $this->assertSame('73/2026/SYT-CM', $result['contracts'][0]['contractNo']);
         $this->assertSame('CÔNG TY FP', $result['contracts'][0]['contractorPassListParsed'][0]['contractorName']);
