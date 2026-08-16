@@ -12,6 +12,8 @@ class MuasamcongEnvironmentDoctorTest extends TestCase
     public function test_environment_doctor_reports_missing_keys_and_copy_ready_defaults(): void
     {
         $path = base_path('.env');
+        $originalContainer = getenv('container');
+        putenv('container=');
 
         File::shouldReceive('isFile')->once()->with($path)->andReturn(true);
         File::shouldReceive('isReadable')->once()->with($path)->andReturn(true);
@@ -22,7 +24,13 @@ class MuasamcongEnvironmentDoctorTest extends TestCase
         );
         File::shouldReceive('exists')->once()->with('/.dockerenv')->andReturn(false);
 
-        $status = app(MuasamcongConfigService::class)->inspectEnvironment();
+        try {
+            $status = app(MuasamcongConfigService::class)->inspectEnvironment();
+        } finally {
+            $originalContainer === false
+                ? putenv('container')
+                : putenv('container='.$originalContainer);
+        }
 
         $this->assertFalse($status['docker']);
         $this->assertFalse($status['complete']);
