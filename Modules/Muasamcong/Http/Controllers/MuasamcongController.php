@@ -12,6 +12,11 @@ class MuasamcongController extends Controller
         return view('Muasamcong::muasamcong');
     }
 
+    public function contractors(): View
+    {
+        return view('Muasamcong::contractors');
+    }
+
     public function hsmt(): View
     {
         return view('Muasamcong::hsmt');
