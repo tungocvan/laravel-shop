@@ -137,6 +137,8 @@
     @endif
 
     @if ($kqlcnt)
-        @include('Muasamcong::livewire.partials.kqlcnt-modal')
+        @teleport('body')
+            @include('Muasamcong::livewire.partials.kqlcnt-modal')
+        @endteleport
     @endif
 </div>
