@@ -33,9 +33,7 @@
                     @foreach ($recentSearches as $recent)
                         <button type="button" wire:click="searchRecent(@js($recent['keyword']))" class="min-w-52 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-left hover:border-indigo-200 hover:bg-indigo-50/50">
                             <p class="truncate text-sm font-semibold text-gray-800">{{ $recent['keyword'] }}</p>
-                            <p class="mt-1 text-xs text-gray-500">
-                                {{ $recent['loaded_total'] }} kết quả · {{ $recent['searched_at'] ? \Illuminate\Support\Carbon::parse($recent['searched_at'])->format('d/m/Y H:i') : '—' }}
-                            </p>
+                            <p class="mt-1 text-xs text-gray-500">{{ $recent['loaded_total'] }} kết quả · {{ $recent['searched_at'] ? \Illuminate\Support\Carbon::parse($recent['searched_at'])->format('d/m/Y H:i') : '—' }}</p>
                         </button>
                     @endforeach
                 </div>
@@ -74,43 +72,44 @@
                             <p class="text-sm font-semibold text-gray-900">Kết quả tra cứu</p>
                             <span class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ $filteredResultCount }} / {{ count($results) }} đã tải</span>
                             @if ($sourceTotal > count($results))<span class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Nguồn báo {{ $sourceTotal }} kết quả</span>@endif
-                            @if ($searchDataSource === 'database')
-                                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Từ database</span>
-                            @elseif ($searchDataSource === 'api')
-                                <span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">Mới từ API</span>
-                            @endif
+                            @if ($searchDataSource === 'database')<span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Từ database</span>@elseif ($searchDataSource === 'api')<span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">Mới từ API</span>@endif
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Hiển thị 20 dòng/trang. Các bộ lọc dưới đây chỉ lọc trong toàn bộ dữ liệu đã tải, không gọi lại API.</p>
-                        @if ($searchSnapshotAt)
-                            <p class="mt-1 text-xs font-medium text-gray-600">Thời gian tra cứu nguồn gần nhất: {{ \Illuminate\Support\Carbon::parse($searchSnapshotAt)->format('d/m/Y H:i:s') }}</p>
-                        @endif
+                        <p class="mt-1 text-xs text-gray-500">Hiển thị 20 dòng/trang. Checkbox đã chọn được giữ nguyên khi chuyển trang.</p>
+                        @if ($searchSnapshotAt)<p class="mt-1 text-xs font-medium text-gray-600">Thời gian tra cứu nguồn gần nhất: {{ \Illuminate\Support\Carbon::parse($searchSnapshotAt)->format('d/m/Y H:i:s') }}</p>@endif
                         @if ($sourcePartial)<p class="mt-1 text-xs font-medium text-amber-700">Cảnh báo: chưa tải hết toàn bộ kết quả từ nguồn. Hãy bấm “Tìm kiếm mới” để thử lại.</p>@endif
                     </div>
                     @if ($canSyncPricing)
                         <div class="flex flex-wrap items-center gap-2">
-                            <button type="button" wire:click="selectAllUnsynced" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Chọn tất cả chưa đồng bộ</button>
-                            <button type="button" wire:click="syncSelected" wire:loading.attr="disabled" class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">Đồng bộ ({{ count($selectedSourceIds) }})</button>
+                            <button type="button" wire:click="toggleSelectedSummary" @disabled(count($selectedSourceIds) === 0) class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40">Đã chọn ({{ count($selectedSourceIds) }})</button>
+                            <button type="button" wire:click="selectAllUnsynced" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Chọn tất cả kết quả</button>
+                            @if (count($selectedSourceIds) > 0)<button type="button" wire:click="clearSelection" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600">Bỏ chọn tất cả</button>@endif
+                            <button type="button" wire:click="syncSelected" wire:loading.attr="disabled" @disabled(count($selectedSourceIds) === 0) class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Đồng bộ ({{ count($selectedSourceIds) }})</button>
                         </div>
                     @endif
                 </div>
 
+                @if ($canSyncPricing && $showSelectedSummary && count($selectedSourceIds) > 0)
+                    <div class="mt-4 rounded-2xl border border-indigo-200 bg-white shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 px-4 py-3">
+                            <div><p class="text-sm font-bold text-gray-900">Các thuốc đã chọn</p><p class="text-xs text-gray-500">Lựa chọn được giữ xuyên suốt các trang cho đến khi đồng bộ hoặc bỏ chọn.</p></div>
+                            <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ count($selectedSourceIds) }} bản ghi</span>
+                        </div>
+                        <div class="max-h-72 overflow-y-auto divide-y divide-gray-100">
+                            @foreach ($selectedItems as $selectedItem)
+                                <div class="flex items-center justify-between gap-3 px-4 py-3">
+                                    <div class="min-w-0"><p class="truncate text-sm font-semibold text-gray-900">{{ $selectedItem['tenThuoc'] ?: 'Chưa có tên thuốc' }}</p><p class="mt-0.5 truncate text-xs text-gray-500">{{ $selectedItem['tenHoatChat'] ?: 'Chưa có hoạt chất' }}{{ $selectedItem['nhomThuoc'] ? ' · '.$selectedItem['nhomThuoc'] : '' }}{{ $selectedItem['maTbmt'] ? ' · '.$selectedItem['maTbmt'] : '' }}</p></div>
+                                    <button type="button" wire:click="removeSelected('{{ $selectedItem['id'] }}')" class="shrink-0 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700">Bỏ chọn</button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold text-gray-600">Tên thuốc</label>
-                        <x-search wire:model.live.debounce.250ms="medicineNameFilter" placeholder="Ví dụ: Acetylcystein..." />
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold text-gray-600">Hoạt chất</label>
-                        <x-search wire:model.live.debounce.250ms="activeIngredientFilter" placeholder="Ví dụ: Piracetam..." />
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold text-gray-600">Nhóm thuốc</label>
-                        <x-search wire:model.live.debounce.250ms="medicineGroupFilter" placeholder="Ví dụ: N2, Nhóm 4..." />
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold text-gray-600">Đơn vị trúng thầu</label>
-                        <x-search wire:model.live.debounce.250ms="winningCompanyFilter" placeholder="Ví dụ: INAFO, NAM SƠN..." />
-                    </div>
+                    <div><label class="mb-1 block text-xs font-semibold text-gray-600">Tên thuốc</label><x-search wire:model.live.debounce.250ms="medicineNameFilter" placeholder="Ví dụ: Acetylcystein..." /></div>
+                    <div><label class="mb-1 block text-xs font-semibold text-gray-600">Hoạt chất</label><x-search wire:model.live.debounce.250ms="activeIngredientFilter" placeholder="Ví dụ: Piracetam..." /></div>
+                    <div><label class="mb-1 block text-xs font-semibold text-gray-600">Nhóm thuốc</label><x-search wire:model.live.debounce.250ms="medicineGroupFilter" placeholder="Ví dụ: N2, Nhóm 4..." /></div>
+                    <div><label class="mb-1 block text-xs font-semibold text-gray-600">Đơn vị trúng thầu</label><x-search wire:model.live.debounce.250ms="winningCompanyFilter" placeholder="Ví dụ: INAFO, NAM SƠN..." /></div>
                 </div>
 
                 @if ($hasResultFilters)
@@ -123,7 +122,20 @@
 
             <div class="overflow-x-auto">
                 <table class="min-w-[1600px] w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-50 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600"><tr>@if ($canWishlistPricing)<th class="w-12 px-3 py-3 text-center">♥</th>@endif @if ($canSyncPricing)<th class="w-12 px-3 py-3 text-center">Chọn</th>@endif<th class="w-14 px-3 py-3 text-center">STT</th><th class="min-w-40 px-4 py-3">Thuốc</th><th class="min-w-32 px-4 py-3">Nhóm thuốc</th><th class="min-w-40 px-4 py-3">Hoạt chất</th><th class="min-w-40 px-4 py-3">Nồng độ / hàm lượng</th><th class="min-w-28 px-4 py-3 text-right">Giá trúng thầu</th><th class="min-w-24 px-4 py-3 text-right">Số lượng</th><th class="min-w-64 px-4 py-3">Đơn vị trúng thầu</th><th class="min-w-64 px-4 py-3">Chủ đầu tư / Bên mời thầu</th><th class="min-w-32 px-4 py-3">Mã TBMT</th><th class="w-24 px-4 py-3 text-center">Chi tiết</th></tr></thead>
+                    <thead class="bg-gray-50 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                        <tr>
+                            @if ($canWishlistPricing)<th class="w-12 px-3 py-3 text-center">♥</th>@endif
+                            @if ($canSyncPricing)
+                                <th class="w-16 px-3 py-3 text-center">
+                                    <label class="inline-flex cursor-pointer flex-col items-center gap-1 normal-case tracking-normal" title="Chọn/bỏ chọn tất cả bản ghi chưa đồng bộ trên trang hiện tại">
+                                        <input type="checkbox" wire:click="toggleCurrentPageSelection" @checked($currentPageAllSelected) @disabled($currentPageSelectableCount === 0) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="whitespace-nowrap text-[10px] text-gray-500">{{ $currentPageSelectedCount }}/{{ $currentPageSelectableCount }}</span>
+                                    </label>
+                                </th>
+                            @endif
+                            <th class="w-14 px-3 py-3 text-center">STT</th><th class="min-w-40 px-4 py-3">Thuốc</th><th class="min-w-32 px-4 py-3">Nhóm thuốc</th><th class="min-w-40 px-4 py-3">Hoạt chất</th><th class="min-w-40 px-4 py-3">Nồng độ / hàm lượng</th><th class="min-w-28 px-4 py-3 text-right">Giá trúng thầu</th><th class="min-w-24 px-4 py-3 text-right">Số lượng</th><th class="min-w-64 px-4 py-3">Đơn vị trúng thầu</th><th class="min-w-64 px-4 py-3">Chủ đầu tư / Bên mời thầu</th><th class="min-w-32 px-4 py-3">Mã TBMT</th><th class="w-24 px-4 py-3 text-center">Chi tiết</th>
+                        </tr>
+                    </thead>
                     <tbody class="divide-y divide-gray-100 text-gray-700">
                         @forelse ($displayResults as $item)
                             @php
@@ -134,7 +146,7 @@
                             @endphp
                             <tr class="align-top {{ $isSynced ? 'bg-emerald-50/30' : 'hover:bg-indigo-50/30' }}">
                                 @if($canWishlistPricing)<td class="px-3 py-4 text-center">@if($sourceId)<button wire:click="toggleWishlist('{{ $sourceId }}')" class="h-9 w-9 rounded-full border {{ $isWishlisted ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-gray-200 text-gray-400' }}">{{ $isWishlisted ? '♥' : '♡' }}</button>@endif</td>@endif
-                                @if($canSyncPricing)<td class="px-3 py-4 text-center">@if($sourceId)<input type="checkbox" value="{{ $sourceId }}" wire:model="selectedSourceIds" @disabled($isSynced) class="rounded border-gray-300">@endif</td>@endif
+                                @if($canSyncPricing)<td class="px-3 py-4 text-center">@if($sourceId)<input type="checkbox" value="{{ $sourceId }}" wire:model="selectedSourceIds" @disabled($isSynced) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">@endif</td>@endif
                                 <td class="px-3 py-4 text-center text-gray-500">{{ $resultOffset + $loop->iteration }}</td>
                                 <td class="px-4 py-4 font-semibold text-gray-950">{{ $item['tenThuoc'] ?? '-' }}</td>
                                 <td class="px-4 py-4">{{ $item['nhomThuoc'] ?? '-' }}</td>
@@ -156,7 +168,7 @@
 
             @if ($resultPageCount > 1)
                 <div class="flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-xs text-gray-500">Trang <span class="font-semibold text-gray-800">{{ $resultPage }}</span> / {{ $resultPageCount }} · {{ $filteredResultCount }} kết quả</p>
+                    <p class="text-xs text-gray-500">Trang <span class="font-semibold text-gray-800">{{ $resultPage }}</span> / {{ $resultPageCount }} · {{ $filteredResultCount }} kết quả · <span class="font-semibold text-indigo-700">{{ count($selectedSourceIds) }} đã chọn</span></p>
                     <div class="flex flex-wrap items-center gap-1.5">
                         <button type="button" wire:click="previousResultPage" @disabled($resultPage <= 1) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-40">← Trước</button>
                         @php $pageStart = max(1, $resultPage - 2); $pageEnd = min($resultPageCount, $resultPage + 2); @endphp
