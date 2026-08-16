@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Modules\Muasamcong\Services\MuaSamCongService;
 use Modules\Muasamcong\Services\PricingResultSyncService;
+use Modules\Muasamcong\Services\PricingTbmtPaginationService;
 use Modules\Muasamcong\Services\PricingWishlistService;
 
 class TracuuThuoctrungthau extends Component
 {
     private const SYNC_PERMISSION = 'muasamcong.pricing.sync';
     private const WISHLIST_PERMISSION = 'muasamcong.pricing.wishlist';
+    private const RESULTS_PER_PAGE = 20;
 
     public string $keyword = '';
     public string $winningCompanyFilter = '';
@@ -28,46 +30,94 @@ class TracuuThuoctrungthau extends Component
     public string $syncStatus = '';
     public string $syncMessage = '';
     public string $wishlistMessage = '';
+    public int $resultPage = 1;
+    public int $sourceTotal = 0;
+    public bool $sourcePartial = false;
 
     public function mount(PricingWishlistService $wishlistService): void
     {
         $this->refreshWishlist($wishlistService);
     }
 
-    public function search(MuaSamCongService $service, PricingResultSyncService $syncService, PricingWishlistService $wishlistService): void
-    {
+    public function search(
+        MuaSamCongService $service,
+        PricingTbmtPaginationService $tbmtPaginationService,
+        PricingResultSyncService $syncService,
+        PricingWishlistService $wishlistService
+    ): void {
         $validated = $this->validate(['keyword' => ['required', 'string', 'min:2', 'max:200']], ['keyword.required' => 'Vui lòng nhập từ khóa.']);
         $this->loading = true;
         $this->error = $this->syncStatus = $this->syncMessage = $this->wishlistMessage = '';
         $this->results = $this->selectedSourceIds = $this->syncedSourceIds = [];
         $this->detailItem = null;
         $this->winningCompanyFilter = '';
+        $this->resultPage = 1;
+        $this->sourceTotal = 0;
+        $this->sourcePartial = false;
 
         $result = $service->searchPricing($validated['keyword']);
+        if ($tbmtPaginationService->isTbmtKeyword($validated['keyword'])) {
+            $result = $tbmtPaginationService->loadAll($validated['keyword'], $result);
+        }
+
         if (! ($result['success'] ?? false)) {
             $this->error = $result['message'] ?? 'Không thể tra cứu thuốc trúng thầu.';
             $this->loading = false;
+
             return;
         }
 
         $this->results = is_array($result['data']['items'] ?? null) ? $result['data']['items'] : [];
+        $this->sourceTotal = max(count($this->results), (int) ($result['data']['total'] ?? count($this->results)));
+        $this->sourcePartial = (bool) ($result['data']['partial'] ?? false) || (bool) ($result['data']['capped'] ?? false);
         $this->syncedSourceIds = $syncService->existingSourceIds($this->results);
         $this->wishlistSourceIds = $this->currentWishlistSourceIds($wishlistService);
         $this->loading = false;
     }
 
-    public function searchWishlist(string $keyword, MuaSamCongService $service, PricingResultSyncService $syncService, PricingWishlistService $wishlistService): void
-    {
+    public function searchWishlist(
+        string $keyword,
+        MuaSamCongService $service,
+        PricingTbmtPaginationService $tbmtPaginationService,
+        PricingResultSyncService $syncService,
+        PricingWishlistService $wishlistService
+    ): void {
         $this->keyword = trim($keyword);
-        $this->search($service, $syncService, $wishlistService);
+        $this->search($service, $tbmtPaginationService, $syncService, $wishlistService);
+    }
+
+    public function updatedWinningCompanyFilter(): void
+    {
+        $this->resultPage = 1;
+    }
+
+    public function previousResultPage(): void
+    {
+        $this->resultPage = max(1, $this->resultPage - 1);
+    }
+
+    public function nextResultPage(): void
+    {
+        $this->resultPage = min($this->resultPageCount(), $this->resultPage + 1);
+    }
+
+    public function goToResultPage(int $page): void
+    {
+        $this->resultPage = max(1, min($this->resultPageCount(), $page));
     }
 
     public function toggleWishlist(string $sourceId, PricingWishlistService $wishlistService): void
     {
         $this->authorizeWishlist();
         $item = collect($this->results)->first(fn (mixed $result): bool => is_array($result) && ($result['id'] ?? null) === $sourceId);
-        if (! is_array($item) && is_array($this->detailItem) && ($this->detailItem['id'] ?? null) === $sourceId) $item = $this->detailItem;
-        if (! is_array($item)) { $this->wishlistMessage = 'Không tìm thấy bản ghi để cập nhật Wishlist.'; return; }
+        if (! is_array($item) && is_array($this->detailItem) && ($this->detailItem['id'] ?? null) === $sourceId) {
+            $item = $this->detailItem;
+        }
+        if (! is_array($item)) {
+            $this->wishlistMessage = 'Không tìm thấy bản ghi để cập nhật Wishlist.';
+
+            return;
+        }
         $added = $wishlistService->toggle($this->adminUserId(), $this->keyword !== '' ? $this->keyword : (string) ($item['tenThuoc'] ?? ''), $item);
         $this->wishlistSourceIds = $this->currentWishlistSourceIds($wishlistService);
         $this->refreshWishlist($wishlistService);
@@ -80,33 +130,57 @@ class TracuuThuoctrungthau extends Component
         $this->selectedSourceIds = collect($this->filteredResults())->pluck('id')->filter(fn (mixed $id): bool => is_string($id) && $id !== '' && ! isset($synced[$id]))->unique()->values()->all();
     }
 
-    public function clearSelection(): void { $this->selectedSourceIds = []; }
+    public function clearSelection(): void
+    {
+        $this->selectedSourceIds = [];
+    }
 
     public function openDetail(string $sourceId): void
     {
         $this->detailItem = collect($this->results)->first(fn (mixed $item): bool => is_array($item) && ($item['id'] ?? null) === $sourceId);
     }
 
-    public function closeDetail(): void { $this->detailItem = null; }
+    public function closeDetail(): void
+    {
+        $this->detailItem = null;
+    }
 
     public function syncSelected(MuaSamCongService $sourceService, PricingResultSyncService $syncService): void
     {
         $this->authorizeSync();
         $this->syncStatus = $this->syncMessage = '';
-        if ($this->selectedSourceIds === []) { $this->syncStatus = 'error'; $this->syncMessage = 'Vui lòng chọn ít nhất một bản ghi chưa đồng bộ.'; return; }
+        if ($this->selectedSourceIds === []) {
+            $this->syncStatus = 'error';
+            $this->syncMessage = 'Vui lòng chọn ít nhất một bản ghi chưa đồng bộ.';
+
+            return;
+        }
         $validated = $this->validate(['keyword' => ['required', 'string', 'min:2', 'max:200']]);
         $freshResult = $sourceService->searchPricing($validated['keyword']);
-        if (! ($freshResult['success'] ?? false)) { $this->syncStatus = 'error'; $this->syncMessage = 'Không thể xác minh lại dữ liệu nguồn trước khi đồng bộ. Vui lòng thử lại.'; return; }
+        if (! ($freshResult['success'] ?? false)) {
+            $this->syncStatus = 'error';
+            $this->syncMessage = 'Không thể xác minh lại dữ liệu nguồn trước khi đồng bộ. Vui lòng thử lại.';
+
+            return;
+        }
         $freshItems = is_array($freshResult['data']['items'] ?? null) ? $freshResult['data']['items'] : [];
         $report = $syncService->syncSelected($freshItems, $this->selectedSourceIds, $this->adminUserId());
         $this->results = $freshItems;
         $this->syncedSourceIds = $syncService->existingSourceIds($this->results);
         $this->selectedSourceIds = [];
-        $inserted = (int) ($report['inserted'] ?? 0); $duplicates = (int) ($report['duplicates'] ?? 0); $missing = (int) ($report['missing'] ?? 0);
+        $inserted = (int) ($report['inserted'] ?? 0);
+        $duplicates = (int) ($report['duplicates'] ?? 0);
+        $missing = (int) ($report['missing'] ?? 0);
         if ($inserted > 0) {
-            $this->syncStatus = 'success'; $this->syncMessage = "Đã đồng bộ {$inserted} bản ghi mới từ dữ liệu nguồn đã xác minh.";
-            if ($duplicates > 0) $this->syncMessage .= " Bỏ qua {$duplicates} bản ghi đã tồn tại.";
-            if ($missing > 0) $this->syncMessage .= " Có {$missing} bản ghi không còn trong kết quả nguồn hiện tại.";
+            $this->syncStatus = 'success';
+            $this->syncMessage = "Đã đồng bộ {$inserted} bản ghi mới từ dữ liệu nguồn đã xác minh.";
+            if ($duplicates > 0) {
+                $this->syncMessage .= " Bỏ qua {$duplicates} bản ghi đã tồn tại.";
+            }
+            if ($missing > 0) {
+                $this->syncMessage .= " Có {$missing} bản ghi không còn trong kết quả nguồn hiện tại.";
+            }
+
             return;
         }
         $this->syncStatus = 'warning';
@@ -115,18 +189,41 @@ class TracuuThuoctrungthau extends Component
 
     public function render(): View
     {
-        return view('Muasamcong::livewire.tracuu-thuoctrungthau', ['displayResults' => $this->filteredResults()]);
+        $filteredResults = $this->filteredResults();
+        $pageCount = max(1, (int) ceil(count($filteredResults) / self::RESULTS_PER_PAGE));
+        $this->resultPage = max(1, min($this->resultPage, $pageCount));
+        $offset = ($this->resultPage - 1) * self::RESULTS_PER_PAGE;
+
+        return view('Muasamcong::livewire.tracuu-thuoctrungthau', [
+            'displayResults' => array_slice($filteredResults, $offset, self::RESULTS_PER_PAGE),
+            'filteredResultCount' => count($filteredResults),
+            'resultPageCount' => $pageCount,
+            'resultOffset' => $offset,
+        ]);
+    }
+
+    private function resultPageCount(): int
+    {
+        return max(1, (int) ceil(count($this->filteredResults()) / self::RESULTS_PER_PAGE));
     }
 
     private function filteredResults(): array
     {
         $needle = mb_strtolower(trim($this->winningCompanyFilter));
-        if ($needle === '') return $this->results;
+        if ($needle === '') {
+            return $this->results;
+        }
+
         return collect($this->results)->filter(function (mixed $item) use ($needle): bool {
-            if (! is_array($item)) return false;
-            foreach ((array) ($item['winningName'] ?? []) as $name) {
-                if (is_scalar($name) && str_contains(mb_strtolower((string) $name), $needle)) return true;
+            if (! is_array($item)) {
+                return false;
             }
+            foreach ((array) ($item['winningName'] ?? []) as $name) {
+                if (is_scalar($name) && str_contains(mb_strtolower((string) $name), $needle)) {
+                    return true;
+                }
+            }
+
             return false;
         })->values()->all();
     }
@@ -140,21 +237,27 @@ class TracuuThuoctrungthau extends Component
     private function currentWishlistSourceIds(PricingWishlistService $wishlistService): array
     {
         $user = Auth::guard('admin')->user();
+
         return $user === null ? [] : $wishlistService->sourceIdsForUser((int) $user->getAuthIdentifier(), $this->results);
     }
 
     private function adminUserId(): int
     {
-        $user = Auth::guard('admin')->user(); abort_unless($user !== null, 403); return (int) $user->getAuthIdentifier();
+        $user = Auth::guard('admin')->user();
+        abort_unless($user !== null, 403);
+
+        return (int) $user->getAuthIdentifier();
     }
 
     private function authorizeSync(): void
     {
-        $user = Auth::guard('admin')->user(); abort_unless($user !== null && Gate::forUser($user)->allows(self::SYNC_PERMISSION), 403);
+        $user = Auth::guard('admin')->user();
+        abort_unless($user !== null && Gate::forUser($user)->allows(self::SYNC_PERMISSION), 403);
     }
 
     private function authorizeWishlist(): void
     {
-        $user = Auth::guard('admin')->user(); abort_unless($user !== null && Gate::forUser($user)->allows(self::WISHLIST_PERMISSION), 403);
+        $user = Auth::guard('admin')->user();
+        abort_unless($user !== null && Gate::forUser($user)->allows(self::WISHLIST_PERMISSION), 403);
     }
 }
