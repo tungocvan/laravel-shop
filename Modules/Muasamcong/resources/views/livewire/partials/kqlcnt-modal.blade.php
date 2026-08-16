@@ -1,9 +1,12 @@
 @php($currentKqlcntSynced = isset($syncedKqlcntNotifyNos[$kqlcnt['notify_no'] ?? '']))
 
-<div class="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden bg-gray-950/70 p-3 sm:p-5"
+<div class="fixed inset-0 flex items-center justify-center overflow-hidden bg-gray-950/70 p-3 sm:p-5"
+     style="z-index: 9999; position: fixed; inset: 0;"
      wire:click.self="closeKqlcnt">
-    <div class="flex h-[calc(100dvh-1.5rem)] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:h-[calc(100dvh-2.5rem)]">
-        <div class="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 bg-white px-5 py-4 sm:px-6">
+    <div class="w-full max-w-7xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+         style="display:flex; flex-direction:column; height:calc(100vh - 24px); max-height:calc(100vh - 24px); min-height:0;">
+        <div class="flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-5 py-4 sm:px-6"
+             style="flex:0 0 auto;">
             <div class="min-w-0">
                 <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Kết quả lựa chọn nhà thầu</p>
                 <h3 class="mt-1 text-xl font-bold text-gray-900">{{ $kqlcnt['notify_no'] ?? '' }}</h3>
@@ -20,7 +23,8 @@
             </div>
         </div>
 
-        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+        <div class="px-5 py-5 sm:px-6"
+             style="min-height:0; flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain;">
             <div class="grid gap-4 md:grid-cols-5">
                 <div class="rounded-xl border border-gray-200 p-4">
                     <div class="text-xs uppercase text-gray-500">Trạng thái</div>
@@ -149,8 +153,9 @@
             @include('Muasamcong::livewire.partials.hsmt-catalogue')
         </div>
 
-        <div class="flex shrink-0 items-center justify-between gap-3 border-t border-gray-100 bg-white px-5 py-3 sm:px-6">
-            <div class="text-xs text-gray-500">Esc chưa được bắt sự kiện; dùng nút Đóng hoặc dấu ×.</div>
+        <div class="flex items-center justify-between gap-3 border-t border-gray-100 bg-white px-5 py-3 sm:px-6"
+             style="flex:0 0 auto; min-height:58px; position:relative; z-index:2;">
+            <div class="text-xs text-gray-500">Dùng nút Đóng hoặc dấu × để thoát cửa sổ.</div>
             <div class="flex items-center gap-2">
                 <button wire:click="syncKqlcnt" wire:loading.attr="disabled"
                         class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 sm:hidden">
