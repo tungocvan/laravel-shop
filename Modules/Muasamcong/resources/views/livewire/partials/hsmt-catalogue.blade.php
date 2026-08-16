@@ -45,9 +45,9 @@
             </div>
         </div>
 
-        <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <div class="mt-4 max-h-[55vh] overflow-auto overscroll-contain rounded-xl border border-gray-200 bg-white">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
-                <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <thead class="sticky top-0 z-10 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 shadow-sm">
                 <tr>
                     <th class="whitespace-nowrap px-4 py-3">Mã lô</th>
                     <th class="min-w-56 px-4 py-3">Hoạt chất / Thuốc</th>
