@@ -5,6 +5,7 @@ namespace Modules\Muasamcong\Livewire;
 use Livewire\Component;
 use Modules\Muasamcong\Models\ContractorBid;
 use Modules\Muasamcong\Services\ContractorHistoryService;
+use Modules\Muasamcong\Services\KqlcntService;
 use Modules\Muasamcong\Services\MuaSamCongService;
 use Throwable;
 
@@ -19,13 +20,14 @@ class ContractorHistory extends Component
     public array $results = [];
     public array $selected = [];
     public ?array $detail = null;
+    public ?array $kqlcnt = null;
     public ?string $error = null;
     public ?string $notice = null;
     public int $reportedTotal = 0;
 
     public function searchCompany(MuaSamCongService $pricing): void
     {
-        $this->reset(['companies', 'results', 'selected', 'detail', 'error', 'notice', 'contractorCode', 'contractorName']);
+        $this->reset(['companies', 'results', 'selected', 'detail', 'kqlcnt', 'error', 'notice', 'contractorCode', 'contractorName']);
         $keyword = trim($this->companyKeyword);
 
         if (mb_strlen($keyword) < 3) {
@@ -77,6 +79,8 @@ class ContractorHistory extends Component
         $this->notice = null;
         $this->results = [];
         $this->selected = [];
+        $this->detail = null;
+        $this->kqlcnt = null;
 
         if ($this->contractorCode === '') {
             $this->error = 'Chưa chọn doanh nghiệp.';
@@ -159,11 +163,36 @@ class ContractorHistory extends Component
     public function showDetail(string $notifyNo): void
     {
         $this->detail = collect($this->results)->firstWhere('notifyNo', $notifyNo);
+        $this->kqlcnt = null;
+    }
+
+    public function showKqlcnt(string $notifyNo, KqlcntService $service): void
+    {
+        $this->error = null;
+        $this->notice = null;
+        $this->kqlcnt = null;
+
+        if ($this->contractorCode === '') {
+            $this->error = 'Chưa chọn doanh nghiệp để đối chiếu KQLCNT.';
+            return;
+        }
+
+        try {
+            $this->kqlcnt = $service->resolveByNotifyNo($notifyNo, $this->contractorCode);
+        } catch (Throwable $e) {
+            report($e);
+            $this->error = $e->getMessage() ?: 'Không thể tải KQLCNT.';
+        }
     }
 
     public function closeDetail(): void
     {
         $this->detail = null;
+    }
+
+    public function closeKqlcnt(): void
+    {
+        $this->kqlcnt = null;
     }
 
     public function render()
