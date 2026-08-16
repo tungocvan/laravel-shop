@@ -58,30 +58,85 @@
                 @endif
             </div>
 
-            <section class="mt-6">
-                <div class="mb-3">
-                    <h4 class="text-base font-bold text-gray-900">Các đơn vị trúng thầu của TBMT</h4>
-                    <p class="text-sm text-gray-500">Được đọc trực tiếp từ contractorPassList của API hợp đồng, không suy diễn từ danh mục HSMT.</p>
+            <section class="mt-6"
+                     x-data="{
+                        q: '',
+                        limit: 20,
+                        winners: @js($kqlcnt['all_winners'] ?? []),
+                        contractorCode: @js($kqlcnt['contractor_code'] ?? null),
+                        filtered() {
+                            const term = this.q.trim().toLocaleLowerCase('vi');
+                            if (!term) return this.winners;
+                            return this.winners.filter((winner) => {
+                                const haystack = [
+                                    winner.contractorName || '',
+                                    winner.contractorCode || '',
+                                    winner.contractorAddress || '',
+                                    ...(winner.contracts || []),
+                                ].join(' ').toLocaleLowerCase('vi');
+                                return haystack.includes(term);
+                            });
+                        }
+                     }"
+                     x-effect="q; limit = 20">
+                <div class="mb-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h4 class="text-base font-bold text-gray-900">Các đơn vị trúng thầu của TBMT</h4>
+                            <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                                {{ number_format(count($kqlcnt['all_winners'] ?? []), 0, ',', '.') }} đơn vị
+                            </span>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">Được tổng hợp từ dữ liệu hợp đồng KQLCNT; danh sách được tìm kiếm và giới hạn hiển thị để Modal luôn nhẹ.</p>
+                    </div>
+
+                    @if (!empty($kqlcnt['all_winners']))
+                        <div class="w-full lg:w-96">
+                            <x-search x-model.debounce.250ms="q" placeholder="Tìm tên, mã nhà thầu, hợp đồng..." />
+                        </div>
+                    @endif
                 </div>
 
                 @if (!empty($kqlcnt['all_winners']))
+                    <div class="mb-3 flex items-center justify-between text-xs text-gray-500">
+                        <div>
+                            Tìm thấy <strong class="text-gray-700" x-text="filtered().length"></strong> / {{ number_format(count($kqlcnt['all_winners']), 0, ',', '.') }} đơn vị
+                        </div>
+                        <div>Hiển thị tối đa <strong class="text-gray-700" x-text="Math.min(limit, filtered().length)"></strong> kết quả</div>
+                    </div>
+
                     <div class="grid gap-3 lg:grid-cols-2">
-                        @foreach ($kqlcnt['all_winners'] as $winner)
-                            <div class="rounded-xl border {{ ($winner['contractorCode'] ?? null) === ($kqlcnt['contractor_code'] ?? null) ? 'border-emerald-300 bg-emerald-50/60' : 'border-gray-200 bg-white' }} p-4">
-                                <div class="font-semibold text-gray-900">{{ $winner['contractorName'] ?? '—' }}</div>
-                                <div class="mt-1 text-xs text-gray-500">{{ $winner['contractorCode'] ?? '—' }}</div>
-                                @if (!empty($winner['contractorAddress']))
-                                    <div class="mt-2 text-sm text-gray-600">{{ $winner['contractorAddress'] }}</div>
-                                @endif
-                                @if (!empty($winner['contracts']))
-                                    <div class="mt-2 text-xs text-gray-500">Hợp đồng: {{ implode(', ', $winner['contracts']) }}</div>
-                                @endif
+                        <template x-for="winner in filtered().slice(0, limit)" :key="(winner.contractorCode || winner.contractorName) + JSON.stringify(winner.contracts || [])">
+                            <div class="rounded-xl border p-4"
+                                 :class="winner.contractorCode === contractorCode ? 'border-emerald-300 bg-emerald-50/60' : 'border-gray-200 bg-white'">
+                                <div class="font-semibold text-gray-900" x-text="winner.contractorName || '—'"></div>
+                                <div class="mt-1 text-xs text-gray-500" x-text="winner.contractorCode || '—'"></div>
+                                <div class="mt-2 text-sm text-gray-600" x-show="winner.contractorAddress" x-text="winner.contractorAddress"></div>
+                                <div class="mt-2 text-xs text-gray-500" x-show="(winner.contracts || []).length">
+                                    Hợp đồng: <span x-text="(winner.contracts || []).join(', ')"></span>
+                                </div>
                             </div>
-                        @endforeach
+                        </template>
+                    </div>
+
+                    <div class="mt-4 flex flex-col items-center justify-center gap-2" x-show="filtered().length > limit">
+                        <button type="button"
+                                @click="limit += 20"
+                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                            Xem thêm 20 đơn vị
+                        </button>
+                        <div class="text-xs text-gray-400">
+                            Đang hiển thị <span x-text="Math.min(limit, filtered().length)"></span> / <span x-text="filtered().length"></span>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500"
+                         x-show="filtered().length === 0">
+                        Không tìm thấy đơn vị trúng thầu phù hợp với từ khóa.
                     </div>
                 @else
                     <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                        API hợp đồng hiện chưa trả contractorPassList có dữ liệu cho TBMT này.
+                        API hợp đồng hiện chưa trả dữ liệu đơn vị trúng thầu cho TBMT này.
                     </div>
                 @endif
             </section>
@@ -89,7 +144,7 @@
             <section class="mt-6">
                 <div class="mb-3">
                     <h4 class="text-base font-bold text-gray-900">Đơn vị trúng thầu / Hợp đồng của nhà thầu đang xem</h4>
-                    <p class="text-sm text-gray-500">Chỉ hiển thị hợp đồng có contractorPassList khớp đúng mã nhà thầu đang xem.</p>
+                    <p class="text-sm text-gray-500">Chỉ hiển thị hợp đồng có mã nhà thầu khớp đúng nhà thầu đang xem.</p>
                 </div>
                 <div class="space-y-3">
                     @forelse (($kqlcnt['contracts'] ?? []) as $contract)
