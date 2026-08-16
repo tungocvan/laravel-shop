@@ -108,7 +108,7 @@ class MuasamcongModuleTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_pricing_search_includes_winning_name_and_returns_bidder_results_without_medicine_fallback(): void
+    public function test_pricing_company_search_expands_filters_and_deduplicates_results(): void
     {
         Http::fake([
             '*' => Http::response([
@@ -117,6 +117,7 @@ class MuasamcongModuleTest extends TestCase
                     'content' => [[
                         'id' => '33333333-3333-4333-8333-333333333333',
                         'tenThuoc' => 'Pidoncam',
+                        'ngayBanHanhQuyetDinh' => '2026-06-11T23:59:59',
                         'winningName' => ['CÔNG TY CỔ PHẦN DƯỢC PHẨM NAM SƠN - NAMPHACO'],
                     ]],
                 ],
@@ -126,22 +127,22 @@ class MuasamcongModuleTest extends TestCase
         $result = app(MuaSamCongService::class)->searchPricing('NAM SƠN');
 
         $this->assertTrue($result['success']);
+        $this->assertTrue($result['data']['expanded_company_search']);
         $this->assertSame(1, $result['data']['total']);
         $this->assertSame('Pidoncam', $result['data']['items'][0]['tenThuoc']);
 
-        Http::assertSentCount(1);
-        Http::assertSent(function (ClientRequest $request): bool {
+        $winningNameOnlyRequests = 0;
+        Http::assertSent(function (ClientRequest $request) use (&$winningNameOnlyRequests): bool {
             $query = $request->data()[0]['query'][0] ?? [];
 
-            return ($query['keyWord'] ?? null) === 'NAM SƠN'
-                && ($query['matchType'] ?? null) === 'exact'
-                && ($query['matchFields'] ?? null) === [
-                    'ten_thuoc',
-                    'ten_hoat_chat',
-                    'ma_tbmt',
-                    'winning_name',
-                ];
+            if (($query['matchFields'] ?? null) === ['winning_name']) {
+                $winningNameOnlyRequests++;
+            }
+
+            return true;
         });
+
+        $this->assertGreaterThanOrEqual(4, $winningNameOnlyRequests);
     }
 
     public function test_pricing_search_falls_back_for_punctuation_and_keeps_the_exact_normalized_medicine_name(): void
