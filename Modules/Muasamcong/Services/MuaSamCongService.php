@@ -27,9 +27,6 @@ class MuaSamCongService
             if (! ($normalized['success'] ?? false)) {
                 $lastFailure = $normalized;
 
-                // Cổng Mua sắm công có thể trả 400 với dấu câu trong keyword
-                // (điển hình dấu phẩy thập phân). Khi đó thử biến thể an toàn
-                // thay vì kết thúc toàn bộ luồng tìm kiếm.
                 if ((int) ($normalized['status'] ?? 0) === 400) {
                     continue;
                 }
@@ -191,12 +188,14 @@ class MuaSamCongService
     {
         $variants = [$keyword];
 
-        // Decimal comma: 2,5 -> 2.5. Giữ dấu gạch nối vì upstream xử lý
-        // Gourcuff-5 bình thường, nên không phá cấu trúc tên thuốc nếu chưa cần.
         $decimalDot = preg_replace('/(?<=\d),(?=\d)/u', '.', $keyword) ?? $keyword;
         $variants[] = $decimalDot;
 
-        // Biến thể nhẹ hơn cho analyzer search: các dấu phân cách thành khoảng trắng.
+        $baseName = $this->medicineBaseName($keyword);
+        if ($baseName !== null) {
+            $variants[] = $baseName;
+        }
+
         $spaced = preg_replace('/[-,.]+/u', ' ', $decimalDot) ?? $decimalDot;
         $spaced = preg_replace('/\s+/u', ' ', trim($spaced)) ?? trim($spaced);
         $variants[] = $spaced;
@@ -205,6 +204,19 @@ class MuaSamCongService
             $variants,
             static fn (string $value): bool => $value !== ''
         )));
+    }
+
+    private function medicineBaseName(string $keyword): ?string
+    {
+        $normalized = trim(preg_replace('/(?<=\d),(?=\d)/u', '.', $keyword) ?? $keyword);
+
+        if (preg_match('/^(.*?)[\s-]+\d+(?:\.\d+)?(?:\s*[a-zA-Z%]+)?$/u', $normalized, $matches) !== 1) {
+            return null;
+        }
+
+        $base = trim((string) ($matches[1] ?? ''));
+
+        return mb_strlen($base) >= 2 ? $base : null;
     }
 
     private function filterEquivalentMedicineNames(array $result, string $originalKeyword, bool $fallback): array
