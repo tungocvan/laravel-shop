@@ -15,49 +15,70 @@ class MuaSamCongService
     public function searchPricing(string $keyword): array
     {
         $keyword = trim($keyword);
-        $result = $this->pricingRequest($keyword, 'exact');
-        $normalized = $this->normalizePage($result, 'giá thuốc');
+        $variants = $this->pricingKeywordVariants($keyword);
+        $lastFailure = null;
 
-        if (! ($normalized['success'] ?? false)
-            || (int) ($normalized['data']['total'] ?? 0) > 0) {
-            return $normalized;
+        foreach ($variants as $variant) {
+            $normalized = $this->normalizePage(
+                $this->pricingRequest($variant, 'exact'),
+                'giá thuốc'
+            );
+
+            if (! ($normalized['success'] ?? false)) {
+                $lastFailure = $normalized;
+
+                // Cổng Mua sắm công có thể trả 400 với dấu câu trong keyword
+                // (điển hình dấu phẩy thập phân). Khi đó thử biến thể an toàn
+                // thay vì kết thúc toàn bộ luồng tìm kiếm.
+                if ((int) ($normalized['status'] ?? 0) === 400) {
+                    continue;
+                }
+
+                return $normalized;
+            }
+
+            if ((int) ($normalized['data']['total'] ?? 0) > 0) {
+                return $this->filterEquivalentMedicineNames($normalized, $keyword, false);
+            }
         }
 
-        // Upstream Elasticsearch có thể tokenize dấu phẩy/gạch nối khác với
-        // chuỗi người dùng nhập (ví dụ Gourcuff-2,5). Khi exact không có kết
-        // quả, fallback sang any-0 rồi ưu tiên các tên thuốc tương đương sau
-        // khi chuẩn hóa dấu câu.
-        $fallback = $this->normalizePage(
-            $this->pricingRequest($keyword, 'any-0'),
-            'giá thuốc'
-        );
+        foreach ($variants as $variant) {
+            $fallback = $this->normalizePage(
+                $this->pricingRequest($variant, 'any-0'),
+                'giá thuốc'
+            );
 
-        if (! ($fallback['success'] ?? false)) {
-            return $fallback;
+            if (! ($fallback['success'] ?? false)) {
+                $lastFailure = $fallback;
+
+                if ((int) ($fallback['status'] ?? 0) === 400) {
+                    continue;
+                }
+
+                return $fallback;
+            }
+
+            if ((int) ($fallback['data']['total'] ?? 0) === 0) {
+                continue;
+            }
+
+            return $this->filterEquivalentMedicineNames($fallback, $keyword, true);
         }
 
-        $items = is_array($fallback['data']['items'] ?? null)
-            ? $fallback['data']['items']
-            : [];
-        $needle = $this->normalizedMedicineName($keyword);
-
-        $exactNameMatches = array_values(array_filter(
-            $items,
-            fn (mixed $item): bool => is_array($item)
-                && $this->normalizedMedicineName((string) ($item['tenThuoc'] ?? '')) === $needle
-        ));
-
-        if ($needle !== '' && $exactNameMatches !== []) {
-            $fallback['data']['items'] = $exactNameMatches;
-            $fallback['data']['total'] = count($exactNameMatches);
-            $fallback['data']['fallback'] = true;
-
-            return $fallback;
+        if (is_array($lastFailure) && (int) ($lastFailure['status'] ?? 0) !== 400) {
+            return $lastFailure;
         }
 
-        $fallback['data']['fallback'] = true;
-
-        return $fallback;
+        return [
+            'success' => true,
+            'status' => 200,
+            'data' => [
+                'total' => 0,
+                'items' => [],
+                'fallback' => true,
+            ],
+            'message' => null,
+        ];
     }
 
     public function searchHsmt(string $keyword, string $fromDate, string $toDate): array
@@ -164,6 +185,53 @@ class MuaSamCongService
                 ],
             ]],
         ]];
+    }
+
+    private function pricingKeywordVariants(string $keyword): array
+    {
+        $variants = [$keyword];
+
+        // Decimal comma: 2,5 -> 2.5. Giữ dấu gạch nối vì upstream xử lý
+        // Gourcuff-5 bình thường, nên không phá cấu trúc tên thuốc nếu chưa cần.
+        $decimalDot = preg_replace('/(?<=\d),(?=\d)/u', '.', $keyword) ?? $keyword;
+        $variants[] = $decimalDot;
+
+        // Biến thể nhẹ hơn cho analyzer search: các dấu phân cách thành khoảng trắng.
+        $spaced = preg_replace('/[-,.]+/u', ' ', $decimalDot) ?? $decimalDot;
+        $spaced = preg_replace('/\s+/u', ' ', trim($spaced)) ?? trim($spaced);
+        $variants[] = $spaced;
+
+        return array_values(array_unique(array_filter(
+            $variants,
+            static fn (string $value): bool => $value !== ''
+        )));
+    }
+
+    private function filterEquivalentMedicineNames(array $result, string $originalKeyword, bool $fallback): array
+    {
+        $items = is_array($result['data']['items'] ?? null)
+            ? $result['data']['items']
+            : [];
+        $needle = $this->normalizedMedicineName($originalKeyword);
+
+        if ($needle !== '') {
+            $equivalent = array_values(array_filter(
+                $items,
+                fn (mixed $item): bool => is_array($item)
+                    && $this->normalizedMedicineName((string) ($item['tenThuoc'] ?? '')) === $needle
+            ));
+
+            if ($equivalent !== []) {
+                $result['data']['items'] = $equivalent;
+                $result['data']['total'] = count($equivalent);
+            }
+        }
+
+        if ($fallback) {
+            $result['data']['fallback'] = true;
+        }
+
+        return $result;
     }
 
     private function post(
