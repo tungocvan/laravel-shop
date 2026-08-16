@@ -8,10 +8,13 @@ use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Modules\Muasamcong\Services\MuaSamCongService;
 use Modules\Muasamcong\Services\PricingResultSyncService;
+use Modules\Muasamcong\Services\PricingWishlistService;
 
 class TracuuThuoctrungthau extends Component
 {
     private const SYNC_PERMISSION = 'muasamcong.pricing.sync';
+
+    private const WISHLIST_PERMISSION = 'muasamcong.pricing.wishlist';
 
     public string $keyword = '';
 
@@ -20,6 +23,10 @@ class TracuuThuoctrungthau extends Component
     public array $selectedSourceIds = [];
 
     public array $syncedSourceIds = [];
+
+    public array $wishlistSourceIds = [];
+
+    public array $wishlistItems = [];
 
     public ?array $detailItem = null;
 
@@ -31,7 +38,14 @@ class TracuuThuoctrungthau extends Component
 
     public string $syncMessage = '';
 
-    public function search(MuaSamCongService $service, PricingResultSyncService $syncService): void
+    public string $wishlistMessage = '';
+
+    public function mount(PricingWishlistService $wishlistService): void
+    {
+        $this->refreshWishlist($wishlistService);
+    }
+
+    public function search(MuaSamCongService $service, PricingResultSyncService $syncService, PricingWishlistService $wishlistService): void
     {
         $validated = $this->validate([
             'keyword' => ['required', 'string', 'min:2', 'max:200'],
@@ -43,6 +57,7 @@ class TracuuThuoctrungthau extends Component
         $this->error = '';
         $this->syncStatus = '';
         $this->syncMessage = '';
+        $this->wishlistMessage = '';
         $this->results = [];
         $this->selectedSourceIds = [];
         $this->syncedSourceIds = [];
@@ -61,7 +76,38 @@ class TracuuThuoctrungthau extends Component
             ? $result['data']['items']
             : [];
         $this->syncedSourceIds = $syncService->existingSourceIds($this->results);
+        $this->wishlistSourceIds = $this->currentWishlistSourceIds($wishlistService);
         $this->loading = false;
+    }
+
+    public function searchWishlist(string $keyword, MuaSamCongService $service, PricingResultSyncService $syncService, PricingWishlistService $wishlistService): void
+    {
+        $this->keyword = trim($keyword);
+        $this->search($service, $syncService, $wishlistService);
+    }
+
+    public function toggleWishlist(string $sourceId, PricingWishlistService $wishlistService): void
+    {
+        $this->authorizeWishlist();
+
+        $item = collect($this->results)
+            ->first(fn (mixed $result): bool => is_array($result) && ($result['id'] ?? null) === $sourceId);
+
+        if (! is_array($item) && is_array($this->detailItem) && ($this->detailItem['id'] ?? null) === $sourceId) {
+            $item = $this->detailItem;
+        }
+
+        if (! is_array($item)) {
+            $this->wishlistMessage = 'Không tìm thấy bản ghi để cập nhật Wishlist.';
+
+            return;
+        }
+
+        $userId = $this->adminUserId();
+        $added = $wishlistService->toggle($userId, $this->keyword !== '' ? $this->keyword : (string) ($item['tenThuoc'] ?? ''), $item);
+        $this->wishlistSourceIds = $this->currentWishlistSourceIds($wishlistService);
+        $this->refreshWishlist($wishlistService);
+        $this->wishlistMessage = $added ? 'Đã thêm vào Wishlist.' : 'Đã bỏ khỏi Wishlist.';
     }
 
     public function selectAllUnsynced(): void
@@ -121,12 +167,10 @@ class TracuuThuoctrungthau extends Component
         $freshItems = is_array($freshResult['data']['items'] ?? null)
             ? $freshResult['data']['items']
             : [];
-        $user = Auth::guard('admin')->user();
-        $userId = $user?->getAuthIdentifier();
         $report = $syncService->syncSelected(
             $freshItems,
             $this->selectedSourceIds,
-            $userId === null ? null : (int) $userId
+            $this->adminUserId()
         );
 
         $this->results = $freshItems;
@@ -163,12 +207,49 @@ class TracuuThuoctrungthau extends Component
         return view('Muasamcong::livewire.tracuu-thuoctrungthau');
     }
 
+    private function refreshWishlist(PricingWishlistService $wishlistService): void
+    {
+        $user = Auth::guard('admin')->user();
+
+        $this->wishlistItems = $user === null
+            ? []
+            : $wishlistService->recentForUser((int) $user->getAuthIdentifier());
+    }
+
+    private function currentWishlistSourceIds(PricingWishlistService $wishlistService): array
+    {
+        $user = Auth::guard('admin')->user();
+
+        return $user === null
+            ? []
+            : $wishlistService->sourceIdsForUser((int) $user->getAuthIdentifier(), $this->results);
+    }
+
+    private function adminUserId(): int
+    {
+        $user = Auth::guard('admin')->user();
+
+        abort_unless($user !== null, 403);
+
+        return (int) $user->getAuthIdentifier();
+    }
+
     private function authorizeSync(): void
     {
         $user = Auth::guard('admin')->user();
 
         abort_unless(
             $user !== null && Gate::forUser($user)->allows(self::SYNC_PERMISSION),
+            403
+        );
+    }
+
+    private function authorizeWishlist(): void
+    {
+        $user = Auth::guard('admin')->user();
+
+        abort_unless(
+            $user !== null && Gate::forUser($user)->allows(self::WISHLIST_PERMISSION),
             403
         );
     }
