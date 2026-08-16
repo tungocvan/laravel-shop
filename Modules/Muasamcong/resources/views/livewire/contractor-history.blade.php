@@ -119,7 +119,7 @@
     @endif
 
     @if ($detail)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-gray-950/50 p-4" wire:click.self="closeDetail">
+        <div class="fixed inset-0 z-[110] flex items-center justify-center bg-gray-950/50 p-4" wire:click.self="closeDetail">
             <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
                 <div class="flex items-start justify-between border-b p-5">
                     <div><p class="text-xs font-semibold uppercase text-indigo-600">Chi tiết gói đã tham gia</p><h3 class="mt-1 text-lg font-bold text-gray-900">{{ $detail['notifyNo'] ?? '' }}</h3></div>
@@ -137,117 +137,6 @@
     @endif
 
     @if ($kqlcnt)
-        @php($currentKqlcntSynced = isset($syncedKqlcntNotifyNos[$kqlcnt['notify_no'] ?? '']))
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 p-4" wire:click.self="closeKqlcnt">
-            <div class="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-                <div class="flex items-start justify-between border-b border-gray-100 px-6 py-5">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Kết quả lựa chọn nhà thầu</p>
-                        <h3 class="mt-1 text-xl font-bold text-gray-900">{{ $kqlcnt['notify_no'] ?? '' }}</h3>
-                        <p class="mt-1 text-sm text-gray-500">{{ $kqlcnt['bid_name'] ?? '—' }}</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button wire:click="syncKqlcnt" wire:loading.attr="disabled"
-                                class="rounded-lg px-4 py-2 text-sm font-semibold {{ $currentKqlcntSynced ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'bg-emerald-600 text-white hover:bg-emerald-700' }} disabled:opacity-50">
-                            {{ $currentKqlcntSynced ? 'Đồng bộ lại KQLCNT' : 'Đồng bộ KQLCNT' }}
-                        </button>
-                        <button wire:click="closeKqlcnt" class="text-2xl text-gray-400 hover:text-gray-700">&times;</button>
-                    </div>
-                </div>
-
-                <div class="max-h-[calc(92vh-82px)] overflow-y-auto p-6">
-                    <div class="grid gap-4 md:grid-cols-5">
-                        <div class="rounded-xl border border-gray-200 p-4">
-                            <div class="text-xs uppercase text-gray-500">Trạng thái</div>
-                            <div class="mt-1 font-semibold text-gray-900">{{ ($kqlcnt['status'] ?? '') === 'PUB_KQLCNT' ? 'Đã công bố KQLCNT' : ($kqlcnt['status'] ?? '—') }}</div>
-                        </div>
-                        <div class="rounded-xl border border-gray-200 p-4 md:col-span-2">
-                            <div class="text-xs uppercase text-gray-500">Chủ đầu tư</div>
-                            <div class="mt-1 font-semibold text-gray-900">{{ $kqlcnt['investor_name'] ?? '—' }}</div>
-                            @if (!empty($kqlcnt['investor_code']))
-                                <div class="mt-1 text-xs text-gray-500">{{ $kqlcnt['investor_code'] }}</div>
-                            @endif
-                        </div>
-                        <div class="rounded-xl border border-gray-200 p-4">
-                            <div class="text-xs uppercase text-gray-500">Số hợp đồng phù hợp</div>
-                            <div class="mt-1 text-xl font-bold text-gray-900">{{ count($kqlcnt['contracts'] ?? []) }}</div>
-                        </div>
-                        <div class="rounded-xl border border-gray-200 p-4">
-                            <div class="text-xs uppercase text-gray-500">Lô đã xác minh</div>
-                            <div class="mt-1 text-xl font-bold text-gray-900">{{ count($kqlcnt['verified_lots'] ?? []) }}</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-800">
-                        Nhà thầu đang xem: <strong>{{ $contractorName }}</strong> <span class="text-indigo-500">({{ $kqlcnt['contractor_code'] ?? '—' }})</span>
-                        @if ($currentKqlcntSynced)
-                            <span class="ml-2 rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">KQLCNT đã đồng bộ</span>
-                        @endif
-                    </div>
-
-                    <section class="mt-6">
-                        <div class="mb-3 flex items-center justify-between">
-                            <div>
-                                <h4 class="text-base font-bold text-gray-900">Đơn vị trúng thầu / Hợp đồng</h4>
-                                <p class="text-sm text-gray-500">Chỉ hiển thị hợp đồng có contractorPassList khớp đúng mã nhà thầu đang xem.</p>
-                            </div>
-                        </div>
-                        <div class="space-y-3">
-                            @forelse (($kqlcnt['contracts'] ?? []) as $contract)
-                                @php($winner = $contract['contractorPassListParsed'][0] ?? [])
-                                <div class="rounded-xl border border-gray-200 p-4">
-                                    <div class="grid gap-4 lg:grid-cols-3">
-                                        <div class="lg:col-span-2">
-                                            <div class="text-xs uppercase text-gray-500">Đơn vị trúng thầu</div>
-                                            <div class="mt-1 font-semibold text-gray-900">{{ $winner['contractorName'] ?? '—' }}</div>
-                                            <div class="mt-1 text-xs text-gray-500">{{ $winner['contractorCode'] ?? '—' }}</div>
-                                            @if (!empty($winner['contractorAddress']))
-                                                <div class="mt-2 text-sm text-gray-600">{{ $winner['contractorAddress'] }}</div>
-                                            @endif
-                                        </div>
-                                        <div>
-                                            <div class="text-xs uppercase text-gray-500">Hợp đồng / TTK</div>
-                                            <div class="mt-1 font-semibold text-gray-900">{{ $contract['contractNo'] ?? '—' }}</div>
-                                            <div class="mt-1 text-sm text-gray-600">{{ $contract['contractName'] ?? '—' }}</div>
-                                            <div class="mt-1 text-xs text-gray-500">{{ !empty($contract['contractSignDate']) ? \Illuminate\Support\Carbon::parse($contract['contractSignDate'])->format('d/m/Y') : '—' }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Chưa tìm thấy hợp đồng/KQLCNT có mã nhà thầu {{ $contractorCode }} trong dữ liệu nguồn hiện tại.</div>
-                            @endforelse
-                        </div>
-                    </section>
-
-                    <section class="mt-6">
-                        <div>
-                            <h4 class="text-base font-bold text-gray-900">Danh mục lô / thuốc của nhà thầu</h4>
-                            <p class="mt-1 text-sm text-gray-500">Hệ thống chỉ hiển thị lô khi dữ liệu nguồn có khóa xác minh trực tiếp lô ↔ nhà thầu.</p>
-                        </div>
-                        @if (!empty($kqlcnt['verified_lots']))
-                            <div class="mt-3 overflow-x-auto rounded-xl border border-gray-200">
-                                <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                    <thead class="bg-gray-50 text-left text-xs font-semibold uppercase text-gray-500"><tr><th class="px-4 py-3">Mã lô</th><th class="px-4 py-3">Tên lô / thuốc</th><th class="px-4 py-3">Số lượng</th><th class="px-4 py-3">Đơn giá / Giá</th></tr></thead>
-                                    <tbody class="divide-y divide-gray-100">
-                                    @foreach ($kqlcnt['verified_lots'] as $lot)
-                                        <tr>
-                                            <td class="px-4 py-3 font-medium text-indigo-700">{{ $lot['lotNo'] ?? $lot['lotCode'] ?? '—' }}</td>
-                                            <td class="px-4 py-3 text-gray-800">{{ $lot['lotName'] ?? $lot['tenThuoc'] ?? $lot['goodsName'] ?? '—' }}</td>
-                                            <td class="px-4 py-3 text-gray-600">{{ $lot['quantity'] ?? $lot['soLuong'] ?? '—' }}</td>
-                                            <td class="px-4 py-3 text-gray-600">{{ $lot['unitPrice'] ?? $lot['donGia'] ?? $lot['price'] ?? '—' }}</td>
-                                        </tr>
-                                    @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <div class="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">Chưa xác định được danh mục lô thuộc nhà thầu này từ dữ liệu nguồn hiện có. Hệ thống không hiển thị toàn bộ lot của TBMT để tránh gán sai thuốc cho nhà thầu.</div>
-                        @endif
-                    </section>
-
-                    @include('Muasamcong::livewire.partials.hsmt-catalogue')
-                </div>
-            </div>
-        </div>
+        @include('Muasamcong::livewire.partials.kqlcnt-modal')
     @endif
 </div>
