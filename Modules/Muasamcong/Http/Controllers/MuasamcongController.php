@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Models\PricingWishlist;
 
 class MuasamcongController extends Controller
@@ -26,25 +25,9 @@ class MuasamcongController extends Controller
         return view('Muasamcong::hsmt');
     }
 
-    public function synced(Request $request): View
+    public function synced(): View
     {
-        $keyword = trim((string) $request->query('q', ''));
-
-        $items = PricingResult::query()
-            ->when($keyword !== '', function ($query) use ($keyword): void {
-                $query->where(function ($nested) use ($keyword): void {
-                    $nested->where('ten_thuoc', 'like', "%{$keyword}%")
-                        ->orWhere('ten_hoat_chat', 'like', "%{$keyword}%")
-                        ->orWhere('nhom_thuoc', 'like', "%{$keyword}%")
-                        ->orWhere('ma_tbmt', 'like', "%{$keyword}%")
-                        ->orWhere('ten_cdt_bmt', 'like', "%{$keyword}%");
-                });
-            })
-            ->orderByDesc('synced_at')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('Muasamcong::synced', compact('items', 'keyword'));
+        return view('Muasamcong::synced');
     }
 
     public function wishlist(Request $request): View
