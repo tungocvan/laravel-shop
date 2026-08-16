@@ -15,67 +15,82 @@ class MuaSamCongService
     public function searchPricing(string $keyword): array
     {
         $keyword = trim($keyword);
-        $variants = $this->pricingKeywordVariants($keyword);
-        $lastFailure = null;
+        $medicineBaseName = $this->medicineBaseName($keyword);
+
+        // Tìm kiếm đa trường chính thức. winning_name đã được xác nhận bằng CLI
+        // là field Elasticsearch hợp lệ cho đơn vị trúng thầu.
+        $primary = $this->normalizePage(
+            $this->pricingRequest($keyword, 'exact'),
+            'giá thuốc'
+        );
+
+        if (($primary['success'] ?? false)
+            && (int) ($primary['data']['total'] ?? 0) > 0) {
+            return $primary;
+        }
+
+        if (! ($primary['success'] ?? false)
+            && (int) ($primary['status'] ?? 0) !== 400) {
+            return $primary;
+        }
+
+        // Chỉ áp dụng fallback tên gốc khi keyword thực sự có dạng tên thuốc
+        // kèm hậu tố số/liều, ví dụ Gourcuff-2,5. Các query nhà thầu như
+        // "NAM SƠN" không đi qua nhánh này nên không bị lọc theo tenThuoc.
+        if ($medicineBaseName === null) {
+            if (! ($primary['success'] ?? false)) {
+                return $primary;
+            }
+
+            return $primary;
+        }
+
+        $variants = array_values(array_unique(array_filter([
+            preg_replace('/(?<=\d),(?=\d)/u', '.', $keyword) ?? $keyword,
+            $medicineBaseName,
+        ], static fn (string $value): bool => $value !== '')));
 
         foreach ($variants as $variant) {
-            $normalized = $this->normalizePage(
+            if ($variant === $keyword) {
+                continue;
+            }
+
+            $candidate = $this->normalizePage(
                 $this->pricingRequest($variant, 'exact'),
                 'giá thuốc'
             );
 
-            if (! ($normalized['success'] ?? false)) {
-                $lastFailure = $normalized;
-
-                if ((int) ($normalized['status'] ?? 0) === 400) {
+            if (! ($candidate['success'] ?? false)) {
+                if ((int) ($candidate['status'] ?? 0) === 400) {
                     continue;
                 }
 
-                return $normalized;
+                return $candidate;
             }
 
-            if ((int) ($normalized['data']['total'] ?? 0) > 0) {
-                return $this->filterEquivalentMedicineNames($normalized, $keyword, false);
-            }
-        }
-
-        foreach ($variants as $variant) {
-            $fallback = $this->normalizePage(
-                $this->pricingRequest($variant, 'any-0'),
-                'giá thuốc'
-            );
-
-            if (! ($fallback['success'] ?? false)) {
-                $lastFailure = $fallback;
-
-                if ((int) ($fallback['status'] ?? 0) === 400) {
-                    continue;
-                }
-
-                return $fallback;
-            }
-
-            if ((int) ($fallback['data']['total'] ?? 0) === 0) {
+            if ((int) ($candidate['data']['total'] ?? 0) === 0) {
                 continue;
             }
 
-            return $this->filterEquivalentMedicineNames($fallback, $keyword, true);
+            $filtered = $this->filterEquivalentMedicineNames($candidate, $keyword, true);
+
+            if ((int) ($filtered['data']['total'] ?? 0) > 0) {
+                return $filtered;
+            }
         }
 
-        if (is_array($lastFailure) && (int) ($lastFailure['status'] ?? 0) !== 400) {
-            return $lastFailure;
+        // Base-name exact có thể vẫn không đủ rộng ở upstream. Thử any-0 bằng
+        // base name rồi lọc chính xác lại ở Laravel.
+        $fallback = $this->normalizePage(
+            $this->pricingRequest($medicineBaseName, 'any-0'),
+            'giá thuốc'
+        );
+
+        if (! ($fallback['success'] ?? false)) {
+            return $fallback;
         }
 
-        return [
-            'success' => true,
-            'status' => 200,
-            'data' => [
-                'total' => 0,
-                'items' => [],
-                'fallback' => true,
-            ],
-            'message' => null,
-        ];
+        return $this->filterEquivalentMedicineNames($fallback, $keyword, true);
     }
 
     public function searchHsmt(string $keyword, string $fromDate, string $toDate): array
@@ -150,7 +165,7 @@ class MuaSamCongService
                 'keyWord' => $keyword,
                 'keyWordNotMatch' => '',
                 'matchType' => $matchType,
-                'matchFields' => ['ten_thuoc', 'ten_hoat_chat', 'ma_tbmt'],
+                'matchFields' => ['ten_thuoc', 'ten_hoat_chat', 'ma_tbmt', 'winning_name'],
                 'filters' => [
                     ['fieldName' => 'medicines', 'searchType' => 'in', 'fieldValues' => ['0']],
                     ['fieldName' => 'type', 'searchType' => 'in', 'fieldValues' => ['HANG_HOA']],
@@ -184,28 +199,6 @@ class MuaSamCongService
         ]];
     }
 
-    private function pricingKeywordVariants(string $keyword): array
-    {
-        $variants = [$keyword];
-
-        $decimalDot = preg_replace('/(?<=\d),(?=\d)/u', '.', $keyword) ?? $keyword;
-        $variants[] = $decimalDot;
-
-        $baseName = $this->medicineBaseName($keyword);
-        if ($baseName !== null) {
-            $variants[] = $baseName;
-        }
-
-        $spaced = preg_replace('/[-,.]+/u', ' ', $decimalDot) ?? $decimalDot;
-        $spaced = preg_replace('/\s+/u', ' ', trim($spaced)) ?? trim($spaced);
-        $variants[] = $spaced;
-
-        return array_values(array_unique(array_filter(
-            $variants,
-            static fn (string $value): bool => $value !== ''
-        )));
-    }
-
     private function medicineBaseName(string $keyword): ?string
     {
         $normalized = trim(preg_replace('/(?<=\d),(?=\d)/u', '.', $keyword) ?? $keyword);
@@ -226,18 +219,16 @@ class MuaSamCongService
             : [];
         $needle = $this->normalizedMedicineName($originalKeyword);
 
-        if ($needle !== '') {
-            $equivalent = array_values(array_filter(
+        $equivalent = $needle === ''
+            ? []
+            : array_values(array_filter(
                 $items,
                 fn (mixed $item): bool => is_array($item)
                     && $this->normalizedMedicineName((string) ($item['tenThuoc'] ?? '')) === $needle
             ));
 
-            if ($equivalent !== []) {
-                $result['data']['items'] = $equivalent;
-                $result['data']['total'] = count($equivalent);
-            }
-        }
+        $result['data']['items'] = $equivalent;
+        $result['data']['total'] = count($equivalent);
 
         if ($fallback) {
             $result['data']['fallback'] = true;
