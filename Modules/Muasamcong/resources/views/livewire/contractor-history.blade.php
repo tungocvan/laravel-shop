@@ -2,10 +2,11 @@
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end">
             <div class="flex-1">
-                <label class="mb-1 block text-sm font-medium text-gray-700">Tên doanh nghiệp</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Tên doanh nghiệp, CONTRACTOR_CODE hoặc mã số thuế</label>
                 <input type="text" wire:model="companyKeyword" wire:keydown.enter="searchCompany"
-                       placeholder="Ví dụ: CÔNG TY TNHH INAFO VIỆT NAM"
+                       placeholder="Ví dụ: KHANG TÍN, vn0315681994 hoặc 0315681994"
                        class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <p class="mt-1 text-xs text-gray-500">Mã số thuế chỉ cần nhập số; hệ thống tự chuẩn hóa thành CONTRACTOR_CODE dạng <code>vn+mã_số_thuế</code>.</p>
             </div>
             <button type="button" wire:click="searchCompany" wire:loading.attr="disabled"
                     class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">
@@ -26,7 +27,12 @@
                     <button type="button" wire:click="selectCompany('{{ $company['code'] }}')"
                             class="rounded-lg border border-gray-200 p-3 text-left hover:border-indigo-300 hover:bg-indigo-50">
                         <div class="font-medium text-gray-900">{{ $company['name'] }}</div>
-                        <div class="mt-1 text-xs text-gray-500">{{ $company['code'] }}</div>
+                        <div class="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                            <span>{{ $company['code'] }}</span>
+                            @if (($company['source'] ?? '') === 'server')
+                                <span class="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">Đã lưu trên server</span>
+                            @endif
+                        </div>
                     </button>
                 @endforeach
             </div>
@@ -40,7 +46,7 @@
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Gói thầu đã tham gia</p>
                         <h3 class="mt-1 text-lg font-bold text-gray-900">{{ $contractorName }}</h3>
-                        <p class="text-sm text-gray-500">Mã nhà thầu: {{ $contractorCode }}</p>
+                        <p class="text-sm text-gray-500">CONTRACTOR_CODE: {{ $contractorCode }}</p>
                     </div>
                     <div class="flex flex-wrap items-end gap-2">
                         <div>
@@ -51,16 +57,30 @@
                             <label class="mb-1 block text-xs font-medium text-gray-500">Đến ngày</label>
                             <input type="date" wire:model="toDate" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                         </div>
-                        <button wire:click="loadHistory" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50">Tra cứu</button>
+                        <button type="button" wire:click="searchFresh" wire:loading.attr="disabled" wire:target="searchFresh"
+                                class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 disabled:opacity-50">
+                            <span wire:loading.remove wire:target="searchFresh">Tìm kiếm mới</span>
+                            <span wire:loading wire:target="searchFresh">Đang kiểm tra Session…</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-3">
-                <div class="text-sm text-gray-600">Tổng cộng <strong class="text-gray-900">{{ count($results) }}</strong> gói <span class="text-gray-400">(API báo {{ $reportedTotal }})</span></div>
-                <div class="flex gap-2">
-                    <button wire:click="selectAll" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Chọn tất cả</button>
-                    <button wire:click="clearSelection" class="text-sm font-medium text-gray-500 hover:text-gray-700">Bỏ chọn</button>
+                <div class="text-sm text-gray-600">
+                    API báo <strong class="text-gray-900">{{ number_format($reportedTotal) }}</strong> gói
+                    <span class="text-gray-400">· Trang {{ $historyPage }}/{{ $historyTotalPages }}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <label class="text-xs text-gray-500">Hiển thị</label>
+                    <select wire:model.live="historyPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <button wire:click="selectAll" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Chọn trang này</button>
+                    <button wire:click="clearSelection" class="text-sm font-medium text-gray-500 hover:text-gray-700">Bỏ chọn tất cả</button>
                     <button wire:click="syncSelected" @disabled(empty($selected))
                             class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Đồng bộ ({{ count($selected) }})</button>
                 </div>
@@ -110,11 +130,31 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-5 py-10 text-center text-gray-500">Không có gói thầu trong khoảng thời gian đã chọn.</td></tr>
+                        <tr><td colspan="7" class="px-5 py-10 text-center text-gray-500">Không có gói thầu trong dữ liệu đã lưu.</td></tr>
                     @endforelse
                     </tbody>
                 </table>
             </div>
+
+            @if ($historyTotalPages > 1)
+                <div class="flex flex-col gap-3 border-t border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="text-xs text-gray-500">Các checkbox đã chọn vẫn được giữ khi chuyển trang.</div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" wire:click="historyPreviousPage" @disabled($historyPage <= 1)
+                                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-40">← Trước</button>
+                        @php($startPage = max(1, $historyPage - 2))
+                        @php($endPage = min($historyTotalPages, $historyPage + 2))
+                        @for ($page = $startPage; $page <= $endPage; $page++)
+                            <button type="button" wire:click="historyGoToPage({{ $page }})"
+                                    class="rounded-lg px-3 py-2 text-sm font-semibold {{ $page === $historyPage ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700' }}">
+                                {{ $page }}
+                            </button>
+                        @endfor
+                        <button type="button" wire:click="historyNextPage" @disabled($historyPage >= $historyTotalPages)
+                                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-40">Sau →</button>
+                    </div>
+                </div>
+            @endif
         </div>
     @endif
 
@@ -127,13 +167,36 @@
                 </div>
                 <div class="grid gap-4 p-5 sm:grid-cols-2">
                     <div class="sm:col-span-2"><div class="text-xs text-gray-500">Tên gói thầu</div><div class="mt-1 font-medium text-gray-900">{{ $detail['bidName'] ?? '—' }}</div></div>
-                    <div><div class="text-xs text-gray-500">Mã nhà thầu</div><div class="mt-1 text-gray-800">{{ $detail['contractorCode'] ?? '—' }}</div></div>
+                    <div><div class="text-xs text-gray-500">Mã nhà thầu</div><div class="mt-1 text-gray-800">{{ $detail['contractorCode'] ?? $contractorCode }}</div></div>
                     <div><div class="text-xs text-gray-500">Mã bên mời thầu</div><div class="mt-1 text-gray-800">{{ $detail['procuringEntityCode'] ?? '—' }}</div></div>
                     <div><div class="text-xs text-gray-500">Ngày tham gia</div><div class="mt-1 text-gray-800">{{ $detail['createdDate'] ?? '—' }}</div></div>
                     <div><div class="text-xs text-gray-500">Kỳ dữ liệu</div><div class="mt-1 text-gray-800">{{ $detail['dateQuarter'] ?? '—' }} / {{ $detail['dateMonth'] ?? '—' }}</div></div>
                 </div>
             </div>
         </div>
+    @endif
+
+    @if ($showSessionExpiredModal)
+        @teleport('body')
+            <div class="fixed inset-0 z-[140] flex items-center justify-center bg-gray-950/60 p-4" wire:click.self="closeSessionExpiredModal">
+                <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+                    <div class="border-b border-gray-100 p-5">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Cần cập nhật Session</p>
+                        <h3 class="mt-1 text-lg font-bold text-gray-900">Personal Page Session đã hết hạn hoặc không hợp lệ</h3>
+                    </div>
+                    <div class="space-y-3 p-5 text-sm text-gray-600">
+                        <p>Tìm kiếm mới cần gọi Cổng Mua sắm công nên phải có Cookie/Session còn hiệu lực.</p>
+                        <p>Dữ liệu lịch sử đã lưu vẫn xem bình thường và không cần gọi API.</p>
+                    </div>
+                    <div class="flex flex-col-reverse gap-2 border-t border-gray-100 p-5 sm:flex-row sm:justify-end">
+                        <button type="button" wire:click="closeSessionExpiredModal"
+                                class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Đóng</button>
+                        <a href="{{ route('muasamcong.config') }}"
+                           class="rounded-xl bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-700">Mở Config cập nhật Session</a>
+                    </div>
+                </div>
+            </div>
+        @endteleport
     @endif
 
     @if ($kqlcnt)
