@@ -110,8 +110,13 @@ $cookieHeader = Get-MuasamcongCookieHeader -Port $DebugPort
 
 Write-Host "[2/3] Da tim thay session cua muasamcong.mpi.gov.vn (khong hien thi gia tri cookie)." -ForegroundColor Green
 
-$bashPath = $WslProjectPath.Replace("'", "'\"'\"'")
-$command = "cd '$bashPath' && php artisan msc:import-personal-session --stdin --test"
+# PowerShell 5.1 khong parse dung chuoi escape kieu Bash '"'"'.
+# WSL project path cua tool nay la duong dan Linux. Tu choi ky tu co the lam vo shell quoting.
+if ($WslProjectPath.Contains("'") -or $WslProjectPath.Contains("`r") -or $WslProjectPath.Contains("`n")) {
+    throw "WslProjectPath chua ky tu khong duoc ho tro."
+}
+
+$command = "cd '$WslProjectPath' && php artisan msc:import-personal-session --stdin --test"
 
 Write-Host "[3/3] Dang luu session ma hoa vao Laravel va kiem tra API..." -ForegroundColor Cyan
 
