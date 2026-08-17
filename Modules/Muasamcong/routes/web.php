@@ -16,7 +16,10 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
                 Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
             });
 
-        Route::get('/config', [MuasamcongController::class, 'config'])
-            ->middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))
-            ->name('config');
+        Route::middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))
+            ->group(function () {
+                Route::get('/config', [MuasamcongController::class, 'config'])->name('config');
+                Route::get('/session-tool/windows', [MuasamcongController::class, 'downloadWindowsSessionTool'])
+                    ->name('session-tool.windows');
+            });
     });
