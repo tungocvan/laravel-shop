@@ -23,7 +23,7 @@
             </div>
         </div>
 
-        @livewire('muasamcong.contractor-history', [
+        @livewire('muasamcong.queued-contractor-history', [
             'initialSearchId' => isset($contractorSearch) ? $contractorSearch->id : null,
         ])
     </div>
