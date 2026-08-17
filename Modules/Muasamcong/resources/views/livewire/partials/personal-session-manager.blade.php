@@ -9,8 +9,10 @@
         </div>
 
         @php($sessionSource = $personalSessionStatus['source'] ?? 'none')
-        <span class="inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold {{ ($personalSessionStatus['verified_at'] ?? null) ? 'bg-emerald-100 text-emerald-700' : (($personalSessionStatus['has_session'] ?? false) ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600') }}">
-            @if ($personalSessionStatus['verified_at'] ?? null)
+        @php($sessionVerified = (bool) ($personalSessionStatus['verified_at'] ?? null))
+        @php($sessionFailed = (bool) ($personalSessionStatus['last_failed_at'] ?? null))
+        <span class="inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold {{ $sessionVerified ? 'bg-emerald-100 text-emerald-700' : (($personalSessionStatus['has_session'] ?? false) ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600') }}">
+            @if ($sessionVerified)
                 Đã xác minh
             @elseif ($personalSessionStatus['has_session'] ?? false)
                 Chưa kiểm tra
@@ -41,21 +43,41 @@
         </div>
     </div>
 
-    <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-        <div class="font-semibold">Cập nhật nhanh trên Windows</div>
-        <div class="mt-1 text-xs leading-5 text-sky-700">
-            Có thể dùng Chrome profile riêng + CDP localhost để không phải copy Cookie bằng tay: chạy
-            <code>Modules/Muasamcong/tools/windows/Open-Muasamcong-Chrome.bat</code>, đăng nhập Mua sắm công, sau đó chạy
-            <code>Update-Muasamcong-Session.bat</code>. Script chỉ lấy cookie của <strong>muasamcong.mpi.gov.vn</strong>, truyền qua STDIN và lưu mã hóa vào database.
+    @if ($sessionFailed && ! $sessionVerified)
+        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+            <div class="font-semibold">Session Mua sắm công có thể đã hết hạn.</div>
+            <div class="mt-1 text-xs leading-5 text-amber-800">
+                Không cần sửa <code>.env</code>. Hãy cập nhật Personal Page Session mới ngay tại màn hình này rồi bấm <strong>Kiểm tra Session</strong>.
+            </div>
+        </div>
+    @endif
+
+    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+            <div class="font-semibold">Local Windows + WSL</div>
+            <div class="mt-1 text-xs leading-5 text-sky-700">
+                Có thể dùng helper đã có trong repository: mở Chrome riêng, đăng nhập Mua sắm công rồi chạy công cụ cập nhật session. Luồng này phù hợp khi Laravel chạy ngay trên WSL của máy Windows.
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+            <div class="font-semibold">VPS / Docker</div>
+            <ol class="mt-1 list-decimal space-y-1 pl-5 text-xs leading-5 text-violet-800">
+                <li>Đăng nhập Mua sắm công trên máy Windows.</li>
+                <li>Mở DevTools → Network → chọn request <code>get-list-notify-contractor-join</code> đang trả HTTP 200.</li>
+                <li>Sao chép giá trị Request Header <code>cookie</code>.</li>
+                <li>Quay lại Config trên VPS, dán vào ô bên dưới và bấm <strong>Lưu Session mã hóa</strong>.</li>
+                <li>Bấm <strong>Kiểm tra Session</strong>. Nếu PASS, Docker dùng session mới ngay, không cần rebuild/restart.</li>
+            </ol>
         </div>
     </div>
 
     <div class="mt-5">
         <label for="msc-personal-session" class="text-sm font-medium text-gray-700">Cookie Personal Page mới</label>
         <textarea id="msc-personal-session" rows="4" wire:model="personalSessionCookie" autocomplete="off"
-            placeholder="Fallback thủ công: dán nguyên giá trị Request Header: cookie của request get-list-notify-contractor-join..."
+            placeholder="Dán nguyên giá trị Request Header: cookie của request get-list-notify-contractor-join..."
             class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-mono text-xs text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></textarea>
-        <p class="mt-1 text-xs text-gray-500">Có thể dùng khi không chạy helper Windows. Giá trị đã lưu không bao giờ được hiển thị lại.</p>
+        <p class="mt-1 text-xs text-gray-500">Giá trị được lưu mã hóa trong database và không bao giờ hiển thị lại. Không gửi Cookie qua chat, email hoặc log.</p>
         @error('personalSessionCookie') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
     </div>
 
