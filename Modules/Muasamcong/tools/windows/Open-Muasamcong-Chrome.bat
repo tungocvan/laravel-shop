@@ -20,20 +20,21 @@ set "PORT=9222"
 start "" "%CHROME%" ^
   --remote-debugging-address=127.0.0.1 ^
   --remote-debugging-port=%PORT% ^
+  --remote-allow-origins=http://127.0.0.1:%PORT% ^
   --user-data-dir="%PROFILE%" ^
   "https://muasamcong.mpi.gov.vn/web/guest/profile-info"
 
- echo.
- echo ============================================================
- echo  CHROME RIENG CHO MUASAMCONG DA DUOC MO
- echo ============================================================
- echo  1. Dang nhap Mua sam cong tren cua so Chrome vua mo.
- echo  2. CAPTCHA/OTP neu co van thuc hien bang tay.
- echo  3. Sau khi dang nhap thanh cong, chay:
- echo     Update-Muasamcong-Session.bat
- echo.
- echo  Profile rieng: %PROFILE%
- echo  CDP chi lang nghe localhost: %PORT%
- echo ============================================================
+echo.
+echo ============================================================
+echo  CHROME RIENG CHO MUASAMCONG DA DUOC MO
+echo ============================================================
+echo  1. Dang nhap Mua sam cong tren cua so Chrome vua mo.
+echo  2. CAPTCHA/OTP neu co van thuc hien bang tay.
+echo  3. Sau khi dang nhap thanh cong, chay:
+echo     Update-Muasamcong-Session.bat
+echo.
+echo  Profile rieng: %PROFILE%
+echo  CDP chi lang nghe localhost: %PORT%
+echo ============================================================
 
 endlocal
