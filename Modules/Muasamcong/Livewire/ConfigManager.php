@@ -33,15 +33,25 @@ class ConfigManager extends Component
     ];
 
     public array $environmentStatus = [];
+
     public array $personalSessionStatus = [];
+
     public bool $hasSmartToken = false;
+
     public bool $hasSessionCookie = false;
+
     public string $personalSessionCookie = '';
+
     public string $tokenTestStatus = '';
+
     public string $tokenTestMessage = '';
+
     public string $sessionTestStatus = '';
+
     public string $sessionTestMessage = '';
+
     public string $sessionImportLink = '';
+
     public string $sessionImportExpiresAt = '';
 
     public function mount(
