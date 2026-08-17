@@ -73,25 +73,41 @@ class InvoiceFilesEmailBackupService
 
         foreach (['vat_in', 'vat_out'] as $direction) {
             $folder = storage_path("app/{$base}/{$direction}");
-            if (! is_dir($folder)) continue;
+            if (! is_dir($folder)) {
+                continue;
+            }
 
-            foreach (glob($folder.'/*.{xlsx,csv}', GLOB_BRACE) ?: [] as $path) {
+            $paths = array_merge(
+                glob($folder.'/*.xlsx') ?: [],
+                glob($folder.'/*.csv') ?: [],
+            );
+
+            foreach ($paths as $path) {
                 $name = basename($path);
                 $lower = strtolower($name);
-                if (($direction === 'vat_in' && ! str_starts_with($lower, 'vat_in_')) || ($direction === 'vat_out' && ! str_starts_with($lower, 'vat_out_'))) continue;
-                if (! is_file($path) || ! is_readable($path)) continue;
+                if (($direction === 'vat_in' && ! str_starts_with($lower, 'vat_in_')) || ($direction === 'vat_out' && ! str_starts_with($lower, 'vat_out_'))) {
+                    continue;
+                }
+                if (! is_file($path) || ! is_readable($path)) {
+                    continue;
+                }
+
+                $size = filesize($path) ?: 0;
+                $mtime = filemtime($path) ?: 0;
+                $contentHash = sha1_file($path) ?: '';
 
                 $result[] = [
                     'path' => $path,
                     'name' => $direction.'/'.$name,
-                    'size' => filesize($path) ?: 0,
-                    'mtime' => filemtime($path) ?: 0,
-                    'fingerprint' => sha1($direction.'/'.$name.'|'.(filesize($path) ?: 0).'|'.(filemtime($path) ?: 0)),
+                    'size' => $size,
+                    'mtime' => $mtime,
+                    'fingerprint' => sha1($direction.'/'.$name.'|'.$size.'|'.$mtime.'|'.$contentHash),
                 ];
             }
         }
 
         usort($result, fn (array $a, array $b) => strcmp($a['name'], $b['name']));
+
         return $result;
     }
 
@@ -112,13 +128,16 @@ class InvoiceFilesEmailBackupService
             $size += $file['size'];
         }
 
-        if ($current !== []) $chunks[] = $current;
+        if ($current !== []) {
+            $chunks[] = $current;
+        }
+
         return $chunks;
     }
 
     private function createZip(string $zipPath, array $files): void
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException('Không thể tạo file ZIP backup.');
         }
