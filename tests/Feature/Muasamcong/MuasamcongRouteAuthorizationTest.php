@@ -14,6 +14,8 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $contractors = Route::getRoutes()->getByName('muasamcong.contractors');
         $contractorHistory = Route::getRoutes()->getByName('muasamcong.contractors.history');
         $contractorHistoryShow = Route::getRoutes()->getByName('muasamcong.contractors.history.show');
+        $manualLotsShow = Route::getRoutes()->getByName('muasamcong.contractors.manual-lots.show');
+        $manualLotsDownload = Route::getRoutes()->getByName('muasamcong.contractors.manual-lots.download');
         $synced = Route::getRoutes()->getByName('muasamcong.synced');
         $wishlist = Route::getRoutes()->getByName('muasamcong.wishlist');
 
@@ -22,6 +24,8 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertNotNull($contractors);
         $this->assertNotNull($contractorHistory);
         $this->assertNotNull($contractorHistoryShow);
+        $this->assertNotNull($manualLotsShow);
+        $this->assertNotNull($manualLotsDownload);
         $this->assertNotNull($synced);
         $this->assertNotNull($wishlist);
         $this->assertSame('admin/muasamcong', $index->uri());
@@ -29,10 +33,12 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertSame('admin/muasamcong/contractors', $contractors->uri());
         $this->assertSame('admin/muasamcong/contractors/history', $contractorHistory->uri());
         $this->assertSame('admin/muasamcong/contractors/history/{contractorSearch}', $contractorHistoryShow->uri());
+        $this->assertSame('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', $manualLotsShow->uri());
+        $this->assertSame('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', $manualLotsDownload->uri());
         $this->assertSame('admin/muasamcong/synced', $synced->uri());
         $this->assertSame('admin/muasamcong/wishlist', $wishlist->uri());
 
-        foreach ([$index, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $synced, $wishlist] as $route) {
+        foreach ([$index, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $wishlist] as $route) {
             $middleware = $route->gatherMiddleware();
             $this->assertContains('auth:admin', $middleware);
             $this->assertContains('permission:view_muasamcong,admin', $middleware);
@@ -65,7 +71,7 @@ class MuasamcongRouteAuthorizationTest extends TestCase
             ->filter(fn (string $uri): bool => str_contains($uri, 'muasamcong'))
             ->values();
 
-        $this->assertCount(12, $uris);
+        $this->assertCount(14, $uris);
         $this->assertContains('api/muasamcong', $uris);
         $this->assertContains('api/muasamcong/search-pricing', $uris);
         $this->assertContains('api/muasamcong/update-cookie', $uris);
@@ -74,6 +80,8 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertContains('admin/muasamcong/contractors', $uris);
         $this->assertContains('admin/muasamcong/contractors/history', $uris);
         $this->assertContains('admin/muasamcong/contractors/history/{contractorSearch}', $uris);
+        $this->assertContains('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', $uris);
+        $this->assertContains('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', $uris);
         $this->assertContains('admin/muasamcong/synced', $uris);
         $this->assertContains('admin/muasamcong/wishlist', $uris);
         $this->assertContains('admin/muasamcong/config', $uris);
