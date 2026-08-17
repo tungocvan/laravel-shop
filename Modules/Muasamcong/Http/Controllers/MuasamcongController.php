@@ -23,24 +23,9 @@ class MuasamcongController extends Controller
         return view('Muasamcong::contractors');
     }
 
-    public function contractorSearches(Request $request): View
+    public function contractorSearches(): View
     {
-        $keyword = trim((string) $request->query('q', ''));
-
-        $searches = ContractorSearch::query()
-            ->when($keyword !== '', function ($query) use ($keyword): void {
-                $normalized = mb_strtolower($keyword);
-                $query->where(function ($nested) use ($keyword, $normalized): void {
-                    $nested->where('contractor_name', 'like', "%{$keyword}%")
-                        ->orWhere('contractor_code', 'like', "%{$normalized}%")
-                        ->orWhere('tax_code', 'like', "%{$keyword}%");
-                });
-            })
-            ->orderByDesc('last_searched_at')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('Muasamcong::contractor-searches', compact('searches', 'keyword'));
+        return view('Muasamcong::contractor-searches');
     }
 
     public function contractorSearchDetail(ContractorSearch $contractorSearch): View
