@@ -7,6 +7,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Modules\Muasamcong\Models\PricingWishlist;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use ZipArchive;
 
 class MuasamcongController extends Controller
 {
@@ -58,5 +60,44 @@ class MuasamcongController extends Controller
     public function config(): View
     {
         return view('Muasamcong::config');
+    }
+
+    public function downloadWindowsSessionTool(): BinaryFileResponse
+    {
+        abort_unless(class_exists(ZipArchive::class), 503, 'PHP Zip extension is required to build the Windows tool package.');
+
+        $sourceDirectory = module_path('Muasamcong', 'tools/windows');
+        $files = [
+            'Muasamcong-Session-Tool.bat',
+            'Muasamcong-Session-Tool.ps1',
+            'Open-Muasamcong-Chrome.bat',
+            'README.md',
+        ];
+
+        foreach ($files as $file) {
+            abort_unless(is_file($sourceDirectory.DIRECTORY_SEPARATOR.$file), 404, "Windows tool file not found: {$file}");
+        }
+
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'msc-session-tool-');
+        abort_if($temporaryPath === false, 500, 'Unable to create temporary Windows tool package.');
+
+        $zipPath = $temporaryPath.'.zip';
+        @unlink($temporaryPath);
+
+        $zip = new ZipArchive;
+        abort_unless($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true, 500, 'Unable to create Windows tool package.');
+
+        foreach ($files as $file) {
+            $zip->addFile($sourceDirectory.DIRECTORY_SEPARATOR.$file, $file);
+        }
+
+        $zip->close();
+
+        return response()
+            ->download($zipPath, 'Muasamcong-Session-Tool-Windows.zip', [
+                'Cache-Control' => 'no-store, private',
+                'X-Content-Type-Options' => 'nosniff',
+            ])
+            ->deleteFileAfterSend(true);
     }
 }
