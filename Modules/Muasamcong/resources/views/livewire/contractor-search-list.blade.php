@@ -57,7 +57,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="flex items-center gap-2 text-xs font-semibold">
-                                                    <a href="{{ route('muasamcong.contractors.manual-lots', [$search->contractor_code, $catalogue->notify_no]) }}"
+                                                    <a href="{{ route('muasamcong.contractors.manual-lots.show', [$search->contractor_code, $catalogue->notify_no]) }}"
                                                        class="text-indigo-600 hover:text-indigo-800">Xem</a>
                                                     <a href="{{ route('muasamcong.contractors.manual-lots.download', [$search->contractor_code, $catalogue->notify_no]) }}"
                                                        class="text-emerald-600 hover:text-emerald-800">Excel</a>
