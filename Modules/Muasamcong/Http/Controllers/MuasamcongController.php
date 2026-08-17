@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Modules\Muasamcong\Models\ContractorManualLot;
 use Modules\Muasamcong\Models\ContractorSearch;
 use Modules\Muasamcong\Models\PricingWishlist;
+use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ZipArchive;
 
@@ -31,6 +33,73 @@ class MuasamcongController extends Controller
     public function contractorSearchDetail(ContractorSearch $contractorSearch): View
     {
         return view('Muasamcong::contractors', compact('contractorSearch'));
+    }
+
+    public function manualContractorLots(string $contractorCode, string $notifyNo): View
+    {
+        $contractorCode = mb_strtolower(trim($contractorCode));
+        $notifyNo = trim($notifyNo);
+        abort_unless(preg_match('/^vn\d+$/', $contractorCode) === 1, 404);
+        abort_unless(preg_match('/^[A-Za-z0-9_-]+$/', $notifyNo) === 1, 404);
+
+        $lots = ContractorManualLot::query()
+            ->where('contractor_code', $contractorCode)
+            ->where('notify_no', $notifyNo)
+            ->orderBy('lot_no')
+            ->orderBy('id')
+            ->get();
+        abort_if($lots->isEmpty(), 404, 'Chưa có danh mục lô do người dùng xác nhận.');
+
+        $contractorName = ContractorSearch::query()
+            ->where('contractor_code', $contractorCode)
+            ->value('contractor_name');
+
+        return view('Muasamcong::manual-contractor-lots', compact('lots', 'contractorCode', 'contractorName', 'notifyNo'));
+    }
+
+    public function downloadManualContractorLots(string $contractorCode, string $notifyNo): BinaryFileResponse
+    {
+        $contractorCode = mb_strtolower(trim($contractorCode));
+        $notifyNo = trim($notifyNo);
+        abort_unless(preg_match('/^vn\d+$/', $contractorCode) === 1, 404);
+        abort_unless(preg_match('/^[A-Za-z0-9_-]+$/', $notifyNo) === 1, 404);
+
+        $lots = ContractorManualLot::query()
+            ->where('contractor_code', $contractorCode)
+            ->where('notify_no', $notifyNo)
+            ->orderBy('lot_no')
+            ->orderBy('id')
+            ->get();
+        abort_if($lots->isEmpty(), 404, 'Chưa có danh mục lô do người dùng xác nhận.');
+
+        $rows = $lots->map(fn (ContractorManualLot $lot): array => [
+            'Mã TBMT' => $notifyNo,
+            'CONTRACTOR_CODE' => $contractorCode,
+            'Mã lô' => $lot->lot_no,
+            'Tên lô' => $lot->lot_name,
+            'Tên thuốc' => $lot->medicine_name,
+            'Hoạt chất' => $lot->active_ingredient,
+            'Số lượng' => $lot->quantity,
+            'Giá KH' => $lot->price_plan,
+            'SL x Giá KH' => $lot->plan_amount,
+            'Giá lô' => $lot->lot_price,
+            'Nguồn' => 'Người dùng xác nhận',
+            'Xác nhận lúc' => $lot->confirmed_at?->format('d/m/Y H:i:s'),
+        ]);
+
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'msc-manual-lots-');
+        abort_if($temporaryPath === false, 500, 'Không thể tạo file danh mục tạm.');
+        $excelPath = $temporaryPath.'.xlsx';
+        @unlink($temporaryPath);
+
+        (new FastExcel($rows))->export($excelPath);
+
+        return response()
+            ->download($excelPath, "Danh-muc-{$notifyNo}-{$contractorCode}.xlsx", [
+                'Cache-Control' => 'no-store, private',
+                'X-Content-Type-Options' => 'nosniff',
+            ])
+            ->deleteFileAfterSend(true);
     }
 
     public function hsmt(): View
