@@ -9,14 +9,15 @@ use RuntimeException;
 
 class SessionImportTokenService
 {
-    public function create(?int $userId = null, int $ttlMinutes = 5): array
+    public function create(?int $userId = null, int $ttlMinutes = 5, ?string $baseUrl = null): array
     {
         $token = Str::random(64);
+        $expiresAt = now()->addMinutes($ttlMinutes);
 
         SessionImportToken::query()->create([
             'token_hash' => hash('sha256', $token),
             'created_by' => $userId,
-            'expires_at' => now()->addMinutes($ttlMinutes),
+            'expires_at' => $expiresAt,
         ]);
 
         SessionImportToken::query()
@@ -24,13 +25,13 @@ class SessionImportTokenService
             ->where('expires_at', '<', now()->subDay())
             ->delete();
 
-        $base = rtrim((string) config('app.url'), '/');
+        $base = rtrim($baseUrl ?: (string) config('app.url'), '/');
 
         return [
             'token' => $token,
-            // Token is placed in URL fragment. Browsers/proxies do not send fragments to the server.
+            // Token is in the URL fragment, so it is not sent in HTTP access logs or Referer headers.
             'link' => $base.'/admin/muasamcong/update-cookie#'.$token,
-            'expires_at' => now()->addMinutes($ttlMinutes),
+            'expires_at' => $expiresAt,
         ];
     }
 
