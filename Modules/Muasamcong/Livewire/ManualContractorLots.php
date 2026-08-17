@@ -175,6 +175,18 @@ class ManualContractorLots extends Component
             ->filter(fn (mixed $item): bool => is_array($item) && trim((string) ($item['medicine_group'] ?? '')) !== '')
             ->pluck('medicine_group')->map(fn ($value) => trim((string) $value))->unique()->sort()->values()->all();
 
+        $savedLots = ContractorManualLot::query()
+            ->where('notify_no', $this->notifyNo)
+            ->where('contractor_code', $this->contractorCode)
+            ->get();
+        $savedSummary = [
+            'count' => $savedLots->count(),
+            'quantity' => (float) $savedLots->sum('quantity'),
+            'plan_amount' => (float) $savedLots->sum('plan_amount'),
+            'lot_price' => (float) $savedLots->sum('lot_price'),
+            'confirmed_at' => $savedLots->max('confirmed_at'),
+        ];
+
         return view('Muasamcong::livewire.manual-contractor-lots', [
             'hasSnapshot' => $items !== [],
             'items' => $pageItems,
@@ -182,6 +194,7 @@ class ManualContractorLots extends Component
             'totalPages' => $totalPages,
             'totals' => $totals,
             'groups' => $groups,
+            'savedSummary' => $savedSummary,
         ]);
     }
 
