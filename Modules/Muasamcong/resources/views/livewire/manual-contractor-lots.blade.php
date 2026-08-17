@@ -21,6 +21,36 @@
     @if ($error)<div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $error }}</div>@endif
     @if ($notice)<div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ $notice }}</div>@endif
 
+    @if (($savedSummary['count'] ?? 0) > 0)
+        <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h5 class="font-bold text-emerald-900">Danh mục lô / thuốc của nhà thầu đã lưu</h5>
+                        <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm">{{ number_format($savedSummary['count'], 0, ',', '.') }} lô</span>
+                    </div>
+                    <p class="mt-1 text-sm text-emerald-800">Đây là file danh mục do người dùng xác nhận. Có thể mở để xem toàn bộ hoặc tải Excel về máy.</p>
+                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-800">
+                        <span>Tổng số lượng: <strong>{{ number_format($savedSummary['quantity'], 0, ',', '.') }}</strong></span>
+                        <span>Tổng KH: <strong>{{ number_format($savedSummary['plan_amount'], 0, ',', '.') }}</strong></span>
+                        <span>Tổng giá lô: <strong>{{ number_format($savedSummary['lot_price'], 0, ',', '.') }}</strong></span>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('muasamcong.contractors.manual-lots.show', ['contractorCode' => $contractorCode, 'notifyNo' => $notifyNo]) }}"
+                       target="_blank"
+                       class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100">
+                        Xem danh mục
+                    </a>
+                    <a href="{{ route('muasamcong.contractors.manual-lots.download', ['contractorCode' => $contractorCode, 'notifyNo' => $notifyNo]) }}"
+                       class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+                        Tải Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if (!$hasSnapshot)
         <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Chưa có snapshot HSMT của {{ $notifyNo }}. Hãy dùng nút <strong>Tải danh mục HSMT</strong> trước.</div>
     @else
