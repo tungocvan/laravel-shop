@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Modules\Muasamcong\Models\ContractorSearch;
 use Modules\Muasamcong\Models\PricingWishlist;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ZipArchive;
@@ -20,6 +21,31 @@ class MuasamcongController extends Controller
     public function contractors(): View
     {
         return view('Muasamcong::contractors');
+    }
+
+    public function contractorSearches(Request $request): View
+    {
+        $keyword = trim((string) $request->query('q', ''));
+
+        $searches = ContractorSearch::query()
+            ->when($keyword !== '', function ($query) use ($keyword): void {
+                $normalized = mb_strtolower($keyword);
+                $query->where(function ($nested) use ($keyword, $normalized): void {
+                    $nested->where('contractor_name', 'like', "%{$keyword}%")
+                        ->orWhere('contractor_code', 'like', "%{$normalized}%")
+                        ->orWhere('tax_code', 'like', "%{$keyword}%");
+                });
+            })
+            ->orderByDesc('last_searched_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('Muasamcong::contractor-searches', compact('searches', 'keyword'));
+    }
+
+    public function contractorSearchDetail(ContractorSearch $contractorSearch): View
+    {
+        return view('Muasamcong::contractors', compact('contractorSearch'));
     }
 
     public function hsmt(): View
