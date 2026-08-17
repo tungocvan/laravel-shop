@@ -48,11 +48,15 @@ function Get-MuasamcongCookieHeader {
         throw "Chrome CDP khong tra webSocketDebuggerUrl."
     }
 
+    $wsUrl = [string]$version.webSocketDebuggerUrl
+    $wsUrl = $wsUrl -replace '^ws://localhost:', 'ws://127.0.0.1:'
+    $wsUrl = $wsUrl -replace '^ws://\[::1\]:', 'ws://127.0.0.1:'
+
     $socket = New-Object System.Net.WebSockets.ClientWebSocket
 
     try {
         $socket.Options.SetRequestHeader("Origin", "http://127.0.0.1:$Port")
-        $socket.ConnectAsync([Uri]$version.webSocketDebuggerUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
+        $socket.ConnectAsync([Uri]$wsUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
 
         $request = @{ id = 1; method = "Storage.getCookies" } | ConvertTo-Json -Compress
         $bytes = [Text.Encoding]::UTF8.GetBytes($request)
@@ -110,17 +114,14 @@ $cookieHeader = Get-MuasamcongCookieHeader -Port $DebugPort
 
 Write-Host "[2/3] Da tim thay session cua muasamcong.mpi.gov.vn (khong hien thi gia tri cookie)." -ForegroundColor Green
 
-# PowerShell 5.1 khong parse dung chuoi escape kieu Bash '"'"'.
-# WSL project path cua tool nay la duong dan Linux. Tu choi ky tu co the lam vo shell quoting.
-if ($WslProjectPath.Contains("'") -or $WslProjectPath.Contains("`r") -or $WslProjectPath.Contains("`n")) {
-    throw "WslProjectPath chua ky tu khong duoc ho tro."
+if ($WslProjectPath -notmatch '^/[A-Za-z0-9_./-]+$') {
+    throw "WSL project path khong hop le."
 }
 
-$command = "cd '$WslProjectPath' && php artisan msc:import-personal-session --stdin --test"
+$command = "cd $WslProjectPath && php artisan msc:import-personal-session --stdin --test"
 
 Write-Host "[3/3] Dang luu session ma hoa vao Laravel va kiem tra API..." -ForegroundColor Cyan
 
-# Cookie chi di qua STDIN; khong duoc dat trong command line, file tam hay clipboard.
 $cookieHeader | & wsl.exe bash -lc $command
 $exitCode = $LASTEXITCODE
 
