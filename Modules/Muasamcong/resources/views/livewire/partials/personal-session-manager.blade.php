@@ -41,12 +41,21 @@
         </div>
     </div>
 
+    <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+        <div class="font-semibold">Cập nhật nhanh trên Windows</div>
+        <div class="mt-1 text-xs leading-5 text-sky-700">
+            Có thể dùng Chrome profile riêng + CDP localhost để không phải copy Cookie bằng tay: chạy
+            <code>Modules/Muasamcong/tools/windows/Open-Muasamcong-Chrome.bat</code>, đăng nhập Mua sắm công, sau đó chạy
+            <code>Update-Muasamcong-Session.bat</code>. Script chỉ lấy cookie của <strong>muasamcong.mpi.gov.vn</strong>, truyền qua STDIN và lưu mã hóa vào database.
+        </div>
+    </div>
+
     <div class="mt-5">
         <label for="msc-personal-session" class="text-sm font-medium text-gray-700">Cookie Personal Page mới</label>
         <textarea id="msc-personal-session" rows="4" wire:model="personalSessionCookie" autocomplete="off"
-            placeholder="Dán nguyên giá trị Request Header: cookie của request get-list-notify-contractor-join..."
+            placeholder="Fallback thủ công: dán nguyên giá trị Request Header: cookie của request get-list-notify-contractor-join..."
             class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-mono text-xs text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></textarea>
-        <p class="mt-1 text-xs text-gray-500">Chỉ cần dán lại khi session trên Mua sắm công hết hạn. Giá trị đã lưu không bao giờ được hiển thị lại.</p>
+        <p class="mt-1 text-xs text-gray-500">Có thể dùng khi không chạy helper Windows. Giá trị đã lưu không bao giờ được hiển thị lại.</p>
         @error('personalSessionCookie') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
     </div>
 
