@@ -15,6 +15,7 @@
                     <th class="px-5 py-3">CONTRACTOR_CODE</th>
                     <th class="px-5 py-3">MST</th>
                     <th class="px-5 py-3 text-right">Số gói</th>
+                    <th class="px-5 py-3">Danh mục đã lưu</th>
                     <th class="px-5 py-3">Tra cứu gần nhất</th>
                     <th class="px-5 py-3">Trạng thái cập nhật</th>
                     <th class="px-5 py-3 text-right">Thao tác</th>
@@ -24,6 +25,7 @@
                 @forelse ($searches as $search)
                     @php($job = $latestJobs->get($search->contractor_code))
                     @php($isRunning = $job && in_array($job->status, ['queued', 'running', 'saving'], true))
+                    @php($catalogues = $cataloguesByCode->get($search->contractor_code, collect()))
                     <tr class="hover:bg-gray-50">
                         <td class="max-w-md px-5 py-4">
                             <div class="font-semibold text-gray-900">{{ $search->contractor_name ?: $search->contractor_code }}</div>
@@ -37,6 +39,35 @@
                             {{ number_format($search->unique_total) }}
                             @if ($search->reported_total !== $search->unique_total)
                                 <span class="text-xs text-gray-400">/ API {{ number_format($search->reported_total) }}</span>
+                            @endif
+                        </td>
+                        <td class="min-w-72 px-5 py-4">
+                            @if ($catalogues->isNotEmpty())
+                                <div class="space-y-2">
+                                    @foreach ($catalogues as $catalogue)
+                                        <div class="rounded-lg border border-violet-100 bg-violet-50/60 px-3 py-2">
+                                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                                <div>
+                                                    <div class="font-semibold text-violet-800">{{ $catalogue->notify_no }}</div>
+                                                    <div class="mt-0.5 text-xs text-gray-500">
+                                                        {{ number_format((int) $catalogue->lot_count, 0, ',', '.') }} lô
+                                                        @if ((float) $catalogue->plan_amount > 0)
+                                                            · Tổng KH {{ number_format((float) $catalogue->plan_amount, 0, ',', '.') }}
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-xs font-semibold">
+                                                    <a href="{{ route('muasamcong.contractors.manual-lots', [$search->contractor_code, $catalogue->notify_no]) }}"
+                                                       class="text-indigo-600 hover:text-indigo-800">Xem</a>
+                                                    <a href="{{ route('muasamcong.contractors.manual-lots.download', [$search->contractor_code, $catalogue->notify_no]) }}"
+                                                       class="text-emerald-600 hover:text-emerald-800">Excel</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-xs text-gray-400">Chưa có danh mục</span>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-5 py-4 text-gray-600">{{ $search->last_searched_at?->format('d/m/Y H:i') ?: '—' }}</td>
@@ -72,7 +103,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="px-5 py-12 text-center text-gray-500">Chưa có lịch sử tra cứu nhà thầu phù hợp.</td></tr>
+                    <tr><td colspan="8" class="px-5 py-12 text-center text-gray-500">Chưa có lịch sử tra cứu nhà thầu phù hợp.</td></tr>
                 @endforelse
                 </tbody>
             </table>
