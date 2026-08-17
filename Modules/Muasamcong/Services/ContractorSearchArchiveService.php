@@ -58,12 +58,13 @@ class ContractorSearchArchiveService
     ): ContractorSearch {
         $code = $this->normalizeContractorCode($contractorCode);
         $now = now();
+        $resolvedName = $this->resolveContractorName($contractorName, $code, $data['items'] ?? []);
 
-        return DB::transaction(function () use ($code, $contractorName, $fromDate, $toDate, $data, $userId, $now): ContractorSearch {
+        return DB::transaction(function () use ($code, $resolvedName, $fromDate, $toDate, $data, $userId, $now): ContractorSearch {
             $search = ContractorSearch::query()->firstOrNew(['contractor_code' => $code]);
             $search->fill([
                 'tax_code' => $this->taxCodeFromContractorCode($code),
-                'contractor_name' => $contractorName ?: $search->contractor_name,
+                'contractor_name' => $resolvedName ?: $search->contractor_name,
                 'from_date' => $fromDate,
                 'to_date' => $toDate,
                 'reported_total' => (int) ($data['reported_total'] ?? 0),
@@ -146,5 +147,28 @@ class ContractorSearchArchiveService
             'per_page' => $perPage,
             'total_pages' => $pages,
         ];
+    }
+
+    private function resolveContractorName(?string $currentName, string $code, array $items): ?string
+    {
+        $currentName = trim((string) $currentName);
+        if ($currentName !== '' && mb_strtolower($currentName) !== $code) {
+            return $currentName;
+        }
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            foreach (['contractorName', 'contractor_name', 'orgName', 'bidderName', 'supplierName'] as $key) {
+                $candidate = trim((string) ($item[$key] ?? ''));
+                if ($candidate !== '' && mb_strtolower($candidate) !== $code) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return $currentName !== '' ? $currentName : null;
     }
 }
