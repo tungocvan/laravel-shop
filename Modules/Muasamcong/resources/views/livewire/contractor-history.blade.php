@@ -93,6 +93,7 @@
                         <th class="px-4 py-3"></th>
                         <th class="px-4 py-3">Mã TBMT</th>
                         <th class="px-4 py-3">Tên gói thầu</th>
+                        <th class="px-4 py-3">Chủ đầu tư</th>
                         <th class="px-4 py-3">Ngày</th>
                         <th class="px-4 py-3">Năm</th>
                         <th class="px-4 py-3">Trạng thái</th>
@@ -103,10 +104,12 @@
                     @forelse ($results as $row)
                         @php($isSynced = isset($syncedNotifyNos[$row['notifyNo'] ?? '']))
                         @php($isKqlcntSynced = isset($syncedKqlcntNotifyNos[$row['notifyNo'] ?? '']))
+                        @php($investorName = $row['investorName'] ?? $row['investor_name'] ?? $row['investorNameEn'] ?? '—')
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3"><input type="checkbox" wire:model="selected" value="{{ $row['notifyNo'] ?? '' }}" @disabled($isSynced) class="rounded border-gray-300"></td>
                             <td class="whitespace-nowrap px-4 py-3 font-medium text-indigo-700">{{ $row['notifyNo'] ?? '—' }}</td>
                             <td class="max-w-xl px-4 py-3 text-gray-800">{{ $row['bidName'] ?? '—' }}</td>
+                            <td class="max-w-sm px-4 py-3 text-gray-700">{{ $investorName }}</td>
                             <td class="whitespace-nowrap px-4 py-3 text-gray-600">{{ isset($row['createdDate']) ? \Illuminate\Support\Carbon::parse($row['createdDate'])->format('d/m/Y') : '—' }}</td>
                             <td class="px-4 py-3 text-gray-600">{{ $row['dateYear'] ?? '—' }}</td>
                             <td class="px-4 py-3">
@@ -130,7 +133,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-5 py-10 text-center text-gray-500">Không có gói thầu trong dữ liệu đã lưu.</td></tr>
+                        <tr><td colspan="8" class="px-5 py-10 text-center text-gray-500">Không có gói thầu trong dữ liệu đã lưu.</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -167,6 +170,7 @@
                 </div>
                 <div class="grid gap-4 p-5 sm:grid-cols-2">
                     <div class="sm:col-span-2"><div class="text-xs text-gray-500">Tên gói thầu</div><div class="mt-1 font-medium text-gray-900">{{ $detail['bidName'] ?? '—' }}</div></div>
+                    <div class="sm:col-span-2"><div class="text-xs text-gray-500">Chủ đầu tư</div><div class="mt-1 font-medium text-gray-900">{{ $detail['investorName'] ?? $detail['investor_name'] ?? $detail['investorNameEn'] ?? '—' }}</div></div>
                     <div><div class="text-xs text-gray-500">Mã nhà thầu</div><div class="mt-1 text-gray-800">{{ $detail['contractorCode'] ?? $contractorCode }}</div></div>
                     <div><div class="text-xs text-gray-500">Mã bên mời thầu</div><div class="mt-1 text-gray-800">{{ $detail['procuringEntityCode'] ?? '—' }}</div></div>
                     <div><div class="text-xs text-gray-500">Ngày tham gia</div><div class="mt-1 text-gray-800">{{ $detail['createdDate'] ?? '—' }}</div></div>
