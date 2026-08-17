@@ -57,9 +57,9 @@ function Test-CookieAppliesToUrl {
     )
 
     $cookieDomain = ([string]$Cookie.domain).TrimStart('.').ToLowerInvariant()
-    $host = $Uri.Host.ToLowerInvariant()
+    $targetHost = $Uri.Host.ToLowerInvariant()
 
-    $domainMatches = $host -eq $cookieDomain -or $host.EndsWith('.' + $cookieDomain)
+    $domainMatches = $targetHost -eq $cookieDomain -or $targetHost.EndsWith('.' + $cookieDomain)
     if (-not $domainMatches) {
         return $false
     }
