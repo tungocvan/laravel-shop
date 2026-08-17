@@ -19,6 +19,8 @@ class ManualContractorLots extends Component
 
     public string $search = '';
 
+    public string $group = '';
+
     public int $page = 1;
 
     public int $perPage = 20;
@@ -46,6 +48,11 @@ class ManualContractorLots extends Component
         $this->page = 1;
     }
 
+    public function updatedGroup(): void
+    {
+        $this->page = 1;
+    }
+
     public function previousPage(): void
     {
         $this->page = max(1, $this->page - 1);
@@ -59,6 +66,13 @@ class ManualContractorLots extends Component
     public function clearSelection(): void
     {
         $this->selected = [];
+    }
+
+    public function selectCurrentPage(HsmtSnapshotService $snapshots): void
+    {
+        $pageItems = $this->filteredPageItems($snapshots);
+        $keys = array_map(fn (array $item): string => $this->lotKey($item), $pageItems);
+        $this->selected = array_values(array_unique([...$this->selected, ...$keys]));
     }
 
     public function saveSelections(HsmtSnapshotService $snapshots): void
@@ -78,10 +92,9 @@ class ManualContractorLots extends Component
         $selectedKeys = array_values(array_unique(array_filter(array_map('strval', $this->selected))));
         $indexed = [];
         foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
+            if (is_array($item)) {
+                $indexed[$this->lotKey($item)] = $item;
             }
-            $indexed[$this->lotKey($item)] = $item;
         }
 
         $userId = Auth::guard('admin')->id();
@@ -130,10 +143,67 @@ class ManualContractorLots extends Component
     {
         $snapshot = $snapshots->loadForNotifyNo($this->notifyNo);
         $items = is_array($snapshot['items'] ?? null) ? $snapshot['items'] : [];
-        $term = mb_strtoupper(trim($this->search));
+        $filtered = $this->filterItems($items);
+        $totalPages = max(1, (int) ceil(count($filtered) / $this->perPage));
+        $this->page = min($this->page, $totalPages);
+        $pageItems = array_slice($filtered, ($this->page - 1) * $this->perPage, $this->perPage);
+        $pageItems = array_map(function (array $item): array {
+            $item['_lot_key'] = $this->lotKey($item);
 
-        $filtered = array_values(array_filter($items, function (mixed $item) use ($term): bool {
+            return $item;
+        }, $pageItems);
+
+        $selectedItems = [];
+        $selectedLookup = array_fill_keys($this->selected, true);
+        foreach ($items as $item) {
+            if (is_array($item) && isset($selectedLookup[$this->lotKey($item)])) {
+                $selectedItems[] = $item;
+            }
+        }
+
+        $totals = ['count' => count($selectedItems), 'quantity' => 0.0, 'plan_amount' => 0.0, 'lot_price' => 0.0];
+        foreach ($selectedItems as $item) {
+            $quantity = $this->numeric($item['quantity'] ?? null);
+            $pricePlan = $this->numeric($item['price_plan'] ?? null);
+            $lotPrice = $this->numeric($item['lot_price'] ?? null);
+            $totals['quantity'] += $quantity ?? 0;
+            $totals['plan_amount'] += ($quantity !== null && $pricePlan !== null) ? $quantity * $pricePlan : 0;
+            $totals['lot_price'] += $lotPrice ?? 0;
+        }
+
+        $groups = collect($items)
+            ->filter(fn (mixed $item): bool => is_array($item) && trim((string) ($item['medicine_group'] ?? '')) !== '')
+            ->pluck('medicine_group')->map(fn ($value) => trim((string) $value))->unique()->sort()->values()->all();
+
+        return view('Muasamcong::livewire.manual-contractor-lots', [
+            'hasSnapshot' => $items !== [],
+            'items' => $pageItems,
+            'filteredTotal' => count($filtered),
+            'totalPages' => $totalPages,
+            'totals' => $totals,
+            'groups' => $groups,
+        ]);
+    }
+
+    private function filteredPageItems(HsmtSnapshotService $snapshots): array
+    {
+        $snapshot = $snapshots->loadForNotifyNo($this->notifyNo);
+        $items = is_array($snapshot['items'] ?? null) ? $snapshot['items'] : [];
+        $filtered = $this->filterItems($items);
+
+        return array_slice($filtered, ($this->page - 1) * $this->perPage, $this->perPage);
+    }
+
+    private function filterItems(array $items): array
+    {
+        $term = mb_strtoupper(trim($this->search));
+        $group = trim($this->group);
+
+        return array_values(array_filter($items, function (mixed $item) use ($term, $group): bool {
             if (! is_array($item)) {
+                return false;
+            }
+            if ($group !== '' && trim((string) ($item['medicine_group'] ?? '')) !== $group) {
                 return false;
             }
             if ($term === '') {
@@ -151,76 +221,14 @@ class ManualContractorLots extends Component
 
             return str_contains($haystack, $term);
         }));
-
-        $totalPages = max(1, (int) ceil(count($filtered) / $this->perPage));
-        $this->page = min($this->page, $totalPages);
-        $pageItems = array_slice($filtered, ($this->page - 1) * $this->perPage, $this->perPage);
-        $pageItems = array_map(function (array $item): array {
-            $item['_lot_key'] = $this->lotKey($item);
-
-            return $item;
-        }, $pageItems);
-
-        $selectedItems = [];
-        $selectedLookup = array_fill_keys($this->selected, true);
-        foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-            $key = $this->lotKey($item);
-            if (isset($selectedLookup[$key])) {
-                $selectedItems[] = $item;
-            }
-        }
-
-        $totals = [
-            'count' => count($selectedItems),
-            'quantity' => 0.0,
-            'plan_amount' => 0.0,
-            'lot_price' => 0.0,
-        ];
-        foreach ($selectedItems as $item) {
-            $quantity = $this->numeric($item['quantity'] ?? null);
-            $pricePlan = $this->numeric($item['price_plan'] ?? null);
-            $lotPrice = $this->numeric($item['lot_price'] ?? null);
-            $totals['quantity'] += $quantity ?? 0;
-            $totals['plan_amount'] += ($quantity !== null && $pricePlan !== null) ? $quantity * $pricePlan : 0;
-            $totals['lot_price'] += $lotPrice ?? 0;
-        }
-
-        return view('Muasamcong::livewire.manual-contractor-lots', [
-            'hasSnapshot' => $items !== [],
-            'items' => $pageItems,
-            'filteredTotal' => count($filtered),
-            'totalPages' => $totalPages,
-            'totals' => $totals,
-        ]);
     }
 
     private function totalPages(): int
     {
         $snapshot = app(HsmtSnapshotService::class)->loadForNotifyNo($this->notifyNo);
         $items = is_array($snapshot['items'] ?? null) ? $snapshot['items'] : [];
-        $term = mb_strtoupper(trim($this->search));
 
-        $count = count(array_filter($items, function (mixed $item) use ($term): bool {
-            if (! is_array($item)) {
-                return false;
-            }
-            if ($term === '') {
-                return true;
-            }
-            $haystack = mb_strtoupper(implode(' ', array_filter([
-                $item['lot_no'] ?? null,
-                $item['lot_name'] ?? null,
-                $item['medicine_name'] ?? null,
-                $item['active_ingredient'] ?? null,
-            ])));
-
-            return str_contains($haystack, $term);
-        }));
-
-        return max(1, (int) ceil($count / $this->perPage));
+        return max(1, (int) ceil(count($this->filterItems($items)) / $this->perPage));
     }
 
     private function lotKey(array $item): string
