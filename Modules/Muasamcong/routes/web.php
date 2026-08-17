@@ -13,6 +13,10 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
                 Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
                 Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
                 Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
+                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', [MuasamcongController::class, 'manualContractorLots'])
+                    ->name('contractors.manual-lots.show');
+                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', [MuasamcongController::class, 'downloadManualContractorLots'])
+                    ->name('contractors.manual-lots.download');
                 Route::get('/hsmt', [MuasamcongController::class, 'hsmt'])->name('hsmt');
                 Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
                 Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
