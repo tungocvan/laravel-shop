@@ -5,8 +5,11 @@ namespace Modules\Muasamcong\Livewire;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Modules\Muasamcong\Models\ContractorBid;
+use Modules\Muasamcong\Models\ContractorSearch;
+use Modules\Muasamcong\Models\ContractorSearchItem;
 use Modules\Muasamcong\Models\KqlcntRecord;
 use Modules\Muasamcong\Services\ContractorHistoryService;
+use Modules\Muasamcong\Services\ContractorSearchArchiveService;
 use Modules\Muasamcong\Services\HsmtDetailService;
 use Modules\Muasamcong\Services\HsmtSnapshotService;
 use Modules\Muasamcong\Services\KqlcntService;
@@ -15,6 +18,18 @@ use Throwable;
 
 class ContractorHistory extends Component
 {
+    public ?int $initialSearchId = null;
+
+    public ?int $historySearchId = null;
+
+    public int $historyPage = 1;
+
+    public int $historyPerPage = 20;
+
+    public int $historyTotalPages = 1;
+
+    public bool $showSessionExpiredModal = false;
+
     public string $companyKeyword = '';
 
     public string $contractorCode = '';
@@ -53,14 +68,64 @@ class ContractorHistory extends Component
 
     public int $reportedTotal = 0;
 
-    public function searchCompany(MuaSamCongService $pricing): void
+    public function mount(?int $initialSearchId = null, ContractorSearchArchiveService $archive = new ContractorSearchArchiveService): void
+    {
+        $this->initialSearchId = $initialSearchId;
+
+        if ($initialSearchId) {
+            $search = ContractorSearch::query()->find($initialSearchId);
+            if ($search) {
+                $this->loadStoredSearch($search, $archive);
+            }
+        }
+    }
+
+    public function searchCompany(MuaSamCongService $pricing, ContractorSearchArchiveService $archive): void
     {
         $this->clearHsmtCache();
-        $this->reset(['companies', 'results', 'selected', 'detail', 'kqlcnt', 'hsmt', 'hsmtCacheKey', 'error', 'notice', 'contractorCode', 'contractorName']);
+        $this->resetSearchState();
         $keyword = trim($this->companyKeyword);
 
         if (mb_strlen($keyword) < 3) {
-            $this->error = 'Nhập ít nhất 3 ký tự tên doanh nghiệp.';
+            $this->error = 'Nhập ít nhất 3 ký tự tên doanh nghiệp, CONTRACTOR_CODE hoặc mã số thuế.';
+
+            return;
+        }
+
+        $normalizedCode = $archive->normalizeContractorCode($keyword);
+        if (preg_match('/^vn\d+$/', $normalizedCode) === 1) {
+            $stored = $archive->findByCode($normalizedCode);
+            if ($stored) {
+                $this->loadStoredSearch($stored, $archive);
+
+                return;
+            }
+
+            $this->companies = [[
+                'code' => $normalizedCode,
+                'name' => $normalizedCode,
+                'source' => 'api',
+            ]];
+            $this->selectCompany($normalizedCode);
+
+            return;
+        }
+
+        $storedByName = $archive->findByName($keyword);
+        if ($storedByName->isNotEmpty()) {
+            $this->companies = $storedByName
+                ->map(fn (ContractorSearch $search): array => [
+                    'code' => $search->contractor_code,
+                    'name' => $search->contractor_name ?: $search->contractor_code,
+                    'source' => 'server',
+                    'search_id' => $search->id,
+                ])
+                ->values()
+                ->all();
+
+            if (count($this->companies) === 1) {
+                $this->selectCompany($this->companies[0]['code']);
+            }
 
             return;
         }
@@ -77,9 +142,9 @@ class ContractorHistory extends Component
             foreach ((array) ($item['winningCode'] ?? []) as $index => $code) {
                 $name = (array) ($item['winningName'] ?? []);
                 $label = trim((string) ($name[$index] ?? $name[0] ?? ''));
-                $code = trim((string) $code);
+                $code = $archive->normalizeContractorCode((string) $code);
                 if ($code !== '' && $label !== '' && str_contains(mb_strtoupper($label), mb_strtoupper($keyword))) {
-                    $companies[$code] = ['code' => $code, 'name' => $label];
+                    $companies[$code] = ['code' => $code, 'name' => $label, 'source' => 'api'];
                 }
             }
         }
@@ -101,46 +166,61 @@ class ContractorHistory extends Component
 
         $this->contractorCode = $company['code'];
         $this->contractorName = $company['name'];
+
+        if (($company['source'] ?? '') === 'server' && ! empty($company['search_id'])) {
+            $search = ContractorSearch::query()->find((int) $company['search_id']);
+            if ($search) {
+                $this->loadStoredSearch($search, app(ContractorSearchArchiveService::class));
+
+                return;
+            }
+        }
+
         $this->loadHistory();
     }
 
     public function loadHistory(?ContractorHistoryService $service = null): void
     {
-        $this->clearHsmtCache();
-        $this->error = null;
-        $this->notice = null;
-        $this->results = [];
-        $this->selected = [];
-        $this->detail = null;
-        $this->kqlcnt = null;
-        $this->hsmt = null;
-        $this->hsmtCacheKey = null;
+        $this->freshSearch($service ?? app(ContractorHistoryService::class), app(ContractorSearchArchiveService::class));
+    }
 
-        if ($this->contractorCode === '') {
-            $this->error = 'Chưa chọn doanh nghiệp.';
+    public function searchFresh(): void
+    {
+        $this->freshSearch(app(ContractorHistoryService::class), app(ContractorSearchArchiveService::class));
+    }
 
-            return;
+    public function historyPreviousPage(): void
+    {
+        if ($this->historyPage > 1) {
+            $this->historyPage--;
+            $this->loadStoredPage();
         }
+    }
 
-        if ($this->toDate && $this->toDate < $this->fromDate) {
-            $this->error = 'Đến ngày phải lớn hơn hoặc bằng Từ ngày.';
-
-            return;
+    public function historyNextPage(): void
+    {
+        if ($this->historyPage < $this->historyTotalPages) {
+            $this->historyPage++;
+            $this->loadStoredPage();
         }
+    }
 
-        try {
-            $data = ($service ?? app(ContractorHistoryService::class))->search($this->contractorCode, $this->fromDate, $this->toDate);
-            $this->results = $data['items'];
-            $this->reportedTotal = (int) $data['reported_total'];
-        } catch (Throwable $e) {
-            report($e);
-            $this->error = 'Không thể tải lịch sử nhà thầu. Hãy kiểm tra session Mua sắm công.';
-        }
+    public function historyGoToPage(int $page): void
+    {
+        $this->historyPage = max(1, min($page, $this->historyTotalPages));
+        $this->loadStoredPage();
+    }
+
+    public function updatedHistoryPerPage(): void
+    {
+        $this->historyPage = 1;
+        $this->loadStoredPage();
     }
 
     public function selectAll(): void
     {
-        $this->selected = collect($this->results)->pluck('notifyNo')->filter()->values()->all();
+        $pageNotifyNos = collect($this->results)->pluck('notifyNo')->filter()->all();
+        $this->selected = array_values(array_unique(array_merge($this->selected, $pageNotifyNos)));
     }
 
     public function clearSelection(): void
@@ -150,13 +230,22 @@ class ContractorHistory extends Component
 
     public function syncSelected(): void
     {
-        $selected = array_fill_keys($this->selected, true);
+        $selected = array_values(array_filter($this->selected));
         $synced = 0;
         $skipped = 0;
 
-        foreach ($this->results as $row) {
+        $rows = $this->historySearchId
+            ? ContractorSearchItem::query()
+                ->where('contractor_search_id', $this->historySearchId)
+                ->whereIn('notify_no', $selected)
+                ->get()
+                ->map(fn (ContractorSearchItem $item): array => $item->raw_payload ?: [])
+                ->all()
+            : collect($this->results)->whereIn('notifyNo', $selected)->all();
+
+        foreach ($rows as $row) {
             $notifyNo = (string) ($row['notifyNo'] ?? '');
-            if ($notifyNo === '' || ! isset($selected[$notifyNo])) {
+            if ($notifyNo === '') {
                 continue;
             }
 
@@ -332,6 +421,211 @@ class ContractorHistory extends Component
         }
     }
 
+    public function syncKqlcnt(KqlcntService $service): void
+    {
+        if (! is_array($this->kqlcnt) || $this->contractorCode === '') {
+            $this->error = 'Chưa có dữ liệu KQLCNT để đồng bộ.';
+
+            return;
+        }
+
+        $notifyNo = trim((string) ($this->kqlcnt['notify_no'] ?? ''));
+        if ($notifyNo === '') {
+            $this->error = 'KQLCNT không có mã TBMT hợp lệ.';
+
+            return;
+        }
+
+        try {
+            if (($this->kqlcnt['source'] ?? 'api') === 'server') {
+                $notifyId = trim((string) ($this->kqlcnt['notify_id'] ?? ''));
+                $this->kqlcnt = $notifyId !== ''
+                    ? $service->resolve($notifyId, $notifyNo, $this->contractorCode)
+                    : $service->resolveByNotifyNo($notifyNo, $this->contractorCode);
+                $this->kqlcnt['source'] = 'api';
+            }
+
+            $winner = collect($this->kqlcnt['all_winners'] ?? [])
+                ->first(fn (mixed $item): bool => is_array($item)
+                    && trim((string) ($item['contractorCode'] ?? '')) === $this->contractorCode);
+
+            $record = KqlcntRecord::updateOrCreate(
+                ['contractor_code' => $this->contractorCode, 'notify_no' => $notifyNo],
+                [
+                    'notify_id' => $this->kqlcnt['notify_id'] ?? null,
+                    'bid_id' => $this->kqlcnt['bid_id'] ?? null,
+                    'bid_name' => $this->kqlcnt['bid_name'] ?? null,
+                    'contractor_name' => is_array($winner) ? ($winner['contractorName'] ?? $this->contractorName) : $this->contractorName,
+                    'investor_code' => $this->kqlcnt['investor_code'] ?? null,
+                    'investor_name' => $this->kqlcnt['investor_name'] ?? null,
+                    'status' => $this->kqlcnt['status'] ?? null,
+                    'published' => (bool) ($this->kqlcnt['published'] ?? false),
+                    'current_contractor_won' => (bool) ($this->kqlcnt['current_contractor_won'] ?? false),
+                    'contracts' => $this->kqlcnt['contracts'] ?? [],
+                    'all_winners' => $this->kqlcnt['all_winners'] ?? [],
+                    'verified_lots' => $this->kqlcnt['verified_lots'] ?? [],
+                    'tbmt_raw' => $this->kqlcnt['tbmt_raw'] ?? [],
+                    'contracts_raw' => $this->kqlcnt['contracts_raw'] ?? [],
+                    'synced_at' => now(),
+                ]
+            );
+
+            $this->kqlcnt = $service->normalizeStored($record->fresh()->toArray());
+            $this->notice = 'Đã đồng bộ KQLCNT '.$notifyNo.' vào server.';
+        } catch (Throwable $e) {
+            report($e);
+            $this->error = $e->getMessage() ?: 'Không thể đồng bộ KQLCNT.';
+        }
+    }
+
+    public function closeDetail(): void
+    {
+        $this->detail = null;
+    }
+
+    public function closeKqlcnt(): void
+    {
+        $this->clearHsmtCache();
+        $this->kqlcnt = null;
+        $this->hsmt = null;
+        $this->hsmtCacheKey = null;
+    }
+
+    public function closeSessionExpiredModal(): void
+    {
+        $this->showSessionExpiredModal = false;
+    }
+
+    public function render()
+    {
+        $synced = $this->contractorCode === '' ? [] : ContractorBid::query()->where('contractor_code', $this->contractorCode)->pluck('notify_no')->all();
+        $kqlcntSynced = $this->contractorCode === '' ? [] : KqlcntRecord::query()->where('contractor_code', $this->contractorCode)->pluck('notify_no')->all();
+        $allHsmtItems = $this->hsmtItems();
+        $filteredHsmt = $this->filteredHsmtItems();
+        $totalPages = $this->hsmtTotalPages();
+        $this->hsmtPage = min($this->hsmtPage, $totalPages);
+        $pageItems = array_slice($filteredHsmt, ($this->hsmtPage - 1) * $this->hsmtPerPage, $this->hsmtPerPage);
+        $groups = collect($allHsmtItems)->pluck('medicine_group')->filter()->unique()->sort()->values()->all();
+
+        return view('Muasamcong::livewire.contractor-history', [
+            'syncedNotifyNos' => array_fill_keys($synced, true),
+            'syncedKqlcntNotifyNos' => array_fill_keys($kqlcntSynced, true),
+            'hsmtItems' => $pageItems,
+            'hsmtFilteredTotal' => count($filteredHsmt),
+            'hsmtTotalPages' => $totalPages,
+            'hsmtGroups' => $groups,
+        ]);
+    }
+
+    private function freshSearch(ContractorHistoryService $history, ContractorSearchArchiveService $archive): void
+    {
+        $this->clearHsmtCache();
+        $this->error = null;
+        $this->notice = null;
+        $this->detail = null;
+        $this->kqlcnt = null;
+        $this->hsmt = null;
+        $this->hsmtCacheKey = null;
+
+        if ($this->contractorCode === '') {
+            $this->error = 'Chưa chọn doanh nghiệp.';
+
+            return;
+        }
+
+        if ($this->toDate && $this->toDate < $this->fromDate) {
+            $this->error = 'Đến ngày phải lớn hơn hoặc bằng Từ ngày.';
+
+            return;
+        }
+
+        try {
+            $history->testSession();
+        } catch (Throwable $e) {
+            report($e);
+            $this->showSessionExpiredModal = true;
+
+            return;
+        }
+
+        try {
+            $data = $history->search($archive->normalizeContractorCode($this->contractorCode), $this->fromDate, $this->toDate);
+            $search = $archive->store(
+                $this->contractorCode,
+                $this->contractorName,
+                $this->fromDate,
+                $this->toDate,
+                $data,
+                auth('admin')->id() ? (int) auth('admin')->id() : null
+            );
+            $this->loadStoredSearch($search, $archive);
+            $this->notice = 'Đã tra cứu mới và lưu lịch sử nhà thầu trên server. Các lần xem sau sẽ dùng database.';
+        } catch (Throwable $e) {
+            report($e);
+            $this->error = 'Không thể tải lịch sử nhà thầu từ Cổng Mua sắm công.';
+        }
+    }
+
+    private function loadStoredSearch(ContractorSearch $search, ContractorSearchArchiveService $archive): void
+    {
+        $this->historySearchId = $search->id;
+        $this->contractorCode = $search->contractor_code;
+        $this->contractorName = $search->contractor_name ?: $search->contractor_code;
+        $this->companyKeyword = $this->contractorName;
+        $this->fromDate = $search->from_date?->format('Y-m-d') ?: '2021-01-01';
+        $this->toDate = $search->to_date?->format('Y-m-d');
+        $this->reportedTotal = (int) $search->reported_total;
+        $this->companies = [[
+            'code' => $search->contractor_code,
+            'name' => $this->contractorName,
+            'source' => 'server',
+            'search_id' => $search->id,
+        ]];
+        $this->historyPage = 1;
+        $this->loadStoredPage($archive);
+        $this->notice = 'Đang dùng dữ liệu đã lưu trên server từ lần tra cứu gần nhất '.$search->last_searched_at?->format('d/m/Y H:i').'.';
+    }
+
+    private function loadStoredPage(?ContractorSearchArchiveService $archive = null): void
+    {
+        if (! $this->historySearchId) {
+            return;
+        }
+
+        $search = ContractorSearch::query()->find($this->historySearchId);
+        if (! $search) {
+            $this->error = 'Không tìm thấy lịch sử tra cứu đã lưu.';
+
+            return;
+        }
+
+        $page = ($archive ?? app(ContractorSearchArchiveService::class))
+            ->page($search, $this->historyPage, $this->historyPerPage);
+
+        $this->results = $page['items'];
+        $this->historyPage = $page['page'];
+        $this->historyTotalPages = $page['total_pages'];
+    }
+
+    private function resetSearchState(): void
+    {
+        $this->companies = [];
+        $this->results = [];
+        $this->selected = [];
+        $this->detail = null;
+        $this->kqlcnt = null;
+        $this->hsmt = null;
+        $this->hsmtCacheKey = null;
+        $this->error = null;
+        $this->notice = null;
+        $this->contractorCode = '';
+        $this->contractorName = '';
+        $this->historySearchId = null;
+        $this->historyPage = 1;
+        $this->historyTotalPages = 1;
+        $this->reportedTotal = 0;
+    }
+
     private function hsmtItems(): array
     {
         if (! $this->hsmtCacheKey) {
@@ -412,97 +706,6 @@ class ContractorHistory extends Component
             'hsmt_total_items' => $metadata['total'] ?? null,
             'hsmt_checksum' => $metadata['checksum'] ?? null,
             'hsmt_synced_at' => now(),
-        ]);
-    }
-
-    public function syncKqlcnt(KqlcntService $service): void
-    {
-        if (! is_array($this->kqlcnt) || $this->contractorCode === '') {
-            $this->error = 'Chưa có dữ liệu KQLCNT để đồng bộ.';
-
-            return;
-        }
-
-        $notifyNo = trim((string) ($this->kqlcnt['notify_no'] ?? ''));
-        if ($notifyNo === '') {
-            $this->error = 'KQLCNT không có mã TBMT hợp lệ.';
-
-            return;
-        }
-
-        try {
-            if (($this->kqlcnt['source'] ?? 'api') === 'server') {
-                $notifyId = trim((string) ($this->kqlcnt['notify_id'] ?? ''));
-                $this->kqlcnt = $notifyId !== ''
-                    ? $service->resolve($notifyId, $notifyNo, $this->contractorCode)
-                    : $service->resolveByNotifyNo($notifyNo, $this->contractorCode);
-                $this->kqlcnt['source'] = 'api';
-            }
-
-            $winner = collect($this->kqlcnt['all_winners'] ?? [])
-                ->first(fn (mixed $item): bool => is_array($item)
-                    && trim((string) ($item['contractorCode'] ?? '')) === $this->contractorCode);
-
-            $record = KqlcntRecord::updateOrCreate(
-                ['contractor_code' => $this->contractorCode, 'notify_no' => $notifyNo],
-                [
-                    'notify_id' => $this->kqlcnt['notify_id'] ?? null,
-                    'bid_id' => $this->kqlcnt['bid_id'] ?? null,
-                    'bid_name' => $this->kqlcnt['bid_name'] ?? null,
-                    'contractor_name' => is_array($winner) ? ($winner['contractorName'] ?? $this->contractorName) : $this->contractorName,
-                    'investor_code' => $this->kqlcnt['investor_code'] ?? null,
-                    'investor_name' => $this->kqlcnt['investor_name'] ?? null,
-                    'status' => $this->kqlcnt['status'] ?? null,
-                    'published' => (bool) ($this->kqlcnt['published'] ?? false),
-                    'current_contractor_won' => (bool) ($this->kqlcnt['current_contractor_won'] ?? false),
-                    'contracts' => $this->kqlcnt['contracts'] ?? [],
-                    'all_winners' => $this->kqlcnt['all_winners'] ?? [],
-                    'verified_lots' => $this->kqlcnt['verified_lots'] ?? [],
-                    'tbmt_raw' => $this->kqlcnt['tbmt_raw'] ?? [],
-                    'contracts_raw' => $this->kqlcnt['contracts_raw'] ?? [],
-                    'synced_at' => now(),
-                ]
-            );
-
-            $this->kqlcnt = $service->normalizeStored($record->fresh()->toArray());
-            $this->notice = 'Đã đồng bộ KQLCNT '.$notifyNo.' vào server.';
-        } catch (Throwable $e) {
-            report($e);
-            $this->error = $e->getMessage() ?: 'Không thể đồng bộ KQLCNT.';
-        }
-    }
-
-    public function closeDetail(): void
-    {
-        $this->detail = null;
-    }
-
-    public function closeKqlcnt(): void
-    {
-        $this->clearHsmtCache();
-        $this->kqlcnt = null;
-        $this->hsmt = null;
-        $this->hsmtCacheKey = null;
-    }
-
-    public function render()
-    {
-        $synced = $this->contractorCode === '' ? [] : ContractorBid::query()->where('contractor_code', $this->contractorCode)->pluck('notify_no')->all();
-        $kqlcntSynced = $this->contractorCode === '' ? [] : KqlcntRecord::query()->where('contractor_code', $this->contractorCode)->pluck('notify_no')->all();
-        $allHsmtItems = $this->hsmtItems();
-        $filteredHsmt = $this->filteredHsmtItems();
-        $totalPages = $this->hsmtTotalPages();
-        $this->hsmtPage = min($this->hsmtPage, $totalPages);
-        $pageItems = array_slice($filteredHsmt, ($this->hsmtPage - 1) * $this->hsmtPerPage, $this->hsmtPerPage);
-        $groups = collect($allHsmtItems)->pluck('medicine_group')->filter()->unique()->sort()->values()->all();
-
-        return view('Muasamcong::livewire.contractor-history', [
-            'syncedNotifyNos' => array_fill_keys($synced, true),
-            'syncedKqlcntNotifyNos' => array_fill_keys($kqlcntSynced, true),
-            'hsmtItems' => $pageItems,
-            'hsmtFilteredTotal' => count($filteredHsmt),
-            'hsmtTotalPages' => $totalPages,
-            'hsmtGroups' => $groups,
         ]);
     }
 }
