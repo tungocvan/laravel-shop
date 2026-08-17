@@ -66,7 +66,7 @@ class MuasamcongController extends Controller
     {
         abort_unless(class_exists(ZipArchive::class), 503, 'PHP Zip extension is required to build the Windows tool package.');
 
-        $sourceDirectory = module_path('Muasamcong', 'tools/windows');
+        $sourceDirectory = base_path('Modules/Muasamcong/tools/windows');
         $files = [
             'Muasamcong-Session-Tool.bat',
             'Muasamcong-Session-Tool.ps1',
