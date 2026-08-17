@@ -11,6 +11,7 @@ use Modules\Muasamcong\Services\ContractorHistoryService;
 use Modules\Muasamcong\Services\MuasamcongConfigService;
 use Modules\Muasamcong\Services\MuaSamCongService;
 use Modules\Muasamcong\Services\PersonalSessionService;
+use Modules\Muasamcong\Services\SessionImportTokenService;
 use Throwable;
 
 class ConfigManager extends Component
@@ -48,6 +49,10 @@ class ConfigManager extends Component
     public string $sessionTestStatus = '';
 
     public string $sessionTestMessage = '';
+
+    public string $sessionImportLink = '';
+
+    public string $sessionImportExpiresAt = '';
 
     public function mount(MuasamcongConfigService $configService, PersonalSessionService $personalSessions): void
     {
@@ -195,6 +200,29 @@ class ConfigManager extends Component
         }
     }
 
+    public function createSessionImportLink(SessionImportTokenService $tokens): void
+    {
+        $this->authorizeManageConfig();
+        $user = Auth::guard('admin')->user();
+
+        try {
+            $created = $tokens->create(
+                $user ? (int) $user->getAuthIdentifier() : null,
+                5,
+                request()->getSchemeAndHttpHost()
+            );
+
+            $this->sessionImportLink = (string) $created['link'];
+            $this->sessionImportExpiresAt = $created['expires_at']->format('d/m/Y H:i:s');
+        } catch (Throwable $e) {
+            report($e);
+            $this->sessionImportLink = '';
+            $this->sessionImportExpiresAt = '';
+            $this->sessionTestStatus = 'error';
+            $this->sessionTestMessage = 'Không thể tạo link cập nhật Session. Hãy kiểm tra migration/database.';
+        }
+    }
+
     public function testPersonalSession(ContractorHistoryService $history, PersonalSessionService $personalSessions): void
     {
         $this->authorizeManageConfig();
@@ -208,10 +236,10 @@ class ConfigManager extends Component
             $this->sessionTestStatus = 'success';
             $this->sessionTestMessage = 'Personal Page Session hợp lệ. API lịch sử nhà thầu phản hồi thành công; tài khoản hiện có '.((int) ($result['total'] ?? 0)).' gói.';
         } catch (Throwable $e) {
-            $personalSessions->markFailed($e->getMessage());
+            $personalSessions->markFailed('Manual session verification failed: '.class_basename($e));
             $this->personalSessionStatus = $personalSessions->status();
             $this->sessionTestStatus = 'error';
-            $this->sessionTestMessage = 'Personal Page Session không hợp lệ hoặc đã hết hạn. Hãy lấy Cookie mới từ request get-list-notify-contractor-join trên trình duyệt.';
+            $this->sessionTestMessage = 'Personal Page Session không hợp lệ hoặc đã hết hạn. Hãy tạo link cập nhật Windows mới hoặc dán Cookie mới.';
         }
     }
 
