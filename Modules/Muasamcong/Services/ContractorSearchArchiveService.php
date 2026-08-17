@@ -5,6 +5,7 @@ namespace Modules\Muasamcong\Services;
 use Illuminate\Support\Facades\DB;
 use Modules\Muasamcong\Models\ContractorSearch;
 use Modules\Muasamcong\Models\ContractorSearchItem;
+use Modules\Muasamcong\Models\KqlcntRecord;
 
 class ContractorSearchArchiveService
 {
@@ -123,21 +124,42 @@ class ContractorSearchArchiveService
         $pages = max(1, (int) ceil($total / $perPage));
         $page = min($page, $pages);
 
-        $items = $search->items()
+        $pageItems = $search->items()
             ->orderByDesc('created_date')
             ->orderByDesc('id')
             ->forPage($page, $perPage)
-            ->get()
-            ->map(fn (ContractorSearchItem $item): array => $item->raw_payload ?: [
-                'notifyNo' => $item->notify_no,
-                'bidName' => $item->bid_name,
-                'createdDate' => $item->created_date?->toISOString(),
-                'dateYear' => $item->date_year,
-                'dateQuarter' => $item->date_quarter,
-                'dateMonth' => $item->date_month,
-                'contractorCode' => $search->contractor_code,
-                'procuringEntityCode' => $item->procuring_entity_code,
-            ])
+            ->get();
+
+        $notifyNos = $pageItems->pluck('notify_no')->filter()->values()->all();
+        $kqlcntByNotifyNo = $notifyNos === []
+            ? collect()
+            : KqlcntRecord::query()
+                ->where('contractor_code', $search->contractor_code)
+                ->whereIn('notify_no', $notifyNos)
+                ->get(['notify_no', 'investor_code', 'investor_name'])
+                ->keyBy('notify_no');
+
+        $items = $pageItems
+            ->map(function (ContractorSearchItem $item) use ($search, $kqlcntByNotifyNo): array {
+                $payload = $item->raw_payload ?: [
+                    'notifyNo' => $item->notify_no,
+                    'bidName' => $item->bid_name,
+                    'createdDate' => $item->created_date?->toISOString(),
+                    'dateYear' => $item->date_year,
+                    'dateQuarter' => $item->date_quarter,
+                    'dateMonth' => $item->date_month,
+                    'contractorCode' => $search->contractor_code,
+                    'procuringEntityCode' => $item->procuring_entity_code,
+                ];
+
+                $kqlcnt = $kqlcntByNotifyNo->get($item->notify_no);
+                if ($kqlcnt) {
+                    $payload['investorCode'] = $kqlcnt->investor_code ?: ($payload['investorCode'] ?? null);
+                    $payload['investorName'] = $kqlcnt->investor_name ?: ($payload['investorName'] ?? null);
+                }
+
+                return $payload;
+            })
             ->all();
 
         return [
