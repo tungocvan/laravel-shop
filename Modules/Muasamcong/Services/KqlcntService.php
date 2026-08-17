@@ -4,6 +4,8 @@ namespace Modules\Muasamcong\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
+use Modules\Muasamcong\Models\ContractorSearchItem;
 use RuntimeException;
 
 class KqlcntService
@@ -127,7 +129,7 @@ class KqlcntService
             }
         }
 
-        return [
+        $resolved = [
             'notify_no' => $notifyNo,
             'notify_id' => $notifyId,
             'bid_name' => data_get($tbmt, 'bidoNotifyContractorM.bidName')
@@ -152,6 +154,10 @@ class KqlcntService
             'tbmt_raw' => $tbmt,
             'contracts_raw' => $contracts,
         ];
+
+        $this->persistInvestorToHistory($resolved);
+
+        return $resolved;
     }
 
     public function normalizeStored(array $record): array
@@ -208,6 +214,41 @@ class KqlcntService
             'source' => 'server',
             'synced_at' => $record['synced_at'] ?? null,
         ];
+    }
+
+    private function persistInvestorToHistory(array $resolved): void
+    {
+        if (! Schema::hasTable('muasamcong_contractor_search_items')
+            || ! Schema::hasTable('muasamcong_contractor_searches')) {
+            return;
+        }
+
+        $notifyNo = trim((string) ($resolved['notify_no'] ?? ''));
+        $contractorCode = trim((string) ($resolved['contractor_code'] ?? ''));
+        $investorName = trim((string) ($resolved['investor_name'] ?? ''));
+        $investorCode = trim((string) ($resolved['investor_code'] ?? ''));
+
+        if ($notifyNo === '' || $contractorCode === '' || ($investorName === '' && $investorCode === '')) {
+            return;
+        }
+
+        ContractorSearchItem::query()
+            ->where('notify_no', $notifyNo)
+            ->whereHas('search', fn ($query) => $query->where('contractor_code', $contractorCode))
+            ->get()
+            ->each(function (ContractorSearchItem $item) use ($investorName, $investorCode): void {
+                $payload = is_array($item->raw_payload) ? $item->raw_payload : [];
+
+                if ($investorName !== '') {
+                    $payload['investorName'] = $investorName;
+                }
+                if ($investorCode !== '') {
+                    $payload['investorCode'] = $investorCode;
+                }
+
+                $item->raw_payload = $payload;
+                $item->save();
+            });
     }
 
     private function contractWinners(array $contract): array

@@ -11,12 +11,21 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
             ->group(function () {
                 Route::get('/', [MuasamcongController::class, 'index'])->name('index');
                 Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
+                Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
+                Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
+                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', [MuasamcongController::class, 'manualContractorLots'])
+                    ->name('contractors.manual-lots.show');
+                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', [MuasamcongController::class, 'downloadManualContractorLots'])
+                    ->name('contractors.manual-lots.download');
                 Route::get('/hsmt', [MuasamcongController::class, 'hsmt'])->name('hsmt');
                 Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
                 Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
             });
 
-        Route::get('/config', [MuasamcongController::class, 'config'])
-            ->middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))
-            ->name('config');
+        Route::middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))
+            ->group(function () {
+                Route::get('/config', [MuasamcongController::class, 'config'])->name('config');
+                Route::get('/session-tool/windows', [MuasamcongController::class, 'downloadWindowsSessionTool'])
+                    ->name('session-tool.windows');
+            });
     });
