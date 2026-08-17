@@ -33,29 +33,22 @@ class ConfigManager extends Component
     ];
 
     public array $environmentStatus = [];
-
     public array $personalSessionStatus = [];
-
     public bool $hasSmartToken = false;
-
     public bool $hasSessionCookie = false;
-
     public string $personalSessionCookie = '';
-
     public string $tokenTestStatus = '';
-
     public string $tokenTestMessage = '';
-
     public string $sessionTestStatus = '';
-
     public string $sessionTestMessage = '';
-
     public string $sessionImportLink = '';
-
     public string $sessionImportExpiresAt = '';
 
-    public function mount(MuasamcongConfigService $configService, PersonalSessionService $personalSessions): void
-    {
+    public function mount(
+        MuasamcongConfigService $configService,
+        PersonalSessionService $personalSessions,
+        ContractorHistoryService $history
+    ): void {
         $this->form = [
             'origin' => (string) config('muasamcong.origin'),
             'verify_ssl' => app()->environment('production')
@@ -76,6 +69,7 @@ class ConfigManager extends Component
         $this->hasSessionCookie = trim((string) config('muasamcong.session_cookie')) !== '';
         $this->personalSessionStatus = $personalSessions->status();
         $this->loadEnvironmentStatus($configService);
+        $this->verifyPersonalSessionOnLoad($history, $personalSessions);
     }
 
     public function checkEnvironment(MuasamcongConfigService $configService): void
@@ -226,21 +220,7 @@ class ConfigManager extends Component
     public function testPersonalSession(ContractorHistoryService $history, PersonalSessionService $personalSessions): void
     {
         $this->authorizeManageConfig();
-        $this->sessionTestStatus = '';
-        $this->sessionTestMessage = '';
-
-        try {
-            $result = $history->testSession();
-            $personalSessions->markVerified();
-            $this->personalSessionStatus = $personalSessions->status();
-            $this->sessionTestStatus = 'success';
-            $this->sessionTestMessage = 'Personal Page Session hợp lệ. API lịch sử nhà thầu phản hồi thành công; tài khoản hiện có '.((int) ($result['total'] ?? 0)).' gói.';
-        } catch (Throwable $e) {
-            $personalSessions->markFailed('Manual session verification failed: '.class_basename($e));
-            $this->personalSessionStatus = $personalSessions->status();
-            $this->sessionTestStatus = 'error';
-            $this->sessionTestMessage = 'Personal Page Session không hợp lệ hoặc đã hết hạn. Hãy tạo link cập nhật Windows mới hoặc dán Cookie mới.';
-        }
+        $this->runPersonalSessionVerification($history, $personalSessions, true);
     }
 
     public function testToken(MuaSamCongService $service): void
@@ -275,6 +255,45 @@ class ConfigManager extends Component
     public function render(): View
     {
         return view('Muasamcong::livewire.config-manager-shell');
+    }
+
+    private function verifyPersonalSessionOnLoad(
+        ContractorHistoryService $history,
+        PersonalSessionService $personalSessions
+    ): void {
+        if (! ($this->personalSessionStatus['has_session'] ?? false)) {
+            $this->sessionTestStatus = 'error';
+            $this->sessionTestMessage = 'Chưa có Personal Page Session để kiểm tra.';
+
+            return;
+        }
+
+        $this->runPersonalSessionVerification($history, $personalSessions, false);
+    }
+
+    private function runPersonalSessionVerification(
+        ContractorHistoryService $history,
+        PersonalSessionService $personalSessions,
+        bool $manual
+    ): void {
+        $this->sessionTestStatus = '';
+        $this->sessionTestMessage = '';
+
+        try {
+            $result = $history->testSession();
+            $personalSessions->markVerified();
+            $this->personalSessionStatus = $personalSessions->status();
+            $this->sessionTestStatus = 'success';
+            $prefix = $manual ? 'Personal Page Session hợp lệ.' : 'Đã tự động kiểm tra: Personal Page Session hợp lệ.';
+            $this->sessionTestMessage = $prefix.' API lịch sử nhà thầu phản hồi thành công; tài khoản hiện có '.((int) ($result['total'] ?? 0)).' gói.';
+        } catch (Throwable $e) {
+            $personalSessions->markFailed(($manual ? 'Manual' : 'Automatic').' session verification failed: '.class_basename($e));
+            $this->personalSessionStatus = $personalSessions->status();
+            $this->sessionTestStatus = 'error';
+            $this->sessionTestMessage = $manual
+                ? 'Personal Page Session không hợp lệ hoặc đã hết hạn. Hãy tạo link cập nhật Windows mới hoặc dán Cookie mới.'
+                : 'Tự động kiểm tra khi mở Config: Personal Page Session không hợp lệ hoặc đã hết hạn. Hãy dùng Windows Tool để cập nhật.';
+        }
     }
 
     private function loadEnvironmentStatus(MuasamcongConfigService $configService): void
