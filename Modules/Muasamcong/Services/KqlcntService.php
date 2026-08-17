@@ -4,6 +4,7 @@ namespace Modules\Muasamcong\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Modules\Muasamcong\Models\ContractorSearchItem;
 use RuntimeException;
 
@@ -217,6 +218,11 @@ class KqlcntService
 
     private function persistInvestorToHistory(array $resolved): void
     {
+        if (! Schema::hasTable('muasamcong_contractor_search_items')
+            || ! Schema::hasTable('muasamcong_contractor_searches')) {
+            return;
+        }
+
         $notifyNo = trim((string) ($resolved['notify_no'] ?? ''));
         $contractorCode = trim((string) ($resolved['contractor_code'] ?? ''));
         $investorName = trim((string) ($resolved['investor_name'] ?? ''));
