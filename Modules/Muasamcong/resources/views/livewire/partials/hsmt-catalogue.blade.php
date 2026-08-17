@@ -129,3 +129,9 @@
         </div>
     @endif
 </section>
+
+@livewire('muasamcong.manual-contractor-lots', [
+    'notifyNo' => (string) ($kqlcnt['notify_no'] ?? ''),
+    'contractorCode' => (string) ($kqlcnt['contractor_code'] ?? $contractorCode),
+    'contractorName' => (string) $contractorName,
+], key('manual-lots-'.($kqlcnt['notify_no'] ?? 'unknown').'-'.($kqlcnt['contractor_code'] ?? $contractorCode)))
