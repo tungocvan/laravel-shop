@@ -32,10 +32,37 @@ function Receive-CdpMessage {
     }
 }
 
+function Test-CookiePathMatch {
+    param(
+        [string]$RequestPath,
+        [string]$CookiePath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CookiePath)) {
+        $CookiePath = "/"
+    }
+
+    if ($RequestPath -eq $CookiePath) {
+        return $true
+    }
+
+    if (-not $RequestPath.StartsWith($CookiePath, [StringComparison]::Ordinal)) {
+        return $false
+    }
+
+    if ($CookiePath.EndsWith("/")) {
+        return $true
+    }
+
+    return $RequestPath.Length -gt $CookiePath.Length -and $RequestPath[$CookiePath.Length] -eq '/'
+}
+
 function Get-MuasamcongCookieHeader {
     param([int]$Port)
 
     $versionUrl = "http://127.0.0.1:$Port/json/version"
+    $targetHost = "muasamcong.mpi.gov.vn"
+    $targetPath = "/o/egp-portal-personal-page/services/get-list-notify-contractor-join"
 
     try {
         $version = Invoke-RestMethod -Uri $versionUrl -Method Get -TimeoutSec 5
@@ -56,12 +83,12 @@ function Get-MuasamcongCookieHeader {
 
     try {
         $socket.Options.SetRequestHeader("Origin", "http://127.0.0.1:$Port")
-        $socket.ConnectAsync([Uri]$wsUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
+        [void]$socket.ConnectAsync([Uri]$wsUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
 
         $request = @{ id = 1; method = "Storage.getCookies" } | ConvertTo-Json -Compress
         $bytes = [Text.Encoding]::UTF8.GetBytes($request)
         $segment = New-Object System.ArraySegment[byte] -ArgumentList (, $bytes)
-        $socket.SendAsync(
+        [void]$socket.SendAsync(
             $segment,
             [System.Net.WebSockets.WebSocketMessageType]::Text,
             $true,
@@ -80,26 +107,35 @@ function Get-MuasamcongCookieHeader {
             throw "CDP Storage.getCookies loi: $($response.error.message)"
         }
 
+        $nowUnix = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
         $cookies = @($response.result.cookies) | Where-Object {
             $domain = ([string]$_.domain).TrimStart('.')
-            $domain -eq "muasamcong.mpi.gov.vn" -or $domain.EndsWith(".muasamcong.mpi.gov.vn")
+            $cookiePath = [string]$_.path
+            $expires = [double]$_.expires
+            $domainMatches = $domain -eq $targetHost
+            $pathMatches = Test-CookiePathMatch -RequestPath $targetPath -CookiePath $cookiePath
+            $notExpired = $expires -le 0 -or $expires -gt $nowUnix
+
+            $domainMatches -and $pathMatches -and $notExpired
         }
 
         if ($cookies.Count -eq 0) {
-            throw "Khong tim thay cookie cua muasamcong.mpi.gov.vn. Hay mo trang Mua sam cong va dang nhap."
+            throw "Khong tim thay cookie ap dung cho API Personal Page. Hay mo trang Mua sam cong va dang nhap."
         }
 
-        $jsession = $cookies | Where-Object { $_.name -eq "JSESSIONID" } | Select-Object -First 1
-        if ($null -eq $jsession) {
-            throw "Khong tim thay JSESSIONID. Hay dang nhap Mua sam cong tren Chrome rieng truoc."
+        $jsessions = @($cookies | Where-Object { $_.name -eq "JSESSIONID" })
+        if ($jsessions.Count -eq 0) {
+            throw "Khong tim thay JSESSIONID cua Personal Page. Hay dang nhap Mua sam cong tren Chrome rieng truoc."
         }
 
+        # Cookie header cua trinh duyet uu tien cookie co path cu the hon truoc.
+        # Loc theo targetPath o tren se loai JSESSIONID cua Keycloak (/security/...) khoi API /o/....
         $ordered = $cookies | Sort-Object @{ Expression = { ([string]$_.path).Length }; Descending = $true }, name
         return ($ordered | ForEach-Object { "$($_.name)=$($_.value)" }) -join "; "
     }
     finally {
         if ($socket.State -eq [System.Net.WebSockets.WebSocketState]::Open) {
-            $socket.CloseAsync(
+            [void]$socket.CloseAsync(
                 [System.Net.WebSockets.WebSocketCloseStatus]::NormalClosure,
                 "done",
                 [Threading.CancellationToken]::None
@@ -112,7 +148,7 @@ function Get-MuasamcongCookieHeader {
 Write-Host "[1/3] Dang doc session tu Chrome rieng..." -ForegroundColor Cyan
 $cookieHeader = Get-MuasamcongCookieHeader -Port $DebugPort
 
-Write-Host "[2/3] Da tim thay session cua muasamcong.mpi.gov.vn (khong hien thi gia tri cookie)." -ForegroundColor Green
+Write-Host "[2/3] Da tim thay session Personal Page phu hop (khong hien thi gia tri cookie)." -ForegroundColor Green
 
 if ($WslProjectPath -notmatch '^/[A-Za-z0-9_./-]+$') {
     throw "WSL project path khong hop le."
