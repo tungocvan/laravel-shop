@@ -74,7 +74,9 @@ class PersonalSessionService
 
         PersonalSession::query()->where('key', self::KEY)->update([
             'last_failed_at' => now(),
-            'last_error' => mb_substr($message, 0, 1000),
+            // Never persist upstream exception text here: HTTP/header exceptions may contain
+            // the full Cookie header or other authentication material.
+            'last_error' => 'Personal Page Session verification failed. Check or refresh the saved session.',
         ]);
     }
 
