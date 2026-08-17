@@ -12,21 +12,27 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $index = Route::getRoutes()->getByName('muasamcong.index');
         $hsmt = Route::getRoutes()->getByName('muasamcong.hsmt');
         $contractors = Route::getRoutes()->getByName('muasamcong.contractors');
+        $contractorHistory = Route::getRoutes()->getByName('muasamcong.contractors.history');
+        $contractorHistoryShow = Route::getRoutes()->getByName('muasamcong.contractors.history.show');
         $synced = Route::getRoutes()->getByName('muasamcong.synced');
         $wishlist = Route::getRoutes()->getByName('muasamcong.wishlist');
 
         $this->assertNotNull($index);
         $this->assertNotNull($hsmt);
         $this->assertNotNull($contractors);
+        $this->assertNotNull($contractorHistory);
+        $this->assertNotNull($contractorHistoryShow);
         $this->assertNotNull($synced);
         $this->assertNotNull($wishlist);
         $this->assertSame('admin/muasamcong', $index->uri());
         $this->assertSame('admin/muasamcong/hsmt', $hsmt->uri());
         $this->assertSame('admin/muasamcong/contractors', $contractors->uri());
+        $this->assertSame('admin/muasamcong/contractors/history', $contractorHistory->uri());
+        $this->assertSame('admin/muasamcong/contractors/history/{contractorSearch}', $contractorHistoryShow->uri());
         $this->assertSame('admin/muasamcong/synced', $synced->uri());
         $this->assertSame('admin/muasamcong/wishlist', $wishlist->uri());
 
-        foreach ([$index, $hsmt, $contractors, $synced, $wishlist] as $route) {
+        foreach ([$index, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $synced, $wishlist] as $route) {
             $middleware = $route->gatherMiddleware();
             $this->assertContains('auth:admin', $middleware);
             $this->assertContains('permission:view_muasamcong,admin', $middleware);
@@ -59,13 +65,15 @@ class MuasamcongRouteAuthorizationTest extends TestCase
             ->filter(fn (string $uri): bool => str_contains($uri, 'muasamcong'))
             ->values();
 
-        $this->assertCount(10, $uris);
+        $this->assertCount(12, $uris);
         $this->assertContains('api/muasamcong', $uris);
         $this->assertContains('api/muasamcong/search-pricing', $uris);
         $this->assertContains('api/muasamcong/update-cookie', $uris);
         $this->assertContains('admin/muasamcong', $uris);
         $this->assertContains('admin/muasamcong/hsmt', $uris);
         $this->assertContains('admin/muasamcong/contractors', $uris);
+        $this->assertContains('admin/muasamcong/contractors/history', $uris);
+        $this->assertContains('admin/muasamcong/contractors/history/{contractorSearch}', $uris);
         $this->assertContains('admin/muasamcong/synced', $uris);
         $this->assertContains('admin/muasamcong/wishlist', $uris);
         $this->assertContains('admin/muasamcong/config', $uris);
