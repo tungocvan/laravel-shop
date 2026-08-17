@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Muasamcong\Jobs\FetchContractorHistoryJob;
+use Modules\Muasamcong\Models\ContractorManualLot;
 use Modules\Muasamcong\Models\ContractorSearch;
 use Modules\Muasamcong\Models\ContractorSearchItem;
 use Modules\Muasamcong\Models\ContractorSearchJob;
@@ -123,8 +124,16 @@ class ContractorSearchList extends Component
             ->unique('contractor_code')
             ->keyBy('contractor_code');
 
+        $cataloguesByCode = ContractorManualLot::query()
+            ->whereIn('contractor_code', $codes)
+            ->selectRaw('contractor_code, notify_no, COUNT(*) as lot_count, SUM(COALESCE(plan_amount, 0)) as plan_amount')
+            ->groupBy('contractor_code', 'notify_no')
+            ->orderByDesc('notify_no')
+            ->get()
+            ->groupBy('contractor_code');
+
         $hasRunningJobs = $latestJobs->contains(fn (ContractorSearchJob $job): bool => in_array($job->status, ['queued', 'running', 'saving'], true));
 
-        return view('Muasamcong::livewire.contractor-search-list', compact('searches', 'latestJobs', 'hasRunningJobs'));
+        return view('Muasamcong::livewire.contractor-search-list', compact('searches', 'latestJobs', 'cataloguesByCode', 'hasRunningJobs'));
     }
 }
