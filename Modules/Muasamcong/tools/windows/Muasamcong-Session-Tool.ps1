@@ -50,6 +50,44 @@ function Receive-CdpMessage {
     }
 }
 
+function Test-CookieAppliesToUrl {
+    param(
+        $Cookie,
+        [Uri]$Uri
+    )
+
+    $cookieDomain = ([string]$Cookie.domain).TrimStart('.').ToLowerInvariant()
+    $host = $Uri.Host.ToLowerInvariant()
+
+    $domainMatches = $host -eq $cookieDomain -or $host.EndsWith('.' + $cookieDomain)
+    if (-not $domainMatches) {
+        return $false
+    }
+
+    $cookiePath = [string]$Cookie.path
+    if ([string]::IsNullOrWhiteSpace($cookiePath)) {
+        $cookiePath = '/'
+    }
+
+    if (-not $Uri.AbsolutePath.StartsWith($cookiePath, [StringComparison]::Ordinal)) {
+        return $false
+    }
+
+    if ([bool]$Cookie.secure -and $Uri.Scheme -ne 'https') {
+        return $false
+    }
+
+    $expires = [double]$Cookie.expires
+    if ($expires -gt 0) {
+        $nowUnix = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        if ($expires -le $nowUnix) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 function Get-PersonalPageCookieHeader {
     $versionUrl = "http://127.0.0.1:$DebugPort/json/version"
 
@@ -74,11 +112,12 @@ function Get-PersonalPageCookieHeader {
         $socket.Options.SetRequestHeader('Origin', "http://127.0.0.1:$DebugPort")
         [void]$socket.ConnectAsync([Uri]$wsUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult()
 
+        # The /json/version WebSocket is a browser-level CDP target. Network.getCookies
+        # is not available there on some Chrome versions, while Storage.getCookies is.
         $request = @{
             id = 1
-            method = 'Network.getCookies'
-            params = @{ urls = @($CookieUrl) }
-        } | ConvertTo-Json -Depth 5 -Compress
+            method = 'Storage.getCookies'
+        } | ConvertTo-Json -Compress
 
         $bytes = [Text.Encoding]::UTF8.GetBytes($request)
         $segment = New-Object System.ArraySegment[byte] -ArgumentList (, $bytes)
@@ -98,10 +137,14 @@ function Get-PersonalPageCookieHeader {
         } while ($null -eq $response)
 
         if ($response.error) {
-            throw "CDP Network.getCookies loi: $($response.error.message)"
+            throw "CDP Storage.getCookies loi: $($response.error.message)"
         }
 
-        $cookies = @($response.result.cookies)
+        $targetUri = [Uri]$CookieUrl
+        $cookies = @($response.result.cookies) | Where-Object {
+            Test-CookieAppliesToUrl -Cookie $_ -Uri $targetUri
+        }
+
         if ($cookies.Count -eq 0) {
             throw 'Khong co Cookie Personal Page cho URL can dung.'
         }
@@ -111,7 +154,10 @@ function Get-PersonalPageCookieHeader {
             throw 'Chua co JSESSIONID Personal Page. Hay dang nhap Mua sam cong.'
         }
 
-        return ($cookies | ForEach-Object { "$($_.name)=$($_.value)" }) -join '; '
+        # Browser cookie ordering is path-specific. Longer paths are emitted first.
+        $ordered = $cookies | Sort-Object @{ Expression = { ([string]$_.path).Length }; Descending = $true }, name
+
+        return ($ordered | ForEach-Object { "$($_.name)=$($_.value)" }) -join '; '
     }
     finally {
         if ($socket.State -eq [System.Net.WebSockets.WebSocketState]::Open) {
