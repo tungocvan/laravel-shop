@@ -49,92 +49,43 @@ class SyncedPricingExportPreferenceService
         'address' => '',
         'tax_code' => '',
         'phone' => '',
+        'email' => '',
         'title' => 'BẢNG BÁO GIÁ',
         'recipient' => 'QUÝ KHÁCH HÀNG',
         'intro' => 'Công ty INAFO Việt Nam xin trân trọng gửi đến Quý Khách hàng báo giá một số sản phẩm chúng tôi đang phân phối trên thị trường hiện nay như sau:',
         'footer_location' => 'Tp.HCM',
         'signatory_title' => 'GIÁM ĐỐC CÔNG TY',
+        'signatory_name' => '',
         'footer_year' => '',
     ];
 
     public function profilesForUser(int $userId): array
     {
-        return SyncedExportProfile::query()
-            ->where('user_id', $userId)
-            ->orderByDesc('is_default')
-            ->orderBy('name')
-            ->get(['id', 'name', 'is_default'])
-            ->map(fn (SyncedExportProfile $profile): array => [
-                'id' => (int) $profile->id,
-                'name' => (string) $profile->name,
-                'is_default' => (bool) $profile->is_default,
-            ])
-            ->all();
+        return SyncedExportProfile::query()->where('user_id', $userId)->orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'is_default'])->map(fn (SyncedExportProfile $profile): array => ['id' => (int) $profile->id, 'name' => (string) $profile->name, 'is_default' => (bool) $profile->is_default])->all();
     }
 
     public function forUser(int $userId, ?int $profileId = null): array
     {
-        $profile = SyncedExportProfile::query()
-            ->where('user_id', $userId)
-            ->when($profileId !== null && $profileId > 0, fn ($query) => $query->whereKey($profileId))
-            ->when($profileId === null || $profileId <= 0, fn ($query) => $query->orderByDesc('is_default')->orderBy('id'))
-            ->first();
+        $profile = SyncedExportProfile::query()->where('user_id', $userId)->when($profileId !== null && $profileId > 0, fn ($query) => $query->whereKey($profileId))->when($profileId === null || $profileId <= 0, fn ($query) => $query->orderByDesc('is_default')->orderBy('id'))->first();
 
         return $profile === null ? $this->defaults() : $this->profilePayload($profile);
     }
 
-    public function saveProfile(
-        int $userId,
-        string $name,
-        array $columnOrder,
-        array $selectedColumns,
-        array $headers,
-        array $alignments,
-        array $widths = [],
-        array $dataTypes = [],
-        array $decimals = [],
-        ?int $profileId = null,
-        bool $makeDefault = false,
-        array $headerFooter = [],
-        ?string $logoPath = null,
-        ?string $signaturePath = null,
-    ): array {
+    public function saveProfile(int $userId, string $name, array $columnOrder, array $selectedColumns, array $headers, array $alignments, array $widths = [], array $dataTypes = [], array $decimals = [], ?int $profileId = null, bool $makeDefault = false, array $headerFooter = [], ?string $logoPath = null, ?string $signaturePath = null): array
+    {
         $name = trim($name);
         $name = $name !== '' ? mb_substr($name, 0, 120) : 'Cấu hình Excel';
         $order = $this->normalizeOrder($columnOrder);
-        $selectedLookup = array_fill_keys(array_values(array_filter(
-            $selectedColumns,
-            fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key])
-        )), true);
+        $selectedLookup = array_fill_keys(array_values(array_filter($selectedColumns, fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key]))), true);
         $selected = array_values(array_filter($order, fn (string $key): bool => isset($selectedLookup[$key])));
-
-        $profile = $profileId !== null && $profileId > 0
-            ? SyncedExportProfile::query()->where('user_id', $userId)->findOrFail($profileId)
-            : new SyncedExportProfile(['user_id' => $userId]);
-
+        $profile = $profileId !== null && $profileId > 0 ? SyncedExportProfile::query()->where('user_id', $userId)->findOrFail($profileId) : new SyncedExportProfile(['user_id' => $userId]);
         if (! $profile->exists && ! SyncedExportProfile::query()->where('user_id', $userId)->exists()) {
             $makeDefault = true;
         }
-
         if ($makeDefault) {
             SyncedExportProfile::query()->where('user_id', $userId)->update(['is_default' => false]);
         }
-
-        $profile->forceFill([
-            'user_id' => $userId,
-            'name' => $name,
-            'is_default' => $makeDefault || (bool) $profile->is_default,
-            'column_order' => $order,
-            'selected_columns' => $selected,
-            'headers' => $this->normalizeHeaders($headers),
-            'alignments' => $this->normalizeAlignments($alignments),
-            'widths' => $this->normalizeWidths($widths),
-            'data_types' => $this->normalizeDataTypes($dataTypes),
-            'decimals' => $this->normalizeDecimals($decimals),
-            'header_footer' => $this->normalizeHeaderFooter($headerFooter),
-            'logo_path' => $logoPath,
-            'signature_path' => $signaturePath,
-        ])->save();
+        $profile->forceFill(['user_id' => $userId, 'name' => $name, 'is_default' => $makeDefault || (bool) $profile->is_default, 'column_order' => $order, 'selected_columns' => $selected, 'headers' => $this->normalizeHeaders($headers), 'alignments' => $this->normalizeAlignments($alignments), 'widths' => $this->normalizeWidths($widths), 'data_types' => $this->normalizeDataTypes($dataTypes), 'decimals' => $this->normalizeDecimals($decimals), 'header_footer' => $this->normalizeHeaderFooter($headerFooter), 'logo_path' => $logoPath, 'signature_path' => $signaturePath])->save();
 
         return $this->profilePayload($profile->fresh());
     }
@@ -155,7 +106,6 @@ class SyncedPricingExportPreferenceService
         $profile = SyncedExportProfile::query()->where('user_id', $userId)->findOrFail($profileId);
         $wasDefault = (bool) $profile->is_default;
         $profile->delete();
-
         if ($wasDefault) {
             SyncedExportProfile::query()->where('user_id', $userId)->orderBy('id')->first()?->update(['is_default' => true]);
         }
@@ -172,45 +122,14 @@ class SyncedPricingExportPreferenceService
 
     private function profilePayload(SyncedExportProfile $profile): array
     {
-        return [
-            'profile_id' => (int) $profile->id,
-            'profile_name' => (string) $profile->name,
-            'is_default' => (bool) $profile->is_default,
-            'column_order' => $this->normalizeOrder((array) $profile->column_order),
-            'selected_columns' => array_values(array_filter(
-                (array) $profile->selected_columns,
-                fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key])
-            )),
-            'headers' => $this->normalizeHeaders((array) $profile->headers),
-            'alignments' => $this->normalizeAlignments((array) $profile->alignments),
-            'widths' => $this->normalizeWidths((array) $profile->widths),
-            'data_types' => $this->normalizeDataTypes((array) $profile->data_types),
-            'decimals' => $this->normalizeDecimals((array) $profile->decimals),
-            'header_footer' => $this->normalizeHeaderFooter((array) $profile->header_footer),
-            'logo_path' => $profile->logo_path,
-            'signature_path' => $profile->signature_path,
-        ];
+        return ['profile_id' => (int) $profile->id, 'profile_name' => (string) $profile->name, 'is_default' => (bool) $profile->is_default, 'column_order' => $this->normalizeOrder((array) $profile->column_order), 'selected_columns' => array_values(array_filter((array) $profile->selected_columns, fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key]))), 'headers' => $this->normalizeHeaders((array) $profile->headers), 'alignments' => $this->normalizeAlignments((array) $profile->alignments), 'widths' => $this->normalizeWidths((array) $profile->widths), 'data_types' => $this->normalizeDataTypes((array) $profile->data_types), 'decimals' => $this->normalizeDecimals((array) $profile->decimals), 'header_footer' => $this->normalizeHeaderFooter((array) $profile->header_footer), 'logo_path' => $profile->logo_path, 'signature_path' => $profile->signature_path];
     }
 
     private function defaults(): array
     {
         $allKeys = array_keys(self::COLUMNS);
 
-        return [
-            'profile_id' => null,
-            'profile_name' => 'Mặc định',
-            'is_default' => false,
-            'column_order' => $allKeys,
-            'selected_columns' => $allKeys,
-            'headers' => $this->defaultHeaders(),
-            'alignments' => $this->defaultAlignments(),
-            'widths' => $this->defaultWidths(),
-            'data_types' => $this->defaultDataTypes(),
-            'decimals' => $this->defaultDecimals(),
-            'header_footer' => self::DEFAULT_HEADER_FOOTER,
-            'logo_path' => null,
-            'signature_path' => null,
-        ];
+        return ['profile_id' => null, 'profile_name' => 'Mặc định', 'is_default' => false, 'column_order' => $allKeys, 'selected_columns' => $allKeys, 'headers' => $this->defaultHeaders(), 'alignments' => $this->defaultAlignments(), 'widths' => $this->defaultWidths(), 'data_types' => $this->defaultDataTypes(), 'decimals' => $this->defaultDecimals(), 'header_footer' => self::DEFAULT_HEADER_FOOTER, 'logo_path' => null, 'signature_path' => null];
     }
 
     private function normalizeOrder(array $order): array
@@ -251,8 +170,7 @@ class SyncedPricingExportPreferenceService
     {
         $normalized = [];
         foreach (self::COLUMNS as $key => $column) {
-            $width = $widths[$key] ?? $column['width'];
-            $width = is_numeric($width) ? (float) $width : (float) $column['width'];
+            $width = is_numeric($widths[$key] ?? null) ? (float) $widths[$key] : (float) $column['width'];
             $normalized[$key] = (int) round(max(40, min(600, $width)));
         }
 
@@ -284,9 +202,8 @@ class SyncedPricingExportPreferenceService
     private function normalizeHeaderFooter(array $settings): array
     {
         $normalized = self::DEFAULT_HEADER_FOOTER;
-        $normalized['enabled'] = (bool) ($settings['enabled'] ?? $normalized['enabled']);
-
-        foreach (['company_name', 'address', 'tax_code', 'phone', 'title', 'recipient', 'intro', 'footer_location', 'signatory_title', 'footer_year'] as $key) {
+        $normalized['enabled'] = (bool) ($settings['enabled'] ?? false);
+        foreach (['company_name', 'address', 'tax_code', 'phone', 'email', 'title', 'recipient', 'intro', 'footer_location', 'signatory_title', 'signatory_name', 'footer_year'] as $key) {
             $value = trim((string) ($settings[$key] ?? $normalized[$key]));
             $normalized[$key] = mb_substr($value, 0, $key === 'intro' ? 2000 : 255);
         }
@@ -299,7 +216,6 @@ class SyncedPricingExportPreferenceService
         $base = mb_substr(trim($name).' - Bản sao', 0, 110);
         $candidate = $base;
         $suffix = 2;
-
         while (SyncedExportProfile::query()->where('user_id', $userId)->where('name', $candidate)->exists()) {
             $candidate = mb_substr($base, 0, 110)." {$suffix}";
             $suffix++;
@@ -308,28 +224,9 @@ class SyncedPricingExportPreferenceService
         return $candidate;
     }
 
-    private function defaultHeaders(): array
-    {
-        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['label']])->all();
-    }
-
-    private function defaultAlignments(): array
-    {
-        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['align']])->all();
-    }
-
-    private function defaultWidths(): array
-    {
-        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['width']])->all();
-    }
-
-    private function defaultDataTypes(): array
-    {
-        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['type']])->all();
-    }
-
-    private function defaultDecimals(): array
-    {
-        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => 0])->all();
-    }
+    private function defaultHeaders(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['label']])->all(); }
+    private function defaultAlignments(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['align']])->all(); }
+    private function defaultWidths(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['width']])->all(); }
+    private function defaultDataTypes(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['type']])->all(); }
+    private function defaultDecimals(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => 0])->all(); }
 }
