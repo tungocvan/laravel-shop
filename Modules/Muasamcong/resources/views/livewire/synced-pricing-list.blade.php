@@ -17,6 +17,13 @@
                     <span class="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">Đã chọn {{ count($selectedIds) }}</span>
                     <button type="button" wire:click="editSelected" class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Sửa đã chọn</button>
                     <button type="button" wire:click="clearSelection" @disabled($selectedIds === []) class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 disabled:opacity-40">Bỏ chọn</button>
+                    <form method="POST" action="{{ route('muasamcong.synced.export-selected') }}" class="inline-flex">
+                        @csrf
+                        @foreach ($selectedIds as $selectedId)
+                            <input type="hidden" name="selected_ids[]" value="{{ (int) $selectedId }}">
+                        @endforeach
+                        <button type="submit" @disabled($selectedIds === []) class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Xuất Excel ({{ count($selectedIds) }})</button>
+                    </form>
                     <button type="button" wire:click="deleteSelected" wire:confirm="Bạn có chắc muốn xóa các bản ghi đồng bộ đã chọn?" @disabled($selectedIds === []) class="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">Xóa đã chọn</button>
                 </div>
             @endif
