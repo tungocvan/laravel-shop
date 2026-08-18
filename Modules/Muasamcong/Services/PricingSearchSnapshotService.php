@@ -64,6 +64,18 @@ class PricingSearchSnapshotService
             ->all();
     }
 
+    public function delete(string $keyword): bool
+    {
+        return PricingSearchSnapshot::query()
+            ->where('keyword_hash', $this->hash($keyword))
+            ->delete() > 0;
+    }
+
+    public function clear(): int
+    {
+        return PricingSearchSnapshot::query()->delete();
+    }
+
     private function hash(string $keyword): string
     {
         return hash('sha256', $this->normalize($keyword));
