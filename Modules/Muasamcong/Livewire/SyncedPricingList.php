@@ -18,24 +18,43 @@ class SyncedPricingList extends Component
     private const SYNC_PERMISSION = 'muasamcong.pricing.sync';
 
     public string $search = '';
+
     public array $selectedIds = [];
+
     public bool $showEditModal = false;
+
     public bool $showExportConfigModal = false;
+
     public array $exportColumnOrder = [];
+
     public array $exportSelectedColumns = [];
+
     public array $exportAlignments = [];
+
     public array $exportWidths = [];
+
     public ?int $editingId = null;
+
     public string $editingMedicine = '';
+
     public string $editingTbmt = '';
+
     public string $winningName = '';
+
     public string $winningCode = '';
+
     public string $decisionNo = '';
+
     public string $decisionDate = '';
+
     public string $sttTt202022 = '';
+
     public string $giaKkKkl = '';
+
     public string $donGiaVat = '';
+
     public string $statusMessage = '';
+
     public string $statusType = '';
 
     public function mount(): void
@@ -51,18 +70,33 @@ class SyncedPricingList extends Component
     public function toggleCurrentPage(array $ids): void
     {
         $this->authorizeMutation();
-        $ids = collect($ids)->map(fn (mixed $id): int => (int) $id)->filter(fn (int $id): bool => $id > 0)->unique()->values();
-        if ($ids->isEmpty()) return;
+        $ids = collect($ids)
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
 
-        $selectedLookup = array_fill_keys(array_map('intval', $this->selectedIds), true);
-        $allSelected = $ids->every(fn (int $id): bool => isset($selectedLookup[$id]));
-        if ($allSelected) {
-            $remove = array_fill_keys($ids->all(), true);
-            $this->selectedIds = array_values(array_filter(array_map('intval', $this->selectedIds), fn (int $id): bool => ! isset($remove[$id])));
+        if ($ids->isEmpty()) {
             return;
         }
 
-        $this->selectedIds = array_values(array_unique([...array_map('intval', $this->selectedIds), ...$ids->all()]));
+        $selectedLookup = array_fill_keys(array_map('intval', $this->selectedIds), true);
+        $allSelected = $ids->every(fn (int $id): bool => isset($selectedLookup[$id]));
+
+        if ($allSelected) {
+            $remove = array_fill_keys($ids->all(), true);
+            $this->selectedIds = array_values(array_filter(
+                array_map('intval', $this->selectedIds),
+                fn (int $id): bool => ! isset($remove[$id])
+            ));
+
+            return;
+        }
+
+        $this->selectedIds = array_values(array_unique([
+            ...array_map('intval', $this->selectedIds),
+            ...$ids->all(),
+        ]));
     }
 
     public function clearSelection(): void
@@ -85,11 +119,17 @@ class SyncedPricingList extends Component
 
     public function moveExportColumn(string $source, string $target): void
     {
-        if ($source === $target) return;
+        if ($source === $target) {
+            return;
+        }
+
         $columns = array_values($this->exportColumnOrder);
         $sourceIndex = array_search($source, $columns, true);
         $targetIndex = array_search($target, $columns, true);
-        if ($sourceIndex === false || $targetIndex === false) return;
+
+        if ($sourceIndex === false || $targetIndex === false) {
+            return;
+        }
 
         array_splice($columns, $sourceIndex, 1);
         $targetIndex = array_search($target, $columns, true);
@@ -99,23 +139,32 @@ class SyncedPricingList extends Component
 
     public function selectAllExportColumns(): void
     {
-        foreach ($this->exportColumnOrder as $key) $this->exportSelectedColumns[$key] = true;
+        foreach ($this->exportColumnOrder as $key) {
+            $this->exportSelectedColumns[$key] = true;
+        }
     }
 
     public function clearAllExportColumns(): void
     {
-        foreach ($this->exportColumnOrder as $key) $this->exportSelectedColumns[$key] = false;
+        foreach ($this->exportColumnOrder as $key) {
+            $this->exportSelectedColumns[$key] = false;
+        }
     }
 
     public function saveExportConfig(): void
     {
         $this->authorizeMutation();
         $userId = (int) Auth::guard('admin')->id();
-        $selected = collect($this->exportSelectedColumns)->filter(fn (mixed $enabled): bool => (bool) $enabled)->keys()->values()->all();
+        $selected = collect($this->exportSelectedColumns)
+            ->filter(fn (mixed $enabled): bool => (bool) $enabled)
+            ->keys()
+            ->values()
+            ->all();
 
         if ($selected === []) {
             $this->statusType = 'warning';
             $this->statusMessage = 'Cấu hình xuất phải có ít nhất 1 cột.';
+
             return;
         }
 
@@ -137,11 +186,14 @@ class SyncedPricingList extends Component
     {
         $this->authorizeMutation();
         $ids = array_values(array_unique(array_map('intval', $this->selectedIds)));
+
         if (count($ids) !== 1) {
             $this->statusType = 'warning';
             $this->statusMessage = 'Vui lòng chọn đúng 1 bản ghi để sửa.';
+
             return;
         }
+
         $this->openEdit($ids[0]);
     }
 
@@ -204,10 +256,15 @@ class SyncedPricingList extends Component
     public function deleteSelected(): void
     {
         $this->authorizeMutation();
-        $ids = array_values(array_unique(array_filter(array_map('intval', $this->selectedIds), fn (int $id): bool => $id > 0)));
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $this->selectedIds),
+            fn (int $id): bool => $id > 0
+        )));
+
         if ($ids === []) {
             $this->statusType = 'warning';
             $this->statusMessage = 'Chưa chọn bản ghi để xóa.';
+
             return;
         }
 
@@ -215,7 +272,10 @@ class SyncedPricingList extends Component
         $this->selectedIds = [];
         $this->statusType = 'success';
         $this->statusMessage = "Đã xóa {$deleted} bản ghi đồng bộ.";
-        if ($this->items()->isEmpty() && $this->getPage() > 1) $this->previousPage();
+
+        if ($this->items()->isEmpty() && $this->getPage() > 1) {
+            $this->previousPage();
+        }
     }
 
     public function render(): View
@@ -223,7 +283,10 @@ class SyncedPricingList extends Component
         $items = $this->items();
         $currentPageIds = $items->getCollection()->pluck('id')->map(fn ($id): int => (int) $id)->all();
         $selectedLookup = array_fill_keys(array_map('intval', $this->selectedIds), true);
-        $currentPageSelected = count(array_filter($currentPageIds, fn (int $id): bool => isset($selectedLookup[$id])));
+        $currentPageSelected = count(array_filter(
+            $currentPageIds,
+            fn (int $id): bool => isset($selectedLookup[$id])
+        ));
 
         return view('Muasamcong::livewire.synced-pricing-list', [
             'items' => $items,
@@ -236,7 +299,11 @@ class SyncedPricingList extends Component
     private function loadExportPreference(): void
     {
         $userId = (int) Auth::guard('admin')->id();
-        if ($userId <= 0) return;
+
+        if ($userId <= 0) {
+            return;
+        }
+
         $this->applyExportPreference(app(SyncedPricingExportPreferenceService::class)->forUser($userId));
     }
 
@@ -244,7 +311,9 @@ class SyncedPricingList extends Component
     {
         $this->exportColumnOrder = array_values($preference['column_order'] ?? []);
         $selectedLookup = array_fill_keys($preference['selected_columns'] ?? [], true);
-        $this->exportSelectedColumns = collect($this->exportColumnOrder)->mapWithKeys(fn (string $key): array => [$key => isset($selectedLookup[$key])])->all();
+        $this->exportSelectedColumns = collect($this->exportColumnOrder)
+            ->mapWithKeys(fn (string $key): array => [$key => isset($selectedLookup[$key])])
+            ->all();
         $this->exportAlignments = (array) ($preference['alignments'] ?? []);
         $this->exportWidths = (array) ($preference['widths'] ?? []);
     }
@@ -252,6 +321,7 @@ class SyncedPricingList extends Component
     private function items(): LengthAwarePaginator
     {
         $keyword = trim($this->search);
+
         return PricingResult::query()
             ->when($keyword !== '', function ($query) use ($keyword): void {
                 $query->where(function ($nested) use ($keyword): void {
@@ -266,12 +336,18 @@ class SyncedPricingList extends Component
                         ->orWhere('stt_tt20_2022', 'like', "%{$keyword}%");
                 });
             })
-            ->orderByDesc('synced_at')->paginate(20);
+            ->orderByDesc('synced_at')
+            ->paginate(20);
     }
 
     private function lines(string $value): array
     {
-        return collect(preg_split('/\r\n|\r|\n/', $value) ?: [])->map(fn (string $line): string => trim($line))->filter()->unique()->values()->all();
+        return collect(preg_split('/\r\n|\r|\n/', $value) ?: [])
+            ->map(fn (string $line): string => trim($line))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function authorizeMutation(): void
