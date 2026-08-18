@@ -14,5 +14,6 @@ class SyncedExportPreference extends Model
         'column_order' => 'array',
         'selected_columns' => 'array',
         'alignments' => 'array',
+        'widths' => 'array',
     ];
 }
