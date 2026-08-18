@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
 use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
 use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
+use Modules\Muasamcong\Http\Controllers\SyncedPricingBbgExportController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingExportController;
 
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
@@ -30,6 +31,8 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
                 Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
                 Route::post('/synced/export-selected', SyncedPricingExportController::class)
                     ->name('synced.export-selected');
+                Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)
+                    ->name('synced.export-bbg');
                 Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
                 Route::post('/wishlist/export-selected', [PricingWishlistBulkController::class, 'export'])
                     ->name('wishlist.export-selected');
