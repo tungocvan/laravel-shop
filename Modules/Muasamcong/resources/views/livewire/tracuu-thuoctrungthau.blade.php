@@ -83,6 +83,14 @@
                             <button type="button" wire:click="toggleSelectedSummary" @disabled(count($selectedSourceIds) === 0) class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40">Đã chọn ({{ count($selectedSourceIds) }})</button>
                             <button type="button" wire:click="selectAllUnsynced" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Chọn tất cả kết quả</button>
                             @if (count($selectedSourceIds) > 0)<button type="button" wire:click="clearSelection" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600">Bỏ chọn tất cả</button>@endif
+                            <form method="POST" action="{{ route('muasamcong.pricing.export-selected') }}" class="inline-flex">
+                                @csrf
+                                <input type="hidden" name="keyword" value="{{ $keyword }}">
+                                @foreach ($selectedSourceIds as $selectedSourceId)
+                                    <input type="hidden" name="selected_ids[]" value="{{ $selectedSourceId }}">
+                                @endforeach
+                                <button type="submit" @disabled(count($selectedSourceIds) === 0) class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Xuất Excel ({{ count($selectedSourceIds) }})</button>
+                            </form>
                             <button type="button" wire:click="syncSelected" wire:loading.attr="disabled" @disabled(count($selectedSourceIds) === 0) class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Đồng bộ ({{ count($selectedSourceIds) }})</button>
                         </div>
                     @endif
