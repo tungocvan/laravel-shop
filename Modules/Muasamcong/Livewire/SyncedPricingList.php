@@ -33,6 +33,8 @@ class SyncedPricingList extends Component
 
     public array $exportWidths = [];
 
+    public array $exportDataTypes = [];
+
     public ?int $editingId = null;
 
     public string $editingMedicine = '';
@@ -174,12 +176,13 @@ class SyncedPricingList extends Component
             $selected,
             $this->exportAlignments,
             $this->exportWidths,
+            $this->exportDataTypes,
         );
 
         $this->applyExportPreference($saved);
         $this->showExportConfigModal = false;
         $this->statusType = 'success';
-        $this->statusMessage = 'Đã lưu cấu hình cột, thứ tự, canh lề và độ rộng. Excel sẽ Wrap Text toàn bộ và chiều cao dòng tự động.';
+        $this->statusMessage = 'Đã lưu cấu hình cột, thứ tự, canh lề, kiểu dữ liệu và độ rộng theo pixel. Excel sẽ Wrap Text toàn bộ và chiều cao dòng tự động.';
     }
 
     public function editSelected(): void
@@ -316,6 +319,7 @@ class SyncedPricingList extends Component
             ->all();
         $this->exportAlignments = (array) ($preference['alignments'] ?? []);
         $this->exportWidths = (array) ($preference['widths'] ?? []);
+        $this->exportDataTypes = (array) ($preference['data_types'] ?? []);
     }
 
     private function items(): LengthAwarePaginator
