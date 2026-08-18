@@ -289,11 +289,11 @@ class SyncedPricingList extends Component
             $this->exportWidths,
             $this->exportDataTypes,
             $this->exportDecimals,
+            $this->activeExportProfileId,
+            $this->exportProfileDefault,
             $this->exportHeaderFooter,
             $logoPath,
             $signaturePath,
-            $this->activeExportProfileId,
-            $this->exportProfileDefault,
         );
 
         $this->applyExportPreference($saved);
