@@ -73,6 +73,7 @@ class SyncedPricingExportController extends Controller
                     $cell->setValue($value);
                 }
             }
+
             $sheet->getRowDimension($excelRow)->setRowHeight(-1);
         }
 
@@ -155,15 +156,21 @@ class SyncedPricingExportController extends Controller
     {
         $locations = collect((array) $item->dia_diem)
             ->map(fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '')
-            ->filter()->values()->implode('; ');
+            ->filter()
+            ->values()
+            ->implode('; ');
 
         return $locations !== '' ? $locations : null;
     }
 
     private function medicineGroupNumber(mixed $value): ?string
     {
-        if (! is_scalar($value)) return null;
+        if (! is_scalar($value)) {
+            return null;
+        }
+
         preg_match('/\d+/', (string) $value, $matches);
+
         return $matches[0] ?? null;
     }
 }
