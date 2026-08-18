@@ -35,6 +35,18 @@ class SessionImportTokenService
         ];
     }
 
+    public function validate(string $plainToken): SessionImportToken
+    {
+        $hash = hash('sha256', trim($plainToken));
+        $record = SessionImportToken::query()->where('token_hash', $hash)->first();
+
+        if (! $record || $record->used_at !== null || $record->expires_at?->isPast()) {
+            throw new RuntimeException('Mã cập nhật Session không hợp lệ, đã dùng hoặc đã hết hạn.');
+        }
+
+        return $record;
+    }
+
     public function consume(string $plainToken): SessionImportToken
     {
         $hash = hash('sha256', trim($plainToken));
