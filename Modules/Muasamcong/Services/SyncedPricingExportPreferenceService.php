@@ -43,6 +43,20 @@ class SyncedPricingExportPreferenceService
         'synced_at' => ['label' => 'Đồng bộ lúc', 'align' => 'center', 'width' => 140, 'type' => 'auto'],
     ];
 
+    public const DEFAULT_HEADER_FOOTER = [
+        'enabled' => false,
+        'company_name' => 'CÔNG TY TNHH INAFO VIỆT NAM',
+        'address' => '',
+        'tax_code' => '',
+        'phone' => '',
+        'title' => 'BẢNG BÁO GIÁ',
+        'recipient' => 'QUÝ KHÁCH HÀNG',
+        'intro' => 'Công ty INAFO Việt Nam xin trân trọng gửi đến Quý Khách hàng báo giá một số sản phẩm chúng tôi đang phân phối trên thị trường hiện nay như sau:',
+        'footer_location' => 'Tp.HCM',
+        'signatory_title' => 'GIÁM ĐỐC CÔNG TY',
+        'footer_year' => '',
+    ];
+
     public function profilesForUser(int $userId): array
     {
         return SyncedExportProfile::query()
@@ -79,6 +93,9 @@ class SyncedPricingExportPreferenceService
         array $widths = [],
         array $dataTypes = [],
         array $decimals = [],
+        array $headerFooter = [],
+        ?string $logoPath = null,
+        ?string $signaturePath = null,
         ?int $profileId = null,
         bool $makeDefault = false,
     ): array {
@@ -114,6 +131,9 @@ class SyncedPricingExportPreferenceService
             'widths' => $this->normalizeWidths($widths),
             'data_types' => $this->normalizeDataTypes($dataTypes),
             'decimals' => $this->normalizeDecimals($decimals),
+            'header_footer' => $this->normalizeHeaderFooter($headerFooter),
+            'logo_path' => $logoPath,
+            'signature_path' => $signaturePath,
         ])->save();
 
         return $this->profilePayload($profile->fresh());
@@ -166,6 +186,9 @@ class SyncedPricingExportPreferenceService
             'widths' => $this->normalizeWidths((array) $profile->widths),
             'data_types' => $this->normalizeDataTypes((array) $profile->data_types),
             'decimals' => $this->normalizeDecimals((array) $profile->decimals),
+            'header_footer' => $this->normalizeHeaderFooter((array) $profile->header_footer),
+            'logo_path' => $profile->logo_path,
+            'signature_path' => $profile->signature_path,
         ];
     }
 
@@ -184,6 +207,9 @@ class SyncedPricingExportPreferenceService
             'widths' => $this->defaultWidths(),
             'data_types' => $this->defaultDataTypes(),
             'decimals' => $this->defaultDecimals(),
+            'header_footer' => self::DEFAULT_HEADER_FOOTER,
+            'logo_path' => null,
+            'signature_path' => null,
         ];
     }
 
@@ -250,6 +276,19 @@ class SyncedPricingExportPreferenceService
         foreach (self::COLUMNS as $key => $column) {
             $value = $decimals[$key] ?? 0;
             $normalized[$key] = max(0, min(6, is_numeric($value) ? (int) $value : 0));
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeHeaderFooter(array $settings): array
+    {
+        $normalized = self::DEFAULT_HEADER_FOOTER;
+        $normalized['enabled'] = (bool) ($settings['enabled'] ?? $normalized['enabled']);
+
+        foreach (['company_name', 'address', 'tax_code', 'phone', 'title', 'recipient', 'intro', 'footer_location', 'signatory_title', 'footer_year'] as $key) {
+            $value = trim((string) ($settings[$key] ?? $normalized[$key]));
+            $normalized[$key] = mb_substr($value, 0, $key === 'intro' ? 2000 : 255);
         }
 
         return $normalized;
