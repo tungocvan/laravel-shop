@@ -25,9 +25,19 @@ class SyncedPricingList extends Component
 
     public bool $showExportConfigModal = false;
 
+    public array $exportProfiles = [];
+
+    public ?int $activeExportProfileId = null;
+
+    public string $exportProfileName = 'Mặc định';
+
+    public bool $exportProfileDefault = false;
+
     public array $exportColumnOrder = [];
 
     public array $exportSelectedColumns = [];
+
+    public array $exportHeaders = [];
 
     public array $exportAlignments = [];
 
@@ -61,12 +71,18 @@ class SyncedPricingList extends Component
 
     public function mount(): void
     {
+        $this->refreshExportProfiles();
         $this->loadExportPreference();
     }
 
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function updatedActiveExportProfileId(): void
+    {
+        $this->loadExportPreference();
     }
 
     public function toggleCurrentPage(array $ids): void
@@ -109,6 +125,7 @@ class SyncedPricingList extends Component
     public function openExportConfig(): void
     {
         $this->authorizeMutation();
+        $this->refreshExportProfiles();
         $this->loadExportPreference();
         $this->showExportConfigModal = true;
     }
@@ -117,6 +134,31 @@ class SyncedPricingList extends Component
     {
         $this->showExportConfigModal = false;
         $this->loadExportPreference();
+    }
+
+    public function newExportProfile(): void
+    {
+        $this->activeExportProfileId = null;
+        $this->applyExportPreference(app(SyncedPricingExportPreferenceService::class)->forUser(0));
+        $this->exportProfileName = 'Cấu hình mới';
+        $this->exportProfileDefault = false;
+    }
+
+    public function deleteExportProfile(): void
+    {
+        $this->authorizeMutation();
+
+        if ($this->activeExportProfileId === null) {
+            return;
+        }
+
+        $userId = (int) Auth::guard('admin')->id();
+        app(SyncedPricingExportPreferenceService::class)->deleteProfile($userId, $this->activeExportProfileId);
+        $this->activeExportProfileId = null;
+        $this->refreshExportProfiles();
+        $this->loadExportPreference();
+        $this->statusType = 'success';
+        $this->statusMessage = 'Đã xóa cấu hình xuất Excel.';
     }
 
     public function moveExportColumn(string $source, string $target): void
@@ -170,19 +212,30 @@ class SyncedPricingList extends Component
             return;
         }
 
-        $saved = app(SyncedPricingExportPreferenceService::class)->save(
+        if (trim($this->exportProfileName) === '') {
+            $this->statusType = 'warning';
+            $this->statusMessage = 'Vui lòng nhập tên cấu hình xuất.';
+
+            return;
+        }
+
+        $saved = app(SyncedPricingExportPreferenceService::class)->saveProfile(
             $userId,
+            $this->exportProfileName,
             $this->exportColumnOrder,
             $selected,
+            $this->exportHeaders,
             $this->exportAlignments,
             $this->exportWidths,
             $this->exportDataTypes,
+            $this->activeExportProfileId,
+            $this->exportProfileDefault,
         );
 
         $this->applyExportPreference($saved);
-        $this->showExportConfigModal = false;
+        $this->refreshExportProfiles();
         $this->statusType = 'success';
-        $this->statusMessage = 'Đã lưu cấu hình cột, thứ tự, canh lề, kiểu dữ liệu và độ rộng theo pixel. Excel sẽ Wrap Text toàn bộ và chiều cao dòng tự động.';
+        $this->statusMessage = 'Đã lưu cấu hình xuất Excel. Bạn có thể chọn cấu hình này khi xuất dữ liệu.';
     }
 
     public function editSelected(): void
@@ -299,24 +352,46 @@ class SyncedPricingList extends Component
         ]);
     }
 
+    private function refreshExportProfiles(): void
+    {
+        $userId = (int) Auth::guard('admin')->id();
+        if ($userId <= 0) {
+            $this->exportProfiles = [];
+
+            return;
+        }
+
+        $this->exportProfiles = app(SyncedPricingExportPreferenceService::class)->profilesForUser($userId);
+
+        if ($this->activeExportProfileId === null && $this->exportProfiles !== []) {
+            $default = collect($this->exportProfiles)->firstWhere('is_default', true) ?? $this->exportProfiles[0];
+            $this->activeExportProfileId = (int) $default['id'];
+        }
+    }
+
     private function loadExportPreference(): void
     {
         $userId = (int) Auth::guard('admin')->id();
-
         if ($userId <= 0) {
             return;
         }
 
-        $this->applyExportPreference(app(SyncedPricingExportPreferenceService::class)->forUser($userId));
+        $this->applyExportPreference(
+            app(SyncedPricingExportPreferenceService::class)->forUser($userId, $this->activeExportProfileId)
+        );
     }
 
     private function applyExportPreference(array $preference): void
     {
+        $this->activeExportProfileId = isset($preference['profile_id']) ? (int) $preference['profile_id'] : null;
+        $this->exportProfileName = (string) ($preference['profile_name'] ?? 'Mặc định');
+        $this->exportProfileDefault = (bool) ($preference['is_default'] ?? false);
         $this->exportColumnOrder = array_values($preference['column_order'] ?? []);
         $selectedLookup = array_fill_keys($preference['selected_columns'] ?? [], true);
         $this->exportSelectedColumns = collect($this->exportColumnOrder)
             ->mapWithKeys(fn (string $key): array => [$key => isset($selectedLookup[$key])])
             ->all();
+        $this->exportHeaders = (array) ($preference['headers'] ?? []);
         $this->exportAlignments = (array) ($preference['alignments'] ?? []);
         $this->exportWidths = (array) ($preference['widths'] ?? []);
         $this->exportDataTypes = (array) ($preference['data_types'] ?? []);
