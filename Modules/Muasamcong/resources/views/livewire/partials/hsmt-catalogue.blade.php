@@ -11,7 +11,7 @@
                 @endif
             </div>
             <p class="mt-1 text-sm text-gray-500">
-                Đây là toàn bộ danh mục mời thầu của TBMT. Khi dữ liệu KQLCNT chưa có khóa xác minh trực tiếp lô ↔ nhà thầu, có thể tick trực tiếp các lô bên dưới để lưu danh mục do người dùng xác nhận.
+                Đây là toàn bộ danh mục mời thầu của TBMT. Hệ thống sẽ ưu tiên Smart Pricing để xác minh trực tiếp TBMT ↔ thuốc ↔ nhà thầu; checkbox HSMT bên dưới chỉ là phương án fallback khi nguồn tự động không map được.
             </p>
         </div>
 
@@ -34,7 +34,7 @@
 
     @if ($hsmt)
         <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <strong>Đơn vị trúng thầu:</strong> dữ liệu HSMT BD.DT.02.1854 của TBMT này không chứa <code>winningContractorName</code>, <code>winningCode</code> hoặc <code>contractorCode</code> ở từng lô. Vì vậy hệ thống không tự gán tên nhà thầu vào từng dòng để tránh suy đoán sai.
+            <strong>HSMT gốc:</strong> biểu mẫu BD.DT.02.1854 không chứa <code>winningContractorName</code>, <code>winningCode</code> hoặc <code>contractorCode</code> trên từng lô. Vì vậy tên nhà thầu không được suy đoán từ HSMT; quan hệ winner được lấy từ Smart Pricing khi có thể xác minh trực tiếp.
         </div>
 
         <div class="mt-3 text-xs text-gray-500">
@@ -44,6 +44,12 @@
         </div>
     @endif
 </section>
+
+@livewire('muasamcong.smart-pricing-verified-lots', [
+    'notifyNo' => (string) ($kqlcnt['notify_no'] ?? ''),
+    'contractorCode' => (string) ($kqlcnt['contractor_code'] ?? $contractorCode),
+    'contractorName' => (string) $contractorName,
+], key('smart-pricing-lots-'.($kqlcnt['notify_no'] ?? 'unknown').'-'.($kqlcnt['contractor_code'] ?? $contractorCode)))
 
 @livewire('muasamcong.manual-contractor-lots', [
     'notifyNo' => (string) ($kqlcnt['notify_no'] ?? ''),
