@@ -10,7 +10,6 @@ use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
-use PhpOffice\PhpSpreadsheet\Shared\Drawing;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -52,13 +51,9 @@ class SyncedPricingExportController extends Controller
             $cell = $sheet->getCell([$columnIndex + 1, 1]);
             $cell->setValue(SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);
             $widthPixels = $preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'];
-            $excelWidth = Drawing::pixelsToCellDimension(
-                (int) $widthPixels,
-                $spreadsheet->getDefaultStyle()->getFont(),
-            );
             $sheet->getColumnDimension($cell->getColumn())
                 ->setAutoSize(false)
-                ->setWidth($excelWidth);
+                ->setWidth((float) $widthPixels, 'px');
         }
 
         $lastHeaderCell = $sheet->getCell([count($requestedColumns), 1])->getCoordinate();
