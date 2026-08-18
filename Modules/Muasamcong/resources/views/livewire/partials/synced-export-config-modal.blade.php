@@ -4,8 +4,8 @@
             <div class="flex items-start justify-between border-b border-gray-200 px-5 py-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-600">Cấu hình xuất Excel</p>
-                    <h3 class="mt-1 text-lg font-bold text-gray-900">Nhiều cấu hình, đổi tên header, kiểu dữ liệu, decimal, canh lề và độ rộng</h3>
-                    <p class="mt-1 text-xs text-gray-500">Có thể nhân đôi cấu hình để dùng lại toàn bộ tham số. Number mặc định Decimal = 0; Date xuất dd/mm/yyyy; toàn bộ cột Wrap Text.</p>
+                    <h3 class="mt-1 text-lg font-bold text-gray-900">Cột dữ liệu + Header/Footer + Logo + Chữ ký</h3>
+                    <p class="mt-1 text-xs text-gray-500">Mỗi cấu hình lưu riêng toàn bộ bố cục. Nhân đôi sẽ giữ cả Header/Footer, logo và chữ ký.</p>
                 </div>
                 <button type="button" wire:click="closeExportConfig" class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-500 hover:bg-gray-50">×</button>
             </div>
@@ -37,7 +37,56 @@
                 </div>
             </div>
 
-            <div class="max-h-[62vh] overflow-y-auto px-5 py-5" x-data="{ dragging: null }">
+            <div class="max-h-[66vh] overflow-y-auto px-5 py-5" x-data="{ dragging: null }">
+                <div class="mb-5 rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4">
+                    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-bold text-indigo-950">Header & Footer của file Excel</p>
+                            <p class="mt-1 text-xs text-indigo-700">Bật để xuất Bảng Báo Giá có logo, thông tin công ty, lời chào và khu vực ký.</p>
+                        </div>
+                        <label class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-800">
+                            <input type="checkbox" wire:model.live="exportHeaderFooter.enabled" class="rounded border-gray-300 text-indigo-600">
+                            Hiển thị Header/Footer
+                        </label>
+                    </div>
+
+                    <div class="grid gap-4 xl:grid-cols-2">
+                        <div class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+                            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Thông tin đầu trang</p>
+                            <div class="grid gap-3 md:grid-cols-2">
+                                <div><label class="mb-1 block text-xs font-semibold text-gray-600">Tên công ty</label><input type="text" wire:model="exportHeaderFooter.company_name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div><label class="mb-1 block text-xs font-semibold text-gray-600">Mã số thuế</label><input type="text" wire:model="exportHeaderFooter.tax_code" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div><label class="mb-1 block text-xs font-semibold text-gray-600">Địa chỉ</label><input type="text" wire:model="exportHeaderFooter.address" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div><label class="mb-1 block text-xs font-semibold text-gray-600">Số điện thoại</label><input type="text" wire:model="exportHeaderFooter.phone" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold text-gray-600">Tiêu đề</label><input type="text" wire:model="exportHeaderFooter.title" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold text-gray-600">Kính gửi</label><input type="text" wire:model="exportHeaderFooter.recipient" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold text-gray-600">Nội dung giới thiệu</label><textarea wire:model="exportHeaderFooter.intro" rows="3" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></textarea></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+                            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Logo & khu vực ký</p>
+                            <div class="grid gap-3 md:grid-cols-2">
+                                <div>
+                                    <label class="mb-1 block text-xs font-semibold text-gray-600">Logo công ty</label>
+                                    <input type="file" wire:model="exportLogoUpload" accept="image/png,image/jpeg,image/webp" class="block w-full text-xs text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-semibold file:text-indigo-700">
+                                    @if ($exportLogoPath)<p class="mt-1 text-[11px] text-emerald-700">Đã lưu: {{ basename($exportLogoPath) }}</p>@endif
+                                    @error('exportLogoUpload')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-xs font-semibold text-gray-600">Ảnh chữ ký Giám đốc</label>
+                                    <input type="file" wire:model="exportSignatureUpload" accept="image/png,image/jpeg,image/webp" class="block w-full text-xs text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:font-semibold file:text-emerald-700">
+                                    @if ($exportSignaturePath)<p class="mt-1 text-[11px] text-emerald-700">Đã lưu: {{ basename($exportSignaturePath) }}</p>@endif
+                                    @error('exportSignatureUpload')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                </div>
+                                <div><label class="mb-1 block text-xs font-semibold text-gray-600">Địa điểm ký</label><input type="text" wire:model="exportHeaderFooter.footer_location" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div><label class="mb-1 block text-xs font-semibold text-gray-600">Năm</label><input type="text" maxlength="4" wire:model="exportHeaderFooter.footer_year" placeholder="Để trống = năm hiện tại" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold text-gray-600">Chức danh người ký</label><input type="text" wire:model="exportHeaderFooter.signatory_title" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mb-4 flex flex-wrap items-center gap-2">
                     <button type="button" wire:click="selectAllExportColumns" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Chọn tất cả cột</button>
                     <button type="button" wire:click="clearAllExportColumns" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Bỏ chọn tất cả</button>
@@ -64,50 +113,31 @@
                                 <input type="checkbox" wire:model.live="exportSelectedColumns.{{ $key }}" class="rounded border-gray-300 text-blue-600">
                                 <span class="truncate text-sm font-semibold text-gray-800">{{ $definition['label'] }}</span>
                             </label>
+                            <div><input type="text" maxlength="120" wire:model="exportHeaders.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700"></div>
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 2xl:hidden">Header xuất</label>
-                                <input type="text" maxlength="120" wire:model="exportHeaders.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700">
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 2xl:hidden">Kiểu dữ liệu</label>
                                 <select wire:model.live="exportDataTypes.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700">
-                                    <option value="auto">Auto</option>
-                                    <option value="number">Number</option>
-                                    <option value="string">String</option>
-                                    <option value="date">Date (dd/mm/yyyy)</option>
+                                    <option value="auto">Auto</option><option value="number">Number</option><option value="string">String</option><option value="date">Date (dd/mm/yyyy)</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 2xl:hidden">Decimal</label>
                                 @if (($exportDataTypes[$key] ?? $definition['type']) === 'number')
-                                    <input type="number" min="0" max="6" step="1" wire:model.live="exportDecimals.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700" title="Số chữ số sau dấu thập phân">
+                                    <input type="number" min="0" max="6" step="1" wire:model.live="exportDecimals.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700">
                                 @else
                                     <div class="rounded-lg border border-dashed border-gray-200 bg-gray-100 px-2 py-1.5 text-center text-xs text-gray-400">—</div>
                                 @endif
                             </div>
-                            <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 2xl:hidden">Canh lề</label>
-                                <select wire:model.live="exportAlignments.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700">
-                                    <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 2xl:hidden">Width (px)</label>
-                                <div class="relative">
-                                    <input type="number" min="40" max="600" step="1" wire:model.live.debounce.300ms="exportWidths.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 pr-7 text-xs text-gray-700">
-                                    <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[10px] font-semibold text-gray-400">px</span>
-                                </div>
-                            </div>
+                            <div><select wire:model.live="exportAlignments.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>
+                            <div class="relative"><input type="number" min="40" max="600" step="1" wire:model.live.debounce.300ms="exportWidths.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 pr-7 text-xs text-gray-700"><span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[10px] font-semibold text-gray-400">px</span></div>
                         </div>
                     @endforeach
                 </div>
             </div>
 
             <div class="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4">
-                <p class="text-xs text-gray-500">Number + Decimal 0 xuất dạng #,##0, không có phần thập phân; Decimal 2 xuất #,##0.00. Nhân đôi giữ nguyên toàn bộ cột, header, type, decimal, canh lề và width.</p>
+                <p class="text-xs text-gray-500">Logo ở A1:B5; thông tin công ty từ C1; tiêu đề A6; Kính gửi A7; giới thiệu A8; bảng từ dòng 9; footer đặt sau dữ liệu và căn theo 4 cột cuối.</p>
                 <div class="flex gap-2">
                     <button type="button" wire:click="closeExportConfig" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Đóng</button>
-                    <button type="button" wire:click="saveExportConfig" class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Lưu cấu hình</button>
+                    <button type="button" wire:click="saveExportConfig" wire:loading.attr="disabled" class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50">Lưu cấu hình</button>
                 </div>
             </div>
         </div>
