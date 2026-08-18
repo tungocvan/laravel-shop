@@ -11,6 +11,8 @@ class MuasamcongRouteAuthorizationTest extends TestCase
     {
         $index = Route::getRoutes()->getByName('muasamcong.index');
         $pricingExport = Route::getRoutes()->getByName('muasamcong.pricing.export-selected');
+        $pricingHistoryDestroy = Route::getRoutes()->getByName('muasamcong.pricing.history.destroy');
+        $pricingHistoryClear = Route::getRoutes()->getByName('muasamcong.pricing.history.clear');
         $hsmt = Route::getRoutes()->getByName('muasamcong.hsmt');
         $contractors = Route::getRoutes()->getByName('muasamcong.contractors');
         $contractorHistory = Route::getRoutes()->getByName('muasamcong.contractors.history');
@@ -22,6 +24,8 @@ class MuasamcongRouteAuthorizationTest extends TestCase
 
         $this->assertNotNull($index);
         $this->assertNotNull($pricingExport);
+        $this->assertNotNull($pricingHistoryDestroy);
+        $this->assertNotNull($pricingHistoryClear);
         $this->assertNotNull($hsmt);
         $this->assertNotNull($contractors);
         $this->assertNotNull($contractorHistory);
@@ -33,6 +37,10 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertSame('admin/muasamcong', $index->uri());
         $this->assertSame('admin/muasamcong/pricing/export-selected', $pricingExport->uri());
         $this->assertSame(['POST'], $pricingExport->methods());
+        $this->assertSame('admin/muasamcong/pricing/history/item', $pricingHistoryDestroy->uri());
+        $this->assertContains('DELETE', $pricingHistoryDestroy->methods());
+        $this->assertSame('admin/muasamcong/pricing/history', $pricingHistoryClear->uri());
+        $this->assertContains('DELETE', $pricingHistoryClear->methods());
         $this->assertSame('admin/muasamcong/hsmt', $hsmt->uri());
         $this->assertSame('admin/muasamcong/contractors', $contractors->uri());
         $this->assertSame('admin/muasamcong/contractors/history', $contractorHistory->uri());
@@ -42,7 +50,7 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertSame('admin/muasamcong/synced', $synced->uri());
         $this->assertSame('admin/muasamcong/wishlist', $wishlist->uri());
 
-        foreach ([$index, $pricingExport, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $wishlist] as $route) {
+        foreach ([$index, $pricingExport, $pricingHistoryDestroy, $pricingHistoryClear, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $wishlist] as $route) {
             $middleware = $route->gatherMiddleware();
             $this->assertContains('auth:admin', $middleware);
             $this->assertContains('permission:view_muasamcong,admin', $middleware);
@@ -75,12 +83,14 @@ class MuasamcongRouteAuthorizationTest extends TestCase
             ->filter(fn (string $uri): bool => str_contains($uri, 'muasamcong'))
             ->values();
 
-        $this->assertCount(15, $uris);
+        $this->assertCount(17, $uris);
         $this->assertContains('api/muasamcong', $uris);
         $this->assertContains('api/muasamcong/search-pricing', $uris);
         $this->assertContains('api/muasamcong/update-cookie', $uris);
         $this->assertContains('admin/muasamcong', $uris);
         $this->assertContains('admin/muasamcong/pricing/export-selected', $uris);
+        $this->assertContains('admin/muasamcong/pricing/history/item', $uris);
+        $this->assertContains('admin/muasamcong/pricing/history', $uris);
         $this->assertContains('admin/muasamcong/hsmt', $uris);
         $this->assertContains('admin/muasamcong/contractors', $uris);
         $this->assertContains('admin/muasamcong/contractors/history', $uris);
