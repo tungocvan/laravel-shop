@@ -93,11 +93,11 @@ class SyncedPricingExportPreferenceService
         array $widths = [],
         array $dataTypes = [],
         array $decimals = [],
+        ?int $profileId = null,
+        bool $makeDefault = false,
         array $headerFooter = [],
         ?string $logoPath = null,
         ?string $signaturePath = null,
-        ?int $profileId = null,
-        bool $makeDefault = false,
     ): array {
         $name = trim($name);
         $name = $name !== '' ? mb_substr($name, 0, 120) : 'Cấu hình Excel';
