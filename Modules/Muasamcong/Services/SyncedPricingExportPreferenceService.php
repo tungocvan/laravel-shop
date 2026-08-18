@@ -2,7 +2,7 @@
 
 namespace Modules\Muasamcong\Services;
 
-use Modules\Muasamcong\Models\SyncedExportPreference;
+use Modules\Muasamcong\Models\SyncedExportProfile;
 
 class SyncedPricingExportPreferenceService
 {
@@ -43,62 +43,140 @@ class SyncedPricingExportPreferenceService
         'synced_at' => ['label' => 'Đồng bộ lúc', 'align' => 'center', 'width' => 140, 'type' => 'auto'],
     ];
 
-    public function forUser(int $userId): array
+    public function profilesForUser(int $userId): array
     {
-        $preference = SyncedExportPreference::query()->where('user_id', $userId)->first();
-        $allKeys = array_keys(self::COLUMNS);
-
-        if ($preference === null) {
-            return [
-                'column_order' => $allKeys,
-                'selected_columns' => $allKeys,
-                'alignments' => $this->defaultAlignments(),
-                'widths' => $this->defaultWidths(),
-                'data_types' => $this->defaultDataTypes(),
-            ];
-        }
-
-        return [
-            'column_order' => $this->normalizeOrder((array) $preference->column_order),
-            'selected_columns' => array_values(array_filter((array) $preference->selected_columns, fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key]))),
-            'alignments' => $this->normalizeAlignments((array) $preference->alignments),
-            'widths' => $this->normalizeWidths((array) $preference->widths),
-            'data_types' => $this->normalizeDataTypes((array) $preference->data_types),
-        ];
+        return SyncedExportProfile::query()
+            ->where('user_id', $userId)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_default'])
+            ->map(fn (SyncedExportProfile $profile): array => [
+                'id' => (int) $profile->id,
+                'name' => (string) $profile->name,
+                'is_default' => (bool) $profile->is_default,
+            ])
+            ->all();
     }
 
-    public function save(
+    public function forUser(int $userId, ?int $profileId = null): array
+    {
+        $profile = SyncedExportProfile::query()
+            ->where('user_id', $userId)
+            ->when($profileId !== null && $profileId > 0, fn ($query) => $query->whereKey($profileId))
+            ->when($profileId === null || $profileId <= 0, fn ($query) => $query->orderByDesc('is_default')->orderBy('id'))
+            ->first();
+
+        if ($profile === null) {
+            return $this->defaults();
+        }
+
+        return $this->profilePayload($profile);
+    }
+
+    public function saveProfile(
         int $userId,
+        string $name,
         array $columnOrder,
         array $selectedColumns,
+        array $headers,
         array $alignments,
         array $widths = [],
         array $dataTypes = [],
+        ?int $profileId = null,
+        bool $makeDefault = false,
     ): array {
+        $name = trim($name);
+        $name = $name !== '' ? mb_substr($name, 0, 120) : 'Cấu hình Excel';
         $order = $this->normalizeOrder($columnOrder);
-        $selectedLookup = array_fill_keys(array_values(array_filter($selectedColumns, fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key]))), true);
+        $selectedLookup = array_fill_keys(array_values(array_filter(
+            $selectedColumns,
+            fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key])
+        )), true);
         $selected = array_values(array_filter($order, fn (string $key): bool => isset($selectedLookup[$key])));
-        $normalizedAlignments = $this->normalizeAlignments($alignments);
-        $normalizedWidths = $this->normalizeWidths($widths);
-        $normalizedDataTypes = $this->normalizeDataTypes($dataTypes);
 
-        SyncedExportPreference::query()->updateOrCreate(
-            ['user_id' => $userId],
-            [
-                'column_order' => $order,
-                'selected_columns' => $selected,
-                'alignments' => $normalizedAlignments,
-                'widths' => $normalizedWidths,
-                'data_types' => $normalizedDataTypes,
-            ]
-        );
+        $profile = $profileId !== null && $profileId > 0
+            ? SyncedExportProfile::query()->where('user_id', $userId)->findOrFail($profileId)
+            : new SyncedExportProfile(['user_id' => $userId]);
 
-        return [
+        if (! $profile->exists && ! SyncedExportProfile::query()->where('user_id', $userId)->exists()) {
+            $makeDefault = true;
+        }
+
+        if ($makeDefault) {
+            SyncedExportProfile::query()->where('user_id', $userId)->update(['is_default' => false]);
+        }
+
+        $profile->forceFill([
+            'user_id' => $userId,
+            'name' => $name,
+            'is_default' => $makeDefault || (bool) $profile->is_default,
             'column_order' => $order,
             'selected_columns' => $selected,
-            'alignments' => $normalizedAlignments,
-            'widths' => $normalizedWidths,
-            'data_types' => $normalizedDataTypes,
+            'headers' => $this->normalizeHeaders($headers),
+            'alignments' => $this->normalizeAlignments($alignments),
+            'widths' => $this->normalizeWidths($widths),
+            'data_types' => $this->normalizeDataTypes($dataTypes),
+        ])->save();
+
+        return $this->profilePayload($profile->fresh());
+    }
+
+    public function deleteProfile(int $userId, int $profileId): void
+    {
+        $profile = SyncedExportProfile::query()->where('user_id', $userId)->findOrFail($profileId);
+        $wasDefault = (bool) $profile->is_default;
+        $profile->delete();
+
+        if ($wasDefault) {
+            SyncedExportProfile::query()
+                ->where('user_id', $userId)
+                ->orderBy('id')
+                ->first()
+                ?->update(['is_default' => true]);
+        }
+    }
+
+    public function setDefault(int $userId, int $profileId): array
+    {
+        $profile = SyncedExportProfile::query()->where('user_id', $userId)->findOrFail($profileId);
+        SyncedExportProfile::query()->where('user_id', $userId)->update(['is_default' => false]);
+        $profile->update(['is_default' => true]);
+
+        return $this->profilePayload($profile->fresh());
+    }
+
+    private function profilePayload(SyncedExportProfile $profile): array
+    {
+        return [
+            'profile_id' => (int) $profile->id,
+            'profile_name' => (string) $profile->name,
+            'is_default' => (bool) $profile->is_default,
+            'column_order' => $this->normalizeOrder((array) $profile->column_order),
+            'selected_columns' => array_values(array_filter(
+                (array) $profile->selected_columns,
+                fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key])
+            )),
+            'headers' => $this->normalizeHeaders((array) $profile->headers),
+            'alignments' => $this->normalizeAlignments((array) $profile->alignments),
+            'widths' => $this->normalizeWidths((array) $profile->widths),
+            'data_types' => $this->normalizeDataTypes((array) $profile->data_types),
+        ];
+    }
+
+    private function defaults(): array
+    {
+        $allKeys = array_keys(self::COLUMNS);
+
+        return [
+            'profile_id' => null,
+            'profile_name' => 'Mặc định',
+            'is_default' => false,
+            'column_order' => $allKeys,
+            'selected_columns' => $allKeys,
+            'headers' => $this->defaultHeaders(),
+            'alignments' => $this->defaultAlignments(),
+            'widths' => $this->defaultWidths(),
+            'data_types' => $this->defaultDataTypes(),
         ];
     }
 
@@ -117,6 +195,17 @@ class SyncedPricingExportPreferenceService
         }
 
         return $valid;
+    }
+
+    private function normalizeHeaders(array $headers): array
+    {
+        $normalized = [];
+        foreach (self::COLUMNS as $key => $column) {
+            $header = trim((string) ($headers[$key] ?? $column['label']));
+            $normalized[$key] = $header !== '' ? mb_substr($header, 0, 120) : $column['label'];
+        }
+
+        return $normalized;
     }
 
     private function normalizeAlignments(array $alignments): array
@@ -151,6 +240,11 @@ class SyncedPricingExportPreferenceService
         }
 
         return $normalized;
+    }
+
+    private function defaultHeaders(): array
+    {
+        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['label']])->all();
     }
 
     private function defaultAlignments(): array
