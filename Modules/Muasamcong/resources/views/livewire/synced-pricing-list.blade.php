@@ -9,7 +9,7 @@
         <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div class="flex-1">
                 <label class="mb-1 block text-xs font-semibold text-gray-600">Tìm trong danh sách đồng bộ</label>
-                <x-search wire:model.live.debounce.250ms="search" placeholder="Tên thuốc, hoạt chất, nhóm, TBMT, đơn vị trúng thầu, số quyết định..." />
+                <x-search wire:model.live.debounce.250ms="search" placeholder="Tên thuốc, hoạt chất, nhóm, TBMT, đơn vị trúng thầu, số quyết định, STT TT20/2022..." />
             </div>
 
             @if ($canManage)
@@ -17,13 +17,7 @@
                     <span class="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">Đã chọn {{ count($selectedIds) }}</span>
                     <button type="button" wire:click="editSelected" class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Sửa đã chọn</button>
                     <button type="button" wire:click="clearSelection" @disabled($selectedIds === []) class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 disabled:opacity-40">Bỏ chọn</button>
-                    <form method="POST" action="{{ route('muasamcong.synced.export-selected') }}" class="inline-flex">
-                        @csrf
-                        @foreach ($selectedIds as $selectedId)
-                            <input type="hidden" name="selected_ids[]" value="{{ (int) $selectedId }}">
-                        @endforeach
-                        <button type="submit" @disabled($selectedIds === []) class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Xuất Excel ({{ count($selectedIds) }})</button>
-                    </form>
+                    <button type="button" wire:click="openExportConfig" @disabled($selectedIds === []) class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Cấu hình xuất ({{ count($selectedIds) }})</button>
                     <button type="button" wire:click="deleteSelected" wire:confirm="Bạn có chắc muốn xóa các bản ghi đồng bộ đã chọn?" @disabled($selectedIds === []) class="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">Xóa đã chọn</button>
                 </div>
             @endif
@@ -124,7 +118,7 @@
 
     @if ($showEditModal)
         <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" wire:click.self="closeEdit">
-            <div class="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div class="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl">
                 <div class="flex items-start justify-between border-b border-gray-200 px-5 py-4">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Cập nhật thông tin trúng thầu</p>
@@ -134,7 +128,7 @@
                     <button type="button" wire:click="closeEdit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-500 hover:bg-gray-50">×</button>
                 </div>
 
-                <div class="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-5">
+                <div class="max-h-[72vh] space-y-5 overflow-y-auto px-5 py-5">
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
                             <label class="mb-1 block text-sm font-semibold text-gray-700">Đơn vị trúng thầu</label>
@@ -161,8 +155,32 @@
                         </div>
                     </div>
 
+                    <div class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
+                        <div class="mb-3">
+                            <p class="text-sm font-bold text-blue-950">Dữ liệu báo giá bổ sung thủ công</p>
+                            <p class="mt-1 text-xs text-blue-700">Ba trường này không có từ nguồn đồng bộ Mua sắm công và được lưu riêng trên bản ghi để dùng khi xuất Excel/BBG.</p>
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label class="mb-1 block text-sm font-semibold text-gray-700">STT TT20/2022</label>
+                                <input type="text" wire:model="sttTt202022" placeholder="Ví dụ: 125" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                @error('sttTt202022')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-sm font-semibold text-gray-700">Giá KK / KKL</label>
+                                <input type="number" min="0" step="0.0001" wire:model="giaKkKkl" placeholder="0" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                @error('giaKkKkl')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-sm font-semibold text-gray-700">Đơn giá (VAT)</label>
+                                <input type="number" min="0" step="0.0001" wire:model="donGiaVat" placeholder="0" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                @error('donGiaVat')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
-                        Chỉ chỉnh các trường KQLCNT cần bổ sung thủ công. Thông tin thuốc, hoạt chất, giá, số lượng và dữ liệu nguồn gốc vẫn giữ nguyên snapshot đã đồng bộ.
+                        Thông tin thuốc, hoạt chất, giá nguồn, số lượng và dữ liệu gốc vẫn giữ nguyên snapshot đã đồng bộ. Chỉ các trường KQLCNT và dữ liệu báo giá bổ sung ở trên được chỉnh thủ công.
                     </div>
                 </div>
 
@@ -173,4 +191,6 @@
             </div>
         </div>
     @endif
+
+    @include('Muasamcong::livewire.partials.synced-export-config-modal')
 </div>
