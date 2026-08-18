@@ -136,13 +136,6 @@ class SyncedPricingExportPreferenceService
         foreach (self::COLUMNS as $key => $column) {
             $width = $widths[$key] ?? $column['width'];
             $width = is_numeric($width) ? (float) $width : (float) $column['width'];
-
-            // Backward compatibility: the previous UI stored Excel character-width units (5..80).
-            // Convert those values to pixels once they are read/saved by the new configuration UI.
-            if ($width <= 80) {
-                $width = ($width * 7) + 5;
-            }
-
             $normalized[$key] = (int) round(max(40, min(600, $width)));
         }
 
