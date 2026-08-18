@@ -10,6 +10,8 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
         Route::middleware(config('muasamcong.view_middleware', ['permission:view_muasamcong,admin']))
             ->group(function () {
                 Route::get('/', [MuasamcongController::class, 'index'])->name('index');
+                Route::post('/pricing/export-selected', [MuasamcongController::class, 'exportSelectedPricing'])
+                    ->name('pricing.export-selected');
                 Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
                 Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
                 Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
