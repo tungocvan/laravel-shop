@@ -88,13 +88,29 @@ class SmartPricingAwardService
                 continue;
             }
 
-            $id = trim((string) ($item['id'] ?? ''));
-            $key = $id !== ''
-                ? $id
-                : hash('sha256', json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-
-            $rows[$key] = $this->normalize($item, $contractorCode, $key);
+            $key = $this->businessKey($item, $notifyNo, $contractorCode);
+            $rows[$key] ??= $this->normalize($item, $contractorCode, $key);
         }
+    }
+
+    private function businessKey(array $item, string $notifyNo, string $contractorCode): string
+    {
+        return hash('sha256', json_encode([
+            'notify_no' => $notifyNo,
+            'contractor_code' => $contractorCode,
+            'medicine_name' => $this->scalar($item['tenThuoc'] ?? null),
+            'active_ingredient' => $this->scalar($item['tenHoatChat'] ?? null),
+            'concentration' => $this->scalar($item['nongDo'] ?? null),
+            'route' => $this->scalar($item['duongDung'] ?? null),
+            'dosage_form' => $this->scalar($item['dangBaoChe'] ?? null),
+            'medicine_group' => $this->scalar($item['nhomThuoc'] ?? null),
+            'quantity' => $this->numeric($item['soLuong'] ?? null),
+            'winning_unit_price' => $this->numeric($item['donGia'] ?? null),
+            'decision_no' => $this->scalar($item['soQuyetDinh'] ?? null),
+            'decision_date' => $this->scalar($item['ngayBanHanhQuyetDinh'] ?? null),
+            'manufacturer' => $this->scalar($item['tenCoSoSanXuat'] ?? null),
+            'country' => $this->scalar($item['nuocSanXuat'] ?? null),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     private function normalize(array $item, string $contractorCode, string $key): array
