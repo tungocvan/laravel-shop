@@ -1,6 +1,6 @@
 # Muasamcong Module — Documentation Index
 
-> Cập nhật: 2026-08-16. Tài liệu này là entry point cho AI/lập trình viên tiếp quản module.
+> Cập nhật: 2026-08-18. Tài liệu này là entry point cho AI/lập trình viên tiếp quản module.
 
 ## 1. Module làm gì?
 
@@ -14,6 +14,7 @@ Các chức năng hiện tại:
 - Filter local theo tên thuốc, hoạt chất, nhóm thuốc, đơn vị trúng thầu.
 - Checkbox lựa chọn thuốc xuyên nhiều trang và đồng bộ các thuốc đã chọn vào database.
 - Quản lý danh sách thuốc đã đồng bộ: search, pagination, cross-page selection, edit winner/KQLCNT metadata, bulk delete.
+- Export Profile cho `/admin/muasamcong/synced`: nhiều cấu hình/user, kéo thứ tự cột, rename header, type/decimal/alignment/width, Header/Footer, logo và chữ ký.
 - Wishlist thuốc cần theo dõi theo user.
 - Tra cứu lịch sử nhà thầu/doanh nghiệp.
 - Xem KQLCNT và danh sách các đơn vị trúng thầu của TBMT.
@@ -29,10 +30,13 @@ AI/lập trình viên mở chat mới đọc theo thứ tự:
 
 1. `docs/modules/Muasamcong/README.md` — entry point và invariants.
 2. `docs/modules/Muasamcong/AI_HANDOFF.md` — tài liệu bàn giao chi tiết nhất, bao gồm endpoint đã điều tra, case thực tế, các kết luận và việc chưa giải quyết.
-3. `docs/modules/Muasamcong/INFORMATION.md` — inventory/lịch sử module.
-4. `docs/modules/Muasamcong/ANALYSIS.md` — phân tích kiến trúc trước đó; có thể chứa thông tin lịch sử đã cũ.
-5. `docs/modules/Muasamcong/ENV_DOCTOR.md` — chẩn đoán cấu hình môi trường.
-6. Code + tests hiện tại — source of truth cuối cùng.
+3. `docs/modules/Muasamcong/SYNCED.md` — mô tả chi tiết `/admin/muasamcong/synced`, Export Profile và Excel/BBG.
+4. `docs/modules/Muasamcong/ROUTES.md` — route reference web/API, middleware, handler và domain map.
+5. `docs/modules/Muasamcong/INFORMATION.md` — inventory/lịch sử module.
+6. `docs/modules/Muasamcong/ANALYSIS.md` — phân tích kiến trúc trước đó; có thể chứa thông tin lịch sử đã cũ.
+7. `docs/modules/Muasamcong/ENV_DOCTOR.md` — chẩn đoán cấu hình môi trường.
+8. `.codex/skills/configurable-excel-export/SKILL.md` — skill tái sử dụng Export Profile cho module khác.
+9. Code + tests hiện tại — source of truth cuối cùng.
 
 Nếu tài liệu lịch sử mâu thuẫn code hiện tại, phải báo rõ và ưu tiên code/tests hiện tại.
 
@@ -60,7 +64,7 @@ Integration parsing, persistence và UI state phải tiếp tục tách thành s
 /admin/muasamcong              Tra cứu thuốc / Smart Pricing
 /admin/muasamcong/contractors  Lịch sử nhà thầu
 /admin/muasamcong/hsmt         Tra cứu HSMT
-/admin/muasamcong/synced       Danh sách thuốc đã đồng bộ
+/admin/muasamcong/synced       Danh sách thuốc đã đồng bộ + Export Profile
 /admin/muasamcong/wishlist     Wishlist thuốc cần theo dõi
 /admin/muasamcong/config       Cấu hình tích hợp
 ```
@@ -70,9 +74,12 @@ API:
 ```text
 GET  /api/muasamcong
 POST /api/muasamcong/search-pricing
+POST /api/muasamcong/update-cookie
 ```
 
 Các route search/admin dùng `auth:admin` + permission `view_muasamcong`; config có permission riêng `muasamcong.config.manage`. Mutation sync sử dụng permission chuyên biệt theo code hiện tại.
+
+Xem chi tiết toàn bộ route tại `docs/modules/Muasamcong/ROUTES.md`.
 
 ## 5. Chức năng và service chịu trách nhiệm
 
@@ -83,6 +90,7 @@ Các route search/admin dùng `auth:admin` + permission `view_muasamcong`; confi
 | Search snapshot | `PricingSearchSnapshotService` | Database-first cho từ khóa cũ, timestamp/access count, force refresh |
 | Đồng bộ thuốc | `PricingResultSyncService` | Map selected source rows vào `PricingResult` |
 | Synced list | `SyncedPricingList` | Search, pagination, checkbox xuyên trang, edit/bulk delete |
+| Configurable Excel | `SyncedPricingExportPreferenceService`, `SyncedExportProfile`, `SyncedPricingExportController` | Multi-profile export, typed Excel, Header/Footer, logo/chữ ký |
 | Wishlist | `PricingWishlistService`, `PricingWishlist` | Danh sách thuốc theo dõi theo user |
 | Lịch sử nhà thầu | `ContractorHistory`, `ContractorHistoryService` | Tìm doanh nghiệp và các TBMT đã tham gia |
 | KQLCNT | `KqlcntService` | Contract/winner metadata của TBMT |
@@ -123,6 +131,16 @@ Các route search/admin dùng `auth:admin` + permission `view_muasamcong`; confi
 - HSMT catalogue có thể rất lớn; modal phải scroll đúng cả ngang/dọc.
 - Dữ liệu đã snapshot ưu tiên local; refresh chỉ khi người dùng chủ động đồng bộ lại.
 
+### Synced export
+
+- Save cấu hình không tự export.
+- Export chỉ nhận identifier từ browser và query DB lại.
+- Export profile luôn scope theo user.
+- Cột export luôn đi qua server-side whitelist.
+- `GĐKLH/GPNK` phải giữ dạng text khi xuất.
+- Number phải là numeric cell, decimal/format do profile quyết định.
+- Header/Footer chỉ thay presentation, không mutate domain data.
+
 ## 7. Kết luận điều tra winner ↔ thuốc
 
 Đã xác minh hai nguồn độc lập:
@@ -152,6 +170,8 @@ Chi tiết endpoint, payload và các thử nghiệm thất bại/thành công n
 - SSL verification production phải bật.
 - Endpoint/schema/token/cookie upstream có thể thay đổi.
 - HTTP 200 phải kiểm tra body/count/schema, không mặc định là success có dữ liệu.
+- Export/download phải validate selected IDs và query DB server-side.
+- Export profile không được cross-user.
 
 ## 9. Pre-merge verification
 
@@ -176,9 +196,10 @@ Manual smoke tối thiểu:
 7. Winner 2026 vẫn hiện khi source có `winningName`.
 8. Source thiếu winner không bị suy đoán.
 9. Synced list edit/bulk delete/cross-page checkbox.
-10. Wishlist persistence.
-11. Contractor history + KQLCNT modal.
-12. HSMT snapshot/catalogue scroll.
+10. Synced Export Profile: save, reload, duplicate, chọn profile, export đúng format.
+11. Wishlist persistence.
+12. Contractor history + KQLCNT modal.
+13. HSMT snapshot/catalogue scroll.
 
 ## 10. Khi mở chat mới
 
@@ -188,11 +209,19 @@ Dùng prompt:
 Hãy tiếp tục Modules/Muasamcong. Trước tiên đọc toàn bộ:
 - docs/modules/Muasamcong/README.md
 - docs/modules/Muasamcong/AI_HANDOFF.md
+- docs/modules/Muasamcong/SYNCED.md
+- docs/modules/Muasamcong/ROUTES.md
 - docs/modules/Muasamcong/INFORMATION.md
 - docs/modules/Muasamcong/ANALYSIS.md
 - code/tests hiện tại của Modules/Muasamcong
 
 Không implement ngay. Hãy tóm tắt kiến trúc hiện tại, chức năng đã hoàn thành, invariants, các endpoint/source dữ liệu, vấn đề winner ↔ lot/medicine chưa giải quyết và đề xuất kế hoạch thay đổi. Nếu docs lịch sử mâu thuẫn code/tests, dùng code/tests làm source of truth và nêu rõ mâu thuẫn.
+```
+
+Để áp dụng Export Profile cho module khác, dùng:
+
+```text
+Hãy sử dụng `.codex/skills/configurable-excel-export/SKILL.md` để phân tích và triển khai configurable Excel export cho Modules/<Module>.
 ```
 
 Xem `AI_HANDOFF.md` để có tài liệu bàn giao đầy đủ nhất.
