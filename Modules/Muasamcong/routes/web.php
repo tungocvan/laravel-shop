@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
 use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
+use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
 
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
     ->prefix('admin/muasamcong')
@@ -27,6 +28,10 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
                 Route::get('/hsmt', [MuasamcongController::class, 'hsmt'])->name('hsmt');
                 Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
                 Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
+                Route::post('/wishlist/export-selected', [PricingWishlistBulkController::class, 'export'])
+                    ->name('wishlist.export-selected');
+                Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])
+                    ->name('wishlist.destroy-selected');
             });
 
         Route::middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))
