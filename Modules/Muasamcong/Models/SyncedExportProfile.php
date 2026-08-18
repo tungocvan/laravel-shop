@@ -18,5 +18,6 @@ class SyncedExportProfile extends Model
         'alignments' => 'array',
         'widths' => 'array',
         'data_types' => 'array',
+        'decimals' => 'array',
     ];
 }
