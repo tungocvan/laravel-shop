@@ -72,21 +72,110 @@ class MuasamcongController extends Controller
             ->orderBy('lot_no')
             ->orderBy('id')
             ->get();
-        abort_if($lots->isEmpty(), 404, 'Chưa có danh mục lô do người dùng xác nhận.');
+        abort_if($lots->isEmpty(), 404, 'Chưa có danh mục lô / thuốc đã lưu.');
 
-        $rows = $lots->map(fn (ContractorManualLot $lot): array => [
+        $savedContractorName = ContractorSearch::query()
+            ->where('contractor_code', $contractorCode)
+            ->value('contractor_name');
+
+        $rows = $lots->values()->map(function (ContractorManualLot $lot, int $index) use ($notifyNo, $contractorCode, $savedContractorName): array {
+            $raw = is_array($lot->raw_payload) ? $lot->raw_payload : [];
+            $source = is_array($raw['raw_payload'] ?? null) ? $raw['raw_payload'] : $raw;
+            $quantity = is_numeric($lot->quantity) ? (float) $lot->quantity : null;
+            $winningUnitPrice = is_numeric($raw['winning_unit_price'] ?? null)
+                ? (float) $raw['winning_unit_price']
+                : (is_numeric($source['donGia'] ?? null)
+                    ? (float) $source['donGia']
+                    : (is_numeric($lot->lot_price) ? (float) $lot->lot_price : null));
+            $amount = $quantity !== null && $winningUnitPrice !== null
+                ? $quantity * $winningUnitPrice
+                : (is_numeric($lot->plan_amount) ? (float) $lot->plan_amount : null);
+            $winningCodes = (array) ($source['winningCode'] ?? []);
+            $winningNames = (array) ($source['winningName'] ?? []);
+            $winnerCode = trim((string) ($raw['contractor_code'] ?? ''));
+            $winnerName = trim((string) ($raw['contractor_name'] ?? ''));
+
+            if ($winnerCode === '') {
+                $winnerCode = implode('; ', array_values(array_filter(array_map(
+                    static fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '',
+                    $winningCodes
+                ))));
+            }
+            if ($winnerCode === '') {
+                $winnerCode = $contractorCode;
+            }
+
+            if ($winnerName === '') {
+                $winnerName = implode('; ', array_values(array_filter(array_map(
+                    static fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '',
+                    $winningNames
+                ))));
+            }
+            if ($winnerName === '') {
+                $winnerName = (string) ($savedContractorName ?: '');
+            }
+
+            return [
+                'STT' => $index + 1,
+                'Tên thuốc' => $lot->medicine_name ?? $raw['medicine_name'] ?? $source['tenThuoc'] ?? null,
+                'Nhóm thuốc' => $raw['medicine_group'] ?? $source['nhomThuoc'] ?? null,
+                'Hoạt chất' => $lot->active_ingredient ?? $raw['active_ingredient'] ?? $source['tenHoatChat'] ?? null,
+                'Nồng độ / Hàm lượng' => $raw['concentration'] ?? $source['nongDo'] ?? null,
+                'Đường dùng' => $raw['route'] ?? $source['duongDung'] ?? null,
+                'Dạng bào chế' => $raw['dosage_form'] ?? $source['dangBaoChe'] ?? null,
+                'Đơn vị tính' => $raw['uom'] ?? $source['donViTinh'] ?? null,
+                'Mã thuốc' => $raw['medicine_code'] ?? $source['medicineCode'] ?? null,
+                'Mã lô' => $lot->lot_no,
+                'Tên lô' => $lot->lot_name,
+                'Giá kế hoạch' => is_numeric($lot->price_plan) ? (float) $lot->price_plan : null,
+                'Giá trúng thầu' => $winningUnitPrice,
+                'Số lượng' => $quantity,
+                'Thành tiền' => $amount,
+                'Mã nhà thầu trúng' => $winnerCode,
+                'Đơn vị trúng thầu' => $winnerName,
+                'Chủ đầu tư / Bên mời thầu' => $source['tenCdtBmt'] ?? $raw['investor_name'] ?? null,
+                'Mã TBMT' => $notifyNo,
+                'Số quyết định' => $raw['decision_no'] ?? $source['soQuyetDinh'] ?? null,
+                'Ngày quyết định' => $raw['decision_date'] ?? $source['ngayBanHanhQuyetDinh'] ?? null,
+                'Ngày đăng KQLCNT' => $raw['published_at'] ?? $source['ngayDangTaiKqlcnt'] ?? null,
+                'Cơ sở sản xuất' => $raw['manufacturer'] ?? $source['tenCoSoSanXuat'] ?? null,
+                'Nước sản xuất' => $raw['country'] ?? $source['nuocSanXuat'] ?? null,
+                'Nguồn dữ liệu' => match ($lot->source) {
+                    'smart_pricing_verified' => 'Smart Pricing xác minh',
+                    'kqlcnt_verified' => 'KQLCNT xác minh',
+                    default => 'Người dùng xác nhận từ HSMT',
+                },
+                'Xác nhận / Đồng bộ lúc' => $lot->confirmed_at?->format('d/m/Y H:i:s'),
+            ];
+        });
+
+        $rows->push([
+            'STT' => null,
+            'Tên thuốc' => 'TỔNG CỘNG',
+            'Nhóm thuốc' => null,
+            'Hoạt chất' => null,
+            'Nồng độ / Hàm lượng' => null,
+            'Đường dùng' => null,
+            'Dạng bào chế' => null,
+            'Đơn vị tính' => null,
+            'Mã thuốc' => null,
+            'Mã lô' => null,
+            'Tên lô' => null,
+            'Giá kế hoạch' => null,
+            'Giá trúng thầu' => null,
+            'Số lượng' => $rows->sum(fn (array $row): float => is_numeric($row['Số lượng'] ?? null) ? (float) $row['Số lượng'] : 0),
+            'Thành tiền' => $rows->sum(fn (array $row): float => is_numeric($row['Thành tiền'] ?? null) ? (float) $row['Thành tiền'] : 0),
+            'Mã nhà thầu trúng' => null,
+            'Đơn vị trúng thầu' => null,
+            'Chủ đầu tư / Bên mời thầu' => null,
             'Mã TBMT' => $notifyNo,
-            'CONTRACTOR_CODE' => $contractorCode,
-            'Mã lô' => $lot->lot_no,
-            'Tên lô' => $lot->lot_name,
-            'Tên thuốc' => $lot->medicine_name,
-            'Hoạt chất' => $lot->active_ingredient,
-            'Số lượng' => $lot->quantity,
-            'Giá KH' => $lot->price_plan,
-            'SL x Giá KH' => $lot->plan_amount,
-            'Giá lô' => $lot->lot_price,
-            'Nguồn' => 'Người dùng xác nhận',
-            'Xác nhận lúc' => $lot->confirmed_at?->format('d/m/Y H:i:s'),
+            'Số quyết định' => null,
+            'Ngày quyết định' => null,
+            'Ngày đăng KQLCNT' => null,
+            'Cơ sở sản xuất' => null,
+            'Nước sản xuất' => null,
+            'Nguồn dữ liệu' => null,
+            'Xác nhận / Đồng bộ lúc' => null,
         ]);
 
         $temporaryPath = tempnam(sys_get_temp_dir(), 'msc-manual-lots-');
