@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Muasamcong\Models\PricingResult;
+use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
 
 class SyncedPricingList extends Component
 {
@@ -23,6 +24,12 @@ class SyncedPricingList extends Component
     public bool $showEditModal = false;
 
     public bool $showExportConfigModal = false;
+
+    public array $exportColumnOrder = [];
+
+    public array $exportSelectedColumns = [];
+
+    public array $exportAlignments = [];
 
     public ?int $editingId = null;
 
@@ -47,6 +54,11 @@ class SyncedPricingList extends Component
     public string $statusMessage = '';
 
     public string $statusType = '';
+
+    public function mount(): void
+    {
+        $this->loadExportPreference();
+    }
 
     public function updatedSearch(): void
     {
@@ -94,20 +106,78 @@ class SyncedPricingList extends Component
     public function openExportConfig(): void
     {
         $this->authorizeMutation();
-
-        if ($this->selectedIds === []) {
-            $this->statusType = 'warning';
-            $this->statusMessage = 'Vui lòng chọn ít nhất 1 bản ghi trước khi cấu hình xuất.';
-
-            return;
-        }
-
+        $this->loadExportPreference();
         $this->showExportConfigModal = true;
     }
 
     public function closeExportConfig(): void
     {
         $this->showExportConfigModal = false;
+        $this->loadExportPreference();
+    }
+
+    public function moveExportColumn(string $source, string $target): void
+    {
+        if ($source === $target) {
+            return;
+        }
+
+        $columns = array_values($this->exportColumnOrder);
+        $sourceIndex = array_search($source, $columns, true);
+        $targetIndex = array_search($target, $columns, true);
+
+        if ($sourceIndex === false || $targetIndex === false) {
+            return;
+        }
+
+        array_splice($columns, $sourceIndex, 1);
+        $targetIndex = array_search($target, $columns, true);
+        array_splice($columns, $targetIndex === false ? count($columns) : $targetIndex, 0, [$source]);
+        $this->exportColumnOrder = array_values($columns);
+    }
+
+    public function selectAllExportColumns(): void
+    {
+        foreach ($this->exportColumnOrder as $key) {
+            $this->exportSelectedColumns[$key] = true;
+        }
+    }
+
+    public function clearAllExportColumns(): void
+    {
+        foreach ($this->exportColumnOrder as $key) {
+            $this->exportSelectedColumns[$key] = false;
+        }
+    }
+
+    public function saveExportConfig(): void
+    {
+        $this->authorizeMutation();
+        $userId = (int) Auth::guard('admin')->id();
+        $selected = collect($this->exportSelectedColumns)
+            ->filter(fn (mixed $enabled): bool => (bool) $enabled)
+            ->keys()
+            ->values()
+            ->all();
+
+        if ($selected === []) {
+            $this->statusType = 'warning';
+            $this->statusMessage = 'Cấu hình xuất phải có ít nhất 1 cột.';
+
+            return;
+        }
+
+        $saved = app(SyncedPricingExportPreferenceService::class)->save(
+            $userId,
+            $this->exportColumnOrder,
+            $selected,
+            $this->exportAlignments,
+        );
+
+        $this->applyExportPreference($saved);
+        $this->showExportConfigModal = false;
+        $this->statusType = 'success';
+        $this->statusMessage = 'Đã lưu cấu hình cột, thứ tự hiển thị và canh lề. Các lần xuất sau sẽ tự động dùng cấu hình này.';
     }
 
     public function editSelected(): void
@@ -228,7 +298,28 @@ class SyncedPricingList extends Component
             'items' => $items,
             'currentPageIds' => $currentPageIds,
             'currentPageSelected' => $currentPageSelected,
+            'exportColumnDefinitions' => SyncedPricingExportPreferenceService::COLUMNS,
         ]);
+    }
+
+    private function loadExportPreference(): void
+    {
+        $userId = (int) Auth::guard('admin')->id();
+        if ($userId <= 0) {
+            return;
+        }
+
+        $this->applyExportPreference(app(SyncedPricingExportPreferenceService::class)->forUser($userId));
+    }
+
+    private function applyExportPreference(array $preference): void
+    {
+        $this->exportColumnOrder = array_values($preference['column_order'] ?? []);
+        $selectedLookup = array_fill_keys($preference['selected_columns'] ?? [], true);
+        $this->exportSelectedColumns = collect($this->exportColumnOrder)
+            ->mapWithKeys(fn (string $key): array => [$key => isset($selectedLookup[$key])])
+            ->all();
+        $this->exportAlignments = (array) ($preference['alignments'] ?? []);
     }
 
     private function items(): LengthAwarePaginator
