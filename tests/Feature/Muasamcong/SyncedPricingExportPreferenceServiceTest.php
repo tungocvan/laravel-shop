@@ -41,19 +41,20 @@ class SyncedPricingExportPreferenceServiceTest extends TestCase
         $this->assertSame($saved['data_types'], $loaded['data_types']);
     }
 
-    public function test_legacy_excel_width_units_are_converted_to_pixels(): void
+    public function test_pixel_widths_are_clamped_to_supported_bounds(): void
     {
         $service = app(SyncedPricingExportPreferenceService::class);
 
         $saved = $service->save(
             100,
-            ['ten_thuoc'],
-            ['ten_thuoc'],
+            ['stt', 'ten_thuoc'],
+            ['stt', 'ten_thuoc'],
             [],
-            ['ten_thuoc' => 24],
+            ['stt' => 20, 'ten_thuoc' => 900],
             [],
         );
 
-        $this->assertSame(173, $saved['widths']['ten_thuoc']);
+        $this->assertSame(40, $saved['widths']['stt']);
+        $this->assertSame(600, $saved['widths']['ten_thuoc']);
     }
 }
