@@ -24,20 +24,16 @@ class SyncedPricingExportController extends Controller
         ]);
 
         $ids = array_values(array_unique(array_map('intval', $validated['selected_ids'])));
-        $userId = (int) Auth::guard('admin')->id();
-        $preference = app(SyncedPricingExportPreferenceService::class)->forUser($userId);
+        $preference = app(SyncedPricingExportPreferenceService::class)->forUser((int) Auth::guard('admin')->id());
         $selectedLookup = array_fill_keys($preference['selected_columns'], true);
         $requestedColumns = array_values(array_filter(
             $preference['column_order'],
-            fn (string $key): bool => isset($selectedLookup[$key]) && isset(SyncedPricingExportPreferenceService::COLUMNS[$key])
+            fn (string $key): bool => isset($selectedLookup[$key], SyncedPricingExportPreferenceService::COLUMNS[$key])
         ));
+
         abort_if($requestedColumns === [], 422, 'Cấu hình xuất chưa chọn cột nào. Hãy mở Cấu hình cột và chọn ít nhất một cột.');
 
-        $items = PricingResult::query()
-            ->whereIn('id', $ids)
-            ->orderBy('id')
-            ->get();
-
+        $items = PricingResult::query()->whereIn('id', $ids)->orderBy('id')->get();
         abort_if($items->isEmpty(), 422, 'Không tìm thấy dữ liệu đồng bộ đã chọn để xuất Excel.');
 
         $temporaryPath = tempnam(sys_get_temp_dir(), 'msc-synced-pricing-');
@@ -52,13 +48,17 @@ class SyncedPricingExportController extends Controller
         foreach ($requestedColumns as $columnIndex => $key) {
             $cell = $sheet->getCell([$columnIndex + 1, 1]);
             $cell->setValue(SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);
-            $sheet->getColumnDimension($cell->getColumn())->setAutoSize(true);
+            $width = $preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'];
+            $sheet->getColumnDimension($cell->getColumn())->setAutoSize(false)->setWidth((float) $width);
         }
 
         $lastHeaderCell = $sheet->getCell([count($requestedColumns), 1])->getCoordinate();
         $sheet->getStyle('A1:'.$lastHeaderCell)->getFont()->setBold(true);
-        $sheet->getStyle('A1:'.$lastHeaderCell)
-            ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle('A1:'.$lastHeaderCell)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
+        $sheet->getRowDimension(1)->setRowHeight(-1);
 
         foreach ($items->values() as $rowIndex => $item) {
             $excelRow = $rowIndex + 2;
@@ -66,21 +66,22 @@ class SyncedPricingExportController extends Controller
                 $value = $this->value($item, $key, $rowIndex + 1);
                 $cell = $sheet->getCell([$columnIndex + 1, $excelRow]);
 
-                if ($key === 'gdklh_gpnk' || $key === 'stt_tt20_2022') {
+                if (in_array($key, ['gdklh_gpnk', 'stt_tt20_2022'], true)) {
                     $cell->setValueExplicit($value === null ? '' : (string) $value, DataType::TYPE_STRING);
                     $cell->getStyle()->getNumberFormat()->setFormatCode('@');
                 } else {
                     $cell->setValue($value);
                 }
             }
+            $sheet->getRowDimension($excelRow)->setRowHeight(-1);
         }
 
         $lastRow = $items->count() + 1;
         $lastColumn = $sheet->getCell([count($requestedColumns), 1])->getColumn();
-        $sheet->getStyle("A1:{$lastColumn}{$lastRow}")
-            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        $sheet->getStyle("A1:{$lastColumn}{$lastRow}")
-            ->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle("A1:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("A1:{$lastColumn}{$lastRow}")->getAlignment()
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
 
         foreach ($requestedColumns as $columnIndex => $key) {
             $columnLetter = $sheet->getCell([$columnIndex + 1, 1])->getColumn();
@@ -90,20 +91,20 @@ class SyncedPricingExportController extends Controller
                 'right' => Alignment::HORIZONTAL_RIGHT,
                 default => Alignment::HORIZONTAL_LEFT,
             };
-            $sheet->getStyle("{$columnLetter}2:{$columnLetter}{$lastRow}")
-                ->getAlignment()->setHorizontal($horizontal);
+            $sheet->getStyle("{$columnLetter}2:{$columnLetter}{$lastRow}")->getAlignment()
+                ->setHorizontal($horizontal)
+                ->setWrapText(true);
         }
 
         $sheet->freezePane('A2');
         (new Xlsx($spreadsheet))->save($excelPath);
         $spreadsheet->disconnectWorksheets();
 
-        return response()
-            ->download($excelPath, 'Muasamcong-Danh-sach-da-dong-bo-'.now()->format('Ymd-His').'.xlsx', [
-                'Cache-Control' => 'no-store, private',
-                'X-Content-Type-Options' => 'nosniff',
-            ])
-            ->deleteFileAfterSend(true);
+        return response()->download(
+            $excelPath,
+            'Muasamcong-Danh-sach-da-dong-bo-'.now()->format('Ymd-His').'.xlsx',
+            ['Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff']
+        )->deleteFileAfterSend(true);
     }
 
     private function value(PricingResult $item, string $key, int $index): mixed
@@ -154,21 +155,15 @@ class SyncedPricingExportController extends Controller
     {
         $locations = collect((array) $item->dia_diem)
             ->map(fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '')
-            ->filter()
-            ->values()
-            ->implode('; ');
+            ->filter()->values()->implode('; ');
 
         return $locations !== '' ? $locations : null;
     }
 
     private function medicineGroupNumber(mixed $value): ?string
     {
-        if (! is_scalar($value)) {
-            return null;
-        }
-
+        if (! is_scalar($value)) return null;
         preg_match('/\d+/', (string) $value, $matches);
-
         return $matches[0] ?? null;
     }
 }
