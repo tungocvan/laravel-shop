@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -23,17 +24,22 @@ class SyncedPricingExportController extends Controller
         $validated = $request->validate([
             'selected_ids' => ['required', 'array', 'min:1', 'max:5000'],
             'selected_ids.*' => ['required', 'integer', 'min:1'],
+            'export_profile_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $ids = array_values(array_unique(array_map('intval', $validated['selected_ids'])));
-        $preference = app(SyncedPricingExportPreferenceService::class)->forUser((int) Auth::guard('admin')->id());
+        $profileId = isset($validated['export_profile_id']) ? (int) $validated['export_profile_id'] : null;
+        $preference = app(SyncedPricingExportPreferenceService::class)->forUser(
+            (int) Auth::guard('admin')->id(),
+            $profileId,
+        );
         $selectedLookup = array_fill_keys($preference['selected_columns'], true);
         $requestedColumns = array_values(array_filter(
             $preference['column_order'],
             fn (string $key): bool => isset($selectedLookup[$key], SyncedPricingExportPreferenceService::COLUMNS[$key])
         ));
 
-        abort_if($requestedColumns === [], 422, 'Cấu hình xuất chưa chọn cột nào. Hãy mở Cấu hình cột và chọn ít nhất một cột.');
+        abort_if($requestedColumns === [], 422, 'Cấu hình xuất chưa chọn cột nào.');
 
         $items = PricingResult::query()->whereIn('id', $ids)->orderBy('id')->get();
         abort_if($items->isEmpty(), 422, 'Không tìm thấy dữ liệu đồng bộ đã chọn để xuất Excel.');
@@ -49,7 +55,7 @@ class SyncedPricingExportController extends Controller
 
         foreach ($requestedColumns as $columnIndex => $key) {
             $cell = $sheet->getCell([$columnIndex + 1, 1]);
-            $cell->setValue(SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);
+            $cell->setValue($preference['headers'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);
             $widthPixels = $preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'];
             $sheet->getColumnDimension($cell->getColumn())
                 ->setAutoSize(false)
@@ -71,7 +77,6 @@ class SyncedPricingExportController extends Controller
                 $cell = $sheet->getCell([$columnIndex + 1, $excelRow]);
                 $configuredType = $preference['data_types'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['type'];
                 $type = $key === 'gdklh_gpnk' ? 'string' : $configuredType;
-
                 $this->writeTypedValue($cell, $value, $type);
             }
 
@@ -109,7 +114,7 @@ class SyncedPricingExportController extends Controller
         )->deleteFileAfterSend(true);
     }
 
-    private function writeTypedValue($cell, mixed $value, string $type): void
+    private function writeTypedValue(Cell $cell, mixed $value, string $type): void
     {
         if ($value === null || $value === '') {
             $cell->setValue(null);
@@ -127,6 +132,7 @@ class SyncedPricingExportController extends Controller
         if ($type === 'number') {
             if (is_numeric($value)) {
                 $cell->setValueExplicit((float) $value, DataType::TYPE_NUMERIC);
+                $cell->getStyle()->getNumberFormat()->setFormatCode('#,##0.####');
 
                 return;
             }
@@ -175,7 +181,6 @@ class SyncedPricingExportController extends Controller
                     return $date;
                 }
             } catch (\Throwable) {
-                // Try the next known format before falling back to generic parsing.
             }
         }
 
