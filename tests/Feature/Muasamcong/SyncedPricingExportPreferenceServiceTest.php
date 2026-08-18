@@ -10,45 +10,55 @@ class SyncedPricingExportPreferenceServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_persists_column_order_selection_alignment_type_and_pixel_width_per_user(): void
+    public function test_it_persists_multiple_named_profiles_with_custom_headers(): void
     {
         $service = app(SyncedPricingExportPreferenceService::class);
 
-        $saved = $service->save(
+        $first = $service->saveProfile(
             99,
+            'Báo giá bệnh viện',
             ['ten_thuoc', 'gdklh_gpnk', 'nhom_thuoc'],
             ['gdklh_gpnk', 'ten_thuoc'],
+            ['ten_thuoc' => 'Tên biệt dược', 'gdklh_gpnk' => 'Số GĐKLH'],
             ['ten_thuoc' => 'center', 'gdklh_gpnk' => 'right'],
             ['ten_thuoc' => 220, 'gdklh_gpnk' => 180],
             ['ten_thuoc' => 'auto', 'gdklh_gpnk' => 'string'],
         );
 
-        $this->assertSame(['ten_thuoc', 'gdklh_gpnk', 'nhom_thuoc'], array_slice($saved['column_order'], 0, 3));
-        $this->assertSame(['ten_thuoc', 'gdklh_gpnk'], $saved['selected_columns']);
-        $this->assertSame('center', $saved['alignments']['ten_thuoc']);
-        $this->assertSame('right', $saved['alignments']['gdklh_gpnk']);
-        $this->assertSame(220, $saved['widths']['ten_thuoc']);
-        $this->assertSame(180, $saved['widths']['gdklh_gpnk']);
-        $this->assertSame('auto', $saved['data_types']['ten_thuoc']);
-        $this->assertSame('string', $saved['data_types']['gdklh_gpnk']);
+        $second = $service->saveProfile(
+            99,
+            'Danh mục nội bộ',
+            ['nhom_thuoc', 'ten_thuoc'],
+            ['nhom_thuoc', 'ten_thuoc'],
+            ['nhom_thuoc' => 'Nhóm', 'ten_thuoc' => 'Thuốc'],
+            [],
+            [],
+            [],
+        );
 
-        $loaded = $service->forUser(99);
+        $this->assertNotSame($first['profile_id'], $second['profile_id']);
+        $this->assertSame('Tên biệt dược', $first['headers']['ten_thuoc']);
+        $this->assertSame(220, $first['widths']['ten_thuoc']);
+        $this->assertSame('string', $first['data_types']['gdklh_gpnk']);
 
-        $this->assertSame($saved['column_order'], $loaded['column_order']);
-        $this->assertSame($saved['selected_columns'], $loaded['selected_columns']);
-        $this->assertSame($saved['alignments'], $loaded['alignments']);
-        $this->assertSame($saved['widths'], $loaded['widths']);
-        $this->assertSame($saved['data_types'], $loaded['data_types']);
+        $profiles = $service->profilesForUser(99);
+        $this->assertCount(2, $profiles);
+
+        $loaded = $service->forUser(99, $first['profile_id']);
+        $this->assertSame('Báo giá bệnh viện', $loaded['profile_name']);
+        $this->assertSame('Tên biệt dược', $loaded['headers']['ten_thuoc']);
     }
 
     public function test_pixel_widths_are_clamped_to_supported_bounds(): void
     {
         $service = app(SyncedPricingExportPreferenceService::class);
 
-        $saved = $service->save(
+        $saved = $service->saveProfile(
             100,
+            'Kiểm tra width',
             ['stt', 'ten_thuoc'],
             ['stt', 'ten_thuoc'],
+            [],
             [],
             ['stt' => 20, 'ten_thuoc' => 900],
             [],
