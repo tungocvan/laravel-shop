@@ -9,7 +9,7 @@
         <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div class="flex-1">
                 <label class="mb-1 block text-xs font-semibold text-gray-600">Tìm trong danh sách đồng bộ</label>
-                <x-search wire:model.live.debounce.250ms="search" placeholder="Tên thuốc, hoạt chất, nhóm, TBMT, đơn vị trúng thầu, số quyết định..." />
+                <x-search wire:model.live.debounce.250ms="search" placeholder="Tên thuốc, hoạt chất, nhóm, TBMT, đơn vị trúng thầu, số quyết định, STT TT20/2022..." />
             </div>
 
             @if ($canManage)
@@ -17,6 +17,25 @@
                     <span class="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">Đã chọn {{ count($selectedIds) }}</span>
                     <button type="button" wire:click="editSelected" class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Sửa đã chọn</button>
                     <button type="button" wire:click="clearSelection" @disabled($selectedIds === []) class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 disabled:opacity-40">Bỏ chọn</button>
+                    <button type="button" wire:click="openExportConfig" class="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">⚙ Cấu hình cột</button>
+                    <select wire:model.live="activeExportProfileId" class="max-w-52 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-800">
+                        @if ($exportProfiles === [])
+                            <option value="">Mặc định hệ thống</option>
+                        @endif
+                        @foreach ($exportProfiles as $profile)
+                            <option value="{{ $profile['id'] }}">{{ $profile['name'] }}{{ $profile['is_default'] ? ' • Mặc định' : '' }}</option>
+                        @endforeach
+                    </select>
+                    <form method="POST" action="{{ route('muasamcong.synced.export-selected') }}" class="inline-flex">
+                        @csrf
+                        @if ($activeExportProfileId)
+                            <input type="hidden" name="export_profile_id" value="{{ $activeExportProfileId }}">
+                        @endif
+                        @foreach ($selectedIds as $selectedId)
+                            <input type="hidden" name="selected_ids[]" value="{{ (int) $selectedId }}">
+                        @endforeach
+                        <button type="submit" @disabled($selectedIds === []) class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Xuất Excel ({{ count($selectedIds) }})</button>
+                    </form>
                     <button type="button" wire:click="deleteSelected" wire:confirm="Bạn có chắc muốn xóa các bản ghi đồng bộ đã chọn?" @disabled($selectedIds === []) class="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">Xóa đã chọn</button>
                 </div>
             @endif
@@ -65,9 +84,7 @@
                     @forelse ($items as $item)
                         <tr wire:key="synced-result-{{ $item->id }}" class="align-top {{ isset($selectedLookup[$item->id]) ? 'bg-indigo-50/50' : 'hover:bg-indigo-50/30' }}">
                             @if ($canManage)
-                                <td class="px-3 py-4 text-center">
-                                    <input type="checkbox" value="{{ $item->id }}" wire:model.live="selectedIds" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                </td>
+                                <td class="px-3 py-4 text-center"><input type="checkbox" value="{{ $item->id }}" wire:model.live="selectedIds" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></td>
                             @endif
                             <td class="px-3 py-4 text-gray-500">{{ $items->firstItem() + $loop->index }}</td>
                             <td class="px-4 py-4 font-semibold text-gray-950">{{ $item->ten_thuoc ?: '-' }}</td>
@@ -76,20 +93,8 @@
                             <td class="px-4 py-4">{{ $item->nong_do ?: '-' }}</td>
                             <td class="px-4 py-4 text-right font-semibold">{{ is_numeric($item->don_gia) ? number_format((float) $item->don_gia, 0, ',', '.') : '-' }}</td>
                             <td class="px-4 py-4 text-right">{{ is_numeric($item->so_luong) ? number_format((float) $item->so_luong, 0, ',', '.') : '-' }}</td>
-                            <td class="px-4 py-4">
-                                @forelse ((array) $item->winning_name as $name)
-                                    <div class="font-semibold text-emerald-700">{{ $name }}</div>
-                                @empty
-                                    <span class="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">Chưa cập nhật</span>
-                                @endforelse
-                            </td>
-                            <td class="px-4 py-4">
-                                @forelse ((array) $item->winning_code as $code)
-                                    <div class="font-mono text-xs">{{ $code }}</div>
-                                @empty
-                                    <span class="text-gray-400">-</span>
-                                @endforelse
-                            </td>
+                            <td class="px-4 py-4">@forelse ((array) $item->winning_name as $name)<div class="font-semibold text-emerald-700">{{ $name }}</div>@empty<span class="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">Chưa cập nhật</span>@endforelse</td>
+                            <td class="px-4 py-4">@forelse ((array) $item->winning_code as $code)<div class="font-mono text-xs">{{ $code }}</div>@empty<span class="text-gray-400">-</span>@endforelse</td>
                             <td class="px-4 py-4">{{ $item->ten_cdt_bmt ?: '-' }}</td>
                             <td class="px-4 py-4 font-mono text-xs">{{ $item->ma_tbmt ?: '-' }}</td>
                             <td class="px-4 py-4">{{ $item->so_quyet_dinh ?: '-' }}</td>
@@ -97,11 +102,7 @@
                             <td class="px-4 py-4">{{ $item->ten_co_so_san_xuat ?: '-' }}</td>
                             <td class="px-4 py-4">{{ $item->nuoc_san_xuat ?: '-' }}</td>
                             <td class="px-4 py-4 whitespace-nowrap">{{ $item->synced_at?->format('d/m/Y H:i') ?: '-' }}</td>
-                            @if ($canManage)
-                                <td class="px-4 py-4 text-center">
-                                    <button type="button" wire:click="openEdit({{ $item->id }})" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Sửa</button>
-                                </td>
-                            @endif
+                            @if ($canManage)<td class="px-4 py-4 text-center"><button type="button" wire:click="openEdit({{ $item->id }})" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Sửa</button></td>@endif
                         </tr>
                     @empty
                         <tr><td colspan="18" class="px-5 py-12 text-center text-gray-500">Chưa có dữ liệu đã đồng bộ.</td></tr>
@@ -109,61 +110,39 @@
                 </tbody>
             </table>
         </div>
-
-        @if ($items->hasPages())
-            <div class="border-t border-gray-200 px-4 py-4">{{ $items->links() }}</div>
-        @endif
+        @if ($items->hasPages())<div class="border-t border-gray-200 px-4 py-4">{{ $items->links() }}</div>@endif
     </div>
 
     @if ($showEditModal)
         <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" wire:click.self="closeEdit">
-            <div class="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div class="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl">
                 <div class="flex items-start justify-between border-b border-gray-200 px-5 py-4">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Cập nhật thông tin trúng thầu</p>
-                        <h3 class="mt-1 text-lg font-bold text-gray-900">{{ $editingMedicine ?: 'Bản ghi đồng bộ' }}</h3>
-                        <p class="mt-1 font-mono text-xs text-gray-500">{{ $editingTbmt ?: '-' }}</p>
-                    </div>
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Cập nhật thông tin trúng thầu</p><h3 class="mt-1 text-lg font-bold text-gray-900">{{ $editingMedicine ?: 'Bản ghi đồng bộ' }}</h3><p class="mt-1 font-mono text-xs text-gray-500">{{ $editingTbmt ?: '-' }}</p></div>
                     <button type="button" wire:click="closeEdit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-500 hover:bg-gray-50">×</button>
                 </div>
-
-                <div class="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-5">
+                <div class="max-h-[72vh] space-y-5 overflow-y-auto px-5 py-5">
                     <div class="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label class="mb-1 block text-sm font-semibold text-gray-700">Đơn vị trúng thầu</label>
-                            <textarea wire:model="winningName" rows="5" placeholder="Mỗi nhà thầu một dòng" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></textarea>
-                            @error('winningName')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-sm font-semibold text-gray-700">Mã nhà thầu</label>
-                            <textarea wire:model="winningCode" rows="5" placeholder="Mỗi mã nhà thầu một dòng" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></textarea>
-                            @error('winningCode')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                        </div>
+                        <div><label class="mb-1 block text-sm font-semibold text-gray-700">Đơn vị trúng thầu</label><textarea wire:model="winningName" rows="5" placeholder="Mỗi nhà thầu một dòng" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></textarea>@error('winningName')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                        <div><label class="mb-1 block text-sm font-semibold text-gray-700">Mã nhà thầu</label><textarea wire:model="winningCode" rows="5" placeholder="Mỗi mã nhà thầu một dòng" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 font-mono text-sm"></textarea>@error('winningCode')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     </div>
-
                     <div class="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label class="mb-1 block text-sm font-semibold text-gray-700">Số quyết định KQLCNT</label>
-                            <input type="text" wire:model="decisionNo" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                            @error('decisionNo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-sm font-semibold text-gray-700">Ngày ban hành quyết định</label>
-                            <input type="date" wire:model="decisionDate" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                            @error('decisionDate')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        <div><label class="mb-1 block text-sm font-semibold text-gray-700">Số quyết định KQLCNT</label><input type="text" wire:model="decisionNo" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm">@error('decisionNo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                        <div><label class="mb-1 block text-sm font-semibold text-gray-700">Ngày ban hành quyết định</label><input type="date" wire:model="decisionDate" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm">@error('decisionDate')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                    </div>
+                    <div class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
+                        <div class="mb-3"><p class="text-sm font-bold text-blue-950">Dữ liệu báo giá bổ sung thủ công</p><p class="mt-1 text-xs text-blue-700">Ba trường này không có từ nguồn đồng bộ Mua sắm công và được lưu riêng trên bản ghi để dùng khi xuất Excel/BBG.</p></div>
+                        <div class="grid gap-4 md:grid-cols-3">
+                            <div><label class="mb-1 block text-sm font-semibold text-gray-700">STT TT20/2022</label><input type="text" wire:model="sttTt202022" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"></div>
+                            <div><label class="mb-1 block text-sm font-semibold text-gray-700">Giá KK / KKL</label><input type="number" min="0" step="0.0001" wire:model="giaKkKkl" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"></div>
+                            <div><label class="mb-1 block text-sm font-semibold text-gray-700">Đơn giá (VAT)</label><input type="number" min="0" step="0.0001" wire:model="donGiaVat" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"></div>
                         </div>
                     </div>
-
-                    <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
-                        Chỉ chỉnh các trường KQLCNT cần bổ sung thủ công. Thông tin thuốc, hoạt chất, giá, số lượng và dữ liệu nguồn gốc vẫn giữ nguyên snapshot đã đồng bộ.
-                    </div>
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">Thông tin thuốc, hoạt chất, giá nguồn, số lượng và dữ liệu gốc vẫn giữ nguyên snapshot đã đồng bộ. Chỉ các trường KQLCNT và dữ liệu báo giá bổ sung ở trên được chỉnh thủ công.</div>
                 </div>
-
-                <div class="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-5 py-4">
-                    <button type="button" wire:click="closeEdit" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Hủy</button>
-                    <button type="button" wire:click="saveEdit" class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Lưu cập nhật</button>
-                </div>
+                <div class="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-5 py-4"><button type="button" wire:click="closeEdit" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Hủy</button><button type="button" wire:click="saveEdit" class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Lưu cập nhật</button></div>
             </div>
         </div>
     @endif
+
+    @include('Muasamcong::livewire.partials.synced-export-config-modal')
 </div>

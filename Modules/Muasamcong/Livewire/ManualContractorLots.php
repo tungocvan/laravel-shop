@@ -39,6 +39,7 @@ class ManualContractorLots extends Component
         $this->selected = ContractorManualLot::query()
             ->where('notify_no', $this->notifyNo)
             ->where('contractor_code', $this->contractorCode)
+            ->where('source', 'manual')
             ->pluck('lot_key')
             ->all();
     }
@@ -104,6 +105,7 @@ class ManualContractorLots extends Component
             ContractorManualLot::query()
                 ->where('notify_no', $this->notifyNo)
                 ->where('contractor_code', $this->contractorCode)
+                ->where('source', 'manual')
                 ->delete();
 
             foreach ($selectedKeys as $key) {
@@ -116,10 +118,11 @@ class ManualContractorLots extends Component
                 $pricePlan = $this->numeric($item['price_plan'] ?? null);
                 $lotPrice = $this->numeric($item['lot_price'] ?? null);
 
-                ContractorManualLot::query()->create([
+                ContractorManualLot::query()->updateOrCreate([
                     'contractor_code' => $this->contractorCode,
                     'notify_no' => $this->notifyNo,
                     'lot_key' => $key,
+                ], [
                     'lot_no' => $item['lot_no'] ?? null,
                     'lot_name' => $item['lot_name'] ?? null,
                     'medicine_name' => $item['medicine_name'] ?? null,
@@ -179,8 +182,12 @@ class ManualContractorLots extends Component
             ->where('notify_no', $this->notifyNo)
             ->where('contractor_code', $this->contractorCode)
             ->get();
+        $verifiedLots = $savedLots->where('source', 'kqlcnt_verified');
+        $manualLots = $savedLots->where('source', 'manual');
         $savedSummary = [
             'count' => $savedLots->count(),
+            'verified_count' => $verifiedLots->count(),
+            'manual_count' => $manualLots->count(),
             'quantity' => (float) $savedLots->sum('quantity'),
             'plan_amount' => (float) $savedLots->sum('plan_amount'),
             'lot_price' => (float) $savedLots->sum('lot_price'),

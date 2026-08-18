@@ -1,4 +1,4 @@
-<div class="space-y-5">
+<div class="space-y-5" @if(request()->filled('q')) wire:init="searchRecent(@js((string) request()->query('q')))" @endif>
     @php
         $syncedLookup = array_fill_keys($syncedSourceIds, true);
         $wishlistLookup = array_fill_keys($wishlistSourceIds, true);
@@ -6,6 +6,10 @@
         $canWishlistPricing = auth('admin')->check() && auth('admin')->user()->can('muasamcong.pricing.wishlist');
         $hasResultFilters = $medicineNameFilter !== '' || $activeIngredientFilter !== '' || $medicineGroupFilter !== '' || $winningCompanyFilter !== '';
     @endphp
+
+    @if (session('status'))
+        <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ session('status') }}</div>
+    @endif
 
     <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <form wire:submit="search" class="flex flex-col gap-3 lg:flex-row lg:items-end">
@@ -26,15 +30,30 @@
         @if ($recentSearches !== [])
             <div class="mt-5 border-t border-gray-100 pt-4">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tra cứu gần đây</p>
-                    <p class="text-xs text-gray-400">Bấm để mở lại từ database, không gọi API.</p>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tra cứu gần đây</p>
+                        <p class="mt-0.5 text-xs text-gray-400">Mở lại bằng tải trang mới để tránh gửi toàn bộ dữ liệu lớn qua Livewire.</p>
+                    </div>
+                    <form method="POST" action="{{ route('muasamcong.pricing.history.clear') }}" onsubmit="return confirm('Xóa toàn bộ lịch sử tra cứu đã lưu? Dữ liệu đồng bộ và Wishlist không bị xóa.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">Xóa toàn bộ</button>
+                    </form>
                 </div>
                 <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
                     @foreach ($recentSearches as $recent)
-                        <button type="button" wire:click="searchRecent(@js($recent['keyword']))" class="min-w-52 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-left hover:border-indigo-200 hover:bg-indigo-50/50">
-                            <p class="truncate text-sm font-semibold text-gray-800">{{ $recent['keyword'] }}</p>
-                            <p class="mt-1 text-xs text-gray-500">{{ $recent['loaded_total'] }} kết quả · {{ $recent['searched_at'] ? \Illuminate\Support\Carbon::parse($recent['searched_at'])->format('d/m/Y H:i') : '—' }}</p>
-                        </button>
+                        <div class="relative min-w-52 rounded-xl border border-gray-200 bg-gray-50 hover:border-indigo-200 hover:bg-indigo-50/50">
+                            <a href="{{ route('muasamcong.index', ['q' => $recent['keyword']]) }}" class="block px-3 py-2.5 pr-10 text-left">
+                                <p class="truncate text-sm font-semibold text-gray-800">{{ $recent['keyword'] }}</p>
+                                <p class="mt-1 text-xs text-gray-500">{{ $recent['loaded_total'] }} kết quả · {{ $recent['searched_at'] ? \Illuminate\Support\Carbon::parse($recent['searched_at'])->format('d/m/Y H:i') : '—' }}</p>
+                            </a>
+                            <form method="POST" action="{{ route('muasamcong.pricing.history.destroy') }}" class="absolute right-1.5 top-1.5" onsubmit="return confirm('Xóa tra cứu {{ addslashes($recent['keyword']) }}?');">
+                                @csrf
+                                @method('DELETE')
+                                <input type="hidden" name="keyword" value="{{ $recent['keyword'] }}">
+                                <button type="submit" title="Xóa tra cứu" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-red-200 bg-white text-sm font-bold text-red-600 hover:bg-red-50">×</button>
+                            </form>
+                        </div>
                     @endforeach
                 </div>
             </div>
@@ -83,6 +102,14 @@
                             <button type="button" wire:click="toggleSelectedSummary" @disabled(count($selectedSourceIds) === 0) class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40">Đã chọn ({{ count($selectedSourceIds) }})</button>
                             <button type="button" wire:click="selectAllUnsynced" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Chọn tất cả kết quả</button>
                             @if (count($selectedSourceIds) > 0)<button type="button" wire:click="clearSelection" class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600">Bỏ chọn tất cả</button>@endif
+                            <form method="POST" action="{{ route('muasamcong.pricing.export-selected') }}" class="inline-flex">
+                                @csrf
+                                <input type="hidden" name="keyword" value="{{ $keyword }}">
+                                @foreach ($selectedSourceIds as $selectedSourceId)
+                                    <input type="hidden" name="selected_ids[]" value="{{ $selectedSourceId }}">
+                                @endforeach
+                                <button type="submit" @disabled(count($selectedSourceIds) === 0) class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">Xuất Excel ({{ count($selectedSourceIds) }})</button>
+                            </form>
                             <button type="button" wire:click="syncSelected" wire:loading.attr="disabled" @disabled(count($selectedSourceIds) === 0) class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Đồng bộ ({{ count($selectedSourceIds) }})</button>
                         </div>
                     @endif
@@ -146,7 +173,7 @@
                             @endphp
                             <tr class="align-top {{ $isSynced ? 'bg-emerald-50/30' : 'hover:bg-indigo-50/30' }}">
                                 @if($canWishlistPricing)<td class="px-3 py-4 text-center">@if($sourceId)<button wire:click="toggleWishlist('{{ $sourceId }}')" class="h-9 w-9 rounded-full border {{ $isWishlisted ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-gray-200 text-gray-400' }}">{{ $isWishlisted ? '♥' : '♡' }}</button>@endif</td>@endif
-                                @if($canSyncPricing)<td class="px-3 py-4 text-center">@if($sourceId)<input type="checkbox" value="{{ $sourceId }}" wire:model="selectedSourceIds" @disabled($isSynced) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">@endif</td>@endif
+                                @if($canSyncPricing)<td class="px-3 py-4 text-center">@if($sourceId)<input type="checkbox" value="{{ $sourceId }}" wire:model.live="selectedSourceIds" @disabled($isSynced) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">@endif</td>@endif
                                 <td class="px-3 py-4 text-center text-gray-500">{{ $resultOffset + $loop->iteration }}</td>
                                 <td class="px-4 py-4 font-semibold text-gray-950">{{ $item['tenThuoc'] ?? '-' }}</td>
                                 <td class="px-4 py-4">{{ $item['nhomThuoc'] ?? '-' }}</td>

@@ -20,6 +20,8 @@ class PricingResult extends Model
         'don_gia' => 'decimal:4',
         'so_luong' => 'decimal:4',
         'so_nha_thau_tham_du' => 'decimal:8',
+        'gia_kk_kkl' => 'decimal:4',
+        'don_gia_vat' => 'decimal:4',
         'synced_at' => 'datetime',
     ];
 }

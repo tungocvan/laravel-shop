@@ -10,6 +10,9 @@ class MuasamcongRouteAuthorizationTest extends TestCase
     public function test_search_routes_use_admin_prefix_and_view_permission(): void
     {
         $index = Route::getRoutes()->getByName('muasamcong.index');
+        $pricingExport = Route::getRoutes()->getByName('muasamcong.pricing.export-selected');
+        $pricingHistoryDestroy = Route::getRoutes()->getByName('muasamcong.pricing.history.destroy');
+        $pricingHistoryClear = Route::getRoutes()->getByName('muasamcong.pricing.history.clear');
         $hsmt = Route::getRoutes()->getByName('muasamcong.hsmt');
         $contractors = Route::getRoutes()->getByName('muasamcong.contractors');
         $contractorHistory = Route::getRoutes()->getByName('muasamcong.contractors.history');
@@ -17,18 +20,27 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $manualLotsShow = Route::getRoutes()->getByName('muasamcong.contractors.manual-lots.show');
         $manualLotsDownload = Route::getRoutes()->getByName('muasamcong.contractors.manual-lots.download');
         $synced = Route::getRoutes()->getByName('muasamcong.synced');
+        $syncedExport = Route::getRoutes()->getByName('muasamcong.synced.export-selected');
+        $syncedBbg = Route::getRoutes()->getByName('muasamcong.synced.export-bbg');
         $wishlist = Route::getRoutes()->getByName('muasamcong.wishlist');
+        $wishlistExport = Route::getRoutes()->getByName('muasamcong.wishlist.export-selected');
+        $wishlistDestroy = Route::getRoutes()->getByName('muasamcong.wishlist.destroy-selected');
 
-        $this->assertNotNull($index);
-        $this->assertNotNull($hsmt);
-        $this->assertNotNull($contractors);
-        $this->assertNotNull($contractorHistory);
-        $this->assertNotNull($contractorHistoryShow);
-        $this->assertNotNull($manualLotsShow);
-        $this->assertNotNull($manualLotsDownload);
-        $this->assertNotNull($synced);
-        $this->assertNotNull($wishlist);
+        foreach ([$index, $pricingExport, $pricingHistoryDestroy, $pricingHistoryClear, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $syncedExport, $syncedBbg, $wishlist, $wishlistExport, $wishlistDestroy] as $route) {
+            $this->assertNotNull($route);
+            $middleware = $route->gatherMiddleware();
+            $this->assertContains('auth:admin', $middleware);
+            $this->assertContains('permission:view_muasamcong,admin', $middleware);
+            $this->assertNotContains('permission:muasamcong.config.manage,admin', $middleware);
+        }
+
         $this->assertSame('admin/muasamcong', $index->uri());
+        $this->assertSame('admin/muasamcong/pricing/export-selected', $pricingExport->uri());
+        $this->assertSame(['POST'], $pricingExport->methods());
+        $this->assertSame('admin/muasamcong/pricing/history/item', $pricingHistoryDestroy->uri());
+        $this->assertContains('DELETE', $pricingHistoryDestroy->methods());
+        $this->assertSame('admin/muasamcong/pricing/history', $pricingHistoryClear->uri());
+        $this->assertContains('DELETE', $pricingHistoryClear->methods());
         $this->assertSame('admin/muasamcong/hsmt', $hsmt->uri());
         $this->assertSame('admin/muasamcong/contractors', $contractors->uri());
         $this->assertSame('admin/muasamcong/contractors/history', $contractorHistory->uri());
@@ -36,14 +48,15 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertSame('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', $manualLotsShow->uri());
         $this->assertSame('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', $manualLotsDownload->uri());
         $this->assertSame('admin/muasamcong/synced', $synced->uri());
+        $this->assertSame('admin/muasamcong/synced/export-selected', $syncedExport->uri());
+        $this->assertSame(['POST'], $syncedExport->methods());
+        $this->assertSame('admin/muasamcong/synced/export-bbg', $syncedBbg->uri());
+        $this->assertSame(['POST'], $syncedBbg->methods());
         $this->assertSame('admin/muasamcong/wishlist', $wishlist->uri());
-
-        foreach ([$index, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $wishlist] as $route) {
-            $middleware = $route->gatherMiddleware();
-            $this->assertContains('auth:admin', $middleware);
-            $this->assertContains('permission:view_muasamcong,admin', $middleware);
-            $this->assertNotContains('permission:muasamcong.config.manage,admin', $middleware);
-        }
+        $this->assertSame('admin/muasamcong/wishlist/export-selected', $wishlistExport->uri());
+        $this->assertSame(['POST'], $wishlistExport->methods());
+        $this->assertSame('admin/muasamcong/wishlist/selected', $wishlistDestroy->uri());
+        $this->assertContains('DELETE', $wishlistDestroy->methods());
     }
 
     public function test_config_route_uses_dedicated_management_permission(): void
@@ -71,11 +84,14 @@ class MuasamcongRouteAuthorizationTest extends TestCase
             ->filter(fn (string $uri): bool => str_contains($uri, 'muasamcong'))
             ->values();
 
-        $this->assertCount(14, $uris);
+        $this->assertCount(21, $uris);
         $this->assertContains('api/muasamcong', $uris);
         $this->assertContains('api/muasamcong/search-pricing', $uris);
         $this->assertContains('api/muasamcong/update-cookie', $uris);
         $this->assertContains('admin/muasamcong', $uris);
+        $this->assertContains('admin/muasamcong/pricing/export-selected', $uris);
+        $this->assertContains('admin/muasamcong/pricing/history/item', $uris);
+        $this->assertContains('admin/muasamcong/pricing/history', $uris);
         $this->assertContains('admin/muasamcong/hsmt', $uris);
         $this->assertContains('admin/muasamcong/contractors', $uris);
         $this->assertContains('admin/muasamcong/contractors/history', $uris);
@@ -83,7 +99,11 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertContains('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', $uris);
         $this->assertContains('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', $uris);
         $this->assertContains('admin/muasamcong/synced', $uris);
+        $this->assertContains('admin/muasamcong/synced/export-selected', $uris);
+        $this->assertContains('admin/muasamcong/synced/export-bbg', $uris);
         $this->assertContains('admin/muasamcong/wishlist', $uris);
+        $this->assertContains('admin/muasamcong/wishlist/export-selected', $uris);
+        $this->assertContains('admin/muasamcong/wishlist/selected', $uris);
         $this->assertContains('admin/muasamcong/config', $uris);
         $this->assertContains('admin/muasamcong/session-tool/windows', $uris);
         $this->assertNotContains('muasamcong', $uris);

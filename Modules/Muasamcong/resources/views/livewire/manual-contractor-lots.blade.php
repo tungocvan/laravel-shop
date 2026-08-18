@@ -29,11 +29,11 @@
                         <h5 class="font-bold text-emerald-900">Danh mục lô / thuốc của nhà thầu đã lưu</h5>
                         <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm">{{ number_format($savedSummary['count'], 0, ',', '.') }} lô</span>
                     </div>
-                    <p class="mt-1 text-sm text-emerald-800">Đây là file danh mục do người dùng xác nhận. Có thể mở để xem toàn bộ hoặc tải Excel về máy.</p>
+                    <p class="mt-1 text-sm text-emerald-800">Danh mục đã lưu gồm dữ liệu tự xác minh và các lô do người dùng xác nhận. Có thể mở để xem toàn bộ hoặc tải Excel đầy đủ về máy.</p>
                     <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-800">
                         <span>Tổng số lượng: <strong>{{ number_format($savedSummary['quantity'], 0, ',', '.') }}</strong></span>
-                        <span>Tổng KH: <strong>{{ number_format($savedSummary['plan_amount'], 0, ',', '.') }}</strong></span>
-                        <span>Tổng giá lô: <strong>{{ number_format($savedSummary['lot_price'], 0, ',', '.') }}</strong></span>
+                        <span>Tổng KH / Thành tiền: <strong>{{ number_format($savedSummary['plan_amount'], 0, ',', '.') }}</strong></span>
+                        <span>Tổng đơn giá / Giá lô: <strong>{{ number_format($savedSummary['lot_price'], 0, ',', '.') }}</strong></span>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -44,7 +44,7 @@
                     </a>
                     <a href="{{ route('muasamcong.contractors.manual-lots.download', ['contractorCode' => $contractorCode, 'notifyNo' => $notifyNo]) }}"
                        class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
-                        Tải Excel
+                        Tải Excel đầy đủ
                     </a>
                 </div>
             </div>
@@ -52,7 +52,7 @@
     @endif
 
     @if (!$hasSnapshot)
-        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Chưa có snapshot HSMT của {{ $notifyNo }}. Hãy dùng nút <strong>Tải danh mục HSMT</strong> trước.</div>
+        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Chưa có snapshot HSMT của {{ $notifyNo }}. Hệ thống sẽ tự kiểm tra dữ liệu đã lưu trên server trước khi gọi API.</div>
     @else
         <div class="mt-4 grid gap-3 lg:grid-cols-4">
             <div class="rounded-xl border border-violet-200 bg-white p-3"><div class="text-xs font-semibold uppercase text-gray-500">Lô đã chọn</div><div class="mt-1 text-xl font-bold text-violet-700">{{ number_format($totals['count'], 0, ',', '.') }}</div></div>
@@ -62,9 +62,15 @@
         </div>
 
         <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
-            <div>
+            <div wire:key="manual-lot-search-{{ $notifyNo }}-{{ $contractorCode }}">
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600">Tìm trong danh mục</label>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Ví dụ: Docusate natri, hoạt chất, mã lô, mã thuốc..." class="w-full rounded-xl border border-gray-400 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200">
+                <input type="text"
+                       wire:model.live.debounce.500ms="search"
+                       x-on:paste.stop
+                       x-on:keydown.stop
+                       autocomplete="off"
+                       placeholder="Ví dụ: Docusate natri, hoạt chất, mã lô, mã thuốc..."
+                       class="w-full rounded-xl border border-gray-400 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200">
             </div>
             <div>
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600">Nhóm thuốc</label>
@@ -93,8 +99,8 @@
                 @forelse ($items as $item)
                     @php($quantity = is_numeric($item['quantity'] ?? null) ? (float) $item['quantity'] : null)
                     @php($pricePlan = is_numeric($item['price_plan'] ?? null) ? (float) $item['price_plan'] : null)
-                    <tr class="align-top hover:bg-violet-50/50">
-                        <td class="px-4 py-3 text-center"><input type="checkbox" wire:model.live="selected" value="{{ $item['_lot_key'] }}" class="h-4 w-4 rounded border-gray-400 text-violet-600 focus:ring-violet-500"></td>
+                    <tr wire:key="manual-lot-row-{{ md5($item['_lot_key']) }}" class="align-top hover:bg-violet-50/50">
+                        <td class="px-4 py-3 text-center"><input wire:key="manual-lot-checkbox-{{ md5($item['_lot_key']) }}" type="checkbox" wire:model.live="selected" value="{{ $item['_lot_key'] }}" class="h-4 w-4 rounded border-gray-400 text-violet-600 focus:ring-violet-500"></td>
                         <td class="whitespace-nowrap px-4 py-3 font-semibold text-indigo-700">{{ $item['lot_no'] ?? '—' }}</td>
                         <td class="min-w-64 px-4 py-3"><div class="font-medium text-gray-900">{{ $item['medicine_name'] ?: ($item['lot_name'] ?? $item['active_ingredient'] ?? '—') }}</div>@if (!empty($item['active_ingredient']) && $item['active_ingredient'] !== ($item['medicine_name'] ?? null))<div class="mt-1 text-xs text-gray-500">{{ $item['active_ingredient'] }}</div>@endif @if (!empty($item['medicine_code']))<div class="mt-1 text-xs text-gray-400">Mã thuốc: {{ $item['medicine_code'] }}</div>@endif</td>
                         <td class="px-4 py-3 text-gray-700">{{ $item['concentration'] ?? '—' }}</td>

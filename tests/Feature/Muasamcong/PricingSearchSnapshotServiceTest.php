@@ -63,4 +63,23 @@ class PricingSearchSnapshotServiceTest extends TestCase
         $this->assertSame(11, $snapshot->searched_by);
         $this->assertSame('new-1', $snapshot->result_payload['data']['items'][0]['id']);
     }
+
+    public function test_it_can_delete_one_snapshot_and_clear_all_snapshots(): void
+    {
+        $service = app(PricingSearchSnapshotService::class);
+        $result = [
+            'success' => true,
+            'data' => ['total' => 1, 'items' => [['id' => 'row-1']]],
+        ];
+
+        $service->store('IB2600117160', $result, 10);
+        $service->store('IB2500539527', $result, 10);
+
+        $this->assertTrue($service->delete(' ib2600117160 '));
+        $this->assertNull($service->find('IB2600117160'));
+        $this->assertDatabaseCount('muasamcong_pricing_search_snapshots', 1);
+
+        $this->assertSame(1, $service->clear());
+        $this->assertDatabaseCount('muasamcong_pricing_search_snapshots', 0);
+    }
 }

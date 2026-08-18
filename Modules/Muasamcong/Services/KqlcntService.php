@@ -5,6 +5,7 @@ namespace Modules\Muasamcong\Services;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Modules\Muasamcong\Models\ContractorManualLot;
 use Modules\Muasamcong\Models\ContractorSearchItem;
 use RuntimeException;
 
@@ -124,7 +125,7 @@ class KqlcntService
             $matchedContracts[] = $contract;
 
             foreach ($this->extractVerifiedLots($contract, $contractorCode) as $lot) {
-                $key = (string) ($lot['lotNo'] ?? $lot['id'] ?? md5(json_encode($lot)));
+                $key = (string) ($lot['lotNo'] ?? $lot['lotCode'] ?? $lot['id'] ?? md5(json_encode($lot)));
                 $verifiedLots[$key] = $lot;
             }
         }
@@ -156,6 +157,7 @@ class KqlcntService
         ];
 
         $this->persistInvestorToHistory($resolved);
+        $this->persistVerifiedLots($resolved);
 
         return $resolved;
     }
@@ -251,6 +253,72 @@ class KqlcntService
             });
     }
 
+    private function persistVerifiedLots(array $resolved): void
+    {
+        if (! Schema::hasTable('muasamcong_contractor_manual_lots')) {
+            return;
+        }
+
+        $notifyNo = trim((string) ($resolved['notify_no'] ?? ''));
+        $contractorCode = trim((string) ($resolved['contractor_code'] ?? ''));
+        $verifiedLots = is_array($resolved['verified_lots'] ?? null) ? $resolved['verified_lots'] : [];
+
+        if ($notifyNo === '' || $contractorCode === '') {
+            return;
+        }
+
+        $verifiedKeys = [];
+        foreach ($verifiedLots as $lot) {
+            if (! is_array($lot)) {
+                continue;
+            }
+
+            $lotNo = trim((string) ($lot['lotNo'] ?? $lot['lotCode'] ?? ''));
+            if ($lotNo === '') {
+                continue;
+            }
+
+            $lotKey = 'lot:'.$lotNo;
+            $verifiedKeys[] = $lotKey;
+            $quantity = $this->numeric($lot['quantity'] ?? $lot['qty'] ?? null);
+            $pricePlan = $this->numeric($lot['pricePlan'] ?? $lot['price_plan'] ?? $lot['unitPrice'] ?? null);
+            $lotPrice = $this->numeric($lot['lotPrice'] ?? $lot['bidWinningPrice'] ?? $lot['winningPrice'] ?? null);
+
+            ContractorManualLot::query()->updateOrCreate(
+                [
+                    'contractor_code' => $contractorCode,
+                    'notify_no' => $notifyNo,
+                    'lot_key' => $lotKey,
+                ],
+                [
+                    'lot_no' => $lotNo,
+                    'lot_name' => $lot['lotName'] ?? $lot['medicineName'] ?? $lot['tenThuoc'] ?? null,
+                    'medicine_name' => $lot['medicineName'] ?? $lot['tenThuoc'] ?? $lot['lotName'] ?? null,
+                    'active_ingredient' => $lot['activeIngredient'] ?? $lot['tenHoatChat'] ?? null,
+                    'quantity' => $quantity,
+                    'price_plan' => $pricePlan,
+                    'lot_price' => $lotPrice,
+                    'plan_amount' => $quantity !== null && $pricePlan !== null ? $quantity * $pricePlan : null,
+                    'source' => 'kqlcnt_verified',
+                    'confirmed_by' => null,
+                    'confirmed_at' => now(),
+                    'raw_payload' => $lot,
+                ]
+            );
+        }
+
+        $stale = ContractorManualLot::query()
+            ->where('contractor_code', $contractorCode)
+            ->where('notify_no', $notifyNo)
+            ->where('source', 'kqlcnt_verified');
+
+        if ($verifiedKeys === []) {
+            $stale->delete();
+        } else {
+            $stale->whereNotIn('lot_key', $verifiedKeys)->delete();
+        }
+    }
+
     private function contractWinners(array $contract): array
     {
         $directCode = trim((string) ($contract['contractorCode'] ?? ''));
@@ -314,6 +382,11 @@ class KqlcntService
         $decoded = json_decode($value, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function numeric(mixed $value): ?float
+    {
+        return is_numeric($value) ? (float) $value : null;
     }
 
     private function yearFromNotifyNo(string $notifyNo): int

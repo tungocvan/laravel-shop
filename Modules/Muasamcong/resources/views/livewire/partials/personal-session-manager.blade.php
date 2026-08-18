@@ -33,17 +33,19 @@
 
     @if ($sessionFailed && ! $sessionVerified)
         <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-            <div class="font-semibold">Session Mua sắm công có thể đã hết hạn.</div>
-            <div class="mt-1 text-xs leading-5 text-amber-800">Không cần sửa <code>.env</code> hoặc restart Docker. Dùng công cụ Windows bên dưới để cập nhật session mới.</div>
+            <div class="font-semibold">Session Personal Page có thể đã hết hạn.</div>
+            <div class="mt-1 text-xs leading-5 text-amber-800">
+                Nếu Chrome riêng vẫn còn SSO Keycloak, bạn thường không cần nhập lại tài khoản. Hãy tạo link cập nhật mới và dùng chức năng <strong>Làm mới Session tự động</strong> của Windows Tool. Tool sẽ mở lại Personal Page, lấy portal session mới và gửi về server để xác minh.
+            </div>
         </div>
     @endif
 
     <div class="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4 sm:p-5">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-                <div class="text-sm font-bold text-violet-950">Cập nhật Session từ Windows → VPS / Docker</div>
+                <div class="text-sm font-bold text-violet-950">Làm mới Session từ Windows → VPS / Docker</div>
                 <p class="mt-1 max-w-3xl text-xs leading-5 text-violet-800">
-                    Tải tool về Windows một lần. Khi session hết hạn, tool sẽ kiểm tra session local, hỗ trợ mở Chrome để đăng nhập và gửi session mới về server bằng HTTPS POST với link dùng một lần.
+                    Tool dùng Chrome profile riêng. Khi portal session hết hạn nhưng SSO vẫn còn, Chrome có thể vào thẳng Mua sắm công và tự tạo session mới; tool lấy Cookie mới qua CDP rồi POST về Laravel. Không tự động nhập mật khẩu, CAPTCHA hoặc OTP.
                 </p>
             </div>
             <a href="{{ route('muasamcong.session-tool.windows') }}"
@@ -52,18 +54,40 @@
             </a>
         </div>
 
-        <div class="mt-4 grid gap-3 md:grid-cols-3">
+        <div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div class="text-xs font-bold uppercase tracking-wide text-emerald-800">Luồng khuyến nghị khi Session hết hạn</div>
+            <div class="mt-2 grid gap-3 md:grid-cols-3">
+                <div class="rounded-xl border border-emerald-200 bg-white p-3">
+                    <div class="text-xs font-bold text-emerald-900">1. Tạo link một lần</div>
+                    <div class="mt-1 text-xs text-emerald-700">Nhấn <strong>Tạo Link cập nhật Windows</strong> bên dưới và sao chép link.</div>
+                </div>
+                <div class="rounded-xl border border-emerald-200 bg-white p-3">
+                    <div class="text-xs font-bold text-emerald-900">2. Làm mới tự động</div>
+                    <div class="mt-1 text-xs text-emerald-700">Chạy <code>Muasamcong-Session-Tool.bat</code> → menu <strong>2</strong> → dán link.</div>
+                </div>
+                <div class="rounded-xl border border-emerald-200 bg-white p-3">
+                    <div class="text-xs font-bold text-emerald-900">3. Chỉ đăng nhập khi cần</div>
+                    <div class="mt-1 text-xs text-emerald-700">Nếu Chrome chuyển về Login, đăng nhập bình thường rồi tạo link mới và chạy menu 2 lại.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 grid gap-3 md:grid-cols-4">
             <div class="rounded-xl border border-violet-200 bg-white/80 p-3">
-                <div class="text-xs font-bold text-violet-900">1. Kiểm tra Session</div>
-                <div class="mt-1 text-xs text-violet-700">Chạy <code>Muasamcong-Session-Tool.bat</code> → chọn menu 1.</div>
+                <div class="text-xs font-bold text-violet-900">Menu 1 · Kiểm tra local</div>
+                <div class="mt-1 text-xs text-violet-700">Kiểm tra Cookie/JSESSIONID và dấu hiệu SSO trong Chrome riêng.</div>
             </div>
             <div class="rounded-xl border border-violet-200 bg-white/80 p-3">
-                <div class="text-xs font-bold text-violet-900">2. Đăng nhập nếu cần</div>
-                <div class="mt-1 text-xs text-violet-700">Chọn menu 2, đăng nhập Mua sắm công trên Chrome riêng.</div>
+                <div class="text-xs font-bold text-violet-900">Menu 2 · Làm mới tự động</div>
+                <div class="mt-1 text-xs text-violet-700">Mở Personal Page → chờ SSO refresh → lấy Cookie → POST → server verify.</div>
             </div>
             <div class="rounded-xl border border-violet-200 bg-white/80 p-3">
-                <div class="text-xs font-bold text-violet-900">3. Update lên Server</div>
-                <div class="mt-1 text-xs text-violet-700">Tạo link bên dưới → menu 3 → dán link. Tool gửi bằng POST.</div>
+                <div class="text-xs font-bold text-violet-900">Menu 3 · Đăng nhập</div>
+                <div class="mt-1 text-xs text-violet-700">Chỉ dùng khi SSO đã hết hoặc Mua sắm công yêu cầu xác thực lại.</div>
+            </div>
+            <div class="rounded-xl border border-violet-200 bg-white/80 p-3">
+                <div class="text-xs font-bold text-violet-900">Menu 4 · Gửi Cookie</div>
+                <div class="mt-1 text-xs text-violet-700">Gửi Cookie hiện tại khi bạn biết Chrome đã có portal session hợp lệ.</div>
             </div>
         </div>
 
