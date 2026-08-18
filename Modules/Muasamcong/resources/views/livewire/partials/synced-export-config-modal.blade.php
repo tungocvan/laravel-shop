@@ -1,11 +1,11 @@
 @if ($showExportConfigModal)
     <div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4" wire:click.self="closeExportConfig">
-        <div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div class="flex items-start justify-between border-b border-gray-200 px-5 py-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-600">Cấu hình xuất Excel</p>
-                    <h3 class="mt-1 text-lg font-bold text-gray-900">Chọn cột, kéo sắp xếp và canh lề</h3>
-                    <p class="mt-1 text-xs text-gray-500">Cấu hình được lưu theo tài khoản và tự động dùng cho các lần xuất sau. Nhóm thuốc chỉ giữ phần số; GĐKLH/GPNK luôn là Text.</p>
+                    <h3 class="mt-1 text-lg font-bold text-gray-900">Chọn cột, kéo sắp xếp, canh lề và độ rộng</h3>
+                    <p class="mt-1 text-xs text-gray-500">Tất cả cột mặc định Wrap Text. Chiều cao dòng để Auto; độ rộng cột được lưu theo tài khoản.</p>
                 </div>
                 <button type="button" wire:click="closeExportConfig" class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-500 hover:bg-gray-50">×</button>
             </div>
@@ -14,12 +14,12 @@
                 <div class="mb-4 flex flex-wrap items-center gap-2">
                     <button type="button" wire:click="selectAllExportColumns" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Chọn tất cả cột</button>
                     <button type="button" wire:click="clearAllExportColumns" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Bỏ chọn tất cả</button>
-                    <span class="text-xs text-gray-500">Giữ biểu tượng ⋮⋮ rồi kéo thả để đổi vị trí cột khi xuất.</span>
+                    <span class="text-xs text-gray-500">Kéo ⋮⋮ để đổi vị trí. Width hợp lệ 5–80.</span>
                 </div>
 
                 <div class="space-y-2">
                     @foreach ($exportColumnOrder as $position => $key)
-                        @php($definition = $exportColumnDefinitions[$key] ?? ['label' => $key, 'align' => 'left'])
+                        @php($definition = $exportColumnDefinitions[$key] ?? ['label' => $key, 'align' => 'left', 'width' => 18])
                         <div
                             wire:key="export-column-{{ $key }}"
                             draggable="true"
@@ -28,7 +28,7 @@
                             @dragover.prevent="$el.classList.add('ring-2','ring-blue-200')"
                             @dragleave="$el.classList.remove('ring-2','ring-blue-200')"
                             @drop.prevent="$el.classList.remove('ring-2','ring-blue-200'); if (dragging && dragging !== '{{ $key }}') { $wire.moveExportColumn(dragging, '{{ $key }}') }"
-                            class="grid grid-cols-[44px_54px_minmax(0,1fr)_140px] items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 transition"
+                            class="grid grid-cols-[44px_54px_minmax(0,1fr)_140px_120px] items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 transition"
                         >
                             <div class="cursor-grab select-none text-center text-lg font-bold tracking-tighter text-gray-400" title="Kéo để sắp xếp">⋮⋮</div>
                             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-bold text-gray-500 shadow-sm ring-1 ring-gray-200">{{ $position + 1 }}</div>
@@ -41,13 +41,17 @@
                                 <option value="center">Center</option>
                                 <option value="right">Right</option>
                             </select>
+                            <div>
+                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400">Width</label>
+                                <input type="number" min="5" max="80" step="1" wire:model.live.debounce.300ms="exportWidths.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200">
+                            </div>
                         </div>
                     @endforeach
                 </div>
             </div>
 
             <div class="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4">
-                <p class="text-xs text-gray-500">Sau khi lưu, nút “Xuất Excel” sẽ dùng đúng cột, thứ tự và canh lề này.</p>
+                <p class="text-xs text-gray-500">Excel sẽ luôn Wrap Text toàn bộ cột dữ liệu và để chiều cao dòng Auto theo nội dung.</p>
                 <div class="flex gap-2">
                     <button type="button" wire:click="closeExportConfig" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Hủy</button>
                     <button type="button" wire:click="saveExportConfig" class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Lưu cấu hình</button>
