@@ -66,11 +66,7 @@ class SyncedPricingExportPreferenceService
             ->when($profileId === null || $profileId <= 0, fn ($query) => $query->orderByDesc('is_default')->orderBy('id'))
             ->first();
 
-        if ($profile === null) {
-            return $this->defaults();
-        }
-
-        return $this->profilePayload($profile);
+        return $profile === null ? $this->defaults() : $this->profilePayload($profile);
     }
 
     public function saveProfile(
@@ -82,6 +78,7 @@ class SyncedPricingExportPreferenceService
         array $alignments,
         array $widths = [],
         array $dataTypes = [],
+        array $decimals = [],
         ?int $profileId = null,
         bool $makeDefault = false,
     ): array {
@@ -116,9 +113,21 @@ class SyncedPricingExportPreferenceService
             'alignments' => $this->normalizeAlignments($alignments),
             'widths' => $this->normalizeWidths($widths),
             'data_types' => $this->normalizeDataTypes($dataTypes),
+            'decimals' => $this->normalizeDecimals($decimals),
         ])->save();
 
         return $this->profilePayload($profile->fresh());
+    }
+
+    public function duplicateProfile(int $userId, int $profileId): array
+    {
+        $source = SyncedExportProfile::query()->where('user_id', $userId)->findOrFail($profileId);
+        $copy = $source->replicate();
+        $copy->name = $this->uniqueCopyName($userId, (string) $source->name);
+        $copy->is_default = false;
+        $copy->save();
+
+        return $this->profilePayload($copy);
     }
 
     public function deleteProfile(int $userId, int $profileId): void
@@ -128,11 +137,7 @@ class SyncedPricingExportPreferenceService
         $profile->delete();
 
         if ($wasDefault) {
-            SyncedExportProfile::query()
-                ->where('user_id', $userId)
-                ->orderBy('id')
-                ->first()
-                ?->update(['is_default' => true]);
+            SyncedExportProfile::query()->where('user_id', $userId)->orderBy('id')->first()?->update(['is_default' => true]);
         }
     }
 
@@ -160,6 +165,7 @@ class SyncedPricingExportPreferenceService
             'alignments' => $this->normalizeAlignments((array) $profile->alignments),
             'widths' => $this->normalizeWidths((array) $profile->widths),
             'data_types' => $this->normalizeDataTypes((array) $profile->data_types),
+            'decimals' => $this->normalizeDecimals((array) $profile->decimals),
         ];
     }
 
@@ -177,17 +183,13 @@ class SyncedPricingExportPreferenceService
             'alignments' => $this->defaultAlignments(),
             'widths' => $this->defaultWidths(),
             'data_types' => $this->defaultDataTypes(),
+            'decimals' => $this->defaultDecimals(),
         ];
     }
 
     private function normalizeOrder(array $order): array
     {
-        $valid = collect($order)
-            ->filter(fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key]))
-            ->unique()
-            ->values()
-            ->all();
-
+        $valid = collect($order)->filter(fn (mixed $key): bool => is_string($key) && isset(self::COLUMNS[$key]))->unique()->values()->all();
         foreach (array_keys(self::COLUMNS) as $key) {
             if (! in_array($key, $valid, true)) {
                 $valid[] = $key;
@@ -242,6 +244,31 @@ class SyncedPricingExportPreferenceService
         return $normalized;
     }
 
+    private function normalizeDecimals(array $decimals): array
+    {
+        $normalized = [];
+        foreach (self::COLUMNS as $key => $column) {
+            $value = $decimals[$key] ?? 0;
+            $normalized[$key] = max(0, min(6, is_numeric($value) ? (int) $value : 0));
+        }
+
+        return $normalized;
+    }
+
+    private function uniqueCopyName(int $userId, string $name): string
+    {
+        $base = mb_substr(trim($name).' - Bản sao', 0, 110);
+        $candidate = $base;
+        $suffix = 2;
+
+        while (SyncedExportProfile::query()->where('user_id', $userId)->where('name', $candidate)->exists()) {
+            $candidate = mb_substr($base, 0, 110)." {$suffix}";
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     private function defaultHeaders(): array
     {
         return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['label']])->all();
@@ -260,5 +287,10 @@ class SyncedPricingExportPreferenceService
     private function defaultDataTypes(): array
     {
         return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['type']])->all();
+    }
+
+    private function defaultDecimals(): array
+    {
+        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => 0])->all();
     }
 }
