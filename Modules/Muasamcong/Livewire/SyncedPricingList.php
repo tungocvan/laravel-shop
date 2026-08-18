@@ -45,6 +45,8 @@ class SyncedPricingList extends Component
 
     public array $exportDataTypes = [];
 
+    public array $exportDecimals = [];
+
     public ?int $editingId = null;
 
     public string $editingMedicine = '';
@@ -144,6 +146,25 @@ class SyncedPricingList extends Component
         $this->exportProfileDefault = false;
     }
 
+    public function duplicateExportProfile(): void
+    {
+        $this->authorizeMutation();
+
+        if ($this->activeExportProfileId === null) {
+            $this->statusType = 'warning';
+            $this->statusMessage = 'Hãy chọn cấu hình cần nhân đôi.';
+
+            return;
+        }
+
+        $userId = (int) Auth::guard('admin')->id();
+        $copy = app(SyncedPricingExportPreferenceService::class)->duplicateProfile($userId, $this->activeExportProfileId);
+        $this->applyExportPreference($copy);
+        $this->refreshExportProfiles();
+        $this->statusType = 'success';
+        $this->statusMessage = 'Đã nhân đôi cấu hình. Bạn có thể đổi tên hoặc chỉnh các tham số rồi lưu lại.';
+    }
+
     public function deleteExportProfile(): void
     {
         $this->authorizeMutation();
@@ -228,6 +249,7 @@ class SyncedPricingList extends Component
             $this->exportAlignments,
             $this->exportWidths,
             $this->exportDataTypes,
+            $this->exportDecimals,
             $this->activeExportProfileId,
             $this->exportProfileDefault,
         );
@@ -395,6 +417,7 @@ class SyncedPricingList extends Component
         $this->exportAlignments = (array) ($preference['alignments'] ?? []);
         $this->exportWidths = (array) ($preference['widths'] ?? []);
         $this->exportDataTypes = (array) ($preference['data_types'] ?? []);
+        $this->exportDecimals = (array) ($preference['decimals'] ?? []);
     }
 
     private function items(): LengthAwarePaginator
