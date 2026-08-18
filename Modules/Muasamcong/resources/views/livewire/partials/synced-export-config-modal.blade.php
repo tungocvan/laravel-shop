@@ -1,53 +1,75 @@
 @if ($showExportConfigModal)
     <div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4" wire:click.self="closeExportConfig">
-        <div class="w-full max-w-7xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="w-full max-w-[1500px] overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div class="flex items-start justify-between border-b border-gray-200 px-5 py-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-600">Cấu hình xuất Excel</p>
-                    <h3 class="mt-1 text-lg font-bold text-gray-900">Chọn cột, kéo sắp xếp, kiểu dữ liệu, canh lề và độ rộng</h3>
-                    <p class="mt-1 text-xs text-gray-500">Tất cả cột mặc định Wrap Text. Chiều cao dòng Auto; Width được nhập theo pixel và lưu theo tài khoản.</p>
+                    <h3 class="mt-1 text-lg font-bold text-gray-900">Nhiều cấu hình, đổi tên header, kiểu dữ liệu, canh lề và độ rộng</h3>
+                    <p class="mt-1 text-xs text-gray-500">Mỗi cấu hình được lưu riêng theo tài khoản. Number có phân cách hàng nghìn; Date xuất dd/mm/yyyy; toàn bộ cột Wrap Text.</p>
                 </div>
                 <button type="button" wire:click="closeExportConfig" class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-500 hover:bg-gray-50">×</button>
             </div>
 
-            <div class="max-h-[68vh] overflow-y-auto px-5 py-5" x-data="{ dragging: null }">
+            <div class="border-b border-gray-200 bg-blue-50/50 px-5 py-4">
+                <div class="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)_auto_auto] lg:items-end">
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold text-gray-600">Cấu hình đang mở</label>
+                        <select wire:model.live="activeExportProfileId" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                            <option value="">Cấu hình mới</option>
+                            @foreach ($exportProfiles as $profile)
+                                <option value="{{ $profile['id'] }}">{{ $profile['name'] }}{{ $profile['is_default'] ? ' • Mặc định' : '' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold text-gray-600">Tên cấu hình</label>
+                        <input type="text" wire:model="exportProfileName" maxlength="120" placeholder="Ví dụ: Báo giá bệnh viện, Danh mục nội bộ..." class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                    </div>
+                    <label class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700">
+                        <input type="checkbox" wire:model="exportProfileDefault" class="rounded border-gray-300 text-blue-600">
+                        Mặc định
+                    </label>
+                    <div class="flex gap-2">
+                        <button type="button" wire:click="newExportProfile" class="rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700">+ Cấu hình mới</button>
+                        <button type="button" wire:click="deleteExportProfile" wire:confirm="Xóa cấu hình xuất Excel đang chọn?" @disabled($activeExportProfileId === null) class="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 disabled:opacity-40">Xóa</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-h-[62vh] overflow-y-auto px-5 py-5" x-data="{ dragging: null }">
                 <div class="mb-4 flex flex-wrap items-center gap-2">
                     <button type="button" wire:click="selectAllExportColumns" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Chọn tất cả cột</button>
                     <button type="button" wire:click="clearAllExportColumns" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Bỏ chọn tất cả</button>
                     <span class="text-xs text-gray-500">Kéo ⋮⋮ để đổi vị trí. Width: 40–600 px.</span>
                 </div>
 
-                <div class="mb-2 hidden grid-cols-[44px_54px_minmax(0,1fr)_150px_130px_120px] gap-3 px-3 text-[10px] font-semibold uppercase tracking-wide text-gray-400 lg:grid">
-                    <span></span>
-                    <span>Vị trí</span>
-                    <span>Cột</span>
-                    <span>Kiểu dữ liệu</span>
-                    <span>Canh lề</span>
-                    <span>Width (px)</span>
+                <div class="mb-2 hidden grid-cols-[40px_48px_180px_minmax(180px,1fr)_140px_120px_110px] gap-3 px-3 text-[10px] font-semibold uppercase tracking-wide text-gray-400 xl:grid">
+                    <span></span><span>Vị trí</span><span>Cột gốc</span><span>Header xuất</span><span>Kiểu dữ liệu</span><span>Canh lề</span><span>Width</span>
                 </div>
 
                 <div class="space-y-2">
                     @foreach ($exportColumnOrder as $position => $key)
                         @php($definition = $exportColumnDefinitions[$key] ?? ['label' => $key, 'align' => 'left', 'width' => 140, 'type' => 'auto'])
-                        <div
-                            wire:key="export-column-{{ $key }}"
-                            draggable="true"
+                        <div wire:key="export-column-{{ $key }}" draggable="true"
                             @dragstart="dragging = '{{ $key }}'; $el.classList.add('opacity-50')"
                             @dragend="$el.classList.remove('opacity-50'); dragging = null"
                             @dragover.prevent="$el.classList.add('ring-2','ring-blue-200')"
                             @dragleave="$el.classList.remove('ring-2','ring-blue-200')"
                             @drop.prevent="$el.classList.remove('ring-2','ring-blue-200'); if (dragging && dragging !== '{{ $key }}') { $wire.moveExportColumn(dragging, '{{ $key }}') }"
-                            class="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 transition lg:grid-cols-[44px_54px_minmax(0,1fr)_150px_130px_120px] lg:items-center"
-                        >
-                            <div class="cursor-grab select-none text-center text-lg font-bold tracking-tighter text-gray-400" title="Kéo để sắp xếp">⋮⋮</div>
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-bold text-gray-500 shadow-sm ring-1 ring-gray-200">{{ $position + 1 }}</div>
-                            <label class="flex min-w-0 cursor-pointer items-center gap-3">
-                                <input type="checkbox" wire:model.live="exportSelectedColumns.{{ $key }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            class="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 transition xl:grid-cols-[40px_48px_180px_minmax(180px,1fr)_140px_120px_110px] xl:items-center">
+                            <div class="cursor-grab select-none text-center text-lg font-bold text-gray-400" title="Kéo để sắp xếp">⋮⋮</div>
+                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-bold text-gray-500 ring-1 ring-gray-200">{{ $position + 1 }}</div>
+                            <label class="flex min-w-0 cursor-pointer items-center gap-2">
+                                <input type="checkbox" wire:model.live="exportSelectedColumns.{{ $key }}" class="rounded border-gray-300 text-blue-600">
                                 <span class="truncate text-sm font-semibold text-gray-800">{{ $definition['label'] }}</span>
                             </label>
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 lg:hidden">Kiểu dữ liệu</label>
-                                <select wire:model.live="exportDataTypes.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200">
+                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 xl:hidden">Header xuất</label>
+                                <input type="text" maxlength="120" wire:model="exportHeaders.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 xl:hidden">Kiểu dữ liệu</label>
+                                <select wire:model.live="exportDataTypes.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700">
                                     <option value="auto">Auto</option>
                                     <option value="number">Number</option>
                                     <option value="string">String</option>
@@ -55,17 +77,15 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 lg:hidden">Canh lề</label>
-                                <select wire:model.live="exportAlignments.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200">
-                                    <option value="left">Left</option>
-                                    <option value="center">Center</option>
-                                    <option value="right">Right</option>
+                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 xl:hidden">Canh lề</label>
+                                <select wire:model.live="exportAlignments.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700">
+                                    <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 lg:hidden">Width (px)</label>
+                                <label class="mb-1 block text-[10px] font-semibold uppercase text-gray-400 xl:hidden">Width (px)</label>
                                 <div class="relative">
-                                    <input type="number" min="40" max="600" step="1" wire:model.live.debounce.300ms="exportWidths.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 pr-8 text-xs text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200">
+                                    <input type="number" min="40" max="600" step="1" wire:model.live.debounce.300ms="exportWidths.{{ $key }}" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 pr-7 text-xs text-gray-700">
                                     <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[10px] font-semibold text-gray-400">px</span>
                                 </div>
                             </div>
@@ -75,9 +95,9 @@
             </div>
 
             <div class="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4">
-                <p class="text-xs text-gray-500">Auto giữ kiểu dữ liệu gốc; Number ép số; String ép Text; Date xuất ngày theo dd/mm/yyyy. Wrap Text luôn bật và row height để Auto.</p>
+                <p class="text-xs text-gray-500">Lưu chỉ ghi cấu hình. Khi xuất Excel, chọn cấu hình ở trang danh sách rồi nhấn Xuất Excel.</p>
                 <div class="flex gap-2">
-                    <button type="button" wire:click="closeExportConfig" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Hủy</button>
+                    <button type="button" wire:click="closeExportConfig" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Đóng</button>
                     <button type="button" wire:click="saveExportConfig" class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Lưu cấu hình</button>
                 </div>
             </div>
