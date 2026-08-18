@@ -21,11 +21,12 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $manualLotsDownload = Route::getRoutes()->getByName('muasamcong.contractors.manual-lots.download');
         $synced = Route::getRoutes()->getByName('muasamcong.synced');
         $syncedExport = Route::getRoutes()->getByName('muasamcong.synced.export-selected');
+        $syncedBbg = Route::getRoutes()->getByName('muasamcong.synced.export-bbg');
         $wishlist = Route::getRoutes()->getByName('muasamcong.wishlist');
         $wishlistExport = Route::getRoutes()->getByName('muasamcong.wishlist.export-selected');
         $wishlistDestroy = Route::getRoutes()->getByName('muasamcong.wishlist.destroy-selected');
 
-        foreach ([$index, $pricingExport, $pricingHistoryDestroy, $pricingHistoryClear, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $syncedExport, $wishlist, $wishlistExport, $wishlistDestroy] as $route) {
+        foreach ([$index, $pricingExport, $pricingHistoryDestroy, $pricingHistoryClear, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $syncedExport, $syncedBbg, $wishlist, $wishlistExport, $wishlistDestroy] as $route) {
             $this->assertNotNull($route);
             $middleware = $route->gatherMiddleware();
             $this->assertContains('auth:admin', $middleware);
@@ -49,6 +50,8 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertSame('admin/muasamcong/synced', $synced->uri());
         $this->assertSame('admin/muasamcong/synced/export-selected', $syncedExport->uri());
         $this->assertSame(['POST'], $syncedExport->methods());
+        $this->assertSame('admin/muasamcong/synced/export-bbg', $syncedBbg->uri());
+        $this->assertSame(['POST'], $syncedBbg->methods());
         $this->assertSame('admin/muasamcong/wishlist', $wishlist->uri());
         $this->assertSame('admin/muasamcong/wishlist/export-selected', $wishlistExport->uri());
         $this->assertSame(['POST'], $wishlistExport->methods());
@@ -81,7 +84,7 @@ class MuasamcongRouteAuthorizationTest extends TestCase
             ->filter(fn (string $uri): bool => str_contains($uri, 'muasamcong'))
             ->values();
 
-        $this->assertCount(20, $uris);
+        $this->assertCount(21, $uris);
         $this->assertContains('api/muasamcong', $uris);
         $this->assertContains('api/muasamcong/search-pricing', $uris);
         $this->assertContains('api/muasamcong/update-cookie', $uris);
@@ -97,6 +100,7 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertContains('admin/muasamcong/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', $uris);
         $this->assertContains('admin/muasamcong/synced', $uris);
         $this->assertContains('admin/muasamcong/synced/export-selected', $uris);
+        $this->assertContains('admin/muasamcong/synced/export-bbg', $uris);
         $this->assertContains('admin/muasamcong/wishlist', $uris);
         $this->assertContains('admin/muasamcong/wishlist/export-selected', $uris);
         $this->assertContains('admin/muasamcong/wishlist/selected', $uris);
