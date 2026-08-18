@@ -4,10 +4,13 @@ namespace Modules\Muasamcong\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -48,8 +51,14 @@ class SyncedPricingExportController extends Controller
         foreach ($requestedColumns as $columnIndex => $key) {
             $cell = $sheet->getCell([$columnIndex + 1, 1]);
             $cell->setValue(SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);
-            $width = $preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'];
-            $sheet->getColumnDimension($cell->getColumn())->setAutoSize(false)->setWidth((float) $width);
+            $widthPixels = $preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'];
+            $excelWidth = Drawing::pixelsToCellDimension(
+                (int) $widthPixels,
+                $spreadsheet->getDefaultStyle()->getFont(),
+            );
+            $sheet->getColumnDimension($cell->getColumn())
+                ->setAutoSize(false)
+                ->setWidth($excelWidth);
         }
 
         $lastHeaderCell = $sheet->getCell([count($requestedColumns), 1])->getCoordinate();
@@ -65,13 +74,10 @@ class SyncedPricingExportController extends Controller
             foreach ($requestedColumns as $columnIndex => $key) {
                 $value = $this->value($item, $key, $rowIndex + 1);
                 $cell = $sheet->getCell([$columnIndex + 1, $excelRow]);
+                $configuredType = $preference['data_types'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['type'];
+                $type = $key === 'gdklh_gpnk' ? 'string' : $configuredType;
 
-                if (in_array($key, ['gdklh_gpnk', 'stt_tt20_2022'], true)) {
-                    $cell->setValueExplicit($value === null ? '' : (string) $value, DataType::TYPE_STRING);
-                    $cell->getStyle()->getNumberFormat()->setFormatCode('@');
-                } else {
-                    $cell->setValue($value);
-                }
+                $this->writeTypedValue($cell, $value, $type);
             }
 
             $sheet->getRowDimension($excelRow)->setRowHeight(-1);
@@ -106,6 +112,83 @@ class SyncedPricingExportController extends Controller
             'Muasamcong-Danh-sach-da-dong-bo-'.now()->format('Ymd-His').'.xlsx',
             ['Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff']
         )->deleteFileAfterSend(true);
+    }
+
+    private function writeTypedValue($cell, mixed $value, string $type): void
+    {
+        if ($value === null || $value === '') {
+            $cell->setValue(null);
+
+            return;
+        }
+
+        if ($type === 'string') {
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+            $cell->getStyle()->getNumberFormat()->setFormatCode('@');
+
+            return;
+        }
+
+        if ($type === 'number') {
+            if (is_numeric($value)) {
+                $cell->setValueExplicit((float) $value, DataType::TYPE_NUMERIC);
+
+                return;
+            }
+
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+
+            return;
+        }
+
+        if ($type === 'date') {
+            $date = $this->parseDate($value);
+            if ($date !== null) {
+                $cell->setValue(ExcelDate::PHPToExcel($date));
+                $cell->getStyle()->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+
+                return;
+            }
+
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+
+            return;
+        }
+
+        $cell->setValue($value);
+    }
+
+    private function parseDate(mixed $value): ?Carbon
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance($value);
+        }
+
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $text = trim((string) $value);
+        if ($text === '') {
+            return null;
+        }
+
+        foreach (['d/m/Y', 'Y-m-d', 'd/m/Y H:i:s', 'Y-m-d H:i:s'] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $text);
+                if ($date !== false) {
+                    return $date;
+                }
+            } catch (\Throwable) {
+                // Try the next known format before falling back to generic parsing.
+            }
+        }
+
+        try {
+            return Carbon::parse($text);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function value(PricingResult $item, string $key, int $index): mixed
