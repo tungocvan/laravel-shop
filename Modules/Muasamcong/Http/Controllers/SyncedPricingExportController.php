@@ -77,7 +77,8 @@ class SyncedPricingExportController extends Controller
                 $cell = $sheet->getCell([$columnIndex + 1, $excelRow]);
                 $configuredType = $preference['data_types'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['type'];
                 $type = $key === 'gdklh_gpnk' ? 'string' : $configuredType;
-                $this->writeTypedValue($cell, $value, $type);
+                $decimals = (int) ($preference['decimals'][$key] ?? 0);
+                $this->writeTypedValue($cell, $value, $type, $decimals);
             }
 
             $sheet->getRowDimension($excelRow)->setRowHeight(-1);
@@ -114,7 +115,7 @@ class SyncedPricingExportController extends Controller
         )->deleteFileAfterSend(true);
     }
 
-    private function writeTypedValue(Cell $cell, mixed $value, string $type): void
+    private function writeTypedValue(Cell $cell, mixed $value, string $type, int $decimals = 0): void
     {
         if ($value === null || $value === '') {
             $cell->setValue(null);
@@ -132,7 +133,7 @@ class SyncedPricingExportController extends Controller
         if ($type === 'number') {
             if (is_numeric($value)) {
                 $cell->setValueExplicit((float) $value, DataType::TYPE_NUMERIC);
-                $cell->getStyle()->getNumberFormat()->setFormatCode('#,##0.####');
+                $cell->getStyle()->getNumberFormat()->setFormatCode($this->numberFormat($decimals));
 
                 return;
             }
@@ -157,6 +158,13 @@ class SyncedPricingExportController extends Controller
         }
 
         $cell->setValue($value);
+    }
+
+    private function numberFormat(int $decimals): string
+    {
+        $decimals = max(0, min(6, $decimals));
+
+        return $decimals === 0 ? '#,##0' : '#,##0.'.str_repeat('0', $decimals);
     }
 
     private function parseDate(mixed $value): ?Carbon
