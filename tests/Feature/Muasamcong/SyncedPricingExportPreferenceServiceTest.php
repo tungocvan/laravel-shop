@@ -68,6 +68,21 @@ class SyncedPricingExportPreferenceServiceTest extends TestCase
             ['don_gia' => 2, 'ten_thuoc' => 0],
             null,
             true,
+            [
+                'enabled' => true,
+                'company_name' => 'CÔNG TY TNHH INAFO VIỆT NAM',
+                'address' => 'TP.HCM',
+                'tax_code' => '0314492345',
+                'phone' => '0900000000',
+                'title' => 'BẢNG BÁO GIÁ',
+                'recipient' => 'QUÝ KHÁCH HÀNG',
+                'intro' => 'Nội dung giới thiệu',
+                'footer_location' => 'Tp.HCM',
+                'signatory_title' => 'GIÁM ĐỐC CÔNG TY',
+                'footer_year' => '2026',
+            ],
+            'muasamcong/export-profiles/101/logo.png',
+            'muasamcong/export-profiles/101/signature.png',
         );
 
         $copy = $service->duplicateProfile(101, $source['profile_id']);
@@ -81,6 +96,10 @@ class SyncedPricingExportPreferenceServiceTest extends TestCase
         $this->assertSame($source['widths'], $copy['widths']);
         $this->assertSame($source['data_types'], $copy['data_types']);
         $this->assertSame(2, $copy['decimals']['don_gia']);
+        $this->assertTrue($copy['header_footer']['enabled']);
+        $this->assertSame('0314492345', $copy['header_footer']['tax_code']);
+        $this->assertSame($source['logo_path'], $copy['logo_path']);
+        $this->assertSame($source['signature_path'], $copy['signature_path']);
     }
 
     public function test_number_decimals_are_clamped_to_zero_through_six(): void
