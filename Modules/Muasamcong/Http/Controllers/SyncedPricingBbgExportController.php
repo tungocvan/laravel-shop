@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Muasamcong\Models\PricingResult;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -76,7 +77,7 @@ class SyncedPricingBbgExportController extends Controller
             $winnerNames = implode("\n", array_values(array_filter(array_map('strval', (array) $item->winning_name))));
             $values = [
                 $index + 1,
-                $item->nhom_thuoc,
+                $this->medicineGroupNumber($item->nhom_thuoc),
                 $item->ten_hoat_chat,
                 $item->nong_do,
                 $item->ten_thuoc,
@@ -97,7 +98,13 @@ class SyncedPricingBbgExportController extends Controller
             ];
 
             foreach ($values as $column => $value) {
-                $sheet->setCellValue(Coordinate::stringFromColumnIndex($column + 1).$row, $value);
+                $coordinate = Coordinate::stringFromColumnIndex($column + 1).$row;
+                if ($column === 9) {
+                    $sheet->setCellValueExplicit($coordinate, $value === null ? '' : (string) $value, DataType::TYPE_STRING);
+                    $sheet->getStyle($coordinate)->getNumberFormat()->setFormatCode('@');
+                } else {
+                    $sheet->setCellValue($coordinate, $value);
+                }
             }
             $sheet->getStyle("A{$row}:S{$row}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
             $sheet->getStyle("A{$row}:B{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -152,5 +159,16 @@ class SyncedPricingBbgExportController extends Controller
             'BBG-Muasamcong-'.now()->format('Ymd-His').'.xlsx',
             ['Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff']
         )->deleteFileAfterSend(true);
+    }
+
+    private function medicineGroupNumber(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        preg_match('/\d+/', (string) $value, $matches);
+
+        return $matches[0] ?? null;
     }
 }
