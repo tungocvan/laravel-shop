@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
+use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
 
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
     ->prefix('admin/muasamcong')
@@ -12,6 +13,10 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
                 Route::get('/', [MuasamcongController::class, 'index'])->name('index');
                 Route::post('/pricing/export-selected', [MuasamcongController::class, 'exportSelectedPricing'])
                     ->name('pricing.export-selected');
+                Route::delete('/pricing/history/item', [PricingSearchHistoryController::class, 'destroy'])
+                    ->name('pricing.history.destroy');
+                Route::delete('/pricing/history', [PricingSearchHistoryController::class, 'clear'])
+                    ->name('pricing.history.clear');
                 Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
                 Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
                 Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
