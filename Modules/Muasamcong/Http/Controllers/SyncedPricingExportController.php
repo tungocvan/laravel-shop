@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
@@ -14,6 +15,7 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -53,8 +55,15 @@ class SyncedPricingExportController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Dữ liệu đồng bộ');
 
+        $headerFooter = (array) ($preference['header_footer'] ?? []);
+        $withHeaderFooter = (bool) ($headerFooter['enabled'] ?? false);
+        $tableHeaderRow = $withHeaderFooter ? 9 : 1;
+        $dataStartRow = $tableHeaderRow + 1;
+        $displayColumnCount = max(3, count($requestedColumns));
+        $lastDisplayColumn = $sheet->getCell([$displayColumnCount, 1])->getColumn();
+
         foreach ($requestedColumns as $columnIndex => $key) {
-            $cell = $sheet->getCell([$columnIndex + 1, 1]);
+            $cell = $sheet->getCell([$columnIndex + 1, $tableHeaderRow]);
             $cell->setValue($preference['headers'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);
             $widthPixels = $preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'];
             $sheet->getColumnDimension($cell->getColumn())
@@ -62,16 +71,25 @@ class SyncedPricingExportController extends Controller
                 ->setWidth((float) $widthPixels, 'px');
         }
 
-        $lastHeaderCell = $sheet->getCell([count($requestedColumns), 1])->getCoordinate();
-        $sheet->getStyle('A1:'.$lastHeaderCell)->getFont()->setBold(true);
-        $sheet->getStyle('A1:'.$lastHeaderCell)->getAlignment()
+        for ($columnIndex = count($requestedColumns) + 1; $columnIndex <= $displayColumnCount; $columnIndex++) {
+            $columnLetter = $sheet->getCell([$columnIndex, 1])->getColumn();
+            $sheet->getColumnDimension($columnLetter)->setAutoSize(false)->setWidth(120, 'px');
+        }
+
+        if ($withHeaderFooter) {
+            $this->renderHeader($sheet, $preference, $headerFooter, $requestedColumns, $lastDisplayColumn);
+        }
+
+        $lastHeaderCell = $sheet->getCell([count($requestedColumns), $tableHeaderRow])->getCoordinate();
+        $sheet->getStyle("A{$tableHeaderRow}:{$lastHeaderCell}")->getFont()->setBold(true);
+        $sheet->getStyle("A{$tableHeaderRow}:{$lastHeaderCell}")->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
             ->setVertical(Alignment::VERTICAL_CENTER)
             ->setWrapText(true);
-        $sheet->getRowDimension(1)->setRowHeight(-1);
+        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(-1);
 
         foreach ($items->values() as $rowIndex => $item) {
-            $excelRow = $rowIndex + 2;
+            $excelRow = $dataStartRow + $rowIndex;
             foreach ($requestedColumns as $columnIndex => $key) {
                 $value = $this->value($item, $key, $rowIndex + 1);
                 $cell = $sheet->getCell([$columnIndex + 1, $excelRow]);
@@ -84,27 +102,31 @@ class SyncedPricingExportController extends Controller
             $sheet->getRowDimension($excelRow)->setRowHeight(-1);
         }
 
-        $lastRow = $items->count() + 1;
-        $lastColumn = $sheet->getCell([count($requestedColumns), 1])->getColumn();
-        $sheet->getStyle("A1:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        $sheet->getStyle("A1:{$lastColumn}{$lastRow}")->getAlignment()
+        $dataEndRow = $dataStartRow + $items->count() - 1;
+        $lastTableColumn = $sheet->getCell([count($requestedColumns), $tableHeaderRow])->getColumn();
+        $sheet->getStyle("A{$tableHeaderRow}:{$lastTableColumn}{$dataEndRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("A{$tableHeaderRow}:{$lastTableColumn}{$dataEndRow}")->getAlignment()
             ->setVertical(Alignment::VERTICAL_CENTER)
             ->setWrapText(true);
 
         foreach ($requestedColumns as $columnIndex => $key) {
-            $columnLetter = $sheet->getCell([$columnIndex + 1, 1])->getColumn();
+            $columnLetter = $sheet->getCell([$columnIndex + 1, $tableHeaderRow])->getColumn();
             $alignment = $preference['alignments'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['align'];
             $horizontal = match ($alignment) {
                 'center' => Alignment::HORIZONTAL_CENTER,
                 'right' => Alignment::HORIZONTAL_RIGHT,
                 default => Alignment::HORIZONTAL_LEFT,
             };
-            $sheet->getStyle("{$columnLetter}2:{$columnLetter}{$lastRow}")->getAlignment()
+            $sheet->getStyle("{$columnLetter}{$dataStartRow}:{$columnLetter}{$dataEndRow}")->getAlignment()
                 ->setHorizontal($horizontal)
                 ->setWrapText(true);
         }
 
-        $sheet->freezePane('A2');
+        if ($withHeaderFooter) {
+            $this->renderFooter($sheet, $preference, $headerFooter, $requestedColumns, $displayColumnCount, $dataEndRow);
+        }
+
+        $sheet->freezePane('A'.$dataStartRow);
         (new Xlsx($spreadsheet))->save($excelPath);
         $spreadsheet->disconnectWorksheets();
 
@@ -113,6 +135,122 @@ class SyncedPricingExportController extends Controller
             'Muasamcong-Danh-sach-da-dong-bo-'.now()->format('Ymd-His').'.xlsx',
             ['Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff']
         )->deleteFileAfterSend(true);
+    }
+
+    private function renderHeader($sheet, array $preference, array $settings, array $requestedColumns, string $lastDisplayColumn): void
+    {
+        $sheet->mergeCells('A1:B5');
+        foreach ([1, 2, 3, 4] as $row) {
+            if ($lastDisplayColumn !== 'C') {
+                $sheet->mergeCells("C{$row}:{$lastDisplayColumn}{$row}");
+            }
+        }
+
+        $sheet->setCellValue('C1', (string) ($settings['company_name'] ?? ''));
+        $sheet->setCellValue('C2', 'Địa chỉ: '.(string) ($settings['address'] ?? ''));
+        $sheet->setCellValue('C3', 'Mã số thuế: '.(string) ($settings['tax_code'] ?? ''));
+        $sheet->setCellValue('C4', 'Số điện thoại: '.(string) ($settings['phone'] ?? ''));
+        $sheet->getStyle("C1:{$lastDisplayColumn}4")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle('C1')->getFont()->setBold(true)->setSize(14);
+
+        $sheet->mergeCells("A6:{$lastDisplayColumn}6");
+        $sheet->setCellValue('A6', (string) ($settings['title'] ?? 'BẢNG BÁO GIÁ'));
+        $sheet->getStyle("A6:{$lastDisplayColumn}6")->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle("A6:{$lastDisplayColumn}6")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+
+        $sheet->mergeCells("A7:{$lastDisplayColumn}7");
+        $sheet->setCellValue('A7', 'Kính gửi: '.(string) ($settings['recipient'] ?? ''));
+        $sheet->getStyle("A7:{$lastDisplayColumn}7")->getFont()->setBold(true);
+        $sheet->getStyle("A7:{$lastDisplayColumn}7")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+
+        $sheet->mergeCells("A8:{$lastDisplayColumn}8");
+        $sheet->setCellValue('A8', (string) ($settings['intro'] ?? ''));
+        $sheet->getStyle("A8:{$lastDisplayColumn}8")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getRowDimension(8)->setRowHeight(-1);
+
+        $logoPath = $this->assetPath($preference['logo_path'] ?? null);
+        if ($logoPath !== null) {
+            $drawing = new Drawing;
+            $drawing->setName('Logo công ty');
+            $drawing->setPath($logoPath);
+            $drawing->setResizeProportional(true);
+            $drawing->setHeight(86);
+            $logoRegionWidth = $this->columnRegionWidth($preference, $requestedColumns, 1, 2);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX((int) max(0, ($logoRegionWidth - $drawing->getWidth()) / 2));
+            $drawing->setOffsetY(5);
+            $drawing->setWorksheet($sheet);
+        }
+    }
+
+    private function renderFooter($sheet, array $preference, array $settings, array $requestedColumns, int $displayColumnCount, int $dataEndRow): void
+    {
+        $dateRow = $dataEndRow + 2;
+        $titleRow = $dateRow + 1;
+        $signatureRow = $titleRow + 1;
+        $startIndex = max(1, $displayColumnCount - 3);
+        $startColumn = $sheet->getCell([$startIndex, 1])->getColumn();
+        $endColumn = $sheet->getCell([$displayColumnCount, 1])->getColumn();
+        $range = "{$startColumn}:{$endColumn}";
+
+        $sheet->mergeCells("{$startColumn}{$dateRow}:{$endColumn}{$dateRow}");
+        $year = trim((string) ($settings['footer_year'] ?? '')) ?: now()->format('Y');
+        $location = trim((string) ($settings['footer_location'] ?? 'Tp.HCM'));
+        $sheet->setCellValue("{$startColumn}{$dateRow}", "{$location}, ngày…..tháng…...năm {$year}");
+        $sheet->getStyle("{$startColumn}{$dateRow}:{$endColumn}{$dateRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->mergeCells("{$startColumn}{$titleRow}:{$endColumn}{$titleRow}");
+        $sheet->setCellValue("{$startColumn}{$titleRow}", (string) ($settings['signatory_title'] ?? 'GIÁM ĐỐC CÔNG TY'));
+        $sheet->getStyle("{$startColumn}{$titleRow}:{$endColumn}{$titleRow}")->getFont()->setBold(true);
+        $sheet->getStyle("{$startColumn}{$titleRow}:{$endColumn}{$titleRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->mergeCells("{$startColumn}{$signatureRow}:{$endColumn}{$signatureRow}");
+        $sheet->getRowDimension($signatureRow)->setRowHeight(78);
+
+        $signaturePath = $this->assetPath($preference['signature_path'] ?? null);
+        if ($signaturePath !== null) {
+            $drawing = new Drawing;
+            $drawing->setName('Chữ ký Giám đốc');
+            $drawing->setPath($signaturePath);
+            $drawing->setResizeProportional(true);
+            $drawing->setHeight(70);
+            $regionWidth = $this->columnRegionWidth($preference, $requestedColumns, $startIndex, $displayColumnCount);
+            $drawing->setCoordinates("{$startColumn}{$signatureRow}");
+            $drawing->setOffsetX((int) max(0, ($regionWidth - $drawing->getWidth()) / 2));
+            $drawing->setOffsetY(3);
+            $drawing->setWorksheet($sheet);
+        }
+
+        $sheet->getStyle("{$startColumn}{$dateRow}:{$endColumn}{$signatureRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+    }
+
+    private function assetPath(mixed $storedPath): ?string
+    {
+        $path = is_string($storedPath) ? trim($storedPath) : '';
+        if ($path === '') {
+            return null;
+        }
+
+        try {
+            $absolutePath = Storage::disk('local')->path($path);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_file($absolutePath) && is_readable($absolutePath) ? $absolutePath : null;
+    }
+
+    private function columnRegionWidth(array $preference, array $requestedColumns, int $startIndex, int $endIndex): int
+    {
+        $total = 0;
+        for ($index = $startIndex; $index <= $endIndex; $index++) {
+            $key = $requestedColumns[$index - 1] ?? null;
+            $total += $key !== null
+                ? (int) ($preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'] ?? 120)
+                : 120;
+        }
+
+        return $total;
     }
 
     private function writeTypedValue(Cell $cell, mixed $value, string $type, int $decimals = 0): void
