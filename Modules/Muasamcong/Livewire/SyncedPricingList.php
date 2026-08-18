@@ -22,6 +22,8 @@ class SyncedPricingList extends Component
 
     public bool $showEditModal = false;
 
+    public bool $showExportConfigModal = false;
+
     public ?int $editingId = null;
 
     public string $editingMedicine = '';
@@ -35,6 +37,12 @@ class SyncedPricingList extends Component
     public string $decisionNo = '';
 
     public string $decisionDate = '';
+
+    public string $sttTt202022 = '';
+
+    public string $giaKkKkl = '';
+
+    public string $donGiaVat = '';
 
     public string $statusMessage = '';
 
@@ -83,6 +91,25 @@ class SyncedPricingList extends Component
         $this->selectedIds = [];
     }
 
+    public function openExportConfig(): void
+    {
+        $this->authorizeMutation();
+
+        if ($this->selectedIds === []) {
+            $this->statusType = 'warning';
+            $this->statusMessage = 'Vui lòng chọn ít nhất 1 bản ghi trước khi cấu hình xuất.';
+
+            return;
+        }
+
+        $this->showExportConfigModal = true;
+    }
+
+    public function closeExportConfig(): void
+    {
+        $this->showExportConfigModal = false;
+    }
+
     public function editSelected(): void
     {
         $this->authorizeMutation();
@@ -112,6 +139,9 @@ class SyncedPricingList extends Component
         $this->winningCode = implode("\n", array_values(array_filter((array) $item->winning_code)));
         $this->decisionNo = (string) ($item->so_quyet_dinh ?: '');
         $this->decisionDate = $item->ngay_ban_hanh_quyet_dinh?->format('Y-m-d') ?? '';
+        $this->sttTt202022 = (string) ($item->stt_tt20_2022 ?: '');
+        $this->giaKkKkl = $item->gia_kk_kkl !== null ? (string) $item->gia_kk_kkl : '';
+        $this->donGiaVat = $item->don_gia_vat !== null ? (string) $item->don_gia_vat : '';
         $this->showEditModal = true;
         $this->resetValidation();
     }
@@ -131,6 +161,9 @@ class SyncedPricingList extends Component
             'winningCode' => ['nullable', 'string', 'max:5000'],
             'decisionNo' => ['nullable', 'string', 'max:2000'],
             'decisionDate' => ['nullable', 'date'],
+            'sttTt202022' => ['nullable', 'string', 'max:100'],
+            'giaKkKkl' => ['nullable', 'numeric', 'min:0'],
+            'donGiaVat' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $item = PricingResult::query()->findOrFail($this->editingId);
@@ -144,12 +177,15 @@ class SyncedPricingList extends Component
             'ngay_ban_hanh_quyet_dinh' => ($validated['decisionDate'] ?? '') !== ''
                 ? $validated['decisionDate'].' 00:00:00'
                 : null,
+            'stt_tt20_2022' => trim((string) ($validated['sttTt202022'] ?? '')) ?: null,
+            'gia_kk_kkl' => ($validated['giaKkKkl'] ?? '') !== '' ? (float) $validated['giaKkKkl'] : null,
+            'don_gia_vat' => ($validated['donGiaVat'] ?? '') !== '' ? (float) $validated['donGiaVat'] : null,
         ])->save();
 
         $this->showEditModal = false;
         $this->editingId = null;
         $this->statusType = 'success';
-        $this->statusMessage = 'Đã cập nhật thông tin trúng thầu.';
+        $this->statusMessage = 'Đã cập nhật thông tin trúng thầu và dữ liệu báo giá bổ sung.';
     }
 
     public function deleteSelected(): void
@@ -209,7 +245,8 @@ class SyncedPricingList extends Component
                         ->orWhere('ten_cdt_bmt', 'like', "%{$keyword}%")
                         ->orWhere('so_quyet_dinh', 'like', "%{$keyword}%")
                         ->orWhere('winning_name', 'like', "%{$keyword}%")
-                        ->orWhere('winning_code', 'like', "%{$keyword}%");
+                        ->orWhere('winning_code', 'like', "%{$keyword}%")
+                        ->orWhere('stt_tt20_2022', 'like', "%{$keyword}%");
                 });
             })
             ->orderByDesc('synced_at')
