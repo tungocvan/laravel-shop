@@ -83,7 +83,9 @@ class SyncedPricingExportController extends Controller
         $sheet->getStyle("A{$tableHeaderRow}:{$lastTableColumn}{$dataEndRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         foreach ($requestedColumns as $columnIndex => $key) {
             $columnLetter = $sheet->getCell([$columnIndex + 1, $tableHeaderRow])->getColumn();
-            $horizontal = match ($preference['alignments'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['align']) { 'center' => Alignment::HORIZONTAL_CENTER, 'right' => Alignment::HORIZONTAL_RIGHT, default => Alignment::HORIZONTAL_LEFT };
+            $horizontal = match ($preference['alignments'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['align']) {
+                'center' => Alignment::HORIZONTAL_CENTER, 'right' => Alignment::HORIZONTAL_RIGHT, default => Alignment::HORIZONTAL_LEFT
+            };
             $sheet->getStyle("{$columnLetter}{$dataStartRow}:{$columnLetter}{$dataEndRow}")->getAlignment()->setHorizontal($horizontal)->setWrapText(true);
         }
         if ($withHeaderFooter) {
@@ -163,8 +165,15 @@ class SyncedPricingExportController extends Controller
     private function assetPath(mixed $storedPath): ?string
     {
         $path = is_string($storedPath) ? trim($storedPath) : '';
-        if ($path === '') return null;
-        try { $absolutePath = Storage::disk('local')->path($path); } catch (\Throwable) { return null; }
+        if ($path === '') {
+            return null;
+        }
+        try {
+            $absolutePath = Storage::disk('local')->path($path);
+        } catch (\Throwable) {
+            return null;
+        }
+
         return is_file($absolutePath) && is_readable($absolutePath) ? $absolutePath : null;
     }
 
@@ -175,21 +184,45 @@ class SyncedPricingExportController extends Controller
             $key = $requestedColumns[$index - 1] ?? null;
             $total += $key !== null ? (int) ($preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'] ?? 120) : 120;
         }
+
         return $total;
     }
 
     private function writeTypedValue(Cell $cell, mixed $value, string $type, int $decimals = 0): void
     {
-        if ($value === null || $value === '') { $cell->setValue(null); return; }
-        if ($type === 'string') { $cell->setValueExplicit((string) $value, DataType::TYPE_STRING); $cell->getStyle()->getNumberFormat()->setFormatCode('@'); return; }
+        if ($value === null || $value === '') {
+            $cell->setValue(null);
+
+            return;
+        }
+        if ($type === 'string') {
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+            $cell->getStyle()->getNumberFormat()->setFormatCode('@');
+
+            return;
+        }
         if ($type === 'number') {
-            if (is_numeric($value)) { $cell->setValueExplicit((float) $value, DataType::TYPE_NUMERIC); $cell->getStyle()->getNumberFormat()->setFormatCode($this->numberFormat($decimals)); return; }
-            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING); return;
+            if (is_numeric($value)) {
+                $cell->setValueExplicit((float) $value, DataType::TYPE_NUMERIC);
+                $cell->getStyle()->getNumberFormat()->setFormatCode($this->numberFormat($decimals));
+
+                return;
+            }
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+
+            return;
         }
         if ($type === 'date') {
             $date = $this->parseDate($value);
-            if ($date !== null) { $cell->setValue(ExcelDate::PHPToExcel($date)); $cell->getStyle()->getNumberFormat()->setFormatCode('dd/mm/yyyy'); return; }
-            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING); return;
+            if ($date !== null) {
+                $cell->setValue(ExcelDate::PHPToExcel($date));
+                $cell->getStyle()->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+
+                return;
+            }
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+
+            return;
         }
         $cell->setValue($value);
     }
@@ -197,25 +230,43 @@ class SyncedPricingExportController extends Controller
     private function numberFormat(int $decimals): string
     {
         $decimals = max(0, min(6, $decimals));
+
         return $decimals === 0 ? '#,##0' : '#,##0.'.str_repeat('0', $decimals);
     }
 
     private function parseDate(mixed $value): ?Carbon
     {
-        if ($value instanceof \DateTimeInterface) return Carbon::instance($value);
-        if (! is_scalar($value)) return null;
-        $text = trim((string) $value);
-        if ($text === '') return null;
-        foreach (['d/m/Y', 'Y-m-d', 'd/m/Y H:i:s', 'Y-m-d H:i:s'] as $format) {
-            try { $date = Carbon::createFromFormat($format, $text); if ($date !== false) return $date; } catch (\Throwable) {}
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance($value);
         }
-        try { return Carbon::parse($text); } catch (\Throwable) { return null; }
+        if (! is_scalar($value)) {
+            return null;
+        }
+        $text = trim((string) $value);
+        if ($text === '') {
+            return null;
+        }
+        foreach (['d/m/Y', 'Y-m-d', 'd/m/Y H:i:s', 'Y-m-d H:i:s'] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $text);
+                if ($date !== false) {
+                    return $date;
+                }
+            } catch (\Throwable) {
+            }
+        }
+        try {
+            return Carbon::parse($text);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function value(PricingResult $item, string $key, int $index): mixed
     {
         $quantity = is_numeric($item->so_luong) ? (float) $item->so_luong : null;
         $unitPrice = is_numeric($item->don_gia) ? (float) $item->don_gia : null;
+
         return match ($key) {
             'stt' => $index, 'stt_tt20_2022' => $item->stt_tt20_2022, 'ten_thuoc' => $item->ten_thuoc, 'nhom_thuoc' => $this->medicineGroupNumber($item->nhom_thuoc), 'ten_hoat_chat' => $item->ten_hoat_chat, 'nong_do' => $item->nong_do, 'duong_dung' => $item->duong_dung, 'dang_bao_che' => $item->dang_bao_che, 'don_vi_tinh' => $item->don_vi_tinh, 'quy_cach_dong_goi' => $item->quy_cach_dong_goi, 'gdklh_gpnk' => $item->gdklh_gpnk, 'han_dung' => $item->han_dung, 'ten_co_so_san_xuat' => $item->ten_co_so_san_xuat, 'nuoc_san_xuat' => $item->nuoc_san_xuat, 'don_gia' => $unitPrice, 'gia_kk_kkl' => is_numeric($item->gia_kk_kkl) ? (float) $item->gia_kk_kkl : null, 'don_gia_vat' => is_numeric($item->don_gia_vat) ? (float) $item->don_gia_vat : null, 'so_luong' => $quantity, 'thanh_tien' => $quantity !== null && $unitPrice !== null ? $quantity * $unitPrice : null, 'winning_code' => implode('; ', array_values(array_filter(array_map('strval', (array) $item->winning_code)))), 'winning_name' => implode('; ', array_values(array_filter(array_map('strval', (array) $item->winning_name)))), 'ten_cdt_bmt' => $item->ten_cdt_bmt, 'ma_cdt' => $item->ma_cdt, 'ma_tbmt' => $item->ma_tbmt, 'bid_form' => $item->bid_form, 'dia_diem' => $this->locations($item), 'so_quyet_dinh' => $item->so_quyet_dinh, 'ngay_ban_hanh_quyet_dinh' => $item->ngay_ban_hanh_quyet_dinh?->format('d/m/Y'), 'ngay_dang_tai_kqlcnt' => $item->ngay_dang_tai_kqlcnt?->format('d/m/Y'), 'so_nha_thau_tham_du' => is_numeric($item->so_nha_thau_tham_du) ? (float) $item->so_nha_thau_tham_du : null, 'type' => $item->type, 'tab' => $item->tab, 'medicines' => $item->medicines, 'synced_at' => $item->synced_at?->format('d/m/Y H:i:s'), default => null,
         };
@@ -224,13 +275,17 @@ class SyncedPricingExportController extends Controller
     private function locations(PricingResult $item): ?string
     {
         $locations = collect((array) $item->dia_diem)->map(fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '')->filter()->values()->implode('; ');
+
         return $locations !== '' ? $locations : null;
     }
 
     private function medicineGroupNumber(mixed $value): ?string
     {
-        if (! is_scalar($value)) return null;
+        if (! is_scalar($value)) {
+            return null;
+        }
         preg_match('/\d+/', (string) $value, $matches);
+
         return $matches[0] ?? null;
     }
 }

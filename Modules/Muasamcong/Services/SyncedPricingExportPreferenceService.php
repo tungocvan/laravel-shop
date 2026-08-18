@@ -224,9 +224,28 @@ class SyncedPricingExportPreferenceService
         return $candidate;
     }
 
-    private function defaultHeaders(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['label']])->all(); }
-    private function defaultAlignments(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['align']])->all(); }
-    private function defaultWidths(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['width']])->all(); }
-    private function defaultDataTypes(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['type']])->all(); }
-    private function defaultDecimals(): array { return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => 0])->all(); }
+    private function defaultHeaders(): array
+    {
+        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['label']])->all();
+    }
+
+    private function defaultAlignments(): array
+    {
+        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['align']])->all();
+    }
+
+    private function defaultWidths(): array
+    {
+        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['width']])->all();
+    }
+
+    private function defaultDataTypes(): array
+    {
+        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => $column['type']])->all();
+    }
+
+    private function defaultDecimals(): array
+    {
+        return collect(self::COLUMNS)->mapWithKeys(fn (array $column, string $key): array => [$key => 0])->all();
+    }
 }
