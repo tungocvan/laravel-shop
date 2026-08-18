@@ -4,7 +4,9 @@ namespace Modules\Muasamcong\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Modules\Muasamcong\Models\PricingResult;
+use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -14,63 +16,22 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SyncedPricingExportController extends Controller
 {
-    private const COLUMNS = [
-        'stt' => 'STT',
-        'stt_tt20_2022' => 'STT TT20/2022',
-        'ten_thuoc' => 'Tên thuốc',
-        'nhom_thuoc' => 'Nhóm thuốc',
-        'ten_hoat_chat' => 'Hoạt chất',
-        'nong_do' => 'Nồng độ / Hàm lượng',
-        'duong_dung' => 'Đường dùng',
-        'dang_bao_che' => 'Dạng bào chế',
-        'don_vi_tinh' => 'Đơn vị tính',
-        'quy_cach_dong_goi' => 'Quy cách đóng gói',
-        'gdklh_gpnk' => 'GĐKLH / GPNK',
-        'han_dung' => 'Hạn dùng',
-        'ten_co_so_san_xuat' => 'Cơ sở sản xuất',
-        'nuoc_san_xuat' => 'Nước sản xuất',
-        'don_gia' => 'Giá trúng thầu',
-        'gia_kk_kkl' => 'Giá KK / KKL',
-        'don_gia_vat' => 'Đơn giá (VAT)',
-        'so_luong' => 'Số lượng',
-        'thanh_tien' => 'Thành tiền',
-        'winning_code' => 'Mã nhà thầu trúng',
-        'winning_name' => 'Đơn vị trúng thầu',
-        'ten_cdt_bmt' => 'Chủ đầu tư / Bên mời thầu',
-        'ma_cdt' => 'Mã chủ đầu tư',
-        'ma_tbmt' => 'Mã TBMT',
-        'bid_form' => 'Hình thức dự thầu',
-        'dia_diem' => 'Địa điểm',
-        'so_quyet_dinh' => 'Số quyết định',
-        'ngay_ban_hanh_quyet_dinh' => 'Ngày quyết định',
-        'ngay_dang_tai_kqlcnt' => 'Ngày đăng KQLCNT',
-        'so_nha_thau_tham_du' => 'Số nhà thầu tham dự',
-        'type' => 'Loại',
-        'tab' => 'Tab',
-        'medicines' => 'Medicines',
-        'synced_at' => 'Đồng bộ lúc',
-    ];
-
     public function __invoke(Request $request): BinaryFileResponse
     {
         $validated = $request->validate([
             'selected_ids' => ['required', 'array', 'min:1', 'max:5000'],
             'selected_ids.*' => ['required', 'integer', 'min:1'],
-            'columns' => ['nullable', 'array', 'min:1'],
-            'columns.*' => ['required', 'string'],
-            'alignments' => ['nullable', 'array'],
         ]);
 
         $ids = array_values(array_unique(array_map('intval', $validated['selected_ids'])));
+        $userId = (int) Auth::guard('admin')->id();
+        $preference = app(SyncedPricingExportPreferenceService::class)->forUser($userId);
+        $selectedLookup = array_fill_keys($preference['selected_columns'], true);
         $requestedColumns = array_values(array_filter(
-            $validated['columns'] ?? array_keys(self::COLUMNS),
-            fn (mixed $column): bool => is_string($column) && array_key_exists($column, self::COLUMNS)
+            $preference['column_order'],
+            fn (string $key): bool => isset($selectedLookup[$key]) && isset(SyncedPricingExportPreferenceService::COLUMNS[$key])
         ));
-        abort_if($requestedColumns === [], 422, 'Vui lòng chọn ít nhất một cột để xuất Excel.');
-
-        $alignments = collect($validated['alignments'] ?? [])
-            ->map(fn (mixed $alignment): string => in_array($alignment, ['left', 'center', 'right'], true) ? $alignment : 'left')
-            ->all();
+        abort_if($requestedColumns === [], 422, 'Cấu hình xuất chưa chọn cột nào. Hãy mở Cấu hình cột và chọn ít nhất một cột.');
 
         $items = PricingResult::query()
             ->whereIn('id', $ids)
@@ -90,13 +51,13 @@ class SyncedPricingExportController extends Controller
 
         foreach ($requestedColumns as $columnIndex => $key) {
             $cell = $sheet->getCell([$columnIndex + 1, 1]);
-            $cell->setValue(self::COLUMNS[$key]);
+            $cell->setValue(SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);
             $sheet->getColumnDimension($cell->getColumn())->setAutoSize(true);
         }
 
-        $sheet->getStyle('A1:'.$sheet->getCell([count($requestedColumns), 1])->getCoordinate())
-            ->getFont()->setBold(true);
-        $sheet->getStyle('A1:'.$sheet->getCell([count($requestedColumns), 1])->getCoordinate())
+        $lastHeaderCell = $sheet->getCell([count($requestedColumns), 1])->getCoordinate();
+        $sheet->getStyle('A1:'.$lastHeaderCell)->getFont()->setBold(true);
+        $sheet->getStyle('A1:'.$lastHeaderCell)
             ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
 
         foreach ($items->values() as $rowIndex => $item) {
@@ -123,7 +84,7 @@ class SyncedPricingExportController extends Controller
 
         foreach ($requestedColumns as $columnIndex => $key) {
             $columnLetter = $sheet->getCell([$columnIndex + 1, 1])->getColumn();
-            $alignment = $alignments[$key] ?? $this->defaultAlignment($key);
+            $alignment = $preference['alignments'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['align'];
             $horizontal = match ($alignment) {
                 'center' => Alignment::HORIZONTAL_CENTER,
                 'right' => Alignment::HORIZONTAL_RIGHT,
@@ -209,12 +170,5 @@ class SyncedPricingExportController extends Controller
         preg_match('/\d+/', (string) $value, $matches);
 
         return $matches[0] ?? null;
-    }
-
-    private function defaultAlignment(string $key): string
-    {
-        return in_array($key, ['stt', 'stt_tt20_2022', 'nhom_thuoc', 'don_vi_tinh', 'ma_tbmt', 'ngay_ban_hanh_quyet_dinh', 'ngay_dang_tai_kqlcnt'], true)
-            ? 'center'
-            : (in_array($key, ['don_gia', 'gia_kk_kkl', 'don_gia_vat', 'so_luong', 'thanh_tien', 'so_nha_thau_tham_du'], true) ? 'right' : 'left');
     }
 }
