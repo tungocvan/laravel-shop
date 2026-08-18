@@ -154,7 +154,7 @@
                             @endphp
                             <tr class="align-top {{ $isSynced ? 'bg-emerald-50/30' : 'hover:bg-indigo-50/30' }}">
                                 @if($canWishlistPricing)<td class="px-3 py-4 text-center">@if($sourceId)<button wire:click="toggleWishlist('{{ $sourceId }}')" class="h-9 w-9 rounded-full border {{ $isWishlisted ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-gray-200 text-gray-400' }}">{{ $isWishlisted ? '♥' : '♡' }}</button>@endif</td>@endif
-                                @if($canSyncPricing)<td class="px-3 py-4 text-center">@if($sourceId)<input type="checkbox" value="{{ $sourceId }}" wire:model="selectedSourceIds" @disabled($isSynced) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">@endif</td>@endif
+                                @if($canSyncPricing)<td class="px-3 py-4 text-center">@if($sourceId)<input type="checkbox" value="{{ $sourceId }}" wire:model.live="selectedSourceIds" @disabled($isSynced) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">@endif</td>@endif
                                 <td class="px-3 py-4 text-center text-gray-500">{{ $resultOffset + $loop->iteration }}</td>
                                 <td class="px-4 py-4 font-semibold text-gray-950">{{ $item['tenThuoc'] ?? '-' }}</td>
                                 <td class="px-4 py-4">{{ $item['nhomThuoc'] ?? '-' }}</td>
