@@ -26,6 +26,8 @@ return [
         ],
         'history' => [
             'name' => 'Lịch sử tra cứu',
+            'description' => 'Xem lại từ khóa đã tra cứu và trạng thái các lần đồng bộ dữ liệu.',
+            'route' => 'client.muasamcong.history',
             'permission' => 'client.muasamcong.history.view',
             'sort_order' => 20,
         ],
