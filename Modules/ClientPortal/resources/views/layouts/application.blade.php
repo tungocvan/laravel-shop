@@ -28,7 +28,7 @@
     $mobileNavView = $currentApplication ? 'ClientPortal::applications.'.$currentApplication.'.partials.mobile-nav' : null;
 @endphp
 <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden">
-    @if($mobileNavView && View::exists($mobileNavView))
+    @if($mobileNavView && view()->exists($mobileNavView))
         <div class="mx-auto grid max-w-md grid-cols-3 text-center text-xs font-semibold text-slate-500">@include($mobileNavView)</div>
     @else
         <div class="mx-auto max-w-md text-center text-xs font-semibold text-slate-500"><a href="{{ route('client.apps.index') }}" class="inline-flex rounded-xl px-4 py-2"><span class="mr-2">▦</span>Ứng dụng</a></div>
