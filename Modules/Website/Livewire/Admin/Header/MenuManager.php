@@ -17,23 +17,17 @@ class MenuManager extends Component
     public $menuLocations = [
         'primary' => 'Desktop Main Menu',
         'mobile' => 'Mobile Slide-over',
+        'account' => 'Menu tài khoản sau đăng nhập',
         'admin' => 'Admin Menu Dropdown',
     ];
 
     public $isModalOpen = false;
-
     public $editingId = null;
-
     public $title;
-
     public $url;
-
     public $parent_id;
-
     public $icon;
-
     public $sort_order = 0;
-
     public $is_active = true;
 
     protected $listeners = ['refreshMenu' => '$refresh'];
@@ -54,6 +48,23 @@ class MenuManager extends Component
             ['location' => $this->location],
             ['name' => $this->menuLocations[$this->location]]
         );
+
+        // Khởi tạo mục Client Portal mặc định cho vị trí menu tài khoản.
+        // Chỉ tạo khi chưa tồn tại; quản trị viên vẫn có thể sửa/xóa/sắp xếp như menu bình thường.
+        if ($this->location === 'account') {
+            HeaderMenuItem::firstOrCreate(
+                [
+                    'header_menu_id' => $currentMenu->id,
+                    'title' => 'Ứng dụng của tôi',
+                ],
+                [
+                    'url' => '/my-apps',
+                    'parent_id' => null,
+                    'sort_order' => 10,
+                    'is_active' => true,
+                ]
+            );
+        }
 
         $menuTree = $service->getMenuTreeByLocation($this->location);
         $flatItems = HeaderMenuItem::where('header_menu_id', $currentMenu->id)
