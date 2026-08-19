@@ -5,8 +5,17 @@
 @section('content')
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
     <a href="{{ route('client.muasamcong.drug-pricing', ['keyword' => $keyword]) }}" class="text-sm font-semibold text-slate-600 hover:text-slate-950">← Quay lại kết quả</a>
-    @if($synced)<span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">✓ Đã đồng bộ</span>@endif
+    <div class="flex items-center gap-2">
+        @if($synced)<span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">✓ Đã đồng bộ</span>@endif
+        @if(!empty($item['id']))
+            <button id="share-drug" type="button" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Chia sẻ thuốc">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.7 6.8-4.4M8.6 13.3l6.8 4.4"/></svg>
+                <span>Chia sẻ</span>
+            </button>
+        @endif
+    </div>
 </div>
+<div id="share-feedback" class="mb-4 hidden rounded-2xl border px-4 py-3 text-sm"></div>
 <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
     <div class="border-b border-slate-200 bg-slate-50 px-5 py-5 sm:px-7"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Chi tiết kết quả Mua sắm công</p><h1 class="mt-2 text-2xl font-bold text-slate-950">{{ $item['tenThuoc'] ?? 'Không có tên thuốc' }}</h1><p class="mt-2 text-sm text-slate-600">{{ $item['tenHoatChat'] ?? '—' }}{{ !empty($item['nongDo']) ? ' · '.$item['nongDo'] : '' }}</p></div>
     @php($fields = [
@@ -32,4 +41,39 @@
     <dl class="grid gap-0 md:grid-cols-2 xl:grid-cols-3">@foreach($fields as $label => $value)<div class="border-b border-slate-100 px-5 py-4 md:border-r xl:px-6"><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $label }}</dt><dd class="mt-1.5 break-words text-sm font-medium text-slate-800">{{ ($value !== null && $value !== '') ? $value : '—' }}</dd></div>@endforeach</dl>
     @if($canSync && !$synced && !empty($item['id']))<div class="border-t border-slate-200 bg-slate-50 px-5 py-5 sm:px-7"><form method="POST" action="{{ route('client.muasamcong.drug-pricing.sync') }}">@csrf<input type="hidden" name="keyword" value="{{ $keyword }}"><input type="hidden" name="selected_ids[]" value="{{ $item['id'] }}"><button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white">Đồng bộ bản ghi này qua Queue</button></form></div>@endif
 </section>
+@if(!empty($item['id']))
+<script>
+(() => {
+    const button = document.getElementById('share-drug');
+    const feedback = document.getElementById('share-feedback');
+    if (!button) return;
+    const message = (text, ok = true) => {
+        feedback.textContent = text;
+        feedback.className = `mb-4 rounded-2xl border px-4 py-3 text-sm ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-700'}`;
+    };
+    button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+            const response = await fetch(@json(route('client.muasamcong.drug-pricing.share')), {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':@json(csrf_token())},
+                body: JSON.stringify({keyword:@json($keyword), source_id:@json((string)$item['id'])})
+            });
+            if (!response.ok) throw new Error('Không thể tạo liên kết chia sẻ.');
+            const data = await response.json();
+            if (navigator.share) {
+                await navigator.share({title:data.title, text:data.text, url:data.url});
+            } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(data.url);
+                message('Đã sao chép liên kết chia sẻ.');
+            } else {
+                window.prompt('Sao chép liên kết chia sẻ:', data.url);
+            }
+        } catch (error) {
+            if (error?.name !== 'AbortError') message(error?.message || 'Không thể chia sẻ lúc này.', false);
+        } finally { button.disabled = false; }
+    });
+})();
+</script>
+@endif
 @endsection
