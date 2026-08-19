@@ -69,13 +69,19 @@ class EnvExampleSyncService
 
             $key = $match[1];
             $seen[$key] = true;
+
+            if ($this->isSecret($key)) {
+                $secretCount++;
+                $output[] = $key.'=';
+                continue;
+            }
+
             if (! array_key_exists($key, $source)) {
                 $output[] = $line;
                 continue;
             }
 
             $value = $this->safeValue($key, $source[$key], $docker);
-            if ($this->isSecret($key)) $secretCount++;
             $output[] = $key.'='.$this->formatValue($value);
         }
 
