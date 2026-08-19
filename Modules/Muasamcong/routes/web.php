@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Muasamcong\Http\Controllers\Client\MuasamcongClientController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
 use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
 use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
@@ -11,7 +12,11 @@ Route::middleware(['web', 'auth:web', 'client.application:muasamcong'])
     ->prefix('apps/muasamcong')
     ->name('client.muasamcong.')
     ->group(function () {
-        Route::view('/', 'Muasamcong::client.dashboard')->name('dashboard');
+        Route::get('/', [MuasamcongClientController::class, 'dashboard'])->name('dashboard');
+
+        Route::get('/drug-pricing', [MuasamcongClientController::class, 'drugPricing'])
+            ->middleware('client.feature:muasamcong,drug-pricing')
+            ->name('drug-pricing');
     });
 
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
