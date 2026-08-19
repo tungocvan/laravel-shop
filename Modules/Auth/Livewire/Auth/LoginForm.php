@@ -3,7 +3,6 @@
 namespace Modules\Auth\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Modules\System\Services\AdminLoginRedirectService;
 use Modules\System\Services\SettingsService;
