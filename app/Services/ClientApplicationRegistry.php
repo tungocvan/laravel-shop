@@ -99,12 +99,25 @@ class ClientApplicationRegistry
         $features = collect($manifest['features'] ?? [])
             ->filter(fn (mixed $feature): bool => is_array($feature))
             ->map(function (array $feature, string $featureKey): array {
+                $actions = collect($feature['actions'] ?? [])
+                    ->filter(fn (mixed $action): bool => is_array($action))
+                    ->map(function (array $action, string $actionKey): array {
+                        return [
+                            'key' => Str::lower(trim((string) ($action['key'] ?? $actionKey))),
+                            'name' => trim((string) ($action['name'] ?? Str::headline($actionKey))),
+                            'permission' => isset($action['permission']) ? trim((string) $action['permission']) : null,
+                        ];
+                    })
+                    ->values()
+                    ->all();
+
                 return [
                     'key' => Str::lower(trim((string) ($feature['key'] ?? $featureKey))),
                     'name' => trim((string) ($feature['name'] ?? Str::headline($featureKey))),
                     'description' => trim((string) ($feature['description'] ?? '')),
                     'route' => isset($feature['route']) ? trim((string) $feature['route']) : null,
                     'permission' => isset($feature['permission']) ? trim((string) $feature['permission']) : null,
+                    'actions' => $actions,
                     'icon' => trim((string) ($feature['icon'] ?? 'square-3-stack-3d')),
                     'sort_order' => (int) ($feature['sort_order'] ?? 100),
                 ];
