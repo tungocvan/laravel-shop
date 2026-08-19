@@ -29,6 +29,15 @@ class EnvManager extends Component
                 (auth('admin')->user() ?: auth()->user())?->getAuthIdentifier()
             );
 
+            if (! empty($result['example_sync_error'])) {
+                $this->dispatch(
+                    'notify',
+                    type: 'warning',
+                    message: "Đã tạo snapshot {$result['label']} thành công, nhưng đồng bộ ENV example chưa hoàn tất: {$result['example_sync_error']}"
+                );
+                return;
+            }
+
             $message = "Đã tạo snapshot {$result['label']} an toàn.";
             if (is_array($result['example_sync'] ?? null)) {
                 $sync = $result['example_sync'];
