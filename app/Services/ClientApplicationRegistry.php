@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Throwable;
 
 class ClientApplicationRegistry
 {
@@ -47,8 +48,17 @@ class ClientApplicationRegistry
         return $this->all()->filter(function (array $application) use ($user): bool {
             $permission = $application['permission'];
 
-            return $permission === null || $user->can($permission);
+            return $permission === null || $this->userCan($user, $permission);
         })->values();
+    }
+
+    public function userCan(User $user, string $permission): bool
+    {
+        try {
+            return $user->can($permission);
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private function loadManifest(string $moduleName, array $module): ?array
