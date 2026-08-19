@@ -7,6 +7,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Modules\ClientPortal\Jobs\GeneratePriceListExport;
@@ -108,8 +109,31 @@ class MuasamcongPriceListController extends Controller
         ]);
     }
 
-    public function download(Request $request, string $export): StreamedResponse
+    public function download(Request $request, string $export): StreamedResponse|JsonResponse
     {
+        if ($request->boolean('debug')) {
+            $record = PriceListExport::query()->whereKey($export)->first();
+            $path = $record?->file_path;
+
+            return response()->json([
+                'controller_reached' => true,
+                'export_parameter' => $export,
+                'app_base_path' => base_path(),
+                'database_connection' => DB::connection()->getName(),
+                'database_name' => DB::connection()->getDatabaseName(),
+                'web_user_id' => $request->user('web')?->getKey(),
+                'record_exists' => $record !== null,
+                'record_user_id' => $record?->user_id,
+                'status' => $record?->status,
+                'file_path' => $path,
+                'storage_root' => config('filesystems.disks.local.root'),
+                'storage_exists' => is_string($path) && $path !== '' ? Storage::disk('local')->exists($path) : false,
+                'absolute_path' => is_string($path) && $path !== '' ? Storage::disk('local')->path($path) : null,
+                'absolute_is_file' => is_string($path) && $path !== '' ? is_file(Storage::disk('local')->path($path)) : false,
+                'absolute_is_readable' => is_string($path) && $path !== '' ? is_readable(Storage::disk('local')->path($path)) : false,
+            ]);
+        }
+
         $record = $this->exportRecord($export);
         $this->owner($request, $record);
         abort_unless($this->fileAvailable($record), 404, 'File Excel không còn tồn tại trên storage. Vui lòng xuất lại.');
