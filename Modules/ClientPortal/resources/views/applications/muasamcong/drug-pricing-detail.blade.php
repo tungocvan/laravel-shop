@@ -8,9 +8,12 @@
     <div class="flex items-center gap-2">
         @if($synced)<span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">✓ Đã đồng bộ</span>@endif
         @if(!empty($item['id']))
-            <button id="share-drug" type="button" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Chia sẻ thuốc">
+            <button id="share-drug" type="button" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Chia sẻ thuốc" title="Chia sẻ">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.7 6.8-4.4M8.6 13.3l6.8 4.4"/></svg>
-                <span>Chia sẻ</span>
+                <span class="hidden sm:inline">Chia sẻ</span>
+            </button>
+            <button id="copy-share-link" type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Sao chép link chia sẻ" title="Sao chép link">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
         @endif
     </div>
@@ -44,34 +47,57 @@
 @if(!empty($item['id']))
 <script>
 (() => {
-    const button = document.getElementById('share-drug');
+    const shareButton = document.getElementById('share-drug');
+    const copyButton = document.getElementById('copy-share-link');
     const feedback = document.getElementById('share-feedback');
-    if (!button) return;
+    if (!shareButton && !copyButton) return;
+
     const message = (text, ok = true) => {
         feedback.textContent = text;
         feedback.className = `mb-4 rounded-2xl border px-4 py-3 text-sm ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-700'}`;
     };
-    button.addEventListener('click', async () => {
-        button.disabled = true;
+
+    const createShare = async () => {
+        const response = await fetch(@json(route('client.muasamcong.drug-pricing.share')), {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':@json(csrf_token())},
+            body: JSON.stringify({keyword:@json($keyword), source_id:@json((string)$item['id'])})
+        });
+        if (!response.ok) throw new Error('Không thể tạo liên kết chia sẻ.');
+        return response.json();
+    };
+
+    const copyUrl = async (url) => {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(url);
+            message('Đã sao chép link chia sẻ. Bạn có thể dán vào Zalo, Facebook, Email...');
+            return;
+        }
+        window.prompt('Sao chép liên kết chia sẻ:', url);
+    };
+
+    shareButton?.addEventListener('click', async () => {
+        shareButton.disabled = true;
         try {
-            const response = await fetch(@json(route('client.muasamcong.drug-pricing.share')), {
-                method: 'POST',
-                headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':@json(csrf_token())},
-                body: JSON.stringify({keyword:@json($keyword), source_id:@json((string)$item['id'])})
-            });
-            if (!response.ok) throw new Error('Không thể tạo liên kết chia sẻ.');
-            const data = await response.json();
+            const data = await createShare();
             if (navigator.share) {
                 await navigator.share({title:data.title, text:data.text, url:data.url});
-            } else if (navigator.clipboard) {
-                await navigator.clipboard.writeText(data.url);
-                message('Đã sao chép liên kết chia sẻ.');
             } else {
-                window.prompt('Sao chép liên kết chia sẻ:', data.url);
+                await copyUrl(data.url);
             }
         } catch (error) {
             if (error?.name !== 'AbortError') message(error?.message || 'Không thể chia sẻ lúc này.', false);
-        } finally { button.disabled = false; }
+        } finally { shareButton.disabled = false; }
+    });
+
+    copyButton?.addEventListener('click', async () => {
+        copyButton.disabled = true;
+        try {
+            const data = await createShare();
+            await copyUrl(data.url);
+        } catch (error) {
+            message(error?.message || 'Không thể sao chép link lúc này.', false);
+        } finally { copyButton.disabled = false; }
     });
 })();
 </script>
