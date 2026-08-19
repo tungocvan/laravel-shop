@@ -95,6 +95,27 @@ class MuasamcongClientSearchTest extends TestCase
         $this->assertSame(1000, $data['items']->first()['donGia']);
     }
 
+    public function test_controller_refresh_flag_forces_latest_api_search(): void
+    {
+        $search = Mockery::mock(ClientPricingSearchService::class);
+        $search->shouldReceive('search')->once()->with('Gourcuff', null, true)->andReturn([
+            'source' => 'api',
+            'result' => ['success' => true, 'data' => ['total' => 0, 'items' => []]],
+        ]);
+        $syncService = Mockery::mock(PricingResultSyncService::class);
+        $syncService->shouldReceive('existingSourceIds')->once()->andReturn([]);
+        $registry = Mockery::mock(ApplicationRegistry::class);
+
+        $request = Request::create('/apps/muasamcong/drug-pricing', 'GET', [
+            'keyword' => 'Gourcuff',
+            'refresh' => 1,
+        ]);
+
+        $view = (new MuasamcongApplicationController())->drugPricing($request, $search, $syncService, $registry);
+
+        $this->assertSame('api', $view->getData()['dataSource']);
+    }
+
     public function test_database_first_search_does_not_call_api_when_synced_data_exists(): void
     {
         PricingResult::query()->create([
