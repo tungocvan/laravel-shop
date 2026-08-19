@@ -14,9 +14,15 @@ Route::middleware(['web', 'auth:web', 'client.application:muasamcong'])
     ->group(function () {
         Route::get('/', [MuasamcongClientController::class, 'dashboard'])->name('dashboard');
 
-        Route::get('/drug-pricing', [MuasamcongClientController::class, 'drugPricing'])
-            ->middleware('client.feature:muasamcong,drug-pricing')
-            ->name('drug-pricing');
+        Route::middleware('client.feature:muasamcong,drug-pricing')->group(function () {
+            Route::get('/drug-pricing', [MuasamcongClientController::class, 'drugPricing'])
+                ->name('drug-pricing');
+            Route::get('/drug-pricing/{sourceId}', [MuasamcongClientController::class, 'drugPricingDetail'])
+                ->whereUuid('sourceId')
+                ->name('drug-pricing.detail');
+            Route::post('/drug-pricing/sync', [MuasamcongClientController::class, 'queueDrugPricingSync'])
+                ->name('drug-pricing.sync');
+        });
     });
 
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
