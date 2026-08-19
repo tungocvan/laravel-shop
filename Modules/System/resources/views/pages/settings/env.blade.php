@@ -1,7 +1,11 @@
 @extends('Admin::layouts.master')
 @section('title', 'Cấu hình Hệ thống')
 @section('content')
-<div class="container mx-auto px-4 py-6" x-data="{ activeTab: 'database', tabs: @js($tabs) }">
+@php
+    $requestedTab = request()->query('tab', 'database');
+    $activeTab = $tabs->contains(fn ($tab) => $tab['id'] === $requestedTab) ? $requestedTab : 'database';
+@endphp
+<div class="container mx-auto px-4 py-6" x-data="{ activeTab: @js($activeTab), tabs: @js($tabs) }">
     {{-- Breadcrumb --}}
     <nav class="flex mb-4 text-sm text-gray-500">
         <a href="#" class="hover:text-primary transition uppercase tracking-tighter">Dashboard</a>
@@ -24,13 +28,24 @@
             </div>
         </div>
 
+        @if(session('success'))
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                {{ session('success') }}
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
+
         @livewire('system.settings.env-manager')
     </div>
 
     {{-- Tabs Navigation --}}
     <div class="flex items-center gap-1 border-b border-gray-200 mb-8 bg-gray-50 p-1.5 rounded-t-xl overflow-x-auto no-scrollbar">
         <template x-for="tab in tabs" :key="tab.id">
-            <button @click="activeTab = tab.id"
+            <button @click="activeTab = tab.id; history.replaceState(null, '', '?tab=' + tab.id)"
                     :class="activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-800'"
                     class="px-6 py-3 text-[11px] font-black rounded-t-lg transition-all flex items-center gap-2 whitespace-nowrap uppercase tracking-widest">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon"></path></svg>
