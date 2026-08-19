@@ -5,6 +5,7 @@ namespace Modules\Auth\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -12,7 +13,9 @@ class AuthController extends Controller
     public function clientLogin(): View|RedirectResponse
     {
         if (Auth::guard('web')->check()) {
-            return redirect()->route('client.apps.index');
+            return Route::has('client.apps.index')
+                ? redirect()->route('client.apps.index')
+                : redirect('/');
         }
 
         return view('Auth::pages.auth.login', [
