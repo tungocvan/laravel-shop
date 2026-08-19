@@ -4,15 +4,21 @@ use Illuminate\Support\Facades\Route;
 use Modules\Auth\Http\Controllers\AuthController;
 use Modules\Auth\Http\Controllers\GoogleController;
 
-Route::middleware(['web'])->group(function(){
-    Route::get('/admin/login', [AuthController::class, 'login'])->name('admin.login');
+Route::middleware(['web'])->group(function () {
+    Route::get('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login');
     Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('google');
     Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback'])->name('google.callback');
-    Route::get('/login', [AuthController::class, 'login'])->name('login');
-    Route::get('/register', [AuthController::class, 'register'])->name('register');
+    Route::get('/login', [AuthController::class, 'clientLogin'])->name('login');
+
+    Route::middleware('auth:web')->group(function () {
+        Route::get('/my-apps', function () {
+            return view('Auth::pages.client.apps-placeholder');
+        })->name('client.apps.index');
+
+        Route::post('/logout', [AuthController::class, 'clientLogout'])->name('logout');
+    });
 });
 
-
- Route::middleware(['web','auth:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
- });
+Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('/logout', [AuthController::class, 'adminLogout'])->name('logout');
+});
