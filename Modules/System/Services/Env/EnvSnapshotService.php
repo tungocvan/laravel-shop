@@ -18,6 +18,8 @@ class EnvSnapshotService
 
     private const RETENTION_PER_TYPE = 5;
 
+    public function __construct(private readonly EnvExampleSyncService $exampleSync) {}
+
     public function create(string $operation, ?int $actorId = null): array
     {
         $label = self::OPERATIONS[$operation] ?? null;
@@ -27,13 +29,13 @@ class EnvSnapshotService
         }
 
         $source = base_path('.env');
-        if (!File::isFile($source)) {
+        if (! File::isFile($source)) {
             throw new RuntimeException('Environment source file is unavailable.');
         }
 
         $lock = Cache::lock('system:env-snapshot:create', 15);
 
-        if (!$lock->get()) {
+        if (! $lock->get()) {
             throw new RuntimeException('Environment snapshot operation is already in progress.');
         }
 
@@ -48,7 +50,7 @@ class EnvSnapshotService
     {
         $directory = storage_path('app/private/backups/env-snapshots');
 
-        if (!File::isDirectory($directory) && !File::makeDirectory($directory, 0700, true)) {
+        if (! File::isDirectory($directory) && ! File::makeDirectory($directory, 0700, true)) {
             throw new RuntimeException('Environment snapshot directory is unavailable.');
         }
 
@@ -61,7 +63,7 @@ class EnvSnapshotService
 
         $createdAt = now();
         $filename = sprintf('env-%s-%s-%s.env', $operation, $createdAt->format('Ymd_His_u'), bin2hex(random_bytes(3)));
-        $path = $directory . DIRECTORY_SEPARATOR . $filename;
+        $path = $directory.DIRECTORY_SEPARATOR.$filename;
 
         if (File::exists($path)) {
             throw new RuntimeException('Environment snapshot filename collision.');
@@ -86,12 +88,18 @@ class EnvSnapshotService
             ]);
         }
 
+        $exampleSync = null;
+        if ($operation === 'production') {
+            $exampleSync = $this->exampleSync->sync($content);
+        }
+
         Log::info('Environment snapshot created.', [
             'actor_id' => $actorId,
             'operation' => 'env.snapshot.create',
             'snapshot_type' => $operation,
             'source_bytes' => strlen($content),
             'retention_deleted' => $deleted,
+            'example_sync' => $exampleSync,
             'created_at' => $createdAt->toIso8601String(),
         ]);
 
@@ -99,12 +107,13 @@ class EnvSnapshotService
             'operation' => $operation,
             'label' => $label,
             'created_at' => $createdAt->toIso8601String(),
+            'example_sync' => $exampleSync,
         ];
     }
 
     private function applyRetention(string $directory, string $operation): int
     {
-        $pattern = $directory . DIRECTORY_SEPARATOR . 'env-' . $operation . '-*.env';
+        $pattern = $directory.DIRECTORY_SEPARATOR.'env-'.$operation.'-*.env';
         $files = glob($pattern) ?: [];
 
         usort($files, static fn (string $a, string $b): int => filemtime($b) <=> filemtime($a));
