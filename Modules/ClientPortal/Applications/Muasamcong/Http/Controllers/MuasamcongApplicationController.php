@@ -9,10 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Modules\ClientPortal\Applications\Muasamcong\Jobs\SyncPricingResultsJob;
+use Modules\ClientPortal\Applications\Muasamcong\Services\ClientPricingSearchService;
 use Modules\ClientPortal\Services\ApplicationRegistry;
-use Modules\Muasamcong\Services\MuaSamCongService;
 use Modules\Muasamcong\Services\PricingResultSyncService;
-use Modules\Muasamcong\Services\PricingSearchSnapshotService;
 use Throwable;
 
 class MuasamcongApplicationController extends Controller
@@ -33,7 +32,7 @@ class MuasamcongApplicationController extends Controller
         return view('ClientPortal::applications.muasamcong.dashboard', compact('application', 'features'));
     }
 
-    public function drugPricing(Request $request, MuaSamCongService $service, PricingSearchSnapshotService $snapshots, PricingResultSyncService $syncService, ApplicationRegistry $registry): View
+    public function drugPricing(Request $request, ClientPricingSearchService $search, PricingResultSyncService $syncService, ApplicationRegistry $registry): View
     {
         $validated = $request->validate([
             'keyword' => ['nullable', 'string', 'min:2', 'max:200'],
@@ -42,6 +41,7 @@ class MuasamcongApplicationController extends Controller
             'medicine_group' => ['nullable', 'string', 'max:200'],
             'winning_company' => ['nullable', 'string', 'max:200'],
             'sort_price' => ['nullable', 'in:asc,desc'],
+            'refresh' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
@@ -62,26 +62,16 @@ class MuasamcongApplicationController extends Controller
         $dataSource = '';
 
         if ($keyword !== '') {
-            $snapshot = null;
-            try { $snapshot = $snapshots->find($keyword); } catch (Throwable) {}
-
-            if ($snapshot !== null && is_array($snapshot->result_payload)) {
-                $result = $snapshot->result_payload;
-                $dataSource = 'database';
-            } else {
-                $result = $service->searchPricing($keyword);
-                $dataSource = 'api';
-                if ($result['success'] ?? false) {
-                    try { $snapshots->store($keyword, $result, $request->user('web')?->getKey()); } catch (Throwable) {}
-                }
-            }
+            $searchResult = $search->search($keyword, $request->user('web')?->getKey(), (bool) ($validated['refresh'] ?? false));
+            $result = $searchResult['result'];
+            $dataSource = $searchResult['source'];
 
             if ($result['success'] ?? false) {
                 $allItems = collect($result['data']['items'] ?? [])->filter(fn (mixed $item): bool => is_array($item))->values();
                 $filtered = $this->filterPricingItems($allItems, $filters);
                 $summary = $this->priceSummary($filtered, (int) ($result['data']['total'] ?? $allItems->count()));
                 $page = max(1, (int) ($validated['page'] ?? 1));
-                $items = new LengthAwarePaginator($filtered->forPage($page, self::PER_PAGE)->values(), $filtered->count(), self::PER_PAGE, $page, ['path' => $request->url(), 'query' => $request->query()]);
+                $items = new LengthAwarePaginator($filtered->forPage($page, self::PER_PAGE)->values(), $filtered->count(), self::PER_PAGE, $page, ['path' => $request->url(), 'query' => $request->except('refresh')]);
                 try { $syncedSourceIds = $syncService->existingSourceIds($allItems->all()); } catch (Throwable) { $syncedSourceIds = []; }
             }
         }
@@ -92,13 +82,12 @@ class MuasamcongApplicationController extends Controller
         return view('ClientPortal::applications.muasamcong.drug-pricing', compact('keyword', 'filters', 'result', 'items', 'summary', 'syncedSourceIds', 'canSync', 'dataSource'));
     }
 
-    public function drugPricingDetail(Request $request, string $sourceId, MuaSamCongService $service, PricingSearchSnapshotService $snapshots, PricingResultSyncService $syncService, ApplicationRegistry $registry): View
+    public function drugPricingDetail(Request $request, string $sourceId, ClientPricingSearchService $search, PricingResultSyncService $syncService, ApplicationRegistry $registry): View
     {
         $validated = $request->validate(['keyword' => ['required', 'string', 'min:2', 'max:200']]);
         $keyword = trim($validated['keyword']);
-        $result = null;
-        try { $snapshot = $snapshots->find($keyword); $result = $snapshot?->result_payload; } catch (Throwable) { $result = null; }
-        if (! is_array($result)) { $result = $service->searchPricing($keyword); }
+        $searchResult = $search->search($keyword, $request->user('web')?->getKey());
+        $result = $searchResult['result'];
         abort_unless($result['success'] ?? false, 404);
 
         $item = collect($result['data']['items'] ?? [])->first(fn (mixed $row): bool => is_array($row) && (string) ($row['id'] ?? '') === $sourceId);
