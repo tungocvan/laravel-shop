@@ -29,11 +29,19 @@ class EnvManager extends Component
                 (auth('admin')->user() ?: auth()->user())?->getAuthIdentifier()
             );
 
-            $this->dispatch(
-                'notify',
-                type: 'success',
-                message: "Đã tạo snapshot {$result['label']} an toàn."
-            );
+            $message = "Đã tạo snapshot {$result['label']} an toàn.";
+            if (is_array($result['example_sync'] ?? null)) {
+                $sync = $result['example_sync'];
+                $message .= sprintf(
+                    ' Đã đồng bộ %s và %s: %d biến, %d secret đã được xóa giá trị.',
+                    '.env.example',
+                    '.env.docker.example',
+                    (int) ($sync['keys'] ?? 0),
+                    (int) ($sync['secrets_sanitized'] ?? 0),
+                );
+            }
+
+            $this->dispatch('notify', type: 'success', message: $message);
         } catch (Throwable $e) {
             report($e);
 
