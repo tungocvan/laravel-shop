@@ -1,29 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Muasamcong\Http\Controllers\Client\MuasamcongClientController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
 use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
 use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingBbgExportController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingExportController;
-
-Route::middleware(['web', 'auth:web', 'client.application:muasamcong'])
-    ->prefix('apps/muasamcong')
-    ->name('client.muasamcong.')
-    ->group(function () {
-        Route::get('/', [MuasamcongClientController::class, 'dashboard'])->name('dashboard');
-
-        Route::middleware('client.feature:muasamcong,drug-pricing')->group(function () {
-            Route::get('/drug-pricing', [MuasamcongClientController::class, 'drugPricing'])
-                ->name('drug-pricing');
-            Route::get('/drug-pricing/{sourceId}', [MuasamcongClientController::class, 'drugPricingDetail'])
-                ->whereUuid('sourceId')
-                ->name('drug-pricing.detail');
-            Route::post('/drug-pricing/sync', [MuasamcongClientController::class, 'queueDrugPricingSync'])
-                ->name('drug-pricing.sync');
-        });
-    });
 
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
     ->prefix('admin/muasamcong')
@@ -41,27 +23,20 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
                 Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
                 Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
                 Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
-                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', [MuasamcongController::class, 'manualContractorLots'])
-                    ->name('contractors.manual-lots.show');
-                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', [MuasamcongController::class, 'downloadManualContractorLots'])
-                    ->name('contractors.manual-lots.download');
+                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', [MuasamcongController::class, 'manualContractorLots'])->name('contractors.manual-lots.show');
+                Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', [MuasamcongController::class, 'downloadManualContractorLots'])->name('contractors.manual-lots.download');
                 Route::get('/hsmt', [MuasamcongController::class, 'hsmt'])->name('hsmt');
                 Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
-                Route::post('/synced/export-selected', SyncedPricingExportController::class)
-                    ->name('synced.export-selected');
-                Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)
-                    ->name('synced.export-bbg');
+                Route::post('/synced/export-selected', SyncedPricingExportController::class)->name('synced.export-selected');
+                Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)->name('synced.export-bbg');
                 Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
-                Route::post('/wishlist/export-selected', [PricingWishlistBulkController::class, 'export'])
-                    ->name('wishlist.export-selected');
-                Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])
-                    ->name('wishlist.destroy-selected');
+                Route::post('/wishlist/export-selected', [PricingWishlistBulkController::class, 'export'])->name('wishlist.export-selected');
+                Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])->name('wishlist.destroy-selected');
             });
 
         Route::middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))
             ->group(function () {
                 Route::get('/config', [MuasamcongController::class, 'config'])->name('config');
-                Route::get('/session-tool/windows', [MuasamcongController::class, 'downloadWindowsSessionTool'])
-                    ->name('session-tool.windows');
+                Route::get('/session-tool/windows', [MuasamcongController::class, 'downloadWindowsSessionTool'])->name('session-tool.windows');
             });
     });
