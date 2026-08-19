@@ -1,5 +1,5 @@
 @extends('Auth::layouts.auth')
 
 @section('content')
-   @livewire('auth.auth.login-form')
+   @livewire('auth.auth.login-form', ['guard' => $guard ?? 'web'])
 @endsection
