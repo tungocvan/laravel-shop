@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('facebook:dispatch-scheduled')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('system:cloud-backup')
+    ->everyMinute()
+    ->withoutOverlapping();
