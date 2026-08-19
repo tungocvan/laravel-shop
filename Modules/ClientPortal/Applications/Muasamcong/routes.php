@@ -3,8 +3,15 @@
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongApplicationController;
 use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongHistoryController;
+use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\PublicDrugShareController;
 
 if ((bool) config('modules.registry.Muasamcong.enabled', false)) {
+    Route::middleware('web')->group(function () {
+        Route::get('/share/muasamcong/drug/{token}', [PublicDrugShareController::class, 'show'])
+            ->where('token', '[A-Za-z0-9]{64}')
+            ->name('public.muasamcong.drug-share');
+    });
+
     Route::middleware(['web', 'auth:web', 'client.application:muasamcong'])
         ->prefix('apps/muasamcong')
         ->name('client.muasamcong.')
@@ -13,6 +20,8 @@ if ((bool) config('modules.registry.Muasamcong.enabled', false)) {
 
             Route::middleware('client.feature:muasamcong,drug-pricing')->group(function () {
                 Route::get('/drug-pricing', [MuasamcongApplicationController::class, 'drugPricing'])->name('drug-pricing');
+                Route::post('/drug-pricing/share', [PublicDrugShareController::class, 'store'])->name('drug-pricing.share');
+                Route::delete('/drug-pricing/share/{share}', [PublicDrugShareController::class, 'revoke'])->name('drug-pricing.share.revoke');
                 Route::get('/drug-pricing/sync/{syncRequest}/status', [MuasamcongApplicationController::class, 'drugPricingSyncStatus'])
                     ->whereUuid('syncRequest')
                     ->name('drug-pricing.sync-status');
