@@ -15,7 +15,7 @@ use Modules\ClientPortal\Models\PriceListExport;
 use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Models\PricingWishlist;
 use Modules\Muasamcong\Models\SyncedExportProfile;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MuasamcongPriceListController extends Controller
 {
@@ -94,30 +94,27 @@ class MuasamcongPriceListController extends Controller
     public function status(Request $request, PriceListExport $export): JsonResponse
     {
         $this->owner($request, $export);
+        $fileAvailable = $this->fileAvailable($export);
 
         return response()->json([
             'status' => $export->status,
             'items_count' => $export->items_count,
             'error' => $export->error_message,
-            'download_url' => $export->status === 'completed'
+            'download_url' => $fileAvailable
                 ? route('client.muasamcong.price-list.download', $export)
                 : null,
+            'file_available' => $fileAvailable,
         ]);
     }
 
-    public function download(Request $request, PriceListExport $export): BinaryFileResponse
+    public function download(Request $request, PriceListExport $export): StreamedResponse
     {
         $this->owner($request, $export);
-        abort_unless(
-            $export->status === 'completed'
-            && $export->file_path
-            && Storage::disk('local')->exists($export->file_path),
-            404
-        );
+        abort_unless($this->fileAvailable($export), 404, 'File Excel không còn tồn tại trên storage. Vui lòng xuất lại.');
 
-        return response()->download(
-            Storage::disk('local')->path($export->file_path),
-            $export->file_name
+        return Storage::disk('local')->download(
+            $export->file_path,
+            $export->file_name ?: basename($export->file_path)
         );
     }
 
@@ -125,7 +122,7 @@ class MuasamcongPriceListController extends Controller
     {
         $this->exportUser($request);
         $this->owner($request, $export);
-        abort_unless($export->status === 'completed', 409);
+        abort_unless($this->fileAvailable($export), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
 
         if (! $export->share_token) {
             $export->update(['share_token' => Str::random(64)]);
@@ -136,20 +133,17 @@ class MuasamcongPriceListController extends Controller
         ]);
     }
 
-    public function publicDownload(string $token): BinaryFileResponse
+    public function publicDownload(string $token): StreamedResponse
     {
         $export = PriceListExport::where('share_token', $token)
             ->where('status', 'completed')
             ->firstOrFail();
 
-        abort_unless(
-            $export->file_path && Storage::disk('local')->exists($export->file_path),
-            404
-        );
+        abort_unless($this->fileAvailable($export), 404, 'File Excel không còn tồn tại.');
 
-        return response()->download(
-            Storage::disk('local')->path($export->file_path),
-            $export->file_name
+        return Storage::disk('local')->download(
+            $export->file_path,
+            $export->file_name ?: basename($export->file_path)
         );
     }
 
@@ -157,7 +151,7 @@ class MuasamcongPriceListController extends Controller
     {
         $this->exportUser($request);
         $this->owner($request, $export);
-        abort_unless($export->status === 'completed', 409);
+        abort_unless($this->fileAvailable($export), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
 
         $data = $request->validate([
             'email' => 'required|email|max:200',
@@ -166,6 +160,14 @@ class MuasamcongPriceListController extends Controller
         SendPriceListExportEmail::dispatch($export->id, $data['email']);
 
         return back()->with('status', 'Đã đưa email Bảng Giá vào Queue gửi.');
+    }
+
+    private function fileAvailable(PriceListExport $export): bool
+    {
+        return $export->status === 'completed'
+            && is_string($export->file_path)
+            && trim($export->file_path) !== ''
+            && Storage::disk('local')->exists($export->file_path);
     }
 
     private function owner(Request $request, PriceListExport $export): void
