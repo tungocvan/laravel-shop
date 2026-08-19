@@ -1,0 +1,121 @@
+<?php
+
+namespace Modules\ClientPortal\Services;
+
+use App\Models\User;
+use Illuminate\Support\Collection;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+
+class ApplicationPermissionService
+{
+    public function __construct(private readonly ApplicationRegistry $registry)
+    {
+    }
+
+    public function definitions(): Collection
+    {
+        return $this->registry->all()->flatMap(function (array $application): array {
+            $rows = [];
+
+            if (! empty($application['permission'])) {
+                $rows[] = [
+                    'application' => $application['key'],
+                    'feature' => null,
+                    'action' => null,
+                    'name' => $application['permission'],
+                    'label' => 'Truy cập '.$application['name'],
+                ];
+            }
+
+            foreach ($application['features'] as $feature) {
+                if (! empty($feature['permission'])) {
+                    $rows[] = [
+                        'application' => $application['key'],
+                        'feature' => $feature['key'],
+                        'action' => null,
+                        'name' => $feature['permission'],
+                        'label' => $feature['name'],
+                    ];
+                }
+
+                foreach ($feature['actions'] ?? [] as $action) {
+                    if (empty($action['permission'])) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'application' => $application['key'],
+                        'feature' => $feature['key'],
+                        'action' => $action['key'],
+                        'name' => $action['permission'],
+                        'label' => $feature['name'].' · '.$action['name'],
+                    ];
+                }
+            }
+
+            return $rows;
+        })->unique('name')->values();
+    }
+
+    public function sync(): int
+    {
+        $created = 0;
+        foreach ($this->definitions() as $definition) {
+            $permission = Permission::query()->firstOrCreate([
+                'name' => $definition['name'],
+                'guard_name' => 'web',
+            ]);
+            if ($permission->wasRecentlyCreated) {
+                $created++;
+            }
+        }
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        return $created;
+    }
+
+    public function syncUser(User $user, array $selected): void
+    {
+        $allowed = $this->definitions()->pluck('name')->all();
+        $selected = array_values(array_intersect($allowed, $selected));
+        $current = $user->permissions->where('guard_name', 'web')->pluck('name')
+            ->filter(fn (string $name): bool => str_starts_with($name, 'client.'))->all();
+
+        foreach ($current as $permission) {
+            $user->revokePermissionTo(Permission::findByName($permission, 'web'));
+        }
+        foreach ($selected as $permission) {
+            $user->givePermissionTo(Permission::findByName($permission, 'web'));
+        }
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function syncRole(Role $role, array $selected): void
+    {
+        abort_unless($role->guard_name === 'web', 422, 'Chỉ role guard web mới được gán quyền Client.');
+        $allowed = $this->definitions()->pluck('name')->all();
+        $selected = array_values(array_intersect($allowed, $selected));
+        $nonClient = $role->permissions->reject(fn (Permission $permission): bool => $permission->guard_name === 'web' && str_starts_with($permission->name, 'client.'))->all();
+        $client = collect($selected)->map(fn (string $name): Permission => Permission::findByName($name, 'web'))->all();
+        $role->syncPermissions(array_merge($nonClient, $client));
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function syncSuperAdminUsers(): int
+    {
+        $permissionModels = $this->definitions()->pluck('name')
+            ->map(fn (string $name): Permission => Permission::findByName($name, 'web'));
+        $users = User::query()->whereHas('roles', fn ($query) => $query->where('name', 'Super Admin')->where('guard_name', 'admin'))->get();
+
+        foreach ($users as $user) {
+            foreach ($permissionModels as $permission) {
+                if (! $user->hasDirectPermission($permission)) {
+                    $user->givePermissionTo($permission);
+                }
+            }
+        }
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        return $users->count();
+    }
+}
