@@ -12,6 +12,9 @@ if ((bool) config('modules.registry.Muasamcong.enabled', false)) {
 
             Route::middleware('client.feature:muasamcong,drug-pricing')->group(function () {
                 Route::get('/drug-pricing', [MuasamcongApplicationController::class, 'drugPricing'])->name('drug-pricing');
+                Route::get('/drug-pricing/sync/{syncRequest}/status', [MuasamcongApplicationController::class, 'drugPricingSyncStatus'])
+                    ->whereUuid('syncRequest')
+                    ->name('drug-pricing.sync-status');
                 Route::get('/drug-pricing/{sourceId}', [MuasamcongApplicationController::class, 'drugPricingDetail'])
                     ->whereUuid('sourceId')
                     ->name('drug-pricing.detail');
