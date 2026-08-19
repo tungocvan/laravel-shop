@@ -17,14 +17,10 @@ class GoogleDriveBackupBrowserService
             $this->drive->testConnection();
             $rootId = trim((string) ($this->drive->status()['folder_id'] ?? ''));
         }
-        if ($rootId === '') {
-            return [];
-        }
+        if ($rootId === '') return [];
 
         $databaseId = $this->findChildFolder($token, $rootId, 'database');
-        if ($databaseId === null) {
-            return [];
-        }
+        if ($databaseId === null) return [];
 
         $files = [];
         foreach ($this->listFolders($token, $databaseId) as $year) {
@@ -50,9 +46,11 @@ class GoogleDriveBackupBrowserService
         $files = $this->listBackups(1000);
         $deleted = 0;
         foreach (array_slice($files, $keep) as $file) {
-            $response = Http::withToken($this->drive->accessToken())->timeout(30)->delete('https://www.googleapis.com/drive/v3/files/'.rawurlencode($file['id']));
-            if ($response->successful()) {
+            try {
+                $this->delete($file['id']);
                 $deleted++;
+            } catch (RuntimeException) {
+                // Keep retention best-effort; explicit UI delete still reports errors.
             }
         }
         return $deleted;
@@ -60,9 +58,28 @@ class GoogleDriveBackupBrowserService
 
     public function download(string $fileId, string $destination): void
     {
-        if (! preg_match('/^[A-Za-z0-9_-]{10,}$/', $fileId)) throw new RuntimeException('Google Drive file ID không hợp lệ.');
-        $response = Http::withToken($this->drive->accessToken())->withOptions(['sink' => $destination])->connectTimeout(20)->timeout(300)->get('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId), ['alt' => 'media']);
+        $this->assertFileId($fileId);
+        $response = Http::withToken($this->drive->accessToken())
+            ->withOptions(['sink' => $destination])
+            ->connectTimeout(20)->timeout(300)
+            ->get('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId), ['alt' => 'media']);
         if (! $response->successful()) throw new RuntimeException('Không thể tải backup từ Google Drive. HTTP '.$response->status());
+    }
+
+    public function delete(string $fileId): void
+    {
+        $this->assertFileId($fileId);
+        $response = Http::withToken($this->drive->accessToken())
+            ->timeout(30)
+            ->delete('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId));
+        if (! $response->successful() && $response->status() !== 404) {
+            throw new RuntimeException('Không thể xóa backup trên Google Drive. HTTP '.$response->status());
+        }
+    }
+
+    private function assertFileId(string $fileId): void
+    {
+        if (! preg_match('/^[A-Za-z0-9_-]{10,}$/', $fileId)) throw new RuntimeException('Google Drive file ID không hợp lệ.');
     }
 
     private function findChildFolder(string $token, string $parentId, string $name): ?string
