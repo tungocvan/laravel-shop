@@ -181,10 +181,10 @@ class MuasamcongClientController extends Controller
         return view('Muasamcong::client.drug-pricing-detail', compact('keyword', 'item', 'synced', 'canSync'));
     }
 
-    public function queueDrugPricingSync(Request $request): RedirectResponse
+    public function queueDrugPricingSync(Request $request, ClientApplicationRegistry $registry): RedirectResponse
     {
         $user = $request->user('web');
-        abort_if($user === null || ! $user->can(self::SYNC_PERMISSION), 403);
+        abort_if($user === null || ! $registry->userCan($user, self::SYNC_PERMISSION), 403);
 
         $validated = $request->validate([
             'keyword' => ['required', 'string', 'min:2', 'max:200'],
