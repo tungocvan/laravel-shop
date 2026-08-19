@@ -11,6 +11,13 @@
         'Công ty' => $filters['winning_company'] ?? '',
     ])->filter(fn ($value) => filled($value));
     $filterCount = $activeFilters->count() + (filled($filters['sort_price'] ?? '') ? 1 : 0);
+    $sourceMeta = match ($dataSource ?? '') {
+        'synced' => ['label' => 'Dữ liệu đã đồng bộ', 'class' => 'bg-emerald-50 text-emerald-700 ring-emerald-200'],
+        'snapshot' => ['label' => 'Bộ nhớ tra cứu', 'class' => 'bg-amber-50 text-amber-700 ring-amber-200'],
+        'api' => ['label' => 'Mua sắm công API', 'class' => 'bg-sky-50 text-sky-700 ring-sky-200'],
+        default => null,
+    };
+    $refreshQuery = array_merge(request()->except(['page', 'refresh']), ['keyword' => $keyword, 'refresh' => 1]);
 @endphp
 <section class="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-6">
     <div class="max-w-3xl">
@@ -58,6 +65,22 @@
 </section>
 @if(session('status'))<div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>@endif
 @if($keyword !== '' && ($result['success'] ?? false))
+    @if($sourceMeta)
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm sm:px-4">
+            <div class="flex min-w-0 items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset {{ $sourceMeta['class'] }}">
+                    <span class="h-1.5 w-1.5 rounded-full bg-current"></span>{{ $sourceMeta['label'] }}
+                </span>
+                <span class="hidden text-xs text-slate-500 sm:inline">Ưu tiên dữ liệu nội bộ để tải nhanh và giảm gọi API.</span>
+            </div>
+            @if(($dataSource ?? '') !== 'api')
+                <a href="{{ route('client.muasamcong.drug-pricing', $refreshQuery) }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50" title="Bỏ qua dữ liệu nội bộ và gọi API Mua sắm công">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-5V2"/><path d="M4 17h5v5"/><path d="M5.5 9A7 7 0 0 1 17 5l3 2M18.5 15A7 7 0 0 1 7 19l-3-2"/></svg>
+                    <span class="hidden sm:inline">Tra cứu dữ liệu mới nhất</span><span class="sm:hidden">Mới nhất</span>
+                </a>
+            @endif
+        </div>
+    @endif
 <section class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
     @foreach([['Kết quả',$summary['total'],null],['Thấp nhất',$summary['lowest_price'],'price'],['Trung bình',$summary['average_price'],'price'],['Cao nhất',$summary['highest_price'],'price']] as [$label,$value,$type])
         <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-5"><p class="text-xs font-medium text-slate-500 sm:text-sm">{{ $label }}</p><p class="mt-1 text-lg font-bold sm:text-2xl">{{ $type === 'price' ? ($value !== null ? number_format($value,0,',','.') . ' đ' : '—') : number_format($value) }}</p></div>
