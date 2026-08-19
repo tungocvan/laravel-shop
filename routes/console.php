@@ -8,7 +8,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-if (filter_var(env('FACEBOOK_SCHEDULER_ENABLED', false), FILTER_VALIDATE_BOOL)) {
+if (config('services.facebook.scheduler_enabled', false)) {
     Schedule::command('facebook:dispatch-scheduled')
         ->everyMinute()
         ->withoutOverlapping();
