@@ -7,6 +7,7 @@ use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongAppl
 use Modules\ClientPortal\Http\Controllers\Admin\ApplicationAdminController;
 use Modules\ClientPortal\Http\Controllers\PortalController;
 use Modules\ClientPortal\Services\ApplicationRegistry;
+use Modules\ClientPortal\Support\ApplicationContext;
 use Tests\TestCase;
 
 class ClientPortalExtractionTest extends TestCase
@@ -19,6 +20,7 @@ class ClientPortalExtractionTest extends TestCase
         $this->assertSame('support', $module['type']);
         $this->assertTrue((bool) $module['enabled']);
         $this->assertContains('Auth', $module['depends']);
+        $this->assertSame(app(ApplicationContext::class), app(ApplicationContext::class));
     }
 
     public function test_portal_routes_are_owned_by_client_portal_controllers(): void
