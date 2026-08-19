@@ -2,6 +2,7 @@
 
 namespace Modules\System\Services\Cloud;
 
+use Carbon\Carbon;
 use Modules\System\Services\SettingsService;
 
 class CloudBackupAutomationService
@@ -12,9 +13,12 @@ class CloudBackupAutomationService
 
     public function config(): array
     {
+        $enabled = filter_var($this->settings->get('cloud.google_drive.auto.enabled', false), FILTER_VALIDATE_BOOL);
+        $time = (string) $this->settings->get('cloud.google_drive.auto.time', '02:00');
+
         return [
-            'enabled' => filter_var($this->settings->get('cloud.google_drive.auto.enabled', false), FILTER_VALIDATE_BOOL),
-            'time' => (string) $this->settings->get('cloud.google_drive.auto.time', '02:00'),
+            'enabled' => $enabled,
+            'time' => $time,
             'upload_drive' => filter_var($this->settings->get('cloud.google_drive.auto.upload_drive', true), FILTER_VALIDATE_BOOL),
             'local_retention' => max(1, (int) $this->settings->get('cloud.google_drive.auto.local_retention', 30)),
             'drive_retention' => max(1, (int) $this->settings->get('cloud.google_drive.auto.drive_retention', 30)),
@@ -22,6 +26,7 @@ class CloudBackupAutomationService
             'last_run_at' => (string) $this->settings->get('cloud.google_drive.auto.last_run_at', ''),
             'last_status' => (string) $this->settings->get('cloud.google_drive.auto.last_status', ''),
             'last_message' => (string) $this->settings->get('cloud.google_drive.auto.last_message', ''),
+            'next_run_at' => $enabled ? $this->nextRunAt($time) : '',
         ];
     }
 
@@ -34,13 +39,15 @@ class CloudBackupAutomationService
         $this->settings->set('cloud.google_drive.auto.drive_retention', max(1, (int) ($config['drive_retention'] ?? 30)), self::GROUP);
     }
 
+    public function cancel(): void
+    {
+        $this->settings->set('cloud.google_drive.auto.enabled', false, self::GROUP);
+    }
+
     public function dueNow(): bool
     {
         $config = $this->config();
-        if (! $config['enabled'] || $config['last_run_date'] === now()->toDateString()) {
-            return false;
-        }
-
+        if (! $config['enabled'] || $config['last_run_date'] === now()->toDateString()) return false;
         return now()->format('H:i') === $config['time'];
     }
 
@@ -50,5 +57,13 @@ class CloudBackupAutomationService
         $this->settings->set('cloud.google_drive.auto.last_run_at', now()->toIso8601String(), self::GROUP);
         $this->settings->set('cloud.google_drive.auto.last_status', $status, self::GROUP);
         $this->settings->set('cloud.google_drive.auto.last_message', mb_substr($message, 0, 1000), self::GROUP);
+    }
+
+    private function nextRunAt(string $time): string
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time) + [0, 0]);
+        $next = Carbon::now()->setTime($hour, $minute, 0);
+        if ($next->lessThanOrEqualTo(now())) $next->addDay();
+        return $next->toIso8601String();
     }
 }
