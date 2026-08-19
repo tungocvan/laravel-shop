@@ -10,7 +10,7 @@
     @if($driveStatus['connected']??false)
         <div class="border-b border-gray-200 p-4 bg-sky-50/40">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div><h3 class="text-sm font-bold text-gray-900">Backup đang có trên Google Drive</h3><p class="mt-1 text-xs text-gray-500">Hiển thị tối đa 100 file trong cây <code>database/YYYY/MM</code>. Có thể mở URL Drive hoặc tải về local rồi restore.</p></div>
+                <div><h3 class="text-sm font-bold text-gray-900">Backup đang có trên Google Drive</h3><p class="mt-1 text-xs text-gray-500">Hiển thị tối đa 100 file trong cây <code>database/YYYY/MM</code>. Có thể copy URL, mở Drive, xóa remote hoặc tải về local rồi restore.</p></div>
                 <button type="button" wire:click="$toggle('showDriveBackups')" class="rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-700">{{ $showDriveBackups ? 'ẨN DANH SÁCH' : 'HIỆN DANH SÁCH' }}</button>
             </div>
             @if($showDriveBackups)
@@ -19,7 +19,12 @@
                     @forelse($remoteBackups as $remote)
                         <div class="p-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div class="min-w-0"><div class="text-sm font-semibold text-gray-900 break-all">{{ $remote['name'] }}</div><div class="mt-1 flex flex-wrap gap-2 text-xs text-gray-500"><span>{{ $remote['year'] }}/{{ $remote['month'] }}</span><span>{{ number_format(($remote['size'] ?? 0)/1024, 2) }} KB</span>@if(!empty($remote['modified_at']))<span>{{ \Carbon\Carbon::parse($remote['modified_at'])->diffForHumans() }}</span>@endif</div><a href="{{ $remote['url'] }}" target="_blank" rel="noopener noreferrer" class="mt-1 block text-xs text-sky-600 hover:underline break-all">{{ $remote['url'] }}</a></div>
-                            <div class="flex shrink-0 gap-2"><a href="{{ $remote['url'] }}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Mở Drive</a><button wire:click="restoreFromGoogleDrive('{{ $remote['id'] }}','{{ $remote['name'] }}')" wire:confirm="CẢNH BÁO: Hệ thống sẽ tải '{{ $remote['name'] }}' từ Google Drive về local, tạo cơ chế backup an toàn theo luồng restore hiện tại rồi ghi đè database. Tiếp tục?" wire:loading.attr="disabled" class="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">TẢI & RESTORE</button></div>
+                            <div class="flex shrink-0 flex-wrap gap-2">
+                                <button type="button" data-url="{{ $remote['url'] }}" onclick="navigator.clipboard.writeText(this.dataset.url)" class="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700">Copy URL</button>
+                                <a href="{{ $remote['url'] }}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700">Mở Drive</a>
+                                <button wire:click="deleteRemoteBackup('{{ $remote['id'] }}','{{ $remote['name'] }}')" wire:confirm="Xóa vĩnh viễn '{{ $remote['name'] }}' khỏi Google Drive? File local (nếu có) không bị xóa." wire:loading.attr="disabled" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 disabled:opacity-50">Xóa Drive</button>
+                                <button wire:click="restoreFromGoogleDrive('{{ $remote['id'] }}','{{ $remote['name'] }}')" wire:confirm="CẢNH BÁO: Hệ thống sẽ tải '{{ $remote['name'] }}' từ Google Drive về local, tạo cơ chế backup an toàn theo luồng restore hiện tại rồi ghi đè database. Tiếp tục?" wire:loading.attr="disabled" class="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">TẢI & RESTORE</button>
+                            </div>
                         </div>
                     @empty<div class="p-6 text-center text-sm text-gray-400">Chưa tìm thấy backup nào trên Google Drive.</div>@endforelse
                 </div>
