@@ -1,7 +1,8 @@
 <?php
 
 return [
+    'name' => 'ClientPortal',
     'type' => 'support',
-    'enabled' => env('MODULE_CLIENTPORTAL_ENABLED', true),
+    'default_enabled' => env('MODULE_CLIENTPORTAL_ENABLED', true),
     'depends' => ['Auth'],
 ];
