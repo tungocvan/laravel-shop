@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
+use Modules\Admin\Http\Controllers\ClientApplicationAdminController;
 use Modules\Admin\Http\Controllers\DashboardController;
 use Modules\Admin\Http\Controllers\MenuController;
 use Modules\Admin\Http\Controllers\ProfileController;
@@ -23,6 +24,34 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         Route::get('/{id}/edit', [MenuController::class, 'edit'])
             ->middleware('permission:admin.menu.update,admin')
             ->name('edit');
+    });
+
+    Route::prefix('client-apps')->name('client-apps.')->group(function () {
+        Route::get('/', [ClientApplicationAdminController::class, 'index'])
+            ->middleware('permission:view_role,admin')
+            ->name('index');
+
+        Route::post('/sync-permissions', [ClientApplicationAdminController::class, 'syncPermissions'])
+            ->middleware('permission:edit_role,admin')
+            ->name('sync-permissions');
+
+        Route::post('/sync-super-admin', [ClientApplicationAdminController::class, 'syncSuperAdmin'])
+            ->middleware('permission:edit_role,admin')
+            ->name('sync-super-admin');
+
+        Route::get('/users/{user}', [ClientApplicationAdminController::class, 'editUser'])
+            ->middleware('permission:edit_user,admin')
+            ->name('users.edit');
+        Route::put('/users/{user}', [ClientApplicationAdminController::class, 'updateUser'])
+            ->middleware('permission:edit_user,admin')
+            ->name('users.update');
+
+        Route::get('/roles/{role}', [ClientApplicationAdminController::class, 'editRole'])
+            ->middleware('permission:edit_role,admin')
+            ->name('roles.edit');
+        Route::put('/roles/{role}', [ClientApplicationAdminController::class, 'updateRole'])
+            ->middleware('permission:edit_role,admin')
+            ->name('roles.update');
     });
 
     Route::get('/profile', [ProfileController::class, 'profile'])
