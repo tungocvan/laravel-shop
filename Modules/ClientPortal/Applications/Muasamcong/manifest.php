@@ -17,11 +17,7 @@ return [
             'permission' => 'client.muasamcong.drug-pricing.view',
             'sort_order' => 10,
             'actions' => [
-                'sync' => [
-                    'name' => 'Đồng bộ dữ liệu tra cứu',
-                    'permission' => 'client.muasamcong.drug-pricing.sync',
-                    'sort_order' => 10,
-                ],
+                'sync' => ['name' => 'Đồng bộ dữ liệu tra cứu', 'permission' => 'client.muasamcong.drug-pricing.sync', 'sort_order' => 10],
             ],
         ],
         'history' => [
@@ -33,18 +29,12 @@ return [
         ],
         'wishlist' => [
             'name' => 'Danh sách quan tâm',
+            'description' => 'Lưu các thuốc và kết quả trúng thầu cần theo dõi để mở lại nhanh.',
+            'route' => 'client.muasamcong.wishlist',
             'permission' => 'client.muasamcong.wishlist.view',
             'sort_order' => 30,
         ],
-        'contractors' => [
-            'name' => 'Nhà thầu',
-            'permission' => 'client.muasamcong.contractors.view',
-            'sort_order' => 40,
-        ],
-        'analytics' => [
-            'name' => 'Phân tích',
-            'permission' => 'client.muasamcong.analytics.view',
-            'sort_order' => 50,
-        ],
+        'contractors' => ['name' => 'Nhà thầu', 'permission' => 'client.muasamcong.contractors.view', 'sort_order' => 40],
+        'analytics' => ['name' => 'Phân tích', 'permission' => 'client.muasamcong.analytics.view', 'sort_order' => 50],
     ],
 ];
