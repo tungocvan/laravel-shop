@@ -4,102 +4,20 @@
 @section('app-dashboard-route', route('client.muasamcong.dashboard'))
 @section('content')
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-    <a href="{{ route('client.muasamcong.drug-pricing', ['keyword' => $keyword]) }}" class="text-sm font-semibold text-slate-600 hover:text-slate-950">← Quay lại kết quả</a>
-    <div class="flex items-center gap-2">
-        @if($synced)<span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">✓ Đã đồng bộ</span>@endif
-        @if(!empty($item['id']))
-            <button id="share-drug" type="button" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Chia sẻ thuốc" title="Chia sẻ">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.7 6.8-4.4M8.6 13.3l6.8 4.4"/></svg>
-                <span class="hidden sm:inline">Chia sẻ</span>
-            </button>
-            <button id="copy-share-link" type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Sao chép link chia sẻ" title="Sao chép link">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
-        @endif
-    </div>
-</div>
+<a href="{{ route('client.muasamcong.drug-pricing',['keyword'=>$keyword]) }}" class="text-sm font-semibold text-slate-600">← Quay lại kết quả</a>
+<div class="flex items-center gap-2">@if($synced)<span class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">✓ Đã đồng bộ</span>@endif
+@if(!empty($item['id']))
+<form method="POST" action="{{ route('client.muasamcong.wishlist.store') }}">@csrf<input type="hidden" name="keyword" value="{{ $keyword }}"><input type="hidden" name="source_id" value="{{ $item['id'] }}"><button class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white text-xl text-rose-500 shadow-sm" title="Thêm vào danh sách quan tâm" aria-label="Thêm vào danh sách quan tâm">♡</button></form>
+<button id="share-drug" type="button" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm"><span>↗</span><span class="hidden sm:inline">Chia sẻ</span></button>
+<button id="copy-share-link" type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white" title="Sao chép link">⧉</button>
+@endif</div></div>
+@if(session('status'))<div class="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>@endif
 <div id="share-feedback" class="mb-4 hidden rounded-2xl border px-4 py-3 text-sm"></div>
 <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-    <div class="border-b border-slate-200 bg-slate-50 px-5 py-5 sm:px-7"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Chi tiết kết quả Mua sắm công</p><h1 class="mt-2 text-2xl font-bold text-slate-950">{{ $item['tenThuoc'] ?? 'Không có tên thuốc' }}</h1><p class="mt-2 text-sm text-slate-600">{{ $item['tenHoatChat'] ?? '—' }}{{ !empty($item['nongDo']) ? ' · '.$item['nongDo'] : '' }}</p></div>
-    @php($fields = [
-        'Nhóm thuốc' => $item['nhomThuoc'] ?? $item['groupMedicine'] ?? null,
-        'Đường dùng' => $item['duongDung'] ?? null,
-        'Dạng bào chế' => $item['dangBaoChe'] ?? null,
-        'Đơn vị tính' => $item['donViTinh'] ?? null,
-        'Quy cách đóng gói' => $item['quyCachDongGoi'] ?? null,
-        'Hạn dùng' => $item['hanDung'] ?? null,
-        'Giá trúng thầu' => is_numeric($item['donGia'] ?? null) ? number_format((float)$item['donGia'], 0, ',', '.').' đ' : null,
-        'Số lượng' => is_numeric($item['soLuong'] ?? null) ? number_format((float)$item['soLuong'], 0, ',', '.') : null,
-        'Đơn vị trúng thầu' => implode('; ', array_map('strval', (array)($item['winningName'] ?? []))),
-        'Mã nhà thầu trúng' => implode('; ', array_map('strval', (array)($item['winningCode'] ?? []))),
-        'Chủ đầu tư / Bên mời thầu' => $item['tenCdtBmt'] ?? null,
-        'Mã TBMT' => $item['maTbmt'] ?? null,
-        'Số quyết định' => $item['soQuyetDinh'] ?? null,
-        'Ngày quyết định' => $item['ngayBanHanhQuyetDinh'] ?? null,
-        'Ngày đăng KQLCNT' => $item['ngayDangTaiKqlcnt'] ?? null,
-        'Cơ sở sản xuất' => $item['tenCoSoSanXuat'] ?? null,
-        'Nước sản xuất' => $item['nuocSanXuat'] ?? null,
-        'GĐKLH / GPNK' => $item['gdklh_GPNK'] ?? null,
-    ])
-    <dl class="grid gap-0 md:grid-cols-2 xl:grid-cols-3">@foreach($fields as $label => $value)<div class="border-b border-slate-100 px-5 py-4 md:border-r xl:px-6"><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $label }}</dt><dd class="mt-1.5 break-words text-sm font-medium text-slate-800">{{ ($value !== null && $value !== '') ? $value : '—' }}</dd></div>@endforeach</dl>
-    @if($canSync && !$synced && !empty($item['id']))<div class="border-t border-slate-200 bg-slate-50 px-5 py-5 sm:px-7"><form method="POST" action="{{ route('client.muasamcong.drug-pricing.sync') }}">@csrf<input type="hidden" name="keyword" value="{{ $keyword }}"><input type="hidden" name="selected_ids[]" value="{{ $item['id'] }}"><button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white">Đồng bộ bản ghi này qua Queue</button></form></div>@endif
+<div class="border-b border-slate-200 bg-slate-50 px-5 py-5 sm:px-7"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Chi tiết kết quả Mua sắm công</p><h1 class="mt-2 text-2xl font-bold">{{ $item['tenThuoc']??'Không có tên thuốc' }}</h1><p class="mt-2 text-sm text-slate-600">{{ $item['tenHoatChat']??'—' }}{{ !empty($item['nongDo'])?' · '.$item['nongDo']:'' }}</p></div>
+@php($fields=['Nhóm thuốc'=>$item['nhomThuoc']??$item['groupMedicine']??null,'Đường dùng'=>$item['duongDung']??null,'Dạng bào chế'=>$item['dangBaoChe']??null,'Đơn vị tính'=>$item['donViTinh']??null,'Quy cách đóng gói'=>$item['quyCachDongGoi']??null,'Hạn dùng'=>$item['hanDung']??null,'Giá trúng thầu'=>is_numeric($item['donGia']??null)?number_format((float)$item['donGia'],0,',','.').' đ':null,'Số lượng'=>is_numeric($item['soLuong']??null)?number_format((float)$item['soLuong'],0,',','.'):null,'Đơn vị trúng thầu'=>implode('; ',array_map('strval',(array)($item['winningName']??[]))),'Mã nhà thầu trúng'=>implode('; ',array_map('strval',(array)($item['winningCode']??[]))),'Chủ đầu tư / Bên mời thầu'=>$item['tenCdtBmt']??null,'Mã TBMT'=>$item['maTbmt']??null,'Số quyết định'=>$item['soQuyetDinh']??null,'Ngày quyết định'=>$item['ngayBanHanhQuyetDinh']??null,'Ngày đăng KQLCNT'=>$item['ngayDangTaiKqlcnt']??null,'Cơ sở sản xuất'=>$item['tenCoSoSanXuat']??null,'Nước sản xuất'=>$item['nuocSanXuat']??null,'GĐKLH / GPNK'=>$item['gdklh_GPNK']??null])
+<dl class="grid md:grid-cols-2 xl:grid-cols-3">@foreach($fields as $label=>$value)<div class="border-b border-slate-100 px-5 py-4 md:border-r xl:px-6"><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $label }}</dt><dd class="mt-1.5 break-words text-sm font-medium text-slate-800">{{ ($value!==null&&$value!=='')?$value:'—' }}</dd></div>@endforeach</dl>
+@if($canSync&&!$synced&&!empty($item['id']))<div class="border-t border-slate-200 bg-slate-50 px-5 py-5"><form method="POST" action="{{ route('client.muasamcong.drug-pricing.sync') }}">@csrf<input type="hidden" name="keyword" value="{{ $keyword }}"><input type="hidden" name="selected_ids[]" value="{{ $item['id'] }}"><button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white">Đồng bộ bản ghi này qua Queue</button></form></div>@endif
 </section>
-@if(!empty($item['id']))
-<script>
-(() => {
-    const shareButton = document.getElementById('share-drug');
-    const copyButton = document.getElementById('copy-share-link');
-    const feedback = document.getElementById('share-feedback');
-    if (!shareButton && !copyButton) return;
-
-    const message = (text, ok = true) => {
-        feedback.textContent = text;
-        feedback.className = `mb-4 rounded-2xl border px-4 py-3 text-sm ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-700'}`;
-    };
-
-    const createShare = async () => {
-        const response = await fetch(@json(route('client.muasamcong.drug-pricing.share')), {
-            method: 'POST',
-            headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':@json(csrf_token())},
-            body: JSON.stringify({keyword:@json($keyword), source_id:@json((string)$item['id'])})
-        });
-        if (!response.ok) throw new Error('Không thể tạo liên kết chia sẻ.');
-        return response.json();
-    };
-
-    const copyUrl = async (url) => {
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(url);
-            message('Đã sao chép link chia sẻ. Bạn có thể dán vào Zalo, Facebook, Email...');
-            return;
-        }
-        window.prompt('Sao chép liên kết chia sẻ:', url);
-    };
-
-    shareButton?.addEventListener('click', async () => {
-        shareButton.disabled = true;
-        try {
-            const data = await createShare();
-            if (navigator.share) {
-                await navigator.share({title:data.title, text:data.text, url:data.url});
-            } else {
-                await copyUrl(data.url);
-            }
-        } catch (error) {
-            if (error?.name !== 'AbortError') message(error?.message || 'Không thể chia sẻ lúc này.', false);
-        } finally { shareButton.disabled = false; }
-    });
-
-    copyButton?.addEventListener('click', async () => {
-        copyButton.disabled = true;
-        try {
-            const data = await createShare();
-            await copyUrl(data.url);
-        } catch (error) {
-            message(error?.message || 'Không thể sao chép link lúc này.', false);
-        } finally { copyButton.disabled = false; }
-    });
-})();
-</script>
-@endif
+@if(!empty($item['id']))<script>(()=>{const s=document.getElementById('share-drug'),c=document.getElementById('copy-share-link'),f=document.getElementById('share-feedback');const msg=(t,o=true)=>{f.textContent=t;f.className=`mb-4 rounded-2xl border px-4 py-3 text-sm ${o?'border-emerald-200 bg-emerald-50 text-emerald-800':'border-red-200 bg-red-50 text-red-700'}`};const make=async()=>{const r=await fetch(@json(route('client.muasamcong.drug-pricing.share')),{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':@json(csrf_token())},body:JSON.stringify({keyword:@json($keyword),source_id:@json((string)$item['id'])})});if(!r.ok)throw new Error('Không thể tạo liên kết chia sẻ.');return r.json()};const copy=async u=>{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(u);msg('Đã sao chép link chia sẻ.');}else window.prompt('Sao chép liên kết chia sẻ:',u)};s?.addEventListener('click',async()=>{try{const d=await make();navigator.share?await navigator.share({title:d.title,text:d.text,url:d.url}):await copy(d.url)}catch(e){if(e?.name!=='AbortError')msg(e?.message||'Không thể chia sẻ.',false)}});c?.addEventListener('click',async()=>{try{await copy((await make()).url)}catch(e){msg(e?.message||'Không thể sao chép link.',false)}})})();</script>@endif
 @endsection
