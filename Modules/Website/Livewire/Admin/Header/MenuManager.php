@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Livewire\Admin\Header;
 
+use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\HeaderMenu;
@@ -49,27 +50,19 @@ class MenuManager extends Component
             ['name' => $this->menuLocations[$this->location]]
         );
 
-        // Khởi tạo mục Client Portal mặc định cho vị trí menu tài khoản.
-        // Chỉ tạo khi chưa tồn tại; quản trị viên vẫn có thể sửa/xóa/sắp xếp như menu bình thường.
         if ($this->location === 'account') {
-            HeaderMenuItem::firstOrCreate(
-                [
-                    'header_menu_id' => $currentMenu->id,
-                    'title' => 'Ứng dụng của tôi',
-                ],
-                [
-                    'url' => '/my-apps',
-                    'parent_id' => null,
-                    'sort_order' => 10,
-                    'is_active' => true,
-                ]
+            $item = HeaderMenuItem::firstOrCreate(
+                ['header_menu_id' => $currentMenu->id, 'title' => 'Ứng dụng của tôi'],
+                ['url' => '/my-apps', 'parent_id' => null, 'sort_order' => 10, 'is_active' => true]
             );
+
+            if ($item->wasRecentlyCreated) {
+                Cache::forget('menu_tree_account');
+            }
         }
 
         $menuTree = $service->getMenuTreeByLocation($this->location);
-        $flatItems = HeaderMenuItem::where('header_menu_id', $currentMenu->id)
-            ->whereNull('parent_id')
-            ->get();
+        $flatItems = HeaderMenuItem::where('header_menu_id', $currentMenu->id)->whereNull('parent_id')->get();
 
         return view('Website::livewire.admin.header.menu-manager', [
             'menuTree' => $menuTree,
@@ -81,7 +74,6 @@ class MenuManager extends Component
     public function openModal($id = null)
     {
         $this->reset(['title', 'url', 'parent_id', 'icon', 'sort_order', 'is_active', 'editingId']);
-
         if ($id) {
             $this->editingId = $id;
             $item = HeaderMenuItem::findOrFail($id);
@@ -91,7 +83,6 @@ class MenuManager extends Component
             $this->sort_order = $item->sort_order;
             $this->is_active = $item->is_active;
         }
-
         $this->isModalOpen = true;
     }
 
@@ -99,7 +90,6 @@ class MenuManager extends Component
     {
         $this->authorizeAdminPermission('website.menu.manage');
         $this->validate();
-
         $menuId = HeaderMenu::where('location', $this->location)->value('id');
         $data = [
             'header_menu_id' => $menuId,
@@ -109,13 +99,7 @@ class MenuManager extends Component
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,
         ];
-
-        if ($this->editingId) {
-            $service->updateItem($this->editingId, $data);
-        } else {
-            $service->createItem($data);
-        }
-
+        $this->editingId ? $service->updateItem($this->editingId, $data) : $service->createItem($data);
         $this->isModalOpen = false;
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu menu item!']);
     }
