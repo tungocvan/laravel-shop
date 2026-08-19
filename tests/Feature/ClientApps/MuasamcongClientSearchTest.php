@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\ClientApps;
 
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Mockery;
 use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongApplicationController;
 use Modules\ClientPortal\Applications\Muasamcong\Services\ClientPricingSearchService;
@@ -17,6 +19,25 @@ use Tests\TestCase;
 
 class MuasamcongClientSearchTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (! Schema::hasTable('muasamcong_pricing_results')) {
+            Schema::create('muasamcong_pricing_results', function (Blueprint $table): void {
+                $table->id();
+                $table->uuid('source_id')->unique();
+                $table->string('ten_thuoc')->nullable();
+                $table->string('ten_hoat_chat')->nullable();
+                $table->decimal('don_gia', 18, 4)->nullable();
+                $table->json('winning_name')->nullable();
+                $table->json('raw_payload')->nullable();
+                $table->timestamp('synced_at')->nullable();
+                $table->timestamps();
+            });
+        }
+    }
+
     public function test_client_drug_pricing_routes_enforce_application_and_feature_access(): void
     {
         foreach ([
