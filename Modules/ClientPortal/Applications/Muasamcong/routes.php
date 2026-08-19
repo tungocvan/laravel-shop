@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongApplicationController;
+use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongHistoryController;
 
 if ((bool) config('modules.registry.Muasamcong.enabled', false)) {
     Route::middleware(['web', 'auth:web', 'client.application:muasamcong'])
@@ -19,6 +20,10 @@ if ((bool) config('modules.registry.Muasamcong.enabled', false)) {
                     ->whereUuid('sourceId')
                     ->name('drug-pricing.detail');
                 Route::post('/drug-pricing/sync', [MuasamcongApplicationController::class, 'queueDrugPricingSync'])->name('drug-pricing.sync');
+            });
+
+            Route::middleware('client.feature:muasamcong,history')->group(function () {
+                Route::get('/history', [MuasamcongHistoryController::class, 'index'])->name('history');
             });
         });
 }
