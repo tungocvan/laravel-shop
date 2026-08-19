@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Middleware\EnsureClientApplicationAccess;
-use App\Http\Middleware\EnsureClientFeatureAccess;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Modules\ClientPortal\Http\Middleware\EnsureApplicationAccess;
+use Modules\ClientPortal\Http\Middleware\EnsureFeatureAccess;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -31,34 +31,26 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
-            'client.application' => EnsureClientApplicationAccess::class,
-            'client.feature' => EnsureClientFeatureAccess::class,
+            'client.application' => EnsureApplicationAccess::class,
+            'client.feature' => EnsureFeatureAccess::class,
         ]);
         $middleware->web(append: [
-            // \Modules\Website\Http\Middleware\TrackAffiliate::class, // Trỏ đúng namespace Module
+            // \Modules\Website\Http\Middleware\TrackAffiliate::class,
             // \Modules\Website\Http\Middleware\ShareWishlistData::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, $request) {
-
             if ($request->routeIs('admin.*')) {
                 return redirect()->guest(route('admin.login'));
             }
-
             return redirect()->guest(route('login'));
         });
 
-        /**
-         * ❌ Handle 404 (optional - nên có)
-         */
         $exceptions->render(function (NotFoundHttpException $e, $request) {
-
             if ($request->routeIs('admin.*')) {
                 return response()->view('Admin::errors.404', [], 404);
             }
-
             return response()->view('Website::errors.404', [], 404);
         });
-
     })->create();
