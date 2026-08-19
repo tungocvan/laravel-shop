@@ -3,6 +3,7 @@
 namespace Modules\Auth\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Livewire\Component;
 use Modules\System\Services\AdminLoginRedirectService;
 use Modules\System\Services\SettingsService;
@@ -10,19 +11,12 @@ use Modules\System\Services\SettingsService;
 class LoginForm extends Component
 {
     public $email = '';
-
     public $password = '';
-
     public $remember = false;
-
     public string $guard = 'web';
-
     public $logo = '';
-
     public $login_name_line_1 = '';
-
     public $login_name_line_2 = '';
-
     public $login_description = '';
 
     protected $rules = [
@@ -35,14 +29,10 @@ class LoginForm extends Component
         $this->guard = in_array($guard, ['web', 'admin'], true) ? $guard : 'web';
 
         $logo = $settings->get('site_logo');
-        $this->logo = $logo
-            ? asset('storage/'.$logo).'?v='.md5($logo)
-            : asset('storage/img/logo.png');
-
+        $this->logo = $logo ? asset('storage/'.$logo).'?v='.md5($logo) : asset('storage/img/logo.png');
         $this->login_name_line_1 = $settings->get('site_name_line_1') ?? config('app.school_managing_agency', '');
         $this->login_name_line_2 = $settings->get('site_name_line_2') ?? 'CÔNG TY TNHH INAFO VIỆT NAM';
         $this->login_description = $settings->get('login_description') ?? config('app.school_login_description', 'Hệ thống quản trị');
-
         $this->loadSchoolSettings();
     }
 
@@ -57,7 +47,9 @@ class LoginForm extends Component
                 return redirect()->route($redirect->configuredRoute());
             }
 
-            return redirect()->route('client.apps.index');
+            return Route::has('client.apps.index')
+                ? redirect()->route('client.apps.index')
+                : redirect('/');
         }
 
         $this->addError('email', 'Thông tin đăng nhập không chính xác.');
@@ -75,13 +67,11 @@ class LoginForm extends Component
         }
 
         $serviceClass = 'Modules\\Admission\\Services\\SchoolSettingService';
-
         if (! class_exists($serviceClass)) {
             return;
         }
 
         $settings = app($serviceClass)->all();
-
         $this->login_name_line_1 = $settings['school_managing_agency'] ?? $this->login_name_line_1;
         $this->login_name_line_2 = $settings['school_name'] ?? $this->login_name_line_2;
         $this->login_description = $settings['school_login_description'] ?? $this->login_description;
