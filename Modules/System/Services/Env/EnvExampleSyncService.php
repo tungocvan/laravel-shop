@@ -139,7 +139,7 @@ class EnvExampleSyncService
     private function formatValue(string $value): string
     {
         if ($value === '') return '';
-        if (preg_match('/[\s#"\'\\]/', $value)) return '"'.addcslashes($value, "\\\"").'"';
+        if (strpbrk($value, " \t#\"'\\") !== false) return '"'.addcslashes($value, "\\\"").'"';
         return $value;
     }
 }
