@@ -2,18 +2,19 @@
 
 namespace Tests\Feature\ClientApps;
 
-use App\Services\ClientApplicationPermissionService;
 use Illuminate\Support\Facades\Route;
+use Modules\ClientPortal\Services\ApplicationPermissionService;
 use Tests\TestCase;
 
 class ClientApplicationAdminTest extends TestCase
 {
     public function test_permission_definitions_are_built_from_application_manifest(): void
     {
-        $definitions = app(ClientApplicationPermissionService::class)->definitions();
+        $definitions = app(ApplicationPermissionService::class)->definitions();
 
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.access'));
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.drug-pricing.view'));
+        $this->assertTrue($definitions->contains('name', 'client.muasamcong.drug-pricing.sync'));
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.history.view'));
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.wishlist.view'));
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.contractors.view'));
@@ -34,7 +35,6 @@ class ClientApplicationAdminTest extends TestCase
 
         foreach ($expectations as $name => [$uri, $permission]) {
             $route = Route::getRoutes()->getByName($name);
-
             $this->assertNotNull($route, $name);
             $this->assertSame($uri, $route->uri(), $name);
             $this->assertContains('auth:admin', $route->gatherMiddleware(), $name);
