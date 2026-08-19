@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Auth\Http\Controllers\AuthController;
+use Modules\Auth\Http\Controllers\ClientAppsController;
 use Modules\Auth\Http\Controllers\GoogleController;
 
 Route::middleware(['web'])->group(function () {
@@ -11,9 +12,8 @@ Route::middleware(['web'])->group(function () {
     Route::get('/login', [AuthController::class, 'clientLogin'])->name('login');
 
     Route::middleware('auth:web')->group(function () {
-        Route::get('/my-apps', function () {
-            return view('Auth::pages.client.apps-placeholder');
-        })->name('client.apps.index');
+        Route::get('/my-apps', [ClientAppsController::class, 'index'])
+            ->name('client.apps.index');
 
         Route::post('/logout', [AuthController::class, 'clientLogout'])->name('logout');
     });
