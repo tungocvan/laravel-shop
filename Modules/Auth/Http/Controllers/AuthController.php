@@ -34,7 +34,6 @@ class AuthController extends Controller
     public function clientLogout(): RedirectResponse
     {
         Auth::guard('web')->logout();
-        session()->invalidate();
         session()->regenerateToken();
 
         return redirect()->route('login');
@@ -43,7 +42,6 @@ class AuthController extends Controller
     public function adminLogout(): RedirectResponse
     {
         Auth::guard('admin')->logout();
-        session()->invalidate();
         session()->regenerateToken();
 
         return redirect()->route('admin.login');
