@@ -56,6 +56,7 @@ class StorageConfig extends Component
             'form.GOOGLE_DRIVE_REDIRECT_URI' => ['required', 'url:http,https', 'max:2048'],
             'form.GOOGLE_DRIVE_FOLDER_NAME' => ['required', 'string', 'max:255'],
         ]);
+
         try {
             $result = $service->save($validated['form'], auth('admin')->id());
             $this->form['GOOGLE_DRIVE_CLIENT_SECRET'] = '';
@@ -79,7 +80,7 @@ class StorageConfig extends Component
         ]);
         $service->save($validated['automation']);
         $this->automationStatus = $service->config();
-        $this->dispatch('notify', type: 'success', message: 'Đã lưu lịch backup tự động.');
+        $this->dispatch('notify', type: 'success', message: 'Đã lưu cấu hình backup tự động.');
     }
 
     public function cancelAutomation(CloudBackupAutomationService $service): void
@@ -88,7 +89,7 @@ class StorageConfig extends Component
         $service->cancel();
         $this->automation['enabled'] = false;
         $this->automationStatus = $service->config();
-        $this->dispatch('notify', type: 'success', message: 'Đã hủy/tạm dừng lịch backup tự động. Cấu hình giờ và retention vẫn được giữ.');
+        $this->dispatch('notify', type: 'success', message: 'Đã tạm dừng lịch backup tự động.');
     }
 
     public function runAutomationNow(CloudBackupAutomationService $service): void
@@ -131,6 +132,6 @@ class StorageConfig extends Component
 
     public function render()
     {
-        return view('System::livewire.settings.storage-config-wrapper');
+        return view('System::livewire.settings.storage-config');
     }
 }
