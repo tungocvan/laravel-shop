@@ -30,7 +30,11 @@ class EnvExampleSyncService
         'DB_HOST' => 'db',
         'DB_DATABASE' => 'laravel',
         'DB_USERNAME' => 'laravel',
+        'CACHE_STORE' => 'redis',
+        'SESSION_DRIVER' => 'redis',
+        'QUEUE_CONNECTION' => 'redis',
         'REDIS_HOST' => 'redis',
+        'NODEJS_SERVER_URL' => 'http://socket:6001',
     ];
 
     public function sync(string $sourceContent): array
