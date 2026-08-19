@@ -4,12 +4,15 @@ namespace Modules\ClientPortal\Applications\Muasamcong\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Modules\ClientPortal\Applications\Muasamcong\Jobs\SyncPricingResultsJob;
 use Modules\ClientPortal\Applications\Muasamcong\Services\ClientPricingSearchService;
+use Modules\ClientPortal\Models\SyncRequest;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\Muasamcong\Services\PricingResultSyncService;
 use Throwable;
@@ -110,9 +113,51 @@ class MuasamcongApplicationController extends Controller
             'selected_ids' => ['required', 'array', 'min:1', 'max:100'],
             'selected_ids.*' => ['required', 'uuid'],
         ]);
+
         $sourceIds = array_values(array_unique($validated['selected_ids']));
-        SyncPricingResultsJob::dispatch(trim($validated['keyword']), $sourceIds, $user->getKey());
-        return back()->with('status', 'Đã đưa '.count($sourceIds).' bản ghi vào hàng đợi đồng bộ. Bạn có thể tiếp tục sử dụng ứng dụng.');
+        $syncRequestId = (string) Str::uuid();
+
+        SyncRequest::query()->create([
+            'id' => $syncRequestId,
+            'user_id' => $user->getKey(),
+            'application_key' => 'muasamcong',
+            'feature_key' => 'drug-pricing',
+            'keyword' => trim($validated['keyword']),
+            'source_ids' => $sourceIds,
+            'selected_count' => count($sourceIds),
+            'status' => 'queued',
+        ]);
+
+        SyncPricingResultsJob::dispatch(trim($validated['keyword']), $sourceIds, $user->getKey(), $syncRequestId);
+
+        return back()
+            ->with('status', 'Đã đưa '.count($sourceIds).' bản ghi vào hàng đợi đồng bộ. Bạn có thể tiếp tục sử dụng ứng dụng.')
+            ->with('sync_request_id', $syncRequestId);
+    }
+
+    public function drugPricingSyncStatus(Request $request, string $syncRequest): JsonResponse
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $record = SyncRequest::query()
+            ->whereKey($syncRequest)
+            ->where('user_id', $user->getKey())
+            ->where('application_key', 'muasamcong')
+            ->where('feature_key', 'drug-pricing')
+            ->firstOrFail();
+
+        return response()->json([
+            'id' => $record->getKey(),
+            'status' => $record->status,
+            'selected' => $record->selected_count,
+            'inserted' => $record->inserted_count,
+            'duplicates' => $record->duplicate_count,
+            'missing' => $record->missing_count,
+            'error' => $record->error_message,
+            'started_at' => $record->started_at?->toIso8601String(),
+            'finished_at' => $record->finished_at?->toIso8601String(),
+        ]);
     }
 
     private function filterPricingItems(Collection $items, array $filters): Collection
