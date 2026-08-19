@@ -13,7 +13,7 @@ return [
         'drug-pricing' => [
             'name' => 'Tra cứu thuốc trúng thầu',
             'description' => 'Tra cứu dữ liệu giá thuốc và kết quả trúng thầu thực tế.',
-            'route' => 'client.muasamcong.dashboard',
+            'route' => 'client.muasamcong.drug-pricing',
             'permission' => 'client.muasamcong.drug-pricing.view',
             'sort_order' => 10,
         ],
