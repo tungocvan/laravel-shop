@@ -3,6 +3,6 @@
 return [
     'name' => 'ClientPortal',
     'type' => 'support',
-    'default_enabled' => env('MODULE_CLIENTPORTAL_ENABLED', true),
+    'default_enabled' => true,
     'depends' => ['Auth'],
 ];
