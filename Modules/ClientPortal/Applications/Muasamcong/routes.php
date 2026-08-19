@@ -33,6 +33,7 @@ if ((bool) config('modules.registry.Muasamcong.enabled', false)) {
         Route::middleware('client.feature:muasamcong,wishlist')->group(function () {
             Route::get('/wishlist', [MuasamcongWishlistController::class, 'index'])->name('wishlist');
             Route::post('/wishlist', [MuasamcongWishlistController::class, 'store'])->name('wishlist.store');
+            Route::post('/wishlist/toggle', [MuasamcongWishlistController::class, 'toggle'])->name('wishlist.toggle');
             Route::delete('/wishlist/{wishlist}', [MuasamcongWishlistController::class, 'destroy'])->name('wishlist.destroy');
         });
     });
