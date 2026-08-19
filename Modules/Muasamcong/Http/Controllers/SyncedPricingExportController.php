@@ -119,13 +119,7 @@ class SyncedPricingExportController extends Controller
         $sheet->setCellValue('A8', (string) ($settings['intro'] ?? ''));
         $sheet->getStyle("A8:{$lastDisplayColumn}8")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $sheet->getRowDimension(8)->setRowHeight(-1);
-        $logoPath = $this->assetPath($preference['logo_path'] ?? null);
-        if ($logoPath !== null) {
-            $width = (int) round(max(.5, min(15, (float) ($settings['logo_width_cm'] ?? 2.48))) * self::PX_PER_CM);
-            $height = (int) round(max(.5, min(15, (float) ($settings['logo_height_cm'] ?? 3.83))) * self::PX_PER_CM);
-            $drawing = new Drawing;
-            $drawing->setName('Logo công ty')->setPath($logoPath)->setResizeProportional(false)->setWidthAndHeight($width, $height)->setCoordinates('A1')->setOffsetX(0)->setOffsetY(0)->setWorksheet($sheet);
-        }
+        $this->drawingExact($sheet, $preference['logo_path'] ?? null, 'A1', (float) ($settings['logo_width_cm'] ?? 2.48), (float) ($settings['logo_height_cm'] ?? 3.83), 'Logo công ty');
     }
 
     private function renderFooter($sheet, array $preference, array $settings, array $requestedColumns, int $displayColumnCount, int $dataEndRow): void
@@ -137,16 +131,22 @@ class SyncedPricingExportController extends Controller
         $sheet->setCellValue("{$startColumn}{$dateRow}", "{$location}, ngày…..tháng…...năm {$year}");
         $sheet->setCellValue("{$startColumn}{$titleRow}", (string) ($settings['signatory_title'] ?? 'GIÁM ĐỐC CÔNG TY'));
         $sheet->getStyle("{$startColumn}{$titleRow}:{$endColumn}{$titleRow}")->getFont()->setBold(true);
-        $sheet->getRowDimension($signatureRow)->setRowHeight(78);
+        $signatureHeightCm = (float) ($settings['signature_height_cm'] ?? 2.0);
+        $sheet->getRowDimension($signatureRow)->setRowHeight(max(42, $signatureHeightCm * 28.35 + 8));
         $sheet->setCellValue("{$startColumn}{$nameRow}", (string) ($settings['signatory_name'] ?? ''));
         $sheet->getStyle("{$startColumn}{$nameRow}:{$endColumn}{$nameRow}")->getFont()->setBold(true);
-        $signaturePath = $this->assetPath($preference['signature_path'] ?? null);
-        if ($signaturePath !== null) {
-            $drawing = new Drawing;
-            $drawing->setName('Chữ ký Giám đốc')->setPath($signaturePath)->setResizeProportional(true)->setHeight(70)->setCoordinates("{$startColumn}{$signatureRow}");
-            $drawing->setOffsetX((int) max(0, ($this->columnRegionWidth($preference, $requestedColumns, $startIndex, $displayColumnCount) - $drawing->getWidth()) / 2))->setOffsetY(3)->setWorksheet($sheet);
-        }
+        $this->drawingExact($sheet, $preference['signature_path'] ?? null, "{$startColumn}{$signatureRow}", (float) ($settings['signature_width_cm'] ?? 4.0), $signatureHeightCm, 'Chữ ký Giám đốc');
         $sheet->getStyle("{$startColumn}{$dateRow}:{$endColumn}{$nameRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+    }
+
+    private function drawingExact($sheet, mixed $storedPath, string $cell, float $widthCm, float $heightCm, string $name): void
+    {
+        $path = $this->assetPath($storedPath);
+        if ($path === null) return;
+        $width = (int) round(max(.5, min(15, $widthCm)) * self::PX_PER_CM);
+        $height = (int) round(max(.5, min(15, $heightCm)) * self::PX_PER_CM);
+        $drawing = new Drawing;
+        $drawing->setName($name)->setPath($path)->setResizeProportional(false)->setWidthAndHeight($width, $height)->setCoordinates($cell)->setOffsetX(0)->setOffsetY(0)->setWorksheet($sheet);
     }
 
     private function assetPath(mixed $storedPath): ?string
@@ -155,16 +155,6 @@ class SyncedPricingExportController extends Controller
         if ($path === '') return null;
         try { $absolutePath = Storage::disk('local')->path($path); } catch (\Throwable) { return null; }
         return is_file($absolutePath) && is_readable($absolutePath) ? $absolutePath : null;
-    }
-
-    private function columnRegionWidth(array $preference, array $requestedColumns, int $startIndex, int $endIndex): int
-    {
-        $total = 0;
-        for ($index = $startIndex; $index <= $endIndex; $index++) {
-            $key = $requestedColumns[$index - 1] ?? null;
-            $total += $key !== null ? (int) ($preference['widths'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['width'] ?? 120) : 120;
-        }
-        return $total;
     }
 
     private function writeTypedValue(Cell $cell, mixed $value, string $type, int $decimals = 0): void
