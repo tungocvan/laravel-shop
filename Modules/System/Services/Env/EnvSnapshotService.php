@@ -63,7 +63,7 @@ class EnvSnapshotService
 
         $createdAt = now();
         $filename = sprintf('env-%s-%s-%s.env', $operation, $createdAt->format('Ymd_His_u'), bin2hex(random_bytes(3)));
-        $path = $directory.DIRECTORY_SEPARATOR.$filename;
+        $path = $directory . DIRECTORY_SEPARATOR . $filename;
 
         if (File::exists($path)) {
             throw new RuntimeException('Environment snapshot filename collision.');
@@ -113,7 +113,7 @@ class EnvSnapshotService
 
     private function applyRetention(string $directory, string $operation): int
     {
-        $pattern = $directory.DIRECTORY_SEPARATOR.'env-'.$operation.'-*.env';
+        $pattern = $directory . DIRECTORY_SEPARATOR . 'env-' . $operation . '-*.env';
         $files = glob($pattern) ?: [];
 
         usort($files, static fn (string $a, string $b): int => filemtime($b) <=> filemtime($a));
