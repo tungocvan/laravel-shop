@@ -2,10 +2,91 @@
 
 namespace Modules\System\Livewire\Settings;
 
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\Cloud\GoogleDriveConnectionService;
+use Modules\System\Services\Env\SystemGoogleDriveConfigService;
+use Throwable;
 
 class StorageConfig extends Component
 {
+    use AuthorizesSystemActions;
+
+    public array $form = [
+        'GOOGLE_DRIVE_CLIENT_ID' => '',
+        'GOOGLE_DRIVE_CLIENT_SECRET' => '',
+        'GOOGLE_DRIVE_REDIRECT_URI' => '',
+        'GOOGLE_DRIVE_FOLDER_NAME' => 'Laravel-Backup',
+    ];
+
+    public array $status = [];
+    public bool $canUpdate = false;
+    public bool $configured = false;
+
+    public function mount(SystemGoogleDriveConfigService $configService, GoogleDriveConnectionService $connectionService): void
+    {
+        $this->canUpdate = (bool) auth('admin')->user()?->can('system.env.update');
+        $this->form = $configService->publicConfig() + ['GOOGLE_DRIVE_CLIENT_SECRET' => ''];
+        $this->form['GOOGLE_DRIVE_CLIENT_SECRET'] = '';
+        $this->configured = $configService->isConfigured();
+        $this->status = $connectionService->status();
+    }
+
+    public function save(SystemGoogleDriveConfigService $service): void
+    {
+        $this->authorizePermission('system.env.update');
+
+        $validated = $this->validate([
+            'form.GOOGLE_DRIVE_CLIENT_ID' => ['required', 'string', 'max:512'],
+            'form.GOOGLE_DRIVE_CLIENT_SECRET' => ['nullable', 'string', 'max:4096'],
+            'form.GOOGLE_DRIVE_REDIRECT_URI' => ['required', 'url:http,https', 'max:2048'],
+            'form.GOOGLE_DRIVE_FOLDER_NAME' => ['required', 'string', 'max:255'],
+        ], [
+            'form.GOOGLE_DRIVE_CLIENT_ID.required' => 'Vui lòng nhập Google Client ID.',
+            'form.GOOGLE_DRIVE_REDIRECT_URI.required' => 'Vui lòng nhập Redirect URI.',
+            'form.GOOGLE_DRIVE_REDIRECT_URI.url' => 'Redirect URI không hợp lệ.',
+            'form.GOOGLE_DRIVE_FOLDER_NAME.required' => 'Vui lòng nhập tên thư mục backup.',
+        ]);
+
+        try {
+            $result = $service->save($validated['form'], auth('admin')->id());
+            $this->form['GOOGLE_DRIVE_CLIENT_SECRET'] = '';
+            $this->configured = $service->isConfigured();
+            $this->dispatch('notify', type: $result['success'] ? 'success' : 'error', message: $result['message']);
+        } catch (Throwable $e) {
+            Log::error('StorageConfig Google Drive save failed.', ['exception' => $e::class]);
+            $this->dispatch('notify', type: 'error', message: 'Không thể lưu cấu hình Google Drive. Vui lòng kiểm tra log hệ thống.');
+        }
+    }
+
+    public function testConnection(GoogleDriveConnectionService $service): void
+    {
+        $this->authorizePermission('system.env.update');
+
+        try {
+            $this->status = $service->testConnection();
+            $this->dispatch('notify', type: 'success', message: 'Kết nối Google Drive hoạt động bình thường.');
+        } catch (Throwable $e) {
+            Log::warning('Google Drive connection test failed.', ['exception' => $e::class]);
+            $this->dispatch('notify', type: 'error', message: 'Không thể kết nối Google Drive. Vui lòng kiểm tra lại quyền hoặc log hệ thống.');
+        }
+    }
+
+    public function disconnect(GoogleDriveConnectionService $service): void
+    {
+        $this->authorizePermission('system.env.update');
+
+        try {
+            $service->disconnect();
+            $this->status = $service->status();
+            $this->dispatch('notify', type: 'success', message: 'Đã ngắt kết nối Google Drive.');
+        } catch (Throwable $e) {
+            Log::warning('Google Drive disconnect failed.', ['exception' => $e::class]);
+            $this->dispatch('notify', type: 'error', message: 'Không thể ngắt kết nối Google Drive hoàn toàn. Vui lòng kiểm tra log hệ thống.');
+        }
+    }
+
     public function render()
     {
         return view('System::livewire.settings.storage-config');
