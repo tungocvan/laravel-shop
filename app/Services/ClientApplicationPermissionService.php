@@ -29,16 +29,27 @@ class ClientApplicationPermissionService
             }
 
             foreach ($application['features'] as $feature) {
-                if (empty($feature['permission'])) {
-                    continue;
+                if (! empty($feature['permission'])) {
+                    $rows[] = [
+                        'application' => $application['key'],
+                        'feature' => $feature['key'],
+                        'name' => $feature['permission'],
+                        'label' => $feature['name'],
+                    ];
                 }
 
-                $rows[] = [
-                    'application' => $application['key'],
-                    'feature' => $feature['key'],
-                    'name' => $feature['permission'],
-                    'label' => $feature['name'],
-                ];
+                foreach ($feature['actions'] ?? [] as $action) {
+                    if (empty($action['permission'])) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'application' => $application['key'],
+                        'feature' => $feature['key'],
+                        'name' => $action['permission'],
+                        'label' => $feature['name'].' · '.$action['name'],
+                    ];
+                }
             }
 
             return $rows;
