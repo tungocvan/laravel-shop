@@ -55,6 +55,8 @@ class SyncedPricingExportPreferenceService
         'intro' => 'Công ty INAFO Việt Nam xin trân trọng gửi đến Quý Khách hàng báo giá một số sản phẩm chúng tôi đang phân phối trên thị trường hiện nay như sau:',
         'logo_width_cm' => 2.48,
         'logo_height_cm' => 3.83,
+        'signature_width_cm' => 4.00,
+        'signature_height_cm' => 2.00,
         'footer_location' => 'Tp.HCM',
         'signatory_title' => 'GIÁM ĐỐC CÔNG TY',
         'signatory_name' => '',
@@ -192,6 +194,8 @@ class SyncedPricingExportPreferenceService
         }
         $normalized['logo_width_cm'] = $this->normalizeCentimeters($settings['logo_width_cm'] ?? self::DEFAULT_HEADER_FOOTER['logo_width_cm'], 2.48);
         $normalized['logo_height_cm'] = $this->normalizeCentimeters($settings['logo_height_cm'] ?? self::DEFAULT_HEADER_FOOTER['logo_height_cm'], 3.83);
+        $normalized['signature_width_cm'] = $this->normalizeCentimeters($settings['signature_width_cm'] ?? self::DEFAULT_HEADER_FOOTER['signature_width_cm'], 4.00);
+        $normalized['signature_height_cm'] = $this->normalizeCentimeters($settings['signature_height_cm'] ?? self::DEFAULT_HEADER_FOOTER['signature_height_cm'], 2.00);
         return $normalized;
     }
 
