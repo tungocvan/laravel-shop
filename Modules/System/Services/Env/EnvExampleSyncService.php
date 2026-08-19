@@ -42,9 +42,19 @@ class EnvExampleSyncService
             $path = base_path($filename);
             $template = File::isFile($path) ? (string) File::get($path) : '';
             $rendered = $this->render($sourceContent, $template, $docker);
-            if (File::put($path, $rendered['content'], true) === false) {
-                throw new RuntimeException("Không thể cập nhật {$filename}.");
+
+            if (File::isFile($path) && ! is_writable($path)) {
+                throw new RuntimeException("Không có quyền ghi {$filename}. Hãy kiểm tra owner/group/permission của file trong project.");
             }
+
+            if (! File::isFile($path) && ! is_writable(dirname($path))) {
+                throw new RuntimeException("Không có quyền tạo {$filename}. Hãy kiểm tra quyền ghi thư mục project.");
+            }
+
+            if (File::put($path, $rendered['content'], true) === false) {
+                throw new RuntimeException("Không thể cập nhật {$filename} dù đường dẫn có vẻ ghi được.");
+            }
+
             $result['files'][] = $filename;
             $result['keys'] = max($result['keys'], $rendered['keys']);
             $result['secrets_sanitized'] = max($result['secrets_sanitized'], $rendered['secrets_sanitized']);
