@@ -89,8 +89,19 @@ class EnvSnapshotService
         }
 
         $exampleSync = null;
+        $exampleSyncError = null;
         if ($operation === 'production') {
-            $exampleSync = $this->exampleSync->sync($content);
+            try {
+                $exampleSync = $this->exampleSync->sync($content);
+            } catch (Throwable $e) {
+                $exampleSyncError = $e->getMessage();
+                Log::warning('Environment example sync failed after snapshot creation.', [
+                    'actor_id' => $actorId,
+                    'snapshot_type' => $operation,
+                    'exception' => $e::class,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         Log::info('Environment snapshot created.', [
@@ -100,6 +111,7 @@ class EnvSnapshotService
             'source_bytes' => strlen($content),
             'retention_deleted' => $deleted,
             'example_sync' => $exampleSync,
+            'example_sync_error' => $exampleSyncError,
             'created_at' => $createdAt->toIso8601String(),
         ]);
 
@@ -108,6 +120,7 @@ class EnvSnapshotService
             'label' => $label,
             'created_at' => $createdAt->toIso8601String(),
             'example_sync' => $exampleSync,
+            'example_sync_error' => $exampleSyncError,
         ];
     }
 
