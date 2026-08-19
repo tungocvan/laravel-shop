@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
-use Modules\Muasamcong\Http\Controllers\PriceListProfileController;
 use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
 use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingBbgExportController;
@@ -26,11 +25,6 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
         Route::post('/wishlist/export-selected', [PricingWishlistBulkController::class, 'export'])->name('wishlist.export-selected');
         Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])->name('wishlist.destroy-selected');
-        Route::get('/price-list-profiles', [PriceListProfileController::class, 'index'])->name('price-list-profiles.index');
-        Route::post('/price-list-profiles', [PriceListProfileController::class, 'store'])->name('price-list-profiles.store');
-        Route::patch('/price-list-profiles/{profile}/toggle', [PriceListProfileController::class, 'toggle'])->name('price-list-profiles.toggle');
-        Route::put('/price-list-profiles/{profile}', [PriceListProfileController::class, 'update'])->name('price-list-profiles.update');
-        Route::delete('/price-list-profiles/{profile}', [PriceListProfileController::class, 'destroy'])->name('price-list-profiles.destroy');
     });
     Route::middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))->group(function () {
         Route::get('/config', [MuasamcongController::class, 'config'])->name('config');
