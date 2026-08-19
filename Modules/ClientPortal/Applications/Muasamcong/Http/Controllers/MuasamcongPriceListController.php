@@ -91,75 +91,84 @@ class MuasamcongPriceListController extends Controller
         return back()->with('status', 'Đã đưa yêu cầu xuất Bảng Giá vào Queue bằng cấu hình “'.$profile->name.'”.');
     }
 
-    public function status(Request $request, PriceListExport $export): JsonResponse
+    public function status(Request $request, string $export): JsonResponse
     {
-        $this->owner($request, $export);
-        $fileAvailable = $this->fileAvailable($export);
+        $record = $this->exportRecord($export);
+        $this->owner($request, $record);
+        $fileAvailable = $this->fileAvailable($record);
 
         return response()->json([
-            'status' => $export->status,
-            'items_count' => $export->items_count,
-            'error' => $export->error_message,
+            'status' => $record->status,
+            'items_count' => $record->items_count,
+            'error' => $record->error_message,
             'download_url' => $fileAvailable
-                ? route('client.muasamcong.price-list.download', $export)
+                ? route('client.muasamcong.price-list.download', ['export' => $record->getKey()])
                 : null,
             'file_available' => $fileAvailable,
         ]);
     }
 
-    public function download(Request $request, PriceListExport $export): StreamedResponse
+    public function download(Request $request, string $export): StreamedResponse
     {
-        $this->owner($request, $export);
-        abort_unless($this->fileAvailable($export), 404, 'File Excel không còn tồn tại trên storage. Vui lòng xuất lại.');
+        $record = $this->exportRecord($export);
+        $this->owner($request, $record);
+        abort_unless($this->fileAvailable($record), 404, 'File Excel không còn tồn tại trên storage. Vui lòng xuất lại.');
 
         return Storage::disk('local')->download(
-            $export->file_path,
-            $export->file_name ?: basename($export->file_path)
+            $record->file_path,
+            $record->file_name ?: basename($record->file_path)
         );
     }
 
-    public function share(Request $request, PriceListExport $export): JsonResponse
+    public function share(Request $request, string $export): JsonResponse
     {
         $this->exportUser($request);
-        $this->owner($request, $export);
-        abort_unless($this->fileAvailable($export), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
+        $record = $this->exportRecord($export);
+        $this->owner($request, $record);
+        abort_unless($this->fileAvailable($record), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
 
-        if (! $export->share_token) {
-            $export->update(['share_token' => Str::random(64)]);
+        if (! $record->share_token) {
+            $record->update(['share_token' => Str::random(64)]);
         }
 
         return response()->json([
-            'url' => route('public.muasamcong.price-list', $export->share_token),
+            'url' => route('public.muasamcong.price-list', $record->share_token),
         ]);
     }
 
     public function publicDownload(string $token): StreamedResponse
     {
-        $export = PriceListExport::where('share_token', $token)
+        $record = PriceListExport::where('share_token', $token)
             ->where('status', 'completed')
             ->firstOrFail();
 
-        abort_unless($this->fileAvailable($export), 404, 'File Excel không còn tồn tại.');
+        abort_unless($this->fileAvailable($record), 404, 'File Excel không còn tồn tại.');
 
         return Storage::disk('local')->download(
-            $export->file_path,
-            $export->file_name ?: basename($export->file_path)
+            $record->file_path,
+            $record->file_name ?: basename($record->file_path)
         );
     }
 
-    public function email(Request $request, PriceListExport $export): RedirectResponse
+    public function email(Request $request, string $export): RedirectResponse
     {
         $this->exportUser($request);
-        $this->owner($request, $export);
-        abort_unless($this->fileAvailable($export), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
+        $record = $this->exportRecord($export);
+        $this->owner($request, $record);
+        abort_unless($this->fileAvailable($record), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
 
         $data = $request->validate([
             'email' => 'required|email|max:200',
         ]);
 
-        SendPriceListExportEmail::dispatch($export->id, $data['email']);
+        SendPriceListExportEmail::dispatch($record->id, $data['email']);
 
         return back()->with('status', 'Đã đưa email Bảng Giá vào Queue gửi.');
+    }
+
+    private function exportRecord(string $id): PriceListExport
+    {
+        return PriceListExport::query()->whereKey($id)->firstOrFail();
     }
 
     private function fileAvailable(PriceListExport $export): bool
