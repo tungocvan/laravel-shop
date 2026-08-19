@@ -123,6 +123,6 @@ class StorageConfig extends Component
 
     public function render()
     {
-        return view('System::livewire.settings.storage-config');
+        return view('System::livewire.settings.storage-config-wrapper');
     }
 }
