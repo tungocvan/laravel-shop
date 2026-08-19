@@ -7,7 +7,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Modules\ClientPortal\Jobs\GeneratePriceListExport;
@@ -92,9 +91,9 @@ class MuasamcongPriceListController extends Controller
         return back()->with('status', 'Đã đưa yêu cầu xuất Bảng Giá vào Queue bằng cấu hình “'.$profile->name.'”.');
     }
 
-    public function status(Request $request, string $export): JsonResponse
+    public function status(Request $request, string $exportId): JsonResponse
     {
-        $record = $this->exportRecord($export);
+        $record = $this->exportRecord($exportId);
         $this->owner($request, $record);
         $fileAvailable = $this->fileAvailable($record);
 
@@ -103,39 +102,40 @@ class MuasamcongPriceListController extends Controller
             'items_count' => $record->items_count,
             'error' => $record->error_message,
             'download_url' => $fileAvailable
-                ? route('client.muasamcong.price-list.download', ['export' => $record->getKey()])
+                ? route('client.muasamcong.price-list.download', ['exportId' => $record->getKey()])
                 : null,
             'file_available' => $fileAvailable,
         ]);
     }
 
-    public function download(Request $request, string $export): StreamedResponse|JsonResponse
+    public function download(Request $request, string $exportId): StreamedResponse|JsonResponse
     {
+        $record = $this->exportRecord($exportId);
+        $this->owner($request, $record);
+
         if ($request->boolean('debug')) {
-            $record = PriceListExport::query()->whereKey($export)->first();
-            $path = $record?->file_path;
+            $absolute = null;
+            try {
+                $absolute = $record->file_path ? Storage::disk('local')->path($record->file_path) : null;
+            } catch (\Throwable) {
+            }
 
             return response()->json([
                 'controller_reached' => true,
-                'export_parameter' => $export,
-                'app_base_path' => base_path(),
-                'database_connection' => DB::connection()->getName(),
-                'database_name' => DB::connection()->getDatabaseName(),
+                'export_parameter' => $exportId,
                 'web_user_id' => $request->user('web')?->getKey(),
-                'record_exists' => $record !== null,
-                'record_user_id' => $record?->user_id,
-                'status' => $record?->status,
-                'file_path' => $path,
-                'storage_root' => config('filesystems.disks.local.root'),
-                'storage_exists' => is_string($path) && $path !== '' ? Storage::disk('local')->exists($path) : false,
-                'absolute_path' => is_string($path) && $path !== '' ? Storage::disk('local')->path($path) : null,
-                'absolute_is_file' => is_string($path) && $path !== '' ? is_file(Storage::disk('local')->path($path)) : false,
-                'absolute_is_readable' => is_string($path) && $path !== '' ? is_readable(Storage::disk('local')->path($path)) : false,
+                'record_exists' => true,
+                'record_user_id' => $record->user_id,
+                'status' => $record->status,
+                'file_path' => $record->file_path,
+                'storage_exists' => $record->file_path ? Storage::disk('local')->exists($record->file_path) : false,
+                'absolute_path' => $absolute,
+                'absolute_is_file' => $absolute ? is_file($absolute) : false,
+                'absolute_is_readable' => $absolute ? is_readable($absolute) : false,
+                'database' => config('database.default'),
             ]);
         }
 
-        $record = $this->exportRecord($export);
-        $this->owner($request, $record);
         abort_unless($this->fileAvailable($record), 404, 'File Excel không còn tồn tại trên storage. Vui lòng xuất lại.');
 
         return Storage::disk('local')->download(
@@ -144,10 +144,10 @@ class MuasamcongPriceListController extends Controller
         );
     }
 
-    public function share(Request $request, string $export): JsonResponse
+    public function share(Request $request, string $exportId): JsonResponse
     {
         $this->exportUser($request);
-        $record = $this->exportRecord($export);
+        $record = $this->exportRecord($exportId);
         $this->owner($request, $record);
         abort_unless($this->fileAvailable($record), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
 
@@ -174,10 +174,10 @@ class MuasamcongPriceListController extends Controller
         );
     }
 
-    public function email(Request $request, string $export): RedirectResponse
+    public function email(Request $request, string $exportId): RedirectResponse
     {
         $this->exportUser($request);
-        $record = $this->exportRecord($export);
+        $record = $this->exportRecord($exportId);
         $this->owner($request, $record);
         abort_unless($this->fileAvailable($record), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
 
