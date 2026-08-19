@@ -46,6 +46,7 @@ This is the compact context pack for AI agents working in the INAFO Pharma Larav
 - Routes, views, migrations, Livewire components, Blade components, translations, helpers, and console commands are registered dynamically.
 - `Admin` is a shell module and should not become the canonical owner of business domains.
 - `Shared` is for stable reusable infrastructure, especially import/export services and shared UI.
+- `System` owns the shared Google Drive OAuth connection, token lifecycle, database cloud-backup infrastructure, and scheduler conventions. Business modules must inspect and reuse this infrastructure before implementing their own cloud connection or scheduling layer.
 - Canonical domain ownership should move toward modules such as `Product`, `Order`, `Post`, `Category`, `Account`, `Admission`, and `Pharma`.
 
 ## Reusable Components
@@ -76,6 +77,26 @@ Important shared service:
 
 - `Modules\Shared\Services\ImportExport\BaseImportExportService`
 
+Shared System cloud/scheduling infrastructure:
+
+- `Modules\System\Services\Cloud\GoogleDriveConnectionService`
+  - canonical Google OAuth connection and encrypted token lifecycle;
+  - use `status()` to inspect whether a Google account is connected;
+  - use `accessToken()` when another module needs the shared authenticated Drive API session;
+  - do not duplicate OAuth/refresh-token storage in business modules without a documented independent-account requirement.
+- `Modules\System\Services\Cloud\GoogleDriveBackupBrowserService`
+  - database backup Drive browsing/download/delete/retention infrastructure.
+- `Modules\System\Services\Cloud\CloudBackupAutomationService`
+  - reference implementation for runtime-configurable scheduled operations.
+- `Modules\System\Services\SettingsService`
+  - preferred persistence mechanism for runtime schedule/config values where appropriate.
+
+Canonical guide:
+
+- `docs/GOOGLE_DRIVE_AND_SCHEDULER_REUSE_GUIDE.md`
+
+**Mandatory trigger:** whenever a task mentions Google Drive, cloud storage, cloud backup, scheduled execution, automatic jobs, recurring jobs, retention, or user-configurable run times, read this guide before proposing or implementing architecture.
+
 Representative module services exist throughout:
 
 - `Modules\Admin\Services`
@@ -94,6 +115,7 @@ Prefer extending or adapting local services over duplicating query and workflow 
 - Always read `.codex/bootstrap/AI_PROJECT_CONTEXT.md`.
 - Always read `ROADMAP.md`.
 - For module work, read the module docs under `docs/modules/<ModuleName>/` when present.
+- For Google Drive/cloud storage/scheduler/automatic recurring work, always read `docs/GOOGLE_DRIVE_AND_SCHEDULER_REUSE_GUIDE.md` and inspect the existing `Modules/System` implementation before designing anything new.
 - For code changes, read the existing module routes, controllers, pages, Livewire classes, views, services, imports, exports, models, migrations, and database table assumptions.
 - Document analysis before risky code changes.
 - Never modify unrelated modules.

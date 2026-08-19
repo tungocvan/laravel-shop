@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\System\Http\Controllers\DatabaseController;
 use Modules\System\Http\Controllers\EnvConfigController;
+use Modules\System\Http\Controllers\GoogleDriveOAuthController;
 use Modules\System\Http\Controllers\SettingController;
 use Modules\System\Http\Controllers\SystemController;
 
@@ -26,6 +27,15 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         Route::get('/settings/env', [EnvConfigController::class, 'index'])
             ->middleware('permission:system.env.view,admin')
             ->name('settings.env');
+
+        Route::prefix('/settings/cloud')->name('settings.cloud.')->group(function () {
+            Route::get('/google/connect', [GoogleDriveOAuthController::class, 'connect'])
+                ->middleware('permission:system.env.update,admin')
+                ->name('google.connect');
+            Route::get('/google/callback', [GoogleDriveOAuthController::class, 'callback'])
+                ->middleware('permission:system.env.update,admin')
+                ->name('google.callback');
+        });
 
         Route::prefix('/database')->name('database.')->group(function () {
             Route::get('/', [DatabaseController::class, 'index'])

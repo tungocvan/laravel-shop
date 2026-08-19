@@ -8,6 +8,12 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('facebook:dispatch-scheduled')
+if (config('services.facebook.scheduler_enabled', false)) {
+    Schedule::command('facebook:dispatch-scheduled')
+        ->everyMinute()
+        ->withoutOverlapping();
+}
+
+Schedule::command('system:cloud-backup')
     ->everyMinute()
     ->withoutOverlapping();

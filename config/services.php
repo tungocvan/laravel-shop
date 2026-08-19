@@ -34,6 +34,11 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
+    'facebook' => [
+        'scheduler_enabled' => filter_var(env('FACEBOOK_SCHEDULER_ENABLED', false), FILTER_VALIDATE_BOOL),
+    ],
+
     'nodejs' => [
         'url' => env('NODEJS_SERVER_URL', 'https://flexbiz.nodejs.tk'),
         'public_url' => env('VITE_SOCKET_PUBLIC_URL'),
