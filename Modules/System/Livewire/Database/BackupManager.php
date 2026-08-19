@@ -39,7 +39,6 @@ class BackupManager extends Component
         $backups = array_slice($allBackups, 0, self::RECENT_BACKUP_LIMIT);
         $driveStatus = $drive->status();
         $driveCounts = ['queued' => 0, 'processing' => 0, 'uploaded' => 0, 'failed' => 0];
-
         foreach ($backups as &$backup) {
             $backup['google_drive'] = $drive->backupStatus($backup['name']);
             $state = (string) ($backup['google_drive']['status'] ?? (! empty($backup['google_drive']['id']) ? 'uploaded' : ''));
@@ -50,21 +49,14 @@ class BackupManager extends Component
         $remoteBackups = [];
         $remoteBackupsError = null;
         if (($driveStatus['connected'] ?? false) && $this->showDriveBackups) {
-            try {
-                $remoteBackups = $browser->listBackups(100);
-            } catch (Throwable $e) {
-                $remoteBackupsError = $e->getMessage();
-                Log::warning('Unable to list Google Drive backups.', ['error' => $e->getMessage()]);
-            }
+            try { $remoteBackups = $browser->listBackups(100); }
+            catch (Throwable $e) { $remoteBackupsError = $e->getMessage(); Log::warning('Unable to list Google Drive backups.', ['error' => $e->getMessage()]); }
         }
 
         return view('System::livewire.database.backup-manager', [
-            'backups' => $backups,
-            'driveStatus' => $driveStatus,
-            'driveCounts' => $driveCounts,
+            'backups' => $backups, 'driveStatus' => $driveStatus, 'driveCounts' => $driveCounts,
             'hasActiveDriveJobs' => ($driveCounts['queued'] + $driveCounts['processing']) > 0,
-            'remoteBackups' => $remoteBackups,
-            'remoteBackupsError' => $remoteBackupsError,
+            'remoteBackups' => $remoteBackups, 'remoteBackupsError' => $remoteBackupsError,
             'backupHistoryLimit' => self::RECENT_BACKUP_LIMIT,
             'backupHistoryTruncated' => count($allBackups) > self::RECENT_BACKUP_LIMIT,
             'backupDirectories' => ['storage/app/private/backups', 'storage/app/backups (thư mục cũ)'],
@@ -83,10 +75,7 @@ class BackupManager extends Component
             if (! $created) throw new \RuntimeException('Đã backup local nhưng không xác định được file mới để upload.');
             $this->queueDriveUpload($created['name'], $drive);
             $this->notify('success', 'Backup local thành công. Đã đưa upload Google Drive vào hàng đợi.');
-        } catch (Throwable $e) {
-            $this->reportOperationError('Backup and Google Drive queue failed.', $e);
-            $this->notify('error', 'Không thể hoàn tất thao tác. Nếu file local đã được tạo, file đó vẫn được giữ nguyên.');
-        }
+        } catch (Throwable $e) { $this->reportOperationError('Backup and Google Drive queue failed.', $e); $this->notify('error', 'Không thể hoàn tất thao tác. Nếu file local đã được tạo, file đó vẫn được giữ nguyên.'); }
     }
 
     public function uploadToGoogleDrive(string $fileName, DatabaseService $service, GoogleDriveConnectionService $drive): void
@@ -98,33 +87,36 @@ class BackupManager extends Component
         $this->notify('success', "Đã đưa {$fileName} vào hàng đợi upload Google Drive.");
     }
 
-    public function retryGoogleDriveUpload(string $fileName, DatabaseService $service, GoogleDriveConnectionService $drive): void
-    {
-        $this->uploadToGoogleDrive($fileName, $service, $drive);
-    }
-
-    private function queueDriveUpload(string $fileName, GoogleDriveConnectionService $drive): void
-    {
-        $drive->markBackupQueued($fileName);
-        UploadDatabaseBackupToGoogleDrive::dispatch($fileName, auth('admin')->id());
-    }
+    public function retryGoogleDriveUpload(string $fileName, DatabaseService $service, GoogleDriveConnectionService $drive): void { $this->uploadToGoogleDrive($fileName, $service, $drive); }
+    private function queueDriveUpload(string $fileName, GoogleDriveConnectionService $drive): void { $drive->markBackupQueued($fileName); UploadDatabaseBackupToGoogleDrive::dispatch($fileName, auth('admin')->id()); }
 
     public function deleteRemoteBackup(string $fileId, string $fileName, GoogleDriveBackupBrowserService $browser): void
     {
         $this->authorizePermission('database.destroy');
+        try { $browser->delete($fileId); $this->notify('success', "Đã xóa {$fileName} khỏi Google Drive."); }
+        catch (Throwable $e) { $this->reportOperationError('Google Drive remote backup delete failed.', $e, ['drive_file_id' => $fileId, 'backup' => $fileName]); $this->notify('error', 'Không thể xóa backup trên Google Drive.'); }
+    }
+
+    public function downloadRemoteBackup(string $fileId, string $fileName, GoogleDriveBackupBrowserService $browser, DatabaseService $service): void
+    {
+        $this->authorizePermission('database.download');
+        if (! $this->validSqlBackupName($fileName)) { $this->notify('error', 'Tên file backup Google Drive không hợp lệ.'); return; }
+        $temporaryPath = tempnam(storage_path('framework'), 'drive-download-');
+        if ($temporaryPath === false) { $this->notify('error', 'Không thể tạo file tạm để tải backup.'); return; }
         try {
-            $browser->delete($fileId);
-            $this->notify('success', "Đã xóa {$fileName} khỏi Google Drive.");
+            $browser->download($fileId, $temporaryPath);
+            $localName = $service->importBackupFile($temporaryPath, $fileName);
+            $this->notify('success', "Đã tải {$fileName} từ Google Drive về local thành {$localName}. Hãy kiểm tra trong Lịch sử Backup trước khi RESTORE.");
         } catch (Throwable $e) {
-            $this->reportOperationError('Google Drive remote backup delete failed.', $e, ['drive_file_id' => $fileId, 'backup' => $fileName]);
-            $this->notify('error', 'Không thể xóa backup trên Google Drive.');
-        }
+            $this->reportOperationError('Google Drive remote backup download failed.', $e, ['drive_file_id' => $fileId, 'backup' => $fileName]);
+            $this->notify('error', 'Không thể tải backup Google Drive về local.');
+        } finally { @unlink($temporaryPath); }
     }
 
     public function restoreFromGoogleDrive(string $fileId, string $fileName, GoogleDriveBackupBrowserService $browser, DatabaseService $service): void
     {
         $this->authorizePermission('database.restore');
-        if (! preg_match('/^[A-Za-z0-9_.-]+\.sql$/i', $fileName)) { $this->notify('error', 'Tên file backup Google Drive không hợp lệ.'); return; }
+        if (! $this->validSqlBackupName($fileName)) { $this->notify('error', 'Tên file backup Google Drive không hợp lệ.'); return; }
         $temporaryPath = tempnam(storage_path('framework'), 'drive-restore-');
         if ($temporaryPath === false) { $this->notify('error', 'Không thể tạo file tạm để restore.'); return; }
         try {
@@ -134,9 +126,11 @@ class BackupManager extends Component
             $this->notify('success', "Đã tải và restore {$fileName} từ Google Drive thành công.");
         } catch (Throwable $e) {
             $this->reportOperationError('Google Drive remote restore failed.', $e, ['drive_file_id' => $fileId, 'backup' => $fileName]);
-            $this->notify('error', 'Restore từ Google Drive thất bại. Dữ liệu local hiện tại không bị xóa nếu bước restore chưa bắt đầu.');
+            $this->notify('error', 'Restore từ Google Drive thất bại. Kiểm tra log hệ thống trước khi thử lại.');
         } finally { @unlink($temporaryPath); }
     }
+
+    private function validSqlBackupName(string $fileName): bool { return (bool) preg_match('/^[A-Za-z0-9_.-]+\.sql$/i', $fileName); }
 
     public function restoreBackup(string $fileName, DatabaseService $service): void
     {
@@ -164,25 +158,24 @@ class BackupManager extends Component
     {
         $this->authorizePermission('database.restore');
         $this->validate(['googleDriveUrl' => ['required', 'url', 'max:2048']]);
-        if (! preg_match('~(?:/file/d/|[?&]id=)([A-Za-z0-9_-]{10,})~', $this->googleDriveUrl, $matches)) { $this->addError('googleDriveUrl', 'Link Google Drive không hợp lệ. Hãy dùng link chia sẻ của một file SQL.'); return; }
+        if (! preg_match('~(?:/file/d/|[?&]id=)([A-Za-z0-9_-]{10,})~', $this->googleDriveUrl, $matches)) { $this->addError('googleDriveUrl', 'URL Google Drive công khai không hợp lệ.'); return; }
         $temporaryPath = tempnam(storage_path('framework'), 'drive-sql-');
         if ($temporaryPath === false) { $this->addError('googleDriveUrl', 'Không thể tạo file tạm để tải backup.'); return; }
         try {
             $response = Http::withOptions(['sink' => $temporaryPath])->connectTimeout(15)->timeout(300)->get('https://drive.usercontent.google.com/download', ['id' => $matches[1], 'export' => 'download', 'confirm' => 't']);
-            if (! $response->successful()) throw new \RuntimeException('Google Drive download failed with HTTP '.$response->status());
+            if (! $response->successful()) throw new \RuntimeException('Google Drive public download failed with HTTP '.$response->status());
             $name = $service->importBackupFile($temporaryPath, 'google-drive-'.$matches[1].'.sql');
             $this->googleDriveUrl = '';
-            session()->flash('success', "Đã tải {$name} từ Google Drive. Hãy kiểm tra và bấm RESTORE khi sẵn sàng.");
+            session()->flash('success', "Đã tải {$name} từ URL Drive công khai. Hãy kiểm tra file local rồi bấm RESTORE khi sẵn sàng.");
         } catch (Throwable $e) {
-            $this->reportOperationError('Google Drive backup import failed.', $e, ['drive_file_id' => $matches[1]]);
-            $this->addError('googleDriveUrl', 'Không thể tải hoặc nhập backup từ Google Drive. Vui lòng kiểm tra quyền chia sẻ và log hệ thống.');
+            $this->reportOperationError('Google Drive public backup import failed.', $e, ['drive_file_id' => $matches[1]]);
+            $this->addError('googleDriveUrl', 'Không thể tải URL Drive công khai. File phải được chia sẻ “Bất kỳ ai có liên kết”. Backup của hệ thống hãy dùng nút “Tải về Local” ở danh sách phía trên.');
         } finally { @unlink($temporaryPath); }
     }
 
     public function openEmailModal(string $fileName, DatabaseService $service): void
     {
-        $this->authorizePermission('database.download');
-        $path = $service->getDownloadPath($fileName);
+        $this->authorizePermission('database.download'); $path = $service->getDownloadPath($fileName);
         if ($path === null) { $this->notify('error', 'File backup không tồn tại.'); return; }
         if (filesize($path) > SendDatabaseBackupEmail::MAX_ATTACHMENT_BYTES) { $this->notify('error', 'Chỉ gửi được file backup có dung lượng tối đa 10MB.'); return; }
         $this->emailBackupFile = $fileName; $this->backupEmail = (string) (auth('admin')->user()?->email ?? ''); $this->resetErrorBag('backupEmail'); $this->showEmailModal = true;
