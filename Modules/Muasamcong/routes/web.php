@@ -7,6 +7,13 @@ use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingBbgExportController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingExportController;
 
+Route::middleware(['web', 'auth:web', 'client.application:muasamcong'])
+    ->prefix('apps/muasamcong')
+    ->name('client.muasamcong.')
+    ->group(function () {
+        Route::view('/', 'Muasamcong::client.dashboard')->name('dashboard');
+    });
+
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))
     ->prefix('admin/muasamcong')
     ->name('muasamcong.')
