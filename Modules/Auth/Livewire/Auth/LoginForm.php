@@ -3,6 +3,7 @@
 namespace Modules\Auth\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Modules\System\Services\AdminLoginRedirectService;
 use Modules\System\Services\SettingsService;
@@ -14,6 +15,8 @@ class LoginForm extends Component
     public $password = '';
 
     public $remember = false;
+
+    public string $guard = 'web';
 
     public $logo = '';
 
@@ -28,8 +31,10 @@ class LoginForm extends Component
         'password' => 'required',
     ];
 
-    public function mount(SettingsService $settings): void
+    public function mount(SettingsService $settings, string $guard = 'web'): void
     {
+        $this->guard = in_array($guard, ['web', 'admin'], true) ? $guard : 'web';
+
         $logo = $settings->get('site_logo');
         $this->logo = $logo
             ? asset('storage/'.$logo).'?v='.md5($logo)
@@ -46,10 +51,14 @@ class LoginForm extends Component
     {
         $this->validate();
 
-        if (Auth::guard('admin')->attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        if (Auth::guard($this->guard)->attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
-            return redirect()->route($redirect->configuredRoute());
+            if ($this->guard === 'admin') {
+                return redirect()->route($redirect->configuredRoute());
+            }
+
+            return redirect()->route('client.apps.index');
         }
 
         $this->addError('email', 'Thông tin đăng nhập không chính xác.');
