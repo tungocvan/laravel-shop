@@ -77,11 +77,11 @@ class ClientApplicationPermissionService
             ->all();
 
         foreach ($currentClientPermissions as $permission) {
-            $user->revokePermissionTo($permission);
+            $user->revokePermissionTo(Permission::findByName($permission, 'web'));
         }
 
         foreach ($selected as $permission) {
-            $user->givePermissionTo($permission);
+            $user->givePermissionTo(Permission::findByName($permission, 'web'));
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -97,16 +97,21 @@ class ClientApplicationPermissionService
         $nonClientPermissions = $role->permissions
             ->reject(fn (Permission $permission): bool => $permission->guard_name === 'web'
                 && str_starts_with($permission->name, 'client.'))
-            ->pluck('name')
+            ->all();
+        $clientPermissions = collect($selected)
+            ->map(fn (string $name): Permission => Permission::findByName($name, 'web'))
             ->all();
 
-        $role->syncPermissions(array_merge($nonClientPermissions, $selected));
+        $role->syncPermissions(array_merge($nonClientPermissions, $clientPermissions));
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     public function syncSuperAdminUsers(): int
     {
-        $permissions = $this->definitions()->pluck('name')->all();
+        $permissionModels = $this->definitions()
+            ->pluck('name')
+            ->map(fn (string $name): Permission => Permission::findByName($name, 'web'));
+
         $users = User::query()
             ->whereHas('roles', fn ($query) => $query
                 ->where('name', 'Super Admin')
@@ -114,9 +119,9 @@ class ClientApplicationPermissionService
             ->get();
 
         foreach ($users as $user) {
-            foreach ($permissions as $permission) {
-                if (! $user->hasDirectPermission($permission, 'web')) {
-                    $user->givePermissionTo(Permission::findByName($permission, 'web'));
+            foreach ($permissionModels as $permission) {
+                if (! $user->hasDirectPermission($permission)) {
+                    $user->givePermissionTo($permission);
                 }
             }
         }
