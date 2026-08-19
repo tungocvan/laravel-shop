@@ -24,11 +24,11 @@
 </header>
 <main class="mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-10 lg:px-8">@yield('content')</main>
 <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden">
-    <div class="mx-auto grid max-w-md grid-cols-3 text-center text-xs font-semibold text-slate-500">
-        <a href="{{ route('client.muasamcong.dashboard') }}" class="rounded-xl px-2 py-2 {{ request()->routeIs('client.muasamcong.dashboard') ? 'text-slate-950' : '' }}"><span class="block text-lg">⌂</span>Tổng quan</a>
-        <a href="{{ route('client.muasamcong.drug-pricing') }}" class="rounded-xl px-2 py-2 {{ request()->routeIs('client.muasamcong.drug-pricing*') ? 'text-slate-950' : '' }}"><span class="block text-lg">⌕</span>Tra cứu</a>
-        <a href="{{ route('client.apps.index') }}" class="rounded-xl px-2 py-2"><span class="block text-lg">▦</span>Ứng dụng</a>
-    </div>
+    @hasSection('mobile-nav')
+        <div class="mx-auto grid max-w-md grid-cols-3 text-center text-xs font-semibold text-slate-500">@yield('mobile-nav')</div>
+    @else
+        <div class="mx-auto max-w-md text-center text-xs font-semibold text-slate-500"><a href="{{ route('client.apps.index') }}" class="inline-flex rounded-xl px-4 py-2"><span class="mr-2">▦</span>Ứng dụng</a></div>
+    @endif
 </nav>
 <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));</script>
 </body>
