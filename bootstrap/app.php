@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureClientApplicationAccess;
+use App\Http\Middleware\EnsureClientFeatureAccess;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'client.application' => EnsureClientApplicationAccess::class,
+            'client.feature' => EnsureClientFeatureAccess::class,
         ]);
         $middleware->web(append: [
             // \Modules\Website\Http\Middleware\TrackAffiliate::class, // Trỏ đúng namespace Module
