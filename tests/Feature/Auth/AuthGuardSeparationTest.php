@@ -3,6 +3,8 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Illuminate\View\View;
+use Modules\Auth\Http\Controllers\AuthController;
 use Tests\TestCase;
 
 class AuthGuardSeparationTest extends TestCase
@@ -29,13 +31,18 @@ class AuthGuardSeparationTest extends TestCase
 
     public function test_client_login_page_uses_web_portal_and_admin_login_uses_admin_portal(): void
     {
-        $this->get('/login')
-            ->assertOk()
-            ->assertViewHas('guard', 'web');
+        /** @var AuthController $controller */
+        $controller = app(AuthController::class);
 
-        $this->get('/admin/login')
-            ->assertOk()
-            ->assertViewHas('guard', 'admin');
+        $clientView = $controller->clientLogin();
+        $this->assertInstanceOf(View::class, $clientView);
+        $this->assertSame('Auth::pages.auth.login', $clientView->name());
+        $this->assertSame('web', $clientView->getData()['guard'] ?? null);
+
+        $adminView = $controller->adminLogin();
+        $this->assertInstanceOf(View::class, $adminView);
+        $this->assertSame('Auth::pages.auth.login', $adminView->name());
+        $this->assertSame('admin', $adminView->getData()['guard'] ?? null);
     }
 
     public function test_client_logout_does_not_logout_admin_guard(): void
