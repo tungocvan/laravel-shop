@@ -3,6 +3,8 @@
 > Tài liệu kiến trúc dùng chung cho AI/Codex và các Module trong project.
 >
 > Mục tiêu: **không tạo lại OAuth Google Drive hoặc scheduler riêng trong từng Module**. Trước khi Module mới cần Google Drive / lịch chạy, phải kiểm tra và tái sử dụng hạ tầng `Modules/System` đã có.
+>
+> **Hướng dẫn prompt thực hành:** xem `docs/GOOGLE_DRIVE_SCHEDULER_PROMPT_GUIDE.md` để biết cách giao việc cho ChatGPT/Codex theo từng tình huống: phân tích, upload Drive, backup tự động, scheduler, debug, VPS/Docker, refactor và pre-merge.
 
 ## 1. Trạng thái hạ tầng hiện tại
 
@@ -362,6 +364,8 @@ Yêu cầu:
 Trước khi code, báo lại kiến trúc tái sử dụng dự kiến và các file cần thay đổi.
 ```
 
+> Với yêu cầu thực tế hoặc feature lớn, không nên chỉ dùng prompt ngắn này. Dùng các template chi tiết trong `docs/GOOGLE_DRIVE_SCHEDULER_PROMPT_GUIDE.md`.
+
 ## 12. Prompt ngắn cho AI/Codex khi Module khác cần Scheduler
 
 ```text
@@ -381,6 +385,8 @@ Yêu cầu:
 
 Trước khi code, phân tích scheduler hiện tại và đề xuất cách tích hợp không trùng lặp.
 ```
+
+> Hướng dẫn cách dùng prompt theo workflow `Analyze → Approve → Implement từng Phase → Local Test → Pre-merge` nằm trong `docs/GOOGLE_DRIVE_SCHEDULER_PROMPT_GUIDE.md`.
 
 ## 13. Nguyên tắc kiến trúc cần giữ
 
