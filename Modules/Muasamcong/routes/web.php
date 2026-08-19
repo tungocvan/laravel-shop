@@ -28,6 +28,7 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])->name('wishlist.destroy-selected');
         Route::get('/price-list-profiles', [PriceListProfileController::class, 'index'])->name('price-list-profiles.index');
         Route::post('/price-list-profiles', [PriceListProfileController::class, 'store'])->name('price-list-profiles.store');
+        Route::patch('/price-list-profiles/{profile}/toggle', [PriceListProfileController::class, 'toggle'])->name('price-list-profiles.toggle');
         Route::put('/price-list-profiles/{profile}', [PriceListProfileController::class, 'update'])->name('price-list-profiles.update');
         Route::delete('/price-list-profiles/{profile}', [PriceListProfileController::class, 'destroy'])->name('price-list-profiles.destroy');
     });
