@@ -1,41 +1,23 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
-use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongApplicationController;
-use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongHistoryController;
-use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongShareManagementController;
-use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\PublicDrugShareController;
-
-if ((bool) config('modules.registry.Muasamcong.enabled', false)) {
-    Route::middleware('web')->group(function () {
-        Route::get('/share/muasamcong/drug/{token}', [PublicDrugShareController::class, 'show'])
-            ->where('token', '[A-Za-z0-9]{64}')
-            ->name('public.muasamcong.drug-share');
-    });
-
-    Route::middleware(['web', 'auth:web', 'client.application:muasamcong'])
-        ->prefix('apps/muasamcong')
-        ->name('client.muasamcong.')
-        ->group(function () {
-            Route::get('/', [MuasamcongApplicationController::class, 'dashboard'])->name('dashboard');
-
-            Route::middleware('client.feature:muasamcong,drug-pricing')->group(function () {
-                Route::get('/drug-pricing', [MuasamcongApplicationController::class, 'drugPricing'])->name('drug-pricing');
-                Route::post('/drug-pricing/share', [PublicDrugShareController::class, 'store'])->name('drug-pricing.share');
-                Route::get('/shares', [MuasamcongShareManagementController::class, 'index'])->name('shares');
-                Route::patch('/shares/{share}/expiry', [MuasamcongShareManagementController::class, 'updateExpiry'])->name('shares.expiry');
-                Route::delete('/shares/{share}', [MuasamcongShareManagementController::class, 'revoke'])->name('shares.revoke');
-                Route::get('/drug-pricing/sync/{syncRequest}/status', [MuasamcongApplicationController::class, 'drugPricingSyncStatus'])
-                    ->whereUuid('syncRequest')
-                    ->name('drug-pricing.sync-status');
-                Route::get('/drug-pricing/{sourceId}', [MuasamcongApplicationController::class, 'drugPricingDetail'])
-                    ->whereUuid('sourceId')
-                    ->name('drug-pricing.detail');
-                Route::post('/drug-pricing/sync', [MuasamcongApplicationController::class, 'queueDrugPricingSync'])->name('drug-pricing.sync');
-            });
-
-            Route::middleware('client.feature:muasamcong,history')->group(function () {
-                Route::get('/history', [MuasamcongHistoryController::class, 'index'])->name('history');
-            });
-        });
+use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongApplicationController; use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongHistoryController; use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongPriceListController; use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongShareManagementController; use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\MuasamcongWishlistController; use Modules\ClientPortal\Applications\Muasamcong\Http\Controllers\PublicDrugShareController;
+if((bool)config('modules.registry.Muasamcong.enabled',false)){
+ Route::middleware('web')->group(function(){Route::get('/share/muasamcong/drug/{token}',[PublicDrugShareController::class,'show'])->where('token','[A-Za-z0-9]{64}')->name('public.muasamcong.drug-share');Route::get('/share/muasamcong/price-list/{token}',[MuasamcongPriceListController::class,'publicDownload'])->where('token','[A-Za-z0-9]{64}')->name('public.muasamcong.price-list');});
+ Route::middleware(['web','auth:web','client.application:muasamcong'])->prefix('apps/muasamcong')->name('client.muasamcong.')->group(function(){
+  Route::get('/',[MuasamcongApplicationController::class,'dashboard'])->name('dashboard');
+  Route::middleware('client.feature:muasamcong,drug-pricing')->group(function(){Route::get('/drug-pricing',[MuasamcongApplicationController::class,'drugPricing'])->name('drug-pricing');Route::post('/drug-pricing/share',[PublicDrugShareController::class,'store'])->name('drug-pricing.share');Route::get('/shares',[MuasamcongShareManagementController::class,'index'])->name('shares');Route::patch('/shares/{share}/expiry',[MuasamcongShareManagementController::class,'updateExpiry'])->name('shares.expiry');Route::delete('/shares/{share}',[MuasamcongShareManagementController::class,'revoke'])->name('shares.revoke');Route::get('/drug-pricing/sync/{syncRequest}/status',[MuasamcongApplicationController::class,'drugPricingSyncStatus'])->whereUuid('syncRequest')->name('drug-pricing.sync-status');Route::get('/drug-pricing/{sourceId}',[MuasamcongApplicationController::class,'drugPricingDetail'])->whereUuid('sourceId')->name('drug-pricing.detail');Route::post('/drug-pricing/sync',[MuasamcongApplicationController::class,'queueDrugPricingSync'])->name('drug-pricing.sync');});
+  Route::middleware('client.feature:muasamcong,history')->group(function(){Route::get('/history',[MuasamcongHistoryController::class,'index'])->name('history');});
+  Route::middleware('client.feature:muasamcong,wishlist')->group(function(){Route::get('/wishlist',[MuasamcongWishlistController::class,'index'])->name('wishlist');Route::post('/wishlist',[MuasamcongWishlistController::class,'store'])->name('wishlist.store');Route::post('/wishlist/toggle',[MuasamcongWishlistController::class,'toggle'])->name('wishlist.toggle');Route::delete('/wishlist/{wishlist}',[MuasamcongWishlistController::class,'destroy'])->name('wishlist.destroy');});
+  Route::middleware('client.feature:muasamcong,price-list')->group(function(){
+   Route::get('/price-list',[MuasamcongPriceListController::class,'index'])->name('price-list');
+   Route::post('/price-list',[MuasamcongPriceListController::class,'store'])->name('price-list.store');
+   Route::get('/price-list/{exportId}/edit',[MuasamcongPriceListController::class,'edit'])->whereUuid('exportId')->name('price-list.edit');
+   Route::post('/price-list/{exportId}/recreate',[MuasamcongPriceListController::class,'recreate'])->whereUuid('exportId')->name('price-list.recreate');
+   Route::delete('/price-list/{exportId}',[MuasamcongPriceListController::class,'destroy'])->whereUuid('exportId')->name('price-list.destroy');
+   Route::get('/price-list/{exportId}/status',[MuasamcongPriceListController::class,'status'])->whereUuid('exportId')->name('price-list.status');
+   Route::get('/price-list/{exportId}/download',[MuasamcongPriceListController::class,'download'])->whereUuid('exportId')->name('price-list.download');
+   Route::post('/price-list/{exportId}/share',[MuasamcongPriceListController::class,'share'])->whereUuid('exportId')->name('price-list.share');
+   Route::post('/price-list/{exportId}/email',[MuasamcongPriceListController::class,'email'])->whereUuid('exportId')->name('price-list.email');
+  });
+ });
 }

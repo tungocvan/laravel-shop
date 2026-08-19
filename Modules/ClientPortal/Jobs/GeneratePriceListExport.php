@@ -1,0 +1,52 @@
+<?php
+namespace Modules\ClientPortal\Jobs;
+use Illuminate\Bus\Queueable; use Illuminate\Contracts\Queue\ShouldQueue; use Illuminate\Foundation\Bus\Dispatchable; use Illuminate\Queue\InteractsWithQueue; use Illuminate\Queue\SerializesModels; use Illuminate\Support\Facades\Storage;
+use Modules\ClientPortal\Models\PriceListExport; use Modules\Muasamcong\Models\SyncedExportProfile; use Modules\Muasamcong\Models\PricingResult; use Modules\Muasamcong\Models\PricingWishlist; use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate; use PhpOffice\PhpSpreadsheet\Spreadsheet; use PhpOffice\PhpSpreadsheet\Style\Alignment; use PhpOffice\PhpSpreadsheet\Style\Border; use PhpOffice\PhpSpreadsheet\Worksheet\Drawing; use PhpOffice\PhpSpreadsheet\Writer\Xlsx; use Throwable;
+class GeneratePriceListExport implements ShouldQueue
+{
+ use Dispatchable,InteractsWithQueue,Queueable,SerializesModels;
+ private const PX_PER_CM=37.7952755906;
+ public function __construct(public string $exportId) {}
+ public function handle(): void
+ {
+  $export=PriceListExport::findOrFail($this->exportId); $profile=SyncedExportProfile::findOrFail($export->profile_id); $export->update(['status'=>'processing','started_at'=>now(),'error_message'=>null]);
+  try {
+   $preference=app(SyncedPricingExportPreferenceService::class)->forUser((int)$profile->user_id,(int)$profile->id);
+   $selected=array_fill_keys($preference['selected_columns'],true); $columns=array_values(array_filter($preference['column_order'],fn($key)=>isset($selected[$key],SyncedPricingExportPreferenceService::COLUMNS[$key]))); if($columns===[])throw new \RuntimeException('Cấu hình Admin chưa chọn cột xuất.');
+   $rows=$export->source==='wishlist'?$this->wishlistRows($export):$this->syncedRows($export); if($rows===[])throw new \RuntimeException('Không có dữ liệu để xuất Bảng Giá.');
+   $spreadsheet=new Spreadsheet(); $spreadsheet->getDefaultStyle()->getFont()->setName('Times New Roman')->setSize(11); $sheet=$spreadsheet->getActiveSheet(); $sheet->setTitle('Bảng giá');
+   $headerFooter=(array)($preference['header_footer']??[]); $withHeader=(bool)($headerFooter['enabled']??false); $headerRow=$withHeader?9:1; $dataRow=$headerRow+1; $last=Coordinate::stringFromColumnIndex(count($columns));
+   if($withHeader)$this->renderHeader($sheet,$preference,$headerFooter,$last);
+   foreach($columns as $i=>$key){$letter=Coordinate::stringFromColumnIndex($i+1);$sheet->setCellValue($letter.$headerRow,$preference['headers'][$key]??SyncedPricingExportPreferenceService::COLUMNS[$key]['label']);$sheet->getColumnDimension($letter)->setAutoSize(false)->setWidth((float)($preference['widths'][$key]??120),'px');}
+   $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getFont()->setBold(true);$sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+   foreach(array_values($rows) as $ri=>$row){$excelRow=$dataRow+$ri;foreach($columns as $ci=>$key){$letter=Coordinate::stringFromColumnIndex($ci+1);$value=$this->value($row,$key,$ri+1);if(is_array($value))$value=implode('; ',array_map('strval',$value));$sheet->setCellValue($letter.$excelRow,$value);$align=match($preference['alignments'][$key]??'left'){'center'=>Alignment::HORIZONTAL_CENTER,'right'=>Alignment::HORIZONTAL_RIGHT,default=>Alignment::HORIZONTAL_LEFT};$sheet->getStyle($letter.$excelRow)->getAlignment()->setHorizontal($align)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);}}
+   $end=$dataRow+count($rows)-1;$sheet->getStyle("A{$headerRow}:{$last}{$end}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);if($withHeader)$this->renderFooter($sheet,$preference,$headerFooter,$last,$end);
+   $name='bang-gia-'.now()->format('Ymd-His').'.xlsx';$directory='client-portal/price-lists/'.$export->user_id;$path=$directory.'/'.$name;$tmp=tempnam(sys_get_temp_dir(),'price-list-');if($tmp===false)throw new \RuntimeException('Không thể tạo file Excel tạm.');$xlsx=$tmp.'.xlsx';@unlink($tmp);(new Xlsx($spreadsheet))->save($xlsx);$contents=file_get_contents($xlsx);if($contents===false){@unlink($xlsx);throw new \RuntimeException('Không thể đọc file Excel vừa tạo.');}$disk=Storage::disk('local');$disk->makeDirectory($directory);$this->normalizePermissions($disk->path($directory),0775);$written=$disk->put($path,$contents);@unlink($xlsx);$spreadsheet->disconnectWorksheets();if(!$written||!$disk->exists($path))throw new \RuntimeException('Không thể lưu file Excel vào storage.');$this->normalizePermissions($disk->path($path),0664);$this->normalizePermissions($disk->path($directory),0775);$export->update(['status'=>'completed','items_count'=>count($rows),'file_path'=>$path,'file_name'=>$name,'completed_at'=>now()]);
+  } catch(Throwable $e){$export->update(['status'=>'failed','error_message'=>$e->getMessage(),'completed_at'=>now()]);throw $e;}
+ }
+ private function normalizePermissions(string $path,int $mode): void { if(file_exists($path)){@chmod($path,$mode);} }
+ private function renderHeader($sheet,array $p,array $s,string $last): void
+ {
+  $sheet->mergeCells('A1:B5');
+  foreach(range(1,5) as $r){$sheet->getRowDimension($r)->setRowHeight(22);if($last!=='C')$sheet->mergeCells("C{$r}:{$last}{$r}");}
+  $sheet->setCellValue('C1',(string)($s['company_name']??''));$sheet->setCellValue('C2','Địa chỉ: '.(string)($s['address']??''));$sheet->setCellValue('C3','Mã số thuế: '.(string)($s['tax_code']??''));$sheet->setCellValue('C4','Số điện thoại: '.(string)($s['phone']??''));$sheet->setCellValue('C5','Email: '.(string)($s['email']??''));$sheet->getStyle('C1')->getFont()->setBold(true)->setSize(14);
+  $sheet->mergeCells("A6:{$last}6");$sheet->setCellValue('A6',(string)($s['title']??'BẢNG BÁO GIÁ'));$sheet->getStyle("A6:{$last}6")->getFont()->setBold(true)->setSize(16);$sheet->getStyle("A6:{$last}6")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+  $sheet->mergeCells("A7:{$last}7");$sheet->setCellValue('A7','Kính gửi: '.(string)($s['recipient']??''));$sheet->mergeCells("A8:{$last}8");$sheet->setCellValue('A8',(string)($s['intro']??''));$sheet->getStyle("A1:{$last}8")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+  $this->drawingExact($sheet,$p['logo_path']??null,'A1',(float)($s['logo_width_cm']??2.48),(float)($s['logo_height_cm']??3.83),'Logo công ty');
+ }
+ private function renderFooter($sheet,array $p,array $s,string $last,int $end): void
+ {
+  $date=$end+2;$title=$date+1;$sig=$title+1;$name=$sig+1;
+  foreach([$date,$title,$sig,$name] as $r)$sheet->mergeCells("A{$r}:{$last}{$r}");
+  $year=trim((string)($s['footer_year']??''))?:now()->format('Y');$loc=trim((string)($s['footer_location']??'Tp.HCM'));
+  $sheet->setCellValue("A{$date}","{$loc}, ngày…..tháng…...năm {$year}");$sheet->setCellValue("A{$title}",(string)($s['signatory_title']??'GIÁM ĐỐC CÔNG TY'));$sheet->setCellValue("A{$name}",(string)($s['signatory_name']??''));
+  $sheet->getStyle("A{$date}:{$last}{$name}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);$sheet->getStyle("A{$title}:{$last}{$title}")->getFont()->setBold(true);$sheet->getStyle("A{$name}:{$last}{$name}")->getFont()->setBold(true);
+  $heightCm=(float)($s['signature_height_cm']??2.0);$sheet->getRowDimension($sig)->setRowHeight(max(42,$heightCm*28.35+8));
+  $this->drawingExact($sheet,$p['signature_path']??null,"A{$sig}",(float)($s['signature_width_cm']??4.0),$heightCm,'Chữ ký Giám đốc');
+ }
+ private function drawingExact($sheet,mixed $stored,string $cell,float $widthCm,float $heightCm,string $name): void { $path=is_string($stored)&&trim($stored)!==''?Storage::disk('local')->path($stored):null;if(!$path||!is_file($path)||!is_readable($path))return;$width=(int)round(max(.5,min(15,$widthCm))*self::PX_PER_CM);$height=(int)round(max(.5,min(15,$heightCm))*self::PX_PER_CM);$d=new Drawing();$d->setName($name)->setPath($path)->setResizeProportional(false)->setWidthAndHeight($width,$height)->setCoordinates($cell)->setOffsetX(0)->setOffsetY(0)->setWorksheet($sheet); }
+ private function value(array $row,string $key,int $stt): mixed { if($key==='stt')return $stt;if($key==='thanh_tien'){return is_numeric($row['don_gia_vat']??$row['don_gia']??null)&&is_numeric($row['so_luong']??null)?(float)($row['don_gia_vat']??$row['don_gia'])*(float)$row['so_luong']:null;}return $row[$key]??null; }
+ private function syncedRows(PriceListExport $e): array{return PricingResult::whereIn('source_id',$e->selected_ids)->get()->map(fn($m)=>$m->toArray())->all();}
+ private function wishlistRows(PriceListExport $e): array{return PricingWishlist::where('user_id',$e->user_id)->whereIn('id',$e->selected_ids)->get()->map(function($m){$s=$m->snapshot??[];return array_merge($s,['ten_thuoc'=>$s['ten_thuoc']??$s['tenThuoc']??$m->medicine_name,'ten_hoat_chat'=>$s['ten_hoat_chat']??$s['tenHoatChat']??$m->active_ingredient,'nong_do'=>$s['nong_do']??$s['nongDo']??$m->strength,'ma_tbmt'=>$s['ma_tbmt']??$s['maTbmt']??$m->ma_tbmt,'don_gia'=>$s['don_gia']??$s['donGia']??null,'winning_name'=>$s['winning_name']??$s['winningName']??[],'ten_co_so_san_xuat'=>$s['ten_co_so_san_xuat']??$s['tenCoSoSanXuat']??null,'nuoc_san_xuat'=>$s['nuoc_san_xuat']??$s['nuocSanXuat']??null,'quy_cach_dong_goi'=>$s['quy_cach_dong_goi']??$s['quyCachDongGoi']??null,'don_vi_tinh'=>$s['don_vi_tinh']??$s['donViTinh']??null]);})->all();}
+}

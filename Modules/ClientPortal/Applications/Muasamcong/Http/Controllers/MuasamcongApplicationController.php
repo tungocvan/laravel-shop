@@ -14,12 +14,14 @@ use Modules\ClientPortal\Applications\Muasamcong\Jobs\SyncPricingResultsJob;
 use Modules\ClientPortal\Applications\Muasamcong\Services\ClientPricingSearchService;
 use Modules\ClientPortal\Models\SyncRequest;
 use Modules\ClientPortal\Services\ApplicationRegistry;
+use Modules\Muasamcong\Models\PricingWishlist;
 use Modules\Muasamcong\Services\PricingResultSyncService;
 use Throwable;
 
 class MuasamcongApplicationController extends Controller
 {
     private const SYNC_PERMISSION = 'client.muasamcong.drug-pricing.sync';
+    private const WISHLIST_PERMISSION = 'client.muasamcong.wishlist.view';
     private const PER_PAGE = 20;
 
     public function dashboard(Request $request, ApplicationRegistry $registry): View
@@ -62,10 +64,14 @@ class MuasamcongApplicationController extends Controller
         $items = new LengthAwarePaginator([], 0, self::PER_PAGE, 1, ['path' => $request->url()]);
         $summary = $this->emptySummary();
         $syncedSourceIds = [];
+        $wishlistSourceIds = [];
         $dataSource = '';
+        $user = $request->user('web');
+        $canSync = $user !== null && $registry->userCan($user, self::SYNC_PERMISSION);
+        $canWishlist = $user !== null && $registry->userCan($user, self::WISHLIST_PERMISSION);
 
         if ($keyword !== '') {
-            $searchResult = $search->search($keyword, $request->user('web')?->getKey(), (bool) ($validated['refresh'] ?? false));
+            $searchResult = $search->search($keyword, $user?->getKey(), (bool) ($validated['refresh'] ?? false));
             $result = $searchResult['result'];
             $dataSource = $searchResult['source'];
 
@@ -74,22 +80,41 @@ class MuasamcongApplicationController extends Controller
                 $filtered = $this->filterPricingItems($allItems, $filters);
                 $summary = $this->priceSummary($filtered, (int) ($result['data']['total'] ?? $allItems->count()));
                 $page = max(1, (int) ($validated['page'] ?? 1));
-                $items = new LengthAwarePaginator($filtered->forPage($page, self::PER_PAGE)->values(), $filtered->count(), self::PER_PAGE, $page, ['path' => $request->url(), 'query' => $request->except('refresh')]);
+                $pageItems = $filtered->forPage($page, self::PER_PAGE)->values();
+                $items = new LengthAwarePaginator($pageItems, $filtered->count(), self::PER_PAGE, $page, ['path' => $request->url(), 'query' => $request->except('refresh')]);
+
                 try { $syncedSourceIds = $syncService->existingSourceIds($allItems->all()); } catch (Throwable) { $syncedSourceIds = []; }
+
+                if ($canWishlist) {
+                    $pageSourceIds = $pageItems->pluck('id')->filter()->map(fn ($id): string => (string) $id)->values()->all();
+                    if ($pageSourceIds !== []) {
+                        try {
+                            $wishlistSourceIds = PricingWishlist::query()
+                                ->where('user_id', $user->getKey())
+                                ->whereIn('source_id', $pageSourceIds)
+                                ->pluck('source_id')
+                                ->map(fn ($id): string => (string) $id)
+                                ->all();
+                        } catch (Throwable) {
+                            $wishlistSourceIds = [];
+                        }
+                    }
+                }
             }
         }
 
-        $user = $request->user('web');
-        $canSync = $user !== null && $registry->userCan($user, self::SYNC_PERMISSION);
-
-        return view('ClientPortal::applications.muasamcong.drug-pricing', compact('keyword', 'filters', 'result', 'items', 'summary', 'syncedSourceIds', 'canSync', 'dataSource'));
+        return view('ClientPortal::applications.muasamcong.drug-pricing', compact(
+            'keyword', 'filters', 'result', 'items', 'summary', 'syncedSourceIds',
+            'wishlistSourceIds', 'canSync', 'canWishlist', 'dataSource'
+        ));
     }
 
     public function drugPricingDetail(Request $request, string $sourceId, ClientPricingSearchService $search, PricingResultSyncService $syncService, ApplicationRegistry $registry): View
     {
         $validated = $request->validate(['keyword' => ['required', 'string', 'min:2', 'max:200']]);
         $keyword = trim($validated['keyword']);
-        $searchResult = $search->search($keyword, $request->user('web')?->getKey());
+        $user = $request->user('web');
+        $searchResult = $search->search($keyword, $user?->getKey());
         $result = $searchResult['result'];
         abort_unless($result['success'] ?? false, 404);
 
@@ -98,10 +123,16 @@ class MuasamcongApplicationController extends Controller
 
         $synced = false;
         try { $synced = in_array($sourceId, $syncService->existingSourceIds([$item]), true); } catch (Throwable) {}
-        $user = $request->user('web');
         $canSync = $user !== null && $registry->userCan($user, self::SYNC_PERMISSION);
+        $canWishlist = $user !== null && $registry->userCan($user, self::WISHLIST_PERMISSION);
+        $wishlisted = false;
+        if ($canWishlist) {
+            try {
+                $wishlisted = PricingWishlist::query()->where('user_id', $user->getKey())->where('source_id', $sourceId)->exists();
+            } catch (Throwable) {}
+        }
 
-        return view('ClientPortal::applications.muasamcong.drug-pricing-detail', compact('keyword', 'item', 'synced', 'canSync'));
+        return view('ClientPortal::applications.muasamcong.drug-pricing-detail', compact('keyword', 'item', 'synced', 'canSync', 'canWishlist', 'wishlisted'));
     }
 
     public function queueDrugPricingSync(Request $request): RedirectResponse
