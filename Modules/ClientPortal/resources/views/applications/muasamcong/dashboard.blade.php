@@ -2,6 +2,7 @@
 @section('title', 'Mua sắm công')
 @section('app-name', 'Mua sắm công')
 @section('app-dashboard-route', route('client.muasamcong.dashboard'))
+@section('mobile-nav')@include('ClientPortal::applications.muasamcong.partials.mobile-nav')@endsection
 @section('content')
 <section class="rounded-3xl bg-slate-900 px-6 py-7 text-white shadow-sm sm:px-8 sm:py-9">
     <p class="text-sm font-semibold text-slate-300">Ứng dụng dữ liệu thực tế</p>
