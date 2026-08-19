@@ -24,7 +24,7 @@ class EnsureClientApplicationAccess
         abort_if($user === null, 401);
 
         $permission = $manifest['permission'] ?? null;
-        abort_if($permission !== null && ! $user->can($permission), 403);
+        abort_if($permission !== null && ! $registry->userCan($user, $permission), 403);
 
         app(ClientApplicationContext::class)->set($manifest);
 
