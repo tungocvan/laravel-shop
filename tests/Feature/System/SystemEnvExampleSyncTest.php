@@ -79,7 +79,11 @@ DB_HOST=127.0.0.1
 DB_DATABASE=real_database
 DB_USERNAME=real_user
 DB_PASSWORD=real_password
+CACHE_STORE=database
+SESSION_DRIVER=database
+QUEUE_CONNECTION=database
 REDIS_HOST=127.0.0.1
+NODEJS_SERVER_URL=http://127.0.0.1:6001
 FACEBOOK_SCHEDULER_ENABLED=false
 NEW_RUNTIME_FLAG=enabled
 ENV;
@@ -92,7 +96,11 @@ DB_HOST=db
 DB_DATABASE=laravel
 DB_USERNAME=laravel
 DB_PASSWORD=
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
 REDIS_HOST=redis
+NODEJS_SERVER_URL=http://socket:6001
 QUEUE_NAMES=facebook,default
 ENV;
 
@@ -102,6 +110,10 @@ ENV;
 
         $this->assertStringContainsString('DB_HOST=db', $content);
         $this->assertStringContainsString('REDIS_HOST=redis', $content);
+        $this->assertStringContainsString('CACHE_STORE=redis', $content);
+        $this->assertStringContainsString('SESSION_DRIVER=redis', $content);
+        $this->assertStringContainsString('QUEUE_CONNECTION=redis', $content);
+        $this->assertStringContainsString('NODEJS_SERVER_URL=http://socket:6001', $content);
         $this->assertStringContainsString('DB_DATABASE=laravel', $content);
         $this->assertStringContainsString('DB_USERNAME=laravel', $content);
         $this->assertStringContainsString("DB_PASSWORD=\n", $content);
@@ -109,5 +121,9 @@ ENV;
         $this->assertStringContainsString('FACEBOOK_SCHEDULER_ENABLED=false', $content);
         $this->assertStringContainsString('NEW_RUNTIME_FLAG=enabled', $content);
         $this->assertStringNotContainsString('real_password', $content);
+        $this->assertStringNotContainsString('CACHE_STORE=database', $content);
+        $this->assertStringNotContainsString('SESSION_DRIVER=database', $content);
+        $this->assertStringNotContainsString('QUEUE_CONNECTION=database', $content);
+        $this->assertStringNotContainsString('NODEJS_SERVER_URL=http://127.0.0.1:6001', $content);
     }
 }
