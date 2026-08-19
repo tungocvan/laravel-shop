@@ -1,6 +1,6 @@
 <?php
 namespace Tests\Feature\ClientApps;
-use Illuminate\Support\Facades\Route; use Modules\ClientPortal\Services\ApplicationRegistry; use Tests\TestCase;
+use Illuminate\Support\Facades\Route; use Modules\ClientPortal\Services\ApplicationRegistry; use Modules\Muasamcong\Models\SyncedExportProfile; use Tests\TestCase;
 class MuasamcongPriceListTest extends TestCase
 {
  public function test_price_list_routes_require_application_and_feature_access(): void
@@ -9,4 +9,6 @@ class MuasamcongPriceListTest extends TestCase
  { $app=app(ApplicationRegistry::class)->find('muasamcong');$feature=collect($app['features'])->firstWhere('key','price-list');$this->assertNotNull($feature);$this->assertSame('client.muasamcong.price-list',$feature['route']);$this->assertSame('client.muasamcong.price-list.view',$feature['permission']);$action=collect($feature['actions'])->firstWhere('key','export');$this->assertNotNull($action);$this->assertSame('client.muasamcong.price-list.export',$action['permission']); }
  public function test_public_price_list_download_does_not_require_client_auth(): void
  { $route=Route::getRoutes()->getByName('public.muasamcong.price-list');$this->assertNotNull($route);$this->assertNotContains('auth:web',$route->gatherMiddleware()); }
+ public function test_client_price_list_reuses_admin_synced_export_profile_domain(): void
+ { $this->assertSame('muasamcong_synced_export_profiles',(new SyncedExportProfile())->getTable());$this->assertNull(Route::getRoutes()->getByName('muasamcong.price-list-profiles.index')); }
 }
