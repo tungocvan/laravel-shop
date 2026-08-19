@@ -43,19 +43,15 @@ class WebsiteServiceProvider extends ServiceProvider
             $model::deleted($clearSitemap);
         }
 
-        // ... các config khác ...
-
         // 1. Inject dữ liệu cho HEADER
         View::composer(['Website::partials.header', 'Website::layouts.master'], function ($view) {
             $settings = app(SettingsService::class);
             $menuService = app(HeaderMenuService::class);
 
             $view->with([
-                // Lấy menu Desktop và Mobile
                 'mainMenu' => $menuService->getMenuTreeByLocation('primary'),
                 'mobileMenu' => $menuService->getMenuTreeByLocation('mobile'),
-
-                // Lấy settings chung (Logo, Hotline...)
+                'accountMenu' => $menuService->getMenuTreeByLocation('account'),
                 'headerSettings' => [
                     'logo' => $settings->get('site_logo'),
                     'hotline' => $settings->get('header.topbar.hotline', '0903 971 949'),
@@ -97,13 +93,8 @@ class WebsiteServiceProvider extends ServiceProvider
             $settings = app(SettingsService::class);
 
             $view->with([
-                // Lấy cột footer active
                 'footerColumns' => $footerService->getColumnsForFrontend(),
-
-                // Lấy social links active
                 'socialLinks' => $footerService->getSocialLinks(),
-
-                // Lấy settings footer
                 'footerSettings' => [
                     'brand_name' => $settings->get('header.brand_name', $settings->get('site_name', 'FlexBiz')),
                     'logo' => $settings->get('site_logo'),
