@@ -10,6 +10,7 @@ class EnvExampleSyncService
     private const SECRET_PATTERNS = [
         '/(^|_)(PASSWORD|PASS|SECRET|TOKEN|COOKIE|CREDENTIALS?)(_|$)/i',
         '/(^|_)(PRIVATE_KEY|APP_KEY|BRIDGE_SECRET_KEY)(_|$)/i',
+        '/(^|_)(ACCESS_KEY|API_KEY|SIGNATURE|HASH_KEY|ENCRYPTION_KEY)(_|$)/i',
     ];
 
     private const EXAMPLE_OVERRIDES = [
@@ -34,12 +35,9 @@ class EnvExampleSyncService
 
     public function sync(string $sourceContent): array
     {
-        $targets = [
-            '.env.example' => false,
-            '.env.docker.example' => true,
-        ];
-
+        $targets = ['.env.example' => false, '.env.docker.example' => true];
         $result = ['files' => [], 'keys' => 0, 'secrets_sanitized' => 0];
+
         foreach ($targets as $filename => $docker) {
             $path = base_path($filename);
             $template = File::isFile($path) ? (string) File::get($path) : '';
