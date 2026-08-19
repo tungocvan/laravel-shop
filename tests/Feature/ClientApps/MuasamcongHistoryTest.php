@@ -24,8 +24,11 @@ class MuasamcongHistoryTest extends TestCase
         $application = app(ApplicationRegistry::class)->find('muasamcong');
 
         $this->assertNotNull($application);
-        $this->assertArrayHasKey('history', $application['features']);
-        $this->assertSame('client.muasamcong.history', $application['features']['history']['route']);
-        $this->assertSame('client.muasamcong.history.view', $application['features']['history']['permission']);
+
+        $history = collect($application['features'] ?? [])->firstWhere('key', 'history');
+
+        $this->assertNotNull($history);
+        $this->assertSame('client.muasamcong.history', $history['route']);
+        $this->assertSame('client.muasamcong.history.view', $history['permission']);
     }
 }
