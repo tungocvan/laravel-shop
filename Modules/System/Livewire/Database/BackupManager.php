@@ -142,7 +142,7 @@ class BackupManager extends Component
     public function deleteBackup(string $fileName, DatabaseService $service): void
     {
         $this->authorizePermission('database.destroy');
-        try { $service->deleteBackup($fileName); session()->flash('success', "Đã xóa backup {$fileName}."); }
+        try { $service->deleteBackup($fileName); $this->notify('success', "Đã xóa backup local {$fileName}."); }
         catch (Throwable $e) { $this->reportOperationError('Database backup delete failed.', $e, ['backup' => $fileName]); $this->notify('error', 'Không thể xóa file backup. Vui lòng kiểm tra log hệ thống.'); }
     }
 
@@ -150,26 +150,41 @@ class BackupManager extends Component
     {
         $this->authorizePermission('database.restore');
         $validated = $this->validate(['sqlFile' => ['required', 'file', 'max:20480']], ['sqlFile.required' => 'Vui lòng chọn file SQL.', 'sqlFile.max' => 'File upload trực tiếp không được vượt quá 20 MB.']);
-        try { $name = $service->importBackupFile($validated['sqlFile']->getRealPath(), $validated['sqlFile']->getClientOriginalName()); $this->reset('sqlFile'); session()->flash('success', "Đã tải lên {$name}. Hãy kiểm tra và bấm RESTORE khi sẵn sàng."); }
-        catch (Throwable $e) { $this->reportOperationError('Database backup upload failed.', $e, ['original_name' => $validated['sqlFile']->getClientOriginalName()]); $this->addError('sqlFile', 'Không thể nhập file backup. Vui lòng kiểm tra file SQL và log hệ thống.'); }
+        try {
+            $name = $service->importBackupFile($validated['sqlFile']->getRealPath(), $validated['sqlFile']->getClientOriginalName());
+            $this->reset('sqlFile');
+            $this->notify('success', "Đã tải lên {$name}. Hãy kiểm tra và bấm RESTORE khi sẵn sàng.");
+        } catch (Throwable $e) {
+            $this->reportOperationError('Database backup upload failed.', $e, ['original_name' => $validated['sqlFile']->getClientOriginalName()]);
+            $message = 'Không thể nhập file backup. Vui lòng kiểm tra file SQL và log hệ thống.';
+            $this->addError('sqlFile', $message);
+            $this->notify('error', $message);
+        }
     }
 
     public function importFromGoogleDrive(DatabaseService $service): void
     {
         $this->authorizePermission('database.restore');
         $this->validate(['googleDriveUrl' => ['required', 'url', 'max:2048']]);
-        if (! preg_match('~(?:/file/d/|[?&]id=)([A-Za-z0-9_-]{10,})~', $this->googleDriveUrl, $matches)) { $this->addError('googleDriveUrl', 'URL Google Drive công khai không hợp lệ.'); return; }
+        if (! preg_match('~(?:/file/d/|[?&]id=)([A-Za-z0-9_-]{10,})~', $this->googleDriveUrl, $matches)) {
+            $message = 'URL Google Drive công khai không hợp lệ.';
+            $this->addError('googleDriveUrl', $message);
+            $this->notify('error', $message);
+            return;
+        }
         $temporaryPath = tempnam(storage_path('framework'), 'drive-sql-');
-        if ($temporaryPath === false) { $this->addError('googleDriveUrl', 'Không thể tạo file tạm để tải backup.'); return; }
+        if ($temporaryPath === false) { $this->notify('error', 'Không thể tạo file tạm để tải backup.'); return; }
         try {
             $response = Http::withOptions(['sink' => $temporaryPath])->connectTimeout(15)->timeout(300)->get('https://drive.usercontent.google.com/download', ['id' => $matches[1], 'export' => 'download', 'confirm' => 't']);
             if (! $response->successful()) throw new \RuntimeException('Google Drive public download failed with HTTP '.$response->status());
             $name = $service->importBackupFile($temporaryPath, 'google-drive-'.$matches[1].'.sql');
             $this->googleDriveUrl = '';
-            session()->flash('success', "Đã tải {$name} từ URL Drive công khai. Hãy kiểm tra file local rồi bấm RESTORE khi sẵn sàng.");
+            $this->notify('success', "Đã tải {$name} từ URL Drive công khai. Hãy kiểm tra file local rồi bấm RESTORE khi sẵn sàng.");
         } catch (Throwable $e) {
             $this->reportOperationError('Google Drive public backup import failed.', $e, ['drive_file_id' => $matches[1]]);
-            $this->addError('googleDriveUrl', 'Không thể tải URL Drive công khai. File phải được chia sẻ “Bất kỳ ai có liên kết”. Backup của hệ thống hãy dùng nút “Tải về Local” ở danh sách phía trên.');
+            $message = 'Không thể tải URL Drive công khai. File phải được chia sẻ “Bất kỳ ai có liên kết”. Backup của hệ thống hãy dùng nút “Tải về Local” ở danh sách phía trên.';
+            $this->addError('googleDriveUrl', $message);
+            $this->notify('error', $message);
         } finally { @unlink($temporaryPath); }
     }
 
@@ -186,13 +201,20 @@ class BackupManager extends Component
         $this->authorizePermission('database.download');
         $validated = $this->validate(['emailBackupFile' => ['required','string','max:255'], 'backupEmail' => ['required','email:rfc','max:255']]);
         $path = $service->getDownloadPath($validated['emailBackupFile']);
-        if ($path === null) { $this->addError('emailBackupFile', 'File backup không còn tồn tại.'); return; }
-        if (filesize($path) > SendDatabaseBackupEmail::MAX_ATTACHMENT_BYTES) { $this->addError('emailBackupFile', 'File backup vượt quá giới hạn 10MB.'); return; }
+        if ($path === null) { $this->notify('error', 'File backup không còn tồn tại.'); return; }
+        if (filesize($path) > SendDatabaseBackupEmail::MAX_ATTACHMENT_BYTES) { $this->notify('error', 'File backup vượt quá giới hạn 10MB.'); return; }
         SendDatabaseBackupEmail::dispatch($validated['emailBackupFile'], $validated['backupEmail']);
         Log::info('Database backup email delivery queued.', ['actor_id' => auth('admin')->id(), 'backup' => $validated['emailBackupFile'], 'recipient' => $validated['backupEmail']]);
-        $this->showEmailModal = false; $this->emailBackupFile = ''; session()->flash('success', 'Đã đưa yêu cầu gửi backup vào hàng đợi email.');
+        $this->showEmailModal = false;
+        $this->emailBackupFile = '';
+        $this->notify('success', 'Đã đưa yêu cầu gửi backup vào hàng đợi email.');
     }
 
-    private function notify(string $type, string $message): void { $this->dispatch('notify', type: $type, content: $message, message: $message); }
+    private function notify(string $type, string $message): void
+    {
+        $this->dispatch('notify', type: $type, content: $message, message: $message);
+        $this->dispatch('backup-operation-finished', type: $type, message: $message);
+    }
+
     private function reportOperationError(string $message, Throwable $exception, array $context = []): void { Log::error($message, $context + ['actor_id' => auth('admin')->id(), 'exception' => $exception::class, 'error' => $exception->getMessage()]); }
 }
