@@ -12,6 +12,7 @@ use Livewire\WithFileUploads;
 use Modules\System\Jobs\SendDatabaseBackupEmail;
 use Modules\System\Jobs\UploadDatabaseBackupToGoogleDrive;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\Cloud\GoogleDriveBackupBrowserService;
 use Modules\System\Services\Cloud\GoogleDriveConnectionService;
 use Modules\System\Services\DatabaseService;
 use Throwable;
@@ -27,11 +28,12 @@ class BackupManager extends Component
     public bool $showEmailModal = false;
     public string $emailBackupFile = '';
     public string $backupEmail = '';
+    public bool $showDriveBackups = true;
 
     #[On('backup-updated')]
     public function refresh(): void {}
 
-    public function render(DatabaseService $service, GoogleDriveConnectionService $drive)
+    public function render(DatabaseService $service, GoogleDriveConnectionService $drive, GoogleDriveBackupBrowserService $browser)
     {
         $allBackups = $service->getAllBackupFiles();
         $backups = array_slice($allBackups, 0, self::RECENT_BACKUP_LIMIT);
@@ -47,11 +49,24 @@ class BackupManager extends Component
         }
         unset($backup);
 
+        $remoteBackups = [];
+        $remoteBackupsError = null;
+        if (($driveStatus['connected'] ?? false) && $this->showDriveBackups) {
+            try {
+                $remoteBackups = $browser->listBackups(100);
+            } catch (Throwable $e) {
+                $remoteBackupsError = $e->getMessage();
+                Log::warning('Unable to list Google Drive backups.', ['error' => $e->getMessage()]);
+            }
+        }
+
         return view('System::livewire.database.backup-manager', [
             'backups' => $backups,
             'driveStatus' => $driveStatus,
             'driveCounts' => $driveCounts,
             'hasActiveDriveJobs' => ($driveCounts['queued'] + $driveCounts['processing']) > 0,
+            'remoteBackups' => $remoteBackups,
+            'remoteBackupsError' => $remoteBackupsError,
             'backupHistoryLimit' => self::RECENT_BACKUP_LIMIT,
             'backupHistoryTruncated' => count($allBackups) > self::RECENT_BACKUP_LIMIT,
             'backupDirectories' => ['storage/app/private/backups', 'storage/app/backups (thư mục cũ)'],
@@ -106,6 +121,36 @@ class BackupManager extends Component
     {
         $drive->markBackupQueued($fileName);
         UploadDatabaseBackupToGoogleDrive::dispatch($fileName, auth('admin')->id());
+    }
+
+    public function restoreFromGoogleDrive(string $fileId, string $fileName, GoogleDriveBackupBrowserService $browser, DatabaseService $service): void
+    {
+        $this->authorizePermission('database.restore');
+
+        if (! preg_match('/^[A-Za-z0-9_.-]+\.sql$/i', $fileName)) {
+            $this->notify('error', 'Tên file backup Google Drive không hợp lệ.');
+            return;
+        }
+
+        $temporaryPath = tempnam(storage_path('framework'), 'drive-restore-');
+        if ($temporaryPath === false) {
+            $this->notify('error', 'Không thể tạo file tạm để restore.');
+            return;
+        }
+
+        try {
+            $browser->download($fileId, $temporaryPath);
+            $localName = $service->importBackupFile($temporaryPath, $fileName);
+            if (! $service->restoreFromFile($localName)) {
+                throw new \RuntimeException('Không thể restore file backup vừa tải từ Google Drive.');
+            }
+            $this->notify('success', "Đã tải và restore {$fileName} từ Google Drive thành công.");
+        } catch (Throwable $e) {
+            $this->reportOperationError('Google Drive remote restore failed.', $e, ['drive_file_id' => $fileId, 'backup' => $fileName]);
+            $this->notify('error', 'Restore từ Google Drive thất bại. Dữ liệu local hiện tại không bị xóa nếu bước restore chưa bắt đầu.');
+        } finally {
+            @unlink($temporaryPath);
+        }
     }
 
     public function restoreBackup(string $fileName, DatabaseService $service): void
