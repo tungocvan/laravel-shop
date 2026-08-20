@@ -22,6 +22,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/client-apps')->name('adm
     Route::get('/pwa', [PwaSettingsController::class, 'edit'])->middleware('permission:edit_role,admin')->name('pwa.edit');
     Route::put('/pwa/general', [PwaSettingsController::class, 'updateGeneral'])->middleware('permission:edit_role,admin')->name('pwa.general.update');
     Route::put('/pwa/login', [PwaSettingsController::class, 'updateLogin'])->middleware('permission:edit_role,admin')->name('pwa.login.update');
+    Route::get('/pwa/launcher', [PwaSettingsController::class, 'editLauncher'])->middleware('permission:edit_role,admin')->name('pwa.launcher.edit');
     Route::put('/pwa/launcher', [PwaSettingsController::class, 'updateLauncher'])->middleware('permission:edit_role,admin')->name('pwa.launcher.update');
     Route::put('/pwa/applications/{application}', [PwaSettingsController::class, 'updateApplication'])->middleware('permission:edit_role,admin')->name('pwa.applications.update');
 
