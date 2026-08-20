@@ -1,7 +1,6 @@
 @extends('Admin::layouts.master')
 @section('title', 'Cấu hình PWA Client')
 @section('content')
-@php($colorPicker = config('clientportal.pwa.admin', []))
 <div class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -36,29 +35,21 @@
                 </div>
 
                 <div class="mt-6 grid gap-5 md:grid-cols-2">
-                    @php
-                        $generalFields = [
-                            'application_name' => ['Tên PWA', 'Tên đầy đủ hiển thị cho Client'],
-                            'short_name' => ['Tên ngắn', 'Tên ngắn dùng trên thiết bị'],
-                            'browser_title' => ['Tiêu đề trình duyệt', 'Title của trang đăng nhập PWA'],
-                            'apple_title' => ['Apple Web App title', 'Tên khi chạy trên iPhone/iPad'],
-                            'theme_color' => ['Theme color', 'Màu hex, ví dụ #0f172a'],
-                            'background_color' => ['Background color', 'Màu nền PWA dạng hex'],
-                        ];
-                    @endphp
-                    @foreach($generalFields as $key => [$label, $hint])
+                    @foreach(($adminUi['general_fields'] ?? []) as $key => $field)
                         <label class="block">
-                            <span class="text-sm font-semibold text-gray-800">{{ $label }}</span>
+                            <span class="text-sm font-semibold text-gray-800">{{ $field['label'] ?? $key }}</span>
                             <input name="{{ $key }}" value="{{ old($key, $general[$key] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                            <span class="mt-1 block text-xs text-gray-500">{{ $hint }}</span>
-                            @if(in_array($key, ['theme_color', 'background_color'], true) && filled($colorPicker['color_picker_url'] ?? null))
+                            @if(filled($field['hint'] ?? null))
+                                <span class="mt-1 block text-xs text-gray-500">{{ $field['hint'] }}</span>
+                            @endif
+                            @if(in_array($key, $adminUi['color_fields'] ?? [], true) && filled($adminUi['color_picker_url'] ?? null))
                                 <a
-                                    href="{{ $colorPicker['color_picker_url'] }}"
+                                    href="{{ $adminUi['color_picker_url'] }}"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
                                 >
-                                    {{ $colorPicker['color_picker_label'] ?? 'Mở công cụ lấy mã màu' }} ↗
+                                    {{ $adminUi['color_picker_label'] ?? 'Mở công cụ lấy mã màu' }} ↗
                                 </a>
                             @endif
                         </label>
