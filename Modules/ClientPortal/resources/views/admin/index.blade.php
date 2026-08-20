@@ -3,8 +3,9 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 class="text-2xl font-bold text-gray-900">Ứng dụng Client</h1><p class="mt-1 text-sm text-gray-500">Quét manifest trong ClientPortal, đồng bộ permission và phân quyền User/Role.</p></div>
+        <div><h1 class="text-2xl font-bold text-gray-900">Ứng dụng Client</h1><p class="mt-1 text-sm text-gray-500">Quét manifest trong ClientPortal, đồng bộ permission, phân quyền User/Role và quản trị giao diện PWA.</p></div>
         <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.client-apps.pwa.edit') }}" class="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Cấu hình PWA</a>
             <form method="POST" action="{{ route('admin.client-apps.sync-permissions') }}">@csrf<button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Quét & đồng bộ quyền</button></form>
             <form method="POST" action="{{ route('admin.client-apps.sync-super-admin') }}">@csrf<button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Đồng bộ Super Admin</button></form>
         </div>
