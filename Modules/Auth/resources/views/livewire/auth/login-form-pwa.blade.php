@@ -49,12 +49,7 @@
         </button>
     </form>
 
-    <div class="my-6 flex items-center gap-3"><div class="h-px flex-1 bg-slate-200"></div><span class="text-xs font-semibold text-slate-400">HOẶC</span><div class="h-px flex-1 bg-slate-200"></div></div>
-
-    <a href="{{ route('google') }}" class="flex h-13 w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50">
-        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-white text-base shadow-sm ring-1 ring-slate-200">G</span>
-        Đăng nhập bằng Google Workspace
-    </a>
-
-    <p class="mt-6 text-center text-xs leading-5 text-slate-400">Phiên đăng nhập được bảo vệ bằng kết nối HTTPS. Chỉ các ứng dụng được quản trị viên cấp quyền mới xuất hiện sau khi đăng nhập.</p>
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-xs leading-5 text-slate-500">
+        Phiên đăng nhập được bảo vệ bằng HTTPS. Chỉ các ứng dụng được quản trị viên cấp quyền mới xuất hiện sau khi đăng nhập.
+    </div>
 </div>
