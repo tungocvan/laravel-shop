@@ -28,6 +28,21 @@ return [
         ],
     ],
 
+    'launcher' => [
+        'browser_title' => 'Ứng dụng của tôi · INAFO',
+        'brand_title' => 'INAFO',
+        'brand_subtitle' => 'Client Portal',
+        'workspace_label' => 'Không gian làm việc',
+        'heading' => 'Ứng dụng của tôi',
+        'description' => 'Chọn ứng dụng được quản trị viên cấp quyền. INAFO có thể được cài lên thiết bị như một web app.',
+        'install_button_text' => 'Cài ứng dụng',
+        'logout_button_text' => 'Đăng xuất',
+        'open_application_text' => 'Mở ứng dụng',
+        'empty_title' => 'Chưa có ứng dụng được cấp',
+        'empty_description' => 'Quản trị viên cần cấp quyền ứng dụng cho tài khoản này.',
+        'show_source_module' => true,
+    ],
+
     'admin' => [
         'general_fields' => [
             'application_name' => ['label' => 'Tên PWA', 'hint' => 'Tên đầy đủ hiển thị cho Client'],
