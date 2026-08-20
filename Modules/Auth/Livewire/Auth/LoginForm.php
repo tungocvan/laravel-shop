@@ -31,7 +31,9 @@ class LoginForm extends Component
         $this->variant = in_array($variant, ['default', 'pwa'], true) ? $variant : 'default';
 
         $logo = $settings->get('site_logo');
-        $this->logo = $logo ? asset('storage/'.$logo).'?v='.md5($logo) : asset('storage/img/logo.png');
+        $this->logo = $logo
+            ? asset('storage/'.$logo).'?v='.md5($logo)
+            : ($this->variant === 'pwa' ? asset('pwa/icon.svg') : asset('storage/img/logo.png'));
         $this->login_name_line_1 = $settings->get('site_name_line_1') ?? config('app.school_managing_agency', '');
         $this->login_name_line_2 = $settings->get('site_name_line_2') ?? 'CÔNG TY TNHH INAFO VIỆT NAM';
         $this->login_description = $settings->get('login_description') ?? config('app.school_login_description', 'Hệ thống quản trị');
