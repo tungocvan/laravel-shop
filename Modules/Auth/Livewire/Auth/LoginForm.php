@@ -14,6 +14,7 @@ class LoginForm extends Component
     public $password = '';
     public $remember = false;
     public string $guard = 'web';
+    public string $variant = 'default';
     public $logo = '';
     public $login_name_line_1 = '';
     public $login_name_line_2 = '';
@@ -24,9 +25,10 @@ class LoginForm extends Component
         'password' => 'required',
     ];
 
-    public function mount(SettingsService $settings, string $guard = 'web'): void
+    public function mount(SettingsService $settings, string $guard = 'web', string $variant = 'default'): void
     {
         $this->guard = in_array($guard, ['web', 'admin'], true) ? $guard : 'web';
+        $this->variant = in_array($variant, ['default', 'pwa'], true) ? $variant : 'default';
 
         $logo = $settings->get('site_logo');
         $this->logo = $logo ? asset('storage/'.$logo).'?v='.md5($logo) : asset('storage/img/logo.png');
@@ -57,7 +59,9 @@ class LoginForm extends Component
 
     public function render()
     {
-        return view('Auth::livewire.auth.login-form');
+        return view($this->variant === 'pwa'
+            ? 'Auth::livewire.auth.login-form-pwa'
+            : 'Auth::livewire.auth.login-form');
     }
 
     private function loadSchoolSettings(): void
