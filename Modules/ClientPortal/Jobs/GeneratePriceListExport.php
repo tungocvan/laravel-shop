@@ -390,23 +390,25 @@ class GeneratePriceListExport implements ShouldQueue
         $title = $date + 1;
         $sig = $title + 1;
         $name = $sig + 1;
+        $lastIndex = Coordinate::columnIndexFromString($last);
+        $signatureStart = Coordinate::stringFromColumnIndex(max(1, $lastIndex - 3));
 
         foreach ([$date, $title, $sig, $name] as $r) {
-            $sheet->mergeCells("A{$r}:{$last}{$r}");
+            $sheet->mergeCells("{$signatureStart}{$r}:{$last}{$r}");
         }
 
         $year = trim((string) ($s['footer_year'] ?? '')) ?: now()->format('Y');
         $loc = trim((string) ($s['footer_location'] ?? 'Tp.HCM'));
 
-        $sheet->setCellValue("A{$date}", "{$loc}, ngày…..tháng…...năm {$year}");
-        $sheet->setCellValue("A{$title}", (string) ($s['signatory_title'] ?? 'GIÁM ĐỐC CÔNG TY'));
-        $sheet->setCellValue("A{$name}", (string) ($s['signatory_name'] ?? ''));
-        $sheet->getStyle("A{$date}:{$last}{$name}")
+        $sheet->setCellValue("{$signatureStart}{$date}", "{$loc}, ngày…..tháng…...năm {$year}");
+        $sheet->setCellValue("{$signatureStart}{$title}", (string) ($s['signatory_title'] ?? 'GIÁM ĐỐC CÔNG TY'));
+        $sheet->setCellValue("{$signatureStart}{$name}", (string) ($s['signatory_name'] ?? ''));
+        $sheet->getStyle("{$signatureStart}{$date}:{$last}{$name}")
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
             ->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle("A{$title}:{$last}{$title}")->getFont()->setBold(true);
-        $sheet->getStyle("A{$name}:{$last}{$name}")->getFont()->setBold(true);
+        $sheet->getStyle("{$signatureStart}{$title}:{$last}{$title}")->getFont()->setBold(true);
+        $sheet->getStyle("{$signatureStart}{$name}:{$last}{$name}")->getFont()->setBold(true);
 
         $heightCm = (float) ($s['signature_height_cm'] ?? 2.0);
         $sheet->getRowDimension($sig)->setRowHeight(max(50, $heightCm * 28.35 + 12));
@@ -415,7 +417,7 @@ class GeneratePriceListExport implements ShouldQueue
         $this->drawingCenteredInRange(
             $sheet,
             $p['signature_path'] ?? null,
-            'A',
+            $signatureStart,
             $last,
             $sig,
             $sig,
