@@ -6,10 +6,11 @@ Updated: 2026-08-20
 
 PWA configuration is owned by `Modules/ClientPortal`. Admin can manage ClientPortal presentation without editing Blade source, while authentication routes, guards, permission names and application business capabilities remain source-controlled.
 
-## Admin route
+## Admin routes
 
 ```text
 /admin/client-apps/pwa
+/admin/client-apps/pwa/launcher
 ```
 
 Current authorization reuses the existing ClientPortal Admin management capability:
@@ -45,7 +46,7 @@ Uniqueness is scoped by:
 (group_name, key)
 ```
 
-This allows future groups such as `pwa.launcher` and `applications.muasamcong` to reuse common keys like `title` or `description` safely.
+This allows groups such as `pwa.launcher` and `application.muasamcong.presentation` to reuse common keys like `name` or `description` safely.
 
 ## Defaults and overrides
 
@@ -64,7 +65,7 @@ Modules\ClientPortal\Services\ClientPortalSettingsService
 Flow:
 
 ```text
-ClientPortal config defaults
+ClientPortal config defaults / application manifest
         ↓
 client_portal_settings Admin overrides
         ↓
@@ -77,13 +78,13 @@ Blade
 
 Blade must not query settings directly from the database.
 
-If the settings table does not exist yet, the service falls back to module config so the PWA login remains available before migration or during deployment transitions.
+If the settings table does not exist yet, the service falls back to module config or manifest values so ClientPortal remains available during deployment transitions.
 
 ## Current groups
 
 ### `pwa.general`
 
-Admin-editable in MR-1:
+Admin can configure:
 
 - application name;
 - short name;
@@ -110,11 +111,43 @@ Admin can configure:
 
 The login Blade renders these values dynamically. Authentication itself remains the existing `web` guard Livewire login flow.
 
+### `pwa.launcher`
+
+MR-2 adds presentation settings for `/my-apps`:
+
+- browser title;
+- brand title/subtitle;
+- workspace label;
+- launcher heading and description;
+- install button label;
+- logout button label;
+- application-card CTA label;
+- empty-state title and description;
+- show/hide source-module label on application cards.
+
+### `application.{key}.presentation`
+
+Each application adapter can receive a presentation-only override:
+
+- `enabled` — show/hide the application card on `/my-apps`;
+- `name` — display label;
+- `description` — display copy;
+- `sort_order` — launcher ordering.
+
+Defaults come from the application manifest. The override service intentionally does not change:
+
+- `route`;
+- `permission`;
+- `source_module`;
+- feature/action permission contracts.
+
+Hiding an application card is a presentation decision, not a replacement for permission enforcement. Application routes continue to enforce their existing access middleware.
+
 ## Non-hardcode rule
 
-User-facing configurable PWA copy must be read through `ClientPortalSettingsService`. Blade may contain layout/CSS/accessibility structure, but editable branding/copy must not be duplicated as literals in the login template.
+User-facing configurable PWA copy must be read through `ClientPortalSettingsService`. Blade may contain layout/CSS/accessibility structure, but editable branding/copy must not be duplicated as literals in login or launcher templates.
 
-Defaults are defined once in module config to provide a safe first-run state. Admin overrides then replace them without source changes.
+Defaults are defined once in module config. Application-specific defaults continue to come from application manifests so labels/descriptions are not duplicated in configuration.
 
 ## Boundaries
 
@@ -133,9 +166,9 @@ These remain controlled by manifests/routes/source code.
 
 Planned extensions using the same settings service/storage contract:
 
-1. `pwa.launcher` — `/my-apps` title, empty state, layout and presentation.
-2. application/feature presentation overrides — labels, descriptions, icons, sort order, visibility and maintenance badges while preserving manifest permission contracts.
-3. dynamic manifest presentation — selected safe manifest properties generated from ClientPortal settings while preserving `/my-apps` as the security-reviewed entry contract.
+1. application/feature presentation overrides — feature labels, descriptions, icons, order, navigation visibility and maintenance badges while preserving manifest permission contracts;
+2. a canonical icon renderer before exposing icon editing in Admin;
+3. dynamic manifest presentation — selected safe manifest properties generated from ClientPortal settings while preserving `/my-apps` as the security-reviewed entry contract;
 4. dedicated Admin capability for PWA/presentation management.
 
 ## Verification
@@ -157,12 +190,12 @@ php artisan test tests/Feature/ClientApps
 Manual checks:
 
 - `/admin/client-apps/pwa` loads for authorized Admin;
-- save General settings and refresh;
-- save Login content and refresh;
-- `/my-apps/login` displays updated content;
-- disabled feature card is not rendered;
-- disabling desktop intro panel leaves the login form usable;
-- invalid hex colors are rejected;
+- `/admin/client-apps/pwa/launcher` loads for authorized Admin;
+- save launcher copy and refresh `/my-apps`;
+- rename/reorder an application card and verify launcher output;
+- disable one application card and verify it disappears from launcher;
+- application route/permission remains unchanged after presentation override;
+- `/my-apps/login` continues to display configured login content;
 - Client login still authenticates guard `web`;
 - successful login still redirects to `/my-apps`;
 - Admin login/logout behavior is unchanged.

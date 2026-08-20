@@ -23,10 +23,17 @@ class PortalController extends Controller
         ]);
     }
 
-    public function index(Request $request, ApplicationRegistry $registry): View
-    {
+    public function index(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings
+    ): View {
+        $applications = $registry->forUser($request->user('web'));
+
         return view('ClientPortal::pages.apps', [
-            'applications' => $registry->forUser($request->user('web')),
+            'applications' => $settings->presentApplications($applications),
+            'pwaGeneral' => $settings->pwaGeneral(),
+            'launcher' => $settings->pwaLauncher(),
         ]);
     }
 }

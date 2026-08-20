@@ -6,16 +6,31 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 
 class PwaSettingsController extends Controller
 {
-    public function edit(ClientPortalSettingsService $settings): View
+    public function edit(ClientPortalSettingsService $settings, ApplicationRegistry $registry): View
     {
         return view('ClientPortal::admin.pwa-settings', [
             'general' => $settings->pwaGeneral(),
             'login' => $settings->pwaLogin(),
             'adminUi' => config('clientportal.pwa.admin', []),
+        ]);
+    }
+
+    public function editLauncher(ClientPortalSettingsService $settings, ApplicationRegistry $registry): View
+    {
+        $applications = $registry->all();
+
+        return view('ClientPortal::admin.launcher-settings', [
+            'general' => $settings->pwaGeneral(),
+            'launcher' => $settings->pwaLauncher(),
+            'applications' => $applications->map(fn (array $application): array => [
+                'manifest' => $application,
+                'presentation' => $settings->applicationPresentation($application),
+            ]),
         ]);
     }
 
@@ -63,5 +78,48 @@ class PwaSettingsController extends Controller
         $settings->updatePwaLogin($validated, $request->user('admin')?->getAuthIdentifier());
 
         return back()->with('success', 'Đã cập nhật nội dung giao diện đăng nhập PWA.');
+    }
+
+    public function updateLauncher(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'browser_title' => ['required', 'string', 'max:150'],
+            'brand_title' => ['required', 'string', 'max:80'],
+            'brand_subtitle' => ['nullable', 'string', 'max:80'],
+            'workspace_label' => ['nullable', 'string', 'max:80'],
+            'heading' => ['required', 'string', 'max:150'],
+            'description' => ['required', 'string', 'max:1000'],
+            'install_button_text' => ['required', 'string', 'max:60'],
+            'logout_button_text' => ['required', 'string', 'max:60'],
+            'open_application_text' => ['required', 'string', 'max:60'],
+            'empty_title' => ['required', 'string', 'max:120'],
+            'empty_description' => ['required', 'string', 'max:500'],
+            'show_source_module' => ['required', 'boolean'],
+        ]);
+
+        $settings->updatePwaLauncher($validated, $request->user('admin')?->getAuthIdentifier());
+
+        return back()->with('success', 'Đã cập nhật giao diện Application Launcher.');
+    }
+
+    public function updateApplication(
+        Request $request,
+        string $application,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings
+    ): RedirectResponse {
+        $manifest = $registry->find($application);
+        abort_if($manifest === null, 404);
+
+        $validated = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'name' => ['required', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+        ]);
+
+        $settings->updateApplicationPresentation($manifest['key'], $validated, $request->user('admin')?->getAuthIdentifier());
+
+        return back()->with('success', 'Đã cập nhật cách hiển thị ứng dụng '.$manifest['name'].'.');
     }
 }
