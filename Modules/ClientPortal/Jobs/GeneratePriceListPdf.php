@@ -10,6 +10,10 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Modules\ClientPortal\Models\PriceListExport;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 
 class GeneratePriceListPdf implements ShouldQueue
@@ -36,22 +40,111 @@ class GeneratePriceListPdf implements ShouldQueue
 
         try {
             $source = Storage::disk('local')->path($export->file_path);
-            $result = Process::timeout(100)->run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', $workDir, $source]);
-            if (! $result->successful()) throw new RuntimeException(trim($result->errorOutput() ?: $result->output()) ?: 'LibreOffice convert PDF thất bại.');
+            $conversionSource = $this->prepareForLibreOffice($source, $workDir);
+            $result = Process::timeout(100)->run([
+                'libreoffice',
+                '--headless',
+                '--convert-to',
+                'pdf',
+                '--outdir',
+                $workDir,
+                $conversionSource,
+            ]);
+            if (! $result->successful()) {
+                throw new RuntimeException(trim($result->errorOutput() ?: $result->output()) ?: 'LibreOffice convert PDF thất bại.');
+            }
 
-            $generated = $workDir.'/'.pathinfo($source, PATHINFO_FILENAME).'.pdf';
-            if (! is_file($generated)) throw new RuntimeException('Không tìm thấy file PDF sau khi chuyển đổi.');
+            $generated = $workDir.'/'.pathinfo($conversionSource, PATHINFO_FILENAME).'.pdf';
+            if (! is_file($generated)) {
+                throw new RuntimeException('Không tìm thấy file PDF sau khi chuyển đổi.');
+            }
 
             $pdfName = pathinfo((string) ($export->file_name ?: basename($source)), PATHINFO_FILENAME).'.pdf';
             $pdfPath = 'client-portal/price-lists/'.$export->user_id.'/'.$export->id.'/'.$pdfName;
             Storage::disk('local')->put($pdfPath, file_get_contents($generated));
-            $export->update(['pdf_status' => 'completed', 'pdf_path' => $pdfPath, 'pdf_name' => $pdfName, 'pdf_error_message' => null]);
+            $export->update([
+                'pdf_status' => 'completed',
+                'pdf_path' => $pdfPath,
+                'pdf_name' => $pdfName,
+                'pdf_error_message' => null,
+            ]);
         } catch (\Throwable $e) {
-            $export->update(['pdf_status' => 'failed', 'pdf_error_message' => mb_substr($e->getMessage(), 0, 2000)]);
+            $export->update([
+                'pdf_status' => 'failed',
+                'pdf_error_message' => mb_substr($e->getMessage(), 0, 2000),
+            ]);
             throw $e;
         } finally {
-            foreach (glob($workDir.'/*') ?: [] as $file) @unlink($file);
+            foreach (glob($workDir.'/*') ?: [] as $file) {
+                @unlink($file);
+            }
             @rmdir($workDir);
+        }
+    }
+
+    /**
+     * LibreOffice and Excel calculate automatic wrapped-row heights differently.
+     * Floating drawings below those rows (notably the signature/stamp) can therefore
+     * move upward into the table during headless PDF conversion.  Build a temporary
+     * XLSX with explicit table-row heights so both renderers use the same geometry.
+     */
+    private function prepareForLibreOffice(string $source, string $workDir): string
+    {
+        $spreadsheet = IOFactory::load($source);
+        $sheet = $spreadsheet->getActiveSheet();
+        $this->freezeWrappedTableRowHeights($sheet);
+
+        $normalized = $workDir.'/price-list-pdf-source.xlsx';
+        (new Xlsx($spreadsheet))->save($normalized);
+        $spreadsheet->disconnectWorksheets();
+
+        return $normalized;
+    }
+
+    private function freezeWrappedTableRowHeights($sheet): void
+    {
+        $highestRow = $sheet->getHighestRow();
+        $highestColumnIndex = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+
+        for ($row = 1; $row <= $highestRow; $row++) {
+            $nonEmpty = 0;
+            $maxLines = 1;
+
+            for ($column = 1; $column <= $highestColumnIndex; $column++) {
+                $cell = $sheet->getCell([$column, $row]);
+                $value = $cell->getFormattedValue();
+                if ($value === null || trim((string) $value) === '') {
+                    continue;
+                }
+
+                $nonEmpty++;
+                $letter = Coordinate::stringFromColumnIndex($column);
+                $width = (float) $sheet->getColumnDimension($letter)->getWidth();
+                if ($width <= 0) {
+                    $width = (float) $sheet->getDefaultColumnDimension()->getWidth();
+                }
+
+                $pixels = max(24, SharedDrawing::cellDimensionToPixels(
+                    $width,
+                    $sheet->getParent()->getDefaultStyle()->getFont()
+                ));
+                $charactersPerLine = max(3, (int) floor($pixels / 7.2));
+                $lines = 0;
+                foreach (preg_split('/\R/u', (string) $value) ?: [''] as $textLine) {
+                    $length = max(1, mb_strlen($textLine));
+                    $lines += max(1, (int) ceil($length / $charactersPerLine));
+                }
+                $maxLines = max($maxLines, $lines);
+            }
+
+            // Header and table data have many populated cells. Footer/header merged rows
+            // intentionally stay untouched because their height is already deterministic.
+            if ($nonEmpty < 3) {
+                continue;
+            }
+
+            $points = min(120, max(20, 8 + ($maxLines * 13.5)));
+            $sheet->getRowDimension($row)->setRowHeight($points);
         }
     }
 }
