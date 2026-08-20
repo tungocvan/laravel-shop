@@ -14,7 +14,7 @@
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-900 antialiased">
+<body class="min-h-screen text-slate-900 antialiased" style="background-color: {{ $pwaGeneral['background_color'] }}">
     <div class="relative min-h-screen overflow-hidden">
         <div class="pointer-events-none absolute -left-28 -top-28 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl"></div>
         <div class="pointer-events-none absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-indigo-400/15 blur-3xl"></div>
