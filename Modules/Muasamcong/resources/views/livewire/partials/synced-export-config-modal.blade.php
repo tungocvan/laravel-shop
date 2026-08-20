@@ -1,11 +1,23 @@
 @if ($showExportConfigModal)
+    @php
+        $pagePaper = strtoupper((string) ($exportPageSetup['paper_size'] ?? 'A4'));
+        $pageOrientation = ($exportPageSetup['orientation'] ?? 'landscape') === 'portrait' ? 'Dọc' : 'Ngang';
+        $pageScaling = match ($exportPageSetup['scaling'] ?? 'fit_width') {
+            'fit_sheet' => 'Vừa 1 trang',
+            'none' => 'Không co giãn',
+            default => 'Fit '.((int) ($exportPageSetup['fit_width'] ?? 1)).' trang rộng',
+        };
+        $marginHorizontal = number_format((float) ($exportPageSetup['margin_left_cm'] ?? 0.3), 1, ',', '');
+        $marginVertical = number_format((float) ($exportPageSetup['margin_top_cm'] ?? 0.8), 1, ',', '');
+    @endphp
+
     <div class="fixed inset-0 z-[110] overflow-hidden bg-black/50 p-2 sm:p-4" wire:click.self="closeExportConfig">
         <div class="mx-auto flex h-full w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div class="flex shrink-0 items-start justify-between border-b border-gray-200 bg-white px-5 py-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-600">Cấu hình xuất Excel</p>
-                    <h3 class="mt-1 text-lg font-bold text-gray-900">Cột dữ liệu + Header/Footer + Logo + Chữ ký</h3>
-                    <p class="mt-1 text-xs text-gray-500">Mỗi cấu hình lưu riêng toàn bộ bố cục. File xuất dùng Times New Roman.</p>
+                    <h3 class="mt-1 text-lg font-bold text-gray-900">Bố cục Bảng Giá</h3>
+                    <p class="mt-1 text-xs text-gray-500">Mỗi profile lưu cột dữ liệu, thương hiệu, Header/Footer, trang in, Logo và Chữ ký. File xuất dùng Times New Roman.</p>
                 </div>
                 <button type="button" wire:click="closeExportConfig" class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-500 hover:bg-gray-50">×</button>
             </div>
@@ -46,112 +58,205 @@
                         <button type="button" wire:click="importExportConfig" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white">Import cấu hình</button>
                     @endif
                     @error('exportConfigImportUpload')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
-                    <span class="text-xs text-gray-500">File JSON mang theo cột, Header/Footer, kích thước Logo/Chữ ký và hình ảnh.</span>
+                    <span class="text-xs text-gray-500">JSON mang theo cột, Header/Footer, Page Setup, kích thước và hình ảnh.</span>
                 </div>
             </div>
 
-            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5" x-data="{ dragging: null }">
-                <div class="mb-5 rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4">
-                    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5" x-data="{ dragging: null, brandOpen: true, columnsOpen: true, pageOpen: false }">
+                {{-- 1. Nội dung & thương hiệu --}}
+                <section class="mb-4 overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm">
+                    <button type="button" @click="brandOpen = !brandOpen" class="flex w-full items-center justify-between gap-4 bg-indigo-50/60 px-4 py-3 text-left">
                         <div>
-                            <p class="text-sm font-bold text-indigo-950">Header & Footer của file Excel</p>
-                            <p class="mt-1 text-xs text-indigo-700">Logo neo tại A1; Logo và Chữ ký dùng đúng Width/Height đã cấu hình.</p>
-                        </div>
-                        <label class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-800">
-                            <input type="checkbox" wire:model.live="exportHeaderFooter.enabled"> Hiển thị Header/Footer
-                        </label>
-                    </div>
-
-                    <div class="grid gap-4 xl:grid-cols-2">
-                        <div class="rounded-xl border border-gray-200 bg-white p-4">
-                            <p class="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Thông tin đầu trang</p>
-                            <div class="grid gap-3 md:grid-cols-2">
-                                <div><label class="mb-1 block text-xs font-semibold">Tên công ty</label><input type="text" wire:model="exportHeaderFooter.company_name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div><label class="mb-1 block text-xs font-semibold">Mã số thuế</label><input type="text" wire:model="exportHeaderFooter.tax_code" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div><label class="mb-1 block text-xs font-semibold">Địa chỉ</label><input type="text" wire:model="exportHeaderFooter.address" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div><label class="mb-1 block text-xs font-semibold">Số điện thoại</label><input type="text" wire:model="exportHeaderFooter.phone" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Email</label><input type="email" wire:model="exportHeaderFooter.email" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Tiêu đề</label><input type="text" wire:model="exportHeaderFooter.title" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Kính gửi</label><input type="text" wire:model="exportHeaderFooter.recipient" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Nội dung giới thiệu</label><textarea wire:model="exportHeaderFooter.intro" rows="3" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></textarea></div>
+                            <div class="flex items-center gap-2">
+                                <span class="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">1</span>
+                                <p class="text-sm font-bold text-indigo-950">Nội dung & thương hiệu</p>
                             </div>
+                            <p class="mt-1 pl-9 text-xs text-indigo-700">Thông tin công ty, tiêu đề, Logo, nội dung báo giá và khu vực ký.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-indigo-700">{{ ($exportHeaderFooter['enabled'] ?? true) ? 'Đang hiển thị' : 'Đang ẩn' }}</span>
+                            <span class="text-lg text-indigo-700" x-text="brandOpen ? '⌃' : '⌄'"></span>
+                        </div>
+                    </button>
+
+                    <div x-show="brandOpen" x-collapse class="border-t border-indigo-100 p-4">
+                        <div class="mb-4 flex justify-end">
+                            <label class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800">
+                                <input type="checkbox" wire:model.live="exportHeaderFooter.enabled"> Hiển thị Header/Footer
+                            </label>
                         </div>
 
-                        <div class="rounded-xl border border-gray-200 bg-white p-4">
-                            <p class="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Logo & khu vực ký</p>
-                            <div class="mb-4 grid gap-4 md:grid-cols-2">
-                                <div class="rounded-xl border border-dashed border-blue-200 bg-blue-50/40 p-3">
-                                    <div class="mb-2 flex items-center justify-between gap-2">
-                                        <label class="text-xs font-bold text-gray-800">Logo công ty</label>
-                                        @if($exportLogoPreview)<button type="button" wire:click="clearExportLogo" class="rounded-lg border border-red-200 bg-white px-2 py-1 text-[11px] font-semibold text-red-600">Xóa ảnh</button>@endif
+                        <div class="grid gap-4 xl:grid-cols-2">
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+                                <p class="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Thông tin đầu trang</p>
+                                <div class="grid gap-3 md:grid-cols-2">
+                                    <div><label class="mb-1 block text-xs font-semibold">Tên công ty</label><input type="text" wire:model="exportHeaderFooter.company_name" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div><label class="mb-1 block text-xs font-semibold">Mã số thuế</label><input type="text" wire:model="exportHeaderFooter.tax_code" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div><label class="mb-1 block text-xs font-semibold">Địa chỉ</label><input type="text" wire:model="exportHeaderFooter.address" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div><label class="mb-1 block text-xs font-semibold">Số điện thoại</label><input type="text" wire:model="exportHeaderFooter.phone" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Email</label><input type="email" wire:model="exportHeaderFooter.email" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Tiêu đề</label><input type="text" wire:model="exportHeaderFooter.title" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div class="md:col-span-2">
+                                        <div class="mb-1 flex items-center justify-between gap-2"><label class="block text-xs font-semibold">Kính gửi</label><span class="text-[11px] font-semibold text-blue-600">Xuất Excel: in đậm</span></div>
+                                        <input type="text" wire:model="exportHeaderFooter.recipient" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold">
                                     </div>
-                                    <div class="flex min-h-32 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white p-2">
-                                        @if($exportLogoPreview)
-                                            <img src="{{ $exportLogoPreview }}" alt="Logo công ty" class="max-h-28 w-full object-contain">
-                                        @else
-                                            <div class="text-center text-xs text-gray-400"><div class="text-2xl">▧</div><div class="mt-1">Chưa có logo</div></div>
-                                        @endif
-                                    </div>
-                                    <input type="file" wire:model="exportLogoUpload" accept="image/png,image/jpeg,image/webp" class="mt-3 block w-full text-xs">
-                                    <div class="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-blue-100 bg-white p-2">
-                                        <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Width (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.logo_width_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
-                                        <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Height (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.logo_height_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
-                                    </div>
-                                    <p class="mt-1 text-[11px] text-gray-500">Mặc định: 2,48 × 3,83 cm. Excel dùng chính xác kích thước đã nhập.</p>
-                                    @error('exportLogoUpload')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                                </div>
-
-                                <div class="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 p-3">
-                                    <div class="mb-2 flex items-center justify-between gap-2">
-                                        <label class="text-xs font-bold text-gray-800">Ảnh chữ ký Giám đốc</label>
-                                        @if($exportSignaturePreview)<button type="button" wire:click="clearExportSignature" class="rounded-lg border border-red-200 bg-white px-2 py-1 text-[11px] font-semibold text-red-600">Xóa ảnh</button>@endif
-                                    </div>
-                                    <div class="flex min-h-32 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white p-2">
-                                        @if($exportSignaturePreview)
-                                            <img src="{{ $exportSignaturePreview }}" alt="Chữ ký" class="max-h-28 w-full object-contain">
-                                        @else
-                                            <div class="text-center text-xs text-gray-400"><div class="text-2xl">✎</div><div class="mt-1">Chưa có chữ ký</div></div>
-                                        @endif
-                                    </div>
-                                    <input type="file" wire:model="exportSignatureUpload" accept="image/png,image/jpeg,image/webp" class="mt-3 block w-full text-xs">
-                                    <div class="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-violet-100 bg-white p-2">
-                                        <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Width (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.signature_width_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
-                                        <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Height (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.signature_height_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
-                                    </div>
-                                    <p class="mt-1 text-[11px] text-gray-500">Mặc định: 4,00 × 2,00 cm. Nên dùng PNG nền trong suốt.</p>
-                                    @error('exportSignatureUpload')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Nội dung giới thiệu</label><textarea wire:model="exportHeaderFooter.intro" rows="3" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></textarea></div>
                                 </div>
                             </div>
 
-                            <div class="grid gap-3 md:grid-cols-2">
-                                <div><label class="mb-1 block text-xs font-semibold">Địa điểm ký</label><input type="text" wire:model="exportHeaderFooter.footer_location" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div><label class="mb-1 block text-xs font-semibold">Năm</label><input type="text" maxlength="4" wire:model="exportHeaderFooter.footer_year" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Chức danh người ký</label><input type="text" wire:model="exportHeaderFooter.signatory_title" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Họ và tên người ký</label><input type="text" wire:model="exportHeaderFooter.signatory_name" placeholder="Ví dụ: Nguyễn Văn A" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"></div>
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+                                <p class="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Logo & khu vực ký</p>
+                                <div class="mb-4 grid gap-4 md:grid-cols-2">
+                                    <div class="rounded-xl border border-dashed border-blue-200 bg-blue-50/40 p-3">
+                                        <div class="mb-2 flex items-center justify-between gap-2">
+                                            <label class="text-xs font-bold text-gray-800">Logo công ty</label>
+                                            @if($exportLogoPreview)<button type="button" wire:click="clearExportLogo" class="rounded-lg border border-red-200 bg-white px-2 py-1 text-[11px] font-semibold text-red-600">Xóa ảnh</button>@endif
+                                        </div>
+                                        <div class="flex min-h-32 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white p-2">
+                                            @if($exportLogoPreview)
+                                                <img src="{{ $exportLogoPreview }}" alt="Logo công ty" class="max-h-28 w-full object-contain">
+                                            @else
+                                                <div class="text-center text-xs text-gray-400"><div class="text-2xl">▧</div><div class="mt-1">Chưa có logo</div></div>
+                                            @endif
+                                        </div>
+                                        <input type="file" wire:model="exportLogoUpload" accept="image/png,image/jpeg,image/webp" class="mt-3 block w-full text-xs">
+                                        @error('exportLogoUpload')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                        <details class="mt-3 rounded-lg border border-blue-100 bg-white">
+                                            <summary class="cursor-pointer px-3 py-2 text-[11px] font-semibold text-blue-700">Kích thước nâng cao · {{ $exportHeaderFooter['logo_width_cm'] ?? 2.48 }} × {{ $exportHeaderFooter['logo_height_cm'] ?? 3.83 }} cm</summary>
+                                            <div class="grid grid-cols-2 gap-2 border-t border-blue-100 p-2">
+                                                <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Width (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.logo_width_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
+                                                <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Height (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.logo_height_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
+                                            </div>
+                                        </details>
+                                    </div>
+
+                                    <div class="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 p-3">
+                                        <div class="mb-2 flex items-center justify-between gap-2">
+                                            <label class="text-xs font-bold text-gray-800">Ảnh chữ ký Giám đốc</label>
+                                            @if($exportSignaturePreview)<button type="button" wire:click="clearExportSignature" class="rounded-lg border border-red-200 bg-white px-2 py-1 text-[11px] font-semibold text-red-600">Xóa ảnh</button>@endif
+                                        </div>
+                                        <div class="flex min-h-32 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white p-2">
+                                            @if($exportSignaturePreview)
+                                                <img src="{{ $exportSignaturePreview }}" alt="Chữ ký" class="max-h-28 w-full object-contain">
+                                            @else
+                                                <div class="text-center text-xs text-gray-400"><div class="text-2xl">✎</div><div class="mt-1">Chưa có chữ ký</div></div>
+                                            @endif
+                                        </div>
+                                        <input type="file" wire:model="exportSignatureUpload" accept="image/png,image/jpeg,image/webp" class="mt-3 block w-full text-xs">
+                                        @error('exportSignatureUpload')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                        <details class="mt-3 rounded-lg border border-violet-100 bg-white">
+                                            <summary class="cursor-pointer px-3 py-2 text-[11px] font-semibold text-violet-700">Kích thước nâng cao · {{ $exportHeaderFooter['signature_width_cm'] ?? 4 }} × {{ $exportHeaderFooter['signature_height_cm'] ?? 2 }} cm</summary>
+                                            <div class="grid grid-cols-2 gap-2 border-t border-violet-100 p-2">
+                                                <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Width (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.signature_width_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
+                                                <div><label class="mb-1 block text-[11px] font-semibold text-gray-600">Height (cm)</label><input type="number" min="0.5" max="15" step="0.01" wire:model.live.debounce.300ms="exportHeaderFooter.signature_height_cm" class="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs"></div>
+                                            </div>
+                                        </details>
+                                    </div>
+                                </div>
+
+                                <div class="grid gap-3 md:grid-cols-2">
+                                    <div><label class="mb-1 block text-xs font-semibold">Địa điểm ký</label><input type="text" wire:model="exportHeaderFooter.footer_location" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div><label class="mb-1 block text-xs font-semibold">Năm</label><input type="text" maxlength="4" wire:model="exportHeaderFooter.footer_year" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Chức danh người ký</label><input type="text" wire:model="exportHeaderFooter.signatory_title" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                    <div class="md:col-span-2"><label class="mb-1 block text-xs font-semibold">Họ và tên người ký</label><input type="text" wire:model="exportHeaderFooter.signatory_name" placeholder="Ví dụ: Nguyễn Văn A" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="mb-4 flex flex-wrap gap-2"><button type="button" wire:click="selectAllExportColumns" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Chọn tất cả cột</button><button type="button" wire:click="clearAllExportColumns" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold">Bỏ chọn tất cả</button><span class="self-center text-xs text-gray-500">Kéo ⋮⋮ để đổi vị trí · Width 40–600 px · Decimal 0–6.</span></div>
-                <div class="space-y-2">
-                    @foreach($exportColumnOrder as $position => $key)
-                        @php($definition=$exportColumnDefinitions[$key] ?? ['label'=>$key,'align'=>'left','width'=>140,'type'=>'auto'])
-                        <div wire:key="export-column-{{ $key }}" draggable="true" @dragstart="dragging='{{ $key }}'" @dragover.prevent @drop.prevent="if(dragging && dragging !== '{{ $key }}'){$wire.moveExportColumn(dragging,'{{ $key }}')}" class="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 2xl:grid-cols-[40px_48px_160px_minmax(170px,1fr)_130px_85px_110px_100px] 2xl:items-center">
-                            <div class="cursor-grab text-center text-lg text-gray-400">⋮⋮</div><div class="text-center text-xs font-bold">{{ $position+1 }}</div>
-                            <label class="flex min-w-0 items-center gap-2"><input type="checkbox" wire:model.live="exportSelectedColumns.{{ $key }}"><span class="truncate text-sm font-semibold">{{ $definition['label'] }}</span></label>
-                            <input type="text" wire:model="exportHeaders.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs">
-                            <select wire:model.live="exportDataTypes.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs"><option value="auto">Auto</option><option value="number">Number</option><option value="string">String</option><option value="date">Date (dd/mm/yyyy)</option></select>
-                            @if(($exportDataTypes[$key] ?? $definition['type'])==='number')<input type="number" min="0" max="6" wire:model.live="exportDecimals.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs">@else<div class="text-center text-gray-400">—</div>@endif
-                            <select wire:model.live="exportAlignments.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select>
-                            <input type="number" min="40" max="600" wire:model.live.debounce.300ms="exportWidths.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs">
+                {{-- 2. Cột dữ liệu --}}
+                <section class="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <button type="button" @click="columnsOpen = !columnsOpen" class="flex w-full items-center justify-between gap-4 bg-gray-50 px-4 py-3 text-left">
+                        <div>
+                            <div class="flex items-center gap-2"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-white">2</span><p class="text-sm font-bold text-gray-900">Cột dữ liệu</p></div>
+                            <p class="mt-1 pl-9 text-xs text-gray-500">Chọn cột, sắp xếp, đổi tiêu đề, kiểu dữ liệu, căn lề và độ rộng.</p>
                         </div>
-                    @endforeach
-                </div>
+                        <span class="text-lg text-gray-600" x-text="columnsOpen ? '⌃' : '⌄'"></span>
+                    </button>
+                    <div x-show="columnsOpen" x-collapse class="border-t border-gray-200 p-4">
+                        <div class="mb-4 flex flex-wrap gap-2"><button type="button" wire:click="selectAllExportColumns" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Chọn tất cả cột</button><button type="button" wire:click="clearAllExportColumns" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold">Bỏ chọn tất cả</button><span class="self-center text-xs text-gray-500">Kéo ⋮⋮ để đổi vị trí · Width 40–600 px · Decimal 0–6.</span></div>
+                        <div class="space-y-2">
+                            @foreach($exportColumnOrder as $position => $key)
+                                @php($definition=$exportColumnDefinitions[$key] ?? ['label'=>$key,'align'=>'left','width'=>140,'type'=>'auto'])
+                                <div wire:key="export-column-{{ $key }}" draggable="true" @dragstart="dragging='{{ $key }}'" @dragover.prevent @drop.prevent="if(dragging && dragging !== '{{ $key }}'){$wire.moveExportColumn(dragging,'{{ $key }}')}" class="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 2xl:grid-cols-[40px_48px_160px_minmax(170px,1fr)_130px_85px_110px_100px] 2xl:items-center">
+                                    <div class="cursor-grab text-center text-lg text-gray-400">⋮⋮</div><div class="text-center text-xs font-bold">{{ $position+1 }}</div>
+                                    <label class="flex min-w-0 items-center gap-2"><input type="checkbox" wire:model.live="exportSelectedColumns.{{ $key }}"><span class="truncate text-sm font-semibold">{{ $definition['label'] }}</span></label>
+                                    <input type="text" wire:model="exportHeaders.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs">
+                                    <select wire:model.live="exportDataTypes.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs"><option value="auto">Auto</option><option value="number">Number</option><option value="string">String</option><option value="date">Date (dd/mm/yyyy)</option></select>
+                                    @if(($exportDataTypes[$key] ?? $definition['type'])==='number')<input type="number" min="0" max="6" wire:model.live="exportDecimals.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs">@else<div class="text-center text-gray-400">—</div>@endif
+                                    <select wire:model.live="exportAlignments.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select>
+                                    <input type="number" min="40" max="600" wire:model.live.debounce.300ms="exportWidths.{{ $key }}" class="rounded-lg border border-gray-300 px-2 py-1.5 text-xs">
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </section>
+
+                {{-- 3. Thiết lập trang in: mặc định thu gọn --}}
+                <section class="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
+                    <button type="button" @click="pageOpen = !pageOpen" class="flex w-full items-center justify-between gap-4 bg-emerald-50/60 px-4 py-3 text-left">
+                        <div>
+                            <div class="flex items-center gap-2"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">3</span><p class="text-sm font-bold text-emerald-950">Thiết lập trang in</p><span class="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-emerald-700">Ít thay đổi</span></div>
+                            <p class="mt-1 pl-9 text-xs font-medium text-emerald-700">{{ $pagePaper }} · {{ $pageOrientation }} · {{ $pageScaling }} · Lề {{ $marginHorizontal }}/{{ $marginVertical }} cm · {{ ($exportPageSetup['center_horizontal'] ?? true) ? 'Căn giữa ngang' : 'Không căn giữa' }}</p>
+                        </div>
+                        <div class="flex items-center gap-2"><span class="hidden text-xs text-emerald-700 sm:inline">Thay đổi</span><span class="text-lg text-emerald-700" x-text="pageOpen ? '⌃' : '⌄'"></span></div>
+                    </button>
+
+                    <div x-show="pageOpen" x-collapse class="border-t border-emerald-100 p-4">
+                        <div class="grid gap-4 xl:grid-cols-2">
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+                                <p class="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Khổ giấy & lề trang</p>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div><label class="mb-1 block text-xs font-semibold">Khổ giấy</label><select wire:model.live="exportPageSetup.paper_size" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"><option value="A4">A4</option><option value="A3">A3</option><option value="LETTER">Letter</option><option value="LEGAL">Legal</option></select></div>
+                                    <div><label class="mb-1 block text-xs font-semibold">Hướng giấy</label><select wire:model.live="exportPageSetup.orientation" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"><option value="landscape">Ngang (Landscape)</option><option value="portrait">Dọc (Portrait)</option></select></div>
+                                </div>
+                                <div class="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-4">
+                                    <div><label class="mb-1 block text-[11px] font-semibold">Trái (cm)</label><input type="number" min="0" max="5" step="0.1" wire:model.live.debounce.300ms="exportPageSetup.margin_left_cm" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm"></div>
+                                    <div><label class="mb-1 block text-[11px] font-semibold">Phải (cm)</label><input type="number" min="0" max="5" step="0.1" wire:model.live.debounce.300ms="exportPageSetup.margin_right_cm" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm"></div>
+                                    <div><label class="mb-1 block text-[11px] font-semibold">Trên (cm)</label><input type="number" min="0" max="5" step="0.1" wire:model.live.debounce.300ms="exportPageSetup.margin_top_cm" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm"></div>
+                                    <div><label class="mb-1 block text-[11px] font-semibold">Dưới (cm)</label><input type="number" min="0" max="5" step="0.1" wire:model.live.debounce.300ms="exportPageSetup.margin_bottom_cm" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm"></div>
+                                </div>
+                                <p class="mt-2 text-[11px] text-gray-500">Mặc định báo giá thuốc: A4 ngang · trái/phải 0,3 cm · trên/dưới 0,8 cm.</p>
+                            </div>
+
+                            <div class="rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+                                <p class="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">Căn trang & co giãn</p>
+                                <div class="grid gap-2 sm:grid-cols-2">
+                                    <label class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold"><input type="checkbox" wire:model.live="exportPageSetup.center_horizontal"> Căn giữa theo chiều ngang</label>
+                                    <label class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold"><input type="checkbox" wire:model.live="exportPageSetup.center_vertical"> Căn giữa theo chiều dọc</label>
+                                </div>
+
+                                <div class="mt-4 space-y-2">
+                                    <label class="flex cursor-pointer gap-3 rounded-xl border p-3 {{ ($exportPageSetup['scaling'] ?? 'fit_width') === 'fit_width' ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white' }}">
+                                        <input type="radio" value="fit_width" wire:model.live="exportPageSetup.scaling" class="mt-1">
+                                        <div><p class="text-xs font-bold text-gray-900">Vừa chiều rộng trang <span class="text-emerald-600">Khuyến nghị</span></p><p class="mt-1 text-[11px] text-gray-500">Giữ toàn bộ cột trên một chiều ngang; nhiều dòng sẽ tự sang trang tiếp theo.</p></div>
+                                    </label>
+                                    <label class="flex cursor-pointer gap-3 rounded-xl border p-3 {{ ($exportPageSetup['scaling'] ?? '') === 'fit_sheet' ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white' }}">
+                                        <input type="radio" value="fit_sheet" wire:model.live="exportPageSetup.scaling" class="mt-1">
+                                        <div><p class="text-xs font-bold text-gray-900">Vừa toàn bộ trên 1 trang</p><p class="mt-1 text-[11px] text-gray-500">Chiều ngang và chiều dọc đều 1 trang; danh sách dài có thể làm chữ rất nhỏ.</p></div>
+                                    </label>
+                                    <label class="flex cursor-pointer gap-3 rounded-xl border p-3 {{ ($exportPageSetup['scaling'] ?? '') === 'none' ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white' }}">
+                                        <input type="radio" value="none" wire:model.live="exportPageSetup.scaling" class="mt-1">
+                                        <div><p class="text-xs font-bold text-gray-900">Không co giãn</p><p class="mt-1 text-[11px] text-gray-500">Giữ tỷ lệ 100%; Excel tự phân trang theo kích thước thực.</p></div>
+                                    </label>
+                                </div>
+
+                                @if(($exportPageSetup['scaling'] ?? 'fit_width') === 'fit_width')
+                                    <div class="mt-3 flex items-center gap-3 rounded-lg border border-emerald-100 bg-white p-3">
+                                        <label class="text-xs font-semibold">Số trang ngang</label>
+                                        <input type="number" min="1" max="10" wire:model.live="exportPageSetup.fit_width" class="w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-sm">
+                                        <span class="text-[11px] text-gray-500">Chiều cao: Tự động</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <div class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4">
-                <p class="text-xs text-gray-500">Nội dung cuộn độc lập; thanh tiêu đề và nút Lưu luôn hiển thị.</p>
+                <p class="text-xs text-gray-500">Các nhóm ít thay đổi được thu gọn; thiết lập vẫn lưu riêng theo từng profile.</p>
                 <div class="flex gap-2"><button type="button" wire:click="closeExportConfig" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold">Đóng</button><button type="button" wire:click="saveExportConfig" wire:loading.attr="disabled" class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Lưu cấu hình</button></div>
             </div>
         </div>
@@ -163,7 +268,7 @@
         <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
             <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">✓</div>
             <h3 class="mt-4 text-lg font-bold text-gray-950">Đã lưu cấu hình</h3>
-            <p class="mt-2 text-sm text-gray-600">Cấu hình <strong>{{ $exportProfileName }}</strong> đã được lưu và có thể sử dụng cho Admin/PWA khi xuất Excel.</p>
+            <p class="mt-2 text-sm text-gray-600">Cấu hình <strong>{{ $exportProfileName }}</strong> đã lưu cột dữ liệu, thương hiệu và thiết lập trang in; có thể dùng cho Admin/PWA khi xuất Excel.</p>
             <button type="button" wire:click="closeExportSavedModal" class="mt-5 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Đã hiểu</button>
         </div>
     </div>

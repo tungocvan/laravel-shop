@@ -38,6 +38,7 @@ class SyncedPricingList extends Component
     public array $exportDataTypes = [];
     public array $exportDecimals = [];
     public array $exportHeaderFooter = [];
+    public array $exportPageSetup = [];
     public $exportLogoUpload = null;
     public $exportSignatureUpload = null;
     public $exportConfigImportUpload = null;
@@ -64,6 +65,7 @@ class SyncedPricingList extends Component
         $this->loadExportPreference();
         if ($this->activeExportProfileId === null) {
             $this->exportHeaderFooter['enabled'] = true;
+            $this->exportPageSetup = SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP;
         }
     }
 
@@ -113,6 +115,7 @@ class SyncedPricingList extends Component
         $this->exportProfileName = 'Cấu hình mới';
         $this->exportProfileDefault = false;
         $this->exportHeaderFooter['enabled'] = true;
+        $this->exportPageSetup = SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP;
     }
 
     public function duplicateExportProfile(): void
@@ -126,7 +129,7 @@ class SyncedPricingList extends Component
         $this->applyExportPreference($copy);
         $this->refreshExportProfiles();
         $this->statusType = 'success';
-        $this->statusMessage = 'Đã nhân đôi cấu hình, bao gồm Header/Footer, logo và chữ ký.';
+        $this->statusMessage = 'Đã nhân đôi cấu hình, bao gồm Header/Footer, thiết lập trang in, logo và chữ ký.';
     }
 
     public function deleteExportProfile(): void
@@ -195,6 +198,20 @@ class SyncedPricingList extends Component
             'exportHeaderFooter.signatory_title' => ['nullable', 'string', 'max:255'],
             'exportHeaderFooter.signatory_name' => ['nullable', 'string', 'max:255'],
             'exportHeaderFooter.footer_year' => ['nullable', 'string', 'max:4'],
+            'exportHeaderFooter.logo_width_cm' => ['nullable', 'numeric', 'min:0.5', 'max:15'],
+            'exportHeaderFooter.logo_height_cm' => ['nullable', 'numeric', 'min:0.5', 'max:15'],
+            'exportHeaderFooter.signature_width_cm' => ['nullable', 'numeric', 'min:0.5', 'max:15'],
+            'exportHeaderFooter.signature_height_cm' => ['nullable', 'numeric', 'min:0.5', 'max:15'],
+            'exportPageSetup.paper_size' => ['required', 'in:A4,A3,LETTER,LEGAL'],
+            'exportPageSetup.orientation' => ['required', 'in:landscape,portrait'],
+            'exportPageSetup.margin_left_cm' => ['required', 'numeric', 'min:0', 'max:5'],
+            'exportPageSetup.margin_right_cm' => ['required', 'numeric', 'min:0', 'max:5'],
+            'exportPageSetup.margin_top_cm' => ['required', 'numeric', 'min:0', 'max:5'],
+            'exportPageSetup.margin_bottom_cm' => ['required', 'numeric', 'min:0', 'max:5'],
+            'exportPageSetup.center_horizontal' => ['required', 'boolean'],
+            'exportPageSetup.center_vertical' => ['required', 'boolean'],
+            'exportPageSetup.scaling' => ['required', 'in:fit_width,fit_sheet,none'],
+            'exportPageSetup.fit_width' => ['required', 'integer', 'min:1', 'max:10'],
         ]);
 
         $logoPath = $this->exportLogoPath;
@@ -206,6 +223,7 @@ class SyncedPricingList extends Component
             $userId, $this->exportProfileName, $this->exportColumnOrder, $selected, $this->exportHeaders,
             $this->exportAlignments, $this->exportWidths, $this->exportDataTypes, $this->exportDecimals,
             $this->activeExportProfileId, $this->exportProfileDefault, $this->exportHeaderFooter, $logoPath, $signaturePath,
+            $this->exportPageSetup,
         );
 
         $this->deleteReplacedAsset($this->loadedExportLogoPath, $logoPath);
@@ -213,7 +231,7 @@ class SyncedPricingList extends Component
         $this->applyExportPreference($saved);
         $this->refreshExportProfiles();
         $this->statusType = 'success';
-        $this->statusMessage = 'Đã lưu cấu hình xuất Excel, Header/Footer, logo và chữ ký.';
+        $this->statusMessage = 'Đã lưu cấu hình xuất Excel, Header/Footer, thiết lập trang in, logo và chữ ký.';
         $this->showExportSavedModal = true;
     }
 
@@ -223,7 +241,7 @@ class SyncedPricingList extends Component
         $selected = collect($this->exportSelectedColumns)->filter(fn (mixed $enabled): bool => (bool) $enabled)->keys()->values()->all();
         $payload = [
             'format' => 'inafo-muasamcong-excel-profile',
-            'version' => 1,
+            'version' => 2,
             'exported_at' => now()->toIso8601String(),
             'profile' => [
                 'name' => $this->exportProfileName,
@@ -236,6 +254,7 @@ class SyncedPricingList extends Component
                 'data_types' => $this->exportDataTypes,
                 'decimals' => $this->exportDecimals,
                 'header_footer' => $this->exportHeaderFooter,
+                'page_setup' => $this->exportPageSetup,
                 'logo' => $this->portableAsset($this->exportLogoPath),
                 'signature' => $this->portableAsset($this->exportSignaturePath),
             ],
@@ -269,12 +288,13 @@ class SyncedPricingList extends Component
             (array) ($profile['headers'] ?? []), (array) ($profile['alignments'] ?? []), (array) ($profile['widths'] ?? []),
             (array) ($profile['data_types'] ?? []), (array) ($profile['decimals'] ?? []), null, false,
             (array) ($profile['header_footer'] ?? []), $logoPath, $signaturePath,
+            (array) ($profile['page_setup'] ?? SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP),
         );
         $this->applyExportPreference($saved);
         $this->refreshExportProfiles();
         $this->exportConfigImportUpload = null;
         $this->statusType = 'success';
-        $this->statusMessage = 'Đã import cấu hình Excel thành profile mới.';
+        $this->statusMessage = 'Đã import cấu hình Excel thành profile mới, bao gồm thiết lập trang in.';
         $this->showExportSavedModal = true;
     }
 
@@ -388,6 +408,7 @@ class SyncedPricingList extends Component
         $this->exportDataTypes = (array) ($preference['data_types'] ?? []);
         $this->exportDecimals = (array) ($preference['decimals'] ?? []);
         $this->exportHeaderFooter = (array) ($preference['header_footer'] ?? SyncedPricingExportPreferenceService::DEFAULT_HEADER_FOOTER);
+        $this->exportPageSetup = (array) ($preference['page_setup'] ?? SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP);
         $this->exportLogoPath = isset($preference['logo_path']) && $preference['logo_path'] !== '' ? (string) $preference['logo_path'] : null;
         $this->exportSignaturePath = isset($preference['signature_path']) && $preference['signature_path'] !== '' ? (string) $preference['signature_path'] : null;
         $this->loadedExportLogoPath = $this->exportLogoPath;

@@ -16,21 +16,30 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SyncedPricingExportController extends Controller
 {
     private const PX_PER_CM = 37.7952755906;
+    private const CM_PER_INCH = 2.54;
 
     public function __invoke(Request $request): BinaryFileResponse
     {
-        $validated = $request->validate(['selected_ids' => ['required', 'array', 'min:1', 'max:5000'], 'selected_ids.*' => ['required', 'integer', 'min:1'], 'export_profile_id' => ['nullable', 'integer', 'min:1']]);
+        $validated = $request->validate([
+            'selected_ids' => ['required', 'array', 'min:1', 'max:5000'],
+            'selected_ids.*' => ['required', 'integer', 'min:1'],
+            'export_profile_id' => ['nullable', 'integer', 'min:1'],
+        ]);
         $ids = array_values(array_unique(array_map('intval', $validated['selected_ids'])));
         $profileId = isset($validated['export_profile_id']) ? (int) $validated['export_profile_id'] : null;
         $preference = app(SyncedPricingExportPreferenceService::class)->forUser((int) Auth::guard('admin')->id(), $profileId);
         $selectedLookup = array_fill_keys($preference['selected_columns'], true);
-        $requestedColumns = array_values(array_filter($preference['column_order'], fn (string $key): bool => isset($selectedLookup[$key], SyncedPricingExportPreferenceService::COLUMNS[$key])));
+        $requestedColumns = array_values(array_filter(
+            $preference['column_order'],
+            fn (string $key): bool => isset($selectedLookup[$key], SyncedPricingExportPreferenceService::COLUMNS[$key])
+        ));
         abort_if($requestedColumns === [], 422, 'Cấu hình xuất chưa chọn cột nào.');
         $items = PricingResult::query()->whereIn('id', $ids)->orderBy('id')->get();
         abort_if($items->isEmpty(), 422, 'Không tìm thấy dữ liệu đồng bộ đã chọn để xuất Excel.');
@@ -60,11 +69,18 @@ class SyncedPricingExportController extends Controller
         for ($columnIndex = count($requestedColumns) + 1; $columnIndex <= $displayColumnCount; $columnIndex++) {
             $sheet->getColumnDimension($sheet->getCell([$columnIndex, 1])->getColumn())->setAutoSize(false)->setWidth(120, 'px');
         }
-        if ($withHeaderFooter) $this->renderHeader($sheet, $preference, $headerFooter, $requestedColumns, $lastDisplayColumn);
+
+        if ($withHeaderFooter) {
+            $this->renderHeader($sheet, $preference, $headerFooter, $requestedColumns, $lastDisplayColumn);
+        }
 
         $lastHeaderCell = $sheet->getCell([count($requestedColumns), $tableHeaderRow])->getCoordinate();
         $sheet->getStyle("A{$tableHeaderRow}:{$lastHeaderCell}")->getFont()->setBold(true);
-        $sheet->getStyle("A{$tableHeaderRow}:{$lastHeaderCell}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle("A{$tableHeaderRow}:{$lastHeaderCell}")
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
         $sheet->getRowDimension($tableHeaderRow)->setRowHeight(-1);
 
         foreach ($items->values() as $rowIndex => $item) {
@@ -72,34 +88,107 @@ class SyncedPricingExportController extends Controller
             foreach ($requestedColumns as $columnIndex => $key) {
                 $cell = $sheet->getCell([$columnIndex + 1, $excelRow]);
                 $configuredType = $preference['data_types'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['type'];
-                $this->writeTypedValue($cell, $this->value($item, $key, $rowIndex + 1), $key === 'gdklh_gpnk' ? 'string' : $configuredType, (int) ($preference['decimals'][$key] ?? 0));
+                $this->writeTypedValue(
+                    $cell,
+                    $this->value($item, $key, $rowIndex + 1),
+                    $key === 'gdklh_gpnk' ? 'string' : $configuredType,
+                    (int) ($preference['decimals'][$key] ?? 0)
+                );
             }
             $sheet->getRowDimension($excelRow)->setRowHeight(-1);
         }
 
         $dataEndRow = $dataStartRow + $items->count() - 1;
         $lastTableColumn = $sheet->getCell([count($requestedColumns), $tableHeaderRow])->getColumn();
-        $sheet->getStyle("A{$tableHeaderRow}:{$lastTableColumn}{$dataEndRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        $sheet->getStyle("A{$tableHeaderRow}:{$lastTableColumn}{$dataEndRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle("A{$tableHeaderRow}:{$lastTableColumn}{$dataEndRow}")
+            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("A{$tableHeaderRow}:{$lastTableColumn}{$dataEndRow}")
+            ->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+
         foreach ($requestedColumns as $columnIndex => $key) {
             $columnLetter = $sheet->getCell([$columnIndex + 1, $tableHeaderRow])->getColumn();
             $horizontal = match ($preference['alignments'][$key] ?? SyncedPricingExportPreferenceService::COLUMNS[$key]['align']) {
-                'center' => Alignment::HORIZONTAL_CENTER, 'right' => Alignment::HORIZONTAL_RIGHT, default => Alignment::HORIZONTAL_LEFT
+                'center' => Alignment::HORIZONTAL_CENTER,
+                'right' => Alignment::HORIZONTAL_RIGHT,
+                default => Alignment::HORIZONTAL_LEFT,
             };
-            $sheet->getStyle("{$columnLetter}{$dataStartRow}:{$columnLetter}{$dataEndRow}")->getAlignment()->setHorizontal($horizontal)->setWrapText(true);
+            $sheet->getStyle("{$columnLetter}{$dataStartRow}:{$columnLetter}{$dataEndRow}")
+                ->getAlignment()->setHorizontal($horizontal)->setWrapText(true);
         }
-        if ($withHeaderFooter) $this->renderFooter($sheet, $preference, $headerFooter, $requestedColumns, $displayColumnCount, $dataEndRow);
+
+        $finalRow = $dataEndRow;
+        if ($withHeaderFooter) {
+            $finalRow = $this->renderFooter($sheet, $preference, $headerFooter, $requestedColumns, $displayColumnCount, $dataEndRow);
+        }
+
+        $this->applyPageSetup(
+            $sheet,
+            (array) ($preference['page_setup'] ?? SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP),
+            $lastDisplayColumn,
+            $finalRow
+        );
+
         $sheet->freezePane('A'.$dataStartRow);
         (new Xlsx($spreadsheet))->save($excelPath);
         $spreadsheet->disconnectWorksheets();
 
-        return response()->download($excelPath, 'Muasamcong-Danh-sach-da-dong-bo-'.now()->format('Ymd-His').'.xlsx', ['Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff'])->deleteFileAfterSend(true);
+        return response()->download(
+            $excelPath,
+            'Muasamcong-Danh-sach-da-dong-bo-'.now()->format('Ymd-His').'.xlsx',
+            ['Cache-Control' => 'no-store, private', 'X-Content-Type-Options' => 'nosniff']
+        )->deleteFileAfterSend(true);
+    }
+
+    private function applyPageSetup($sheet, array $settings, string $lastColumn, int $lastRow): void
+    {
+        $pageSetup = array_replace(SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP, $settings);
+        $setup = $sheet->getPageSetup();
+        $paperSize = match (strtoupper((string) ($pageSetup['paper_size'] ?? 'A4'))) {
+            'A3' => PageSetup::PAPERSIZE_A3,
+            'LETTER' => PageSetup::PAPERSIZE_LETTER,
+            'LEGAL' => PageSetup::PAPERSIZE_LEGAL,
+            default => PageSetup::PAPERSIZE_A4,
+        };
+        $orientation = strtolower((string) ($pageSetup['orientation'] ?? 'landscape')) === 'portrait'
+            ? PageSetup::ORIENTATION_PORTRAIT
+            : PageSetup::ORIENTATION_LANDSCAPE;
+
+        $setup->setPaperSize($paperSize);
+        $setup->setOrientation($orientation);
+        $setup->setHorizontalCentered((bool) ($pageSetup['center_horizontal'] ?? true));
+        $setup->setVerticalCentered((bool) ($pageSetup['center_vertical'] ?? false));
+
+        $scaling = (string) ($pageSetup['scaling'] ?? 'fit_width');
+        if ($scaling === 'fit_sheet') {
+            $setup->setFitToWidth(1);
+            $setup->setFitToHeight(1);
+        } elseif ($scaling === 'fit_width') {
+            $setup->setFitToWidth(max(1, (int) ($pageSetup['fit_width'] ?? 1)));
+            $setup->setFitToHeight(0);
+        } else {
+            $setup->setFitToPage(false);
+            $setup->setScale(100);
+        }
+
+        $margins = $sheet->getPageMargins();
+        $margins->setLeft($this->centimetersToInches((float) ($pageSetup['margin_left_cm'] ?? 0.3)));
+        $margins->setRight($this->centimetersToInches((float) ($pageSetup['margin_right_cm'] ?? 0.3)));
+        $margins->setTop($this->centimetersToInches((float) ($pageSetup['margin_top_cm'] ?? 0.8)));
+        $margins->setBottom($this->centimetersToInches((float) ($pageSetup['margin_bottom_cm'] ?? 0.8)));
+        $setup->setPrintArea("A1:{$lastColumn}{$lastRow}");
+    }
+
+    private function centimetersToInches(float $centimeters): float
+    {
+        return max(0, $centimeters) / self::CM_PER_INCH;
     }
 
     private function renderHeader($sheet, array $preference, array $settings, array $requestedColumns, string $lastDisplayColumn): void
     {
         $sheet->mergeCells('A1:B5');
-        foreach ([1, 2, 3, 4, 5] as $row) if ($lastDisplayColumn !== 'C') $sheet->mergeCells("C{$row}:{$lastDisplayColumn}{$row}");
+        foreach ([1, 2, 3, 4, 5] as $row) {
+            if ($lastDisplayColumn !== 'C') $sheet->mergeCells("C{$row}:{$lastDisplayColumn}{$row}");
+        }
         $sheet->setCellValue('C1', (string) ($settings['company_name'] ?? ''));
         $sheet->setCellValue('C2', 'Địa chỉ: '.(string) ($settings['address'] ?? ''));
         $sheet->setCellValue('C3', 'Mã số thuế: '.(string) ($settings['tax_code'] ?? ''));
@@ -119,15 +208,30 @@ class SyncedPricingExportController extends Controller
         $sheet->setCellValue('A8', (string) ($settings['intro'] ?? ''));
         $sheet->getStyle("A8:{$lastDisplayColumn}8")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $sheet->getRowDimension(8)->setRowHeight(-1);
-        $this->drawingExact($sheet, $preference['logo_path'] ?? null, 'A1', (float) ($settings['logo_width_cm'] ?? 2.48), (float) ($settings['logo_height_cm'] ?? 3.83), 'Logo công ty');
+        $this->drawingExact(
+            $sheet,
+            $preference['logo_path'] ?? null,
+            'A1',
+            (float) ($settings['logo_width_cm'] ?? 2.48),
+            (float) ($settings['logo_height_cm'] ?? 3.83),
+            'Logo công ty'
+        );
     }
 
-    private function renderFooter($sheet, array $preference, array $settings, array $requestedColumns, int $displayColumnCount, int $dataEndRow): void
+    private function renderFooter($sheet, array $preference, array $settings, array $requestedColumns, int $displayColumnCount, int $dataEndRow): int
     {
-        $dateRow = $dataEndRow + 2; $titleRow = $dateRow + 1; $signatureRow = $titleRow + 1; $nameRow = $signatureRow + 1;
-        $startIndex = max(1, $displayColumnCount - 2); $startColumn = $sheet->getCell([$startIndex, 1])->getColumn(); $endColumn = $sheet->getCell([$displayColumnCount, 1])->getColumn();
-        foreach ([$dateRow, $titleRow, $signatureRow, $nameRow] as $row) $sheet->mergeCells("{$startColumn}{$row}:{$endColumn}{$row}");
-        $year = trim((string) ($settings['footer_year'] ?? '')) ?: now()->format('Y'); $location = trim((string) ($settings['footer_location'] ?? 'Tp.HCM'));
+        $dateRow = $dataEndRow + 2;
+        $titleRow = $dateRow + 1;
+        $signatureRow = $titleRow + 1;
+        $nameRow = $signatureRow + 1;
+        $startIndex = max(1, $displayColumnCount - 2);
+        $startColumn = $sheet->getCell([$startIndex, 1])->getColumn();
+        $endColumn = $sheet->getCell([$displayColumnCount, 1])->getColumn();
+        foreach ([$dateRow, $titleRow, $signatureRow, $nameRow] as $row) {
+            $sheet->mergeCells("{$startColumn}{$row}:{$endColumn}{$row}");
+        }
+        $year = trim((string) ($settings['footer_year'] ?? '')) ?: now()->format('Y');
+        $location = trim((string) ($settings['footer_location'] ?? 'Tp.HCM'));
         $sheet->setCellValue("{$startColumn}{$dateRow}", "{$location}, ngày…..tháng…...năm {$year}");
         $sheet->setCellValue("{$startColumn}{$titleRow}", (string) ($settings['signatory_title'] ?? 'GIÁM ĐỐC CÔNG TY'));
         $sheet->getStyle("{$startColumn}{$titleRow}:{$endColumn}{$titleRow}")->getFont()->setBold(true);
@@ -135,8 +239,18 @@ class SyncedPricingExportController extends Controller
         $sheet->getRowDimension($signatureRow)->setRowHeight(max(42, $signatureHeightCm * 28.35 + 8));
         $sheet->setCellValue("{$startColumn}{$nameRow}", (string) ($settings['signatory_name'] ?? ''));
         $sheet->getStyle("{$startColumn}{$nameRow}:{$endColumn}{$nameRow}")->getFont()->setBold(true);
-        $this->drawingExact($sheet, $preference['signature_path'] ?? null, "{$startColumn}{$signatureRow}", (float) ($settings['signature_width_cm'] ?? 4.0), $signatureHeightCm, 'Chữ ký Giám đốc');
-        $sheet->getStyle("{$startColumn}{$dateRow}:{$endColumn}{$nameRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $this->drawingExact(
+            $sheet,
+            $preference['signature_path'] ?? null,
+            "{$startColumn}{$signatureRow}",
+            (float) ($settings['signature_width_cm'] ?? 4.0),
+            $signatureHeightCm,
+            'Chữ ký Giám đốc'
+        );
+        $sheet->getStyle("{$startColumn}{$dateRow}:{$endColumn}{$nameRow}")
+            ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+
+        return $nameRow;
     }
 
     private function drawingExact($sheet, mixed $storedPath, string $cell, float $widthCm, float $heightCm, string $name): void
@@ -160,43 +274,104 @@ class SyncedPricingExportController extends Controller
     private function writeTypedValue(Cell $cell, mixed $value, string $type, int $decimals = 0): void
     {
         if ($value === null || $value === '') { $cell->setValue(null); return; }
-        if ($type === 'string') { $cell->setValueExplicit((string) $value, DataType::TYPE_STRING); $cell->getStyle()->getNumberFormat()->setFormatCode('@'); return; }
+        if ($type === 'string') {
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+            $cell->getStyle()->getNumberFormat()->setFormatCode('@');
+            return;
+        }
         if ($type === 'number') {
-            if (is_numeric($value)) { $cell->setValueExplicit((float) $value, DataType::TYPE_NUMERIC); $cell->getStyle()->getNumberFormat()->setFormatCode($this->numberFormat($decimals)); return; }
-            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING); return;
+            if (is_numeric($value)) {
+                $cell->setValueExplicit((float) $value, DataType::TYPE_NUMERIC);
+                $cell->getStyle()->getNumberFormat()->setFormatCode($this->numberFormat($decimals));
+                return;
+            }
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+            return;
         }
         if ($type === 'date') {
             $date = $this->parseDate($value);
-            if ($date !== null) { $cell->setValue(ExcelDate::PHPToExcel($date)); $cell->getStyle()->getNumberFormat()->setFormatCode('dd/mm/yyyy'); return; }
-            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING); return;
+            if ($date !== null) {
+                $cell->setValue(ExcelDate::PHPToExcel($date));
+                $cell->getStyle()->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+                return;
+            }
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+            return;
         }
         $cell->setValue($value);
     }
 
-    private function numberFormat(int $decimals): string { $decimals = max(0, min(6, $decimals)); return $decimals === 0 ? '#,##0' : '#,##0.'.str_repeat('0', $decimals); }
+    private function numberFormat(int $decimals): string
+    {
+        $decimals = max(0, min(6, $decimals));
+        return $decimals === 0 ? '#,##0' : '#,##0.'.str_repeat('0', $decimals);
+    }
 
     private function parseDate(mixed $value): ?Carbon
     {
         if ($value instanceof \DateTimeInterface) return Carbon::instance($value);
         if (! is_scalar($value)) return null;
-        $text = trim((string) $value); if ($text === '') return null;
+        $text = trim((string) $value);
+        if ($text === '') return null;
         foreach (['d/m/Y', 'Y-m-d', 'd/m/Y H:i:s', 'Y-m-d H:i:s'] as $format) {
-            try { $date = Carbon::createFromFormat($format, $text); if ($date !== false) return $date; } catch (\Throwable) {}
+            try {
+                $date = Carbon::createFromFormat($format, $text);
+                if ($date !== false) return $date;
+            } catch (\Throwable) {}
         }
         try { return Carbon::parse($text); } catch (\Throwable) { return null; }
     }
 
     private function value(PricingResult $item, string $key, int $index): mixed
     {
-        $quantity = is_numeric($item->so_luong) ? (float) $item->so_luong : null; $unitPrice = is_numeric($item->don_gia) ? (float) $item->don_gia : null;
+        $quantity = is_numeric($item->so_luong) ? (float) $item->so_luong : null;
+        $unitPrice = is_numeric($item->don_gia) ? (float) $item->don_gia : null;
+
         return match ($key) {
-            'stt' => $index, 'stt_tt20_2022' => $item->stt_tt20_2022, 'ten_thuoc' => $item->ten_thuoc, 'nhom_thuoc' => $this->medicineGroupNumber($item->nhom_thuoc), 'ten_hoat_chat' => $item->ten_hoat_chat, 'nong_do' => $item->nong_do, 'duong_dung' => $item->duong_dung, 'dang_bao_che' => $item->dang_bao_che, 'don_vi_tinh' => $item->don_vi_tinh, 'quy_cach_dong_goi' => $item->quy_cach_dong_goi, 'gdklh_gpnk' => $item->gdklh_gpnk, 'han_dung' => $item->han_dung, 'ten_co_so_san_xuat' => $item->ten_co_so_san_xuat, 'nuoc_san_xuat' => $item->nuoc_san_xuat, 'don_gia' => $unitPrice, 'gia_kk_kkl' => is_numeric($item->gia_kk_kkl) ? (float) $item->gia_kk_kkl : null, 'don_gia_vat' => is_numeric($item->don_gia_vat) ? (float) $item->don_gia_vat : null, 'so_luong' => $quantity, 'thanh_tien' => $quantity !== null && $unitPrice !== null ? $quantity * $unitPrice : null, 'winning_code' => implode('; ', array_values(array_filter(array_map('strval', (array) $item->winning_code)))), 'winning_name' => implode('; ', array_values(array_filter(array_map('strval', (array) $item->winning_name)))), 'ten_cdt_bmt' => $item->ten_cdt_bmt, 'ma_cdt' => $item->ma_cdt, 'ma_tbmt' => $item->ma_tbmt, 'bid_form' => $item->bid_form, 'dia_diem' => $this->locations($item), 'so_quyet_dinh' => $item->so_quyet_dinh, 'ngay_ban_hanh_quyet_dinh' => $item->ngay_ban_hanh_quyet_dinh?->format('d/m/Y'), 'ngay_dang_tai_kqlcnt' => $item->ngay_dang_tai_kqlcnt?->format('d/m/Y'), 'so_nha_thau_tham_du' => is_numeric($item->so_nha_thau_tham_du) ? (float) $item->so_nha_thau_tham_du : null, 'type' => $item->type, 'tab' => $item->tab, 'medicines' => $item->medicines, 'synced_at' => $item->synced_at?->format('d/m/Y H:i:s'), default => null,
+            'stt' => $index,
+            'stt_tt20_2022' => $item->stt_tt20_2022,
+            'ten_thuoc' => $item->ten_thuoc,
+            'nhom_thuoc' => $this->medicineGroupNumber($item->nhom_thuoc),
+            'ten_hoat_chat' => $item->ten_hoat_chat,
+            'nong_do' => $item->nong_do,
+            'duong_dung' => $item->duong_dung,
+            'dang_bao_che' => $item->dang_bao_che,
+            'don_vi_tinh' => $item->don_vi_tinh,
+            'quy_cach_dong_goi' => $item->quy_cach_dong_goi,
+            'gdklh_gpnk' => $item->gdklh_gpnk,
+            'han_dung' => $item->han_dung,
+            'ten_co_so_san_xuat' => $item->ten_co_so_san_xuat,
+            'nuoc_san_xuat' => $item->nuoc_san_xuat,
+            'don_gia' => $unitPrice,
+            'gia_kk_kkl' => is_numeric($item->gia_kk_kkl) ? (float) $item->gia_kk_kkl : null,
+            'don_gia_vat' => is_numeric($item->don_gia_vat) ? (float) $item->don_gia_vat : null,
+            'so_luong' => $quantity,
+            'thanh_tien' => $quantity !== null && $unitPrice !== null ? $quantity * $unitPrice : null,
+            'winning_code' => implode('; ', array_values(array_filter(array_map('strval', (array) $item->winning_code)))),
+            'winning_name' => implode('; ', array_values(array_filter(array_map('strval', (array) $item->winning_name)))),
+            'ten_cdt_bmt' => $item->ten_cdt_bmt,
+            'ma_cdt' => $item->ma_cdt,
+            'ma_tbmt' => $item->ma_tbmt,
+            'bid_form' => $item->bid_form,
+            'dia_diem' => $this->locations($item),
+            'so_quyet_dinh' => $item->so_quyet_dinh,
+            'ngay_ban_hanh_quyet_dinh' => $item->ngay_ban_hanh_quyet_dinh?->format('d/m/Y'),
+            'ngay_dang_tai_kqlcnt' => $item->ngay_dang_tai_kqlcnt?->format('d/m/Y'),
+            'so_nha_thau_tham_du' => is_numeric($item->so_nha_thau_tham_du) ? (float) $item->so_nha_thau_tham_du : null,
+            'type' => $item->type,
+            'tab' => $item->tab,
+            'medicines' => $item->medicines,
+            'synced_at' => $item->synced_at?->format('d/m/Y H:i:s'),
+            default => null,
         };
     }
 
     private function locations(PricingResult $item): ?string
     {
-        $locations = collect((array) $item->dia_diem)->map(fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '')->filter()->values()->implode('; ');
+        $locations = collect((array) $item->dia_diem)
+            ->map(fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '')
+            ->filter()->values()->implode('; ');
+
         return $locations !== '' ? $locations : null;
     }
 

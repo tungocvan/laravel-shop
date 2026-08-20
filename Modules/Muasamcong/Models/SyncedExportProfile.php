@@ -20,5 +20,6 @@ class SyncedExportProfile extends Model
         'data_types' => 'array',
         'decimals' => 'array',
         'header_footer' => 'array',
+        'page_setup' => 'array',
     ];
 }
