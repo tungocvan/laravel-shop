@@ -538,6 +538,14 @@ class GeneratePriceListExport implements ShouldQueue
             return $stt;
         }
 
+        if ($key === 'nhom_thuoc') {
+            return $this->firstInteger($row[$key] ?? null, 1, 5);
+        }
+
+        if ($key === 'han_dung') {
+            return $this->firstInteger($row[$key] ?? null);
+        }
+
         if ($key === 'thanh_tien') {
             return is_numeric($row['don_gia_vat'] ?? $row['don_gia'] ?? null)
                 && is_numeric($row['so_luong'] ?? null)
@@ -546,6 +554,32 @@ class GeneratePriceListExport implements ShouldQueue
         }
 
         return $row[$key] ?? null;
+    }
+
+    private function firstInteger(mixed $value, ?int $min = null, ?int $max = null): mixed
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        if (is_int($value) || (is_numeric($value) && (float) $value === (float) (int) $value)) {
+            $number = (int) $value;
+        } else {
+            $text = trim((string) $value);
+            if (! preg_match('/\d+/', $text, $matches)) {
+                return $value;
+            }
+            $number = (int) $matches[0];
+        }
+
+        if ($min !== null && $number < $min) {
+            return $value;
+        }
+        if ($max !== null && $number > $max) {
+            return $value;
+        }
+
+        return $number;
     }
 
     private function syncedRows(PriceListExport $export): array
