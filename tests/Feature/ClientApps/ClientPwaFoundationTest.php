@@ -47,6 +47,18 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString('Thêm vào Màn hình chính', $installer);
     }
 
+    public function test_price_list_workspace_polish_is_scoped_to_price_list_routes(): void
+    {
+        $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
+        $polish = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/muasamcong/partials/price-list-workspace-polish.blade.php'));
+
+        $this->assertStringContainsString("routeIs('client.muasamcong.price-list*')", $layout);
+        $this->assertStringContainsString('price-list-workspace-polish', $layout);
+        $this->assertStringContainsString('.export-card', $polish);
+        $this->assertStringContainsString('[data-email-open]', $polish);
+        $this->assertStringContainsString('Đã gửi gần nhất', $polish);
+    }
+
     public function test_client_launcher_exposes_pwa_metadata_for_authenticated_user(): void
     {
         $user = new User();
