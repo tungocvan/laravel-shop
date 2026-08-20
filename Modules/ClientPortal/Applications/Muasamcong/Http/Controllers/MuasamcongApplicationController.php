@@ -14,6 +14,7 @@ use Modules\ClientPortal\Applications\Muasamcong\Jobs\SyncPricingResultsJob;
 use Modules\ClientPortal\Applications\Muasamcong\Services\ClientPricingSearchService;
 use Modules\ClientPortal\Models\SyncRequest;
 use Modules\ClientPortal\Services\ApplicationRegistry;
+use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Models\PricingWishlist;
 use Modules\Muasamcong\Services\PricingResultSyncService;
 use Throwable;
@@ -24,17 +25,19 @@ class MuasamcongApplicationController extends Controller
     private const WISHLIST_PERMISSION = 'client.muasamcong.wishlist.view';
     private const PER_PAGE = 20;
 
-    public function dashboard(Request $request, ApplicationRegistry $registry): View
+    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
     {
         $application = $registry->find('muasamcong');
         abort_if($application === null, 404);
         $user = $request->user('web');
-        $features = collect($application['features'] ?? [])->filter(function (array $feature) use ($registry, $user): bool {
+        $authorizedFeatures = collect($application['features'] ?? [])->filter(function (array $feature) use ($registry, $user): bool {
             $permission = $feature['permission'] ?? null;
             return $permission === null || ($user !== null && $registry->userCan($user, $permission));
         })->values();
+        $features = $settings->presentFeatures($application['key'], $authorizedFeatures);
+        $applicationPresentation = $settings->applicationPresentation($application);
 
-        return view('ClientPortal::applications.muasamcong.dashboard', compact('application', 'features'));
+        return view('ClientPortal::applications.muasamcong.dashboard', compact('application', 'applicationPresentation', 'features'));
     }
 
     public function drugPricing(Request $request, ClientPricingSearchService $search, PricingResultSyncService $syncService, ApplicationRegistry $registry): View
