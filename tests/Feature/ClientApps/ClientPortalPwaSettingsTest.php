@@ -42,6 +42,17 @@ class ClientPortalPwaSettingsTest extends TestCase
         ]);
     }
 
+    public function test_setting_keys_are_isolated_by_group(): void
+    {
+        $settings = app(ClientPortalSettingsService::class);
+
+        $settings->updatePwaGeneral(['application_name' => 'General Name']);
+        $settings->updatePwaLogin(['application_name' => 'Login Name']);
+
+        $this->assertDatabaseHas('client_portal_settings', ['group_name' => 'pwa.general', 'key' => 'application_name']);
+        $this->assertDatabaseHas('client_portal_settings', ['group_name' => 'pwa.login', 'key' => 'application_name']);
+    }
+
     public function test_login_feature_cards_are_data_driven(): void
     {
         $settings = app(ClientPortalSettingsService::class);
@@ -53,15 +64,15 @@ class ClientPortalPwaSettingsTest extends TestCase
         $settings->updatePwaLogin(['feature_cards' => $cards]);
 
         $this->assertSame($cards, $settings->pwaLogin()['feature_cards']);
-        $this->assertSame('json', ClientPortalSetting::query()->where('key', 'feature_cards')->value('type'));
+        $this->assertSame('json', ClientPortalSetting::query()->where('group_name', 'pwa.login')->where('key', 'feature_cards')->value('type'));
     }
 
     public function test_login_blade_reads_pwa_settings_instead_of_hard_coded_content(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/pages/login.blade.php'));
 
-        $this->assertStringContainsString("$pwaLogin['heading']", $blade);
-        $this->assertStringContainsString("$pwaLogin['feature_cards']", $blade);
+        $this->assertStringContainsString("\$pwaLogin['heading']", $blade);
+        $this->assertStringContainsString("\$pwaLogin['feature_cards']", $blade);
         $this->assertStringNotContainsString('Cài như ứng dụng', $blade);
         $this->assertStringNotContainsString('Một nơi để mở tất cả ứng dụng công việc của bạn.', $blade);
     }
