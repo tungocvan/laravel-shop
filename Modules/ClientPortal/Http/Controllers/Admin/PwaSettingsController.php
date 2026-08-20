@@ -13,17 +13,24 @@ class PwaSettingsController extends Controller
 {
     public function edit(ClientPortalSettingsService $settings, ApplicationRegistry $registry): View
     {
-        $applications = $registry->all();
-
         return view('ClientPortal::admin.pwa-settings', [
             'general' => $settings->pwaGeneral(),
             'login' => $settings->pwaLogin(),
+            'adminUi' => config('clientportal.pwa.admin', []),
+        ]);
+    }
+
+    public function editLauncher(ClientPortalSettingsService $settings, ApplicationRegistry $registry): View
+    {
+        $applications = $registry->all();
+
+        return view('ClientPortal::admin.launcher-settings', [
+            'general' => $settings->pwaGeneral(),
             'launcher' => $settings->pwaLauncher(),
             'applications' => $applications->map(fn (array $application): array => [
                 'manifest' => $application,
                 'presentation' => $settings->applicationPresentation($application),
             ]),
-            'adminUi' => config('clientportal.pwa.admin', []),
         ]);
     }
 
