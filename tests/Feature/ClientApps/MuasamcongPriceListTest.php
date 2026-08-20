@@ -5,6 +5,7 @@ namespace Tests\Feature\ClientApps;
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\Muasamcong\Models\SyncedExportProfile;
+use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
 use Tests\TestCase;
 
 class MuasamcongPriceListTest extends TestCase
@@ -69,7 +70,26 @@ class MuasamcongPriceListTest extends TestCase
 
     public function test_client_price_list_reuses_admin_synced_export_profile_domain(): void
     {
-        $this->assertSame('muasamcong_synced_export_profiles', (new SyncedExportProfile)->getTable());
+        $profile = new SyncedExportProfile;
+        $this->assertSame('muasamcong_synced_export_profiles', $profile->getTable());
+        $this->assertSame('array', $profile->getCasts()['page_setup']);
         $this->assertNull(Route::getRoutes()->getByName('muasamcong.price-list-profiles.index'));
+    }
+
+    public function test_price_list_page_setup_defaults_are_print_friendly_for_drug_catalogues(): void
+    {
+        $pageSetup = SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP;
+
+        $this->assertSame('A4', $pageSetup['paper_size']);
+        $this->assertSame('landscape', $pageSetup['orientation']);
+        $this->assertSame(0.3, $pageSetup['margin_left_cm']);
+        $this->assertSame(0.3, $pageSetup['margin_right_cm']);
+        $this->assertSame(0.8, $pageSetup['margin_top_cm']);
+        $this->assertSame(0.8, $pageSetup['margin_bottom_cm']);
+        $this->assertTrue($pageSetup['center_horizontal']);
+        $this->assertFalse($pageSetup['center_vertical']);
+        $this->assertSame('fit_width', $pageSetup['scaling']);
+        $this->assertSame(1, $pageSetup['fit_width']);
+        $this->assertSame(0, $pageSetup['fit_height']);
     }
 }
