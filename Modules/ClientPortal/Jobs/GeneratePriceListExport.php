@@ -18,6 +18,7 @@ use Modules\Muasamcong\Services\SyncedPricingExportPreferenceService;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -76,10 +77,6 @@ class GeneratePriceListExport implements ShouldQueue
             $dataRow = $headerRow + 1;
             $last = Coordinate::stringFromColumnIndex(count($columns));
 
-            if ($withHeader) {
-                $this->renderHeader($sheet, $preference, $headerFooter, $last);
-            }
-
             foreach ($columns as $i => $key) {
                 $letter = Coordinate::stringFromColumnIndex($i + 1);
                 $sheet->setCellValue(
@@ -89,6 +86,10 @@ class GeneratePriceListExport implements ShouldQueue
                 $sheet->getColumnDimension($letter)
                     ->setAutoSize(false)
                     ->setWidth((float) ($preference['widths'][$key] ?? 120), 'px');
+            }
+
+            if ($withHeader) {
+                $this->renderHeader($sheet, $preference, $headerFooter, $last);
             }
 
             $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getFont()->setBold(true);
@@ -309,10 +310,13 @@ class GeneratePriceListExport implements ShouldQueue
         $sheet->setCellValue('A8', (string) ($s['intro'] ?? ''));
         $sheet->getStyle("A1:{$last}8")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
 
-        $this->drawingExact(
+        $this->drawingCenteredInRange(
             $sheet,
             $p['logo_path'] ?? null,
-            'A1',
+            'A',
+            'B',
+            1,
+            5,
             (float) ($s['logo_width_cm'] ?? 2.48),
             (float) ($s['logo_height_cm'] ?? 3.83),
             'Logo công ty'
@@ -344,19 +348,33 @@ class GeneratePriceListExport implements ShouldQueue
         $sheet->getStyle("A{$name}:{$last}{$name}")->getFont()->setBold(true);
 
         $heightCm = (float) ($s['signature_height_cm'] ?? 2.0);
-        $sheet->getRowDimension($sig)->setRowHeight(max(42, $heightCm * 28.35 + 8));
-        $this->drawingExact(
+        $sheet->getRowDimension($sig)->setRowHeight(max(50, $heightCm * 28.35 + 12));
+        $sheet->getRowDimension($name)->setRowHeight(22);
+
+        $this->drawingCenteredInRange(
             $sheet,
             $p['signature_path'] ?? null,
-            "A{$sig}",
+            'A',
+            $last,
+            $sig,
+            $sig,
             (float) ($s['signature_width_cm'] ?? 4.0),
             $heightCm,
             'Chữ ký Giám đốc'
         );
     }
 
-    private function drawingExact($sheet, mixed $stored, string $cell, float $widthCm, float $heightCm, string $name): void
-    {
+    private function drawingCenteredInRange(
+        $sheet,
+        mixed $stored,
+        string $startColumn,
+        string $endColumn,
+        int $startRow,
+        int $endRow,
+        float $widthCm,
+        float $heightCm,
+        string $name
+    ): void {
         $path = is_string($stored) && trim($stored) !== ''
             ? Storage::disk('local')->path($stored)
             : null;
@@ -367,15 +385,88 @@ class GeneratePriceListExport implements ShouldQueue
 
         $width = (int) round(max(.5, min(15, $widthCm)) * self::PX_PER_CM);
         $height = (int) round(max(.5, min(15, $heightCm)) * self::PX_PER_CM);
+        [$anchorColumn, $offsetX] = $this->horizontalAnchorForCenteredDrawing(
+            $sheet,
+            $startColumn,
+            $endColumn,
+            $width
+        );
+
+        $rangeHeight = $this->rangeHeightPixels($sheet, $startRow, $endRow);
+        $offsetY = max(0, (int) floor(($rangeHeight - $height) / 2));
+
         $drawing = new Drawing();
         $drawing->setName($name)
             ->setPath($path)
             ->setResizeProportional(false)
             ->setWidthAndHeight($width, $height)
-            ->setCoordinates($cell)
-            ->setOffsetX(0)
-            ->setOffsetY(0)
+            ->setCoordinates($anchorColumn.$startRow)
+            ->setOffsetX($offsetX)
+            ->setOffsetY($offsetY)
             ->setWorksheet($sheet);
+    }
+
+    private function horizontalAnchorForCenteredDrawing(
+        $sheet,
+        string $startColumn,
+        string $endColumn,
+        int $drawingWidth
+    ): array {
+        $startIndex = Coordinate::columnIndexFromString($startColumn);
+        $endIndex = Coordinate::columnIndexFromString($endColumn);
+        $columnWidths = [];
+        $rangeWidth = 0;
+
+        for ($index = $startIndex; $index <= $endIndex; $index++) {
+            $letter = Coordinate::stringFromColumnIndex($index);
+            $pixels = $this->columnWidthPixels($sheet, $letter);
+            $columnWidths[$letter] = $pixels;
+            $rangeWidth += $pixels;
+        }
+
+        $targetX = max(0, (int) floor(($rangeWidth - $drawingWidth) / 2));
+        $cursor = 0;
+
+        foreach ($columnWidths as $letter => $pixels) {
+            if ($targetX < $cursor + $pixels) {
+                return [$letter, max(0, $targetX - $cursor)];
+            }
+            $cursor += $pixels;
+        }
+
+        return [$endColumn, 0];
+    }
+
+    private function columnWidthPixels($sheet, string $column): int
+    {
+        $width = (float) $sheet->getColumnDimension($column)->getWidth();
+        if ($width <= 0) {
+            $width = (float) $sheet->getDefaultColumnDimension()->getWidth();
+        }
+
+        return max(1, SharedDrawing::cellDimensionToPixels(
+            $width,
+            $sheet->getParent()->getDefaultStyle()->getFont()
+        ));
+    }
+
+    private function rangeHeightPixels($sheet, int $startRow, int $endRow): int
+    {
+        $height = 0;
+        $defaultHeight = (float) $sheet->getDefaultRowDimension()->getRowHeight();
+        if ($defaultHeight <= 0) {
+            $defaultHeight = 15;
+        }
+
+        for ($row = $startRow; $row <= $endRow; $row++) {
+            $points = (float) $sheet->getRowDimension($row)->getRowHeight();
+            if ($points <= 0) {
+                $points = $defaultHeight;
+            }
+            $height += (int) round($points * 96 / 72);
+        }
+
+        return max(1, $height);
     }
 
     private function value(array $row, string $key, int $stt): mixed
