@@ -115,7 +115,6 @@ class PwaSettingsController extends Controller
             'enabled' => ['required', 'boolean'],
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
-            'icon' => ['nullable', 'string', 'max:80'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
         ]);
 
