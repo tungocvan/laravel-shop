@@ -2,6 +2,7 @@
 
 namespace Modules\ClientPortal\Services;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -21,16 +22,11 @@ class ClientPortalSettingsService
         $defaults = config('clientportal.pwa.login', []);
         $settings = $this->group('pwa.login', $defaults);
 
-        $settings['show_intro_panel'] = filter_var(
-            $settings['show_intro_panel'] ?? true,
-            FILTER_VALIDATE_BOOL,
-            FILTER_NULL_ON_FAILURE
-        ) ?? true;
-
+        $settings['show_intro_panel'] = $this->bool($settings['show_intro_panel'] ?? true, true);
         $settings['feature_cards'] = collect($settings['feature_cards'] ?? [])
             ->filter(fn ($card): bool => is_array($card))
             ->map(fn (array $card): array => [
-                'enabled' => filter_var($card['enabled'] ?? true, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true,
+                'enabled' => $this->bool($card['enabled'] ?? true, true),
                 'title' => trim((string) ($card['title'] ?? '')),
                 'description' => trim((string) ($card['description'] ?? '')),
             ])
@@ -38,6 +34,50 @@ class ClientPortalSettingsService
             ->all();
 
         return $settings;
+    }
+
+    public function pwaLauncher(): array
+    {
+        $settings = $this->group('pwa.launcher', config('clientportal.pwa.launcher', []));
+        $settings['show_source_module'] = $this->bool($settings['show_source_module'] ?? true, true);
+
+        return $settings;
+    }
+
+    public function applicationPresentation(array $application): array
+    {
+        $defaults = [
+            'enabled' => true,
+            'name' => $application['name'],
+            'description' => $application['description'],
+            'icon' => $application['icon'],
+            'sort_order' => $application['sort_order'],
+        ];
+
+        $settings = $this->group('application.'.$application['key'].'.presentation', $defaults);
+        $settings['enabled'] = $this->bool($settings['enabled'] ?? true, true);
+        $settings['sort_order'] = (int) ($settings['sort_order'] ?? $application['sort_order']);
+
+        return $settings;
+    }
+
+    public function presentApplications(Collection $applications): Collection
+    {
+        return $applications
+            ->map(function (array $application): array {
+                $presentation = $this->applicationPresentation($application);
+
+                return array_replace($application, [
+                    'presentation_enabled' => $presentation['enabled'],
+                    'name' => trim((string) $presentation['name']),
+                    'description' => trim((string) $presentation['description']),
+                    'icon' => trim((string) $presentation['icon']),
+                    'sort_order' => $presentation['sort_order'],
+                ]);
+            })
+            ->filter(fn (array $application): bool => $application['presentation_enabled'])
+            ->sortBy(fn (array $application): array => [$application['sort_order'], $application['name']])
+            ->values();
     }
 
     public function updatePwaGeneral(array $values, ?int $updatedBy = null): void
@@ -48,6 +88,16 @@ class ClientPortalSettingsService
     public function updatePwaLogin(array $values, ?int $updatedBy = null): void
     {
         $this->updateGroup('pwa.login', $values, $updatedBy);
+    }
+
+    public function updatePwaLauncher(array $values, ?int $updatedBy = null): void
+    {
+        $this->updateGroup('pwa.launcher', $values, $updatedBy);
+    }
+
+    public function updateApplicationPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void
+    {
+        $this->updateGroup('application.'.trim($applicationKey).'.presentation', $values, $updatedBy);
     }
 
     private function group(string $group, array $defaults): array
@@ -113,5 +163,10 @@ class ClientPortalSettingsService
             'boolean' => $value === '1',
             default => $value,
         };
+    }
+
+    private function bool(mixed $value, bool $default): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $default;
     }
 }
