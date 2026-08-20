@@ -79,7 +79,6 @@
         justify-content: center !important;
         border-radius: .9rem !important;
         padding: 0 !important;
-        font-size: 0 !important;
         background: #fff !important;
         border: 1px solid rgb(226 232 240) !important;
         box-shadow: 0 1px 2px rgb(15 23 42 / .04);
@@ -89,6 +88,7 @@
         height: 1.22rem;
         display: block;
     }
+    .export-card .price-list-icon-action .action-label { display: none; }
     .export-card .price-list-icon-action[data-action-icon="excel"] { color: rgb(22 163 74) !important; }
     .export-card .price-list-icon-action[data-action-icon="pdf"] { color: rgb(225 29 72) !important; }
     .export-card .price-list-icon-action[data-action-icon="share"] { color: rgb(30 41 59) !important; }
@@ -150,6 +150,63 @@
         border-color: rgb(203 213 225);
         box-shadow: 0 12px 28px rgba(15, 23, 42, .07);
     }
+
+    /* Desktop: keep the same SVG language but restore readable action labels. */
+    .export-card .price-list-icon-action {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 2.5rem !important;
+        width: auto !important;
+        min-width: 0 !important;
+        padding: 0 .8rem !important;
+        border-radius: .75rem !important;
+        background: #fff !important;
+        border: 1px solid rgb(226 232 240) !important;
+        font-size: .75rem !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        white-space: nowrap;
+        box-shadow: 0 1px 2px rgb(15 23 42 / .04);
+    }
+    .export-card .price-list-icon-action svg {
+        width: 1rem;
+        height: 1rem;
+        flex: 0 0 auto;
+    }
+    .export-card .price-list-icon-action .action-label { display: inline; }
+    .export-card .price-list-icon-action[data-action-icon="excel"] { color: rgb(21 128 61) !important; }
+    .export-card .price-list-icon-action[data-action-icon="pdf"] { color: rgb(190 18 60) !important; }
+    .export-card .price-list-icon-action[data-action-icon="share"] { color: rgb(30 41 59) !important; }
+
+    .export-card [data-email-open] {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 2.5rem !important;
+        border-radius: .75rem !important;
+        background: rgb(15 23 42) !important;
+        border-color: rgb(15 23 42) !important;
+        color: #fff !important;
+        padding: 0 .9rem !important;
+        font-size: .75rem !important;
+        font-weight: 800 !important;
+    }
+    .export-card [data-email-open] svg { width: 1rem; height: 1rem; }
+
+    .export-card details.ml-auto > summary {
+        display: inline-flex;
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: .75rem !important;
+        background: #fff;
+        font-size: 0;
+    }
+    .export-card details.ml-auto > summary svg { width: 1.05rem; height: 1.05rem; }
 }
 </style>
 
@@ -178,11 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
             element.dataset.actionIcon = type;
             element.setAttribute('title', label);
             element.setAttribute('aria-label', label);
-            element.innerHTML = icons[type];
+            element.innerHTML = `${icons[type]}<span class="action-label">${label}</span>`;
         };
 
-        setIconAction(excel, 'excel', 'Tải Excel');
-        setIconAction(pdf, 'pdf', pdf?.closest('form') ? 'Tạo PDF' : 'Tải PDF');
+        setIconAction(excel, 'excel', 'Excel');
+        setIconAction(pdf, 'pdf', pdf?.closest('form') ? 'Tạo PDF' : 'PDF');
         setIconAction(share, 'share', 'Chia sẻ');
 
         if (email) {
