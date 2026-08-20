@@ -1,6 +1,7 @@
 @extends('Admin::layouts.master')
 @section('title', 'Cấu hình PWA Client')
 @section('content')
+@php($colorPicker = config('clientportal.pwa.admin', []))
 <div class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -50,6 +51,16 @@
                             <span class="text-sm font-semibold text-gray-800">{{ $label }}</span>
                             <input name="{{ $key }}" value="{{ old($key, $general[$key] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                             <span class="mt-1 block text-xs text-gray-500">{{ $hint }}</span>
+                            @if(in_array($key, ['theme_color', 'background_color'], true) && filled($colorPicker['color_picker_url'] ?? null))
+                                <a
+                                    href="{{ $colorPicker['color_picker_url'] }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                                >
+                                    {{ $colorPicker['color_picker_label'] ?? 'Mở công cụ lấy mã màu' }} ↗
+                                </a>
+                            @endif
                         </label>
                     @endforeach
                 </div>
