@@ -36,6 +36,23 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertNotContains('auth:web', $route->gatherMiddleware());
     }
 
+    public function test_client_logout_returns_to_dedicated_pwa_login(): void
+    {
+        $user = new User();
+        $user->id = 3102;
+
+        $this->actingAs($user, 'web')
+            ->post('/logout')
+            ->assertRedirect(route('client.apps.login'));
+    }
+
+    public function test_pwa_login_has_local_app_icon_fallback(): void
+    {
+        $loginForm = file_get_contents(base_path('Modules/Auth/Livewire/Auth/LoginForm.php'));
+
+        $this->assertStringContainsString("asset('pwa/icon.svg')", $loginForm);
+    }
+
     public function test_website_footer_uses_adaptive_pwa_installer(): void
     {
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
@@ -55,6 +72,8 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString("routeIs('client.muasamcong.price-list*')", $layout);
         $this->assertStringContainsString('price-list-workspace-polish', $layout);
         $this->assertStringContainsString('.export-card', $polish);
+        $this->assertStringContainsString('price-list-icon-action', $polish);
+        $this->assertStringContainsString("data-action-icon = type", $polish);
         $this->assertStringContainsString('[data-email-open]', $polish);
         $this->assertStringContainsString('Đã gửi gần nhất', $polish);
     }
