@@ -6,7 +6,7 @@ Tài liệu này chuẩn hóa cách làm việc giữa người dùng, ChatGPT v
 
 Repository chính:
 
-`git@github.com:vhdtshop-ux/source-laravel-12.git`
+`git@github.com:tungocvan/laravel-shop.git`
 
 Mục tiêu là để ChatGPT trực tiếp phân tích/sửa code trên GitHub, còn người dùng chủ yếu `git pull`, chạy CLI/test/manual UI và gửi output để debug theo từng bước.
 
@@ -257,7 +257,7 @@ Có thể dùng khung ngắn sau:
 
 ```text
 Repository:
-git@github.com:vhdtshop-ux/source-laravel-12.git
+git@github.com:tungocvan/laravel-shop.git
 
 Hãy làm việc trực tiếp qua GitHub theo docs/GITHUB_COLLABORATION_WORKFLOW.md.
 
