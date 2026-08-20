@@ -61,7 +61,25 @@ class GeneratePriceListPdf implements ShouldQueue
 
             $pdfName = pathinfo((string) ($export->file_name ?: basename($source)), PATHINFO_FILENAME).'.pdf';
             $pdfPath = 'client-portal/price-lists/'.$export->user_id.'/'.$export->id.'/'.$pdfName;
-            Storage::disk('local')->put($pdfPath, file_get_contents($generated));
+            $disk = Storage::disk('local');
+            $directory = dirname($pdfPath);
+            $disk->makeDirectory($directory);
+
+            $contents = file_get_contents($generated);
+            if ($contents === false) {
+                throw new RuntimeException('Không thể đọc file PDF vừa chuyển đổi.');
+            }
+
+            $written = $disk->put($pdfPath, $contents);
+            if (! $written || ! $disk->exists($pdfPath)) {
+                throw new RuntimeException('Không thể lưu file PDF vào storage.');
+            }
+
+            // Queue workers may run as root while PHP-FPM serves downloads as www-data.
+            // Normalize the generated file and every price-list directory so the web
+            // process can traverse/read the PDF without requiring a manual chmod/chown.
+            $this->normalizeStorageAccess($disk->path($pdfPath));
+
             $export->update([
                 'pdf_status' => 'completed',
                 'pdf_path' => $pdfPath,
@@ -85,7 +103,7 @@ class GeneratePriceListPdf implements ShouldQueue
     /**
      * LibreOffice and Excel calculate automatic wrapped-row heights differently.
      * Floating drawings below those rows (notably the signature/stamp) can therefore
-     * move upward into the table during headless PDF conversion.  Build a temporary
+     * move upward into the table during headless PDF conversion. Build a temporary
      * XLSX with explicit table-row heights so both renderers use the same geometry.
      */
     private function prepareForLibreOffice(string $source, string $workDir): string
@@ -146,5 +164,24 @@ class GeneratePriceListPdf implements ShouldQueue
             $points = min(120, max(20, 8 + ($maxLines * 13.5)));
             $sheet->getRowDimension($row)->setRowHeight($points);
         }
+    }
+
+    private function normalizeStorageAccess(string $filePath): void
+    {
+        @chgrp($filePath, 'www-data');
+        @chmod($filePath, 0664);
+
+        $storageApp = rtrim(storage_path('app'), DIRECTORY_SEPARATOR);
+        $directory = dirname($filePath);
+
+        while (str_starts_with($directory, $storageApp) && $directory !== $storageApp) {
+            @chgrp($directory, 'www-data');
+            @chmod($directory, 0775);
+            $directory = dirname($directory);
+        }
+
+        // storage/app itself must remain traversable by the web process as well.
+        @chgrp($storageApp, 'www-data');
+        @chmod($storageApp, 0775);
     }
 }
