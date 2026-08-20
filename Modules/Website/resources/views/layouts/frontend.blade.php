@@ -4,6 +4,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="application-name" content="INAFO Client Portal">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="INAFO">
+    <link rel="manifest" href="/manifest.webmanifest">
     @php
         $faviconType = strtolower(pathinfo((string) $siteFavicon, PATHINFO_EXTENSION)) === 'ico'
             ? 'image/x-icon'
@@ -29,7 +35,6 @@
         // window.CHAT_CONFIG_PORT = "{{ env('NODEJS_SERVER_PORT') ?? 6001 }}";
         window.CHAT_CONFIG_HOST =  @json(config('realtime.host') ?: request()->getSchemeAndHttpHost());
     </script>
-    {{-- <script src="https://unpkg.com/@tailwindcss/browser@4"></script> --}}
     <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @yield('css')
@@ -60,6 +65,11 @@
     </div>
     @stack('scripts')
     @livewireScripts
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
+        }
+    </script>
 </body>
 
 </html>
