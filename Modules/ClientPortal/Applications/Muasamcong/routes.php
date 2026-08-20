@@ -16,6 +16,8 @@ if((bool)config('modules.registry.Muasamcong.enabled',false)){
    Route::delete('/price-list/{exportId}',[MuasamcongPriceListController::class,'destroy'])->whereUuid('exportId')->name('price-list.destroy');
    Route::get('/price-list/{exportId}/status',[MuasamcongPriceListController::class,'status'])->whereUuid('exportId')->name('price-list.status');
    Route::get('/price-list/{exportId}/download',[MuasamcongPriceListController::class,'download'])->whereUuid('exportId')->name('price-list.download');
+   Route::post('/price-list/{exportId}/pdf',[MuasamcongPriceListController::class,'queuePdf'])->whereUuid('exportId')->name('price-list.pdf');
+   Route::get('/price-list/{exportId}/pdf/download',[MuasamcongPriceListController::class,'downloadPdf'])->whereUuid('exportId')->name('price-list.pdf-download');
    Route::post('/price-list/{exportId}/share',[MuasamcongPriceListController::class,'share'])->whereUuid('exportId')->name('price-list.share');
    Route::post('/price-list/{exportId}/email',[MuasamcongPriceListController::class,'email'])->whereUuid('exportId')->name('price-list.email');
   });
