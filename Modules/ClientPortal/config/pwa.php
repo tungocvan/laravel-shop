@@ -29,6 +29,15 @@ return [
     ],
 
     'admin' => [
+        'general_fields' => [
+            'application_name' => ['label' => 'Tên PWA', 'hint' => 'Tên đầy đủ hiển thị cho Client'],
+            'short_name' => ['label' => 'Tên ngắn', 'hint' => 'Tên ngắn dùng trên thiết bị'],
+            'browser_title' => ['label' => 'Tiêu đề trình duyệt', 'hint' => 'Title của trang đăng nhập PWA'],
+            'apple_title' => ['label' => 'Apple Web App title', 'hint' => 'Tên khi chạy trên iPhone/iPad'],
+            'theme_color' => ['label' => 'Theme color', 'hint' => 'Màu hex, ví dụ #0f172a'],
+            'background_color' => ['label' => 'Background color', 'hint' => 'Màu nền PWA dạng hex'],
+        ],
+        'color_fields' => ['theme_color', 'background_color'],
         'color_picker_url' => 'https://htmlcolorcodes.com/color-picker/',
         'color_picker_label' => 'Mở công cụ lấy mã màu',
     ],
