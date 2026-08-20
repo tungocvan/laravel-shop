@@ -23,6 +23,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Throwable;
 
@@ -31,6 +32,7 @@ class GeneratePriceListExport implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private const PX_PER_CM = 37.7952755906;
+    private const CM_PER_INCH = 2.54;
 
     public function __construct(public string $exportId) {}
 
@@ -138,9 +140,17 @@ class GeneratePriceListExport implements ShouldQueue
                 ->getAllBorders()
                 ->setBorderStyle(Border::BORDER_THIN);
 
+            $finalRow = $end;
             if ($withHeader) {
-                $this->renderFooter($sheet, $preference, $headerFooter, $last, $end);
+                $finalRow = $this->renderFooter($sheet, $preference, $headerFooter, $last, $end);
             }
+
+            $this->applyPageSetup(
+                $sheet,
+                (array) ($preference['page_setup'] ?? SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP),
+                $last,
+                $finalRow
+            );
 
             $name = 'bang-gia-'.now()->format('Ymd-His').'.xlsx';
             $directory = 'client-portal/price-lists/'.$export->user_id;
@@ -275,6 +285,52 @@ class GeneratePriceListExport implements ShouldQueue
         }
     }
 
+    private function applyPageSetup($sheet, array $settings, string $lastColumn, int $lastRow): void
+    {
+        $pageSetup = array_replace(SyncedPricingExportPreferenceService::DEFAULT_PAGE_SETUP, $settings);
+        $setup = $sheet->getPageSetup();
+
+        $paperSize = match (strtoupper((string) ($pageSetup['paper_size'] ?? 'A4'))) {
+            'A3' => PageSetup::PAPERSIZE_A3,
+            'LETTER' => PageSetup::PAPERSIZE_LETTER,
+            'LEGAL' => PageSetup::PAPERSIZE_LEGAL,
+            default => PageSetup::PAPERSIZE_A4,
+        };
+        $orientation = strtolower((string) ($pageSetup['orientation'] ?? 'landscape')) === 'portrait'
+            ? PageSetup::ORIENTATION_PORTRAIT
+            : PageSetup::ORIENTATION_LANDSCAPE;
+
+        $setup->setPaperSize($paperSize);
+        $setup->setOrientation($orientation);
+        $setup->setHorizontalCentered((bool) ($pageSetup['center_horizontal'] ?? true));
+        $setup->setVerticalCentered((bool) ($pageSetup['center_vertical'] ?? false));
+
+        $scaling = (string) ($pageSetup['scaling'] ?? 'fit_width');
+        if ($scaling === 'fit_sheet') {
+            $setup->setFitToWidth(1);
+            $setup->setFitToHeight(1);
+        } elseif ($scaling === 'fit_width') {
+            $setup->setFitToWidth(max(1, (int) ($pageSetup['fit_width'] ?? 1)));
+            $setup->setFitToHeight(0);
+        } else {
+            $setup->setFitToPage(false);
+            $setup->setScale(100);
+        }
+
+        $margins = $sheet->getPageMargins();
+        $margins->setLeft($this->centimetersToInches((float) ($pageSetup['margin_left_cm'] ?? 0.3)));
+        $margins->setRight($this->centimetersToInches((float) ($pageSetup['margin_right_cm'] ?? 0.3)));
+        $margins->setTop($this->centimetersToInches((float) ($pageSetup['margin_top_cm'] ?? 0.8)));
+        $margins->setBottom($this->centimetersToInches((float) ($pageSetup['margin_bottom_cm'] ?? 0.8)));
+
+        $setup->setPrintArea("A1:{$lastColumn}{$lastRow}");
+    }
+
+    private function centimetersToInches(float $centimeters): float
+    {
+        return max(0, $centimeters) / self::CM_PER_INCH;
+    }
+
     private function normalizePermissions(string $path, int $mode): void
     {
         if (file_exists($path)) {
@@ -306,9 +362,14 @@ class GeneratePriceListExport implements ShouldQueue
 
         $sheet->mergeCells("A7:{$last}7");
         $sheet->setCellValue('A7', 'Kính gửi: '.(string) ($s['recipient'] ?? ''));
+        $sheet->getStyle("A7:{$last}7")->getFont()->setBold(true);
+
         $sheet->mergeCells("A8:{$last}8");
         $sheet->setCellValue('A8', (string) ($s['intro'] ?? ''));
-        $sheet->getStyle("A1:{$last}8")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle("A1:{$last}8")
+            ->getAlignment()
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
 
         $this->drawingCenteredInRange(
             $sheet,
@@ -323,7 +384,7 @@ class GeneratePriceListExport implements ShouldQueue
         );
     }
 
-    private function renderFooter($sheet, array $p, array $s, string $last, int $end): void
+    private function renderFooter($sheet, array $p, array $s, string $last, int $end): int
     {
         $date = $end + 2;
         $title = $date + 1;
@@ -362,6 +423,8 @@ class GeneratePriceListExport implements ShouldQueue
             $heightCm,
             'Chữ ký Giám đốc'
         );
+
+        return $name;
     }
 
     private function drawingCenteredInRange(
