@@ -10,12 +10,15 @@ return new class extends Migration
     {
         Schema::create('client_portal_settings', function (Blueprint $table): void {
             $table->id();
-            $table->string('group_name', 100)->index();
-            $table->string('key', 191)->unique();
+            $table->string('group_name', 100);
+            $table->string('key', 191);
             $table->longText('value')->nullable();
             $table->string('type', 20)->default('text');
             $table->unsignedBigInteger('updated_by')->nullable()->index();
             $table->timestamps();
+
+            $table->unique(['group_name', 'key']);
+            $table->index('group_name');
         });
     }
 
