@@ -67,7 +67,7 @@ class ClientPortalSettingsService
                 ->all();
         });
 
-        return array_replace_recursive($defaults, $stored);
+        return array_replace($defaults, $stored);
     }
 
     private function updateGroup(string $group, array $values, ?int $updatedBy): void
@@ -77,9 +77,11 @@ class ClientPortalSettingsService
                 [$storedValue, $type] = $this->encode($value);
 
                 ClientPortalSetting::query()->updateOrCreate(
-                    ['key' => (string) $key],
                     [
                         'group_name' => $group,
+                        'key' => (string) $key,
+                    ],
+                    [
                         'value' => $storedValue,
                         'type' => $type,
                         'updated_by' => $updatedBy,
