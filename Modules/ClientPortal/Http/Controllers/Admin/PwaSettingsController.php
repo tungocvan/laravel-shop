@@ -15,6 +15,7 @@ class PwaSettingsController extends Controller
         return view('ClientPortal::admin.pwa-settings', [
             'general' => $settings->pwaGeneral(),
             'login' => $settings->pwaLogin(),
+            'colorPicker' => config('clientportal.pwa.admin', []),
         ]);
     }
 
