@@ -5,8 +5,12 @@ use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Http\Controllers\Admin\ApplicationAdminController;
 use Modules\ClientPortal\Http\Controllers\PortalController;
 
-Route::middleware(['web', 'auth:web'])->group(function () {
-    Route::get('/my-apps', [PortalController::class, 'index'])->name('client.apps.index');
+Route::middleware(['web'])->group(function () {
+    Route::get('/my-apps/login', [PortalController::class, 'login'])->name('client.apps.login');
+
+    Route::middleware('auth:web')->group(function () {
+        Route::get('/my-apps', [PortalController::class, 'index'])->name('client.apps.index');
+    });
 });
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin/client-apps')->name('admin.client-apps.')->group(function () {
