@@ -8,6 +8,8 @@ Current implementation documentation:
 - `docs/modules/ClientPortal/INFORMATION.md` — implementation map and current behavior;
 - `docs/modules/ClientPortal/FUNCTIONS.md` — detailed functional guide;
 - `docs/modules/ClientPortal/PWA.md` — PWA installer, `/my-apps/login`, browser behavior and verification;
+- `docs/modules/ClientPortal/DEBUG_NOTES.md` — short symptom-first debugging notes for known ClientPortal/PWA/Price List failures;
+- `docs/modules/ClientPortal/PRICE_LIST_EXCEL.md` — Excel/PDF rendering contract, page setup, data typing, logo/signature and Queue artifact rules;
 - `docs/modules/ClientPortal/ANALYSIS.md` — architecture findings and refactor priorities captured during module analysis.
 
 ## Role in the project
@@ -65,6 +67,8 @@ name: client.apps.login
 ```
 
 This login screen is mobile-first and visually independent from the generic `/login` and `/admin/login` screens, but it **reuses the canonical `Modules\Auth\Livewire\Auth\LoginForm` authentication logic**. PWA UI must not introduce a duplicate credential/authentication implementation.
+
+Client/PWA logout returns to `/my-apps/login`; Admin logout remains independent and returns to `/admin/login`.
 
 See `PWA.md` for the complete routing and browser contract.
 
@@ -171,7 +175,7 @@ ClientPortal
 Auth
     -> credentials
     -> guards
-    -> session regeneration
+    -> session regeneration/invalidation
     -> reusable LoginForm logic
 ```
 
@@ -208,11 +212,30 @@ The rich Price List renderer intentionally uses PhpSpreadsheet because it requir
 
 Preserve this specialized renderer while progressively separating workbook building, artifact storage, share lifecycle and delivery lifecycle into smaller services.
 
+Before modifying workbook/PDF layout, read `PRICE_LIST_EXCEL.md`. It records the currently tested contract for typing, Page Setup, Header/Footer, logo/signature placement, 4-column signature area, LibreOffice conversion and artifact permissions.
+
+## Price List workspace UI contract
+
+The workspace is responsive by design rather than using one identical action rail for every viewport.
+
+```text
+Mobile:
+[Excel icon] [PDF icon] [Share icon] [Gửi bảng giá] [More]
+
+Desktop:
+[Excel icon + label] [PDF icon + label] [Share icon + label]
+[Gửi bảng giá] [More]
+```
+
+Use real SVG icons rather than pseudo-content text such as `X`, `PDF` or `↗`. If JavaScript decorates action elements for all viewports, CSS must define both mobile and desktop states. This exact regression is documented in `DEBUG_NOTES.md`.
+
 ## Private artifact rule
 
 Price List XLSX/PDF files are private artifacts and remain in private storage. Downloads go through authenticated/authorized routes except when the user explicitly creates a high-entropy public share URL.
 
 Every generated artifact should use an immutable unique path. `ANALYSIS.md` contains the remaining artifact-lifecycle/refactor findings.
+
+Queue-created files must remain readable/traversable by the web process. The project has previously hit 404 downloads when a root-owned Queue artifact existed on disk but PHP-FPM `www-data` could not access it. See `DEBUG_NOTES.md` before changing download routes.
 
 ## Queue rule
 
@@ -233,6 +256,8 @@ queued -> processing -> completed/failed
 
 External side effects such as email need explicit retry/idempotency behavior. Raw internal exceptions/process output should be logged server-side and sanitized before display to Client users.
 
+Polling must track the workflow actually pending (for example PDF vs XLSX) and must not reload the page repeatedly just because another artifact is already completed.
+
 ## Sharing rule
 
 Public sharing should define:
@@ -252,6 +277,8 @@ Drug sharing already supports expiry/revoke. Price List sharing still has lifecy
 Price List uses Muasamcong Admin `SyncedExportProfile` configuration. The long-term publication model must remain explicit: global published template, organization/user-owned template, or explicitly shared template.
 
 Do not silently broaden access to configuration records merely because they exist in the table.
+
+Excel-specific profile behavior, default A4 Landscape Page Setup, import/export JSON and type normalization are documented in `PRICE_LIST_EXCEL.md`.
 
 ## Recommended refactor direction
 
@@ -301,8 +328,9 @@ Manual PWA checks should include:
 - installed standalone state;
 - guest `/my-apps` -> `/my-apps/login`;
 - successful PWA login -> `/my-apps`;
+- Client logout -> `/my-apps/login`;
 - guest `/apps/*` -> `/my-apps/login`;
-- Admin login unaffected;
+- Admin login/logout unaffected;
 - service worker does not cache authenticated navigation.
 
 Manual Muasamcong checks should include:
@@ -313,12 +341,34 @@ Manual Muasamcong checks should include:
 - Wishlist;
 - drug share + revoke/expiry;
 - Price List creation/edit/recreate;
+- responsive Price List actions on mobile **and** desktop;
 - Excel formatting/Print Preview;
 - PDF conversion;
 - file permissions/download;
 - sharing;
 - email Excel/PDF/both;
 - delivery/share history.
+
+## Quick debugging rule
+
+Before making a broad refactor for a regression, read:
+
+```text
+docs/modules/ClientPortal/DEBUG_NOTES.md
+```
+
+The recommended triage order is:
+
+```text
+route
+-> auth/permission
+-> database record
+-> storage path + OS permission
+-> Queue state
+-> UI polling/rendering
+```
+
+This prevents common ClientPortal issues such as a storage permission 404 from being misdiagnosed as route-model binding or auth failure.
 
 ## Continuation guidance for another AI
 
@@ -332,7 +382,9 @@ Before modifying ClientPortal, read in this order:
 .codex/standards/ADMIN_UI_STANDARD.md
 
 docs/modules/ClientPortal/README.md
+docs/modules/ClientPortal/DEBUG_NOTES.md
 docs/modules/ClientPortal/PWA.md
+docs/modules/ClientPortal/PRICE_LIST_EXCEL.md
 docs/modules/ClientPortal/FUNCTIONS.md
 docs/modules/ClientPortal/INFORMATION.md
 docs/modules/ClientPortal/ANALYSIS.md
