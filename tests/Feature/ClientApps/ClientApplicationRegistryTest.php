@@ -22,7 +22,12 @@ class ClientApplicationRegistryTest extends TestCase
 
     public function test_guest_is_redirected_from_muasamcong_client_dashboard(): void
     {
-        $this->get('/apps/muasamcong')->assertRedirect(route('login'));
+        $this->get('/apps/muasamcong')->assertRedirect(route('client.apps.login'));
+    }
+
+    public function test_guest_launcher_is_redirected_to_dedicated_pwa_login(): void
+    {
+        $this->get('/my-apps')->assertRedirect(route('client.apps.login'));
     }
 
     public function test_authenticated_user_without_application_permission_is_forbidden(): void
