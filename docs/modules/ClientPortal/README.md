@@ -2,21 +2,24 @@
 
 `Modules/ClientPortal` is the project's authenticated Client/PWA application platform.
 
-This documentation was generated from the implementation on `agent/price-list-excel-data-types` before merge to `main`.
+Current implementation documentation:
 
-For detailed findings and priorities, read:
-
-- `docs/modules/ClientPortal/ANALYSIS.md`
-- `docs/modules/ClientPortal/INFORMATION.md`
+- `docs/modules/ClientPortal/README.md` — architecture/continuation overview;
+- `docs/modules/ClientPortal/INFORMATION.md` — implementation map and current behavior;
+- `docs/modules/ClientPortal/FUNCTIONS.md` — detailed functional guide;
+- `docs/modules/ClientPortal/PWA.md` — PWA installer, `/my-apps/login`, browser behavior and verification;
+- `docs/modules/ClientPortal/ANALYSIS.md` — architecture findings and refactor priorities captured during module analysis.
 
 ## Role in the project
 
 ClientPortal is a **support module**, not a business-domain module.
 
-Its job is to provide:
+Its role is:
 
 ```text
-Authenticated Client launcher
+Public Website / installed PWA
+        ↓
+Client login + /my-apps launcher
         ↓
 Application registry + permissions
         ↓
@@ -25,18 +28,68 @@ Application adapter
 Source domain module/service
 ```
 
-The intended dependency rule is:
+The dependency rule remains:
 
 ```text
 ClientPortal -> Muasamcong / other domain modules
 Domain module -X-> ClientPortal
 ```
 
-A domain module owns its data and business services. ClientPortal owns the Client/PWA presentation, Client permissions and Client-specific workflow state.
+A domain module owns its canonical data/business services. ClientPortal owns the Client/PWA experience, Client permissions and Client-specific workflow state.
+
+## Current PWA entry flow
+
+The manifest starts at:
+
+```text
+/my-apps
+```
+
+Guest flow:
+
+```text
+Open installed PWA
+    -> /my-apps
+    -> unauthenticated
+    -> /my-apps/login
+    -> web-guard login
+    -> /my-apps
+    -> permitted applications
+```
+
+The dedicated PWA login route is:
+
+```text
+GET /my-apps/login
+name: client.apps.login
+```
+
+This login screen is mobile-first and visually independent from the generic `/login` and `/admin/login` screens, but it **reuses the canonical `Modules\Auth\Livewire\Auth\LoginForm` authentication logic**. PWA UI must not introduce a duplicate credential/authentication implementation.
+
+See `PWA.md` for the complete routing and browser contract.
+
+## Website PWA installer
+
+The public Website footer exposes a PWA installer instead of treating PWA as an App Store/Google Play download.
+
+Main implementation:
+
+```text
+Modules/Website/resources/views/partials/pwa-installer.blade.php
+```
+
+Behavior:
+
+- Android Chromium: uses `beforeinstallprompt` and the native install prompt;
+- iPhone/iPad Safari: shows a bottom-sheet guide for `Chia sẻ -> Thêm vào Màn hình chính -> Thêm`;
+- iOS non-Safari: instructs the user to open the site in Safari;
+- standalone PWA: displays installed state instead of another install prompt.
+
+Important iOS limitation: a normal Safari tab cannot reliably determine whether the same PWA is already installed elsewhere on the device. Only the current standalone browsing context can be detected reliably.
 
 ## Current application
 
-The current adapter is:
+The primary adapter is:
 
 ```text
 Applications/Muasamcong
@@ -51,11 +104,13 @@ It provides:
 - Wishlist;
 - public drug sharing;
 - share management;
-- Price List creation;
+- Price List workspace;
 - queued XLSX generation;
 - queued PDF conversion;
+- private downloads;
 - public Price List link;
-- queued Price List email delivery.
+- queued Price List email delivery;
+- delivery/share tracking.
 
 ## Application convention
 
@@ -70,7 +125,7 @@ Modules/ClientPortal/Applications/{Application}/
 └── Services/
 ```
 
-The manifest must declare `source_module`. The registry hides the adapter when that source module is disabled.
+The manifest declares the source domain module. `ApplicationRegistry` hides an adapter when that source module is disabled.
 
 ## Permission convention
 
@@ -82,17 +137,11 @@ client.{application}.{feature}.view
 client.{application}.{feature}.{action}
 ```
 
-Client permissions use guard `web`.
+Client permissions use guard `web`; Admin management remains guard `admin`.
 
-Do not use a `.view` permission to authorize destructive/mutating actions unless that behavior is an explicit product contract. The current module analysis identifies places where action-level permission separation should be improved.
+A `.view` permission should not automatically authorize destructive/mutating actions unless that is an explicit product contract. `ANALYSIS.md` records current authorization/refactor findings.
 
-## PWA contract
-
-The launcher is:
-
-```text
-/my-apps
-```
+## PWA security contract
 
 PWA metadata/resources:
 
@@ -102,11 +151,35 @@ PWA metadata/resources:
 /pwa/*
 ```
 
-Authenticated navigation must remain network-first and must not be stored in the service-worker cache.
+Authenticated navigation must remain network-first and must not be stored as reusable authenticated HTML in Cache Storage.
+
+ClientPortal pages are permission/user-sensitive. Future offline support requires an explicit security-reviewed data design rather than generic page caching.
+
+## Authentication ownership
+
+The intended ownership is:
+
+```text
+Website
+    -> public installer UX
+
+ClientPortal
+    -> /my-apps
+    -> /my-apps/login presentation
+    -> Client route redirect behavior
+
+Auth
+    -> credentials
+    -> guards
+    -> session regeneration
+    -> reusable LoginForm logic
+```
+
+Current Google OAuth is Admin-oriented: it authenticates the `admin` guard through `Modules\Admin\Services\AuthService`. Therefore it must **not** be added to the PWA login UI until a dedicated `web`-guard Client OAuth flow is implemented.
 
 ## Domain access rule
 
-Application adapters may consume source-domain public services/models, but persistence rules should live in the source domain when they are reusable business rules.
+Application adapters may consume source-domain public services/models, but reusable persistence rules should stay in the source domain.
 
 Preferred:
 
@@ -117,37 +190,33 @@ Client Controller
     -> Muasamcong model/database
 ```
 
-Avoid duplicating canonical Muasamcong persistence rules inside ClientPortal controllers.
+Avoid duplicating canonical Muasamcong rules inside ClientPortal controllers.
 
 ## Price List architecture
 
-The rich Price List export is intentionally specialized and should not be replaced mechanically by the generic FastExcel import/export base.
+The rich Price List renderer intentionally uses PhpSpreadsheet because it requires capabilities beyond a basic table export:
 
-It needs features beyond a normal dataset export:
-
-- Admin-defined headers/columns;
+- Admin-defined columns/headers;
 - String/Number/Date typing;
 - widths/decimals/alignment;
-- logo and signature drawings;
+- logo/signature drawings;
 - company header/footer;
-- A4 page setup;
-- PDF conversion;
+- configurable A4 page setup;
+- Excel-to-PDF conversion;
 - private file lifecycle;
 - sharing/email delivery.
 
-Preserve the specialized PhpSpreadsheet renderer while decomposing its responsibilities into smaller services.
+Preserve this specialized renderer while progressively separating workbook building, artifact storage, share lifecycle and delivery lifecycle into smaller services.
 
 ## Private artifact rule
 
-Price List XLSX/PDF files are private artifacts.
+Price List XLSX/PDF files are private artifacts and remain in private storage. Downloads go through authenticated/authorized routes except when the user explicitly creates a high-entropy public share URL.
 
-They should remain on private storage and be downloaded through authenticated/authorized routes, except for explicitly created high-entropy public share links.
-
-Every generated artifact must have an immutable unique path. The current analysis identifies the XLSX second-level filename collision as a P1 issue that must be corrected before stable merge.
+Every generated artifact should use an immutable unique path. `ANALYSIS.md` contains the remaining artifact-lifecycle/refactor findings.
 
 ## Queue rule
 
-Long-running operations remain queued:
+Long operations remain queued:
 
 ```text
 Drug pricing sync
@@ -156,56 +225,44 @@ PDF conversion
 Email delivery
 ```
 
-Queue workflows should use durable state transitions:
+State transitions should remain durable:
 
 ```text
 queued -> processing -> completed/failed
 ```
 
-External side effects such as email should have explicit idempotency/retry semantics.
-
-User-facing errors must be sanitized. Raw exception/process output belongs in structured logs, not Client responses.
+External side effects such as email need explicit retry/idempotency behavior. Raw internal exceptions/process output should be logged server-side and sanitized before display to Client users.
 
 ## Sharing rule
 
-Public sharing must define:
+Public sharing should define:
 
 - ownership;
 - high-entropy token;
 - payload/file scope;
-- expiry policy;
-- revoke policy;
+- expiry;
+- revoke behavior;
 - audit/delivery semantics;
 - retention.
 
-Drug sharing already supports expiry/revoke. Price List sharing currently does not and is flagged in `ANALYSIS.md`.
+Drug sharing already supports expiry/revoke. Price List sharing still has lifecycle improvements documented in `ANALYSIS.md`.
 
 ## Export Profile rule
 
-Price List uses Muasamcong Admin `SyncedExportProfile` configuration.
+Price List uses Muasamcong Admin `SyncedExportProfile` configuration. The long-term publication model must remain explicit: global published template, organization/user-owned template, or explicitly shared template.
 
-Before making this a stable public contract, decide whether profiles are:
-
-```text
-Global published templates
-OR
-User/organization-owned templates
-OR
-Explicitly shared templates
-```
-
-The underlying table has `user_id`, while the current Client controller reads all profiles. This scope must become explicit.
+Do not silently broaden access to configuration records merely because they exist in the table.
 
 ## Recommended refactor direction
 
-The current analysis recommends **Major Refactor**, not rebuild.
+The analysis recommendation remains **Major Refactor, not rebuild**.
 
-Preserve the module and adapter architecture, but separate responsibilities approximately as:
+Preserve the module/adapter architecture and incrementally separate responsibilities:
 
 ```text
 ClientPortal
 ├── Registry / permissions
-├── Application shell
+├── PWA launcher / login shell
 ├── Applications/Muasamcong
 │   ├── Search presentation service
 │   └── Controllers
@@ -217,48 +274,68 @@ ClientPortal
     └── Delivery lifecycle
 ```
 
-Queue jobs should be thin orchestrators around those services.
+Queue jobs should become thin orchestrators around those services.
 
-## Pre-merge P1 gate
+## Verification
 
-Before merging the current Price List feature to `main`, address at least:
-
-1. unique XLSX artifact path per export;
-2. explicit export-profile visibility/publication scope;
-3. action-level authorization for mutations;
-4. safe Client-facing queue errors;
-5. Price List share expiry/revoke policy;
-6. delivery/share history correctness and concurrency;
-7. PDF/email idempotency/retry semantics;
-8. behavioral tests for ownership, authorization, XLSX, PDF, sharing and email.
-
-The full evidence and verification plan is in `ANALYSIS.md`.
-
-## Verification commands
-
-After approved refactor implementation, the minimum targeted regression should include:
+Minimum ClientPortal regression:
 
 ```bash
 php artisan test tests/Feature/ClientApps
 ```
 
-Then run the repository's full regression suite before merging `main`.
+PWA-specific targeted regression:
 
-Manual checks should include:
+```bash
+php artisan test \
+  tests/Feature/ClientApps/ClientApplicationRegistryTest.php \
+  tests/Feature/ClientApps/ClientPwaFoundationTest.php
+```
 
-- desktop + iPhone/PWA;
-- search database/snapshot/API source display;
+Manual PWA checks should include:
+
+- public Website footer installer on desktop/mobile;
+- Android install prompt;
+- iPhone Safari Home Screen instructions;
+- iPhone non-Safari browser guidance;
+- installed standalone state;
+- guest `/my-apps` -> `/my-apps/login`;
+- successful PWA login -> `/my-apps`;
+- guest `/apps/*` -> `/my-apps/login`;
+- Admin login unaffected;
+- service worker does not cache authenticated navigation.
+
+Manual Muasamcong checks should include:
+
+- database/snapshot/API search source;
 - selected synchronization;
+- History;
 - Wishlist;
 - drug share + revoke/expiry;
-- Price List creation;
+- Price List creation/edit/recreate;
 - Excel formatting/Print Preview;
 - PDF conversion;
 - file permissions/download;
-- share lifecycle;
+- sharing;
 - email Excel/PDF/both;
-- multiple concurrent exports/conversions.
+- delivery/share history.
 
-## Documentation status
+## Continuation guidance for another AI
 
-`docs/modules/ClientPortal` was created by the docs-only `/analyze-module` workflow. No application source code is modified by that analysis task.
+Before modifying ClientPortal, read in this order:
+
+```text
+.codex/bootstrap/CODEX_BOOTSTRAP.md
+.codex/bootstrap/PROJECT_BOOTSTRAP.md
+.codex/bootstrap/AI_PROJECT_CONTEXT.md
+.codex/standards/MODULE_STANDARD.md
+.codex/standards/ADMIN_UI_STANDARD.md
+
+docs/modules/ClientPortal/README.md
+docs/modules/ClientPortal/PWA.md
+docs/modules/ClientPortal/FUNCTIONS.md
+docs/modules/ClientPortal/INFORMATION.md
+docs/modules/ClientPortal/ANALYSIS.md
+```
+
+Treat `ANALYSIS.md` as an assessment/refactor backlog snapshot and the other documents as the implemented/current behavior guide. Verify source and tests before acting on any stale detail.
