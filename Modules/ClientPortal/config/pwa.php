@@ -27,4 +27,9 @@ return [
             ['enabled' => true, 'title' => 'Queue nền', 'description' => 'Tiếp tục làm việc khi tác vụ đang xử lý.'],
         ],
     ],
+
+    'admin' => [
+        'color_picker_url' => 'https://htmlcolorcodes.com/color-picker/',
+        'color_picker_label' => 'Mở công cụ lấy mã màu',
+    ],
 ];
