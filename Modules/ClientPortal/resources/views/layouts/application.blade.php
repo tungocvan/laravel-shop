@@ -8,6 +8,9 @@
     <link rel="icon" href="/pwa/icon.svg" type="image/svg+xml">
     <title>@yield('title', 'Ứng dụng') · INAFO</title>
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
+    @if(request()->routeIs('client.muasamcong.price-list*'))
+        @include('ClientPortal::applications.muasamcong.partials.price-list-workspace-polish')
+    @endif
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
 <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
