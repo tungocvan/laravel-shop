@@ -50,7 +50,6 @@ class ClientPortalSettingsService
             'enabled' => true,
             'name' => $application['name'],
             'description' => $application['description'],
-            'icon' => $application['icon'],
             'sort_order' => $application['sort_order'],
         ];
 
@@ -71,7 +70,6 @@ class ClientPortalSettingsService
                     'presentation_enabled' => $presentation['enabled'],
                     'name' => trim((string) $presentation['name']),
                     'description' => trim((string) $presentation['description']),
-                    'icon' => trim((string) $presentation['icon']),
                     'sort_order' => $presentation['sort_order'],
                 ]);
             })
