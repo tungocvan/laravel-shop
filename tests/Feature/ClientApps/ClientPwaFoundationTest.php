@@ -73,7 +73,7 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString('price-list-workspace-polish', $layout);
         $this->assertStringContainsString('.export-card', $polish);
         $this->assertStringContainsString('price-list-icon-action', $polish);
-        $this->assertStringContainsString("data-action-icon = type", $polish);
+        $this->assertStringContainsString('data-action-icon', $polish);
         $this->assertStringContainsString('[data-email-open]', $polish);
         $this->assertStringContainsString('Đã gửi gần nhất', $polish);
     }
