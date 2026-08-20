@@ -44,6 +44,11 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->routeIs('admin.*')) {
                 return redirect()->guest(route('admin.login'));
             }
+
+            if ($request->routeIs('client.*') || $request->is('my-apps') || $request->is('apps/*')) {
+                return redirect()->guest(route('client.apps.login'));
+            }
+
             return redirect()->guest(route('login'));
         });
 
