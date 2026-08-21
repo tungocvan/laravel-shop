@@ -12,6 +12,8 @@ use Modules\Administrative\Models\AdministrativeSubmission;
 
 class AdministrativeDemoSeeder extends Seeder
 {
+    private const DEMO_SUBMISSION_LIMIT = 20;
+
     public function run(): void
     {
         $procedures = AdministrativeProcedure::query()->orderBy('sort_order')->get();
@@ -20,6 +22,12 @@ class AdministrativeDemoSeeder extends Seeder
             $this->call(ProcedureSeeder::class);
             $procedures = AdministrativeProcedure::query()->orderBy('sort_order')->get();
         }
+
+        if ($procedures->isEmpty()) {
+            return;
+        }
+
+        $this->clearExistingDemoSubmissions();
 
         $statuses = [
             SubmissionStatus::Pending,
@@ -33,9 +41,16 @@ class AdministrativeDemoSeeder extends Seeder
         $firstNames = ['Nguyễn Văn', 'Trần Thị', 'Lê Văn', 'Phạm Thị', 'Hoàng Văn', 'Võ Thị', 'Đặng Văn', 'Bùi Thị'];
         $studentNames = ['Minh Anh', 'Gia Hân', 'Hoàng Nam', 'Khánh Linh', 'Đức Anh', 'Bảo Ngọc', 'Quang Huy', 'Ngọc Hà'];
 
+        $procedureCount = $procedures->count();
+        $basePerProcedure = intdiv(self::DEMO_SUBMISSION_LIMIT, $procedureCount);
+        $remainder = self::DEMO_SUBMISSION_LIMIT % $procedureCount;
+        $sequence = 0;
+
         foreach ($procedures as $procedureIndex => $procedure) {
-            for ($i = 1; $i <= 12; $i++) {
-                $sequence = ($procedureIndex * 12) + $i;
+            $recordsForProcedure = $basePerProcedure + ($procedureIndex < $remainder ? 1 : 0);
+
+            for ($i = 0; $i < $recordsForProcedure; $i++) {
+                $sequence++;
                 $status = $statuses[($sequence - 1) % count($statuses)];
                 $submittedAt = now()->subDays(($sequence * 3) % 90)->subMinutes($sequence * 7);
                 $code = 'DEMO-'.$submittedAt->format('ymd').'-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
@@ -110,6 +125,18 @@ class AdministrativeDemoSeeder extends Seeder
                 }
             }
         }
+    }
+
+    private function clearExistingDemoSubmissions(): void
+    {
+        AdministrativeSubmission::withTrashed()
+            ->where('submission_code', 'like', 'DEMO-%')
+            ->get()
+            ->each(function (AdministrativeSubmission $submission): void {
+                $submission->statusHistories()->delete();
+                $submission->files()->delete();
+                $submission->forceDelete();
+            });
     }
 
     private function responseFor(SubmissionStatus $status, int $sequence): ?string
