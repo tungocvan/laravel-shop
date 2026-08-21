@@ -54,7 +54,7 @@ services:
       - ./.env:/var/www/html/.env
       - ./Modules:/var/www/html/Modules
     healthcheck:
-      test: ["CMD-SHELL", "tr '\0' ' ' </proc/1/cmdline | grep -q 'queue:work'"]
+      test: ["CMD-SHELL", "php -r '$$c=file_get_contents(\"/proc/1/cmdline\"); exit(str_contains($$c,\"queue:work\") ? 0 : 1);'"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -80,7 +80,7 @@ services:
       - ./.env:/var/www/html/.env
       - ./Modules:/var/www/html/Modules
     healthcheck:
-      test: ["CMD-SHELL", "tr '\0' ' ' </proc/1/cmdline | grep -q 'queue:work' && tr '\0' ' ' </proc/1/cmdline | grep -q 'admission-documents'"]
+      test: ["CMD-SHELL", "php -r '$$c=file_get_contents(\"/proc/1/cmdline\"); exit(str_contains($$c,\"queue:work\") && str_contains($$c,\"admission-documents\") ? 0 : 1);'"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -103,7 +103,7 @@ services:
       - ./.env:/var/www/html/.env
       - ./Modules:/var/www/html/Modules
     healthcheck:
-      test: ["CMD-SHELL", "tr '\0' ' ' </proc/1/cmdline | grep -q 'schedule:work'"]
+      test: ["CMD-SHELL", "php -r '$$c=file_get_contents(\"/proc/1/cmdline\"); exit(str_contains($$c,\"schedule:work\") ? 0 : 1);'"]
       interval: 30s
       timeout: 5s
       retries: 3
