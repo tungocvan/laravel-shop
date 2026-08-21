@@ -17,14 +17,25 @@ class UserAdminSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $name = (string) config('seed.admin.name', 'Từ Ngọc Vân');
-        $email = (string) config('seed.admin.email', 'tungocvan@gmail.com');
+        $configuredEmail = config('seed.admin.email');
         $configuredPassword = config('seed.admin.password');
+
+        $email = is_string($configuredEmail) && trim($configuredEmail) !== ''
+            ? trim($configuredEmail)
+            : null;
         $password = is_string($configuredPassword) && $configuredPassword !== ''
             ? $configuredPassword
-            : (app()->isProduction() ? null : '12345678');
+            : null;
 
-        if ($password === null) {
-            throw new RuntimeException('SEED_ADMIN_PASSWORD is required when running UserAdminSeeder in production.');
+        if (app()->isProduction()) {
+            if ($email === null || $password === null) {
+                throw new RuntimeException(
+                    'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required when running UserAdminSeeder in production.'
+                );
+            }
+        } else {
+            $email ??= 'tungocvan@gmail.com';
+            $password ??= '12345678';
         }
 
         $attributes = [
