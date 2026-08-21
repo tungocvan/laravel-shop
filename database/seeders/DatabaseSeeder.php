@@ -25,7 +25,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->seedEnabledModules();
-        $this->seedWebsiteDemoIfAvailable();
     }
 
     private function seedEnabledModules(): void
@@ -49,23 +48,5 @@ class DatabaseSeeder extends Seeder
                 $this->call($seeder);
             }
         }
-    }
-
-    private function seedWebsiteDemoIfAvailable(): void
-    {
-        $websitePath = base_path('Modules/Website');
-        $websiteSeeder = 'Modules\\Website\\database\\Seeders\\WebsiteDatabaseSeeder';
-
-        if (! File::isDirectory($websitePath)) {
-            return;
-        }
-
-        if (! class_exists($websiteSeeder)) {
-            throw new \RuntimeException(
-                "Module Website tồn tại nhưng seeder [{$websiteSeeder}] không load được."
-            );
-        }
-
-        $this->call($websiteSeeder);
     }
 }
