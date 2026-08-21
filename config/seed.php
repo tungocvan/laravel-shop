@@ -3,7 +3,7 @@
 return [
     'admin' => [
         'name' => env('SEED_ADMIN_NAME', 'Từ Ngọc Vân'),
-        'email' => env('SEED_ADMIN_EMAIL', 'tungocvan@gmail.com'),
+        'email' => env('SEED_ADMIN_EMAIL'),
         'password' => env('SEED_ADMIN_PASSWORD'),
     ],
 ];
