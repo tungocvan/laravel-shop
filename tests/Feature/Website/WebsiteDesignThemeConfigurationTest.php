@@ -26,9 +26,14 @@ class WebsiteDesignThemeConfigurationTest extends TestCase
         $this->assertStringContainsString('ManagesWebsiteDesignThemes', $component);
         $this->assertStringContainsString("'themes'", $component);
 
-        foreach (['saveDesignTheme', 'applyDesignTheme', 'updateDesignTheme', 'renameDesignTheme', 'deleteDesignTheme', 'exportDesignTheme', 'importDesignTheme'] as $control) {
-            $this->assertStringContainsString('wire:click="'.$control.'"', $view);
+        foreach (['saveDesignTheme', 'applyDesignTheme', 'updateDesignTheme', 'renameDesignTheme', 'deleteDesignTheme', 'importDesignTheme'] as $method) {
+            $this->assertStringContainsString("\$wire.{$method}()", $view);
         }
+        $this->assertStringContainsString('wire:click="exportDesignTheme"', $view);
+        foreach (['save', 'apply', 'update', 'rename', 'delete', 'import'] as $action) {
+            $this->assertStringContainsString("confirm('{$action}'", $view);
+        }
+        $this->assertStringContainsString('modalOpen', $view);
         $this->assertStringContainsString('wire:model="themeJson"', $view);
         $this->assertStringContainsString('Preview-first', $view);
         $this->assertStringContainsString("Website::livewire.admin.settings.partials.design-themes", $shell);
