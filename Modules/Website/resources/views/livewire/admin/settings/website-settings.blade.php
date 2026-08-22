@@ -80,6 +80,8 @@
                         </div>
                     </div>
                 </section>
+
+                @include('Website::livewire.admin.settings.partials.layout-presentation')
             </div>
         @elseif($activeTab==='design')
             <div class="space-y-8">
