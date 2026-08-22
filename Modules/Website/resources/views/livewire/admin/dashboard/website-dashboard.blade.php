@@ -27,18 +27,29 @@
     <div class="grid gap-6 lg:grid-cols-3">
         <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
             <h2 class="text-base font-bold text-slate-900">Truy cập nhanh</h2>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <p class="mt-1 text-sm text-slate-500">Đi thẳng tới ba khu vực bố cục chính của Website.</p>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 @foreach ([
-                    ['Homepage Builder', 'Sắp xếp và chỉnh nội dung trang chủ', 'admin.home.settings'],
-                    ['Menu điều hướng', 'Quản lý menu desktop và mobile', 'admin.header.settings'],
-                    ['Banner', 'Ảnh desktop/mobile và thứ tự', 'admin.banners'],
-                    ['Footer', 'Cột liên kết và mạng xã hội', 'admin.footer.settings'],
+                    ['Homepage', 'Bố cục, section, responsive preview và themes', 'admin.home.settings'],
+                    ['Header', 'Logo, menu điều hướng, actions, responsive layout và themes', 'admin.header.settings'],
+                    ['Footer', 'Bố cục, cột liên kết, brand, app/social, bottom bar và themes', 'admin.footer.settings'],
                 ] as [$title, $description, $route])
-                    <a href="{{ route($route) }}" class="rounded-lg border border-slate-200 p-4 hover:border-indigo-300 hover:bg-indigo-50/40">
-                        <p class="font-semibold text-slate-900">{{ $title }}</p>
-                        <p class="mt-1 text-sm text-slate-500">{{ $description }}</p>
+                    <a href="{{ route($route) }}"
+                        class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="font-bold text-slate-900">{{ $title }}</p>
+                                <p class="mt-1 text-sm leading-5 text-slate-500">{{ $description }}</p>
+                            </div>
+                            <span class="text-slate-400">↗</span>
+                        </div>
                     </a>
                 @endforeach
+            </div>
+
+            <div class="mt-4 border-t border-slate-100 pt-4">
+                <a href="{{ route('admin.banners') }}" class="text-sm font-semibold text-indigo-700 hover:text-indigo-800">Quản trị Banner →</a>
             </div>
         </section>
 
