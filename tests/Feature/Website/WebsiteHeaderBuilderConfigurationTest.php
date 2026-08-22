@@ -67,7 +67,8 @@ class WebsiteHeaderBuilderConfigurationTest extends TestCase
         $this->assertStringContainsString('wire:click="resetBuilder"', $view);
         $this->assertStringContainsString('moveComponent(', $view);
         $this->assertStringContainsString('presentation.mode', $view);
-        $this->assertStringContainsString('presentation.custom.desktop_height', $view);
+        $this->assertStringContainsString("'desktop_height' => ['Desktop height', 52, 120]", $view);
+        $this->assertStringContainsString('wire:model="presentation.custom.{{ $field }}"', $view);
         $this->assertStringNotContainsString('sortable', strtolower($view));
         $this->assertStringNotContainsString('draggable=', strtolower($view));
     }
