@@ -30,7 +30,9 @@ class WebsiteSettings extends Component
     public array $design = [];
     public array $features = [
         'chat_widget' => true,
+        'chat_position' => 'bottom-right',
         'back_to_top' => true,
+        'back_to_top_position' => 'bottom-right',
     ];
     public $newLogo;
     public $newFavicon;
@@ -58,7 +60,9 @@ class WebsiteSettings extends Component
         if (is_array($savedFeatures)) {
             $this->features = [
                 'chat_widget' => (bool) ($savedFeatures['chat_widget'] ?? true),
+                'chat_position' => $this->widgetPosition($savedFeatures['chat_position'] ?? null, 'bottom-right'),
                 'back_to_top' => (bool) ($savedFeatures['back_to_top'] ?? true),
+                'back_to_top_position' => $this->widgetPosition($savedFeatures['back_to_top_position'] ?? null, 'bottom-right'),
             ];
         }
     }
@@ -97,7 +101,9 @@ class WebsiteSettings extends Component
             'design.layout.container_width.wide' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
             'design.layout.radius.*' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
             'features.chat_widget' => 'required|boolean',
+            'features.chat_position' => ['required', Rule::in($this->allowedWidgetPositions())],
             'features.back_to_top' => 'required|boolean',
+            'features.back_to_top_position' => ['required', Rule::in($this->allowedWidgetPositions())],
         ]);
 
         $oldLogo = $this->logo;
@@ -142,12 +148,17 @@ class WebsiteSettings extends Component
 
     private function allowedRobots(): array
     {
-        return [
-            'index,follow',
-            'index,nofollow',
-            'noindex,follow',
-            'noindex,nofollow',
-        ];
+        return ['index,follow', 'index,nofollow', 'noindex,follow', 'noindex,nofollow'];
+    }
+
+    private function allowedWidgetPositions(): array
+    {
+        return ['bottom-left', 'bottom-right'];
+    }
+
+    private function widgetPosition(mixed $value, string $default): string
+    {
+        return is_string($value) && in_array($value, $this->allowedWidgetPositions(), true) ? $value : $default;
     }
 
     public function render()
