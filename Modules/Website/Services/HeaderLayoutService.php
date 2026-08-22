@@ -31,7 +31,7 @@ class HeaderLayoutService
         $resolved = [];
 
         foreach ($items as $item) {
-            if (! is_array($item) || ! is_string($item['type'] ?? null)) {
+            if (! is_array($item) || ! is_string($item['type'] ?? null) || ($item['enabled'] ?? true) === false) {
                 continue;
             }
 
