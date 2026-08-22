@@ -55,6 +55,8 @@ class WebsiteServiceProvider extends ServiceProvider
             $menuService = app(HeaderMenuService::class);
             $savedLayout = $settings->get('header.layout');
             $savedPresentation = $settings->get('header.presentation');
+            $headerBrandLogo = $settings->get('header.brand_logo');
+            $siteName = $settings->get('site_name', 'FlexBiz');
 
             $view->with([
                 'mainMenu' => $menuService->getMenuTreeByLocation('primary'),
@@ -63,10 +65,10 @@ class WebsiteServiceProvider extends ServiceProvider
                 'headerLayout' => app(HeaderLayoutService::class)->resolvedLayout(is_array($savedLayout) ? $savedLayout : null),
                 'headerPresentation' => app(HeaderPresentationService::class)->resolve(is_array($savedPresentation) ? $savedPresentation : null),
                 'headerSettings' => [
-                    'logo' => $settings->get('site_logo'),
+                    'logo' => $headerBrandLogo ?: $settings->get('site_logo'),
                     'hotline' => $settings->get('header.topbar.hotline', '0903 971 949'),
                     'email' => $settings->get('header.topbar.email', 'contact@flexbiz.com'),
-                    'brand_name' => $settings->get('header.brand_name', 'FlexBiz'),
+                    'brand_name' => $settings->get('header.brand_name', $siteName),
                     'help_url' => $settings->get('header.topbar.help_url', '#'),
                     'order_tracking_url' => $settings->get('header.topbar.order_tracking_url', '#'),
                 ],
