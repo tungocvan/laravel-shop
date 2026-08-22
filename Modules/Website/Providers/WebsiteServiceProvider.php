@@ -30,6 +30,7 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../Config/design.php', 'website.design');
         $this->mergeConfigFrom(__DIR__.'/../Config/header.php', 'website.header');
         $this->mergeConfigFrom(__DIR__.'/../Config/footer.php', 'website.footer');
+        $this->mergeConfigFrom(__DIR__.'/../Config/homepage.php', 'website.homepage');
         $this->app->bind(CheckoutContext::class, WebsiteCheckoutContext::class);
     }
 
