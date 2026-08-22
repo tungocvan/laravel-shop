@@ -8,38 +8,28 @@ use Livewire\WithFileUploads;
 use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\WebsitePage;
+use Modules\Website\Services\WebsiteDesignService;
 
 class WebsiteSettings extends Component
 {
     use AuthorizesAdminPermissions, WithFileUploads;
 
     public string $activeTab = 'seo';
-
     public string $siteName = '';
-
     public string $seoTitle = '';
-
     public string $seoDescription = '';
-
     public string $canonicalUrl = '';
-
     public string $robots = 'index,follow';
-
     public string $ogImage = '';
-
     public string $logo = '';
-
     public string $favicon = '';
-
     public string $analyticsCode = '';
-
     public string $headerScript = '';
-
+    public array $design = [];
     public $newLogo;
-
     public $newFavicon;
 
-    public function mount(SettingsService $settings): void
+    public function mount(SettingsService $settings, WebsiteDesignService $designService): void
     {
         $page = WebsitePage::query()->where('slug', 'home')->first();
         $this->siteName = (string) $settings->get('site_name', 'FlexBiz');
@@ -52,14 +42,21 @@ class WebsiteSettings extends Component
         $this->seoTitle = (string) ($page?->seo_title ?: $this->siteName);
         $this->seoDescription = (string) ($page?->seo_description ?: '');
         $this->ogImage = (string) ($page?->seo_image ?: '');
+        $savedDesign = $settings->get('website.design');
+        $this->design = $designService->resolve(is_array($savedDesign) ? $savedDesign : null);
     }
 
     public function setTab(string $tab): void
     {
-        $this->activeTab = in_array($tab, ['seo', 'theme', 'advanced'], true) ? $tab : 'seo';
+        $this->activeTab = in_array($tab, ['seo', 'identity', 'design', 'advanced'], true) ? $tab : 'seo';
     }
 
-    public function save(SettingsService $settings): void
+    public function resetDesign(WebsiteDesignService $designService): void
+    {
+        $this->design = $designService->resolve();
+    }
+
+    public function save(SettingsService $settings, WebsiteDesignService $designService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
         $this->validate([
@@ -72,6 +69,15 @@ class WebsiteSettings extends Component
             'newFavicon' => 'nullable|mimes:png,ico,svg|max:1024',
             'analyticsCode' => 'nullable|string|max:10000',
             'headerScript' => 'nullable|string|max:20000',
+            'design.typography.font_family_body' => 'required|string|max:240',
+            'design.typography.font_family_heading' => 'required|string|max:240',
+            'design.typography.base_font_size' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+            'design.colors.*' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'design.layout.default_container' => 'required|in:compact,standard,wide,full',
+            'design.layout.container_width.compact' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+            'design.layout.container_width.standard' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+            'design.layout.container_width.wide' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+            'design.layout.radius.*' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
         ]);
 
         $oldLogo = $this->logo;
@@ -80,6 +86,7 @@ class WebsiteSettings extends Component
         $newFaviconPath = $this->newFavicon?->store('branding', 'public');
         $this->logo = $newLogoPath ?: $this->logo;
         $this->favicon = $newFaviconPath ?: $this->favicon;
+        $this->design = $designService->resolve($this->design);
 
         try {
             $settings->updateMany([
@@ -90,6 +97,7 @@ class WebsiteSettings extends Component
                 'seo.robots' => $this->robots,
                 'analytics_code' => $this->analyticsCode,
                 'header_script' => $this->headerScript,
+                'website.design' => $this->design,
             ], 'website');
             WebsitePage::query()->updateOrCreate(['slug' => 'home'], [
                 'title' => 'Trang chủ', 'status' => WebsitePage::STATUS_PUBLISHED, 'template' => 'homepage',
