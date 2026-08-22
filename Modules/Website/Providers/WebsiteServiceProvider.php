@@ -23,6 +23,7 @@ class WebsiteServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->mergeConfigFrom(__DIR__.'/../Config/design.php', 'website.design');
         $this->app->bind(CheckoutContext::class, WebsiteCheckoutContext::class);
     }
 
@@ -76,6 +77,7 @@ class WebsiteServiceProvider extends ServiceProvider
                 'siteName' => $settings->get('site_name', 'HOMEPAGE'),
                 'siteFavicon' => $settings->get('site_favicon'),
                 'headerScript' => $settings->get('header_script', ''),
+                'websiteDesign' => config('website.design', []),
                 'websiteSeo' => [
                     'title' => $home?->seo_title ?: $settings->get('site_name', 'HOMEPAGE'),
                     'description' => $home?->seo_description ?: '',
