@@ -12,6 +12,7 @@ use Modules\Website\Livewire\Admin\Settings\Concerns\ManagesWebsiteDesignThemes;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\WebsitePage;
 use Modules\Website\Services\WebsiteDesignService;
+use Modules\Website\Services\WebsiteLayoutPresentationService;
 use Modules\Website\Services\WebsiteShellService;
 use Throwable;
 
@@ -32,6 +33,7 @@ class WebsiteSettings extends Component
     public string $headerScript = '';
     public array $design = [];
     public array $shell = [];
+    public array $layoutPresentation = [];
     public array $features = [
         'chat_widget' => true,
         'chat_position' => 'bottom-right',
@@ -41,8 +43,12 @@ class WebsiteSettings extends Component
     public $newLogo;
     public $newFavicon;
 
-    public function mount(SettingsService $settings, WebsiteDesignService $designService, WebsiteShellService $shellService): void
-    {
+    public function mount(
+        SettingsService $settings,
+        WebsiteDesignService $designService,
+        WebsiteShellService $shellService,
+        WebsiteLayoutPresentationService $layoutPresentationService,
+    ): void {
         $page = WebsitePage::query()->where('slug', 'home')->first();
         $this->siteName = (string) $settings->get('site_name', 'FlexBiz');
         $this->logo = (string) $settings->get('site_logo', '');
@@ -63,6 +69,9 @@ class WebsiteSettings extends Component
 
         $savedShell = $settings->get('website.shell');
         $this->shell = $shellService->resolve(is_array($savedShell) ? $savedShell : null);
+
+        $savedLayout = $settings->get('website.layout');
+        $this->layoutPresentation = $layoutPresentationService->resolve(is_array($savedLayout) ? $savedLayout : null);
 
         $savedFeatures = $settings->get('website.features');
         if (is_array($savedFeatures)) {
@@ -86,8 +95,18 @@ class WebsiteSettings extends Component
         $this->design = $designService->resolve();
     }
 
-    public function save(SettingsService $settings, WebsiteDesignService $designService, WebsiteShellService $shellService): void
+    public function resetLayoutPresentation(WebsiteLayoutPresentationService $layoutPresentationService): void
     {
+        $this->resetValidation();
+        $this->layoutPresentation = $layoutPresentationService->resolve();
+    }
+
+    public function save(
+        SettingsService $settings,
+        WebsiteDesignService $designService,
+        WebsiteShellService $shellService,
+        WebsiteLayoutPresentationService $layoutPresentationService,
+    ): void {
         $this->authorizeAdminPermission('website.settings.manage');
         $this->resetValidation();
 
@@ -117,6 +136,17 @@ class WebsiteSettings extends Component
                 'shell.maintenance.enabled' => 'required|boolean',
                 'shell.maintenance.title' => 'required|string|max:120',
                 'shell.maintenance.message' => 'required|string|max:1000',
+                'layoutPresentation.body.background' => 'required|in:background,surface',
+                'layoutPresentation.main.container' => 'required|in:full,wide,standard,compact',
+                'layoutPresentation.main.background' => 'required|in:transparent,background,surface',
+                'layoutPresentation.main.alignment' => 'required|in:left,center',
+                'layoutPresentation.main.desktop.padding_top' => 'required|integer|min:0|max:160',
+                'layoutPresentation.main.desktop.padding_bottom' => 'required|integer|min:0|max:160',
+                'layoutPresentation.main.desktop.padding_x' => 'required|integer|min:0|max:96',
+                'layoutPresentation.main.mobile.padding_top' => 'required|integer|min:0|max:160',
+                'layoutPresentation.main.mobile.padding_bottom' => 'required|integer|min:0|max:160',
+                'layoutPresentation.main.mobile.padding_x' => 'required|integer|min:0|max:96',
+                'layoutPresentation.scroll.smooth' => 'required|boolean',
                 'features.chat_widget' => 'required|boolean',
                 'features.chat_position' => ['required', Rule::in($this->allowedWidgetPositions())],
                 'features.back_to_top' => 'required|boolean',
@@ -141,6 +171,7 @@ class WebsiteSettings extends Component
         $this->favicon = $newFaviconPath ?: $this->favicon;
         $this->design = $designService->resolve($this->design);
         $this->shell = $shellService->resolve($this->shell);
+        $this->layoutPresentation = $layoutPresentationService->resolve($this->layoutPresentation);
 
         try {
             $settings->updateMany([
@@ -153,6 +184,7 @@ class WebsiteSettings extends Component
                 'header_script' => $this->headerScript,
                 'website.design' => $this->design,
                 'website.shell' => $this->shell,
+                'website.layout' => $this->layoutPresentation,
                 'website.features' => $this->features,
             ], 'website');
             WebsitePage::query()->updateOrCreate(['slug' => 'home'], [
