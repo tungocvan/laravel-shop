@@ -36,13 +36,14 @@
         window.CHAT_CONFIG_HOST =  @json(config('realtime.host') ?: request()->getSchemeAndHttpHost());
     </script>
     <x-realtime-config />
+    @include('Website::partials.design-tokens')
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @yield('css')
     @stack('styles')
     @livewireStyles
 </head>
 
-<body class="bg-gray-50 text-gray-900 font-sans antialiased flex flex-col min-h-screen">
+<body class="bg-website-background text-website-text font-website-body antialiased flex flex-col min-h-screen">
     <a href="#main-content" class="sr-only z-[10000] rounded bg-white px-4 py-2 font-semibold text-blue-700 shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Bỏ qua đến nội dung chính</a>
 
     @include('Website::partials.header')
