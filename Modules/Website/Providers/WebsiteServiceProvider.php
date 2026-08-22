@@ -103,6 +103,7 @@ class WebsiteServiceProvider extends ServiceProvider
             $settings = app(SettingsService::class);
             $savedPresentation = $settings->get('footer.presentation');
             $savedLayout = $settings->get('footer.layout');
+            $footerBrandLogo = $settings->get('footer.brand_logo');
 
             $view->with([
                 'footerColumns' => $footerService->getColumnsForFrontend(),
@@ -111,7 +112,7 @@ class WebsiteServiceProvider extends ServiceProvider
                 'footerPresentation' => app(FooterPresentationService::class)->resolve(is_array($savedPresentation) ? $savedPresentation : null),
                 'footerSettings' => [
                     'brand_name' => $settings->get('header.brand_name', $settings->get('site_name', 'FlexBiz')),
-                    'logo' => $settings->get('site_logo'),
+                    'logo' => $footerBrandLogo ?: $settings->get('site_logo'),
                     'description' => $settings->get('footer.brand_description'),
                     'address' => $settings->get('footer.address'),
                     'email' => $settings->get('footer.email'),
