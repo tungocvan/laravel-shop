@@ -12,6 +12,7 @@ class HeaderPresentationService
         $containers = (array) config('website.header.presets.container', []);
         $sizes = (array) config('website.header.presets.size', []);
         $bounds = (array) config('website.header.bounds', []);
+        $colors = is_array($input['colors'] ?? null) ? $input['colors'] : [];
 
         $mode = in_array($input['mode'] ?? null, ['basic', 'advanced'], true) ? $input['mode'] : 'basic';
         $container = array_key_exists($input['container'] ?? '', $containers) ? $input['container'] : 'standard';
@@ -43,12 +44,12 @@ class HeaderPresentationService
             'shadow' => in_array($input['shadow'] ?? null, ['none', 'soft', 'medium'], true) ? $input['shadow'] : 'soft',
             'inherit_colors' => (bool) ($input['inherit_colors'] ?? true),
             'colors' => [
-                'background' => $this->color($input['background'] ?? '#ffffff', '#ffffff'),
-                'foreground' => $this->color($input['foreground'] ?? '#111827', '#111827'),
-                'accent' => $this->color($input['accent'] ?? '#2563eb', '#2563eb'),
-                'border' => $this->color($input['border'] ?? '#e5e7eb', '#e5e7eb'),
-                'topbar_background' => $this->color($input['topbar_background'] ?? '#111827', '#111827'),
-                'topbar_foreground' => $this->color($input['topbar_foreground'] ?? '#ffffff', '#ffffff'),
+                'background' => $this->color($colors['background'] ?? $input['background'] ?? '#ffffff', '#ffffff'),
+                'foreground' => $this->color($colors['foreground'] ?? $input['foreground'] ?? '#111827', '#111827'),
+                'accent' => $this->color($colors['accent'] ?? $input['accent'] ?? '#2563eb', '#2563eb'),
+                'border' => $this->color($colors['border'] ?? $input['border'] ?? '#e5e7eb', '#e5e7eb'),
+                'topbar_background' => $this->color($colors['topbar_background'] ?? $input['topbar_background'] ?? '#111827', '#111827'),
+                'topbar_foreground' => $this->color($colors['topbar_foreground'] ?? $input['topbar_foreground'] ?? '#ffffff', '#ffffff'),
             ],
             'custom' => [
                 'container_width' => $this->clamp($custom['container_width'] ?? 1280, $bounds['container_width'] ?? [960, 1920]),
