@@ -1,7 +1,7 @@
 {{--
     FOOTER COMPONENT
     Data Injected by: Modules/Website/Providers/WebsiteServiceProvider.php (View::composer)
-    Variables: $footerSettings, $footerColumns, $socialLinks, $footerPresentation, $footerLayout
+    Variables: $footerSettings, $footerColumns, $socialLinks, $footerPresentation, $footerLayout, $websiteFeatures
 --}}
 
 @php
@@ -67,4 +67,6 @@
 
 @include('Website::components.footer.slot', ['slot' => 'overlay'])
 
-@livewire('website.chat.chat-widget')
+@if(data_get($websiteFeatures ?? [], 'chat_widget', true))
+    @livewire('website.chat.chat-widget')
+@endif
