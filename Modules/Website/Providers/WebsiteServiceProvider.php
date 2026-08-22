@@ -17,6 +17,7 @@ use Modules\Website\Models\WebsiteSectionItem;
 use Modules\Website\Services\FooterService;
 use Modules\Website\Services\HeaderLayoutService;
 use Modules\Website\Services\HeaderMenuService;
+use Modules\Website\Services\HeaderPresentationService;
 use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\WebsiteCheckoutContext;
 
@@ -49,12 +50,15 @@ class WebsiteServiceProvider extends ServiceProvider
         View::composer(['Website::partials.header', 'Website::layouts.master'], function ($view) {
             $settings = app(SettingsService::class);
             $menuService = app(HeaderMenuService::class);
+            $savedLayout = $settings->get('header.layout');
+            $savedPresentation = $settings->get('header.presentation');
 
             $view->with([
                 'mainMenu' => $menuService->getMenuTreeByLocation('primary'),
                 'mobileMenu' => $menuService->getMenuTreeByLocation('mobile'),
                 'accountMenu' => $menuService->getMenuTreeByLocation('account'),
-                'headerLayout' => app(HeaderLayoutService::class)->resolvedLayout(),
+                'headerLayout' => app(HeaderLayoutService::class)->resolvedLayout(is_array($savedLayout) ? $savedLayout : null),
+                'headerPresentation' => app(HeaderPresentationService::class)->resolve(is_array($savedPresentation) ? $savedPresentation : null),
                 'headerSettings' => [
                     'logo' => $settings->get('site_logo'),
                     'hotline' => $settings->get('header.topbar.hotline', '0903 971 949'),
