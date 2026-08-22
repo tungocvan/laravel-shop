@@ -2,11 +2,13 @@
 
 ## Purpose
 
-This document defines the proposed architecture for refactoring the Website header before any application source code is changed.
+This document defines the approved architecture for refactoring the Website header before application source code is changed.
 
 The goal is to make the header easier to maintain, easier to administer, responsive by default, and configurable without turning the Website module into an unrestricted page builder.
 
-Status: `ANALYZED — WAITING FOR USER APPROVAL BEFORE IMPLEMENTATION`.
+Status: `ANALYZED / APPROVED — READY FOR PHASE 9A IMPLEMENTATION`.
+
+Approval: user approved this specification on 2026-08-22. Source implementation must follow the staged sequence below and preserve current storefront behavior unless a later UI change is explicitly approved.
 
 ## 1. Current Header Assessment
 
@@ -534,7 +536,7 @@ Cache invalidation PASS
 
 ## 17. Decisions Locked by This Analysis
 
-Subject to user approval, the intended decisions are:
+The following decisions are approved and locked for Phase 9 implementation:
 
 - refactor the monolithic header into stable components;
 - implement a controlled component registry;
@@ -548,4 +550,4 @@ Subject to user approval, the intended decisions are:
 - separate Header content settings, Menu Manager and Header Builder responsibilities;
 - provide Basic and Advanced admin settings;
 - add Desktop/Tablet/Mobile preview in a later builder slice;
-- do not modify application source until this design is explicitly approved.
+- implementation begins with Phase 9A and must preserve current storefront behavior before builder features are introduced.
