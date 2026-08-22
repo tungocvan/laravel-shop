@@ -8,6 +8,7 @@ use Livewire\WithFileUploads;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
 use Modules\System\Services\SettingsService;
+use Modules\Website\Livewire\Admin\Home\Concerns\ManagesHomepageLayoutThemes;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\HomepageContentWriteService;
@@ -16,16 +17,12 @@ use Modules\Website\Services\HomepageSectionRegistry;
 
 class HomeSettings extends Component
 {
-    use AuthorizesAdminPermissions, WithFileUploads;
+    use AuthorizesAdminPermissions, ManagesHomepageLayoutThemes, WithFileUploads;
 
     public $activeTab = 'layout';
-
     public array $layout = [];
-
     public array $sectionOrder = [];
-
     public array $sectionTypes = [];
-
     public array $presentation = [];
 
     public $data = [
@@ -35,15 +32,10 @@ class HomeSettings extends Component
     ];
 
     public $productSearchQuery = '';
-
     public $showProductPicker = false;
-
     public $newArrivalsCount = 10;
-
     public $bestSellersCount = 8;
-
     public $blogCount = 3;
-
     public $newPromoImage;
 
     public $promoBanner = [
