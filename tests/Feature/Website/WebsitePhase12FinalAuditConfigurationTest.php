@@ -21,7 +21,7 @@ class WebsitePhase12FinalAuditConfigurationTest extends TestCase
         $this->assertStringNotContainsString('@livewireStyles', $layout);
         $this->assertStringNotContainsString('@livewireScripts', $layout);
 
-        $this->assertStringContainsString('/website-manifest.webmanifest', $head);
+        $this->assertStringContainsString("route('website.manifest')", $head);
         $this->assertStringNotContainsString('href="/manifest.webmanifest"', $head);
         $this->assertStringContainsString('/website-pwa-version.json', $scripts);
         $this->assertStringContainsString("Route::get('/website-manifest.webmanifest'", $routes);
@@ -37,6 +37,7 @@ class WebsitePhase12FinalAuditConfigurationTest extends TestCase
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Settings/WebsiteSettings.php'));
         $themeService = file_get_contents(base_path('Modules/Website/Services/WebsiteDesignThemeService.php'));
         $settingsView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/settings/website-settings.blade.php'));
+        $layoutPresentation = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/settings/partials/layout-presentation.blade.php'));
         $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/settings/partials/responsive-preview.blade.php'));
 
         foreach (['website.design', 'website.shell', 'website.layout', 'website.appearance', 'website.features'] as $setting) {
@@ -52,7 +53,8 @@ class WebsitePhase12FinalAuditConfigurationTest extends TestCase
             $this->assertStringNotContainsString("'{$unsafe}' =>", $themeService);
         }
 
-        $this->assertStringContainsString("Website::livewire.admin.settings.partials.responsive-preview", $settingsView);
+        $this->assertStringContainsString("Website::livewire.admin.settings.partials.layout-presentation", $settingsView);
+        $this->assertStringContainsString("Website::livewire.admin.settings.partials.responsive-preview", $layoutPresentation);
         $this->assertStringContainsString('Responsive Preview', $preview);
         $this->assertStringContainsString("previewDevice: 'desktop'", $preview);
         $this->assertStringContainsString("previewDevice==='mobile'", $preview);
