@@ -37,7 +37,15 @@ class WebsiteSettings extends Component
         $this->logo = (string) $settings->get('site_logo', '');
         $this->favicon = (string) $settings->get('site_favicon', '');
         $this->canonicalUrl = (string) $settings->get('seo.canonical_url', url('/'));
-        $this->robots = (string) $settings->get('seo.robots', 'index,follow');
+
+        $savedRobots = strtolower(str_replace(' ', '', (string) $settings->get('seo.robots', 'index,follow')));
+        $this->robots = in_array($savedRobots, [
+            'index,follow',
+            'index,nofollow',
+            'noindex,follow',
+            'noindex,nofollow',
+        ], true) ? $savedRobots : 'index,follow';
+
         $this->analyticsCode = (string) $settings->get('analytics_code', '');
         $this->headerScript = (string) $settings->get('header_script', '');
         $this->seoTitle = (string) ($page?->seo_title ?: $this->siteName);
