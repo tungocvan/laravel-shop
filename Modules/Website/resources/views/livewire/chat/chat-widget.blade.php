@@ -1,5 +1,10 @@
-@php($chatOnLeft = ($position ?? 'bottom-right') === 'bottom-left')
-<div x-data="{ open: @entangle('isOpen') }" class="fixed bottom-6 z-[9999] {{ $chatOnLeft ? 'left-6' : 'right-6' }}">
+@php
+    $chatPosition = $position ?? 'bottom-right';
+    $chatOnLeft = $chatPosition === 'bottom-left';
+    $chatMiddleRight = $chatPosition === 'right-middle';
+@endphp
+<div x-data="{ open: @entangle('isOpen') }"
+    class="fixed z-[9999] {{ $chatMiddleRight ? 'right-6 top-1/2 -translate-y-1/2' : 'bottom-6 '.($chatOnLeft ? 'left-6' : 'right-6') }}">
     <button @click="open = !open"
         class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 shadow-lg hover:scale-110 transition-transform text-white">
         <svg x-show="!open" class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,7 +19,8 @@
 
     <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 translate-y-4"
-        class="absolute bottom-20 w-80 sm:w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden {{ $chatOnLeft ? 'left-0' : 'right-0' }}">
+        class="absolute w-80 sm:w-96 h-[500px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden
+            {{ $chatMiddleRight ? 'right-20 top-1/2 -translate-y-1/2' : 'bottom-20 '.($chatOnLeft ? 'left-0' : 'right-0') }}">
 
         <div class="bg-blue-600 p-4 text-white flex items-center gap-3">
             <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
