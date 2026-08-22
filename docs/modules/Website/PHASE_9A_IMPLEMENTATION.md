@@ -78,6 +78,14 @@ The following behavior is intentionally preserved:
 - existing mobile menu fallback to primary menu;
 - existing header dimensions/colors.
 
+## Test Scope Policy
+
+For normal module development, testing must be scoped to the module changed by the current slice and only the directly affected dependency modules when the change crosses a module boundary.
+
+Do **not** use `php artisan test` for the whole repository as the default verification command. A full-project suite is reserved for an explicit repository release/regression gate. This avoids unrelated failures from disabled modules and keeps feedback fast.
+
+Phase 9A changes only Website Blade composition and preserves the existing service/menu contracts, so the automated scope is `tests/Feature/Website` plus Blade compilation. No Product/Order/Category/Post/User test suite is required for this slice unless a later change modifies those contracts.
+
 ## Test Gate
 
 Run after pulling the Phase 9A branch:
@@ -89,15 +97,29 @@ git pull origin refactor/website-header-phase-9a
 php artisan optimize:clear
 ```
 
-Recommended Laravel checks:
+Blade compilation:
 
 ```bash
 php artisan view:clear
 php artisan view:cache
-php artisan test
 ```
 
-If the full repository test suite contains known unrelated failures, record them separately and at minimum run the Website-focused tests available in the repository.
+Targeted Website tests only:
+
+```bash
+php artisan test tests/Feature/Website
+```
+
+For an even narrower Phase 9A smoke gate, the most relevant existing Website tests are:
+
+```bash
+php artisan test \
+  tests/Feature/Website/WebsiteRouteConfigurationTest.php \
+  tests/Feature/Website/WebsiteSettingsConfigurationTest.php \
+  tests/Feature/Website/WebsiteProductionOptimizationTest.php
+```
+
+If a future Phase 9 slice changes a contract owned by another module, add only that affected module's focused tests to the command; do not automatically expand to the whole repository.
 
 Manual UI regression checklist:
 
@@ -122,4 +144,4 @@ Manual UI regression checklist:
 
 ## Approval Gate
 
-Do not start Phase 9B until Phase 9A passes the local/UI regression gate and receives explicit user approval.
+Do not start Phase 9B until Phase 9A passes the targeted Website test/UI regression gate and receives explicit user approval.
