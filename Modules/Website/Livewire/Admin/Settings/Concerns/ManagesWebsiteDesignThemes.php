@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Livewire\Admin\Settings\Concerns;
 
+use InvalidArgumentException;
 use Modules\Website\Services\WebsiteDesignThemeService;
 
 trait ManagesWebsiteDesignThemes
@@ -97,7 +98,23 @@ trait ManagesWebsiteDesignThemes
     {
         $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
-        $slug = app(WebsiteDesignThemeService::class)->import($this->themeJson, filled($this->themeName) ? $this->themeName : null);
+        $this->validate([
+            'themeJson' => 'required|string|min:2',
+        ], [
+            'themeJson.required' => 'Vui lòng dán dữ liệu JSON theme trước khi import.',
+            'themeJson.min' => 'Dữ liệu JSON theme không hợp lệ.',
+        ]);
+
+        try {
+            $slug = app(WebsiteDesignThemeService::class)->import(
+                $this->themeJson,
+                filled($this->themeName) ? $this->themeName : null
+            );
+        } catch (InvalidArgumentException $exception) {
+            $this->addError('themeJson', $exception->getMessage());
+            return;
+        }
+
         $this->selectedTheme = $slug;
         $this->updatedSelectedTheme($slug);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã import Website design theme.']);
