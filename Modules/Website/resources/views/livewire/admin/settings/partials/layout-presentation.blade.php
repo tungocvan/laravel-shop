@@ -64,3 +64,7 @@
         <input type="checkbox" wire:model="layoutPresentation.scroll.smooth" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
     </label>
 </section>
+
+<section class="border-t border-slate-200 pt-6">
+    @include('Website::livewire.admin.settings.partials.appearance')
+</section>
