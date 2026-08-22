@@ -3,6 +3,7 @@
 namespace Modules\Website\Livewire\Admin\Settings;
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\System\Services\SettingsService;
@@ -39,12 +40,7 @@ class WebsiteSettings extends Component
         $this->canonicalUrl = (string) $settings->get('seo.canonical_url', url('/'));
 
         $savedRobots = strtolower(str_replace(' ', '', (string) $settings->get('seo.robots', 'index,follow')));
-        $this->robots = in_array($savedRobots, [
-            'index,follow',
-            'index,nofollow',
-            'noindex,follow',
-            'noindex,nofollow',
-        ], true) ? $savedRobots : 'index,follow';
+        $this->robots = in_array($savedRobots, $this->allowedRobots(), true) ? $savedRobots : 'index,follow';
 
         $this->analyticsCode = (string) $settings->get('analytics_code', '');
         $this->headerScript = (string) $settings->get('header_script', '');
@@ -62,6 +58,7 @@ class WebsiteSettings extends Component
 
     public function resetDesign(WebsiteDesignService $designService): void
     {
+        $this->resetValidation();
         $this->design = $designService->resolve();
     }
 
@@ -73,7 +70,7 @@ class WebsiteSettings extends Component
             'seoTitle' => 'required|string|max:70',
             'seoDescription' => 'nullable|string|max:170',
             'canonicalUrl' => 'nullable|url|max:255',
-            'robots' => 'required|in:index,follow,index,nofollow,noindex,follow,noindex,nofollow',
+            'robots' => ['required', Rule::in($this->allowedRobots())],
             'newLogo' => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:3072',
             'newFavicon' => 'nullable|mimes:png,ico,svg|max:1024',
             'analyticsCode' => 'nullable|string|max:10000',
@@ -126,6 +123,16 @@ class WebsiteSettings extends Component
         }
         $this->reset(['newLogo', 'newFavicon']);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu cấu hình Website.']);
+    }
+
+    private function allowedRobots(): array
+    {
+        return [
+            'index,follow',
+            'index,nofollow',
+            'noindex,follow',
+            'noindex,nofollow',
+        ];
     }
 
     public function render()
