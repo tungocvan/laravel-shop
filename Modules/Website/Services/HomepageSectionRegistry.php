@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Services;
 
+use Illuminate\Support\Facades\Route;
 use InvalidArgumentException;
 
 class HomepageSectionRegistry
@@ -52,41 +53,57 @@ class HomepageSectionRegistry
             'params' => [],
             'props' => [],
             'duplicatable' => false,
-            'admin' => null,
         ];
     }
 
     public function adminAction(string $sectionKey): ?array
     {
-        $admin = $this->resolve($sectionKey)['admin'] ?? null;
-        if (! is_array($admin)) {
+        $definition = $this->get($sectionKey);
+        $admin = is_array($definition['admin'] ?? null) ? $definition['admin'] : null;
+        if ($admin === null) {
             return null;
         }
 
         $label = trim((string) ($admin['label'] ?? 'Quản trị component'));
-
-        if (isset($admin['route']) && is_string($admin['route']) && $admin['route'] !== '') {
-            if (! \Illuminate\Support\Facades\Route::has($admin['route'])) {
-                return null;
-            }
-
+        $routeName = $admin['route'] ?? null;
+        if (is_string($routeName) && $routeName !== '' && Route::has($routeName)) {
             return [
                 'type' => 'route',
                 'label' => $label,
-                'route' => $admin['route'],
-                'url' => route($admin['route']),
+                'route' => $routeName,
+                'url' => route($routeName),
             ];
         }
 
-        if (isset($admin['tab']) && is_string($admin['tab']) && $admin['tab'] !== '') {
+        $tab = $admin['tab'] ?? null;
+        if (is_string($tab) && $tab !== '') {
             return [
                 'type' => 'tab',
                 'label' => $label,
-                'tab' => $admin['tab'],
+                'tab' => $tab,
             ];
         }
 
         return null;
+    }
+
+    public function adminCards(array $sectionOrder, array $sectionTypes = []): array
+    {
+        return collect($sectionOrder)->map(function (string $layoutKey) use ($sectionTypes): array {
+            $sectionKey = str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
+            $definition = $this->resolve($sectionKey, $sectionTypes[$sectionKey] ?? null);
+
+            return [
+                'layout_key' => $layoutKey,
+                'section_key' => $sectionKey,
+                'canonical_key' => $this->canonicalKey($sectionKey),
+                'label' => (string) ($definition['label'] ?? $sectionKey),
+                'description' => (string) ($definition['description'] ?? ''),
+                'duplicatable' => (bool) ($definition['duplicatable'] ?? false),
+                'is_copy' => $sectionKey !== $this->canonicalKey($sectionKey),
+                'admin' => $this->adminAction($sectionKey),
+            ];
+        })->all();
     }
 
     public function paramsFor(array $definition, array $context = []): array
