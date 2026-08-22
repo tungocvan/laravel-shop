@@ -35,6 +35,8 @@
             <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
         @enderror
 
+        @include('Website::livewire.admin.header.partials.theme-manager')
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             @foreach($builderSlotNames as $slotKey => $slotLabel)
                 <section class="rounded-xl border border-gray-200 bg-gray-50 p-4 transition"
@@ -78,7 +80,7 @@
                                     <button type="button" wire:click="moveDown('{{ $slotKey }}', {{ $index }})" @disabled($index === count($builderSlots[$slotKey] ?? []) - 1) class="rounded border border-gray-200 px-2 py-1 text-xs disabled:opacity-30">↓</button>
 
                                     @if(count($allowedSlots) > 1)
-                                        <select wire:change="moveComponent('{{ $slotKey }}', {{ $index }}, $event.target.value)" class="ml-auto rounded-md border-gray-300 py-1 pl-2 pr-7 text-xs">
+                                        <select wire:change="moveComponent('{{ $slotKey }}', {{ $index }}, $event.target.value)" class="ml-auto rounded-lg border border-gray-300 bg-white py-1.5 pl-2 pr-7 text-xs shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                                             <option value="{{ $slotKey }}">Chuyển vị trí…</option>
                                             @foreach($allowedSlots as $targetSlot)
                                                 @if($targetSlot !== $slotKey)
@@ -118,18 +120,18 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <label class="text-sm font-medium text-gray-700">Chiều rộng nội dung
-                    <select wire:model.live="presentation.container" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                    <select wire:model.live="presentation.container" class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                         <option value="compact">Compact · 1024px</option><option value="standard">Standard · 1280px</option><option value="wide">Wide · 1440px</option><option value="full">Full width</option>
                     </select>
                 </label>
                 <label class="text-sm font-medium text-gray-700">Kích thước Header
-                    <select wire:model.live="presentation.size" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                    <select wire:model.live="presentation.size" class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                         <option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option>
                     </select>
                 </label>
                 <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700"><input type="checkbox" wire:model.live="presentation.sticky" class="rounded border-gray-300 text-blue-600"> Sticky Header</label>
                 <label class="text-sm font-medium text-gray-700">Shadow
-                    <select wire:model.live="presentation.shadow" class="mt-1 w-full rounded-lg border-gray-300 text-sm"><option value="none">None</option><option value="soft">Soft</option><option value="medium">Medium</option></select>
+                    <select wire:model.live="presentation.shadow" class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="none">None</option><option value="soft">Soft</option><option value="medium">Medium</option></select>
                 </label>
             </div>
 
@@ -146,7 +148,7 @@
                 <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 rounded-xl border border-amber-200 bg-amber-50/40 p-4">
                     @foreach(['container_width' => ['Container max width', 960, 1920],'desktop_height' => ['Desktop height', 52, 120],'tablet_height' => ['Tablet height', 52, 120],'mobile_height' => ['Mobile height', 52, 120],'topbar_height' => ['Topbar height', 24, 56],'logo_max_height' => ['Logo max height', 24, 72],'search_max_width' => ['Search max width', 320, 900]] as $field => [$label, $min, $max])
                         <label class="text-sm font-medium text-gray-700">{{ $label }}
-                            <div class="relative mt-1"><input type="number" min="{{ $min }}" max="{{ $max }}" wire:model.live.debounce.250ms="presentation.custom.{{ $field }}" class="w-full rounded-lg border-gray-300 pr-10 text-sm"><span class="absolute right-3 top-2.5 text-xs text-gray-400">px</span></div>
+                            <div class="relative mt-1"><input type="number" min="{{ $min }}" max="{{ $max }}" wire:model.live.debounce.250ms="presentation.custom.{{ $field }}" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><span class="absolute right-3 top-3 text-xs text-gray-400">px</span></div>
                         </label>
                     @endforeach
                 </div>
