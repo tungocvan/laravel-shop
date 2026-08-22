@@ -6,7 +6,7 @@
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div><h1 class="text-2xl font-bold text-slate-900">Cài đặt Website</h1><p class="mt-1 text-sm text-slate-500">Quản trị nhận diện, thiết kế toàn site, SEO và cấu hình nâng cao.</p></div>
-        <button wire:click="save" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="save">Lưu thay đổi</span><span wire:loading wire:target="save">Đang lưu...</span></button>
+        <button type="button" @click="$dispatch('website-save-confirm')" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="save">Lưu thay đổi</span><span wire:loading wire:target="save">Đang lưu...</span></button>
     </div>
 
     <nav class="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
@@ -119,6 +119,9 @@
     </div>
 
     <div class="sticky bottom-4 flex justify-end rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-        <button wire:click="save" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">Lưu thay đổi</button>
+        <button type="button" @click="$dispatch('website-save-confirm')" wire:loading.attr="disabled" wire:target="save" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">Lưu thay đổi</button>
     </div>
+
+    @include('Website::livewire.admin.settings.partials.save-confirm')
+    @include('Website::livewire.admin.settings.partials.operation-feedback')
 </div>
