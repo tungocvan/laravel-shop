@@ -45,8 +45,8 @@ class WebsiteFooterColumnInteractionConfigurationTest extends TestCase
         $this->assertStringContainsString("get('footer.brand_name'", $component);
         $this->assertStringContainsString("'footer.brand_name'", $component);
         $this->assertStringContainsString('wire:model="brand_name"', $view);
-        $this->assertStringContainsString("\$siteName = \$settings->get('site_name', 'FlexBiz')", $provider);
-        $this->assertStringContainsString("'brand_name' => \$settings->get('footer.brand_name', \$siteName)", $provider);
+        $this->assertStringContainsString("\$siteName=\$settings->get('site_name','FlexBiz')", $provider);
+        $this->assertStringContainsString("'brand_name'=>\$settings->get('footer.brand_name',\$siteName)", $provider);
 
         $footerComposer = substr($provider, strpos($provider, "View::composer(['Website::partials.footer']"));
         $this->assertStringNotContainsString("get('header.brand_name'", $footerComposer);
