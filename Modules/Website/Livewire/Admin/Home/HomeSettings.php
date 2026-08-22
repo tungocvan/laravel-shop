@@ -126,17 +126,20 @@ class HomeSettings extends Component
             }
         }
 
-        return view('Website::livewire.admin.home.home-settings', [
+        return view('Website::livewire.admin.home.home-settings-v2', [
             'allCategories' => $allCategories,
             'searchProducts' => $searchProducts,
             'selectedProducts' => $selectedProducts,
             'homepageSections' => $registry->all(),
+            'sectionCards' => $registry->adminCards($this->sectionOrder, $this->sectionTypes),
         ]);
     }
 
-    public function setTab($tab)
+    public function setTab(string $tab): void
     {
-        $this->activeTab = $tab;
+        if (in_array($tab, ['layout', 'data', 'trust_badges'], true)) {
+            $this->activeTab = $tab;
+        }
     }
 
     public function addBadge()
