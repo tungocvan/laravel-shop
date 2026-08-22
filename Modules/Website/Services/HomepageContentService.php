@@ -93,7 +93,9 @@ class HomepageContentService
             return (array) $this->settings->get($legacyKey, []);
         }
 
-        return collect($section->config ?? [])->except(['visibility', 'legacy_source'])->all();
+        return collect($section->config ?? [])
+            ->except(['visibility', 'legacy_source', 'content_source'])
+            ->all();
     }
 
     public function itemConfigs(string $sectionKey, string $legacyKey): array
