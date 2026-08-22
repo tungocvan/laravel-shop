@@ -13,17 +13,21 @@ class WebsiteFooterColumnInteractionConfigurationTest extends TestCase
         $service = file_get_contents(base_path('Modules/Website/Services/FooterService.php'));
 
         $this->assertStringContainsString('duplicateColumn(int $id', $component);
-        $this->assertStringContainsString('updateLinkOrder(int $columnId, array $orderedIds', $component);
+        $this->assertStringContainsString('moveLinkByDrag(', $component);
         $this->assertStringContainsString("authorizeAdminPermission('website.footer.manage')", $component);
 
         $this->assertStringContainsString('wire:click="duplicateColumn(', $view);
         $this->assertStringContainsString('Nhân bản', $view);
         $this->assertStringContainsString('Sortable.create($el', $view);
-        $this->assertStringContainsString('$wire.updateLinkOrder({{ $column->id }}, this.toArray())', $view);
+        $this->assertStringContainsString("group: 'footer-menu-links'", $view);
+        $this->assertStringContainsString('$wire.moveLinkByDrag(linkId, fromColumnId, toColumnId, targetIds)', $view);
+        $this->assertStringContainsString('data-column-id="{{ $column->id }}"', $view);
         $this->assertStringContainsString("handle: '.drag-handle'", $view);
 
         $this->assertStringContainsString('DB::transaction', $service);
-        $this->assertStringContainsString("where('footer_column_id', \$columnId)", $service);
+        $this->assertStringContainsString('moveLinkByDrag(int $linkId, int $fromColumnId, int $toColumnId', $service);
+        $this->assertStringContainsString("where('footer_column_id', \$fromColumnId)", $service);
+        $this->assertStringContainsString("'footer_column_id' => \$toColumnId", $service);
         $this->assertStringContainsString("'route_name' => \$link->route_name", $service);
         $this->assertStringContainsString("'new_tab' => (bool) \$link->new_tab", $service);
     }
