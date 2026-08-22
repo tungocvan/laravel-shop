@@ -5,12 +5,12 @@
     @endphp
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 class="text-2xl font-bold text-slate-900">Cài đặt Website</h1><p class="mt-1 text-sm text-slate-500">Quản trị nhận diện, thiết kế toàn site, SEO và cấu hình nâng cao.</p></div>
+        <div><h1 class="text-2xl font-bold text-slate-900">Cài đặt Website</h1><p class="mt-1 text-sm text-slate-500">Quản trị nhận diện, bố cục toàn site, thiết kế, SEO và cấu hình nâng cao.</p></div>
         <button type="button" @click="$dispatch('website-save-confirm')" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="save">Lưu thay đổi</span><span wire:loading wire:target="save">Đang lưu...</span></button>
     </div>
 
     <nav class="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        @foreach(['seo'=>'SEO','identity'=>'Nhận diện','design'=>'Thiết kế toàn site','themes'=>'Themes','advanced'=>'Nâng cao'] as $tab=>$label)
+        @foreach(['seo'=>'SEO','identity'=>'Nhận diện','layout'=>'Bố cục Website','design'=>'Thiết kế toàn site','themes'=>'Themes','advanced'=>'Nâng cao'] as $tab=>$label)
             <button wire:click="setTab('{{ $tab }}')" class="whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold {{ $activeTab===$tab?'bg-indigo-50 text-indigo-700':'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">{{ $label }}</button>
         @endforeach
     </nav>
@@ -30,6 +30,56 @@
                 <label class="{{ $labelClass }} md:col-span-2">Tên thương hiệu<input wire:model="siteName" class="{{ $fieldClass }}"></label>
                 <label class="{{ $labelClass }}">Logo<input wire:model="newLogo" type="file" accept="image/*" class="{{ $fieldClass }}"></label>
                 <label class="{{ $labelClass }}">Favicon<input wire:model="newFavicon" type="file" accept=".png,.ico,.svg" class="{{ $fieldClass }}"></label>
+            </div>
+        @elseif($activeTab==='layout')
+            <div class="space-y-8">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Bố cục Website</h2>
+                    <p class="mt-1 text-sm text-slate-500">Master controls cho ba khu vực chính của storefront. Tắt ở đây sẽ ẩn toàn bộ khu vực tương ứng nhưng không xóa cấu hình bên trong.</p>
+                </div>
+
+                <section class="grid gap-4 md:grid-cols-3">
+                    @foreach([
+                        ['header_enabled','Header','Logo, menu điều hướng, tài khoản và actions.','admin.header.settings'],
+                        ['homepage_enabled','Homepage','Các section và nội dung trang chủ.','admin.home.settings'],
+                        ['footer_enabled','Footer','Brand, menu links, app/social và bottom bar.','admin.footer.settings'],
+                    ] as [$key,$title,$description,$route])
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <label class="flex cursor-pointer items-start justify-between gap-4">
+                                <div>
+                                    <div class="font-bold text-slate-900">{{ $title }}</div>
+                                    <div class="mt-1 text-xs leading-5 text-slate-500">{{ $description }}</div>
+                                </div>
+                                <input type="checkbox" wire:model="shell.{{ $key }}" class="mt-0.5 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            </label>
+                            <a href="{{ route($route) }}" class="mt-4 inline-flex text-sm font-semibold text-indigo-700 hover:text-indigo-800">Quản trị {{ $title }} →</a>
+                        </div>
+                    @endforeach
+                </section>
+
+                <section class="border-t border-slate-200 pt-6">
+                    <div class="rounded-xl border {{ data_get($shell, 'maintenance.enabled', false) ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50' }} p-5">
+                        <label class="flex cursor-pointer items-start justify-between gap-4">
+                            <div>
+                                <div class="font-bold text-slate-900">Website bảo trì</div>
+                                <div class="mt-1 text-sm leading-6 text-slate-500">Chỉ chuyển storefront sang màn hình bảo trì. Khu vực Admin vẫn hoạt động bình thường để bạn tiếp tục quản trị.</div>
+                            </div>
+                            <input type="checkbox" wire:model.live="shell.maintenance.enabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        </label>
+
+                        <div class="mt-5 grid gap-5">
+                            <label class="{{ $labelClass }}">Tiêu đề bảo trì
+                                <input wire:model="shell.maintenance.title" maxlength="120" class="{{ $fieldClass }}" placeholder="Website đang được bảo trì">
+                                @error('shell.maintenance.title')<span class="mt-1 block text-xs font-medium text-red-600">{{ $message }}</span>@enderror
+                            </label>
+                            <label class="{{ $labelClass }}">Nội dung thông báo bảo trì
+                                <textarea wire:model="shell.maintenance.message" rows="5" maxlength="1000" class="{{ $fieldClass }}" placeholder="Nhập nội dung hiển thị cho khách truy cập..."></textarea>
+                                @error('shell.maintenance.message')<span class="mt-1 block text-xs font-medium text-red-600">{{ $message }}</span>@enderror
+                                <span class="mt-1 block text-xs text-slate-500">Nội dung được hiển thị dạng text an toàn, không render HTML/script.</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
             </div>
         @elseif($activeTab==='design')
             <div class="space-y-8">
@@ -74,30 +124,12 @@
                     <div><h3 class="font-bold text-slate-900">Tiện ích nổi toàn site</h3><p class="text-sm text-slate-500">Bật/tắt và chọn vị trí cho Chat Widget và Back to Top. Vị trí bên phải giữa phù hợp với các website có nhiều CTA ở khu vực cuối màn hình.</p></div>
                     <div class="grid gap-4 md:grid-cols-2">
                         <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                            <label class="flex cursor-pointer items-center justify-between gap-4">
-                                <div><div class="font-semibold text-slate-900">Chat Widget</div><div class="mt-1 text-xs text-slate-500">Hiện nút/chat hỗ trợ nổi trên toàn Website.</div></div>
-                                <input type="checkbox" wire:model="features.chat_widget" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            </label>
-                            <label class="mt-4 block text-sm font-semibold text-gray-700">Vị trí hiển thị
-                                <select wire:model="features.chat_position" class="{{ $fieldClass }}">
-                                    <option value="bottom-left">Góc trái dưới</option>
-                                    <option value="bottom-right">Góc phải dưới</option>
-                                    <option value="right-middle">Bên phải giữa</option>
-                                </select>
-                            </label>
+                            <label class="flex cursor-pointer items-center justify-between gap-4"><div><div class="font-semibold text-slate-900">Chat Widget</div><div class="mt-1 text-xs text-slate-500">Hiện nút/chat hỗ trợ nổi trên toàn Website.</div></div><input type="checkbox" wire:model="features.chat_widget" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></label>
+                            <label class="mt-4 block text-sm font-semibold text-gray-700">Vị trí hiển thị<select wire:model="features.chat_position" class="{{ $fieldClass }}"><option value="bottom-left">Góc trái dưới</option><option value="bottom-right">Góc phải dưới</option><option value="right-middle">Bên phải giữa</option></select></label>
                         </div>
                         <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                            <label class="flex cursor-pointer items-center justify-between gap-4">
-                                <div><div class="font-semibold text-slate-900">Back to Top</div><div class="mt-1 text-xs text-slate-500">Hiện nút về đầu trang sau khi người dùng cuộn xuống.</div></div>
-                                <input type="checkbox" wire:model="features.back_to_top" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            </label>
-                            <label class="mt-4 block text-sm font-semibold text-gray-700">Vị trí hiển thị
-                                <select wire:model="features.back_to_top_position" class="{{ $fieldClass }}">
-                                    <option value="bottom-left">Góc trái dưới</option>
-                                    <option value="bottom-right">Góc phải dưới</option>
-                                    <option value="right-middle">Bên phải giữa</option>
-                                </select>
-                            </label>
+                            <label class="flex cursor-pointer items-center justify-between gap-4"><div><div class="font-semibold text-slate-900">Back to Top</div><div class="mt-1 text-xs text-slate-500">Hiện nút về đầu trang sau khi người dùng cuộn xuống.</div></div><input type="checkbox" wire:model="features.back_to_top" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></label>
+                            <label class="mt-4 block text-sm font-semibold text-gray-700">Vị trí hiển thị<select wire:model="features.back_to_top_position" class="{{ $fieldClass }}"><option value="bottom-left">Góc trái dưới</option><option value="bottom-right">Góc phải dưới</option><option value="right-middle">Bên phải giữa</option></select></label>
                         </div>
                     </div>
                     @if(($features['chat_widget'] ?? true) && ($features['back_to_top'] ?? true) && ($features['chat_position'] ?? 'bottom-right') === ($features['back_to_top_position'] ?? 'bottom-right'))
