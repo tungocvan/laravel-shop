@@ -1,3 +1,5 @@
+@include('Website::livewire.admin.settings.partials.responsive-preview')
+
 <section class="space-y-5 border-t border-slate-200 pt-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
