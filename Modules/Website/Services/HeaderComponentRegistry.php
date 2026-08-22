@@ -8,7 +8,7 @@ class HeaderComponentRegistry
 {
     public function all(): array
     {
-        return (array) config('header.components', []);
+        return (array) config('website.header.components', []);
     }
 
     public function get(string $type): ?array
@@ -28,6 +28,11 @@ class HeaderComponentRegistry
 
         if (! in_array($slot, (array) ($component['allowed_slots'] ?? []), true)) {
             throw new InvalidArgumentException("Header component {$type} is not allowed in slot {$slot}");
+        }
+
+        $view = $component['view'] ?? null;
+        if (! is_string($view) || $view === '') {
+            throw new InvalidArgumentException("Header component {$type} has no renderer");
         }
 
         return $component;
