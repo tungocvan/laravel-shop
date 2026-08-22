@@ -1,8 +1,11 @@
-const CACHE_NAME = 'inafo-client-shell-v1';
+const CACHE_NAME = 'inafo-client-shell-v2';
 const OFFLINE_URL = '/pwa/offline.html';
+const VERSION_URL = '/website-pwa-version.json';
+const WEBSITE_MANIFEST_URL = '/website-manifest.webmanifest';
 const SHELL_ASSETS = [
   OFFLINE_URL,
   '/manifest.webmanifest',
+  WEBSITE_MANIFEST_URL,
   '/pwa/icon.svg',
   '/pwa/icon-maskable.svg',
 ];
@@ -21,19 +24,34 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'REFRESH_PWA_ASSETS') {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        await Promise.all([
+          cache.add(new Request(WEBSITE_MANIFEST_URL, { cache: 'reload' })),
+          cache.add(new Request(VERSION_URL, { cache: 'reload' })),
+        ]);
+      })
+    );
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache authenticated application/API responses. Navigation remains network-first.
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE_URL))
-    );
+    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
+    return;
+  }
+
+  if (url.pathname === VERSION_URL || url.pathname === WEBSITE_MANIFEST_URL) {
+    event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => caches.match(request)));
     return;
   }
 
