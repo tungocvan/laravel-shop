@@ -65,9 +65,14 @@ class WebsiteServiceProvider extends ServiceProvider
         View::composer(['Website::partials.footer'], function ($view) {
             $footerService=app(FooterService::class); $settings=app(SettingsService::class); $savedPresentation=$settings->get('footer.presentation'); $savedLayout=$settings->get('footer.layout'); $footerBrandLogo=$settings->get('footer.brand_logo'); $siteName=$settings->get('site_name','FlexBiz');
             $savedFeatures=$settings->get('website.features');
+            $allowedPositions=['bottom-left','bottom-right'];
+            $chatPosition=is_array($savedFeatures)?($savedFeatures['chat_position']??'bottom-right'):'bottom-right';
+            $backToTopPosition=is_array($savedFeatures)?($savedFeatures['back_to_top_position']??'bottom-right'):'bottom-right';
             $websiteFeatures=[
                 'chat_widget'=>(bool)(is_array($savedFeatures)?($savedFeatures['chat_widget']??true):true),
+                'chat_position'=>is_string($chatPosition)&&in_array($chatPosition,$allowedPositions,true)?$chatPosition:'bottom-right',
                 'back_to_top'=>(bool)(is_array($savedFeatures)?($savedFeatures['back_to_top']??true):true),
+                'back_to_top_position'=>is_string($backToTopPosition)&&in_array($backToTopPosition,$allowedPositions,true)?$backToTopPosition:'bottom-right',
             ];
             $view->with(['footerColumns'=>$footerService->getColumnsForFrontend(),'socialLinks'=>$footerService->getSocialLinks(),'footerLayout'=>app(FooterLayoutService::class)->resolvedLayout(is_array($savedLayout)?$savedLayout:null),'footerPresentation'=>app(FooterPresentationService::class)->resolve(is_array($savedPresentation)?$savedPresentation:null),'websiteFeatures'=>$websiteFeatures,'footerSettings'=>['brand_name'=>$settings->get('footer.brand_name',$siteName),'logo'=>$footerBrandLogo ?: $settings->get('site_logo'),'description'=>$settings->get('footer.brand_description'),'address'=>$settings->get('footer.address'),'email'=>$settings->get('footer.email'),'phone'=>$settings->get('footer.phone'),'copyright'=>$settings->get('footer.copyright'),'app_title'=>$settings->get('footer.app_title','Tải Ứng Dụng'),'app_description'=>$settings->get('footer.app_description','Cài ứng dụng để truy cập nhanh trên iPhone, iPad, Android hoặc máy tính.'),'app_button_title'=>$settings->get('footer.app_button_title','Cài ứng dụng '.$siteName),'app_button_subtitle'=>$settings->get('footer.app_button_subtitle','Truy cập nhanh từ màn hình chính · Không cần App Store'),'appstore'=>$settings->get('footer.appstore_url'),'playstore'=>$settings->get('footer.playstore_url'),'legal_links'=>$settings->get('footer.legal_links',[]),'trust_badges'=>$settings->get('footer.trust_badges',[])]]);
         });
