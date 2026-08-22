@@ -1,14 +1,18 @@
 @php($themes = $this->designThemes)
 <div class="space-y-6">
-    <div>
-        <h2 class="text-lg font-bold text-slate-900">Website Design Themes</h2>
-        <p class="mt-1 text-sm text-slate-500">Lưu, áp dụng, export và import nhanh Global Design Tokens. Theme hiện chưa chứa layout shell/PWA; các phần đó sẽ được mở rộng ở Phase 12C–12D.</p>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h2 class="text-lg font-bold text-slate-900">Website Design Themes</h2>
+            <p class="mt-1 text-sm text-slate-500">Lưu, áp dụng, export và import nhanh Global Design Tokens. Theme hiện chưa chứa layout shell/PWA; các phần đó sẽ được mở rộng ở Phase 12C–12D.</p>
+        </div>
+        <button type="button" wire:click="restoreDefaultDesignThemes" wire:confirm="Khôi phục lại 03 Website design themes mặc định? Custom themes hiện có vẫn được giữ nguyên." class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Khôi phục themes mặc định</button>
     </div>
 
     <div class="grid gap-5 lg:grid-cols-2">
         <div class="space-y-4">
             <label class="block text-sm font-semibold text-gray-700">Tên theme
-                <input wire:model="themeName" maxlength="80" placeholder="Ví dụ: Modern Blue" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <input wire:model="themeName" maxlength="80" placeholder="Ví dụ: Modern Blue" class="mt-1 block w-full rounded-lg border {{ $errors->has('themeName') ? 'border-red-400' : 'border-gray-300' }} bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                @error('themeName')<span class="mt-1 block text-xs font-medium text-red-600">{{ $message }}</span>@enderror
             </label>
 
             <label class="block text-sm font-semibold text-gray-700">Theme đã lưu
