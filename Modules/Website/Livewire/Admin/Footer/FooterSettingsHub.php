@@ -88,17 +88,26 @@ class FooterSettingsHub extends Component
 
     public function moveComponent(string $fromSlot, int $index, string $toSlot, FooterComponentRegistry $registry): void
     {
+        $this->moveComponentByDrag($fromSlot, $index, $toSlot, count($this->builderSlots[$toSlot] ?? []), $registry);
+    }
+
+    public function moveComponentByDrag(
+        string $fromSlot,
+        int $fromIndex,
+        string $toSlot,
+        int $toIndex,
+        FooterComponentRegistry $registry
+    ): void {
         $this->authorizeAdminPermission('website.footer.manage');
         $this->resetErrorBag('builder');
 
         if (! in_array($fromSlot, self::BUILDER_SLOTS, true)
             || ! in_array($toSlot, self::BUILDER_SLOTS, true)
-            || ! $this->hasItem($fromSlot, $index)
-            || $fromSlot === $toSlot) {
+            || ! $this->hasItem($fromSlot, $fromIndex)) {
             return;
         }
 
-        $item = $this->builderSlots[$fromSlot][$index];
+        $item = $this->builderSlots[$fromSlot][$fromIndex];
 
         try {
             $registry->resolve((string) ($item['type'] ?? ''), $toSlot);
@@ -108,9 +117,14 @@ class FooterSettingsHub extends Component
             return;
         }
 
-        array_splice($this->builderSlots[$fromSlot], $index, 1);
+        $targetCount = count($this->builderSlots[$toSlot] ?? []);
+        $toIndex = max(0, min($toIndex, $targetCount));
+
+        array_splice($this->builderSlots[$fromSlot], $fromIndex, 1);
         $this->builderSlots[$fromSlot] = array_values($this->builderSlots[$fromSlot]);
-        $this->builderSlots[$toSlot][] = $item;
+
+        $toIndex = max(0, min($toIndex, count($this->builderSlots[$toSlot] ?? [])));
+        array_splice($this->builderSlots[$toSlot], $toIndex, 0, [$item]);
         $this->builderSlots[$toSlot] = array_values($this->builderSlots[$toSlot]);
     }
 
@@ -176,10 +190,11 @@ class FooterSettingsHub extends Component
         $this->resetErrorBag('builder');
     }
 
-    public function render(FooterComponentRegistry $registry)
+    public function render(FooterComponentRegistry $registry, FooterPresentationService $presentationService)
     {
         return view('Website::livewire.admin.footer.footer-settings-hub', [
             'footerComponents' => $registry->all(),
+            'previewPresentation' => $presentationService->resolve($this->presentation),
             'builderSlotNames' => [
                 'desktop.top' => 'Desktop · Top',
                 'desktop.main.brand' => 'Desktop · Brand / Contact',
@@ -189,7 +204,7 @@ class FooterSettingsHub extends Component
                 'desktop.bottom.right' => 'Desktop · Bottom Right',
                 'mobile.main' => 'Mobile · Main',
                 'mobile.bottom' => 'Mobile · Bottom',
-                'overlay' => 'Overlay',
+                'overlay' => 'Dùng chung · Overlay',
             ],
         ]);
     }
