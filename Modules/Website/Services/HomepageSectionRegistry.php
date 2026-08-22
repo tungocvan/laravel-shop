@@ -25,6 +25,7 @@ class HomepageSectionRegistry
 
     public function resolve(string $sectionKey, ?string $storedType = null): array
     {
+        $canonicalKey = $this->canonicalKey($sectionKey);
         $definition = $this->get($sectionKey);
         if ($definition === null) {
             throw new InvalidArgumentException("Unknown homepage section key: {$sectionKey}");
@@ -35,17 +36,18 @@ class HomepageSectionRegistry
             throw new InvalidArgumentException("Homepage section {$sectionKey} has no renderer");
         }
 
-        $configuredType = (string) ($definition['type'] ?? $this->canonicalKey($sectionKey));
-        if ($storedType !== null && $storedType !== '' && $storedType !== $configuredType) {
+        $configuredType = (string) ($definition['type'] ?? $canonicalKey);
+        $acceptedTypes = array_values(array_unique([$configuredType, $canonicalKey]));
+        if ($storedType !== null && $storedType !== '' && ! in_array($storedType, $acceptedTypes, true)) {
             throw new InvalidArgumentException(
                 "Homepage section {$sectionKey} expects type {$configuredType}, got {$storedType}"
             );
         }
 
         return $definition + [
-            'key' => $this->canonicalKey($sectionKey),
+            'key' => $canonicalKey,
             'type' => $configuredType,
-            'label' => str($this->canonicalKey($sectionKey))->replace('_', ' ')->title()->toString(),
+            'label' => str($canonicalKey)->replace('_', ' ')->title()->toString(),
             'description' => 'Homepage section',
             'params' => [],
             'props' => [],
