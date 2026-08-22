@@ -71,7 +71,7 @@
                     </div>
                 </section>
                 <section class="space-y-4 border-t border-slate-200 pt-6">
-                    <div><h3 class="font-bold text-slate-900">Tiện ích nổi toàn site</h3><p class="text-sm text-slate-500">Bật/tắt và chọn vị trí an toàn cho Chat Widget và Back to Top. Hiện hỗ trợ hai góc dưới để popup Chat luôn mở đúng viewport.</p></div>
+                    <div><h3 class="font-bold text-slate-900">Tiện ích nổi toàn site</h3><p class="text-sm text-slate-500">Bật/tắt và chọn vị trí cho Chat Widget và Back to Top. Vị trí bên phải giữa phù hợp với các website có nhiều CTA ở khu vực cuối màn hình.</p></div>
                     <div class="grid gap-4 md:grid-cols-2">
                         <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
                             <label class="flex cursor-pointer items-center justify-between gap-4">
@@ -82,6 +82,7 @@
                                 <select wire:model="features.chat_position" class="{{ $fieldClass }}">
                                     <option value="bottom-left">Góc trái dưới</option>
                                     <option value="bottom-right">Góc phải dưới</option>
+                                    <option value="right-middle">Bên phải giữa</option>
                                 </select>
                             </label>
                         </div>
@@ -94,12 +95,13 @@
                                 <select wire:model="features.back_to_top_position" class="{{ $fieldClass }}">
                                     <option value="bottom-left">Góc trái dưới</option>
                                     <option value="bottom-right">Góc phải dưới</option>
+                                    <option value="right-middle">Bên phải giữa</option>
                                 </select>
                             </label>
                         </div>
                     </div>
                     @if(($features['chat_widget'] ?? true) && ($features['back_to_top'] ?? true) && ($features['chat_position'] ?? 'bottom-right') === ($features['back_to_top_position'] ?? 'bottom-right'))
-                        <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">Chat Widget và Back to Top đang cùng một góc. Nên chọn hai vị trí khác nhau để tránh chồng nút.</div>
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">Chat Widget và Back to Top đang cùng một vị trí. Nên chọn hai vị trí khác nhau để tránh chồng nút.</div>
                     @endif
                 </section>
             </div>
