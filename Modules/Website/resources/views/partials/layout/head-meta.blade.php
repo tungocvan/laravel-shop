@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="{{ $websiteAppearance['apple_status_bar_style'] ?? 'default' }}">
 <meta name="apple-mobile-web-app-title" content="{{ $websiteAppearance['apple_title'] ?? $siteName ?? 'FlexBiz' }}">
 @if(data_get($websiteAppearance ?? [], 'manifest_enabled', true))
-    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="manifest" href="{{ route('website.manifest') }}">
 @endif
 
 @php
