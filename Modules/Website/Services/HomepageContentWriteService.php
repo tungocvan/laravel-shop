@@ -4,6 +4,7 @@ namespace Modules\Website\Services;
 
 use Illuminate\Support\Facades\DB;
 use Modules\System\Services\SettingsService;
+use Modules\Website\Models\WebsitePage;
 
 class HomepageContentWriteService
 {
@@ -11,6 +12,7 @@ class HomepageContentWriteService
         private readonly SettingsService $settings,
         private readonly HomepageBackfillService $backfill,
         private readonly HomepageBuilderPersistenceService $builderPersistence,
+        private readonly HomepageStructuredContentService $structuredContent,
     ) {}
 
     public function save(
@@ -20,12 +22,24 @@ class HomepageContentWriteService
         array $sectionTypes = []
     ): array {
         $result = DB::transaction(function () use ($values, $sectionOrder, $layout, $sectionTypes): array {
-            // Compatibility write is intentionally retained until the structured
-            // homepage has passed its rollback window.
-            $this->settings->updateMany($values, 'homepage');
+            $report = [
+                'apply' => true,
+                'source' => 'structured',
+            ];
 
-            $report = $this->backfill->backfill(true, $sectionOrder);
+            // One-time safety bridge for installations that still only have legacy home_* settings.
+            if (! WebsitePage::query()->where('slug', 'home')->exists()) {
+                $report = $this->backfill->backfill(true, $sectionOrder);
+                $report['source'] = 'legacy_backfill';
+            }
+
+            // Structured Homepage is the canonical write target from Phase 11F onward.
             $this->builderPersistence->sync($sectionOrder, $layout, $sectionTypes);
+            $this->structuredContent->sync($values);
+
+            // Compatibility mirror is intentionally retained during the rollback window.
+            // Frontend/Admin no longer depend on it when structured Homepage exists.
+            $this->settings->updateMany($values, 'homepage');
 
             return $report;
         });
