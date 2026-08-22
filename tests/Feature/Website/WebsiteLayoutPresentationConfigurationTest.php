@@ -45,7 +45,7 @@ class WebsiteLayoutPresentationConfigurationTest extends TestCase
         $this->assertStringContainsString('layoutPresentation.main.desktop.padding_top', $partial);
         $this->assertStringContainsString('layoutPresentation.main.mobile.padding_x', $partial);
         $this->assertStringContainsString('layoutPresentation.main.container', $partial);
-        $this->assertStringContainsString('focus:ring-2 focus:ring-indigo-100', $partial);
+        $this->assertStringContainsString('focus:ring-2 focus:ring-indigo-100', $view);
     }
 
     public function test_frontend_shell_uses_resolved_layout_presentation_instead_of_hardcoded_py_8(): void
