@@ -10,33 +10,39 @@ class WebsiteFooterDecompositionConfigurationTest extends TestCase
     {
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
 
+        $this->assertStringContainsString('components.footer.slot', $footer);
+        $this->assertStringContainsString("@livewire('website.chat.chat-widget')", $footer);
+
         foreach ([
             'components.footer.brand-contact',
             'components.footer.menu-columns',
             'components.footer.app-social',
             'components.footer.bottom-bar',
             'components.footer.back-to-top',
-        ] as $view) {
-            $this->assertStringContainsString($view, $footer);
+        ] as $legacyView) {
+            $this->assertStringNotContainsString($legacyView, $footer);
         }
 
-        $this->assertStringContainsString("@livewire('website.chat.chat-widget')", $footer);
         $this->assertStringNotContainsString('Privacy Policy', $footer);
         $this->assertStringNotContainsString('upload.wikimedia.org', $footer);
     }
 
     public function test_footer_components_keep_existing_runtime_contracts(): void
     {
-        $brand = file_get_contents(base_path('Modules/Website/resources/views/components/footer/brand-contact.blade.php'));
+        $brand = file_get_contents(base_path('Modules/Website/resources/views/components/footer/brand.blade.php'));
+        $contact = file_get_contents(base_path('Modules/Website/resources/views/components/footer/contact.blade.php'));
         $columns = file_get_contents(base_path('Modules/Website/resources/views/components/footer/menu-columns.blade.php'));
-        $appSocial = file_get_contents(base_path('Modules/Website/resources/views/components/footer/app-social.blade.php'));
-        $bottom = file_get_contents(base_path('Modules/Website/resources/views/components/footer/bottom-bar.blade.php'));
+        $appInstall = file_get_contents(base_path('Modules/Website/resources/views/components/footer/app-install.blade.php'));
+        $social = file_get_contents(base_path('Modules/Website/resources/views/components/footer/social-links.blade.php'));
+        $legal = file_get_contents(base_path('Modules/Website/resources/views/components/footer/legal-links.blade.php'));
+        $trust = file_get_contents(base_path('Modules/Website/resources/views/components/footer/trust-badges.blade.php'));
 
         $this->assertStringContainsString('$footerSettings', $brand);
+        $this->assertStringContainsString('$footerSettings', $contact);
         $this->assertStringContainsString('$footerColumns', $columns);
-        $this->assertStringContainsString('$socialLinks', $appSocial);
-        $this->assertStringContainsString("@include('Website::partials.pwa-installer')", $appSocial);
-        $this->assertStringContainsString('Privacy Policy', $bottom);
-        $this->assertStringContainsString('Visa_Inc._logo.svg', $bottom);
+        $this->assertStringContainsString("@include('Website::partials.pwa-installer')", $appInstall);
+        $this->assertStringContainsString('$socialLinks', $social);
+        $this->assertStringContainsString('Privacy Policy', $legal);
+        $this->assertStringContainsString('Visa_Inc._logo.svg', $trust);
     }
 }

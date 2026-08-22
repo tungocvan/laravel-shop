@@ -14,6 +14,7 @@ use Modules\Website\Models\Banner;
 use Modules\Website\Models\WebsitePage;
 use Modules\Website\Models\WebsiteSection;
 use Modules\Website\Models\WebsiteSectionItem;
+use Modules\Website\Services\FooterLayoutService;
 use Modules\Website\Services\FooterPresentationService;
 use Modules\Website\Services\FooterService;
 use Modules\Website\Services\HeaderLayoutService;
@@ -101,10 +102,12 @@ class WebsiteServiceProvider extends ServiceProvider
             $footerService = app(FooterService::class);
             $settings = app(SettingsService::class);
             $savedPresentation = $settings->get('footer.presentation');
+            $savedLayout = $settings->get('footer.layout');
 
             $view->with([
                 'footerColumns' => $footerService->getColumnsForFrontend(),
                 'socialLinks' => $footerService->getSocialLinks(),
+                'footerLayout' => app(FooterLayoutService::class)->resolvedLayout(is_array($savedLayout) ? $savedLayout : null),
                 'footerPresentation' => app(FooterPresentationService::class)->resolve(is_array($savedPresentation) ? $savedPresentation : null),
                 'footerSettings' => [
                     'brand_name' => $settings->get('header.brand_name', $settings->get('site_name', 'FlexBiz')),
