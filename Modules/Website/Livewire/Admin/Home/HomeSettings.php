@@ -11,6 +11,7 @@ use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\HomepageContentWriteService;
+use Modules\Website\Services\HomepagePresentationService;
 use Modules\Website\Services\HomepageSectionRegistry;
 
 class HomeSettings extends Component
@@ -24,6 +25,8 @@ class HomeSettings extends Component
     public array $sectionOrder = [];
 
     public array $sectionTypes = [];
+
+    public array $presentation = [];
 
     public $data = [
         'category_ids' => [],
@@ -63,7 +66,8 @@ class HomeSettings extends Component
     public function mount(
         SettingsService $settings,
         HomepageContentService $homepage,
-        HomepageSectionRegistry $registry
+        HomepageSectionRegistry $registry,
+        HomepagePresentationService $presentationService
     ): void {
         $this->layout = collect($registry->all())
             ->mapWithKeys(fn (array $definition, string $key): array => ['show_'.$key => 'all'])
@@ -73,6 +77,7 @@ class HomeSettings extends Component
         $this->layout = array_merge($this->layout, $homepage->visibility());
         $this->sectionOrder = array_map(fn (string $key): string => 'show_'.$key, $homepage->order());
         $this->sectionTypes = $homepage->sectionTypes();
+        $this->presentation = $presentationService->resolve($settings->get('homepage.presentation', []));
     }
 
     public function loadSettings(SettingsService $settings): void
@@ -126,7 +131,7 @@ class HomeSettings extends Component
             }
         }
 
-        return view('Website::livewire.admin.home.home-settings-v2', [
+        return view('Website::livewire.admin.home.home-settings-v3', [
             'allCategories' => $allCategories,
             'searchProducts' => $searchProducts,
             'selectedProducts' => $selectedProducts,
@@ -260,7 +265,7 @@ class HomeSettings extends Component
         }
     }
 
-    public function save(HomepageContentWriteService $writer)
+    public function save(HomepageContentWriteService $writer, HomepagePresentationService $presentationService)
     {
         $this->authorizeAdminPermission('website.home.manage');
 
@@ -269,8 +274,16 @@ class HomeSettings extends Component
             'newArrivalsCount' => 'required|integer|min:1|max:50',
             'bestSellersCount' => 'required|integer|min:1|max:50',
             'blogCount' => 'required|integer|min:1|max:10',
+            'presentation.mode' => 'required|in:basic,advanced',
+            'presentation.container' => 'required|in:standard,wide,full',
+            'presentation.spacing' => 'required|in:compact,normal,comfortable',
+            'presentation.custom.container_width' => 'required|integer|min:960|max:1920',
+            'presentation.custom.page_padding' => 'required|integer|min:0|max:64',
+            'presentation.custom.section_gap' => 'required|integer|min:16|max:120',
+            'presentation.custom.mobile_section_gap' => 'required|integer|min:12|max:96',
         ]);
 
+        $this->presentation = $presentationService->resolve($this->presentation);
         $oldImage = $this->promoBanner['image'] ?? null;
         $newImage = $this->newPromoImage?->store('banners', 'public');
         if ($newImage) {
@@ -302,6 +315,7 @@ class HomeSettings extends Component
             'home_promo_banner' => $this->promoBanner,
             'home_newsletter' => $this->newsletter,
             'home_trust_badges' => $cleanBadges,
+            'homepage.presentation' => $this->presentation,
         ];
 
         try {
