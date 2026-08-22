@@ -16,7 +16,7 @@ class WebsiteHeaderBuilderConfigurationTest extends TestCase
             'mode' => 'advanced',
             'container' => 'standard',
             'size' => 'normal',
-            'background' => 'javascript:bad',
+            'colors' => ['background' => 'javascript:bad'],
             'custom' => [
                 'container_width' => 99999,
                 'desktop_height' => 10,
@@ -52,8 +52,8 @@ class WebsiteHeaderBuilderConfigurationTest extends TestCase
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
 
         $this->assertStringContainsString("authorizeAdminPermission('website.settings.manage')", $component);
-        $this->assertStringContainsString("'header.layout' => $layout", $component);
-        $this->assertStringContainsString("'header.presentation' => $presentation", $component);
+        $this->assertStringContainsString("'header.layout' => \$layout", $component);
+        $this->assertStringContainsString("'header.presentation' => \$presentation", $component);
         $this->assertStringNotContainsString("'view' =>", $this->extractSaveBuilderSection($component));
         $this->assertStringContainsString('HeaderComponentRegistry $registry', $component);
     }
