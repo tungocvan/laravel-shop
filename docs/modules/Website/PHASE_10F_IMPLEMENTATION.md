@@ -148,6 +148,42 @@ Publishing remains exclusively in `saveBuilder()`.
 
 ---
 
+## Admin UI Input Standard
+
+Phase 10F established the approved visual baseline for editable Website admin controls after UI validation of the Footer information form.
+
+Canonical documentation:
+
+```text
+docs/modules/Website/ADMIN_UI_INPUT_STANDARD.md
+```
+
+Future Website admin work should follow that standard for:
+
+```text
+input / select / textarea
+field labels
+checkboxes / toggles
+file upload controls
+repeatable collection rows
+empty states
+section cards
+focus / hover states
+validation messages
+sticky primary save actions
+responsive form grids
+```
+
+The key requirement is that editable controls must be visually distinguishable from static text. The current reference implementation is:
+
+```text
+Modules/Website/resources/views/livewire/admin/footer/footer-info.blade.php
+```
+
+Any intentional deviation from the shared standard should be documented in the relevant phase implementation notes.
+
+---
+
 ## Security and Schema Safety
 
 Theme layouts are sanitized through `FooterComponentRegistry` before they are saved or applied.
@@ -181,6 +217,7 @@ Modules/Website/Providers/WebsiteServiceProvider.php
 Modules/Website/resources/views/livewire/admin/footer/footer-info.blade.php
 Modules/Website/resources/views/livewire/admin/footer/partials/theme-manager.blade.php
 Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php
+docs/modules/Website/ADMIN_UI_INPUT_STANDARD.md
 tests/Feature/Website/WebsiteFooterBrandThemeConfigurationTest.php
 ```
 
@@ -218,6 +255,15 @@ Do not run the full project test suite for this phase.
 3. Upload a Footer logo and save.
 4. Reload Admin and storefront; confirm Footer uses the new logo.
 5. Remove the Footer logo; confirm storefront returns to `site_logo`.
+
+### Admin Input UI
+
+1. Confirm every editable input/textarea has a visible boundary before focus.
+2. Confirm hover/focus states make the active field obvious.
+3. Confirm labels remain visible and are not replaced by placeholders.
+4. Confirm repeatable Legal Link / Trust Badge items are presented as distinct editable cards.
+5. Confirm empty repeatable collections show a clear empty state and creation action.
+6. Confirm the primary Footer save action remains easy to reach on long forms.
 
 ### Themes
 
