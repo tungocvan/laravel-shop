@@ -191,10 +191,11 @@ class HeaderSettingsHub extends Component
         $this->presentation = $presentationService->resolve((array) config('website.header.presentation', []));
     }
 
-    public function render(HeaderComponentRegistry $registry)
+    public function render(HeaderComponentRegistry $registry, HeaderPresentationService $presentationService)
     {
         return view('Website::livewire.admin.header.header-settings-hub', [
             'headerComponents' => $registry->all(),
+            'previewPresentation' => $presentationService->resolve($this->presentation),
             'builderSlotNames' => [
                 'desktop.topbar' => 'Topbar',
                 'desktop.main.left' => 'Desktop · Trái',
