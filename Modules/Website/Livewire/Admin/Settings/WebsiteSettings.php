@@ -111,8 +111,9 @@ class WebsiteSettings extends Component
                 'features.back_to_top_position' => ['required', Rule::in($this->allowedWidgetPositions())],
             ]);
         } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
             $this->themeFeedback('error', 'Không thể lưu thay đổi', 'Một hoặc nhiều trường chưa hợp lệ. Vui lòng kiểm tra các thông báo trong form.');
-            throw $exception;
+            return;
         }
 
         $oldLogo = $this->logo;
