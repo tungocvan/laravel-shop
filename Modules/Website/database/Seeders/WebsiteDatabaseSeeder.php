@@ -38,6 +38,7 @@ class WebsiteDatabaseSeeder extends Seeder
             WebsiteSectionSeeder::class,
             WebsiteSectionItemSeeder::class,
             HomepageSeeder::class,
+            WebsiteDesignThemeSeeder::class,
             WebsiteAdminMenuSeeder::class,
         ]);
 
