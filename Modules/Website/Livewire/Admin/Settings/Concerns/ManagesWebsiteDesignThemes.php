@@ -42,8 +42,8 @@ trait ManagesWebsiteDesignThemes
             $this->updatedSelectedTheme($slug);
             $this->themeFeedback('success', 'Lưu theme thành công', 'Website design theme đã được lưu.');
         } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
             $this->themeFeedback('error', 'Không thể lưu theme', 'Vui lòng kiểm tra lại Tên theme.');
-            throw $exception;
         } catch (Throwable $exception) {
             report($exception);
             $this->themeFeedback('error', 'Không thể lưu theme', 'Có lỗi khi lưu Website design theme. Vui lòng thử lại.');
@@ -97,8 +97,8 @@ trait ManagesWebsiteDesignThemes
             app(WebsiteDesignThemeService::class)->rename($this->selectedTheme, $this->themeName);
             $this->themeFeedback('success', 'Đổi tên theme thành công', 'Tên Website design theme đã được cập nhật.');
         } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
             $this->themeFeedback('error', 'Không thể đổi tên theme', 'Vui lòng kiểm tra lại Tên theme.');
-            throw $exception;
         } catch (Throwable $exception) {
             report($exception);
             $this->themeFeedback('error', 'Không thể đổi tên theme', $this->safeThemeError($exception));
@@ -169,8 +169,9 @@ trait ManagesWebsiteDesignThemes
                 'themeJson.min' => 'Dữ liệu JSON theme không hợp lệ.',
             ]);
         } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
             $this->themeFeedback('error', 'Không thể Import JSON', 'Vui lòng nhập dữ liệu JSON theme hợp lệ trước khi import.');
-            throw $exception;
+            return;
         }
 
         try {
