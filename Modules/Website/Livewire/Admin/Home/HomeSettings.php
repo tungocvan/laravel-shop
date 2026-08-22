@@ -12,6 +12,7 @@ use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\HomepageContentWriteService;
 use Modules\Website\Services\HomepageSectionManagerService;
+use Modules\Website\Services\HomepageSectionRegistry;
 
 class HomeSettings extends Component
 {
@@ -19,18 +20,7 @@ class HomeSettings extends Component
 
     public $activeTab = 'layout';
 
-    public $layout = [
-        'show_hero' => 'all',
-        'show_categories' => 'all',
-        'show_flash_sale' => 'all',
-        'show_featured' => 'all',
-        'show_new_arrivals' => 'all',
-        'show_best_sellers' => 'all',
-        'show_blog_highlight' => 'all',
-        'show_promo_banner' => 'all',
-        'show_trust_badges' => 'all',
-        'show_newsletter' => 'all',
-    ];
+    public array $layout = [];
 
     public array $sectionOrder = [];
 
@@ -71,15 +61,22 @@ class HomeSettings extends Component
         'description' => 'Đăng ký để nhận tin tức về bộ sưu tập mới, mẹo phối đồ và các ưu đãi độc quyền chỉ dành cho thành viên.',
     ];
 
-    public function mount(SettingsService $settings, HomepageContentService $homepage)
-    {
+    public function mount(
+        SettingsService $settings,
+        HomepageContentService $homepage,
+        HomepageSectionRegistry $registry
+    ): void {
+        $this->layout = collect($registry->all())
+            ->mapWithKeys(fn (array $definition, string $key): array => ['show_'.$key => 'all'])
+            ->all();
+
         $this->loadSettings($settings);
         $this->layout = array_merge($this->layout, $homepage->visibility());
         $this->sectionOrder = array_map(fn (string $key): string => 'show_'.$key, $homepage->order());
         $this->sectionTypes = $homepage->sectionTypes();
     }
 
-    public function loadSettings(SettingsService $settings)
+    public function loadSettings(SettingsService $settings): void
     {
         foreach ($this->layout as $key => $default) {
             $value = $settings->get('home_'.$key);
@@ -87,9 +84,7 @@ class HomeSettings extends Component
         }
 
         $this->data['category_ids'] = (array) $settings->get('home_category_ids', []);
-
         $this->data['featured_ids'] = (array) $settings->get('home_featured_ids', []);
-
         $this->newArrivalsCount = (int) $settings->get('home_new_arrivals_count', 10);
         $this->bestSellersCount = (int) $settings->get('home_best_sellers_count', 8);
         $this->blogCount = (int) $settings->get('home_blog_count', 3);
@@ -107,7 +102,7 @@ class HomeSettings extends Component
         $this->data['trust_badges'] = (array) $settings->get('home_trust_badges', []);
     }
 
-    public function render()
+    public function render(HomepageSectionRegistry $registry)
     {
         $allCategories = Category::query()->select('id', 'name')->orderBy('name')->get();
 
@@ -136,6 +131,7 @@ class HomeSettings extends Component
             'allCategories' => $allCategories,
             'searchProducts' => $searchProducts,
             'selectedProducts' => $selectedProducts,
+            'homepageSections' => $registry->all(),
         ]);
     }
 
