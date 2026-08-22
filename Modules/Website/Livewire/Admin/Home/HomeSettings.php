@@ -11,7 +11,6 @@ use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\HomepageContentWriteService;
-use Modules\Website\Services\HomepageSectionManagerService;
 use Modules\Website\Services\HomepageSectionRegistry;
 
 class HomeSettings extends Component
@@ -173,33 +172,69 @@ class HomeSettings extends Component
 
     public function reorderSections(array $orderedKeys): void
     {
+        $this->authorizeAdminPermission('website.home.manage');
+
         $allowed = array_keys($this->layout);
-        $ordered = collect($orderedKeys)->map(fn ($key): string => (string) $key)
+        $ordered = collect($orderedKeys)
+            ->map(fn ($key): string => (string) $key)
             ->filter(fn (string $key): bool => in_array($key, $allowed, true))
-            ->unique()->values();
+            ->unique()
+            ->values();
 
         $this->sectionOrder = $ordered->merge(array_diff($allowed, $ordered->all()))->values()->all();
     }
 
-    public function duplicateSection(string $layoutKey, HomepageSectionManagerService $manager): void
+    public function moveSectionByDrag(string $draggedKey, string $targetKey): void
     {
         $this->authorizeAdminPermission('website.home.manage');
-        $key = str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
-        $copy = $manager->duplicate($key);
-        $copyLayoutKey = 'show_'.$copy->key;
-        $position = array_search($layoutKey, $this->sectionOrder, true);
-        array_splice($this->sectionOrder, $position === false ? count($this->sectionOrder) : $position + 1, 0, [$copyLayoutKey]);
-        $this->layout[$copyLayoutKey] = 'all';
-        $this->sectionTypes[$copy->key] = $copy->type;
-        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã nhân bản section. Hãy bấm Lưu thay đổi.']);
+
+        if ($draggedKey === $targetKey
+            || ! in_array($draggedKey, $this->sectionOrder, true)
+            || ! in_array($targetKey, $this->sectionOrder, true)) {
+            return;
+        }
+
+        $order = array_values(array_diff($this->sectionOrder, [$draggedKey]));
+        $targetIndex = array_search($targetKey, $order, true);
+        array_splice($order, $targetIndex === false ? count($order) : $targetIndex, 0, [$draggedKey]);
+        $this->sectionOrder = $order;
     }
 
-    public function removeSection(string $layoutKey, HomepageSectionManagerService $manager): void
+    public function duplicateSection(string $layoutKey, HomepageSectionRegistry $registry): void
     {
         $this->authorizeAdminPermission('website.home.manage');
-        $key = str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
-        $manager->remove($key);
 
+        $key = $this->sectionKey($layoutKey);
+        $definition = $registry->resolve($key, $this->sectionTypes[$key] ?? null);
+        if (! (bool) ($definition['duplicatable'] ?? false)) {
+            $this->addError('builder', 'Section này không hỗ trợ nhân bản.');
+            return;
+        }
+
+        $copyKey = $this->nextCopyKey($registry->canonicalKey($key));
+        $copyLayoutKey = 'show_'.$copyKey;
+        $position = array_search($layoutKey, $this->sectionOrder, true);
+
+        array_splice(
+            $this->sectionOrder,
+            $position === false ? count($this->sectionOrder) : $position + 1,
+            0,
+            [$copyLayoutKey]
+        );
+
+        $this->layout[$copyLayoutKey] = $this->layout[$layoutKey] ?? 'all';
+        $this->sectionTypes[$copyKey] = $definition['type'];
+        $this->dispatch('alert', [
+            'type' => 'success',
+            'message' => 'Đã nhân bản section trong Builder. Bấm Lưu thay đổi để publish.',
+        ]);
+    }
+
+    public function removeSection(string $layoutKey): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+
+        $key = $this->sectionKey($layoutKey);
         if (str_contains($key, '_copy_')) {
             unset($this->layout[$layoutKey], $this->sectionTypes[$key]);
             $this->sectionOrder = array_values(array_diff($this->sectionOrder, [$layoutKey]));
@@ -207,15 +242,19 @@ class HomeSettings extends Component
             $this->layout[$layoutKey] = 'none';
         }
 
-        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã cập nhật section.']);
+        $this->dispatch('alert', [
+            'type' => 'success',
+            'message' => 'Đã cập nhật Builder. Bấm Lưu thay đổi để publish.',
+        ]);
     }
 
-    public function restoreSection(string $layoutKey, HomepageSectionManagerService $manager): void
+    public function restoreSection(string $layoutKey): void
     {
         $this->authorizeAdminPermission('website.home.manage');
-        $key = str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
-        $manager->restore($key);
-        $this->layout[$layoutKey] = 'all';
+
+        if (array_key_exists($layoutKey, $this->layout)) {
+            $this->layout[$layoutKey] = 'all';
+        }
     }
 
     public function save(HomepageContentWriteService $writer)
@@ -263,7 +302,7 @@ class HomeSettings extends Component
         ];
 
         try {
-            $writer->save($values, $this->sectionOrder);
+            $writer->save($values, $this->sectionOrder, $this->layout, $this->sectionTypes);
         } catch (\Throwable $exception) {
             if ($newImage) {
                 Storage::disk('public')->delete($newImage);
@@ -283,5 +322,24 @@ class HomeSettings extends Component
             'type' => 'success',
             'message' => 'Đã lưu cấu hình thành công!',
         ]);
+    }
+
+    private function sectionKey(string $layoutKey): string
+    {
+        return str_starts_with($layoutKey, 'show_') ? substr($layoutKey, 5) : $layoutKey;
+    }
+
+    private function nextCopyKey(string $canonicalKey): string
+    {
+        $number = 1;
+        $existing = collect(array_keys($this->layout))
+            ->map(fn (string $key): string => $this->sectionKey($key))
+            ->flip();
+
+        do {
+            $candidate = $canonicalKey.'_copy_'.$number++;
+        } while ($existing->has($candidate));
+
+        return $candidate;
     }
 }
