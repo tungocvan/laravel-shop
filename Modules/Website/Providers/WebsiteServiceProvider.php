@@ -104,6 +104,7 @@ class WebsiteServiceProvider extends ServiceProvider
             $savedPresentation = $settings->get('footer.presentation');
             $savedLayout = $settings->get('footer.layout');
             $footerBrandLogo = $settings->get('footer.brand_logo');
+            $siteName = $settings->get('site_name', 'FlexBiz');
 
             $view->with([
                 'footerColumns' => $footerService->getColumnsForFrontend(),
@@ -111,15 +112,21 @@ class WebsiteServiceProvider extends ServiceProvider
                 'footerLayout' => app(FooterLayoutService::class)->resolvedLayout(is_array($savedLayout) ? $savedLayout : null),
                 'footerPresentation' => app(FooterPresentationService::class)->resolve(is_array($savedPresentation) ? $savedPresentation : null),
                 'footerSettings' => [
-                    'brand_name' => $settings->get('footer.brand_name', $settings->get('site_name', 'FlexBiz')),
+                    'brand_name' => $settings->get('footer.brand_name', $siteName),
                     'logo' => $footerBrandLogo ?: $settings->get('site_logo'),
                     'description' => $settings->get('footer.brand_description'),
                     'address' => $settings->get('footer.address'),
                     'email' => $settings->get('footer.email'),
                     'phone' => $settings->get('footer.phone'),
                     'copyright' => $settings->get('footer.copyright'),
+                    'app_title' => $settings->get('footer.app_title', 'Tải Ứng Dụng'),
+                    'app_description' => $settings->get('footer.app_description', 'Cài ứng dụng để truy cập nhanh trên iPhone, iPad, Android hoặc máy tính.'),
+                    'app_button_title' => $settings->get('footer.app_button_title', 'Cài ứng dụng '.$siteName),
+                    'app_button_subtitle' => $settings->get('footer.app_button_subtitle', 'Truy cập nhanh từ màn hình chính · Không cần App Store'),
                     'appstore' => $settings->get('footer.appstore_url'),
                     'playstore' => $settings->get('footer.playstore_url'),
+                    'legal_links' => $settings->get('footer.legal_links', []),
+                    'trust_badges' => $settings->get('footer.trust_badges', []),
                 ],
             ]);
         });
