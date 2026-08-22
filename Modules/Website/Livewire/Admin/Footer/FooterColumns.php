@@ -143,6 +143,23 @@ class FooterColumns extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Đã cập nhật link']);
     }
 
+    public function moveLinkByDrag(
+        int $linkId,
+        int $fromColumnId,
+        int $toColumnId,
+        array $targetOrderedIds,
+        FooterService $service
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+
+        $moved = $service->moveLinkByDrag($linkId, $fromColumnId, $toColumnId, $targetOrderedIds);
+
+        $this->dispatch('show-toast', [
+            'type' => $moved ? 'success' : 'error',
+            'message' => $moved ? 'Đã cập nhật vị trí menu link.' : 'Không thể di chuyển menu link.',
+        ]);
+    }
+
     public function updateLinkOrder(int $columnId, array $orderedIds, FooterService $service): void
     {
         $this->authorizeAdminPermission('website.footer.manage');
