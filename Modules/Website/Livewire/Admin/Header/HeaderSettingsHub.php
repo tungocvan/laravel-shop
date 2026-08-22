@@ -121,10 +121,6 @@ class HeaderSettingsHub extends Component
         array_splice($this->builderSlots[$fromSlot], $fromIndex, 1);
         $this->builderSlots[$fromSlot] = array_values($this->builderSlots[$fromSlot]);
 
-        if ($fromSlot === $toSlot && $fromIndex < $toIndex) {
-            $toIndex--;
-        }
-
         $toIndex = max(0, min($toIndex, count($this->builderSlots[$toSlot] ?? [])));
         array_splice($this->builderSlots[$toSlot], $toIndex, 0, [$item]);
         $this->builderSlots[$toSlot] = array_values($this->builderSlots[$toSlot]);
