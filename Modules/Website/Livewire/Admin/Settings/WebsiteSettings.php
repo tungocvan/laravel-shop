@@ -6,13 +6,14 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\System\Services\SettingsService;
+use Modules\Website\Livewire\Admin\Settings\Concerns\ManagesWebsiteDesignThemes;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\WebsitePage;
 use Modules\Website\Services\WebsiteDesignService;
 
 class WebsiteSettings extends Component
 {
-    use AuthorizesAdminPermissions, WithFileUploads;
+    use AuthorizesAdminPermissions, ManagesWebsiteDesignThemes, WithFileUploads;
 
     public string $activeTab = 'seo';
     public string $siteName = '';
@@ -48,7 +49,7 @@ class WebsiteSettings extends Component
 
     public function setTab(string $tab): void
     {
-        $this->activeTab = in_array($tab, ['seo', 'identity', 'design', 'advanced'], true) ? $tab : 'seo';
+        $this->activeTab = in_array($tab, ['seo', 'identity', 'design', 'themes', 'advanced'], true) ? $tab : 'seo';
     }
 
     public function resetDesign(WebsiteDesignService $designService): void
