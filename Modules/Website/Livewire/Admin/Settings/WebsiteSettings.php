@@ -28,6 +28,10 @@ class WebsiteSettings extends Component
     public string $analyticsCode = '';
     public string $headerScript = '';
     public array $design = [];
+    public array $features = [
+        'chat_widget' => true,
+        'back_to_top' => true,
+    ];
     public $newLogo;
     public $newFavicon;
 
@@ -49,6 +53,14 @@ class WebsiteSettings extends Component
         $this->ogImage = (string) ($page?->seo_image ?: '');
         $savedDesign = $settings->get('website.design');
         $this->design = $designService->resolve(is_array($savedDesign) ? $savedDesign : null);
+
+        $savedFeatures = $settings->get('website.features');
+        if (is_array($savedFeatures)) {
+            $this->features = [
+                'chat_widget' => (bool) ($savedFeatures['chat_widget'] ?? true),
+                'back_to_top' => (bool) ($savedFeatures['back_to_top'] ?? true),
+            ];
+        }
     }
 
     public function setTab(string $tab): void
@@ -84,6 +96,8 @@ class WebsiteSettings extends Component
             'design.layout.container_width.standard' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
             'design.layout.container_width.wide' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
             'design.layout.radius.*' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+            'features.chat_widget' => 'required|boolean',
+            'features.back_to_top' => 'required|boolean',
         ]);
 
         $oldLogo = $this->logo;
@@ -104,6 +118,7 @@ class WebsiteSettings extends Component
                 'analytics_code' => $this->analyticsCode,
                 'header_script' => $this->headerScript,
                 'website.design' => $this->design,
+                'website.features' => $this->features,
             ], 'website');
             WebsitePage::query()->updateOrCreate(['slug' => 'home'], [
                 'title' => 'Trang chủ', 'status' => WebsitePage::STATUS_PUBLISHED, 'template' => 'homepage',
