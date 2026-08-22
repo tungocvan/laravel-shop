@@ -2,7 +2,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
             <h2 class="text-lg font-bold text-slate-900">PWA & Browser Appearance</h2>
-            <p class="mt-1 text-sm text-slate-500">Thiết lập metadata hiển thị trên trình duyệt và khi Website được cài lên thiết bị. Manifest và Service Worker vẫn dùng path hệ thống an toàn.</p>
+            <p class="mt-1 text-sm text-slate-500">Thiết lập metadata hiển thị trên trình duyệt và khi Website được cài lên thiết bị. Manifest Website dùng endpoint động và Service Worker dùng path hệ thống an toàn.</p>
         </div>
         <button type="button" wire:click="resetAppearance" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Khôi phục mặc định</button>
     </div>
@@ -42,11 +42,11 @@
 
     <section class="grid gap-4 md:grid-cols-2">
         <label class="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div><div class="font-semibold text-slate-900">Manifest</div><div class="mt-1 text-xs leading-5 text-slate-500">Cho phép trình duyệt đọc manifest hệ thống tại <code>/manifest.webmanifest</code>.</div></div>
+            <div><div class="font-semibold text-slate-900">Manifest</div><div class="mt-1 text-xs leading-5 text-slate-500">Cho phép trình duyệt đọc manifest Website động tại <code>/website-manifest.webmanifest</code>.</div></div>
             <input type="checkbox" wire:model="appearance.manifest_enabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
         </label>
         <label class="flex cursor-pointer items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div><div class="font-semibold text-slate-900">Service Worker</div><div class="mt-1 text-xs leading-5 text-slate-500">Bật đăng ký Service Worker hệ thống tại <code>/service-worker.js</code>.</div></div>
+            <div><div class="font-semibold text-slate-900">Service Worker</div><div class="mt-1 text-xs leading-5 text-slate-500">Bật đăng ký Service Worker hệ thống tại <code>/service-worker.js</code> và PWA version sync.</div></div>
             <input type="checkbox" wire:model="appearance.service_worker_enabled" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
         </label>
     </section>
@@ -57,5 +57,6 @@
             <div class="h-8 w-8 rounded-lg border border-slate-200" style="background: {{ $appearance['theme_color'] ?? '#0f172a' }}"></div>
             <div><div class="font-semibold text-slate-900">{{ $appearance['application_name'] ?? $siteName }}</div><div class="text-xs text-slate-500">Theme {{ $appearance['theme_color'] ?? '#0f172a' }} · Background {{ $appearance['background_color'] ?? '#ffffff' }}</div></div>
         </div>
+        <div class="mt-3 text-xs text-slate-500">Runtime sync endpoint: <code>/website-pwa-version.json</code></div>
     </div>
 </div>
