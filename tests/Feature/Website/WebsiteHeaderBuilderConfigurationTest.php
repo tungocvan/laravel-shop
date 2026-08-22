@@ -58,7 +58,7 @@ class WebsiteHeaderBuilderConfigurationTest extends TestCase
         $this->assertStringContainsString('HeaderComponentRegistry $registry', $component);
     }
 
-    public function test_builder_view_exposes_phase_9d_controls_without_drag_drop(): void
+    public function test_builder_view_exposes_phase_9d_controls_with_phase_9e_live_preview_updates(): void
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
 
@@ -68,9 +68,9 @@ class WebsiteHeaderBuilderConfigurationTest extends TestCase
         $this->assertStringContainsString('moveComponent(', $view);
         $this->assertStringContainsString('presentation.mode', $view);
         $this->assertStringContainsString("'desktop_height' => ['Desktop height', 52, 120]", $view);
-        $this->assertStringContainsString('wire:model="presentation.custom.{{ $field }}"', $view);
-        $this->assertStringNotContainsString('sortable', strtolower($view));
-        $this->assertStringNotContainsString('draggable=', strtolower($view));
+        $this->assertStringContainsString('wire:model.live.debounce.250ms="presentation.custom.{{ $field }}"', $view);
+        $this->assertStringNotContainsString('Sortable', $view);
+        $this->assertStringNotContainsString('sortablejs', strtolower($view));
     }
 
     public function test_storefront_reads_persisted_builder_settings_through_services(): void
