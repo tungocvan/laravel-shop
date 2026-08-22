@@ -10,14 +10,10 @@ use Modules\Website\Models\SocialLink;
 
 class FooterService
 {
-    /* ================= SOCIAL LINKS ================= */
-
     public function updateSocialLinks(array $data): void
     {
         Cache::forget('social_links');
     }
-
-    /* ================= FOOTER COLUMNS & LINKS ================= */
 
     public function createColumn(array $data): FooterColumn
     {
@@ -100,6 +96,70 @@ class FooterService
             return true;
         }
         return false;
+    }
+
+    public function moveLinkByDrag(int $linkId, int $fromColumnId, int $toColumnId, array $targetOrderedIds): bool
+    {
+        $link = FooterLink::query()
+            ->whereKey($linkId)
+            ->where('footer_column_id', $fromColumnId)
+            ->first();
+
+        if (! $link || ! FooterColumn::whereKey($toColumnId)->exists()) {
+            return false;
+        }
+
+        DB::transaction(function () use ($link, $fromColumnId, $toColumnId, $targetOrderedIds): void {
+            if ($fromColumnId !== $toColumnId) {
+                $link->update(['footer_column_id' => $toColumnId]);
+            }
+
+            $targetIds = FooterLink::query()
+                ->where('footer_column_id', $toColumnId)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            $targetLookup = array_flip($targetIds);
+            $ordered = [];
+
+            foreach ($targetOrderedIds as $id) {
+                $id = (int) $id;
+                if (isset($targetLookup[$id]) && ! in_array($id, $ordered, true)) {
+                    $ordered[] = $id;
+                }
+            }
+
+            foreach ($targetIds as $id) {
+                if (! in_array($id, $ordered, true)) {
+                    $ordered[] = $id;
+                }
+            }
+
+            foreach ($ordered as $index => $id) {
+                FooterLink::query()
+                    ->where('footer_column_id', $toColumnId)
+                    ->whereKey($id)
+                    ->update(['sort_order' => $index + 1]);
+            }
+
+            if ($fromColumnId !== $toColumnId) {
+                $sourceIds = FooterLink::query()
+                    ->where('footer_column_id', $fromColumnId)
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->pluck('id');
+
+                foreach ($sourceIds as $index => $id) {
+                    FooterLink::query()
+                        ->where('footer_column_id', $fromColumnId)
+                        ->whereKey($id)
+                        ->update(['sort_order' => $index + 1]);
+                }
+            }
+        });
+
+        $this->clearCache();
+        return true;
     }
 
     public function updateLinkOrder(int $columnId, array $orderedIds): void
