@@ -13,6 +13,7 @@ class FooterInfo extends Component
 {
     use AuthorizesAdminPermissions, WithFileUploads;
 
+    public $brand_name;
     public $brand_description;
     public $address;
     public $email;
@@ -23,9 +24,12 @@ class FooterInfo extends Component
     public $brand_logo_upload;
     public $current_brand_logo;
     public $fallback_site_logo;
+    public $fallback_site_name;
 
     public function mount(SettingsService $settingsService)
     {
+        $this->fallback_site_name = $settingsService->get('site_name', 'FlexBiz');
+        $this->brand_name = $settingsService->get('footer.brand_name', $this->fallback_site_name);
         $this->brand_description = $settingsService->get('footer.brand_description');
         $this->address = $settingsService->get('footer.address');
         $this->email = $settingsService->get('footer.email');
@@ -42,6 +46,7 @@ class FooterInfo extends Component
         $this->authorizeAdminPermission('website.footer.manage');
 
         $this->validate([
+            'brand_name' => ['nullable', 'string', 'max:120'],
             'brand_description' => ['nullable', 'string', 'max:1000'],
             'address' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:150'],
@@ -61,6 +66,7 @@ class FooterInfo extends Component
 
         try {
             $values = [
+                'footer.brand_name' => filled($this->brand_name) ? trim($this->brand_name) : null,
                 'footer.brand_description' => $this->brand_description,
                 'footer.address' => $this->address,
                 'footer.email' => $this->email,
