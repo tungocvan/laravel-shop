@@ -70,6 +70,19 @@
                         @endforeach
                     </div>
                 </section>
+                <section class="space-y-4 border-t border-slate-200 pt-6">
+                    <div><h3 class="font-bold text-slate-900">Tiện ích nổi toàn site</h3><p class="text-sm text-slate-500">Master toggle cho các widget nổi. Back to Top vẫn thuộc Footer Layout; công tắc này quyết định có cho render trên storefront hay không.</p></div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <div><div class="font-semibold text-slate-900">Chat Widget</div><div class="mt-1 text-xs text-slate-500">Hiện nút/chat hỗ trợ nổi trên toàn Website.</div></div>
+                            <input type="checkbox" wire:model="features.chat_widget" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        </label>
+                        <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <div><div class="font-semibold text-slate-900">Back to Top</div><div class="mt-1 text-xs text-slate-500">Hiện nút về đầu trang sau khi người dùng cuộn xuống.</div></div>
+                            <input type="checkbox" wire:model="features.back_to_top" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        </label>
+                    </div>
+                </section>
             </div>
         @elseif($activeTab==='themes')
             @include('Website::livewire.admin.settings.partials.design-themes')
