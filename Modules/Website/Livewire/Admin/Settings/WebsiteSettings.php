@@ -4,6 +4,7 @@ namespace Modules\Website\Livewire\Admin\Settings;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\System\Services\SettingsService;
@@ -11,6 +12,7 @@ use Modules\Website\Livewire\Admin\Settings\Concerns\ManagesWebsiteDesignThemes;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\WebsitePage;
 use Modules\Website\Services\WebsiteDesignService;
+use Throwable;
 
 class WebsiteSettings extends Component
 {
@@ -81,30 +83,37 @@ class WebsiteSettings extends Component
     public function save(SettingsService $settings, WebsiteDesignService $designService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
-        $this->validate([
-            'siteName' => 'required|string|max:120',
-            'seoTitle' => 'required|string|max:70',
-            'seoDescription' => 'nullable|string|max:170',
-            'canonicalUrl' => 'nullable|url|max:255',
-            'robots' => ['required', Rule::in($this->allowedRobots())],
-            'newLogo' => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:3072',
-            'newFavicon' => 'nullable|mimes:png,ico,svg|max:1024',
-            'analyticsCode' => 'nullable|string|max:10000',
-            'headerScript' => 'nullable|string|max:20000',
-            'design.typography.font_family_body' => 'required|string|max:240',
-            'design.typography.font_family_heading' => 'required|string|max:240',
-            'design.typography.base_font_size' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
-            'design.colors.*' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'design.layout.default_container' => 'required|in:compact,standard,wide,full',
-            'design.layout.container_width.compact' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
-            'design.layout.container_width.standard' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
-            'design.layout.container_width.wide' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
-            'design.layout.radius.*' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
-            'features.chat_widget' => 'required|boolean',
-            'features.chat_position' => ['required', Rule::in($this->allowedWidgetPositions())],
-            'features.back_to_top' => 'required|boolean',
-            'features.back_to_top_position' => ['required', Rule::in($this->allowedWidgetPositions())],
-        ]);
+        $this->resetValidation();
+
+        try {
+            $this->validate([
+                'siteName' => 'required|string|max:120',
+                'seoTitle' => 'required|string|max:70',
+                'seoDescription' => 'nullable|string|max:170',
+                'canonicalUrl' => 'nullable|url|max:255',
+                'robots' => ['required', Rule::in($this->allowedRobots())],
+                'newLogo' => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:3072',
+                'newFavicon' => 'nullable|mimes:png,ico,svg|max:1024',
+                'analyticsCode' => 'nullable|string|max:10000',
+                'headerScript' => 'nullable|string|max:20000',
+                'design.typography.font_family_body' => 'required|string|max:240',
+                'design.typography.font_family_heading' => 'required|string|max:240',
+                'design.typography.base_font_size' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+                'design.colors.*' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+                'design.layout.default_container' => 'required|in:compact,standard,wide,full',
+                'design.layout.container_width.compact' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+                'design.layout.container_width.standard' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+                'design.layout.container_width.wide' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+                'design.layout.radius.*' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+                'features.chat_widget' => 'required|boolean',
+                'features.chat_position' => ['required', Rule::in($this->allowedWidgetPositions())],
+                'features.back_to_top' => 'required|boolean',
+                'features.back_to_top_position' => ['required', Rule::in($this->allowedWidgetPositions())],
+            ]);
+        } catch (ValidationException $exception) {
+            $this->themeFeedback('error', 'Không thể lưu thay đổi', 'Một hoặc nhiều trường chưa hợp lệ. Vui lòng kiểm tra các thông báo trong form.');
+            throw $exception;
+        }
 
         $oldLogo = $this->logo;
         $oldFavicon = $this->favicon;
@@ -130,11 +139,13 @@ class WebsiteSettings extends Component
                 'title' => 'Trang chủ', 'status' => WebsitePage::STATUS_PUBLISHED, 'template' => 'homepage',
                 'seo_title' => $this->seoTitle, 'seo_description' => $this->seoDescription, 'seo_image' => $this->ogImage ?: null,
             ]);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             foreach (array_filter([$newLogoPath, $newFaviconPath]) as $path) {
                 Storage::disk('public')->delete($path);
             }
-            throw $exception;
+            report($exception);
+            $this->themeFeedback('error', 'Lưu thay đổi thất bại', 'Không thể lưu cấu hình Website. Dữ liệu cũ vẫn được giữ nguyên. Vui lòng thử lại.');
+            return;
         }
 
         foreach ([[$newLogoPath, $oldLogo], [$newFaviconPath, $oldFavicon]] as [$newPath, $oldPath]) {
@@ -142,8 +153,10 @@ class WebsiteSettings extends Component
                 Storage::disk('public')->delete($oldPath);
             }
         }
+
         $this->reset(['newLogo', 'newFavicon']);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu cấu hình Website.']);
+        $this->themeFeedback('success', 'Lưu thay đổi thành công', 'Cấu hình Website đã được lưu và áp dụng cho storefront.');
     }
 
     private function allowedRobots(): array
