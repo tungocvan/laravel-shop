@@ -1,166 +1,97 @@
 # Website Module
 
-## Module Overview
+`Modules/Website` is the public storefront and Website presentation/CMS module. Canonical ownership of users, products, categories, posts and orders remains in their domain modules; Website composes those contracts for storefront delivery.
 
-`Modules/Website` is the public storefront and CMS presentation module. Domain
-ownership for users, products, categories, posts and orders belongs to their
-canonical modules; Website composes those contracts for storefront delivery.
+## Admin entry points
 
-The module is enabled and registered automatically by `Modules/ModuleServiceProvider.php`.
+- `/admin/website` — Website dashboard and quick access.
+- `/admin/website/settings` — Global Website settings, shell, design, PWA, themes and responsive preview.
+- `/admin/homepage-settings` — Homepage registry/layout/content/themes.
+- `/admin/header-settings` — Header builder, navigation, actions and themes.
+- `/admin/footer-settings` — Footer builder, content, links and themes.
 
-## Registration
+## Architecture status
 
-Manifest: `Modules/Website/Config/module.php`
+The controlled Website refactor is complete through Phase 12:
 
-- Type: `domain`
-- Enabled: yes
-- Depends on: `User`, `Product`, `Category`, `Post`, `Order`
+- Phase 9 — Header Architecture: decomposition, design tokens, component registry, builder, responsive preview, navigation/actions and themes.
+- Phase 10 — Footer Architecture: decomposition, presentation, registry, builder, responsive preview, content administration and themes.
+- Phase 11 — Homepage Architecture: section registry/renderer, admin actions, presentation, themes, seeder/demo data and consolidated admin UX.
+- Phase 12 — Website Layout System: frontend shell decomposition, global design tokens, shell controls, layout presentation, PWA/browser appearance, runtime PWA version sync, Website Theme Schema v2 and responsive preview.
 
-Views are available through the `Website::` / `website::` namespaces. Livewire classes are auto-registered as `website.<kebab-path>` aliases.
+## Phase 12 contracts
 
-## Main Routes
-
-Public routes include:
-
-- `/`
-- `/help`
-- `/product`
-- `/product/{slug}`
-- `/blog`
-- `/blog/{slug}`
-- `/cart`
-- `/checkout`
-- `/account/**`
-- `/sitemap.xml`
-
-Website admin pages are mounted under `/admin` for affiliate, homepage/header/footer settings, banners, flash sales, coupons and customers.
-
-## Permissions
-
-Website admin routes and persistent Livewire mutations use named permissions in
-addition to the `admin` guard. Canonical permissions cover Website view, homepage,
-menu, banner, footer and settings management.
-
-## Features
-
-- Storefront homepage and product browsing.
-- Blog/content display.
-- Cart and coupons.
-- Checkout/order creation.
-- Customer profile, addresses, wishlist and orders.
-- Affiliate dashboard/commission features.
-- Header/footer/banner/home/flash-sale configuration.
-- Customer and coupon administration.
-
-## Dependencies
-
-Declared domain dependencies:
-
-`User -> Product -> Category -> Post -> Order` are all referenced as dependencies of Website; they are not a sequence.
-
-Duplicate cross-domain models/services were removed during Phases 2–8. Homepage
-legacy settings remain temporarily as an explicit compatibility write contract.
-
-## Configuration
-
-- `Modules/Website/Config/**`
-- `Modules/Website/.env.example`
-
-Do not treat Website's nested environment/database management services as canonical storefront responsibilities.
-
-## Operational Notes
-
-Release status: Phases 1–8 are closed; Header Architecture Phase 9A–9E is completed and merged. Footer Architecture Phase 10A–10F is under active implementation/validation. Node.js must be upgraded to a Vite-supported LTS version before production deployment.
-
-## Developer Notes
-
-Use the repository-standard flow:
+Global settings are intentionally separated by responsibility:
 
 ```text
-Route
--> Controller
--> Page Blade
--> Livewire
--> Service
--> Model
--> Database
+website.design      Global visual tokens
+website.shell       Header/Homepage/Footer visibility + storefront maintenance
+website.layout      Main shell container/background/responsive spacing
+website.appearance  Browser/PWA appearance and runtime controls
+website.features    Floating widget visibility/positions
 ```
 
-Keep public Website behavior stable while migrating Product/Post/Order/User ownership toward their canonical domain modules. Do not remove legacy Website classes until active callers and compatibility contracts have been verified.
+`Modules/Website/resources/views/layouts/frontend.blade.php` remains an orchestration shell. Runtime behavior is delegated to dedicated partials/services rather than hardcoded into the layout.
 
-See `ANALYSIS.md` for current findings and `INFORMATION.md` for the module catalog.
-
-## Website Admin UI Standard
-
-All new or refactored Website admin forms should follow:
+Website Theme Schema v2 exports/imports only safe visual state:
 
 ```text
-docs/modules/Website/ADMIN_UI_INPUT_STANDARD.md
+design + layout + appearance + safe floating-widget positions
 ```
 
-This standard defines the approved treatment for visible editable fields, labels, textarea/select controls, checkboxes, file uploads, repeatable collection cards, empty states, validation feedback, responsive grids and primary save actions.
+It intentionally excludes Logo/Favicon, SEO, maintenance state, Header/Homepage/Footer enable state, Analytics and Header Script. Theme v1 remains supported for backward-compatible import/apply.
 
-Core requirement:
+## PWA separation
+
+Storefront Website PWA uses:
 
 ```text
-Editable controls must be visually distinguishable from static text before focus.
+/website-manifest.webmanifest
+/website-pwa-version.json
+/service-worker.js
 ```
 
-The Phase 10F Footer information form is the current reference implementation.
+The legacy/static `/manifest.webmanifest` may belong to a separate Client Portal experience and must not be overwritten by Website Settings.
 
-## Header Architecture — Phase 9
+PWA runtime checks for appearance/version changes when the app loads or returns to foreground and can prompt the user to update. Launcher name/icon refresh timing is still controlled by the browser/OS.
 
-The approved Header target architecture is documented in:
+## Admin UI standards
 
-- `docs/modules/Website/PHASE_9_ANALYSIS.md`
+All Website admin forms must follow:
 
-Implementation slices completed:
+- `ADMIN_UI_INPUT_STANDARD.md` — visible/editable input treatment.
+- `ADMIN_OPERATION_VALIDATION_STANDARD.md` — validate/confirm/execute/feedback rules for Save/Update/Export/Import and other operations.
 
-1. Phase 9A — Header Decomposition
-2. Phase 9B — Global Design Tokens
-3. Phase 9C — Header Schema & Component Registry
-4. Phase 9D — Header Builder Admin
-5. Phase 9E — Drag/drop & Responsive Preview
-
-Header admin route:
+Core requirements:
 
 ```text
-/admin/header-settings
+Editable controls must be visually distinguishable before focus.
+Mutating operations validate before execution and return explicit success/failure feedback.
+Import treats JSON as untrusted input; Export validates required selection/state first.
 ```
 
-## Footer Architecture — Phase 10
+## Phase documentation
 
-The approved Footer target architecture is documented in:
+Key current documents:
 
-- `docs/modules/Website/PHASE_10_ANALYSIS.md`
+- `PHASE_9_ANALYSIS.md` and Phase 9 implementation notes — Header.
+- `PHASE_10_ANALYSIS.md` and `PHASE_10A_IMPLEMENTATION.md` … `PHASE_10F_IMPLEMENTATION.md` — Footer.
+- Phase 11 implementation notes — Homepage registry/admin/presentation/themes.
+- `PHASE_12C_IMPLEMENTATION.md` — Website Layout Presentation.
+- `PHASE_12D_IMPLEMENTATION.md` — PWA & Browser Appearance.
+- `PHASE_12E_IMPLEMENTATION.md` — PWA Runtime Update & Version Sync.
+- `WEBSITE_THEME_SCHEMA_V2.md` — safe Website theme export/import contract.
+- `PHASE_12F_IMPLEMENTATION.md` — Responsive Preview & final consolidation.
+- `PHASE_12_FINAL_AUDIT.md` — merge checklist and final regression command.
 
-Implementation sequence:
+## Development rules
 
-1. Phase 10A — Footer Decomposition
-2. Phase 10B — Footer Design Tokens & Presentation
-3. Phase 10C — Footer Schema & Component Registry
-4. Phase 10D — Footer Builder Admin
-5. Phase 10E — Drag/drop & Responsive Preview
-6. Phase 10F — Footer Brand, Layout Themes and content/admin cleanup
-
-Footer admin route:
+Use the repository-standard flow where applicable:
 
 ```text
-/admin/footer-settings
+Route -> Controller -> Blade/Livewire -> Service -> Model/Settings -> Database
 ```
 
-Phase 10F implementation notes:
+Do not reintroduce hardcoded Header/Footer/Homepage data into the frontend shell. Do not add duplicate Livewire asset injection. Do not add a fake `__lazyLoad()` method to work around Livewire runtime mismatches. Homepage lazy loading remains disabled until its runtime lifecycle is deliberately revalidated.
 
-```text
-docs/modules/Website/PHASE_10F_IMPLEMENTATION.md
-```
-
-## Future Improvements
-
-Current next-step priority:
-
-1. Complete Phase 10F targeted tests and UI validation.
-2. Keep Website admin form work aligned with `ADMIN_UI_INPUT_STANDARD.md`.
-3. Continue to use module-scoped Website tests instead of the full project suite during normal implementation.
-
-The current strategy remains controlled refactoring rather than a full rebuild.
+During implementation, targeted Website tests are preferred. Before merging a completed Website phase, run the full Website feature suite and perform the UI checklist documented in the phase final audit.
