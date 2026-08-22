@@ -12,6 +12,7 @@ use Modules\Website\Livewire\Admin\Settings\Concerns\ManagesWebsiteDesignThemes;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\WebsitePage;
 use Modules\Website\Services\WebsiteDesignService;
+use Modules\Website\Services\WebsiteShellService;
 use Throwable;
 
 class WebsiteSettings extends Component
@@ -30,6 +31,7 @@ class WebsiteSettings extends Component
     public string $analyticsCode = '';
     public string $headerScript = '';
     public array $design = [];
+    public array $shell = [];
     public array $features = [
         'chat_widget' => true,
         'chat_position' => 'bottom-right',
@@ -39,7 +41,7 @@ class WebsiteSettings extends Component
     public $newLogo;
     public $newFavicon;
 
-    public function mount(SettingsService $settings, WebsiteDesignService $designService): void
+    public function mount(SettingsService $settings, WebsiteDesignService $designService, WebsiteShellService $shellService): void
     {
         $page = WebsitePage::query()->where('slug', 'home')->first();
         $this->siteName = (string) $settings->get('site_name', 'FlexBiz');
@@ -55,8 +57,12 @@ class WebsiteSettings extends Component
         $this->seoTitle = (string) ($page?->seo_title ?: $this->siteName);
         $this->seoDescription = (string) ($page?->seo_description ?: '');
         $this->ogImage = (string) ($page?->seo_image ?: '');
+
         $savedDesign = $settings->get('website.design');
         $this->design = $designService->resolve(is_array($savedDesign) ? $savedDesign : null);
+
+        $savedShell = $settings->get('website.shell');
+        $this->shell = $shellService->resolve(is_array($savedShell) ? $savedShell : null);
 
         $savedFeatures = $settings->get('website.features');
         if (is_array($savedFeatures)) {
@@ -71,7 +77,7 @@ class WebsiteSettings extends Component
 
     public function setTab(string $tab): void
     {
-        $this->activeTab = in_array($tab, ['seo', 'identity', 'design', 'themes', 'advanced'], true) ? $tab : 'seo';
+        $this->activeTab = in_array($tab, ['seo', 'identity', 'layout', 'design', 'themes', 'advanced'], true) ? $tab : 'seo';
     }
 
     public function resetDesign(WebsiteDesignService $designService): void
@@ -80,7 +86,7 @@ class WebsiteSettings extends Component
         $this->design = $designService->resolve();
     }
 
-    public function save(SettingsService $settings, WebsiteDesignService $designService): void
+    public function save(SettingsService $settings, WebsiteDesignService $designService, WebsiteShellService $shellService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
         $this->resetValidation();
@@ -105,10 +111,21 @@ class WebsiteSettings extends Component
                 'design.layout.container_width.standard' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
                 'design.layout.container_width.wide' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
                 'design.layout.radius.*' => ['required', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'],
+                'shell.header_enabled' => 'required|boolean',
+                'shell.homepage_enabled' => 'required|boolean',
+                'shell.footer_enabled' => 'required|boolean',
+                'shell.maintenance.enabled' => 'required|boolean',
+                'shell.maintenance.title' => 'required|string|max:120',
+                'shell.maintenance.message' => 'required|string|max:1000',
                 'features.chat_widget' => 'required|boolean',
                 'features.chat_position' => ['required', Rule::in($this->allowedWidgetPositions())],
                 'features.back_to_top' => 'required|boolean',
                 'features.back_to_top_position' => ['required', Rule::in($this->allowedWidgetPositions())],
+            ], [
+                'shell.maintenance.title.required' => 'Vui lòng nhập tiêu đề bảo trì.',
+                'shell.maintenance.message.required' => 'Vui lòng nhập nội dung thông báo bảo trì.',
+                'shell.maintenance.title.max' => 'Tiêu đề bảo trì không được vượt quá 120 ký tự.',
+                'shell.maintenance.message.max' => 'Nội dung bảo trì không được vượt quá 1000 ký tự.',
             ]);
         } catch (ValidationException $exception) {
             $this->setErrorBag($exception->validator->errors());
@@ -123,6 +140,7 @@ class WebsiteSettings extends Component
         $this->logo = $newLogoPath ?: $this->logo;
         $this->favicon = $newFaviconPath ?: $this->favicon;
         $this->design = $designService->resolve($this->design);
+        $this->shell = $shellService->resolve($this->shell);
 
         try {
             $settings->updateMany([
@@ -134,6 +152,7 @@ class WebsiteSettings extends Component
                 'analytics_code' => $this->analyticsCode,
                 'header_script' => $this->headerScript,
                 'website.design' => $this->design,
+                'website.shell' => $this->shell,
                 'website.features' => $this->features,
             ], 'website');
             WebsitePage::query()->updateOrCreate(['slug' => 'home'], [
