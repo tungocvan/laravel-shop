@@ -11,6 +11,7 @@ use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Admin\Settings\Concerns\ManagesWebsiteDesignThemes;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\WebsitePage;
+use Modules\Website\Services\WebsiteAppearanceService;
 use Modules\Website\Services\WebsiteDesignService;
 use Modules\Website\Services\WebsiteLayoutPresentationService;
 use Modules\Website\Services\WebsiteShellService;
@@ -34,6 +35,7 @@ class WebsiteSettings extends Component
     public array $design = [];
     public array $shell = [];
     public array $layoutPresentation = [];
+    public array $appearance = [];
     public array $features = [
         'chat_widget' => true,
         'chat_position' => 'bottom-right',
@@ -48,6 +50,7 @@ class WebsiteSettings extends Component
         WebsiteDesignService $designService,
         WebsiteShellService $shellService,
         WebsiteLayoutPresentationService $layoutPresentationService,
+        WebsiteAppearanceService $appearanceService,
     ): void {
         $page = WebsitePage::query()->where('slug', 'home')->first();
         $this->siteName = (string) $settings->get('site_name', 'FlexBiz');
@@ -73,6 +76,9 @@ class WebsiteSettings extends Component
         $savedLayout = $settings->get('website.layout');
         $this->layoutPresentation = $layoutPresentationService->resolve(is_array($savedLayout) ? $savedLayout : null);
 
+        $savedAppearance = $settings->get('website.appearance');
+        $this->appearance = $appearanceService->resolve(is_array($savedAppearance) ? $savedAppearance : null, $this->siteName);
+
         $savedFeatures = $settings->get('website.features');
         if (is_array($savedFeatures)) {
             $this->features = [
@@ -86,7 +92,7 @@ class WebsiteSettings extends Component
 
     public function setTab(string $tab): void
     {
-        $this->activeTab = in_array($tab, ['seo', 'identity', 'layout', 'design', 'themes', 'advanced'], true) ? $tab : 'seo';
+        $this->activeTab = in_array($tab, ['seo', 'identity', 'layout', 'design', 'appearance', 'themes', 'advanced'], true) ? $tab : 'seo';
     }
 
     public function resetDesign(WebsiteDesignService $designService): void
@@ -101,11 +107,18 @@ class WebsiteSettings extends Component
         $this->layoutPresentation = $layoutPresentationService->resolve();
     }
 
+    public function resetAppearance(WebsiteAppearanceService $appearanceService): void
+    {
+        $this->resetValidation();
+        $this->appearance = $appearanceService->resolve(null, $this->siteName);
+    }
+
     public function save(
         SettingsService $settings,
         WebsiteDesignService $designService,
         WebsiteShellService $shellService,
         WebsiteLayoutPresentationService $layoutPresentationService,
+        WebsiteAppearanceService $appearanceService,
     ): void {
         $this->authorizeAdminPermission('website.settings.manage');
         $this->resetValidation();
@@ -147,6 +160,13 @@ class WebsiteSettings extends Component
                 'layoutPresentation.main.mobile.padding_bottom' => 'required|integer|min:0|max:160',
                 'layoutPresentation.main.mobile.padding_x' => 'required|integer|min:0|max:96',
                 'layoutPresentation.scroll.smooth' => 'required|boolean',
+                'appearance.application_name' => 'required|string|max:120',
+                'appearance.apple_title' => 'required|string|max:60',
+                'appearance.theme_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+                'appearance.background_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+                'appearance.apple_status_bar_style' => 'required|in:default,black,black-translucent',
+                'appearance.manifest_enabled' => 'required|boolean',
+                'appearance.service_worker_enabled' => 'required|boolean',
                 'features.chat_widget' => 'required|boolean',
                 'features.chat_position' => ['required', Rule::in($this->allowedWidgetPositions())],
                 'features.back_to_top' => 'required|boolean',
@@ -172,6 +192,7 @@ class WebsiteSettings extends Component
         $this->design = $designService->resolve($this->design);
         $this->shell = $shellService->resolve($this->shell);
         $this->layoutPresentation = $layoutPresentationService->resolve($this->layoutPresentation);
+        $this->appearance = $appearanceService->resolve($this->appearance, $this->siteName);
 
         try {
             $settings->updateMany([
@@ -185,6 +206,7 @@ class WebsiteSettings extends Component
                 'website.design' => $this->design,
                 'website.shell' => $this->shell,
                 'website.layout' => $this->layoutPresentation,
+                'website.appearance' => $this->appearance,
                 'website.features' => $this->features,
             ], 'website');
             WebsitePage::query()->updateOrCreate(['slug' => 'home'], [
