@@ -11,4 +11,3 @@
 @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
 @yield('css')
 @stack('styles')
-@livewireStyles
