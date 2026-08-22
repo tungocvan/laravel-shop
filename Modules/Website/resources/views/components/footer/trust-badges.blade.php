@@ -1,6 +1,19 @@
-<div class="flex items-center gap-4 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" loading="lazy" class="h-6 w-auto bg-white rounded p-1">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" loading="lazy" class="h-6 w-auto bg-white rounded p-1">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" loading="lazy" class="h-6 w-auto bg-white rounded p-1">
-    <img src="https://webmedia.com.vn/images/2021/09/logo-da-thong-bao-bo-cong-thuong-mau-xanh.png" alt="Đã thông báo Bộ Công Thương" loading="lazy" class="h-10 w-auto">
-</div>
+@php($trustBadges = collect($footerSettings['trust_badges'] ?? [])->filter(fn ($item) => is_array($item) && ($item['enabled'] ?? true) && !empty($item['image_url'])))
+
+@if($trustBadges->isNotEmpty())
+    <div class="flex flex-wrap items-center gap-4 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+        @foreach($trustBadges as $badge)
+            @php($image = $badge['image_url'] ?? '')
+            @php($isExternal = str_starts_with($image, 'http://') || str_starts_with($image, 'https://'))
+            @php($src = $isExternal ? $image : asset('storage/'.$image))
+
+            @if(!empty($badge['url']))
+                <a href="{{ $badge['url'] }}" target="_blank" rel="noopener noreferrer" title="{{ $badge['label'] ?? '' }}">
+                    <img src="{{ $src }}" alt="{{ $badge['label'] ?? 'Trust badge' }}" loading="lazy" class="h-8 max-w-28 object-contain bg-white/90 rounded p-1">
+                </a>
+            @else
+                <img src="{{ $src }}" alt="{{ $badge['label'] ?? 'Trust badge' }}" title="{{ $badge['label'] ?? '' }}" loading="lazy" class="h-8 max-w-28 object-contain bg-white/90 rounded p-1">
+            @endif
+        @endforeach
+    </div>
+@endif

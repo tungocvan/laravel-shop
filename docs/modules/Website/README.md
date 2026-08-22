@@ -70,7 +70,7 @@ Do not treat Website's nested environment/database management services as canoni
 
 ## Operational Notes
 
-Release status: Phases 1–8 are closed; Header Architecture Phase 9A–9E is completed and merged. Node.js must be upgraded to a Vite-supported LTS version before production deployment.
+Release status: Phases 1–8 are closed; Header Architecture Phase 9A–9E is completed and merged. Footer Architecture Phase 10A–10F is under active implementation/validation. Node.js must be upgraded to a Vite-supported LTS version before production deployment.
 
 ## Developer Notes
 
@@ -89,6 +89,24 @@ Route
 Keep public Website behavior stable while migrating Product/Post/Order/User ownership toward their canonical domain modules. Do not remove legacy Website classes until active callers and compatibility contracts have been verified.
 
 See `ANALYSIS.md` for current findings and `INFORMATION.md` for the module catalog.
+
+## Website Admin UI Standard
+
+All new or refactored Website admin forms should follow:
+
+```text
+docs/modules/Website/ADMIN_UI_INPUT_STANDARD.md
+```
+
+This standard defines the approved treatment for visible editable fields, labels, textarea/select controls, checkboxes, file uploads, repeatable collection cards, empty states, validation feedback, responsive grids and primary save actions.
+
+Core requirement:
+
+```text
+Editable controls must be visually distinguishable from static text before focus.
+```
+
+The Phase 10F Footer information form is the current reference implementation.
 
 ## Header Architecture — Phase 9
 
@@ -112,37 +130,37 @@ Header admin route:
 
 ## Footer Architecture — Phase 10
 
-The proposed Footer target architecture is documented in:
+The approved Footer target architecture is documented in:
 
 - `docs/modules/Website/PHASE_10_ANALYSIS.md`
 
-Status: `ANALYZED — WAITING FOR USER APPROVAL BEFORE IMPLEMENTATION`.
-
-The proposal applies the same controlled pattern used successfully for Header while preserving existing Footer content managers for Info/Brand, Columns/Links and Social Links.
-
-Proposed implementation sequence:
+Implementation sequence:
 
 1. Phase 10A — Footer Decomposition
 2. Phase 10B — Footer Design Tokens & Presentation
 3. Phase 10C — Footer Schema & Component Registry
 4. Phase 10D — Footer Builder Admin
 5. Phase 10E — Drag/drop & Responsive Preview
-6. Optional Phase 10F — Footer hardcoded content/dependency cleanup
+6. Phase 10F — Footer Brand, Layout Themes and content/admin cleanup
 
-Footer admin route remains:
+Footer admin route:
 
 ```text
 /admin/footer-settings
 ```
 
-Do not begin Footer source refactoring until `PHASE_10_ANALYSIS.md` is explicitly approved.
+Phase 10F implementation notes:
+
+```text
+docs/modules/Website/PHASE_10F_IMPLEMENTATION.md
+```
 
 ## Future Improvements
 
 Current next-step priority:
 
-1. Review and approve Phase 10 Footer Architecture Analysis.
-2. Start Phase 10A only after approval, preserving current Footer UI and runtime behavior.
+1. Complete Phase 10F targeted tests and UI validation.
+2. Keep Website admin form work aligned with `ADMIN_UI_INPUT_STANDARD.md`.
 3. Continue to use module-scoped Website tests instead of the full project suite during normal implementation.
 
 The current strategy remains controlled refactoring rather than a full rebuild.

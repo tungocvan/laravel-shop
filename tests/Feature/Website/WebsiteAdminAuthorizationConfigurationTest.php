@@ -71,6 +71,7 @@ class WebsiteAdminAuthorizationConfigurationTest extends TestCase
             'Modules/Website/Livewire/Admin/Footer/FooterInfo.php' => ['website.footer.manage'],
             'Modules/Website/Livewire/Admin/Footer/FooterColumns.php' => ['website.footer.manage'],
             'Modules/Website/Livewire/Admin/Footer/SocialLinks.php' => ['website.footer.manage'],
+            'Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php' => ['website.footer.manage'],
             'Modules/Website/Livewire/Admin/Banner/BannerManager.php' => ['website.banner.manage'],
             'Modules/Website/Livewire/Admin/FlashSale/FlashSaleManager.php' => ['marketing.flash-sale.manage'],
             'Modules/Website/Livewire/Admin/Coupon/CouponForm.php' => ['marketing.coupon.manage'],
