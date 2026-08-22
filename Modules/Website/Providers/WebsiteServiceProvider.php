@@ -21,6 +21,7 @@ use Modules\Website\Services\HeaderLayoutService;
 use Modules\Website\Services\HeaderMenuService;
 use Modules\Website\Services\HeaderPresentationService;
 use Modules\Website\Services\HomepageContentService;
+use Modules\Website\Services\WebsiteAppearanceService;
 use Modules\Website\Services\WebsiteCheckoutContext;
 use Modules\Website\Services\WebsiteDesignService;
 use Modules\Website\Services\WebsiteLayoutPresentationService;
@@ -63,15 +64,18 @@ class WebsiteServiceProvider extends ServiceProvider
             $savedDesign=$settings->get('website.design');
             $savedShell=$settings->get('website.shell');
             $savedWebsiteLayout=$settings->get('website.layout');
+            $savedAppearance=$settings->get('website.appearance');
+            $siteName=(string)$settings->get('site_name','HOMEPAGE');
             $websiteDesign=app(WebsiteDesignService::class)->resolve(is_array($savedDesign)?$savedDesign:null);
             $view->with([
-                'siteName'=>$settings->get('site_name','HOMEPAGE'),
+                'siteName'=>$siteName,
                 'siteFavicon'=>$settings->get('site_favicon'),
                 'headerScript'=>$settings->get('header_script',''),
                 'websiteDesign'=>$websiteDesign,
                 'websiteShell'=>app(WebsiteShellService::class)->resolve(is_array($savedShell)?$savedShell:null),
                 'websiteLayoutPresentation'=>app(WebsiteLayoutPresentationService::class)->resolve(is_array($savedWebsiteLayout)?$savedWebsiteLayout:null),
-                'websiteSeo'=>['title'=>$home?->seo_title ?: $settings->get('site_name','HOMEPAGE'),'description'=>$home?->seo_description ?: '','image'=>$home?->seo_image,'canonical'=>$settings->get('seo.canonical_url',url()->current()),'robots'=>$settings->get('seo.robots','index,follow')],
+                'websiteAppearance'=>app(WebsiteAppearanceService::class)->resolve(is_array($savedAppearance)?$savedAppearance:null,$siteName),
+                'websiteSeo'=>['title'=>$home?->seo_title ?: $siteName,'description'=>$home?->seo_description ?: '','image'=>$home?->seo_image,'canonical'=>$settings->get('seo.canonical_url',url()->current()),'robots'=>$settings->get('seo.robots','index,follow')],
                 'analyticsCode'=>$settings->get('analytics_code',''),
             ]);
         });
