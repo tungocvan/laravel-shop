@@ -86,13 +86,26 @@ class HeaderSettingsHub extends Component
 
     public function moveComponent(string $fromSlot, int $index, string $toSlot, HeaderComponentRegistry $registry): void
     {
-        $this->authorizeAdminPermission('website.settings.manage');
+        $this->moveComponentByDrag($fromSlot, $index, $toSlot, count($this->builderSlots[$toSlot] ?? []), $registry);
+    }
 
-        if (! in_array($toSlot, self::BUILDER_SLOTS, true) || ! isset($this->builderSlots[$fromSlot][$index])) {
+    public function moveComponentByDrag(
+        string $fromSlot,
+        int $fromIndex,
+        string $toSlot,
+        int $toIndex,
+        HeaderComponentRegistry $registry
+    ): void {
+        $this->authorizeAdminPermission('website.settings.manage');
+        $this->resetErrorBag('builder');
+
+        if (! in_array($fromSlot, self::BUILDER_SLOTS, true)
+            || ! in_array($toSlot, self::BUILDER_SLOTS, true)
+            || ! isset($this->builderSlots[$fromSlot][$fromIndex])) {
             return;
         }
 
-        $item = $this->builderSlots[$fromSlot][$index];
+        $item = $this->builderSlots[$fromSlot][$fromIndex];
 
         try {
             $registry->resolve((string) ($item['type'] ?? ''), $toSlot);
@@ -102,9 +115,15 @@ class HeaderSettingsHub extends Component
             return;
         }
 
-        array_splice($this->builderSlots[$fromSlot], $index, 1);
+        $targetCount = count($this->builderSlots[$toSlot] ?? []);
+        $toIndex = max(0, min($toIndex, $targetCount));
+
+        array_splice($this->builderSlots[$fromSlot], $fromIndex, 1);
         $this->builderSlots[$fromSlot] = array_values($this->builderSlots[$fromSlot]);
-        $this->builderSlots[$toSlot][] = $item;
+
+        $toIndex = max(0, min($toIndex, count($this->builderSlots[$toSlot] ?? [])));
+        array_splice($this->builderSlots[$toSlot], $toIndex, 0, [$item]);
+        $this->builderSlots[$toSlot] = array_values($this->builderSlots[$toSlot]);
     }
 
     public function saveBuilder(
@@ -168,10 +187,11 @@ class HeaderSettingsHub extends Component
         $this->presentation = $presentationService->resolve((array) config('website.header.presentation', []));
     }
 
-    public function render(HeaderComponentRegistry $registry)
+    public function render(HeaderComponentRegistry $registry, HeaderPresentationService $presentationService)
     {
         return view('Website::livewire.admin.header.header-settings-hub', [
             'headerComponents' => $registry->all(),
+            'previewPresentation' => $presentationService->resolve($this->presentation),
             'builderSlotNames' => [
                 'desktop.topbar' => 'Topbar',
                 'desktop.main.left' => 'Desktop · Trái',
