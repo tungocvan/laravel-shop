@@ -70,8 +70,7 @@ Do not treat Website's nested environment/database management services as canoni
 
 ## Operational Notes
 
-Release status: Phases 1–7 are closed; Phase 8 release CLI gate passes. Node.js
-must be upgraded to a Vite-supported LTS version before production deployment.
+Release status: Phases 1–8 are closed; Header Architecture Phase 9A–9E is completed and merged. Node.js must be upgraded to a Vite-supported LTS version before production deployment.
 
 ## Developer Notes
 
@@ -93,25 +92,57 @@ See `ANALYSIS.md` for current findings and `INFORMATION.md` for the module catal
 
 ## Header Architecture — Phase 9
 
-The approved target architecture is documented in:
+The approved Header target architecture is documented in:
 
 - `docs/modules/Website/PHASE_9_ANALYSIS.md`
 
-The approved design separates global Website design tokens from Header layout configuration, decomposes the monolithic Header Blade into stable components, introduces a controlled component registry and slot-based Header Builder, and defines responsive defaults for width/height/colors while keeping typography global.
+Implementation slices completed:
 
-Status: `ANALYZED / APPROVED — READY FOR PHASE 9A IMPLEMENTATION`.
+1. Phase 9A — Header Decomposition
+2. Phase 9B — Global Design Tokens
+3. Phase 9C — Header Schema & Component Registry
+4. Phase 9D — Header Builder Admin
+5. Phase 9E — Drag/drop & Responsive Preview
 
-Phase 9 implementation must proceed in controlled slices, starting with Header decomposition that preserves existing visual/runtime behavior before introducing design tokens, schema/registry, builder controls, drag/drop or responsive preview.
+Header admin route:
+
+```text
+/admin/header-settings
+```
+
+## Footer Architecture — Phase 10
+
+The proposed Footer target architecture is documented in:
+
+- `docs/modules/Website/PHASE_10_ANALYSIS.md`
+
+Status: `ANALYZED — WAITING FOR USER APPROVAL BEFORE IMPLEMENTATION`.
+
+The proposal applies the same controlled pattern used successfully for Header while preserving existing Footer content managers for Info/Brand, Columns/Links and Social Links.
+
+Proposed implementation sequence:
+
+1. Phase 10A — Footer Decomposition
+2. Phase 10B — Footer Design Tokens & Presentation
+3. Phase 10C — Footer Schema & Component Registry
+4. Phase 10D — Footer Builder Admin
+5. Phase 10E — Drag/drop & Responsive Preview
+6. Optional Phase 10F — Footer hardcoded content/dependency cleanup
+
+Footer admin route remains:
+
+```text
+/admin/footer-settings
+```
+
+Do not begin Footer source refactoring until `PHASE_10_ANALYSIS.md` is explicitly approved.
 
 ## Future Improvements
 
 Current next-step priority:
 
-1. Obtain UI/release approval for remaining Phase 8 gate items.
-2. Implement Phase 9A Header decomposition with regression protection.
-3. Formalize global Website typography/color/layout design tokens in Phase 9B.
-4. Introduce validated Header component registry and slot schema in Phase 9C.
-5. Add Header Builder controls in Phase 9D.
-6. Add drag/drop and responsive preview in Phase 9E.
+1. Review and approve Phase 10 Footer Architecture Analysis.
+2. Start Phase 10A only after approval, preserving current Footer UI and runtime behavior.
+3. Continue to use module-scoped Website tests instead of the full project suite during normal implementation.
 
 The current strategy remains controlled refactoring rather than a full rebuild.
