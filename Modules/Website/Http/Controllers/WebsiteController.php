@@ -26,10 +26,10 @@ class WebsiteController extends Controller
 
     public function manifest(SettingsService $settings, WebsiteAppearanceService $appearanceService)
     {
-        $savedAppearance = $settings->get('website.appearance');
-        $appearance = $appearanceService->resolve(is_array($savedAppearance) ? $savedAppearance : null);
+        $appearance = $this->resolvedAppearance($settings, $appearanceService);
 
         return response()->json([
+            'id' => '/',
             'name' => $appearance['application_name'],
             'short_name' => $appearance['apple_title'],
             'description' => $appearance['application_name'],
@@ -41,18 +41,8 @@ class WebsiteController extends Controller
             'background_color' => $appearance['background_color'],
             'theme_color' => $appearance['theme_color'],
             'icons' => [
-                [
-                    'src' => '/pwa/icon.svg',
-                    'sizes' => 'any',
-                    'type' => 'image/svg+xml',
-                    'purpose' => 'any',
-                ],
-                [
-                    'src' => '/pwa/icon-maskable.svg',
-                    'sizes' => 'any',
-                    'type' => 'image/svg+xml',
-                    'purpose' => 'maskable',
-                ],
+                ['src' => '/pwa/icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any'],
+                ['src' => '/pwa/icon-maskable.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'maskable'],
             ],
         ], 200, [
             'Content-Type' => 'application/manifest+json; charset=UTF-8',
@@ -60,33 +50,38 @@ class WebsiteController extends Controller
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
-    public function create()
+    public function pwaVersion(SettingsService $settings, WebsiteAppearanceService $appearanceService)
     {
-        //
+        $appearance = $this->resolvedAppearance($settings, $appearanceService);
+        $versionPayload = [
+            'application_name' => $appearance['application_name'],
+            'apple_title' => $appearance['apple_title'],
+            'theme_color' => $appearance['theme_color'],
+            'background_color' => $appearance['background_color'],
+            'manifest_enabled' => $appearance['manifest_enabled'],
+            'service_worker_enabled' => $appearance['service_worker_enabled'],
+        ];
+
+        return response()->json([
+            'version' => substr(hash('sha256', json_encode($versionPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)), 0, 16),
+            'manifest' => route('website.manifest'),
+        ], 200, [
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        ]);
     }
 
-    public function store(Request $request)
+    private function resolvedAppearance(SettingsService $settings, WebsiteAppearanceService $appearanceService): array
     {
-        //
+        $savedAppearance = $settings->get('website.appearance');
+        $siteName = (string) $settings->get('site_name', 'FlexBiz');
+
+        return $appearanceService->resolve(is_array($savedAppearance) ? $savedAppearance : null, $siteName);
     }
 
-    public function show(string $id)
-    {
-        //
-    }
-
-    public function edit(string $id)
-    {
-        //
-    }
-
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    public function destroy(string $id)
-    {
-        //
-    }
+    public function create() { }
+    public function store(Request $request) { }
+    public function show(string $id) { }
+    public function edit(string $id) { }
+    public function update(Request $request, string $id) { }
+    public function destroy(string $id) { }
 }
