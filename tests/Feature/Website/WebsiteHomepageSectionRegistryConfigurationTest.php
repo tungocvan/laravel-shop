@@ -19,7 +19,8 @@ class WebsiteHomepageSectionRegistryConfigurationTest extends TestCase
         $this->assertSame('website.home.featured-products', $registry->resolve('featured_copy_3', 'product_grid')['renderer']);
         $this->assertSame('website.home.new-arrivals', $registry->resolve('new_arrivals_copy_2', 'product_grid')['renderer']);
         $this->assertSame('website.home.best-sellers', $registry->resolve('best_sellers_copy_8', 'product_grid')['renderer']);
-        $this->assertSame(['lazy' => true], $registry->resolve('blog_highlight')['params']);
+        $this->assertSame([], $registry->resolve('blog_highlight')['params']);
+        $this->assertArrayNotHasKey('lazy', $registry->resolve('best_sellers')['params']);
     }
 
     public function test_unknown_or_mismatched_homepage_sections_are_rejected(): void
