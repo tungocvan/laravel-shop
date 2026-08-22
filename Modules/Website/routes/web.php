@@ -43,8 +43,8 @@ Route::middleware('web')->group(function () use ($websitePrefix) {
     });
 
     Route::controller(ProductController::class)->prefix('product')->name('product.')->group(function () {
-        Route::get('/', 'index')->name('product.list');
-        Route::get('/{slug}', 'show')->name('product.detail');
+        Route::get('/', 'index')->name('list');
+        Route::get('/{slug}', 'show')->name('detail');
     });
 
     Route::prefix('blog')->name('blog.')->group(function () {
