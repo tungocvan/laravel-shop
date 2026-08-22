@@ -5,7 +5,6 @@ namespace Modules\Website\Livewire\Admin\Home\Concerns;
 use InvalidArgumentException;
 use Livewire\Attributes\Computed;
 use Modules\Website\Services\HomepageLayoutThemeService;
-use Modules\Website\Services\HomepagePresentationService;
 
 trait ManagesHomepageLayoutThemes
 {
@@ -17,6 +16,18 @@ trait ManagesHomepageLayoutThemes
     public function layoutThemes(): array
     {
         return app(HomepageLayoutThemeService::class)->all();
+    }
+
+    public function updatedSelectedTheme(string $slug): void
+    {
+        if ($slug === '') {
+            $this->themeName = '';
+            $this->themeJson = '';
+            $this->resetErrorBag('theme');
+            return;
+        }
+
+        $this->selectTheme($slug);
     }
 
     public function selectTheme(string $slug): void
