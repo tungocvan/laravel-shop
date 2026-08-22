@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Livewire\Admin\Footer;
 
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
@@ -14,6 +15,12 @@ class FooterSettingsHub extends Component
 
     public array $builderSlots = [];
     public array $presentation = [];
+    public array $layoutThemes = [];
+    public string $selectedTheme = '';
+    public string $themeName = '';
+
+    private const THEME_VERSION = 1;
+    private const MAX_THEMES = 20;
 
     private const BUILDER_SLOTS = [
         'desktop.top',
@@ -31,14 +38,13 @@ class FooterSettingsHub extends Component
     {
         $savedLayout = $settingsService->get('footer.layout');
         $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.footer.layout', []);
-
-        foreach (self::BUILDER_SLOTS as $slot) {
-            $items = data_get($rawLayout, $slot, []);
-            $this->builderSlots[$slot] = is_array($items) ? array_values($items) : [];
-        }
+        $this->loadBuilderLayout($rawLayout);
 
         $savedPresentation = $settingsService->get('footer.presentation');
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
+
+        $savedThemes = $settingsService->get('footer.layout_themes', []);
+        $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
     }
 
     public function toggleComponent(string $slot, int $index): void
@@ -135,12 +141,180 @@ class FooterSettingsHub extends Component
     ): void {
         $this->authorizeAdminPermission('website.footer.manage');
 
+        $layout = $this->safeLayout($this->builderSlots, $registry);
+        $presentation = $presentationService->resolve($this->presentation);
+
+        $settingsService->updateMany([
+            'footer.layout' => $layout,
+            'footer.presentation' => $presentation,
+        ], 'footer');
+
+        $this->presentation = $presentation;
+
+        $this->dispatch('show-toast', [[
+            'type' => 'success',
+            'message' => 'Đã lưu bố cục Footer.',
+        ]]);
+    }
+
+    public function resetBuilder(FooterPresentationService $presentationService): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $this->loadBuilderLayout((array) config('website.footer.layout', []));
+        $this->presentation = $presentationService->resolve((array) config('website.footer.presentation', []));
+        $this->selectedTheme = '';
+        $this->resetErrorBag(['builder', 'theme']);
+    }
+
+    public function saveTheme(
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $this->validateThemeName();
+
+        if (count($this->layoutThemes) >= self::MAX_THEMES) {
+            $this->addError('theme', 'Chỉ được lưu tối đa '.self::MAX_THEMES.' Footer themes.');
+            return;
+        }
+
+        $baseSlug = Str::slug($this->themeName) ?: 'footer-theme';
+        $slug = $baseSlug;
+        $suffix = 2;
+        while (isset($this->layoutThemes[$slug])) {
+            $slug = $baseSlug.'-'.$suffix++;
+        }
+
+        $this->layoutThemes[$slug] = $this->themeSnapshot($this->themeName, $registry, $presentationService);
+        $this->selectedTheme = $slug;
+        $this->persistThemes($settingsService);
+        $this->dispatchThemeToast('Đã lưu Footer theme mới.');
+    }
+
+    public function applyTheme(
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $layout = is_array($theme['layout'] ?? null) ? $theme['layout'] : [];
+        $safeLayout = $this->safeLayout($layout, $registry);
+        $this->loadBuilderLayout($safeLayout);
+        $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
+        $this->themeName = (string) ($theme['name'] ?? '');
+        $this->resetErrorBag('theme');
+        $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
+    }
+
+    public function updateTheme(
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $name = trim($this->themeName) !== '' ? trim($this->themeName) : (string) ($theme['name'] ?? 'Footer Theme');
+        $this->themeName = $name;
+        $this->validateThemeName();
+        $this->layoutThemes[$this->selectedTheme] = $this->themeSnapshot($name, $registry, $presentationService);
+        $this->persistThemes($settingsService);
+        $this->dispatchThemeToast('Đã cập nhật Footer theme.');
+    }
+
+    public function renameTheme(SettingsService $settingsService): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $this->validateThemeName();
+        $this->layoutThemes[$this->selectedTheme]['name'] = trim($this->themeName);
+        $this->layoutThemes[$this->selectedTheme]['updated_at'] = now()->toIso8601String();
+        $this->persistThemes($settingsService);
+        $this->dispatchThemeToast('Đã đổi tên Footer theme.');
+    }
+
+    public function deleteTheme(SettingsService $settingsService): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if ($this->selectedTheme === '' || ! isset($this->layoutThemes[$this->selectedTheme])) {
+            $this->addError('theme', 'Hãy chọn Footer theme cần xóa.');
+            return;
+        }
+
+        unset($this->layoutThemes[$this->selectedTheme]);
+        $this->selectedTheme = '';
+        $this->themeName = '';
+        $this->persistThemes($settingsService);
+        $this->dispatchThemeToast('Đã xóa Footer theme.');
+    }
+
+    public function selectTheme(string $slug): void
+    {
+        if (! isset($this->layoutThemes[$slug])) {
+            return;
+        }
+
+        $this->selectedTheme = $slug;
+        $this->themeName = (string) ($this->layoutThemes[$slug]['name'] ?? '');
+        $this->resetErrorBag('theme');
+    }
+
+    public function render(FooterComponentRegistry $registry, FooterPresentationService $presentationService)
+    {
+        return view('Website::livewire.admin.footer.footer-settings-hub', [
+            'footerComponents' => $registry->all(),
+            'previewPresentation' => $presentationService->resolve($this->presentation),
+            'builderSlotNames' => [
+                'desktop.top' => 'Desktop · Top',
+                'desktop.main.brand' => 'Desktop · Brand / Contact',
+                'desktop.main.columns' => 'Desktop · Menu Columns',
+                'desktop.main.extra' => 'Desktop · Extra',
+                'desktop.bottom.left' => 'Desktop · Bottom Left',
+                'desktop.bottom.right' => 'Desktop · Bottom Right',
+                'mobile.main' => 'Mobile · Main',
+                'mobile.bottom' => 'Mobile · Bottom',
+                'overlay' => 'Dùng chung · Overlay',
+            ],
+        ]);
+    }
+
+    private function themeSnapshot(
+        string $name,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): array {
+        return [
+            'version' => self::THEME_VERSION,
+            'name' => trim($name),
+            'layout' => $this->safeLayout($this->builderSlots, $registry),
+            'presentation' => $presentationService->resolve($this->presentation),
+            'updated_at' => now()->toIso8601String(),
+        ];
+    }
+
+    private function safeLayout(array $source, FooterComponentRegistry $registry): array
+    {
         $layout = [];
 
         foreach (self::BUILDER_SLOTS as $slot) {
+            $items = array_key_exists($slot, $source)
+                ? $source[$slot]
+                : data_get($source, $slot, []);
             $clean = [];
 
-            foreach ($this->builderSlots[$slot] ?? [] as $item) {
+            foreach (is_array($items) ? $items : [] as $item) {
                 if (! is_array($item) || ! is_string($item['type'] ?? null)) {
                     continue;
                 }
@@ -161,52 +335,51 @@ class FooterSettingsHub extends Component
             data_set($layout, $slot, $clean);
         }
 
-        $presentation = $presentationService->resolve($this->presentation);
-
-        $settingsService->updateMany([
-            'footer.layout' => $layout,
-            'footer.presentation' => $presentation,
-        ], 'footer');
-
-        $this->presentation = $presentation;
-
-        $this->dispatch('show-toast', [[
-            'type' => 'success',
-            'message' => 'Đã lưu bố cục Footer.',
-        ]]);
+        return $layout;
     }
 
-    public function resetBuilder(FooterPresentationService $presentationService): void
+    private function loadBuilderLayout(array $layout): void
     {
-        $this->authorizeAdminPermission('website.footer.manage');
-
-        $layout = (array) config('website.footer.layout', []);
-
         foreach (self::BUILDER_SLOTS as $slot) {
-            $this->builderSlots[$slot] = array_values((array) data_get($layout, $slot, []));
+            $items = array_key_exists($slot, $layout)
+                ? $layout[$slot]
+                : data_get($layout, $slot, []);
+            $this->builderSlots[$slot] = is_array($items) ? array_values($items) : [];
+        }
+    }
+
+    private function selectedThemeData(): ?array
+    {
+        if ($this->selectedTheme === '' || ! is_array($this->layoutThemes[$this->selectedTheme] ?? null)) {
+            $this->addError('theme', 'Hãy chọn Footer theme trước.');
+            return null;
         }
 
-        $this->presentation = $presentationService->resolve((array) config('website.footer.presentation', []));
-        $this->resetErrorBag('builder');
+        return $this->layoutThemes[$this->selectedTheme];
     }
 
-    public function render(FooterComponentRegistry $registry, FooterPresentationService $presentationService)
+    private function validateThemeName(): void
     {
-        return view('Website::livewire.admin.footer.footer-settings-hub', [
-            'footerComponents' => $registry->all(),
-            'previewPresentation' => $presentationService->resolve($this->presentation),
-            'builderSlotNames' => [
-                'desktop.top' => 'Desktop · Top',
-                'desktop.main.brand' => 'Desktop · Brand / Contact',
-                'desktop.main.columns' => 'Desktop · Menu Columns',
-                'desktop.main.extra' => 'Desktop · Extra',
-                'desktop.bottom.left' => 'Desktop · Bottom Left',
-                'desktop.bottom.right' => 'Desktop · Bottom Right',
-                'mobile.main' => 'Mobile · Main',
-                'mobile.bottom' => 'Mobile · Bottom',
-                'overlay' => 'Dùng chung · Overlay',
-            ],
+        $this->themeName = trim($this->themeName);
+        $this->validate([
+            'themeName' => ['required', 'string', 'min:2', 'max:60'],
+        ], [], [
+            'themeName' => 'tên Footer theme',
         ]);
+    }
+
+    private function persistThemes(SettingsService $settingsService): void
+    {
+        $settingsService->set('footer.layout_themes', $this->layoutThemes, 'footer', 'json');
+        $this->resetErrorBag('theme');
+    }
+
+    private function dispatchThemeToast(string $message): void
+    {
+        $this->dispatch('show-toast', [[
+            'type' => 'success',
+            'message' => $message,
+        ]]);
     }
 
     private function hasItem(string $slot, int $index): bool
