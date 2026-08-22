@@ -153,7 +153,7 @@ class WebsiteSettings extends Component
 
     private function allowedWidgetPositions(): array
     {
-        return ['bottom-left', 'bottom-right'];
+        return ['bottom-left', 'bottom-right', 'right-middle'];
     }
 
     private function widgetPosition(mixed $value, string $default): string
