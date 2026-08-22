@@ -2,6 +2,7 @@
 
 namespace Modules\Website\database\Seeders;
 
+use Database\Seeders\CategoryTypeSeeder;
 use Illuminate\Database\Seeder;
 
 class WebsiteDatabaseSeeder extends Seeder
@@ -13,6 +14,7 @@ class WebsiteDatabaseSeeder extends Seeder
         $this->call([
             WebsiteDemoResetSeeder::class,
             WebsiteDemoUserSeeder::class,
+            CategoryTypeSeeder::class,
             CategorySeeder::class,
             ProductSeeder::class,
             PostCategorySeeder::class,
