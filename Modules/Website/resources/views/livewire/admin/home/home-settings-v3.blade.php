@@ -83,5 +83,6 @@
         </div>
     </section>
 
+    @include('Website::livewire.admin.home.partials.layout-themes')
     @include('Website::livewire.admin.home.home-settings-v2')
 </div>
