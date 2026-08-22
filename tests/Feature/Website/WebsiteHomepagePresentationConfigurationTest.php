@@ -26,15 +26,16 @@ class WebsiteHomepagePresentationConfigurationTest extends TestCase
     public function test_admin_exposes_responsive_preview_and_advanced_tokens(): void
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
-        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v3.blade.php'));
+        $shell = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v3.blade.php'));
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/partials/presentation-preview.blade.php'));
 
         $this->assertStringContainsString('home-settings-v3', $component);
+        $this->assertStringContainsString("@include('Website::livewire.admin.home.partials.presentation-preview')", $shell);
         $this->assertStringContainsString("previewDevice: 'desktop'", $view);
-        $this->assertStringContainsString("previewDevice === 'mobile'", $view);
+        $this->assertStringContainsString("previewDevice==='mobile'", $view);
         $this->assertStringContainsString('wire:model.live="presentation.mode"', $view);
         $this->assertStringContainsString('wire:model.live="presentation.container"', $view);
         $this->assertStringContainsString('presentation.custom.container_width', $view);
         $this->assertStringContainsString('presentation.custom.mobile_section_gap', $view);
-        $this->assertStringContainsString("@include('Website::livewire.admin.home.home-settings-v2')", $view);
     }
 }
