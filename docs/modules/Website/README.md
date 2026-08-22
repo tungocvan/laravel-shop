@@ -91,27 +91,27 @@ Keep public Website behavior stable while migrating Product/Post/Order/User owne
 
 See `ANALYSIS.md` for current findings and `INFORMATION.md` for the module catalog.
 
-## Header Architecture — Proposed Phase 9
+## Header Architecture — Phase 9
 
-Before further header source refactoring, the proposed target architecture is documented in:
+The approved target architecture is documented in:
 
 - `docs/modules/Website/PHASE_9_ANALYSIS.md`
 
-The proposal separates global Website design tokens from Header layout configuration, decomposes the monolithic Header Blade into stable components, introduces a controlled component registry and slot-based Header Builder, and defines responsive defaults for width/height/colors while keeping typography global.
+The approved design separates global Website design tokens from Header layout configuration, decomposes the monolithic Header Blade into stable components, introduces a controlled component registry and slot-based Header Builder, and defines responsive defaults for width/height/colors while keeping typography global.
 
-Status: `ANALYZED — WAITING FOR USER APPROVAL BEFORE IMPLEMENTATION`.
+Status: `ANALYZED / APPROVED — READY FOR PHASE 9A IMPLEMENTATION`.
 
-No Header application source should be changed under this proposal until the Phase 9 design is explicitly approved.
+Phase 9 implementation must proceed in controlled slices, starting with Header decomposition that preserves existing visual/runtime behavior before introducing design tokens, schema/registry, builder controls, drag/drop or responsive preview.
 
 ## Future Improvements
 
 Current next-step priority:
 
 1. Obtain UI/release approval for remaining Phase 8 gate items.
-2. Approve the Phase 9 Header Architecture specification.
-3. Refactor the Header into focused components while preserving current behavior.
-4. Formalize global Website typography/color/layout design tokens.
-5. Introduce validated Header component registry and slot schema.
-6. Add Header Builder controls, then drag/drop and responsive preview in later slices.
+2. Implement Phase 9A Header decomposition with regression protection.
+3. Formalize global Website typography/color/layout design tokens in Phase 9B.
+4. Introduce validated Header component registry and slot schema in Phase 9C.
+5. Add Header Builder controls in Phase 9D.
+6. Add drag/drop and responsive preview in Phase 9E.
 
 The current strategy remains controlled refactoring rather than a full rebuild.
