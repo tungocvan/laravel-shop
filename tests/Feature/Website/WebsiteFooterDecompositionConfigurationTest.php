@@ -42,16 +42,16 @@ class WebsiteFooterDecompositionConfigurationTest extends TestCase
         $this->assertStringContainsString('$footerColumns', $columns);
 
         $this->assertStringContainsString("@include('Website::partials.pwa-installer', [", $appInstall);
-        $this->assertStringContainsString("'pwaInstallTitle' => $footerSettings['app_button_title'] ?? null", $appInstall);
-        $this->assertStringContainsString("'pwaInstallSubtitle' => $footerSettings['app_button_subtitle'] ?? null", $appInstall);
+        $this->assertStringContainsString("'pwaInstallTitle' => \$footerSettings['app_button_title'] ?? null", $appInstall);
+        $this->assertStringContainsString("'pwaInstallSubtitle' => \$footerSettings['app_button_subtitle'] ?? null", $appInstall);
 
         $this->assertStringContainsString('$socialLinks', $social);
 
-        $this->assertStringContainsString("$footerSettings['legal_links']", $legal);
+        $this->assertStringContainsString("\$footerSettings['legal_links']", $legal);
         $this->assertStringNotContainsString('Privacy Policy', $legal);
         $this->assertStringNotContainsString('Terms of Service', $legal);
 
-        $this->assertStringContainsString("$footerSettings['trust_badges']", $trust);
+        $this->assertStringContainsString("\$footerSettings['trust_badges']", $trust);
         $this->assertStringNotContainsString('Visa_Inc._logo.svg', $trust);
         $this->assertStringNotContainsString('Mastercard-logo.svg', $trust);
         $this->assertStringNotContainsString('PayPal.svg', $trust);
