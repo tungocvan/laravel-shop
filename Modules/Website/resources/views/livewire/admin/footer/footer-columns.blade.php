@@ -1,4 +1,17 @@
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+    x-data="{
+        dragLink: null,
+        dropLink(toColumnId, targetIndex, currentIds) {
+            if (!this.dragLink) return;
+            const linkId = Number(this.dragLink.linkId);
+            const fromColumnId = Number(this.dragLink.fromColumnId);
+            let ids = currentIds.map(Number).filter(id => id !== linkId);
+            const safeIndex = Math.max(0, Math.min(Number(targetIndex), ids.length));
+            ids.splice(safeIndex, 0, linkId);
+            $wire.moveLinkByDrag(linkId, fromColumnId, Number(toColumnId), ids);
+            this.dragLink = null;
+        }
+    }">
     <div class="lg:col-span-1 space-y-6">
         <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
             <h4 class="font-bold text-gray-800 mb-3">Thêm Cột Mới</h4>
@@ -11,26 +24,18 @@
         </div>
         <div class="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
             <div class="font-semibold">Mẹo quản trị</div>
-            <p class="mt-1">Kéo tay cầm ⋮⋮ để đổi vị trí menu link trong cùng cột hoặc kéo sang cột Footer khác. Nút Nhân bản tạo nhanh một cột mới kèm toàn bộ links.</p>
+            <p class="mt-1">Giữ tay cầm ⋮⋮ rồi kéo menu link lên/xuống hoặc sang cột khác. Nút Nhân bản tạo nhanh một cột mới kèm toàn bộ links.</p>
         </div>
     </div>
 
-    <div class="lg:col-span-2 space-y-6" wire:ignore.self x-data x-init="
-        if ($el._footerColumnsSortable) $el._footerColumnsSortable.destroy();
-        $el._footerColumnsSortable = Sortable.create($el, {
-            handle: '.column-drag-handle',
-            animation: 150,
-            ghostClass: 'opacity-50',
-            onEnd() { $wire.updateColumnOrder(this.toArray()); }
-        });
-    ">
+    <div class="lg:col-span-2 space-y-6">
         @foreach ($columns as $column)
             <div wire:key="col-{{ $column->id }}" data-id="{{ $column->id }}"
                 class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all {{ !$column->is_active ? 'opacity-60 grayscale border-dashed' : '' }}"
                 x-data="{ open: true }">
                 <div class="bg-gray-50 p-4 flex justify-between items-center border-b border-gray-100">
                     <div class="flex items-center gap-3 flex-1">
-                        <span class="column-drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-700 px-1 py-2" title="Kéo để sắp xếp cột">⋮⋮</span>
+                        <span class="text-gray-300 px-1 py-2 select-none" title="Thứ tự cột được quản lý riêng">⋮⋮</span>
 
                         @if ($editingColumnId === $column->id)
                             <div class="flex items-center gap-2 flex-1 animate-fadeIn">
@@ -74,31 +79,21 @@
                         @error("new_links.$column->id.label")<span class="text-red-500 text-xs">{{ $message }}</span>@enderror
                     </div>
 
-                    <ul class="min-h-10 space-y-2 rounded-md transition"
-                        data-column-id="{{ $column->id }}"
-                        wire:key="links-sortable-{{ $column->id }}"
-                        x-data
-                        x-init="
-                            if ($el._footerLinksSortable) $el._footerLinksSortable.destroy();
-                            $el._footerLinksSortable = Sortable.create($el, {
-                                group: 'footer-menu-links',
-                                handle: '.drag-handle',
-                                animation: 150,
-                                ghostClass: 'opacity-40',
-                                chosenClass: 'ring-2',
-                                dragClass: 'shadow-lg',
-                                onEnd(evt) {
-                                    const linkId = Number(evt.item.dataset.id);
-                                    const fromColumnId = Number(evt.from.dataset.columnId);
-                                    const toColumnId = Number(evt.to.dataset.columnId);
-                                    const targetIds = Array.from(evt.to.querySelectorAll(':scope > [data-id]')).map(el => Number(el.dataset.id));
-                                    $wire.moveLinkByDrag(linkId, fromColumnId, toColumnId, targetIds);
-                                }
-                            });
-                        ">
-                        @foreach ($column->links as $link)
+                    @php($columnLinkIds = $column->links->pluck('id')->map(fn ($id) => (int) $id)->values()->all())
+                    <ul class="min-h-12 space-y-2 rounded-md border border-dashed border-transparent p-1 transition"
+                        :class="dragLink ? 'border-blue-300 bg-blue-50/50' : ''"
+                        @dragover.prevent
+                        @drop.prevent="dropLink({{ $column->id }}, {{ count($columnLinkIds) }}, @js($columnLinkIds))"
+                        wire:key="links-native-{{ $column->id }}">
+                        @foreach ($column->links as $linkIndex => $link)
                             <li wire:key="link-{{ $link->id }}" data-id="{{ $link->id }}"
-                                class="bg-white border border-gray-200 rounded px-3 py-2 group hover:border-blue-300 transition shadow-sm">
+                                draggable="{{ $editingLinkId === $link->id ? 'false' : 'true' }}"
+                                @dragstart="dragLink = { linkId: {{ $link->id }}, fromColumnId: {{ $column->id }} }; $event.dataTransfer.effectAllowed = 'move'; $event.dataTransfer.setData('text/plain', '{{ $link->id }}')"
+                                @dragend="dragLink = null"
+                                @dragover.prevent="$event.dataTransfer.dropEffect = 'move'"
+                                @drop.stop.prevent="dropLink({{ $column->id }}, {{ $linkIndex }}, @js($columnLinkIds))"
+                                class="bg-white border border-gray-200 rounded px-3 py-2 group hover:border-blue-300 transition shadow-sm"
+                                :class="dragLink && Number(dragLink.linkId) === {{ $link->id }} ? 'opacity-40' : ''">
                                 @if ($editingLinkId === $link->id)
                                     <div class="flex flex-col gap-2">
                                         <div class="flex gap-2"><input type="text" wire:model="edit_label" class="w-1/2 rounded border-gray-300 text-xs px-2 py-1"><input type="text" wire:model="edit_url" class="w-1/2 rounded border-gray-300 text-xs px-2 py-1"></div>
@@ -118,6 +113,10 @@
                                 @endif
                             </li>
                         @endforeach
+
+                        @if($column->links->isEmpty())
+                            <li class="rounded-md border border-dashed border-gray-300 px-3 py-5 text-center text-xs text-gray-400">Thả menu link vào cột này</li>
+                        @endif
                     </ul>
                 </div>
             </div>
