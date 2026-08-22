@@ -18,7 +18,7 @@ class WebsiteFooterBuilderConfigurationTest extends TestCase
         $this->assertStringNotContainsString('Sortable.min.js', $page);
     }
 
-    public function test_builder_exposes_toggle_reorder_slot_move_save_and_reset_controls(): void
+    public function test_builder_exposes_toggle_reorder_slot_move_save_reset_and_drag_controls(): void
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
 
@@ -26,11 +26,13 @@ class WebsiteFooterBuilderConfigurationTest extends TestCase
         $this->assertStringContainsString('moveUp(', $view);
         $this->assertStringContainsString('moveDown(', $view);
         $this->assertStringContainsString('moveComponent(', $view);
+        $this->assertStringContainsString('moveComponentByDrag(', $view);
         $this->assertStringContainsString('wire:click="saveBuilder"', $view);
         $this->assertStringContainsString('wire:click="resetBuilder"', $view);
         $this->assertStringContainsString('presentation.mode', $view);
         $this->assertStringContainsString('presentation.custom.{{ $field }}', $view);
-        $this->assertStringNotContainsString('draggable=', strtolower($view));
+        $this->assertStringContainsString('draggable="true"', strtolower($view));
+        $this->assertStringNotContainsString('sortable.min.js', strtolower($view));
     }
 
     public function test_builder_persists_only_safe_layout_contract_and_footer_presentation(): void
