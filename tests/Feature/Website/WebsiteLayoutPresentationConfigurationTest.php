@@ -42,8 +42,10 @@ class WebsiteLayoutPresentationConfigurationTest extends TestCase
         $this->assertStringContainsString("'website.layout' => \$this->layoutPresentation", $component);
         $this->assertStringContainsString('resetLayoutPresentation', $component);
         $this->assertStringContainsString("Website::livewire.admin.settings.partials.layout-presentation", $view);
-        $this->assertStringContainsString('layoutPresentation.main.desktop.padding_top', $partial);
-        $this->assertStringContainsString('layoutPresentation.main.mobile.padding_x', $partial);
+        $this->assertStringContainsString("['desktop' => 'Desktop', 'mobile' => 'Mobile']", $partial);
+        $this->assertStringContainsString('layoutPresentation.main.{{ $device }}.padding_top', $partial);
+        $this->assertStringContainsString('layoutPresentation.main.{{ $device }}.padding_bottom', $partial);
+        $this->assertStringContainsString('layoutPresentation.main.{{ $device }}.padding_x', $partial);
         $this->assertStringContainsString('layoutPresentation.main.container', $partial);
         $this->assertStringContainsString('focus:ring-2 focus:ring-indigo-100', $view);
     }
