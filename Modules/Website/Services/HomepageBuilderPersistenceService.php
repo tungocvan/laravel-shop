@@ -41,8 +41,8 @@ class HomepageBuilderPersistenceService
 
         $keep = collect($orderedKeys)->flip();
         $page->sections()
-            ->where('key', 'regexp', '_copy_[0-9]+$')
             ->get()
+            ->filter(fn (WebsiteSection $section): bool => preg_match('/_copy_[0-9]+$/', $section->key) === 1)
             ->each(function (WebsiteSection $section) use ($keep): void {
                 if (! $keep->has($section->key)) {
                     $section->delete();
