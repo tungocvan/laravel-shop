@@ -44,6 +44,12 @@
 
             <div class="grid grid-cols-1 gap-4">
                 <div>
+                    <label class="block text-sm font-medium text-gray-700">Tên Brand Footer</label>
+                    <input type="text" wire:model="brand_name" placeholder="{{ $fallback_site_name ?: 'Tên Website' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500">
+                    <p class="mt-1 text-xs text-gray-500">Nếu để trống, frontend tự động dùng <code>site_name</code>; chỉ fallback cuối cùng về FlexBiz khi Website chưa có tên.</p>
+                    @error('brand_name')<div class="mt-1 text-sm text-red-600">{{ $message }}</div>@enderror
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700">Mô tả ngắn</label>
                     <textarea wire:model="brand_description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
                 </div>
