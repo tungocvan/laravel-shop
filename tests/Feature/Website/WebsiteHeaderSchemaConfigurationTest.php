@@ -16,11 +16,15 @@ class WebsiteHeaderSchemaConfigurationTest extends TestCase
         $brand = $registry->resolve('brand', 'desktop.main.left');
         $this->assertSame('Website::components.header.brand', $brand['view']);
 
+        // Phase 9D allows movable desktop components across left/center/right slots.
+        $movedBrand = $registry->resolve('brand', 'desktop.main.right');
+        $this->assertSame('Website::components.header.brand', $movedBrand['view']);
+
         $this->expectException(InvalidArgumentException::class);
-        $registry->resolve('brand', 'desktop.main.right');
+        $registry->resolve('mobile-menu', 'desktop.main.right');
     }
 
-    public function test_layout_resolver_skips_unknown_or_misplaced_components(): void
+    public function test_layout_resolver_skips_unknown_disabled_or_misplaced_components(): void
     {
         $service = app(HeaderLayoutService::class);
 
@@ -31,8 +35,9 @@ class WebsiteHeaderSchemaConfigurationTest extends TestCase
                     'left' => [
                         ['type' => 'brand'],
                         ['type' => 'unknown-component'],
+                        ['type' => 'search', 'enabled' => false],
                     ],
-                    'center' => [['type' => 'brand']],
+                    'center' => [['type' => 'mobile-menu']],
                     'right' => [['type' => 'actions']],
                 ],
             ],
