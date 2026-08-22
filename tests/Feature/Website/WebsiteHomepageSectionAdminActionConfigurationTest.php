@@ -21,7 +21,19 @@ class WebsiteHomepageSectionAdminActionConfigurationTest extends TestCase
 
         $categories = $registry->adminAction('categories_copy_1');
         $this->assertSame('tab', $categories['type']);
-        $this->assertSame('data', $categories['tab']);
+        $this->assertSame('categories', $categories['tab']);
+
+        $featured = $registry->adminAction('featured');
+        $this->assertSame('featured', $featured['tab']);
+
+        $autoQuery = $registry->adminAction('new_arrivals');
+        $this->assertSame('auto_query', $autoQuery['tab']);
+
+        $promo = $registry->adminAction('promo_banner');
+        $this->assertSame('promo_banner', $promo['tab']);
+
+        $newsletter = $registry->adminAction('newsletter');
+        $this->assertSame('newsletter', $newsletter['tab']);
 
         $trustBadges = $registry->adminAction('trust_badges');
         $this->assertSame('trust_badges', $trustBadges['tab']);
@@ -34,6 +46,9 @@ class WebsiteHomepageSectionAdminActionConfigurationTest extends TestCase
 
         $this->assertStringContainsString("'route' => 'admin.banners'", $config);
         $this->assertStringContainsString("'route' => 'admin.flash-sales'", $config);
+        $this->assertStringContainsString("'tab' => 'categories'", $config);
+        $this->assertStringContainsString("'tab' => 'featured'", $config);
+        $this->assertStringContainsString("'tab' => 'auto_query'", $config);
         $this->assertStringContainsString('Route::has', $registry);
         $this->assertStringContainsString('public function adminAction', $registry);
     }
