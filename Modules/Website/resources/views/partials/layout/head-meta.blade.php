@@ -1,16 +1,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0f172a">
-<meta name="application-name" content="INAFO Client Portal">
+<meta name="theme-color" content="{{ $websiteAppearance['theme_color'] ?? '#0f172a' }}">
+<meta name="application-name" content="{{ $websiteAppearance['application_name'] ?? $siteName ?? 'FlexBiz' }}">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="INAFO">
-<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-status-bar-style" content="{{ $websiteAppearance['apple_status_bar_style'] ?? 'default' }}">
+<meta name="apple-mobile-web-app-title" content="{{ $websiteAppearance['apple_title'] ?? $siteName ?? 'FlexBiz' }}">
+@if(data_get($websiteAppearance ?? [], 'manifest_enabled', true))
+    <link rel="manifest" href="/manifest.webmanifest">
+@endif
 
 @php
-    $faviconType = strtolower(pathinfo((string) $siteFavicon, PATHINFO_EXTENSION)) === 'ico'
-        ? 'image/x-icon'
-        : 'image/png';
+    $faviconExtension = strtolower(pathinfo((string) $siteFavicon, PATHINFO_EXTENSION));
+    $faviconType = match ($faviconExtension) {
+        'ico' => 'image/x-icon',
+        'svg' => 'image/svg+xml',
+        default => 'image/png',
+    };
 @endphp
 @if ($siteFavicon)
     <link id="site-favicon" rel="icon" type="{{ $faviconType }}" href="{{ str_starts_with($siteFavicon, 'http') ? $siteFavicon : asset('storage/' . $siteFavicon).'?v='.md5($siteFavicon) }}">
