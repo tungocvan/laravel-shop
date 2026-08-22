@@ -65,7 +65,7 @@ class WebsiteServiceProvider extends ServiceProvider
         View::composer(['Website::partials.footer'], function ($view) {
             $footerService=app(FooterService::class); $settings=app(SettingsService::class); $savedPresentation=$settings->get('footer.presentation'); $savedLayout=$settings->get('footer.layout'); $footerBrandLogo=$settings->get('footer.brand_logo'); $siteName=$settings->get('site_name','FlexBiz');
             $savedFeatures=$settings->get('website.features');
-            $allowedPositions=['bottom-left','bottom-right'];
+            $allowedPositions=['bottom-left','bottom-right','right-middle'];
             $chatPosition=is_array($savedFeatures)?($savedFeatures['chat_position']??'bottom-right'):'bottom-right';
             $backToTopPosition=is_array($savedFeatures)?($savedFeatures['back_to_top_position']??'bottom-right'):'bottom-right';
             $websiteFeatures=[
