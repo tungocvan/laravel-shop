@@ -65,37 +65,30 @@ class HomeSettings extends Component
             ->mapWithKeys(fn (array $definition, string $key): array => ['show_'.$key => 'all'])
             ->all();
 
-        $this->loadSettings($settings);
         $this->layout = array_merge($this->layout, $homepage->visibility());
         $this->sectionOrder = array_map(fn (string $key): string => 'show_'.$key, $homepage->order());
         $this->sectionTypes = $homepage->sectionTypes();
+        $this->loadStructuredContent($homepage);
         $this->presentation = $presentationService->resolve($settings->get('homepage.presentation', []));
     }
 
-    public function loadSettings(SettingsService $settings): void
+    private function loadStructuredContent(HomepageContentService $homepage): void
     {
-        foreach ($this->layout as $key => $default) {
-            $value = $settings->get('home_'.$key);
-            $this->layout[$key] = $value ?? 'all';
-        }
+        $this->data['category_ids'] = $homepage->referenceIds('categories', 'category', 'home_category_ids');
+        $this->data['featured_ids'] = $homepage->referenceIds('featured', 'product', 'home_featured_ids');
+        $this->newArrivalsCount = $homepage->limit('new_arrivals', 'home_new_arrivals_count', 10);
+        $this->bestSellersCount = $homepage->limit('best_sellers', 'home_best_sellers_count', 8);
+        $this->blogCount = $homepage->limit('blog_highlight', 'home_blog_count', 3);
 
-        $this->data['category_ids'] = (array) $settings->get('home_category_ids', []);
-        $this->data['featured_ids'] = (array) $settings->get('home_featured_ids', []);
-        $this->newArrivalsCount = (int) $settings->get('home_new_arrivals_count', 10);
-        $this->bestSellersCount = (int) $settings->get('home_best_sellers_count', 8);
-        $this->blogCount = (int) $settings->get('home_blog_count', 3);
-
-        $promoSettings = $settings->get('home_promo_banner', []);
-        if (is_array($promoSettings)) {
-            $this->promoBanner = array_merge($this->promoBanner, $promoSettings);
-        }
-
-        $newsletterSettings = $settings->get('home_newsletter', []);
-        if (is_array($newsletterSettings)) {
-            $this->newsletter = array_merge($this->newsletter, $newsletterSettings);
-        }
-
-        $this->data['trust_badges'] = (array) $settings->get('home_trust_badges', []);
+        $this->promoBanner = array_merge(
+            $this->promoBanner,
+            $homepage->config('promo_banner', 'home_promo_banner')
+        );
+        $this->newsletter = array_merge(
+            $this->newsletter,
+            $homepage->config('newsletter', 'home_newsletter')
+        );
+        $this->data['trust_badges'] = $homepage->itemConfigs('trust_badges', 'home_trust_badges');
     }
 
     public function render(HomepageSectionRegistry $registry)
