@@ -13,8 +13,10 @@ class WebsiteShellControlsConfigurationTest extends TestCase
         $service = file_get_contents(base_path('Modules/Website/Services/WebsiteShellService.php'));
 
         $this->assertStringContainsString("'layout'=>'Bố cục Website'", $view);
+        $this->assertStringContainsString('wire:model="shell.{{ $key }}"', $view);
+
         foreach (['header_enabled', 'homepage_enabled', 'footer_enabled'] as $key) {
-            $this->assertStringContainsString("shell.{$key}", $view);
+            $this->assertStringContainsString("['{$key}'", $view);
             $this->assertStringContainsString("'{$key}'", $service);
         }
 
