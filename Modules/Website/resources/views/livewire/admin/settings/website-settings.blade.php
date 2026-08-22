@@ -10,7 +10,7 @@
     </div>
 
     <nav class="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        @foreach(['seo'=>'SEO','identity'=>'Nhận diện','design'=>'Thiết kế toàn site','advanced'=>'Nâng cao'] as $tab=>$label)
+        @foreach(['seo'=>'SEO','identity'=>'Nhận diện','design'=>'Thiết kế toàn site','themes'=>'Themes','advanced'=>'Nâng cao'] as $tab=>$label)
             <button wire:click="setTab('{{ $tab }}')" class="whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold {{ $activeTab===$tab?'bg-indigo-50 text-indigo-700':'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">{{ $label }}</button>
         @endforeach
     </nav>
@@ -37,7 +37,6 @@
                     <div><h2 class="text-lg font-bold text-slate-900">Global Design Tokens</h2><p class="mt-1 text-sm text-slate-500">Các giá trị này áp dụng cho toàn storefront. Config/design.php vẫn là fallback an toàn.</p></div>
                     <button type="button" wire:click="resetDesign" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Khôi phục mặc định</button>
                 </div>
-
                 <section class="space-y-4">
                     <div><h3 class="font-bold text-slate-900">Typography</h3><p class="text-sm text-slate-500">Font family và kích thước chữ nền của toàn Website.</p></div>
                     <div class="grid gap-5 lg:grid-cols-2">
@@ -47,7 +46,6 @@
                         <label class="{{ $labelClass }}">Default container<select wire:model="design.layout.default_container" class="{{ $fieldClass }}"><option value="compact">Compact</option><option value="standard">Standard</option><option value="wide">Wide</option><option value="full">Full width</option></select></label>
                     </div>
                 </section>
-
                 <section class="space-y-4 border-t border-slate-200 pt-6">
                     <div><h3 class="font-bold text-slate-900">Colors</h3><p class="text-sm text-slate-500">Bộ màu semantic dùng chung cho Website.</p></div>
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -56,7 +54,6 @@
                         @endforeach
                     </div>
                 </section>
-
                 <section class="space-y-4 border-t border-slate-200 pt-6">
                     <div><h3 class="font-bold text-slate-900">Container Width</h3><p class="text-sm text-slate-500">Giới hạn chiều rộng dùng bởi các component theo global token.</p></div>
                     <div class="grid gap-5 md:grid-cols-3">
@@ -65,7 +62,6 @@
                         @endforeach
                     </div>
                 </section>
-
                 <section class="space-y-4 border-t border-slate-200 pt-6">
                     <div><h3 class="font-bold text-slate-900">Border Radius</h3><p class="text-sm text-slate-500">Bo góc semantic cho card, input và surface.</p></div>
                     <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -75,6 +71,8 @@
                     </div>
                 </section>
             </div>
+        @elseif($activeTab==='themes')
+            @include('Website::livewire.admin.settings.partials.design-themes')
         @else
             <div class="grid gap-5">
                 <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Chỉ quản trị viên có quyền cấu hình Website mới được lưu mã nâng cao. Mã sai có thể ảnh hưởng giao diện.</div>
