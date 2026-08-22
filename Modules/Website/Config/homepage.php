@@ -8,6 +8,7 @@ return [
             'description' => 'Slider chính đầu trang',
             'renderer' => 'website.home.hero-banner',
             'duplicatable' => true,
+            'admin' => ['route' => 'admin.banners', 'label' => 'Quản trị Banner'],
         ],
         'categories' => [
             'type' => 'category_grid',
@@ -16,6 +17,7 @@ return [
             'renderer' => 'website.home.category-highlight',
             'props' => ['categoryIds' => 'categoryIds'],
             'duplicatable' => true,
+            'admin' => ['tab' => 'data', 'label' => 'Cấu hình danh mục'],
         ],
         'flash_sale' => [
             'type' => 'flash_sale',
@@ -24,6 +26,7 @@ return [
             'renderer' => 'website.home.flash-sale',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['route' => 'admin.flash-sales', 'label' => 'Quản trị Flash Sale'],
         ],
         'featured' => [
             'type' => 'product_grid',
@@ -32,6 +35,7 @@ return [
             'renderer' => 'website.home.featured-products',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['tab' => 'data', 'label' => 'Chọn sản phẩm'],
         ],
         'new_arrivals' => [
             'type' => 'product_grid',
@@ -40,6 +44,7 @@ return [
             'renderer' => 'website.home.new-arrivals',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['tab' => 'data', 'label' => 'Cấu hình số lượng'],
         ],
         'best_sellers' => [
             'type' => 'product_grid',
@@ -48,6 +53,7 @@ return [
             'renderer' => 'website.home.best-sellers',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['tab' => 'data', 'label' => 'Cấu hình số lượng'],
         ],
         'blog_highlight' => [
             'type' => 'post_grid',
@@ -56,6 +62,7 @@ return [
             'renderer' => 'website.home.blog-highlight',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['tab' => 'data', 'label' => 'Cấu hình Blog'],
         ],
         'promo_banner' => [
             'type' => 'promo_banner',
@@ -64,6 +71,7 @@ return [
             'renderer' => 'website.home.promo-banner',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['tab' => 'data', 'label' => 'Cấu hình Banner quảng cáo'],
         ],
         'trust_badges' => [
             'type' => 'trust_badges',
@@ -72,6 +80,7 @@ return [
             'renderer' => 'website.home.trust-badges',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['tab' => 'trust_badges', 'label' => 'Quản trị Icon service'],
         ],
         'newsletter' => [
             'type' => 'newsletter',
@@ -80,6 +89,7 @@ return [
             'renderer' => 'website.home.newsletter-signup',
             'params' => ['lazy' => true],
             'duplicatable' => true,
+            'admin' => ['tab' => 'data', 'label' => 'Cấu hình Newsletter'],
         ],
     ],
 ];
