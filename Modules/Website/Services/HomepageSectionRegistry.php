@@ -71,7 +71,7 @@ class HomepageSectionRegistry
                 'type' => 'route',
                 'label' => $label,
                 'route' => $routeName,
-                'url' => route($routeName),
+                'url' => route($routeName, ['from' => 'homepage']),
             ];
         }
 
