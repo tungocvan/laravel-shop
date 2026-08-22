@@ -1,10 +1,10 @@
-<div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
-    <div class="text-xs text-gray-500 text-center md:text-left">
+<div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-6" style="border-top: 1px solid var(--footer-border);">
+    <div class="text-xs text-center md:text-left" style="color: var(--footer-muted);">
         <p>{{ $footerSettings['copyright'] ?? '© 2024 FlexBiz. All rights reserved.' }}</p>
         <div class="flex gap-4 mt-2 justify-center md:justify-start">
-            <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" class="hover:text-white transition-colors">Cookie Settings</a>
+            <a href="#" class="transition-colors hover:underline" style="color: var(--footer-foreground);">Privacy Policy</a>
+            <a href="#" class="transition-colors hover:underline" style="color: var(--footer-foreground);">Terms of Service</a>
+            <a href="#" class="transition-colors hover:underline" style="color: var(--footer-foreground);">Cookie Settings</a>
         </div>
     </div>
 
