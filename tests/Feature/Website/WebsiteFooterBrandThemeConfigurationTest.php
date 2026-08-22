@@ -25,8 +25,8 @@ class WebsiteFooterBrandThemeConfigurationTest extends TestCase
         $this->assertStringContainsString('Fallback từ site_logo', $view);
         $this->assertStringContainsString('wire:click="removeBrandLogo"', $view);
 
-        $this->assertStringContainsString("\$footerBrandLogo = \$settings->get('footer.brand_logo')", $provider);
-        $this->assertStringContainsString("'logo' => \$footerBrandLogo ?: \$settings->get('site_logo')", $provider);
+        $this->assertStringContainsString("\$footerBrandLogo=\$settings->get('footer.brand_logo')", $provider);
+        $this->assertStringContainsString("'logo'=>\$footerBrandLogo ?: \$settings->get('site_logo')", $provider);
     }
 
     public function test_footer_layout_themes_snapshot_only_layout_and_presentation(): void
