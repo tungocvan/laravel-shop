@@ -26,19 +26,19 @@
             <div class="p-4 space-y-1 grow">
                 @php($menuToRender=(isset($mobileMenu)&&$mobileMenu->isNotEmpty())?$mobileMenu:($mainMenu??collect()))
                 @foreach($menuToRender as $item)
-                    <a href="{{ $item->url }}" class="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl">{{ $item->title }}</a>
+                    <a href="{{ $item->url }}" target="{{ $item->target }}" class="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl">{{ $item->title }}</a>
                 @endforeach
 
                 @auth
-                    <div class="border-t my-2 pt-2">
-                        <p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tài khoản</p>
-                        @if(isset($accountMenu) && $accountMenu->isNotEmpty())
+                    @if(isset($accountMenu) && $accountMenu->isNotEmpty())
+                        <div class="border-t my-2 pt-2">
+                            <p class="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tài khoản</p>
                             @foreach($accountMenu as $item)
-                                <a href="{{ $item->url ?: '#' }}" class="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl hover:text-blue-600">{{ $item->title }}</a>
+                                <a href="{{ $item->url ?: '#' }}" target="{{ $item->target }}" class="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl hover:text-blue-600">{{ $item->title }}</a>
                             @endforeach
-                        @else
-                            <a href="{{ Route::has('client.apps.index') ? route('client.apps.index') : '/my-apps' }}" class="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl">Ứng dụng của tôi</a>
-                        @endif
+                        </div>
+                    @endif
+                    <div class="border-t my-2 pt-2">
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="w-full text-left px-4 py-3 text-red-600 font-medium hover:bg-red-50 rounded-xl">Đăng xuất</button>
