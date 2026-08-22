@@ -52,7 +52,41 @@ class HomepageSectionRegistry
             'params' => [],
             'props' => [],
             'duplicatable' => false,
+            'admin' => null,
         ];
+    }
+
+    public function adminAction(string $sectionKey): ?array
+    {
+        $admin = $this->resolve($sectionKey)['admin'] ?? null;
+        if (! is_array($admin)) {
+            return null;
+        }
+
+        $label = trim((string) ($admin['label'] ?? 'Quản trị component'));
+
+        if (isset($admin['route']) && is_string($admin['route']) && $admin['route'] !== '') {
+            if (! \Illuminate\Support\Facades\Route::has($admin['route'])) {
+                return null;
+            }
+
+            return [
+                'type' => 'route',
+                'label' => $label,
+                'route' => $admin['route'],
+                'url' => route($admin['route']),
+            ];
+        }
+
+        if (isset($admin['tab']) && is_string($admin['tab']) && $admin['tab'] !== '') {
+            return [
+                'type' => 'tab',
+                'label' => $label,
+                'tab' => $admin['tab'],
+            ];
+        }
+
+        return null;
     }
 
     public function paramsFor(array $definition, array $context = []): array
