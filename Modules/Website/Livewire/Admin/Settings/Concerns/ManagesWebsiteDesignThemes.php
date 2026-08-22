@@ -17,6 +17,7 @@ trait ManagesWebsiteDesignThemes
 
     public function saveDesignTheme(): void
     {
+        $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
         $slug = app(WebsiteDesignThemeService::class)->save($this->themeName, $this->design);
         $this->selectedTheme = $slug;
@@ -25,6 +26,7 @@ trait ManagesWebsiteDesignThemes
 
     public function applyDesignTheme(): void
     {
+        $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
         $this->design = app(WebsiteDesignThemeService::class)->apply($this->selectedTheme);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã nạp theme vào form. Bấm Lưu thay đổi để publish.']);
@@ -32,6 +34,7 @@ trait ManagesWebsiteDesignThemes
 
     public function updateDesignTheme(): void
     {
+        $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
         app(WebsiteDesignThemeService::class)->update($this->selectedTheme, $this->design);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã cập nhật Website design theme.']);
@@ -39,6 +42,7 @@ trait ManagesWebsiteDesignThemes
 
     public function renameDesignTheme(): void
     {
+        $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
         app(WebsiteDesignThemeService::class)->rename($this->selectedTheme, $this->themeName);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã đổi tên Website design theme.']);
@@ -46,6 +50,7 @@ trait ManagesWebsiteDesignThemes
 
     public function deleteDesignTheme(): void
     {
+        $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
         app(WebsiteDesignThemeService::class)->delete($this->selectedTheme);
         $this->selectedTheme = '';
@@ -54,12 +59,14 @@ trait ManagesWebsiteDesignThemes
 
     public function exportDesignTheme(): void
     {
+        $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
         $this->themeJson = app(WebsiteDesignThemeService::class)->export($this->selectedTheme);
     }
 
     public function importDesignTheme(): void
     {
+        $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
         $slug = app(WebsiteDesignThemeService::class)->import($this->themeJson, filled($this->themeName) ? $this->themeName : null);
         $this->selectedTheme = $slug;
