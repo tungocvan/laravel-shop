@@ -1,10 +1,9 @@
-const CACHE_NAME = 'inafo-client-shell-v2';
+const CACHE_NAME = 'website-storefront-shell-v3';
 const OFFLINE_URL = '/pwa/offline.html';
 const VERSION_URL = '/website-pwa-version.json';
 const WEBSITE_MANIFEST_URL = '/website-manifest.webmanifest';
 const SHELL_ASSETS = [
   OFFLINE_URL,
-  '/manifest.webmanifest',
   WEBSITE_MANIFEST_URL,
   '/pwa/icon.svg',
   '/pwa/icon-maskable.svg',
