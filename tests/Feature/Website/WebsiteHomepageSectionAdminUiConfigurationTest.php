@@ -10,13 +10,16 @@ class WebsiteHomepageSectionAdminUiConfigurationTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
         $registry = file_get_contents(base_path('Modules/Website/Services/HomepageSectionRegistry.php'));
-        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v3.blade.php'));
+        $shellView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v3.blade.php'));
+        $builderView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v2.blade.php'));
+        $view = $shellView."\n".$builderView;
         $legacyView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings.blade.php'));
 
         $this->assertStringContainsString("'sectionCards' => \$registry->adminCards(\$this->sectionOrder, \$this->sectionTypes)", $component);
         $this->assertStringContainsString('public function adminCards(array $sectionOrder, array $sectionTypes = [])', $registry);
         $this->assertStringContainsString("'admin' => \$this->adminAction(\$sectionKey)", $registry);
 
+        $this->assertStringContainsString("@include('Website::livewire.admin.home.home-settings-v2')", $shellView);
         $this->assertStringContainsString('@foreach($sectionCards as $card)', $view);
         $this->assertStringContainsString("\$card['admin']['type'] === 'route'", $view);
         $this->assertStringContainsString("wire:click=\"setTab('{{ \$card['admin']['tab'] }}')\"", $view);
