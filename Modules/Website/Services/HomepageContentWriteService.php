@@ -10,16 +10,24 @@ class HomepageContentWriteService
     public function __construct(
         private readonly SettingsService $settings,
         private readonly HomepageBackfillService $backfill,
+        private readonly HomepageBuilderPersistenceService $builderPersistence,
     ) {}
 
-    public function save(array $values, array $sectionOrder = []): array
-    {
-        $result = DB::transaction(function () use ($values, $sectionOrder): array {
+    public function save(
+        array $values,
+        array $sectionOrder = [],
+        array $layout = [],
+        array $sectionTypes = []
+    ): array {
+        $result = DB::transaction(function () use ($values, $sectionOrder, $layout, $sectionTypes): array {
             // Compatibility write is intentionally retained until the structured
             // homepage has passed its rollback window.
             $this->settings->updateMany($values, 'homepage');
 
-            return $this->backfill->backfill(true, $sectionOrder);
+            $report = $this->backfill->backfill(true, $sectionOrder);
+            $this->builderPersistence->sync($sectionOrder, $layout, $sectionTypes);
+
+            return $report;
         });
 
         HomepageContentService::clearCache();
