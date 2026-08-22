@@ -10,7 +10,7 @@ class WebsiteHomepageSectionAdminUiConfigurationTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
         $registry = file_get_contents(base_path('Modules/Website/Services/HomepageSectionRegistry.php'));
-        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v2.blade.php'));
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v3.blade.php'));
         $legacyView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings.blade.php'));
 
         $this->assertStringContainsString("'sectionCards' => \$registry->adminCards(\$this->sectionOrder, \$this->sectionTypes)", $component);
@@ -28,7 +28,7 @@ class WebsiteHomepageSectionAdminUiConfigurationTest extends TestCase
         $this->assertStringContainsString('sticky bottom-4', $view);
         $this->assertStringContainsString('border border-dashed border-gray-300', $view);
 
-        $this->assertStringContainsString('home-settings-v2', $component);
+        $this->assertStringContainsString('home-settings-v3', $component);
         $this->assertStringContainsString('$sections = [', $legacyView);
     }
 }
