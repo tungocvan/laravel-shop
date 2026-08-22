@@ -35,38 +35,22 @@
 
     <div class="mx-auto px-4"
         style="max-width: {{ $footerContainer ? (int) $footerContainer.'px' : '100%' }}; padding-top: var(--footer-padding-top); padding-bottom: var(--footer-padding-bottom);">
-        <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-12"
-            style="gap: var(--footer-column-gap); margin-bottom: var(--footer-section-gap);">
-            <div class="lg:col-span-4 space-y-6">
-                @include('Website::components.footer.slot', ['slot' => 'desktop.main.brand'])
-            </div>
-
+        <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-12" style="gap: var(--footer-column-gap); margin-bottom: var(--footer-section-gap);">
+            <div class="lg:col-span-4 space-y-6">@include('Website::components.footer.slot', ['slot' => 'desktop.main.brand'])</div>
             @include('Website::components.footer.slot', ['slot' => 'desktop.main.columns'])
-
-            <div class="lg:col-span-3 space-y-6">
-                @include('Website::components.footer.slot', ['slot' => 'desktop.main.extra'])
-            </div>
+            <div class="lg:col-span-3 space-y-6">@include('Website::components.footer.slot', ['slot' => 'desktop.main.extra'])</div>
         </div>
-
-        <div class="md:hidden space-y-8" style="margin-bottom: var(--footer-section-gap);">
-            @include('Website::components.footer.slot', ['slot' => 'mobile.main'])
-        </div>
-
+        <div class="md:hidden space-y-8" style="margin-bottom: var(--footer-section-gap);">@include('Website::components.footer.slot', ['slot' => 'mobile.main'])</div>
         <div class="hidden md:flex items-center justify-between gap-6 pt-8" style="border-top: 1px solid var(--footer-border);">
-            <div class="text-xs text-center md:text-left" style="color: var(--footer-muted);">
-                @include('Website::components.footer.slot', ['slot' => 'desktop.bottom.left'])
-            </div>
+            <div class="text-xs text-center md:text-left" style="color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.left'])</div>
             @include('Website::components.footer.slot', ['slot' => 'desktop.bottom.right'])
         </div>
-
-        <div class="md:hidden flex flex-col items-center gap-6 pt-8 text-xs text-center" style="border-top: 1px solid var(--footer-border); color: var(--footer-muted);">
-            @include('Website::components.footer.slot', ['slot' => 'mobile.bottom'])
-        </div>
+        <div class="md:hidden flex flex-col items-center gap-6 pt-8 text-xs text-center" style="border-top: 1px solid var(--footer-border); color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'mobile.bottom'])</div>
     </div>
 </footer>
 
 @include('Website::components.footer.slot', ['slot' => 'overlay'])
 
 @if(data_get($websiteFeatures ?? [], 'chat_widget', true))
-    @livewire('website.chat.chat-widget')
+    @livewire('website.chat.chat-widget', ['position' => data_get($websiteFeatures ?? [], 'chat_position', 'bottom-right')])
 @endif
