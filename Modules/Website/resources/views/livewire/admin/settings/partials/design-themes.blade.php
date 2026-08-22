@@ -26,7 +26,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
             <h2 class="text-lg font-bold text-slate-900">Website Design Themes</h2>
-            <p class="mt-1 text-sm text-slate-500">Lưu, áp dụng, export và import nhanh Global Design Tokens. Theme hiện chưa chứa layout shell/PWA; các phần đó sẽ được mở rộng ở Phase 12C–12D.</p>
+            <p class="mt-1 text-sm text-slate-500">Lưu, áp dụng, export và import nhanh Global Design Tokens. Mọi thao tác đều validate trước khi xử lý và phản hồi kết quả bằng modal.</p>
         </div>
         <button type="button" @click="confirm('restore', 'Khôi phục themes mặc định', 'Khôi phục lại 03 Website design themes mặc định? Custom themes hiện có vẫn được giữ nguyên.')" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Khôi phục themes mặc định</button>
     </div>
@@ -39,12 +39,13 @@
             </label>
 
             <label class="block text-sm font-semibold text-gray-700">Theme đã lưu
-                <select wire:model.live="selectedTheme" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <select wire:model.live="selectedTheme" class="mt-1 block w-full rounded-lg border {{ $errors->has('selectedTheme') ? 'border-red-400' : 'border-gray-300' }} bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                     <option value="">-- Chọn Website design theme --</option>
                     @foreach($themes as $slug => $theme)
                         <option value="{{ $slug }}">{{ $theme['name'] ?? $slug }}</option>
                     @endforeach
                 </select>
+                @error('selectedTheme')<span class="mt-1 block text-xs font-medium text-red-600">{{ $message }}</span>@enderror
             </label>
 
             <div class="flex flex-wrap gap-2">
@@ -66,9 +67,9 @@
 
         <div class="space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-                <div><p class="text-sm font-semibold text-gray-700">Export / Import JSON</p><p class="mt-1 text-xs text-gray-500">Export theme đã chọn hoặc dán JSON hợp lệ để import.</p></div>
+                <div><p class="text-sm font-semibold text-gray-700">Export / Import JSON</p><p class="mt-1 text-xs text-gray-500">Export yêu cầu chọn theme trước. Import yêu cầu JSON đúng schema và payload thiết kế đầy đủ.</p></div>
                 <div class="flex gap-2">
-                    <button type="button" wire:click="exportDesignTheme" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Export JSON</button>
+                    <button type="button" wire:click="exportDesignTheme" wire:loading.attr="disabled" wire:target="exportDesignTheme" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Export JSON</button>
                     <button type="button" @click="confirm('import', 'Import theme', 'Kiểm tra và import JSON hiện tại thành Website design theme mới?')" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Import JSON</button>
                 </div>
             </div>
