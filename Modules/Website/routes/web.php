@@ -24,6 +24,7 @@ use Modules\Website\Http\Controllers\WebsiteController;
 $websitePrefix = config('website.route_prefix', 'website');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+Route::get('/website-manifest.webmanifest', [WebsiteController::class, 'manifest'])->name('website.manifest');
 
 Route::middleware('web')->group(function () use ($websitePrefix) {
     Route::controller(AuthController::class)->group(function () {
