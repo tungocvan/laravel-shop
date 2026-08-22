@@ -56,4 +56,106 @@ return [
         'logo_max_height' => [24, 72],
         'social_icon_size' => [32, 56],
     ],
+
+    'layout' => [
+        'desktop' => [
+            'top' => [],
+            'main' => [
+                'brand' => [
+                    ['type' => 'brand'],
+                    ['type' => 'contact'],
+                ],
+                'columns' => [
+                    ['type' => 'menu-columns'],
+                ],
+                'extra' => [
+                    ['type' => 'app-install'],
+                    ['type' => 'social-links'],
+                ],
+            ],
+            'bottom' => [
+                'left' => [
+                    ['type' => 'copyright'],
+                    ['type' => 'legal-links'],
+                ],
+                'right' => [
+                    ['type' => 'trust-badges'],
+                ],
+            ],
+        ],
+        'mobile' => [
+            'main' => [
+                ['type' => 'brand'],
+                ['type' => 'contact'],
+                ['type' => 'menu-columns'],
+                ['type' => 'app-install'],
+                ['type' => 'social-links'],
+            ],
+            'bottom' => [
+                ['type' => 'copyright'],
+                ['type' => 'legal-links'],
+                ['type' => 'trust-badges'],
+            ],
+        ],
+        'overlay' => [
+            ['type' => 'back-to-top'],
+        ],
+    ],
+
+    'components' => [
+        'brand' => [
+            'label' => 'Brand',
+            'view' => 'Website::components.footer.brand',
+            'allowed_slots' => ['desktop.main.brand', 'mobile.main'],
+            'default_config' => [],
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'view' => 'Website::components.footer.contact',
+            'allowed_slots' => ['desktop.main.brand', 'mobile.main'],
+            'default_config' => [],
+        ],
+        'menu-columns' => [
+            'label' => 'Menu Columns',
+            'view' => 'Website::components.footer.menu-columns',
+            'allowed_slots' => ['desktop.main.columns', 'mobile.main'],
+            'default_config' => [],
+        ],
+        'app-install' => [
+            'label' => 'App Install',
+            'view' => 'Website::components.footer.app-install',
+            'allowed_slots' => ['desktop.main.extra', 'mobile.main'],
+            'default_config' => [],
+        ],
+        'social-links' => [
+            'label' => 'Social Links',
+            'view' => 'Website::components.footer.social-links',
+            'allowed_slots' => ['desktop.main.extra', 'mobile.main'],
+            'default_config' => [],
+        ],
+        'copyright' => [
+            'label' => 'Copyright',
+            'view' => 'Website::components.footer.copyright',
+            'allowed_slots' => ['desktop.bottom.left', 'mobile.bottom'],
+            'default_config' => [],
+        ],
+        'legal-links' => [
+            'label' => 'Legal Links',
+            'view' => 'Website::components.footer.legal-links',
+            'allowed_slots' => ['desktop.bottom.left', 'mobile.bottom'],
+            'default_config' => [],
+        ],
+        'trust-badges' => [
+            'label' => 'Trust / Payment Badges',
+            'view' => 'Website::components.footer.trust-badges',
+            'allowed_slots' => ['desktop.bottom.right', 'mobile.bottom'],
+            'default_config' => [],
+        ],
+        'back-to-top' => [
+            'label' => 'Back to Top',
+            'view' => 'Website::components.footer.back-to-top',
+            'allowed_slots' => ['overlay'],
+            'default_config' => [],
+        ],
+    ],
 ];
