@@ -5,7 +5,7 @@
         <div class="flex items-center justify-center rounded-lg font-black text-2xl transition-colors group-hover:text-white" style="width: var(--footer-logo-max); height: var(--footer-logo-max); background: var(--footer-heading); color: var(--footer-background);">{{ mb_substr($footerSettings['brand_name'] ?? 'F', 0, 1) }}</div>
     @endif
     <span class="text-2xl font-bold tracking-tight" style="color: var(--footer-heading);">
-        {{ $footerSettings['brand_name'] ?? 'FlexBiz' }}<span style="color: var(--footer-accent);">.</span>
+        {{ $footerSettings['brand_name'] ?? 'FlexBiz' }}
     </span>
 </a>
 
