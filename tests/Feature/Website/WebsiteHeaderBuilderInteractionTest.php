@@ -13,8 +13,8 @@ class WebsiteHeaderBuilderInteractionTest extends TestCase
         $this->assertStringContainsString('public function moveComponentByDrag(', $component);
         $this->assertStringContainsString("authorizeAdminPermission('website.settings.manage')", $component);
         $this->assertStringContainsString('$registry->resolve', $component);
-        $this->assertStringContainsString("in_array($fromSlot, self::BUILDER_SLOTS", $component);
-        $this->assertStringContainsString("in_array($toSlot, self::BUILDER_SLOTS", $component);
+        $this->assertStringContainsString('in_array($fromSlot, self::BUILDER_SLOTS', $component);
+        $this->assertStringContainsString('in_array($toSlot, self::BUILDER_SLOTS', $component);
         $this->assertStringContainsString('array_splice($this->builderSlots[$toSlot]', $component);
     }
 
@@ -44,7 +44,7 @@ class WebsiteHeaderBuilderInteractionTest extends TestCase
         $this->assertStringContainsString("previewDevice = 'mobile'", $preview);
         $this->assertStringContainsString('$builderSlots', $preview);
         $this->assertStringContainsString('$previewPresentation', $preview);
-        $this->assertStringContainsString("'previewPresentation' => $presentationService->resolve($this->presentation)", $component);
+        $this->assertStringContainsString("'previewPresentation' => \$presentationService->resolve(\$this->presentation)", $component);
         $this->assertStringNotContainsString('<iframe', strtolower($preview));
     }
 
