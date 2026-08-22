@@ -129,14 +129,20 @@ class WebsiteDesignThemeService
 
     public function import(string $json, ?string $overrideName = null): string
     {
+        if (trim($json) === '') {
+            throw new InvalidArgumentException('Vui lòng dán dữ liệu JSON theme trước khi import.');
+        }
+
         try {
             $theme = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
-            throw new InvalidArgumentException('JSON theme không hợp lệ.', 0, $exception);
+            throw new InvalidArgumentException('JSON theme không hợp lệ. Vui lòng kiểm tra lại cú pháp.', 0, $exception);
         }
-        if (! is_array($theme)) {
-            throw new InvalidArgumentException('JSON theme không hợp lệ.');
+
+        if (! is_array($theme) || $theme === []) {
+            throw new InvalidArgumentException('JSON theme không có dữ liệu để import.');
         }
+
         $theme = $this->validateTheme($theme);
         $name = filled($overrideName) ? $this->name($overrideName) : $theme['name'];
         return $this->save($name, $theme['design']);
@@ -148,16 +154,30 @@ class WebsiteDesignThemeService
         if (array_diff(array_keys($theme), $allowed) !== []) {
             throw new InvalidArgumentException('Theme chứa field không được hỗ trợ.');
         }
-        if (($theme['schema'] ?? null) !== self::SCHEMA || (int) ($theme['version'] ?? 0) !== self::VERSION) {
-            throw new InvalidArgumentException('Schema/version của Website design theme không được hỗ trợ.');
+        if (($theme['schema'] ?? null) !== self::SCHEMA) {
+            throw new InvalidArgumentException('Schema Website design theme không hợp lệ.');
         }
-        if (! is_array($theme['design'] ?? null)) {
+        if ((int) ($theme['version'] ?? 0) !== self::VERSION) {
+            throw new InvalidArgumentException('Version Website design theme không được hỗ trợ.');
+        }
+        if (! isset($theme['name']) || ! is_string($theme['name']) || trim($theme['name']) === '') {
+            throw new InvalidArgumentException('Website design theme thiếu tên theme.');
+        }
+        if (! is_array($theme['design'] ?? null) || $theme['design'] === []) {
             throw new InvalidArgumentException('Website design theme thiếu design payload.');
         }
+
+        $requiredDesignKeys = ['typography', 'colors', 'layout'];
+        foreach ($requiredDesignKeys as $key) {
+            if (! isset($theme['design'][$key]) || ! is_array($theme['design'][$key]) || $theme['design'][$key] === []) {
+                throw new InvalidArgumentException("Website design theme thiếu design.{$key}.");
+            }
+        }
+
         return [
             'schema' => self::SCHEMA,
             'version' => self::VERSION,
-            'name' => $this->name((string) ($theme['name'] ?? 'Website Theme')),
+            'name' => $this->name($theme['name']),
             'design' => $this->designService->resolve($theme['design']),
             'updated_at' => (string) ($theme['updated_at'] ?? now()->toIso8601String()),
         ];
