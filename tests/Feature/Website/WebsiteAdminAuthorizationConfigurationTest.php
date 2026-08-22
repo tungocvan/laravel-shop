@@ -66,7 +66,7 @@ class WebsiteAdminAuthorizationConfigurationTest extends TestCase
         $expectations = [
             'Modules/Website/Livewire/Admin/Home/HomeSettings.php' => ['website.home.manage'],
             'Modules/Website/Livewire/Admin/Header/GeneralSettings.php' => ['website.menu.manage'],
-            'Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php' => ['website.menu.manage'],
+            'Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php' => ['website.settings.manage'],
             'Modules/Website/Livewire/Admin/Header/MenuManager.php' => ['website.menu.manage'],
             'Modules/Website/Livewire/Admin/Footer/FooterInfo.php' => ['website.footer.manage'],
             'Modules/Website/Livewire/Admin/Footer/FooterColumns.php' => ['website.footer.manage'],
