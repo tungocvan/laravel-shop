@@ -26,7 +26,7 @@ class ChatWidget extends Component
 
     public function mount(ChatService $chatService, string $position = 'bottom-right')
     {
-        $this->position = in_array($position, ['bottom-left', 'bottom-right'], true) ? $position : 'bottom-right';
+        $this->position = in_array($position, ['bottom-left', 'bottom-right', 'right-middle'], true) ? $position : 'bottom-right';
 
         if (Auth::check()) {
             $this->step = 'chat';
