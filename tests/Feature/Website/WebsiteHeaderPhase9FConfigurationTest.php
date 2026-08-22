@@ -22,8 +22,9 @@ class WebsiteHeaderPhase9FConfigurationTest extends TestCase
         $this->assertStringContainsString('Fallback từ site_logo', $view);
         $this->assertStringContainsString('wire:click="removeBrandLogo"', $view);
 
-        $this->assertStringContainsString("\$headerBrandLogo = \$settings->get('header.brand_logo')", $provider);
-        $this->assertStringContainsString("'logo' => \$headerBrandLogo ?: \$settings->get('site_logo')", $provider);
+        $normalizedProvider = preg_replace('/\s+/', '', $provider);
+        $this->assertStringContainsString("\$headerBrandLogo=\$settings->get('header.brand_logo')", $normalizedProvider);
+        $this->assertStringContainsString("'logo'=>\$headerBrandLogo?:\$settings->get('site_logo')", $normalizedProvider);
     }
 
     public function test_header_navigation_locations_are_config_driven_and_render_has_no_database_seed_side_effect(): void
