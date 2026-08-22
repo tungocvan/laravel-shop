@@ -69,10 +69,12 @@
                 <div><p class="text-sm font-semibold text-gray-700">Export / Import JSON</p><p class="mt-1 text-xs text-gray-500">Export theme đã chọn hoặc dán JSON hợp lệ để import.</p></div>
                 <div class="flex gap-2">
                     <button type="button" wire:click="exportDesignTheme" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Export JSON</button>
-                    <button type="button" @click="confirm('import', 'Import theme', 'Import JSON hiện tại thành Website design theme mới?')" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Import JSON</button>
+                    <button type="button" @click="confirm('import', 'Import theme', 'Kiểm tra và import JSON hiện tại thành Website design theme mới?')" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Import JSON</button>
                 </div>
             </div>
-            <textarea wire:model="themeJson" rows="16" spellcheck="false" placeholder='{"schema":"flexbiz.website-design-theme", ...}' class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-mono text-xs text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></textarea>
+            <textarea wire:model="themeJson" rows="16" spellcheck="false" placeholder='{"schema":"flexbiz.website-design-theme", ...}' class="block w-full rounded-lg border {{ $errors->has('themeJson') ? 'border-red-400' : 'border-gray-300' }} bg-white px-3 py-2.5 font-mono text-xs text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></textarea>
+            @error('themeJson')<div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{{ $message }}</div>@enderror
+            <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">Import yêu cầu đúng <strong>schema</strong>, <strong>version</strong>, <strong>name</strong> và đầy đủ <strong>design.typography / design.colors / design.layout</strong>. JSON trống hoặc sai cấu trúc sẽ không được lưu.</div>
         </div>
     </div>
 
