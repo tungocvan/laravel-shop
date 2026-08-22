@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Livewire\Admin\Footer;
 
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\FooterColumn;
@@ -42,6 +43,31 @@ class FooterColumns extends Component
 
         $this->reset(['col_title', 'col_slug', 'col_sort']);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Đã thêm cột mới']);
+    }
+
+    public function duplicateColumn(int $id, FooterService $service): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+
+        $column = FooterColumn::query()->with('links')->find($id);
+        if (! $column) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Cột không tồn tại.']);
+            return;
+        }
+
+        $baseSlug = Str::slug($column->slug.'-copy') ?: 'footer-column-copy';
+        $slug = $baseSlug;
+        $suffix = 2;
+        while (FooterColumn::where('slug', $slug)->exists()) {
+            $slug = $baseSlug.'-'.$suffix++;
+        }
+
+        $service->duplicateColumn($column, [
+            'title' => $column->title.' (Copy)',
+            'slug' => $slug,
+        ]);
+
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Đã nhân bản cột và toàn bộ menu links.']);
     }
 
     public function deleteColumn($id, FooterService $service)
@@ -117,11 +143,11 @@ class FooterColumns extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Đã cập nhật link']);
     }
 
-    public function updateLinkOrder($orderedIds, FooterService $service)
+    public function updateLinkOrder(int $columnId, array $orderedIds, FooterService $service): void
     {
         $this->authorizeAdminPermission('website.footer.manage');
-        $service->updateLinkOrder($orderedIds);
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Đã cập nhật thứ tự']);
+        $service->updateLinkOrder($columnId, $orderedIds);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Đã cập nhật thứ tự menu links']);
     }
 
     public function updateColumnOrder($orderedIds, FooterService $service)
