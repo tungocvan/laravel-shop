@@ -35,6 +35,21 @@ class HeaderMenuService
         });
     }
 
+    public function getMenuTreeForAdmin(string $location): Collection
+    {
+        $menu = $this->getMenuForAdmin($location);
+        if (! $menu) {
+            return new Collection;
+        }
+
+        return HeaderMenuItem::query()
+            ->where('header_menu_id', $menu->id)
+            ->whereNull('parent_id')
+            ->with(['children' => fn ($query) => $query->orderBy('sort_order')])
+            ->orderBy('sort_order')
+            ->get();
+    }
+
     public function getMenuForAdmin(string $location): ?HeaderMenu
     {
         $this->assertKnownLocation($location);
