@@ -2,10 +2,10 @@
 
 namespace Modules\Website\Livewire\Admin\Header;
 
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
 use Livewire\Component;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\HeaderMenu;
 use Modules\Website\Models\HeaderMenuItem;
 use Modules\Website\Services\HeaderMenuService;
 
@@ -13,16 +13,10 @@ class MenuManager extends Component
 {
     use AuthorizesAdminPermissions;
 
-    public $location = 'primary';
+    public string $location = 'primary';
+    public array $menuLocations = [];
 
-    public $menuLocations = [
-        'primary' => 'Desktop Main Menu',
-        'mobile' => 'Mobile Slide-over',
-        'account' => 'Menu tài khoản sau đăng nhập',
-        'admin' => 'Admin Menu Dropdown',
-    ];
-
-    public $isModalOpen = false;
+    public bool $isModalOpen = false;
     public $editingId = null;
     public $title;
     public $url;
@@ -41,39 +35,36 @@ class MenuManager extends Component
         'is_active' => 'boolean',
     ];
 
+    public function mount(HeaderMenuService $service): void
+    {
+        $this->menuLocations = $service->getAvailableLocations();
+        if (! array_key_exists($this->location, $this->menuLocations)) {
+            $this->location = (string) array_key_first($this->menuLocations);
+        }
+    }
+
     public function render(HeaderMenuService $service)
     {
         $this->authorizeAdminPermission('website.menu.manage');
 
-        $currentMenu = HeaderMenu::firstOrCreate(
-            ['location' => $this->location],
-            ['name' => $this->menuLocations[$this->location]]
-        );
-
-        if ($this->location === 'account') {
-            $item = HeaderMenuItem::firstOrCreate(
-                ['header_menu_id' => $currentMenu->id, 'title' => 'Ứng dụng của tôi'],
-                ['url' => '/my-apps', 'parent_id' => null, 'sort_order' => 10, 'is_active' => true]
-            );
-
-            if ($item->wasRecentlyCreated) {
-                Cache::forget('menu_tree_account');
-            }
-        }
-
-        $menuTree = $service->getMenuTreeByLocation($this->location);
-        $flatItems = HeaderMenuItem::where('header_menu_id', $currentMenu->id)->whereNull('parent_id')->get();
+        $currentMenu = $service->getMenuForAdmin($this->location);
+        $menuTree = $currentMenu ? $service->getMenuTreeByLocation($this->location) : new Collection;
+        $flatItems = $currentMenu
+            ? HeaderMenuItem::where('header_menu_id', $currentMenu->id)->whereNull('parent_id')->orderBy('sort_order')->get()
+            : new Collection;
 
         return view('Website::livewire.admin.header.menu-manager', [
             'menuTree' => $menuTree,
             'flatItems' => $flatItems,
-            'currentMenuId' => $currentMenu->id,
+            'currentMenuId' => $currentMenu?->id,
         ]);
     }
 
-    public function openModal($id = null)
+    public function openModal($id = null): void
     {
         $this->reset(['title', 'url', 'parent_id', 'icon', 'sort_order', 'is_active', 'editingId']);
+        $this->is_active = true;
+
         if ($id) {
             $this->editingId = $id;
             $item = HeaderMenuItem::findOrFail($id);
@@ -83,31 +74,70 @@ class MenuManager extends Component
             $this->sort_order = $item->sort_order;
             $this->is_active = $item->is_active;
         }
+
         $this->isModalOpen = true;
     }
 
-    public function save(HeaderMenuService $service)
+    public function save(HeaderMenuService $service): void
     {
         $this->authorizeAdminPermission('website.menu.manage');
         $this->validate();
-        $menuId = HeaderMenu::where('location', $this->location)->value('id');
+
+        $menu = $service->ensureMenu($this->location);
+        if ($this->parent_id) {
+            $validParent = HeaderMenuItem::query()
+                ->where('header_menu_id', $menu->id)
+                ->whereKey($this->parent_id)
+                ->exists();
+            if (! $validParent) {
+                $this->addError('parent_id', 'Menu cha không thuộc vị trí menu hiện tại.');
+                return;
+            }
+        }
+
         $data = [
-            'header_menu_id' => $menuId,
+            'header_menu_id' => $menu->id,
             'title' => $this->title,
             'url' => $this->url,
             'parent_id' => $this->parent_id ?: null,
-            'sort_order' => $this->sort_order,
-            'is_active' => $this->is_active,
+            'sort_order' => (int) $this->sort_order,
+            'is_active' => (bool) $this->is_active,
         ];
-        $this->editingId ? $service->updateItem($this->editingId, $data) : $service->createItem($data);
+
+        $this->editingId ? $service->updateItem((int) $this->editingId, $data) : $service->createItem($data);
         $this->isModalOpen = false;
-        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu menu item!']);
+        $this->dispatch('show-toast', [[
+            'type' => 'success',
+            'message' => 'Đã lưu menu item.',
+        ]]);
     }
 
-    public function delete($id, HeaderMenuService $service)
+    public function delete($id, HeaderMenuService $service): void
     {
         $this->authorizeAdminPermission('website.menu.manage');
-        $service->deleteItem($id);
-        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã xóa menu item!']);
+        $service->deleteItem((int) $id);
+        $this->dispatch('show-toast', [[
+            'type' => 'success',
+            'message' => 'Đã xóa menu item.',
+        ]]);
+    }
+
+    public function moveItemByDrag(
+        int $itemId,
+        ?int $targetParentId,
+        array $orderedIds,
+        HeaderMenuService $service
+    ): void {
+        $this->authorizeAdminPermission('website.menu.manage');
+        $menu = $service->getMenuForAdmin($this->location);
+        if (! $menu) {
+            return;
+        }
+
+        try {
+            $service->moveItemByDrag($menu->id, $itemId, $targetParentId, $orderedIds);
+        } catch (InvalidArgumentException $exception) {
+            $this->addError('menu', $exception->getMessage());
+        }
     }
 }
