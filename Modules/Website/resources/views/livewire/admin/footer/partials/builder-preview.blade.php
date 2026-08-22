@@ -23,6 +23,8 @@
     $componentLabel = static fn (array $item): string => $footerComponents[$item['type'] ?? '']['label'] ?? ($item['type'] ?? 'Unknown');
 @endphp
 
+@include('Website::livewire.admin.footer.partials.theme-manager')
+
 <section class="rounded-xl border border-gray-200 bg-gray-50 p-4" aria-label="Responsive Footer Preview">
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
