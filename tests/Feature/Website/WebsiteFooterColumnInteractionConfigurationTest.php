@@ -23,9 +23,9 @@ class WebsiteFooterColumnInteractionConfigurationTest extends TestCase
         $this->assertStringContainsString("handle: '.drag-handle'", $view);
 
         $this->assertStringContainsString('DB::transaction', $service);
-        $this->assertStringContainsString("where('footer_column_id', $columnId)", $service);
-        $this->assertStringContainsString("'route_name' => $link->route_name", $service);
-        $this->assertStringContainsString("'new_tab' => (bool) $link->new_tab", $service);
+        $this->assertStringContainsString("where('footer_column_id', \$columnId)", $service);
+        $this->assertStringContainsString("'route_name' => \$link->route_name", $service);
+        $this->assertStringContainsString("'new_tab' => (bool) \$link->new_tab", $service);
     }
 
     public function test_footer_brand_name_is_independent_from_header_brand_name(): void
@@ -37,7 +37,7 @@ class WebsiteFooterColumnInteractionConfigurationTest extends TestCase
         $this->assertStringContainsString("get('footer.brand_name'", $component);
         $this->assertStringContainsString("'footer.brand_name'", $component);
         $this->assertStringContainsString('wire:model="brand_name"', $view);
-        $this->assertStringContainsString("get('footer.brand_name', $settings->get('site_name', 'FlexBiz'))", $provider);
+        $this->assertStringContainsString("get('footer.brand_name', \$settings->get('site_name', 'FlexBiz'))", $provider);
 
         $footerComposer = substr($provider, strpos($provider, "View::composer(['Website::partials.footer']"));
         $this->assertStringNotContainsString("get('header.brand_name'", $footerComposer);
