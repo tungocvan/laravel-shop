@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'menu_locations' => [
+        'primary' => 'Desktop Main Menu',
+        'mobile' => 'Mobile Slide-over',
+        'account' => 'Menu tài khoản sau đăng nhập',
+        'admin' => 'Admin Menu Dropdown',
+    ],
+
     'components' => [
         'topbar' => [
             'label' => 'Top bar',
