@@ -48,7 +48,7 @@ class MenuManager extends Component
         $this->authorizeAdminPermission('website.menu.manage');
 
         $currentMenu = $service->getMenuForAdmin($this->location);
-        $menuTree = $currentMenu ? $service->getMenuTreeByLocation($this->location) : new Collection;
+        $menuTree = $currentMenu ? $service->getMenuTreeForAdmin($this->location) : new Collection;
         $flatItems = $currentMenu
             ? HeaderMenuItem::where('header_menu_id', $currentMenu->id)->whereNull('parent_id')->orderBy('sort_order')->get()
             : new Collection;
