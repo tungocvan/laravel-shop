@@ -19,6 +19,10 @@ trait ManagesWebsiteDesignThemes
     {
         $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
+        $this->validate(['themeName' => 'required|string|min:1|max:80'], [
+            'themeName.required' => 'Vui lòng nhập tên theme.',
+            'themeName.max' => 'Tên theme không được vượt quá 80 ký tự.',
+        ]);
         $slug = app(WebsiteDesignThemeService::class)->save($this->themeName, $this->design);
         $this->selectedTheme = $slug;
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu Website design theme.']);
@@ -44,6 +48,10 @@ trait ManagesWebsiteDesignThemes
     {
         $this->resetValidation();
         $this->authorizeAdminPermission('website.settings.manage');
+        $this->validate(['themeName' => 'required|string|min:1|max:80'], [
+            'themeName.required' => 'Vui lòng nhập tên theme mới.',
+            'themeName.max' => 'Tên theme không được vượt quá 80 ký tự.',
+        ]);
         app(WebsiteDesignThemeService::class)->rename($this->selectedTheme, $this->themeName);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã đổi tên Website design theme.']);
     }
@@ -55,6 +63,14 @@ trait ManagesWebsiteDesignThemes
         app(WebsiteDesignThemeService::class)->delete($this->selectedTheme);
         $this->selectedTheme = '';
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã xóa Website design theme.']);
+    }
+
+    public function restoreDefaultDesignThemes(): void
+    {
+        $this->resetValidation();
+        $this->authorizeAdminPermission('website.settings.manage');
+        app(WebsiteDesignThemeService::class)->restoreDefaultThemes();
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã khôi phục 03 Website design themes mặc định. Custom themes được giữ nguyên.']);
     }
 
     public function exportDesignTheme(): void
