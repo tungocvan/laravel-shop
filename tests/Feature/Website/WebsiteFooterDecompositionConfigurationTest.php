@@ -11,7 +11,8 @@ class WebsiteFooterDecompositionConfigurationTest extends TestCase
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
 
         $this->assertStringContainsString('components.footer.slot', $footer);
-        $this->assertStringContainsString("@livewire('website.chat.chat-widget')", $footer);
+        $this->assertStringContainsString("@livewire('website.chat.chat-widget',", $footer);
+        $this->assertStringContainsString("'chat_position'", $footer);
 
         foreach ([
             'components.footer.brand-contact',
