@@ -48,8 +48,8 @@ class WebsiteFooterAppBottomConfigurationTest extends TestCase
         $legal = file_get_contents(base_path('Modules/Website/resources/views/components/footer/legal-links.blade.php'));
         $badges = file_get_contents(base_path('Modules/Website/resources/views/components/footer/trust-badges.blade.php'));
 
-        $this->assertStringContainsString("'legal_links' => \$settings->get('footer.legal_links'", $provider);
-        $this->assertStringContainsString("'trust_badges' => \$settings->get('footer.trust_badges'", $provider);
+        $this->assertStringContainsString("'legal_links'=>\$settings->get('footer.legal_links'", $provider);
+        $this->assertStringContainsString("'trust_badges'=>\$settings->get('footer.trust_badges'", $provider);
         $this->assertStringContainsString("\$footerSettings['app_title']", $app);
         $this->assertStringContainsString('pwaInstallTitle', $app);
         $this->assertStringContainsString('data-default-title', $pwa);
