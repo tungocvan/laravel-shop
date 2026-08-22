@@ -36,7 +36,8 @@ class WebsiteHomepageBuilderStateConfigurationTest extends TestCase
         $this->assertStringContainsString('DB::transaction', $writer);
         $this->assertStringContainsString('$this->builderPersistence->sync($sectionOrder, $layout, $sectionTypes)', $writer);
 
-        $this->assertStringContainsString("where('key', 'regexp', '_copy_[0-9]+$')", $persistence);
+        $this->assertStringContainsString("preg_match('/_copy_[0-9]+$/', \$section->key)", $persistence);
+        $this->assertStringNotContainsString("where('key', 'regexp'", $persistence);
         $this->assertStringContainsString("'duplicated_from' => \$canonical", $persistence);
         $this->assertStringContainsString("'position' => (\$index + 1) * 10", $persistence);
         $this->assertStringContainsString("'is_enabled' => ! in_array(\$visibility, ['none', 'hidden'], true)", $persistence);
