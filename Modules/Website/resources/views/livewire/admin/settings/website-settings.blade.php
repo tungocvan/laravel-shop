@@ -26,10 +26,48 @@
                 <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-xs text-emerald-700">{{ parse_url($canonicalUrl, PHP_URL_HOST) ?: request()->getHost() }}</p><p class="mt-1 text-lg text-blue-700">{{ $seoTitle ?: 'Tiêu đề trang' }}</p><p class="mt-1 text-sm text-slate-600">{{ $seoDescription ?: 'Mô tả trang sẽ xuất hiện tại đây.' }}</p></div>
             </div>
         @elseif($activeTab==='identity')
-            <div class="grid gap-5 md:grid-cols-2">
-                <label class="{{ $labelClass }} md:col-span-2">Tên thương hiệu<input wire:model="siteName" class="{{ $fieldClass }}"></label>
-                <label class="{{ $labelClass }}">Logo<input wire:model="newLogo" type="file" accept="image/*" class="{{ $fieldClass }}"></label>
-                <label class="{{ $labelClass }}">Favicon<input wire:model="newFavicon" type="file" accept=".png,.ico,.svg" class="{{ $fieldClass }}"></label>
+            <div class="space-y-6">
+                <label class="{{ $labelClass }}">Tên thương hiệu<input wire:model="siteName" class="{{ $fieldClass }}"></label>
+
+                <div class="grid gap-5 md:grid-cols-2">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div><h3 class="font-bold text-slate-900">Logo Website</h3><p class="mt-1 text-xs text-slate-500">PNG, JPG, WEBP hoặc SVG · tối đa 3 MB.</p></div>
+                            <div wire:loading wire:target="newLogo" class="text-xs font-semibold text-indigo-600">Đang tải...</div>
+                        </div>
+                        <div class="mt-4 flex min-h-28 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-4">
+                            @if($newLogo)
+                                <img src="{{ $newLogo->temporaryUrl() }}" alt="Logo vừa chọn" class="max-h-24 max-w-full object-contain">
+                            @elseif($logo)
+                                <img src="{{ str_starts_with($logo, 'http') ? $logo : asset('storage/'.$logo) }}" alt="Logo hiện tại" class="max-h-24 max-w-full object-contain">
+                            @else
+                                <span class="text-sm text-slate-400">Chưa có Logo</span>
+                            @endif
+                        </div>
+                        <label class="{{ $labelClass }} mt-4">Chọn Logo mới<input wire:model="newLogo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="{{ $fieldClass }}"></label>
+                        @if($newLogo)<div class="mt-2 text-xs font-semibold text-emerald-600">✓ File Logo đã được nhận. Bấm “Lưu thay đổi” để lưu chính thức.</div>@endif
+                        @error('newLogo')<span class="mt-2 block text-xs font-medium text-red-600">{{ $message }}</span>@enderror
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div><h3 class="font-bold text-slate-900">Favicon</h3><p class="mt-1 text-xs text-slate-500">PNG, ICO hoặc SVG · tối đa 1 MB.</p></div>
+                            <div wire:loading wire:target="newFavicon" class="text-xs font-semibold text-indigo-600">Đang tải...</div>
+                        </div>
+                        <div class="mt-4 flex min-h-28 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-4">
+                            @if($newFavicon)
+                                <img src="{{ $newFavicon->temporaryUrl() }}" alt="Favicon vừa chọn" class="h-16 w-16 object-contain">
+                            @elseif($favicon)
+                                <img src="{{ str_starts_with($favicon, 'http') ? $favicon : asset('storage/'.$favicon) }}" alt="Favicon hiện tại" class="h-16 w-16 object-contain">
+                            @else
+                                <span class="text-sm text-slate-400">Chưa có Favicon</span>
+                            @endif
+                        </div>
+                        <label class="{{ $labelClass }} mt-4">Chọn Favicon mới<input wire:model="newFavicon" type="file" accept=".png,.ico,.svg,image/png,image/x-icon,image/svg+xml" class="{{ $fieldClass }}"></label>
+                        @if($newFavicon)<div class="mt-2 text-xs font-semibold text-emerald-600">✓ File Favicon đã được nhận. Bấm “Lưu thay đổi” để lưu chính thức.</div>@endif
+                        @error('newFavicon')<span class="mt-2 block text-xs font-medium text-red-600">{{ $message }}</span>@enderror
+                    </div>
+                </div>
             </div>
         @elseif($activeTab==='layout')
             <div class="space-y-8">
