@@ -138,13 +138,18 @@ class WebsiteDesignThemeService
 
         $theme = $this->validateTheme($theme);
         $name = filled($overrideName) ? $this->name($overrideName) : $theme['name'];
-        return $this->save(
-            $name,
-            $theme['design'],
-            $theme['layout'] ?? $this->layoutService->resolve(),
-            $theme['appearance'] ?? $this->appearanceService->resolve(),
-            $theme['features'] ?? $this->featureDefaults(),
-        );
+
+        if ((int) $theme['version'] === self::LEGACY_VERSION) {
+            $themes = $this->all();
+            $slug = $this->uniqueSlug($name, $themes);
+            $theme['name'] = $name;
+            $theme['updated_at'] = now()->toIso8601String();
+            $themes[$slug] = $theme;
+            $this->persist($themes);
+            return $slug;
+        }
+
+        return $this->save($name, $theme['design'], $theme['layout'], $theme['appearance'], $theme['features']);
     }
 
     private function validateTheme(array $theme): array
