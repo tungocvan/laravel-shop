@@ -54,6 +54,6 @@ class WebsiteGlobalWidgetAndThemeControlsConfigurationTest extends TestCase
         $this->assertStringContainsString('back_to_top_position', $backToTop);
         $this->assertStringContainsString("public string \$position = 'bottom-right'", $chatComponent);
         $this->assertStringContainsString("['bottom-left', 'bottom-right']", $chatComponent);
-        $this->assertStringContainsString('\$chatOnLeft', $chatView);
+        $this->assertStringContainsString('$chatOnLeft', $chatView);
     }
 }
