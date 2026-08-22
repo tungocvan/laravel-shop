@@ -15,6 +15,7 @@ use Modules\Website\Models\WebsitePage;
 use Modules\Website\Models\WebsiteSection;
 use Modules\Website\Models\WebsiteSectionItem;
 use Modules\Website\Services\FooterService;
+use Modules\Website\Services\HeaderLayoutService;
 use Modules\Website\Services\HeaderMenuService;
 use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\WebsiteCheckoutContext;
@@ -24,6 +25,7 @@ class WebsiteServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../Config/design.php', 'website.design');
+        $this->mergeConfigFrom(__DIR__.'/../Config/header.php', 'website.header');
         $this->app->bind(CheckoutContext::class, WebsiteCheckoutContext::class);
     }
 
@@ -44,7 +46,6 @@ class WebsiteServiceProvider extends ServiceProvider
             $model::deleted($clearSitemap);
         }
 
-        // 1. Inject dữ liệu cho HEADER
         View::composer(['Website::partials.header', 'Website::layouts.master'], function ($view) {
             $settings = app(SettingsService::class);
             $menuService = app(HeaderMenuService::class);
@@ -53,6 +54,7 @@ class WebsiteServiceProvider extends ServiceProvider
                 'mainMenu' => $menuService->getMenuTreeByLocation('primary'),
                 'mobileMenu' => $menuService->getMenuTreeByLocation('mobile'),
                 'accountMenu' => $menuService->getMenuTreeByLocation('account'),
+                'headerLayout' => app(HeaderLayoutService::class)->resolvedLayout(),
                 'headerSettings' => [
                     'logo' => $settings->get('site_logo'),
                     'hotline' => $settings->get('header.topbar.hotline', '0903 971 949'),
@@ -89,7 +91,6 @@ class WebsiteServiceProvider extends ServiceProvider
             ]);
         });
 
-        // 2. Inject dữ liệu cho FOOTER
         View::composer(['Website::partials.footer'], function ($view) {
             $footerService = app(FooterService::class);
             $settings = app(SettingsService::class);
