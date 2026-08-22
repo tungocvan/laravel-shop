@@ -26,9 +26,10 @@ class WebsitePhase12FinalAuditConfigurationTest extends TestCase
         $this->assertStringContainsString('/website-pwa-version.json', $scripts);
         $this->assertStringContainsString("Route::get('/website-manifest.webmanifest'", $routes);
         $this->assertStringContainsString("Route::get('/website-pwa-version.json'", $routes);
-        $this->assertStringContainsString("inafo-client-shell-v2", $worker);
+        $this->assertStringContainsString('website-storefront-shell-v3', $worker);
         $this->assertStringContainsString('REFRESH_PWA_ASSETS', $worker);
         $this->assertStringContainsString('SKIP_WAITING', $worker);
+        $this->assertStringNotContainsString("'/manifest.webmanifest'", $worker);
     }
 
     public function test_phase_12_admin_theme_and_preview_contracts_are_safe(): void
@@ -54,7 +55,7 @@ class WebsitePhase12FinalAuditConfigurationTest extends TestCase
         $this->assertStringContainsString("Website::livewire.admin.settings.partials.responsive-preview", $settingsView);
         $this->assertStringContainsString('Responsive Preview', $preview);
         $this->assertStringContainsString("previewDevice: 'desktop'", $preview);
-        $this->assertStringContainsString("previewDevice === 'mobile'", $preview);
+        $this->assertStringContainsString("previewDevice==='mobile'", $preview);
         $this->assertStringNotContainsString('<iframe', strtolower($preview));
     }
 }
