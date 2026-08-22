@@ -22,6 +22,7 @@ use Modules\Website\Services\HeaderMenuService;
 use Modules\Website\Services\HeaderPresentationService;
 use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\WebsiteCheckoutContext;
+use Modules\Website\Services\WebsiteDesignService;
 
 class WebsiteServiceProvider extends ServiceProvider
 {
@@ -57,7 +58,8 @@ class WebsiteServiceProvider extends ServiceProvider
 
         View::composer(['Website::layouts.frontend','Website::pages.home.index','Website::pages.help.index'], function ($view) {
             $settings=app(SettingsService::class); $home=Schema::hasTable('website_pages') ? Cache::remember('website.homepage.seo',now()->addMinutes(15),fn()=>WebsitePage::query()->select(['id','seo_title','seo_description','seo_image'])->where('slug','home')->first()) : null;
-            $view->with(['siteName'=>$settings->get('site_name','HOMEPAGE'),'siteFavicon'=>$settings->get('site_favicon'),'headerScript'=>$settings->get('header_script',''),'websiteDesign'=>config('website.design',[]),'websiteSeo'=>['title'=>$home?->seo_title ?: $settings->get('site_name','HOMEPAGE'),'description'=>$home?->seo_description ?: '','image'=>$home?->seo_image,'canonical'=>$settings->get('seo.canonical_url',url()->current()),'robots'=>$settings->get('seo.robots','index,follow')],'analyticsCode'=>$settings->get('analytics_code','')]);
+            $savedDesign=$settings->get('website.design');
+            $view->with(['siteName'=>$settings->get('site_name','HOMEPAGE'),'siteFavicon'=>$settings->get('site_favicon'),'headerScript'=>$settings->get('header_script',''),'websiteDesign'=>app(WebsiteDesignService::class)->resolve(is_array($savedDesign)?$savedDesign:null),'websiteSeo'=>['title'=>$home?->seo_title ?: $settings->get('site_name','HOMEPAGE'),'description'=>$home?->seo_description ?: '','image'=>$home?->seo_image,'canonical'=>$settings->get('seo.canonical_url',url()->current()),'robots'=>$settings->get('seo.robots','index,follow')],'analyticsCode'=>$settings->get('analytics_code','')]);
         });
 
         View::composer(['Website::partials.footer'], function ($view) {
