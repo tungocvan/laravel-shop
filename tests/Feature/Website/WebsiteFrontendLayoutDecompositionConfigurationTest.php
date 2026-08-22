@@ -34,6 +34,7 @@ class WebsiteFrontendLayoutDecompositionConfigurationTest extends TestCase
         $runtimeHead = file_get_contents(base_path('Modules/Website/resources/views/partials/layout/runtime-head.blade.php'));
         $toast = file_get_contents(base_path('Modules/Website/resources/views/partials/layout/global-toast.blade.php'));
         $runtimeScripts = file_get_contents(base_path('Modules/Website/resources/views/partials/layout/runtime-scripts.blade.php'));
+        $livewireConfig = file_get_contents(base_path('config/livewire.php'));
 
         $this->assertStringContainsString('meta charset="utf-8"', $headMeta);
         $this->assertStringContainsString('name="viewport"', $headMeta);
@@ -44,13 +45,14 @@ class WebsiteFrontendLayoutDecompositionConfigurationTest extends TestCase
         $this->assertStringContainsString('{!! $analyticsCode ?? \'\' !!}', $runtimeHead);
         $this->assertStringContainsString('<x-realtime-config />', $runtimeHead);
         $this->assertStringContainsString("Website::partials.design-tokens", $runtimeHead);
-        $this->assertStringContainsString('@livewireStyles', $runtimeHead);
 
         $this->assertStringContainsString('@notify.window', $toast);
         $this->assertStringContainsString('@alert.window', $toast);
         $this->assertStringContainsString("setTimeout(() => open = false, 4000)", $toast);
 
-        $this->assertStringContainsString('@livewireScripts', $runtimeScripts);
+        $this->assertStringContainsString("'inject_assets' => true", $livewireConfig);
+        $this->assertStringNotContainsString('@livewireStyles', $runtimeHead);
+        $this->assertStringNotContainsString('@livewireScripts', $runtimeScripts);
         $this->assertStringContainsString("navigator.serviceWorker.register('/service-worker.js')", $runtimeScripts);
     }
 }
