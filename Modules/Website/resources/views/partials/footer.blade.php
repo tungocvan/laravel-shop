@@ -1,14 +1,40 @@
 {{--
     FOOTER COMPONENT
     Data Injected by: Modules/Website/Providers/WebsiteServiceProvider.php (View::composer)
-    Variables: $footerSettings, $footerColumns, $socialLinks
+    Variables: $footerSettings, $footerColumns, $socialLinks, $footerPresentation
 --}}
 
-<footer class="bg-gray-900 text-gray-400 border-t border-gray-800 font-sans relative">
-    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+@php
+    $footerColors = $footerPresentation['colors'] ?? [];
+    $footerContainer = $footerPresentation['container_width'] ?? null;
+@endphp
 
-    <div class="container mx-auto px-4 pt-16 pb-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
+<footer class="relative font-website-body"
+    style="
+        --footer-background: {{ $footerColors['background'] ?? '#111827' }};
+        --footer-foreground: {{ $footerColors['foreground'] ?? '#9ca3af' }};
+        --footer-heading: {{ $footerColors['heading'] ?? '#ffffff' }};
+        --footer-muted: {{ $footerColors['muted'] ?? '#6b7280' }};
+        --footer-accent: {{ $footerColors['accent'] ?? '#2563eb' }};
+        --footer-border: {{ $footerColors['border'] ?? '#1f2937' }};
+        --footer-padding-top: {{ (int) ($footerPresentation['padding_top'] ?? 64) }}px;
+        --footer-padding-bottom: {{ (int) ($footerPresentation['padding_bottom'] ?? 32) }}px;
+        --footer-column-gap: {{ (int) ($footerPresentation['column_gap'] ?? 48) }}px;
+        --footer-section-gap: {{ (int) ($footerPresentation['section_gap'] ?? 64) }}px;
+        --footer-logo-max: {{ (int) data_get($footerPresentation, 'custom.logo_max_height', 40) }}px;
+        --footer-social-size: {{ (int) data_get($footerPresentation, 'custom.social_icon_size', 40) }}px;
+        background: var(--footer-background);
+        color: var(--footer-foreground);
+        border-top: {{ ($footerPresentation['border'] ?? true) ? '1px solid var(--footer-border)' : '0' }};
+    ">
+    @if($footerPresentation['accent'] ?? true)
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+    @endif
+
+    <div class="mx-auto px-4"
+        style="max-width: {{ $footerContainer ? (int) $footerContainer.'px' : '100%' }}; padding-top: var(--footer-padding-top); padding-bottom: var(--footer-padding-bottom);">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12"
+            style="gap: var(--footer-column-gap); margin-bottom: var(--footer-section-gap);">
             @include('Website::components.footer.brand-contact')
             @include('Website::components.footer.menu-columns')
             @include('Website::components.footer.app-social')

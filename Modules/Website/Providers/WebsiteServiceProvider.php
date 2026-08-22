@@ -14,6 +14,7 @@ use Modules\Website\Models\Banner;
 use Modules\Website\Models\WebsitePage;
 use Modules\Website\Models\WebsiteSection;
 use Modules\Website\Models\WebsiteSectionItem;
+use Modules\Website\Services\FooterPresentationService;
 use Modules\Website\Services\FooterService;
 use Modules\Website\Services\HeaderLayoutService;
 use Modules\Website\Services\HeaderMenuService;
@@ -27,6 +28,7 @@ class WebsiteServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../Config/design.php', 'website.design');
         $this->mergeConfigFrom(__DIR__.'/../Config/header.php', 'website.header');
+        $this->mergeConfigFrom(__DIR__.'/../Config/footer.php', 'website.footer');
         $this->app->bind(CheckoutContext::class, WebsiteCheckoutContext::class);
     }
 
@@ -98,10 +100,12 @@ class WebsiteServiceProvider extends ServiceProvider
         View::composer(['Website::partials.footer'], function ($view) {
             $footerService = app(FooterService::class);
             $settings = app(SettingsService::class);
+            $savedPresentation = $settings->get('footer.presentation');
 
             $view->with([
                 'footerColumns' => $footerService->getColumnsForFrontend(),
                 'socialLinks' => $footerService->getSocialLinks(),
+                'footerPresentation' => app(FooterPresentationService::class)->resolve(is_array($savedPresentation) ? $savedPresentation : null),
                 'footerSettings' => [
                     'brand_name' => $settings->get('header.brand_name', $settings->get('site_name', 'FlexBiz')),
                     'logo' => $settings->get('site_logo'),
