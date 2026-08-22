@@ -34,15 +34,20 @@ class WebsiteDesignThemeConfigurationTest extends TestCase
         $this->assertStringContainsString("Website::livewire.admin.settings.partials.design-themes", $shell);
     }
 
-    public function test_demo_seeder_provides_three_safe_design_themes_and_is_registered(): void
+    public function test_demo_seeder_uses_canonical_default_theme_source_and_is_registered(): void
     {
+        $service = file_get_contents(base_path('Modules/Website/Services/WebsiteDesignThemeService.php'));
         $seeder = file_get_contents(base_path('Modules/Website/database/Seeders/WebsiteDesignThemeSeeder.php'));
         $databaseSeeder = file_get_contents(base_path('Modules/Website/database/Seeders/WebsiteDatabaseSeeder.php'));
 
         foreach (['demo-classic-blue', 'demo-commerce-emerald', 'demo-premium-violet'] as $slug) {
-            $this->assertStringContainsString($slug, $seeder);
+            $this->assertStringContainsString($slug, $service);
         }
+
+        $this->assertStringContainsString('public function defaultThemes(): array', $service);
+        $this->assertStringContainsString('public function restoreDefaultThemes(): void', $service);
         $this->assertStringContainsString('WebsiteDesignThemeService::class', $seeder);
+        $this->assertStringContainsString('restoreDefaultThemes()', $seeder);
         $this->assertStringContainsString('WebsiteDesignThemeSeeder::class', $databaseSeeder);
     }
 }
