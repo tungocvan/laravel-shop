@@ -14,7 +14,7 @@ class WebsiteGlobalWidgetAndThemeControlsConfigurationTest extends TestCase
 
         $this->assertStringContainsString("'themeName' => 'required|string|min:1|max:80'", $concern);
         $this->assertStringContainsString('updatedSelectedTheme', $concern);
-        $this->assertStringContainsString("$this->themeName = is_array($theme)", $concern);
+        $this->assertStringContainsString("\$this->themeName = is_array(\$theme)", $concern);
         $this->assertStringContainsString('restoreDefaultDesignThemes', $concern);
         $this->assertStringContainsString('restoreDefaultThemes', $service);
         foreach (['demo-classic-blue', 'demo-commerce-emerald', 'demo-premium-violet'] as $slug) {
@@ -50,10 +50,10 @@ class WebsiteGlobalWidgetAndThemeControlsConfigurationTest extends TestCase
         $this->assertStringContainsString("get('website.features')", $provider);
         $this->assertStringContainsString("'chat_position'", $provider);
         $this->assertStringContainsString("'back_to_top_position'", $provider);
-        $this->assertStringContainsString("['position' => data_get($websiteFeatures", $footer);
-        $this->assertStringContainsString("back_to_top_position", $backToTop);
-        $this->assertStringContainsString("public string $position = 'bottom-right'", $chatComponent);
+        $this->assertStringContainsString("['position' => data_get(\$websiteFeatures", $footer);
+        $this->assertStringContainsString('back_to_top_position', $backToTop);
+        $this->assertStringContainsString("public string \$position = 'bottom-right'", $chatComponent);
         $this->assertStringContainsString("['bottom-left', 'bottom-right']", $chatComponent);
-        $this->assertStringContainsString('$chatOnLeft', $chatView);
+        $this->assertStringContainsString('\$chatOnLeft', $chatView);
     }
 }
