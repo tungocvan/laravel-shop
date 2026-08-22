@@ -72,12 +72,14 @@ class WebsiteSettingsConfigurationTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/System/Services/SettingsService.php'));
         $layout = file_get_contents(base_path('Modules/Website/resources/views/layouts/frontend.blade.php'));
+        $runtimeHead = file_get_contents(base_path('Modules/Website/resources/views/partials/layout/runtime-head.blade.php'));
         $home = file_get_contents(base_path('Modules/Website/resources/views/pages/home/index.blade.php'));
         $help = file_get_contents(base_path('Modules/Website/resources/views/pages/help/index.blade.php'));
 
         $this->assertDoesNotMatchRegularExpression('/\b(dd|dump|die)\s*\(/', $service);
-        $this->assertStringNotContainsString('Setting::', $layout.$home.$help);
-        $this->assertStringContainsString('$headerScript', $layout);
+        $this->assertStringNotContainsString('Setting::', $layout.$runtimeHead.$home.$help);
+        $this->assertStringContainsString("@include('Website::partials.layout.runtime-head')", $layout);
+        $this->assertStringContainsString('$headerScript', $runtimeHead);
         $this->assertStringContainsString('SettingsService::class', file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php')));
     }
 
