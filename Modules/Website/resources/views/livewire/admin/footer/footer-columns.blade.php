@@ -11,21 +11,18 @@
         </div>
         <div class="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
             <div class="font-semibold">Mẹo quản trị</div>
-            <p class="mt-1">Kéo tay cầm ⋮⋮ để sắp xếp cột hoặc từng menu link. Nút Nhân bản tạo nhanh một cột mới kèm toàn bộ links hiện có.</p>
+            <p class="mt-1">Kéo tay cầm ⋮⋮ để đổi vị trí menu link trong cùng cột hoặc kéo sang cột Footer khác. Nút Nhân bản tạo nhanh một cột mới kèm toàn bộ links.</p>
         </div>
     </div>
 
     <div class="lg:col-span-2 space-y-6" wire:ignore.self x-data x-init="
-        const initColumns = () => {
-            if ($el._footerColumnsSortable) $el._footerColumnsSortable.destroy();
-            $el._footerColumnsSortable = Sortable.create($el, {
-                handle: '.column-drag-handle',
-                animation: 150,
-                ghostClass: 'opacity-50',
-                onEnd() { $wire.updateColumnOrder(this.toArray()); }
-            });
-        };
-        initColumns();
+        if ($el._footerColumnsSortable) $el._footerColumnsSortable.destroy();
+        $el._footerColumnsSortable = Sortable.create($el, {
+            handle: '.column-drag-handle',
+            animation: 150,
+            ghostClass: 'opacity-50',
+            onEnd() { $wire.updateColumnOrder(this.toArray()); }
+        });
     ">
         @foreach ($columns as $column)
             <div wire:key="col-{{ $column->id }}" data-id="{{ $column->id }}"
@@ -50,9 +47,7 @@
                                     <span class="font-bold text-gray-800 text-lg">{{ $column->title }}</span>
                                     <span class="text-xs text-gray-500 font-mono bg-gray-200 px-1.5 rounded">{{ $column->slug }}</span>
                                 </div>
-                                <button wire:click="editColumn({{ $column->id }})" class="opacity-0 group-hover/title:opacity-100 text-blue-500 hover:text-blue-700 ml-2 transition" title="Sửa tên cột">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                </button>
+                                <button wire:click="editColumn({{ $column->id }})" class="opacity-0 group-hover/title:opacity-100 text-blue-500 hover:text-blue-700 ml-2 transition" title="Sửa tên cột">Sửa</button>
                                 @if (!$column->is_active)
                                     <span class="text-[10px] font-bold text-white bg-gray-500 px-1.5 py-0.5 rounded uppercase ml-2">Đang ẩn</span>
                                 @endif
@@ -62,18 +57,9 @@
 
                     @if ($editingColumnId !== $column->id)
                         <div class="flex items-center gap-2 ml-4">
-                            <button type="button" wire:click="duplicateColumn({{ $column->id }})" wire:loading.attr="disabled" wire:target="duplicateColumn({{ $column->id }})" class="rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-50" title="Nhân bản cột và toàn bộ links">Nhân bản</button>
-                            <button wire:click="toggleColumn({{ $column->id }})" class="text-gray-400 hover:text-blue-600 transition" title="{{ $column->is_active ? 'Nhấn để ẩn' : 'Nhấn để hiện' }}">
-                                @if ($column->is_active)
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                @else
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
-                                @endif
-                            </button>
-                            <div class="h-4 w-px bg-gray-300"></div>
-                            <button wire:confirm="Xóa cột này?" wire:click="deleteColumn({{ $column->id }})" class="text-red-400 hover:text-red-600 transition" title="Xóa cột">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            </button>
+                            <button type="button" wire:click="duplicateColumn({{ $column->id }})" wire:loading.attr="disabled" wire:target="duplicateColumn({{ $column->id }})" class="rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-50">Nhân bản</button>
+                            <button wire:click="toggleColumn({{ $column->id }})" class="text-gray-400 hover:text-blue-600 transition" title="{{ $column->is_active ? 'Nhấn để ẩn' : 'Nhấn để hiện' }}">◉</button>
+                            <button wire:confirm="Xóa cột này?" wire:click="deleteColumn({{ $column->id }})" class="text-red-400 hover:text-red-600 transition" title="Xóa cột">🗑</button>
                         </div>
                     @endif
                 </div>
@@ -83,24 +69,36 @@
                         <div class="flex gap-2 items-start">
                             <div class="flex-1"><input type="text" wire:model="new_links.{{ $column->id }}.label" placeholder="Tên Link" class="w-full rounded-md border-gray-300 text-xs" wire:keydown.enter="addLink({{ $column->id }})"></div>
                             <div class="flex-1"><input type="text" wire:model="new_links.{{ $column->id }}.url" placeholder="URL" class="w-full rounded-md border-gray-300 text-xs" wire:keydown.enter="addLink({{ $column->id }})"></div>
-                            <button wire:click="addLink({{ $column->id }})" class="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap hover:bg-blue-700">
-                                <span wire:loading.remove wire:target="addLink({{ $column->id }})">+ Link</span><span wire:loading wire:target="addLink({{ $column->id }})">...</span>
-                            </button>
+                            <button wire:click="addLink({{ $column->id }})" class="bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap hover:bg-blue-700">+ Link</button>
                         </div>
                         @error("new_links.$column->id.label")<span class="text-red-500 text-xs">{{ $message }}</span>@enderror
                     </div>
 
-                    <ul class="space-y-2" wire:key="links-sortable-{{ $column->id }}" x-data x-init="
-                        if ($el._footerLinksSortable) $el._footerLinksSortable.destroy();
-                        $el._footerLinksSortable = Sortable.create($el, {
-                            handle: '.drag-handle',
-                            animation: 150,
-                            ghostClass: 'opacity-50',
-                            onEnd() { $wire.updateLinkOrder({{ $column->id }}, this.toArray()); }
-                        });
-                    ">
+                    <ul class="min-h-10 space-y-2 rounded-md transition"
+                        data-column-id="{{ $column->id }}"
+                        wire:key="links-sortable-{{ $column->id }}"
+                        x-data
+                        x-init="
+                            if ($el._footerLinksSortable) $el._footerLinksSortable.destroy();
+                            $el._footerLinksSortable = Sortable.create($el, {
+                                group: 'footer-menu-links',
+                                handle: '.drag-handle',
+                                animation: 150,
+                                ghostClass: 'opacity-40',
+                                chosenClass: 'ring-2',
+                                dragClass: 'shadow-lg',
+                                onEnd(evt) {
+                                    const linkId = Number(evt.item.dataset.id);
+                                    const fromColumnId = Number(evt.from.dataset.columnId);
+                                    const toColumnId = Number(evt.to.dataset.columnId);
+                                    const targetIds = Array.from(evt.to.querySelectorAll(':scope > [data-id]')).map(el => Number(el.dataset.id));
+                                    $wire.moveLinkByDrag(linkId, fromColumnId, toColumnId, targetIds);
+                                }
+                            });
+                        ">
                         @foreach ($column->links as $link)
-                            <li wire:key="link-{{ $link->id }}" data-id="{{ $link->id }}" class="bg-white border border-gray-200 rounded px-3 py-2 group hover:border-blue-300 transition shadow-sm">
+                            <li wire:key="link-{{ $link->id }}" data-id="{{ $link->id }}"
+                                class="bg-white border border-gray-200 rounded px-3 py-2 group hover:border-blue-300 transition shadow-sm">
                                 @if ($editingLinkId === $link->id)
                                     <div class="flex flex-col gap-2">
                                         <div class="flex gap-2"><input type="text" wire:model="edit_label" class="w-1/2 rounded border-gray-300 text-xs px-2 py-1"><input type="text" wire:model="edit_url" class="w-1/2 rounded border-gray-300 text-xs px-2 py-1"></div>
@@ -109,7 +107,7 @@
                                 @else
                                     <div class="flex justify-between items-center">
                                         <div class="flex items-center gap-3">
-                                            <span class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500" title="Kéo để sắp xếp menu link">⋮⋮</span>
+                                            <span class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-blue-500 px-1 py-2 select-none" title="Kéo để đổi vị trí hoặc chuyển sang cột khác">⋮⋮</span>
                                             <div><div class="text-sm font-medium {{ !$link->is_active ? 'line-through text-gray-400' : 'text-gray-700' }}">{{ $link->label }}</div><div class="text-xs text-gray-400">{{ $link->url }}</div></div>
                                         </div>
                                         <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
