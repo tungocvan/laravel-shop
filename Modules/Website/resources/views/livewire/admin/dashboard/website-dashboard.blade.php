@@ -27,10 +27,11 @@
     <div class="grid gap-6 lg:grid-cols-3">
         <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
             <h2 class="text-base font-bold text-slate-900">Truy cập nhanh</h2>
-            <p class="mt-1 text-sm text-slate-500">Đi thẳng tới ba khu vực bố cục chính của Website.</p>
+            <p class="mt-1 text-sm text-slate-500">Đi thẳng tới cấu hình Website và ba khu vực bố cục chính.</p>
 
-            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 @foreach ([
+                    ['Cài đặt Website', 'Bố cục shell, bảo trì, design tokens, themes, SEO và tiện ích nổi', 'admin.website.settings'],
                     ['Homepage', 'Bố cục, section, responsive preview và themes', 'admin.home.settings'],
                     ['Header', 'Logo, menu điều hướng, actions, responsive layout và themes', 'admin.header.settings'],
                     ['Footer', 'Bố cục, cột liên kết, brand, app/social, bottom bar và themes', 'admin.footer.settings'],
