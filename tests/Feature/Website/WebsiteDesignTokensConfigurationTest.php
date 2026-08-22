@@ -22,11 +22,12 @@ class WebsiteDesignTokensConfigurationTest extends TestCase
     public function test_frontend_layout_renders_global_design_token_partial_and_semantic_classes(): void
     {
         $layout = file_get_contents(base_path('Modules/Website/resources/views/layouts/frontend.blade.php'));
+        $runtimeHead = file_get_contents(base_path('Modules/Website/resources/views/partials/layout/runtime-head.blade.php'));
         $tokens = file_get_contents(base_path('Modules/Website/resources/views/partials/design-tokens.blade.php'));
         $css = file_get_contents(base_path('resources/css/tailwind.css'));
 
-        $this->assertStringContainsString("@include('Website::partials.design-tokens')", $layout);
-        $this->assertStringContainsString('bg-website-background', $layout);
+        $this->assertStringContainsString("@include('Website::partials.layout.runtime-head')", $layout);
+        $this->assertStringContainsString("@include('Website::partials.design-tokens')", $runtimeHead);
         $this->assertStringContainsString('text-website-text', $layout);
         $this->assertStringContainsString('font-website-body', $layout);
 
@@ -45,7 +46,9 @@ class WebsiteDesignTokensConfigurationTest extends TestCase
         $designConfig = file_get_contents(base_path('Modules/Website/Config/design.php'));
 
         $this->assertStringContainsString("mergeConfigFrom(__DIR__.'/../Config/design.php', 'website.design')", $provider);
-        $this->assertStringContainsString("'websiteDesign' => config('website.design', [])", $provider);
+        $this->assertStringContainsString("\$savedDesign=\$settings->get('website.design')", $provider);
+        $this->assertStringContainsString('WebsiteDesignService::class', $provider);
+        $this->assertStringContainsString("'websiteDesign'=>\$websiteDesign", $provider);
         $this->assertStringNotContainsString('website_header_layouts', $provider.$designConfig);
     }
 }
