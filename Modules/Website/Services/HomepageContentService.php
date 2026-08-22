@@ -17,7 +17,10 @@ class HomepageContentService
 {
     public const CACHE_KEY = 'website.homepage.composition';
 
-    public function __construct(private readonly SettingsService $settings) {}
+    public function __construct(
+        private readonly SettingsService $settings,
+        private readonly HomepageSectionRegistry $registry,
+    ) {}
 
     public function visibility(): array
     {
@@ -53,7 +56,10 @@ class HomepageContentService
 
         return $page
             ? $page->sections->mapWithKeys(fn (WebsiteSection $section): array => [$section->key => $section->type])->all()
-            : collect($this->sectionKeys())->mapWithKeys(fn (string $key): array => [$key => $key])->all();
+            : collect($this->sectionKeys())->mapWithKeys(function (string $key): array {
+                $definition = $this->registry->resolve($key);
+                return [$key => $definition['type']];
+            })->all();
     }
 
     public function referenceIds(string $sectionKey, string $referenceType, string $legacyKey): array
@@ -200,15 +206,12 @@ class HomepageContentService
 
     private function ids(mixed $value): array
     {
-        return collect((array) $value)->map(fn ($id): int => (int) $id)->filter()->unique()->values()->all();
+        return collect((array) $value)->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
     }
 
     private function sectionKeys(): array
     {
-        return [
-            'hero', 'categories', 'flash_sale', 'featured', 'new_arrivals',
-            'best_sellers', 'blog_highlight', 'promo_banner', 'trust_badges', 'newsletter',
-        ];
+        return array_keys($this->registry->all());
     }
 
     private function preserveIdOrder($query, array $ids)
