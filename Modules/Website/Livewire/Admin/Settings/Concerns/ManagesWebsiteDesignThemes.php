@@ -15,6 +15,18 @@ trait ManagesWebsiteDesignThemes
         return app(WebsiteDesignThemeService::class)->all();
     }
 
+    public function updatedSelectedTheme(string $slug): void
+    {
+        $this->resetValidation('themeName');
+        if ($slug === '') {
+            $this->themeName = '';
+            return;
+        }
+
+        $theme = app(WebsiteDesignThemeService::class)->all()[$slug] ?? null;
+        $this->themeName = is_array($theme) ? (string) ($theme['name'] ?? '') : '';
+    }
+
     public function saveDesignTheme(): void
     {
         $this->resetValidation();
@@ -62,6 +74,7 @@ trait ManagesWebsiteDesignThemes
         $this->authorizeAdminPermission('website.settings.manage');
         app(WebsiteDesignThemeService::class)->delete($this->selectedTheme);
         $this->selectedTheme = '';
+        $this->themeName = '';
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã xóa Website design theme.']);
     }
 
@@ -86,6 +99,7 @@ trait ManagesWebsiteDesignThemes
         $this->authorizeAdminPermission('website.settings.manage');
         $slug = app(WebsiteDesignThemeService::class)->import($this->themeJson, filled($this->themeName) ? $this->themeName : null);
         $this->selectedTheme = $slug;
+        $this->updatedSelectedTheme($slug);
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã import Website design theme.']);
     }
 }
