@@ -71,7 +71,7 @@ return [
         'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
         'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
-            'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
+            'png', 'gif', 'bmp', 'svg', 'ico', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
             'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
@@ -85,7 +85,7 @@ return [
     |---------------------------------------------------------------------------
     |
     | This value determines if Livewire will run a component's `render()` method
-    | after a redirect has been triggered using something like `redirect(...)`
+    | after a redirect has been triggered using something like `redirect(...)`.
     | Setting this to true will render the view once more before redirecting
     |
     */
@@ -154,7 +154,7 @@ return [
     |
     | When enabling Livewire's pagination feature by using the `WithPagination`
     | trait, Livewire will use Tailwind templates to render pagination views
-    | on the page. If you want Bootstrap CSS, you can specify: "bootstrap"
+    | on the page. If you want Bootstrap CSS, you can specify: "bootstrap".
     |
     */
 
