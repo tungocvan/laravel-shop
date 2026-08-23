@@ -31,10 +31,19 @@ class AdminShellPresentationService
     private function containerClass(string $container): string
     {
         return match ($container) {
-            'full' => 'max-w-none',
-            'narrow' => 'max-w-5xl mx-auto',
-            '7xl' => 'max-w-7xl mx-auto',
-            default => 'max-w-screen-2xl mx-auto',
+            // Full intentionally consumes all available main-column width.
+            'full' => 'w-full max-w-none',
+
+            // Narrow is optimized for settings/forms/readability and should be
+            // visibly narrower even before the viewport reaches its max-width.
+            'narrow' => 'w-full lg:w-4/5 max-w-5xl mx-auto',
+
+            // 7xl is the balanced/default constrained workspace.
+            '7xl' => 'w-full lg:w-11/12 max-w-7xl mx-auto',
+
+            // Screen 2xl keeps only a small desktop gutter while retaining a cap
+            // on very large displays. Default config continues to use this mode.
+            default => 'w-full lg:w-11/12 2xl:w-full max-w-screen-2xl mx-auto',
         };
     }
 
