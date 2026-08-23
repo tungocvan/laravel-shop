@@ -69,4 +69,14 @@ class AdminFooterContractTest extends TestCase
         $this->assertStringContainsString("'config.footer.show_app_name' => 'Hiển thị tên ứng dụng'", $view);
         $this->assertStringContainsString("'config.footer.show_environment' => 'Hiển thị môi trường'", $view);
     }
+
+    public function test_layout_manager_accepts_decoded_json_settings_and_saves_arrays(): void
+    {
+        $manager = file_get_contents(base_path('Modules/Admin/Support/AdminLayoutManager.php'));
+
+        $this->assertStringContainsString('if (is_array($value))', $manager);
+        $this->assertStringContainsString('return $value;', $manager);
+        $this->assertStringContainsString("Setting::setValue(\n            self::SETTING_KEY,\n            \$normalized,", $manager);
+        $this->assertStringNotContainsString('json_encode($normalized', $manager);
+    }
 }
