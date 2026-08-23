@@ -1,7 +1,7 @@
 <a
     href="{{ $item['href'] }}"
     class="group relative flex items-center rounded-lg transition duration-150 focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1 motion-reduce:transition-none {{ $item['active'] ? $theme['active_bg'] : $theme['hover'] }}"
-    style="min-height:var(--admin-sidebar-menu-item-height);padding:var(--admin-sidebar-menu-padding-y) var(--admin-sidebar-menu-padding-x);gap:var(--admin-sidebar-menu-content-gap);font-family:var(--admin-sidebar-menu-font-family);font-size:var(--admin-sidebar-menu-font-size);font-weight:{{ $item['active'] ? 'var(--admin-sidebar-active-font-weight)' : 'var(--admin-sidebar-menu-font-weight)' }};color:{{ $item['active'] ? 'var(--admin-sidebar-active-title-color)' : 'var(--admin-sidebar-menu-title-color)' }}"
+    style="min-height:var(--admin-sidebar-menu-item-height);padding:var(--admin-sidebar-menu-padding-y) var(--admin-sidebar-menu-padding-x);gap:var(--admin-sidebar-menu-content-gap);font-family:var(--admin-sidebar-menu-font-family);font-size:var(--admin-sidebar-menu-font-size);font-weight:{{ $item['active'] ? 'var(--admin-sidebar-active-font-weight)' : 'var(--admin-sidebar-menu-font-weight)' }};color:{{ $item['active'] ? 'var(--admin-sidebar-active-title-color)' : 'var(--admin-sidebar-menu-title-color)' }};{{ $item['active'] ? 'border-width:var(--admin-sidebar-menu-active-border-width);border-style:var(--admin-sidebar-menu-active-border-style);border-color:var(--admin-sidebar-menu-active-border-color);' : '' }}"
     :class="sidebarOpen ? '' : 'justify-center'"
     @if ($item['active']) aria-current="page" @endif
     aria-label="{{ $item['name'] }}"
