@@ -26,8 +26,8 @@
             aria-label="Admin navigation"
             :aria-modal="(!isDesktop && sidebarOpen).toString()"
             @keydown.tab="trapFocus($event, $refs.sidebarPanel)"
-            class="fixed inset-y-0 left-0 z-50 border-r shadow-xl shadow-slate-950/5 transition-[transform,width] duration-300 ease-out motion-reduce:transition-none lg:shadow-none"
-            style="background-color: var(--admin-surface-raised); border-color: var(--admin-border-subtle);"
+            class="fixed inset-y-0 left-0 z-50 shadow-xl shadow-slate-950/5 transition-[transform,width] duration-300 ease-out motion-reduce:transition-none lg:shadow-none"
+            style="background-color: var(--admin-surface-raised);"
             :style="sidebarOpen
                 ? 'width: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
                 : 'width: {{ $adminShellPresentation['sidebar_collapsed_width'] }}'"
