@@ -69,6 +69,21 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         $this->assertStringContainsString('Logout luôn do hệ thống quản lý', $view);
     }
 
+    public function test_dynamic_rows_are_compact_until_the_admin_opens_edit_details(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-header-config.blade.php'));
+
+        $this->assertStringContainsString('data-admin-compact-action-row', $view);
+        $this->assertStringContainsString('data-admin-action-edit-panel', $view);
+        $this->assertStringContainsString('data-admin-compact-user-menu-row', $view);
+        $this->assertStringContainsString('data-admin-user-menu-edit-panel', $view);
+        $this->assertStringContainsString('<details', $view);
+        $this->assertStringContainsString('<summary', $view);
+        $this->assertStringContainsString('Chỉnh sửa', $view);
+        $this->assertStringContainsString('truncate text-xs text-slate-500', $view);
+        $this->assertStringNotContainsString('grid-cols-[minmax(11rem,1.2fr)_8rem_minmax(12rem,1.5fr)_8rem_6rem_5rem_auto]', $view);
+    }
+
     public function test_brand_runtime_uses_content_width_instead_of_fixed_title_cap(): void
     {
         $brand = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/brand.blade.php'));
