@@ -1,0 +1,149 @@
+<?php
+
+namespace Modules\Admin\Livewire\Settings;
+
+use Livewire\Component;
+use Modules\Admin\Services\AdminDesignService;
+use Modules\Admin\Services\AdminThemeProfileService;
+use Modules\Admin\Support\AdminLayoutManager;
+use Modules\Admin\Support\ThemeManager;
+
+class AdminThemeEditor extends Component
+{
+    public array $config = [];
+    public array $profiles = [];
+    public array $sidebarPalettes = [];
+    public string $selectedTheme = AdminThemeProfileService::DEFAULT_PROFILE;
+    public string $newThemeName = '';
+
+    public function mount(
+        AdminLayoutManager $layoutManager,
+        AdminThemeProfileService $profileService,
+        ThemeManager $themeManager,
+    ): void {
+        $this->config = $layoutManager->config();
+        $this->profiles = $profileService->profiles();
+        $this->selectedTheme = $profileService->activeName();
+        $this->sidebarPalettes = $themeManager->all();
+    }
+
+    public function selectTheme(string $name, AdminThemeProfileService $profileService): void
+    {
+        abort_unless(array_key_exists($name, $profileService->profiles()), 404);
+        $this->selectedTheme = $name;
+        $this->config = $profileService->apply($name, $this->config);
+    }
+
+    public function saveTheme(
+        AdminLayoutManager $layoutManager,
+        AdminThemeProfileService $profileService,
+        AdminDesignService $designService,
+    ): void {
+        $this->authorizePermission('admin.layout.update');
+        $this->validate($this->rules($designService));
+        $layoutManager->save($this->config);
+        $profileService->setActive($this->selectedTheme);
+
+        session()->flash('success', 'Giao diện & Theme đã được lưu và áp dụng cho toàn bộ Admin.');
+        $this->redirect(url()->previous(), navigate: false);
+    }
+
+    public function saveAsTheme(
+        AdminLayoutManager $layoutManager,
+        AdminThemeProfileService $profileService,
+        AdminDesignService $designService,
+    ): void {
+        $this->authorizePermission('admin.layout.update');
+        $this->validate(array_merge($this->rules($designService), [
+            'newThemeName' => 'required|string|min:2|max:80',
+        ]));
+
+        $layoutManager->save($this->config);
+        $this->config = $layoutManager->config();
+        $this->selectedTheme = $profileService->saveCustom($this->newThemeName, $this->config);
+        $this->newThemeName = '';
+        $this->profiles = $profileService->profiles();
+
+        session()->flash('success', 'Theme mới đã được lưu và đang được sử dụng.');
+        $this->redirect(url()->previous(), navigate: false);
+    }
+
+    public function restoreDefaultTheme(
+        AdminLayoutManager $layoutManager,
+        AdminThemeProfileService $profileService,
+    ): void {
+        $this->authorizePermission('admin.layout.update');
+        $this->selectedTheme = AdminThemeProfileService::DEFAULT_PROFILE;
+        $this->config = $profileService->apply($this->selectedTheme, $layoutManager->config());
+        $layoutManager->save($this->config);
+        $profileService->setActive($this->selectedTheme);
+
+        session()->flash('warning', 'Đã khôi phục Theme mặc định Professional Indigo.');
+        $this->redirect(url()->previous(), navigate: false);
+    }
+
+    public function render(AdminDesignService $designService)
+    {
+        return view('Admin::livewire.settings.admin-theme-editor', [
+            'colorOptions' => $designService->colorOptions(),
+        ]);
+    }
+
+    private function rules(AdminDesignService $designService): array
+    {
+        $colors = implode(',', array_keys($designService->colorOptions()));
+        $sidebarPalettes = implode(',', $this->sidebarPalettes ?: ['soft-light']);
+
+        return [
+            'selectedTheme' => 'required|string|max:100',
+            'config.design.typography.font_family' => 'required|in:sans',
+            'config.design.typography.body_size' => 'required|in:xs,sm,base,lg,2xl',
+            'config.design.typography.page_title_size' => 'required|in:xs,sm,base,lg,2xl',
+            'config.design.typography.heading_weight' => 'required|in:normal,medium,semibold,bold',
+            'config.design.colors.surface_base' => 'required|in:'.$colors,
+            'config.design.colors.surface_raised' => 'required|in:'.$colors,
+            'config.design.colors.text_primary' => 'required|in:'.$colors,
+            'config.design.colors.text_secondary' => 'required|in:'.$colors,
+            'config.design.colors.text_muted' => 'required|in:'.$colors,
+            'config.design.colors.border_subtle' => 'required|in:'.$colors,
+            'config.design.colors.accent' => 'required|in:'.$colors,
+            'config.design.colors.focus_ring' => 'required|in:'.$colors,
+            'config.design.colors.success' => 'required|in:'.$colors,
+            'config.design.colors.warning' => 'required|in:'.$colors,
+            'config.design.colors.danger' => 'required|in:'.$colors,
+            'config.design.colors.info' => 'required|in:'.$colors,
+            'config.design.spacing.tight' => 'required|in:1,2,3,4,6,8',
+            'config.design.spacing.control' => 'required|in:1,2,3,4,6,8',
+            'config.design.spacing.content' => 'required|in:1,2,3,4,6,8',
+            'config.design.spacing.section' => 'required|in:1,2,3,4,6,8',
+            'config.design.radius.control' => 'required|in:sm,md,lg,xl',
+            'config.design.radius.panel' => 'required|in:sm,md,lg,xl',
+            'config.design.radius.overlay' => 'required|in:sm,md,lg,xl',
+            'config.theme.default' => 'required|in:'.$sidebarPalettes,
+            'config.theme.dark_mode' => 'required|in:class',
+            'config.theme.accent' => 'required|in:blue,indigo,emerald,rose,amber',
+            'config.sidebar.presentation.background' => 'required|in:theme,system,white,dark',
+            'config.header.presentation.mode' => 'required|in:balanced,compact,action-heavy',
+            'config.header.presentation.padding_x' => 'required|in:0,1,2,3,4,5,6,8,10,12',
+            'config.header.presentation.action_gap' => 'required|in:0,1,2,3,4,5,6,8,10,12',
+            'config.header.presentation.background' => 'required|in:system,white,transparent',
+            'config.header.presentation.divider' => 'required|in:subtle,none',
+            'config.header.presentation.shadow' => 'required|in:none,subtle',
+            'config.header.presentation.backdrop_blur' => 'boolean',
+            'config.footer.presentation.alignment' => 'required|in:split,center',
+            'config.footer.presentation.background' => 'required|in:system,transparent',
+            'config.footer.presentation.divider' => 'required|in:subtle,none',
+            'config.footer.presentation.compact' => 'boolean',
+            'config.layout.surface.page_background' => 'required|in:system,white,slate-50',
+            'config.layout.surface.content_surface' => 'required|in:transparent,system,white',
+            'config.layout.surface.border' => 'required|in:system,none',
+            'config.layout.surface.radius' => 'required|in:none,sm,md,lg',
+        ];
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+        abort_unless($user?->can($permission), 403);
+    }
+}
