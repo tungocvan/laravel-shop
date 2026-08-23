@@ -3,66 +3,71 @@
         @click="open = !open"
         @keydown.escape.window="open = false"
         type="button"
-        class="flex items-center rounded-lg p-1.5 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        class="group flex h-10 items-center gap-2 rounded-xl px-1.5 transition duration-200 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
         id="user-menu-button"
         :aria-expanded="open.toString()"
         aria-haspopup="menu"
     >
-        <span class="sr-only">Open user menu</span>
+        <span class="sr-only">Mở menu tài khoản</span>
 
-        <div
-            class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs ring-2 ring-white shadow-sm overflow-hidden">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-indigo-50 text-xs font-bold text-indigo-600 ring-1 ring-indigo-100">
             @if (isset($user) && $user->avatar)
                 <img src="{{ asset($user->avatar) }}" alt="" class="h-full w-full object-cover">
             @else
                 {{ substr($user->name ?? 'A', 0, 1) }}
             @endif
-        </div>
-
-        <span class="hidden lg:flex lg:items-center">
-            <span class="ml-4 text-sm font-semibold leading-6 text-gray-900"
-                aria-hidden="true">{{ $user->name ?? 'Admin' }}</span>
-            <svg class="ml-2 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd"
-                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                    clip-rule="evenodd" />
-            </svg>
         </span>
+
+        <span class="hidden min-w-0 lg:block">
+            <span class="block max-w-36 truncate text-left text-sm font-semibold leading-5 text-slate-700">{{ $user->name ?? 'Admin' }}</span>
+        </span>
+
+        <svg class="hidden h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 lg:block" :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+        </svg>
     </button>
-    {{-- Phần code hiển thị Menu cũ của bạn sẽ được thay thế --}}
+
     <div
         x-cloak
         x-show="open"
         @click.away="open = false"
-        x-transition
+        @keydown.escape.window="open = false"
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+        x-transition:leave-end="opacity-0 translate-y-1 scale-95"
         role="menu"
         aria-labelledby="user-menu-button"
-        class="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none"
+        class="absolute right-0 z-30 mt-2 w-64 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 focus:outline-none"
     >
-
-        {{-- Thông tin User cho Mobile --}}
-        <div class="px-3 py-2 border-b border-gray-100 lg:hidden">
-            <p class="text-sm font-medium text-gray-900">{{ $user->name ?? 'Admin' }}</p>
-            <p class="text-xs text-gray-500 truncate">{{ $user->email ?? '' }}</p>
+        <div class="border-b border-slate-100 px-4 py-3">
+            <p class="truncate text-sm font-semibold text-slate-900">{{ $user->name ?? 'Admin' }}</p>
+            <p class="mt-0.5 truncate text-xs text-slate-500">{{ $user->email ?? '' }}</p>
         </div>
 
-        @foreach ($adminMenuItems as $item)
-            <a href="{{ $item->url ?? ($item['url'] ?? '#') }}"
-                class="block px-3 py-1 text-sm leading-6 text-gray-900 hover:bg-gray-50" role="menuitem">
-                {{ $item->title ?? $item['title'] }}
-            </a>
-        @endforeach
+        @if (count($adminMenuItems))
+            <div class="p-1.5">
+                @foreach ($adminMenuItems as $item)
+                    <a href="{{ $item->url ?? ($item['url'] ?? '#') }}"
+                        class="flex min-h-9 items-center rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 focus:bg-slate-50 focus:outline-none"
+                        role="menuitem">
+                        {{ $item->title ?? $item['title'] }}
+                    </a>
+                @endforeach
+            </div>
+        @endif
 
-        <hr class="my-1 border-gray-100">
-
-        {{-- Nút Đăng xuất giữ nguyên logic form --}}
-        <form method="POST" action="{{ route('admin.logout') }}">
-            @csrf
-            <button type="submit"
-                class="block w-full px-3 py-1 text-left text-sm font-medium leading-6 text-red-600 hover:bg-red-50"
-                role="menuitem">
-                Đăng xuất
-            </button>
-        </form>
+        <div class="border-t border-slate-100 p-1.5">
+            <form method="POST" action="{{ route('admin.logout') }}">
+                @csrf
+                <button type="submit"
+                    class="flex min-h-9 w-full items-center rounded-lg px-2.5 py-2 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 focus:bg-rose-50 focus:outline-none"
+                    role="menuitem">
+                    Đăng xuất
+                </button>
+            </form>
+        </div>
     </div>
 </div>
