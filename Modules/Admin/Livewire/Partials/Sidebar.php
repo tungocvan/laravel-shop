@@ -17,12 +17,23 @@ class Sidebar extends Component
     public string $schoolPrefix = '';
     public string $schoolDisplayName = '';
     public string $schoolAcronym = '';
-    public bool $showFooterProfile = true;
     public string $profileName = 'Admin';
     public string $profileInitial = 'A';
     public int $menuCount = 0;
     public int $destinationCount = 0;
     public bool $showNavigationSearch = false;
+    public bool $showSidebarHeader = true;
+    public bool $showHeaderMark = true;
+    public bool $showHeaderTitle = true;
+    public bool $showHeaderSubtitle = true;
+    public string $headerSubtitle = 'Không gian quản trị';
+    public bool $showSidebarFooter = true;
+    public bool $showFooterAvatar = true;
+    public bool $showFooterName = true;
+    public bool $showFooterSubtitle = true;
+    public string $footerSubtitle = 'Tài khoản quản trị';
+    public string $sidebarSurfaceClass = '';
+    public string $sidebarTextClass = '';
 
     public function mount(SidebarService $service, ThemeManager $themeManager, AdminLayoutManager $layoutManager): void
     {
@@ -30,9 +41,9 @@ class Sidebar extends Component
         $layoutConfig = $layoutManager->config();
 
         $this->menus = $service->getMenusForUser($user, request()->path());
-        $this->applyPresentation($themeManager, $layoutConfig);
         $this->menuCount = count($this->menus);
         $this->destinationCount = collect($this->menus)->sum(fn (array $item) => $item['kind'] === 'group' ? count($item['children'] ?? []) : 1);
+        $this->applyPresentation($themeManager, $layoutConfig);
         $this->applyNavigationSearchPolicy($layoutConfig);
 
         $this->profileName = (string) ($user?->name ?? 'Admin');
@@ -44,7 +55,6 @@ class Sidebar extends Component
     public function refreshPresentation(AdminLayoutManager $layoutManager, ThemeManager $themeManager): void
     {
         $layoutConfig = $layoutManager->config();
-
         $this->applyPresentation($themeManager, $layoutConfig);
         $this->applyNavigationSearchPolicy($layoutConfig);
     }
@@ -78,12 +88,29 @@ class Sidebar extends Component
     private function applyPresentation(ThemeManager $themeManager, array $layoutConfig): void
     {
         $this->theme = $themeManager->get((string) data_get($layoutConfig, 'theme.default', 'corporate-blue'));
-        $this->showFooterProfile = (bool) data_get($layoutConfig, 'sidebar.show_footer_profile', true);
+        $this->showSidebarHeader = (bool) data_get($layoutConfig, 'sidebar.header.enabled', true);
+        $this->showHeaderMark = (bool) data_get($layoutConfig, 'sidebar.header.show_mark', true);
+        $this->showHeaderTitle = (bool) data_get($layoutConfig, 'sidebar.header.show_title', true);
+        $this->showHeaderSubtitle = (bool) data_get($layoutConfig, 'sidebar.header.show_subtitle', true);
+        $this->headerSubtitle = (string) data_get($layoutConfig, 'sidebar.header.subtitle', 'Không gian quản trị');
+        $this->showSidebarFooter = (bool) data_get($layoutConfig, 'sidebar.footer.enabled', data_get($layoutConfig, 'sidebar.show_footer_profile', true));
+        $this->showFooterAvatar = (bool) data_get($layoutConfig, 'sidebar.footer.show_avatar', true);
+        $this->showFooterName = (bool) data_get($layoutConfig, 'sidebar.footer.show_name', true);
+        $this->showFooterSubtitle = (bool) data_get($layoutConfig, 'sidebar.footer.show_subtitle', true);
+        $this->footerSubtitle = (string) data_get($layoutConfig, 'sidebar.footer.subtitle', 'Tài khoản quản trị');
+
+        [$this->sidebarSurfaceClass, $this->sidebarTextClass] = match ((string) data_get($layoutConfig, 'sidebar.presentation.background', 'theme')) {
+            'system' => ['bg-[var(--admin-surface-raised)]', 'text-[var(--admin-text-primary)]'],
+            'white' => ['bg-white', 'text-slate-800'],
+            'dark' => ['bg-slate-950', 'text-slate-100'],
+            default => [$this->theme['background'], $this->theme['text']],
+        };
     }
 
     private function applyNavigationSearchPolicy(array $layoutConfig): void
     {
+        $searchEnabled = (bool) data_get($layoutConfig, 'sidebar.search.enabled', true);
         $searchThreshold = (int) data_get($layoutConfig, 'sidebar.navigation_search_threshold', 12);
-        $this->showNavigationSearch = $this->destinationCount >= $searchThreshold;
+        $this->showNavigationSearch = $searchEnabled && $this->destinationCount >= $searchThreshold;
     }
 }
