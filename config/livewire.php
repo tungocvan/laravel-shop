@@ -34,6 +34,7 @@ return [
     |---------------------------------------------------------------------------
     | Layout
     |---------------------------------------------------------------------------
+    |
     | The view that will be used as the layout when rendering a single component
     | as an entire page via `Route::get('/post/create', CreatePost::class);`.
     | In this case, the view returned by CreatePost will render into $slot.
@@ -46,6 +47,7 @@ return [
     |---------------------------------------------------------------------------
     | Lazy Loading Placeholder
     |---------------------------------------------------------------------------
+    |
     | Livewire allows you to lazy load components that would otherwise slow down
     | the initial page load. Every component can have a custom placeholder or
     | you can define the default placeholder view for all components below.
@@ -60,8 +62,8 @@ return [
     |---------------------------------------------------------------------------
     |
     | Livewire handles file uploads by storing uploads in a temporary directory
-    | before the file is stored permanently. All file uploads are directed to
-    | a global endpoint for temporary storage. You may configure this below:
+    | before the file is stored permanently. All file uploads are directed to a
+    | global endpoint for temporary storage. You may configure this below:
     |
     */
 
@@ -98,8 +100,8 @@ return [
     |---------------------------------------------------------------------------
     |
     | Previous versions of Livewire supported binding directly to eloquent model
-    | properties using wire:model by default. However, this behavior has been
-    | deemed too "magical" and has therefore been put under a feature flag.
+    | properties via wire:model by default. This behavior is behind a feature
+    | flag for backwards compatibility.
     |
     */
 
@@ -110,13 +112,13 @@ return [
     | Auto-inject Frontend Assets
     |---------------------------------------------------------------------------
     |
-    | By default, Livewire automatically injects its JavaScript and CSS into the
-    | <head> and <body> of pages containing Livewire components. By disabling
-    | this behavior, you need to use @livewireStyles and @livewireScripts.
+    | Admin and existing application layouts explicitly render Livewire assets
+    | with @livewireStyles and @livewireScripts. Keep automatic injection off so
+    | each page has one predictable Livewire asset source.
     |
     */
 
-    'inject_assets' => true,
+    'inject_assets' => false,
 
     /*
     |---------------------------------------------------------------------------
@@ -153,8 +155,8 @@ return [
     |---------------------------------------------------------------------------
     |
     | When enabling Livewire's pagination feature by using the `WithPagination`
-    | trait, Livewire will use Tailwind templates to render pagination views
-    | on the page. If you want Bootstrap CSS, you can specify: "bootstrap".
+    | trait, Livewire will use Tailwind templates to render pagination views on
+    | the page. If you want Bootstrap CSS, you can specify: "bootstrap".
     |
     */
 
