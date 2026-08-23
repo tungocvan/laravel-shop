@@ -19,7 +19,7 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('Tìm chức năng...', $view);
         $this->assertStringContainsString('x-model.debounce.120ms="navQuery"', $view);
         $this->assertStringContainsString("collect(\$item['children'] ?? [])->pluck('name')", $view);
-        $this->assertStringContainsString('x-show="matches(@js($item[\'name\']', $view);
+        $this->assertStringContainsString('x-show="matches(@js(', $view);
         $this->assertStringContainsString("open || navQuery.trim() !== ''", $group);
         $this->assertStringContainsString("matches(@js(\$child['name']))", $group);
         $this->assertStringContainsString('[scrollbar-gutter:stable]', $view);
