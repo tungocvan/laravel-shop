@@ -1,7 +1,6 @@
 <aside
-    class="flex h-full flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none
+    class="flex h-full w-full flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none
     {{ $theme['background'] }} {{ $theme['text'] }}"
-    :class="sidebarOpen ? 'w-64' : 'w-20'"
 >
     <div class="relative flex h-16 items-center justify-center border-b px-4 {{ $theme['border'] }}">
         <div class="flex min-w-0 items-center gap-3">
@@ -20,7 +19,7 @@
         <button
             type="button"
             @click="toggleSidebar($event.currentTarget)"
-            class="absolute -right-4 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition hover:bg-slate-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            class="absolute -right-4 top-2 z-10 hidden h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition hover:bg-slate-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:inline-flex"
             aria-label="Thu gọn hoặc mở rộng menu"
             aria-controls="admin-sidebar"
             :aria-expanded="sidebarOpen.toString()"
