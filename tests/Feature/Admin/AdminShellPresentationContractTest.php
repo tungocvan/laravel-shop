@@ -27,7 +27,8 @@ class AdminShellPresentationContractTest extends TestCase
         $this->assertStringContainsString('var(--admin-surface-base)', $shell);
         $this->assertStringContainsString('var(--admin-text-primary)', $shell);
         $this->assertStringContainsString('var(--admin-surface-raised)', $shell);
-        $this->assertStringContainsString('var(--admin-border-subtle)', $shell);
+        $this->assertStringNotContainsString('var(--admin-border-subtle)', $shell);
+        $this->assertStringNotContainsString('border-r', $shell);
         $this->assertStringContainsString("sidebar_expanded_width", $shell);
         $this->assertStringContainsString("sidebar_collapsed_width", $shell);
         $this->assertStringContainsString('&& isDesktop', $shell);
