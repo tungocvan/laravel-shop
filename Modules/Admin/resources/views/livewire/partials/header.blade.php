@@ -8,7 +8,11 @@
     data-admin-header-mode="{{ $adminShellPresentation['header_mode'] ?? 'balanced' }}"
     style="height: {{ $adminShellPresentation['header_height'] }}; {{ $adminShellPresentation['header_style'] }}; background-color: color-mix(in srgb, var(--admin-header-background) var(--admin-header-background-opacity), transparent); color: var(--admin-text-primary); box-shadow: var(--admin-header-shadow);"
 >
-    <div class="flex min-w-0 flex-1 items-center justify-between gap-3" style="padding-inline: {{ $adminShellPresentation['header_padding_x'] }};">
+    <div
+        class="flex min-w-0 flex-1 items-center justify-between gap-3 transition-[padding] duration-300 motion-reduce:transition-none"
+        style="padding-inline: {{ $adminShellPresentation['header_padding_x'] }};"
+        :style="isDesktop && sidebarFullscreen ? { paddingLeft: '4rem' } : {}"
+    >
         <div class="flex min-w-0 flex-1 items-center" style="gap: {{ $adminShellPresentation['header_action_gap'] }};">
             @foreach (($headerContext['left'] ?? []) as $component)
                 @include($component['view'], $component['data'] ?? [])
