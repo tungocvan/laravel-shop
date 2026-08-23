@@ -22,7 +22,12 @@ class AdminShellPresentationService
     private function shellStyle(array $config): string { $background=$this->surface(data_get($config,'layout.surface.page_background','system'),'--admin-page-theme-background','var(--admin-surface-base)'); return "--admin-page-background: {$background}"; }
     private function headerStyle(array $config): string
     {
-        $mode=(string)data_get($config,'header.presentation.background','system'); $background=match($mode){'white'=>'#ffffff','transparent'=>'transparent',default=>'var(--admin-header-theme-background, var(--admin-surface-raised))'}; $divider=data_get($config,'header.presentation.divider','subtle')==='none'?'transparent':'color-mix(in srgb, var(--admin-border-subtle) 72%, transparent)'; $shadow=data_get($config,'header.presentation.shadow','subtle')==='none'?'none':'0 1px 0 var(--admin-header-divider), 0 4px 14px rgb(15 23 42 / 0.035)'; $opacity=data_get($config,'header.presentation.backdrop_blur',true)&&$background!=='transparent'?'94%':'100%'; $style=['--admin-header-background: '.$background,'--admin-header-background-opacity: '.$opacity,'--admin-header-divider: '.$divider,'--admin-header-shadow: '.$shadow];
+        $mode=(string)data_get($config,'header.presentation.background','system');
+        $background=match($mode){'white'=>'#ffffff','transparent'=>'transparent',default=>'var(--admin-header-theme-background)'};
+        $divider=data_get($config,'header.presentation.divider','subtle')==='none'?'transparent':'color-mix(in srgb, var(--admin-border-subtle) 72%, transparent)';
+        $shadow=data_get($config,'header.presentation.shadow','subtle')==='none'?'none':'0 1px 0 var(--admin-header-divider), 0 4px 14px rgb(15 23 42 / 0.035)';
+        $opacity=data_get($config,'header.presentation.backdrop_blur',true)&&$background!=='transparent'?'94%':'100%';
+        $style=['--admin-header-theme-fallback: var(--admin-surface-raised)','--admin-header-background: '.$background,'--admin-header-background-opacity: '.$opacity,'--admin-header-divider: '.$divider,'--admin-header-shadow: '.$shadow];
         if($mode!=='transparent'){ $token=$mode==='white'?'white':data_get($config,'design.colors.header_background','white'); foreach(app(AdminDesignService::class)->contrastVariables($token) as $variable=>$value) $style[]=$variable.': '.$value; }
         return implode('; ',$style);
     }
