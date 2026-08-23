@@ -18,10 +18,7 @@ class AdminLayoutManager
 
     public function config(): array
     {
-        return array_replace_recursive(
-            $this->defaults(),
-            $this->stored()
-        );
+        return array_replace_recursive($this->defaults(), $this->stored());
     }
 
     public function defaults(): array
@@ -30,19 +27,23 @@ class AdminLayoutManager
             'locale' => $this->defaults['locale'] ?? 'vi',
             'layout' => [
                 'preset' => data_get($this->defaults, 'layout.preset', 'default'),
-                'container' => data_get($this->defaults, 'layout.container', '7xl'),
+                'container' => data_get($this->defaults, 'layout.container', 'screen-2xl'),
                 'density' => data_get($this->defaults, 'layout.density', 'comfortable'),
                 'sticky_header' => (bool) data_get($this->defaults, 'layout.sticky_header', true),
                 'show_footer' => (bool) data_get($this->defaults, 'layout.show_footer', false),
             ],
+            'design' => $this->defaults['design'] ?? [],
             'sidebar' => [
                 'enabled' => (bool) data_get($this->defaults, 'sidebar.enabled', true),
+                'expanded_width' => data_get($this->defaults, 'sidebar.expanded_width', '16rem'),
+                'collapsed_width' => data_get($this->defaults, 'sidebar.collapsed_width', '5rem'),
                 'desktop_collapsible' => (bool) data_get($this->defaults, 'sidebar.desktop_collapsible', true),
                 'mobile_drawer' => (bool) data_get($this->defaults, 'sidebar.mobile_drawer', true),
                 'persist_state' => (bool) data_get($this->defaults, 'sidebar.persist_state', true),
                 'show_footer_profile' => (bool) data_get($this->defaults, 'sidebar.show_footer_profile', true),
             ],
             'header' => [
+                'height' => data_get($this->defaults, 'header.height', '4rem'),
                 'sticky' => (bool) data_get($this->defaults, 'header.sticky', true),
                 'search' => (bool) data_get($this->defaults, 'header.search', true),
                 'notifications' => (bool) data_get($this->defaults, 'header.notifications', true),
@@ -88,19 +89,8 @@ class AdminLayoutManager
     {
         $normalized = $this->normalize($payload);
 
-        Setting::setValue(
-            self::SETTING_KEY,
-            $normalized,
-            'admin_layout',
-            'json'
-        );
-
-        Setting::setValue(
-            'admin_sidebar_theme',
-            data_get($normalized, 'theme.default', 'corporate-blue'),
-            'admin_layout',
-            'text'
-        );
+        Setting::setValue(self::SETTING_KEY, $normalized, 'admin_layout', 'json');
+        Setting::setValue('admin_sidebar_theme', data_get($normalized, 'theme.default', 'corporate-blue'), 'admin_layout', 'text');
 
         Cache::forget('admin.menus');
         session(['admin_theme' => data_get($normalized, 'theme.default', 'corporate-blue')]);
@@ -127,14 +117,18 @@ class AdminLayoutManager
                 'sticky_header' => (bool) data_get($payload, 'layout.sticky_header', data_get($defaults, 'layout.sticky_header')),
                 'show_footer' => (bool) data_get($payload, 'layout.show_footer', data_get($defaults, 'layout.show_footer')),
             ],
+            'design' => app(\Modules\Admin\Services\AdminDesignService::class)->sanitize((array) data_get($payload, 'design', data_get($defaults, 'design', []))),
             'sidebar' => [
                 'enabled' => (bool) data_get($payload, 'sidebar.enabled', data_get($defaults, 'sidebar.enabled')),
+                'expanded_width' => $this->in(data_get($payload, 'sidebar.expanded_width'), ['16rem'], data_get($defaults, 'sidebar.expanded_width')),
+                'collapsed_width' => $this->in(data_get($payload, 'sidebar.collapsed_width'), ['5rem'], data_get($defaults, 'sidebar.collapsed_width')),
                 'desktop_collapsible' => (bool) data_get($payload, 'sidebar.desktop_collapsible', data_get($defaults, 'sidebar.desktop_collapsible')),
                 'mobile_drawer' => (bool) data_get($payload, 'sidebar.mobile_drawer', data_get($defaults, 'sidebar.mobile_drawer')),
                 'persist_state' => (bool) data_get($payload, 'sidebar.persist_state', data_get($defaults, 'sidebar.persist_state')),
                 'show_footer_profile' => (bool) data_get($payload, 'sidebar.show_footer_profile', data_get($defaults, 'sidebar.show_footer_profile')),
             ],
             'header' => [
+                'height' => $this->in(data_get($payload, 'header.height'), ['4rem'], data_get($defaults, 'header.height')),
                 'sticky' => (bool) data_get($payload, 'header.sticky', data_get($defaults, 'header.sticky')),
                 'search' => (bool) data_get($payload, 'header.search', data_get($defaults, 'header.search')),
                 'notifications' => (bool) data_get($payload, 'header.notifications', data_get($defaults, 'header.notifications')),
