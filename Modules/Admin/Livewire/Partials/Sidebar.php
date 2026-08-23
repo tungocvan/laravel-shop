@@ -5,96 +5,52 @@ namespace Modules\Admin\Livewire\Partials;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Modules\Admin\Services\SidebarService;
+use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
 use Modules\System\Models\Setting;
 
 class Sidebar extends Component
 {
-    // ======================
-    // STATE
-    // ======================
-    public $menus = [];
+    public array $menus = [];
 
-    public $theme = [];
+    public array $theme = [];
 
-    public $sidebarOpen = true;
+    public string $titleSidebar = '';
 
-    public $titleSidebar = '';
+    public string $schoolPrefix = '';
 
-    public $schoolPrefix = '';
+    public string $schoolDisplayName = '';
 
-    public $schoolDisplayName = '';
+    public string $schoolAcronym = '';
 
-    public $schoolAcronym = '';
+    public bool $showFooterProfile = true;
 
-    // ======================
-    // DEFAULT THEME (SAFE FALLBACK)
-    // ======================
-    protected array $defaultTheme = [
+    public string $profileName = 'Admin';
 
-        // ======================
-        // BASE
-        // ======================
-        'background' => 'bg-slate-50',
+    public string $profileInitial = 'A';
 
-        // 🔥 FIX: tăng readability
-        'text' => 'text-slate-700',
+    public function mount(
+        SidebarService $service,
+        ThemeManager $themeManager,
+        AdminLayoutManager $layoutManager
+    ): void {
+        $user = auth()->user();
 
-        'hover' => 'hover:bg-slate-100',
+        $this->menus = $service->getMenusForUser($user, request()->path());
+        $this->theme = $themeManager->get();
+        $this->showFooterProfile = (bool) data_get(
+            $layoutManager->config(),
+            'sidebar.show_footer_profile',
+            true
+        );
 
-        // ======================
-        // ACTIVE STATE
-        // ======================
-        'active_bg' => 'bg-indigo-600',
-        'active_text' => 'text-white',
-
-        // ======================
-        // ICON
-        // ======================
-        'icon_active' => 'text-indigo-600',
-        'icon_inactive' => 'text-slate-400',
-
-        // ======================
-        // CHILD MENU (FIX QUAN TRỌNG)
-        // ======================
-        'child_text' => 'text-slate-600', // 🔥 FIX: 500 → 600 (dễ đọc hơn)
-
-        'child_hover' => 'hover:bg-slate-100 hover:text-slate-900',
-
-        'child_active_bg' => 'bg-indigo-500/10',
-        'child_active_text' => 'text-indigo-600',
-
-        // ======================
-        // BORDER
-        // ======================
-        'border' => 'border-slate-200',
-    ];
-
-    // ======================
-    // MOUNT
-    // ======================
-    public function mount(SidebarService $service, ThemeManager $themeManager)
-    {
-        $this->menus = $service->getMenusForUser(auth()->user(), request()->path());
+        $this->profileName = (string) ($user?->name ?? 'Admin');
+        $this->profileInitial = mb_strtoupper(
+            mb_substr($this->profileName ?: 'A', 0, 1, 'UTF-8'),
+            'UTF-8'
+        );
 
         $this->loadSchoolName();
-        // $config = File::getRequire(
-        //     base_path('Modules/Admin/config/sidebar.php')
-        // );
-        // $themeName = auth()->user()?->theme
-        //     ?? ($config['theme'] ?? 'soft-light');
-
-        // $themes = $config['themes'] ?? [];
-
-        // $selectedTheme = $themes[$themeName] ?? [];
-
-        // $this->theme = array_merge(
-        //     $this->defaultTheme,
-        //     $selectedTheme
-        // );
-        $this->theme = $themeManager->get();
-
-        $this->sidebarOpen = session('sidebar_open', true);
     }
 
     #[On('site-name-updated')]
@@ -124,19 +80,6 @@ class Sidebar extends Component
         }
     }
 
-    // ======================
-    // TOGGLE SIDEBAR
-    // ======================
-    public function toggleSidebar()
-    {
-        $this->sidebarOpen = ! $this->sidebarOpen;
-
-        session(['sidebar_open' => $this->sidebarOpen]);
-    }
-
-    // ======================
-    // RENDER
-    // ======================
     public function render()
     {
         return view('Admin::livewire.partials.sidebar');
