@@ -67,4 +67,21 @@ class AdminContentWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('wire:click="resetSection"', $config);
         $this->assertStringContainsString('wire:submit="save"', $config);
     }
+
+    public function test_header_manager_uses_page_header_toolbar_and_preserves_existing_widgets(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
+
+        $this->assertStringContainsString('<x-admin::page-header', $view);
+        $this->assertStringContainsString('<x-slot:toolbar>', $view);
+        $this->assertStringContainsString('role="tablist"', $view);
+        $this->assertStringContainsString('role="tab"', $view);
+        $this->assertStringContainsString(':aria-selected=', $view);
+        $this->assertStringContainsString('<x-admin::content-section>', $view);
+        $this->assertStringNotContainsString('max-w-7xl mx-auto py-6', $view);
+        $this->assertStringNotContainsString('Homepage Header Manager', $view);
+        $this->assertStringContainsString("@livewire('admin.header.general-settings')", $view);
+        $this->assertStringContainsString("@livewire('admin.header.menu-manager')", $view);
+        $this->assertStringContainsString("@livewire('admin.theme-switcher')", $view);
+    }
 }
