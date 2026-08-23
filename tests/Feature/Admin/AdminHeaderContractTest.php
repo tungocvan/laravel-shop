@@ -15,13 +15,19 @@ class AdminHeaderContractTest extends TestCase
         $manager->shouldReceive('config')->once()->andReturn([
             'layout' => ['sticky_header' => true],
             'sidebar' => ['enabled' => true, 'mobile_drawer' => true],
-            'header' => ['search' => true, 'notifications' => true, 'user_menu' => true],
+            'header' => [
+                'search' => true,
+                'notifications' => true,
+                'user_menu' => true,
+                'brand' => ['enabled' => true, 'show_title' => true, 'title' => 'Admin'],
+                'responsive' => ['mobile_brand' => 'logo-only', 'hide_title_on_mobile' => true],
+            ],
         ]);
 
         $context = (new AdminHeaderService($manager))->context();
 
         $this->assertTrue($context['sticky']);
-        $this->assertSame(['sidebar-toggle', 'search'], array_column($context['left'], 'key'));
+        $this->assertSame(['sidebar-toggle', 'brand', 'search'], array_column($context['left'], 'key'));
         $this->assertSame(['notifications', 'divider', 'user-menu'], array_column($context['right'], 'key'));
     }
 
@@ -31,7 +37,12 @@ class AdminHeaderContractTest extends TestCase
         $manager->shouldReceive('config')->once()->andReturn([
             'layout' => ['sticky_header' => false],
             'sidebar' => ['enabled' => false, 'mobile_drawer' => true],
-            'header' => ['search' => false, 'notifications' => false, 'user_menu' => true],
+            'header' => [
+                'search' => false,
+                'notifications' => false,
+                'user_menu' => true,
+                'brand' => ['enabled' => false],
+            ],
         ]);
 
         $context = (new AdminHeaderService($manager))->context();
@@ -46,6 +57,7 @@ class AdminHeaderContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Admin/Services/AdminHeaderService.php'));
 
         $this->assertStringContainsString("'sidebar-toggle'", $service);
+        $this->assertStringContainsString("'brand'", $service);
         $this->assertStringContainsString("'search'", $service);
         $this->assertStringContainsString("'notifications'", $service);
         $this->assertStringContainsString("'user-menu'", $service);
