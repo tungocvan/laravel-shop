@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use Mockery;
+use Modules\Admin\Services\AdminHeaderActionService;
 use Modules\Admin\Services\AdminHeaderService;
 use Modules\Admin\Support\AdminLayoutManager;
 use Tests\TestCase;
@@ -24,11 +25,19 @@ class AdminHeaderContractTest extends TestCase
             ],
         ]);
 
-        $context = (new AdminHeaderService($manager))->context();
+        $actionService = Mockery::mock(AdminHeaderActionService::class);
+        $actionService->shouldReceive('context')->once()->andReturn([
+            'notifications' => true,
+            'items' => [],
+            'mobile_overflow' => true,
+            'overflow_secondary_actions' => true,
+        ]);
+
+        $context = (new AdminHeaderService($manager, $actionService))->context();
 
         $this->assertTrue($context['sticky']);
         $this->assertSame(['sidebar-toggle', 'brand', 'search'], array_column($context['left'], 'key'));
-        $this->assertSame(['notifications', 'divider', 'user-menu'], array_column($context['right'], 'key'));
+        $this->assertSame(['actions', 'divider', 'user-menu'], array_column($context['right'], 'key'));
     }
 
     public function test_header_service_prunes_disabled_regions_before_rendering(): void
@@ -45,7 +54,15 @@ class AdminHeaderContractTest extends TestCase
             ],
         ]);
 
-        $context = (new AdminHeaderService($manager))->context();
+        $actionService = Mockery::mock(AdminHeaderActionService::class);
+        $actionService->shouldReceive('context')->once()->andReturn([
+            'notifications' => false,
+            'items' => [],
+            'mobile_overflow' => true,
+            'overflow_secondary_actions' => true,
+        ]);
+
+        $context = (new AdminHeaderService($manager, $actionService))->context();
 
         $this->assertFalse($context['sticky']);
         $this->assertSame([], $context['left']);
@@ -59,7 +76,7 @@ class AdminHeaderContractTest extends TestCase
         $this->assertStringContainsString("'sidebar-toggle'", $service);
         $this->assertStringContainsString("'brand'", $service);
         $this->assertStringContainsString("'search'", $service);
-        $this->assertStringContainsString("'notifications'", $service);
+        $this->assertStringContainsString("'actions'", $service);
         $this->assertStringContainsString("'user-menu'", $service);
         $this->assertStringContainsString('Admin::livewire.partials.header.components.', $service);
         $this->assertStringNotContainsString("data_get(\$header, 'view'", $service);
@@ -85,11 +102,11 @@ class AdminHeaderContractTest extends TestCase
     public function test_extracted_header_components_preserve_existing_livewire_widgets(): void
     {
         $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/search.blade.php'));
-        $notifications = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/notifications.blade.php'));
+        $actions = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/actions.blade.php'));
         $userMenu = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/user-menu.blade.php'));
 
         $this->assertStringContainsString("@livewire('admin.partials.header-search')", $search);
-        $this->assertStringContainsString("@livewire('admin.partials.header-notifications')", $notifications);
+        $this->assertStringContainsString("@livewire('admin.partials.header-notifications')", $actions);
         $this->assertStringContainsString("@livewire('admin.partials.header-user')", $userMenu);
     }
 
