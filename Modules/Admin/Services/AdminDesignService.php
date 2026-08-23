@@ -9,9 +9,15 @@ class AdminDesignService
     private AdminLayoutManager $layoutManager;
 
     private const COLOR_VALUES = [
-        'white' => '#ffffff', 'slate-50' => '#f8fafc', 'slate-200' => '#e2e8f0', 'slate-500' => '#64748b',
-        'slate-700' => '#334155', 'slate-900' => '#0f172a', 'indigo-500' => '#6366f1', 'indigo-600' => '#4f46e5',
-        'emerald-600' => '#059669', 'amber-500' => '#f59e0b', 'rose-600' => '#e11d48', 'sky-600' => '#0284c7',
+        'white' => '#ffffff',
+        'slate-50' => '#f8fafc', 'slate-100' => '#f1f5f9', 'slate-200' => '#e2e8f0', 'slate-400' => '#94a3b8', 'slate-500' => '#64748b', 'slate-700' => '#334155', 'slate-900' => '#0f172a', 'slate-950' => '#020617',
+        'indigo-400' => '#818cf8', 'indigo-500' => '#6366f1', 'indigo-600' => '#4f46e5',
+        'blue-500' => '#3b82f6', 'blue-600' => '#2563eb',
+        'orange-50' => '#fff7ed', 'orange-200' => '#fed7aa', 'orange-500' => '#f97316', 'orange-600' => '#ea580c',
+        'emerald-500' => '#10b981', 'emerald-600' => '#059669',
+        'amber-400' => '#fbbf24', 'amber-500' => '#f59e0b',
+        'rose-500' => '#f43f5e', 'rose-600' => '#e11d48',
+        'sky-500' => '#0ea5e9', 'sky-600' => '#0284c7',
     ];
 
     private const FONT_FAMILIES = ['sans' => 'ui-sans-serif, system-ui, sans-serif'];
@@ -90,6 +96,11 @@ class AdminDesignService
             '--admin-radius-panel' => self::RADIUS_VALUES[$tokens['radius']['panel']],
             '--admin-radius-overlay' => self::RADIUS_VALUES[$tokens['radius']['overlay']],
         ];
+    }
+
+    public function colorOptions(): array
+    {
+        return self::COLOR_VALUES;
     }
 
     private function sanitizeColors(array $tokens, array $defaults): array
