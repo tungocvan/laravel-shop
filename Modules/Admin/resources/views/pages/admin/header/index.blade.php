@@ -3,56 +3,69 @@
 @section('title', 'Quản lý Header & Menu')
 
 @section('content')
-    <div class="max-w-7xl mx-auto py-6" x-data="{ activeTab: 'general' }">
+    <div x-data="{ activeTab: 'general' }">
+        <x-admin::page-header
+            title="Quản lý Header & Menu"
+            description="Cấu hình thông tin Header, menu điều hướng và giao diện liên quan trong cùng một workspace."
+            eyebrow="Website presentation"
+        >
+            <x-slot:toolbar>
+                <div class="flex min-w-0 flex-1 overflow-x-auto" role="tablist" aria-label="Khu vực quản lý Header">
+                    <button
+                        type="button"
+                        @click="activeTab = 'general'"
+                        :aria-selected="(activeTab === 'general').toString()"
+                        :class="activeTab === 'general' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'"
+                        class="min-h-10 shrink-0 rounded-lg px-3.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                        role="tab"
+                    >
+                        Cấu hình chung
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeTab = 'menu'"
+                        :aria-selected="(activeTab === 'menu').toString()"
+                        :class="activeTab === 'menu' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'"
+                        class="min-h-10 shrink-0 rounded-lg px-3.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                        role="tab"
+                    >
+                        Quản lý Menu
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeTab = 'themes'"
+                        :aria-selected="(activeTab === 'themes').toString()"
+                        :class="activeTab === 'themes' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'"
+                        class="min-h-10 shrink-0 rounded-lg px-3.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                        role="tab"
+                    >
+                        Quản lý Themes
+                    </button>
+                </div>
+            </x-slot:toolbar>
+        </x-admin::page-header>
 
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Homepage Header Manager</h1>
-        </div>
+        <x-admin::content-section>
+            <div x-cloak x-show="activeTab === 'general'" role="tabpanel">
+                @livewire('admin.header.general-settings')
+            </div>
 
-        {{-- Tabs Navigation --}}
-        <div class="border-b border-gray-200 mb-6">
-            <nav class="-mb-px flex space-x-8">
-                <button @click="activeTab = 'general'"
-                    :class="activeTab === 'general' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Cấu hình chung
-                </button>
-                <button @click="activeTab = 'menu'"
-                    :class="activeTab === 'menu' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Quản lý Menu
-                </button>
-                <button @click="activeTab = 'themes'"
-                    :class="activeTab === 'themes' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Quản lý Themes
-                </button>
-            </nav>
-        </div>
+            <div x-cloak x-show="activeTab === 'menu'" role="tabpanel">
+                @livewire('admin.header.menu-manager')
+            </div>
 
-        {{-- Tab Contents --}}
-        <div x-show="activeTab === 'general'" style="display: none;">
-            @livewire('admin.header.general-settings')
-        </div>
-
-        <div x-show="activeTab === 'menu'" style="display: none;">
-            @livewire('admin.header.menu-manager')
-        </div>
-
-        <div x-show="activeTab === 'themes'" style="display: none;">
-            @livewire('admin.theme-switcher')
-        </div>
-
+            <div x-cloak x-show="activeTab === 'themes'" role="tabpanel">
+                @livewire('admin.theme-switcher')
+            </div>
+        </x-admin::content-section>
     </div>
 @endsection
+
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
     document.addEventListener('livewire:init', () => {
-        // Hứng sự kiện 'show-toast' từ Livewire
         Livewire.on('show-toast', (event) => {
-            // Livewire 3 trả về mảng params, lấy phần tử đầu tiên
             const data = event[0];
 
             Swal.fire({
