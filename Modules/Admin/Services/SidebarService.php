@@ -2,23 +2,19 @@
 
 namespace Modules\Admin\Services;
 
-use Modules\Admin\Models\AdminMenu;
 use Illuminate\Support\Facades\Cache;
+use Modules\Admin\Models\AdminMenu;
 use Modules\Admin\Support\AdminLayoutManager;
 
 class SidebarService
 {
     protected string $cacheKey = 'admin.menus';
 
-    // ======================
-    // GET MENUS
-    // ======================
-    public function getMenus()
+    public function getMenus(): array
     {
         $ttl = app(AdminLayoutManager::class)->config()['navigation']['cache_ttl'] ?? 3600;
 
-        return Cache::remember($this->cacheKey, (int) $ttl, function () {
-
+        return Cache::remember($this->cacheKey, (int) $ttl, function (): array {
             $menus = AdminMenu::query()
                 ->select([
                     'id',
@@ -28,12 +24,12 @@ class SidebarService
                     'parent_id',
                     'sort_order',
                     'can',
-                    'is_active'
+                    'is_active',
                 ])
                 ->where('is_active', true)
                 ->whereNull('parent_id')
-                ->with(['children' => function ($q) {
-                    $q->select([
+                ->with(['children' => function ($query) {
+                    $query->select([
                             'id',
                             'name',
                             'url',
@@ -41,7 +37,7 @@ class SidebarService
                             'parent_id',
                             'sort_order',
                             'can',
-                            'is_active'
+                            'is_active',
                         ])
                         ->where('is_active', true)
                         ->orderBy('sort_order');
@@ -60,75 +56,60 @@ class SidebarService
         return collect($this->getMenus())
             ->map(function (array $menu) use ($user, $currentPath) {
                 $children = collect($menu['children'] ?? [])
-                    ->filter(fn(array $child) => $this->canAccess($child, $user))
-                    ->map(fn(array $child) => $this->withActiveState($child, $currentPath))
+                    ->filter(fn (array $child) => $this->canAccess($child, $user))
+                    ->map(fn (array $child) => $this->toNavigationItem(
+                        $this->withActiveState($child, $currentPath)
+                    ))
                     ->values()
                     ->all();
 
                 $menu = $this->withActiveState($menu, $currentPath, $children);
-                $menu['children'] = $children;
-                $menu['has_children'] = ! empty($children);
+                $hasChildren = $children !== [];
 
-                if (! $this->canAccess($menu, $user) && ! $menu['has_children']) {
+                if (! $this->canAccess($menu, $user) && ! $hasChildren) {
                     return null;
                 }
 
-                return $menu;
+                return $hasChildren
+                    ? $this->toNavigationGroup($menu, $children)
+                    : $this->toNavigationItem($menu);
             })
             ->filter()
             ->values()
             ->all();
     }
 
-    // ======================
-    // SAFE URL NORMALIZER
-    // ======================
     protected function normalizeUrl($url): ?string
     {
         if (empty($url)) {
             return null;
         }
 
-        // nếu đã là full URL thì giữ nguyên
         if (filter_var($url, FILTER_VALIDATE_URL)) {
             return $url;
         }
 
-        // đảm bảo bắt đầu bằng /
         return '/' . ltrim($url, '/');
     }
 
-    // ======================
-    // BUILD PRE-PROCESSED TREE (ULTRA SAFE)
-    // ======================
     protected function buildTree($menus): array
     {
         return $menus->map(function ($menu) {
-
             $children = $menu->children ?? collect();
 
             return [
-                'id'   => $menu->id,
+                'id' => $menu->id,
                 'name' => $menu->name,
-
-                // ✅ FIX QUAN TRỌNG: luôn là STRING hoặc NULL
-                'url'  => $this->normalizeUrl($menu->url),
-
+                'url' => $this->normalizeUrl($menu->url),
                 'icon' => $menu->icon,
-                'can'  => $menu->can,
-
-                'has_children' => $children->isNotEmpty(),
-
+                'can' => $menu->can,
                 'children' => $children->map(function ($child) {
                     return [
-                        'id'   => $child->id,
+                        'id' => $child->id,
                         'name' => $child->name,
-
-                        // ✅ FIX CHILD URL
-                        'url'  => $this->normalizeUrl($child->url),
-
+                        'url' => $this->normalizeUrl($child->url),
                         'icon' => $child->icon,
-                        'can'  => $child->can,
+                        'can' => $child->can,
                     ];
                 })->values()->all(),
             ];
@@ -147,7 +128,6 @@ class SidebarService
     protected function withActiveState(array $item, string $currentPath, array $children = []): array
     {
         $pattern = trim($item['url'] ?? '', '/');
-
         $active = false;
 
         if ($pattern !== '') {
@@ -159,7 +139,9 @@ class SidebarService
         }
 
         if (! $active && $children !== []) {
-            $active = collect($children)->contains(fn(array $child) => (bool) ($child['active'] ?? false));
+            $active = collect($children)->contains(
+                fn (array $child) => (bool) ($child['active'] ?? false)
+            );
         }
 
         $item['active'] = $active;
@@ -167,9 +149,45 @@ class SidebarService
         return $item;
     }
 
-    // ======================
-    // CLEAR CACHE
-    // ======================
+    protected function toNavigationItem(array $item): array
+    {
+        return [
+            'kind' => 'item',
+            'id' => $item['id'],
+            'name' => $item['name'],
+            'icon' => $item['icon'] ?? null,
+            'href' => $this->href($item['url'] ?? null),
+            'active' => (bool) ($item['active'] ?? false),
+        ];
+    }
+
+    protected function toNavigationGroup(array $item, array $children): array
+    {
+        return [
+            'kind' => 'group',
+            'id' => $item['id'],
+            'name' => $item['name'],
+            'icon' => $item['icon'] ?? null,
+            'href' => $this->href($item['url'] ?? null),
+            'active' => (bool) ($item['active'] ?? false),
+            'group_id' => 'admin-nav-group-' . $item['id'],
+            'children' => $children,
+        ];
+    }
+
+    protected function href(?string $url): string
+    {
+        if (empty($url)) {
+            return '#';
+        }
+
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return $url;
+        }
+
+        return url($url);
+    }
+
     public function clearCache(): void
     {
         Cache::forget($this->cacheKey);
