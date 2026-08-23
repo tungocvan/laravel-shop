@@ -21,7 +21,34 @@ return [
         'radius' => ['control' => 'lg', 'panel' => 'lg', 'overlay' => 'xl'],
     ],
     'sidebar' => [
-        'enabled' => true, 'expanded_width' => '16rem', 'collapsed_width' => '5rem', 'desktop_collapsible' => true, 'mobile_drawer' => true, 'persist_state' => true, 'show_footer_profile' => true, 'navigation_search_threshold' => 12,
+        'enabled' => true,
+        'expanded_width' => '16rem',
+        'collapsed_width' => '5rem',
+        'desktop_collapsible' => true,
+        'mobile_drawer' => true,
+        'persist_state' => true,
+        'show_footer_profile' => true,
+        'navigation_search_threshold' => 12,
+        'header' => [
+            'enabled' => true,
+            'show_mark' => true,
+            'show_title' => true,
+            'show_subtitle' => true,
+            'subtitle' => 'Không gian quản trị',
+        ],
+        'footer' => [
+            'enabled' => true,
+            'show_avatar' => true,
+            'show_name' => true,
+            'show_subtitle' => true,
+            'subtitle' => 'Tài khoản quản trị',
+        ],
+        'search' => [
+            'enabled' => true,
+        ],
+        'presentation' => [
+            'background' => 'theme',
+        ],
     ],
     'header' => [
         'height' => '4rem',
