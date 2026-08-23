@@ -65,6 +65,11 @@ return [
         'mobile_search_mode' => 'overlay',
     ],
 
+    'footer' => [
+        'show_app_name' => true,
+        'show_environment' => true,
+    ],
+
     'theme' => [
         'default' => env('ADMIN_SIDEBAR_THEME', 'corporate-blue'),
         'dark_mode' => 'class',
