@@ -65,22 +65,28 @@ Future refactors should move permission pruning and active/open state into a nav
 
 | Field | Value |
 |---|---|
-| Status | Proposed |
-| Date | 2026-06-27 |
+| Status | Accepted |
+| Date | 2026-08-23 |
 
 ### Context
 
-The current sidebar theme config stores Tailwind class fragments. Some are unused because views hard-code colors.
+The Admin design system defines semantic roles for surfaces, text, borders, accent/status colors, spacing, radius, typography, and shell dimensions, while current views still contain Tailwind presentation literals. Replacing those literals all at once would create unnecessary visual-regression risk because the current Admin UI has already passed manual verification.
 
 ### Decision
 
-Future theme work should define semantic tokens and map them to Tailwind classes in one layer.
+Establish a sanitized semantic design-token contract under `admin.design`, resolve it through `AdminDesignService`, and expose the resolved values as `--admin-*` CSS custom properties from a dedicated presentation-styles partial.
+
+Default token values must match the currently approved Admin presentation. Existing Tailwind classes are not migrated wholesale in Phase 13B; later Header, Sidebar, Footer, and shell phases may consume the semantic variables incrementally.
+
+Only whitelisted token values may be emitted. Arbitrary user-provided CSS values or class fragments are not part of the design-token contract.
 
 ### Consequences
 
-- Themes become more consistent.
-- Arbitrary class injection risk is reduced.
-- Tailwind safelisting/build visibility must be considered.
+- Future presentation work has one semantic vocabulary instead of adding new hardcoded colors and dimensions.
+- The approved current UI can remain visually unchanged while the architecture gains a stable token layer.
+- Runtime values are constrained to known-safe palettes, spacing, radius, typography, and shell dimensions.
+- Later phases must migrate presentation deliberately and verify UI after each consumer adopts tokens.
+- Tailwind safelisting is not required for these tokens because the contract emits CSS custom-property values rather than dynamically generated Tailwind class names.
 
 ## ADR-005: Centralize Global JavaScript
 
