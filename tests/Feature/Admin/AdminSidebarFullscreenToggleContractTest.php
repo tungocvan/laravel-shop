@@ -32,14 +32,16 @@ class AdminSidebarFullscreenToggleContractTest extends TestCase
         $this->assertStringContainsString('Mở lại Sidebar', $shell);
     }
 
-    public function test_shell_owns_fullscreen_entry_control_without_coupling_it_to_sidebar_content(): void
+    public function test_shell_owns_fullscreen_restore_control_without_coupling_it_to_sidebar_content(): void
     {
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
 
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-toggle', $shell);
         $this->assertStringContainsString('@click="toggleSidebarFullscreen($event.currentTarget)"', $shell);
-        $this->assertStringContainsString('Ẩn Sidebar toàn màn hình', $shell);
+        $this->assertStringContainsString('x-show="isDesktop && sidebarFullscreen"', $shell);
+        $this->assertStringContainsString('aria-label="Mở lại Sidebar"', $shell);
+        $this->assertStringContainsString('title="Mở lại Sidebar"', $shell);
         $this->assertStringNotContainsString('data-admin-sidebar-fullscreen-enter', $sidebar);
     }
 
