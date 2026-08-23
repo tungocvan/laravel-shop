@@ -19,6 +19,32 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         }
     }
 
+    public function test_notifications_are_managed_inside_header_actions_not_core_components(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-header-config.blade.php'));
+
+        $this->assertStringContainsString('data-admin-system-action-settings="notifications"', $view);
+        $this->assertStringContainsString('wire:model.live="config.header.notifications"', $view);
+        $this->assertStringContainsString('System action', $view);
+        $this->assertStringContainsString("['config.header.search' => 'Tìm kiếm trên Header','config.header.user_menu' => 'UserMenu']", $view);
+    }
+
+    public function test_current_database_menu_items_are_imported_into_user_menu_editor_when_config_is_empty(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $menuService = file_get_contents(base_path('Modules/Admin/Services/HeaderMenuService.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-header-config.blade.php'));
+
+        $this->assertStringContainsString('HeaderMenuService $headerMenuService', $component);
+        $this->assertStringContainsString('exportAdminConfigItems()', $component);
+        $this->assertStringContainsString('public bool $importedHeaderMenuItems = false', $component);
+        $this->assertStringContainsString('exportAdminConfigItems(): array', $menuService);
+        $this->assertStringContainsString("getMenuTreeByLocation('admin')", $menuService);
+        $this->assertStringContainsString('Menu items hiện tại', $view);
+        $this->assertStringContainsString('$importedHeaderMenuItems', $view);
+        $this->assertStringContainsString('Lưu Header', $view);
+    }
+
     public function test_header_editor_supports_safe_dynamic_actions_and_user_menu_items(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
