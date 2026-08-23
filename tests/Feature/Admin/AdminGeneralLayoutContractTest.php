@@ -64,4 +64,22 @@ class AdminGeneralLayoutContractTest extends TestCase
         $this->assertStringContainsString('var(--admin-content-padding-x)', $content);
         $this->assertStringContainsString('var(--admin-section-gap)', $content);
     }
+
+    public function test_general_settings_ui_groups_workspace_spacing_surface_behavior_and_language(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-config.blade.php'));
+
+        foreach (['Workspace', 'Content spacing', 'Surface', 'Behavior', 'Language & display', 'Workspace preview'] as $heading) {
+            $this->assertStringContainsString($heading, $view);
+        }
+
+        $this->assertStringContainsString('wire:model.live="config.layout.container"', $view);
+        $this->assertStringContainsString('Padding ngang Desktop', $view);
+        $this->assertStringContainsString('Padding ngang Tablet', $view);
+        $this->assertStringContainsString('Padding ngang Mobile', $view);
+        $this->assertStringContainsString('Page background', $view);
+        $this->assertStringContainsString('Content surface', $view);
+        $this->assertStringContainsString('Reduced motion', $view);
+        $this->assertStringContainsString('A4 live preview', $view);
+    }
 }
