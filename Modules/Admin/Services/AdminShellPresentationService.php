@@ -86,8 +86,8 @@ class AdminShellPresentationService
             '--admin-header-shadow: '.$shadow,
         ];
 
-        if ($mode === 'system') {
-            $token = data_get($config, 'design.colors.header_background', 'white');
+        if ($mode !== 'transparent') {
+            $token = $mode === 'white' ? 'white' : data_get($config, 'design.colors.header_background', 'white');
             foreach (app(AdminDesignService::class)->contrastVariables($token) as $variable => $value) {
                 $style[] = $variable.': '.$value;
             }
@@ -99,10 +99,7 @@ class AdminShellPresentationService
     private function surface(mixed $value, string $systemVariable): string
     {
         return match ((string) $value) {
-            'white' => '#ffffff',
-            'slate-50' => '#f8fafc',
-            'transparent' => 'transparent',
-            default => "var({$systemVariable})",
+            'white' => '#ffffff', 'slate-50' => '#f8fafc', 'transparent' => 'transparent', default => "var({$systemVariable})",
         };
     }
 
