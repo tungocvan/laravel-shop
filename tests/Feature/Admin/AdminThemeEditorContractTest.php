@@ -28,6 +28,9 @@ class AdminThemeEditorContractTest extends TestCase
         $this->assertSame('white', data_get($default, 'payload.design.colors.footer_background'));
         $this->assertSame('slate-50', data_get($default, 'payload.design.colors.page_background'));
         $this->assertSame('white', data_get($default, 'payload.design.colors.content_background'));
+        $this->assertSame('white', data_get($default, 'payload.design.colors.sidebar_header_background'));
+        $this->assertSame('slate-50', data_get($default, 'payload.design.colors.sidebar_navigation_background'));
+        $this->assertSame('white', data_get($default, 'payload.design.colors.sidebar_footer_background'));
         $this->assertSame('system', data_get($default, 'payload.header.presentation.background'));
         $this->assertSame('system', data_get($default, 'payload.footer.presentation.background'));
         $this->assertSame('theme', data_get($default, 'payload.sidebar.presentation.background'));
@@ -56,16 +59,17 @@ class AdminThemeEditorContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));
-        foreach (['selectTheme(', 'saveTheme(', 'saveAsTheme(', 'restoreDefaultTheme('] as $contract) $this->assertStringContainsString($contract, $component);
+        foreach (['selectTheme(', 'saveTheme(', 'saveAsTheme(', 'restoreDefaultTheme(', 'duplicateTheme(', 'deleteTheme('] as $contract) $this->assertStringContainsString($contract, $component);
         foreach (['Theme Editor', 'Semantic colors', 'Sidebar Theme', 'Header presentation', 'Content & Footer', 'Lưu thành Theme mới', 'Khôi phục Theme mặc định', 'Admin preview'] as $label) $this->assertStringContainsString($label, $view);
-        $this->assertStringContainsString("'accent' => 'Accent'", $view);
+        $this->assertStringContainsString("'accent'=>'Accent'", str_replace(' ', '', $view));
         $this->assertStringContainsString('wire:model.live="config.design.colors.{{ $key }}"', $view);
-        foreach (['config.design.colors.header_background', 'config.design.colors.footer_background', 'config.design.colors.page_background', 'config.design.colors.content_background'] as $model) $this->assertStringContainsString($model, $view);
+        foreach (['config.design.colors.header_background','config.design.colors.footer_background','config.design.colors.page_background','config.design.colors.content_background','config.design.colors.sidebar_header_background','config.design.colors.sidebar_navigation_background','config.design.colors.sidebar_footer_background'] as $model) $this->assertStringContainsString($model, $view);
         $this->assertStringContainsString('surfaceColorOptions', $component);
         $this->assertStringContainsString('config.theme.default', $view);
         $this->assertStringContainsString('config.sidebar.presentation.background', $view);
-        $this->assertStringContainsString('config.header.presentation.background', $view);
-        $this->assertStringContainsString('config.footer.presentation.background', $view);
+        $this->assertStringContainsString('Theme colors — 3 vùng', $view);
+        $this->assertStringContainsString('Nhân bản', $view);
+        $this->assertStringContainsString('Xóa', $view);
         $this->assertStringContainsString('wire:submit="saveTheme"', $view);
         $this->assertStringContainsString('wire:click="saveAsTheme"', $view);
         $this->assertStringContainsString('wire:click="restoreDefaultTheme"', $view);
@@ -76,19 +80,22 @@ class AdminThemeEditorContractTest extends TestCase
         $design = file_get_contents(base_path('Modules/Admin/Services/AdminDesignService.php'));
         $shell = file_get_contents(base_path('Modules/Admin/Services/AdminShellPresentationService.php'));
         $footer = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/footer.blade.php'));
-        foreach (['--admin-header-theme-background', '--admin-footer-theme-background', '--admin-page-theme-background', '--admin-content-theme-background'] as $variable) $this->assertStringContainsString($variable, $design);
+        $sidebar = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Sidebar.php'));
+        foreach (['--admin-header-theme-background','--admin-footer-theme-background','--admin-page-theme-background','--admin-content-theme-background','--admin-sidebar-header-theme-background','--admin-sidebar-navigation-theme-background','--admin-sidebar-footer-theme-background'] as $variable) $this->assertStringContainsString($variable, $design);
         $this->assertStringContainsString('contrastVariables', $design);
         $this->assertStringContainsString('var(--admin-header-theme-background)', $shell);
         $this->assertStringContainsString('--admin-page-theme-background', $shell);
         $this->assertStringContainsString('--admin-content-theme-background', $shell);
         $this->assertStringContainsString('var(--admin-footer-theme-background)', $footer);
         $this->assertStringContainsString('contrastVariables', $footer);
+        foreach (['--admin-sidebar-header-theme-background','--admin-sidebar-navigation-theme-background','--admin-sidebar-footer-theme-background'] as $variable) $this->assertStringContainsString($variable, $sidebar);
+        $this->assertStringContainsString('regionStyle(', $sidebar);
     }
 
     public function test_design_service_supports_light_dark_blue_and_warm_theme_tokens(): void
     {
         $service = file_get_contents(base_path('Modules/Admin/Services/AdminDesignService.php'));
-        foreach (['slate-950', 'slate-100', 'blue-600', 'blue-500', 'blue-50', 'orange-50', 'orange-600', 'indigo-400'] as $token) $this->assertStringContainsString("'{$token}'", $service);
+        foreach (['slate-950','slate-100','blue-600','blue-500','blue-50','orange-50','orange-600','indigo-400'] as $token) $this->assertStringContainsString("'{$token}'", $service);
         $this->assertStringContainsString('public function colorOptions(): array', $service);
         $this->assertStringContainsString('public function surfaceColorOptions(): array', $service);
     }
