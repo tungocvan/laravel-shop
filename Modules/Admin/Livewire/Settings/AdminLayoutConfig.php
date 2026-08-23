@@ -65,6 +65,8 @@ class AdminLayoutConfig extends Component
             'config.header.theme_switcher' => 'boolean',
             'config.header.user_menu' => 'boolean',
             'config.header.mobile_search_mode' => 'required|in:overlay',
+            'config.footer.show_app_name' => 'boolean',
+            'config.footer.show_environment' => 'boolean',
             'config.theme.default' => 'required|in:' . implode(',', $this->themes ?: ['corporate-blue']),
             'config.theme.dark_mode' => 'required|in:class',
             'config.theme.accent' => 'required|in:blue,indigo,emerald,rose,amber',
