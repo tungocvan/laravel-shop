@@ -35,6 +35,14 @@ class AdminResponsivePresentationContractTest extends TestCase
         $this->assertStringNotContainsString("sidebarOpen ? 'w-64' : 'w-20'", $sidebar);
     }
 
+    public function test_sidebar_shell_has_no_vertical_divider_line(): void
+    {
+        $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
+
+        $this->assertStringNotContainsString('border-r', $shell);
+        $this->assertStringNotContainsString('border-color: var(--admin-border-subtle)', $shell);
+    }
+
     public function test_mobile_drawer_does_not_expose_desktop_collapse_control(): void
     {
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
