@@ -190,6 +190,8 @@
         }
     </style>
 
+    @include('Admin::layouts.partials.presentation-styles')
+
     <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @stack('styles')
