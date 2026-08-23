@@ -5,9 +5,10 @@
 
 <div
     class="flex h-dvh overflow-hidden antialiased"
-    style="background-color: var(--admin-surface-base); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
+    style="{{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
+    data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
 >
     @if ($sidebarEnabled)
         <div
