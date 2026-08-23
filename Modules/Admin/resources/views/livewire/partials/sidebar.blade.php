@@ -1,6 +1,20 @@
 <aside x-data="{ navQuery: '', normalize(value) { return (value || '').toLowerCase(); }, matches(value) { const q = this.normalize(this.navQuery.trim()); return q === '' || this.normalize(value).includes(q); } }" class="flex h-full w-full flex-col overflow-hidden transition-all duration-300 motion-reduce:transition-none {{ $theme['background'] }} {{ $theme['text'] }}">
     <div class="relative flex min-h-16 shrink-0 items-center border-b px-3 {{ $theme['border'] }}">
-        <div class="flex min-w-0 flex-1 items-center gap-3" :class="sidebarOpen ? '' : 'justify-center'">
+        <button
+            type="button"
+            x-cloak
+            x-show="isDesktop && sidebarOpen"
+            @click="toggleSidebarFullscreen($event.currentTarget)"
+            class="absolute left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg border border-current/10 bg-white/80 text-slate-500 shadow-sm backdrop-blur transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 lg:inline-flex"
+            aria-label="Ẩn Sidebar để làm việc toàn màn hình"
+            aria-controls="admin-sidebar"
+            title="Ẩn Sidebar toàn màn hình"
+            data-admin-sidebar-fullscreen-enter
+        >
+            <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5h16v14H4zM9 5v14M14 9l-3 3 3 3" /></svg>
+        </button>
+
+        <div class="flex min-w-0 flex-1 items-center gap-3" :class="sidebarOpen ? 'lg:pl-11' : 'justify-center'">
             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-sm {{ $theme['active_bg'] }} {{ $theme['active_text'] }}">{{ $schoolAcronym }}</div>
             <div x-cloak x-show="sidebarOpen" class="min-w-0">
                 @if($schoolPrefix)<p class="truncate text-[10px] font-semibold uppercase tracking-wider opacity-60">{{ $schoolPrefix }}</p>@endif
