@@ -26,16 +26,25 @@
                 </section>
 
                 <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">Core components</h2><p class="mt-1 text-sm text-slate-500">Giữ Search và Notifications đơn giản; UserMenu là vùng quản trị tài khoản chính.</p></div>
-                    <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-                        @foreach (['config.header.search' => 'Tìm kiếm trên Header','config.header.notifications' => 'Thông báo','config.header.user_menu' => 'UserMenu'] as $model => $label)
+                    <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">Core components</h2><p class="mt-1 text-sm text-slate-500">Các vùng chức năng chính của Header. Thông báo được quản lý cùng Header Actions bên dưới.</p></div>
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        @foreach (['config.header.search' => 'Tìm kiếm trên Header','config.header.user_menu' => 'UserMenu'] as $model => $label)
                             <label class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-4 py-3"><span class="text-sm font-medium text-slate-700">{{ $label }}</span><input type="checkbox" wire:model.live="{{ $model }}" class="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></label>
                         @endforeach
                     </div>
                 </section>
 
                 <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5 flex items-start justify-between gap-4"><div><h2 class="text-base font-semibold text-slate-900">Header Actions</h2><p class="mt-1 text-sm text-slate-500">Thêm icon-link an toàn như Website, Tài liệu, Support. Notifications vẫn là system action.</p></div><button type="button" wire:click="addHeaderAction" class="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50">+ Thêm action</button></div>
+                    <div class="mb-5 flex items-start justify-between gap-4"><div><h2 class="text-base font-semibold text-slate-900">Header Actions</h2><p class="mt-1 text-sm text-slate-500">Quản lý toàn bộ icon/action ở phía phải Header. Thông báo là system action, các action khác có thể thêm/xóa.</p></div><button type="button" wire:click="addHeaderAction" class="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50">+ Thêm action</button></div>
+
+                    <div class="mb-3 flex items-center justify-between gap-4 rounded-lg border border-indigo-200 bg-indigo-50/60 px-4 py-3" data-admin-system-action-settings="notifications">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-100"><i class="fa-regular fa-bell" aria-hidden="true"></i></span>
+                            <span class="min-w-0"><span class="block text-sm font-semibold text-slate-800">Thông báo</span><span class="block text-xs text-slate-500">System action · giữ logic thông báo hiện tại.</span></span>
+                        </div>
+                        <label class="inline-flex shrink-0 items-center gap-2 text-xs font-semibold text-slate-600">Hiển thị <input type="checkbox" wire:model.live="config.header.notifications" class="h-5 w-5 rounded border-slate-300 text-indigo-600"></label>
+                    </div>
+
                     <div class="space-y-3">
                         @forelse ((array) data_get($config, 'header.actions.items', []) as $index => $action)
                             <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-4" wire:key="header-action-{{ $index }}">
@@ -51,31 +60,39 @@
                                 <div class="mt-3 flex items-center justify-between"><label class="inline-flex items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" wire:model="config.header.actions.items.{{ $index }}.enabled" class="rounded border-slate-300 text-indigo-600"> Enabled</label><button type="button" wire:click="removeHeaderAction({{ $index }})" class="text-xs font-semibold text-rose-600 hover:text-rose-700">Xóa</button></div>
                             </div>
                         @empty
-                            <div class="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có custom action. Notifications vẫn hoạt động độc lập.</div>
+                            <div class="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có custom action. Bạn có thể thêm Website, Tài liệu, Support hoặc link nhanh khác.</div>
                         @endforelse
                     </div>
                 </section>
 
                 <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">UserMenu</h2><p class="mt-1 text-sm text-slate-500">Tùy chỉnh thông tin tài khoản và các link phía trên nút Đăng xuất. Logout luôn do hệ thống quản lý.</p></div>
+                    <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">UserMenu</h2><p class="mt-1 text-sm text-slate-500">Tùy chỉnh thông tin tài khoản và toàn bộ menu phía trên nút Đăng xuất. Logout luôn do hệ thống quản lý.</p></div>
                     <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
                         @foreach (['show_avatar' => 'Avatar','show_name' => 'Tên','show_email' => 'Email','show_role' => 'Vai trò'] as $key => $label)
                             <label class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-3"><span class="text-sm font-medium text-slate-700">{{ $label }}</span><input type="checkbox" wire:model.live="config.header.user_menu_config.{{ $key }}" class="h-5 w-5 rounded border-slate-300 text-indigo-600"></label>
                         @endforeach
                     </div>
-                    <div class="mt-5 flex items-center justify-between"><h3 class="text-sm font-semibold text-slate-800">Menu items</h3><button type="button" wire:click="addUserMenuItem" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50">+ Thêm item</button></div>
+
+                    @if ($importedHeaderMenuItems)
+                        <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">Các Menu items hiện tại từ Header Menu cũ đã được đưa vào UserMenu để bạn quản lý tại đây. Chúng chỉ được ghi vào cấu hình Header mới khi bạn bấm <strong>Lưu Header</strong>.</div>
+                    @endif
+
+                    <div class="mt-5 flex items-center justify-between"><div><h3 class="text-sm font-semibold text-slate-800">Menu items hiện tại</h3><p class="mt-0.5 text-xs text-slate-500">Sắp xếp bằng trường Order; item không có quyền phù hợp sẽ tự ẩn ở runtime.</p></div><button type="button" wire:click="addUserMenuItem" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50">+ Thêm item</button></div>
                     <div class="mt-3 space-y-3">
-                        @foreach ((array) data_get($config, 'header.user_menu_config.items', []) as $index => $item)
-                            <div class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-2 lg:grid-cols-4" wire:key="user-menu-item-{{ $index }}">
+                        @forelse ((array) data_get($config, 'header.user_menu_config.items', []) as $index => $item)
+                            <div class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 md:grid-cols-2 lg:grid-cols-5" wire:key="user-menu-item-{{ $index }}">
                                 <input type="text" wire:model="config.header.user_menu_config.items.{{ $index }}.label" placeholder="Label" class="rounded-lg border-slate-300 text-sm">
                                 <select wire:model="config.header.user_menu_config.items.{{ $index }}.icon" class="rounded-lg border-slate-300 text-sm">@foreach (['user','gear','lock','key','shield','link'] as $icon)<option value="{{ $icon }}">{{ ucfirst($icon) }}</option>@endforeach</select>
                                 <input type="text" wire:model="config.header.user_menu_config.items.{{ $index }}.url" placeholder="/admin/profile" class="rounded-lg border-slate-300 text-sm lg:col-span-2">
-                                <input type="text" wire:model="config.header.user_menu_config.items.{{ $index }}.permission" placeholder="Permission (optional)" class="rounded-lg border-slate-300 text-sm">
+                                <input type="number" min="0" max="99" wire:model="config.header.user_menu_config.items.{{ $index }}.order" placeholder="Order" class="rounded-lg border-slate-300 text-sm">
+                                <input type="text" wire:model="config.header.user_menu_config.items.{{ $index }}.permission" placeholder="Permission (optional)" class="rounded-lg border-slate-300 text-sm lg:col-span-2">
                                 <select wire:model="config.header.user_menu_config.items.{{ $index }}.target" class="rounded-lg border-slate-300 text-sm"><option value="_self">Cùng tab</option><option value="_blank">Tab mới</option></select>
                                 <label class="flex items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" wire:model="config.header.user_menu_config.items.{{ $index }}.enabled" class="rounded border-slate-300 text-indigo-600"> Enabled</label>
                                 <button type="button" wire:click="removeUserMenuItem({{ $index }})" class="justify-self-start text-xs font-semibold text-rose-600 lg:justify-self-end">Xóa</button>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có UserMenu item. Bấm “Thêm item” để tạo link mới.</div>
+                        @endforelse
                     </div>
                 </section>
 
@@ -104,10 +121,10 @@
                                 @if (data_get($config,'header.brand.enabled',true))<div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-100 text-xs font-bold text-indigo-700">{{ mb_substr((string) (data_get($config,'header.brand.title') ?: config('app.name','A')),0,1) }}</div>@endif
                                 @if (data_get($config,'header.brand.show_title',true))<div class="min-w-0"><div class="max-w-28 truncate text-xs font-semibold text-slate-800">{{ data_get($config,'header.brand.title') ?: config('app.name','Admin') }}</div>@if (data_get($config,'header.brand.show_subtitle',false))<div class="max-w-28 truncate text-[9px] text-slate-400">{{ data_get($config,'header.brand.subtitle') }}</div>@endif</div>@endif
                             </div>
-                            <div class="flex items-center gap-1">@if (data_get($config,'header.notifications',true))<span class="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-xs">●</span>@endif @foreach (array_slice((array) data_get($config,'header.actions.items',[]),0,2) as $action)<span class="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-[10px]">↗</span>@endforeach @if (data_get($config,'header.user_menu',true))<span class="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold">A</span>@endif</div>
+                            <div class="flex items-center gap-1">@if (data_get($config,'header.notifications',true))<span class="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-50 text-[10px] text-indigo-600"><i class="fa-regular fa-bell"></i></span>@endif @foreach (array_slice((array) data_get($config,'header.actions.items',[]),0,2) as $action)<span class="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-[10px]">↗</span>@endforeach @if (data_get($config,'header.user_menu',true))<span class="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold">A</span>@endif</div>
                         </div>
                     </div>
-                    <dl class="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt class="text-slate-400">Height</dt><dd class="font-semibold text-slate-700">{{ $heightLabels[data_get($config,'header.height','4rem')] ?? '64 px' }}</dd></div><div><dt class="text-slate-400">Mode</dt><dd class="font-semibold text-slate-700">{{ data_get($config,'header.presentation.mode','balanced') }}</dd></div><div><dt class="text-slate-400">Actions</dt><dd class="font-semibold text-slate-700">{{ count((array) data_get($config,'header.actions.items',[])) }}</dd></div><div><dt class="text-slate-400">Mobile</dt><dd class="font-semibold text-slate-700">{{ data_get($config,'header.responsive.mobile_brand','logo-only') }}</dd></div></dl>
+                    <dl class="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt class="text-slate-400">Height</dt><dd class="font-semibold text-slate-700">{{ $heightLabels[data_get($config,'header.height','4rem')] ?? '64 px' }}</dd></div><div><dt class="text-slate-400">Mode</dt><dd class="font-semibold text-slate-700">{{ data_get($config,'header.presentation.mode','balanced') }}</dd></div><div><dt class="text-slate-400">Actions</dt><dd class="font-semibold text-slate-700">{{ count((array) data_get($config,'header.actions.items',[])) + (data_get($config,'header.notifications',true) ? 1 : 0) }}</dd></div><div><dt class="text-slate-400">UserMenu</dt><dd class="font-semibold text-slate-700">{{ count((array) data_get($config,'header.user_menu_config.items',[])) }} items</dd></div></dl>
                     <p class="mt-3 text-xs leading-5 text-slate-500">Preview cập nhật trước khi lưu. Save sẽ reload để Header runtime nhận toàn bộ cấu hình mới.</p>
                 </div>
             </aside>
