@@ -11,6 +11,7 @@ class AdminShellPresentationContractTest extends TestCase
     {
         $context = app(AdminShellPresentationService::class)->context();
 
+        $this->assertArrayHasKey('container_class', $context);
         $this->assertArrayHasKey('content_class', $context);
         $this->assertArrayHasKey('content_padding_class', $context);
         $this->assertArrayHasKey('content_style', $context);
@@ -37,7 +38,9 @@ class AdminShellPresentationContractTest extends TestCase
         $this->assertStringContainsString("sidebar_collapsed_width", $shell);
         $this->assertStringContainsString('&& isDesktop', $shell);
 
-        $this->assertStringContainsString("content_class", $content);
+        $this->assertStringContainsString('id="admin-content-workspace"', $content);
+        $this->assertStringContainsString('id="admin-container-boundary"', $content);
+        $this->assertStringContainsString("container_class", $content);
         $this->assertStringContainsString("content_style", $content);
         $this->assertStringContainsString('var(--admin-content-padding-x-mobile)', $content);
         $this->assertStringContainsString('var(--admin-content-padding-x-tablet)', $content);
