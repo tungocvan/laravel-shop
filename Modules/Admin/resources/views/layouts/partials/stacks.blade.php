@@ -1,9 +1,9 @@
 @if (data_get($adminHeaderConfig, 'search', true))
     <div
         x-cloak
-        x-show="searchOpen"
+        x-show="searchOpen && !isDesktop"
         x-transition.opacity
-        class="fixed inset-0 z-[70] flex items-start justify-center bg-slate-950/50 px-4 py-20 backdrop-blur-sm sm:hidden"
+        class="fixed inset-0 z-[70] flex items-start justify-center bg-slate-950/50 px-4 py-20 backdrop-blur-sm lg:hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-mobile-search-title"
@@ -19,7 +19,7 @@
                 <h2 id="admin-mobile-search-title" class="text-sm font-semibold text-slate-900">Tim kiem</h2>
                 <button
                     type="button"
-                    class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     aria-label="Dong tim kiem"
                     @click="closeSearch()"
                 >
