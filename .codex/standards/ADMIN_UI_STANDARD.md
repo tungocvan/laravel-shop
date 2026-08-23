@@ -355,6 +355,151 @@ Before considering UI complete, inspect actual rendered screenshots at represent
 - Footer/navigation controls do not consume half the viewport when their content is small.
 - Header actions wrap cleanly and do not overpower the page title.
 
+## Canonical Admin Shell UI/UX
+
+The approved Admin shell is a configurable system composed of `Sidebar + Header + Content + Footer`. New AI-generated work MUST preserve this ownership model instead of styling each region independently in feature views.
+
+### Shell ownership and full-width behavior
+
+- Sidebar width is configuration-driven; do not hardcode the expanded width in feature views. Collapsed width is also owned by the shell/presentation layer.
+- When Sidebar fullscreen-hide is active, Sidebar disappears completely and Header, Content and Footer consume the available full width.
+- Sidebar toggle controls belong to the shell. Their visibility is configurable and defaults should keep both normal collapse and fullscreen-hide controls enabled unless product requirements say otherwise.
+- Footer is a shell region and should remain at the bottom of the viewport/content layout. It must not float upward merely because the current content is short.
+- Header height, Sidebar width, container mode and region surfaces are presentation configuration, not page-level constants.
+- Avoid duplicate shell padding, nested global containers or page-specific width hacks that fight the configured shell.
+
+### Header UX
+
+- Brand/title width should be content-aware (`auto`) with safe truncation only when the available viewport requires it; do not impose an arbitrary narrow fixed width.
+- Header actions should be compact, icon-led and visually discoverable. Icons require sufficient foreground/background contrast and must not disappear into the Header surface.
+- System actions such as Notifications are managed consistently with other Header Actions while preserving their system-owned behavior.
+- Dense action configuration should use a compact summary row/card and explicit Edit interaction rather than exposing every input/select permanently.
+- UserMenu should follow the same compact summary/edit pattern when configuration becomes dense.
+- Header preview in settings should reflect meaningful presentation changes before save when practical.
+
+### Sidebar UX and navigation hierarchy
+
+- Sidebar Header, Navigation and Footer are separate configurable surfaces. Their backgrounds may differ while preserving readable contrast.
+- Navigation search is configurable and should remain compact.
+- Sidebar header title is configurable; footer/profile visibility is configurable.
+- Menu Item and SubMenu typography, icon size, title/icon colors, spacing, padding, indent and active-state presentation belong to the Design/Theme system, not `/admin/menus` structural data.
+- `/admin/menus` owns menu structure, route/URL, permission, icon choice, ordering and structural management. It may link to Design settings but must not duplicate presentation controls.
+- Menu Item active and a parent Menu Group whose child is active/open MUST use the same top-level `Menu Active` presentation.
+- A selected SubMenu item uses a distinct `Sub Item Active` presentation so hierarchy remains obvious.
+- Active parent state is inherited from an actually active child, not from loose URL-prefix matching.
+- Concrete menu URLs use exact route/path matching by default. Example: `/admin/system/settings/env` must not independently activate sibling items configured as `/admin/system` or `/admin/system/settings`.
+- Opening a Menu Group may visually use the same top-level active treatment, but must not falsely mark unrelated sibling routes active.
+
+### Footer UX
+
+- Footer should be visually quiet and subordinate to the workspace.
+- Copyright/owner information is configurable.
+- Current date/time may be displayed in the approved local format instead of exposing environment/debug information to ordinary operators.
+- Keep Footer content aligned, compact and responsive; it must not compete with primary actions.
+
+## Theme, Design Tokens and Customization
+
+Presentation customization MUST flow through the canonical Design/Theme system and semantic variables. Do not introduce isolated hardcoded color/font values in Header, Sidebar, Content or Footer when a semantic token/configuration already exists.
+
+### Theme editor responsibilities
+
+- A selected theme exposes editable semantic parameters for Sidebar, Header, Content and Footer.
+- Users may save a customized configuration as a new theme, duplicate an existing custom theme, and delete custom themes when allowed.
+- Built-in/default themes are protected from accidental deletion.
+- A clear `Khôi phục Theme mặc định` action must restore the repository-approved professional defaults.
+- Preview should communicate the relationship between Sidebar, Header, Content and Footer rather than previewing only one region.
+- Region background selectors should support the approved theme color palette instead of artificially limiting users to a few hardcoded choices.
+- Foreground/icon/text contrast must be derived or validated so custom backgrounds do not make controls unreadable.
+
+### Typography and Font Library
+
+- Admin Base Font Family belongs to the shared Design typography configuration.
+- Region/component typography may use `Inherit` to inherit the Admin base font.
+- Font choices come from one shared Font Library. Do not hardcode separate font lists in Sidebar, Header and Footer.
+- Every selectable font must map to an approved CSS font stack/fallback. A font name must not appear as available merely because it was typed into a dropdown.
+- External/downloaded font support, when introduced, must define loading, fallback and failure behavior explicitly.
+- Restore Default returns typography to the approved professional baseline.
+
+### Sidebar Menu design tokens
+
+At minimum, the Theme system may own:
+
+```text
+Menu Item
+- Font Family / Font Size / Font Weight
+- Title Color / Icon Color / Icon Size
+- Item Height
+- Padding X / Padding Y
+- Content Gap / Item Gap
+- Active Title Color / Active Icon Color
+- Active Border Color / Width / Style
+
+SubMenu
+- Font Family / Font Size / Font Weight
+- Title Color
+- Indent / Offset
+- Padding X / Padding Y / Item Gap
+- Active background/text treatment
+- Active Border Color / Width / Style
+
+Menu Group
+- Group spacing
+```
+
+Defaults should be visually balanced and usable immediately. Restore Default must restore all related values together; it must not leave stale custom spacing, border or typography values behind.
+
+## Configuration Screen UX
+
+Configuration pages can become visually noisy quickly. Prefer progressive editing over spreadsheet-like exposure of every field.
+
+- Each section begins with a clear title and one short explanation of what it controls.
+- Group related fields into semantic cards such as `Brand`, `Core components`, `Header Actions`, `UserMenu`, `Presentation`, `Sidebar Header`, `Navigation`, `Sidebar Footer`, `Theme colors`, and `Typography`.
+- Use consistent control height, radius, border, label spacing and focus treatment across text inputs and comboboxes.
+- For repeated records such as Header Actions or UserMenu items, default to a compact readable summary. Expose detailed fields through Edit/Add interaction.
+- Keep status/enable controls inside the record boundary. Columns must never overflow their card or collide with preview/secondary panels.
+- `Add`, `Edit`, `Delete`, `Duplicate`, `Save`, and `Restore Default` actions must have clear hierarchy. Primary Save should be visually strongest; destructive actions should not visually compete until needed.
+- Live preview is useful for visual settings, but preview must not become wider or more prominent than the actual settings workspace.
+- Sticky save actions are acceptable when the settings page is long, provided they do not cover content or Footer.
+
+## Density, Spacing and Professional Defaults
+
+Professional Admin UI in this repository favors compact-but-comfortable density rather than oversized consumer-style controls.
+
+- Repeated navigation rows should have predictable rhythm and minimum usable click targets.
+- Use spacing tokens/configuration for repeated shell/menu geometry rather than scattered hardcoded values.
+- Cards should have enough padding to separate concepts, but avoid large empty areas around short settings.
+- Related controls should align to a consistent grid. A single orphan field should not force an entire oversized row unless its content requires full width.
+- Preview/secondary columns should be narrower than the primary settings/workspace column unless preview is the main task.
+- Long settings pages should preserve clear section boundaries and stable vertical rhythm.
+- Default values must be deliberately selected to produce a professional Admin immediately after install/reset; `Restore Default` is a product feature, not merely a technical reset.
+
+## State, Route and Interaction Correctness
+
+Visual state must correspond to real application state.
+
+- Active navigation state must not be inferred with unsafe prefix matching when routes can nest.
+- Parent active state should be derived from an active descendant or explicit open state according to the component contract.
+- UI-only open/collapse/fullscreen state may live in Alpine/browser state when server persistence is unnecessary.
+- Server-owned configuration remains in Livewire/services/configuration layers.
+- Do not move browser-only state into Livewire merely to make it persistent unless persistence is a stated requirement.
+- A successful Save/Reset that changes shell presentation must refresh/reconcile the shell predictably; do not require the operator to manually hard-refresh without feedback.
+
+## AI Implementation Workflow for Admin UI
+
+When an AI changes Admin UI, it MUST follow this sequence:
+
+1. Inspect the current runtime component, its Livewire/service owner, existing Design tokens and relevant contract tests before editing.
+2. Preserve ownership boundaries: structural data, presentation configuration, shell state and business logic must not be mixed.
+3. Reuse existing semantic variables/components before adding new ones.
+4. Prefer configuration-driven values over hardcoded width, height, color, font, spacing or visibility values when the setting is intended to be administrable.
+5. Keep the first implementation visually compact and professional; do not expose every editable property simultaneously when summary + Edit is clearer.
+6. Add/update focused contract tests for new behavior, but never change a test merely to hide a real runtime regression. First inspect the actual Blade/component structure and intended behavior.
+7. Run targeted Admin tests, then the full `tests/Feature/Admin` regression suite before merge.
+8. Perform an actual UI pass at representative desktop/mobile widths. Automated tests do not replace rendered UI inspection.
+9. Only consider the work complete when both automated tests and UI review pass.
+
+When a contract test fails because an implementation uses a semantically equivalent but structurally different Blade/Alpine expression, verify runtime behavior first. Update the contract only when the intended behavior is already correct; otherwise fix runtime code.
+
 ## Anti-patterns
 
 Avoid:
@@ -401,3 +546,16 @@ Before UI work is complete, verify:
 - UI remains usable on desktop and mobile.
 - Fullscreen/drawer/tab interactions have clear exit/navigation behavior.
 - No business logic or database access leaked into Blade.
+
+### Phase 13 UI/UX verification additions
+
+- Header, Sidebar, Content and Footer consume canonical semantic presentation variables rather than local hardcoded presentation values when the Design system owns those values.
+- Sidebar active parent/child states follow exact-route and hierarchy rules.
+- Theme Save As, Duplicate, Delete and Restore behavior preserves protected defaults and custom-theme safety.
+- Restore Default restores typography, spacing, colors, borders and region presentation coherently.
+- Configuration cards and repeated editable records do not overflow their boundaries.
+- Fullscreen-hidden Sidebar causes Header, Content and Footer to use the available full width.
+- Footer remains at the bottom for short content.
+- Targeted Admin tests pass before merge.
+- Full `tests/Feature/Admin` regression passes before merge.
+- A rendered UI pass has been explicitly completed.
