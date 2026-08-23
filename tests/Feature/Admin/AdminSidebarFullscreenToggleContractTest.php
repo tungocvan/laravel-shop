@@ -19,17 +19,19 @@ class AdminSidebarFullscreenToggleContractTest extends TestCase
         $this->assertStringNotContainsString('this.sidebarOpen = !this.sidebarFullscreen', $head);
     }
 
-    public function test_fullscreen_mode_hides_sidebar_and_removes_shell_margin(): void
+    public function test_fullscreen_mode_hides_sidebar_and_removes_shell_margin_when_control_is_enabled(): void
     {
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
 
-        $this->assertStringContainsString('x-show="!isDesktop || !sidebarFullscreen"', $shell);
-        $this->assertStringContainsString('isDesktop && !sidebarFullscreen', $shell);
+        $this->assertStringContainsString('$fullscreenToggleEnabled', $shell);
+        $this->assertStringContainsString('controls.fullscreen_enabled', $shell);
+        $this->assertStringContainsString('!isDesktop || !sidebarFullscreen || !', $shell);
         $this->assertStringContainsString("'margin-left: 0'", $shell);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen', $shell);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-toggle', $shell);
         $this->assertStringContainsString('x-show="isDesktop && sidebarFullscreen"', $shell);
         $this->assertStringContainsString('Mở lại Sidebar', $shell);
+        $this->assertStringContainsString('sidebarFullscreen = false', $shell);
     }
 
     public function test_sidebar_exposes_fullscreen_entry_while_shell_owns_restore_control(): void
@@ -37,16 +39,16 @@ class AdminSidebarFullscreenToggleContractTest extends TestCase
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
 
+        $this->assertStringContainsString('@if ($showFullscreenControl)', $sidebar);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-enter', $sidebar);
         $this->assertStringContainsString('x-show="isDesktop && sidebarOpen"', $sidebar);
         $this->assertStringContainsString('@click="toggleSidebarFullscreen($event.currentTarget)"', $sidebar);
         $this->assertStringContainsString('Ẩn Sidebar toàn màn hình', $sidebar);
 
+        $this->assertStringContainsString('@if ($sidebarEnabled && $fullscreenToggleEnabled)', $shell);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-toggle', $shell);
         $this->assertStringContainsString('@click="toggleSidebarFullscreen($event.currentTarget)"', $shell);
-        $this->assertStringContainsString('x-show="isDesktop && sidebarFullscreen"', $shell);
         $this->assertStringContainsString('aria-label="Mở lại Sidebar"', $shell);
-        $this->assertStringContainsString('title="Mở lại Sidebar"', $shell);
     }
 
     public function test_header_reserves_only_toggle_space_while_shell_remains_full_width(): void
