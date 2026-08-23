@@ -28,6 +28,14 @@ class AdminLayoutConfig extends Component
         $this->config = $manager->config();
 
         $this->dispatch('admin-layout-updated');
+
+        if ($this->section === 'general') {
+            session()->flash('success', 'Thiết lập Layout tổng thể đã được lưu và áp dụng.');
+            $this->redirect(url()->previous(), navigate: false);
+
+            return;
+        }
+
         $this->dispatch('notify', type: 'success', title: 'Đã lưu cấu hình', message: 'Thiết lập đã được lưu và áp dụng cho giao diện Admin.', duration: 1800);
     }
 
@@ -38,6 +46,14 @@ class AdminLayoutConfig extends Component
         $this->config = $manager->config();
 
         $this->dispatch('admin-layout-updated');
+
+        if ($this->section === 'general') {
+            session()->flash('warning', 'Layout tổng thể đã được khôi phục mặc định và áp dụng.');
+            $this->redirect(url()->previous(), navigate: false);
+
+            return;
+        }
+
         $this->dispatch('notify', type: 'warning', title: 'Đã khôi phục mặc định', message: 'Khu vực cấu hình hiện tại đã được khôi phục và áp dụng.', duration: 1800);
     }
 
