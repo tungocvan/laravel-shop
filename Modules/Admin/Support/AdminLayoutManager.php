@@ -61,10 +61,7 @@ class AdminLayoutManager
                 'navigation_search_threshold' => (int) data_get($this->defaults, 'sidebar.navigation_search_threshold', 12),
             ],
             'header' => $this->headerDefaults(),
-            'footer' => [
-                'show_app_name' => (bool) data_get($this->defaults, 'footer.show_app_name', true),
-                'show_environment' => (bool) data_get($this->defaults, 'footer.show_environment', true),
-            ],
+            'footer' => $this->footerDefaults(),
             'theme' => [
                 'default' => data_get($this->defaults, 'theme.default', 'corporate-blue'),
                 'dark_mode' => data_get($this->defaults, 'theme.dark_mode', 'class'),
@@ -128,6 +125,31 @@ class AdminLayoutManager
                 'mobile_brand' => data_get($this->defaults, 'header.responsive.mobile_brand', 'logo-only'),
                 'hide_title_on_mobile' => (bool) data_get($this->defaults, 'header.responsive.hide_title_on_mobile', true),
                 'overflow_secondary_actions' => (bool) data_get($this->defaults, 'header.responsive.overflow_secondary_actions', true),
+            ],
+        ];
+    }
+
+    private function footerDefaults(): array
+    {
+        return [
+            'show_app_name' => (bool) data_get($this->defaults, 'footer.show_app_name', true),
+            'copyright' => [
+                'enabled' => (bool) data_get($this->defaults, 'footer.copyright.enabled', true),
+                'owner' => data_get($this->defaults, 'footer.copyright.owner'),
+                'url' => data_get($this->defaults, 'footer.copyright.url'),
+                'start_year' => data_get($this->defaults, 'footer.copyright.start_year'),
+            ],
+            'datetime' => [
+                'show_date' => (bool) data_get($this->defaults, 'footer.datetime.show_date', true),
+                'show_time' => (bool) data_get($this->defaults, 'footer.datetime.show_time', true),
+                'date_format' => 'd/m/Y',
+                'time_format' => 'H:i:s',
+            ],
+            'presentation' => [
+                'alignment' => data_get($this->defaults, 'footer.presentation.alignment', 'split'),
+                'background' => data_get($this->defaults, 'footer.presentation.background', 'system'),
+                'divider' => data_get($this->defaults, 'footer.presentation.divider', 'subtle'),
+                'compact' => (bool) data_get($this->defaults, 'footer.presentation.compact', true),
             ],
         ];
     }
@@ -199,10 +221,7 @@ class AdminLayoutManager
                 'navigation_search_threshold' => max(4, min(50, (int) data_get($payload, 'sidebar.navigation_search_threshold', data_get($defaults, 'sidebar.navigation_search_threshold', 12)))),
             ],
             'header' => $this->normalizeHeader((array) data_get($payload, 'header', []), $defaults['header']),
-            'footer' => [
-                'show_app_name' => (bool) data_get($payload, 'footer.show_app_name', data_get($defaults, 'footer.show_app_name')),
-                'show_environment' => (bool) data_get($payload, 'footer.show_environment', data_get($defaults, 'footer.show_environment')),
-            ],
+            'footer' => $this->normalizeFooter((array) data_get($payload, 'footer', []), $defaults['footer']),
             'theme' => [
                 'default' => $this->in(data_get($payload, 'theme.default'), $sidebarThemes, data_get($defaults, 'theme.default')),
                 'dark_mode' => $this->in(data_get($payload, 'theme.dark_mode'), ['class'], data_get($defaults, 'theme.dark_mode')),
@@ -266,6 +285,35 @@ class AdminLayoutManager
                 'mobile_brand' => $this->in(data_get($header, 'responsive.mobile_brand'), ['logo-only', 'logo-title', 'hidden'], data_get($defaults, 'responsive.mobile_brand')),
                 'hide_title_on_mobile' => (bool) data_get($header, 'responsive.hide_title_on_mobile', data_get($defaults, 'responsive.hide_title_on_mobile')),
                 'overflow_secondary_actions' => (bool) data_get($header, 'responsive.overflow_secondary_actions', data_get($defaults, 'responsive.overflow_secondary_actions')),
+            ],
+        ];
+    }
+
+    private function normalizeFooter(array $footer, array $defaults): array
+    {
+        $currentYear = (int) date('Y');
+        $startYear = data_get($footer, 'copyright.start_year');
+        $startYear = is_numeric($startYear) ? max(1900, min($currentYear, (int) $startYear)) : null;
+
+        return [
+            'show_app_name' => (bool) data_get($footer, 'show_app_name', data_get($defaults, 'show_app_name')),
+            'copyright' => [
+                'enabled' => (bool) data_get($footer, 'copyright.enabled', data_get($defaults, 'copyright.enabled')),
+                'owner' => $this->nullableString(data_get($footer, 'copyright.owner')),
+                'url' => $this->nullableSafeUrl(data_get($footer, 'copyright.url')),
+                'start_year' => $startYear,
+            ],
+            'datetime' => [
+                'show_date' => (bool) data_get($footer, 'datetime.show_date', data_get($defaults, 'datetime.show_date')),
+                'show_time' => (bool) data_get($footer, 'datetime.show_time', data_get($defaults, 'datetime.show_time')),
+                'date_format' => 'd/m/Y',
+                'time_format' => 'H:i:s',
+            ],
+            'presentation' => [
+                'alignment' => $this->in(data_get($footer, 'presentation.alignment'), ['split', 'center'], data_get($defaults, 'presentation.alignment')),
+                'background' => $this->in(data_get($footer, 'presentation.background'), ['system', 'transparent'], data_get($defaults, 'presentation.background')),
+                'divider' => $this->in(data_get($footer, 'presentation.divider'), ['subtle', 'none'], data_get($defaults, 'presentation.divider')),
+                'compact' => (bool) data_get($footer, 'presentation.compact', data_get($defaults, 'presentation.compact')),
             ],
         ];
     }
