@@ -21,7 +21,7 @@ class AdminDesignService
     ];
 
     private const SURFACE_COLOR_KEYS = [
-        'white', 'slate-50', 'slate-100', 'slate-200',
+        'white', 'slate-50', 'slate-100', 'slate-200', 'slate-900', 'slate-950',
         'indigo-50', 'indigo-100', 'blue-50', 'blue-100',
         'orange-50', 'orange-100', 'emerald-50', 'emerald-100',
         'amber-50', 'amber-100', 'rose-50', 'rose-100', 'sky-50', 'sky-100',
@@ -51,7 +51,6 @@ class AdminDesignService
     public function sanitize(array $tokens): array
     {
         $defaults = config('admin.admin.design', []);
-
         return [
             'typography' => [
                 'font_family' => $this->allowed(data_get($tokens, 'typography.font_family'), array_keys(self::FONT_FAMILIES), data_get($defaults, 'typography.font_family', 'sans')),
@@ -77,7 +76,6 @@ class AdminDesignService
     public function cssVariables(?array $tokens = null): array
     {
         $tokens = $this->sanitize($tokens ?? $this->tokens());
-
         return [
             '--admin-font-family' => self::FONT_FAMILIES[$tokens['typography']['font_family']],
             '--admin-font-size-body' => self::FONT_SIZES[$tokens['typography']['body_size']],
@@ -109,36 +107,15 @@ class AdminDesignService
         ];
     }
 
-    public function colorOptions(): array
-    {
-        return self::COLOR_VALUES;
-    }
-
-    public function surfaceColorOptions(): array
-    {
-        return array_intersect_key(self::COLOR_VALUES, array_flip(self::SURFACE_COLOR_KEYS));
-    }
-
-    public static function colorKeys(): array
-    {
-        return array_keys(self::COLOR_VALUES);
-    }
-
-    public static function surfaceColorKeys(): array
-    {
-        return self::SURFACE_COLOR_KEYS;
-    }
-
-    public function colorValue(mixed $token, string $fallback = '#ffffff'): string
-    {
-        return self::COLOR_VALUES[(string) $token] ?? $fallback;
-    }
+    public function colorOptions(): array { return self::COLOR_VALUES; }
+    public function surfaceColorOptions(): array { return array_intersect_key(self::COLOR_VALUES, array_flip(self::SURFACE_COLOR_KEYS)); }
+    public static function colorKeys(): array { return array_keys(self::COLOR_VALUES); }
+    public static function surfaceColorKeys(): array { return self::SURFACE_COLOR_KEYS; }
+    public function colorValue(mixed $token, string $fallback = '#ffffff'): string { return self::COLOR_VALUES[(string) $token] ?? $fallback; }
 
     public function contrastVariables(mixed $token): array
     {
-        $hex = $this->colorValue($token);
-        $dark = $this->isDark($hex);
-
+        $dark = $this->isDark($this->colorValue($token));
         return $dark
             ? ['--admin-text-primary' => '#ffffff', '--admin-text-secondary' => '#e2e8f0', '--admin-text-muted' => '#cbd5e1', '--admin-border-subtle' => 'rgb(255 255 255 / 0.18)']
             : ['--admin-text-primary' => '#0f172a', '--admin-text-secondary' => '#334155', '--admin-text-muted' => '#64748b', '--admin-border-subtle' => 'rgb(15 23 42 / 0.12)'];
@@ -154,18 +131,12 @@ class AdminDesignService
 
     private function sanitizeColors(array $tokens, array $defaults): array
     {
-        $keys = [
-            'surface_base', 'surface_raised', 'text_primary', 'text_secondary', 'text_muted', 'border_subtle',
-            'accent', 'focus_ring', 'success', 'warning', 'danger', 'info',
-            'header_background', 'footer_background', 'page_background', 'content_background',
-        ];
+        $keys = ['surface_base', 'surface_raised', 'text_primary', 'text_secondary', 'text_muted', 'border_subtle', 'accent', 'focus_ring', 'success', 'warning', 'danger', 'info', 'header_background', 'footer_background', 'page_background', 'content_background'];
         $colors = [];
-
         foreach ($keys as $key) {
             $allowed = in_array($key, ['page_background', 'content_background'], true) ? self::SURFACE_COLOR_KEYS : array_keys(self::COLOR_VALUES);
             $colors[$key] = $this->allowed(data_get($tokens, 'colors.'.$key), $allowed, data_get($defaults, 'colors.'.$key, $this->fallbackColor($key)));
         }
-
         return $colors;
     }
 
