@@ -15,17 +15,17 @@ class AdminSidebarMenuDesignContractTest extends TestCase
     {
         $service=file_get_contents(base_path('Modules/Admin/Services/AdminDesignService.php'));$component=file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
         foreach(["'arial'=>'Arial, Helvetica, sans-serif'","'verdana'=>'Verdana, Geneva, sans-serif'","'trebuchet'=>'\"Trebuchet MS\", Arial, sans-serif'","'georgia'=>'Georgia, \"Times New Roman\", serif'","'times'=>'\"Times New Roman\", Times, serif'",'fontFamilyOptions()','menuFontFamilyOptions()','fontFamilyKeys()','menuFontFamilyKeys()'] as $contract)$this->assertStringContainsString($contract,$service);
-        $this->assertStringContainsString("$fonts=implode(',',AdminDesignService::fontFamilyKeys())",$component);
-        $this->assertStringContainsString("$menuFonts=implode(',',AdminDesignService::menuFontFamilyKeys())",$component);
-        $this->assertStringContainsString("'config.design.typography.font_family'=>'required|in:'.$fonts",$component);
-        $this->assertStringContainsString("'config.design.sidebar_menu.item.font_family'=>'required|in:'.$menuFonts",$component);
+        $this->assertStringContainsString("\$fonts=implode(',',AdminDesignService::fontFamilyKeys())",$component);
+        $this->assertStringContainsString("\$menuFonts=implode(',',AdminDesignService::menuFontFamilyKeys())",$component);
+        $this->assertStringContainsString("'config.design.typography.font_family'=>'required|in:'.\$fonts",$component);
+        $this->assertStringContainsString("'config.design.sidebar_menu.item.font_family'=>'required|in:'.\$menuFonts",$component);
     }
     public function test_theme_editor_manages_menu_item_submenu_spacing_and_active_state(): void
     {
         $view=file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));$component=file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
         $this->assertStringContainsString('Sidebar Menu Typography & States',$view);$this->assertStringContainsString('id="sidebar-menu"',$view);
         foreach(['config.design.sidebar_menu.item.font_family','config.design.sidebar_menu.item.title_color','config.design.sidebar_menu.item.icon_color','config.design.sidebar_menu.item.padding_x','config.design.sidebar_menu.item.padding_y','config.design.sidebar_menu.item.content_gap','config.design.sidebar_menu.item.item_gap','config.design.sidebar_menu.submenu.font_size','config.design.sidebar_menu.submenu.indent','config.design.sidebar_menu.submenu.padding_x','config.design.sidebar_menu.submenu.padding_y','config.design.sidebar_menu.submenu.offset','config.design.sidebar_menu.submenu.item_gap','config.design.sidebar_menu.group.gap','config.design.sidebar_menu.active.title_color'] as $model)$this->assertStringContainsString($model,$view);
-        $this->assertStringContainsString("'config.design.sidebar_menu.item.font_family'=>'required|in:'.$menuFonts",$component);$this->assertStringContainsString("'config.design.sidebar_menu.item.padding_x'=>'required|in:8,10,12,14,16'",$component);$this->assertStringContainsString("'config.design.sidebar_menu.group.gap'=>'required|in:2,4,6,8,12'",$component);
+        $this->assertStringContainsString("'config.design.sidebar_menu.item.font_family'=>'required|in:'.\$menuFonts",$component);$this->assertStringContainsString("'config.design.sidebar_menu.item.padding_x'=>'required|in:8,10,12,14,16'",$component);$this->assertStringContainsString("'config.design.sidebar_menu.group.gap'=>'required|in:2,4,6,8,12'",$component);
     }
     public function test_runtime_navigation_consumes_sidebar_menu_spacing_tokens(): void
     {
