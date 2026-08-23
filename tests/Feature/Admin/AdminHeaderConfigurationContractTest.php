@@ -52,4 +52,21 @@ class AdminHeaderConfigurationContractTest extends TestCase
         $this->assertStringContainsString("'items' => array_values((array) data_get(\$header, 'user_menu_config.items', []))", $manager);
         $this->assertStringNotContainsString("data_get(\$header, 'view'", $headerService);
     }
+
+    public function test_header_brand_runtime_uses_server_owned_component_and_safe_fallbacks(): void
+    {
+        $service = file_get_contents(base_path('Modules/Admin/Services/AdminHeaderService.php'));
+        $brand = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/brand.blade.php'));
+
+        $this->assertStringContainsString("'brand'", $service);
+        $this->assertStringContainsString('Admin::livewire.partials.header.components.brand', $service);
+        $this->assertStringContainsString('protected function brandContext(', $service);
+        $this->assertStringContainsString("config('app.name', 'Admin')", $service);
+        $this->assertStringContainsString("\$component['data']['brand']", $brand);
+        $this->assertStringContainsString("asset(\$logo)", $brand);
+        $this->assertStringContainsString('mb_strtoupper(mb_substr($title, 0, 1))', $brand);
+        $this->assertStringContainsString("'hidden sm:flex' => \$mobileBrand === 'hidden'", $brand);
+        $this->assertStringContainsString("\$hideTitleOnMobile || \$mobileBrand === 'logo-only'", $brand);
+        $this->assertStringContainsString('max-w-44 truncate', $brand);
+    }
 }
