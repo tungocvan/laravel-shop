@@ -120,6 +120,7 @@ class AdminLayoutConfig extends Component
     private function rules(): array
     {
         $spacing = 'required|in:0,1,2,3,4,5,6,8,10,12';
+        $sidebarWidth = ['required', 'string', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'];
         $rules = [
             'general' => [
                 'config.locale' => 'required|in:vi,en', 'config.layout.preset' => 'required|in:default,data-heavy,focus,settings', 'config.layout.container' => 'required|in:full,narrow,7xl,screen-2xl', 'config.layout.density' => 'required|in:comfortable,compact,dense', 'config.layout.sticky_header' => 'boolean',
@@ -137,8 +138,9 @@ class AdminLayoutConfig extends Component
                 'config.header.responsive.mobile_brand' => 'required|in:logo-only,logo-title,hidden', 'config.header.responsive.hide_title_on_mobile' => 'boolean', 'config.header.responsive.overflow_secondary_actions' => 'boolean',
             ],
             'sidebar' => [
-                'config.sidebar.enabled' => 'boolean', 'config.sidebar.desktop_collapsible' => 'boolean', 'config.sidebar.mobile_drawer' => 'boolean', 'config.sidebar.persist_state' => 'boolean', 'config.sidebar.show_footer_profile' => 'boolean', 'config.sidebar.navigation_search_threshold' => 'required|integer|min:4|max:50',
-                'config.sidebar.header.enabled' => 'boolean', 'config.sidebar.header.show_mark' => 'boolean', 'config.sidebar.header.show_title' => 'boolean', 'config.sidebar.header.show_subtitle' => 'boolean', 'config.sidebar.header.subtitle' => 'required|string|max:80',
+                'config.sidebar.enabled' => 'boolean', 'config.sidebar.expanded_width' => $sidebarWidth, 'config.sidebar.collapsed_width' => $sidebarWidth, 'config.sidebar.desktop_collapsible' => 'boolean', 'config.sidebar.mobile_drawer' => 'boolean', 'config.sidebar.persist_state' => 'boolean', 'config.sidebar.show_footer_profile' => 'boolean', 'config.sidebar.navigation_search_threshold' => 'required|integer|min:4|max:50',
+                'config.sidebar.controls.collapse_enabled' => 'boolean', 'config.sidebar.controls.fullscreen_enabled' => 'boolean',
+                'config.sidebar.header.enabled' => 'boolean', 'config.sidebar.header.show_mark' => 'boolean', 'config.sidebar.header.show_title' => 'boolean', 'config.sidebar.header.title' => 'nullable|string|max:80', 'config.sidebar.header.show_subtitle' => 'boolean', 'config.sidebar.header.subtitle' => 'required|string|max:80',
                 'config.sidebar.footer.enabled' => 'boolean', 'config.sidebar.footer.show_avatar' => 'boolean', 'config.sidebar.footer.show_name' => 'boolean', 'config.sidebar.footer.show_subtitle' => 'boolean', 'config.sidebar.footer.subtitle' => 'required|string|max:80',
                 'config.sidebar.search.enabled' => 'boolean', 'config.sidebar.presentation.background' => 'required|in:theme,system,white,dark',
             ],
@@ -174,7 +176,7 @@ class AdminLayoutConfig extends Component
 
     private function sections(): array { return ['general', 'header', 'sidebar', 'footer', 'design', 'navigation']; }
     private function sectionTitle(): string { return match ($this->section) { 'general' => 'Layout tổng thể', 'header' => 'Header', 'sidebar' => 'Sidebar', 'footer' => 'Footer', 'design' => 'Giao diện & Theme', 'navigation' => 'Navigation' }; }
-    private function sectionDescription(): string { return match ($this->section) { 'general' => 'Thiết lập workspace, container, mật độ, khoảng cách, surface và hành vi tổng thể.', 'header' => 'Quản lý nhận diện thương hiệu, thành phần, thao tác nhanh, UserMenu, presentation và responsive của Header Admin.', 'sidebar' => 'Quản lý Header Sidebar, tìm chức năng, Footer Sidebar, background và hành vi hiển thị.', 'footer' => 'Quản lý bản quyền, ngày giờ và cách trình bày Footer Admin.', 'design' => 'Quản lý theme và accent đang được Admin runtime sử dụng.', 'navigation' => 'Quản lý cache, active strategy và độ sâu navigation.' }; }
+    private function sectionDescription(): string { return match ($this->section) { 'general' => 'Thiết lập workspace, container, mật độ, khoảng cách, surface và hành vi tổng thể.', 'header' => 'Quản lý nhận diện thương hiệu, thành phần, thao tác nhanh, UserMenu, presentation và responsive của Header Admin.', 'sidebar' => 'Quản lý Header Sidebar, kích thước, các nút điều khiển, tìm chức năng, Footer Sidebar và background.', 'footer' => 'Quản lý bản quyền, ngày giờ và cách trình bày Footer Admin.', 'design' => 'Quản lý theme và accent đang được Admin runtime sử dụng.', 'navigation' => 'Quản lý cache, active strategy và độ sâu navigation.' }; }
 
     private function authorizePermission(string $permission): void
     {
