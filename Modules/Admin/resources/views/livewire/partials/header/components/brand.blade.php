@@ -13,10 +13,11 @@
 <a
     href="{{ $brand['url'] ?? '/admin' }}"
     @class([
-        'flex min-w-0 items-center gap-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+        'flex w-auto min-w-0 shrink-0 items-center gap-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
         'hidden sm:flex' => $mobileBrand === 'hidden',
     ])
     aria-label="{{ $title }}"
+    data-admin-header-brand
 >
     <span
         class="flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-indigo-50 text-xs font-bold text-indigo-600 ring-1 ring-indigo-100"
@@ -31,10 +32,10 @@
     </span>
 
     @if ($showTitle)
-        <span class="min-w-0 {{ ($hideTitleOnMobile || $mobileBrand === 'logo-only') ? 'hidden sm:block' : 'block' }}">
-            <span class="block max-w-44 truncate text-sm font-semibold leading-5 text-slate-800">{{ $title }}</span>
+        <span class="w-auto min-w-0 {{ ($hideTitleOnMobile || $mobileBrand === 'logo-only') ? 'hidden sm:block' : 'block' }}">
+            <span class="block w-auto whitespace-nowrap text-sm font-semibold leading-5 text-slate-800" data-admin-header-brand-title>{{ $title }}</span>
             @if ($showSubtitle && $subtitle !== '')
-                <span class="block max-w-44 truncate text-[11px] leading-4 text-slate-500">{{ $subtitle }}</span>
+                <span class="block w-auto whitespace-nowrap text-[11px] leading-4 text-slate-500">{{ $subtitle }}</span>
             @endif
         </span>
     @endif
