@@ -12,7 +12,7 @@
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
     data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
-    x-effect="if (isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }}) sidebarOpen = true; if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }}) sidebarFullscreen = false"
+    x-effect="if (isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) { sidebarOpen = true; persistSidebarPreference(); } if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }} && sidebarFullscreen) { sidebarFullscreen = false; persistSidebarFullscreenPreference(); }"
 >
     @if ($sidebarEnabled && $fullscreenToggleEnabled)
         <button
