@@ -57,6 +57,7 @@ class AdminSidebarContractTest extends TestCase
         $this->assertStringNotContainsString('function toggleSidebar(', $component);
         $this->assertStringNotContainsString("session(['sidebar_open'", $component);
         $this->assertStringContainsString('@click="toggleSidebar($event.currentTarget)"', $view);
+        $this->assertStringContainsString('public bool $desktopCollapsible = true;', $component);
     }
 
     public function test_sidebar_blade_does_not_query_layout_config_or_auth_directly(): void
@@ -65,11 +66,12 @@ class AdminSidebarContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
 
         $this->assertStringContainsString('AdminLayoutManager $layoutManager', $component);
-        $this->assertStringContainsString('public bool $showFooterProfile = true;', $component);
+        $this->assertStringContainsString('public bool $showSidebarFooter = true;', $component);
         $this->assertStringContainsString('public string $profileName', $component);
+        $this->assertStringContainsString("sidebar.footer.enabled", $component);
         $this->assertStringNotContainsString('AdminLayoutManager::class', $view);
         $this->assertStringNotContainsString('auth()->user()', $view);
-        $this->assertStringContainsString('@if ($showFooterProfile)', $view);
+        $this->assertStringContainsString('@if ($showSidebarFooter)', $view);
         $this->assertStringContainsString('{{ $profileName }}', $view);
     }
 }

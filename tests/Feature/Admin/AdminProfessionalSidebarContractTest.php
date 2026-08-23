@@ -29,12 +29,18 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('[scrollbar-gutter:stable]', $view);
     }
 
-    public function test_sidebar_has_clear_workspace_and_profile_hierarchy(): void
+    public function test_sidebar_has_managed_workspace_and_profile_hierarchy(): void
     {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Sidebar.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
-        $this->assertStringContainsString('Không gian quản trị', $view);
+
+        $this->assertStringContainsString('public string $headerSubtitle', $component);
+        $this->assertStringContainsString('public string $footerSubtitle', $component);
+        $this->assertStringContainsString('sidebar.header.subtitle', $component);
+        $this->assertStringContainsString('sidebar.footer.subtitle', $component);
         $this->assertStringContainsString('Điều hướng', $view);
-        $this->assertStringContainsString('Tài khoản quản trị', $view);
+        $this->assertStringContainsString('{{ $headerSubtitle }}', $view);
+        $this->assertStringContainsString('{{ $footerSubtitle }}', $view);
         $this->assertStringContainsString('{{ $profileName }}', $view);
     }
 

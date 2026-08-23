@@ -104,7 +104,7 @@ class AdminFooterContractTest extends TestCase
 
         $this->assertStringContainsString("if (\$this->section === 'footer')", $component);
         $this->assertStringContainsString('admin-footer-config', $component);
-        $this->assertStringContainsString("['general', 'header', 'footer']", $component);
+        $this->assertStringContainsString("['general', 'header', 'sidebar', 'footer']", $component);
         $this->assertStringContainsString("'config.layout.show_footer' => 'boolean'", $component);
         $this->assertStringContainsString("'config.footer.show_app_name' => 'boolean'", $component);
         $this->assertStringContainsString("'config.footer.copyright.enabled' => 'boolean'", $component);

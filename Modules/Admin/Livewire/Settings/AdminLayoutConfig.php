@@ -7,8 +7,7 @@ use Modules\Admin\Services\HeaderMenuService;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
 
-class AdminLayoutConfig
- extends Component
+class AdminLayoutConfig extends Component
 {
     public array $config = [];
     public array $themes = [];
@@ -73,8 +72,13 @@ class AdminLayoutConfig
         $this->config = $manager->config();
         $this->dispatch('admin-layout-updated');
 
-        if (in_array($this->section, ['general', 'header', 'footer'], true)) {
-            $messages = ['general' => 'Thiết lập Layout tổng thể đã được lưu và áp dụng.', 'header' => 'Thiết lập Header đã được lưu và áp dụng.', 'footer' => 'Thiết lập Footer đã được lưu và áp dụng.'];
+        if (in_array($this->section, ['general', 'header', 'sidebar', 'footer'], true)) {
+            $messages = [
+                'general' => 'Thiết lập Layout tổng thể đã được lưu và áp dụng.',
+                'header' => 'Thiết lập Header đã được lưu và áp dụng.',
+                'sidebar' => 'Thiết lập Sidebar đã được lưu và áp dụng.',
+                'footer' => 'Thiết lập Footer đã được lưu và áp dụng.',
+            ];
             session()->flash('success', $messages[$this->section]);
             $this->redirect(url()->previous(), navigate: false);
             return;
@@ -90,8 +94,13 @@ class AdminLayoutConfig
         $this->config = $manager->config();
         $this->dispatch('admin-layout-updated');
 
-        if (in_array($this->section, ['general', 'header', 'footer'], true)) {
-            $messages = ['general' => 'Layout tổng thể đã được khôi phục mặc định và áp dụng.', 'header' => 'Header đã được khôi phục mặc định và áp dụng.', 'footer' => 'Footer đã được khôi phục mặc định và áp dụng.'];
+        if (in_array($this->section, ['general', 'header', 'sidebar', 'footer'], true)) {
+            $messages = [
+                'general' => 'Layout tổng thể đã được khôi phục mặc định và áp dụng.',
+                'header' => 'Header đã được khôi phục mặc định và áp dụng.',
+                'sidebar' => 'Sidebar đã được khôi phục mặc định và áp dụng.',
+                'footer' => 'Footer đã được khôi phục mặc định và áp dụng.',
+            ];
             session()->flash('warning', $messages[$this->section]);
             $this->redirect(url()->previous(), navigate: false);
             return;
@@ -103,6 +112,7 @@ class AdminLayoutConfig
     public function render()
     {
         if ($this->section === 'header') return view('Admin::livewire.settings.admin-header-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
+        if ($this->section === 'sidebar') return view('Admin::livewire.settings.admin-sidebar-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
         if ($this->section === 'footer') return view('Admin::livewire.settings.admin-footer-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
         return view('Admin::livewire.settings.admin-layout-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
     }
@@ -110,6 +120,7 @@ class AdminLayoutConfig
     private function rules(): array
     {
         $spacing = 'required|in:0,1,2,3,4,5,6,8,10,12';
+        $sidebarWidth = ['required', 'string', 'regex:/^\d+(?:\.\d+)?(?:px|rem)$/'];
         $rules = [
             'general' => [
                 'config.locale' => 'required|in:vi,en', 'config.layout.preset' => 'required|in:default,data-heavy,focus,settings', 'config.layout.container' => 'required|in:full,narrow,7xl,screen-2xl', 'config.layout.density' => 'required|in:comfortable,compact,dense', 'config.layout.sticky_header' => 'boolean',
@@ -126,7 +137,13 @@ class AdminLayoutConfig
                 'config.header.presentation.mode' => 'required|in:balanced,compact,action-heavy', 'config.header.presentation.padding_x' => $spacing, 'config.header.presentation.action_gap' => $spacing, 'config.header.presentation.background' => 'required|in:system,white,transparent', 'config.header.presentation.divider' => 'required|in:subtle,none', 'config.header.presentation.shadow' => 'required|in:none,subtle', 'config.header.presentation.backdrop_blur' => 'boolean',
                 'config.header.responsive.mobile_brand' => 'required|in:logo-only,logo-title,hidden', 'config.header.responsive.hide_title_on_mobile' => 'boolean', 'config.header.responsive.overflow_secondary_actions' => 'boolean',
             ],
-            'sidebar' => ['config.sidebar.enabled' => 'boolean', 'config.sidebar.desktop_collapsible' => 'boolean', 'config.sidebar.mobile_drawer' => 'boolean', 'config.sidebar.persist_state' => 'boolean', 'config.sidebar.show_footer_profile' => 'boolean', 'config.sidebar.navigation_search_threshold' => 'required|integer|min:4|max:50'],
+            'sidebar' => [
+                'config.sidebar.enabled' => 'boolean', 'config.sidebar.expanded_width' => $sidebarWidth, 'config.sidebar.collapsed_width' => $sidebarWidth, 'config.sidebar.desktop_collapsible' => 'boolean', 'config.sidebar.mobile_drawer' => 'boolean', 'config.sidebar.persist_state' => 'boolean', 'config.sidebar.show_footer_profile' => 'boolean', 'config.sidebar.navigation_search_threshold' => 'required|integer|min:4|max:50',
+                'config.sidebar.controls.collapse_enabled' => 'boolean', 'config.sidebar.controls.fullscreen_enabled' => 'boolean',
+                'config.sidebar.header.enabled' => 'boolean', 'config.sidebar.header.show_mark' => 'boolean', 'config.sidebar.header.show_title' => 'boolean', 'config.sidebar.header.title' => 'nullable|string|max:80', 'config.sidebar.header.show_subtitle' => 'boolean', 'config.sidebar.header.subtitle' => 'required|string|max:80',
+                'config.sidebar.footer.enabled' => 'boolean', 'config.sidebar.footer.show_avatar' => 'boolean', 'config.sidebar.footer.show_name' => 'boolean', 'config.sidebar.footer.show_subtitle' => 'boolean', 'config.sidebar.footer.subtitle' => 'required|string|max:80',
+                'config.sidebar.search.enabled' => 'boolean', 'config.sidebar.presentation.background' => 'required|in:theme,system,white,dark',
+            ],
             'footer' => [
                 'config.layout.show_footer' => 'boolean', 'config.footer.show_app_name' => 'boolean', 'config.footer.copyright.enabled' => 'boolean', 'config.footer.copyright.owner' => 'nullable|string|max:120', 'config.footer.copyright.url' => 'nullable|string|max:255', 'config.footer.copyright.start_year' => 'nullable|integer|min:1900|max:' . date('Y'),
                 'config.footer.datetime.show_date' => 'boolean', 'config.footer.datetime.show_time' => 'boolean', 'config.footer.datetime.date_format' => 'required|in:d/m/Y', 'config.footer.datetime.time_format' => 'required|in:H:i:s',
@@ -159,7 +176,7 @@ class AdminLayoutConfig
 
     private function sections(): array { return ['general', 'header', 'sidebar', 'footer', 'design', 'navigation']; }
     private function sectionTitle(): string { return match ($this->section) { 'general' => 'Layout tổng thể', 'header' => 'Header', 'sidebar' => 'Sidebar', 'footer' => 'Footer', 'design' => 'Giao diện & Theme', 'navigation' => 'Navigation' }; }
-    private function sectionDescription(): string { return match ($this->section) { 'general' => 'Thiết lập workspace, container, mật độ, khoảng cách, surface và hành vi tổng thể.', 'header' => 'Quản lý nhận diện thương hiệu, thành phần, thao tác nhanh, UserMenu, presentation và responsive của Header Admin.', 'sidebar' => 'Quản lý khả năng hiển thị, collapse, mobile drawer, profile và hỗ trợ điều hướng menu lớn.', 'footer' => 'Quản lý bản quyền, ngày giờ và cách trình bày Footer Admin.', 'design' => 'Quản lý theme và accent đang được Admin runtime sử dụng.', 'navigation' => 'Quản lý cache, active strategy và độ sâu navigation.' }; }
+    private function sectionDescription(): string { return match ($this->section) { 'general' => 'Thiết lập workspace, container, mật độ, khoảng cách, surface và hành vi tổng thể.', 'header' => 'Quản lý nhận diện thương hiệu, thành phần, thao tác nhanh, UserMenu, presentation và responsive của Header Admin.', 'sidebar' => 'Quản lý Header Sidebar, kích thước, các nút điều khiển, tìm chức năng, Footer Sidebar và background.', 'footer' => 'Quản lý bản quyền, ngày giờ và cách trình bày Footer Admin.', 'design' => 'Quản lý theme và accent đang được Admin runtime sử dụng.', 'navigation' => 'Quản lý cache, active strategy và độ sâu navigation.' }; }
 
     private function authorizePermission(string $permission): void
     {

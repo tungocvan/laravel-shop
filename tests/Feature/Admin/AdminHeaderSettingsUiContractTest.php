@@ -96,7 +96,7 @@ class AdminHeaderSettingsUiContractTest extends TestCase
     public function test_header_save_and_reset_reload_shell_after_persistence(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
-        $this->assertStringContainsString("in_array(\$this->section, ['general', 'header'], true)", $component);
+        $this->assertStringContainsString("in_array(\$this->section, ['general', 'header', 'sidebar', 'footer'], true)", $component);
         $this->assertStringContainsString('Thiết lập Header đã được lưu và áp dụng.', $component);
         $this->assertStringContainsString('Header đã được khôi phục mặc định và áp dụng.', $component);
         $this->assertStringContainsString("\$this->redirect(url()->previous(), navigate: false)", $component);

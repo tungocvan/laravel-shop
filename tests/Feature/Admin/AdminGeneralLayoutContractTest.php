@@ -39,7 +39,7 @@ class AdminGeneralLayoutContractTest extends TestCase
     public function test_general_save_and_reset_refresh_shell_without_manual_reload(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
-        $this->assertStringContainsString("in_array(\$this->section, ['general', 'header'], true)", $component);
+        $this->assertStringContainsString("in_array(\$this->section, ['general', 'header', 'sidebar', 'footer'], true)", $component);
         $this->assertStringContainsString("session()->flash('success'", $component);
         $this->assertStringContainsString("session()->flash('warning'", $component);
         $this->assertStringContainsString("\$this->redirect(url()->previous(), navigate: false)", $component);
