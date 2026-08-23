@@ -3,6 +3,7 @@
 namespace Modules\Admin\Livewire\Settings;
 
 use Livewire\Component;
+use Modules\Admin\Services\HeaderMenuService;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
 
@@ -11,13 +12,23 @@ class AdminLayoutConfig extends Component
     public array $config = [];
     public array $themes = [];
     public string $section = 'general';
+    public bool $importedHeaderMenuItems = false;
 
-    public function mount(AdminLayoutManager $manager, ThemeManager $themeManager, string $section = 'general'): void
+    public function mount(AdminLayoutManager $manager, ThemeManager $themeManager, HeaderMenuService $headerMenuService, string $section = 'general'): void
     {
         abort_unless(in_array($section, $this->sections(), true), 404);
         $this->section = $section;
         $this->config = $manager->config();
         $this->themes = $themeManager->all();
+
+        if ($section === 'header' && count((array) data_get($this->config, 'header.user_menu_config.items', [])) === 0) {
+            $currentMenuItems = $headerMenuService->exportAdminConfigItems();
+
+            if ($currentMenuItems !== []) {
+                $this->config['header']['user_menu_config']['items'] = $currentMenuItems;
+                $this->importedHeaderMenuItems = true;
+            }
+        }
     }
 
     public function updatedConfigLayoutPreset(mixed $value): void
