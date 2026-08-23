@@ -40,7 +40,10 @@ This matrix prevents implementation from silently omitting enterprise controls o
 | WF-API-002 | Safe errors/correlation IDs | API §5 | Error mapping tests |
 | WF-UI-001 | Workspace-first Admin UI | UI §1–12 | Livewire/UI smoke |
 | WF-UI-002 | Search/filter/reset/bounded pagination | UI §4–5 | List feature tests |
-| WF-UI-003 | Responsive/accessibility states | UI §13–14 | Manual/automated smoke |
+| WF-UI-003 | Responsive/touch/accessibility states | UI §13–17 | Manual/automated viewport/input smoke |
+| WF-UI-004 | Mobile-first requester/approver journeys; designer tablet/desktop-first | REQUIREMENTS §6.8, UI §3–10, §13 | Device journey acceptance matrix |
+| WF-UI-005 | Shell-integrated online-first PWA and safe offline drafts | REQUIREMENTS §6.8, API §11, UI §14–16 | PWA/offline storage/reconnect tests |
+| WF-UI-006 | Visual hierarchy, progressive disclosure and explicit interaction states | UI §1, §13, §17 | Visual/accessibility review |
 | WF-OPS-001 | Durable SLA/reminder/escalation | Operations §4–6 | Due/retry tests |
 | WF-OPS-002 | Queue/scheduler conventions | Operations §2–3 | Registry/command tests |
 | WF-OPS-003 | Safe stuck detection/recovery | Operations §8–9 | Read-only/allowlist tests |
@@ -56,4 +59,3 @@ Any implementation item without a traceability ID must be classified as:
 - new scope requiring approval.
 
 The following always require new approval: non-shell dependency, domain integration, multi-tenancy, full BPMN, PKI signature, arbitrary webhook/code execution, destructive cross-module schema change, or root provider redesign.
-

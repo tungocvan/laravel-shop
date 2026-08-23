@@ -13,6 +13,7 @@ The form builder must let authorized designers create usable internal request fo
   "description": "Internal purchase approval",
   "settings": {
     "draft_autosave": true,
+    "offline_draft_mode": "non_sensitive_fields",
     "allow_attachments": true,
     "submit_confirmation": true
   },
@@ -44,6 +45,7 @@ Unknown keys are either rejected or preserved only in a clearly non-executable e
   "visibility": null,
   "readonly": false,
   "sensitive": false,
+  "offline_storage": "allow",
   "searchable": true,
   "reportable": true,
   "exportable": true,
@@ -57,6 +59,7 @@ Field key rules:
 - stable after publication
 - cannot use reserved keys such as status, requester, actor, permissions, audit, files, instance, definition, version, or internal IDs
 - not interpreted as a database column or arbitrary JSON path
+- `offline_storage` is `deny` for sensitive fields and attachments; designers cannot weaken that rule
 
 ## 4. Initial field catalog
 
@@ -107,6 +110,8 @@ Money calculations use decimal arithmetic and explicit rounding. Formula depende
 - Persist canonical payload, payload checksum, and optional presentation snapshot.
 - Search/report fields are allowlisted; do not build arbitrary user-selected JSON queries.
 - Sensitive fields are redacted from ordinary audit metadata, logs, notifications, and exports.
+- Offline drafts store only allowlisted non-sensitive scalar/object values in a versioned, per-user browser record. Attachment binaries, upload tokens, computed trust results, and fields marked `sensitive` or `offline_storage: deny` are never persisted offline.
+- `offline_draft_mode` supports `disabled` and `non_sensitive_fields` in version 1. A future all-fields mode requires a separate browser-storage threat review and approval.
 - Changes after return create revision evidence; prior submitted payload/checksum remains recoverable in audit/revision history.
 
 ## 9. Attachment behavior
@@ -125,6 +130,7 @@ Money calculations use decimal arithmetic and explicit rounding. Formula depende
 - Keyboard-accessible move controls are required.
 - Validation panel distinguishes errors from warnings and links to offending field.
 - Desktop preview and mobile preview modes.
+- Offline-draft preview identifies fields that will not be stored locally and warns when reconnecting is required to complete the form.
 - Test payload validation without creating production requests.
 - Publish confirmation shows schema/graph diff and blocking validation status.
 
@@ -150,4 +156,3 @@ Money calculations use decimal arithmetic and explicit rounding. Formula depende
   ]
 }
 ```
-

@@ -18,6 +18,8 @@ The engine must be predictable before it is clever. Every accepted command must 
 8. Audit is append-only and independent from mutable presentation history.
 9. Workflow owns internal requests only.
 10. Dependency direction is enforced: Workflow may depend only on shell modules.
+11. Offline convenience never changes authoritative business state; submit, decision, publication, upload, and operational commands require an authenticated online request.
+12. Workflow extends the platform PWA shell through an approved shell contract; it never registers a competing manifest, service worker, or global cache policy.
 
 ## 3. Logical architecture
 
@@ -95,6 +97,8 @@ pending -> claimed -> completed
 - Nested subflows limited to Workflow definitions.
 - Comments, private attachments, notifications and timelines.
 - Searchable inbox/archive and operational dashboards.
+- Responsive, touch-friendly requester and approver workspaces for mobile browser, tablet, and installed PWA display modes.
+- Online-first PWA support with app-shell caching, selected sanitized read snapshots, and non-sensitive offline draft recovery.
 - Versioned REST API and domain event outbox.
 - Import/export of definitions as validated packages in SHOULD scope.
 
@@ -122,5 +126,4 @@ Runtime storage   : yes; private attachments/exports and bounded temp files
 
 ## 9. Definition of done
 
-The module is not complete when screens merely work. It is complete only when definition immutability, graph validation, transactional execution, concurrency, retry safety, record authorization, storage protection, audit completeness, operational recovery, module discovery, runtime state, regression coverage, and UI smoke tests all pass.
-
+The module is not complete when screens merely work. It is complete only when definition immutability, graph validation, transactional execution, concurrency, retry safety, record authorization, storage protection, audit completeness, operational recovery, module discovery, runtime state, regression coverage, responsive/touch accessibility, safe PWA offline behavior, and UI smoke tests all pass.

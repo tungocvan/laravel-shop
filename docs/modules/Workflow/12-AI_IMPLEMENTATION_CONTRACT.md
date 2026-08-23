@@ -46,6 +46,9 @@ Inspect current source immediately before edits; repository reality outranks exa
 - Private files and backend authorization.
 - Published versions immutable.
 - No application code before CREATE_PLAN approval.
+- Requester/approver UX is mobile-first; full definition topology editing is tablet/desktop-first.
+- PWA is online-first. Only the shell, sanitized read snapshots, and permitted non-sensitive drafts may work offline; authoritative mutations are online-only.
+- Reuse the shell-owned manifest/service worker/PWA lifecycle. Never generate a competing service worker, manifest, or mutation replay queue inside Workflow.
 
 ## 4. Proposed module structure
 
@@ -142,11 +145,15 @@ Do not generate empty folders/classes only to match this tree. Use cohesive smal
 - Request editor/detail/inbox/delegations.
 - Versioned API and idempotency/concurrency responses.
 - Reports/operations workspace.
-- Responsive/accessibility/manual UI tests each batch.
+- Mobile-first create request, resume draft, inbox, task context/decision, and request tracking journeys.
+- Tablet/desktop definition designer with responsive panel modes and a phone read-only/device-guidance fallback.
+- Shell-integrated online-first PWA states, sanitized cached reads, non-sensitive local drafts, reconnect/conflict handling, and online-only mutation guards.
+- Responsive/touch/accessibility/PWA/manual UI tests each batch.
 
 ### Phase 7 — Files, export, hardening
 
 - Private attachments and authorized download.
+- Offline-storage threat review, per-user expiry/cleanup, logout purge, and proof that sensitive fields/files/tokens are never persisted locally.
 - Queued report/definition export; import only if approved SHOULD scope.
 - Retention/cleanup, observability, performance/query budgets.
 - Security test closure.
@@ -214,9 +221,15 @@ Do not catch every exception into success=false arrays. Use explicit domain exce
 - Use `Admin::layouts.master` and approved shared UI components.
 - Page Blade is a shell; Livewire has UI state; services own queries/business logic.
 - Workspace-first screens, visible controls, filters/reset, bounded pagination, loading/empty/error/success states.
+- Use responsive composition rather than shrinking desktop tables: cards/compact rows, drawers/bottom sheets, progressive disclosure, and safe-area-aware sticky actions for phone journeys.
+- Use design tokens and shared shell components; do not hardcode a parallel visual system, navigation shell, PWA manifest, or service worker.
+- Every action must expose offline/reconnecting/stale/conflict/processing/success/failure state as applicable; do not rely on color, icon, toast, hover, or gesture alone.
+- Minimum touch target is 44×44 CSS pixels. Preserve keyboard paths, semantic names, visible focus, reduced motion, and WCAG 2.2 AA target contrast.
 - Authorize every Livewire mutation.
 - Do not implement graph execution in Alpine/JavaScript; client graph is an editor representation only.
-- UI work is not complete without real desktop/mobile visual smoke.
+- IndexedDB may hold only per-user, expiring, versioned sanitized snapshots and schema-allowed non-sensitive draft values. Never persist tokens, attachment binaries/keys, audit exports, sensitive fields, or unrestricted API responses.
+- A reconnect may sync a draft after reauthentication/revision checks; it may never auto-submit or replay a business command. Service worker/background sync must not queue authoritative mutations.
+- UI work is not complete without real phone, portrait/landscape tablet, desktop, and installed-PWA visual smoke.
 
 ## 10. Stop conditions
 
@@ -228,6 +241,7 @@ Stop and ask for approval when:
 - a canonical shell identity/organization contract cannot be found
 - schema/permission/business behavior contradicts REQUIREMENTS
 - provider changes, shared infrastructure changes, or destructive migration is required
+- required PWA behavior cannot be implemented through an existing shell contract, would require Workflow to own a competing global service worker/manifest, or would queue offline business mutations
 - tests reveal existing behavior that invalidates the plan
 
 ## 11. Completion output
@@ -243,4 +257,3 @@ Final implementation report must include:
 - migration/deployment/worker/scheduler instructions
 - rollback notes
 - confirmation of clean Git status and no temp/debug files
-
