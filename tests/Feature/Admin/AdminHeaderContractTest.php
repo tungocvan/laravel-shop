@@ -15,11 +15,7 @@ class AdminHeaderContractTest extends TestCase
         $manager->shouldReceive('config')->once()->andReturn([
             'layout' => ['sticky_header' => true],
             'sidebar' => ['enabled' => true, 'mobile_drawer' => true],
-            'header' => [
-                'search' => true,
-                'notifications' => true,
-                'user_menu' => true,
-            ],
+            'header' => ['search' => true, 'notifications' => true, 'user_menu' => true],
         ]);
 
         $context = (new AdminHeaderService($manager))->context();
@@ -35,11 +31,7 @@ class AdminHeaderContractTest extends TestCase
         $manager->shouldReceive('config')->once()->andReturn([
             'layout' => ['sticky_header' => false],
             'sidebar' => ['enabled' => false, 'mobile_drawer' => true],
-            'header' => [
-                'search' => false,
-                'notifications' => false,
-                'user_menu' => true,
-            ],
+            'header' => ['search' => false, 'notifications' => false, 'user_menu' => true],
         ]);
 
         $context = (new AdminHeaderService($manager))->context();
@@ -69,7 +61,6 @@ class AdminHeaderContractTest extends TestCase
         $this->assertStringContainsString("\$headerContext['right']", $view);
         $this->assertStringContainsString("@include(\$component['view'])", $view);
         $this->assertStringNotContainsString('AdminLayoutManager::class', $view);
-
         $this->assertStringContainsString('AdminShellPresentationService::class', $view);
         $this->assertStringContainsString("header_height", $view);
         $this->assertStringContainsString('var(--admin-surface-raised)', $view);
@@ -88,5 +79,26 @@ class AdminHeaderContractTest extends TestCase
         $this->assertStringContainsString("@livewire('admin.partials.header-search')", $search);
         $this->assertStringContainsString("@livewire('admin.partials.header-notifications')", $notifications);
         $this->assertStringContainsString("@livewire('admin.partials.header-user')", $userMenu);
+    }
+
+    public function test_professional_header_widgets_keep_compact_accessible_presentation(): void
+    {
+        $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header-search.blade.php'));
+        $notifications = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header-notifications.blade.php'));
+        $user = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header-user.blade.php'));
+
+        $this->assertStringContainsString('max-w-lg', $search);
+        $this->assertStringContainsString('h-10', $search);
+        $this->assertStringContainsString('<kbd', $search);
+        $this->assertStringContainsString('aria-label="Tìm kiếm nhanh"', $search);
+
+        $this->assertStringContainsString('aria-label="Xem thông báo"', $notifications);
+        $this->assertStringNotContainsString('animate-pulse', $notifications);
+
+        $this->assertStringContainsString('aria-haspopup="menu"', $user);
+        $this->assertStringContainsString('w-64', $user);
+        $this->assertStringContainsString("route('admin.logout')", $user);
+        $this->assertStringContainsString('@csrf', $user);
+        $this->assertStringContainsString('x-transition:enter=', $user);
     }
 }
