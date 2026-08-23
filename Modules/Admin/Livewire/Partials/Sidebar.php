@@ -30,16 +30,23 @@ class Sidebar extends Component
         $layoutConfig = $layoutManager->config();
 
         $this->menus = $service->getMenusForUser($user, request()->path());
-        $this->theme = $themeManager->get((string) data_get($layoutConfig, 'theme.default', 'corporate-blue'));
-        $this->showFooterProfile = (bool) data_get($layoutConfig, 'sidebar.show_footer_profile', true);
+        $this->applyPresentation($themeManager, $layoutConfig);
         $this->menuCount = count($this->menus);
         $this->destinationCount = collect($this->menus)->sum(fn (array $item) => $item['kind'] === 'group' ? count($item['children'] ?? []) : 1);
-        $searchThreshold = (int) data_get($layoutConfig, 'sidebar.navigation_search_threshold', 12);
-        $this->showNavigationSearch = $this->destinationCount >= $searchThreshold;
+        $this->applyNavigationSearchPolicy($layoutConfig);
 
         $this->profileName = (string) ($user?->name ?? 'Admin');
         $this->profileInitial = mb_strtoupper(mb_substr($this->profileName ?: 'A', 0, 1, 'UTF-8'), 'UTF-8');
         $this->loadSchoolName();
+    }
+
+    #[On('admin-layout-updated')]
+    public function refreshPresentation(AdminLayoutManager $layoutManager, ThemeManager $themeManager): void
+    {
+        $layoutConfig = $layoutManager->config();
+
+        $this->applyPresentation($themeManager, $layoutConfig);
+        $this->applyNavigationSearchPolicy($layoutConfig);
     }
 
     #[On('site-name-updated')]
@@ -57,6 +64,7 @@ class Sidebar extends Component
 
         $words = preg_split('/\s+/u', trim($this->schoolDisplayName ?: $schoolName), -1, PREG_SPLIT_NO_EMPTY);
         $this->schoolAcronym = collect($words)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1, 'UTF-8'), 'UTF-8'))->implode('');
+
         if ($this->schoolAcronym === '') {
             $this->schoolAcronym = 'N/A';
         }
@@ -65,5 +73,17 @@ class Sidebar extends Component
     public function render()
     {
         return view('Admin::livewire.partials.sidebar');
+    }
+
+    private function applyPresentation(ThemeManager $themeManager, array $layoutConfig): void
+    {
+        $this->theme = $themeManager->get((string) data_get($layoutConfig, 'theme.default', 'corporate-blue'));
+        $this->showFooterProfile = (bool) data_get($layoutConfig, 'sidebar.show_footer_profile', true);
+    }
+
+    private function applyNavigationSearchPolicy(array $layoutConfig): void
+    {
+        $searchThreshold = (int) data_get($layoutConfig, 'sidebar.navigation_search_threshold', 12);
+        $this->showNavigationSearch = $this->destinationCount >= $searchThreshold;
     }
 }
