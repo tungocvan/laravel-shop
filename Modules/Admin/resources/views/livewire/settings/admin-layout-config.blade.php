@@ -13,6 +13,30 @@
                     'screen-2xl' => ['Screen 2xl', 'Rộng, vẫn giữ gutter an toàn', 'w-5/6'],
                     'full' => ['Full width', 'Tối đa vùng làm việc dữ liệu', 'w-full'],
                 ];
+                $previewWidths = ['narrow' => '58%', '7xl' => '72%', 'screen-2xl' => '86%', 'full' => '100%'];
+                $previewSpace = ['0' => 0, '1' => 2, '2' => 4, '3' => 6, '4' => 8, '5' => 10, '6' => 12, '8' => 16, '10' => 20, '12' => 24];
+                $previewContainer = $previewWidths[data_get($config, 'layout.container', 'screen-2xl')] ?? '86%';
+                $previewPaddingX = $previewSpace[(string) data_get($config, 'layout.spacing.content_padding_x', '6')] ?? 12;
+                $previewPaddingTop = $previewSpace[(string) data_get($config, 'layout.spacing.content_padding_top', '6')] ?? 12;
+                $previewPaddingBottom = $previewSpace[(string) data_get($config, 'layout.spacing.content_padding_bottom', '8')] ?? 16;
+                $previewGap = $previewSpace[(string) data_get($config, 'layout.spacing.section_gap', '6')] ?? 12;
+                $previewPageBackground = match (data_get($config, 'layout.surface.page_background', 'system')) {
+                    'white' => '#ffffff',
+                    'slate-50' => '#f8fafc',
+                    default => '#f8fafc',
+                };
+                $previewContentSurface = match (data_get($config, 'layout.surface.content_surface', 'transparent')) {
+                    'white' => '#ffffff',
+                    'system' => '#f8fafc',
+                    default => 'transparent',
+                };
+                $previewBorder = data_get($config, 'layout.surface.border', 'system') === 'none' ? 'transparent' : '#cbd5e1';
+                $previewRadius = match (data_get($config, 'layout.surface.radius', 'lg')) {
+                    'none' => '0px',
+                    'sm' => '4px',
+                    'md' => '6px',
+                    default => '8px',
+                };
             @endphp
 
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
@@ -72,7 +96,7 @@
                             ] as $key => $label)
                                 <label class="block">
                                     <span class="text-sm font-medium text-slate-700">{{ $label }}</span>
-                                    <select wire:model="config.layout.spacing.{{ $key }}" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <select wire:model.live="config.layout.spacing.{{ $key }}" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         @foreach ($spacingOptions as $value => $display)<option value="{{ $value }}">{{ $display }}</option>@endforeach
                                     </select>
                                 </label>
@@ -86,10 +110,10 @@
                             <p class="mt-1 text-sm text-slate-500">Ưu tiên semantic Design System; chỉ chọn surface cố định khi thật sự cần.</p>
                         </div>
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <label class="block"><span class="text-sm font-medium text-slate-700">Page background</span><select wire:model="config.layout.surface.page_background" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="system">Theo Design System</option><option value="white">White</option><option value="slate-50">Slate 50</option></select></label>
-                            <label class="block"><span class="text-sm font-medium text-slate-700">Content surface</span><select wire:model="config.layout.surface.content_surface" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="transparent">Transparent</option><option value="system">Theo Design System</option><option value="white">White</option></select></label>
-                            <label class="block"><span class="text-sm font-medium text-slate-700">Border / divider</span><select wire:model="config.layout.surface.border" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="system">Theo Design System</option><option value="none">Không dùng border</option></select></label>
-                            <label class="block"><span class="text-sm font-medium text-slate-700">Default radius</span><select wire:model="config.layout.surface.radius" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="none">None</option><option value="sm">Small — 4 px</option><option value="md">Medium — 6 px</option><option value="lg">Large — 8 px</option></select></label>
+                            <label class="block"><span class="text-sm font-medium text-slate-700">Page background</span><select wire:model.live="config.layout.surface.page_background" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="system">Theo Design System</option><option value="white">White</option><option value="slate-50">Slate 50</option></select></label>
+                            <label class="block"><span class="text-sm font-medium text-slate-700">Content surface</span><select wire:model.live="config.layout.surface.content_surface" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="transparent">Transparent</option><option value="system">Theo Design System</option><option value="white">White</option></select></label>
+                            <label class="block"><span class="text-sm font-medium text-slate-700">Border / divider</span><select wire:model.live="config.layout.surface.border" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="system">Theo Design System</option><option value="none">Không dùng border</option></select></label>
+                            <label class="block"><span class="text-sm font-medium text-slate-700">Default radius</span><select wire:model.live="config.layout.surface.radius" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="none">None</option><option value="sm">Small — 4 px</option><option value="md">Medium — 6 px</option><option value="lg">Large — 8 px</option></select></label>
                         </div>
                     </section>
 
@@ -107,17 +131,43 @@
                     </section>
                 </div>
 
-                <aside class="xl:sticky xl:top-24">
+                <aside class="xl:sticky xl:top-24" aria-label="Xem trước Layout tổng thể">
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div class="flex items-center justify-between gap-3"><h2 class="text-sm font-semibold text-slate-900">Workspace preview</h2><span class="rounded-full bg-white px-2 py-1 text-[11px] font-medium text-slate-500 shadow-sm">A4 live preview</span></div>
-                        <div class="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <h2 class="text-sm font-semibold text-slate-900">Workspace preview</h2>
+                            <span class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">Live</span>
+                        </div>
+
+                        <div class="mt-4 overflow-hidden border border-slate-200 bg-white shadow-sm" style="border-radius: {{ $previewRadius }}">
                             <div class="h-5 border-b border-slate-200 bg-slate-50"></div>
-                            <div class="flex h-36">
-                                <div class="w-10 border-r border-slate-200 bg-slate-100"></div>
-                                <div class="flex-1 p-3"><div class="h-2.5 w-2/3 rounded bg-slate-200"></div><div class="mt-2 h-1.5 w-1/2 rounded bg-slate-100"></div><div class="mt-4 h-16 rounded border border-slate-200 bg-slate-50"></div></div>
+                            <div class="flex h-44" style="background: {{ $previewPageBackground }}">
+                                <div class="w-9 shrink-0 border-r border-slate-200 bg-slate-100"></div>
+                                <div class="min-w-0 flex-1 overflow-hidden p-2">
+                                    <div class="mx-auto h-full transition-[width] duration-200" style="width: {{ $previewContainer }}; max-width: 100%;">
+                                        <div class="h-full transition-all duration-200" style="padding: {{ $previewPaddingTop }}px {{ $previewPaddingX }}px {{ $previewPaddingBottom }}px; background: {{ $previewContentSurface }}; border: 1px solid {{ $previewBorder }}; border-radius: {{ $previewRadius }};">
+                                            <div class="h-2.5 w-2/3 rounded bg-slate-300"></div>
+                                            <div class="mt-2 h-1.5 w-1/2 rounded bg-slate-200"></div>
+                                            <div style="height: {{ max(4, $previewGap) }}px"></div>
+                                            <div class="h-12 bg-white/80" style="border: 1px solid {{ $previewBorder }}; border-radius: {{ $previewRadius }};"></div>
+                                            <div style="height: {{ max(4, $previewGap) }}px"></div>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div class="h-8 bg-white/80" style="border: 1px solid {{ $previewBorder }}; border-radius: {{ $previewRadius }};"></div>
+                                                <div class="h-8 bg-white/80" style="border: 1px solid {{ $previewBorder }}; border-radius: {{ $previewRadius }};"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <p class="mt-3 text-xs leading-5 text-slate-500">Preview tương tác sẽ được kích hoạt ở A4. A3 tập trung vào hierarchy và control ergonomics.</p>
+
+                        <dl class="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                            <div><dt class="text-slate-400">Container</dt><dd class="mt-0.5 font-semibold text-slate-700">{{ data_get($config, 'layout.container') }}</dd></div>
+                            <div><dt class="text-slate-400">Desktop padding</dt><dd class="mt-0.5 font-semibold text-slate-700">{{ $spacingOptions[(string) data_get($config, 'layout.spacing.content_padding_x', '6')] ?? '24 px' }}</dd></div>
+                            <div><dt class="text-slate-400">Section gap</dt><dd class="mt-0.5 font-semibold text-slate-700">{{ $spacingOptions[(string) data_get($config, 'layout.spacing.section_gap', '6')] ?? '24 px' }}</dd></div>
+                            <div><dt class="text-slate-400">Radius</dt><dd class="mt-0.5 font-semibold text-slate-700">{{ ucfirst((string) data_get($config, 'layout.surface.radius', 'lg')) }}</dd></div>
+                        </dl>
+
+                        <p class="mt-3 text-xs leading-5 text-slate-500">Preview cập nhật trước khi lưu. Nút Lưu mới áp dụng cấu hình vào toàn bộ Admin shell.</p>
                     </div>
                 </aside>
             </div>
