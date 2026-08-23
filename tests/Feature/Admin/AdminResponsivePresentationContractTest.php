@@ -12,63 +12,44 @@ class AdminResponsivePresentationContractTest extends TestCase
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
         $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/search.blade.php'));
         $stacks = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/stacks.blade.php'));
-
         $this->assertStringContainsString("matchMedia('(min-width: 1024px)')", $head);
-        $this->assertStringContainsString('lg:hidden', $shell);
-        $this->assertStringContainsString('lg:hidden', $search);
-        $this->assertStringContainsString('lg:block', $search);
-        $this->assertStringContainsString('x-show="searchOpen && !isDesktop"', $stacks);
-        $this->assertStringContainsString('lg:hidden', $stacks);
-        $this->assertStringNotContainsString('sm:hidden', $search);
-        $this->assertStringNotContainsString('sm:block', $search);
-        $this->assertStringNotContainsString('sm:hidden', $stacks);
+        $this->assertStringContainsString('lg:hidden', $shell); $this->assertStringContainsString('lg:hidden', $search); $this->assertStringContainsString('lg:block', $search); $this->assertStringContainsString('x-show="searchOpen && !isDesktop"', $stacks); $this->assertStringContainsString('lg:hidden', $stacks); $this->assertStringNotContainsString('sm:hidden', $search); $this->assertStringNotContainsString('sm:block', $search); $this->assertStringNotContainsString('sm:hidden', $stacks);
     }
 
     public function test_shell_is_the_single_owner_of_sidebar_width(): void
     {
-        $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
-        $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
-
-        $this->assertStringContainsString('sidebar_expanded_width', $shell);
-        $this->assertStringContainsString('sidebar_collapsed_width', $shell);
-        $this->assertStringContainsString('w-full', $sidebar);
-        $this->assertStringNotContainsString("sidebarOpen ? 'w-64' : 'w-20'", $sidebar);
+        $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php')); $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
+        $this->assertStringContainsString('sidebar_expanded_width', $shell); $this->assertStringContainsString('sidebar_collapsed_width', $shell); $this->assertStringContainsString('w-full', $sidebar); $this->assertStringNotContainsString("sidebarOpen ? 'w-64' : 'w-20'", $sidebar);
     }
 
     public function test_sidebar_shell_has_no_vertical_divider_line(): void
     {
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
-
-        $this->assertStringNotContainsString('border-r', $shell);
-        $this->assertStringNotContainsString('border-color: var(--admin-border-subtle)', $shell);
+        $this->assertStringNotContainsString('border-r', $shell); $this->assertStringNotContainsString('border-color: var(--admin-border-subtle)', $shell);
     }
 
     public function test_mobile_drawer_does_not_expose_desktop_collapse_control(): void
     {
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
-
-        $this->assertStringContainsString('lg:inline-flex', $sidebar);
-        $this->assertStringContainsString('aria-controls="admin-sidebar"', $sidebar);
-        $this->assertStringContainsString(':aria-expanded="sidebarOpen.toString()"', $sidebar);
+        $this->assertStringContainsString('lg:inline-flex', $sidebar); $this->assertStringContainsString('aria-controls="admin-sidebar"', $sidebar); $this->assertStringContainsString(':aria-expanded="sidebarOpen.toString()"', $sidebar);
     }
 
     public function test_mobile_search_controls_meet_touch_target_contract(): void
     {
-        $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/search.blade.php'));
-        $stacks = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/stacks.blade.php'));
-
-        $this->assertStringContainsString('h-11 w-11', $search);
-        $this->assertStringContainsString('h-11 w-11', $stacks);
+        $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/search.blade.php')); $stacks = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/stacks.blade.php'));
+        $this->assertStringContainsString('h-11 w-11', $search); $this->assertStringContainsString('h-11 w-11', $stacks);
     }
 
     public function test_header_uses_shell_height_and_semantic_surface_contract(): void
     {
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
-
+        $service = file_get_contents(base_path('Modules/Admin/Services/AdminShellPresentationService.php'));
         $this->assertStringContainsString('AdminShellPresentationService::class', $header);
         $this->assertStringContainsString('header_height', $header);
-        $this->assertStringContainsString('var(--admin-surface-raised)', $header);
-        $this->assertStringContainsString('var(--admin-border-subtle)', $header);
+        $this->assertStringContainsString('var(--admin-header-background)', $header);
+        $this->assertStringContainsString('var(--admin-header-shadow)', $header);
+        $this->assertStringContainsString('--admin-header-background', $service);
+        $this->assertStringContainsString('--admin-header-divider', $service);
         $this->assertStringNotContainsString('h-16 items-center', $header);
     }
 }

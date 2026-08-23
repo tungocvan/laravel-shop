@@ -13,7 +13,6 @@ class AdminRouteConfigurationTest extends TestCase
         $route = collect(Route::getRoutes())->first(function ($route): bool {
             return $route->uri() === 'api/admin' && in_array('GET', $route->methods(), true);
         });
-
         $this->assertNull($route);
     }
 
@@ -21,7 +20,6 @@ class AdminRouteConfigurationTest extends TestCase
     public function test_active_admin_routes_enforce_named_permissions(string $routeName, string $uri, string $permission): void
     {
         $route = Route::getRoutes()->getByName($routeName);
-
         $this->assertNotNull($route);
         $this->assertSame($uri, $route->uri());
         $this->assertContains('auth:admin', $route->gatherMiddleware());
@@ -36,9 +34,16 @@ class AdminRouteConfigurationTest extends TestCase
             ['admin.menus.create', 'admin/menus/create', 'admin.menu.create'],
             ['admin.menus.edit', 'admin/menus/{id}/edit', 'admin.menu.update'],
             ['admin.profile', 'admin/profile', 'admin.profile.view'],
-            ['admin.themes', 'admin/themes', 'admin.theme.view'],
+            ['admin.themes', 'admin/themes', 'admin.layout.view'],
             ['admin.layout', 'admin/layout', 'admin.layout.view'],
             ['admin.header', 'admin/admin-header', 'admin.header.view'],
         ];
+    }
+
+    public function test_legacy_themes_route_redirects_into_layout_design_hub(): void
+    {
+        $routes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
+        $this->assertStringContainsString("Route::get('/themes', fn () => redirect()->route('admin.layout.design'))", $routes);
+        $this->assertStringContainsString("->middleware('permission:admin.layout.view,admin')", $routes);
     }
 }
