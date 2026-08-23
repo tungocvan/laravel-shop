@@ -16,8 +16,8 @@ class AdminShellPresentationContractTest extends TestCase
         $this->assertArrayHasKey('content_padding_class', $context);
         $this->assertArrayHasKey('content_style', $context);
         $this->assertArrayHasKey('shell_style', $context);
-        $this->assertSame('16rem', $context['sidebar_expanded_width']);
-        $this->assertSame('5rem', $context['sidebar_collapsed_width']);
+        $this->assertSame('256px', $context['sidebar_expanded_width']);
+        $this->assertSame('80px', $context['sidebar_collapsed_width']);
         $this->assertSame('4rem', $context['header_height']);
     }
 
