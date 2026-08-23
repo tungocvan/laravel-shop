@@ -33,6 +33,7 @@ class AdminShellPresentationService
         return [
             'container' => $container,
             'density' => $density,
+            'container_class' => $this->containerClass($container),
             'content_class' => $this->containerClass($container),
             'content_padding_class' => '',
             'content_style' => $this->contentStyle($config),
@@ -48,9 +49,9 @@ class AdminShellPresentationService
     {
         return match ($container) {
             'full' => 'w-full max-w-none',
-            'narrow' => 'w-full lg:w-4/5 max-w-5xl mx-auto',
-            '7xl' => 'w-full lg:w-11/12 max-w-7xl mx-auto',
-            default => 'w-full lg:w-11/12 2xl:w-full max-w-screen-2xl mx-auto',
+            'narrow' => 'w-full max-w-[60rem] mx-auto',
+            '7xl' => 'w-full max-w-7xl mx-auto',
+            default => 'w-full max-w-screen-2xl mx-auto',
         };
     }
 
