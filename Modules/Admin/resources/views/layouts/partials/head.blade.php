@@ -45,6 +45,7 @@
         window.adminLayout = function (config) {
             return {
                 sidebarOpen: true,
+                sidebarFullscreen: false,
                 searchOpen: false,
                 isDesktop: false,
                 lastFocus: null,
@@ -68,6 +69,9 @@
                     this.sidebarOpen = this.isDesktop
                         ? this.readSidebarPreference()
                         : false;
+                    this.sidebarFullscreen = this.isDesktop
+                        ? this.readSidebarFullscreenPreference()
+                        : false;
                 },
 
                 readSidebarPreference() {
@@ -82,6 +86,30 @@
                     if (this.config.persistSidebar && this.isDesktop) {
                         localStorage.setItem('admin.sidebar.open', this.sidebarOpen ? 'true' : 'false');
                     }
+                },
+
+                readSidebarFullscreenPreference() {
+                    if (!this.config.persistSidebar) {
+                        return false;
+                    }
+
+                    return localStorage.getItem('admin.sidebar.fullscreen') === 'true';
+                },
+
+                persistSidebarFullscreenPreference() {
+                    if (this.config.persistSidebar && this.isDesktop) {
+                        localStorage.setItem('admin.sidebar.fullscreen', this.sidebarFullscreen ? 'true' : 'false');
+                    }
+                },
+
+                toggleSidebarFullscreen(trigger) {
+                    if (!this.isDesktop) {
+                        return;
+                    }
+
+                    this.lastFocus = trigger || document.activeElement;
+                    this.sidebarFullscreen = !this.sidebarFullscreen;
+                    this.persistSidebarFullscreenPreference();
                 },
 
                 toggleSidebar(trigger) {
