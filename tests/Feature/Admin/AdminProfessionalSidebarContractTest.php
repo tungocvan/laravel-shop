@@ -45,7 +45,7 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $group = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
         $themeManager = file_get_contents(base_path('Modules/Admin/Support/ThemeManager.php'));
 
-        $this->assertStringContainsString("theme.default", $component);
+        $this->assertStringContainsString('theme.default', $component);
         $this->assertStringContainsString('public function get(?string $themeName = null)', $themeManager);
         $this->assertStringContainsString("\$theme['active_bg']", $item);
         $this->assertStringContainsString("\$theme['active_text']", $item);
@@ -62,11 +62,24 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringNotContainsString('border-l border-slate-200', $group);
     }
 
+    public function test_sidebar_refreshes_presentation_when_layout_settings_are_saved_or_reset(): void
+    {
+        $sidebar = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Sidebar.php'));
+        $settings = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+
+        $this->assertStringContainsString("#[On('admin-layout-updated')]", $sidebar);
+        $this->assertStringContainsString('refreshPresentation(', $sidebar);
+        $this->assertStringContainsString('applyPresentation(', $sidebar);
+        $this->assertStringContainsString("\$this->dispatch('admin-layout-updated');", $settings);
+        $this->assertStringNotContainsString("action: 'reload'", $settings);
+    }
+
     public function test_sidebar_redesign_does_not_move_permission_logic_into_views(): void
     {
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
         $item = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/item.blade.php'));
         $group = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
+
         foreach ([$sidebar, $item, $group] as $view) {
             $this->assertStringNotContainsString('auth()->user()', $view);
             $this->assertStringNotContainsString('->can(', $view);
