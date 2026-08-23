@@ -37,9 +37,6 @@
         <livewire:admin.partials.header />
 
         @include('Admin::layouts.partials.content')
-
-        @if (data_get($adminLayoutConfig, 'show_footer', false))
-            @include('Admin::layouts.partials.footer')
-        @endif
+        @include('Admin::layouts.partials.footer')
     </div>
 </div>
