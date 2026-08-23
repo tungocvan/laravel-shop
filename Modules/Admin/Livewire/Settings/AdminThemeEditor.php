@@ -25,6 +25,21 @@ class AdminThemeEditor extends Component
         $this->sidebarPalettes = $themeManager->all();
     }
 
+    public function updatedConfigDesignColorsSidebarHeaderBackground(): void
+    {
+        $this->activateRegionalSidebarColors();
+    }
+
+    public function updatedConfigDesignColorsSidebarNavigationBackground(): void
+    {
+        $this->activateRegionalSidebarColors();
+    }
+
+    public function updatedConfigDesignColorsSidebarFooterBackground(): void
+    {
+        $this->activateRegionalSidebarColors();
+    }
+
     public function selectTheme(string $name, AdminThemeProfileService $profileService): void
     {
         abort_unless(array_key_exists($name, $profileService->profiles()), 404);
@@ -95,7 +110,15 @@ class AdminThemeEditor extends Component
 
     public function render(AdminDesignService $designService)
     {
-        return view('Admin::livewire.settings.admin-theme-editor', ['colorOptions' => $designService->colorOptions(), 'surfaceColorOptions' => $designService->surfaceColorOptions()]);
+        return view('Admin::livewire.settings.admin-theme-editor', [
+            'colorOptions' => $designService->colorOptions(),
+            'surfaceColorOptions' => $designService->surfaceColorOptions(),
+        ]);
+    }
+
+    private function activateRegionalSidebarColors(): void
+    {
+        data_set($this->config, 'sidebar.presentation.background', 'system');
     }
 
     private function rules(AdminDesignService $designService): array
