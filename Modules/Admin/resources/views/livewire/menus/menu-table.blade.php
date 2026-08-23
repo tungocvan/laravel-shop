@@ -93,76 +93,51 @@
                             </div>
                         </div>
                     @empty
-                        <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center"><p class="font-medium text-gray-700">Không còn GET route hợp lệ nào cần thêm.</p><p class="mt-1 text-sm text-gray-500">Các route hệ thống, auth, API, Livewire, Telescope và route không có tên đã được loại bỏ.</p></div>
+                        <div class="rounded-xl border border-dashed border-gray-300 p-10 text-center"><p class="font-semibold text-gray-800">Không có GET Admin route mới</p><p class="mt-1 text-sm text-gray-500">Các route đủ điều kiện đã có trong Menu hoặc không phù hợp để tạo menu trực tiếp.</p></div>
                     @endforelse
                 </div>
 
-                <div class="flex flex-col-reverse gap-3 border-t border-gray-200 bg-gray-50 p-4 sm:flex-row sm:justify-end">
-                    <button type="button" wire:click="closeRouteScannerModal" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Đóng</button>
-                    <button type="button" wire:click="addSelectedRouteCandidates" wire:loading.attr="disabled" wire:target="addSelectedRouteCandidates" @disabled(empty($selectedRouteCandidates)) class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"><span wire:loading.remove wire:target="addSelectedRouteCandidates">Thêm {{ count($selectedRouteCandidates) }} route đã chọn</span><span wire:loading wire:target="addSelectedRouteCandidates">Đang thêm...</span></button>
+                <div class="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
+                    <span class="text-sm text-gray-600">Đã chọn: <strong>{{ count($selectedRouteCandidates) }}</strong></span>
+                    <div class="flex gap-3"><button type="button" wire:click="closeRouteScannerModal" wire:loading.attr="disabled" wire:target="addSelectedRouteCandidates" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Hủy</button><button type="button" wire:click="addSelectedRouteCandidates" wire:loading.attr="disabled" wire:target="addSelectedRouteCandidates" @disabled($selectedRouteCandidates === []) class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"><span wire:loading.remove wire:target="addSelectedRouteCandidates">Thêm vào Menu</span><span wire:loading wire:target="addSelectedRouteCandidates">Đang thêm...</span></button></div>
                 </div>
             </div>
         </div>
     @endif
 
     @if ($showImportModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
-            <div class="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-                <div class="border-b border-gray-200 p-6"><h3 class="text-lg font-bold text-gray-900">Import Menu từ Excel</h3><p class="mt-1 text-sm text-gray-500">Chọn file Excel theo template hệ thống.</p></div>
-                <div class="space-y-4 p-6"><input type="file" wire:model="importFile" accept=".xlsx,.xls" class="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-700">@error('importFile')<p class="text-sm text-red-600">{{ $message }}</p>@enderror @if($importFile)<p class="text-sm text-gray-600">Đã chọn: <span class="font-medium">{{ $importFile->getClientOriginalName() }}</span></p>@endif</div>
-                <div class="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 p-4"><button type="button" wire:click="closeImportModal" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button><button type="button" wire:click="import" wire:loading.attr="disabled" wire:target="import,importFile" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="import">Import</span><span wire:loading wire:target="import">Đang import...</span></button></div>
-            </div>
-        </div>
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-xl bg-white shadow-xl"><div class="p-6"><h3 class="text-lg font-bold text-gray-900">Import Menu</h3><p class="mt-2 text-xs text-gray-600">Chấp nhận .xlsx hoặc .csv với các cột: key, parent_key, name, url, icon, can, is_active, sort_order.</p><div class="mt-5"><label class="block rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-indigo-400 hover:bg-gray-50"><span class="text-sm font-medium text-gray-600">{{ $this->importFileName ?: 'Chọn file .xlsx hoặc .csv' }}</span><input type="file" wire:model="importFile" class="hidden" accept=".xlsx,.csv"></label><div wire:loading wire:target="importFile" class="mt-2 text-xs font-semibold text-indigo-600">Đang upload file...</div>@error('importFile')<p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror</div><div class="mt-5"><label class="mb-2 block text-sm font-bold text-gray-700">Khi key menu đã tồn tại</label><div class="space-y-2 rounded-lg border border-gray-200 p-3"><label class="flex items-start gap-3"><input type="radio" wire:model="importMode" value="skip_duplicate" class="mt-1 border-gray-300 text-indigo-600 focus:ring-indigo-500"><span><span class="block text-sm font-medium text-gray-800">Bỏ qua dữ liệu đã tồn tại</span><span class="block text-xs text-gray-500">An toàn mặc định, không thay đổi menu hiện có.</span></span></label><label class="flex items-start gap-3"><input type="radio" wire:model="importMode" value="update_or_create" class="mt-1 border-gray-300 text-indigo-600 focus:ring-indigo-500"><span><span class="block text-sm font-medium text-gray-800">Cập nhật dữ liệu đã tồn tại</span><span class="block text-xs text-gray-500">Giữ nguyên ID và cập nhật nội dung theo key trong file.</span></span></label></div>@error('importMode')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div></div><div class="flex justify-end gap-3 rounded-b-xl bg-gray-50 px-6 py-4"><button type="button" wire:click="closeImportModal" wire:loading.attr="disabled" wire:target="import" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Hủy</button><button type="button" wire:click="import" wire:loading.attr="disabled" wire:target="import,importFile" @disabled(!$importFile) class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"><span wire:loading.remove wire:target="import">Tiến hành Import</span><span wire:loading wire:target="import">Đang import...</span></button></div></div></div>
+    @endif
+
+    @if ($importReport)
+        <div class="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 class="text-sm font-bold text-gray-900">Import report</h3><p class="mt-1 text-xs text-gray-500">Total: {{ $importReport['total_rows'] ?? 0 }}, success: {{ $importReport['success_rows'] ?? 0 }}, skipped: {{ $importReport['skipped_rows'] ?? 0 }}, errors: {{ $importReport['error_rows'] ?? 0 }}</p></div><button type="button" wire:click="$set('importReport', null)" class="text-xs font-semibold text-gray-500 hover:text-gray-900">Đóng report</button></div>@if (! empty($importReport['errors']))<div class="mt-4 overflow-x-auto rounded-lg border border-red-100"><table class="min-w-full divide-y divide-red-100 text-xs"><thead class="bg-red-50 text-red-700"><tr><th class="px-3 py-2 text-left font-semibold">Row</th><th class="px-3 py-2 text-left font-semibold">Column</th><th class="px-3 py-2 text-left font-semibold">Value</th><th class="px-3 py-2 text-left font-semibold">Reason</th></tr></thead><tbody class="divide-y divide-red-100 bg-white">@foreach ($importReport['errors'] as $error)<tr><td class="px-3 py-2 text-gray-700">{{ $error['row'] ?? '-' }}</td><td class="px-3 py-2 text-gray-700">{{ $error['column'] ?? '-' }}</td><td class="px-3 py-2 text-gray-700">{{ $error['value'] ?? '-' }}</td><td class="px-3 py-2 text-red-700">{{ $error['reason'] ?? '-' }}</td></tr>@endforeach</tbody></table></div>@endif</div>
+    @endif
+
+    @if ($showBulkDeleteModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-2xl border border-red-100 bg-white shadow-2xl"><div class="p-6"><h3 class="text-lg font-bold text-gray-900">Xóa {{ count($selectedMenus) }} menu đã chọn?</h3><p class="mt-2 text-sm text-gray-600">Thao tác này áp dụng đúng các menu đang được chọn. Hãy kiểm tra phạm vi trước khi xác nhận.</p></div><div class="flex justify-end gap-3 rounded-b-2xl bg-gray-50 px-6 py-4"><button type="button" wire:click="closeBulkDeleteModal" wire:loading.attr="disabled" wire:target="bulkDelete" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Hủy</button><button type="button" wire:click="bulkDelete" wire:loading.attr="disabled" wire:target="bulkDelete" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"><span wire:loading.remove wire:target="bulkDelete">Xác nhận xóa</span><span wire:loading wire:target="bulkDelete">Đang xóa...</span></button></div></div></div>
     @endif
 
     @if ($showBulkPermissionsModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
-            <div class="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-                <div class="border-b border-gray-200 p-6"><h3 class="text-lg font-bold text-gray-900">Phân quyền hàng loạt</h3><p class="mt-1 text-sm text-gray-500">Áp dụng permission cho {{ count($selectedMenus) }} menu đã chọn.</p></div>
-                <div class="overflow-y-auto p-6"><div class="grid grid-cols-1 gap-3 sm:grid-cols-2">@foreach($permissions as $permission)<label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50"><input type="checkbox" wire:model="bulkPermissionIds" value="{{ $permission->id }}" class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><span><span class="block text-sm font-medium text-gray-800">{{ $permission->name }}</span><span class="block text-xs text-gray-500">{{ $permission->guard_name }}</span></span></label>@endforeach</div></div>
-                <div class="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 p-4"><button type="button" wire:click="closeBulkPermissionsModal" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button><button type="button" wire:click="applyBulkPermissions" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">Áp dụng</button></div>
-            </div>
-        </div>
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-xl bg-white shadow-xl"><div class="p-6"><h3 class="text-lg font-bold text-gray-900">Phân quyền hàng loạt</h3><p class="mt-2 text-xs text-gray-600">Áp dụng quyền cho {{ count($selectedMenus) }} menu đã chọn.</p><div class="mt-5"><x-admin::form.select label="Chọn quyền" wire:model="bulkPermission"><option value="">-- Không có --</option>@foreach ($permissionOptions as $permissionName)<option value="{{ $permissionName }}">{{ $permissionName }}</option>@endforeach</x-admin::form.select></div></div><div class="flex justify-end gap-3 rounded-b-xl bg-gray-50 px-6 py-4"><button type="button" wire:click="closeBulkPermissionsModal" wire:loading.attr="disabled" wire:target="bulkAssignPermissions" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Hủy</button><button type="button" wire:click="bulkAssignPermissions" wire:loading.attr="disabled" wire:target="bulkAssignPermissions" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"><span wire:loading.remove wire:target="bulkAssignPermissions">Cập nhật quyền</span><span wire:loading wire:target="bulkAssignPermissions">Đang xử lý...</span></button></div></div></div>
     @endif
 
-    @if ($pendingDeleteMenuId)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><h3 class="text-lg font-bold text-gray-900">Xác nhận xóa Menu</h3><p class="mt-2 text-sm text-gray-600">Menu có thể chứa menu con. Bạn có chắc muốn xóa?</p><div class="mt-6 flex justify-end gap-3"><button type="button" wire:click="cancelDelete" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700">Hủy</button><button type="button" wire:click="deleteMenu" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white">Xóa</button></div></div></div>
-    @endif
-
-    @if ($showBulkDeleteConfirm)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><h3 class="text-lg font-bold text-gray-900">Xác nhận xóa hàng loạt</h3><p class="mt-2 text-sm text-gray-600">Bạn sắp xóa {{ count($selectedMenus) }} menu đã chọn và các menu con liên quan.</p><div class="mt-6 flex justify-end gap-3"><button type="button" wire:click="cancelBulkDelete" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700">Hủy</button><button type="button" wire:click="bulkDelete" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white">Xóa đã chọn</button></div></div></div>
-    @endif
-</div>
-
-@script
-<script>
-    window.menuSortable = window.menuSortable || function () {
-        return {
-            instances: [],
-            initSortable() {
-                this.$nextTick(() => this.refreshSortable());
-                Livewire.hook('morph.updated', () => this.$nextTick(() => this.refreshSortable()));
-            },
-            refreshSortable() {
-                this.instances.forEach(instance => instance.destroy());
-                this.instances = [];
-                document.querySelectorAll('.menu-list').forEach(list => {
-                    this.instances.push(Sortable.create(list, {
-                        group: 'nested-menu', animation: 150, fallbackOnBody: true, swapThreshold: 0.65,
-                        handle: '.drag-handle', draggable: '.menu-item',
-                        onEnd: () => this.persist()
-                    }));
-                });
-            },
-            persist() {
-                const walk = (list, parentId = null) => Array.from(list.children).filter(el => el.classList.contains('menu-item')).map((el, index) => {
-                    const childList = el.querySelector(':scope > .menu-children');
-                    return { id: Number(el.dataset.id), parent_id: parentId, order: index, children: childList ? walk(childList, Number(el.dataset.id)) : [] };
-                });
-                const root = document.getElementById('root-menu-list');
-                if (root) this.$wire.updateMenuOrder(walk(root));
+    <script>
+        function menuSortable() {
+            return {
+                sortables: [],
+                initSortable() {
+                    this.destroySortables();
+                    document.querySelectorAll('.menu-list').forEach((element) => {
+                        this.sortables.push(new Sortable(element, { group: 'nested', animation: 150, fallbackOnBody: true, swapThreshold: 0.65, handle: '.drag-handle', ghostClass: 'bg-indigo-50', onEnd: () => this.saveOrder() }));
+                    });
+                },
+                destroySortables() { this.sortables.forEach((sortable) => sortable.destroy()); this.sortables = []; },
+                saveOrder() {
+                    const getIds = (root) => Array.from(root.children).filter((element) => element.tagName === 'LI').map((element) => { const item = { id: element.getAttribute('data-id') }; const childList = element.querySelector(':scope > ul'); if (childList && childList.children.length > 0) item.children = getIds(childList); return item; });
+                    const rootList = document.getElementById('root-menu-list'); if (rootList) @this.updateMenuOrder(getIds(rootList));
+                }
             }
-        };
-    };
-</script>
-@endscript
+        }
+    </script>
+    <style>.bg-indigo-50 { background-color: #eef2ff; border: 1px dashed #6366f1; opacity: 0.8; }</style>
+</div>
