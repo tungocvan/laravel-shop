@@ -1,6 +1,6 @@
 <button
     type="button"
-    class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:hidden"
+    class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:hidden"
     aria-label="Mo tim kiem"
     aria-controls="admin-mobile-search"
     :aria-expanded="searchOpen.toString()"
@@ -11,7 +11,7 @@
     </svg>
 </button>
 
-<div class="hidden min-w-0 flex-1 sm:block">
+<div class="hidden min-w-0 flex-1 lg:block">
     <div class="w-full max-w-md">
         @livewire('admin.partials.header-search')
     </div>
