@@ -19,6 +19,10 @@
     </x-admin::page-header>
 
     <x-admin::content-section>
-        @livewire('admin.settings.admin-layout-config', ['section' => $section])
+        @if ($section === 'design')
+            @livewire('admin.settings.admin-theme-editor')
+        @else
+            @livewire('admin.settings.admin-layout-config', ['section' => $section])
+        @endif
     </x-admin::content-section>
 @endsection
