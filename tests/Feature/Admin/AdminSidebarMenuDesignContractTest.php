@@ -36,7 +36,8 @@ class AdminSidebarMenuDesignContractTest extends TestCase
         $service=file_get_contents(base_path('Modules/Admin/Services/SidebarService.php'));
 
         $this->assertStringContainsString("open ? @js(\$theme['active_bg']) : @js(\$theme['hover'])",$group);
-        $this->assertStringContainsString("color: open ? 'var(--admin-sidebar-active-title-color)' : 'var(--admin-sidebar-menu-title-color)'",$group);
+        $this->assertStringContainsString(":style=\"open ? { color: 'var(--admin-sidebar-active-title-color)'",$group);
+        $this->assertStringContainsString(": { color: 'var(--admin-sidebar-menu-title-color)'",$group);
         $this->assertStringContainsString("color: open ? 'var(--admin-sidebar-active-icon-color)' : 'var(--admin-sidebar-menu-icon-color)'",$group);
         $this->assertStringContainsString("\$theme['child_active_bg'].' '.\$theme['child_active_text']",$group);
         $this->assertStringContainsString("collect(\$children)->contains(",$service);
