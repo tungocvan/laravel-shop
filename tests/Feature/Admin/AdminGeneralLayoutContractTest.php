@@ -104,6 +104,22 @@ class AdminGeneralLayoutContractTest extends TestCase
         $this->assertStringContainsString('Page background', $view);
         $this->assertStringContainsString('Content surface', $view);
         $this->assertStringContainsString('Reduced motion', $view);
-        $this->assertStringContainsString('A4 live preview', $view);
+    }
+
+    public function test_general_preview_updates_live_for_container_spacing_and_surface_controls(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-config.blade.php'));
+
+        $this->assertStringContainsString("\$previewWidths", $view);
+        $this->assertStringContainsString("\$previewSpace", $view);
+        $this->assertStringContainsString("\$previewContainer", $view);
+        $this->assertStringContainsString('wire:model.live="config.layout.spacing.', $view);
+        $this->assertStringContainsString('wire:model.live="config.layout.surface.page_background"', $view);
+        $this->assertStringContainsString('wire:model.live="config.layout.surface.content_surface"', $view);
+        $this->assertStringContainsString('wire:model.live="config.layout.surface.border"', $view);
+        $this->assertStringContainsString('wire:model.live="config.layout.surface.radius"', $view);
+        $this->assertStringContainsString('>Live</span>', $view);
+        $this->assertStringContainsString('Preview cập nhật trước khi lưu.', $view);
+        $this->assertStringNotContainsString('A4 live preview', $view);
     }
 }
