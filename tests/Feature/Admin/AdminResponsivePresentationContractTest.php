@@ -29,8 +29,8 @@ class AdminResponsivePresentationContractTest extends TestCase
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
 
-        $this->assertStringContainsString("sidebar_expanded_width", $shell);
-        $this->assertStringContainsString("sidebar_collapsed_width", $shell);
+        $this->assertStringContainsString('sidebar_expanded_width', $shell);
+        $this->assertStringContainsString('sidebar_collapsed_width', $shell);
         $this->assertStringContainsString('w-full', $sidebar);
         $this->assertStringNotContainsString("sidebarOpen ? 'w-64' : 'w-20'", $sidebar);
     }
@@ -40,7 +40,8 @@ class AdminResponsivePresentationContractTest extends TestCase
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
 
         $this->assertStringContainsString('lg:inline-flex', $sidebar);
-        $this->assertStringContainsString('h-8 w-8', $sidebar);
+        $this->assertStringContainsString('aria-controls="admin-sidebar"', $sidebar);
+        $this->assertStringContainsString(':aria-expanded="sidebarOpen.toString()"', $sidebar);
     }
 
     public function test_mobile_search_controls_meet_touch_target_contract(): void
@@ -57,7 +58,7 @@ class AdminResponsivePresentationContractTest extends TestCase
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
 
         $this->assertStringContainsString('AdminShellPresentationService::class', $header);
-        $this->assertStringContainsString("header_height", $header);
+        $this->assertStringContainsString('header_height', $header);
         $this->assertStringContainsString('var(--admin-surface-raised)', $header);
         $this->assertStringContainsString('var(--admin-border-subtle)', $header);
         $this->assertStringNotContainsString('h-16 items-center', $header);
