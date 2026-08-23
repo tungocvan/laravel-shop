@@ -8,7 +8,7 @@
             background: var(--admin-content-surface);
         }
 
-        #admin-content-workspace > * + * {
+        #admin-container-boundary > * + * {
             margin-top: var(--admin-section-gap);
         }
 
@@ -29,15 +29,21 @@
 
     <div
         id="admin-content-workspace"
-        class="w-full {{ $adminShellPresentation['content_class'] }}"
+        class="w-full"
         style="{{ $adminShellPresentation['content_style'] }}"
     >
-        @include('Admin::layouts.partials.flash')
+        <div
+            id="admin-container-boundary"
+            class="{{ $adminShellPresentation['container_class'] }}"
+            data-admin-container-boundary="{{ $adminShellPresentation['container'] }}"
+        >
+            @include('Admin::layouts.partials.flash')
 
-        @isset($slot)
-            {{ $slot }}
-        @else
-            @yield('content')
-        @endisset
+            @isset($slot)
+                {{ $slot }}
+            @else
+                @yield('content')
+            @endisset
+        </div>
     </div>
 </main>
