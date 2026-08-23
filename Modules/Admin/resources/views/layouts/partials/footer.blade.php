@@ -3,14 +3,23 @@
     $footerPresentation = $adminFooterContext['presentation'] ?? [];
     $footerAlignment = $footerPresentation['alignment'] ?? 'split';
     $footerCompact = (bool) ($footerPresentation['compact'] ?? true);
-    $footerBackground = ($footerPresentation['background'] ?? 'system') === 'transparent' ? 'transparent' : 'var(--admin-surface-raised)';
+    $footerBackgroundMode = $footerPresentation['background'] ?? 'system';
+    $footerBackground = $footerBackgroundMode === 'transparent' ? 'transparent' : 'var(--admin-footer-theme-background)';
     $footerBorder = ($footerPresentation['divider'] ?? 'subtle') === 'none' ? 'transparent' : 'var(--admin-border-subtle)';
+    $footerContrastStyle = '';
+
+    if ($footerBackgroundMode === 'system') {
+        $adminThemeConfig = app(\Modules\Admin\Support\AdminLayoutManager::class)->config();
+        $footerColorToken = data_get($adminThemeConfig, 'design.colors.footer_background', 'white');
+        $footerContrast = app(\Modules\Admin\Services\AdminDesignService::class)->contrastVariables($footerColorToken);
+        $footerContrastStyle = collect($footerContrast)->map(fn ($value, $key) => $key.': '.$value)->implode('; ');
+    }
 @endphp
 
 @if ($adminFooterContext['enabled'])
     <footer
         class="shrink-0 text-xs text-[var(--admin-text-muted)]"
-        style="background: {{ $footerBackground }}; border-top: 1px solid {{ $footerBorder }};"
+        style="{{ $footerContrastStyle }}; background: {{ $footerBackground }}; border-top: 1px solid {{ $footerBorder }};"
         data-admin-footer
     >
         <div @class([
