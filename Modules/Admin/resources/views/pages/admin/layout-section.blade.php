@@ -3,12 +3,22 @@
 @section('title', $title.' - Giao diện Admin')
 
 @section('content')
-    <div class="mb-5">
-        <a href="{{ route('admin.layout') }}" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600">
-            <span aria-hidden="true">←</span>
-            Tổng quan giao diện Admin
-        </a>
-    </div>
+    <x-admin::page-header
+        :title="$title"
+        eyebrow="Thiết lập giao diện"
+    >
+        <x-slot:actions>
+            <a
+                href="{{ route('admin.layout') }}"
+                class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+            >
+                <span aria-hidden="true">←</span>
+                Tổng quan
+            </a>
+        </x-slot:actions>
+    </x-admin::page-header>
 
-    @livewire('admin.settings.admin-layout-config', ['section' => $section])
+    <x-admin::content-section>
+        @livewire('admin.settings.admin-layout-config', ['section' => $section])
+    </x-admin::content-section>
 @endsection
