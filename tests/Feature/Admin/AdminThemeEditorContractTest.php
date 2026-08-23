@@ -33,7 +33,7 @@ class AdminThemeEditorContractTest extends TestCase
         $this->assertSame('white', data_get($default, 'payload.design.colors.sidebar_footer_background'));
         $this->assertSame('system', data_get($default, 'payload.header.presentation.background'));
         $this->assertSame('system', data_get($default, 'payload.footer.presentation.background'));
-        $this->assertSame('theme', data_get($default, 'payload.sidebar.presentation.background'));
+        $this->assertSame('system', data_get($default, 'payload.sidebar.presentation.background'));
         $this->assertArrayHasKey('corporate-blue', $profiles);
         $this->assertArrayHasKey('modern-dark', $profiles);
         $this->assertArrayHasKey('warm-sunset', $profiles);
@@ -68,6 +68,10 @@ class AdminThemeEditorContractTest extends TestCase
         $this->assertStringContainsString('config.theme.default', $view);
         $this->assertStringContainsString('config.sidebar.presentation.background', $view);
         $this->assertStringContainsString('Theme colors — 3 vùng', $view);
+        $this->assertStringContainsString('updatedConfigDesignColorsSidebarHeaderBackground', $component);
+        $this->assertStringContainsString('updatedConfigDesignColorsSidebarNavigationBackground', $component);
+        $this->assertStringContainsString('updatedConfigDesignColorsSidebarFooterBackground', $component);
+        $this->assertStringContainsString("data_set(\$this->config, 'sidebar.presentation.background', 'system')", $component);
         $this->assertStringContainsString('Nhân bản', $view);
         $this->assertStringContainsString('Xóa', $view);
         $this->assertStringContainsString('wire:submit="saveTheme"', $view);
