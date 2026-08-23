@@ -103,6 +103,49 @@ class AdminDesignService
         return self::COLOR_VALUES;
     }
 
+    public static function colorKeys(): array
+    {
+        return array_keys(self::COLOR_VALUES);
+    }
+
+    public function colorValue(mixed $token, string $fallback = '#ffffff'): string
+    {
+        return self::COLOR_VALUES[(string) $token] ?? $fallback;
+    }
+
+    public function contrastVariables(mixed $token): array
+    {
+        $hex = $this->colorValue($token);
+        $dark = $this->isDark($hex);
+
+        return $dark
+            ? [
+                '--admin-text-primary' => '#ffffff',
+                '--admin-text-secondary' => '#e2e8f0',
+                '--admin-text-muted' => '#cbd5e1',
+                '--admin-border-subtle' => 'rgb(255 255 255 / 0.18)',
+            ]
+            : [
+                '--admin-text-primary' => '#0f172a',
+                '--admin-text-secondary' => '#334155',
+                '--admin-text-muted' => '#64748b',
+                '--admin-border-subtle' => 'rgb(15 23 42 / 0.12)',
+            ];
+    }
+
+    private function isDark(string $hex): bool
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) !== 6) return false;
+
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+        $luminance = (0.2126 * $r + 0.7152 * $g + 0.0722 * $b) / 255;
+
+        return $luminance < 0.56;
+    }
+
     private function sanitizeColors(array $tokens, array $defaults): array
     {
         $keys = ['surface_base', 'surface_raised', 'text_primary', 'text_secondary', 'text_muted', 'border_subtle', 'accent', 'focus_ring', 'success', 'warning', 'danger', 'info'];
