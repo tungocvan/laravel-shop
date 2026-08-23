@@ -16,9 +16,10 @@ class AdminThemeEditor extends Component
     public string $selectedTheme = AdminThemeProfileService::DEFAULT_PROFILE;
     public string $newThemeName = '';
 
-    public function mount(AdminLayoutManager $layoutManager, AdminThemeProfileService $profileService, ThemeManager $themeManager): void
+    public function mount(AdminLayoutManager $layoutManager, AdminThemeProfileService $profileService, ThemeManager $themeManager, AdminDesignService $designService): void
     {
         $this->config = $layoutManager->config();
+        $this->config['design'] = $designService->sanitize((array) data_get($this->config, 'design', []));
         $this->profiles = $profileService->profiles();
         $this->selectedTheme = $profileService->activeName();
         $this->sidebarPalettes = $themeManager->all();
