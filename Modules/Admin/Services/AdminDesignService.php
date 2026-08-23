@@ -6,59 +6,23 @@ use Modules\Admin\Support\AdminLayoutManager;
 
 class AdminDesignService
 {
+    private AdminLayoutManager $layoutManager;
+
     private const COLOR_VALUES = [
-        'white' => '#ffffff',
-        'slate-50' => '#f8fafc',
-        'slate-200' => '#e2e8f0',
-        'slate-500' => '#64748b',
-        'slate-700' => '#334155',
-        'slate-900' => '#0f172a',
-        'indigo-500' => '#6366f1',
-        'indigo-600' => '#4f46e5',
-        'emerald-600' => '#059669',
-        'amber-500' => '#f59e0b',
-        'rose-600' => '#e11d48',
-        'sky-600' => '#0284c7',
+        'white' => '#ffffff', 'slate-50' => '#f8fafc', 'slate-200' => '#e2e8f0', 'slate-500' => '#64748b',
+        'slate-700' => '#334155', 'slate-900' => '#0f172a', 'indigo-500' => '#6366f1', 'indigo-600' => '#4f46e5',
+        'emerald-600' => '#059669', 'amber-500' => '#f59e0b', 'rose-600' => '#e11d48', 'sky-600' => '#0284c7',
     ];
 
-    private const FONT_FAMILIES = [
-        'sans' => 'ui-sans-serif, system-ui, sans-serif',
-    ];
+    private const FONT_FAMILIES = ['sans' => 'ui-sans-serif, system-ui, sans-serif'];
+    private const FONT_SIZES = ['xs' => '0.75rem', 'sm' => '0.875rem', 'base' => '1rem', 'lg' => '1.125rem', '2xl' => '1.5rem'];
+    private const FONT_WEIGHTS = ['normal' => '400', 'medium' => '500', 'semibold' => '600', 'bold' => '700'];
+    private const SPACING_VALUES = ['1' => '0.25rem', '2' => '0.5rem', '3' => '0.75rem', '4' => '1rem', '6' => '1.5rem', '8' => '2rem'];
+    private const RADIUS_VALUES = ['sm' => '0.25rem', 'md' => '0.375rem', 'lg' => '0.5rem', 'xl' => '0.75rem'];
 
-    private const FONT_SIZES = [
-        'xs' => '0.75rem',
-        'sm' => '0.875rem',
-        'base' => '1rem',
-        'lg' => '1.125rem',
-        '2xl' => '1.5rem',
-    ];
-
-    private const FONT_WEIGHTS = [
-        'normal' => '400',
-        'medium' => '500',
-        'semibold' => '600',
-        'bold' => '700',
-    ];
-
-    private const SPACING_VALUES = [
-        '1' => '0.25rem',
-        '2' => '0.5rem',
-        '3' => '0.75rem',
-        '4' => '1rem',
-        '6' => '1.5rem',
-        '8' => '2rem',
-    ];
-
-    private const RADIUS_VALUES = [
-        'sm' => '0.25rem',
-        'md' => '0.375rem',
-        'lg' => '0.5rem',
-        'xl' => '0.75rem',
-    ];
-
-    public function __construct(
-        private readonly AdminLayoutManager $layoutManager,
-    ) {
+    public function __construct(?AdminLayoutManager $layoutManager = null)
+    {
+        $this->layoutManager = $layoutManager ?? new AdminLayoutManager();
     }
 
     public function defaults(): array
@@ -143,19 +107,10 @@ class AdminDesignService
     private function fallbackColor(string $key): string
     {
         return match ($key) {
-            'surface_base' => 'slate-50',
-            'surface_raised' => 'white',
-            'text_primary' => 'slate-900',
-            'text_secondary' => 'slate-700',
-            'text_muted' => 'slate-500',
-            'border_subtle' => 'slate-200',
-            'accent' => 'indigo-600',
-            'focus_ring' => 'indigo-500',
-            'success' => 'emerald-600',
-            'warning' => 'amber-500',
-            'danger' => 'rose-600',
-            'info' => 'sky-600',
-            default => 'slate-900',
+            'surface_base' => 'slate-50', 'surface_raised' => 'white', 'text_primary' => 'slate-900',
+            'text_secondary' => 'slate-700', 'text_muted' => 'slate-500', 'border_subtle' => 'slate-200',
+            'accent' => 'indigo-600', 'focus_ring' => 'indigo-500', 'success' => 'emerald-600',
+            'warning' => 'amber-500', 'danger' => 'rose-600', 'info' => 'sky-600', default => 'slate-900',
         };
     }
 
