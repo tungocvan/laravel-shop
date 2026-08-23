@@ -54,4 +54,19 @@ class AdminFooterContractTest extends TestCase
         $this->assertStringContainsString("'show_app_name' =>", $manager);
         $this->assertStringContainsString("'show_environment' =>", $manager);
     }
+
+    public function test_admin_layout_settings_expose_and_validate_footer_controls(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-config.blade.php'));
+
+        $this->assertStringContainsString("'config.layout.show_footer' => 'boolean'", $component);
+        $this->assertStringContainsString("'config.footer.show_app_name' => 'boolean'", $component);
+        $this->assertStringContainsString("'config.footer.show_environment' => 'boolean'", $component);
+
+        $this->assertStringContainsString('>Footer</h2>', $view);
+        $this->assertStringContainsString("'config.layout.show_footer' => 'Hiển thị Footer'", $view);
+        $this->assertStringContainsString("'config.footer.show_app_name' => 'Hiển thị tên ứng dụng'", $view);
+        $this->assertStringContainsString("'config.footer.show_environment' => 'Hiển thị môi trường'", $view);
+    }
 }
