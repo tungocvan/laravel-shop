@@ -11,6 +11,40 @@ return [
         'show_footer' => false,
     ],
 
+    'design' => [
+        'typography' => [
+            'font_family' => 'sans',
+            'body_size' => 'sm',
+            'page_title_size' => '2xl',
+            'heading_weight' => 'semibold',
+        ],
+        'colors' => [
+            'surface_base' => 'slate-50',
+            'surface_raised' => 'white',
+            'text_primary' => 'slate-900',
+            'text_secondary' => 'slate-700',
+            'text_muted' => 'slate-500',
+            'border_subtle' => 'slate-200',
+            'accent' => 'indigo-600',
+            'focus_ring' => 'indigo-500',
+            'success' => 'emerald-600',
+            'warning' => 'amber-500',
+            'danger' => 'rose-600',
+            'info' => 'sky-600',
+        ],
+        'spacing' => [
+            'tight' => '2',
+            'control' => '3',
+            'content' => '4',
+            'section' => '6',
+        ],
+        'radius' => [
+            'control' => 'lg',
+            'panel' => 'lg',
+            'overlay' => 'xl',
+        ],
+    ],
+
     'sidebar' => [
         'enabled' => true,
         'expanded_width' => '16rem',
