@@ -27,9 +27,8 @@
         </div>
         <div class="space-y-1">
             @foreach ($menus as $item)
-                @php($searchText = $item['name'].' '.collect($item['children'] ?? [])->pluck('name')->implode(' '))
-                <div x-show="matches(@js($searchText)) || navQuery.trim() === ''">
-                    @include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item, 'filtering' => true])
+                <div x-show="matches(@js($item['name'].' '.collect($item['children'] ?? [])->pluck('name')->implode(' '))) || navQuery.trim() === ''">
+                    @include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item])
                 </div>
             @endforeach
         </div>
