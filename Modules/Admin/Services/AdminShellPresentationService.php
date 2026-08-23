@@ -55,7 +55,7 @@ class AdminShellPresentationService
         $tabletX = $this->space(data_get($config, 'layout.spacing.tablet_padding_x', '5'));
         $mobileX = $this->space(data_get($config, 'layout.spacing.mobile_padding_x', '4'));
         $sectionGap = $this->space(data_get($config, 'layout.spacing.section_gap', '6'));
-        $surface = $this->surface(data_get($config, 'layout.surface.content_surface', 'transparent'));
+        $surface = $this->surface(data_get($config, 'layout.surface.content_surface', 'transparent'), '--admin-content-theme-background');
         $border = data_get($config, 'layout.surface.border', 'system') === 'none' ? 'transparent' : 'var(--admin-border-subtle)';
         $radius = $this->radius(data_get($config, 'layout.surface.radius', 'lg'));
 
@@ -64,30 +64,46 @@ class AdminShellPresentationService
 
     private function shellStyle(array $config): string
     {
-        $background = $this->surface(data_get($config, 'layout.surface.page_background', 'system'));
+        $background = $this->surface(data_get($config, 'layout.surface.page_background', 'system'), '--admin-page-theme-background');
         return "--admin-page-background: {$background}";
     }
 
     private function headerStyle(array $config): string
     {
-        $background = match ((string) data_get($config, 'header.presentation.background', 'system')) {
-            'white' => '#ffffff', 'transparent' => 'transparent', default => 'var(--admin-surface-raised)',
+        $mode = (string) data_get($config, 'header.presentation.background', 'system');
+        $background = match ($mode) {
+            'white' => '#ffffff',
+            'transparent' => 'transparent',
+            default => 'var(--admin-header-theme-background)',
         };
         $divider = data_get($config, 'header.presentation.divider', 'subtle') === 'none' ? 'transparent' : 'color-mix(in srgb, var(--admin-border-subtle) 72%, transparent)';
         $shadow = data_get($config, 'header.presentation.shadow', 'subtle') === 'none' ? 'none' : '0 1px 0 var(--admin-header-divider), 0 4px 14px rgb(15 23 42 / 0.035)';
         $opacity = data_get($config, 'header.presentation.backdrop_blur', true) && $background !== 'transparent' ? '94%' : '100%';
-
-        return implode('; ', [
+        $style = [
             '--admin-header-background: '.$background,
             '--admin-header-background-opacity: '.$opacity,
             '--admin-header-divider: '.$divider,
             '--admin-header-shadow: '.$shadow,
-        ]);
+        ];
+
+        if ($mode === 'system') {
+            $token = data_get($config, 'design.colors.header_background', 'white');
+            foreach (app(AdminDesignService::class)->contrastVariables($token) as $variable => $value) {
+                $style[] = $variable.': '.$value;
+            }
+        }
+
+        return implode('; ', $style);
     }
 
-    private function surface(mixed $value): string
+    private function surface(mixed $value, string $systemVariable): string
     {
-        return match ((string) $value) { 'white' => '#ffffff', 'slate-50' => '#f8fafc', 'transparent' => 'transparent', default => 'var(--admin-surface-base)' };
+        return match ((string) $value) {
+            'white' => '#ffffff',
+            'slate-50' => '#f8fafc',
+            'transparent' => 'transparent',
+            default => "var({$systemVariable})",
+        };
     }
 
     private function radius(mixed $value): string
