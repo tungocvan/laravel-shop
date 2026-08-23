@@ -31,7 +31,11 @@ class AdminResponsivePresentationContractTest extends TestCase
     public function test_mobile_drawer_does_not_expose_desktop_collapse_control(): void
     {
         $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
-        $this->assertStringContainsString('lg:inline-flex', $sidebar); $this->assertStringContainsString('aria-controls="admin-sidebar"', $sidebar); $this->assertStringContainsString(':aria-expanded="sidebarOpen.toString()"', $sidebar);
+        $this->assertStringContainsString('lg:inline-flex', $sidebar);
+        $this->assertStringContainsString('x-show="isDesktop && !sidebarOpen"', $sidebar);
+        $this->assertStringContainsString('aria-controls="admin-sidebar"', $sidebar);
+        $this->assertStringContainsString(':aria-expanded="sidebarOpen.toString()"', $sidebar);
+        $this->assertStringContainsString('@click="toggleSidebar($event.currentTarget)"', $sidebar);
     }
 
     public function test_mobile_search_controls_meet_touch_target_contract(): void
