@@ -79,6 +79,17 @@ class AdminGeneralLayoutContractTest extends TestCase
         $this->assertStringContainsString('var(--admin-section-gap)', $content);
     }
 
+    public function test_general_workspace_uses_explicit_mobile_tablet_and_desktop_padding_breakpoints(): void
+    {
+        $content = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/content.blade.php'));
+
+        $this->assertStringContainsString('@media (min-width: 640px)', $content);
+        $this->assertStringContainsString('@media (min-width: 1024px)', $content);
+        $this->assertStringContainsString('var(--admin-content-padding-x-mobile)', $content);
+        $this->assertStringContainsString('var(--admin-content-padding-x-tablet)', $content);
+        $this->assertStringContainsString('var(--admin-content-padding-x)', $content);
+    }
+
     public function test_container_modes_have_distinct_explicit_boundaries(): void
     {
         $service = file_get_contents(base_path('Modules/Admin/Services/AdminShellPresentationService.php'));
@@ -87,6 +98,24 @@ class AdminGeneralLayoutContractTest extends TestCase
         $this->assertStringContainsString("'narrow' => 'w-full max-w-[60rem] mx-auto'", $service);
         $this->assertStringContainsString("'7xl' => 'w-full max-w-7xl mx-auto'", $service);
         $this->assertStringContainsString("'w-full max-w-screen-2xl mx-auto'", $service);
+    }
+
+    public function test_general_presets_apply_distinct_safe_workspace_starting_values(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-config.blade.php'));
+
+        $this->assertStringContainsString('public function updatedConfigLayoutPreset(', $component);
+        $this->assertStringContainsString('private function generalPreset(', $component);
+        $this->assertStringContainsString("'data-heavy' =>", $component);
+        $this->assertStringContainsString("'container' => 'full'", $component);
+        $this->assertStringContainsString("'density' => 'compact'", $component);
+        $this->assertStringContainsString("'focus' =>", $component);
+        $this->assertStringContainsString("'container' => 'narrow'", $component);
+        $this->assertStringContainsString("'settings' =>", $component);
+        $this->assertStringContainsString("'container' => '7xl'", $component);
+        $this->assertStringContainsString("'container' => 'screen-2xl'", $component);
+        $this->assertStringContainsString('wire:model.live="config.layout.preset"', $view);
     }
 
     public function test_general_settings_ui_groups_workspace_spacing_surface_behavior_and_language(): void
