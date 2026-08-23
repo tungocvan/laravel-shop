@@ -33,9 +33,15 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         ->middleware('permission:admin.theme.view,admin')
         ->name('themes');
 
-    Route::get('/layout', [AdminController::class, 'layout'])
-        ->middleware('permission:admin.layout.view,admin')
-        ->name('layout');
+    Route::prefix('layout')->name('layout.')->middleware('permission:admin.layout.view,admin')->group(function () {
+        Route::get('/', [AdminController::class, 'layout'])->name('index');
+        Route::get('/general', [AdminController::class, 'layoutGeneral'])->name('general');
+        Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header');
+        Route::get('/sidebar', [AdminController::class, 'layoutSidebar'])->name('sidebar');
+        Route::get('/footer', [AdminController::class, 'layoutFooter'])->name('footer');
+        Route::get('/design', [AdminController::class, 'layoutDesign'])->name('design');
+        Route::get('/navigation', [AdminController::class, 'layoutNavigation'])->name('navigation');
+    });
 
     Route::get('/admin-header', [AdminController::class, 'adminHeader'])
         ->middleware('permission:admin.header.view,admin')
