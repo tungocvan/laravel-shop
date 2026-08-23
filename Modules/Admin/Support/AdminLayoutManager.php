@@ -50,16 +50,7 @@ class AdminLayoutManager
                 'behavior' => ['reduced_motion' => (bool) data_get($this->defaults, 'layout.behavior.reduced_motion', true)],
             ],
             'design' => $this->defaults['design'] ?? [],
-            'sidebar' => [
-                'enabled' => (bool) data_get($this->defaults, 'sidebar.enabled', true),
-                'expanded_width' => data_get($this->defaults, 'sidebar.expanded_width', '16rem'),
-                'collapsed_width' => data_get($this->defaults, 'sidebar.collapsed_width', '5rem'),
-                'desktop_collapsible' => (bool) data_get($this->defaults, 'sidebar.desktop_collapsible', true),
-                'mobile_drawer' => (bool) data_get($this->defaults, 'sidebar.mobile_drawer', true),
-                'persist_state' => (bool) data_get($this->defaults, 'sidebar.persist_state', true),
-                'show_footer_profile' => (bool) data_get($this->defaults, 'sidebar.show_footer_profile', true),
-                'navigation_search_threshold' => (int) data_get($this->defaults, 'sidebar.navigation_search_threshold', 12),
-            ],
+            'sidebar' => $this->sidebarDefaults(),
             'header' => $this->headerDefaults(),
             'footer' => $this->footerDefaults(),
             'theme' => [
@@ -71,6 +62,40 @@ class AdminLayoutManager
                 'cache_ttl' => (int) data_get($this->defaults, 'navigation.cache_ttl', 3600),
                 'active_strategy' => data_get($this->defaults, 'navigation.active_strategy', 'url-prefix'),
                 'max_depth' => (int) data_get($this->defaults, 'navigation.max_depth', 2),
+            ],
+        ];
+    }
+
+    private function sidebarDefaults(): array
+    {
+        return [
+            'enabled' => (bool) data_get($this->defaults, 'sidebar.enabled', true),
+            'expanded_width' => data_get($this->defaults, 'sidebar.expanded_width', '16rem'),
+            'collapsed_width' => data_get($this->defaults, 'sidebar.collapsed_width', '5rem'),
+            'desktop_collapsible' => (bool) data_get($this->defaults, 'sidebar.desktop_collapsible', true),
+            'mobile_drawer' => (bool) data_get($this->defaults, 'sidebar.mobile_drawer', true),
+            'persist_state' => (bool) data_get($this->defaults, 'sidebar.persist_state', true),
+            'show_footer_profile' => (bool) data_get($this->defaults, 'sidebar.show_footer_profile', true),
+            'navigation_search_threshold' => (int) data_get($this->defaults, 'sidebar.navigation_search_threshold', 12),
+            'header' => [
+                'enabled' => (bool) data_get($this->defaults, 'sidebar.header.enabled', true),
+                'show_mark' => (bool) data_get($this->defaults, 'sidebar.header.show_mark', true),
+                'show_title' => (bool) data_get($this->defaults, 'sidebar.header.show_title', true),
+                'show_subtitle' => (bool) data_get($this->defaults, 'sidebar.header.show_subtitle', true),
+                'subtitle' => data_get($this->defaults, 'sidebar.header.subtitle', 'Không gian quản trị'),
+            ],
+            'footer' => [
+                'enabled' => (bool) data_get($this->defaults, 'sidebar.footer.enabled', true),
+                'show_avatar' => (bool) data_get($this->defaults, 'sidebar.footer.show_avatar', true),
+                'show_name' => (bool) data_get($this->defaults, 'sidebar.footer.show_name', true),
+                'show_subtitle' => (bool) data_get($this->defaults, 'sidebar.footer.show_subtitle', true),
+                'subtitle' => data_get($this->defaults, 'sidebar.footer.subtitle', 'Tài khoản quản trị'),
+            ],
+            'search' => [
+                'enabled' => (bool) data_get($this->defaults, 'sidebar.search.enabled', true),
+            ],
+            'presentation' => [
+                'background' => data_get($this->defaults, 'sidebar.presentation.background', 'theme'),
             ],
         ];
     }
@@ -210,16 +235,7 @@ class AdminLayoutManager
                 'behavior' => ['reduced_motion' => (bool) data_get($payload, 'layout.behavior.reduced_motion', data_get($defaults, 'layout.behavior.reduced_motion'))],
             ],
             'design' => app(\Modules\Admin\Services\AdminDesignService::class)->sanitize((array) data_get($payload, 'design', data_get($defaults, 'design', []))),
-            'sidebar' => [
-                'enabled' => (bool) data_get($payload, 'sidebar.enabled', data_get($defaults, 'sidebar.enabled')),
-                'expanded_width' => $this->in(data_get($payload, 'sidebar.expanded_width'), ['16rem'], data_get($defaults, 'sidebar.expanded_width')),
-                'collapsed_width' => $this->in(data_get($payload, 'sidebar.collapsed_width'), ['5rem'], data_get($defaults, 'sidebar.collapsed_width')),
-                'desktop_collapsible' => (bool) data_get($payload, 'sidebar.desktop_collapsible', data_get($defaults, 'sidebar.desktop_collapsible')),
-                'mobile_drawer' => (bool) data_get($payload, 'sidebar.mobile_drawer', data_get($defaults, 'sidebar.mobile_drawer')),
-                'persist_state' => (bool) data_get($payload, 'sidebar.persist_state', data_get($defaults, 'sidebar.persist_state')),
-                'show_footer_profile' => (bool) data_get($payload, 'sidebar.show_footer_profile', data_get($defaults, 'sidebar.show_footer_profile')),
-                'navigation_search_threshold' => max(4, min(50, (int) data_get($payload, 'sidebar.navigation_search_threshold', data_get($defaults, 'sidebar.navigation_search_threshold', 12)))),
-            ],
+            'sidebar' => $this->normalizeSidebar((array) data_get($payload, 'sidebar', []), $defaults['sidebar']),
             'header' => $this->normalizeHeader((array) data_get($payload, 'header', []), $defaults['header']),
             'footer' => $this->normalizeFooter((array) data_get($payload, 'footer', []), $defaults['footer']),
             'theme' => [
@@ -231,6 +247,40 @@ class AdminLayoutManager
                 'cache_ttl' => max(60, min(86400, (int) data_get($payload, 'navigation.cache_ttl', data_get($defaults, 'navigation.cache_ttl')))),
                 'active_strategy' => $this->in(data_get($payload, 'navigation.active_strategy'), ['url-prefix'], data_get($defaults, 'navigation.active_strategy')),
                 'max_depth' => max(1, min(3, (int) data_get($payload, 'navigation.max_depth', data_get($defaults, 'navigation.max_depth')))),
+            ],
+        ];
+    }
+
+    private function normalizeSidebar(array $sidebar, array $defaults): array
+    {
+        return [
+            'enabled' => (bool) data_get($sidebar, 'enabled', data_get($defaults, 'enabled')),
+            'expanded_width' => $this->in(data_get($sidebar, 'expanded_width'), ['16rem'], data_get($defaults, 'expanded_width')),
+            'collapsed_width' => $this->in(data_get($sidebar, 'collapsed_width'), ['5rem'], data_get($defaults, 'collapsed_width')),
+            'desktop_collapsible' => (bool) data_get($sidebar, 'desktop_collapsible', data_get($defaults, 'desktop_collapsible')),
+            'mobile_drawer' => (bool) data_get($sidebar, 'mobile_drawer', data_get($defaults, 'mobile_drawer')),
+            'persist_state' => (bool) data_get($sidebar, 'persist_state', data_get($defaults, 'persist_state')),
+            'show_footer_profile' => (bool) data_get($sidebar, 'show_footer_profile', data_get($defaults, 'show_footer_profile')),
+            'navigation_search_threshold' => max(4, min(50, (int) data_get($sidebar, 'navigation_search_threshold', data_get($defaults, 'navigation_search_threshold', 12)))),
+            'header' => [
+                'enabled' => (bool) data_get($sidebar, 'header.enabled', data_get($defaults, 'header.enabled')),
+                'show_mark' => (bool) data_get($sidebar, 'header.show_mark', data_get($defaults, 'header.show_mark')),
+                'show_title' => (bool) data_get($sidebar, 'header.show_title', data_get($defaults, 'header.show_title')),
+                'show_subtitle' => (bool) data_get($sidebar, 'header.show_subtitle', data_get($defaults, 'header.show_subtitle')),
+                'subtitle' => $this->nullableString(data_get($sidebar, 'header.subtitle')) ?? (string) data_get($defaults, 'header.subtitle', 'Không gian quản trị'),
+            ],
+            'footer' => [
+                'enabled' => (bool) data_get($sidebar, 'footer.enabled', data_get($defaults, 'footer.enabled')),
+                'show_avatar' => (bool) data_get($sidebar, 'footer.show_avatar', data_get($defaults, 'footer.show_avatar')),
+                'show_name' => (bool) data_get($sidebar, 'footer.show_name', data_get($defaults, 'footer.show_name')),
+                'show_subtitle' => (bool) data_get($sidebar, 'footer.show_subtitle', data_get($defaults, 'footer.show_subtitle')),
+                'subtitle' => $this->nullableString(data_get($sidebar, 'footer.subtitle')) ?? (string) data_get($defaults, 'footer.subtitle', 'Tài khoản quản trị'),
+            ],
+            'search' => [
+                'enabled' => (bool) data_get($sidebar, 'search.enabled', data_get($defaults, 'search.enabled')),
+            ],
+            'presentation' => [
+                'background' => $this->in(data_get($sidebar, 'presentation.background'), ['theme', 'system', 'white', 'dark'], data_get($defaults, 'presentation.background')),
             ],
         ];
     }
