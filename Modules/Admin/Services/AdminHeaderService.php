@@ -8,6 +8,7 @@ class AdminHeaderService
 {
     public function __construct(
         protected AdminLayoutManager $layoutManager,
+        protected AdminHeaderActionService $headerActionService,
     ) {
     }
 
@@ -16,11 +17,12 @@ class AdminHeaderService
         $config = $this->layoutManager->config();
         $header = $config['header'] ?? [];
         $sidebar = $config['sidebar'] ?? [];
+        $actions = $this->headerActionService->context();
 
         $searchEnabled = (bool) data_get($header, 'search', true);
-        $notificationsEnabled = (bool) data_get($header, 'notifications', true);
         $userMenuEnabled = (bool) data_get($header, 'user_menu', true);
         $brandEnabled = (bool) data_get($header, 'brand.enabled', true);
+        $hasActions = (bool) data_get($actions, 'notifications', true) || count((array) data_get($actions, 'items', [])) > 0;
 
         return [
             'sticky' => (bool) data_get($config, 'layout.sticky_header', true),
@@ -45,14 +47,15 @@ class AdminHeaderService
             ])),
             'right' => array_values(array_filter([
                 $this->component(
-                    'notifications',
-                    'Admin::livewire.partials.header.components.notifications',
-                    $notificationsEnabled,
+                    'actions',
+                    'Admin::livewire.partials.header.components.actions',
+                    $hasActions,
+                    ['actions' => $actions],
                 ),
                 $this->component(
                     'divider',
                     'Admin::livewire.partials.header.components.divider',
-                    $notificationsEnabled && $userMenuEnabled,
+                    $hasActions && $userMenuEnabled,
                 ),
                 $this->component(
                     'user-menu',
