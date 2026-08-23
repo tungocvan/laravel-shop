@@ -128,15 +128,13 @@ class SidebarService
     protected function withActiveState(array $item, string $currentPath, array $children = []): array
     {
         $pattern = trim($item['url'] ?? '', '/');
-        $active = false;
 
-        if ($pattern !== '') {
-            $active = $currentPath === $pattern;
-
-            if (! $active && $pattern !== 'admin') {
-                $active = str_starts_with($currentPath, $pattern . '/');
-            }
-        }
+        // A concrete menu URL is active only when it exactly matches the
+        // current request path. Parent groups inherit active state from an
+        // active child below instead of matching every URL prefix. This
+        // prevents /admin/system/settings/env from activating sibling items
+        // such as /admin/system/settings or /admin/system.
+        $active = $pattern !== '' && $currentPath === $pattern;
 
         if (! $active && $children !== []) {
             $active = collect($children)->contains(

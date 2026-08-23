@@ -46,7 +46,7 @@
 
     <nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 [scrollbar-gutter:stable]" style="{{ $sidebarNavigationStyle }}" aria-label="Admin navigation">
         <div x-cloak x-show="sidebarOpen" class="mb-2 flex items-center justify-between px-2"><span class="text-[10px] font-semibold uppercase tracking-wider opacity-45">Điều hướng</span>@if ($destinationCount >= 8)<span class="rounded-md bg-black/5 px-1.5 py-0.5 text-[10px] font-medium opacity-55">{{ $destinationCount }}</span>@endif</div>
-        <div class="space-y-1">
+        <div class="flex flex-col" style="gap:var(--admin-sidebar-menu-item-gap)">
             @foreach ($menus as $item)
                 <div x-show="matches(@js($item['name'].' '.collect($item['children'] ?? [])->pluck('name')->implode(' '))) || navQuery.trim() === ''">@include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item])</div>
             @endforeach
