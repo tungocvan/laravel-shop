@@ -19,6 +19,8 @@ The module owns only its internal request domain. It does not orchestrate or mut
 - Integration: internal Workflow requests only; no polymorphic binding to external domain records.
 - Signature: no digital signature or PKI in version 1.
 - Dependencies: Workflow may depend only on system shell modules.
+- Experience: requester and approver journeys are mobile-first; the definition designer is optimized for tablet/desktop.
+- PWA: online-first app shell, selected sanitized cached reads, and non-sensitive offline drafts; all authoritative business mutations require online authentication.
 - Output language: user-facing UI may be Vietnamese; identifiers, code, events, tables, and APIs use stable English names.
 
 ## 3. Module boundary
@@ -39,6 +41,7 @@ The module owns only its internal request domain. It does not orchestrate or mut
 - Multi-company or tenant isolation.
 - Full BPMN 2.0 execution/import/export.
 - Legal PKI/e-signature.
+- Fully offline submission, approval, rejection, return, claim, publication, upload, or operational mutation queues.
 - Payroll, accounting posting, procurement, inventory, or CRM automation.
 - Arbitrary PHP, SQL, Blade, shell, JavaScript, or expression execution.
 
@@ -151,6 +154,19 @@ Every transition defines actor, permission, preconditions, validations, state mu
 - Operations workspace for stuck instances, failed jobs, due timers, outbox failures, and safe retry actions.
 - Reports for throughput, cycle time, SLA compliance, backlog, rejection/return rate, and workload by role/user.
 
+### 6.8 Responsive UX and PWA
+
+- Mobile browser and installed PWA treat create request, resume draft, work inbox, task context, approve/reject/return, and request tracking as first-class journeys.
+- Tablet supports the same requester/approver journeys and a responsive definition designer; landscape tablet/desktop is the primary topology-editing workspace.
+- Phone layouts use cards or compact lists, progressive disclosure, sticky context-aware actions, bottom sheets/drawers, and no hover-only interaction or page-level horizontal scrolling.
+- Controls are touch-friendly, keyboard accessible, visually explicit, and expose loading, empty, stale, offline, reconnecting, conflict, success, and failure states.
+- Workflow uses the existing shell-owned manifest/service worker/PWA lifecycle. It must not create a second manifest, service worker, app shell, or global cache strategy.
+- The app shell and public static assets may be cached. Selected authorized read models may be stored as sanitized, per-user, expiring snapshots for read-only offline display.
+- Non-sensitive form values may be kept as a versioned local draft. Sensitive fields and attachment binaries are excluded from offline persistence unless a later security review explicitly approves them.
+- Reconnection may synchronize a draft after revision/conflict checks, but must never automatically submit it or replay an approval/task/business command.
+- Submit, approve, reject, return, claim/unclaim, recall, cancel, reassign, publish, upload, comment, retry, and other authoritative mutations are disabled offline with a clear explanation and retry path.
+- Local Workflow data is scoped to the authenticated user and cleared on logout, account change, access revocation response, expiry, or explicit local-data removal.
+
 ## 7. Data requirements
 
 Required aggregates and tables are defined in `02-DATABASE_ERD_AND_SCHEMA.md`. Core ownership includes definitions, versions, nodes, transitions, forms, requests, payload snapshots, tokens, tasks, candidates/assignees, decisions, delegations, timers, comments, attachments, audit events, outbox messages, and idempotency records.
@@ -241,6 +257,7 @@ Permissions are necessary but not sufficient: policies must also check ownership
 - Task inbox, assignment, decision, delegation, SLA/escalation.
 - Private files, comments, notifications, append-only audit.
 - Admin UI, API, operations, basic reports.
+- Responsive mobile/tablet requester and approver UX plus the approved online-first PWA/offline-draft contract.
 - Transactions, locking, idempotency, outbox, security and tests.
 
 ### SHOULD HAVE
@@ -272,7 +289,8 @@ Permissions are necessary but not sufficient: policies must also check ownership
 - Workflow source imports no domain-module namespace and its manifest declares only shell dependencies.
 - Lists are searchable, filterable, bounded, paginated, and selection semantics are explicit.
 - Queue/scheduler retries are safe and observable.
-- Fresh migration, module discovery, runtime ON/OFF, targeted tests, module regression, full project regression, frontend build, and manual desktop/mobile UI smoke pass.
+- Fresh migration, module discovery, runtime ON/OFF, targeted tests, module regression, full project regression, frontend build, and manual phone/tablet/desktop/installed-PWA UI smoke pass.
+- Offline shell/read/draft behavior follows the approved matrix; local storage contains no sensitive field, token, file binary/key, raw unrestricted API response, or queued authoritative mutation.
 - Runtime operations leave Git clean.
 
 ## 15. Approved out-of-scope items
@@ -281,6 +299,7 @@ Permissions are necessary but not sufficient: policies must also check ownership
 - Digital/PKI signature.
 - Direct integration with domain records.
 - Full BPMN engine.
+- Fully offline business mutations or background replay of submit/approval/task commands.
 - Application code during `/analyze-new-module`.
 
 ## 16. Remaining non-blocking notes
@@ -299,9 +318,9 @@ Dependencies          : READY
 Database              : READY
 Permissions           : READY
 Workflow              : READY
+Responsive UX/PWA     : READY
 Runtime state         : READY
 Docker/runtime storage: READY
 
 Overall: READY FOR /create-module Workflow
 ```
-

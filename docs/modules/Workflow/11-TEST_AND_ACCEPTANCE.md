@@ -160,7 +160,36 @@ Where the test database cannot model production locking, add MySQL integration c
 - Reports filters/export scope.
 - Operations retry confirmation and feedback.
 - Empty/loading/success/error/permission states.
-- Desktop/mobile/keyboard/focus/contrast and no important console errors.
+- Visual hierarchy, readable labels, touch targets, sticky actions, no hover-only controls, and no unintended page-level horizontal scroll.
+- Desktop/mobile/tablet/PWA-standalone/keyboard/focus/contrast and no important console errors.
+
+Minimum viewport and input matrix:
+
+| Profile | Minimum coverage | Primary journeys |
+|---|---|---|
+| Phone | 360×800 and 390×844, touch | create/resume draft, inbox, task detail, decision, request tracking |
+| Small tablet | 768×1024 portrait, touch | requester/approver journeys, designer panel navigation/readability |
+| Large tablet | 1024×768 landscape, touch/keyboard | definition/form designer, validation, simulation, publish review |
+| Desktop | 1440×900, mouse/keyboard | all workspaces and designer productivity |
+| Installed PWA | standalone display on supported Android Chromium; iOS Safari/Add to Home Screen smoke where supported | launch, navigation, cached shell, offline/reconnect/update states |
+
+Responsive acceptance:
+
+- Phone task/request lists become usable cards or compact rows without losing status, requester, due state, or primary action context.
+- Primary mobile actions remain reachable without covering content or conflicting with browser/PWA safe areas.
+- Designer topology editing is fully accepted on large tablet/desktop. Phone may provide a read-only summary and validation status instead of full graph editing, with an explicit device guidance state.
+- Screen-reader names, keyboard order, focus restoration, reduced-motion behavior, and status text meet the repository accessibility standard and WCAG 2.2 AA target.
+
+PWA/offline acceptance:
+
+- Workflow reuses the shell manifest/service worker and does not register a competing global PWA runtime.
+- Cached app shell opens to a safe offline state; selected sanitized previously viewed summaries are clearly marked as possibly stale/read-only.
+- A permitted local draft survives refresh/browser restart, remains scoped to the same user, and synchronizes only after reauthentication and revision comparison.
+- Sensitive fields, attachment binaries/tokens, authorization tokens, audit exports, and forbidden fields are absent from offline storage/cache inspection.
+- Logout/account change/expiry/explicit clear removes local Workflow data.
+- Offline submit, decision, claim, publish, upload, comment, retry, and other business mutations are blocked and are not present in Cache Storage, Background Sync, or a custom replay queue.
+- Reconnect never auto-submits or auto-decides. Conflict and uncertain network outcomes require authoritative refetch and explicit user action.
+- Shell update availability, reconnecting, offline, stale-cache, sync success, sync conflict, and expired-session states are visually and accessibly communicated.
 
 ## 13. Release gate
 
@@ -175,9 +204,8 @@ Architecture/static PASS
 -> System regression PASS when touched
 -> full project regression PASS
 -> Pint/static checks/frontend build PASS
--> UI smoke PASS
+-> responsive/accessibility/PWA smoke PASS
 -> clean Git status
 ```
 
 No skipped critical test, flaky concurrency result, unresolved authorization issue, or undocumented environment limitation may be called PASS.
-

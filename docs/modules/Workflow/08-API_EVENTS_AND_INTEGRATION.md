@@ -16,6 +16,7 @@ Version 1 exposes Workflow's own internal-request API only. It does not accept r
 - Money uses strings/object representation, never binary floats.
 - Mutations accept `Idempotency-Key` and concurrency token.
 - Rate limits by actor/action risk.
+- Authenticated business responses are not put into a generic shared HTTP cache. Offline snapshots are explicit sanitized client read models, never raw API payload mirroring.
 
 ## 3. Resource endpoints
 
@@ -169,3 +170,24 @@ SHOULD scope only:
 - IDs, actors, roles, template references, and resolver keys are remapped/validated explicitly.
 - No client-provided class names, paths, URLs, commands, SQL, events, queues, or secrets.
 
+## 11. PWA and offline client contract
+
+The platform shell owns the web manifest, service worker registration, install/update lifecycle, offline fallback, and global static-asset cache. Workflow may integrate only through an approved shell extension point. It must not add a second service worker, overwrite the root manifest, or depend on another domain module for PWA behavior.
+
+Allowed offline data:
+
+- versioned static application-shell assets managed by the shell;
+- selected sanitized read models for the authenticated user's inbox/request summaries and previously opened request/task context;
+- local form drafts containing only fields permitted by the published form schema.
+
+Dynamic offline data is stored in a per-user IndexedDB namespace with schema version, definition/version, local draft ID, optional server public ID/revision, update time, expiry, and dirty-field metadata. Do not persist authorization tokens, attachment binaries, temporary upload keys, audit exports, secrets, sensitive fields, or raw unrestricted API responses. Clear local Workflow data on logout/account change, explicit removal, authorization failure indicating lost access, and retention expiry.
+
+Reconnection behavior:
+
+1. Reauthenticate and refresh authorization before reading or synchronizing protected data.
+2. Compare the local base revision/schema/definition version with the server.
+3. Upload only an explicitly confirmed draft save; never auto-submit.
+4. On mismatch, show field-level/local-versus-server conflict information and require an explicit keep-local, keep-server, or copy-to-new-draft choice.
+5. Refresh sanitized snapshots after successful online reads.
+
+The service worker and browser client must never queue or replay submit, approve, reject, return, claim/unclaim, recall, cancel, reassign, publish, upload, comment, operation retry, or any other authoritative mutation. Offline attempts fail locally with a stable `online_required` UI state; an intercepted network failure remains uncommitted until the client verifies the authoritative result online using idempotency and current revisions.

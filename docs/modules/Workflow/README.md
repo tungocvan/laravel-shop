@@ -10,6 +10,8 @@ This directory is the authoritative, implementation-ready specification for the 
 
 The module is inspired by enterprise workflow capabilities commonly found in SAP/Odoo-class systems, but it does not claim product or protocol parity. Version 4.0 deliberately avoids full BPMN 2.0, multi-tenancy, PKI signatures, and direct coupling to business-domain modules.
 
+Approved experience profile: requester and approver journeys are mobile-first; the definition designer is tablet/desktop-first. The PWA is online-first: it may cache the application shell and selected sanitized read models and may keep non-sensitive local drafts, but submission, approval, rejection, return, claim, publication, upload, and other business mutations require a live authenticated connection.
+
 ## Read order
 
 1. `REQUIREMENTS.md`
@@ -49,4 +51,3 @@ These documents complete `/analyze-new-module`. They do not authorize applicatio
 ```
 
 That task must create and obtain approval for `docs/modules/Workflow/CREATE_PLAN.md` before implementation begins.
-
