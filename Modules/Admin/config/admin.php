@@ -8,6 +8,23 @@ return [
         'density' => env('ADMIN_LAYOUT_DENSITY', 'comfortable'),
         'sticky_header' => true,
         'show_footer' => false,
+        'spacing' => [
+            'content_padding_x' => '6',
+            'content_padding_top' => '6',
+            'content_padding_bottom' => '8',
+            'section_gap' => '6',
+            'tablet_padding_x' => '5',
+            'mobile_padding_x' => '4',
+        ],
+        'surface' => [
+            'page_background' => 'system',
+            'content_surface' => 'transparent',
+            'border' => 'system',
+            'radius' => 'lg',
+        ],
+        'behavior' => [
+            'reduced_motion' => true,
+        ],
     ],
     'design' => [
         'typography' => ['font_family' => 'sans', 'body_size' => 'sm', 'page_title_size' => '2xl', 'heading_weight' => 'semibold'],
