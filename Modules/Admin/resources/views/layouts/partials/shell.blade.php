@@ -1,5 +1,8 @@
 @php
     $sidebarEnabled = (bool) data_get($adminSidebarConfig, 'enabled', true);
+    $collapseToggleEnabled = (bool) data_get($adminSidebarConfig, 'desktop_collapsible', true)
+        && (bool) data_get($adminSidebarConfig, 'controls.collapse_enabled', true);
+    $fullscreenToggleEnabled = (bool) data_get($adminSidebarConfig, 'controls.fullscreen_enabled', true);
     $adminShellPresentation = app(\Modules\Admin\Services\AdminShellPresentationService::class)->context();
 @endphp
 
@@ -9,8 +12,9 @@
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
     data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
+    x-effect="if (isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }}) sidebarOpen = true; if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }}) sidebarFullscreen = false"
 >
-    @if ($sidebarEnabled)
+    @if ($sidebarEnabled && $fullscreenToggleEnabled)
         <button
             type="button"
             x-cloak
@@ -27,7 +31,9 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5h16v14H4zM9 5v14M11 9l3 3-3 3" />
             </svg>
         </button>
+    @endif
 
+    @if ($sidebarEnabled)
         <div
             x-cloak
             x-show="sidebarOpen && !isDesktop"
@@ -40,7 +46,7 @@
         <div
             id="admin-sidebar"
             x-ref="sidebarPanel"
-            x-show="!isDesktop || !sidebarFullscreen"
+            x-show="!isDesktop || !sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}"
             x-transition.opacity.duration.150ms
             :role="isDesktop ? 'complementary' : 'dialog'"
             aria-label="Admin navigation"
@@ -59,12 +65,12 @@
 
     <div
         class="flex min-w-0 flex-1 flex-col transition-[margin] duration-300 ease-out motion-reduce:transition-none"
-        :style="({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && !sidebarFullscreen)
+        :style="({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}))
             ? (sidebarOpen
                 ? 'margin-left: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
                 : 'margin-left: {{ $adminShellPresentation['sidebar_collapsed_width'] }}')
             : 'margin-left: 0'"
-        :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen) ? 'true' : 'false'"
+        :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
         <livewire:admin.partials.header />
 
