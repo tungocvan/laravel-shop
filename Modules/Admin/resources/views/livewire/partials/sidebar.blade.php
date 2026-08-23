@@ -5,28 +5,32 @@
                 @if ($showHeaderMark)
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-sm {{ $theme['active_bg'] }} {{ $theme['active_text'] }}">{{ $schoolAcronym }}</div>
                 @endif
-                <div x-cloak x-show="sidebarOpen" class="min-w-0">
+                <div x-cloak x-show="sidebarOpen" class="min-w-0 pr-20">
                     @if($showHeaderTitle)
-                        @if($schoolPrefix)<p class="truncate text-[10px] font-semibold uppercase tracking-wider opacity-60">{{ $schoolPrefix }}</p>@endif
-                        <p class="truncate text-sm font-semibold">{{ $schoolDisplayName }}</p>
+                        @if($headerTitle === '' && $schoolPrefix)<p class="truncate text-[10px] font-semibold uppercase tracking-wider opacity-60">{{ $schoolPrefix }}</p>@endif
+                        <p class="truncate text-sm font-semibold">{{ $headerTitle !== '' ? $headerTitle : $schoolDisplayName }}</p>
                     @endif
                     @if($showHeaderSubtitle)<p class="mt-0.5 truncate text-[11px] opacity-50">{{ $headerSubtitle }}</p>@endif
                 </div>
             </div>
 
-            <div x-cloak x-show="isDesktop && sidebarOpen" class="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 lg:flex">
-                <button type="button" @click="toggleSidebarFullscreen($event.currentTarget)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-current/10 bg-white/85 text-slate-500 shadow-sm transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Ẩn Sidebar toàn màn hình" aria-controls="admin-sidebar" title="Ẩn Sidebar toàn màn hình" data-admin-sidebar-fullscreen-enter>
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 4h5M5 4v5M19 4h-5M19 4v5M5 20h5M5 20v-5M19 20h-5M19 20v-5" /></svg>
-                </button>
-                @if ($desktopCollapsible)
-                    <button type="button" @click="toggleSidebar($event.currentTarget)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-current/10 bg-white/85 text-slate-500 shadow-sm transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Thu gọn Sidebar" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen.toString()" title="Thu gọn Sidebar">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-7 7 7 7" /></svg>
-                    </button>
-                @endif
-            </div>
+            @if ($showFullscreenControl || ($desktopCollapsible && $showCollapseControl))
+                <div x-cloak x-show="isDesktop && sidebarOpen" class="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 lg:flex">
+                    @if ($showFullscreenControl)
+                        <button type="button" @click="toggleSidebarFullscreen($event.currentTarget)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-current/10 bg-white/85 text-slate-500 shadow-sm transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Ẩn Sidebar toàn màn hình" aria-controls="admin-sidebar" title="Ẩn Sidebar toàn màn hình" data-admin-sidebar-fullscreen-enter>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 4h5M5 4v5M19 4h-5M19 4v5M5 20h5M5 20v-5M19 20h-5M19 20v-5" /></svg>
+                        </button>
+                    @endif
+                    @if ($desktopCollapsible && $showCollapseControl)
+                        <button type="button" @click="toggleSidebar($event.currentTarget)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-current/10 bg-white/85 text-slate-500 shadow-sm transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Thu gọn Sidebar" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen.toString()" title="Thu gọn Sidebar" data-admin-sidebar-collapse-toggle>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5l-7 7 7 7" /></svg>
+                        </button>
+                    @endif
+                </div>
+            @endif
 
-            @if ($desktopCollapsible)
-                <button type="button" x-cloak x-show="isDesktop && !sidebarOpen" @click="toggleSidebar($event.currentTarget)" class="absolute -right-3 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 lg:inline-flex" aria-label="Mở rộng Sidebar" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen.toString()" title="Mở rộng Sidebar">
+            @if ($desktopCollapsible && $showCollapseControl)
+                <button type="button" x-cloak x-show="isDesktop && !sidebarOpen" @click="toggleSidebar($event.currentTarget)" class="absolute -right-3 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 lg:inline-flex" aria-label="Mở rộng Sidebar" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen.toString()" title="Mở rộng Sidebar" data-admin-sidebar-collapse-toggle>
                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                 </button>
             @endif
