@@ -58,11 +58,25 @@ class AdminGeneralLayoutContractTest extends TestCase
         $this->assertStringContainsString('var(--admin-page-background)', $shell);
         $this->assertStringContainsString('data-admin-reduced-motion', $shell);
         $this->assertStringContainsString('id="admin-content-workspace"', $content);
+        $this->assertStringContainsString('id="admin-container-boundary"', $content);
+        $this->assertStringContainsString("['container_class']", $content);
+        $this->assertStringContainsString('data-admin-container-boundary', $content);
         $this->assertStringContainsString("['content_style']", $content);
         $this->assertStringContainsString('var(--admin-content-padding-x-mobile)', $content);
         $this->assertStringContainsString('var(--admin-content-padding-x-tablet)', $content);
         $this->assertStringContainsString('var(--admin-content-padding-x)', $content);
+        $this->assertStringContainsString('#admin-container-boundary > * + *', $content);
         $this->assertStringContainsString('var(--admin-section-gap)', $content);
+    }
+
+    public function test_container_modes_have_distinct_explicit_boundaries(): void
+    {
+        $service = file_get_contents(base_path('Modules/Admin/Services/AdminShellPresentationService.php'));
+
+        $this->assertStringContainsString("'full' => 'w-full max-w-none'", $service);
+        $this->assertStringContainsString("'narrow' => 'w-full max-w-[60rem] mx-auto'", $service);
+        $this->assertStringContainsString("'7xl' => 'w-full max-w-7xl mx-auto'", $service);
+        $this->assertStringContainsString("'w-full max-w-screen-2xl mx-auto'", $service);
     }
 
     public function test_general_settings_ui_groups_workspace_spacing_surface_behavior_and_language(): void
