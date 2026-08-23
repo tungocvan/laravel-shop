@@ -10,18 +10,15 @@ use Illuminate\Support\Facades\DB;
 
 class HeaderMenuService
 {
-    /**
-     * Lấy cấu trúc menu theo vị trí để hiển thị Frontend
-     * Có Cache, Eager Load con cháu
-     */
     public function getMenuTreeByLocation(string $location): Collection
     {
         return Cache::remember("menu_tree_{$location}", 3600, function () use ($location) {
             $menu = HeaderMenu::where('location', $location)->where('is_active', true)->first();
 
-            if (!$menu) return new Collection();
+            if (! $menu) {
+                return new Collection();
+            }
 
-            // Lấy root items và load đệ quy children
             return $menu->rootItems()
                 ->where('is_active', true)
                 ->with(['children' => function ($query) {
@@ -32,9 +29,31 @@ class HeaderMenuService
         });
     }
 
-    /**
-     * Tạo mới Menu Item
-     */
+    public function exportAdminConfigItems(): array
+    {
+        return $this->getMenuTreeByLocation('admin')
+            ->map(function ($item, int $index) {
+                $url = is_string($item->url) ? trim($item->url) : '';
+
+                if ($url === '' || ! str_starts_with($url, '/') || str_starts_with($url, '//')) {
+                    return null;
+                }
+
+                return [
+                    'enabled' => true,
+                    'label' => mb_substr((string) $item->title, 0, 80),
+                    'icon' => $this->configIcon($item->icon),
+                    'url' => mb_substr($url, 0, 255),
+                    'target' => $item->target === '_blank' ? '_blank' : '_self',
+                    'permission' => null,
+                    'order' => (int) ($item->sort_order ?? $index),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     public function createItem(array $data): HeaderMenuItem
     {
         $item = HeaderMenuItem::create($data);
@@ -42,9 +61,6 @@ class HeaderMenuService
         return $item;
     }
 
-    /**
-     * Cập nhật Menu Item
-     */
     public function updateItem(int $id, array $data): bool
     {
         $item = HeaderMenuItem::findOrFail($id);
@@ -56,9 +72,6 @@ class HeaderMenuService
         return $updated;
     }
 
-    /**
-     * Xóa Menu Item (và con của nó - nhờ cascade delete DB)
-     */
     public function deleteItem(int $id): bool
     {
         $item = HeaderMenuItem::findOrFail($id);
@@ -70,10 +83,6 @@ class HeaderMenuService
         return true;
     }
 
-    /**
-     * Sắp xếp lại thứ tự (Sort Order)
-     * Input: [{id: 1, sort_order: 0}, {id: 5, sort_order: 1}]
-     */
     public function reorderItems(array $items): void
     {
         DB::transaction(function () use ($items) {
@@ -82,15 +91,28 @@ class HeaderMenuService
             }
         });
 
-        // Xóa cache toàn bộ menu để an toàn
         Cache::flush();
     }
 
-    protected function clearMenuCache($menuId)
+    protected function clearMenuCache($menuId): void
     {
         $menu = HeaderMenu::find($menuId);
         if ($menu) {
             Cache::forget("menu_tree_{$menu->location}");
         }
+    }
+
+    private function configIcon(mixed $icon): string
+    {
+        $icon = is_string($icon) ? strtolower($icon) : '';
+
+        return match (true) {
+            str_contains($icon, 'user') => 'user',
+            str_contains($icon, 'gear'), str_contains($icon, 'cog') => 'gear',
+            str_contains($icon, 'lock') => 'lock',
+            str_contains($icon, 'key') => 'key',
+            str_contains($icon, 'shield') => 'shield',
+            default => 'link',
+        };
     }
 }
