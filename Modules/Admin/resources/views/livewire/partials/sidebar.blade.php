@@ -21,30 +21,20 @@
     @endif
 
     <nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 [scrollbar-gutter:stable]" aria-label="Admin navigation">
-        <div x-cloak x-show="sidebarOpen" class="mb-2 flex items-center justify-between px-2">
-            <span class="text-[10px] font-semibold uppercase tracking-wider opacity-45">Điều hướng</span>
-            @if ($destinationCount >= 8)<span class="rounded-md bg-black/5 px-1.5 py-0.5 text-[10px] font-medium opacity-55">{{ $destinationCount }}</span>@endif
-        </div>
+        <div x-cloak x-show="sidebarOpen" class="mb-2 flex items-center justify-between px-2"><span class="text-[10px] font-semibold uppercase tracking-wider opacity-45">Điều hướng</span>@if ($destinationCount >= 8)<span class="rounded-md bg-black/5 px-1.5 py-0.5 text-[10px] font-medium opacity-55">{{ $destinationCount }}</span>@endif</div>
         <div class="space-y-1">
             @foreach ($menus as $item)
-                <div x-show="matches(@js($item['name'].' '.collect($item['children'] ?? [])->pluck('name')->implode(' '))) || navQuery.trim() === ''">
-                    @include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item])
-                </div>
+                <div x-show="matches(@js($item['name'].' '.collect($item['children'] ?? [])->pluck('name')->implode(' '))) || navQuery.trim() === ''">@include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item])</div>
             @endforeach
         </div>
-        @if ($showNavigationSearch)
-            <p x-cloak x-show="sidebarOpen && navQuery.trim() !== ''" class="mt-3 border-t border-current/10 px-2 pt-3 text-[11px] opacity-50">Đang lọc menu theo “<span x-text="navQuery"></span>”</p>
-        @endif
+        @if ($showNavigationSearch)<p x-cloak x-show="sidebarOpen && navQuery.trim() !== ''" class="mt-3 border-t border-current/10 px-2 pt-3 text-[11px] opacity-50">Đang lọc menu theo “<span x-text="navQuery"></span>”</p>@endif
     </nav>
 
     @if ($showFooterProfile)
         <div class="shrink-0 border-t border-current/10 p-3">
             <div class="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1" :class="sidebarOpen ? '' : 'justify-center'">
                 <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-xs font-bold text-white shadow-sm">{{ $profileInitial }}</div>
-                <div x-cloak x-show="sidebarOpen" class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-semibold">{{ $profileName }}</p>
-                    <p class="truncate text-[11px] opacity-50">Tài khoản quản trị</p>
-                </div>
+                <div x-cloak x-show="sidebarOpen" class="min-w-0 flex-1"><p class="truncate text-sm font-semibold">{{ $profileName }}</p><p class="truncate text-[11px] opacity-50">Tài khoản quản trị</p></div>
             </div>
         </div>
     @endif
