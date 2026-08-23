@@ -30,17 +30,6 @@ class AdminContentWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('bg-white', $view);
     }
 
-    public function test_themes_page_adopts_shared_workspace_primitives(): void
-    {
-        $view = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/themes.blade.php'));
-
-        $this->assertStringContainsString('<x-admin::page-header', $view);
-        $this->assertStringContainsString('<x-admin::content-section>', $view);
-        $this->assertStringNotContainsString('max-w-7xl mx-auto py-6', $view);
-        $this->assertStringNotContainsString('text-2xl font-bold text-gray-900', $view);
-        $this->assertStringContainsString("@livewire('admin.theme-switcher')", $view);
-    }
-
     public function test_layout_hub_uses_shared_page_header_without_duplicate_livewire_heading(): void
     {
         $page = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/layout.blade.php'));
@@ -68,7 +57,7 @@ class AdminContentWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('wire:submit="save"', $config);
     }
 
-    public function test_header_manager_uses_page_header_toolbar_and_preserves_existing_widgets(): void
+    public function test_header_manager_uses_page_header_toolbar_and_links_to_canonical_design_page(): void
     {
         $view = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
 
@@ -82,6 +71,16 @@ class AdminContentWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('Homepage Header Manager', $view);
         $this->assertStringContainsString("@livewire('admin.header.general-settings')", $view);
         $this->assertStringContainsString("@livewire('admin.header.menu-manager')", $view);
-        $this->assertStringContainsString("@livewire('admin.theme-switcher')", $view);
+        $this->assertStringContainsString("route('admin.layout.design')", $view);
+        $this->assertStringNotContainsString("@livewire('admin.theme-switcher')", $view);
+    }
+
+    public function test_legacy_themes_url_redirects_to_canonical_layout_design_route(): void
+    {
+        $routes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
+
+        $this->assertStringContainsString("Route::get('/themes', fn () => redirect()->route('admin.layout.design'))", $routes);
+        $this->assertStringContainsString("->name('themes');", $routes);
+        $this->assertStringContainsString("Route::get('/design', [AdminController::class, 'layoutDesign'])->name('design');", $routes);
     }
 }
