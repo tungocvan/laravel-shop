@@ -39,7 +39,7 @@
 
     <div
         class="flex min-w-0 flex-1 flex-col transition-[margin] duration-300 ease-out motion-reduce:transition-none"
-        :style="{{ $sidebarEnabled ? 'true' : 'false' }}
+        :style="({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop)
             ? (sidebarOpen
                 ? 'margin-left: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
                 : 'margin-left: {{ $adminShellPresentation['sidebar_collapsed_width'] }}')
