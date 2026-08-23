@@ -10,7 +10,6 @@ class AdminFooterContractTest extends TestCase
     public function test_footer_defaults_preserve_current_hidden_ui_baseline(): void
     {
         $config = require base_path('Modules/Admin/config/admin.php');
-
         $this->assertFalse($config['layout']['show_footer']);
         $this->assertTrue($config['footer']['show_app_name']);
         $this->assertTrue($config['footer']['show_environment']);
@@ -18,13 +17,10 @@ class AdminFooterContractTest extends TestCase
 
     public function test_footer_service_builds_a_prepared_component_registry(): void
     {
-        $service = app(AdminFooterService::class);
-        $context = $service->context();
-
+        $context = app(AdminFooterService::class)->context();
         $this->assertArrayHasKey('enabled', $context);
         $this->assertArrayHasKey('components', $context);
         $this->assertSame(['app_name', 'environment'], array_column($context['components'], 'key'));
-
         foreach ($context['components'] as $component) {
             $this->assertArrayHasKey('view', $component);
             $this->assertArrayHasKey('data', $component);
@@ -35,13 +31,11 @@ class AdminFooterContractTest extends TestCase
     {
         $footer = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/footer.blade.php'));
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
-
         $this->assertStringContainsString('AdminFooterService::class', $footer);
         $this->assertStringContainsString("@foreach (\$adminFooterContext['components'] as \$footerComponent)", $footer);
         $this->assertStringContainsString("@include(\$footerComponent['view'], \$footerComponent['data'])", $footer);
         $this->assertStringNotContainsString("config('app.name'", $footer);
         $this->assertStringNotContainsString('app()->environment()', $footer);
-
         $this->assertStringContainsString("@include('Admin::layouts.partials.footer')", $shell);
         $this->assertStringNotContainsString("data_get(\$adminLayoutConfig, 'show_footer'", $shell);
     }
@@ -49,7 +43,6 @@ class AdminFooterContractTest extends TestCase
     public function test_footer_config_is_part_of_layout_manager_contract(): void
     {
         $manager = file_get_contents(base_path('Modules/Admin/Support/AdminLayoutManager.php'));
-
         $this->assertStringContainsString("'footer' => [", $manager);
         $this->assertStringContainsString("'show_app_name' =>", $manager);
         $this->assertStringContainsString("'show_environment' =>", $manager);
@@ -59,21 +52,21 @@ class AdminFooterContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-config.blade.php'));
-
         $this->assertStringContainsString("'config.layout.show_footer' => 'boolean'", $component);
         $this->assertStringContainsString("'config.footer.show_app_name' => 'boolean'", $component);
         $this->assertStringContainsString("'config.footer.show_environment' => 'boolean'", $component);
-
         $this->assertStringContainsString("\$section === 'footer'", $view);
-        $this->assertStringContainsString("'config.layout.show_footer' => 'Hiển thị Footer'", $view);
-        $this->assertStringContainsString("'config.footer.show_app_name' => 'Hiển thị tên ứng dụng'", $view);
-        $this->assertStringContainsString("'config.footer.show_environment' => 'Hiển thị môi trường'", $view);
+        $this->assertStringContainsString('config.layout.show_footer', $view);
+        $this->assertStringContainsString('Hiển thị Footer', $view);
+        $this->assertStringContainsString('config.footer.show_app_name', $view);
+        $this->assertStringContainsString('Hiển thị tên ứng dụng', $view);
+        $this->assertStringContainsString('config.footer.show_environment', $view);
+        $this->assertStringContainsString('Hiển thị môi trường', $view);
     }
 
     public function test_layout_manager_accepts_decoded_json_settings_and_saves_arrays(): void
     {
         $manager = file_get_contents(base_path('Modules/Admin/Support/AdminLayoutManager.php'));
-
         $this->assertStringContainsString('if (is_array($value))', $manager);
         $this->assertStringContainsString('return $value;', $manager);
         $this->assertMatchesRegularExpression('/Setting::setValue\s*\(\s*self::SETTING_KEY\s*,\s*\$normalized\s*,/s', $manager);
