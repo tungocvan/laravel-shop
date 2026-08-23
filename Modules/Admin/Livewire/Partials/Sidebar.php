@@ -22,6 +22,7 @@ class Sidebar extends Component
     public int $menuCount = 0;
     public int $destinationCount = 0;
     public bool $showNavigationSearch = false;
+    public bool $desktopCollapsible = true;
     public bool $showSidebarHeader = true;
     public bool $showHeaderMark = true;
     public bool $showHeaderTitle = true;
@@ -88,6 +89,7 @@ class Sidebar extends Component
     private function applyPresentation(ThemeManager $themeManager, array $layoutConfig): void
     {
         $this->theme = $themeManager->get((string) data_get($layoutConfig, 'theme.default', 'corporate-blue'));
+        $this->desktopCollapsible = (bool) data_get($layoutConfig, 'sidebar.desktop_collapsible', true);
         $this->showSidebarHeader = (bool) data_get($layoutConfig, 'sidebar.header.enabled', true);
         $this->showHeaderMark = (bool) data_get($layoutConfig, 'sidebar.header.show_mark', true);
         $this->showHeaderTitle = (bool) data_get($layoutConfig, 'sidebar.header.show_title', true);
