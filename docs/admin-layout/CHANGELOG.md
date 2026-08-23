@@ -24,6 +24,25 @@ Use dates in `YYYY-MM-DD` format.
 ### Security
 - Authorization pruning and route preparation remain owned by `SidebarService`; filtering only operates on the already-authorized render model.
 
+## [2026-08-23] - Phase 13J Professional Header UX & Presentation
+
+### Design direction
+The Header is a compact Admin command surface. It should support frequent search, notification, and account actions without competing visually with page content or the professional Sidebar.
+
+### Implementation
+- Refined Header shell spacing and presentation while preserving runtime shell dimensions and composition ownership.
+- Refined desktop search into a wider compact command-style control with focus feedback and keyboard hint.
+- Refined notification control and removed continuous pulse animation to reduce long-session visual noise.
+- Refined account trigger and dropdown hierarchy with identity context, clearer action zones, restrained transitions, and preserved POST/CSRF logout behavior.
+- Preserved Livewire widget boundaries and server-owned Header component registry.
+- Aligned shell regression coverage with the Phase 13I borderless Sidebar decision.
+- Added professional Header presentation regression contracts for search, notifications, accessibility, account menu, transitions, and logout behavior.
+
+### Verification
+- Targeted Header, responsive presentation, shell presentation, and layout contract tests passed.
+- Manual Header UI verification passed.
+- Search, notification control, account menu, and responsive presentation passed the UI gate.
+
 ## [2026-08-23] - Phase 13I Professional Sidebar UX & Presentation
 
 ### Design direction
