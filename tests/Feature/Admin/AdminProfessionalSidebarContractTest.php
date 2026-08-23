@@ -16,6 +16,8 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('$this->destinationCount >= 12', $component);
         $this->assertStringContainsString('@if ($showNavigationSearch)', $view);
         $this->assertStringContainsString('Tìm chức năng...', $view);
+        $this->assertStringContainsString('x-model.debounce.120ms="navQuery"', $view);
+        $this->assertStringContainsString('x-show="matches(@js($item[\'name\'])) || navQuery.trim() === \'\'"', $view);
         $this->assertStringContainsString('[scrollbar-gutter:stable]', $view);
     }
 
