@@ -76,7 +76,7 @@ class AdminFooterContractTest extends TestCase
 
         $this->assertStringContainsString('if (is_array($value))', $manager);
         $this->assertStringContainsString('return $value;', $manager);
-        $this->assertStringContainsString("Setting::setValue(\n            self::SETTING_KEY,\n            \$normalized,", $manager);
+        $this->assertMatchesRegularExpression('/Setting::setValue\s*\(\s*self::SETTING_KEY\s*,\s*\$normalized\s*,/s', $manager);
         $this->assertStringNotContainsString('json_encode($normalized', $manager);
     }
 }
