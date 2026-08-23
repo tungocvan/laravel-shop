@@ -72,7 +72,8 @@ class AdminThemeEditorContractTest extends TestCase
             $this->assertStringContainsString($label, $view);
         }
 
-        $this->assertStringContainsString('config.design.colors.accent', $view);
+        $this->assertStringContainsString("'accent' => 'Accent'", $view);
+        $this->assertStringContainsString('wire:model.live="config.design.colors.{{ $key }}"', $view);
         $this->assertStringContainsString('config.theme.default', $view);
         $this->assertStringContainsString('config.sidebar.presentation.background', $view);
         $this->assertStringContainsString('config.header.presentation.background', $view);
