@@ -4,6 +4,7 @@ namespace Modules\Admin\Livewire\Partials;
 
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Modules\Admin\Services\AdminDesignService;
 use Modules\Admin\Services\SidebarService;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
@@ -38,6 +39,9 @@ class Sidebar extends Component
     public string $footerSubtitle = 'Tài khoản quản trị';
     public string $sidebarSurfaceClass = '';
     public string $sidebarTextClass = '';
+    public string $sidebarHeaderStyle = '';
+    public string $sidebarNavigationStyle = '';
+    public string $sidebarFooterStyle = '';
 
     public function mount(SidebarService $service, ThemeManager $themeManager, AdminLayoutManager $layoutManager): void
     {
@@ -78,10 +82,7 @@ class Sidebar extends Component
 
         $words = preg_split('/\s+/u', trim($this->schoolDisplayName ?: $schoolName), -1, PREG_SPLIT_NO_EMPTY);
         $this->schoolAcronym = collect($words)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1, 'UTF-8'), 'UTF-8'))->implode('');
-
-        if ($this->schoolAcronym === '') {
-            $this->schoolAcronym = 'N/A';
-        }
+        if ($this->schoolAcronym === '') $this->schoolAcronym = 'N/A';
     }
 
     public function render()
@@ -107,12 +108,34 @@ class Sidebar extends Component
         $this->showFooterSubtitle = (bool) data_get($layoutConfig, 'sidebar.footer.show_subtitle', true);
         $this->footerSubtitle = (string) data_get($layoutConfig, 'sidebar.footer.subtitle', 'Tài khoản quản trị');
 
-        [$this->sidebarSurfaceClass, $this->sidebarTextClass] = match ((string) data_get($layoutConfig, 'sidebar.presentation.background', 'theme')) {
-            'system' => ['bg-[var(--admin-surface-raised)]', 'text-[var(--admin-text-primary)]'],
+        $backgroundMode = (string) data_get($layoutConfig, 'sidebar.presentation.background', 'theme');
+        [$this->sidebarSurfaceClass, $this->sidebarTextClass] = match ($backgroundMode) {
+            'system' => ['bg-transparent', 'text-[var(--admin-text-primary)]'],
             'white' => ['bg-white', 'text-slate-800'],
             'dark' => ['bg-slate-950', 'text-slate-100'],
             default => [$this->theme['background'], $this->theme['text']],
         };
+
+        $this->sidebarHeaderStyle = '';
+        $this->sidebarNavigationStyle = '';
+        $this->sidebarFooterStyle = '';
+
+        if ($backgroundMode === 'system') {
+            $design = app(AdminDesignService::class);
+            $this->sidebarHeaderStyle = $this->regionStyle('--admin-sidebar-header-theme-background', data_get($layoutConfig, 'design.colors.sidebar_header_background', 'white'), $design);
+            $this->sidebarNavigationStyle = $this->regionStyle('--admin-sidebar-navigation-theme-background', data_get($layoutConfig, 'design.colors.sidebar_navigation_background', 'white'), $design);
+            $this->sidebarFooterStyle = $this->regionStyle('--admin-sidebar-footer-theme-background', data_get($layoutConfig, 'design.colors.sidebar_footer_background', 'white'), $design);
+        }
+    }
+
+    private function regionStyle(string $backgroundVariable, mixed $token, AdminDesignService $design): string
+    {
+        $parts = ['background: var('.$backgroundVariable.')'];
+        foreach ($design->contrastVariables($token) as $variable => $value) {
+            $parts[] = $variable.': '.$value;
+        }
+        $parts[] = 'color: var(--admin-text-primary)';
+        return implode('; ', $parts);
     }
 
     private function applyNavigationSearchPolicy(array $layoutConfig): void
