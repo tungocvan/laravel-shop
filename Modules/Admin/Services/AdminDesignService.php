@@ -2,15 +2,10 @@
 
 namespace Modules\Admin\Services;
 
-use Illuminate\Support\Facades\Cache;
-use Modules\System\Models\Setting;
+use Modules\Admin\Support\AdminLayoutManager;
 
 class AdminDesignService
 {
-    private const SETTING_KEY = 'admin_design_config';
-
-    private const CACHE_KEY = 'admin.design.tokens';
-
     private const COLOR_VALUES = [
         'white' => '#ffffff',
         'slate-50' => '#f8fafc',
@@ -61,19 +56,19 @@ class AdminDesignService
         'xl' => '0.75rem',
     ];
 
+    public function __construct(
+        private readonly AdminLayoutManager $layoutManager,
+    ) {
+    }
+
     public function defaults(): array
     {
-        return $this->sanitize(config('admin.admin.design', []));
+        return $this->sanitize(data_get($this->layoutManager->defaults(), 'design', config('admin.admin.design', [])));
     }
 
     public function tokens(): array
     {
-        return Cache::remember(self::CACHE_KEY, 3600, function (): array {
-            return $this->sanitize(array_replace_recursive(
-                config('admin.admin.design', []),
-                $this->stored()
-            ));
-        });
+        return $this->sanitize(data_get($this->layoutManager->config(), 'design', config('admin.admin.design', [])));
     }
 
     public function sanitize(array $tokens): array
@@ -82,26 +77,10 @@ class AdminDesignService
 
         return [
             'typography' => [
-                'font_family' => $this->allowed(
-                    data_get($tokens, 'typography.font_family'),
-                    array_keys(self::FONT_FAMILIES),
-                    data_get($defaults, 'typography.font_family', 'sans')
-                ),
-                'body_size' => $this->allowed(
-                    data_get($tokens, 'typography.body_size'),
-                    array_keys(self::FONT_SIZES),
-                    data_get($defaults, 'typography.body_size', 'sm')
-                ),
-                'page_title_size' => $this->allowed(
-                    data_get($tokens, 'typography.page_title_size'),
-                    array_keys(self::FONT_SIZES),
-                    data_get($defaults, 'typography.page_title_size', '2xl')
-                ),
-                'heading_weight' => $this->allowed(
-                    data_get($tokens, 'typography.heading_weight'),
-                    array_keys(self::FONT_WEIGHTS),
-                    data_get($defaults, 'typography.heading_weight', 'semibold')
-                ),
+                'font_family' => $this->allowed(data_get($tokens, 'typography.font_family'), array_keys(self::FONT_FAMILIES), data_get($defaults, 'typography.font_family', 'sans')),
+                'body_size' => $this->allowed(data_get($tokens, 'typography.body_size'), array_keys(self::FONT_SIZES), data_get($defaults, 'typography.body_size', 'sm')),
+                'page_title_size' => $this->allowed(data_get($tokens, 'typography.page_title_size'), array_keys(self::FONT_SIZES), data_get($defaults, 'typography.page_title_size', '2xl')),
+                'heading_weight' => $this->allowed(data_get($tokens, 'typography.heading_weight'), array_keys(self::FONT_WEIGHTS), data_get($defaults, 'typography.heading_weight', 'semibold')),
             ],
             'colors' => $this->sanitizeColors($tokens, $defaults),
             'spacing' => [
@@ -149,62 +128,13 @@ class AdminDesignService
         ];
     }
 
-    public function save(array $tokens): void
-    {
-        Setting::setValue(
-            self::SETTING_KEY,
-            json_encode($this->sanitize($tokens), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
-            'admin_design',
-            'json'
-        );
-
-        Cache::forget(self::CACHE_KEY);
-    }
-
-    public function reset(): void
-    {
-        Setting::where('key', self::SETTING_KEY)->delete();
-        Cache::forget(self::CACHE_KEY);
-    }
-
-    private function stored(): array
-    {
-        $value = Setting::getValue(self::SETTING_KEY);
-
-        if (! is_string($value) || trim($value) === '') {
-            return [];
-        }
-
-        $decoded = json_decode($value, true);
-
-        return is_array($decoded) ? $decoded : [];
-    }
-
     private function sanitizeColors(array $tokens, array $defaults): array
     {
-        $keys = [
-            'surface_base',
-            'surface_raised',
-            'text_primary',
-            'text_secondary',
-            'text_muted',
-            'border_subtle',
-            'accent',
-            'focus_ring',
-            'success',
-            'warning',
-            'danger',
-            'info',
-        ];
-
+        $keys = ['surface_base', 'surface_raised', 'text_primary', 'text_secondary', 'text_muted', 'border_subtle', 'accent', 'focus_ring', 'success', 'warning', 'danger', 'info'];
         $colors = [];
 
         foreach ($keys as $key) {
-            $colors[$key] = $this->allowed(
-                data_get($tokens, 'colors.' . $key),
-                array_keys(self::COLOR_VALUES),
-                data_get($defaults, 'colors.' . $key, $this->fallbackColor($key))
-            );
+            $colors[$key] = $this->allowed(data_get($tokens, 'colors.'.$key), array_keys(self::COLOR_VALUES), data_get($defaults, 'colors.'.$key, $this->fallbackColor($key)));
         }
 
         return $colors;
