@@ -6,7 +6,7 @@ use Livewire\Component;
 
 class HeaderNotifications extends Component
 {
-    
+    public string $icon = 'fa-regular fa-bell';
 
     public function render()
     {
