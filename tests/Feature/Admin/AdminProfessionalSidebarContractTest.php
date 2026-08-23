@@ -62,6 +62,24 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringNotContainsString('border-l border-slate-200', $group);
     }
 
+    public function test_sidebar_theme_options_and_save_whitelist_share_one_canonical_source(): void
+    {
+        $manager = file_get_contents(base_path('Modules/Admin/Support/AdminLayoutManager.php'));
+        $settings = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $themeManager = file_get_contents(base_path('Modules/Admin/Support/ThemeManager.php'));
+        $sidebarConfig = file_get_contents(base_path('Modules/Admin/config/sidebar.php'));
+
+        $this->assertStringContainsString('$this->themes = $themeManager->all();', $settings);
+        $this->assertStringContainsString('$sidebarThemes = app(ThemeManager::class)->all();', $manager);
+        $this->assertStringContainsString("'default' => \$this->in(data_get(\$payload, 'theme.default'), \$sidebarThemes", $manager);
+        $this->assertStringNotContainsString("array_keys(config('admin.sidebar.themes'", $manager);
+        $this->assertStringContainsString('public function all(): array', $themeManager);
+
+        foreach (['soft-light', 'modern-dark', 'sunset-orange', 'corporate-blue'] as $theme) {
+            $this->assertStringContainsString("'{$theme}' => [", $sidebarConfig);
+        }
+    }
+
     public function test_sidebar_refreshes_presentation_when_layout_settings_are_saved_or_reset(): void
     {
         $sidebar = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Sidebar.php'));
