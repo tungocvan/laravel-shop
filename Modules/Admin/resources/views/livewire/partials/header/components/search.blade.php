@@ -1,7 +1,7 @@
 <button
     type="button"
-    class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:hidden"
-    aria-label="Mo tim kiem"
+    class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:hidden"
+    aria-label="Mở tìm kiếm"
     aria-controls="admin-mobile-search"
     :aria-expanded="searchOpen.toString()"
     @click="openSearch($event.currentTarget)"
@@ -12,7 +12,7 @@
 </button>
 
 <div class="hidden min-w-0 flex-1 lg:block">
-    <div class="w-full max-w-md">
+    <div class="w-full max-w-lg">
         @livewire('admin.partials.header-search')
     </div>
 </div>
