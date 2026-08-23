@@ -30,6 +30,7 @@ class AdminSidebarContractTest extends TestCase
         $this->assertStringNotContainsString('$hasChildren', $view);
         $this->assertStringNotContainsString('$isActive', $view);
         $this->assertStringNotContainsString('$groupId', $view);
+        $this->assertStringNotContainsString('->can(', $view);
     }
 
     public function test_sidebar_view_renders_item_and_group_registry_partials(): void
@@ -40,7 +41,7 @@ class AdminSidebarContractTest extends TestCase
 
         $this->assertStringContainsString("sidebar.navigation.' . \$item['kind']", $view);
         $this->assertStringContainsString("href=\"{{ \$item['href'] }}\"", $item);
-        $this->assertStringContainsString("aria-current=\"page\"", $item);
+        $this->assertStringContainsString('aria-current="page"', $item);
         $this->assertStringContainsString("\$item['group_id']", $group);
         $this->assertStringContainsString("\$item['children']", $group);
         $this->assertStringContainsString("href=\"{{ \$child['href'] }}\"", $group);
