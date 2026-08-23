@@ -7,7 +7,8 @@ use Modules\Admin\Services\HeaderMenuService;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
 
-class AdminLayoutConfig extends Component
+class AdminLayoutConfig
+ extends Component
 {
     public array $config = [];
     public array $themes = [];
@@ -72,8 +73,9 @@ class AdminLayoutConfig extends Component
         $this->config = $manager->config();
         $this->dispatch('admin-layout-updated');
 
-        if (in_array($this->section, ['general', 'header'], true)) {
-            session()->flash('success', $this->section === 'general' ? 'Thiết lập Layout tổng thể đã được lưu và áp dụng.' : 'Thiết lập Header đã được lưu và áp dụng.');
+        if (in_array($this->section, ['general', 'header', 'footer'], true)) {
+            $messages = ['general' => 'Thiết lập Layout tổng thể đã được lưu và áp dụng.', 'header' => 'Thiết lập Header đã được lưu và áp dụng.', 'footer' => 'Thiết lập Footer đã được lưu và áp dụng.'];
+            session()->flash('success', $messages[$this->section]);
             $this->redirect(url()->previous(), navigate: false);
             return;
         }
@@ -88,8 +90,9 @@ class AdminLayoutConfig extends Component
         $this->config = $manager->config();
         $this->dispatch('admin-layout-updated');
 
-        if (in_array($this->section, ['general', 'header'], true)) {
-            session()->flash('warning', $this->section === 'general' ? 'Layout tổng thể đã được khôi phục mặc định và áp dụng.' : 'Header đã được khôi phục mặc định và áp dụng.');
+        if (in_array($this->section, ['general', 'header', 'footer'], true)) {
+            $messages = ['general' => 'Layout tổng thể đã được khôi phục mặc định và áp dụng.', 'header' => 'Header đã được khôi phục mặc định và áp dụng.', 'footer' => 'Footer đã được khôi phục mặc định và áp dụng.'];
+            session()->flash('warning', $messages[$this->section]);
             $this->redirect(url()->previous(), navigate: false);
             return;
         }
@@ -99,9 +102,8 @@ class AdminLayoutConfig extends Component
 
     public function render()
     {
-        if ($this->section === 'header') {
-            return view('Admin::livewire.settings.admin-header-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
-        }
+        if ($this->section === 'header') return view('Admin::livewire.settings.admin-header-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
+        if ($this->section === 'footer') return view('Admin::livewire.settings.admin-footer-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
         return view('Admin::livewire.settings.admin-layout-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
     }
 
@@ -119,16 +121,17 @@ class AdminLayoutConfig extends Component
                 'config.header.brand.enabled' => 'boolean', 'config.header.brand.logo' => 'nullable|string|max:255', 'config.header.brand.logo_size' => 'required|in:24,28,32,36,40', 'config.header.brand.show_title' => 'boolean', 'config.header.brand.title' => 'nullable|string|max:120', 'config.header.brand.show_subtitle' => 'boolean', 'config.header.brand.subtitle' => 'nullable|string|max:160', 'config.header.brand.url' => ['required', 'string', 'max:255', 'regex:/^\/(?!\/)/'],
                 'config.header.user_menu_config.show_avatar' => 'boolean', 'config.header.user_menu_config.show_name' => 'boolean', 'config.header.user_menu_config.show_email' => 'boolean', 'config.header.user_menu_config.show_role' => 'boolean',
                 'config.header.user_menu_config.items' => 'array|max:12', 'config.header.user_menu_config.items.*.enabled' => 'boolean', 'config.header.user_menu_config.items.*.label' => 'required|string|max:80', 'config.header.user_menu_config.items.*.icon' => 'nullable|in:user,gear,lock,key,shield,link', 'config.header.user_menu_config.items.*.url' => ['required', 'string', 'max:255', 'regex:/^\/(?!\/)/'], 'config.header.user_menu_config.items.*.target' => 'required|in:_self,_blank', 'config.header.user_menu_config.items.*.permission' => 'nullable|string|max:120', 'config.header.user_menu_config.items.*.order' => 'required|integer|min:0|max:99',
-                'config.header.actions.notification.icon' => 'required|in:bell,globe,book,help,link,message,calendar,star',
-                'config.header.actions.notification.behavior' => 'required|in:dropdown,link',
-                'config.header.actions.notification.url' => 'nullable|string|max:255',
-                'config.header.actions.notification.target' => 'required|in:_self,_blank',
+                'config.header.actions.notification.icon' => 'required|in:bell,globe,book,help,link,message,calendar,star', 'config.header.actions.notification.behavior' => 'required|in:dropdown,link', 'config.header.actions.notification.url' => 'nullable|string|max:255', 'config.header.actions.notification.target' => 'required|in:_self,_blank',
                 'config.header.actions.items' => 'array|max:12', 'config.header.actions.items.*.enabled' => 'boolean', 'config.header.actions.items.*.title' => 'required|string|max:80', 'config.header.actions.items.*.icon' => 'required|in:bell,globe,book,help,link,message,calendar,star', 'config.header.actions.items.*.url' => 'required|string|max:255', 'config.header.actions.items.*.target' => 'required|in:_self,_blank', 'config.header.actions.items.*.priority' => 'required|in:primary,secondary', 'config.header.actions.items.*.badge' => 'nullable|string|max:4', 'config.header.actions.items.*.permission' => 'nullable|string|max:120', 'config.header.actions.items.*.order' => 'required|integer|min:0|max:99', 'config.header.actions.mobile_overflow' => 'boolean',
                 'config.header.presentation.mode' => 'required|in:balanced,compact,action-heavy', 'config.header.presentation.padding_x' => $spacing, 'config.header.presentation.action_gap' => $spacing, 'config.header.presentation.background' => 'required|in:system,white,transparent', 'config.header.presentation.divider' => 'required|in:subtle,none', 'config.header.presentation.shadow' => 'required|in:none,subtle', 'config.header.presentation.backdrop_blur' => 'boolean',
                 'config.header.responsive.mobile_brand' => 'required|in:logo-only,logo-title,hidden', 'config.header.responsive.hide_title_on_mobile' => 'boolean', 'config.header.responsive.overflow_secondary_actions' => 'boolean',
             ],
             'sidebar' => ['config.sidebar.enabled' => 'boolean', 'config.sidebar.desktop_collapsible' => 'boolean', 'config.sidebar.mobile_drawer' => 'boolean', 'config.sidebar.persist_state' => 'boolean', 'config.sidebar.show_footer_profile' => 'boolean', 'config.sidebar.navigation_search_threshold' => 'required|integer|min:4|max:50'],
-            'footer' => ['config.layout.show_footer' => 'boolean', 'config.footer.show_app_name' => 'boolean', 'config.footer.show_environment' => 'boolean'],
+            'footer' => [
+                'config.layout.show_footer' => 'boolean', 'config.footer.show_app_name' => 'boolean', 'config.footer.copyright.enabled' => 'boolean', 'config.footer.copyright.owner' => 'nullable|string|max:120', 'config.footer.copyright.url' => 'nullable|string|max:255', 'config.footer.copyright.start_year' => 'nullable|integer|min:1900|max:' . date('Y'),
+                'config.footer.datetime.show_date' => 'boolean', 'config.footer.datetime.show_time' => 'boolean', 'config.footer.datetime.date_format' => 'required|in:d/m/Y', 'config.footer.datetime.time_format' => 'required|in:H:i:s',
+                'config.footer.presentation.alignment' => 'required|in:split,center', 'config.footer.presentation.background' => 'required|in:system,transparent', 'config.footer.presentation.divider' => 'required|in:subtle,none', 'config.footer.presentation.compact' => 'boolean',
+            ],
             'design' => ['config.theme.default' => 'required|in:' . implode(',', $this->themes ?: ['corporate-blue']), 'config.theme.dark_mode' => 'required|in:class', 'config.theme.accent' => 'required|in:blue,indigo,emerald,rose,amber'],
             'navigation' => ['config.navigation.cache_ttl' => 'required|integer|min:60|max:86400', 'config.navigation.active_strategy' => 'required|in:url-prefix', 'config.navigation.max_depth' => 'required|integer|min:1|max:3'],
         ];
@@ -156,7 +159,7 @@ class AdminLayoutConfig extends Component
 
     private function sections(): array { return ['general', 'header', 'sidebar', 'footer', 'design', 'navigation']; }
     private function sectionTitle(): string { return match ($this->section) { 'general' => 'Layout tổng thể', 'header' => 'Header', 'sidebar' => 'Sidebar', 'footer' => 'Footer', 'design' => 'Giao diện & Theme', 'navigation' => 'Navigation' }; }
-    private function sectionDescription(): string { return match ($this->section) { 'general' => 'Thiết lập workspace, container, mật độ, khoảng cách, surface và hành vi tổng thể.', 'header' => 'Quản lý nhận diện thương hiệu, thành phần, thao tác nhanh, UserMenu, presentation và responsive của Header Admin.', 'sidebar' => 'Quản lý khả năng hiển thị, collapse, mobile drawer, profile và hỗ trợ điều hướng menu lớn.', 'footer' => 'Quản lý Footer và các thành phần thông tin được hiển thị.', 'design' => 'Quản lý theme và accent đang được Admin runtime sử dụng.', 'navigation' => 'Quản lý cache, active strategy và độ sâu navigation.' }; }
+    private function sectionDescription(): string { return match ($this->section) { 'general' => 'Thiết lập workspace, container, mật độ, khoảng cách, surface và hành vi tổng thể.', 'header' => 'Quản lý nhận diện thương hiệu, thành phần, thao tác nhanh, UserMenu, presentation và responsive của Header Admin.', 'sidebar' => 'Quản lý khả năng hiển thị, collapse, mobile drawer, profile và hỗ trợ điều hướng menu lớn.', 'footer' => 'Quản lý bản quyền, ngày giờ và cách trình bày Footer Admin.', 'design' => 'Quản lý theme và accent đang được Admin runtime sử dụng.', 'navigation' => 'Quản lý cache, active strategy và độ sâu navigation.' }; }
 
     private function authorizePermission(string $permission): void
     {
