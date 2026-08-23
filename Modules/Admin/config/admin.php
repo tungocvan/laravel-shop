@@ -18,8 +18,17 @@ return [
         'typography' => ['font_family' => 'sans', 'body_size' => 'sm', 'page_title_size' => '2xl', 'heading_weight' => 'semibold'],
         'colors' => ['surface_base' => 'slate-50', 'surface_raised' => 'white', 'text_primary' => 'slate-900', 'text_secondary' => 'slate-700', 'text_muted' => 'slate-500', 'border_subtle' => 'slate-200', 'accent' => 'indigo-600', 'focus_ring' => 'indigo-500', 'success' => 'emerald-600', 'warning' => 'amber-500', 'danger' => 'rose-600', 'info' => 'sky-600'],
         'sidebar_menu' => [
-            'item' => ['font_family' => 'inherit', 'font_size' => 'sm', 'font_weight' => 'medium', 'title_color' => 'slate-900', 'icon_color' => 'slate-400', 'icon_size' => '20', 'item_height' => '44'],
-            'submenu' => ['font_family' => 'inherit', 'font_size' => '13', 'font_weight' => 'normal', 'title_color' => 'slate-500', 'icon_color' => 'slate-400', 'indent' => '28', 'item_height' => '36'],
+            'item' => [
+                'font_family' => 'inherit', 'font_size' => 'sm', 'font_weight' => 'medium',
+                'title_color' => 'slate-900', 'icon_color' => 'slate-400', 'icon_size' => '20',
+                'item_height' => '44', 'padding_x' => '12', 'padding_y' => '8', 'content_gap' => '12', 'item_gap' => '4',
+            ],
+            'submenu' => [
+                'font_family' => 'inherit', 'font_size' => '13', 'font_weight' => 'normal',
+                'title_color' => 'slate-500', 'icon_color' => 'slate-400', 'indent' => '28',
+                'item_height' => '36', 'padding_x' => '12', 'padding_y' => '6', 'offset' => '12', 'item_gap' => '2',
+            ],
+            'group' => ['gap' => '4'],
             'active' => ['title_color' => 'white', 'icon_color' => 'white', 'font_weight' => 'semibold'],
         ],
         'spacing' => ['tight' => '2', 'control' => '3', 'content' => '4', 'section' => '6'],
