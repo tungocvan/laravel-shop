@@ -36,7 +36,8 @@ class AdminHeaderActionsContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/actions.blade.php'));
 
-        $this->assertStringContainsString("@livewire('admin.partials.header-notifications')", $view);
+        $this->assertStringContainsString("@livewire('admin.partials.header-notifications',", $view);
+        $this->assertStringContainsString("['icon' => data_get(\$notification, 'icon'", $view);
         $this->assertStringContainsString('data-admin-system-action="notifications"', $view);
         $this->assertStringContainsString('data-admin-header-action-priority', $view);
         $this->assertStringContainsString('rel="noopener noreferrer"', $view);
