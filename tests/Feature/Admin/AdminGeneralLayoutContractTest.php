@@ -43,4 +43,25 @@ class AdminGeneralLayoutContractTest extends TestCase
         $this->assertStringContainsString("'surface' => data_get(\$config, 'layout.surface', [])", $component);
         $this->assertStringContainsString("'behavior' => data_get(\$config, 'layout.behavior', [])", $component);
     }
+
+    public function test_shell_presentation_maps_general_tokens_to_runtime_css_variables(): void
+    {
+        $service = file_get_contents(base_path('Modules/Admin/Services/AdminShellPresentationService.php'));
+        $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
+        $content = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/content.blade.php'));
+
+        foreach (['--admin-content-padding-x', '--admin-content-padding-x-tablet', '--admin-content-padding-x-mobile', '--admin-content-padding-top', '--admin-content-padding-bottom', '--admin-section-gap', '--admin-content-surface', '--admin-layout-border', '--admin-layout-radius', '--admin-page-background'] as $variable) {
+            $this->assertStringContainsString($variable, $service);
+        }
+
+        $this->assertStringContainsString("['shell_style']", $shell);
+        $this->assertStringContainsString('var(--admin-page-background)', $shell);
+        $this->assertStringContainsString('data-admin-reduced-motion', $shell);
+        $this->assertStringContainsString('id="admin-content-workspace"', $content);
+        $this->assertStringContainsString("['content_style']", $content);
+        $this->assertStringContainsString('var(--admin-content-padding-x-mobile)', $content);
+        $this->assertStringContainsString('var(--admin-content-padding-x-tablet)', $content);
+        $this->assertStringContainsString('var(--admin-content-padding-x)', $content);
+        $this->assertStringContainsString('var(--admin-section-gap)', $content);
+    }
 }
