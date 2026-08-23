@@ -88,7 +88,7 @@ class AdminHeaderContractTest extends TestCase
 
         $this->assertStringContainsString("\$headerContext['left']", $view);
         $this->assertStringContainsString("\$headerContext['right']", $view);
-        $this->assertStringContainsString("@include(\$component['view'])", $view);
+        $this->assertStringContainsString("@include(\$component['view'], \$component['data'] ?? [])", $view);
         $this->assertStringNotContainsString('AdminLayoutManager::class', $view);
         $this->assertStringContainsString('AdminShellPresentationService::class', $view);
         $this->assertStringContainsString("header_height", $view);
