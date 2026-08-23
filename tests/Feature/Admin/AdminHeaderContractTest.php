@@ -86,7 +86,8 @@ class AdminHeaderContractTest extends TestCase
         $userMenu = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/user-menu.blade.php'));
 
         $this->assertStringContainsString("@livewire('admin.partials.header-search')", $search);
-        $this->assertStringContainsString("@livewire('admin.partials.header-notifications')", $actions);
+        $this->assertStringContainsString("@livewire('admin.partials.header-notifications',", $actions);
+        $this->assertStringContainsString("['icon' => data_get(\$notification, 'icon'", $actions);
         $this->assertStringContainsString("@livewire('admin.partials.header-user')", $userMenu);
     }
 }
