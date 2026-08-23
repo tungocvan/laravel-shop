@@ -6,23 +6,56 @@ Use dates in `YYYY-MM-DD` format.
 
 ## [Unreleased]
 
+## [2026-08-23] - Phase 13K Professional Content Workspace & Page Header System
+
+### Design direction
+Admin pages use a shared workspace hierarchy instead of each page inventing its own outer container, heading, spacing, and toolbar presentation. Page-level primitives remain presentation-only and do not absorb module business logic.
+
 ### Added
-- Phase 13I Professional Sidebar UX & Presentation implementation.
-- Adaptive Sidebar metadata for sparse versus high-volume authorized navigation.
-- Configurable `sidebar.navigation_search_threshold` with a default of 12 and normalized range 4–50.
-- Large-navigation local filtering across parent and child destination labels.
-- Professional Sidebar regression contract coverage.
+- Shared `x-admin::page-header` primitive with title, description, eyebrow, actions, and toolbar regions.
+- Shared `x-admin::content-section` primitive for semantic section rhythm without forcing every section into a card.
+- Content Workspace regression coverage.
 
 ### Changed
-- Sidebar brand area presents site identity as an Admin workspace rather than a centered banner.
-- Navigation hierarchy uses clearer icon containers/fallbacks, active indicators, child rail/indentation, and restrained transitions.
-- Navigation scrolling uses stable scrollbar gutter while brand/profile regions remain fixed.
-- Profile footer is balanced in expanded and collapsed modes.
-- `/admin/layout/sidebar` exposes the search threshold so sparse and high-volume installations can tune the adaptive behavior.
-- Responsive tests assert behavior/accessibility contracts rather than fixed collapse-button dimensions.
+- `/admin/layout`, `/admin/layout/{section}`, and the Header/Menu manager now use the shared Content Workspace hierarchy.
+- Page headings are owned by page shells instead of duplicated inside Livewire widgets.
+- Header/Menu tabs use the page-header toolbar region while preserving existing Livewire feature ownership.
+- `/admin/layout/design` is the canonical Admin Theme configuration UI.
+- Legacy `/admin/themes` remains backward-compatible by redirecting to `/admin/layout/design`.
+- The Header/Menu manager no longer embeds a second Theme editor and links to the canonical Design settings instead.
+- Sidebar runtime theme selection now consumes the centralized Admin Layout configuration and refreshes after layout settings are saved or reset.
+- Sidebar navigation presentation consumes the selected theme palette rather than hardcoded indigo/gray states.
+- Theme validation uses `ThemeManager::all()` as the same canonical theme registry exposed to the UI.
 
-### Security
-- Authorization pruning and route preparation remain owned by `SidebarService`; filtering only operates on the already-authorized render model.
+### Fixed
+- Fixed Sidebar Theme changes that persisted but did not refresh the mounted Sidebar immediately.
+- Fixed `modern-dark` and `sunset-orange` being rejected by a mismatched normalization whitelist.
+- Fixed duplicate page-heading ownership between page shells and Livewire settings widgets.
+
+### Verification
+- Content Workspace, Settings Hub, Sidebar, and Admin Layout contract gates passed during implementation.
+- Four Sidebar themes passed persistence and UI verification: `soft-light`, `modern-dark`, `sunset-orange`, and `corporate-blue`.
+- Canonical Theme routing passed: `/admin/themes` redirects to `/admin/layout/design`.
+- Manual Content Workspace UI checks passed for the migrated Admin pages during the phase.
+
+## [2026-08-23] - Phase 13J Professional Header UX & Presentation
+
+### Design direction
+The Header is a compact Admin command surface. It should support frequent search, notification, and account actions without competing visually with page content or the professional Sidebar.
+
+### Implementation
+- Refined Header shell spacing and presentation while preserving runtime shell dimensions and composition ownership.
+- Refined desktop search into a wider compact command-style control with focus feedback and keyboard hint.
+- Refined notification control and removed continuous pulse animation to reduce long-session visual noise.
+- Refined account trigger and dropdown hierarchy with identity context, clearer action zones, restrained transitions, and preserved POST/CSRF logout behavior.
+- Preserved Livewire widget boundaries and server-owned Header component registry.
+- Aligned shell regression coverage with the Phase 13I borderless Sidebar decision.
+- Added professional Header presentation regression contracts for search, notifications, accessibility, account menu, transitions, and logout behavior.
+
+### Verification
+- Targeted Header, responsive presentation, shell presentation, and layout contract tests passed.
+- Manual Header UI verification passed.
+- Search, notification control, account menu, and responsive presentation passed the UI gate.
 
 ## [2026-08-23] - Phase 13I Professional Sidebar UX & Presentation
 
@@ -41,12 +74,10 @@ Sparse menus avoid unnecessary search chrome. High-volume menus gain local disco
 - Search includes authorized child labels and exposes matching group children while filtering.
 - Preserved collapsed-state accessible labels/tooltips.
 
-### Verification required
-- Targeted Admin Sidebar, Settings Hub, Footer, Header, responsive, shell, design, and layout contract tests.
-- Manual expanded/collapsed Sidebar UI gate.
-- Manual sparse-menu and high-volume-menu review.
-- Search behavior check using both parent and child destination names.
-- Mobile/tablet drawer regression check.
+### Verification
+- Targeted Admin Sidebar, Settings Hub, Footer, Header, responsive, shell, design, and layout contract tests passed during the phase.
+- Expanded/collapsed and responsive Sidebar UI verification passed.
+- Vertical Sidebar divider was removed and regression-locked.
 
 ## [2026-08-23] - Phase 13H Responsive Presentation & Ownership Cleanup
 
