@@ -23,9 +23,12 @@ class Sidebar extends Component
     public int $destinationCount = 0;
     public bool $showNavigationSearch = false;
     public bool $desktopCollapsible = true;
+    public bool $showCollapseControl = true;
+    public bool $showFullscreenControl = true;
     public bool $showSidebarHeader = true;
     public bool $showHeaderMark = true;
     public bool $showHeaderTitle = true;
+    public string $headerTitle = '';
     public bool $showHeaderSubtitle = true;
     public string $headerSubtitle = 'Không gian quản trị';
     public bool $showSidebarFooter = true;
@@ -90,9 +93,12 @@ class Sidebar extends Component
     {
         $this->theme = $themeManager->get((string) data_get($layoutConfig, 'theme.default', 'corporate-blue'));
         $this->desktopCollapsible = (bool) data_get($layoutConfig, 'sidebar.desktop_collapsible', true);
+        $this->showCollapseControl = (bool) data_get($layoutConfig, 'sidebar.controls.collapse_enabled', true);
+        $this->showFullscreenControl = (bool) data_get($layoutConfig, 'sidebar.controls.fullscreen_enabled', true);
         $this->showSidebarHeader = (bool) data_get($layoutConfig, 'sidebar.header.enabled', true);
         $this->showHeaderMark = (bool) data_get($layoutConfig, 'sidebar.header.show_mark', true);
         $this->showHeaderTitle = (bool) data_get($layoutConfig, 'sidebar.header.show_title', true);
+        $this->headerTitle = trim((string) data_get($layoutConfig, 'sidebar.header.title', ''));
         $this->showHeaderSubtitle = (bool) data_get($layoutConfig, 'sidebar.header.show_subtitle', true);
         $this->headerSubtitle = (string) data_get($layoutConfig, 'sidebar.header.subtitle', 'Không gian quản trị');
         $this->showSidebarFooter = (bool) data_get($layoutConfig, 'sidebar.footer.enabled', data_get($layoutConfig, 'sidebar.show_footer_profile', true));
