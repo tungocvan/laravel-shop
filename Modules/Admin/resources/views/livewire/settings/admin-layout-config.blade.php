@@ -31,11 +31,12 @@
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700">Container</span>
                         <select wire:model="config.layout.container" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="7xl">7xl</option>
-                            <option value="screen-2xl">Screen 2xl</option>
-                            <option value="narrow">Narrow</option>
-                            <option value="full">Full width</option>
+                            <option value="narrow">Narrow — hẹp, ưu tiên form / đọc nội dung</option>
+                            <option value="7xl">7xl — cân bằng cho màn hình quản trị</option>
+                            <option value="screen-2xl">Screen 2xl — rộng, còn gutter nhỏ</option>
+                            <option value="full">Full width — dùng toàn bộ vùng content</option>
                         </select>
+                        <p class="mt-2 text-xs text-slate-500">Trên mobile các mode đều ưu tiên full width; khác biệt thể hiện rõ từ desktop.</p>
                     </label>
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700">Density</span>
