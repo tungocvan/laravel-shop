@@ -40,4 +40,16 @@ class AdminContentWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('text-2xl font-bold text-gray-900', $view);
         $this->assertStringContainsString("@livewire('admin.theme-switcher')", $view);
     }
+
+    public function test_layout_hub_uses_shared_page_header_without_duplicate_livewire_heading(): void
+    {
+        $page = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/layout.blade.php'));
+        $dashboard = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-dashboard.blade.php'));
+
+        $this->assertStringContainsString('<x-admin::page-header', $page);
+        $this->assertStringContainsString('<x-admin::content-section>', $page);
+        $this->assertStringContainsString("@livewire('admin.settings.admin-layout-dashboard')", $page);
+        $this->assertStringNotContainsString('<h1', $dashboard);
+        $this->assertStringContainsString('grid grid-cols-1 gap-5', $dashboard);
+    }
 }
