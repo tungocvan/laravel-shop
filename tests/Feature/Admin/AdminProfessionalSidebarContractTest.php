@@ -55,11 +55,11 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('public function get(?string $themeName = null)', $themeManager);
         $this->assertStringContainsString("\$theme['active_bg']", $item);
         $this->assertStringContainsString("\$theme['hover']", $item);
-        $this->assertStringContainsString('--admin-sidebar-menu-active-title', $item);
-        $this->assertStringContainsString('--admin-sidebar-menu-active-icon', $item);
+        $this->assertStringContainsString('--admin-sidebar-active-title-color', $item);
+        $this->assertStringContainsString('--admin-sidebar-active-icon-color', $item);
         $this->assertStringContainsString("\$theme['child_active_bg']", $group);
         $this->assertStringContainsString("\$theme['child_hover']", $group);
-        $this->assertStringContainsString('--admin-sidebar-menu-active-title', $group);
+        $this->assertStringContainsString('--admin-sidebar-active-title-color', $group);
         $this->assertStringContainsString("\$theme['border']", $group);
         $this->assertStringContainsString("href=\"{{ \$item['href'] }}\"", $item);
         $this->assertStringContainsString('aria-current="page"', $item);
