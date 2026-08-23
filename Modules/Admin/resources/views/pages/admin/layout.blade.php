@@ -1,7 +1,7 @@
 @extends('Admin::layouts.master')
 
-@section('title', 'Cấu hình giao diện Admin')
+@section('title', 'Tổng quan giao diện Admin')
 
 @section('content')
-    @livewire('admin.settings.admin-layout-config')
+    @livewire('admin.settings.admin-layout-dashboard')
 @endsection
