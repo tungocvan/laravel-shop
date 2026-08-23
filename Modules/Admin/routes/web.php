@@ -29,8 +29,8 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         ->middleware('permission:admin.profile.view,admin')
         ->name('profile');
 
-    Route::get('/themes', [AdminController::class, 'themes'])
-        ->middleware('permission:admin.theme.view,admin')
+    Route::get('/themes', fn () => redirect()->route('admin.layout.design'))
+        ->middleware('permission:admin.layout.view,admin')
         ->name('themes');
 
     Route::get('/layout', [AdminController::class, 'layout'])
