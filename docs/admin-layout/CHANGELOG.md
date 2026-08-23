@@ -16,6 +16,7 @@ Use dates in `YYYY-MM-DD` format.
 - Admin layout configuration UI backed by database settings.
 - Phase 13 baseline report at `docs/modules/Admin/PHASE_13_ANALYSIS.md`.
 - `AdminLayoutContractTest` covering orchestration, page rendering extension points, and the single Livewire asset-source contract.
+- Semantic Admin design-token contract, resolver service, presentation CSS variables, and targeted design-contract tests.
 
 ### Changed
 
@@ -25,10 +26,12 @@ Use dates in `YYYY-MM-DD` format.
 - Admin layout config can now be managed from `/admin/layout` and falls back to `Modules/Admin/config/admin.php`.
 - Phase 13A is treated as master-shell contract/runtime hardening rather than a new large decomposition because the current master layout is already an orchestration shell.
 - Livewire frontend assets now use explicit Blade directives as the canonical source; automatic asset injection is disabled.
+- ADR-004 is accepted: future Admin presentation work should consume sanitized semantic tokens instead of introducing new presentation literals.
 
 ### Deprecated
 
 - Treating older descriptions of a monolithic `master.blade.php`, Blade-side navigation authorization, or missing mobile search as authoritative current-state documentation.
+- Adding new arbitrary Tailwind color/dimension fragments as configurable Admin theme values when an existing semantic token can represent the role.
 
 ### Removed
 
@@ -41,7 +44,35 @@ Use dates in `YYYY-MM-DD` format.
 
 ### Security
 
-- No authorization model changes in Phase 13A.
+- Admin design-token output is constrained to whitelisted values; Phase 13B does not expose arbitrary CSS or class injection.
+
+## [2026-08-23] - Phase 13B Design Token Contract
+
+### Added
+
+- `AdminDesignService` as the semantic design-token resolver and sanitizer.
+- `admin.design` defaults covering semantic colors, typography, spacing, radius, and shell dimensions.
+- Dedicated `presentation-styles` partial exposing resolved values through `--admin-*` CSS custom properties.
+- `AdminDesignContractTest` to lock token defaults, sanitization, CSS variable output, and head composition.
+
+### Changed
+
+- Admin presentation now has a canonical semantic token layer available to later Header, Sidebar, Footer, and shell phases.
+- Existing Tailwind presentation classes remain in place in Phase 13B to preserve the already approved UI baseline.
+
+### Fixed
+
+- Design-system semantics are no longer documentation-only; they now have a runtime contract that future presentation consumers can adopt incrementally.
+
+### Security
+
+- Invalid token values fall back to approved defaults instead of being emitted into runtime CSS.
+
+### Verification
+
+- Targeted Phase 13B tests passed.
+- Existing Phase 13A Admin layout contract tests passed alongside Phase 13B tests.
+- Manual desktop/mobile Admin UI verification passed with no intended visual change.
 
 ## [2026-08-23] - Phase 13A Baseline Closure
 
