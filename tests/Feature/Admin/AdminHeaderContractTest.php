@@ -25,14 +25,8 @@ class AdminHeaderContractTest extends TestCase
         $context = (new AdminHeaderService($manager))->context();
 
         $this->assertTrue($context['sticky']);
-        $this->assertSame(
-            ['sidebar-toggle', 'search'],
-            array_column($context['left'], 'key'),
-        );
-        $this->assertSame(
-            ['notifications', 'divider', 'user-menu'],
-            array_column($context['right'], 'key'),
-        );
+        $this->assertSame(['sidebar-toggle', 'search'], array_column($context['left'], 'key'));
+        $this->assertSame(['notifications', 'divider', 'user-menu'], array_column($context['right'], 'key'));
     }
 
     public function test_header_service_prunes_disabled_regions_before_rendering(): void
@@ -67,7 +61,7 @@ class AdminHeaderContractTest extends TestCase
         $this->assertStringNotContainsString("data_get(\$header, 'view'", $service);
     }
 
-    public function test_header_blade_is_composition_only_and_keeps_current_shell_classes(): void
+    public function test_header_blade_is_composition_only_and_uses_shell_presentation_contract(): void
     {
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
 
@@ -76,9 +70,13 @@ class AdminHeaderContractTest extends TestCase
         $this->assertStringContainsString("@include(\$component['view'])", $view);
         $this->assertStringNotContainsString('AdminLayoutManager::class', $view);
 
-        $this->assertStringContainsString('z-30 flex h-16', $view);
-        $this->assertStringContainsString('border-slate-200 bg-white/90', $view);
+        $this->assertStringContainsString('AdminShellPresentationService::class', $view);
+        $this->assertStringContainsString("header_height", $view);
+        $this->assertStringContainsString('var(--admin-surface-raised)', $view);
+        $this->assertStringContainsString('var(--admin-border-subtle)', $view);
         $this->assertStringContainsString('sm:px-6 lg:px-8', $view);
+        $this->assertStringNotContainsString('z-30 flex h-16', $view);
+        $this->assertStringNotContainsString('border-slate-200 bg-white/90', $view);
     }
 
     public function test_extracted_header_components_preserve_existing_livewire_widgets(): void
