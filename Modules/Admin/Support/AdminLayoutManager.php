@@ -9,6 +9,8 @@ class AdminLayoutManager
 {
     private const SETTING_KEY = 'admin_layout_config';
 
+    private const SPACING_SCALE = ['0', '1', '2', '3', '4', '5', '6', '8', '10', '12'];
+
     private array $defaults;
 
     public function __construct()
@@ -31,6 +33,23 @@ class AdminLayoutManager
                 'density' => data_get($this->defaults, 'layout.density', 'comfortable'),
                 'sticky_header' => (bool) data_get($this->defaults, 'layout.sticky_header', true),
                 'show_footer' => (bool) data_get($this->defaults, 'layout.show_footer', false),
+                'spacing' => [
+                    'content_padding_x' => data_get($this->defaults, 'layout.spacing.content_padding_x', '6'),
+                    'content_padding_top' => data_get($this->defaults, 'layout.spacing.content_padding_top', '6'),
+                    'content_padding_bottom' => data_get($this->defaults, 'layout.spacing.content_padding_bottom', '8'),
+                    'section_gap' => data_get($this->defaults, 'layout.spacing.section_gap', '6'),
+                    'tablet_padding_x' => data_get($this->defaults, 'layout.spacing.tablet_padding_x', '5'),
+                    'mobile_padding_x' => data_get($this->defaults, 'layout.spacing.mobile_padding_x', '4'),
+                ],
+                'surface' => [
+                    'page_background' => data_get($this->defaults, 'layout.surface.page_background', 'system'),
+                    'content_surface' => data_get($this->defaults, 'layout.surface.content_surface', 'transparent'),
+                    'border' => data_get($this->defaults, 'layout.surface.border', 'system'),
+                    'radius' => data_get($this->defaults, 'layout.surface.radius', 'lg'),
+                ],
+                'behavior' => [
+                    'reduced_motion' => (bool) data_get($this->defaults, 'layout.behavior.reduced_motion', true),
+                ],
             ],
             'design' => $this->defaults['design'] ?? [],
             'sidebar' => [
@@ -118,6 +137,23 @@ class AdminLayoutManager
                 'density' => $this->in(data_get($payload, 'layout.density'), ['comfortable', 'compact', 'dense'], data_get($defaults, 'layout.density')),
                 'sticky_header' => (bool) data_get($payload, 'layout.sticky_header', data_get($defaults, 'layout.sticky_header')),
                 'show_footer' => (bool) data_get($payload, 'layout.show_footer', data_get($defaults, 'layout.show_footer')),
+                'spacing' => [
+                    'content_padding_x' => $this->spacing(data_get($payload, 'layout.spacing.content_padding_x'), data_get($defaults, 'layout.spacing.content_padding_x')),
+                    'content_padding_top' => $this->spacing(data_get($payload, 'layout.spacing.content_padding_top'), data_get($defaults, 'layout.spacing.content_padding_top')),
+                    'content_padding_bottom' => $this->spacing(data_get($payload, 'layout.spacing.content_padding_bottom'), data_get($defaults, 'layout.spacing.content_padding_bottom')),
+                    'section_gap' => $this->spacing(data_get($payload, 'layout.spacing.section_gap'), data_get($defaults, 'layout.spacing.section_gap')),
+                    'tablet_padding_x' => $this->spacing(data_get($payload, 'layout.spacing.tablet_padding_x'), data_get($defaults, 'layout.spacing.tablet_padding_x')),
+                    'mobile_padding_x' => $this->spacing(data_get($payload, 'layout.spacing.mobile_padding_x'), data_get($defaults, 'layout.spacing.mobile_padding_x')),
+                ],
+                'surface' => [
+                    'page_background' => $this->in(data_get($payload, 'layout.surface.page_background'), ['system', 'white', 'slate-50'], data_get($defaults, 'layout.surface.page_background')),
+                    'content_surface' => $this->in(data_get($payload, 'layout.surface.content_surface'), ['transparent', 'system', 'white'], data_get($defaults, 'layout.surface.content_surface')),
+                    'border' => $this->in(data_get($payload, 'layout.surface.border'), ['system', 'none'], data_get($defaults, 'layout.surface.border')),
+                    'radius' => $this->in(data_get($payload, 'layout.surface.radius'), ['none', 'sm', 'md', 'lg'], data_get($defaults, 'layout.surface.radius')),
+                ],
+                'behavior' => [
+                    'reduced_motion' => (bool) data_get($payload, 'layout.behavior.reduced_motion', data_get($defaults, 'layout.behavior.reduced_motion')),
+                ],
             ],
             'design' => app(\Modules\Admin\Services\AdminDesignService::class)->sanitize((array) data_get($payload, 'design', data_get($defaults, 'design', []))),
             'sidebar' => [
@@ -154,6 +190,11 @@ class AdminLayoutManager
                 'max_depth' => max(1, min(3, (int) data_get($payload, 'navigation.max_depth', data_get($defaults, 'navigation.max_depth')))),
             ],
         ];
+    }
+
+    private function spacing(mixed $value, mixed $fallback): string
+    {
+        return (string) $this->in((string) $value, self::SPACING_SCALE, (string) $fallback);
     }
 
     private function in(mixed $value, array $allowed, mixed $fallback): mixed
