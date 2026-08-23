@@ -44,6 +44,16 @@ class AdminGeneralLayoutContractTest extends TestCase
         $this->assertStringContainsString("'behavior' => data_get(\$config, 'layout.behavior', [])", $component);
     }
 
+    public function test_general_save_and_reset_refresh_shell_without_manual_reload(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+
+        $this->assertStringContainsString("if (\$this->section === 'general')", $component);
+        $this->assertStringContainsString("session()->flash('success'", $component);
+        $this->assertStringContainsString("session()->flash('warning'", $component);
+        $this->assertStringContainsString("\$this->redirect(url()->previous(), navigate: false)", $component);
+    }
+
     public function test_shell_presentation_maps_general_tokens_to_runtime_css_variables(): void
     {
         $service = file_get_contents(base_path('Modules/Admin/Services/AdminShellPresentationService.php'));
