@@ -42,6 +42,19 @@ class AdminHeaderActionsContractTest extends TestCase
         $this->assertStringContainsString('rel="noopener noreferrer"', $view);
     }
 
+    public function test_secondary_actions_use_mobile_overflow_without_hiding_primary_actions(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/actions.blade.php'));
+
+        $this->assertStringContainsString('$primaryActions', $view);
+        $this->assertStringContainsString('$secondaryActions', $view);
+        $this->assertStringContainsString("'mobile_overflow'", $view);
+        $this->assertStringContainsString("'overflow_secondary_actions'", $view);
+        $this->assertStringContainsString('data-admin-header-mobile-overflow', $view);
+        $this->assertStringContainsString("hidden sm:inline-flex", $view);
+        $this->assertStringContainsString('data-admin-header-action-priority="primary"', $view);
+    }
+
     public function test_configured_actions_cannot_select_runtime_blade_views(): void
     {
         $service = file_get_contents(base_path('Modules/Admin/Services/AdminHeaderActionService.php'));
