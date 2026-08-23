@@ -52,4 +52,19 @@ class AdminContentWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('<h1', $dashboard);
         $this->assertStringContainsString('grid grid-cols-1 gap-5', $dashboard);
     }
+
+    public function test_layout_sections_use_shared_page_header_without_duplicate_livewire_heading(): void
+    {
+        $page = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/layout-section.blade.php'));
+        $config = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-config.blade.php'));
+
+        $this->assertStringContainsString('<x-admin::page-header', $page);
+        $this->assertStringContainsString(':title="$title"', $page);
+        $this->assertStringContainsString('<x-slot:actions>', $page);
+        $this->assertStringContainsString("route('admin.layout')", $page);
+        $this->assertStringContainsString('<x-admin::content-section>', $page);
+        $this->assertStringNotContainsString('<h1', $config);
+        $this->assertStringContainsString('wire:click="resetSection"', $config);
+        $this->assertStringContainsString('wire:submit="save"', $config);
+    }
 }
