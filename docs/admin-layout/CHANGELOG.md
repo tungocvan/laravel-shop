@@ -8,56 +8,73 @@ Use dates in `YYYY-MM-DD` format.
 
 ### Added
 
-- Initial documentation set for Admin Layout architecture.
-- Current architecture analysis for `master.blade.php`, Livewire header/sidebar partials, sidebar menu services, header menu service, theme manager, toast component, and icon component.
-- Target architecture, component tree, responsive strategy, configuration spec, design system, accessibility, performance, Livewire, and Blade component guidance.
-- Refactor plan, rebuild spec, implementation roadmap, merge checklist, and ADR log.
-- Production admin layout rebuild with module configuration, layout partials, skip link, accessible shell regions, flash message region, mobile search overlay, and global stack roots.
-- Admin layout configuration UI backed by database settings.
-- Phase 13 baseline report at `docs/modules/Admin/PHASE_13_ANALYSIS.md`.
-- `AdminLayoutContractTest` covering orchestration, page rendering extension points, and the single Livewire asset-source contract.
+- `AdminShellPresentationService` for resolved runtime shell presentation context.
+- Runtime support for distinct Admin content container modes and density modes.
+- Contract coverage for shell presentation behavior.
 
 ### Changed
 
-- `Modules/Admin/resources/views/layouts/master.blade.php` now delegates head, shell, content, stacks, and scripts to dedicated partials.
-- Header, sidebar, toast, and icon views now include stronger responsive and accessibility attributes.
-- Sidebar authorization pruning and active-state calculation now run in `SidebarService` before rendering.
-- Admin layout config can now be managed from `/admin/layout` and falls back to `Modules/Admin/config/admin.php`.
-- Phase 13A is treated as master-shell contract/runtime hardening rather than a new large decomposition because the current master layout is already an orchestration shell.
-- Livewire frontend assets now use explicit Blade directives as the canonical source; automatic asset injection is disabled.
-
-### Deprecated
-
-- Treating older descriptions of a monolithic `master.blade.php`, Blade-side navigation authorization, or missing mobile search as authoritative current-state documentation.
-
-### Removed
-
-- Duplicate Livewire automatic asset injection from the runtime contract.
+- Admin shell consumes semantic design variables for base surface, text, borders, and typography.
+- Admin content width and spacing are resolved from `layout.container` and `layout.density`.
+- Sidebar expanded/collapsed dimensions and header height are sourced from centralized Admin layout configuration.
+- `AdminDesignService` reads design tokens from `AdminLayoutManager` so layout and design no longer have competing persisted configuration sources.
+- Container modes are intentionally visually distinct on common desktop widths while remaining mobile-safe.
 
 ### Fixed
 
-- Potential duplicate Livewire styles/scripts caused by combining `inject_assets => true` with `@livewireStyles` / `@livewireScripts`.
-- Phase 13 baseline documentation now distinguishes current implementation from stale historical architecture descriptions.
+- Persistence regression assertion no longer depends on PHP source formatting/line breaks.
 
 ### Security
 
-- No authorization model changes in Phase 13A.
+- Presentation values remain constrained to normalized/allow-listed configuration values; arbitrary runtime CSS input is not accepted.
 
-## [2026-08-23] - Phase 13A Baseline Closure
+## [2026-08-23] - Phase 13G Global Shell & Layout Presentation
 
 ### Added
 
-- Targeted Admin layout regression test: 4 tests, 23 assertions.
-- Manual Admin UI verification gate.
+- Runtime shell presentation context for container, density, sidebar dimensions, and header height.
+- Distinct `full`, `narrow`, `7xl`, and `screen-2xl` content modes.
+- `comfortable`, `compact`, and `dense` content spacing modes.
 
 ### Changed
 
-- Preserved current Admin UI/presentation after targeted tests and manual UI verification passed.
-- Future presentation changes are deferred to the design-token and layout-presentation phases.
+- Semantic design tokens now use the central `admin_layout_config` ownership path.
+- Shell/content presentation consumes centralized configuration instead of relying only on hard-coded Tailwind layout values.
+- Container labels/settings were clarified so administrators can understand the visual intent of each mode.
 
-### Fixed
+### Verification
 
-- Livewire asset ownership is now explicit and single-source.
+- Targeted Admin layout suite passed.
+- Shell Presentation UI passed.
+- Container modes passed manual UI verification.
+- Density modes passed manual UI verification.
+
+### Follow-up
+
+- Continue with the next Admin Layout presentation phase while preserving the verified default shell baseline and centralized configuration ownership.
+
+## [2026-08-23] - Phase 13F Admin UI Settings Hub
+
+### Verification
+
+- Targeted Admin layout suite passed.
+- Settings Hub UI verification passed.
+- Cross-section persistence verification passed.
+
+## [2026-08-23] - Phase 13E Footer Architecture
+
+### Verification
+
+- Targeted Admin layout test suite passed.
+- Footer OFF/ON and component toggle UI verification passed.
+- Footer settings persistence across save/reload passed.
+
+## [2026-08-23] - Phase 13A Baseline Closure
+
+### Verification
+
+- Targeted Admin layout regression test passed: 4 tests, 23 assertions.
+- Manual Admin UI verification passed.
 
 ## Release Entry Template
 
