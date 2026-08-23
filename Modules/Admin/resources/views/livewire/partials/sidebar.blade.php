@@ -1,7 +1,7 @@
 <aside x-data="{ navQuery: '', normalize(value) { return (value || '').toLowerCase(); }, matches(value) { const q = this.normalize(this.navQuery.trim()); return q === '' || this.normalize(value).includes(q); } }" class="flex h-full w-full flex-col overflow-hidden transition-all duration-300 motion-reduce:transition-none {{ $theme['background'] }} {{ $theme['text'] }}">
     <div class="relative flex min-h-16 shrink-0 items-center border-b px-3 {{ $theme['border'] }}">
         <div class="flex min-w-0 flex-1 items-center gap-3" :class="sidebarOpen ? '' : 'justify-center'">
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-xs font-bold text-white shadow-sm">{{ $schoolAcronym }}</div>
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-sm {{ $theme['active_bg'] }} {{ $theme['active_text'] }}">{{ $schoolAcronym }}</div>
             <div x-cloak x-show="sidebarOpen" class="min-w-0">
                 @if($schoolPrefix)<p class="truncate text-[10px] font-semibold uppercase tracking-wider opacity-60">{{ $schoolPrefix }}</p>@endif
                 <p class="truncate text-sm font-semibold">{{ $schoolDisplayName }}</p>
@@ -16,7 +16,7 @@
     @if ($showNavigationSearch)
         <div x-cloak x-show="sidebarOpen" class="shrink-0 px-3 pb-2 pt-3">
             <label for="admin-sidebar-search" class="sr-only">Tìm trong menu quản trị</label>
-            <input id="admin-sidebar-search" x-model.debounce.120ms="navQuery" type="search" autocomplete="off" placeholder="Tìm chức năng..." class="h-9 w-full rounded-lg border border-slate-200 bg-white/80 px-3 text-xs text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20">
+            <input id="admin-sidebar-search" x-model.debounce.120ms="navQuery" type="search" autocomplete="off" placeholder="Tìm chức năng..." class="h-9 w-full rounded-lg border border-current/15 bg-white/80 px-3 text-xs text-slate-700 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-current/20">
         </div>
     @endif
 
@@ -33,7 +33,7 @@
     @if ($showFooterProfile)
         <div class="shrink-0 border-t border-current/10 p-3">
             <div class="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1" :class="sidebarOpen ? '' : 'justify-center'">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-xs font-bold text-white shadow-sm">{{ $profileInitial }}</div>
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-sm {{ $theme['active_bg'] }} {{ $theme['active_text'] }}">{{ $profileInitial }}</div>
                 <div x-cloak x-show="sidebarOpen" class="min-w-0 flex-1"><p class="truncate text-sm font-semibold">{{ $profileName }}</p><p class="truncate text-[11px] opacity-50">Tài khoản quản trị</p></div>
             </div>
         </div>
