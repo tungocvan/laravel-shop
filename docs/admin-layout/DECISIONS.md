@@ -7,18 +7,9 @@
 | Status | Accepted |
 | Date | 2026-06-27 |
 
-### Context
-
-Repository bootstrap documentation defines `Admin` as a shell module. Business domains such as Product, Order, Post, Category, Account, Admission, and Pharma should own domain behavior.
-
 ### Decision
 
-The admin layout documentation treats Admin as a presentation shell. Layout, navigation, theme, and admin UI composition can live in Admin. Domain workflows should remain in their owning modules or services.
-
-### Consequences
-
-- Layout refactors must avoid moving domain behavior into Admin.
-- Admin navigation can link to domain features but should not become their canonical owner.
+Admin owns layout, navigation, theme, and Admin UI composition. Business-domain behavior remains in its owning modules/services.
 
 ## ADR-002: Preserve Existing Master Layout Compatibility
 
@@ -27,60 +18,31 @@ The admin layout documentation treats Admin as a presentation shell. Layout, nav
 | Status | Accepted |
 | Date | 2026-06-27 |
 
-### Context
-
-Current pages may use either Blade sections or component slots.
-
 ### Decision
 
-Any rebuild must preserve `@yield('content')`, `$slot`, stacks, sections, Vite assets, and Livewire resource support unless a migration plan is explicitly approved.
-
-### Consequences
-
-- Rebuild can be incremental.
-- Existing pages do not need simultaneous edits.
+Preserve `@yield('content')`, `$slot`, stacks, sections, Vite assets, and Livewire support unless an explicit migration is approved.
 
 ## ADR-003: Move Navigation Decisions Out Of Blade
 
 | Field | Value |
 |---|---|
-| Status | Proposed |
-| Date | 2026-06-27 |
-
-### Context
-
-The current sidebar Blade filters permissions and computes active state inside the view.
+| Status | Accepted |
+| Date | 2026-08-23 |
 
 ### Decision
 
-Future refactors should move permission pruning and active/open state into a navigation service or view model.
-
-### Consequences
-
-- Blade becomes simpler.
-- Navigation behavior becomes testable.
-- Permission visibility changes must be verified carefully.
+Permission pruning, active/open state, and render-ready navigation metadata belong in `SidebarService`; Sidebar Blade renders prepared navigation view models.
 
 ## ADR-004: Use Semantic Theme Tokens
 
 | Field | Value |
 |---|---|
-| Status | Proposed |
-| Date | 2026-06-27 |
-
-### Context
-
-The current sidebar theme config stores Tailwind class fragments. Some are unused because views hard-code colors.
+| Status | Accepted |
+| Date | 2026-08-23 |
 
 ### Decision
 
-Future theme work should define semantic tokens and map them to Tailwind classes in one layer.
-
-### Consequences
-
-- Themes become more consistent.
-- Arbitrary class injection risk is reduced.
-- Tailwind safelisting/build visibility must be considered.
+Admin presentation uses sanitized semantic design tokens and CSS custom properties. Presentation consumers migrate incrementally to preserve visual stability.
 
 ## ADR-005: Centralize Global JavaScript
 
@@ -89,19 +51,9 @@ Future theme work should define semantic tokens and map them to Tailwind classes
 | Status | Proposed |
 | Date | 2026-06-27 |
 
-### Context
-
-Search shortcut and toast behavior currently live inside Blade component scripts.
-
 ### Decision
 
-Future layout JavaScript should live in Vite-managed modules with idempotent initialization.
-
-### Consequences
-
-- Better compatibility with future `wire:navigate`.
-- Easier testing and cleanup.
-- Blade views become more declarative.
+Future global layout JavaScript should move to Vite-managed modules with idempotent initialization.
 
 ## ADR-006: Use Manual Livewire Asset Injection
 
@@ -110,22 +62,87 @@ Future layout JavaScript should live in Vite-managed modules with idempotent ini
 | Status | Accepted |
 | Date | 2026-08-23 |
 
-### Context
+### Decision
 
-The Admin layout explicitly renders `@livewireStyles` and `@livewireScripts`, while `config/livewire.php` previously had `inject_assets => true`. This created two possible sources for Livewire frontend assets and violated the single-source runtime contract established for the Admin layout.
+Explicit Blade `@livewireStyles` / `@livewireScripts` directives are the canonical Livewire asset source and automatic injection remains disabled.
+
+## ADR-007: Header Uses Prepared Composition Context
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
 
 ### Decision
 
-Use the existing explicit Blade directives as the canonical Livewire asset source and set `config/livewire.php` `inject_assets` to `false`.
+Header composition decisions belong in a prepared service/context registry; the Livewire Header and Blade root remain declarative consumers.
 
-Add a regression contract test that fails when both auto-injection and manual directives are enabled or when neither source is configured.
+## ADR-008: Sidebar State Has One Runtime Owner
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Decision
+
+Alpine/localStorage owns interactive Sidebar open/collapsed state. `SidebarService` owns authorization and navigation view-model preparation.
+
+## ADR-009: Footer Uses Prepared Composition Context
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Decision
+
+`AdminFooterService` owns Footer composition and visibility. Footer settings remain normalized through the central Admin layout configuration contract.
+
+## ADR-010: Admin Layout Settings Use A Hub With Dedicated Subpages
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Decision
+
+`/admin/layout` is the Admin UI settings overview. General, Header, Sidebar, Footer, Design, and Navigation use dedicated subpages while sharing one `AdminLayoutManager` and one `admin_layout_config` persisted source. Section save/reset operations must not replace unrelated configuration.
+
+## ADR-011: Shell Presentation Uses Centralized Normalized Layout Configuration
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Context
+
+The Admin shell historically hard-coded key presentation values while semantic design tokens and layout settings existed separately. `AdminDesignService` also had a separate persistence path, creating a risk of two competing sources for runtime presentation.
+
+### Decision
+
+`AdminLayoutManager` / `admin_layout_config` is the canonical persisted source for layout and design presentation configuration.
+
+`AdminShellPresentationService` resolves normalized configuration into render-ready shell values such as content container classes, density spacing, sidebar dimensions, and header height. `AdminDesignService` resolves semantic design tokens from the same centralized configuration source.
+
+Container modes must be visually meaningful rather than aliases that differ only at unusually large viewport widths:
+
+- `narrow` prioritizes focused, constrained content.
+- `7xl` provides a balanced standard workspace.
+- `screen-2xl` provides a wide workspace with controlled gutters/cap.
+- `full` uses the full available content region.
+
+Mobile remains width-safe and does not artificially constrain content based on desktop container modes.
 
 ### Consequences
 
-- Livewire assets have one predictable source.
-- Existing Admin layout composition remains unchanged.
-- Future layout refactors must preserve this decision unless the entire application deliberately migrates to automatic injection and removes manual directives consistently.
-- UI verification is required after any future change to the Livewire asset contract.
+- Runtime shell presentation has one configuration ownership path.
+- Design settings cannot silently diverge from layout settings because of a second persisted design store.
+- Container and density controls have observable runtime effects.
+- Default configuration remains the compatibility baseline and requires manual UI verification when shell mappings change.
+- Arbitrary CSS values remain outside the persisted contract; mappings stay allow-listed and controlled by application code.
 
 ## ADR Template
 
