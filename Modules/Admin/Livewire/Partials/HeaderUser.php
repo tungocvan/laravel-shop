@@ -2,29 +2,19 @@
 
 namespace Modules\Admin\Livewire\Partials;
 
-use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
-use Modules\Admin\Services\HeaderMenuService;
+use Livewire\Component;
+use Modules\Admin\Services\AdminHeaderUserMenuService;
 
 class HeaderUser extends Component
 {
     public $user;
-    public $adminMenuItems = [];
+    public array $userMenuContext = [];
 
-    public function mount(HeaderMenuService $headerMenuService)
+    public function mount(AdminHeaderUserMenuService $userMenuService): void
     {
         $this->user = Auth::guard('admin')->user();
-
-        $menuDefault = [[
-            'id' => 0,
-            'title' => 'Profile',
-            'url' => route('admin.profile'),
-            'icon' => 'fa-solid fa-user',
-            'children' => []
-        ]];
-
-        $this->adminMenuItems =
-            $headerMenuService->getMenuTreeByLocation('admin') ?? $menuDefault;
+        $this->userMenuContext = $userMenuService->context($this->user);
     }
 
     public function logout()
