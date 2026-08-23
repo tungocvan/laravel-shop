@@ -103,6 +103,30 @@ Future layout JavaScript should live in Vite-managed modules with idempotent ini
 - Easier testing and cleanup.
 - Blade views become more declarative.
 
+## ADR-006: Use Manual Livewire Asset Injection
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Context
+
+The Admin layout explicitly renders `@livewireStyles` and `@livewireScripts`, while `config/livewire.php` previously had `inject_assets => true`. This created two possible sources for Livewire frontend assets and violated the single-source runtime contract established for the Admin layout.
+
+### Decision
+
+Use the existing explicit Blade directives as the canonical Livewire asset source and set `config/livewire.php` `inject_assets` to `false`.
+
+Add a regression contract test that fails when both auto-injection and manual directives are enabled or when neither source is configured.
+
+### Consequences
+
+- Livewire assets have one predictable source.
+- Existing Admin layout composition remains unchanged.
+- Future layout refactors must preserve this decision unless the entire application deliberately migrates to automatic injection and removes manual directives consistently.
+- UI verification is required after any future change to the Livewire asset contract.
+
 ## ADR Template
 
 Use this format for future decisions:
@@ -127,4 +151,3 @@ State the chosen direction.
 
 List benefits, tradeoffs, and follow-up requirements.
 ```
-
