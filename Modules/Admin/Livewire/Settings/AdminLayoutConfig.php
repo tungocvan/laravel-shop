@@ -20,6 +20,20 @@ class AdminLayoutConfig extends Component
         $this->themes = $themeManager->all();
     }
 
+    public function updatedConfigLayoutPreset(mixed $value): void
+    {
+        if ($this->section !== 'general') {
+            return;
+        }
+
+        $preset = $this->generalPreset((string) $value);
+
+        $this->config['layout'] = array_replace_recursive(
+            $this->config['layout'] ?? [],
+            $preset,
+        );
+    }
+
     public function save(AdminLayoutManager $manager): void
     {
         $this->authorizePermission('admin.layout.update');
@@ -118,6 +132,74 @@ class AdminLayoutConfig extends Component
             'design' => ['theme' => $config['theme'] ?? []],
             'navigation' => ['navigation' => $config['navigation'] ?? []],
         };
+    }
+
+    private function generalPreset(string $preset): array
+    {
+        $base = [
+            'preset' => $preset,
+            'surface' => [
+                'page_background' => 'system',
+                'content_surface' => 'transparent',
+                'border' => 'system',
+                'radius' => 'lg',
+            ],
+            'behavior' => [
+                'reduced_motion' => true,
+            ],
+        ];
+
+        return array_replace_recursive($base, match ($preset) {
+            'data-heavy' => [
+                'container' => 'full',
+                'density' => 'compact',
+                'spacing' => [
+                    'content_padding_x' => '5',
+                    'content_padding_top' => '4',
+                    'content_padding_bottom' => '5',
+                    'section_gap' => '4',
+                    'tablet_padding_x' => '4',
+                    'mobile_padding_x' => '3',
+                ],
+            ],
+            'focus' => [
+                'container' => 'narrow',
+                'density' => 'comfortable',
+                'spacing' => [
+                    'content_padding_x' => '6',
+                    'content_padding_top' => '6',
+                    'content_padding_bottom' => '8',
+                    'section_gap' => '6',
+                    'tablet_padding_x' => '5',
+                    'mobile_padding_x' => '4',
+                ],
+            ],
+            'settings' => [
+                'container' => '7xl',
+                'density' => 'comfortable',
+                'spacing' => [
+                    'content_padding_x' => '6',
+                    'content_padding_top' => '5',
+                    'content_padding_bottom' => '6',
+                    'section_gap' => '5',
+                    'tablet_padding_x' => '5',
+                    'mobile_padding_x' => '4',
+                ],
+            ],
+            default => [
+                'preset' => 'default',
+                'container' => 'screen-2xl',
+                'density' => 'comfortable',
+                'spacing' => [
+                    'content_padding_x' => '6',
+                    'content_padding_top' => '6',
+                    'content_padding_bottom' => '8',
+                    'section_gap' => '6',
+                    'tablet_padding_x' => '5',
+                    'mobile_padding_x' => '4',
+                ],
+            ],
+        });
     }
 
     private function sections(): array
