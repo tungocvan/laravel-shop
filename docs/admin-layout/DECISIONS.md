@@ -7,18 +7,9 @@
 | Status | Accepted |
 | Date | 2026-06-27 |
 
-### Context
-
-Repository bootstrap documentation defines `Admin` as a shell module. Business domains such as Product, Order, Post, Category, Account, Admission, and Pharma should own domain behavior.
-
 ### Decision
 
-The admin layout documentation treats Admin as a presentation shell. Layout, navigation, theme, and admin UI composition can live in Admin. Domain workflows should remain in their owning modules or services.
-
-### Consequences
-
-- Layout refactors must avoid moving domain behavior into Admin.
-- Admin navigation can link to domain features but should not become their canonical owner.
+Admin owns layout, navigation, theme, and Admin UI composition. Business-domain behavior remains in its owning modules/services.
 
 ## ADR-002: Preserve Existing Master Layout Compatibility
 
@@ -27,60 +18,31 @@ The admin layout documentation treats Admin as a presentation shell. Layout, nav
 | Status | Accepted |
 | Date | 2026-06-27 |
 
-### Context
-
-Current pages may use either Blade sections or component slots.
-
 ### Decision
 
-Any rebuild must preserve `@yield('content')`, `$slot`, stacks, sections, Vite assets, and Livewire resource support unless a migration plan is explicitly approved.
-
-### Consequences
-
-- Rebuild can be incremental.
-- Existing pages do not need simultaneous edits.
+Preserve `@yield('content')`, `$slot`, stacks, sections, Vite assets, and Livewire support unless an explicit migration is approved.
 
 ## ADR-003: Move Navigation Decisions Out Of Blade
 
 | Field | Value |
 |---|---|
-| Status | Proposed |
-| Date | 2026-06-27 |
-
-### Context
-
-The current sidebar Blade filters permissions and computes active state inside the view.
+| Status | Accepted |
+| Date | 2026-08-23 |
 
 ### Decision
 
-Future refactors should move permission pruning and active/open state into a navigation service or view model.
-
-### Consequences
-
-- Blade becomes simpler.
-- Navigation behavior becomes testable.
-- Permission visibility changes must be verified carefully.
+Permission pruning, active/open state, and render-ready navigation metadata belong in `SidebarService`; Sidebar Blade renders prepared navigation view models.
 
 ## ADR-004: Use Semantic Theme Tokens
 
 | Field | Value |
 |---|---|
-| Status | Proposed |
-| Date | 2026-06-27 |
-
-### Context
-
-The current sidebar theme config stores Tailwind class fragments. Some are unused because views hard-code colors.
+| Status | Accepted |
+| Date | 2026-08-23 |
 
 ### Decision
 
-Future theme work should define semantic tokens and map them to Tailwind classes in one layer.
-
-### Consequences
-
-- Themes become more consistent.
-- Arbitrary class injection risk is reduced.
-- Tailwind safelisting/build visibility must be considered.
+Admin presentation uses sanitized semantic design tokens and CSS custom properties.
 
 ## ADR-005: Centralize Global JavaScript
 
@@ -89,19 +51,9 @@ Future theme work should define semantic tokens and map them to Tailwind classes
 | Status | Proposed |
 | Date | 2026-06-27 |
 
-### Context
-
-Search shortcut and toast behavior currently live inside Blade component scripts.
-
 ### Decision
 
-Future layout JavaScript should live in Vite-managed modules with idempotent initialization.
-
-### Consequences
-
-- Better compatibility with future `wire:navigate`.
-- Easier testing and cleanup.
-- Blade views become more declarative.
+Future global layout JavaScript should move to Vite-managed modules with idempotent initialization.
 
 ## ADR-006: Use Manual Livewire Asset Injection
 
@@ -110,22 +62,116 @@ Future layout JavaScript should live in Vite-managed modules with idempotent ini
 | Status | Accepted |
 | Date | 2026-08-23 |
 
-### Context
+### Decision
 
-The Admin layout explicitly renders `@livewireStyles` and `@livewireScripts`, while `config/livewire.php` previously had `inject_assets => true`. This created two possible sources for Livewire frontend assets and violated the single-source runtime contract established for the Admin layout.
+Explicit Blade `@livewireStyles` / `@livewireScripts` directives are the canonical Livewire asset source and automatic injection remains disabled.
+
+## ADR-007: Header Uses Prepared Composition Context
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
 
 ### Decision
 
-Use the existing explicit Blade directives as the canonical Livewire asset source and set `config/livewire.php` `inject_assets` to `false`.
+Header composition decisions belong in a prepared service/context registry; the Livewire Header and Blade root remain declarative consumers.
 
-Add a regression contract test that fails when both auto-injection and manual directives are enabled or when neither source is configured.
+## ADR-008: Sidebar State Has One Runtime Owner
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Decision
+
+Alpine/localStorage owns interactive Sidebar open/collapsed state. `SidebarService` owns authorization and navigation view-model preparation.
+
+## ADR-009: Footer Uses Prepared Composition Context
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Decision
+
+`AdminFooterService` owns Footer composition and visibility.
+
+## ADR-010: Admin Layout Settings Use A Hub With Dedicated Subpages
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Decision
+
+`/admin/layout` is the Admin UI settings overview. Dedicated General, Header, Sidebar, Footer, Design, and Navigation pages share one `AdminLayoutManager` and one persisted configuration source.
+
+## ADR-011: Shell Presentation Uses Centralized Normalized Layout Configuration
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Decision
+
+`AdminLayoutManager` / `admin_layout_config` is the canonical persisted source for layout and design presentation. `AdminShellPresentationService` resolves normalized settings into render-ready shell presentation values.
+
+## ADR-012: Responsive Admin Uses One Desktop Boundary And Shell-Owned Dimensions
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Context
+
+Sidebar drawer behavior used the `lg` / 1024px boundary while Header Search presentation previously changed at the smaller `sm` boundary. Sidebar width was also represented both by the shell and by hard-coded width classes inside the Sidebar view.
+
+### Decision
+
+Use 1024px (`lg`) as the Admin desktop presentation boundary for Sidebar drawer and Header Search behavior.
+
+The shell is the single owner of Sidebar expanded/collapsed dimensions. Sidebar presentation fills the shell-owned width rather than defining a competing width. Desktop collapse controls are desktop-only; drawer layouts use Header/drawer controls.
+
+Header height and semantic surfaces should consume centralized presentation values rather than reintroducing hard-coded shell dimensions/colors.
 
 ### Consequences
 
-- Livewire assets have one predictable source.
-- Existing Admin layout composition remains unchanged.
-- Future layout refactors must preserve this decision unless the entire application deliberately migrates to automatic injection and removes manual directives consistently.
-- UI verification is required after any future change to the Livewire asset contract.
+- Tablet layouts behave consistently as drawer-mode layouts below 1024px.
+- Search no longer switches to desktop presentation prematurely at 640px.
+- Sidebar dimension changes have one runtime owner.
+- Responsive presentation requires manual verification around mobile, tablet, and desktop boundaries.
+
+## ADR-013: Professional Sidebar Redesign Is A Dedicated Presentation Phase
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | 2026-08-23 |
+
+### Context
+
+The Sidebar must remain usable when navigation is either sparse or very large. Solving this well requires more than responsive fixes and should not be mixed into the Phase 13H foundation branch.
+
+### Decision
+
+Phase 13I is dedicated to Professional Sidebar UX & Presentation.
+
+The phase will audit and design for both sparse and high-volume menus. It should consider visual hierarchy, meaningful grouping, density/spacing, active and expanded states, long-menu navigation/search or quick access where justified, scroll behavior, profile/footer balance, and restrained motion.
+
+Authorization pruning, route ownership, navigation preparation, and Sidebar state ownership established in earlier ADRs remain unchanged. Presentation must consume those contracts rather than duplicating business or permission logic in Blade/JavaScript.
+
+### Consequences
+
+- Sidebar redesign receives its own visual regression and manual UI gate.
+- Responsive foundation remains independently testable and mergeable.
+- Large-menu UX can be improved without compromising permission behavior.
+- Sparse menus should remain visually balanced rather than appearing unfinished or excessively empty.
 
 ## ADR Template
 
