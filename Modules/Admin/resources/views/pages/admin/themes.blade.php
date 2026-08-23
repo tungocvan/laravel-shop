@@ -1,16 +1,15 @@
 @extends('Admin::layouts.master')
 
-@section('title', 'Quản lý Header & Menu')
+@section('title', 'Chọn Themes')
 
 @section('content')
-    <div class="max-w-7xl mx-auto py-6" x-data="{ activeTab: 'general' }">
+    <x-admin::page-header
+        title="Chọn Themes"
+        description="Chọn giao diện hiển thị phù hợp cho không gian quản trị."
+        eyebrow="Giao diện Admin"
+    />
 
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Chọn Themes</h1>
-        </div>
-
+    <x-admin::content-section>
         @livewire('admin.theme-switcher')
-
-    </div>
+    </x-admin::content-section>
 @endsection
-
