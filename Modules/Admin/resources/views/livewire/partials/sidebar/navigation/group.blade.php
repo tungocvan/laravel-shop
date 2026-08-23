@@ -2,6 +2,7 @@
     <button
         @click="sidebarOpen ? open = !open : sidebarOpen = true"
         class="group relative flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 motion-reduce:transition-none {{ $item['active'] ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+        :class="sidebarOpen ? '' : 'justify-center'"
         aria-controls="{{ $item['group_id'] }}"
         :aria-expanded="((open || (filterEnabled && navQuery.trim() !== '')) && sidebarOpen).toString()"
         aria-label="{{ $item['name'] }}"
@@ -10,6 +11,8 @@
         @if ($item['active'])<span class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-indigo-500" aria-hidden="true"></span>@endif
         @if (!empty($item['icon']))
             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 group-hover:bg-white group-hover:text-gray-600' }}"><x-icon name="{{ $item['icon'] }}" class="h-5 w-5" /></span>
+        @else
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black/5 text-xs font-semibold opacity-60" aria-hidden="true">{{ mb_strtoupper(mb_substr($item['name'], 0, 1, 'UTF-8'), 'UTF-8') }}</span>
         @endif
         <span x-cloak x-show="sidebarOpen" class="min-w-0 flex-1 truncate whitespace-nowrap text-left">{{ $item['name'] }}</span>
         <svg x-cloak x-show="sidebarOpen" :class="(open || (filterEnabled && navQuery.trim() !== '')) ? 'rotate-90' : ''" class="h-3.5 w-3.5 shrink-0 opacity-50 transition-transform duration-150 motion-reduce:transition-none" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6L14 10L6 14V6Z" /></svg>
