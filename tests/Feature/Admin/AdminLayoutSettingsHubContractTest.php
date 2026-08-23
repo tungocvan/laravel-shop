@@ -22,7 +22,9 @@ class AdminLayoutSettingsHubContractTest extends TestCase
         $dashboard = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-dashboard.blade.php'));
         $this->assertStringContainsString("@livewire('admin.settings.admin-layout-dashboard')", $page);
         $this->assertStringNotContainsString('admin-layout-config', $page);
-        $this->assertStringContainsString('Tổng quan giao diện Admin', $dashboard);
+        $this->assertStringContainsString('Tổng quan giao diện Admin', $page);
+        $this->assertStringContainsString('<x-admin::page-header', $page);
+        $this->assertStringNotContainsString('<h1', $dashboard);
         $this->assertStringContainsString('Thiết lập', $dashboard);
     }
 
@@ -49,6 +51,7 @@ class AdminLayoutSettingsHubContractTest extends TestCase
         $page = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/layout-section.blade.php'));
         $this->assertStringContainsString("route('admin.layout')", $page);
         $this->assertStringContainsString("['section' => \$section]", $page);
-        $this->assertStringContainsString('Tổng quan giao diện Admin', $page);
+        $this->assertStringContainsString('<x-admin::page-header', $page);
+        $this->assertStringContainsString('Tổng quan', $page);
     }
 }
