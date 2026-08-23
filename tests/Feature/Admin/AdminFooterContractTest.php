@@ -57,6 +57,14 @@ class AdminFooterContractTest extends TestCase
         $this->assertStringNotContainsString('environment', $service);
     }
 
+    public function test_obsolete_footer_components_are_removed(): void
+    {
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/layouts/partials/footer/components/app_name.blade.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/layouts/partials/footer/components/environment.blade.php'));
+        $this->assertFileExists(base_path('Modules/Admin/resources/views/layouts/partials/footer/components/copyright.blade.php'));
+        $this->assertFileExists(base_path('Modules/Admin/resources/views/layouts/partials/footer/components/datetime.blade.php'));
+    }
+
     public function test_footer_root_is_declarative_and_shell_does_not_own_footer_visibility(): void
     {
         $footer = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/footer.blade.php'));
