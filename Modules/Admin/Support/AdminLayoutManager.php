@@ -71,6 +71,10 @@ class AdminLayoutManager
     {
         $value = Setting::getValue(self::SETTING_KEY);
 
+        if (is_array($value)) {
+            return $value;
+        }
+
         if (! is_string($value) || trim($value) === '') {
             return [];
         }
@@ -86,7 +90,7 @@ class AdminLayoutManager
 
         Setting::setValue(
             self::SETTING_KEY,
-            json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+            $normalized,
             'admin_layout',
             'json'
         );
