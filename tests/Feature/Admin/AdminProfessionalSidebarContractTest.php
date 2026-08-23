@@ -10,6 +10,7 @@ class AdminProfessionalSidebarContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Sidebar.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar.blade.php'));
+        $group = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
 
         $this->assertStringContainsString('public int $destinationCount = 0;', $component);
         $this->assertStringContainsString('public bool $showNavigationSearch = false;', $component);
@@ -19,6 +20,8 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('x-model.debounce.120ms="navQuery"', $view);
         $this->assertStringContainsString("collect(\$item['children'] ?? [])->pluck('name')", $view);
         $this->assertStringContainsString('x-show="matches(@js($searchText))', $view);
+        $this->assertStringContainsString("open || navQuery.trim() !== ''", $group);
+        $this->assertStringContainsString("matches(@js(\$child['name']))", $group);
         $this->assertStringContainsString('[scrollbar-gutter:stable]', $view);
     }
 
