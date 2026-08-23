@@ -64,10 +64,10 @@ class AdminFooterContractTest extends TestCase
         $this->assertStringContainsString("'config.footer.show_app_name' => 'boolean'", $component);
         $this->assertStringContainsString("'config.footer.show_environment' => 'boolean'", $component);
 
-        $this->assertStringContainsString("@if (\$section === 'footer')", $view);
-        $this->assertStringContainsString('Hiển thị Footer', $view);
-        $this->assertStringContainsString('config.footer.show_app_name', $view);
-        $this->assertStringContainsString('config.footer.show_environment', $view);
+        $this->assertStringContainsString("\$section === 'footer'", $view);
+        $this->assertStringContainsString("'config.layout.show_footer' => 'Hiển thị Footer'", $view);
+        $this->assertStringContainsString("'config.footer.show_app_name' => 'Hiển thị tên ứng dụng'", $view);
+        $this->assertStringContainsString("'config.footer.show_environment' => 'Hiển thị môi trường'", $view);
     }
 
     public function test_layout_manager_accepts_decoded_json_settings_and_saves_arrays(): void
