@@ -108,6 +108,7 @@ class AdminLayoutManager
     private function normalize(array $payload): array
     {
         $defaults = $this->defaults();
+        $sidebarThemes = app(ThemeManager::class)->all();
 
         return [
             'locale' => $this->in((string) ($payload['locale'] ?? $defaults['locale']), ['vi', 'en'], $defaults['locale']),
@@ -143,7 +144,7 @@ class AdminLayoutManager
                 'show_environment' => (bool) data_get($payload, 'footer.show_environment', data_get($defaults, 'footer.show_environment')),
             ],
             'theme' => [
-                'default' => $this->in(data_get($payload, 'theme.default'), array_keys(config('admin.sidebar.themes', [])), data_get($defaults, 'theme.default')),
+                'default' => $this->in(data_get($payload, 'theme.default'), $sidebarThemes, data_get($defaults, 'theme.default')),
                 'dark_mode' => $this->in(data_get($payload, 'theme.dark_mode'), ['class'], data_get($defaults, 'theme.dark_mode')),
                 'accent' => $this->in(data_get($payload, 'theme.accent'), ['blue', 'indigo', 'emerald', 'rose', 'amber'], data_get($defaults, 'theme.accent')),
             ],
