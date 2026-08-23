@@ -16,11 +16,8 @@ class AdminThemeEditor extends Component
     public string $selectedTheme = AdminThemeProfileService::DEFAULT_PROFILE;
     public string $newThemeName = '';
 
-    public function mount(
-        AdminLayoutManager $layoutManager,
-        AdminThemeProfileService $profileService,
-        ThemeManager $themeManager,
-    ): void {
+    public function mount(AdminLayoutManager $layoutManager, AdminThemeProfileService $profileService, ThemeManager $themeManager): void
+    {
         $this->config = $layoutManager->config();
         $this->profiles = $profileService->profiles();
         $this->selectedTheme = $profileService->activeName();
@@ -34,50 +31,36 @@ class AdminThemeEditor extends Component
         $this->config = $profileService->apply($name, $this->config);
     }
 
-    public function saveTheme(
-        AdminLayoutManager $layoutManager,
-        AdminThemeProfileService $profileService,
-        AdminDesignService $designService,
-    ): void {
+    public function saveTheme(AdminLayoutManager $layoutManager, AdminThemeProfileService $profileService, AdminDesignService $designService): void
+    {
         $this->authorizePermission('admin.layout.update');
         $this->validate($this->rules($designService));
         $layoutManager->save($this->config);
         $profileService->setActive($this->selectedTheme);
-
         session()->flash('success', 'Giao diện & Theme đã được lưu và áp dụng cho toàn bộ Admin.');
         $this->redirect(url()->previous(), navigate: false);
     }
 
-    public function saveAsTheme(
-        AdminLayoutManager $layoutManager,
-        AdminThemeProfileService $profileService,
-        AdminDesignService $designService,
-    ): void {
+    public function saveAsTheme(AdminLayoutManager $layoutManager, AdminThemeProfileService $profileService, AdminDesignService $designService): void
+    {
         $this->authorizePermission('admin.layout.update');
-        $this->validate(array_merge($this->rules($designService), [
-            'newThemeName' => 'required|string|min:2|max:80',
-        ]));
-
+        $this->validate(array_merge($this->rules($designService), ['newThemeName' => 'required|string|min:2|max:80']));
         $layoutManager->save($this->config);
         $this->config = $layoutManager->config();
         $this->selectedTheme = $profileService->saveCustom($this->newThemeName, $this->config);
         $this->newThemeName = '';
         $this->profiles = $profileService->profiles();
-
         session()->flash('success', 'Theme mới đã được lưu và đang được sử dụng.');
         $this->redirect(url()->previous(), navigate: false);
     }
 
-    public function restoreDefaultTheme(
-        AdminLayoutManager $layoutManager,
-        AdminThemeProfileService $profileService,
-    ): void {
+    public function restoreDefaultTheme(AdminLayoutManager $layoutManager, AdminThemeProfileService $profileService): void
+    {
         $this->authorizePermission('admin.layout.update');
         $this->selectedTheme = AdminThemeProfileService::DEFAULT_PROFILE;
         $this->config = $profileService->apply($this->selectedTheme, $layoutManager->config());
         $layoutManager->save($this->config);
         $profileService->setActive($this->selectedTheme);
-
         session()->flash('warning', 'Đã khôi phục Theme mặc định Professional Indigo.');
         $this->redirect(url()->previous(), navigate: false);
     }
@@ -86,12 +69,14 @@ class AdminThemeEditor extends Component
     {
         return view('Admin::livewire.settings.admin-theme-editor', [
             'colorOptions' => $designService->colorOptions(),
+            'surfaceColorOptions' => $designService->surfaceColorOptions(),
         ]);
     }
 
     private function rules(AdminDesignService $designService): array
     {
         $colors = implode(',', array_keys($designService->colorOptions()));
+        $surfaces = implode(',', array_keys($designService->surfaceColorOptions()));
         $sidebarPalettes = implode(',', $this->sidebarPalettes ?: ['soft-light']);
 
         return [
@@ -112,6 +97,10 @@ class AdminThemeEditor extends Component
             'config.design.colors.warning' => 'required|in:'.$colors,
             'config.design.colors.danger' => 'required|in:'.$colors,
             'config.design.colors.info' => 'required|in:'.$colors,
+            'config.design.colors.header_background' => 'required|in:'.$colors,
+            'config.design.colors.footer_background' => 'required|in:'.$colors,
+            'config.design.colors.page_background' => 'required|in:'.$surfaces,
+            'config.design.colors.content_background' => 'required|in:'.$surfaces,
             'config.design.spacing.tight' => 'required|in:1,2,3,4,6,8',
             'config.design.spacing.control' => 'required|in:1,2,3,4,6,8',
             'config.design.spacing.content' => 'required|in:1,2,3,4,6,8',
