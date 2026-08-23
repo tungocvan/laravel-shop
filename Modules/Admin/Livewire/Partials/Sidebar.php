@@ -24,25 +24,21 @@ class Sidebar extends Component
     public int $destinationCount = 0;
     public bool $showNavigationSearch = false;
 
-    public function mount(
-        SidebarService $service,
-        ThemeManager $themeManager,
-        AdminLayoutManager $layoutManager
-    ): void {
+    public function mount(SidebarService $service, ThemeManager $themeManager, AdminLayoutManager $layoutManager): void
+    {
         $user = auth()->user();
+        $layoutConfig = $layoutManager->config();
 
         $this->menus = $service->getMenusForUser($user, request()->path());
         $this->theme = $themeManager->get();
-        $this->showFooterProfile = (bool) data_get($layoutManager->config(), 'sidebar.show_footer_profile', true);
+        $this->showFooterProfile = (bool) data_get($layoutConfig, 'sidebar.show_footer_profile', true);
         $this->menuCount = count($this->menus);
-        $this->destinationCount = collect($this->menus)->sum(
-            fn (array $item) => $item['kind'] === 'group' ? count($item['children'] ?? []) : 1
-        );
-        $this->showNavigationSearch = $this->destinationCount >= 12;
+        $this->destinationCount = collect($this->menus)->sum(fn (array $item) => $item['kind'] === 'group' ? count($item['children'] ?? []) : 1);
+        $searchThreshold = (int) data_get($layoutConfig, 'sidebar.navigation_search_threshold', 12);
+        $this->showNavigationSearch = $this->destinationCount >= $searchThreshold;
 
         $this->profileName = (string) ($user?->name ?? 'Admin');
         $this->profileInitial = mb_strtoupper(mb_substr($this->profileName ?: 'A', 0, 1, 'UTF-8'), 'UTF-8');
-
         $this->loadSchoolName();
     }
 
@@ -50,7 +46,6 @@ class Sidebar extends Component
     public function loadSchoolName(): void
     {
         $schoolName = trim((string) Setting::getValue('site_name', 'TỪ NGỌC VÂN'));
-
         $this->titleSidebar = $schoolName;
         $this->schoolPrefix = '';
         $this->schoolDisplayName = $schoolName;
@@ -61,17 +56,9 @@ class Sidebar extends Component
         }
 
         $words = preg_split('/\s+/u', trim($this->schoolDisplayName ?: $schoolName), -1, PREG_SPLIT_NO_EMPTY);
-        $this->schoolAcronym = collect($words)
-            ->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1, 'UTF-8'), 'UTF-8'))
-            ->implode('');
-
-        if ($this->schoolAcronym === '') {
-            $this->schoolAcronym = 'N/A';
-        }
+        $this->schoolAcronym = collect($words)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1, 'UTF-8'), 'UTF-8'))->implode('');
+        if ($this->schoolAcronym === '') $this->schoolAcronym = 'N/A';
     }
 
-    public function render()
-    {
-        return view('Admin::livewire.partials.sidebar');
-    }
+    public function render() { return view('Admin::livewire.partials.sidebar'); }
 }
