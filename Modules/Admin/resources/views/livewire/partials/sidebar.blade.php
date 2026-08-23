@@ -1,6 +1,6 @@
 <aside x-data="{ navQuery: '', normalize(value) { return (value || '').toLowerCase(); }, matches(value) { const q = this.normalize(this.navQuery.trim()); return q === '' || this.normalize(value).includes(q); } }" class="flex h-full w-full flex-col overflow-hidden transition-all duration-300 motion-reduce:transition-none {{ $sidebarSurfaceClass }} {{ $sidebarTextClass }}">
     @if ($showSidebarHeader)
-        <div class="relative flex min-h-16 shrink-0 items-center border-b px-3 {{ $theme['border'] }}">
+        <div class="relative flex min-h-16 shrink-0 items-center border-b px-3 {{ $theme['border'] }}" style="{{ $sidebarHeaderStyle }}">
             <div class="flex min-w-0 flex-1 items-center gap-3" :class="sidebarOpen ? '' : 'justify-center'">
                 @if ($showHeaderMark)
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-sm {{ $theme['active_bg'] }} {{ $theme['active_text'] }}">{{ $schoolAcronym }}</div>
@@ -38,13 +38,13 @@
     @endif
 
     @if ($showNavigationSearch)
-        <div x-cloak x-show="sidebarOpen" class="shrink-0 px-3 pb-2 pt-3">
+        <div x-cloak x-show="sidebarOpen" class="shrink-0 px-3 pb-2 pt-3" style="{{ $sidebarNavigationStyle }}">
             <label for="admin-sidebar-search" class="sr-only">Tìm trong menu quản trị</label>
             <input id="admin-sidebar-search" x-model.debounce.120ms="navQuery" type="search" autocomplete="off" placeholder="Tìm chức năng..." class="h-9 w-full rounded-lg border border-current/15 bg-white/90 px-3 text-xs text-slate-700 outline-none shadow-sm transition placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/30">
         </div>
     @endif
 
-    <nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 [scrollbar-gutter:stable]" aria-label="Admin navigation">
+    <nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 [scrollbar-gutter:stable]" style="{{ $sidebarNavigationStyle }}" aria-label="Admin navigation">
         <div x-cloak x-show="sidebarOpen" class="mb-2 flex items-center justify-between px-2"><span class="text-[10px] font-semibold uppercase tracking-wider opacity-45">Điều hướng</span>@if ($destinationCount >= 8)<span class="rounded-md bg-black/5 px-1.5 py-0.5 text-[10px] font-medium opacity-55">{{ $destinationCount }}</span>@endif</div>
         <div class="space-y-1">
             @foreach ($menus as $item)
@@ -55,7 +55,7 @@
     </nav>
 
     @if ($showSidebarFooter)
-        <div class="shrink-0 border-t border-current/10 p-3">
+        <div class="shrink-0 border-t border-current/10 p-3" style="{{ $sidebarFooterStyle }}">
             <div class="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1" :class="sidebarOpen ? '' : 'justify-center'">
                 @if ($showFooterAvatar)
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-sm {{ $theme['active_bg'] }} {{ $theme['active_text'] }}">{{ $profileInitial }}</div>
