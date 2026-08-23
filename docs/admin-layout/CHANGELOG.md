@@ -16,32 +16,55 @@ Use dates in `YYYY-MM-DD` format.
 - Admin layout configuration UI backed by database settings.
 - Phase 13 baseline report at `docs/modules/Admin/PHASE_13_ANALYSIS.md`.
 - `AdminLayoutContractTest` covering orchestration, page rendering extension points, and the single Livewire asset-source contract.
+- Footer composition service and component registry with app-name/environment components.
+- Footer controls for visibility, app name, and environment in Admin Layout settings.
+- Footer contract tests covering hidden baseline, composition, settings UI bindings, and persistence contract.
 
 ### Changed
 
-- `Modules/Admin/resources/views/layouts/master.blade.php` now delegates head, shell, content, stacks, and scripts to dedicated partials.
-- Header, sidebar, toast, and icon views now include stronger responsive and accessibility attributes.
-- Sidebar authorization pruning and active-state calculation now run in `SidebarService` before rendering.
-- Admin layout config can now be managed from `/admin/layout` and falls back to `Modules/Admin/config/admin.php`.
-- Phase 13A is treated as master-shell contract/runtime hardening rather than a new large decomposition because the current master layout is already an orchestration shell.
-- Livewire frontend assets now use explicit Blade directives as the canonical source; automatic asset injection is disabled.
-
-### Deprecated
-
-- Treating older descriptions of a monolithic `master.blade.php`, Blade-side navigation authorization, or missing mobile search as authoritative current-state documentation.
-
-### Removed
-
-- Duplicate Livewire automatic asset injection from the runtime contract.
+- `Modules/Admin/resources/views/layouts/master.blade.php` delegates head, shell, content, stacks, and scripts to dedicated partials.
+- Header, sidebar, toast, and icon views include stronger responsive and accessibility attributes.
+- Sidebar authorization pruning and active-state calculation run in `SidebarService` before rendering.
+- Admin layout config is database-backed and falls back to `Modules/Admin/config/admin.php`.
+- Footer visibility is owned by the prepared Footer context rather than by the outer shell.
+- Footer-specific settings are normalized by `AdminLayoutManager`.
 
 ### Fixed
 
-- Potential duplicate Livewire styles/scripts caused by combining `inject_assets => true` with `@livewireStyles` / `@livewireScripts`.
-- Phase 13 baseline documentation now distinguishes current implementation from stale historical architecture descriptions.
+- Livewire frontend assets use one explicit source.
+- Admin Layout JSON settings now round-trip correctly when `SettingsService` returns decoded arrays, fixing settings that appeared to save but reverted after reload.
 
 ### Security
 
-- No authorization model changes in Phase 13A.
+- Footer configuration remains constrained to boolean composition flags; no arbitrary footer markup is persisted.
+
+## [2026-08-23] - Phase 13E Footer Architecture
+
+### Added
+
+- `AdminFooterService` prepared Footer context/registry.
+- Footer `app_name` and `environment` presentation components.
+- Dedicated Footer settings section in `/admin/layout`.
+- `AdminFooterContractTest` regression coverage.
+
+### Changed
+
+- The shell always composes the Footer partial; the Footer context decides whether output is rendered.
+- Footer defaults preserve the prior runtime baseline with `layout.show_footer = false`.
+
+### Fixed
+
+- JSON Admin Layout settings persistence now accepts the decoded array contract returned by the settings layer while remaining compatible with legacy JSON strings.
+
+### Verification
+
+- Targeted Admin layout test suite passed.
+- Footer OFF/ON and component toggle UI verification passed.
+- Footer settings persistence across save/reload passed.
+
+### Follow-up
+
+- Phase 13F will replace the long `/admin/layout` settings form with an Admin UI settings hub modeled after `/admin/website`, with dedicated General, Header, Sidebar, Footer, Design, and Navigation pages while retaining one `AdminLayoutManager` source of truth.
 
 ## [2026-08-23] - Phase 13A Baseline Closure
 
@@ -53,11 +76,10 @@ Use dates in `YYYY-MM-DD` format.
 ### Changed
 
 - Preserved current Admin UI/presentation after targeted tests and manual UI verification passed.
-- Future presentation changes are deferred to the design-token and layout-presentation phases.
 
 ### Fixed
 
-- Livewire asset ownership is now explicit and single-source.
+- Livewire asset ownership is explicit and single-source.
 
 ## Release Entry Template
 
