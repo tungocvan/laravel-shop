@@ -29,7 +29,7 @@
             @foreach ($menus as $item)
                 @php($searchText = $item['name'].' '.collect($item['children'] ?? [])->pluck('name')->implode(' '))
                 <div x-show="matches(@js($searchText)) || navQuery.trim() === ''">
-                    @include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item])
+                    @include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item, 'filtering' => true])
                 </div>
             @endforeach
         </div>
