@@ -50,7 +50,7 @@
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <label class="block">
                                 <span class="text-sm font-medium text-slate-700">Preset</span>
-                                <select wire:model="config.layout.preset" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <select wire:model.live="config.layout.preset" class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="default">Default</option><option value="data-heavy">Data heavy</option><option value="focus">Focus</option><option value="settings">Settings</option>
                                 </select>
                                 <span class="mt-2 block text-xs leading-5 text-slate-500">Preset là điểm khởi đầu; các tham số bên dưới vẫn có thể tinh chỉnh riêng.</span>
