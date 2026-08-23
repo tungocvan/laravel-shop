@@ -50,6 +50,10 @@ class AdminLayoutManager
                 'user_menu' => (bool) data_get($this->defaults, 'header.user_menu', true),
                 'mobile_search_mode' => data_get($this->defaults, 'header.mobile_search_mode', 'overlay'),
             ],
+            'footer' => [
+                'show_app_name' => (bool) data_get($this->defaults, 'footer.show_app_name', true),
+                'show_environment' => (bool) data_get($this->defaults, 'footer.show_environment', true),
+            ],
             'theme' => [
                 'default' => data_get($this->defaults, 'theme.default', 'corporate-blue'),
                 'dark_mode' => data_get($this->defaults, 'theme.dark_mode', 'class'),
@@ -133,6 +137,10 @@ class AdminLayoutManager
                 'theme_switcher' => (bool) data_get($payload, 'header.theme_switcher', data_get($defaults, 'header.theme_switcher')),
                 'user_menu' => (bool) data_get($payload, 'header.user_menu', data_get($defaults, 'header.user_menu')),
                 'mobile_search_mode' => $this->in(data_get($payload, 'header.mobile_search_mode'), ['overlay'], data_get($defaults, 'header.mobile_search_mode')),
+            ],
+            'footer' => [
+                'show_app_name' => (bool) data_get($payload, 'footer.show_app_name', data_get($defaults, 'footer.show_app_name')),
+                'show_environment' => (bool) data_get($payload, 'footer.show_environment', data_get($defaults, 'footer.show_environment')),
             ],
             'theme' => [
                 'default' => $this->in(data_get($payload, 'theme.default'), array_keys(config('admin.sidebar.themes', [])), data_get($defaults, 'theme.default')),
