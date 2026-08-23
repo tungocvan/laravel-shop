@@ -12,9 +12,11 @@
 
 <a
     href="{{ $brand['url'] ?? '/admin' }}"
-    class="flex min-w-0 items-center gap-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+    @class([
+        'flex min-w-0 items-center gap-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+        'hidden sm:flex' => $mobileBrand === 'hidden',
+    ])
     aria-label="{{ $title }}"
-    @if ($mobileBrand === 'hidden') class="hidden sm:flex min-w-0 items-center gap-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" @endif
 >
     <span
         class="flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-indigo-50 text-xs font-bold text-indigo-600 ring-1 ring-indigo-100"
