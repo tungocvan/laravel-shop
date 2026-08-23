@@ -30,7 +30,7 @@ class Sidebar extends Component
         $layoutConfig = $layoutManager->config();
 
         $this->menus = $service->getMenusForUser($user, request()->path());
-        $this->theme = $themeManager->get();
+        $this->theme = $themeManager->get((string) data_get($layoutConfig, 'theme.default', 'corporate-blue'));
         $this->showFooterProfile = (bool) data_get($layoutConfig, 'sidebar.show_footer_profile', true);
         $this->menuCount = count($this->menus);
         $this->destinationCount = collect($this->menus)->sum(fn (array $item) => $item['kind'] === 'group' ? count($item['children'] ?? []) : 1);
@@ -57,8 +57,13 @@ class Sidebar extends Component
 
         $words = preg_split('/\s+/u', trim($this->schoolDisplayName ?: $schoolName), -1, PREG_SPLIT_NO_EMPTY);
         $this->schoolAcronym = collect($words)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1, 'UTF-8'), 'UTF-8'))->implode('');
-        if ($this->schoolAcronym === '') $this->schoolAcronym = 'N/A';
+        if ($this->schoolAcronym === '') {
+            $this->schoolAcronym = 'N/A';
+        }
     }
 
-    public function render() { return view('Admin::livewire.partials.sidebar'); }
+    public function render()
+    {
+        return view('Admin::livewire.partials.sidebar');
+    }
 }
