@@ -12,22 +12,17 @@ use Modules\System\Models\Setting;
 class Sidebar extends Component
 {
     public array $menus = [];
-
     public array $theme = [];
-
     public string $titleSidebar = '';
-
     public string $schoolPrefix = '';
-
     public string $schoolDisplayName = '';
-
     public string $schoolAcronym = '';
-
     public bool $showFooterProfile = true;
-
     public string $profileName = 'Admin';
-
     public string $profileInitial = 'A';
+    public int $menuCount = 0;
+    public int $destinationCount = 0;
+    public bool $showNavigationSearch = false;
 
     public function mount(
         SidebarService $service,
@@ -38,17 +33,15 @@ class Sidebar extends Component
 
         $this->menus = $service->getMenusForUser($user, request()->path());
         $this->theme = $themeManager->get();
-        $this->showFooterProfile = (bool) data_get(
-            $layoutManager->config(),
-            'sidebar.show_footer_profile',
-            true
+        $this->showFooterProfile = (bool) data_get($layoutManager->config(), 'sidebar.show_footer_profile', true);
+        $this->menuCount = count($this->menus);
+        $this->destinationCount = collect($this->menus)->sum(
+            fn (array $item) => $item['kind'] === 'group' ? count($item['children'] ?? []) : 1
         );
+        $this->showNavigationSearch = $this->destinationCount >= 12;
 
         $this->profileName = (string) ($user?->name ?? 'Admin');
-        $this->profileInitial = mb_strtoupper(
-            mb_substr($this->profileName ?: 'A', 0, 1, 'UTF-8'),
-            'UTF-8'
-        );
+        $this->profileInitial = mb_strtoupper(mb_substr($this->profileName ?: 'A', 0, 1, 'UTF-8'), 'UTF-8');
 
         $this->loadSchoolName();
     }
@@ -56,10 +49,7 @@ class Sidebar extends Component
     #[On('site-name-updated')]
     public function loadSchoolName(): void
     {
-        $schoolName = trim((string) Setting::getValue(
-            'site_name',
-            'TỪ NGỌC VÂN'
-        ));
+        $schoolName = trim((string) Setting::getValue('site_name', 'TỪ NGỌC VÂN'));
 
         $this->titleSidebar = $schoolName;
         $this->schoolPrefix = '';
