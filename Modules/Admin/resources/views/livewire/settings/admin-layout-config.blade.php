@@ -2,7 +2,7 @@
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <h1 class="text-2xl font-semibold text-slate-900">Cấu hình giao diện Admin</h1>
-            <p class="mt-1 text-sm text-slate-500">Quản lý layout, sidebar, header, theme và navigation mà không cần sửa file PHP.</p>
+            <p class="mt-1 text-sm text-slate-500">Quản lý layout, sidebar, header, footer, theme và navigation mà không cần sửa file PHP.</p>
         </div>
 
         <button
@@ -58,18 +58,13 @@
                     <span class="text-sm font-medium text-slate-700">Sticky header</span>
                     <input type="checkbox" wire:model="config.layout.sticky_header" class="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                 </label>
-
-                <label class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-4 py-3">
-                    <span class="text-sm font-medium text-slate-700">Hiển thị footer</span>
-                    <input type="checkbox" wire:model="config.layout.show_footer" class="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                </label>
             </div>
         </section>
 
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5">
                 <h2 class="text-base font-semibold text-slate-900">Sidebar & Header</h2>
-                <p class="mt-1 text-sm text-slate-500">Bật tắt các vùng chính của admin shell.</p>
+                <p class="mt-1 text-sm text-slate-500">Bật tắt các vùng và thành phần chính của admin shell.</p>
             </div>
 
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -90,6 +85,30 @@
                     </label>
                 @endforeach
             </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="mb-5">
+                <h2 class="text-base font-semibold text-slate-900">Footer</h2>
+                <p class="mt-1 text-sm text-slate-500">Điều khiển việc hiển thị Footer và các thành phần thông tin cơ bản.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                @foreach ([
+                    'config.layout.show_footer' => 'Hiển thị Footer',
+                    'config.footer.show_app_name' => 'Hiển thị tên ứng dụng',
+                    'config.footer.show_environment' => 'Hiển thị môi trường',
+                ] as $model => $label)
+                    <label class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-4 py-3">
+                        <span class="text-sm font-medium text-slate-700">{{ $label }}</span>
+                        <input type="checkbox" wire:model="{{ $model }}" class="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    </label>
+                @endforeach
+            </div>
+
+            <p class="mt-4 text-xs text-slate-500">
+                Hai tùy chọn thành phần chỉ có hiệu lực khi Footer được bật.
+            </p>
         </section>
 
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
