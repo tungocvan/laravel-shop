@@ -26,7 +26,8 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         $this->assertStringContainsString('data-admin-system-action-settings="notifications"', $view);
         $this->assertStringContainsString('wire:model.live="config.header.notifications"', $view);
         $this->assertStringContainsString('System action', $view);
-        $this->assertStringContainsString("['config.header.search' => 'Tìm kiếm trên Header','config.header.user_menu' => 'UserMenu']", $view);
+        $this->assertStringContainsString("'config.header.search' => ['Tìm kiếm trên Header'", $view);
+        $this->assertStringContainsString("'config.header.user_menu' => ['UserMenu'", $view);
         $this->assertStringContainsString('wire:model.live="config.header.actions.notification.icon"', $view);
         $this->assertStringContainsString('wire:model.live="config.header.actions.notification.behavior"', $view);
         $this->assertStringContainsString("config.header.actions.notification.icon", $component);
