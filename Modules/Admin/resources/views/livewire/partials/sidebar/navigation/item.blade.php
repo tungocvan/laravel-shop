@@ -1,6 +1,7 @@
 <a
     href="{{ $item['href'] }}"
-    class="group relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition duration-150 focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1 motion-reduce:transition-none {{ $item['active'] ? $theme['active_bg'].' '.$theme['active_text'] : $theme['text'].' '.$theme['hover'] }}"
+    class="group relative flex items-center gap-3 rounded-lg px-3 py-2 transition duration-150 focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1 motion-reduce:transition-none {{ $item['active'] ? $theme['active_bg'] : $theme['hover'] }}"
+    style="min-height:var(--admin-sidebar-menu-item-height);font-family:var(--admin-sidebar-menu-font-family);font-size:var(--admin-sidebar-menu-font-size);font-weight:{{ $item['active'] ? 'var(--admin-sidebar-active-font-weight)' : 'var(--admin-sidebar-menu-font-weight)' }};color:{{ $item['active'] ? 'var(--admin-sidebar-active-title-color)' : 'var(--admin-sidebar-menu-title-color)' }}"
     :class="sidebarOpen ? '' : 'justify-center'"
     @if ($item['active']) aria-current="page" @endif
     aria-label="{{ $item['name'] }}"
@@ -11,8 +12,8 @@
     @endif
 
     @if (!empty($item['icon']))
-        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black/5 {{ $item['active'] ? $theme['active_text'] : $theme['icon_inactive'] }}">
-            <x-icon name="{{ $item['icon'] }}" class="h-5 w-5" />
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black/5" style="color:{{ $item['active'] ? 'var(--admin-sidebar-active-icon-color)' : 'var(--admin-sidebar-menu-icon-color)' }}">
+            <x-icon name="{{ $item['icon'] }}" style="width:var(--admin-sidebar-menu-icon-size);height:var(--admin-sidebar-menu-icon-size)" />
         </span>
     @else
         <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black/5 text-xs font-semibold opacity-70" aria-hidden="true">{{ mb_strtoupper(mb_substr($item['name'], 0, 1, 'UTF-8'), 'UTF-8') }}</span>
