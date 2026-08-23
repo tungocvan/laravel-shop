@@ -38,16 +38,28 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('{{ $profileName }}', $view);
     }
 
-    public function test_navigation_items_have_professional_active_hierarchy_without_changing_route_contract(): void
+    public function test_navigation_items_use_selected_theme_palette_without_changing_route_contract(): void
     {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Sidebar.php'));
         $item = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/item.blade.php'));
         $group = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
+        $themeManager = file_get_contents(base_path('Modules/Admin/Support/ThemeManager.php'));
+
+        $this->assertStringContainsString("theme.default", $component);
+        $this->assertStringContainsString('public function get(?string $themeName = null)', $themeManager);
+        $this->assertStringContainsString("\$theme['active_bg']", $item);
+        $this->assertStringContainsString("\$theme['active_text']", $item);
+        $this->assertStringContainsString("\$theme['hover']", $item);
+        $this->assertStringContainsString("\$theme['child_active_bg']", $group);
+        $this->assertStringContainsString("\$theme['child_active_text']", $group);
+        $this->assertStringContainsString("\$theme['child_hover']", $group);
+        $this->assertStringContainsString("\$theme['border']", $group);
         $this->assertStringContainsString("href=\"{{ \$item['href'] }}\"", $item);
         $this->assertStringContainsString('aria-current="page"', $item);
-        $this->assertStringContainsString('bg-indigo-50 text-indigo-700', $item);
         $this->assertStringContainsString("\$item['group_id']", $group);
         $this->assertStringContainsString("href=\"{{ \$child['href'] }}\"", $group);
-        $this->assertStringContainsString('border-l border-slate-200', $group);
+        $this->assertStringNotContainsString('bg-indigo-50 text-indigo-700', $item);
+        $this->assertStringNotContainsString('border-l border-slate-200', $group);
     }
 
     public function test_sidebar_redesign_does_not_move_permission_logic_into_views(): void
