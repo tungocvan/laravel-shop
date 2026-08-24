@@ -12,12 +12,12 @@ class AuthGuardSeparationTest extends TestCase
     public function test_guest_client_apps_redirects_to_client_login(): void
     {
         $this->get('/my-apps')
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('client.apps.login'));
     }
 
     public function test_client_session_can_access_client_apps(): void
     {
-        $user = new User();
+        $user = new User;
         $user->id = 1001;
 
         $this->actingAs($user, 'web')
@@ -47,14 +47,14 @@ class AuthGuardSeparationTest extends TestCase
 
     public function test_client_logout_does_not_logout_admin_guard_and_clears_site_data(): void
     {
-        $user = new User();
+        $user = new User;
         $user->id = 1002;
 
         $this->actingAs($user, 'web');
         $this->actingAs($user, 'admin');
 
         $this->post('/logout')
-            ->assertRedirect(route('login'))
+            ->assertRedirect(route('client.apps.login'))
             ->assertHeader('Clear-Site-Data', '"cache", "storage"');
 
         $this->assertGuest('web');
@@ -63,7 +63,7 @@ class AuthGuardSeparationTest extends TestCase
 
     public function test_admin_logout_does_not_logout_client_guard_and_clears_site_data(): void
     {
-        $user = new User();
+        $user = new User;
         $user->id = 1003;
 
         $this->actingAs($user, 'web');
