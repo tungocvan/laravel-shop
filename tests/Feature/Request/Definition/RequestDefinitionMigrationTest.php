@@ -4,7 +4,11 @@ namespace Tests\Feature\Request\Definition;
 
 use Illuminate\Support\Facades\Schema;
 use Modules\Request\Models\InternalRequest;
+use Modules\Request\Models\RequestAttachment;
+use Modules\Request\Models\RequestComment;
+use Modules\Request\Models\RequestExportJob;
 use Modules\Request\Models\RequestGroup;
+use Modules\Request\Models\RequestNotificationDelivery;
 use Modules\Request\Models\RequestPayloadRevision;
 use Modules\Request\Models\RequestRun;
 use Modules\Request\Models\RequestTask;
@@ -56,5 +60,44 @@ class RequestDefinitionMigrationTest extends RequestDefinitionTestCase
         $this->assertSame($request->request_type_version_id, $revision->request_type_version_id);
         $this->assertSame($request->request_type_version_id, $run->request_type_version_id);
         $this->assertSame($run->id, $task->request_run_id);
+    }
+
+    public function test_mr_06_adds_collaboration_and_delivery_capability_tables(): void
+    {
+        foreach (['request_comments', 'request_attachments', 'request_export_jobs', 'request_notification_deliveries'] as $table) {
+            $this->assertTrue(Schema::hasTable($table), "Missing MR-06 table {$table}.");
+        }
+
+        $this->assertTrue(Schema::hasColumns('request_comments', ['public_id', 'request_instance_id', 'request_run_id', 'author_id', 'body', 'body_format', 'redacted_at']));
+        $this->assertTrue(Schema::hasColumns('request_attachments', ['public_id', 'request_instance_id', 'request_comment_id', 'payload_field_key', 'storage_disk', 'storage_path', 'checksum', 'classification', 'scan_status', 'removed_at']));
+        $this->assertTrue(Schema::hasColumns('request_export_jobs', ['public_id', 'requested_by', 'filter_snapshot_json', 'field_snapshot_json', 'authorization_scope_json', 'status', 'idempotency_key_hash']));
+        $this->assertTrue(Schema::hasColumns('request_notification_deliveries', ['public_id', 'logical_key', 'channel', 'recipient_id', 'template_key', 'status', 'attempt_count']));
+    }
+
+    public function test_mr_06_factories_are_autoloadable(): void
+    {
+        $request = InternalRequest::factory()->create();
+        $comment = RequestComment::factory()->create(['request_instance_id' => $request->id]);
+        $attachment = RequestAttachment::factory()->create(['request_instance_id' => $request->id]);
+
+        $this->assertSame($request->id, $comment->request_instance_id);
+        $this->assertSame($request->id, $attachment->request_instance_id);
+        $this->assertNotNull(RequestExportJob::factory()->create()->public_id);
+        $this->assertNotNull(RequestNotificationDelivery::factory()->create()->public_id);
+    }
+
+    public function test_mr_06_migration_rolls_back_in_dependency_order_and_migrates_again(): void
+    {
+        $migration = require base_path('Modules/Request/database/migrations/2026_09_01_000007_create_request_collaboration_delivery_tables.php');
+        $migration->down();
+
+        foreach (['request_comments', 'request_attachments', 'request_export_jobs', 'request_notification_deliveries'] as $table) {
+            $this->assertFalse(Schema::hasTable($table), "MR-06 rollback left {$table} behind.");
+        }
+
+        $migration->up();
+        foreach (['request_comments', 'request_attachments', 'request_export_jobs', 'request_notification_deliveries'] as $table) {
+            $this->assertTrue(Schema::hasTable($table), "MR-06 remigration did not restore {$table}.");
+        }
     }
 }

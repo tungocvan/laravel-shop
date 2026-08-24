@@ -4,6 +4,9 @@ namespace Modules\Request\Domain\Forms;
 
 use DateTimeImmutable;
 use Illuminate\Support\Str;
+use Modules\Request\Domain\Enums\AttachmentScanStatus;
+use Modules\Request\Models\InternalRequest;
+use Modules\Request\Models\RequestAttachment;
 use Modules\Role\Contracts\RoleDirectory;
 use Modules\User\Contracts\UserDirectory;
 
@@ -16,7 +19,7 @@ final class FormPayloadValidator
         private readonly RoleDirectory $roles,
     ) {}
 
-    public function validate(array $schema, array $input, bool $forSubmit = false): array
+    public function validate(array $schema, array $input, bool $forSubmit = false, ?InternalRequest $request = null): array
     {
         if (strlen(json_encode($input, JSON_THROW_ON_ERROR)) > (int) config('request.forms.max_payload_bytes', 524288)) {
             return ['payload' => [], 'display' => [], 'errors' => ['payload' => ['payload_too_large']]];
@@ -57,7 +60,7 @@ final class FormPayloadValidator
                 continue;
             }
 
-            $fieldErrors = $this->valueErrors($type, $value, $field);
+            $fieldErrors = $this->valueErrors($type, $value, $field, $request);
             if ($fieldErrors !== []) {
                 $errors["payload.$key"] = $fieldErrors;
 
@@ -71,7 +74,7 @@ final class FormPayloadValidator
         return ['payload' => $normalized, 'display' => $normalized, 'errors' => $errors];
     }
 
-    private function valueErrors(string $type, mixed $value, array $field): array
+    private function valueErrors(string $type, mixed $value, array $field, ?InternalRequest $request): array
     {
         $validation = is_array($field['validation'] ?? null) ? $field['validation'] : [];
         $errors = [];
@@ -118,8 +121,12 @@ final class FormPayloadValidator
             $errors[] = 'user_unavailable';
         } elseif ($type === 'role' && (! is_int($value) || $this->roles->findAdminRole($value) === null)) {
             $errors[] = 'role_unavailable';
-        } elseif ($type === 'attachment' && (! is_array($value) || collect($value)->contains(fn (mixed $id): bool => ! is_string($id) || ! Str::isUlid($id)))) {
-            $errors[] = 'invalid_attachment_reference';
+        } elseif ($type === 'attachment') {
+            if (! is_array($value) || collect($value)->contains(fn (mixed $id): bool => ! is_string($id) || ! Str::isUlid($id))) {
+                $errors[] = 'invalid_attachment_reference';
+            } elseif ($value !== [] && ($request === null || RequestAttachment::query()->where('request_instance_id', $request->id)->where('payload_field_key', $field['key'])->where('uploaded_by', $request->requester_id)->where('scan_status', AttachmentScanStatus::Clean)->whereNull('removed_at')->whereIn('public_id', $value)->count() !== count($value))) {
+                $errors[] = 'attachment_not_owned_or_clean';
+            }
         }
 
         return $errors;

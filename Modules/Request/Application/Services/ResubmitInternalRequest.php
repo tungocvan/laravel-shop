@@ -30,7 +30,7 @@ final class ResubmitInternalRequest
                 if ($locked->lock_version !== $expectedVersion) {
                     throw ValidationException::withMessages(['lock_version' => ['stale_version']]);
                 }
-                $validated = $this->payloads->validate((array) $locked->typeVersion->form_schema_json, $payload, true);
+                $validated = $this->payloads->validate((array) $locked->typeVersion->form_schema_json, $payload, true, $locked);
                 if ($validated['errors'] !== []) {
                     throw ValidationException::withMessages($validated['errors']);
                 }

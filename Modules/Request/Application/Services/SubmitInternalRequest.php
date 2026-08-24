@@ -37,7 +37,7 @@ final class SubmitInternalRequest
                 if ($locked->type->status !== RequestTypeStatus::Published || ($locked->type->available_from && $locked->type->available_from->isFuture()) || ($locked->type->available_until && $locked->type->available_until->lte($now)) || ! $this->audience->can($locked->typeVersion, $actorId, AudienceCapability::Create)) {
                     throw ValidationException::withMessages(['type' => ['request_type_unavailable']]);
                 }
-                $validated = $this->payloads->validate((array) $locked->typeVersion->form_schema_json, $payload ?? (array) ($locked->latestPayloadRevision?->payload_json ?? []), true);
+                $validated = $this->payloads->validate((array) $locked->typeVersion->form_schema_json, $payload ?? (array) ($locked->latestPayloadRevision?->payload_json ?? []), true, $locked);
                 if ($validated['errors'] !== []) {
                     throw ValidationException::withMessages($validated['errors']);
                 }

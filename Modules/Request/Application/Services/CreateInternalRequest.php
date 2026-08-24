@@ -41,7 +41,7 @@ final class CreateInternalRequest
                 'lock_version' => 1,
             ]);
             $request->update(['request_number' => $this->numbers->forId($request->id)]);
-            $this->audit->append('request_instance', $request->public_id, 'request.draft.created.v1', $actorId, $correlationId, ['type_public_id' => $lockedType->public_id], $keyHash);
+            $this->audit->append('request_instance', $request->public_id, 'request.draft.created.v1', $actorId, $correlationId, ['type_public_id' => $lockedType->public_id], $keyHash, $request->id);
             $this->outbox->append('request.draft.created.v1', 'request_instance', $request->public_id, $correlationId);
 
             return ['request_public_id' => $request->public_id];

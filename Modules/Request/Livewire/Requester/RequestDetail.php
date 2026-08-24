@@ -4,6 +4,7 @@ namespace Modules\Request\Livewire\Requester;
 
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Modules\Request\Application\Queries\MyRequestsQuery;
 use Modules\Request\Application\Services\CancelInternalRequest;
@@ -76,6 +77,20 @@ class RequestDetail extends Component
         Gate::authorize('cancel', $request);
         $service->handle($request, (int) auth('admin')->id(), $this->lockVersion, $this->cancelKey);
         $this->redirectRoute('request.mine');
+    }
+
+    #[On('request-version-changed')]
+    public function updateRequestVersion(int $version): void
+    {
+        $this->lockVersion = $version;
+    }
+
+    #[On('request-attachment-created')]
+    public function addAttachmentReference(string $attachmentPublicId, string $fieldKey, int $version): void
+    {
+        $current = is_array($this->values[$fieldKey] ?? null) ? $this->values[$fieldKey] : [];
+        $this->values[$fieldKey] = array_values(array_unique([...$current, $attachmentPublicId]));
+        $this->lockVersion = $version;
     }
 
     public function render(MyRequestsQuery $query, VisibilityRuleEvaluator $visibility)

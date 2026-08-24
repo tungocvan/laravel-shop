@@ -19,7 +19,7 @@
                         @elseif($type === 'computed_display')
                             <div id="request-field-{{ $key }}" class="mt-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">{{ __('Request::request.server_computed') }}</div>
                         @elseif($type === 'attachment')
-                            <div id="request-field-{{ $key }}" class="mt-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">{{ __('Request::request.attachments_later') }}</div>
+                            <div id="request-field-{{ $key }}" class="mt-2"><livewire:request.requester.attachment-manager :request-public-id="$request->public_id" :request-version="$request->lock_version" :field-key="$key" :key="'attachment-'.$key" /></div>
                         @else
                             <input id="request-field-{{ $key }}" wire:model="values.{{ $key }}" type="{{ match($type) {'integer' => 'number', 'date' => 'date', 'datetime' => 'datetime-local', default => 'text'} }}" @if($type === 'decimal') inputmode="decimal" @endif @disabled(!in_array($request->status->value, ['draft', 'returned'], true)) class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm disabled:bg-gray-50">
                         @endif
@@ -40,4 +40,7 @@
     @php($activeTask = $request->currentRun?->tasks?->where('assignee_user_id', (int) auth('admin')->id())->where('status', \Modules\Request\Domain\Enums\TaskStatus::Active)->first())
     @if($request->status->value === 'pending' && $activeTask)<livewire:request.approver.decision-panel :task-public-id="$activeTask->public_id" :request-version="$request->lock_version" :task-version="$activeTask->lock_version" :key="$activeTask->public_id" />@endif
     <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><h2 class="text-lg font-bold">{{ __('Request::request.timeline') }}</h2><div class="mt-4 space-y-4">@foreach($request->runs as $run)<article class="rounded-xl border border-gray-200 p-4"><div class="flex justify-between gap-3"><strong>{{ __('Request::request.run') }} #{{ $run->sequence_number }}</strong><span>{{ $run->status->value }}</span></div>@if($run->terminal_reason)<p class="mt-2 text-sm text-gray-700">{{ $run->terminal_reason }}</p>@endif<ul class="mt-3 space-y-2">@foreach($run->tasks as $task)<li class="text-sm"><span class="font-medium">{{ $task->stage_name_snapshot }}</span> · {{ $task->status->value }}@if($task->decision?->reason)<p class="text-gray-600">{{ $task->decision->reason }}</p>@endif</li>@endforeach</ul></article>@endforeach</div></section>
+    <livewire:request.requester.comment-composer :request-public-id="$request->public_id" :request-version="$request->lock_version" :key="'comments-'.$request->public_id" />
+    <livewire:request.requester.attachment-manager :request-public-id="$request->public_id" :request-version="$request->lock_version" :key="'attachments-'.$request->public_id" />
+    @can('viewAny', [\Modules\Request\Models\RequestAuditEvent::class, $request])<livewire:request.shared.audit-timeline :request-public-id="$request->public_id" :key="'audit-'.$request->public_id" />@endcan
 </div>

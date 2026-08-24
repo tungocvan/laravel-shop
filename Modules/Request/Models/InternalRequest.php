@@ -63,4 +63,19 @@ class InternalRequest extends Model
     {
         return $this->belongsTo(RequestRun::class, 'current_run_id');
     }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(RequestComment::class, 'request_instance_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(RequestAttachment::class, 'request_instance_id');
+    }
+
+    public function auditEvents(): HasMany
+    {
+        return $this->hasMany(RequestAuditEvent::class, 'request_instance_id');
+    }
 }

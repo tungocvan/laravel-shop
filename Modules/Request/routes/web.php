@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Request\Http\Controllers\RequestAttachmentController;
 use Modules\Request\Http\Controllers\RequestDefinitionController;
 use Modules\Request\Http\Controllers\RequestRequesterController;
 
@@ -16,5 +17,6 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/requests')->name('reques
     Route::get('/create/{typePublicId}', [RequestRequesterController::class, 'create'])->whereUlid('typePublicId')->middleware('permission:request.instance.create,admin')->name('create');
     Route::get('/mine', [RequestRequesterController::class, 'mine'])->middleware('permission:request.instance.view-own,admin')->name('mine');
     Route::get('/inbox', [RequestRequesterController::class, 'inbox'])->middleware('permission:request.task.view,admin')->name('inbox');
+    Route::get('/{requestPublicId}/attachments/{attachmentPublicId}', RequestAttachmentController::class)->whereUlid('requestPublicId')->whereUlid('attachmentPublicId')->middleware(['permission:request.attachment.download,admin', 'throttle:request-download'])->name('attachments.download');
     Route::get('/{requestPublicId}', [RequestRequesterController::class, 'show'])->whereUlid('requestPublicId')->middleware('permission:request.instance.view-own|request.instance.view-participant|request.instance.view-all,admin')->name('show');
 });

@@ -33,26 +33,32 @@ class RequestBootstrapTest extends TestCase
         $this->assertSame([10, 25, 50, 100], config('request.settings.page_sizes'));
         $this->assertSame('Requests', trans('Request::request.module_name', locale: 'en'));
         $this->assertNull(Route::getRoutes()->getByName('request.index'));
+        $requestRoutes = collect(Route::getRoutes())->filter(fn ($route): bool => str_starts_with((string) $route->getName(), 'request.'));
+        $this->assertSame($requestRoutes->count(), $requestRoutes->pluck('action.as')->unique()->count(), 'Request routes must only be registered once.');
         $this->assertSame([
             'request.admin.groups',
             'request.admin.types',
             'request.admin.types.designer',
             'request.admin.types.versions',
             'request.api.v1.inbox',
+            'request.api.v1.requests.attachments.download',
+            'request.api.v1.requests.attachments.store',
             'request.api.v1.requests.cancel',
+            'request.api.v1.requests.comments.store',
             'request.api.v1.requests.resubmit',
             'request.api.v1.requests.retry-activation',
             'request.api.v1.requests.submit',
             'request.api.v1.tasks.decide',
             'request.api.v1.tasks.reassign',
+            'request.attachments.download',
             'request.catalog',
             'request.create',
             'request.inbox',
             'request.mine',
             'request.show',
-        ], collect(Route::getRoutes())->filter(fn ($route): bool => str_starts_with((string) $route->getName(), 'request.'))->pluck('action.as')->unique()->sort()->values()->all());
+        ], $requestRoutes->pluck('action.as')->sort()->values()->all());
 
-        foreach (['request.admin.groups', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions', 'request.catalog', 'request.create', 'request.inbox', 'request.mine', 'request.show'] as $routeName) {
+        foreach (['request.admin.groups', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions', 'request.attachments.download', 'request.catalog', 'request.create', 'request.inbox', 'request.mine', 'request.show'] as $routeName) {
             $route = Route::getRoutes()->getByName($routeName);
             $this->assertNotNull($route);
             $this->assertContains('auth:admin', $route->gatherMiddleware());
