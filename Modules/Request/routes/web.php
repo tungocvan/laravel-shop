@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Request\Http\Controllers\RequestAttachmentController;
 use Modules\Request\Http\Controllers\RequestDashboardController;
 use Modules\Request\Http\Controllers\RequestDefinitionController;
+use Modules\Request\Http\Controllers\RequestDefinitionPackageController;
 use Modules\Request\Http\Controllers\RequestExportController;
 use Modules\Request\Http\Controllers\RequestReportController;
 use Modules\Request\Http\Controllers\RequestRequesterController;
@@ -12,6 +13,10 @@ use Modules\Request\Http\Middleware\UseVietnameseRequestLocale;
 Route::middleware(['web', UseVietnameseRequestLocale::class, 'auth:admin'])->prefix('admin/requests/admin')->name('request.admin.')->group(function (): void {
     Route::get('/groups', [RequestDefinitionController::class, 'groups'])->middleware('permission:request.group.view,admin')->name('groups');
     Route::get('/types', [RequestDefinitionController::class, 'types'])->middleware('permission:request.type.view,admin')->name('types');
+    Route::get('/types/{typePublicId}/package', [RequestDefinitionPackageController::class, 'show'])->whereUlid('typePublicId')->middleware('permission:request.type.view,admin')->name('types.package');
+    Route::get('/types/{typePublicId}/package/download', [RequestDefinitionPackageController::class, 'download'])->whereUlid('typePublicId')->middleware(['permission:request.type.export,admin', 'throttle:request-download'])->name('types.package.download');
+    Route::post('/types/{typePublicId}/package/preview', [RequestDefinitionPackageController::class, 'preview'])->whereUlid('typePublicId')->middleware(['permission:request.type.import,admin', 'throttle:request-upload'])->name('types.package.preview');
+    Route::post('/types/{typePublicId}/package/import', [RequestDefinitionPackageController::class, 'import'])->whereUlid('typePublicId')->middleware(['permission:request.type.import,admin', 'throttle:request-upload'])->name('types.package.import');
     Route::get('/types/{typePublicId}/designer', [RequestDefinitionController::class, 'designer'])->whereUlid('typePublicId')->middleware('permission:request.type.update,admin')->name('types.designer');
     Route::get('/types/{typePublicId}/versions', [RequestDefinitionController::class, 'versions'])->whereUlid('typePublicId')->middleware('permission:request.type.view,admin')->name('types.versions');
     Route::get('/reports', RequestReportController::class)->middleware('permission:request.report.view,admin')->name('reports');
