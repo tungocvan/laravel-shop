@@ -88,10 +88,9 @@ class RequestExportFoundationTest extends TestCase
 
     private function user(int $id, array $permissions): object
     {
-        return new class($id, $permissions) {
-            public function __construct(private readonly int $id, private readonly array $permissions)
-            {
-            }
+        return new class($id, $permissions)
+        {
+            public function __construct(private readonly int $id, private readonly array $permissions) {}
 
             public function getAuthIdentifier(): int
             {
