@@ -5,7 +5,7 @@
     @include('Request::partials.dashboard-back')
 
     <div class="mb-6">
-        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">MR-09 · Operations</p>
+        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">MR-09 · Vận hành</p>
         <h1 class="mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">{{ __('Request::operations.title') }}</h1>
         <p class="mt-2 max-w-3xl text-sm text-slate-600">{{ __('Request::operations.description') }}</p>
         <p class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ __('Request::operations.allowlist_help') }}</p>
@@ -43,6 +43,7 @@
                                     @csrf
                                     <input type="hidden" name="kind" value="{{ $failure['kind'] }}">
                                     <input type="hidden" name="public_id" value="{{ $failure['public_id'] }}">
+                                    <input type="hidden" name="idempotency_key" value="{{ bin2hex(random_bytes(16)) }}">
                                     <button type="submit" class="min-h-11 rounded-lg border border-indigo-300 bg-white px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ __('Request::operations.retry') }}</button>
                                 </form>
                             </td>
