@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Request\Http\Controllers\RequestAttachmentController;
 use Modules\Request\Http\Controllers\RequestDashboardController;
 use Modules\Request\Http\Controllers\RequestDefinitionController;
+use Modules\Request\Http\Controllers\RequestReportController;
 use Modules\Request\Http\Controllers\RequestRequesterController;
 use Modules\Request\Http\Middleware\UseVietnameseRequestLocale;
 
@@ -12,6 +13,7 @@ Route::middleware(['web', UseVietnameseRequestLocale::class, 'auth:admin'])->pre
     Route::get('/types', [RequestDefinitionController::class, 'types'])->middleware('permission:request.type.view,admin')->name('types');
     Route::get('/types/{typePublicId}/designer', [RequestDefinitionController::class, 'designer'])->whereUlid('typePublicId')->middleware('permission:request.type.update,admin')->name('types.designer');
     Route::get('/types/{typePublicId}/versions', [RequestDefinitionController::class, 'versions'])->whereUlid('typePublicId')->middleware('permission:request.type.view,admin')->name('types.versions');
+    Route::get('/reports', RequestReportController::class)->middleware('permission:request.report.view,admin')->name('reports');
 });
 
 Route::middleware(['web', UseVietnameseRequestLocale::class, 'auth:admin'])->prefix('admin/requests')->name('request.')->group(function (): void {
