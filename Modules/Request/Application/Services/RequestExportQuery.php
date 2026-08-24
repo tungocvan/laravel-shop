@@ -105,6 +105,10 @@ final class RequestExportQuery
             $query->whereHas('type', fn (Builder $type): Builder => $type->where('public_id', $filters['type_public_id']));
         }
 
+        if (! empty($filters['request_public_id'])) {
+            $query->where('request_instances.public_id', $filters['request_public_id']);
+        }
+
         if (! empty($filters['created_from'])) {
             $query->whereDate('request_instances.created_at', '>=', $filters['created_from']);
         }
