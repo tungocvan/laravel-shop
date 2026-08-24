@@ -29,9 +29,9 @@ Status values: `Specified` means documentation is complete; implementation evide
 | ID | Requirement | Authoritative spec | Acceptance evidence | Status |
 |---|---|---|---|---|
 | REQ-01 | Draft/save/submit and immutable payload/run | Requirements 6.3; Domain 5 | RF-04, RS-01–04 | Specified |
-| REQ-02 | Approved/rejected/returned/cancelled states | Requirements 6.3; Domain 5 | AP-01–06; RF-06 | Specified |
-| REQ-03 | Return/resubmit retains version/history/new run | Domain 5.5; Approval 6 | RS-05–06 | Specified |
-| REQ-04 | Reject terminal; cancellation restricted/reasoned | Domain 5.4, 5.6 | AP-03, AP-05, AP-08 | Specified |
+| REQ-02 | Approved/rejected/returned/cancelled states | Requirements 6.3; Domain 5 | `RequestParallelRecoveryLifecycleTest`; RF-06 | Implemented through MR-05 |
+| REQ-03 | Return/resubmit retains version/history/new run | Domain 5.5; Approval 6 | `RequestParallelRecoveryLifecycleTest::test_parallel_return_requires_reason_cancels_peers_and_resubmit_preserves_history_and_pinned_version` | Implemented through MR-05 |
+| REQ-04 | Reject terminal; cancellation restricted/reasoned | Domain 5.4, 5.6 | `RequestParallelRecoveryLifecycleTest` reason/reject/cancel cases | Implemented through MR-05 |
 | REQ-05 | Optimistic concurrency/idempotency | Domain 9; API 4 | RS-03–04; CC-01–06 | Specified |
 | REQ-06 | Historical snapshots remain readable | Domain 10; DB spec | RT-04–06, RS-05 | Specified |
 
@@ -41,13 +41,13 @@ Status values: `Specified` means documentation is complete; implementation evide
 |---|---|---|---|---|
 | APR-01 | Sequential ordered stages | Requirements 6.4; Approval 1 | AP-01 | Specified |
 | APR-02 | `single` semantics | Approval 2.1, 5 | AP-01 | Specified |
-| APR-03 | `parallel_all` semantics | Approval 2.2, 5 | AP-02–03; CC-03 | Specified |
-| APR-04 | `parallel_any` semantics | Approval 2.3, 5 | AP-04–06; CC-02, CC-04 | Specified |
+| APR-03 | `parallel_all` semantics | Approval 2.2, 5 | `RequestParallelRecoveryLifecycleTest` ALL cases; production concurrency gate remains required | Implemented; concurrency evidence pending production-like environment |
+| APR-04 | `parallel_any` semantics | Approval 2.3, 5 | `RequestParallelRecoveryLifecycleTest` ANY cases; production concurrency gate remains required | Implemented; concurrency evidence pending production-like environment |
 | APR-05 | Candidate snapshot and self-approval denial | Domain 6; Actors 5 | AP-07, AP-09; resolver unit tests | Specified |
 | APR-06 | Fixed users/role/form user field resolvers | Actors 2–3 | AP-09; resolver/security tests | Specified |
 | APR-07 | Manager/department reserved, not implemented | Actors 4; ADR | registry/UI/repo scan | Specified |
-| APR-08 | Authorized audited replacement reassignment | Domain 7; Approval 7 | AP-08; CC-05 | Specified |
-| APR-09 | Safe later-stage activation failure/retry | Approval 3; API 8 | AP-10; RE-05 | Specified; representation due in CREATE_PLAN |
+| APR-08 | Authorized audited replacement reassignment | Domain 7; Approval 7 | `RequestParallelRecoveryLifecycleTest::test_reassignment_creates_linked_replacement_and_old_candidate_cannot_decide`; CC-05 production gate pending | Implemented; concurrency evidence pending production-like environment |
+| APR-09 | Safe later-stage activation failure/retry | Approval 3; API 8 | `RequestParallelRecoveryLifecycleTest::test_later_stage_activation_failure_is_visible_and_retry_activates_only_real_user` | Implemented through MR-05 |
 
 ## 5. Data, security, and reliability
 

@@ -86,6 +86,22 @@ class RequestSubmissionTransportTest extends RequestDraftTestCase
         $this->getJson('/api/request/v1/inbox')->assertForbidden();
     }
 
+    public function test_api_reject_uses_the_general_decision_service_contract(): void
+    {
+        [$requester, $approver, $request] = $this->draftForTransport();
+        $requester->givePermissionTo(['request.instance.view-own', 'request.instance.submit']);
+        $approver->givePermissionTo(['request.instance.view-participant', 'request.task.view', 'request.task.decide']);
+        Sanctum::actingAs($requester);
+        $this->postJson('/api/request/v1/requests/'.$request->public_id.'/submit', ['expected_version' => 2], ['Idempotency-Key' => (string) Str::uuid()])->assertOk();
+        $task = RequestTask::query()->firstOrFail();
+
+        Sanctum::actingAs($approver);
+        $this->postJson('/api/request/v1/tasks/'.$task->public_id.'/decisions', ['decision' => 'reject', 'reason' => 'Policy mismatch', 'expected_request_version' => 3, 'expected_task_version' => 1], ['Idempotency-Key' => (string) Str::uuid()])
+            ->assertOk()
+            ->assertJsonPath('data.decision', 'reject')
+            ->assertJsonPath('data.request.status', 'rejected');
+    }
+
     private function draftForTransport(): array
     {
         $requester = User::factory()->create(['is_active' => true]);

@@ -33,4 +33,15 @@ final class RequestTaskPolicy
             && $task->run->requestInstance->status === RequestStatus::Pending
             && $task->run->requestInstance->requester_id !== (int) $user->getAuthIdentifier();
     }
+
+    public function reassign(mixed $user, RequestTask $task): bool
+    {
+        $task->loadMissing('run.requestInstance', 'stageDefinition');
+
+        return $this->hasPermission($user, 'request.task.reassign')
+            && $task->stageDefinition->allow_reassignment
+            && $task->status === TaskStatus::Active
+            && $task->run->status === RunStatus::Active
+            && $task->run->requestInstance->status === RequestStatus::Pending;
+    }
 }

@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use Livewire\Component;
 use Modules\Request\Application\Queries\MyRequestsQuery;
 use Modules\Request\Application\Services\CancelInternalRequest;
+use Modules\Request\Application\Services\ResubmitInternalRequest;
 use Modules\Request\Application\Services\SaveRequestDraft;
 use Modules\Request\Application\Services\SubmitInternalRequest;
 use Modules\Request\Domain\Forms\VisibilityRuleEvaluator;
@@ -47,6 +48,15 @@ class RequestDetail extends Component
         Gate::authorize('submit', $request);
         $service->handle($request, (int) auth('admin')->id(), $this->lockVersion, $this->submitKey, $this->values);
         session()->flash('request_success', __('Request::request.request_submitted'));
+        $this->redirectRoute('request.show', ['requestPublicId' => $request->public_id]);
+    }
+
+    public function resubmit(MyRequestsQuery $query, ResubmitInternalRequest $service): void
+    {
+        $request = $query->findVisible($this->requestPublicId, auth('admin')->user());
+        Gate::authorize('submit', $request);
+        $service->handle($request, $this->values, (int) auth('admin')->id(), $this->lockVersion, $this->submitKey);
+        session()->flash('request_success', __('Request::request.request_resubmitted'));
         $this->redirectRoute('request.show', ['requestPublicId' => $request->public_id]);
     }
 
