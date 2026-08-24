@@ -63,7 +63,7 @@ final readonly class PlanRequestExport
             $normalized['status'] = $filters['status'];
         }
 
-        foreach (['type_public_id', 'created_from', 'created_to'] as $key) {
+        foreach (['type_public_id', 'request_public_id', 'created_from', 'created_to'] as $key) {
             if (isset($filters[$key]) && is_string($filters[$key]) && trim($filters[$key]) !== '') {
                 $normalized[$key] = trim($filters[$key]);
             }
