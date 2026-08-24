@@ -213,18 +213,35 @@ function applyDraftValues(form, values) {
 
 function setupDraftPersistence(store) {
     const form = document.querySelector('[data-request-draft-form]');
-    if (!form) {
+    if (!form || form.dataset.requestLocalEditable !== '1') {
         return;
     }
 
     const id = form.dataset.requestDraftForm;
     const schemaVersion = Number(form.dataset.requestSchemaVersion || 1);
     const serverLockVersion = Number(form.dataset.requestLockVersion || 0);
+    const status = form.querySelector('[data-request-local-status]');
+    const restore = form.querySelector('[data-request-restore-draft]');
     let timer = null;
     let localRecord = null;
 
+    const messages = {
+        empty: 'No local draft saved for this server revision.',
+        available: 'A local draft is available for review.',
+        saved: 'Local draft saved on this device.',
+        restored: 'Local values restored for review; nothing was submitted.',
+        conflict: 'Server revision changed. Local restore is blocked until you review the newer server version.',
+        error: 'Local persistence is unavailable or its quota was reached.',
+    };
+
     const setState = (state) => {
         form.dataset.requestLocalState = state;
+        if (status) {
+            status.textContent = messages[state] ?? state;
+        }
+        if (restore) {
+            restore.hidden = state !== 'available';
+        }
         window.dispatchEvent(new CustomEvent('request:local-draft-state', { detail: { state } }));
     };
 
@@ -241,7 +258,7 @@ function setupDraftPersistence(store) {
     form.addEventListener('input', persist);
     form.addEventListener('change', persist);
 
-    form.querySelector('[data-request-restore-draft]')?.addEventListener('click', () => {
+    restore?.addEventListener('click', () => {
         if (localRecord?.data?.fields && Number(localRecord.data.server_lock_version) === serverLockVersion) {
             applyDraftValues(form, localRecord.data.fields);
             setState('restored');
