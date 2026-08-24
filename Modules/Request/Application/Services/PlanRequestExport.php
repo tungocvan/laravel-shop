@@ -21,9 +21,7 @@ final readonly class PlanRequestExport
         'updated_at',
     ];
 
-    public function __construct(private RequestExportQuery $query)
-    {
-    }
+    public function __construct(private RequestExportQuery $query) {}
 
     public function plan(mixed $user, array $filters = [], array $fields = []): RequestExportPlan
     {
