@@ -7,11 +7,12 @@ use Modules\Request\Models\InternalRequest;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestPayloadRevision;
 use Modules\Request\Models\RequestRun;
+use Modules\Request\Models\RequestTask;
 use Modules\Request\Models\RequestType;
 
 class RequestDefinitionMigrationTest extends RequestDefinitionTestCase
 {
-    public function test_mr_03_adds_runtime_base_but_not_submission_or_task_tables(): void
+    public function test_mr_04_adds_task_decision_tables_and_runtime_pointers(): void
     {
         foreach (['request_groups', 'request_types', 'request_type_versions', 'request_type_audiences', 'request_stage_definitions', 'request_audit_events', 'request_outbox_messages', 'request_idempotency_keys'] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Missing {$table}.");
@@ -26,8 +27,14 @@ class RequestDefinitionMigrationTest extends RequestDefinitionTestCase
         $this->assertTrue(Schema::hasColumns('request_runs', ['request_instance_id', 'sequence_number', 'request_type_version_id', 'request_payload_revision_id', 'status', 'lock_version']));
 
         foreach (['request_tasks', 'request_task_candidates', 'request_decisions'] as $mr04Table) {
-            $this->assertFalse(Schema::hasTable($mr04Table), "MR-04 table {$mr04Table} must not exist.");
+            $this->assertTrue(Schema::hasTable($mr04Table), "MR-04 table {$mr04Table} must exist.");
         }
+
+        $this->assertTrue(Schema::hasColumns('request_instances', ['current_payload_revision_id', 'current_run_id']));
+        $this->assertTrue(Schema::hasColumns('request_audit_events', ['request_instance_id']));
+        $this->assertTrue(Schema::hasColumns('request_tasks', ['request_run_id', 'request_stage_definition_id', 'stage_position', 'stage_mode', 'assignee_user_id', 'lock_version']));
+        $this->assertTrue(Schema::hasColumns('request_task_candidates', ['request_task_id', 'user_id', 'source_type', 'user_snapshot_json', 'is_effective']));
+        $this->assertTrue(Schema::hasColumns('request_decisions', ['request_task_id', 'request_run_id', 'request_instance_id', 'decision', 'actor_user_id', 'idempotency_key_hash']));
 
         $this->assertTrue(Schema::hasColumns('request_types', ['current_published_version_id', 'active_draft_version_id', 'lock_version']));
     }
@@ -42,10 +49,12 @@ class RequestDefinitionMigrationTest extends RequestDefinitionTestCase
             'request_instance_id' => $request->id,
             'request_payload_revision_id' => $revision->id,
         ]);
+        $task = RequestTask::factory()->create(['request_run_id' => $run->id]);
 
         $this->assertNotNull($group->public_id);
         $this->assertSame($group->id, $type->request_group_id);
         $this->assertSame($request->request_type_version_id, $revision->request_type_version_id);
         $this->assertSame($request->request_type_version_id, $run->request_type_version_id);
+        $this->assertSame($run->id, $task->request_run_id);
     }
 }

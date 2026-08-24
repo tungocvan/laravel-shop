@@ -5,6 +5,7 @@ namespace Modules\Request\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Request\Database\Factories\RequestRunFactory;
 use Modules\Request\Domain\Enums\RunStatus;
 use Modules\Request\Models\Concerns\HasPublicUlid;
@@ -33,5 +34,10 @@ class RequestRun extends Model
     public function payloadRevision(): BelongsTo
     {
         return $this->belongsTo(RequestPayloadRevision::class, 'request_payload_revision_id');
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(RequestTask::class, 'request_run_id');
     }
 }

@@ -23,8 +23,14 @@ final class MyRequestsQuery
     public function findVisible(string $publicId, mixed $user): InternalRequest
     {
         $query = InternalRequest::query()->with(['type:id,public_id,name', 'typeVersion:id,public_id,title,form_schema_json,schema_version', 'latestPayloadRevision']);
+        $query->with(['currentRun.tasks' => fn ($tasks) => $tasks->where('assignee_user_id', (int) $user->getAuthIdentifier())]);
         if (! method_exists($user, 'checkPermissionTo') || ! $user->checkPermissionTo('request.instance.view-all', 'admin')) {
-            $query->where('requester_id', (int) $user->getAuthIdentifier());
+            $query->where(function ($scope) use ($user): void {
+                $scope->where('requester_id', (int) $user->getAuthIdentifier());
+                if (method_exists($user, 'checkPermissionTo') && $user->checkPermissionTo('request.instance.view-participant', 'admin')) {
+                    $scope->orWhereHas('runs.tasks', fn ($tasks) => $tasks->where('assignee_user_id', (int) $user->getAuthIdentifier()));
+                }
+            });
         }
 
         return $query->where('public_id', $publicId)->firstOrFail();

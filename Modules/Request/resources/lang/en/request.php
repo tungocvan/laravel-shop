@@ -1,6 +1,16 @@
 <?php
 
 return [
+    'inbox' => ['title' => 'Approval inbox', 'subtitle' => 'Review requests assigned to you.', 'search_placeholder' => 'Search by number or request type', 'submitted_at' => 'Submitted', 'empty' => 'There are no active approval tasks.'],
+    'approve' => 'Approve',
+    'approve_confirm' => 'Approve this request?',
+    'approve_warning' => 'Your decision is authoritative and cannot be edited.',
+    'decision_approved' => 'The request was approved successfully.',
+    'review_submit' => 'Review and submit',
+    'submit' => 'Submit request',
+    'submit_confirm' => 'Submit this request?',
+    'submit_warning' => 'The submitted payload becomes immutable and approval begins immediately.',
+    'request_submitted' => 'The request was submitted successfully.',
     'module_name' => 'Requests',
     'disabled' => 'The Request module is currently unavailable.',
     'code' => 'Code',

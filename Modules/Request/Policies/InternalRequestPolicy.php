@@ -22,7 +22,14 @@ final class InternalRequestPolicy
 
     public function view(mixed $user, InternalRequest $request): bool
     {
-        return $this->hasPermission($user, 'request.instance.view-all') || ($request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.view-own'));
+        return $this->hasPermission($user, 'request.instance.view-all')
+            || ($request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.view-own'))
+            || ($this->hasPermission($user, 'request.instance.view-participant') && $request->runs()->whereHas('tasks', fn ($query) => $query->where('assignee_user_id', (int) $user->getAuthIdentifier()))->exists());
+    }
+
+    public function submit(mixed $user, InternalRequest $request): bool
+    {
+        return $request->status === RequestStatus::Draft && $request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.submit');
     }
 
     public function update(mixed $user, InternalRequest $request): bool
