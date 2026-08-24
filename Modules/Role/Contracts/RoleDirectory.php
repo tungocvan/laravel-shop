@@ -11,6 +11,9 @@ interface RoleDirectory
     /** @return list<int> */
     public function activeMemberIds(int $roleId, int $limit): array;
 
+    /** @return list<int> */
+    public function activeAdminRoleIdsForUser(int $userId, int $limit): array;
+
     /** @return list<RoleIdentity> */
     public function searchAdminRoles(string $term, int $limit): array;
 }

@@ -13,6 +13,8 @@ use Modules\User\Data\UserIdentity;
 
 final class AuthUserDirectory implements UserDirectory
 {
+    private array $columnCache = [];
+
     public function findActive(int $userId): ?UserIdentity
     {
         if ($userId < 1) {
@@ -102,9 +104,10 @@ final class AuthUserDirectory implements UserDirectory
 
     private function activeQuery(Model $model): Builder
     {
-        $query = $model->newQuery()->select($this->safeColumns($model));
+        $columns = $this->availableColumns($model);
+        $query = $model->newQuery()->select($this->safeColumns($model, $columns));
 
-        if (Schema::connection($model->getConnectionName())->hasColumn($model->getTable(), 'is_active')) {
+        if (in_array('is_active', $columns, true)) {
             $query->where('is_active', true);
         }
 
@@ -112,9 +115,9 @@ final class AuthUserDirectory implements UserDirectory
     }
 
     /** @return list<string> */
-    private function safeColumns(Model $model): array
+    private function safeColumns(Model $model, ?array $available = null): array
     {
-        $available = $this->availableColumns($model);
+        $available ??= $this->availableColumns($model);
         $safe = array_values(array_intersect([
             $model->getKeyName(),
             'name',
@@ -135,7 +138,10 @@ final class AuthUserDirectory implements UserDirectory
     /** @return list<string> */
     private function availableColumns(Model $model): array
     {
-        return Schema::connection($model->getConnectionName())->getColumnListing($model->getTable());
+        $connection = $model->getConnectionName() ?? config('database.default');
+        $key = $connection.':'.$model->getTable();
+
+        return $this->columnCache[$key] ??= Schema::connection($model->getConnectionName())->getColumnListing($model->getTable());
     }
 
     private function toIdentity(Model $record): UserIdentity
