@@ -192,6 +192,7 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
             $sourceId = is_array($mapping) ? (int) ($mapping['source_id'] ?? 0) : 0;
             if (preg_match('/^(user|role):[1-9][0-9]*$/', $ref) !== 1 || in_array($kind, ['user', 'role'], true) === false || $sourceId < 1 || $ref !== $this->mappingRef($kind, $sourceId)) {
                 $errors['required_mappings.'.$index][] = 'invalid_mapping_placeholder';
+
                 continue;
             }
             $required[$ref] = $kind;
@@ -208,6 +209,7 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
         foreach ((array) ($definition['stages'] ?? []) as $index => $stage) {
             if (is_array($stage) === false) {
                 $errors['definition.stages.'.$index][] = 'invalid_stage';
+
                 continue;
             }
             $config = (array) ($stage['resolver_config'] ?? []);

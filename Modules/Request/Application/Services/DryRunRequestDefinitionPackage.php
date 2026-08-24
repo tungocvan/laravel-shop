@@ -95,6 +95,7 @@ final readonly class DryRunRequestDefinitionPackage
             $targetId = isset($mappings[$ref]) ? (int) $mappings[$ref] : 0;
             if ($targetId < 1) {
                 $errors['mappings.'.$ref][] = 'mapping_required';
+
                 continue;
             }
 
@@ -105,6 +106,7 @@ final readonly class DryRunRequestDefinitionPackage
 
             if ($available === false) {
                 $errors['mappings.'.$ref][] = 'mapping_target_unavailable';
+
                 continue;
             }
             $resolved[$ref] = $targetId;
@@ -119,6 +121,7 @@ final readonly class DryRunRequestDefinitionPackage
         foreach (array_values($audiences) as $index => $audience) {
             if (is_array($audience) === false) {
                 $errors['definition.audiences.'.$index][] = 'invalid_audience';
+
                 continue;
             }
             $actorType = (string) ($audience['actor_type'] ?? '');
@@ -126,6 +129,7 @@ final readonly class DryRunRequestDefinitionPackage
             $ref = (string) ($audience['actor_ref'] ?? '');
             if (AudienceActorType::tryFrom($actorType) === null || AudienceCapability::tryFrom($capability) === null || isset($resolved[$ref]) === false) {
                 $errors['definition.audiences.'.$index][] = 'invalid_or_unmapped_audience';
+
                 continue;
             }
             $normalized[] = ['actor_type' => $actorType, 'actor_id' => $resolved[$ref], 'capability' => $capability];
@@ -140,12 +144,14 @@ final readonly class DryRunRequestDefinitionPackage
         foreach (array_values($stages) as $index => $stage) {
             if (is_array($stage) === false) {
                 $errors['definition.stages.'.$index][] = 'invalid_stage';
+
                 continue;
             }
             $mode = (string) ($stage['mode'] ?? '');
             $resolver = (string) ($stage['resolver_key'] ?? '');
             if (StageMode::tryFrom($mode) === null || $this->resolvers->supports($resolver) === false) {
                 $errors['definition.stages.'.$index][] = 'unsupported_stage_configuration';
+
                 continue;
             }
 
@@ -155,6 +161,7 @@ final readonly class DryRunRequestDefinitionPackage
                 foreach ((array) ($config['user_refs'] ?? []) as $ref) {
                     if (isset($resolved[(string) $ref]) === false) {
                         $errors['definition.stages.'.$index][] = 'user_mapping_required';
+
                         continue;
                     }
                     $userIds[] = $resolved[(string) $ref];
