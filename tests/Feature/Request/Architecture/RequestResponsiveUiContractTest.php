@@ -16,7 +16,7 @@ class RequestResponsiveUiContractTest extends TestCase
         $this->assertStringContainsString('moveStage', $designer);
         $this->assertStringContainsString('xl:grid-cols-[14rem_minmax(0,1fr)_18rem]', $designer);
         $this->assertStringContainsString('min-h-11', $designer);
-        $this->assertStringContainsString('Review canonical definition details', $versions);
+        $this->assertStringContainsString('Xem chi tiết định nghĩa chuẩn hóa', $versions);
         $this->assertStringNotContainsString('draggable=', $designer);
     }
 
