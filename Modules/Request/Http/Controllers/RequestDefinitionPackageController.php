@@ -2,6 +2,7 @@
 
 namespace Modules\Request\Http\Controllers;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
@@ -78,7 +79,7 @@ final class RequestDefinitionPackageController extends Controller
         RequestDefinitionPackageStorage $storage,
         RequestDefinitionPackage $packages,
         ImportRequestDefinitionPackage $importer,
-    ) {
+    ): RedirectResponse {
         $type = $this->type($typePublicId);
         Gate::authorize('importDefinition', $type);
         $request->validate([
@@ -91,7 +92,7 @@ final class RequestDefinitionPackageController extends Controller
         $checksum = (string) ($package['checksum'] ?? '');
         $expected = (string) $request->session()->get('request.definition_package.preview_checksum.'.$type->public_id, '');
         if ($expected === '' || ! hash_equals($expected, $checksum) || ! hash_equals($request->string('preview_checksum')->toString(), $checksum)) {
-            throw ValidationException::withMessages(['package' => __('Request::request.definition_package.dry_run_required')]);
+            throw ValidationException::withMessages(['package' => __('Request::definition_package.dry_run_required')]);
         }
 
         $draft = $importer->handle($type, $package, $mappings, (int) auth('admin')->id());
@@ -99,7 +100,7 @@ final class RequestDefinitionPackageController extends Controller
 
         return redirect()
             ->route('request.admin.types.designer', $type->public_id)
-            ->with('request_success', __('Request::request.definition_package.imported', ['version' => $draft->version_number]));
+            ->with('request_success', __('Request::definition_package.imported', ['version' => $draft->version_number]));
     }
 
     private function type(string $publicId): RequestType
@@ -123,10 +124,10 @@ final class RequestDefinitionPackageController extends Controller
         try {
             $mappings = json_decode($mappingsJson, true, 16, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
-            throw ValidationException::withMessages(['mappings_json' => __('Request::request.definition_package.invalid_mappings')]);
+            throw ValidationException::withMessages(['mappings_json' => __('Request::definition_package.invalid_mappings')]);
         }
         if (! is_array($mappings) || array_is_list($mappings)) {
-            throw ValidationException::withMessages(['mappings_json' => __('Request::request.definition_package.invalid_mappings')]);
+            throw ValidationException::withMessages(['mappings_json' => __('Request::definition_package.invalid_mappings')]);
         }
 
         return [$package, $mappings];
