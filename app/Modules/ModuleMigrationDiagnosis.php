@@ -20,13 +20,12 @@ final readonly class ModuleMigrationDiagnosis
 
     public function isReady(): bool
     {
-        return $this->missingTables === [];
+        return $this->missingTables === [] && $this->missingMigrationRecords === [];
     }
 
     public function needsRecovery(): bool
     {
-        return $this->existingTables !== []
-            && ($this->missingTables !== [] || $this->missingMigrationRecords !== []);
+        return ! $this->isFresh() && ! $this->isReady();
     }
 
     public function toArray(): array
