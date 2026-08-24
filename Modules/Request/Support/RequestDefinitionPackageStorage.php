@@ -16,12 +16,12 @@ final readonly class RequestDefinitionPackageStorage
     public function store(UploadedFile $file): array
     {
         if (strtolower($file->getClientOriginalExtension()) !== 'json' || $file->getSize() > self::MAX_BYTES) {
-            throw ValidationException::withMessages(['package' => __('Request::request.definition_package.invalid_file')]);
+            throw ValidationException::withMessages(['package' => __('Request::definition_package.invalid_file')]);
         }
 
         $mime = strtolower((string) $file->getMimeType());
         if (! in_array($mime, ['application/json', 'text/json', 'text/plain', 'application/octet-stream'], true)) {
-            throw ValidationException::withMessages(['package' => __('Request::request.definition_package.invalid_file')]);
+            throw ValidationException::withMessages(['package' => __('Request::definition_package.invalid_file')]);
         }
 
         $disk = $this->privateStorage->disk();
@@ -31,7 +31,7 @@ final readonly class RequestDefinitionPackageStorage
             if (is_resource($stream)) {
                 fclose($stream);
             }
-            throw ValidationException::withMessages(['package' => __('Request::request.definition_package.store_failed')]);
+            throw ValidationException::withMessages(['package' => __('Request::definition_package.store_failed')]);
         }
         fclose($stream);
 
@@ -43,12 +43,12 @@ final readonly class RequestDefinitionPackageStorage
         $path = (string) ($stored['path'] ?? '');
         $disk = (string) ($stored['disk'] ?? '');
         if (! str_starts_with($path, 'request/packages/tmp/') || str_contains($path, '..') || $disk === 'public') {
-            throw ValidationException::withMessages(['package' => __('Request::request.definition_package.invalid_file')]);
+            throw ValidationException::withMessages(['package' => __('Request::definition_package.invalid_file')]);
         }
 
         $contents = Storage::disk($disk)->get($path);
         if (strlen($contents) > self::MAX_BYTES) {
-            throw ValidationException::withMessages(['package' => __('Request::request.definition_package.invalid_file')]);
+            throw ValidationException::withMessages(['package' => __('Request::definition_package.invalid_file')]);
         }
 
         return $contents;
