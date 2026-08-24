@@ -29,6 +29,17 @@ class ModuleLifecycleManager
             return $before + ['migrated' => false, 'output' => ''];
         }
 
+        $existingTables = array_values(array_diff($before['tables'], $before['missing_tables']));
+        if ($existingTables !== [] && $before['missing_tables'] !== []) {
+            throw new \RuntimeException(
+                "Cơ sở dữ liệu module {$module['name']} đang ở trạng thái migration không đồng bộ: "
+                .'đã có bảng '.implode(', ', $existingTables)
+                .'; còn thiếu '.implode(', ', $before['missing_tables'])
+                .'. Không tự động chạy lại migration vì có thể ghi đè hoặc xung đột dữ liệu. '
+                .'Hãy đối chiếu bảng migrations với schema hiện tại và phục hồi migration ledger trước khi bật module.'
+            );
+        }
+
         $relativePath = str_replace('\\', '/', ltrim(str_replace(base_path(), '', $migrationPath), '/\\'));
         $exitCode = Artisan::call('migrate', [
             '--path' => $relativePath,
@@ -43,7 +54,7 @@ class ModuleLifecycleManager
         $after = $this->databaseStatus($module);
         if ($after['missing_tables'] !== []) {
             throw new \RuntimeException(
-                'Migration hoàn tất nhưng vẫn thiếu bảng: ' . implode(', ', $after['missing_tables']) . '.'
+                'Migration hoàn tất nhưng vẫn thiếu bảng: '.implode(', ', $after['missing_tables']).'.'
             );
         }
 
@@ -73,13 +84,13 @@ class ModuleLifecycleManager
 
         $source = realpath($module['path']);
         $modulesRoot = realpath(base_path('Modules'));
-        if ($source === false || $modulesRoot === false || ! str_starts_with($source, $modulesRoot . DIRECTORY_SEPARATOR)) {
+        if ($source === false || $modulesRoot === false || ! str_starts_with($source, $modulesRoot.DIRECTORY_SEPARATOR)) {
             throw new \RuntimeException('Đường dẫn module không hợp lệ.');
         }
 
         $trashRoot = storage_path('app/module-trash');
         File::ensureDirectoryExists($trashRoot);
-        $destination = $trashRoot . DIRECTORY_SEPARATOR . $module['name'] . '-' . now()->format('Ymd-His');
+        $destination = $trashRoot.DIRECTORY_SEPARATOR.$module['name'].'-'.now()->format('Ymd-His');
 
         if (! File::moveDirectory($source, $destination)) {
             throw new \RuntimeException("Không thể chuyển module {$module['name']} vào thư mục lưu trữ.");
@@ -91,8 +102,8 @@ class ModuleLifecycleManager
     private function expectedTables(array $module): array
     {
         $manifestPath = collect([
-            $module['path'] . '/config/module.php',
-            $module['path'] . '/Config/module.php',
+            $module['path'].'/config/module.php',
+            $module['path'].'/Config/module.php',
         ])->first(fn (string $path): bool => is_file($path));
         $manifest = $manifestPath ? require $manifestPath : [];
         $tables = is_array($manifest['tables'] ?? null) ? $manifest['tables'] : [];
@@ -111,7 +122,7 @@ class ModuleLifecycleManager
     private function migrationPath(string $modulePath): ?string
     {
         foreach (['database/migrations', 'Database/Migrations'] as $relative) {
-            $path = $modulePath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $path = $modulePath.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relative);
             if (is_dir($path)) {
                 return $path;
             }
