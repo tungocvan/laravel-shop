@@ -29,10 +29,16 @@ final class RequestOperationsController extends Controller
         $validated = $request->validate([
             'kind' => ['required', 'string', Rule::in((array) config('request.operations.retry_allowlist', []))],
             'public_id' => ['required', 'string', 'size:26'],
+            'idempotency_key' => ['required', 'string', 'min:8', 'max:200'],
         ]);
 
-        $retry->handle($validated['kind'], $validated['public_id'], (int) $request->user('admin')->getAuthIdentifier());
+        $retry->handle(
+            $validated['kind'],
+            $validated['public_id'],
+            (int) $request->user('admin')->getAuthIdentifier(),
+            $validated['idempotency_key'],
+        );
 
-        return redirect()->route('request.admin.operations')->with('request_success', __('Request::request.operations.retry_started'));
+        return redirect()->route('request.admin.operations')->with('request_success', __('Request::operations.retry_started'));
     }
 }
