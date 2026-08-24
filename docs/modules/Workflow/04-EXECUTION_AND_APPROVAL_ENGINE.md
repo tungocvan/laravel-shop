@@ -1,5 +1,7 @@
 # Execution and Approval Engine
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Request v1 owns the current bounded approval implementation.
+
 ## 1. Command boundary
 
 Every state-changing operation is an explicit command such as:
@@ -152,4 +154,3 @@ Operational retry requires permission, confirmation, audit, and the same idempot
 - Engine step budget prevents runaway synchronous execution.
 - Due timers/outbox are processed in chunked leased batches with skip-locked or equivalent safe strategy.
 - Reports use indexed queries or rebuildable projections, never unbounded hydration.
-

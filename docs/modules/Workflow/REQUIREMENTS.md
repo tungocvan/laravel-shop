@@ -1,9 +1,11 @@
 # Workflow Module Requirements
 
-Status: Approved business and architecture input  
+Status: **DEFERRED — Request-first**  
 Specification: Workflow Enterprise v4.0 Ultimate  
 Module: `Workflow`  
 Type: `domain`
+
+> **Architecture notice (2026-08-24):** This document is retained as future Workflow analysis. `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md` assigns the first internal request-and-approval implementation to `Request` and blocks `/create-module Workflow`. Requirements below are historical/future candidates and do not authorize overlapping Workflow runtime ownership.
 
 ## 1. Purpose
 
@@ -322,5 +324,7 @@ Responsive UX/PWA     : READY
 Runtime state         : READY
 Docker/runtime storage: READY
 
-Overall: READY FOR /create-module Workflow
+Overall: DEFERRED — NOT AUTHORIZED FOR /create-module Workflow
 ```
+
+The individual `READY` labels record completeness of the earlier analysis only. They are not implementation approval. Resume requires a superseding ADR that resolves Request/Workflow ownership, data migration/coexistence, routes, permissions, and historical-read compatibility.

@@ -1,6 +1,8 @@
 # Requirements Traceability Matrix
 
-This matrix prevents implementation from silently omitting enterprise controls or adding unapproved scope.
+Status: **DEFERRED — Request-first**
+
+This matrix preserves the completeness of the future Workflow analysis. It is not an implementation checklist while `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md` is active. The current Request implementation uses `docs/modules/Request/12-TRACEABILITY_MATRIX.md`.
 
 | ID | Requirement | Primary specification | Verification |
 |---|---|---|---|
@@ -51,6 +53,8 @@ This matrix prevents implementation from silently omitting enterprise controls o
 | WF-TEST-001 | Layered release gate | Test §1, §13 | CI/manual evidence |
 
 ## Scope guard
+
+No Workflow implementation item is currently authorized. A superseding ADR must first resolve ownership/coexistence/migration with Request and update this matrix before `/create-module Workflow` can run.
 
 Any implementation item without a traceability ID must be classified as:
 

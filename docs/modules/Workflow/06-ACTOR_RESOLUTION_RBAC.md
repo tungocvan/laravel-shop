@@ -1,5 +1,7 @@
 # Actor Resolution, RBAC, and Visibility
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Do not implement this Workflow registry while the ADR is active.
+
 ## 1. Identity boundary
 
 Workflow does not own users or roles. It references canonical identities exposed by shell modules and Spatie Permission conventions. Direct dependency on domain modules is forbidden.
@@ -110,4 +112,3 @@ Required automated checks:
 - Reject direct DB table references outside `wf_*` and approved canonical shell identity/permission tables/contracts.
 - Reject definition configuration that names module/model/service classes.
 - Ensure no domain module is required for Workflow module boot tests.
-

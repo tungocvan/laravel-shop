@@ -1,5 +1,7 @@
 # Security, Audit, and Compliance
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Current Request controls are specified under `docs/modules/Request`.
+
 ## 1. Threat model
 
 Protected assets include request payloads, attachments, approval authority, workflow definitions, audit evidence, credentials/tokens, operational controls, and availability of the engine.
@@ -118,4 +120,3 @@ This is integrity evidence, not legal non-repudiation. Hash verification command
 - Audit update/delete paths absent and hash verification detects changes in fixtures.
 - Operational retry allowlist and redaction.
 - Domain dependency architecture rule.
-

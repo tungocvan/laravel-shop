@@ -1,5 +1,7 @@
 # Dynamic Form Builder Schema
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Request v1 owns the current bounded form implementation.
+
 ## 1. Goals
 
 The form builder must let authorized designers create usable internal request forms without creating database columns or executable code. A published schema is immutable, self-describing, server-validatable, and pinned to its workflow version.

@@ -1,5 +1,7 @@
 # Workflow Definition and Versioning
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Do not implement this surface while the ADR is active.
+
 ## 1. Definition package
 
 A complete definition version is a canonical package containing:
@@ -165,4 +167,3 @@ Evaluator semantics must define null, missing, numeric, currency, date/time, col
 ## 7. Simulation
 
 SHOULD scope simulation executes the pure graph/evaluator against sanitized sample data. It must not create production tasks, notifications, files, audit events, outbox deliveries, or external calls. Simulation output includes visited nodes, chosen edges, candidate resolver summaries, timer estimates, validation warnings, and deterministic trace IDs.
-

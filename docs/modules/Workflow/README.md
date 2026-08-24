@@ -1,12 +1,14 @@
 # Workflow Enterprise v4.0 Ultimate
 
-Status: Approved analysis specification  
+Status: **DEFERRED — Request-first**  
 Module: `Workflow`  
 Module type: `domain`  
 Target: Laravel 12, PHP 8.3, Livewire 3  
 Specification version: `4.0.0`
 
-This directory is the authoritative, implementation-ready specification for the first release of the Workflow module. It upgrades the supplied v3.0 outline into a deterministic, versioned, auditable workflow engine for internal requests in one company.
+This directory preserves the approved future analysis for the Workflow module. It upgrades the supplied v3.0 outline into a deterministic, versioned, auditable workflow engine, but it is **not currently authorized for implementation**.
+
+`docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md` assigns the internal request-and-approval domain to the smaller independent Request v1 module and defers Workflow. While that ADR is active, do not create Workflow runtime code, tables, routes, permissions, queues, or UI, and do not use this specification to duplicate Request ownership.
 
 The module is inspired by enterprise workflow capabilities commonly found in SAP/Odoo-class systems, but it does not claim product or protocol parity. Version 4.0 deliberately avoids full BPMN 2.0, multi-tenancy, PKI signatures, and direct coupling to business-domain modules.
 
@@ -42,12 +44,12 @@ When instructions conflict, use this order:
 
 Never introduce `nwidart/laravel-modules`, `module.json`, a second module registry, arbitrary expression execution, or direct dependencies on domain modules.
 
-## Approval boundary
+## Deferral and approval boundary
 
-These documents complete `/analyze-new-module`. They do not authorize application code. The next command is:
+These documents remain useful future analysis, but they no longer pass the create-module gate. The current implementation path is:
 
 ```text
-/create-module Workflow
+/create-module Request
 ```
 
-That task must create and obtain approval for `docs/modules/Workflow/CREATE_PLAN.md` before implementation begins.
+That task must create and obtain approval for `docs/modules/Request/CREATE_PLAN.md` before implementation begins. `/create-module Workflow` is prohibited until a superseding ADR defines ownership, coexistence or migration, and receives explicit approval.

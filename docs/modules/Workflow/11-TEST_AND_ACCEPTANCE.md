@@ -1,5 +1,7 @@
 # Test Strategy and Acceptance Scenarios
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. It is not the current implementation gate.
+
 ## 1. Test layers
 
 1. Static/architecture contracts.
