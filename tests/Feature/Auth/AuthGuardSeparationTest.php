@@ -45,7 +45,7 @@ class AuthGuardSeparationTest extends TestCase
         $this->assertSame('admin', $adminView->getData()['guard'] ?? null);
     }
 
-    public function test_client_logout_does_not_logout_admin_guard(): void
+    public function test_client_logout_does_not_logout_admin_guard_and_clears_site_data(): void
     {
         $user = new User();
         $user->id = 1002;
@@ -54,13 +54,14 @@ class AuthGuardSeparationTest extends TestCase
         $this->actingAs($user, 'admin');
 
         $this->post('/logout')
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('login'))
+            ->assertHeader('Clear-Site-Data', '"cache", "storage"');
 
         $this->assertGuest('web');
         $this->assertAuthenticatedAs($user, 'admin');
     }
 
-    public function test_admin_logout_does_not_logout_client_guard(): void
+    public function test_admin_logout_does_not_logout_client_guard_and_clears_site_data(): void
     {
         $user = new User();
         $user->id = 1003;
@@ -69,7 +70,8 @@ class AuthGuardSeparationTest extends TestCase
         $this->actingAs($user, 'admin');
 
         $this->post('/admin/logout')
-            ->assertRedirect(route('admin.login'));
+            ->assertRedirect(route('admin.login'))
+            ->assertHeader('Clear-Site-Data', '"cache", "storage"');
 
         $this->assertAuthenticatedAs($user, 'web');
         $this->assertGuest('admin');
