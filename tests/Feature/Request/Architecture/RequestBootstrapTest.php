@@ -41,6 +41,10 @@ class RequestBootstrapTest extends TestCase
             'request.admin.reports.exports.store',
             'request.admin.types',
             'request.admin.types.designer',
+            'request.admin.types.package',
+            'request.admin.types.package.download',
+            'request.admin.types.package.import',
+            'request.admin.types.package.preview',
             'request.admin.types.versions',
             'request.api.v1.inbox',
             'request.api.v1.requests.attachments.download',
@@ -62,7 +66,7 @@ class RequestBootstrapTest extends TestCase
             'request.show',
         ], $requestRoutes->pluck('action.as')->sort()->values()->all());
 
-        foreach (['request.admin.groups', 'request.admin.reports', 'request.admin.reports.exports.store', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions', 'request.attachments.download', 'request.catalog', 'request.create', 'request.dashboard', 'request.exports.download', 'request.inbox', 'request.mine', 'request.show'] as $routeName) {
+        foreach (['request.admin.groups', 'request.admin.reports', 'request.admin.reports.exports.store', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.package', 'request.admin.types.package.download', 'request.admin.types.package.import', 'request.admin.types.package.preview', 'request.admin.types.versions', 'request.attachments.download', 'request.catalog', 'request.create', 'request.dashboard', 'request.exports.download', 'request.inbox', 'request.mine', 'request.show'] as $routeName) {
             $route = Route::getRoutes()->getByName($routeName);
             $this->assertNotNull($route);
             $this->assertContains('auth:admin', $route->gatherMiddleware());
