@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Modules\ModuleLifecycleManager;
+use App\Modules\ModuleMigrationOwnershipVerifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
@@ -12,7 +13,7 @@ class RecoverModuleMigrations extends Command
 
     protected $description = 'Lập kế hoạch phục hồi migration ledger an toàn; mặc định chỉ dry-run';
 
-    public function handle(ModuleLifecycleManager $manager): int
+    public function handle(ModuleLifecycleManager $manager, ModuleMigrationOwnershipVerifier $verifier): int
     {
         $module = $this->resolveModule((string) $this->argument('module'));
         if ($module === null) {
@@ -22,6 +23,7 @@ class RecoverModuleMigrations extends Command
         }
 
         $diagnosis = $manager->migrationDiagnosis($module);
+        $verification = $verifier->verify($module);
 
         $this->components->info("Dry-run migration recovery: {$module['name']}");
         $this->line('Không có thay đổi nào được ghi vào database.');
@@ -49,9 +51,32 @@ class RecoverModuleMigrations extends Command
         );
 
         $this->newLine();
-        $this->warn('Recovery tự động đang bị khóa theo nguyên tắc fail-safe.');
-        $this->line('Không migration record nào được tạo chỉ dựa trên việc một vài bảng đang tồn tại.');
-        $this->line('Cần xác minh schema do từng migration tạo ra trước khi cho phép ghi ledger.');
+        $this->components->info('Xác minh ownership theo migration');
+
+        foreach ($diagnosis->missingMigrationRecords as $migration) {
+            $result = $verification[$migration] ?? null;
+            if ($result === null) {
+                $this->line("  BLOCKED  {$migration} — chưa khai báo ownership contract");
+
+                continue;
+            }
+
+            if ($result['verified']) {
+                $this->line("  VERIFIED {$migration} — schema ownership đã đầy đủ; là candidate cho ledger repair");
+
+                continue;
+            }
+
+            $reasons = array_merge(
+                array_map(fn (string $table): string => "thiếu bảng {$table}", $result['missing_tables']),
+                array_map(fn (string $column): string => "thiếu cột {$column}", $result['missing_columns']),
+            );
+            $this->line("  BLOCKED  {$migration} — ".implode('; ', $reasons));
+        }
+
+        $this->newLine();
+        $this->warn('Recovery tự động vẫn đang bị khóa theo nguyên tắc fail-safe.');
+        $this->line('VERIFIED chỉ có nghĩa migration đủ điều kiện xem xét sửa ledger; command này chưa ghi migration record.');
 
         return self::FAILURE;
     }
