@@ -1,17 +1,18 @@
 # Request v1 — CREATE PLAN
 
-Status: **PLANNING COMPLETE — APPLICATION CODE NOT YET AUTHORIZED**  
+Status: **APPROVED FOR IMPLEMENTATION**  
 Command: `/create-module Request`  
 Target module: `Modules/Request`  
 Module type: `domain`  
 Plan base inspected: `main` at `62aaa741b5ba904840269638c10d0ed5bfaaee8b` (2026-08-24)  
 Specification: `docs/modules/Request`, version `1.0.0`
+Approval: explicitly approved by the repository owner on 2026-08-24; planning PR `#23` merged as `06e6f67b5d36f82f03149131681a206b87879020`
 
 ## 0. Execution contract and approval gate
 
-This document is the implementation plan required by `.codex/tasks/create-module.md`. It turns the approved Request v1 specification into ordered, independently testable merge requests. It does **not** authorize application code.
+This document is the approved implementation plan required by `.codex/tasks/create-module.md`. It turns the approved Request v1 specification into ordered, independently testable merge requests. Approval authorizes implementation beginning with MR-01; it does not authorize scope outside this plan.
 
-After this planning change is reviewed, stop. Implementation starts only after the user explicitly approves this plan. At implementation start, Codex must:
+The planning approval gate is satisfied. At implementation start, Codex must:
 
 1. fetch the current `main`, record its commit, and inspect `git status`;
 2. re-read this file, `README.md` in its stated order, repository instructions, and the current bootstrap code;
@@ -1135,4 +1136,4 @@ Request v1 is complete only when:
 - release notes/team-chat handoff is prepared;
 - Workflow remains deferred and no overlapping runtime artifact exists.
 
-Until the user approves this plan, the only authorized output of `/create-module Request` is this planning document.
+Implementation is authorized beginning with MR-01 and must follow the ordering, gates, stop conditions, and change control in this document.
