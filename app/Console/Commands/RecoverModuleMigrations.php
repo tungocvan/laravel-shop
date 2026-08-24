@@ -61,7 +61,7 @@ class RecoverModuleMigrations extends Command
         if (! $apply) {
             $this->newLine();
             $this->line('DRY-RUN: Không có thay đổi nào được ghi vào database.');
-            $this->line("Dùng --apply nếu muốn sửa migration ledger sau khi đã kiểm tra danh sách trên.");
+            $this->line('Dùng --apply nếu muốn sửa migration ledger sau khi đã kiểm tra danh sách trên.');
 
             return self::SUCCESS;
         }
