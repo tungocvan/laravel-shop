@@ -37,6 +37,7 @@ class RequestBootstrapTest extends TestCase
         $this->assertSame($requestRoutes->count(), $requestRoutes->pluck('action.as')->unique()->count(), 'Request routes must only be registered once.');
         $this->assertSame([
             'request.admin.groups',
+            'request.admin.reports',
             'request.admin.types',
             'request.admin.types.designer',
             'request.admin.types.versions',
@@ -59,7 +60,7 @@ class RequestBootstrapTest extends TestCase
             'request.show',
         ], $requestRoutes->pluck('action.as')->sort()->values()->all());
 
-        foreach (['request.admin.groups', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions', 'request.attachments.download', 'request.catalog', 'request.create', 'request.dashboard', 'request.inbox', 'request.mine', 'request.show'] as $routeName) {
+        foreach (['request.admin.groups', 'request.admin.reports', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions', 'request.attachments.download', 'request.catalog', 'request.create', 'request.dashboard', 'request.inbox', 'request.mine', 'request.show'] as $routeName) {
             $route = Route::getRoutes()->getByName($routeName);
             $this->assertNotNull($route);
             $this->assertContains('auth:admin', $route->gatherMiddleware());
