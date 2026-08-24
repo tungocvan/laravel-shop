@@ -3,6 +3,8 @@
 namespace Tests\Feature\System;
 
 use App\Modules\ModuleLifecycleManager;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -55,30 +57,70 @@ PHP);
     {
         Schema::dropIfExists('lifecycle_missing');
         Schema::dropIfExists('lifecycle_existing');
+        DB::table('migrations')->where('migration', '2026_01_01_000001_create_lifecycle_fixture_tables')->delete();
         File::deleteDirectory($this->modulePath);
 
         parent::tearDown();
     }
 
+    public function test_fresh_module_database_runs_migrations_and_becomes_ready(): void
+    {
+        $result = app(ModuleLifecycleManager::class)->migrateIfNeeded($this->module());
+
+        $this->assertTrue($result['ready']);
+        $this->assertTrue($result['migrated']);
+        $this->assertSame([], $result['missing_tables']);
+        $this->assertTrue(Schema::hasTable('lifecycle_existing'));
+        $this->assertTrue(Schema::hasTable('lifecycle_missing'));
+        $this->assertDatabaseHas('migrations', [
+            'migration' => '2026_01_01_000001_create_lifecycle_fixture_tables',
+        ]);
+    }
+
+    public function test_ready_module_database_is_idempotent_and_does_not_replay_migrations(): void
+    {
+        $manager = app(ModuleLifecycleManager::class);
+        $first = $manager->migrateIfNeeded($this->module());
+        $second = $manager->migrateIfNeeded($this->module());
+
+        $this->assertTrue($first['migrated']);
+        $this->assertFalse($second['migrated']);
+        $this->assertTrue($second['ready']);
+        $this->assertSame('', $second['output']);
+        $this->assertSame(1, DB::table('migrations')
+            ->where('migration', '2026_01_01_000001_create_lifecycle_fixture_tables')
+            ->count());
+    }
+
     public function test_partial_module_database_fails_with_recovery_guidance_instead_of_replaying_create_migrations(): void
     {
-        Schema::create('lifecycle_existing', function ($table): void {
+        Schema::create('lifecycle_existing', function (Blueprint $table): void {
             $table->id();
         });
 
         $manager = app(ModuleLifecycleManager::class);
-        $module = [
-            'name' => 'LifecycleFixture',
-            'path' => $this->modulePath,
-        ];
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('lifecycle_missing');
-        $this->expectExceptionMessage('migration');
-
-        $manager->migrateIfNeeded($module);
+        try {
+            $manager->migrateIfNeeded($this->module());
+            $this->fail('Expected partial module database to require recovery.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('lifecycle_missing', $exception->getMessage());
+            $this->assertStringContainsString('migration', $exception->getMessage());
+            $this->assertStringContainsString('ledger', $exception->getMessage());
+        }
 
         $this->assertTrue(Schema::hasTable('lifecycle_existing'));
         $this->assertFalse(Schema::hasTable('lifecycle_missing'));
+        $this->assertDatabaseMissing('migrations', [
+            'migration' => '2026_01_01_000001_create_lifecycle_fixture_tables',
+        ]);
+    }
+
+    private function module(): array
+    {
+        return [
+            'name' => 'LifecycleFixture',
+            'path' => $this->modulePath,
+        ];
     }
 }
