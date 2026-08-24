@@ -117,3 +117,15 @@ Deferred rows are not implementation backlog hidden inside v1. Each requires exp
 | `ARC-05` Workflow deferred | No Workflow runtime artifact, dependency, provider, route, table, or shared Approval module added | `tests/Feature/Request/Architecture/RequestArchitectureTest.php` and repository `rg` scan | Preserved |
 
 MR-01 intentionally contains no Request business migrations, models, approval runtime, Livewire components, or UI. Later traceability rows remain `Specified` until their owning merge requests provide evidence.
+
+### MR-02 — Definition persistence and publication
+
+| Traceability | Implementation evidence | Automated evidence | Result |
+|---|---|---|---|
+| `DEF-01`, `REQ-06` definition lifecycle and history | Request-owned group/type/version/audience/stage models and services implement create, draft save, validate, publish, clone, compare, retire, and archive without runtime request tables | `tests/Feature/Request/Definition/RequestDefinitionServiceTest.php` | Implemented for RT-01..06 within MR-02; requester runtime remains deferred to MR-03 |
+| `DEF-02` immutable publication and checksum | `PublishTypeVersion` locks the type/draft, validates and canonicalizes the definition, advances pointers, and writes audit/outbox atomically; published model mutations are rejected | `tests/Feature/Request/Definition/RequestDefinitionServiceTest.php` | Implemented for MR-02 with optimistic stale-write rejection |
+| `DAT-01`, `SEC-04`, `REL-01` definition/reliability persistence | Migrations 1–3 create only definition, audit, outbox, and idempotency tables; factories and restrictive relationships support isolated tests | `tests/Feature/Request/Definition/RequestDefinitionMigrationTest.php`; fresh/migrate/rollback/migrate validation | Implemented for the MR-02 persistence slice |
+| `SEC-01` definition authorization | Request group/type/version policies and permission-protected admin routes guard the minimal group/type/version UI; lookups use public ULIDs | `tests/Feature/Request/Definition/RequestDefinitionPolicyTest.php`; `tests/Feature/Request/Architecture/RequestBootstrapTest.php` | Implemented for MR-02 definition administration |
+| `ARC-02`, `ARC-04`, `ARC-05` architecture invariants | Request consumes only approved Shell contracts, remains default OFF, and its provider binds only owned registries/policies | `tests/Feature/Request/Architecture/*`; `tests/Feature/Request/ModuleState/*`; repository import scan | Preserved |
+
+MR-02 intentionally contains no request instance/payload/run/task persistence, requester/approver runtime, shared Approval module, Workflow changes, or MR-03 UI.

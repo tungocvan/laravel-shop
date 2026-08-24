@@ -54,8 +54,11 @@ class RequestArchitectureTest extends TestCase
         }
 
         $this->assertFileDoesNotExist(base_path('Modules/Request/module.json'));
-        $this->assertDirectoryDoesNotExist(base_path('Modules/Request/database/migrations'));
-        $this->assertDirectoryDoesNotExist(base_path('Modules/Request/Livewire'));
+        $this->assertFileExists(base_path('Modules/Request/database/migrations/2026_09_01_000001_create_request_definition_tables.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Request/database/migrations/2026_09_01_000004_create_request_runtime_tables.php'));
+        $this->assertFileExists(base_path('Modules/Request/Livewire/Admin/DefinitionIndex.php'));
+        $this->assertDirectoryDoesNotExist(base_path('Modules/Request/Livewire/Requester'));
+        $this->assertDirectoryDoesNotExist(base_path('Modules/Request/Livewire/Approver'));
     }
 
     public function test_module_provider_does_not_duplicate_root_resource_registration(): void
@@ -82,7 +85,8 @@ class RequestArchitectureTest extends TestCase
 
     private function isApprovedShellImport(string $import): bool
     {
-        return str_starts_with($import, 'Modules\\User\\Contracts\\')
+        return str_starts_with($import, 'Modules\\Request\\')
+            || str_starts_with($import, 'Modules\\User\\Contracts\\')
             || str_starts_with($import, 'Modules\\User\\Data\\')
             || str_starts_with($import, 'Modules\\Role\\Contracts\\')
             || str_starts_with($import, 'Modules\\Role\\Data\\')

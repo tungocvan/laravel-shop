@@ -25,6 +25,7 @@ class RequestBootstrapTest extends TestCase
 
         $this->invoke($provider, 'registerModule', [$module]);
         $this->invoke($provider, 'registerModule', [$module]);
+        Route::getRoutes()->refreshNameLookups();
 
         $this->assertTrue($module['enabled']);
         $this->assertSame('runtime', $module['source']);
@@ -32,6 +33,18 @@ class RequestBootstrapTest extends TestCase
         $this->assertSame([10, 25, 50, 100], config('request.settings.page_sizes'));
         $this->assertSame('Requests', trans('Request::request.module_name', locale: 'en'));
         $this->assertNull(Route::getRoutes()->getByName('request.index'));
+        $this->assertSame([
+            'request.admin.groups',
+            'request.admin.types',
+            'request.admin.types.designer',
+            'request.admin.types.versions',
+        ], collect(Route::getRoutes())->filter(fn ($route): bool => str_starts_with((string) $route->getName(), 'request.'))->pluck('action.as')->unique()->sort()->values()->all());
+
+        foreach (['request.admin.groups', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions'] as $routeName) {
+            $route = Route::getRoutes()->getByName($routeName);
+            $this->assertNotNull($route);
+            $this->assertContains('auth:admin', $route->gatherMiddleware());
+        }
     }
 
     public function test_enabled_module_fails_safely_for_missing_or_disabled_dependencies(): void
