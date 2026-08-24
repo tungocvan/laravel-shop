@@ -131,7 +131,7 @@ class TypeDesigner extends Component
             'name' => 'Stage '.$number,
             'mode' => 'sequential',
             'resolver_key' => 'fixed_user',
-            'resolver_config_json' => "{}",
+            'resolver_config_json' => '{}',
             'instructions' => '',
             'allow_reassignment' => false,
         ];
