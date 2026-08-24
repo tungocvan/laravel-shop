@@ -12,6 +12,7 @@ class AdminThemeProfileService
     private const ACTIVE_SETTING = 'admin_theme_profile';
 
     public function profiles(): array { return array_replace($this->builtIns(), $this->customProfiles()); }
+    public function builtInProfiles(): array { return $this->builtIns(); }
     public function profile(string $name): array { return $this->profiles()[$name] ?? $this->builtIns()[self::DEFAULT_PROFILE]; }
     public function activeName(): string { $name=(string)Setting::getValue(self::ACTIVE_SETTING,self::DEFAULT_PROFILE); return array_key_exists($name,$this->profiles())?$name:self::DEFAULT_PROFILE; }
     public function setActive(string $name): void { if(!array_key_exists($name,$this->profiles()))$name=self::DEFAULT_PROFILE; Setting::setValue(self::ACTIVE_SETTING,$name,'admin_layout','text'); }

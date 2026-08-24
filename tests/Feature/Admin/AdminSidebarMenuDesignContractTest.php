@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use Modules\Admin\Services\AdminDesignService;
 use Tests\TestCase;
 
 class AdminSidebarMenuDesignContractTest extends TestCase
@@ -52,11 +53,29 @@ class AdminSidebarMenuDesignContractTest extends TestCase
         $this->assertStringContainsString('var(--admin-sidebar-menu-item-gap)',$sidebar);$this->assertStringNotContainsString('gap-3 rounded-lg px-3 py-2',$item);$this->assertStringNotContainsString('space-y-0.5',$group);
     }
 
+    public function test_active_border_widths_survive_sanitization_and_generate_css_pixels(): void
+    {
+        $service = app(AdminDesignService::class);
+        $tokens = config('admin.admin.design');
+        data_set($tokens, 'sidebar_menu.active.menu_border_width', '3');
+        data_set($tokens, 'sidebar_menu.active.submenu_border_width', '2');
+
+        $sanitized = $service->sanitize($tokens);
+        $variables = $service->cssVariables($tokens);
+
+        $this->assertSame('3', data_get($sanitized, 'sidebar_menu.active.menu_border_width'));
+        $this->assertSame('2', data_get($sanitized, 'sidebar_menu.active.submenu_border_width'));
+        $this->assertSame('3px', $variables['--admin-sidebar-menu-active-border-width']);
+        $this->assertSame('2px', $variables['--admin-sidebar-submenu-active-border-width']);
+    }
+
     public function test_default_theme_restores_professional_sidebar_menu_rhythm(): void
     {
         $profiles=file_get_contents(base_path('Modules/Admin/Services/AdminThemeProfileService.php'));$config=file_get_contents(base_path('Modules/Admin/config/admin.php'));$view=file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));
         foreach(["'item_height'=>'44'","'padding_x'=>'12'","'padding_y'=>'8'","'content_gap'=>'12'","'item_gap'=>'4'","'indent'=>'28'","'offset'=>'12'","'group'=>['gap'=>'4']"] as $default)$this->assertStringContainsString($default,$profiles);
         foreach(["'item_height' => '44'","'padding_x' => '12'","'padding_y' => '8'","'content_gap' => '12'","'item_gap' => '4'","'indent' => '28'","'offset' => '12'","'group' => ['gap' => '4']"] as $default)$this->assertStringContainsString($default,$config);
-        $this->assertStringContainsString('Restore Default sẽ trả toàn bộ nhóm này về bộ Professional Indigo tối ưu.',$view);$this->assertStringContainsString('14px / 500 / 44px',$view);
+        $this->assertStringContainsString('Default optimized',$view);
+        $this->assertStringContainsString('Khôi phục Theme mặc định Professional Indigo?',$view);
+        $this->assertStringContainsString('14px / 500 / 44px',$view);
     }
 }
