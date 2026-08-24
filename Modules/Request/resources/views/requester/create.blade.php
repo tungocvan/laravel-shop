@@ -3,6 +3,7 @@
 @section('content')
 <div class="p-4 sm:p-6">
     @include('Request::partials.offline-runtime')
+    @include('Request::partials.dashboard-back')
     @livewire('request.requester.create-draft', ['typePublicId' => $typePublicId])
 </div>
 @endsection
