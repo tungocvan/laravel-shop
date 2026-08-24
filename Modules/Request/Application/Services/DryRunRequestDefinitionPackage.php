@@ -2,7 +2,6 @@
 
 namespace Modules\Request\Application\Services;
 
-use Illuminate\Validation\ValidationException;
 use Modules\Request\Contracts\RequestDefinitionPackage;
 use Modules\Request\Domain\Approval\ActorResolverConfigRegistry;
 use Modules\Request\Domain\Enums\AudienceActorType;
@@ -76,7 +75,7 @@ final readonly class DryRunRequestDefinitionPackage
     {
         $required = [];
         foreach ((array) ($package['required_mappings'] ?? []) as $mapping) {
-            if (! is_array($mapping) || ! isset($mapping['ref'], $mapping['kind'])) {
+            if (is_array($mapping) === false || isset($mapping['ref'], $mapping['kind']) === false) {
                 continue;
             }
             $required[(string) $mapping['ref']] = [
@@ -104,7 +103,7 @@ final readonly class DryRunRequestDefinitionPackage
                 ? $this->users->findActive($targetId) !== null
                 : ($kind === 'role' && $this->roles->findAdminRole($targetId) !== null);
 
-            if (! $available) {
+            if ($available === false) {
                 $errors['mappings.'.$ref][] = 'mapping_target_unavailable';
                 continue;
             }
@@ -118,14 +117,14 @@ final readonly class DryRunRequestDefinitionPackage
     {
         $normalized = [];
         foreach (array_values($audiences) as $index => $audience) {
-            if (! is_array($audience)) {
+            if (is_array($audience) === false) {
                 $errors['definition.audiences.'.$index][] = 'invalid_audience';
                 continue;
             }
             $actorType = (string) ($audience['actor_type'] ?? '');
             $capability = (string) ($audience['capability'] ?? '');
             $ref = (string) ($audience['actor_ref'] ?? '');
-            if (AudienceActorType::tryFrom($actorType) === null || AudienceCapability::tryFrom($capability) === null || ! isset($resolved[$ref])) {
+            if (AudienceActorType::tryFrom($actorType) === null || AudienceCapability::tryFrom($capability) === null || isset($resolved[$ref]) === false) {
                 $errors['definition.audiences.'.$index][] = 'invalid_or_unmapped_audience';
                 continue;
             }
@@ -139,13 +138,13 @@ final readonly class DryRunRequestDefinitionPackage
     {
         $normalized = [];
         foreach (array_values($stages) as $index => $stage) {
-            if (! is_array($stage)) {
+            if (is_array($stage) === false) {
                 $errors['definition.stages.'.$index][] = 'invalid_stage';
                 continue;
             }
             $mode = (string) ($stage['mode'] ?? '');
             $resolver = (string) ($stage['resolver_key'] ?? '');
-            if (StageMode::tryFrom($mode) === null || ! $this->resolvers->supports($resolver)) {
+            if (StageMode::tryFrom($mode) === null || $this->resolvers->supports($resolver) === false) {
                 $errors['definition.stages.'.$index][] = 'unsupported_stage_configuration';
                 continue;
             }
@@ -154,7 +153,7 @@ final readonly class DryRunRequestDefinitionPackage
             if ($resolver === 'fixed_users') {
                 $userIds = [];
                 foreach ((array) ($config['user_refs'] ?? []) as $ref) {
-                    if (! isset($resolved[(string) $ref])) {
+                    if (isset($resolved[(string) $ref]) === false) {
                         $errors['definition.stages.'.$index][] = 'user_mapping_required';
                         continue;
                     }
@@ -165,7 +164,7 @@ final readonly class DryRunRequestDefinitionPackage
             }
             if ($resolver === 'role_members') {
                 $ref = (string) ($config['role_ref'] ?? '');
-                if (! isset($resolved[$ref])) {
+                if (isset($resolved[$ref]) === false) {
                     $errors['definition.stages.'.$index][] = 'role_mapping_required';
                 } else {
                     unset($config['role_ref']);
