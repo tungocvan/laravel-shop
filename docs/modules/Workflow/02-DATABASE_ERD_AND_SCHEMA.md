@@ -1,5 +1,7 @@
 # Database ERD and Schema Contract
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Do not create these tables while the ADR is active.
+
 ## 1. Naming and database rules
 
 - Prefix Workflow-owned tables with `wf_`.
@@ -356,4 +358,3 @@ Inbox/reporting projections may be added only if query budgets prove necessary. 
 - Never modify another module's migrations.
 - Rollback must not delete data from shell/domain modules.
 - Large future schema changes use additive migrations and backfills, not historical rewrites.
-

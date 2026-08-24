@@ -1,5 +1,7 @@
 # API, Events, and Integration Contract
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Do not register these Workflow routes/events while the ADR is active.
+
 ## 1. Integration boundary
 
 Version 1 exposes Workflow's own internal-request API only. It does not accept references to external domain models and does not mutate domain-module state. Domain-module adapters, webhooks to arbitrary destinations, and generic polymorphic subjects are FUTURE work requiring a separate approved architecture.

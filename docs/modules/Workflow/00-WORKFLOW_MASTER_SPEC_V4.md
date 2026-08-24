@@ -1,5 +1,7 @@
 # Workflow Master Specification v4.0 Ultimate
 
+> **Status: DEFERRED — Request-first.** This master specification is retained for future architecture work. The accepted decision in `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md` makes Request v1 the current owner of internal requests and prohibits Workflow implementation until a superseding ADR is approved. Do not interpret the ownership statements below as permission to create overlapping runtime artifacts.
+
 ## 1. Product vision
 
 Workflow is a reusable internal-request platform for one company. It combines low-code request forms, controlled process design, a reliable execution engine, human work queues, SLA operations, and an evidence-grade audit trail while remaining native to the repository's Laravel modular monolith.

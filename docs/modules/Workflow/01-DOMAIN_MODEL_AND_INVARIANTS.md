@@ -1,5 +1,7 @@
 # Domain Model and Invariants
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Do not implement overlapping Workflow runtime ownership.
+
 ## 1. Aggregate map
 
 ### WorkflowDefinition
@@ -155,4 +157,3 @@ Use explicit safe exceptions such as:
 - WorkflowOperationFailedException
 
 Map these to stable UI/API errors. Never expose stack traces or raw database messages.
-

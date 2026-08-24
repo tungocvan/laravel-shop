@@ -1,16 +1,12 @@
 # AI Implementation Contract
 
+> **MANDATORY STOP — Workflow is deferred.** Do not run `/create-module Workflow` or create Workflow application code, migrations, routes, tables, permissions, queues, providers, or UI. Read `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. The current approved path is `/create-module Request`; Workflow may resume only after a superseding ownership/migration ADR receives explicit approval.
+
 ## 1. Purpose
 
 This document tells an AI/developer how to transform the approved Workflow v4.0 specification into a production-ready module without inventing architecture, bypassing approval gates, or generating a monolithic unsafe implementation.
 
-It is not the CREATE_PLAN and does not authorize code. First run:
-
-```text
-/create-module Workflow
-```
-
-Create `docs/modules/Workflow/CREATE_PLAN.md`, present it, and stop for approval.
+It is not the CREATE_PLAN and does not authorize code. The previous `/create-module Workflow` next step is suspended. Do not create `docs/modules/Workflow/CREATE_PLAN.md` while the deferral is active. Use the Request specification and its create-module approval gate instead.
 
 ## 2. Mandatory reading
 

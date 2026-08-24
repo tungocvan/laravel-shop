@@ -1,5 +1,7 @@
 # UI, UX, Responsive, and PWA Screen Specification
 
+> **DEFERRED — Request-first.** Retained as future design reference only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Current product UI belongs to Request v1.
+
 ## 1. UI principles
 
 Follow `ADMIN_UI_STANDARD.md`, `Admin::layouts.master`, current shared components, Tailwind 4 conventions, responsive behavior, visible form boundaries, bounded pagination, and backend authorization.

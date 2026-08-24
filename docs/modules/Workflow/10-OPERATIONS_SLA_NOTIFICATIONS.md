@@ -1,5 +1,7 @@
 # Operations, SLA, Queues, and Notifications
 
+> **DEFERRED — Request-first.** Retained as future analysis only; see `docs/modules/Request/ADR-001-REQUEST-FIRST-WORKFLOW-DEFERRED.md`. Do not create Workflow workers/queues/timers while the ADR is active.
+
 ## 1. Operational goals
 
 The engine must recover from restarts, duplicated deliveries, transient failures, and worker concurrency without losing or repeating a business decision. Operators need visibility and safe recovery, not direct database/token editing.
@@ -122,4 +124,3 @@ Runtime module state uses platform abstractions. Before disabling in production,
 - provide pre-disable report of active instances/tasks/timers
 
 Runtime toggle never edits tracked manifest and must leave Git clean.
-
