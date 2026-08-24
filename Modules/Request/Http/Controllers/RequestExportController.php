@@ -37,6 +37,27 @@ final class RequestExportController extends Controller
                 : __('Request::exports.queued_message'));
     }
 
+    public function pdf(string $requestPublicId, RequestExportQuery $query, PlanRequestExport $planner, StartRequestExport $starter): RedirectResponse
+    {
+        $user = auth('admin')->user();
+        abort_unless($user, 403);
+
+        $authorizedRequest = $query->queryFor($user, ['request_public_id' => $requestPublicId])->first();
+        abort_unless($authorizedRequest, 404);
+
+        $plan = $planner->plan($user, ['request_public_id' => $requestPublicId]);
+        abort_unless($plan->authorizedRowCount === 1, 404);
+
+        $idempotencyKey = 'request-pdf:'.$requestPublicId.':'.$authorizedRequest->updated_at?->getTimestamp();
+        $export = $starter->handle($user, $plan, 'pdf', $idempotencyKey);
+
+        if ($export->status !== ExportStatus::Ready) {
+            return redirect()->route('request.show', $requestPublicId)->with('request_export_message', __('Request::exports.queued_message'));
+        }
+
+        return redirect()->route('request.exports.download', $export->public_id);
+    }
+
     public function download(string $exportPublicId, RequestExportQuery $query): StreamedResponse
     {
         $user = auth('admin')->user();
@@ -47,6 +68,12 @@ final class RequestExportController extends Controller
         abort_unless((int) $export->requested_by === (int) $user->getAuthIdentifier(), 404);
         abort_unless($this->hasPermission($user, 'request.export'), 403);
         abort_unless($this->scopeStillAuthorized($export->authorization_scope_json, $query->authorizationScopeFor($user)), 403);
+
+        if ($export->format === 'pdf') {
+            $requestPublicId = (string) ($export->filter_snapshot_json['request_public_id'] ?? '');
+            abort_unless($requestPublicId !== '' && $query->queryFor($user, ['request_public_id' => $requestPublicId])->exists(), 403);
+        }
+
         abort_unless($export->status === ExportStatus::Ready, 404);
         abort_if($export->expires_at === null || $export->expires_at->isPast(), 410);
         abort_unless(filled($export->storage_disk) && filled($export->storage_path), 404);
