@@ -4,6 +4,7 @@ namespace Tests\Feature\System;
 
 use App\Modules\ModuleLifecycleManager;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -57,7 +58,11 @@ PHP);
     {
         Schema::dropIfExists('lifecycle_missing');
         Schema::dropIfExists('lifecycle_existing');
-        DB::table('migrations')->where('migration', '2026_01_01_000001_create_lifecycle_fixture_tables')->delete();
+
+        if (Schema::hasTable('migrations')) {
+            DB::table('migrations')->where('migration', '2026_01_01_000001_create_lifecycle_fixture_tables')->delete();
+        }
+
         File::deleteDirectory($this->modulePath);
 
         parent::tearDown();
@@ -94,6 +99,8 @@ PHP);
 
     public function test_partial_module_database_fails_with_recovery_guidance_instead_of_replaying_create_migrations(): void
     {
+        Artisan::call('migrate:install');
+
         Schema::create('lifecycle_existing', function (Blueprint $table): void {
             $table->id();
         });
