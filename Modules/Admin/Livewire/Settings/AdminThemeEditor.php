@@ -25,17 +25,13 @@ class AdminThemeEditor extends Component
         $this->sidebarPalettes = $themeManager->all();
     }
 
-    public function updatedConfig(mixed $value, string $key): void
+    public function updated(string $property, mixed $value): void
     {
-        if (! str_starts_with($key, 'design.')) {
+        if (! str_starts_with($property, 'config.design.')) {
             return;
         }
 
-        $variables = app(AdminDesignService::class)->cssVariables(
-            (array) data_get($this->config, 'design', [])
-        );
-
-        $this->dispatch('admin-design-preview', variables: $variables);
+        $this->dispatchDesignPreview();
     }
 
     public function updatedConfigDesignColorsSidebarHeaderBackground(): void { $this->activateRegionalSidebarColors(); }
@@ -83,6 +79,7 @@ class AdminThemeEditor extends Component
     {
         $this->authorizePermission('admin.layout.update');
         $this->validate($this->rules($designService));
+        $this->normalizeDesign($designService);
         $layoutManager->save($this->config);
         $profileService->setActive($this->selectedTheme);
         session()->flash('success', 'Giao diện & Theme đã được lưu và áp dụng cho toàn bộ Admin.');
@@ -93,6 +90,7 @@ class AdminThemeEditor extends Component
     {
         $this->authorizePermission('admin.layout.update');
         $this->validate(array_merge($this->rules($designService), ['newThemeName' => 'required|string|min:2|max:80']));
+        $this->normalizeDesign($designService);
         $layoutManager->save($this->config);
         $this->config = $layoutManager->config();
         $this->selectedTheme = $profileService->saveCustom($this->newThemeName, $this->config);
@@ -122,6 +120,13 @@ class AdminThemeEditor extends Component
             'menuFontFamilyOptions' => $designService->menuFontFamilyOptions(),
             'menuFontSizeOptions' => $designService->menuFontSizeOptions(),
         ]);
+    }
+
+    private function normalizeDesign(AdminDesignService $designService): void
+    {
+        $this->config['design'] = $designService->sanitize(
+            (array) data_get($this->config, 'design', [])
+        );
     }
 
     private function dispatchDesignPreview(): void
