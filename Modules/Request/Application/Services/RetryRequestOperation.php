@@ -17,20 +17,32 @@ final readonly class RetryRequestOperation
         private RetryStageActivation $stageActivation,
         private RequestOutboxDispatcher $outbox,
         private RequestAuditAppender $audit,
+        private IdempotentCommandExecutor $idempotency,
     ) {}
 
-    public function handle(string $kind, string $publicId, int $actorId): void
+    public function handle(string $kind, string $publicId, int $actorId, string $idempotencyKey): void
     {
         if (! in_array($kind, (array) config('request.operations.retry_allowlist', []), true)) {
             throw ValidationException::withMessages(['operation' => ['operation_not_allowlisted']]);
         }
 
-        match ($kind) {
-            'stage_activation' => $this->retryStageActivation($publicId, $actorId),
-            'outbox_dispatch' => $this->retryOutbox($publicId, $actorId),
-            'export_generation' => $this->retryExport($publicId, $actorId),
-            default => throw ValidationException::withMessages(['operation' => ['operation_not_allowlisted']]),
-        };
+        $this->idempotency->execute(
+            $actorId,
+            'request.operation.retry.'.$kind,
+            $publicId,
+            $idempotencyKey,
+            ['kind' => $kind, 'public_id' => $publicId],
+            function () use ($kind, $publicId, $actorId): array {
+                match ($kind) {
+                    'stage_activation' => $this->retryStageActivation($publicId, $actorId),
+                    'outbox_dispatch' => $this->retryOutbox($publicId, $actorId),
+                    'export_generation' => $this->retryExport($publicId, $actorId),
+                    default => throw ValidationException::withMessages(['operation' => ['operation_not_allowlisted']]),
+                };
+
+                return ['kind' => $kind, 'public_id' => $publicId];
+            },
+        );
     }
 
     private function retryStageActivation(string $publicId, int $actorId): void
@@ -62,7 +74,10 @@ final readonly class RetryRequestOperation
             ])->save();
         }
 
-        $this->outbox->dispatchOne($message->public_id);
+        if ($this->outbox->dispatchOne($message->public_id) === false) {
+            throw ValidationException::withMessages(['operation' => ['outbox_retry_failed']]);
+        }
+
         $this->audit->append('request_outbox', $message->public_id, 'request.operation.outbox_retried.v1', $actorId, (string) Str::uuid());
     }
 
