@@ -126,20 +126,27 @@ export class RequestOfflineStore {
 }
 
 export function bootRequestOffline() {
-    const root = document.documentElement;
-    const userId = root.dataset.requestUserId;
+    const marker = document.querySelector('[data-request-offline-root]');
+    if (!marker) {
+        return null;
+    }
+
+    const userId = marker.dataset.requestUserId;
     if (!userId) {
         return null;
     }
 
     const store = new RequestOfflineStore({
         userId,
-        installationScope: root.dataset.requestInstallation || location.host,
+        installationScope: marker.dataset.requestInstallation || location.host,
     });
 
-    const emitConnectivity = () => window.dispatchEvent(new CustomEvent('request:connectivity', {
-        detail: { online: navigator.onLine },
-    }));
+    const emitConnectivity = () => {
+        marker.dataset.requestConnectivity = navigator.onLine ? 'online' : 'offline';
+        window.dispatchEvent(new CustomEvent('request:connectivity', {
+            detail: { online: navigator.onLine },
+        }));
+    };
 
     window.addEventListener('online', emitConnectivity);
     window.addEventListener('offline', emitConnectivity);
@@ -159,9 +166,15 @@ export function bootRequestOffline() {
         }
     });
 
+    window.addEventListener('request:authorization-failure', (event) => {
+        void store.handleAuthorizationFailure(event.detail?.status);
+    });
+
     window.requestOfflineStore = store;
-    void store.open().catch(() => {
-        root.dataset.requestOffline = 'disabled';
+    void store.open().then(() => {
+        marker.dataset.requestOffline = 'ready';
+    }).catch(() => {
+        marker.dataset.requestOffline = 'disabled';
     });
     emitConnectivity();
 
