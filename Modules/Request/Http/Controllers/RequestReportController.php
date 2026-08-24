@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\View\View;
 use Modules\Request\Application\Services\RequestExportQuery;
 use Modules\Request\Domain\Enums\RequestStatus;
+use Modules\Request\Models\RequestExportJob;
 
 final class RequestReportController extends Controller
 {
@@ -26,8 +27,15 @@ final class RequestReportController extends Controller
             $statusCounts[$case->value] = $query->queryFor($user, ['status' => $case->value])->count();
         }
 
+        $exports = RequestExportJob::query()
+            ->where('requested_by', (int) $user->getAuthIdentifier())
+            ->latest('id')
+            ->limit(10)
+            ->get();
+
         return view('Request::admin.reports', [
             'requests' => $requests,
+            'exports' => $exports,
             'statusCounts' => $statusCounts,
             'selectedStatus' => $filters['status'] ?? '',
             'statuses' => RequestStatus::cases(),
