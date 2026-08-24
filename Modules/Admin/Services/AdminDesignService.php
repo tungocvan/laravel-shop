@@ -90,5 +90,10 @@ class AdminDesignService
 
     private function sanitizeColors(array $tokens,array $defaults): array{$keys=['surface_base','surface_raised','text_primary','text_secondary','text_muted','border_subtle','accent','focus_ring','success','warning','danger','info','header_background','footer_background','page_background','content_background','sidebar_header_background','sidebar_navigation_background','sidebar_footer_background'];$colors=[];foreach($keys as $key){$allowed=in_array($key,['page_background','content_background'],true)?self::SURFACE_COLOR_KEYS:array_keys(self::COLOR_VALUES);$colors[$key]=$this->allowed(data_get($tokens,'colors.'.$key),$allowed,data_get($defaults,'colors.'.$key,$this->fallbackColor($key)));}return $colors;}
     private function fallbackColor(string $key): string{return match($key){'surface_base','page_background'=>'slate-50','surface_raised','header_background','footer_background','content_background','sidebar_header_background','sidebar_navigation_background','sidebar_footer_background'=>'white','text_primary'=>'slate-900','text_secondary'=>'slate-700','text_muted'=>'slate-500','border_subtle'=>'slate-200','accent'=>'indigo-600','focus_ring'=>'indigo-500','success'=>'emerald-600','warning'=>'amber-500','danger'=>'rose-600','info'=>'sky-600',default=>'slate-900'};}
-    private function allowed(mixed $value,array $allowed,mixed $fallback): mixed{return in_array($value,$allowed,true)?$value:$fallback;}
+    private function allowed(mixed $value,array $allowed,mixed $fallback): mixed
+    {
+        if (in_array($value,$allowed,true)) return $value;
+        if (is_string($value) && ctype_digit($value) && in_array((int)$value,$allowed,true)) return $value;
+        return $fallback;
+    }
 }
