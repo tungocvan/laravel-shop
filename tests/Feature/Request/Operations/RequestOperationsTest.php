@@ -39,35 +39,30 @@ class RequestOperationsTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        app(RetryRequestOperation::class)->handle('artisan_command', '01ARZ3NDEKTSV4RRFFQ69G5FAV', 1);
+        app(RetryRequestOperation::class)->handle('artisan_command', '01ARZ3NDEKTSV4RRFFQ69G5FAV', 1, 'operation-test-key');
     }
 
     public function test_failed_export_retry_is_idempotent_and_queued_once(): void
     {
         Queue::fake();
+        $actorId = $this->user('Operations Admin');
         $export = RequestExportJob::factory()->create([
             'status' => ExportStatus::Failed,
             'last_error_code' => 'REQUEST_EXPORT_GENERATION_FAILED',
         ]);
 
         $service = app(RetryRequestOperation::class);
-        $service->handle('export_generation', $export->public_id, 1);
-        $service->handle('export_generation', $export->public_id, 1);
+        $service->handle('export_generation', $export->public_id, $actorId, 'same-operation-retry-key');
+        $service->handle('export_generation', $export->public_id, $actorId, 'same-operation-retry-key');
 
         $this->assertSame(ExportStatus::Pending, $export->refresh()->status);
         Queue::assertPushed(GenerateRequestExport::class, 1);
+        $this->assertSame(1, DB::table('request_idempotency_keys')->where('actor_id', $actorId)->where('command_key', 'request.operation.retry.export_generation')->count());
     }
 
     public function test_starter_template_is_opt_in_and_creates_draft_only(): void
     {
-        $actorId = (int) DB::table('users')->insertGetId([
-            'name' => 'Starter Admin',
-            'email' => 'starter-admin@example.test',
-            'is_active' => true,
-            'password' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $actorId = $this->user('Starter Admin', 'starter-admin@example.test');
 
         config([
             'request.settings.starter_templates_enabled' => false,
@@ -86,5 +81,17 @@ class RequestOperationsTest extends TestCase
         $this->assertNotNull($type->active_draft_version_id);
         $this->assertNull($type->current_published_version_id);
         $this->assertDatabaseHas('request_type_versions', ['id' => $type->active_draft_version_id, 'status' => 'draft']);
+    }
+
+    private function user(string $name, ?string $email = null): int
+    {
+        return (int) DB::table('users')->insertGetId([
+            'name' => $name,
+            'email' => $email ?? uniqid('operations-', true).'@example.test',
+            'is_active' => true,
+            'password' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }
