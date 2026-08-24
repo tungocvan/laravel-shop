@@ -1021,7 +1021,10 @@ git status --short --branch
 composer install --no-interaction
 npm ci
 php artisan config:clear
+APP_ENV=testing php artisan tinker --execute="app(\\App\\Modules\\ModuleStateRepository::class)->set('Request', true);"
 php artisan route:list --name=request
+php artisan migrate:fresh --seed --env=testing
+php artisan migrate:status --env=testing
 php artisan test --testsuite=Unit --filter=Request
 php artisan test --testsuite=Feature --filter=Request
 php artisan test --filter=UserDirectoryTest
@@ -1032,8 +1035,6 @@ npm run build
 rg -n "Modules\\\\(Account|Administrative|Order|Workflow|[A-Za-z]+)" Modules/Request
 rg -n "module\\.json|nwidart|serviceWorker\\.register|navigator\\.serviceWorker" Modules/Request
 rg -n "storage/app/public|disk\\(['\"]public|public_path" Modules/Request
-php artisan migrate:fresh --seed --env=testing
-php artisan migrate:status
 php artisan test --filter=RequestMigration
 php artisan test --filter=RequestArchitecture
 php artisan test --filter=RequestConcurrency
@@ -1042,6 +1043,7 @@ php artisan test --filter=RequestOffline
 php artisan test --filter=RequestExport
 php artisan queue:work --queue=request-outbox,request-notifications,request-exports --once --tries=3
 git diff --check
+APP_ENV=testing php artisan tinker --execute="app(\\App\\Modules\\ModuleStateRepository::class)->forget('Request');"
 git status --short
 ```
 
