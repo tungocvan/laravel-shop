@@ -63,6 +63,32 @@ services:
     mem_limit: ${QUEUE_MEMORY_LIMIT:-1400m}
     cpus: ${QUEUE_CPU_LIMIT:-1.5}
 
+  queue-request:
+    build: *app-build
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--queue=request-outbox,request-notifications,request-exports", "--sleep=${REQUEST_QUEUE_SLEEP:-3}", "--tries=${REQUEST_QUEUE_TRIES:-5}", "--timeout=${REQUEST_QUEUE_TIMEOUT:-120}", "--max-time=${REQUEST_QUEUE_MAX_TIME:-3600}"]
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+      - ./.env:/var/www/html/.env
+      - ./Modules:/var/www/html/Modules
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$c=file_get_contents(\"/proc/1/cmdline\"); exit(str_contains($$c,\"queue:work\") && str_contains($$c,\"request-outbox,request-notifications,request-exports\") ? 0 : 1);'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+    mem_limit: ${REQUEST_QUEUE_MEMORY_LIMIT:-768m}
+    cpus: ${REQUEST_QUEUE_CPU_LIMIT:-0.75}
+
   queue-admission-documents:
     build: *app-build
     restart: unless-stopped
