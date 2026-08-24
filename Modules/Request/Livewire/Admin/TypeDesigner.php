@@ -49,7 +49,7 @@ class TypeDesigner extends Component
         $this->stages = $draft->stages->values()->map(fn ($stage): array => [
             'stage_key' => $stage->stage_key,
             'name' => $stage->name,
-            'mode' => $stage->mode,
+            'mode' => $stage->mode->value,
             'resolver_key' => $stage->resolver_key,
             'resolver_config_json' => json_encode($stage->resolver_config_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'instructions' => $stage->instructions ?? '',
