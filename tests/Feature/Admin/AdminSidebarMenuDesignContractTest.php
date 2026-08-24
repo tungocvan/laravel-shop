@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use Modules\Admin\Services\AdminDesignService;
 use Tests\TestCase;
 
 class AdminSidebarMenuDesignContractTest extends TestCase
@@ -50,6 +51,22 @@ class AdminSidebarMenuDesignContractTest extends TestCase
         foreach(['var(--admin-sidebar-menu-item-height)','var(--admin-sidebar-menu-font-family)','var(--admin-sidebar-menu-icon-color)','var(--admin-sidebar-active-title-color)','var(--admin-sidebar-menu-padding-y)','var(--admin-sidebar-menu-padding-x)','var(--admin-sidebar-menu-content-gap)'] as $token)$this->assertStringContainsString($token,$item);
         foreach(['var(--admin-sidebar-submenu-font-family)','var(--admin-sidebar-submenu-indent)','var(--admin-sidebar-submenu-title-color)','var(--admin-sidebar-submenu-padding-y)','var(--admin-sidebar-submenu-padding-x)','var(--admin-sidebar-submenu-offset)','var(--admin-sidebar-submenu-item-gap)','var(--admin-sidebar-menu-group-gap)'] as $token)$this->assertStringContainsString($token,$group);
         $this->assertStringContainsString('var(--admin-sidebar-menu-item-gap)',$sidebar);$this->assertStringNotContainsString('gap-3 rounded-lg px-3 py-2',$item);$this->assertStringNotContainsString('space-y-0.5',$group);
+    }
+
+    public function test_active_border_widths_survive_sanitization_and_generate_css_pixels(): void
+    {
+        $service = app(AdminDesignService::class);
+        $tokens = config('admin.admin.design');
+        data_set($tokens, 'sidebar_menu.active.menu_border_width', '3');
+        data_set($tokens, 'sidebar_menu.active.submenu_border_width', '2');
+
+        $sanitized = $service->sanitize($tokens);
+        $variables = $service->cssVariables($tokens);
+
+        $this->assertSame('3', data_get($sanitized, 'sidebar_menu.active.menu_border_width'));
+        $this->assertSame('2', data_get($sanitized, 'sidebar_menu.active.submenu_border_width'));
+        $this->assertSame('3px', $variables['--admin-sidebar-menu-active-border-width']);
+        $this->assertSame('2px', $variables['--admin-sidebar-submenu-active-border-width']);
     }
 
     public function test_default_theme_restores_professional_sidebar_menu_rhythm(): void
