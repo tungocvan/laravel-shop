@@ -10,8 +10,7 @@ final readonly class RequestExportPlan
         public array $authorizationScope,
         public int $authorizedRowCount,
         public string $mode,
-    ) {
-    }
+    ) {}
 
     public function shouldQueue(): bool
     {
