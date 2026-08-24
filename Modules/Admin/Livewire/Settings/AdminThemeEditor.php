@@ -25,6 +25,19 @@ class AdminThemeEditor extends Component
         $this->sidebarPalettes = $themeManager->all();
     }
 
+    public function updatedConfig(mixed $value, string $key): void
+    {
+        if (! str_starts_with($key, 'design.')) {
+            return;
+        }
+
+        $variables = app(AdminDesignService::class)->cssVariables(
+            (array) data_get($this->config, 'design', [])
+        );
+
+        $this->dispatch('admin-design-preview', variables: $variables);
+    }
+
     public function updatedConfigDesignColorsSidebarHeaderBackground(): void { $this->activateRegionalSidebarColors(); }
     public function updatedConfigDesignColorsSidebarNavigationBackground(): void { $this->activateRegionalSidebarColors(); }
     public function updatedConfigDesignColorsSidebarFooterBackground(): void { $this->activateRegionalSidebarColors(); }
@@ -34,6 +47,7 @@ class AdminThemeEditor extends Component
         abort_unless(array_key_exists($name, $profileService->profiles()), 404);
         $this->selectedTheme = $name;
         $this->config = $profileService->apply($name, $this->config);
+        $this->dispatchDesignPreview();
     }
 
     public function duplicateTheme(string $name, AdminThemeProfileService $profileService): void
@@ -42,6 +56,7 @@ class AdminThemeEditor extends Component
         $this->selectedTheme = $profileService->duplicate($name);
         $this->profiles = $profileService->profiles();
         $this->config = $profileService->apply($this->selectedTheme, $this->config);
+        $this->dispatchDesignPreview();
         session()->flash('success', 'Đã nhân bản Theme. Bản sao đang được chọn để bạn chỉnh sửa.');
     }
 
@@ -59,6 +74,7 @@ class AdminThemeEditor extends Component
             $this->config = $profileService->apply($this->selectedTheme, $layoutManager->config());
             $layoutManager->save($this->config);
             $profileService->setActive($this->selectedTheme);
+            $this->dispatchDesignPreview();
         }
         session()->flash('warning', 'Đã xóa Theme tùy chỉnh.');
     }
@@ -106,6 +122,15 @@ class AdminThemeEditor extends Component
             'menuFontFamilyOptions' => $designService->menuFontFamilyOptions(),
             'menuFontSizeOptions' => $designService->menuFontSizeOptions(),
         ]);
+    }
+
+    private function dispatchDesignPreview(): void
+    {
+        $variables = app(AdminDesignService::class)->cssVariables(
+            (array) data_get($this->config, 'design', [])
+        );
+
+        $this->dispatch('admin-design-preview', variables: $variables);
     }
 
     private function activateRegionalSidebarColors(): void
