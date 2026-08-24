@@ -7,20 +7,23 @@ use Illuminate\Support\Facades\Log;
 use Modules\Request\Domain\Enums\NotificationDeliveryStatus;
 use Modules\Request\Models\RequestNotificationDelivery;
 use Modules\Request\Models\RequestOutboxMessage;
+use Modules\Request\Notifications\RequestDatabaseNotification;
 use Modules\Request\Support\RequestRuntimeState;
 use Modules\User\Contracts\UserMailGateway;
+use Modules\User\Contracts\UserNotifier;
 use RuntimeException;
 use Throwable;
 
 final class RequestNotificationDeliverer
 {
-    public function __construct(private readonly RequestRuntimeState $runtime, private readonly RequestNotificationPlanner $planner, private readonly RequestNotificationMessageFactory $messages, private readonly UserMailGateway $mail) {}
+    public function __construct(private readonly RequestRuntimeState $runtime, private readonly RequestNotificationPlanner $planner, private readonly RequestNotificationMessageFactory $messages, private readonly UserMailGateway $mail, private readonly UserNotifier $notifier) {}
 
     public function deliver(string $deliveryPublicId): bool
     {
         if (! $this->runtime->enabled()) {
             return false;
         }
+
         $delivery = DB::transaction(function () use ($deliveryPublicId): ?RequestNotificationDelivery {
             $locked = RequestNotificationDelivery::query()->lockForUpdate()->where('public_id', $deliveryPublicId)->first();
             if (! $locked || $locked->status === NotificationDeliveryStatus::Delivered || $locked->status === NotificationDeliveryStatus::Failed) {
@@ -33,21 +36,28 @@ final class RequestNotificationDeliverer
 
             return $locked->refresh();
         });
+
         if (! $delivery) {
             return false;
         }
+
         try {
             $outbox = RequestOutboxMessage::query()->where('public_id', $delivery->outbox_public_id)->firstOrFail();
             $plan = collect($this->planner->plans($outbox))->first(fn ($plan): bool => $plan->recipientId === $delivery->recipient_id && $plan->templateKey === $delivery->template_key);
             if (! $plan) {
                 throw new RuntimeException('notification_plan_unavailable');
             }
-            if ($delivery->channel === 'email' && ! $this->mail->sendToActive($delivery->recipient_id, $this->messages->mail($plan))) {
+
+            $sent = match ($delivery->channel) {
+                'database' => $this->notifier->notify($delivery->recipient_id, new RequestDatabaseNotification($this->messages->database($plan, $outbox))),
+                'email' => $this->mail->sendToActive($delivery->recipient_id, $this->messages->mail($plan)),
+                default => throw new RuntimeException('notification_channel_unsupported'),
+            };
+
+            if (! $sent) {
                 throw new RuntimeException('recipient_unavailable');
             }
-            if (! in_array($delivery->channel, ['database', 'email'], true)) {
-                throw new RuntimeException('notification_channel_unsupported');
-            }
+
             $delivery->update(['status' => NotificationDeliveryStatus::Delivered, 'delivered_at' => now('UTC'), 'last_error_code' => null]);
 
             return true;
@@ -56,6 +66,7 @@ final class RequestNotificationDeliverer
             $terminal = $delivery->attempt_count >= (int) config('request.notifications.delivery_max_attempts', 5);
             $delivery->update(['status' => $terminal ? NotificationDeliveryStatus::Failed : NotificationDeliveryStatus::Pending, 'last_error_code' => $errorCode]);
             Log::warning('Request notification delivery failed.', ['delivery_public_id' => $deliveryPublicId, 'channel' => $delivery->channel, 'error_code' => $errorCode]);
+
             if (! $terminal) {
                 throw new RuntimeException($errorCode, previous: $exception);
             }
