@@ -7,16 +7,14 @@ use Illuminate\Support\Facades\Log;
 use Modules\Request\Domain\Enums\NotificationDeliveryStatus;
 use Modules\Request\Models\RequestNotificationDelivery;
 use Modules\Request\Models\RequestOutboxMessage;
-use Modules\Request\Notifications\RequestDatabaseNotification;
 use Modules\Request\Support\RequestRuntimeState;
 use Modules\User\Contracts\UserMailGateway;
-use Modules\User\Contracts\UserNotifier;
 use RuntimeException;
 use Throwable;
 
 final class RequestNotificationDeliverer
 {
-    public function __construct(private readonly RequestRuntimeState $runtime, private readonly RequestNotificationPlanner $planner, private readonly RequestNotificationMessageFactory $messages, private readonly UserMailGateway $mail, private readonly UserNotifier $notifier) {}
+    public function __construct(private readonly RequestRuntimeState $runtime, private readonly RequestNotificationPlanner $planner, private readonly RequestNotificationMessageFactory $messages, private readonly UserMailGateway $mail) {}
 
     public function deliver(string $deliveryPublicId): bool
     {
@@ -48,13 +46,11 @@ final class RequestNotificationDeliverer
                 throw new RuntimeException('notification_plan_unavailable');
             }
 
-            $sent = match ($delivery->channel) {
-                'database' => $this->notifier->notify($delivery->recipient_id, new RequestDatabaseNotification($this->messages->database($plan, $outbox))),
-                'email' => $this->mail->sendToActive($delivery->recipient_id, $this->messages->mail($plan)),
-                default => throw new RuntimeException('notification_channel_unsupported'),
-            };
+            if (! in_array($delivery->channel, ['database', 'email'], true)) {
+                throw new RuntimeException('notification_channel_unsupported');
+            }
 
-            if (! $sent) {
+            if ($delivery->channel === 'email' && ! $this->mail->sendToActive($delivery->recipient_id, $this->messages->mail($plan))) {
                 throw new RuntimeException('recipient_unavailable');
             }
 
