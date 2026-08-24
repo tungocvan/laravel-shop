@@ -11,6 +11,7 @@ use Modules\Request\Application\Services\PublishTypeVersion;
 use Modules\Request\Application\Services\SaveTypeDraft;
 use Modules\Request\Contracts\RequestDefinitionPackage;
 use Modules\Request\Domain\Enums\RequestTypeVersionStatus;
+use Modules\Request\Domain\Forms\DefinitionCanonicalizer;
 
 class RequestDefinitionPackageTest extends RequestDefinitionTestCase
 {
@@ -132,6 +133,6 @@ class RequestDefinitionPackageTest extends RequestDefinitionTestCase
     private function resign(array &$package): void
     {
         unset($package['checksum']);
-        $package['checksum'] = app(\Modules\Request\Domain\Forms\DefinitionCanonicalizer::class)->checksum($package);
+        $package['checksum'] = app(DefinitionCanonicalizer::class)->checksum($package);
     }
 }
