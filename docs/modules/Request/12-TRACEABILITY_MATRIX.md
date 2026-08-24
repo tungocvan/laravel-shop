@@ -105,3 +105,15 @@ Status values: `Specified` means documentation is complete; implementation evide
 | FUT-RT | Realtime/web push | Canonical Shell broadcasting/push contract |
 
 Deferred rows are not implementation backlog hidden inside v1. Each requires explicit analysis/approval.
+
+## 10. Implementation evidence
+
+### MR-01 — Shell contracts and module bootstrap
+
+| Traceability | Implementation evidence | Automated evidence | Result |
+|---|---|---|---|
+| `ARC-02` Shell-only dependencies | `Modules/User/Contracts/UserDirectory.php`, `Modules/User/Data/UserIdentity.php`, `Modules/Role/Contracts/RoleDirectory.php`, `Modules/Role/Data/RoleIdentity.php`, and their owning Shell adapters/providers | `tests/Feature/User/UserDirectoryTest.php`, `tests/Feature/Role/RoleDirectoryTest.php`, `tests/Feature/Request/Architecture/RequestArchitectureTest.php` | Implemented for MR-01; architecture guard remains active for later slices |
+| `ARC-04` repository-native bootstrap/module state | Request manifest/config/provider/routes/translations skeleton; provider contains no duplicate resource registration | `tests/Feature/Request/Architecture/RequestBootstrapTest.php`, `tests/Feature/Request/ModuleState/RequestModuleStateTest.php`, `tests/Feature/Request/Authorization/RequestPermissionTest.php` | Implemented for MR-01; Request remains default OFF |
+| `ARC-05` Workflow deferred | No Workflow runtime artifact, dependency, provider, route, table, or shared Approval module added | `tests/Feature/Request/Architecture/RequestArchitectureTest.php` and repository `rg` scan | Preserved |
+
+MR-01 intentionally contains no Request business migrations, models, approval runtime, Livewire components, or UI. Later traceability rows remain `Specified` until their owning merge requests provide evidence.
