@@ -30,6 +30,7 @@ The first experience is mobile-first for request creation, personal requests, in
 14. `11-AI_IMPLEMENTATION_CONTRACT.md`
 15. `12-TRACEABILITY_MATRIX.md`
 16. `13-REQUEST_TEMPLATE_CATALOG.md`
+17. `CREATE_PLAN.md` — approved-spec-to-code execution plan and implementation stop gate
 
 ## Authority and conflict order
 
@@ -46,10 +47,10 @@ Repository reality wins over generic examples. Never introduce `nwidart/laravel-
 
 ## Approval boundary
 
-These documents complete `/analyze-new-module Request`. They authorize documentation only, not application code. The next command is:
+The analysis documents complete `/analyze-new-module Request`. `/create-module Request` has now produced `CREATE_PLAN.md`; application code is still not authorized until that plan receives explicit approval.
 
 ```text
-/create-module Request
+Review and approve docs/modules/Request/CREATE_PLAN.md
 ```
 
-That task must create `docs/modules/Request/CREATE_PLAN.md`, map every implementation slice to these requirements, and obtain explicit approval before writing application code. Do not run `/create-module Workflow` while the accepted ADR remains active.
+After approval, Codex must implement the ordered vertical slices and gates in `CREATE_PLAN.md`. Do not run `/create-module Workflow` while the accepted ADR remains active.
