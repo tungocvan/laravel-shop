@@ -40,9 +40,11 @@ class AuthController extends Controller
         session()->invalidate();
         session()->regenerateToken();
 
-        return Route::has('client.apps.login')
+        $response = Route::has('client.apps.login')
             ? redirect()->route('client.apps.login')
             : redirect()->route('login');
+
+        return $this->withSiteDataCleared($response);
     }
 
     public function adminLogout(): RedirectResponse
@@ -51,6 +53,13 @@ class AuthController extends Controller
         session()->invalidate();
         session()->regenerateToken();
 
-        return redirect()->route('admin.login');
+        return $this->withSiteDataCleared(redirect()->route('admin.login'));
+    }
+
+    private function withSiteDataCleared(RedirectResponse $response): RedirectResponse
+    {
+        $response->headers->set('Clear-Site-Data', '"cache", "storage"');
+
+        return $response;
     }
 }

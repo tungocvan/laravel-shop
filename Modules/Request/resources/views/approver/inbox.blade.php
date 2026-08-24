@@ -3,5 +3,9 @@
 @section('title', __('Request::request.inbox.title'))
 
 @section('content')
-    <livewire:request.approver.inbox />
+    <div class="p-4 sm:p-6">
+        @include('Request::partials.offline-runtime')
+        @include('Request::partials.dashboard-back')
+        <livewire:request.approver.inbox />
+    </div>
 @endsection

@@ -1,5 +1,9 @@
 @extends('Admin::layouts.master')
 @section('title', __('Request::request.detail'))
 @section('content')
-<div class="p-4 sm:p-6">@livewire('request.requester.request-detail', ['requestPublicId' => $requestPublicId])</div>
+<div class="p-4 sm:p-6">
+    @include('Request::partials.offline-runtime')
+    @include('Request::partials.dashboard-back')
+    @livewire('request.requester.request-detail', ['requestPublicId' => $requestPublicId])
+</div>
 @endsection

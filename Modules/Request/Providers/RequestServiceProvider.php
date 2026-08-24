@@ -7,10 +7,12 @@ use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 use Modules\Request\Contracts\PrivateRequestFileStore;
 use Modules\Request\Domain\Approval\ActorResolverConfigRegistry;
 use Modules\Request\Domain\Forms\DefinitionCanonicalizer;
 use Modules\Request\Domain\Forms\FormFieldRegistry;
+use Modules\Request\Http\Middleware\UseVietnameseRequestLocale;
 use Modules\Request\Models\InternalRequest;
 use Modules\Request\Models\RequestAttachment;
 use Modules\Request\Models\RequestAuditEvent;
@@ -41,6 +43,8 @@ class RequestServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Livewire::addPersistentMiddleware([UseVietnameseRequestLocale::class]);
+
         Gate::policy(RequestGroup::class, RequestGroupPolicy::class);
         Gate::policy(InternalRequest::class, InternalRequestPolicy::class);
         Gate::policy(RequestType::class, RequestTypePolicy::class);
