@@ -25,6 +25,15 @@ class AdminThemeEditor extends Component
         $this->sidebarPalettes = $themeManager->all();
     }
 
+    public function updated(string $property, mixed $value): void
+    {
+        if (! str_starts_with($property, 'config.design.')) {
+            return;
+        }
+
+        $this->dispatchDesignPreview();
+    }
+
     public function updatedConfigDesignColorsSidebarHeaderBackground(): void { $this->activateRegionalSidebarColors(); }
     public function updatedConfigDesignColorsSidebarNavigationBackground(): void { $this->activateRegionalSidebarColors(); }
     public function updatedConfigDesignColorsSidebarFooterBackground(): void { $this->activateRegionalSidebarColors(); }
@@ -34,6 +43,7 @@ class AdminThemeEditor extends Component
         abort_unless(array_key_exists($name, $profileService->profiles()), 404);
         $this->selectedTheme = $name;
         $this->config = $profileService->apply($name, $this->config);
+        $this->dispatchDesignPreview();
     }
 
     public function duplicateTheme(string $name, AdminThemeProfileService $profileService): void
@@ -42,6 +52,7 @@ class AdminThemeEditor extends Component
         $this->selectedTheme = $profileService->duplicate($name);
         $this->profiles = $profileService->profiles();
         $this->config = $profileService->apply($this->selectedTheme, $this->config);
+        $this->dispatchDesignPreview();
         session()->flash('success', 'Đã nhân bản Theme. Bản sao đang được chọn để bạn chỉnh sửa.');
     }
 
@@ -59,6 +70,7 @@ class AdminThemeEditor extends Component
             $this->config = $profileService->apply($this->selectedTheme, $layoutManager->config());
             $layoutManager->save($this->config);
             $profileService->setActive($this->selectedTheme);
+            $this->dispatchDesignPreview();
         }
         session()->flash('warning', 'Đã xóa Theme tùy chỉnh.');
     }
@@ -67,6 +79,7 @@ class AdminThemeEditor extends Component
     {
         $this->authorizePermission('admin.layout.update');
         $this->validate($this->rules($designService));
+        $this->normalizeDesign($designService);
         $layoutManager->save($this->config);
         $profileService->setActive($this->selectedTheme);
         session()->flash('success', 'Giao diện & Theme đã được lưu và áp dụng cho toàn bộ Admin.');
@@ -77,6 +90,7 @@ class AdminThemeEditor extends Component
     {
         $this->authorizePermission('admin.layout.update');
         $this->validate(array_merge($this->rules($designService), ['newThemeName' => 'required|string|min:2|max:80']));
+        $this->normalizeDesign($designService);
         $layoutManager->save($this->config);
         $this->config = $layoutManager->config();
         $this->selectedTheme = $profileService->saveCustom($this->newThemeName, $this->config);
@@ -106,6 +120,22 @@ class AdminThemeEditor extends Component
             'menuFontFamilyOptions' => $designService->menuFontFamilyOptions(),
             'menuFontSizeOptions' => $designService->menuFontSizeOptions(),
         ]);
+    }
+
+    private function normalizeDesign(AdminDesignService $designService): void
+    {
+        $this->config['design'] = $designService->sanitize(
+            (array) data_get($this->config, 'design', [])
+        );
+    }
+
+    private function dispatchDesignPreview(): void
+    {
+        $variables = app(AdminDesignService::class)->cssVariables(
+            (array) data_get($this->config, 'design', [])
+        );
+
+        $this->dispatch('admin-design-preview', variables: $variables);
     }
 
     private function activateRegionalSidebarColors(): void
