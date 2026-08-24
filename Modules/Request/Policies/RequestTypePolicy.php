@@ -39,4 +39,14 @@ final class RequestTypePolicy
     {
         return $type->status !== RequestTypeStatus::Retired && $this->hasPermission($user, 'request.type.retire');
     }
+
+    public function exportDefinition(mixed $user, RequestType $type): bool
+    {
+        return $this->hasPermission($user, 'request.type.export');
+    }
+
+    public function importDefinition(mixed $user, RequestType $type): bool
+    {
+        return $type->status !== RequestTypeStatus::Retired && $this->hasPermission($user, 'request.type.import');
+    }
 }
