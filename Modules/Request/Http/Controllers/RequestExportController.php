@@ -33,8 +33,8 @@ final class RequestExportController extends Controller
         return redirect()
             ->route('request.admin.reports', $filters)
             ->with('request_export_message', $export->status === ExportStatus::Ready
-                ? __('Request::request.exports.ready_message')
-                : __('Request::request.exports.queued_message'));
+                ? __('Request::exports.ready_message')
+                : __('Request::exports.queued_message'));
     }
 
     public function download(string $exportPublicId, RequestExportQuery $query): StreamedResponse
