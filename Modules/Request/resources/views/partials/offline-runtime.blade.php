@@ -4,13 +4,13 @@
     data-request-installation="{{ request()->getHost() }}"
     data-request-offline="loading"
     data-request-connectivity="online"
-    class="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"
+    class="group mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"
     role="status"
     aria-live="polite"
 >
     <span class="font-medium">Request local safety</span>
-    <span class="hidden data-[request-connectivity=offline]:inline">Offline — read cached summaries and edit eligible local drafts only.</span>
-    <span class="hidden data-[request-connectivity=online]:inline">Online</span>
+    <span class="hidden group-data-[request-connectivity=offline]:inline">Offline — read cached summaries and edit eligible local drafts only.</span>
+    <span class="hidden group-data-[request-connectivity=online]:inline">Online</span>
     <button
         type="button"
         data-request-clear-local
