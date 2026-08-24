@@ -52,7 +52,7 @@ final readonly class PlanRequestExport
 
     private function authorize(mixed $user): void
     {
-        if (! $this->hasPermission($user, 'request.export')) {
+        if ($this->hasPermission($user, 'request.export') === false) {
             throw new AuthorizationException;
         }
     }
