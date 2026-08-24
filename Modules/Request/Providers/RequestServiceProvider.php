@@ -57,6 +57,7 @@ class RequestServiceProvider extends ServiceProvider
         RateLimiter::for('request-decide', fn (HttpRequest $request) => Limit::perMinute(20)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('request-comment', fn (HttpRequest $request) => Limit::perMinute(20)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('request-upload', fn (HttpRequest $request) => Limit::perMinute(10)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('request-export', fn (HttpRequest $request) => Limit::perMinute(6)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('request-download', fn (HttpRequest $request) => Limit::perMinute(60)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }
 }
