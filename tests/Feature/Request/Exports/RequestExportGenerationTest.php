@@ -10,6 +10,7 @@ use Modules\Request\Application\Services\PlanRequestExport;
 use Modules\Request\Application\Services\StartRequestExport;
 use Modules\Request\Domain\Enums\ExportStatus;
 use Modules\Request\Models\InternalRequest;
+use Modules\Request\Models\RequestExportJob;
 use Modules\Request\Support\SpreadsheetCellSanitizer;
 use Tests\TestCase;
 
@@ -64,7 +65,7 @@ class RequestExportGenerationTest extends TestCase
 
     public function test_expiry_is_bounded_and_removes_private_artifact(): void
     {
-        $export = \Modules\Request\Models\RequestExportJob::factory()->create([
+        $export = RequestExportJob::factory()->create([
             'status' => ExportStatus::Ready,
             'storage_disk' => 'local',
             'storage_path' => 'request/exports/test/export.csv',
