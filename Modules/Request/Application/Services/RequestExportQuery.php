@@ -11,6 +11,11 @@ final class RequestExportQuery
 {
     public function queryFor(mixed $user, array $filters = []): Builder
     {
+        return $this->queryForAuthorizationScope($this->authorizationScopeFor($user), $filters);
+    }
+
+    public function queryForAuthorizationScope(array $scope, array $filters = []): Builder
+    {
         $query = InternalRequest::query()
             ->select([
                 'request_instances.id',
@@ -30,7 +35,7 @@ final class RequestExportQuery
             ])
             ->with('type:id,public_id,code,name');
 
-        $this->applyAuthorizationScope($query, $user);
+        $this->applyAuthorizationSnapshot($query, $scope);
         $this->applyFilters($query, $filters);
 
         return $query->orderByDesc('request_instances.id');
@@ -56,30 +61,30 @@ final class RequestExportQuery
         ];
     }
 
-    private function applyAuthorizationScope(Builder $query, mixed $user): void
+    private function applyAuthorizationSnapshot(Builder $query, array $scope): void
     {
-        if ($this->hasPermission($user, 'request.instance.view-all')) {
+        if (($scope['view_all'] ?? false) === true) {
             return;
         }
 
-        $userId = (int) $user->getAuthIdentifier();
-        $canViewOwn = $this->hasPermission($user, 'request.instance.view-own');
-        $canViewParticipant = $this->hasPermission($user, 'request.instance.view-participant');
+        $userId = (int) ($scope['user_id'] ?? 0);
+        $canViewOwn = ($scope['view_own'] ?? false) === true;
+        $canViewParticipant = ($scope['view_participant'] ?? false) === true;
 
-        if (! $canViewOwn && ! $canViewParticipant) {
+        if ($userId <= 0 || (! $canViewOwn && ! $canViewParticipant)) {
             $query->whereRaw('1 = 0');
 
             return;
         }
 
-        $query->where(function (Builder $scope) use ($userId, $canViewOwn, $canViewParticipant): void {
+        $query->where(function (Builder $authorization) use ($userId, $canViewOwn, $canViewParticipant): void {
             if ($canViewOwn) {
-                $scope->where('request_instances.requester_id', $userId);
+                $authorization->where('request_instances.requester_id', $userId);
             }
 
             if ($canViewParticipant) {
                 $method = $canViewOwn ? 'orWhereExists' : 'whereExists';
-                $scope->{$method}(function ($tasks) use ($userId): void {
+                $authorization->{$method}(function ($tasks) use ($userId): void {
                     $tasks->selectRaw('1')
                         ->from('request_runs')
                         ->join('request_tasks', 'request_tasks.request_run_id', '=', 'request_runs.id')
