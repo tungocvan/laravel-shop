@@ -22,7 +22,7 @@ class RequestPwaSafetyTest extends TestCase
             $paths[] = $relative;
 
             if (in_array($file->getExtension(), ['php', 'js', 'mjs', 'json'], true)) {
-                $source .= "\n".file_get_contents($file->getPathname());
+                $source .= '\n'.file_get_contents($file->getPathname());
             }
         }
 
@@ -30,7 +30,7 @@ class RequestPwaSafetyTest extends TestCase
         $this->assertStringNotContainsString('navigator.serviceWorker.register', $source);
         $this->assertStringNotContainsString('registration.sync.register', $source);
         $this->assertStringNotContainsString('SyncManager', $source);
-        $this->assertStringContainsString("return false", file_get_contents(base_path('Modules/Request/resources/js/request-offline-policy.js')));
+        $this->assertStringContainsString('return false', file_get_contents(base_path('Modules/Request/resources/js/request-offline-policy.js')));
     }
 
     public function test_request_offline_runtime_is_user_scoped_and_loaded_from_request_pages_only(): void
@@ -40,9 +40,9 @@ class RequestPwaSafetyTest extends TestCase
         $vite = file_get_contents(base_path('vite.config.js'));
 
         $this->assertStringContainsString("const DB_NAME = 'request-v1'", $runtime);
-        $this->assertStringContainsString("[data-request-offline-root]", $runtime);
+        $this->assertStringContainsString('[data-request-offline-root]', $runtime);
         $this->assertStringContainsString('data-request-user-id', $partial);
         $this->assertStringContainsString("@vite('Modules/Request/resources/js/request-offline.js')", $partial);
-        $this->assertStringContainsString("Modules/Request/resources/js/request-offline.js", $vite);
+        $this->assertStringContainsString('Modules/Request/resources/js/request-offline.js', $vite);
     }
 }
