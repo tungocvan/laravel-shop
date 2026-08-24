@@ -88,5 +88,6 @@ return [
     'local_draft_restore' => 'Xem lại và khôi phục dữ liệu cục bộ',
     'local_draft_help' => 'Dữ liệu cục bộ không bao giờ tự gửi. Nếu phiên bản khóa trên máy chủ không khớp, hệ thống sẽ chặn khôi phục và yêu cầu bạn xem lại.',
     'statuses' => ['draft' => 'Bản nháp', 'pending' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'rejected' => 'Từ chối', 'returned' => 'Trả lại', 'cancelled' => 'Đã hủy'],
+    'run_statuses' => ['active' => 'Đang xử lý', 'approved' => 'Đã duyệt', 'rejected' => 'Từ chối', 'returned' => 'Trả lại', 'cancelled' => 'Đã hủy', 'failed_activation' => 'Kích hoạt thất bại'],
     'task_statuses' => ['active' => 'Đang xử lý', 'approved' => 'Đã duyệt', 'rejected' => 'Từ chối', 'returned' => 'Trả lại', 'skipped' => 'Đã bỏ qua', 'cancelled' => 'Đã hủy', 'reassigned' => 'Đã giao lại'],
 ];
