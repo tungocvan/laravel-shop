@@ -22,34 +22,24 @@ export class RequestOfflineStore {
     }
 
     async open() {
-        if (!this.indexedDB) {
-            throw new Error('request_offline_indexeddb_unavailable');
-        }
-        if (this.db) {
-            return this.db;
-        }
-
+        if (!this.indexedDB) throw new Error('request_offline_indexeddb_unavailable');
+        if (this.db) return this.db;
         this.db = await new Promise((resolve, reject) => {
             const request = this.indexedDB.open(DB_NAME, DB_VERSION);
             request.onerror = () => reject(request.error);
             request.onupgradeneeded = () => {
                 const db = request.result;
-                if (!db.objectStoreNames.contains(STORE)) {
-                    db.createObjectStore(STORE, { keyPath: 'key' });
-                }
+                if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'key' });
             };
             request.onsuccess = () => resolve(request.result);
         });
-
         await this.clearForeignOwners();
         await this.pruneExpired();
-
         return this.db;
     }
 
     async putSnapshot(kind, id, value, ttlMs = DEFAULT_SNAPSHOT_TTL_MS) {
-        const data = sanitizeSnapshot(kind, value);
-        return this.put(buildRecord({ owner: this.owner, kind: `snapshot:${kind}`, id, data, ttlMs }));
+        return this.put(buildRecord({ owner: this.owner, kind: `snapshot:${kind}`, id, data: sanitizeSnapshot(kind, value), ttlMs }));
     }
 
     async putDraft(id, fields, schemaFields, metadata = {}, ttlMs = DEFAULT_DRAFT_TTL_MS) {
@@ -59,7 +49,6 @@ export class RequestOfflineStore {
             server_lock_version: metadata.server_lock_version ?? null,
             checksum: metadata.checksum ?? null,
         };
-
         return this.put(buildRecord({ owner: this.owner, kind: 'draft', id, data, ttlMs }));
     }
 
@@ -68,12 +57,9 @@ export class RequestOfflineStore {
         const key = `${this.owner}:${kind}:${id}`;
         const record = await this.read(key);
         if (!record || !ownerMatches(record, this.owner) || isExpired(record)) {
-            if (record) {
-                await this.delete(key);
-            }
+            if (record) await this.delete(key);
             return null;
         }
-
         return record;
     }
 
@@ -84,33 +70,20 @@ export class RequestOfflineStore {
     }
 
     async handleAuthorizationFailure(status) {
-        if ([401, 403].includes(Number(status))) {
-            await this.clear();
-        }
+        if ([401, 403].includes(Number(status))) await this.clear();
     }
 
     async put(record) {
         await this.open();
         const records = (await this.all()).filter((item) => item.owner === this.owner && item.key !== record.key);
         const bytes = new TextEncoder().encode(JSON.stringify([...records, record])).byteLength;
-        if (bytes > MAX_BYTES_PER_USER) {
-            throw new Error('request_offline_quota_exceeded');
-        }
-
+        if (bytes > MAX_BYTES_PER_USER) throw new Error('request_offline_quota_exceeded');
         return this.transaction('readwrite', (store) => store.put(record));
     }
 
-    async read(key) {
-        return this.transaction('readonly', (store) => store.get(key));
-    }
-
-    async delete(key) {
-        return this.transaction('readwrite', (store) => store.delete(key));
-    }
-
-    async all() {
-        return this.transaction('readonly', (store) => store.getAll());
-    }
+    async read(key) { return this.transaction('readonly', (store) => store.get(key)); }
+    async delete(key) { return this.transaction('readwrite', (store) => store.delete(key)); }
+    async all() { return this.transaction('readonly', (store) => store.getAll()); }
 
     async clearForeignOwners() {
         const records = await this.all();
@@ -146,10 +119,7 @@ function readDraftValues(form) {
     for (const wrapper of form.querySelectorAll('[data-request-draft-field]')) {
         const key = wrapper.dataset.requestDraftField;
         const type = wrapper.dataset.requestFieldType;
-        if (!key) {
-            continue;
-        }
-
+        if (!key) continue;
         if (type === 'currency') {
             values[key] = {
                 amount: wrapper.querySelector('[data-request-currency-part="amount"]')?.value ?? '',
@@ -157,29 +127,19 @@ function readDraftValues(form) {
             };
             continue;
         }
-
         const control = wrapper.querySelector('input, textarea, select');
-        if (!control) {
-            continue;
-        }
-        if (control instanceof HTMLInputElement && control.type === 'checkbox') {
-            values[key] = control.checked;
-        } else if (control instanceof HTMLSelectElement && control.multiple) {
-            values[key] = [...control.selectedOptions].map((option) => option.value);
-        } else {
-            values[key] = control.value;
-        }
+        if (!control) continue;
+        if (control instanceof HTMLInputElement && control.type === 'checkbox') values[key] = control.checked;
+        else if (control instanceof HTMLSelectElement && control.multiple) values[key] = [...control.selectedOptions].map((option) => option.value);
+        else values[key] = control.value;
     }
-
     return values;
 }
 
 function applyDraftValues(form, values) {
     for (const wrapper of form.querySelectorAll('[data-request-draft-field]')) {
         const key = wrapper.dataset.requestDraftField;
-        if (!Object.prototype.hasOwnProperty.call(values, key)) {
-            continue;
-        }
+        if (!Object.prototype.hasOwnProperty.call(values, key)) continue;
         const value = values[key];
         const type = wrapper.dataset.requestFieldType;
         if (type === 'currency' && value && typeof value === 'object') {
@@ -192,20 +152,11 @@ function applyDraftValues(form, values) {
             }
             continue;
         }
-
         const control = wrapper.querySelector('input, textarea, select');
-        if (!control) {
-            continue;
-        }
-        if (control instanceof HTMLInputElement && control.type === 'checkbox') {
-            control.checked = Boolean(value);
-        } else if (control instanceof HTMLSelectElement && control.multiple && Array.isArray(value)) {
-            [...control.options].forEach((option) => {
-                option.selected = value.includes(option.value);
-            });
-        } else {
-            control.value = value ?? '';
-        }
+        if (!control) continue;
+        if (control instanceof HTMLInputElement && control.type === 'checkbox') control.checked = Boolean(value);
+        else if (control instanceof HTMLSelectElement && control.multiple && Array.isArray(value)) [...control.options].forEach((option) => { option.selected = value.includes(option.value); });
+        else control.value = value ?? '';
         control.dispatchEvent(new Event('input', { bubbles: true }));
         control.dispatchEvent(new Event('change', { bubbles: true }));
     }
@@ -213,10 +164,7 @@ function applyDraftValues(form, values) {
 
 function setupDraftPersistence(store) {
     const form = document.querySelector('[data-request-draft-form]');
-    if (!form || form.dataset.requestLocalEditable !== '1') {
-        return;
-    }
-
+    if (!form || form.dataset.requestLocalEditable !== '1') return;
     const id = form.dataset.requestDraftForm;
     const schemaVersion = Number(form.dataset.requestSchemaVersion || 1);
     const serverLockVersion = Number(form.dataset.requestLockVersion || 0);
@@ -224,7 +172,6 @@ function setupDraftPersistence(store) {
     const restore = form.querySelector('[data-request-restore-draft]');
     let timer = null;
     let localRecord = null;
-
     const messages = {
         empty: 'No local draft saved for this server revision.',
         available: 'A local draft is available for review.',
@@ -233,18 +180,12 @@ function setupDraftPersistence(store) {
         conflict: 'Server revision changed. Local restore is blocked until you review the newer server version.',
         error: 'Local persistence is unavailable or its quota was reached.',
     };
-
     const setState = (state) => {
         form.dataset.requestLocalState = state;
-        if (status) {
-            status.textContent = messages[state] ?? state;
-        }
-        if (restore) {
-            restore.hidden = state !== 'available';
-        }
+        if (status) status.textContent = messages[state] ?? state;
+        if (restore) restore.hidden = state !== 'available';
         window.dispatchEvent(new CustomEvent('request:local-draft-state', { detail: { state } }));
     };
-
     const persist = () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
@@ -254,62 +195,58 @@ function setupDraftPersistence(store) {
             }).then(() => setState('saved')).catch(() => setState('error'));
         }, 350);
     };
-
     form.addEventListener('input', persist);
     form.addEventListener('change', persist);
-
     restore?.addEventListener('click', () => {
         if (localRecord?.data?.fields && Number(localRecord.data.server_lock_version) === serverLockVersion) {
             applyDraftValues(form, localRecord.data.fields);
             setState('restored');
         }
     });
-
     void store.get('draft', id).then((record) => {
         localRecord = record;
-        if (!record) {
-            setState('empty');
-            return;
-        }
-        if (Number(record.data?.server_lock_version) !== serverLockVersion) {
-            setState('conflict');
-            return;
-        }
+        if (!record) return setState('empty');
+        if (Number(record.data?.server_lock_version) !== serverLockVersion) return setState('conflict');
         setState('available');
+    });
+}
+
+function syncMutationControls(scope, online) {
+    if (!scope) return;
+    const controls = scope.querySelectorAll('button:not([data-request-offline-allowed]), input[type="file"]');
+    controls.forEach((control) => {
+        if (!online) {
+            if (!control.disabled) control.dataset.requestOfflineDisabled = '1';
+            control.disabled = true;
+        } else if (control.dataset.requestOfflineDisabled === '1') {
+            control.disabled = false;
+            delete control.dataset.requestOfflineDisabled;
+        }
     });
 }
 
 export function bootRequestOffline() {
     const marker = document.querySelector('[data-request-offline-root]');
-    if (!marker) {
-        return null;
-    }
-
+    if (!marker) return null;
     const userId = marker.dataset.requestUserId;
-    if (!userId) {
-        return null;
-    }
-
-    const store = new RequestOfflineStore({
-        userId,
-        installationScope: marker.dataset.requestInstallation || location.host,
-    });
+    if (!userId) return null;
+    const scope = marker.parentElement;
+    const store = new RequestOfflineStore({ userId, installationScope: marker.dataset.requestInstallation || location.host });
 
     const emitConnectivity = () => {
-        marker.dataset.requestConnectivity = navigator.onLine ? 'online' : 'offline';
-        window.dispatchEvent(new CustomEvent('request:connectivity', {
-            detail: { online: navigator.onLine },
-        }));
+        const online = navigator.onLine;
+        marker.dataset.requestConnectivity = online ? 'online' : 'offline';
+        syncMutationControls(scope, online);
+        window.dispatchEvent(new CustomEvent('request:connectivity', { detail: { online } }));
     };
 
     window.addEventListener('online', emitConnectivity);
     window.addEventListener('offline', emitConnectivity);
+    if (scope) new MutationObserver(emitConnectivity).observe(scope, { childList: true, subtree: true });
 
     document.addEventListener('submit', (event) => {
         const form = event.target;
-        if (form instanceof HTMLFormElement && form.action && /\/logout(?:$|\?)/.test(form.action)) {
-            void store.clear();
-        }
+        if (form instanceof HTMLFormElement && form.action && /\/logout(?:$|\?)/.test(form.action)) void store.clear();
     }, true);
 
     document.addEventListener('click', (event) => {
@@ -320,26 +257,17 @@ export function bootRequestOffline() {
         }
     });
 
-    window.addEventListener('request:authorization-failure', (event) => {
-        void store.handleAuthorizationFailure(event.detail?.status);
-    });
-
+    window.addEventListener('request:authorization-failure', (event) => { void store.handleAuthorizationFailure(event.detail?.status); });
     window.requestOfflineStore = store;
     void store.open().then(() => {
         marker.dataset.requestOffline = 'ready';
         setupDraftPersistence(store);
-    }).catch(() => {
-        marker.dataset.requestOffline = 'disabled';
-    });
+    }).catch(() => { marker.dataset.requestOffline = 'disabled'; });
     emitConnectivity();
-
     return store;
 }
 
 if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bootRequestOffline, { once: true });
-    } else {
-        bootRequestOffline();
-    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootRequestOffline, { once: true });
+    else bootRequestOffline();
 }
