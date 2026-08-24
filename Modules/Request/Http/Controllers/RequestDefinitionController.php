@@ -34,7 +34,11 @@ final class RequestDefinitionController extends Controller
 
     public function versions(string $typePublicId): View
     {
-        $type = RequestType::query()->where('public_id', $typePublicId)->with(['versions' => fn ($query) => $query->latest('version_number')])->firstOrFail();
+        $type = RequestType::query()->where('public_id', $typePublicId)->with([
+            'versions' => fn ($query) => $query->latest('version_number'),
+            'versions.audiences',
+            'versions.stages',
+        ])->firstOrFail();
         Gate::authorize('view', $type);
 
         return view('Request::admin.versions', compact('type'));
