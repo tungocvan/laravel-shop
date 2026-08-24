@@ -4,6 +4,7 @@ namespace Modules\Request\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Request\Database\Factories\RequestAuditEventFactory;
 use Modules\Request\Models\Concerns\HasPublicUlid;
 
@@ -23,5 +24,10 @@ class RequestAuditEvent extends Model
     protected function casts(): array
     {
         return ['context_json' => 'array', 'occurred_at' => 'immutable_datetime'];
+    }
+
+    public function requestInstance(): BelongsTo
+    {
+        return $this->belongsTo(InternalRequest::class, 'request_instance_id');
     }
 }

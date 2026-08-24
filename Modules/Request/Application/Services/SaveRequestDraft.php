@@ -29,7 +29,7 @@ final class SaveRequestDraft
             if ($locked->type->status !== RequestTypeStatus::Published || ($locked->type->available_from && $locked->type->available_from->isFuture()) || ($locked->type->available_until && $locked->type->available_until->lte($now))) {
                 throw ValidationException::withMessages(['type' => ['request_type_unavailable']]);
             }
-            $validated = $this->payloads->validate((array) $locked->typeVersion->form_schema_json, $payload);
+            $validated = $this->payloads->validate((array) $locked->typeVersion->form_schema_json, $payload, request: $locked);
             if ($validated['errors'] !== []) {
                 throw ValidationException::withMessages($validated['errors']);
             }
@@ -47,7 +47,7 @@ final class SaveRequestDraft
                 'created_by' => $actorId,
             ]);
             $locked->update(['lock_version' => $locked->lock_version + 1]);
-            $this->audit->append('request_instance', $locked->public_id, 'request.draft.saved.v1', $actorId, $correlationId, ['revision' => $revisionNumber, 'changed_keys' => array_keys($validated['payload'])], $keyHash);
+            $this->audit->append('request_instance', $locked->public_id, 'request.draft.saved.v1', $actorId, $correlationId, ['revision' => $revisionNumber, 'changed_keys' => array_keys($validated['payload'])], $keyHash, $locked->id);
             $this->outbox->append('request.draft.saved.v1', 'request_instance', $locked->public_id, $correlationId, ['revision' => $revisionNumber]);
 
             return ['request_public_id' => $locked->public_id, 'revision_public_id' => $revision->public_id];

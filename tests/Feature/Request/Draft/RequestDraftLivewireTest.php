@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Modules\Request\Application\Services\CreateInternalRequest;
+use Modules\Request\Livewire\Requester\AttachmentManager;
+use Modules\Request\Livewire\Requester\CommentComposer;
 use Modules\Request\Livewire\Requester\RequestDetail;
 use Modules\Request\Models\InternalRequest;
 use Modules\Request\Policies\InternalRequestPolicy;
@@ -20,6 +22,8 @@ class RequestDraftLivewireTest extends RequestDraftTestCase
     {
         parent::setUp();
         $this->app['view']->addNamespace('Request', base_path('Modules/Request/resources/views'));
+        Livewire::component('request.requester.attachment-manager', AttachmentManager::class);
+        Livewire::component('request.requester.comment-composer', CommentComposer::class);
         Gate::policy(InternalRequest::class, InternalRequestPolicy::class);
         Route::get('/request-test-mine', fn () => 'mine')->name('request.mine');
     }

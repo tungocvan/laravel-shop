@@ -10,6 +10,8 @@ use Livewire\Livewire;
 use Modules\Request\Application\Services\CreateInternalRequest;
 use Modules\Request\Application\Services\SaveRequestDraft;
 use Modules\Request\Livewire\Approver\DecisionPanel;
+use Modules\Request\Livewire\Requester\AttachmentManager;
+use Modules\Request\Livewire\Requester\CommentComposer;
 use Modules\Request\Livewire\Requester\RequestDetail;
 use Modules\Request\Models\RequestTask;
 use Modules\Request\Providers\RequestServiceProvider;
@@ -24,6 +26,8 @@ class RequestSubmissionTransportTest extends RequestDraftTestCase
         config(['auth.defaults.guard' => 'admin']);
         $this->app->register(RequestServiceProvider::class);
         $this->app['view']->addNamespace('Request', base_path('Modules/Request/resources/views'));
+        Livewire::component('request.requester.attachment-manager', AttachmentManager::class);
+        Livewire::component('request.requester.comment-composer', CommentComposer::class);
         Route::get('/request-test-inbox', fn () => 'inbox')->name('request.inbox');
         Route::get('/request-test-mine', fn () => 'mine')->name('request.mine');
         Route::get('/request-test/{requestPublicId}', fn () => 'detail')->name('request.show');

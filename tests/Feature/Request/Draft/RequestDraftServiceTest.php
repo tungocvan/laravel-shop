@@ -9,8 +9,10 @@ use Modules\Request\Application\Services\CancelInternalRequest;
 use Modules\Request\Application\Services\CreateInternalRequest;
 use Modules\Request\Application\Services\RetireRequestType;
 use Modules\Request\Application\Services\SaveRequestDraft;
+use Modules\Request\Domain\Enums\AttachmentScanStatus;
 use Modules\Request\Domain\Enums\RequestStatus;
 use Modules\Request\Models\InternalRequest;
+use Modules\Request\Models\RequestAttachment;
 use Modules\Request\Models\RequestAuditEvent;
 use Modules\Request\Models\RequestOutboxMessage;
 use Modules\Request\Models\RequestPayloadRevision;
@@ -62,11 +64,17 @@ class RequestDraftServiceTest extends RequestDraftTestCase
         ]]]];
         $type = $this->publishedType($actorId, $schema);
         $request = app(CreateInternalRequest::class)->handle($type, $actorId, (string) Str::uuid());
+        $attachment = RequestAttachment::factory()->create([
+            'request_instance_id' => $request->id,
+            'payload_field_key' => 'files',
+            'uploaded_by' => $actorId,
+            'scan_status' => AttachmentScanStatus::Clean,
+        ]);
         $revision = app(SaveRequestDraft::class)->handle($request, [
             'text' => '  hello  ', 'memo' => ' note ', 'count' => '7', 'decimal' => '001.2300',
             'money' => ['amount' => '010.500', 'currency' => 'usd'], 'day' => '2026-08-24', 'moment' => '2026-08-24T10:00:00+07:00',
             'flag' => true, 'choice' => 'a', 'choices' => ['b', 'a', 'a'], 'user' => (string) $actorId, 'role' => (string) $roleId,
-            'files' => [(string) Str::ulid()], 'computed' => 'browser value',
+            'files' => [$attachment->public_id], 'computed' => 'browser value',
         ], $actorId, 1, (string) Str::uuid());
 
         $this->assertSame('hello', $revision->payload_json['text']);
