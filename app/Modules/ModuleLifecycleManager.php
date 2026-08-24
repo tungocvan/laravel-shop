@@ -3,6 +3,7 @@
 namespace App\Modules;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 
@@ -20,6 +21,33 @@ class ModuleLifecycleManager
         ];
     }
 
+    public function migrationDiagnosis(array $module): ModuleMigrationDiagnosis
+    {
+        $expectedTables = $this->expectedTables($module);
+        $existingTables = array_values(array_filter($expectedTables, fn (string $table): bool => Schema::hasTable($table)));
+        $missingTables = array_values(array_diff($expectedTables, $existingTables));
+        $migrationFiles = $this->migrationNames($module['path']);
+        $recordedMigrations = [];
+
+        if (Schema::hasTable('migrations') && $migrationFiles !== []) {
+            $recordedMigrations = DB::table('migrations')
+                ->whereIn('migration', $migrationFiles)
+                ->orderBy('migration')
+                ->pluck('migration')
+                ->map('strval')
+                ->all();
+        }
+
+        return new ModuleMigrationDiagnosis(
+            expectedTables: $expectedTables,
+            existingTables: $existingTables,
+            missingTables: $missingTables,
+            migrationFiles: $migrationFiles,
+            recordedMigrations: $recordedMigrations,
+            missingMigrationRecords: array_values(array_diff($migrationFiles, $recordedMigrations)),
+        );
+    }
+
     public function migrateIfNeeded(array $module): array
     {
         $before = $this->databaseStatus($module);
@@ -29,14 +57,15 @@ class ModuleLifecycleManager
             return $before + ['migrated' => false, 'output' => ''];
         }
 
-        $existingTables = array_values(array_diff($before['tables'], $before['missing_tables']));
-        if ($existingTables !== [] && $before['missing_tables'] !== []) {
+        $diagnosis = $this->migrationDiagnosis($module);
+        if ($diagnosis->needsRecovery()) {
             throw new \RuntimeException(
                 "Cơ sở dữ liệu module {$module['name']} đang ở trạng thái migration không đồng bộ: "
-                .'đã có bảng '.implode(', ', $existingTables)
-                .'; còn thiếu '.implode(', ', $before['missing_tables'])
+                .'đã có bảng '.implode(', ', $diagnosis->existingTables)
+                .'; còn thiếu '.implode(', ', $diagnosis->missingTables)
+                .'; migration ledger còn thiếu '.implode(', ', $diagnosis->missingMigrationRecords)
                 .'. Không tự động chạy lại migration vì có thể ghi đè hoặc xung đột dữ liệu. '
-                .'Hãy đối chiếu bảng migrations với schema hiện tại và phục hồi migration ledger trước khi bật module.'
+                .'Hãy chạy chẩn đoán migration của module, đối chiếu schema với từng migration và chỉ phục hồi ledger sau khi đã xác minh.'
             );
         }
 
@@ -117,6 +146,20 @@ class ModuleLifecycleManager
         }
 
         return array_values(array_unique(array_filter(array_map('strval', $tables))));
+    }
+
+    private function migrationNames(string $modulePath): array
+    {
+        $path = $this->migrationPath($modulePath);
+        if ($path === null) {
+            return [];
+        }
+
+        return collect(File::files($path))
+            ->map(fn ($file): string => pathinfo($file->getFilename(), PATHINFO_FILENAME))
+            ->sort()
+            ->values()
+            ->all();
     }
 
     private function migrationPath(string $modulePath): ?string
