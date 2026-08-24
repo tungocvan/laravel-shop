@@ -24,6 +24,8 @@ class RequestVietnameseUiContractTest extends TestCase
         $this->assertSame('Sổ đăng ký đề nghị', __('Request::request.reports.register'));
         $this->assertSame('Gói định nghĩa Đề nghị', __('Request::definition_package.title'));
         $this->assertSame('Chạy thử và xem khác biệt', __('Request::definition_package.preview'));
+        $this->assertSame('Vận hành Đề nghị', __('Request::operations.title'));
+        $this->assertSame('Thử lại', __('Request::operations.retry'));
     }
 
     public function test_request_acceptance_ui_has_no_known_english_copy_regressions(): void
@@ -33,6 +35,7 @@ class RequestVietnameseUiContractTest extends TestCase
         $designer = file_get_contents(base_path('Modules/Request/resources/views/livewire/admin/type-designer.blade.php'));
         $reports = file_get_contents(base_path('Modules/Request/resources/views/admin/reports.blade.php'));
         $package = file_get_contents(base_path('Modules/Request/resources/views/admin/definition-package.blade.php'));
+        $operations = file_get_contents(base_path('Modules/Request/resources/views/admin/operations.blade.php'));
         $seeder = file_get_contents(base_path('Modules/Request/Database/Seeders/RequestDemoSeeder.php'));
 
         foreach ([
@@ -53,8 +56,11 @@ class RequestVietnameseUiContractTest extends TestCase
             'Definition package',
             'Dry-run and review diff',
             'Create draft from reviewed package',
+            'Request operations',
+            'Retryable failures',
+            'Run arbitrary command',
         ] as $englishCopy) {
-            $this->assertStringNotContainsString($englishCopy, $detail.$offline.$designer.$reports.$package.$seeder);
+            $this->assertStringNotContainsString($englishCopy, $detail.$offline.$designer.$reports.$package.$operations.$seeder);
         }
     }
 }
