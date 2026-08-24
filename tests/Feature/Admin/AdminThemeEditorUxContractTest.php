@@ -41,4 +41,18 @@ class AdminThemeEditorUxContractTest extends TestCase
         $this->assertStringContainsString('sticky bottom-4', $view);
         $this->assertStringContainsString('Lưu & áp dụng Theme', $view);
     }
+
+    public function test_nested_design_changes_refresh_preview_and_are_normalized_before_save(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
+        $presentation = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/presentation-styles.blade.php'));
+
+        $this->assertStringContainsString('public function updated(string $property, mixed $value): void', $component);
+        $this->assertStringContainsString("str_starts_with(\$property, 'config.design.')", $component);
+        $this->assertStringContainsString('$this->dispatchDesignPreview();', $component);
+        $this->assertStringContainsString('$this->normalizeDesign($designService);', $component);
+        $this->assertStringContainsString("\$this->config['design'] = \$designService->sanitize(", $component);
+        $this->assertStringContainsString("Livewire.on('admin-design-preview'", $presentation);
+        $this->assertStringContainsString('document.documentElement.style.setProperty(name, value)', $presentation);
+    }
 }
