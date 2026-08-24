@@ -2,6 +2,7 @@
 
 namespace Modules\Request\Application\Services;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Modules\Request\Domain\Enums\ExportStatus;
 use Modules\Request\Models\RequestExportJob;
@@ -25,7 +26,7 @@ final readonly class GenerateRequestExport
             return $export;
         }
 
-        if (! in_array($export->format, ['csv', 'xlsx'], true)) {
+        if (! in_array($export->format, ['csv', 'xlsx', 'pdf'], true)) {
             throw new RuntimeException('REQUEST_EXPORT_FORMAT_NOT_SUPPORTED');
         }
 
@@ -38,12 +39,16 @@ final readonly class GenerateRequestExport
         try {
             $disk = $this->storage->disk();
             $path = $this->storage->pathFor($export->public_id, $export->format);
-            $rows = $this->rows($export);
 
-            if ($export->format === 'csv') {
-                $this->writeCsv($disk, $path, $rows);
+            if ($export->format === 'pdf') {
+                $this->writePdf($disk, $path, $export);
             } else {
-                $this->writeXlsx($disk, $path, $rows);
+                $rows = $this->rows($export);
+                if ($export->format === 'csv') {
+                    $this->writeCsv($disk, $path, $rows);
+                } else {
+                    $this->writeXlsx($disk, $path, $rows);
+                }
             }
 
             $checksum = hash('sha256', Storage::disk($disk)->get($path));
@@ -143,5 +148,23 @@ final readonly class GenerateRequestExport
         } finally {
             @unlink($xlsxPath);
         }
+    }
+
+    private function writePdf(string $disk, string $path, RequestExportJob $export): void
+    {
+        $request = $this->query
+            ->queryForAuthorizationScope($export->authorization_scope_json, $export->filter_snapshot_json)
+            ->first();
+
+        if ($request === null || $export->row_count !== 1) {
+            throw new RuntimeException('REQUEST_PDF_SCOPE_INVALID');
+        }
+
+        $data = $this->mapRow($request, $export->field_snapshot_json);
+        $pdf = Pdf::loadView('Request::exports.single-request-pdf', ['data' => $data])
+            ->setOption('isRemoteEnabled', false)
+            ->setOption('isPhpEnabled', false);
+
+        Storage::disk($disk)->put($path, $pdf->output());
     }
 }
