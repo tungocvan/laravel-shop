@@ -33,6 +33,7 @@ Route::middleware(['web', UseVietnameseRequestLocale::class, 'auth:admin'])->pre
     Route::get('/mine', [RequestRequesterController::class, 'mine'])->middleware('permission:request.instance.view-own,admin')->name('mine');
     Route::get('/inbox', [RequestRequesterController::class, 'inbox'])->middleware('permission:request.task.view,admin')->name('inbox');
     Route::get('/exports/{exportPublicId}', [RequestExportController::class, 'download'])->whereUlid('exportPublicId')->middleware(['permission:request.export,admin', 'throttle:request-download'])->name('exports.download');
+    Route::post('/{requestPublicId}/exports/pdf', [RequestExportController::class, 'pdf'])->whereUlid('requestPublicId')->middleware(['permission:request.export,admin', 'throttle:request-export'])->name('exports.pdf');
     Route::get('/{requestPublicId}/attachments/{attachmentPublicId}', RequestAttachmentController::class)->whereUlid('requestPublicId')->whereUlid('attachmentPublicId')->middleware(['permission:request.attachment.download,admin', 'throttle:request-download'])->name('attachments.download');
     Route::get('/{requestPublicId}', [RequestRequesterController::class, 'show'])->whereUlid('requestPublicId')->middleware('permission:request.instance.view-own|request.instance.view-participant|request.instance.view-all,admin')->name('show');
 });
