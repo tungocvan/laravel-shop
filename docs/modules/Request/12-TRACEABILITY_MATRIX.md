@@ -129,3 +129,16 @@ MR-01 intentionally contains no Request business migrations, models, approval ru
 | `ARC-02`, `ARC-04`, `ARC-05` architecture invariants | Request consumes only approved Shell contracts, remains default OFF, and its provider binds only owned registries/policies | `tests/Feature/Request/Architecture/*`; `tests/Feature/Request/ModuleState/*`; repository import scan | Preserved |
 
 MR-02 intentionally contains no request instance/payload/run/task persistence, requester/approver runtime, shared Approval module, Workflow changes, or MR-03 UI.
+
+### MR-03 — Form rendering and requester drafts
+
+| Traceability | Implementation evidence | Automated evidence | Result |
+|---|---|---|---|
+| `DEF-03`, `DEF-04` bounded dynamic payloads | `FormPayloadNormalizer`, `FormPayloadValidator`, and `VisibilityRuleEvaluator` normalize/validate all approved initial field types, reject unknown input, and strip hidden/computed browser values | `tests/Feature/Request/Draft/RequestDraftServiceTest.php` | Implemented for RF-02/03 draft behavior; attachment ownership remains RF-05/MR-06 |
+| `DEF-05`, `SEC-01` audience and requester scope | Catalog queries intersect active published versions with direct User/Role audiences through Shell contracts; My Requests scopes by requester before lookup; policies use the explicit `admin` permission guard | `tests/Feature/Request/Draft/RequestAudienceAndQueryTest.php`, `InternalRequestPolicyTest.php`, `RequestDraftLivewireTest.php` | Implemented for RF-01 and draft IDOR boundaries |
+| `REQ-01`, `REQ-05`, `REL-01` requester drafts | `CreateInternalRequest`, `SaveRequestDraft`, and `CancelInternalRequest` use locks, expected versions, scoped idempotency fingerprints, immutable payload revisions, audit, and outbox | `tests/Feature/Request/Draft/RequestDraftServiceTest.php` | Implemented for RF-04/RF-06; submit/run activation remains MR-04 |
+| `DAT-01`, `DAT-02` runtime base and numbering | Migration 4 adds only request aggregate/payload/run base; numbers derive from unique DB IDs as `REQ-{UTC_YEAR}-{ID_PADDED_8}` | `RequestDefinitionMigrationTest.php`, `RequestAudienceAndQueryTest.php`; fresh/migrate/rollback/migrate validation | Implemented for MR-03; task/decision tables remain absent |
+| `UX-01`, `UX-03` requester draft UI | Audience-scoped catalog, mobile My Requests cards, dynamic draft detail, bounded search/filter/reset/pagination, explicit save/conflict/cancel/loading states | `RequestDraftLivewireTest.php`, `RequestBootstrapTest.php` | Implemented for the MR-03 online draft surface; submit and offline persistence remain later slices |
+| `ARC-02`, `ARC-04`, `ARC-05` architecture invariants | Request consumes only approved Shell contracts, remains default OFF, and adds no Workflow, task/decision, API mutation, service worker, or MR-04 artifact | `tests/Feature/Request/Architecture/*`, `tests/Feature/Request/ModuleState/*`, repository scans | Preserved |
+
+MR-03 intentionally does not submit requests or create runs, tasks, candidates, or decisions. It adds no approver runtime, API mutation, attachment storage, offline persistence, Workflow change, or MR-04 behavior.

@@ -53,6 +53,29 @@ class RoleDirectoryTest extends TestCase
         $this->assertSame([$active], app(RoleDirectory::class)->activeMemberIds($role->id, 10));
     }
 
+    public function test_active_user_role_ids_are_bounded_ordered_and_admin_only(): void
+    {
+        $active = $this->createUser('Active audience', 'active-audience@example.test', true);
+        $inactive = $this->createUser('Inactive audience', 'inactive-audience@example.test', false);
+        $adminRoles = [
+            Role::create(['name' => 'Audience B', 'guard_name' => 'admin']),
+            Role::create(['name' => 'Audience A', 'guard_name' => 'admin']),
+        ];
+        $webRole = Role::create(['name' => 'Web audience', 'guard_name' => 'web']);
+
+        foreach ([$adminRoles[1], $webRole, $adminRoles[0]] as $role) {
+            DB::table('model_has_roles')->insert(['role_id' => $role->id, 'model_type' => config('auth.providers.users.model'), 'model_id' => $active]);
+        }
+        DB::table('model_has_roles')->insert(['role_id' => $adminRoles[0]->id, 'model_type' => config('auth.providers.users.model'), 'model_id' => $inactive]);
+
+        $directory = app(RoleDirectory::class);
+        $this->assertSame(collect($adminRoles)->pluck('id')->sort()->values()->all(), $directory->activeAdminRoleIdsForUser($active, 10));
+        $this->assertSame([], $directory->activeAdminRoleIdsForUser($inactive, 10));
+
+        $this->expectException(RoleDirectoryException::class);
+        $directory->activeAdminRoleIdsForUser($active, 1);
+    }
+
     public function test_member_lookup_reports_safe_typed_failures(): void
     {
         $directory = app(RoleDirectory::class);

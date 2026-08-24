@@ -73,6 +73,36 @@ final class SpatieRoleDirectory implements RoleDirectory
             ->all();
     }
 
+    public function activeAdminRoleIdsForUser(int $userId, int $limit): array
+    {
+        $limit = $this->validatedLimit($limit);
+        if ($this->users->findActive($userId) === null) {
+            return [];
+        }
+
+        $roleModel = $this->newRoleModel();
+        $table = (string) config('permission.table_names.model_has_roles', 'model_has_roles');
+        $rolePivotKey = (string) (config('permission.column_names.role_pivot_key') ?: 'role_id');
+        $modelKey = (string) config('permission.column_names.model_morph_key', 'model_id');
+        $roleIds = DB::table($table)
+            ->join($roleModel->getTable(), $roleModel->qualifyColumn('id'), '=', $table.'.'.$rolePivotKey)
+            ->where($table.'.'.$modelKey, $userId)
+            ->where($table.'.model_type', $this->authModel()->getMorphClass())
+            ->where($roleModel->qualifyColumn('guard_name'), self::ADMIN_GUARD)
+            ->orderBy($table.'.'.$rolePivotKey)
+            ->limit($limit + 1)
+            ->pluck($table.'.'.$rolePivotKey)
+            ->map(fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($roleIds->count() > $limit) {
+            throw new RoleDirectoryException('candidate_limit_exceeded');
+        }
+
+        return $roleIds->all();
+    }
+
     public function searchAdminRoles(string $term, int $limit): array
     {
         $limit = $this->validatedLimit($limit);
