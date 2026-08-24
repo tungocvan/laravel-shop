@@ -26,4 +26,9 @@ final class RequestRequesterController extends Controller
     {
         return view('Request::requester.show', compact('requestPublicId'));
     }
+
+    public function inbox(): View
+    {
+        return view('Request::approver.inbox');
+    }
 }

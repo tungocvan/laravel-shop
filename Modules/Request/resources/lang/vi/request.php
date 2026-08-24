@@ -1,6 +1,16 @@
 <?php
 
 return [
+    'inbox' => ['title' => 'Hộp thư phê duyệt', 'subtitle' => 'Xem xét các yêu cầu được giao cho bạn.', 'search_placeholder' => 'Tìm theo số hoặc loại yêu cầu', 'submitted_at' => 'Đã gửi', 'empty' => 'Không có tác vụ phê duyệt đang hoạt động.'],
+    'approve' => 'Phê duyệt',
+    'approve_confirm' => 'Phê duyệt yêu cầu này?',
+    'approve_warning' => 'Quyết định có hiệu lực chính thức và không thể chỉnh sửa.',
+    'decision_approved' => 'Yêu cầu đã được phê duyệt thành công.',
+    'review_submit' => 'Xem lại và gửi',
+    'submit' => 'Gửi yêu cầu',
+    'submit_confirm' => 'Gửi yêu cầu này?',
+    'submit_warning' => 'Dữ liệu sau khi gửi sẽ bất biến và quy trình phê duyệt bắt đầu ngay.',
+    'request_submitted' => 'Yêu cầu đã được gửi thành công.',
     'module_name' => 'Đề nghị',
     'disabled' => 'Phân hệ Đề nghị hiện không khả dụng.',
     'code' => 'Mã',

@@ -17,7 +17,7 @@ class InternalRequest extends Model
 
     protected $table = 'request_instances';
 
-    protected $fillable = ['request_number', 'request_type_id', 'request_type_version_id', 'requester_id', 'status', 'title_snapshot', 'requester_snapshot_json', 'lock_version', 'submitted_at', 'approved_at', 'rejected_at', 'returned_at', 'cancelled_at', 'archived_at', 'cancelled_by', 'cancellation_reason'];
+    protected $fillable = ['request_number', 'request_type_id', 'request_type_version_id', 'requester_id', 'status', 'title_snapshot', 'requester_snapshot_json', 'current_payload_revision_id', 'current_run_id', 'lock_version', 'submitted_at', 'approved_at', 'rejected_at', 'returned_at', 'cancelled_at', 'archived_at', 'cancelled_by', 'cancellation_reason'];
 
     protected static function newFactory(): InternalRequestFactory
     {
@@ -52,5 +52,15 @@ class InternalRequest extends Model
     public function runs(): HasMany
     {
         return $this->hasMany(RequestRun::class, 'request_instance_id');
+    }
+
+    public function currentPayloadRevision(): BelongsTo
+    {
+        return $this->belongsTo(RequestPayloadRevision::class, 'current_payload_revision_id');
+    }
+
+    public function currentRun(): BelongsTo
+    {
+        return $this->belongsTo(RequestRun::class, 'current_run_id');
     }
 }

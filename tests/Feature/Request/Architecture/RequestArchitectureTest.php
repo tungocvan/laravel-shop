@@ -56,10 +56,13 @@ class RequestArchitectureTest extends TestCase
         $this->assertFileDoesNotExist(base_path('Modules/Request/module.json'));
         $this->assertFileExists(base_path('Modules/Request/database/migrations/2026_09_01_000001_create_request_definition_tables.php'));
         $this->assertFileExists(base_path('Modules/Request/database/migrations/2026_09_01_000004_create_request_runtime_tables.php'));
-        $this->assertFileDoesNotExist(base_path('Modules/Request/database/migrations/2026_09_01_000005_create_request_task_tables.php'));
+        $this->assertFileExists(base_path('Modules/Request/database/migrations/2026_09_01_000005_create_request_task_tables.php'));
+        $this->assertFileExists(base_path('Modules/Request/database/migrations/2026_09_01_000006_add_request_runtime_pointers.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Request/database/migrations/2026_09_01_000007_create_request_collaboration_delivery_tables.php'));
         $this->assertFileExists(base_path('Modules/Request/Livewire/Admin/DefinitionIndex.php'));
         $this->assertFileExists(base_path('Modules/Request/Livewire/Requester/RequestDetail.php'));
-        $this->assertDirectoryDoesNotExist(base_path('Modules/Request/Livewire/Approver'));
+        $this->assertFileExists(base_path('Modules/Request/Livewire/Approver/Inbox.php'));
+        $this->assertFileExists(base_path('Modules/Request/Livewire/Approver/DecisionPanel.php'));
     }
 
     public function test_module_provider_does_not_duplicate_root_resource_registration(): void

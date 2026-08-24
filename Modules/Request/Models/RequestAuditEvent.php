@@ -18,7 +18,7 @@ class RequestAuditEvent extends Model
 
     public const UPDATED_AT = null;
 
-    protected $fillable = ['aggregate_type', 'aggregate_public_id', 'event_key', 'actor_user_id', 'effective_actor_user_id', 'context_json', 'reason', 'correlation_id', 'idempotency_key_hash', 'ip_address', 'user_agent', 'occurred_at'];
+    protected $fillable = ['request_instance_id', 'aggregate_type', 'aggregate_public_id', 'event_key', 'actor_user_id', 'effective_actor_user_id', 'context_json', 'reason', 'correlation_id', 'idempotency_key_hash', 'ip_address', 'user_agent', 'occurred_at'];
 
     protected function casts(): array
     {

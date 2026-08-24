@@ -38,13 +38,17 @@ class RequestBootstrapTest extends TestCase
             'request.admin.types',
             'request.admin.types.designer',
             'request.admin.types.versions',
+            'request.api.v1.inbox',
+            'request.api.v1.requests.submit',
+            'request.api.v1.tasks.decide',
             'request.catalog',
             'request.create',
+            'request.inbox',
             'request.mine',
             'request.show',
         ], collect(Route::getRoutes())->filter(fn ($route): bool => str_starts_with((string) $route->getName(), 'request.'))->pluck('action.as')->unique()->sort()->values()->all());
 
-        foreach (['request.admin.groups', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions', 'request.catalog', 'request.create', 'request.mine', 'request.show'] as $routeName) {
+        foreach (['request.admin.groups', 'request.admin.types', 'request.admin.types.designer', 'request.admin.types.versions', 'request.catalog', 'request.create', 'request.inbox', 'request.mine', 'request.show'] as $routeName) {
             $route = Route::getRoutes()->getByName($routeName);
             $this->assertNotNull($route);
             $this->assertContains('auth:admin', $route->gatherMiddleware());
