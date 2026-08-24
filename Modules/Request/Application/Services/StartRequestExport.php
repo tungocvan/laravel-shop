@@ -14,7 +14,11 @@ final readonly class StartRequestExport
 
     public function handle(mixed $user, RequestExportPlan $plan, string $format, string $idempotencyKey): RequestExportJob
     {
-        if (! in_array($format, ['csv', 'xlsx'], true)) {
+        if (! in_array($format, ['csv', 'xlsx', 'pdf'], true)) {
+            throw ValidationException::withMessages(['format' => __('Request::exports.invalid_format')]);
+        }
+
+        if ($format === 'pdf' && ($plan->filters['request_public_id'] ?? null) === null) {
             throw ValidationException::withMessages(['format' => __('Request::exports.invalid_format')]);
         }
 
