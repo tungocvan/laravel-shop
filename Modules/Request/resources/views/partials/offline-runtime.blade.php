@@ -14,6 +14,7 @@
     <button
         type="button"
         data-request-clear-local
+        data-request-offline-allowed
         class="ml-auto min-h-10 rounded-lg border border-slate-300 px-3 py-2 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
     >
         Remove local Request data
