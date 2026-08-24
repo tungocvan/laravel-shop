@@ -17,7 +17,7 @@ class AdminThemeEditorContractTest extends TestCase
 
     public function test_theme_profiles_cover_whole_admin_shell_and_have_professional_default(): void
     {
-        $profiles = app(AdminThemeProfileService::class)->profiles();
+        $profiles = app(AdminThemeProfileService::class)->builtInProfiles();
         $default = $profiles[AdminThemeProfileService::DEFAULT_PROFILE];
         $this->assertSame('professional-indigo', AdminThemeProfileService::DEFAULT_PROFILE);
         $this->assertSame('Professional Indigo', $default['label']);
