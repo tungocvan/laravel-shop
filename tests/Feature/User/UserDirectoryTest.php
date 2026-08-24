@@ -4,10 +4,15 @@ namespace Tests\Feature\User;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use InvalidArgumentException;
 use Modules\User\Contracts\UserDirectory;
+use Modules\User\Contracts\UserMailGateway;
 use Modules\User\Data\UserIdentity;
+use Modules\User\Data\UserMailMessage;
+use Modules\User\Mail\UserMessageMail;
 use Modules\User\Services\AuthUserDirectory;
+use Modules\User\Services\AuthUserMailGateway;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -18,7 +23,22 @@ class UserDirectoryTest extends TestCase
     public function test_provider_binds_the_stable_user_directory_contract(): void
     {
         $this->assertInstanceOf(AuthUserDirectory::class, app(UserDirectory::class));
+        $this->assertInstanceOf(AuthUserMailGateway::class, app(UserMailGateway::class));
         $this->assertTrue((new ReflectionClass(UserIdentity::class))->isReadOnly());
+        $this->assertTrue((new ReflectionClass(UserMailMessage::class))->isReadOnly());
+    }
+
+    public function test_mail_gateway_delivers_only_to_active_identity_without_exposing_email(): void
+    {
+        Mail::fake();
+        $active = $this->createUser('Active User', 'active@example.test', true);
+        $inactive = $this->createUser('Inactive User', 'inactive@example.test', false);
+        $message = new UserMailMessage('Action required', 'Hello', ['Review your request.'], 'Open request', 'https://example.test/requests/1');
+
+        $this->assertTrue(app(UserMailGateway::class)->sendToActive($active, $message));
+        $this->assertFalse(app(UserMailGateway::class)->sendToActive($inactive, $message));
+        Mail::assertSent(UserMessageMail::class, 1);
+        Mail::assertSent(UserMessageMail::class, fn (UserMessageMail $mail): bool => $mail->hasTo('active@example.test') && $mail->message === $message);
     }
 
     public function test_it_returns_only_active_non_deleted_safe_identities(): void

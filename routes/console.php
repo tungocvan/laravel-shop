@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Modules\Request\Jobs\DispatchRequestOutboxBatch;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -13,6 +14,10 @@ if (config('services.facebook.scheduler_enabled', false)) {
         ->everyMinute()
         ->withoutOverlapping();
 }
+
+Schedule::job(new DispatchRequestOutboxBatch)
+    ->everyMinute()
+    ->withoutOverlapping();
 
 Schedule::command('system:cloud-backup')
     ->everyMinute()
