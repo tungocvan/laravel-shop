@@ -53,11 +53,15 @@ class ModuleLifecycleManager
         $before = $this->databaseStatus($module);
         $migrationPath = $this->migrationPath($module['path']);
 
-        if ($migrationPath === null || ($before['tables'] !== [] && $before['ready'])) {
+        if ($migrationPath === null) {
             return $before + ['migrated' => false, 'output' => ''];
         }
 
         $diagnosis = $this->migrationDiagnosis($module);
+        if ($diagnosis->isReady()) {
+            return $before + ['migrated' => false, 'output' => ''];
+        }
+
         if ($diagnosis->needsRecovery()) {
             throw new \RuntimeException(
                 "Cơ sở dữ liệu module {$module['name']} đang ở trạng thái migration không đồng bộ: "
