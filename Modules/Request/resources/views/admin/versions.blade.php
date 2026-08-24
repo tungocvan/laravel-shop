@@ -11,7 +11,10 @@
             <h1 class="mt-1 break-words text-2xl font-semibold text-slate-900 sm:text-3xl">{{ $type->name }}</h1>
             <p class="mt-1 text-sm text-slate-600">Phiên bản đã phát hành là bất biến. Mỗi thẻ được so sánh với phiên bản ngay trước đó nếu có.</p>
         </div>
-        <a href="{{ route('request.admin.types.designer', $type->public_id) }}" class="flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">Quay lại trình thiết kế</a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('request.admin.types.package', $type->public_id) }}" class="flex min-h-11 items-center rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700">Gói định nghĩa</a>
+            <a href="{{ route('request.admin.types.designer', $type->public_id) }}" class="flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">Quay lại trình thiết kế</a>
+        </div>
     </div>
 
     @php

@@ -7,4 +7,6 @@ return [
     'request_number_prefix' => 'REQ',
     'max_stage_count' => 20,
     'max_candidates_per_stage' => 100,
+    'starter_templates_enabled' => (bool) env('REQUEST_STARTER_TEMPLATES_ENABLED', false),
+    'starter_template_actor_id' => (int) env('REQUEST_STARTER_TEMPLATE_ACTOR_ID', 0),
 ];
