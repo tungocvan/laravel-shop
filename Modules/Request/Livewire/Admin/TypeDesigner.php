@@ -63,7 +63,7 @@ class TypeDesigner extends Component
         $number = count($this->sections) + 1;
         $this->sections[] = [
             'key' => 'section_'.$number,
-            'label' => 'Section '.$number,
+            'label' => 'Phần '.$number,
             'fields' => [],
         ];
     }
@@ -93,7 +93,7 @@ class TypeDesigner extends Component
         $fields[] = [
             'key' => 'field_'.$number,
             'type' => 'text',
-            'label' => 'Field '.$number,
+            'label' => 'Trường '.$number,
             'required' => false,
             'classification' => 'internal',
             'offline_draft' => true,
@@ -128,8 +128,8 @@ class TypeDesigner extends Component
         $number = count($this->stages) + 1;
         $this->stages[] = [
             'stage_key' => 'stage_'.$number,
-            'name' => 'Stage '.$number,
-            'mode' => 'sequential',
+            'name' => 'Cấp duyệt '.$number,
+            'mode' => 'single',
             'resolver_key' => 'fixed_user',
             'resolver_config_json' => '{}',
             'instructions' => '',
