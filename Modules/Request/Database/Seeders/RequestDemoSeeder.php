@@ -48,7 +48,7 @@ class RequestDemoSeeder extends Seeder
                     'request_group_id' => $groupId,
                     'code' => 'REQUEST_UI_DEMO',
                     'name' => 'DEMO · Đề nghị cấp thiết bị',
-                    'summary' => 'Biểu mẫu mẫu để kiểm thử responsive, offline và dữ liệu nhạy cảm.',
+                    'summary' => 'Biểu mẫu mẫu để kiểm thử giao diện thích ứng, chế độ ngoại tuyến và dữ liệu nhạy cảm.',
                     'status' => 'published',
                     'sort_order' => 1,
                     'lock_version' => 1,
@@ -62,7 +62,7 @@ class RequestDemoSeeder extends Seeder
                 DB::table('request_types')->where('id', $type->id)->update([
                     'request_group_id' => $groupId,
                     'name' => 'DEMO · Đề nghị cấp thiết bị',
-                    'summary' => 'Biểu mẫu mẫu để kiểm thử responsive, offline và dữ liệu nhạy cảm.',
+                    'summary' => 'Biểu mẫu mẫu để kiểm thử giao diện thích ứng, chế độ ngoại tuyến và dữ liệu nhạy cảm.',
                     'status' => 'published',
                     'available_from' => null,
                     'available_until' => null,
@@ -91,26 +91,31 @@ class RequestDemoSeeder extends Seeder
                 ->where('version_number', 1)
                 ->value('id');
 
+            $publishedValues = [
+                'status' => 'published',
+                'title' => 'DEMO · Đề nghị cấp thiết bị',
+                'description' => 'Phiên bản đã phát hành để kiểm thử danh mục và luồng tạo đề nghị.',
+                'requester_guidance' => 'Chỉ sử dụng loại đề nghị này để kiểm thử giao diện.',
+                'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
+                'policy_json' => json_encode([], JSON_THROW_ON_ERROR),
+                'presentation_json' => json_encode([], JSON_THROW_ON_ERROR),
+                'schema_version' => 1,
+                'published_by' => $actorId,
+                'published_at' => $now,
+                'updated_by' => $actorId,
+                'updated_at' => $now,
+            ];
+
             if (! $publishedId) {
-                $publishedId = DB::table('request_type_versions')->insertGetId([
+                $publishedId = DB::table('request_type_versions')->insertGetId($publishedValues + [
                     'public_id' => (string) Str::ulid(),
                     'request_type_id' => $type->id,
                     'version_number' => 1,
-                    'status' => 'published',
-                    'title' => 'DEMO · Đề nghị cấp thiết bị',
-                    'description' => 'Phiên bản đã phát hành để kiểm thử danh mục và tạo đề nghị.',
-                    'requester_guidance' => 'Chỉ sử dụng loại đề nghị này cho kiểm thử giao diện.',
-                    'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
-                    'policy_json' => json_encode([], JSON_THROW_ON_ERROR),
-                    'presentation_json' => json_encode([], JSON_THROW_ON_ERROR),
-                    'schema_version' => 1,
-                    'published_by' => $actorId,
-                    'published_at' => $now,
                     'created_by' => $actorId,
-                    'updated_by' => $actorId,
                     'created_at' => $now,
-                    'updated_at' => $now,
                 ]);
+            } else {
+                DB::table('request_type_versions')->where('id', $publishedId)->update($publishedValues);
             }
 
             $draftId = DB::table('request_type_versions')
@@ -125,8 +130,8 @@ class RequestDemoSeeder extends Seeder
                     'version_number' => 2,
                     'status' => 'draft',
                     'title' => 'DEMO · Đề nghị cấp thiết bị v2',
-                    'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên tablet.',
-                    'requester_guidance' => 'Thử thêm, xóa, di chuyển trường/cấp duyệt rồi lưu.',
+                    'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên máy tính bảng.',
+                    'requester_guidance' => 'Thử thêm, xóa, di chuyển trường hoặc cấp duyệt rồi lưu lại.',
                     'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
                     'policy_json' => json_encode([], JSON_THROW_ON_ERROR),
                     'presentation_json' => json_encode([], JSON_THROW_ON_ERROR),
@@ -140,8 +145,8 @@ class RequestDemoSeeder extends Seeder
             } else {
                 DB::table('request_type_versions')->where('id', $draftId)->update([
                     'title' => 'DEMO · Đề nghị cấp thiết bị v2',
-                    'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên tablet.',
-                    'requester_guidance' => 'Thử thêm, xóa, di chuyển trường/cấp duyệt rồi lưu.',
+                    'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên máy tính bảng.',
+                    'requester_guidance' => 'Thử thêm, xóa, di chuyển trường hoặc cấp duyệt rồi lưu lại.',
                     'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
                     'updated_by' => $actorId,
                     'updated_at' => $now,
@@ -211,8 +216,8 @@ class RequestDemoSeeder extends Seeder
                     'request_instance_id' => $requestId,
                     'revision_number' => 1,
                     'request_type_version_id' => $publishedId,
-                    'payload_json' => json_encode(['item_name' => 'Máy tính xách tay', 'quantity' => 1, 'business_reason' => 'Tình huống DEMO cho bản nháp offline', 'confidential_note' => 'Giá trị này không được phép lưu offline'], JSON_THROW_ON_ERROR),
-                    'display_snapshot_json' => json_encode(['item_name' => 'Máy tính xách tay', 'quantity' => 1, 'business_reason' => 'Tình huống DEMO cho bản nháp offline'], JSON_THROW_ON_ERROR),
+                    'payload_json' => json_encode(['item_name' => 'Máy tính xách tay', 'quantity' => 1, 'business_reason' => 'Tình huống DEMO cho bản nháp ngoại tuyến', 'confidential_note' => 'Giá trị này không được phép lưu ngoại tuyến'], JSON_THROW_ON_ERROR),
+                    'display_snapshot_json' => json_encode(['item_name' => 'Máy tính xách tay', 'quantity' => 1, 'business_reason' => 'Tình huống DEMO cho bản nháp ngoại tuyến'], JSON_THROW_ON_ERROR),
                     'payload_checksum' => hash('sha256', 'REQUEST_UI_DEMO:DEMO-DRAFT-001:1'),
                     'schema_version' => 1,
                     'source' => 'server_draft',
