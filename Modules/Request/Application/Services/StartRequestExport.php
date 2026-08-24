@@ -15,13 +15,13 @@ final readonly class StartRequestExport
     public function handle(mixed $user, RequestExportPlan $plan, string $format, string $idempotencyKey): RequestExportJob
     {
         if (! in_array($format, ['csv', 'xlsx'], true)) {
-            throw ValidationException::withMessages(['format' => __('Request::request.exports.invalid_format')]);
+            throw ValidationException::withMessages(['format' => __('Request::exports.invalid_format')]);
         }
 
         $idempotencyKey = trim($idempotencyKey);
 
         if ($idempotencyKey === '' || strlen($idempotencyKey) > 191) {
-            throw ValidationException::withMessages(['idempotency_key' => __('Request::request.exports.invalid_idempotency_key')]);
+            throw ValidationException::withMessages(['idempotency_key' => __('Request::exports.invalid_idempotency_key')]);
         }
 
         $userId = (int) $user->getAuthIdentifier();
