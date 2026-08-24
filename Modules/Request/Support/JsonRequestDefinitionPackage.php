@@ -137,7 +137,7 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
             throw new RuntimeException('REQUEST_DEFINITION_PACKAGE_INVALID_JSON', previous: $exception);
         }
 
-        if (! is_array($package) || array_is_list($package)) {
+        if (is_array($package) === false || array_is_list($package)) {
             throw new RuntimeException('REQUEST_DEFINITION_PACKAGE_OBJECT_REQUIRED');
         }
 
@@ -159,7 +159,7 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
         $checksum = (string) ($package['checksum'] ?? '');
         $unsigned = $package;
         unset($unsigned['checksum']);
-        if (! preg_match('/^[a-f0-9]{64}$/', $checksum) || ! hash_equals($this->canonicalizer->checksum($unsigned), $checksum)) {
+        if (preg_match('/^[a-f0-9]{64}$/', $checksum) !== 1 || hash_equals($this->canonicalizer->checksum($unsigned), $checksum) === false) {
             $errors['checksum'][] = 'checksum_mismatch';
         }
 
@@ -168,16 +168,16 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
         }
 
         $definition = $package['definition'] ?? null;
-        if (! is_array($definition) || array_is_list($definition)) {
+        if (is_array($definition) === false || array_is_list($definition)) {
             return $errors + ['definition' => ['definition_required']];
         }
 
-        if (! is_string($definition['title'] ?? null) || trim((string) $definition['title']) === '') {
+        if (is_string($definition['title'] ?? null) === false || trim((string) $definition['title']) === '') {
             $errors['definition.title'][] = 'title_required';
         }
 
         $schema = $definition['form_schema'] ?? null;
-        if (! is_array($schema)) {
+        if (is_array($schema) === false) {
             $errors['definition.form_schema'][] = 'form_schema_required';
         } else {
             foreach ($this->schemas->errors($schema) as $path => $messages) {
@@ -190,7 +190,7 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
             $ref = is_array($mapping) ? (string) ($mapping['ref'] ?? '') : '';
             $kind = is_array($mapping) ? (string) ($mapping['kind'] ?? '') : '';
             $sourceId = is_array($mapping) ? (int) ($mapping['source_id'] ?? 0) : 0;
-            if (! preg_match('/^(user|role):[1-9][0-9]*$/', $ref) || ! in_array($kind, ['user', 'role'], true) || $sourceId < 1 || $ref !== $this->mappingRef($kind, $sourceId)) {
+            if (preg_match('/^(user|role):[1-9][0-9]*$/', $ref) !== 1 || in_array($kind, ['user', 'role'], true) === false || $sourceId < 1 || $ref !== $this->mappingRef($kind, $sourceId)) {
                 $errors['required_mappings.'.$index][] = 'invalid_mapping_placeholder';
                 continue;
             }
@@ -206,7 +206,7 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
         }
 
         foreach ((array) ($definition['stages'] ?? []) as $index => $stage) {
-            if (! is_array($stage)) {
+            if (is_array($stage) === false) {
                 $errors['definition.stages.'.$index][] = 'invalid_stage';
                 continue;
             }
@@ -231,7 +231,7 @@ final readonly class JsonRequestDefinitionPackage implements RequestDefinitionPa
 
     private function containsForbiddenKey(mixed $value): bool
     {
-        if (! is_array($value)) {
+        if (is_array($value) === false) {
             return false;
         }
 
