@@ -174,7 +174,7 @@ class RequestDemoSeeder extends Seeder
                     'display_snapshot_json' => json_encode(['item_name' => 'Laptop', 'quantity' => 1, 'business_reason' => 'Demo offline draft scenario'], JSON_THROW_ON_ERROR),
                     'payload_checksum' => hash('sha256', 'REQUEST_UI_DEMO:DEMO-DRAFT-001:1'),
                     'schema_version' => 1,
-                    'source' => 'draft_save',
+                    'source' => 'server_draft',
                     'created_by' => $actorId,
                     'created_at' => $now,
                 ]);
