@@ -29,16 +29,22 @@ final class InternalRequestPolicy
 
     public function submit(mixed $user, InternalRequest $request): bool
     {
-        return $request->status === RequestStatus::Draft && $request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.submit');
+        return in_array($request->status, [RequestStatus::Draft, RequestStatus::Returned], true) && $request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.submit');
     }
 
     public function update(mixed $user, InternalRequest $request): bool
     {
-        return $request->status === RequestStatus::Draft && $request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.update-own');
+        return in_array($request->status, [RequestStatus::Draft, RequestStatus::Returned], true) && $request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.update-own');
     }
 
     public function cancel(mixed $user, InternalRequest $request): bool
     {
-        return $request->status === RequestStatus::Draft && $request->requester_id === (int) $user->getAuthIdentifier() && $this->hasPermission($user, 'request.instance.cancel-own');
+        return ($request->requester_id === (int) $user->getAuthIdentifier() && in_array($request->status, [RequestStatus::Draft, RequestStatus::Returned], true) && $this->hasPermission($user, 'request.instance.cancel-own'))
+            || ($request->status === RequestStatus::Pending && $this->hasPermission($user, 'request.instance.cancel-any'));
+    }
+
+    public function retryActivation(mixed $user, InternalRequest $request): bool
+    {
+        return $request->status === RequestStatus::Pending && $this->hasPermission($user, 'request.operation.retry');
     }
 }

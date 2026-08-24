@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use Livewire\Component;
 use Modules\Request\Application\Queries\ApproverInboxQuery;
 use Modules\Request\Application\Services\DecideRequestTask;
+use Modules\Request\Domain\Enums\DecisionType;
 
 class DecisionPanel extends Component
 {
@@ -20,6 +21,10 @@ class DecisionPanel extends Component
 
     public bool $confirming = false;
 
+    public string $decision = 'approve';
+
+    public string $reason = '';
+
     public function mount(string $taskPublicId, int $requestVersion, int $taskVersion): void
     {
         $this->taskPublicId = $taskPublicId;
@@ -30,9 +35,16 @@ class DecisionPanel extends Component
 
     public function approve(ApproverInboxQuery $query, DecideRequestTask $service): void
     {
+        $this->decision = 'approve';
+        $this->decide($query, $service);
+    }
+
+    public function decide(ApproverInboxQuery $query, DecideRequestTask $service): void
+    {
+        $validated = $this->validate(['decision' => ['required', 'in:approve,reject,return'], 'reason' => ['nullable', 'string', 'max:2000']]);
         $task = $query->findActionable($this->taskPublicId, (int) auth('admin')->id());
         Gate::authorize('decide', $task);
-        $service->approve($task, (int) auth('admin')->id(), $this->requestVersion, $this->taskVersion, $this->idempotencyKey);
+        $service->handle($task, DecisionType::from($validated['decision']), $validated['reason'], (int) auth('admin')->id(), $this->requestVersion, $this->taskVersion, $this->idempotencyKey);
         session()->flash('request_success', __('Request::request.decision_approved'));
         $this->redirectRoute('request.inbox');
     }
