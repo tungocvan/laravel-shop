@@ -11,13 +11,13 @@ final class RequestNotificationMessageFactory
     public function mail(NotificationPlan $plan): UserMailMessage
     {
         return new UserMailMessage(
-            subject: __('Request::request.notification_subject', ['number' => $plan->requestNumber]),
-            greeting: __('Request::request.notification_greeting'),
+            subject: __('Request::notifications.subject', ['number' => $plan->requestNumber]),
+            greeting: __('Request::notifications.greeting'),
             lines: [
-                __('Request::request.notification_summary', ['title' => $plan->requestTitle, 'number' => $plan->requestNumber]),
-                __('Request::request.notification_status', ['status' => $plan->status]),
+                __('Request::notifications.summary', ['title' => $plan->requestTitle, 'number' => $plan->requestNumber]),
+                __('Request::notifications.status', ['status' => $plan->status]),
             ],
-            actionLabel: __('Request::request.notification_open'),
+            actionLabel: __('Request::notifications.open'),
             actionUrl: url('/admin/requests/'.$plan->requestPublicId),
         );
     }
