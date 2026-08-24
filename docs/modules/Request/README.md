@@ -47,10 +47,10 @@ Repository reality wins over generic examples. Never introduce `nwidart/laravel-
 
 ## Approval boundary
 
-The analysis documents complete `/analyze-new-module Request`. `/create-module Request` has now produced `CREATE_PLAN.md`; application code is still not authorized until that plan receives explicit approval.
+The analysis documents complete `/analyze-new-module Request`. `/create-module Request` produced `CREATE_PLAN.md`, which the repository owner explicitly approved on 2026-08-24 and merged through PR `#23`. Application implementation is authorized from MR-01 under that plan.
 
 ```text
-Review and approve docs/modules/Request/CREATE_PLAN.md
+Read docs/modules/Request/CREATE_PLAN.md and execute from MR-01
 ```
 
-After approval, Codex must implement the ordered vertical slices and gates in `CREATE_PLAN.md`. Do not run `/create-module Workflow` while the accepted ADR remains active.
+Codex must implement the ordered vertical slices and gates in `CREATE_PLAN.md`. Do not run `/create-module Workflow` while the accepted ADR remains active.
