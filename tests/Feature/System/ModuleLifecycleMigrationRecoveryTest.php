@@ -123,6 +123,32 @@ PHP);
         ]);
     }
 
+    public function test_complete_schema_with_missing_ledger_requires_recovery_instead_of_fast_path(): void
+    {
+        Artisan::call('migrate:install');
+
+        Schema::create('lifecycle_existing', function (Blueprint $table): void {
+            $table->id();
+        });
+        Schema::create('lifecycle_missing', function (Blueprint $table): void {
+            $table->id();
+        });
+
+        try {
+            app(ModuleLifecycleManager::class)->migrateIfNeeded($this->module());
+            $this->fail('Expected complete schema with missing ledger to require recovery.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('migration ledger còn thiếu', $exception->getMessage());
+            $this->assertStringContainsString('2026_01_01_000001_create_lifecycle_fixture_tables', $exception->getMessage());
+        }
+
+        $this->assertTrue(Schema::hasTable('lifecycle_existing'));
+        $this->assertTrue(Schema::hasTable('lifecycle_missing'));
+        $this->assertDatabaseMissing('migrations', [
+            'migration' => '2026_01_01_000001_create_lifecycle_fixture_tables',
+        ]);
+    }
+
     private function module(): array
     {
         return [
