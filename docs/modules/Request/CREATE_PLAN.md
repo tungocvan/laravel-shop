@@ -1,6 +1,6 @@
 # Request v1 — CREATE PLAN
 
-Status: **IMPLEMENTATION VERIFIED — SEE SECTION 33**  
+Status: **IMPLEMENTATION VERIFIED — SEE SECTION 33**
 Command: `/create-module Request`  
 Target module: `Modules/Request`  
 Module type: `domain`  
