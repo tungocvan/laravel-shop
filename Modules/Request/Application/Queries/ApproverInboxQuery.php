@@ -13,7 +13,7 @@ final class ApproverInboxQuery
     public function paginate(int $userId, string $search, int $perPage): LengthAwarePaginator
     {
         return RequestTask::query()
-            ->select(['id', 'public_id', 'request_run_id', 'stage_name_snapshot', 'stage_position', 'stage_mode', 'status', 'assignee_user_id', 'lock_version', 'activated_at'])
+            ->select(['id', 'public_id', 'request_run_id', 'stage_name_snapshot', 'stage_position', 'stage_mode', 'status', 'assignee_user_id', 'lock_version', 'activated_at', 'warning_at', 'due_at', 'grace_expires_at', 'overdue_at', 'suspended_at'])
             ->with(['run:id,request_instance_id,status,current_stage_position', 'run.requestInstance:id,public_id,request_number,requester_id,status,title_snapshot,submitted_at,lock_version'])
             ->where('assignee_user_id', $userId)
             ->where('status', TaskStatus::Active)
