@@ -1,4 +1,6 @@
 <div class="space-y-6">
+    @include('Request::partials.workspace-navigation')
+
     <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 class="text-2xl font-bold text-gray-900">{{ __('Request::request.mine.title') }}</h1><p class="mt-1 text-sm text-gray-600">{{ __('Request::request.mine.description') }}</p></div><a href="{{ route('request.catalog') }}" class="inline-flex justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">{{ __('Request::request.create_draft') }}</a></header>
     <div class="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-4">
         <label class="sm:col-span-2"><span class="text-sm font-medium text-gray-700">{{ __('Request::request.search') }}</span><input wire:model.live.debounce.300ms="search" type="search" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
