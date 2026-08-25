@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mx-auto max-w-7xl space-y-6">
-    @include('Request::partials.dashboard-back')
+    @include('Request::partials.workspace-navigation')
 
     <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
