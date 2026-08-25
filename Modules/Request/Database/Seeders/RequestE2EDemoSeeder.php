@@ -35,6 +35,7 @@ class RequestE2EDemoSeeder extends Seeder
 
         $roles = [
             'requester' => $this->syncRole('Request E2E · Nhân viên', $guard, [
+                'admin.dashboard.view',
                 'request.dashboard.view',
                 'request.instance.view-own',
                 'request.instance.create',
@@ -46,6 +47,7 @@ class RequestE2EDemoSeeder extends Seeder
                 'request.attachment.download',
             ]),
             'approver' => $this->syncRole('Request E2E · Người duyệt', $guard, [
+                'admin.dashboard.view',
                 'request.dashboard.view',
                 'request.instance.view-participant',
                 'request.task.view',
@@ -56,6 +58,7 @@ class RequestE2EDemoSeeder extends Seeder
                 'request.audit.view',
             ]),
             'finance' => $this->syncRole('Request E2E · Tài chính', $guard, [
+                'admin.dashboard.view',
                 'request.dashboard.view',
                 'request.instance.view-participant',
                 'request.task.view',
@@ -66,6 +69,7 @@ class RequestE2EDemoSeeder extends Seeder
                 'request.export',
             ]),
             'auditor' => $this->syncRole('Request E2E · Kiểm toán', $guard, [
+                'admin.dashboard.view',
                 'request.dashboard.view',
                 'request.instance.view-all',
                 'request.audit.view',
