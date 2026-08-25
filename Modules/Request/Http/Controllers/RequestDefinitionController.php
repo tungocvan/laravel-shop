@@ -15,7 +15,14 @@ final class RequestDefinitionController extends Controller
     {
         Gate::authorize('viewAny', RequestGroup::class);
 
-        return view('Request::admin.groups', ['groups' => RequestGroup::query()->withCount('types')->orderBy('sort_order')->paginate(25)]);
+        $groups = RequestGroup::query()
+            ->with(['types:id,request_group_id,public_id,code,name,status'])
+            ->withCount('types')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->paginate(25);
+
+        return view('Request::admin.groups', compact('groups'));
     }
 
     public function types(): View
