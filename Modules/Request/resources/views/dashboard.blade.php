@@ -3,6 +3,7 @@
 @section('content')
 <div class="p-4 sm:p-6 space-y-6">
     @include('Request::partials.offline-runtime')
+    @include('Request::partials.workspace-navigation')
 
     <div>
         <h1 class="text-2xl font-semibold">Bảng kiểm thử giao diện Đề nghị</h1>
