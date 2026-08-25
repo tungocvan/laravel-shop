@@ -30,11 +30,23 @@ final class PublishTypeVersion
                 throw ValidationException::withMessages($errors);
             }
 
-            $definition = ['schema' => $draft->form_schema_json, 'policy' => $draft->policy_json, 'presentation' => $draft->presentation_json, 'audiences' => $draft->audiences->map->only(['actor_type', 'actor_id', 'capability'])->all(), 'stages' => $draft->stages->map->only(['stage_key', 'name', 'position', 'mode', 'resolver_key', 'resolver_config_json', 'allow_reassignment'])->all()];
+            $definition = [
+                'schema' => $draft->form_schema_json,
+                'policy' => $draft->policy_json,
+                'presentation' => $draft->presentation_json,
+                'audiences' => $draft->audiences->map->only(['actor_type', 'actor_id', 'capability'])->all(),
+                'stages' => $draft->stages->map->only([
+                    'stage_key', 'name', 'position', 'mode', 'resolver_key', 'resolver_config_json', 'allow_reassignment',
+                    'sla_minutes', 'warning_minutes_before', 'grace_minutes', 'timeout_action',
+                    'email_on_assignment', 'email_on_decision', 'email_on_sla_warning',
+                ])->all(),
+            ];
             $now = now('UTC');
             $correlationId ??= (string) Str::uuid();
             if ($lockedType->current_published_version_id) {
-                DB::table('request_type_versions')->whereKey($lockedType->current_published_version_id)->update(['status' => RequestTypeVersionStatus::Superseded->value, 'updated_at' => $now]);
+                DB::table('request_type_versions')
+                    ->where('id', $lockedType->current_published_version_id)
+                    ->update(['status' => RequestTypeVersionStatus::Superseded->value, 'updated_at' => $now]);
             }
             $draft->update(['status' => RequestTypeVersionStatus::Published, 'canonical_checksum' => $this->canonicalizer->checksum($definition), 'published_by' => $actorId, 'published_at' => $now, 'updated_by' => $actorId]);
             $lockedType->forceFill(['status' => RequestTypeStatus::Published, 'current_published_version_id' => $draft->id, 'active_draft_version_id' => null, 'lock_version' => $lockedType->lock_version + 1, 'updated_by' => $actorId])->save();
