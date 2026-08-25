@@ -63,10 +63,12 @@ class RequestOperationsTest extends TestCase
     public function test_starter_template_is_opt_in_and_creates_draft_only(): void
     {
         $actorId = $this->user('Starter Admin', 'starter-admin@example.test');
+        $approverId = $this->user('Starter Approver', 'starter-approver@example.test');
 
         config([
             'request.settings.starter_templates_enabled' => false,
             'request.settings.starter_template_actor_id' => $actorId,
+            'request.settings.starter_template_approver_id' => $approverId,
         ]);
         app(RequestStarterTemplateSeeder::class)->run();
         $this->assertDatabaseMissing('request_groups', ['code' => 'STARTER']);
