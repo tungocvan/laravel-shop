@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Request\Domain\Enums\TaskStatus;
 use Modules\Request\Models\InternalRequest;
@@ -81,12 +82,19 @@ class PrepareRequestSlaDemo extends Command
             'suspended_at' => null,
         ])->save();
 
+        $raw = DB::table('request_tasks')->where('id', $task->id)->first(['warning_at', 'due_at', 'grace_expires_at']);
+        $fresh = $task->fresh();
+        $displayTimezone = (string) config('app.timezone', 'UTC');
+
         $this->components->info('Đã chuẩn bị SLA demo: '.$state);
         $this->line('Request: '.$request->request_number);
         $this->line('Task: '.$task->public_id);
-        $this->line('warning_at: '.$task->fresh()->warning_at?->toIso8601String());
-        $this->line('due_at: '.$task->fresh()->due_at?->toIso8601String());
-        $this->line('grace_expires_at: '.$task->fresh()->grace_expires_at?->toIso8601String());
+        $this->line('DB UTC warning_at: '.($raw->warning_at ?? '-'));
+        $this->line('DB UTC due_at: '.($raw->due_at ?? '-'));
+        $this->line('DB UTC grace_expires_at: '.($raw->grace_expires_at ?? '-'));
+        $this->line('UI '.$displayTimezone.' warning_at: '.$fresh->warning_at?->timezone($displayTimezone)->toIso8601String());
+        $this->line('UI '.$displayTimezone.' due_at: '.$fresh->due_at?->timezone($displayTimezone)->toIso8601String());
+        $this->line('UI '.$displayTimezone.' grace_expires_at: '.$fresh->grace_expires_at?->timezone($displayTimezone)->toIso8601String());
         $this->newLine();
         $this->line('Chạy tiếp: php artisan request:sla-enforce');
 
