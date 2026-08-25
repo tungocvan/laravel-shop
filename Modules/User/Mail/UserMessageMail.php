@@ -13,18 +13,18 @@ class UserMessageMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public readonly UserMailMessage $message) {}
+    public function __construct(public readonly UserMailMessage $mailMessage) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->message->subject);
+        return new Envelope(subject: $this->mailMessage->subject);
     }
 
     public function content(): Content
     {
         return new Content(
             view: 'User::mail.user-message',
-            with: ['message' => $this->message],
+            with: ['mailMessage' => $this->mailMessage],
         );
     }
 }
