@@ -189,7 +189,7 @@ class TypeDesigner extends Component
             throw ValidationException::withMessages([$field => 'array_required']);
         }
 
-return $value;
+        return $value;
     }
 
     private function minutesForEditor(?int $minutes): array
@@ -202,7 +202,7 @@ return $value;
             return [$minutes / 60, 'hours'];
         }
 
-return [$minutes, 'minutes'];
+        return [$minutes, 'minutes'];
     }
 
     private function editorDurationToMinutes(mixed $value, string $unit, bool $required, string $field): ?int
@@ -212,7 +212,7 @@ return [$minutes, 'minutes'];
                 throw ValidationException::withMessages([$field => 'duration_required']);
             }
 
-return null;
+            return null;
         } if (! is_numeric($value) || (float) $value < 0 || ($required && (float) $value <= 0)) {
             throw ValidationException::withMessages([$field => 'duration_invalid']);
         } $factor = match ($unit) {
