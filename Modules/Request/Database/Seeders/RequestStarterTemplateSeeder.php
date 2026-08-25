@@ -3,12 +3,12 @@
 namespace Modules\Request\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Modules\Request\Application\Services\CreateRequestGroup;
 use Modules\Request\Application\Services\CreateRequestType;
 use Modules\Request\Application\Services\SaveTypeDraft;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestType;
+use Modules\User\Contracts\UserDirectory;
 
 class RequestStarterTemplateSeeder extends Seeder
 {
@@ -19,21 +19,14 @@ class RequestStarterTemplateSeeder extends Seeder
         }
 
         $actorId = (int) config('request.settings.starter_template_actor_id', 0);
-        $activeActor = $actorId > 0 && DB::table('users')->where('id', $actorId)->where('is_active', true)->exists();
-        if ($activeActor === false) {
+        $approverId = (int) config('request.settings.starter_template_approver_id', 0);
+        $directory = app(UserDirectory::class);
+
+        if ($actorId <= 0 || $directory->findActive($actorId) === null) {
             return;
         }
 
-        $approverId = (int) config('request.settings.starter_template_approver_id', 0);
-        if ($approverId <= 0 || ! DB::table('users')->where('id', $approverId)->where('is_active', true)->exists() || $approverId === $actorId) {
-            $approverId = (int) (DB::table('users')
-                ->where('id', '!=', $actorId)
-                ->where('is_active', true)
-                ->orderBy('id')
-                ->value('id') ?? 0);
-        }
-
-        if ($approverId <= 0) {
+        if ($approverId <= 0 || $approverId === $actorId || $directory->findActive($approverId) === null) {
             return;
         }
 
@@ -46,7 +39,7 @@ class RequestStarterTemplateSeeder extends Seeder
             ], $actorId);
         }
 
-        foreach ($this->templates($actorId, $approverId) as $template) {
+        foreach ($this->templates() as $template) {
             $type = RequestType::query()->where('code', $template['code'])->first();
             if ($type !== null) {
                 continue;
@@ -80,7 +73,7 @@ class RequestStarterTemplateSeeder extends Seeder
         }
     }
 
-    private function templates(int $actorId, int $approverId): array
+    private function templates(): array
     {
         return [
             [
