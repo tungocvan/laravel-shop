@@ -19,7 +19,7 @@ final class EnforceRequestTaskSla
     public function handle(): array
     {
         $counts = ['warned' => 0, 'overdue' => 0, 'suspended' => 0];
-        $now = now();
+        $now = now('UTC');
 
         RequestTask::query()
             ->where('status', TaskStatus::Active)
