@@ -58,4 +58,22 @@ return [
             'request_notification_deliveries',
         ],
     ],
+    '2026_09_01_000008_add_request_stage_sla_fields' => [
+        'columns' => [
+            'request_stage_definitions' => [
+                'sla_minutes',
+                'warning_minutes_before',
+                'grace_minutes',
+                'timeout_action',
+            ],
+            'request_tasks' => [
+                'sla_snapshot_json',
+                'warning_at',
+                'due_at',
+                'grace_expires_at',
+                'overdue_at',
+                'suspended_at',
+            ],
+        ],
+    ],
 ];
