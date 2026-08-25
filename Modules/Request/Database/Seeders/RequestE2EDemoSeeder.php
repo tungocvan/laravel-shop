@@ -112,8 +112,8 @@ class RequestE2EDemoSeeder extends Seeder
                     ->where('request_type_version_id', $versionId)
                     ->where('stage_key', 'manager_review')
                     ->update([
-                        'resolver_key' => 'fixed_user',
-                        'resolver_config_json' => json_encode(['user_id' => $users['approver']->id], JSON_THROW_ON_ERROR),
+                        'resolver_key' => 'fixed_users',
+                        'resolver_config_json' => json_encode(['user_ids' => [$users['approver']->id]], JSON_THROW_ON_ERROR),
                         'updated_at' => now(),
                     ]);
             }
