@@ -51,12 +51,20 @@ class TypeDesigner extends Component
             [$graceValue, $graceUnit] = $this->minutesForEditor($stage->grace_minutes ?? 0);
 
             return [
-                'stage_key' => $stage->stage_key, 'name' => $stage->name, 'mode' => $stage->mode->value,
+                'stage_key' => $stage->stage_key,
+                'name' => $stage->name,
+                'mode' => $stage->mode->value,
                 'resolver_key' => $stage->resolver_key,
                 'resolver_config_json' => json_encode($stage->resolver_config_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'instructions' => $stage->instructions ?? '', 'allow_reassignment' => (bool) $stage->allow_reassignment,
-                'sla_value' => $slaValue, 'sla_unit' => $slaUnit, 'warning_value' => $warningValue, 'warning_unit' => $warningUnit,
-                'grace_value' => $graceValue, 'grace_unit' => $graceUnit, 'timeout_action' => $stage->timeout_action ?? 'notify_only',
+                'instructions' => $stage->instructions ?? '',
+                'allow_reassignment' => (bool) $stage->allow_reassignment,
+                'sla_value' => $slaValue,
+                'sla_unit' => $slaUnit,
+                'warning_value' => $warningValue,
+                'warning_unit' => $warningUnit,
+                'grace_value' => $graceValue,
+                'grace_unit' => $graceUnit,
+                'timeout_action' => $stage->timeout_action ?? 'notify_only',
                 'email_on_assignment' => (bool) ($stage->email_on_assignment ?? true),
                 'email_on_decision' => (bool) ($stage->email_on_decision ?? true),
                 'email_on_sla_warning' => (bool) ($stage->email_on_sla_warning ?? true),
@@ -87,7 +95,9 @@ class TypeDesigner extends Component
     {
         if (! isset($this->sections[$section])) {
             return;
-        } $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
+        }
+
+        $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
         $number = count($fields) + 1;
         $fields[] = ['key' => 'field_'.$number, 'type' => 'text', 'label' => 'Trường '.$number, 'required' => false, 'classification' => 'internal', 'offline_draft' => true];
         $this->sections[$section]['fields'] = $fields;
@@ -97,7 +107,9 @@ class TypeDesigner extends Component
     {
         if (! isset($this->sections[$section]['fields'][$field])) {
             return;
-        } $fields = array_values((array) $this->sections[$section]['fields']);
+        }
+
+        $fields = array_values((array) $this->sections[$section]['fields']);
         array_splice($fields, $field, 1);
         $this->sections[$section]['fields'] = $fields;
     }
@@ -106,7 +118,9 @@ class TypeDesigner extends Component
     {
         if (! isset($this->sections[$section])) {
             return;
-        } $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
+        }
+
+        $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
         $this->moveItem($fields, $field, $direction);
         $this->sections[$section]['fields'] = $fields;
     }
@@ -115,10 +129,23 @@ class TypeDesigner extends Component
     {
         $number = count($this->stages) + 1;
         $this->stages[] = [
-            'stage_key' => 'stage_'.$number, 'name' => 'Cấp duyệt '.$number, 'mode' => 'single', 'resolver_key' => 'fixed_users',
-            'resolver_config_json' => '{"user_ids":[]}', 'instructions' => '', 'allow_reassignment' => false,
-            'sla_value' => 24, 'sla_unit' => 'hours', 'warning_value' => 4, 'warning_unit' => 'hours', 'grace_value' => 12, 'grace_unit' => 'hours',
-            'timeout_action' => 'suspend', 'email_on_assignment' => true, 'email_on_decision' => true, 'email_on_sla_warning' => true,
+            'stage_key' => 'stage_'.$number,
+            'name' => 'Cấp duyệt '.$number,
+            'mode' => 'single',
+            'resolver_key' => 'fixed_users',
+            'resolver_config_json' => '{"user_ids":[]}',
+            'instructions' => '',
+            'allow_reassignment' => false,
+            'sla_value' => 24,
+            'sla_unit' => 'hours',
+            'warning_value' => 4,
+            'warning_unit' => 'hours',
+            'grace_value' => 12,
+            'grace_unit' => 'hours',
+            'timeout_action' => 'suspend',
+            'email_on_assignment' => true,
+            'email_on_decision' => true,
+            'email_on_sla_warning' => true,
         ];
     }
 
@@ -142,6 +169,7 @@ class TypeDesigner extends Component
         $schema['schema_version'] = $this->schemaVersion;
         $schema['sections'] = array_values($this->sections);
         $stages = [];
+
         foreach (array_values($this->stages) as $index => $stage) {
             $stage['position'] = $index + 1;
             $stage['resolver_config_json'] = $this->decode((string) ($stage['resolver_config_json'] ?? '{}'), 'stages.'.$index.'.resolver_config_json');
@@ -154,9 +182,19 @@ class TypeDesigner extends Component
             unset($stage['sla_value'], $stage['sla_unit'], $stage['warning_value'], $stage['warning_unit'], $stage['grace_value'], $stage['grace_unit']);
             $stages[] = $stage;
         }
-        $service->handle($type, ['title' => $this->title, 'description' => $this->description ?: null, 'requester_guidance' => $this->requesterGuidance ?: null, 'form_schema_json' => $schema, 'audiences' => $this->decode($this->audiencesJson, 'audiencesJson'), 'stages' => $stages], (int) auth('admin')->id(), $this->lockVersion);
+
+        $service->handle($type, [
+            'title' => $this->title,
+            'description' => $this->description ?: null,
+            'requester_guidance' => $this->requesterGuidance ?: null,
+            'form_schema_json' => $schema,
+            'audiences' => $this->decode($this->audiencesJson, 'audiencesJson'),
+            'stages' => $stages,
+        ], (int) auth('admin')->id(), $this->lockVersion);
+
         $this->lockVersion = $type->refresh()->lock_version;
         session()->flash('request_success', __('Request::request.saved'));
+        $this->js("window.alert('Đã lưu bản nháp thành công.');");
     }
 
     public function publish(PublishTypeVersion $service): void
@@ -185,20 +223,27 @@ class TypeDesigner extends Component
             $value = json_decode($json, true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             throw ValidationException::withMessages([$field => 'invalid_json']);
-        } if (! is_array($value)) {
+        }
+
+        if (! is_array($value)) {
             throw ValidationException::withMessages([$field => 'array_required']);
         }
 
         return $value;
     }
 
+    /** @return array{0:int|string,1:string} */
     private function minutesForEditor(?int $minutes): array
     {
         if ($minutes === null) {
             return ['', 'hours'];
-        } if ($minutes > 0 && $minutes % 1440 === 0) {
+        }
+
+        if ($minutes > 0 && $minutes % 1440 === 0) {
             return [$minutes / 1440, 'days'];
-        } if ($minutes > 0 && $minutes % 60 === 0) {
+        }
+
+        if ($minutes > 0 && $minutes % 60 === 0) {
             return [$minutes / 60, 'hours'];
         }
 
@@ -213,10 +258,17 @@ class TypeDesigner extends Component
             }
 
             return null;
-        } if (! is_numeric($value) || (float) $value < 0 || ($required && (float) $value <= 0)) {
+        }
+
+        if (! is_numeric($value) || (float) $value < 0 || ($required && (float) $value <= 0)) {
             throw ValidationException::withMessages([$field => 'duration_invalid']);
-        } $factor = match ($unit) {
-            'minutes' => 1, 'hours' => 60, 'days' => 1440, default => throw ValidationException::withMessages([$field => 'duration_unit_invalid'])
+        }
+
+        $factor = match ($unit) {
+            'minutes' => 1,
+            'hours' => 60,
+            'days' => 1440,
+            default => throw ValidationException::withMessages([$field => 'duration_unit_invalid']),
         };
 
         return (int) round((float) $value * $factor);
@@ -228,6 +280,8 @@ class TypeDesigner extends Component
         $target = $index + ($direction < 0 ? -1 : 1);
         if (! isset($items[$index], $items[$target])) {
             return;
-        } [$items[$index], $items[$target]] = [$items[$target], $items[$index]];
+        }
+
+        [$items[$index], $items[$target]] = [$items[$target], $items[$index]];
     }
 }
