@@ -22,6 +22,9 @@ class UserMessageMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(view: 'User::mail.user-message');
+        return new Content(
+            view: 'User::mail.user-message',
+            with: ['mailMessage' => $this->mailMessage],
+        );
     }
 }
