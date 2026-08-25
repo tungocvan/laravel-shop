@@ -21,7 +21,8 @@ final class MyRequestsQuery
 
     public function workspaceCounts(int $userId): array
     {
-        $counts = $this->baseQuery($userId)
+        $counts = InternalRequest::query()
+            ->where('requester_id', $userId)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status');
