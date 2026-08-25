@@ -20,23 +20,62 @@ final class CloneTypeVersion
             if ($lockedType->active_draft_version_id !== null || $source->request_type_id !== $lockedType->id) {
                 throw ValidationException::withMessages(['version' => 'active_draft_exists_or_source_invalid']);
             }
+
             $source->load(['audiences', 'stages']);
             $draft = RequestTypeVersion::query()->create([
-                'request_type_id' => $lockedType->id, 'version_number' => ((int) $lockedType->versions()->max('version_number')) + 1,
-                'status' => RequestTypeVersionStatus::Draft, 'title' => $source->title, 'description' => $source->description,
-                'requester_guidance' => $source->requester_guidance, 'form_schema_json' => $source->form_schema_json,
-                'policy_json' => $source->policy_json, 'presentation_json' => $source->presentation_json,
-                'schema_version' => $source->schema_version, 'created_from_version_id' => $source->id,
-                'created_by' => $actorId, 'updated_by' => $actorId,
+                'request_type_id' => $lockedType->id,
+                'version_number' => ((int) $lockedType->versions()->max('version_number')) + 1,
+                'status' => RequestTypeVersionStatus::Draft,
+                'title' => $source->title,
+                'description' => $source->description,
+                'requester_guidance' => $source->requester_guidance,
+                'form_schema_json' => $source->form_schema_json,
+                'policy_json' => $source->policy_json,
+                'presentation_json' => $source->presentation_json,
+                'schema_version' => $source->schema_version,
+                'created_from_version_id' => $source->id,
+                'created_by' => $actorId,
+                'updated_by' => $actorId,
             ]);
+
             foreach ($source->audiences as $audience) {
                 $draft->audiences()->create($audience->only(['actor_type', 'actor_id', 'capability']));
             }
+
             foreach ($source->stages as $stage) {
-                $draft->stages()->create($stage->only(['stage_key', 'name', 'position', 'mode', 'resolver_key', 'resolver_config_json', 'instructions', 'allow_reassignment']));
+                $draft->stages()->create($stage->only([
+                    'stage_key',
+                    'name',
+                    'position',
+                    'mode',
+                    'resolver_key',
+                    'resolver_config_json',
+                    'instructions',
+                    'allow_reassignment',
+                    'sla_minutes',
+                    'warning_minutes_before',
+                    'grace_minutes',
+                    'timeout_action',
+                    'email_on_assignment',
+                    'email_on_decision',
+                    'email_on_sla_warning',
+                ]));
             }
-            $lockedType->forceFill(['active_draft_version_id' => $draft->id, 'lock_version' => $lockedType->lock_version + 1, 'updated_by' => $actorId])->save();
-            $this->audit->append('request_type', $lockedType->public_id, 'request.type.version_cloned.v1', $actorId, (string) Str::uuid(), ['source_version' => $source->version_number, 'draft_version' => $draft->version_number]);
+
+            $lockedType->forceFill([
+                'active_draft_version_id' => $draft->id,
+                'lock_version' => $lockedType->lock_version + 1,
+                'updated_by' => $actorId,
+            ])->save();
+
+            $this->audit->append(
+                'request_type',
+                $lockedType->public_id,
+                'request.type.version_cloned.v1',
+                $actorId,
+                (string) Str::uuid(),
+                ['source_version' => $source->version_number, 'draft_version' => $draft->version_number],
+            );
 
             return $draft->load(['audiences', 'stages']);
         });
