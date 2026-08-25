@@ -48,4 +48,24 @@ class RequestWorkspaceNavigationContractTest extends TestCase
         $this->assertStringNotContainsString('UI-01', $navigation);
         $this->assertStringNotContainsString('REQUEST_UI_DEMO', $navigation);
     }
+
+    public function test_primary_request_surfaces_mount_the_workspace_navigation(): void
+    {
+        foreach ([
+            'Modules/Request/resources/views/dashboard.blade.php',
+            'Modules/Request/resources/views/livewire/requester/catalog.blade.php',
+            'Modules/Request/resources/views/livewire/requester/my-requests.blade.php',
+            'Modules/Request/resources/views/livewire/approver/inbox.blade.php',
+            'Modules/Request/resources/views/admin/reports.blade.php',
+            'Modules/Request/resources/views/admin/operations.blade.php',
+        ] as $view) {
+            $contents = file_get_contents(base_path($view));
+
+            $this->assertStringContainsString(
+                "@include('Request::partials.workspace-navigation')",
+                $contents,
+                "Workspace navigation missing from {$view}."
+            );
+        }
+    }
 }
