@@ -24,16 +24,16 @@ class RequestDetailWorkspaceContractTest extends TestCase
         }
 
         $this->assertStringContainsString('Hành động của bạn', $view);
-        $this->assertStringContainsString("$status === 'pending' && $activeTask", $view);
+        $this->assertStringContainsString('$status === \'pending\' && $activeTask', $view);
         $this->assertStringContainsString('request.approver.decision-panel', $view);
-        $this->assertStringContainsString("$status === 'returned' && $isRequester", $view);
+        $this->assertStringContainsString('$status === \'returned\' && $isRequester', $view);
         $this->assertStringContainsString("timezone(config('app.timezone'))", $view);
         $this->assertStringContainsString("sortBy('stage_position')", $view);
         $this->assertStringContainsString('min-h-11', $view);
-        $this->assertStringContainsString("Gate::authorize('view', $request)", $component);
-        $this->assertStringContainsString("Gate::authorize('submit', $request)", $component);
-        $this->assertStringContainsString("Gate::authorize('update', $request)", $component);
-        $this->assertStringContainsString("Gate::authorize('cancel', $request)", $component);
+        $this->assertStringContainsString("Gate::authorize('view', \$request)", $component);
+        $this->assertStringContainsString("Gate::authorize('submit', \$request)", $component);
+        $this->assertStringContainsString("Gate::authorize('update', \$request)", $component);
+        $this->assertStringContainsString("Gate::authorize('cancel', \$request)", $component);
         $this->assertStringNotContainsString('App\\Models\\User', $component.$view);
     }
 }
