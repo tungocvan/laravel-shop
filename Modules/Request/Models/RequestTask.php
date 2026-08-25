@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Modules\Request\Casts\UtcImmutableDateTime;
 use Modules\Request\Database\Factories\RequestTaskFactory;
 use Modules\Request\Domain\Enums\StageMode;
 use Modules\Request\Domain\Enums\TaskStatus;
@@ -57,14 +58,14 @@ class RequestTask extends Model
             'resolver_source_snapshot_json' => 'array',
             'sla_snapshot_json' => 'array',
             'replacement_generation' => 'integer',
-            'activated_at' => 'immutable_datetime',
-            'warning_at' => 'immutable_datetime',
-            'due_at' => 'immutable_datetime',
-            'grace_expires_at' => 'immutable_datetime',
-            'overdue_at' => 'immutable_datetime',
-            'suspended_at' => 'immutable_datetime',
-            'decided_at' => 'immutable_datetime',
-            'closed_at' => 'immutable_datetime',
+            'activated_at' => UtcImmutableDateTime::class,
+            'warning_at' => UtcImmutableDateTime::class,
+            'due_at' => UtcImmutableDateTime::class,
+            'grace_expires_at' => UtcImmutableDateTime::class,
+            'overdue_at' => UtcImmutableDateTime::class,
+            'suspended_at' => UtcImmutableDateTime::class,
+            'decided_at' => UtcImmutableDateTime::class,
+            'closed_at' => UtcImmutableDateTime::class,
             'lock_version' => 'integer',
         ];
     }
