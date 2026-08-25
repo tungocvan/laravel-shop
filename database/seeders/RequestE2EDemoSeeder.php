@@ -13,9 +13,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RequestE2EDemoSeeder extends Seeder
 {
-    private const PASSWORD = 'RequestDemo@123';
-
-    private const REAL_MAIL_PASSWORD = '12345678';
+    private const PASSWORD = '12345678';
 
     public function run(): void
     {
@@ -26,13 +24,10 @@ class RequestE2EDemoSeeder extends Seeder
         $now = now('UTC');
         $superAdmin = User::query()->where('email', 'tungocvan@gmail.com')->firstOrFail();
         $users = [
-            'employee' => $this->upsertUser('request.employee@demo.local', 'Nguyễn An · Nhân viên E2E', $now),
-            'approver' => $this->upsertUser('request.approver@demo.local', 'Trần Bình · Quản lý duyệt E2E', $now),
-            'finance' => $this->upsertUser('request.finance@demo.local', 'Lê Chi · Tài chính E2E', $now),
-            'auditor' => $this->upsertUser('request.auditor@demo.local', 'Phạm Dũng · Kiểm toán E2E', $now),
-            'mail_employee' => $this->upsertUser('tungocvan1@gmail.com', 'Từ Ngọc Vân · Mail Test 1', $now, self::REAL_MAIL_PASSWORD),
-            'mail_approver' => $this->upsertUser('tungocvan2@gmail.com', 'Từ Ngọc Vân · Mail Test 2', $now, self::REAL_MAIL_PASSWORD),
-            'mail_finance' => $this->upsertUser('vhdtshop@gmail.com', 'VHDT Shop · Mail Test', $now, self::REAL_MAIL_PASSWORD),
+            'employee' => $this->upsertUser('tungocvan1@gmail.com', 'Từ Ngọc Vân · Nhân viên E2E', $now),
+            'approver' => $this->upsertUser('vhdtshop@gmail.com', 'VHDT Shop · Người duyệt E2E', $now),
+            'finance' => $this->upsertUser('vansala78@gmail.com', 'Vân Sala · Tài chính E2E', $now),
+            'auditor' => $this->upsertUser('hamadaqc01@gmail.com', 'Hamada QC · Kiểm toán E2E', $now),
         ];
 
         $guard = (string) (Permission::query()->where('name', 'request.dashboard.view')->value('guard_name') ?? 'admin');
@@ -47,9 +42,6 @@ class RequestE2EDemoSeeder extends Seeder
         $users['approver']->syncRoles([$roles['approver']]);
         $users['finance']->syncRoles([$roles['finance']]);
         $users['auditor']->syncRoles([$roles['auditor']]);
-        $users['mail_employee']->syncRoles([$roles['requester']]);
-        $users['mail_approver']->syncRoles([$roles['approver']]);
-        $users['mail_finance']->syncRoles([$roles['finance']]);
         if ($legacyApprover = User::query()->where('email', 'demo@website.test')->first()) {
             $legacyApprover->syncRoles([$roles['approver']]);
         }
@@ -63,7 +55,6 @@ class RequestE2EDemoSeeder extends Seeder
             $versionIds = DB::table('request_type_versions')->where('request_type_id', $typeId)->pluck('id');
             foreach ($versionIds as $versionId) {
                 DB::table('request_type_audiences')->updateOrInsert(['request_type_version_id' => $versionId, 'actor_type' => 'user', 'actor_id' => $users['employee']->id, 'capability' => 'create'], ['created_at' => $now, 'updated_at' => $now]);
-                DB::table('request_type_audiences')->updateOrInsert(['request_type_version_id' => $versionId, 'actor_type' => 'user', 'actor_id' => $users['mail_employee']->id, 'capability' => 'create'], ['created_at' => $now, 'updated_at' => $now]);
                 DB::table('request_stage_definitions')->where('request_type_version_id', $versionId)->where('stage_key', 'manager_review')->update([
                     'resolver_key' => 'fixed_users', 'resolver_config_json' => json_encode(['user_ids' => [$users['approver']->id]], JSON_THROW_ON_ERROR),
                     'sla_minutes' => 1440, 'warning_minutes_before' => 240, 'grace_minutes' => 720, 'timeout_action' => 'suspend',
@@ -80,18 +71,17 @@ class RequestE2EDemoSeeder extends Seeder
         $this->command?->newLine();
         $this->command?->info('Request E2E local pack đã sẵn sàng.');
         $this->command?->line('Super Admin: tungocvan@gmail.com (giữ nguyên mật khẩu hiện tại)');
-        $this->command?->line('Nhân viên: request.employee@demo.local / '.self::PASSWORD);
-        $this->command?->line('Người duyệt: request.approver@demo.local / '.self::PASSWORD);
-        $this->command?->line('Tài chính: request.finance@demo.local / '.self::PASSWORD);
-        $this->command?->line('Kiểm toán: request.auditor@demo.local / '.self::PASSWORD);
-        $this->command?->line('Mail test accounts đã được tạo và phân vai local.');
+        $this->command?->line('Nhân viên: tungocvan1@gmail.com / '.self::PASSWORD);
+        $this->command?->line('Người duyệt: vhdtshop@gmail.com / '.self::PASSWORD);
+        $this->command?->line('Tài chính: vansala78@gmail.com / '.self::PASSWORD);
+        $this->command?->line('Kiểm toán: hamadaqc01@gmail.com / '.self::PASSWORD);
         $this->command?->line('SLA DEMO: 24 giờ; cảnh báo trước 4 giờ; grace 12 giờ; hết grace sẽ tạm dừng.');
         $this->command?->line('Hiệu lực DEMO: 90 ngày kể từ lần seed local gần nhất; timestamp persistence dùng UTC.');
     }
 
-    private function upsertUser(string $email, string $name, mixed $now, string $password = self::PASSWORD): User
+    private function upsertUser(string $email, string $name, mixed $now): User
     {
-        return User::query()->updateOrCreate(['email' => $email], ['name' => $name, 'password' => Hash::make($password), 'is_active' => true, 'email_verified_at' => $now]);
+        return User::query()->updateOrCreate(['email' => $email], ['name' => $name, 'password' => Hash::make(self::PASSWORD), 'is_active' => true, 'email_verified_at' => $now]);
     }
 
     private function syncRole(string $name, string $guard, array $permissionNames): Role
