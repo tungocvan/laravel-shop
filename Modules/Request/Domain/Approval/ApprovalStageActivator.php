@@ -31,7 +31,7 @@ final class ApprovalStageActivator
             throw ValidationException::withMessages(['stage' => ['single_requires_one_candidate']]);
         }
 
-        $now = now();
+        $now = now('UTC');
         $slaMinutes = $stage->sla_minutes;
         $warningMinutes = $stage->warning_minutes_before;
         $graceMinutes = $stage->grace_minutes ?? 0;
