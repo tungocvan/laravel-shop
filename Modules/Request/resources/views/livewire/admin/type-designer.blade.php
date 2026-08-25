@@ -106,6 +106,28 @@
                                     <label class="text-sm font-medium text-slate-700">Sau khi hết thời gian gia hạn<select wire:model="stages.{{ $stageIndex }}.timeout_action" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="notify_only">Chỉ cảnh báo, không tự khóa</option><option value="suspend">Tạm dừng tác vụ</option></select></label>
                                     <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600"><strong class="block text-slate-800">Nguyên tắc an toàn</strong>Hết hạn không tự động phê duyệt hoặc từ chối. Với “Tạm dừng”, quản trị viên phải xử lý tiếp bằng cơ chế resume/reassign/escalate.</div>
                                 </div>
+
+                                <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-slate-900">Thông báo email</h4>
+                                        <p class="mt-1 text-xs leading-5 text-slate-500">Chọn các sự kiện cần gửi email tự động cho cấp phê duyệt này. Thông báo nội bộ của hệ thống vẫn hoạt động độc lập.</p>
+                                    </div>
+                                    <div class="mt-3 grid gap-3">
+                                        <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50">
+                                            <input type="checkbox" wire:model="stages.{{ $stageIndex }}.email_on_assignment" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600">
+                                            <span><span class="block text-sm font-medium text-slate-800">Gửi email khi giao phê duyệt</span><span class="mt-0.5 block text-xs text-slate-500">Người được phân công phê duyệt sẽ nhận email khi tác vụ được kích hoạt.</span></span>
+                                        </label>
+                                        <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50">
+                                            <input type="checkbox" wire:model="stages.{{ $stageIndex }}.email_on_decision" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600">
+                                            <span><span class="block text-sm font-medium text-slate-800">Gửi email khi có quyết định</span><span class="mt-0.5 block text-xs text-slate-500">Người gửi sẽ nhận email khi đề nghị được Phê duyệt, Từ chối hoặc Trả lại.</span></span>
+                                        </label>
+                                        <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50">
+                                            <input type="checkbox" wire:model="stages.{{ $stageIndex }}.email_on_sla_warning" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600">
+                                            <span><span class="block text-sm font-medium text-slate-800">Gửi email cảnh báo SLA</span><span class="mt-0.5 block text-xs text-slate-500">Người đang phụ trách sẽ nhận email khi tác vụ bước vào thời gian cảnh báo trước hạn.</span></span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 @if(($stage['sla_value'] ?? '') !== '')<div class="mt-4 rounded-lg bg-white px-3 py-2 text-xs text-slate-600"><strong>Cấu hình hiện tại:</strong> SLA {{ $stage['sla_value'] }} {{ ['minutes'=>'phút','hours'=>'giờ','days'=>'ngày'][$stage['sla_unit'] ?? 'hours'] ?? '' }} · cảnh báo trước {{ $stage['warning_value'] ?? 0 }} {{ ['minutes'=>'phút','hours'=>'giờ','days'=>'ngày'][$stage['warning_unit'] ?? 'hours'] ?? '' }} · gia hạn {{ $stage['grace_value'] ?? 0 }} {{ ['minutes'=>'phút','hours'=>'giờ','days'=>'ngày'][$stage['grace_unit'] ?? 'hours'] ?? '' }}</div>@endif
                             </fieldset>
 
