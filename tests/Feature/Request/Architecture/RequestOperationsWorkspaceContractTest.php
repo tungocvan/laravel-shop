@@ -28,7 +28,7 @@ class RequestOperationsWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("abort_unless(\$policy->retry(\$request->user('admin')), 403)", $controller);
         $this->assertStringContainsString("config('request.operations.page_size', 25)", $query);
         $this->assertStringContainsString("config('request.operations.max_page_size', 100)", $query);
-        $this->assertStringContainsString("$this->idempotency->execute", $retry);
+        $this->assertStringContainsString('$this->idempotency->execute', $retry);
         $this->assertStringContainsString("request.operation.outbox_retried.v1", $retry);
         $this->assertStringContainsString("request.operation.export_retried.v1", $retry);
         $this->assertStringNotContainsString('command', strtolower($controller.$view));
