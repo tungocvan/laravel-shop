@@ -5,6 +5,7 @@ namespace Modules\Request\Livewire\Admin;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Modules\Request\Application\Services\CreateTypeDraft;
 use Modules\Request\Application\Services\PublishTypeVersion;
 use Modules\Request\Application\Services\SaveTypeDraft;
 use Modules\Request\Models\RequestType;
@@ -36,6 +37,12 @@ class TypeDesigner extends Component
         $this->typePublicId = $typePublicId;
         $type = $this->type();
         Gate::authorize('update', $type);
+
+        if ($type->active_draft_version_id === null) {
+            app(CreateTypeDraft::class)->handle($type, (int) auth('admin')->id());
+            $type = $type->refresh();
+        }
+
         $draft = $type->activeDraft()->with(['audiences', 'stages'])->firstOrFail();
         $schema = (array) $draft->form_schema_json;
         $this->title = $draft->title;
