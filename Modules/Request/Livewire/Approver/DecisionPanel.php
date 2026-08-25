@@ -8,6 +8,7 @@ use Livewire\Component;
 use Modules\Request\Application\Queries\ApproverInboxQuery;
 use Modules\Request\Application\Services\DecideRequestTask;
 use Modules\Request\Domain\Enums\DecisionType;
+use Modules\Request\Models\RequestTask;
 
 class DecisionPanel extends Component
 {
@@ -77,6 +78,13 @@ class DecisionPanel extends Component
 
     public function render()
     {
-        return view('Request::livewire.approver.decision-panel');
+        $task = RequestTask::query()
+            ->select(['id', 'public_id', 'suspended_at'])
+            ->where('public_id', $this->taskPublicId)
+            ->first();
+
+        return view('Request::livewire.approver.decision-panel', [
+            'suspended' => $task?->suspended_at !== null,
+        ]);
     }
 }
