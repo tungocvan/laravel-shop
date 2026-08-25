@@ -12,7 +12,7 @@ final class ApproverInboxQuery
 {
     public function paginate(int $userId, string $search, int $perPage, string $view = 'pending'): LengthAwarePaginator
     {
-        $processedStatuses = [TaskStatus::Approved, TaskStatus::Rejected, TaskStatus::Returned];
+        $processedStatuses = [TaskStatus::Approved->value, TaskStatus::Rejected->value, TaskStatus::Returned->value];
 
         return RequestTask::query()
             ->select([
@@ -26,13 +26,13 @@ final class ApproverInboxQuery
             ])
             ->where('assignee_user_id', $userId)
             ->when($view === 'pending', fn ($query) => $query
-                ->where('status', TaskStatus::Active)
+                ->where('status', TaskStatus::Active->value)
                 ->whereHas('run', fn ($run) => $run
-                    ->where('status', RunStatus::Active)
+                    ->where('status', RunStatus::Active->value)
                     ->whereColumn('current_stage_position', 'request_tasks.stage_position')
-                    ->whereHas('requestInstance', fn ($request) => $request->where('status', RequestStatus::Pending))))
+                    ->whereHas('requestInstance', fn ($request) => $request->where('status', RequestStatus::Pending->value))))
             ->when($view === 'processed', fn ($query) => $query->whereIn('status', $processedStatuses))
-            ->when($view === 'all', fn ($query) => $query->whereIn('status', [TaskStatus::Active, ...$processedStatuses]))
+            ->when($view === 'all', fn ($query) => $query->whereIn('status', [TaskStatus::Active->value, ...$processedStatuses]))
             ->when($search !== '', fn ($query) => $query->whereHas('run.requestInstance', fn ($request) => $request->where(fn ($nested) => $nested
                 ->where('request_number', 'like', '%'.$search.'%')
                 ->orWhere('title_snapshot', 'like', '%'.$search.'%'))))
