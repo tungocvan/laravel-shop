@@ -2,6 +2,7 @@
 
 namespace Modules\Request\Livewire\Admin;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -56,13 +57,15 @@ class TypeDesigner extends Component
             [$slaValue, $slaUnit] = $this->minutesForEditor($stage->sla_minutes);
             [$warningValue, $warningUnit] = $this->minutesForEditor($stage->warning_minutes_before);
             [$graceValue, $graceUnit] = $this->minutesForEditor($stage->grace_minutes ?? 0);
+            $resolverConfig = (array) $stage->resolver_config_json;
 
             return [
                 'stage_key' => $stage->stage_key,
                 'name' => $stage->name,
                 'mode' => $stage->mode->value,
                 'resolver_key' => $stage->resolver_key,
-                'resolver_config_json' => json_encode($stage->resolver_config_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'resolver_user_ids' => array_values(array_map('intval', (array) ($resolverConfig['user_ids'] ?? []))),
+                'resolver_config_json' => json_encode($resolverConfig, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'instructions' => $stage->instructions ?? '',
                 'allow_reassignment' => (bool) $stage->allow_reassignment,
                 'sla_value' => $slaValue,
@@ -140,6 +143,7 @@ class TypeDesigner extends Component
             'name' => 'Cấp duyệt '.$number,
             'mode' => 'single',
             'resolver_key' => 'fixed_users',
+            'resolver_user_ids' => [],
             'resolver_config_json' => '{"user_ids":[]}',
             'instructions' => '',
             'allow_reassignment' => false,
@@ -179,14 +183,27 @@ class TypeDesigner extends Component
 
         foreach (array_values($this->stages) as $index => $stage) {
             $stage['position'] = $index + 1;
-            $stage['resolver_config_json'] = $this->decode((string) ($stage['resolver_config_json'] ?? '{}'), 'stages.'.$index.'.resolver_config_json');
+            if (($stage['resolver_key'] ?? 'fixed_users') === 'fixed_users') {
+                $userIds = collect((array) ($stage['resolver_user_ids'] ?? []))
+                    ->map(fn (mixed $id): int => (int) $id)
+                    ->filter(fn (int $id): bool => $id > 0)
+                    ->unique()
+                    ->values()
+                    ->all();
+                if ($userIds === []) {
+                    throw ValidationException::withMessages(['stages.'.$index.'.resolver_user_ids' => 'approver_required']);
+                }
+                $stage['resolver_config_json'] = ['user_ids' => $userIds];
+            } else {
+                $stage['resolver_config_json'] = $this->decode((string) ($stage['resolver_config_json'] ?? '{}'), 'stages.'.$index.'.resolver_config_json');
+            }
             $stage['sla_minutes'] = $this->editorDurationToMinutes($stage['sla_value'] ?? null, (string) ($stage['sla_unit'] ?? 'hours'), true, 'stages.'.$index.'.sla_value');
             $stage['warning_minutes_before'] = $this->editorDurationToMinutes($stage['warning_value'] ?? null, (string) ($stage['warning_unit'] ?? 'hours'), false, 'stages.'.$index.'.warning_value');
             $stage['grace_minutes'] = $this->editorDurationToMinutes($stage['grace_value'] ?? 0, (string) ($stage['grace_unit'] ?? 'hours'), false, 'stages.'.$index.'.grace_value') ?? 0;
             $stage['email_on_assignment'] = (bool) ($stage['email_on_assignment'] ?? false);
             $stage['email_on_decision'] = (bool) ($stage['email_on_decision'] ?? false);
             $stage['email_on_sla_warning'] = (bool) ($stage['email_on_sla_warning'] ?? false);
-            unset($stage['sla_value'], $stage['sla_unit'], $stage['warning_value'], $stage['warning_unit'], $stage['grace_value'], $stage['grace_unit']);
+            unset($stage['resolver_user_ids'], $stage['sla_value'], $stage['sla_unit'], $stage['warning_value'], $stage['warning_unit'], $stage['grace_value'], $stage['grace_unit']);
             $stages[] = $stage;
         }
 
@@ -216,7 +233,14 @@ class TypeDesigner extends Component
 
     public function render()
     {
-        return view('Request::livewire.admin.type-designer', ['type' => $this->type()]);
+        return view('Request::livewire.admin.type-designer', [
+            'type' => $this->type(),
+            'approverUsers' => User::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->orderBy('email')
+                ->get(['id', 'name', 'email']),
+        ]);
     }
 
     private function type(): RequestType
