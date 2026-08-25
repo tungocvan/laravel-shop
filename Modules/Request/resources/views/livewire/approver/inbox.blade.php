@@ -3,21 +3,31 @@
 
     <header>
         <h1 class="text-2xl font-bold text-gray-900">{{ __('Request::request.inbox.title') }}</h1>
-        <p class="mt-1 text-sm text-gray-600">{{ __('Request::request.inbox.subtitle') }}</p>
+        <p class="mt-1 text-sm text-gray-600">Ưu tiên các đề nghị sắp quá hạn hoặc đã quá hạn để bạn xử lý đúng thời gian.</p>
     </header>
 
     @if(session('request_success'))
         <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ session('request_success') }}</div>
     @endif
 
+    <section aria-label="Khối lượng phê duyệt" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        @foreach([
+            ['label' => 'Chờ bạn duyệt', 'value' => $workload['pending'], 'class' => 'border-indigo-200 bg-indigo-50 text-indigo-900'],
+            ['label' => 'Sắp quá hạn', 'value' => $workload['warning'], 'class' => 'border-amber-200 bg-amber-50 text-amber-900'],
+            ['label' => 'Đã quá hạn', 'value' => $workload['overdue'], 'class' => 'border-orange-200 bg-orange-50 text-orange-900'],
+            ['label' => 'Đã tạm dừng', 'value' => $workload['suspended'], 'class' => 'border-red-200 bg-red-50 text-red-900'],
+        ] as $metric)
+            <div class="rounded-2xl border p-4 {{ $metric['class'] }}">
+                <div class="text-sm font-medium">{{ $metric['label'] }}</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums">{{ $metric['value'] }}</div>
+            </div>
+        @endforeach
+    </section>
+
     <div class="rounded-2xl border border-gray-200 bg-white p-4">
-        <div class="mb-4 flex flex-wrap gap-2">
+        <div class="mb-4 flex gap-2 overflow-x-auto pb-1">
             @foreach(['pending' => 'Chờ duyệt', 'processed' => 'Đã xử lý', 'all' => 'Tất cả'] as $value => $label)
-                <button
-                    type="button"
-                    wire:click="$set('view', '{{ $value }}')"
-                    class="rounded-xl px-4 py-2 text-sm font-semibold {{ $view === $value ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}"
-                >
+                <button type="button" wire:click="$set('view', '{{ $value }}')" @if($view === $value) aria-current="page" @endif class="min-h-11 shrink-0 rounded-xl px-4 py-2 text-sm font-semibold {{ $view === $value ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
                     {{ $label }}
                 </button>
             @endforeach
@@ -25,11 +35,11 @@
 
         <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
             <label class="sr-only" for="request-inbox-search">{{ __('Request::request.search') }}</label>
-            <input id="request-inbox-search" wire:model.live.debounce.300ms="search" class="rounded-xl border border-gray-300 px-4 py-3" placeholder="{{ __('Request::request.inbox.search_placeholder') }}">
-            <select wire:model.live="perPage" aria-label="{{ __('Request::request.page_size') }}" class="rounded-xl border border-gray-300 px-4 py-3">
+            <input id="request-inbox-search" wire:model.live.debounce.300ms="search" class="min-h-11 rounded-xl border border-gray-300 px-4 py-3" placeholder="{{ __('Request::request.inbox.search_placeholder') }}">
+            <select wire:model.live="perPage" aria-label="{{ __('Request::request.page_size') }}" class="min-h-11 rounded-xl border border-gray-300 px-4 py-3">
                 @foreach([10,25,50,100] as $size)<option value="{{ $size }}">{{ $size }}</option>@endforeach
             </select>
-            <button type="button" wire:click="resetFilters" class="rounded-xl border border-gray-300 px-4 py-3 font-semibold">{{ __('Request::request.reset') }}</button>
+            <button type="button" wire:click="resetFilters" class="min-h-11 rounded-xl border border-gray-300 px-4 py-3 font-semibold">{{ __('Request::request.reset') }}</button>
         </div>
     </div>
 
@@ -47,22 +57,21 @@
             @php($sla = $isPending ? \Modules\Request\Support\RequestTaskSlaPresenter::present($task) : null)
             @php($slaClasses = match($sla['state'] ?? null) {'suspended' => 'border-red-200 bg-red-50 text-red-800', 'grace' => 'border-orange-200 bg-orange-50 text-orange-800', 'warning' => 'border-amber-200 bg-amber-50 text-amber-800', default => 'border-emerald-200 bg-emerald-50 text-emerald-800'})
 
-            <a href="{{ route('request.show', $request->public_id) }}" class="block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="font-mono text-xs text-gray-500">{{ $request->request_number }}</span>
+            <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="font-mono text-xs text-gray-500">{{ $request->request_number }}</span>
+                        <h2 class="mt-1 font-bold text-gray-900">{{ $request->title_snapshot }}</h2>
+                    </div>
                     <div class="flex flex-wrap gap-2">
                         <span class="rounded-full border px-3 py-1 text-xs font-semibold {{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
                         <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">{{ $task->stage_name_snapshot }}</span>
                     </div>
                 </div>
 
-                <h2 class="mt-2 font-bold text-gray-900">{{ $request->title_snapshot }}</h2>
-
                 <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-600">
                     <span>{{ __('Request::request.inbox.submitted_at') }} {{ optional($request->submitted_at)->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>
-                    @if(!$isPending && $task->decided_at)
-                        <span>Đã xử lý: {{ $task->decided_at->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>
-                    @endif
+                    @if(!$isPending && $task->decided_at)<span>Đã xử lý: {{ $task->decided_at->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>@endif
                 </div>
 
                 @if($sla)
@@ -72,7 +81,13 @@
                         <span class="text-gray-500">Hạn xử lý: <time datetime="{{ $sla['deadline_iso'] }}">{{ $sla['deadline'] }}</time></span>
                     </div>
                 @endif
-            </a>
+
+                <div class="mt-4 flex justify-end border-t border-gray-100 pt-4">
+                    <a href="{{ route('request.show', $request->public_id) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold {{ $isPending ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
+                        {{ $isPending ? 'Xem và xử lý' : 'Xem lịch sử' }} →
+                    </a>
+                </div>
+            </article>
         @empty
             <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600">
                 {{ $view === 'processed' ? 'Chưa có đề nghị nào đã xử lý.' : __('Request::request.inbox.empty') }}
