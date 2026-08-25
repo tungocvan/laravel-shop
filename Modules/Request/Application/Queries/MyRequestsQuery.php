@@ -8,7 +8,7 @@ use Modules\Request\Models\InternalRequest;
 
 final class MyRequestsQuery
 {
-    public function paginate(int $userId, string $search, string $status, string $workspace, int $perPage): LengthAwarePaginator
+    public function paginate(int $userId, string $search, string $status, int $perPage, string $workspace = 'all'): LengthAwarePaginator
     {
         return $this->baseQuery($userId)
             ->when($search !== '', fn ($query) => $query->where(fn ($nested) => $nested->where('request_number', 'like', '%'.$search.'%')->orWhere('title_snapshot', 'like', '%'.$search.'%')))
