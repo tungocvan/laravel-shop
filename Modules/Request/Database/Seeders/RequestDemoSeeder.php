@@ -10,10 +10,29 @@ class RequestDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $actorId = (int) (DB::table('users')->orderBy('id')->value('id') ?? 1);
+        $actorId = (int) (DB::table('users')->where('email', 'tungocvan@gmail.com')->value('id')
+            ?? DB::table('users')->orderBy('id')->value('id')
+            ?? 1);
+
+        $approverId = (int) (DB::table('users')
+            ->where('email', 'demo@website.test')
+            ->where('id', '!=', $actorId)
+            ->where('is_active', true)
+            ->value('id')
+            ?? DB::table('users')
+                ->where('id', '!=', $actorId)
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->value('id')
+            ?? 0);
+
+        if ($approverId <= 0) {
+            throw new \RuntimeException('RequestDemoSeeder cần ít nhất 2 user active khác nhau để kiểm thử submit/phê duyệt mà không vi phạm self-approval.');
+        }
+
         $now = now();
 
-        DB::transaction(function () use ($actorId, $now): void {
+        DB::transaction(function () use ($actorId, $approverId, $now): void {
             $groupId = DB::table('request_groups')->where('code', 'REQUEST_UI_DEMO')->value('id');
             if (! $groupId) {
                 $groupId = DB::table('request_groups')->insertGetId([
@@ -177,7 +196,7 @@ class RequestDemoSeeder extends Seeder
                     'position' => 1,
                     'mode' => 'single',
                     'resolver_key' => 'fixed_user',
-                    'resolver_config_json' => json_encode(['user_id' => $actorId], JSON_THROW_ON_ERROR),
+                    'resolver_config_json' => json_encode(['user_id' => $approverId], JSON_THROW_ON_ERROR),
                     'instructions' => 'Cấp duyệt DEMO để kiểm thử bàn phím và thao tác quyết định.',
                     'allow_reassignment' => true,
                     'updated_at' => $now,
@@ -235,6 +254,9 @@ class RequestDemoSeeder extends Seeder
             }
         });
 
-        $this->command?->info('Dữ liệu DEMO Request đã sẵn sàng. Mở /admin/requests');
+        $requesterEmail = DB::table('users')->where('id', $actorId)->value('email');
+        $approverEmail = DB::table('users')->where('id', $approverId)->value('email');
+
+        $this->command?->info("Dữ liệu DEMO Request đã sẵn sàng. Requester: {$requesterEmail}; Approver: {$approverEmail}. Mở /admin/requests");
     }
 }
