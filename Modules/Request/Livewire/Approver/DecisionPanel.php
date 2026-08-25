@@ -51,8 +51,6 @@ class DecisionPanel extends Component
             'reason' => $this->decision === 'approve'
                 ? ['nullable', 'string', 'max:2000']
                 : ['required', 'string', 'max:2000'],
-        ], [
-            'reason.required' => __('Request::request.reason_required'),
         ]);
 
         $task = $query->findActionable($this->taskPublicId, (int) auth('admin')->id());
@@ -69,8 +67,8 @@ class DecisionPanel extends Component
         );
 
         session()->flash('request_success', match ($validated['decision']) {
-            'reject' => __('Request::request.decision_rejected'),
-            'return' => __('Request::request.decision_returned'),
+            'reject' => __('Request::request.reject'),
+            'return' => __('Request::request.return'),
             default => __('Request::request.decision_approved'),
         });
 
