@@ -174,6 +174,8 @@ MR-06 does not dispatch notifications, generate exports, add offline mutation/PW
 
 Status update: Request v1 implementation verification completed on 2026-08-25.
 
+The final statuses in this section supersede the historical planning-state labels above for the implemented Request v1 scope.
+
 | Area | Evidence | Final status |
 |---|---|---|
 | Architecture / Shell boundary | Request Architecture suite; User/Role Shell regression; direct User implementation removed from Request runtime | Implemented / PASS |
