@@ -31,7 +31,9 @@ final class RequestNotificationPlanner
             default => [null, [], '', ['database', 'email']],
         };
 
-        if (! $request instanceof InternalRequest || $template === '') return [];
+        if (! $request instanceof InternalRequest || $template === '') {
+            return [];
+        }
 
         return collect($recipients)
             ->filter(fn (mixed $id): bool => is_int($id) && $id > 0)
@@ -51,11 +53,16 @@ final class RequestNotificationPlanner
     {
         $runPublicId = $outbox->payload_json['run_public_id'] ?? null;
         $position = $outbox->payload_json['stage_position'] ?? null;
-        if (! is_string($runPublicId) || ! is_int($position)) return [null, [], '', ['database']];
+        if (! is_string($runPublicId) || ! is_int($position)) {
+            return [null, [], '', ['database']];
+        }
         $run = RequestRun::query()->with('requestInstance')->where('public_id', $runPublicId)->first();
-        if (! $run) return [null, [], '', ['database']];
+        if (! $run) {
+            return [null, [], '', ['database']];
+        }
         $stage = RequestStageDefinition::query()->where('request_type_version_id', $run->request_type_version_id)->where('position', $position)->first();
         $recipients = $run->tasks()->where('stage_position', $position)->where('status', TaskStatus::Active)->pluck('assignee_user_id')->map(fn (mixed $id): int => (int) $id)->all();
+
         return [$run->requestInstance, $recipients, 'approval_action_required', $this->channels((bool) ($stage?->email_on_assignment ?? true))];
     }
 
@@ -63,6 +70,7 @@ final class RequestNotificationPlanner
     {
         $target = $outbox->payload_json['target_user_id'] ?? null;
         $task = RequestTask::query()->with(['run.requestInstance', 'stageDefinition'])->where('public_id', $outbox->aggregate_public_id)->first();
+
         return [$task?->run?->requestInstance, is_int($target) ? [$target] : [], 'approval_reassigned', $this->channels((bool) ($task?->stageDefinition?->email_on_assignment ?? true))];
     }
 
@@ -71,6 +79,7 @@ final class RequestNotificationPlanner
         $task = RequestTask::query()->with(['run.requestInstance', 'stageDefinition'])->where('public_id', $outbox->aggregate_public_id)->first();
         $request = $task?->run?->requestInstance;
         $recipients = $task && $task->assignee_user_id ? [(int) $task->assignee_user_id] : [];
+
         return [$request, $recipients, 'approval_sla_warning', $this->channels((bool) ($task?->stageDefinition?->email_on_sla_warning ?? true))];
     }
 
@@ -78,23 +87,28 @@ final class RequestNotificationPlanner
     {
         $task = RequestTask::query()->with(['run.requestInstance', 'stageDefinition'])->where('public_id', $outbox->aggregate_public_id)->first();
         $request = $task?->run?->requestInstance;
+
         return [$request, $request ? [$request->requester_id] : [], $template, $this->channels((bool) ($task?->stageDefinition?->email_on_decision ?? true))];
     }
 
     private function requester(RequestOutboxMessage $outbox, string $template): array
     {
         $request = InternalRequest::query()->where('public_id', $outbox->aggregate_public_id)->first();
+
         return [$request, $request ? [$request->requester_id] : [], $template, ['database', 'email']];
     }
 
     private function collaboration(RequestOutboxMessage $outbox, bool $comment): array
     {
         $request = InternalRequest::query()->where('public_id', $outbox->aggregate_public_id)->first();
-        if (! $request) return [null, [], '', ['database', 'email']];
+        if (! $request) {
+            return [null, [], '', ['database', 'email']];
+        }
         $publicId = $comment ? ($outbox->payload_json['comment_public_id'] ?? null) : ($outbox->payload_json['attachment_public_id'] ?? null);
         $record = is_string($publicId) ? ($comment ? RequestComment::query()->where('public_id', $publicId)->first() : RequestAttachment::query()->where('public_id', $publicId)->first()) : null;
         $actorId = $comment ? $record?->author_id : $record?->uploaded_by;
         $recipients = $request->runs()->whereHas('tasks', fn ($tasks) => $tasks->where('status', TaskStatus::Active))->with('tasks')->get()->flatMap(fn (RequestRun $run) => $run->tasks->where('status', TaskStatus::Active)->pluck('assignee_user_id'))->push($request->requester_id)->reject(fn (mixed $id): bool => (int) $id === (int) $actorId)->map(fn (mixed $id): int => (int) $id)->all();
+
         return [$request, $recipients, $comment ? 'request_comment_added' : 'request_attachment_added', ['database', 'email']];
     }
 

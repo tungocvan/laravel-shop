@@ -13,11 +13,14 @@ use Spatie\Permission\PermissionRegistrar;
 class RequestE2EDemoSeeder extends Seeder
 {
     private const PASSWORD = 'RequestDemo@123';
+
     private const REAL_MAIL_PASSWORD = '12345678';
 
     public function run(): void
     {
-        if (app()->environment('production')) throw new \RuntimeException('RequestE2EDemoSeeder chỉ được phép chạy ngoài production.');
+        if (app()->environment('production')) {
+            throw new \RuntimeException('RequestE2EDemoSeeder chỉ được phép chạy ngoài production.');
+        }
 
         $now = now('UTC');
         $superAdmin = User::query()->where('email', 'tungocvan@gmail.com')->firstOrFail();
@@ -46,7 +49,9 @@ class RequestE2EDemoSeeder extends Seeder
         $users['mail_employee']->syncRoles([$roles['requester']]);
         $users['mail_approver']->syncRoles([$roles['approver']]);
         $users['mail_finance']->syncRoles([$roles['finance']]);
-        if ($legacyApprover = User::query()->where('email', 'demo@website.test')->first()) $legacyApprover->syncRoles([$roles['approver']]);
+        if ($legacyApprover = User::query()->where('email', 'demo@website.test')->first()) {
+            $legacyApprover->syncRoles([$roles['approver']]);
+        }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->call(RequestDemoSeeder::class);
@@ -93,6 +98,7 @@ class RequestE2EDemoSeeder extends Seeder
         $role = Role::query()->firstOrCreate(['name' => $name, 'guard_name' => $guard]);
         $permissions = Permission::query()->where('guard_name', $guard)->whereIn('name', $permissionNames)->get();
         $role->syncPermissions($permissions);
+
         return $role;
     }
 }
