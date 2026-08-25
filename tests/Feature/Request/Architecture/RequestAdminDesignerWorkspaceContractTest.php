@@ -15,18 +15,23 @@ class RequestAdminDesignerWorkspaceContractTest extends TestCase
             $this->assertStringContainsString($section, $view);
         }
 
-        foreach (['Trạng thái bản nháp', 'Số phần', 'Cấp duyệt', 'Xem lịch sử phiên bản'] as $summary) {
+        foreach (['Bản nháp đang chỉnh sửa', 'Sẵn sàng phát hành', 'Số phần', 'Số trường', 'Cấp duyệt', 'Xem lịch sử phiên bản'] as $summary) {
             $this->assertStringContainsString($summary, $view);
+        }
+
+        foreach (['Lưu bản nháp', 'Phát hành phiên bản', 'Phát hành có tác động runtime', 'Cấu hình nâng cao · Audience JSON', 'Cấu hình nâng cao · Bộ phân giải JSON'] as $ux) {
+            $this->assertStringContainsString($ux, $view);
         }
 
         $this->assertStringContainsString('Bản nháp trên máy chủ là nguồn dữ liệu chính thức', $view);
         $this->assertStringContainsString('Phiên bản đã phát hành là bất biến', $view);
+        $this->assertStringContainsString('SLA không tự động phê duyệt hoặc từ chối đề nghị.', $view);
         $this->assertStringContainsString('wire:click="save"', $view);
         $this->assertStringContainsString('wire:click="publish"', $view);
         $this->assertStringContainsString('wire:confirm="{{ __(\'Request::request.publish_confirm\') }}"', $view);
         $this->assertStringContainsString('wire:confirm="Xóa phần này và toàn bộ trường bên trong?"', $view);
-        $this->assertStringContainsString('wire:confirm="Xóa cấp duyệt này?"', $view);
-        $this->assertStringContainsString('Nguyên tắc an toàn', $view);
+        $this->assertStringContainsString('wire:confirm="Xóa trường này khỏi biểu mẫu?"', $view);
+        $this->assertStringContainsString('wire:confirm="Xóa cấp phê duyệt này?"', $view);
         $this->assertStringContainsString('min-h-11', $view);
 
         $this->assertStringContainsString("Gate::authorize('update', \$type)", $component);
