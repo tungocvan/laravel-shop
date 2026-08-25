@@ -169,3 +169,26 @@ MR-04 intentionally implements only submit and sequential `single` approval. It 
 | `ARC-02`, `ARC-04`, `ARC-05` architecture invariants | Request remains default OFF, uses only approved Shell dependencies, binds only its private-file contract/policies, and relies on root discovery for routes/resources/Livewire/migrations | architecture, bootstrap, permission, module-state, import, duplicate-route, and Git-clean tests | Preserved |
 
 MR-06 does not dispatch notifications, generate exports, add offline mutation/PWA behavior, or implement any MR-07 capability.
+
+## 11. Final implementation and release evidence
+
+Status update: Request v1 implementation verification completed on 2026-08-25.
+
+| Area | Evidence | Final status |
+|---|---|---|
+| Architecture / Shell boundary | Request Architecture suite; User/Role Shell regression; direct User implementation removed from Request runtime | Implemented / PASS |
+| Definition and forms | Request Definition/Draft suites and full Request regression | Implemented / PASS |
+| Request lifecycle | Submit, approve, reject, return, resubmit, cancel and recovery E2E/feature verification | Implemented / PASS |
+| Approval actors | Fixed user/role/form-user resolution through Shell contracts; self-approval protection | Implemented / PASS |
+| Collaboration/files/audit | Request collaboration/security suite and final regression | Implemented / PASS |
+| Notifications/outbox | Approval/reject/return/SLA warning E2E; database-only OFF-toggle verification | Implemented / PASS |
+| Responsive/PWA | Employee, approver, Admin Designer and PWA browser acceptance | Implemented / PASS |
+| Reports/exports/operations | Export/Operations suites plus successful real UI export | Implemented / PASS |
+| Migration/deployment | Migration and operational deployment gates | Implemented / PASS |
+| Release hardening | Gate #1 through Gate #6 final verification | PASS |
+
+Detailed execution evidence is maintained in `RELEASE_EVIDENCE.md`.
+
+The original deferred `FUT-WF` row is refined by the approved implementation deviation documented in `IMPLEMENTATION_COMPLETION_ADDENDUM.md`: Request now owns bounded task-level SLA warning/due/grace enforcement, but generic Workflow/BPMN/graph/conditions/delegation/subflows remain deferred.
+
+Production-scale benchmark results must only be marked complete when their separately captured environment/results exist; local/feature-suite timings are not substituted for such evidence.
