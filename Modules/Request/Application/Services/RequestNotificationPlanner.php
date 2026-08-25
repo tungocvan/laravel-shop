@@ -22,9 +22,9 @@ final class RequestNotificationPlanner
             'request.task.reassigned.v1' => $this->taskReassigned($outbox),
             'request.task.sla_warning.v1' => $this->slaWarning($outbox),
             'request.task.decided.v1' => $this->requesterForTask($outbox, 'request_decision_recorded'),
-            'request.approved.v1' => $this->requester($outbox, 'request_approved'),
-            'request.rejected.v1' => $this->requester($outbox, 'request_rejected'),
-            'request.returned.v1' => $this->requester($outbox, 'request_returned'),
+            'request.approved.v1' => $this->requesterForDecision($outbox, 'request_approved'),
+            'request.rejected.v1' => $this->requesterForDecision($outbox, 'request_rejected'),
+            'request.returned.v1' => $this->requesterForDecision($outbox, 'request_returned'),
             'request.cancelled.v1' => $this->requester($outbox, 'request_cancelled'),
             'request.comment.created.v1' => $this->collaboration($outbox, true),
             'request.attachment.created.v1' => $this->collaboration($outbox, false),
@@ -87,6 +87,22 @@ final class RequestNotificationPlanner
     {
         $task = RequestTask::query()->with(['run.requestInstance', 'stageDefinition'])->where('public_id', $outbox->aggregate_public_id)->first();
         $request = $task?->run?->requestInstance;
+
+        return [$request, $request ? [$request->requester_id] : [], $template, $this->channels((bool) ($task?->stageDefinition?->email_on_decision ?? true))];
+    }
+
+    private function requesterForDecision(RequestOutboxMessage $outbox, string $template): array
+    {
+        $request = InternalRequest::query()->where('public_id', $outbox->aggregate_public_id)->first();
+        $task = $request?->current_run_id
+            ? RequestTask::query()
+                ->with('stageDefinition')
+                ->where('request_run_id', $request->current_run_id)
+                ->whereNotNull('decided_at')
+                ->orderByDesc('decided_at')
+                ->orderByDesc('id')
+                ->first()
+            : null;
 
         return [$request, $request ? [$request->requester_id] : [], $template, $this->channels((bool) ($task?->stageDefinition?->email_on_decision ?? true))];
     }
