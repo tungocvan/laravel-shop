@@ -19,6 +19,10 @@ Schedule::job(new DispatchRequestOutboxBatch)
     ->everyMinute()
     ->withoutOverlapping();
 
+Schedule::command('request:sla-enforce')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command('system:cloud-backup')
     ->everyMinute()
     ->withoutOverlapping();
