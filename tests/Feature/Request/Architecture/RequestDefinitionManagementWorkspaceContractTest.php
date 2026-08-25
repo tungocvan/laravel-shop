@@ -23,11 +23,11 @@ class RequestDefinitionManagementWorkspaceContractTest extends TestCase
             $this->assertStringContainsString($label, $view);
         }
 
-        $this->assertStringContainsString("public string $status = ''", $component);
+        $this->assertStringContainsString("public string \$status = ''", $component);
         $this->assertStringContainsString('updatedStatus', $component);
         $this->assertStringContainsString("with(['group:id,name', 'activeDraft:id,version_number', 'currentPublishedVersion:id,version_number'])", $component);
-        $this->assertStringContainsString("when($this->status !== ''", $component);
-        $this->assertStringContainsString("paginate(25)", $component);
+        $this->assertStringContainsString("when(\$this->status !== ''", $component);
+        $this->assertStringContainsString('paginate(25)', $component);
         $this->assertStringContainsString("Gate::authorize('viewAny', RequestType::class)", $component);
         $this->assertStringContainsString("Gate::authorize('create', RequestGroup::class)", $component);
         $this->assertStringContainsString("Gate::authorize('create', RequestType::class)", $component);
