@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="vi">
 <body>
-    <p>{{ $message->greeting }}</p>
+    <p>{{ $mailMessage->greeting }}</p>
 
-    @foreach($message->lines as $line)
+    @foreach($mailMessage->lines as $line)
         <p>{{ $line }}</p>
     @endforeach
 
-    @if(filled($message->actionUrl) && filled($message->actionLabel))
-        <p><a href="{{ $message->actionUrl }}">{{ $message->actionLabel }}</a></p>
+    @if(filled($mailMessage->actionUrl) && filled($mailMessage->actionLabel))
+        <p><a href="{{ $mailMessage->actionUrl }}">{{ $mailMessage->actionLabel }}</a></p>
     @endif
 </body>
 </html>
