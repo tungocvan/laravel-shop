@@ -84,7 +84,6 @@ class RequestE2EDemoSeeder extends Seeder
         $users['finance']->syncRoles([$roles['finance']]);
         $users['auditor']->syncRoles([$roles['auditor']]);
 
-        // Tài khoản demo cũ vẫn được dùng làm người duyệt UI để không phá dữ liệu đã có.
         if ($legacyApprover = User::query()->where('email', 'demo@website.test')->first()) {
             $legacyApprover->syncRoles([$roles['approver']]);
         }
@@ -93,9 +92,14 @@ class RequestE2EDemoSeeder extends Seeder
 
         $this->call(RequestDemoSeeder::class);
 
-        // Mở audience của loại DEMO cho nhân viên E2E và ép người duyệt khác requester.
         $typeId = DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->value('id');
         if ($typeId) {
+            DB::table('request_types')->where('id', $typeId)->update([
+                'available_from' => now(),
+                'available_until' => now()->addDays(90),
+                'updated_at' => now(),
+            ]);
+
             $versionIds = DB::table('request_type_versions')->where('request_type_id', $typeId)->pluck('id');
             foreach ($versionIds as $versionId) {
                 DB::table('request_type_audiences')->updateOrInsert(
@@ -114,6 +118,10 @@ class RequestE2EDemoSeeder extends Seeder
                     ->update([
                         'resolver_key' => 'fixed_users',
                         'resolver_config_json' => json_encode(['user_ids' => [$users['approver']->id]], JSON_THROW_ON_ERROR),
+                        'sla_minutes' => 1440,
+                        'warning_minutes_before' => 240,
+                        'grace_minutes' => 720,
+                        'timeout_action' => 'suspend',
                         'updated_at' => now(),
                     ]);
             }
@@ -131,6 +139,8 @@ class RequestE2EDemoSeeder extends Seeder
         $this->command?->line('Người duyệt: request.approver@demo.local / '.self::PASSWORD);
         $this->command?->line('Tài chính: request.finance@demo.local / '.self::PASSWORD);
         $this->command?->line('Kiểm toán: request.auditor@demo.local / '.self::PASSWORD);
+        $this->command?->line('SLA DEMO: 24 giờ; cảnh báo trước 4 giờ; grace 12 giờ; hết grace sẽ tạm dừng ở checkpoint enforcement.');
+        $this->command?->line('Hiệu lực DEMO: 90 ngày kể từ lần seed local gần nhất.');
     }
 
     private function upsertUser(string $email, string $name): User
