@@ -52,7 +52,7 @@ class MyRequests extends Component
         Gate::forUser($user)->authorize('viewAny', InternalRequest::class);
 
         return view('Request::livewire.requester.my-requests', [
-            'requests' => $query->paginate((int) $user->getAuthIdentifier(), $this->search, $this->status, $this->workspace, $this->perPage),
+            'requests' => $query->paginate((int) $user->getAuthIdentifier(), $this->search, $this->status, $this->perPage, $this->workspace),
             'workspaceCounts' => $query->workspaceCounts((int) $user->getAuthIdentifier()),
             'statuses' => RequestStatus::cases(),
             'pageSizes' => config('request.settings.page_sizes', [10, 25, 50, 100]),
