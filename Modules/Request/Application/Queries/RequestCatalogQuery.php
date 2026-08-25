@@ -16,7 +16,7 @@ final class RequestCatalogQuery
     public function paginate(int $userId, string $search, ?int $groupId, int $perPage): LengthAwarePaginator
     {
         $versionIds = $this->audience->eligibleVersionIds($userId, AudienceCapability::Discover);
-        $now = now();
+        $now = now('UTC');
 
         return RequestType::query()
             ->select(['id', 'public_id', 'request_group_id', 'name', 'summary', 'current_published_version_id', 'sort_order'])
@@ -36,7 +36,7 @@ final class RequestCatalogQuery
     public function findEligible(string $publicId, int $userId, AudienceCapability $capability): RequestType
     {
         $versionIds = $this->audience->eligibleVersionIds($userId, $capability);
-        $now = now();
+        $now = now('UTC');
 
         return RequestType::query()
             ->with(['group:id,name', 'currentPublishedVersion:id,request_type_id,title,description,requester_guidance,form_schema_json,schema_version'])
