@@ -27,7 +27,7 @@ class RequestApproverHistoryWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("groupBy('status')", $query);
         $this->assertStringContainsString("orderByDesc('decided_at')", $query);
         $this->assertStringContainsString("timezone(config('app.timezone'))", $view);
-        $this->assertStringContainsString("$isPending ? 'Xem và xử lý' : 'Xem lịch sử'", $view);
+        $this->assertStringContainsString('$isPending ? \'Xem và xử lý\' : \'Xem lịch sử\'', $view);
         $this->assertStringNotContainsString('wire:click="approve', $view);
         $this->assertStringNotContainsString('wire:click="reject', $view);
         $this->assertStringNotContainsString('wire:click="return', $view);
