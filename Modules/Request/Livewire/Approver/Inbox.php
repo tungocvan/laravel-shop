@@ -14,11 +14,14 @@ class Inbox extends Component
 
     public string $search = '';
 
+    public string $view = 'pending';
+
     public int $perPage = 25;
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'perPage'], true)) {
+        if (in_array($property, ['search', 'view', 'perPage'], true)) {
+            $this->view = in_array($this->view, ['pending', 'processed', 'all'], true) ? $this->view : 'pending';
             $this->perPage = in_array($this->perPage, config('request.settings.page_sizes', [10, 25, 50, 100]), true) ? $this->perPage : 25;
             $this->resetPage();
         }
@@ -27,6 +30,7 @@ class Inbox extends Component
     public function resetFilters(): void
     {
         $this->reset(['search']);
+        $this->view = 'pending';
         $this->perPage = 25;
         $this->resetPage();
     }
@@ -35,6 +39,8 @@ class Inbox extends Component
     {
         Gate::authorize('viewAny', RequestTask::class);
 
-        return view('Request::livewire.approver.inbox', ['tasks' => $query->paginate((int) auth('admin')->id(), trim($this->search), $this->perPage)]);
+        return view('Request::livewire.approver.inbox', [
+            'tasks' => $query->paginate((int) auth('admin')->id(), trim($this->search), $this->perPage, $this->view),
+        ]);
     }
 }
