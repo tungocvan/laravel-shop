@@ -11,7 +11,7 @@ use Modules\Request\Models\RequestTask;
 
 final class ApproverInboxQuery
 {
-    public function paginate(int $userId, string $search, int $perPage, string $view = 'pending'): LengthAwarePaginator
+    public function paginate(int $userId, string $search, int $perPage, string $view = 'pending', string $decision = 'all'): LengthAwarePaginator
     {
         $processedStatuses = [TaskStatus::Approved->value, TaskStatus::Rejected->value, TaskStatus::Returned->value];
 
@@ -19,6 +19,7 @@ final class ApproverInboxQuery
             ->when($view === 'pending', fn (Builder $query) => $this->scopePending($query))
             ->when($view === 'processed', fn ($query) => $query->whereIn('status', $processedStatuses))
             ->when($view === 'all', fn ($query) => $query->whereIn('status', [TaskStatus::Active->value, ...$processedStatuses]))
+            ->when($view === 'processed' && in_array($decision, $processedStatuses, true), fn ($query) => $query->where('status', $decision))
             ->when($search !== '', fn ($query) => $query->whereHas('run.requestInstance', fn ($request) => $request->where(fn ($nested) => $nested
                 ->where('request_number', 'like', '%'.$search.'%')
                 ->orWhere('title_snapshot', 'like', '%'.$search.'%'))))
@@ -42,6 +43,23 @@ final class ApproverInboxQuery
             'overdue' => (clone $query)->whereNotNull('due_at')->where('due_at', '<=', $now)->count(),
             'warning' => (clone $query)->whereNull('suspended_at')->whereNotNull('warning_at')->where('warning_at', '<=', $now)->where(fn ($scope) => $scope->whereNull('due_at')->orWhere('due_at', '>', $now))->count(),
             'suspended' => (clone $query)->whereNotNull('suspended_at')->count(),
+        ];
+    }
+
+    public function processedSummary(int $userId): array
+    {
+        $counts = RequestTask::query()
+            ->where('assignee_user_id', $userId)
+            ->whereIn('status', [TaskStatus::Approved->value, TaskStatus::Rejected->value, TaskStatus::Returned->value])
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        return [
+            'all' => (int) $counts->sum(),
+            'approved' => (int) ($counts[TaskStatus::Approved->value] ?? 0),
+            'rejected' => (int) ($counts[TaskStatus::Rejected->value] ?? 0),
+            'returned' => (int) ($counts[TaskStatus::Returned->value] ?? 0),
         ];
     }
 
