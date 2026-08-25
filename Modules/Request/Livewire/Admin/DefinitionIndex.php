@@ -7,6 +7,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Request\Application\Services\CreateRequestGroup;
 use Modules\Request\Application\Services\CreateRequestType;
+use Modules\Request\Domain\Enums\RequestTypeStatus;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestType;
 
@@ -15,6 +16,8 @@ class DefinitionIndex extends Component
     use WithPagination;
 
     public string $search = '';
+
+    public string $status = '';
 
     public string $groupCode = '';
 
@@ -28,14 +31,37 @@ class DefinitionIndex extends Component
 
     public function updatedSearch(): void
     {
+        $this->search = mb_substr(trim($this->search), 0, 100);
+        $this->resetPage();
+    }
+
+    public function updatedStatus(): void
+    {
+        $allowed = array_map(fn (RequestTypeStatus $status): string => $status->value, RequestTypeStatus::cases());
+        $this->status = in_array($this->status, $allowed, true) ? $this->status : '';
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->status = '';
         $this->resetPage();
     }
 
     public function createGroup(CreateRequestGroup $service): void
     {
         Gate::authorize('create', RequestGroup::class);
-        $data = $this->validate(['groupCode' => ['required', 'alpha_dash', 'max:80', 'unique:request_groups,code'], 'groupName' => ['required', 'string', 'max:160']]);
-        $service->handle(['code' => strtoupper($data['groupCode']), 'name' => $data['groupName']], (int) auth('admin')->id());
+        $data = $this->validate([
+            'groupCode' => ['required', 'alpha_dash', 'max:80', 'unique:request_groups,code'],
+            'groupName' => ['required', 'string', 'max:160'],
+        ]);
+
+        $service->handle([
+            'code' => strtoupper($data['groupCode']),
+            'name' => $data['groupName'],
+        ], (int) auth('admin')->id());
+
         $this->reset('groupCode', 'groupName');
         session()->flash('request_success', __('Request::request.saved'));
     }
@@ -43,8 +69,18 @@ class DefinitionIndex extends Component
     public function createType(CreateRequestType $service): void
     {
         Gate::authorize('create', RequestType::class);
-        $data = $this->validate(['requestGroupId' => ['required', 'integer', 'exists:request_groups,id'], 'typeCode' => ['required', 'alpha_dash', 'max:80', 'unique:request_types,code'], 'typeName' => ['required', 'string', 'max:180']]);
-        $service->handle(['request_group_id' => $data['requestGroupId'], 'code' => strtoupper($data['typeCode']), 'name' => $data['typeName']], (int) auth('admin')->id());
+        $data = $this->validate([
+            'requestGroupId' => ['required', 'integer', 'exists:request_groups,id'],
+            'typeCode' => ['required', 'alpha_dash', 'max:80', 'unique:request_types,code'],
+            'typeName' => ['required', 'string', 'max:180'],
+        ]);
+
+        $service->handle([
+            'request_group_id' => $data['requestGroupId'],
+            'code' => strtoupper($data['typeCode']),
+            'name' => $data['typeName'],
+        ], (int) auth('admin')->id());
+
         $this->reset('requestGroupId', 'typeCode', 'typeName');
         session()->flash('request_success', __('Request::request.saved'));
     }
@@ -54,8 +90,20 @@ class DefinitionIndex extends Component
         Gate::authorize('viewAny', RequestType::class);
 
         return view('Request::livewire.admin.definition-index', [
-            'groups' => RequestGroup::query()->whereNull('archived_at')->orderBy('sort_order')->limit(100)->get(['id', 'code', 'name']),
-            'types' => RequestType::query()->with('group:id,name')->when(trim($this->search) !== '', fn ($query) => $query->where(fn ($nested) => $nested->where('code', 'like', '%'.trim($this->search).'%')->orWhere('name', 'like', '%'.trim($this->search).'%')))->orderBy('sort_order')->paginate(25),
+            'groups' => RequestGroup::query()
+                ->whereNull('archived_at')
+                ->orderBy('sort_order')
+                ->limit(100)
+                ->get(['id', 'code', 'name']),
+            'types' => RequestType::query()
+                ->with(['group:id,name', 'activeDraft:id,version_number', 'currentPublishedVersion:id,version_number'])
+                ->when(trim($this->search) !== '', fn ($query) => $query->where(fn ($nested) => $nested
+                    ->where('code', 'like', '%'.trim($this->search).'%')
+                    ->orWhere('name', 'like', '%'.trim($this->search).'%')))
+                ->when($this->status !== '', fn ($query) => $query->where('status', $this->status))
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->paginate(25),
         ]);
     }
 }
