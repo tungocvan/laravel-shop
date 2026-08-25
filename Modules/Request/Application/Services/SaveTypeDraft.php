@@ -41,6 +41,18 @@ final class SaveTypeDraft
             }
             $draft->stages()->delete();
             foreach ((array) ($data['stages'] ?? []) as $stage) {
+                $slaMinutes = isset($stage['sla_minutes']) ? max(1, (int) $stage['sla_minutes']) : null;
+                $warningMinutes = isset($stage['warning_minutes_before']) ? max(0, (int) $stage['warning_minutes_before']) : null;
+                $graceMinutes = max(0, (int) ($stage['grace_minutes'] ?? 0));
+                $timeoutAction = (string) ($stage['timeout_action'] ?? 'notify_only');
+
+                if (! in_array($timeoutAction, ['notify_only', 'suspend'], true)) {
+                    throw ValidationException::withMessages(['stages' => 'timeout_action_invalid']);
+                }
+                if ($slaMinutes !== null && $warningMinutes !== null && $warningMinutes > $slaMinutes) {
+                    throw ValidationException::withMessages(['stages' => 'warning_exceeds_sla']);
+                }
+
                 $draft->stages()->create([
                     'stage_key' => $stage['stage_key'],
                     'name' => $stage['name'],
@@ -50,6 +62,10 @@ final class SaveTypeDraft
                     'resolver_config_json' => $stage['resolver_config_json'],
                     'instructions' => $stage['instructions'] ?? null,
                     'allow_reassignment' => $stage['allow_reassignment'] ?? false,
+                    'sla_minutes' => $slaMinutes,
+                    'warning_minutes_before' => $warningMinutes,
+                    'grace_minutes' => $graceMinutes,
+                    'timeout_action' => $timeoutAction,
                 ]);
             }
             $lockedType->increment('lock_version');
