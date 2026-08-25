@@ -31,6 +31,7 @@ final class ApproverInboxQuery
             ->where('public_id', $publicId)
             ->where('assignee_user_id', $userId)
             ->where('status', TaskStatus::Active)
+            ->whereNull('suspended_at')
             ->whereHas('candidates', fn ($query) => $query->where('user_id', $userId)->where('is_effective', true))
             ->whereHas('run', fn ($query) => $query->where('status', RunStatus::Active)->whereHas('requestInstance', fn ($request) => $request->where('status', RequestStatus::Pending)))
             ->firstOrFail();
