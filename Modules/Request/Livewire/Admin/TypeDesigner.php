@@ -2,7 +2,6 @@
 
 namespace Modules\Request\Livewire\Admin;
 
-use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -10,6 +9,7 @@ use Modules\Request\Application\Services\CreateTypeDraft;
 use Modules\Request\Application\Services\PublishTypeVersion;
 use Modules\Request\Application\Services\SaveTypeDraft;
 use Modules\Request\Models\RequestType;
+use Modules\User\Contracts\UserDirectory;
 
 class TypeDesigner extends Component
 {
@@ -233,13 +233,16 @@ class TypeDesigner extends Component
 
     public function render()
     {
+        $approverUsers = collect(app(UserDirectory::class)->searchActive('@', 100))
+            ->map(fn ($identity): object => (object) [
+                'id' => $identity->id,
+                'name' => $identity->displayName,
+                'email' => $identity->maskedEmail,
+            ]);
+
         return view('Request::livewire.admin.type-designer', [
             'type' => $this->type(),
-            'approverUsers' => User::query()
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->orderBy('email')
-                ->get(['id', 'name', 'email']),
+            'approverUsers' => $approverUsers,
         ]);
     }
 
