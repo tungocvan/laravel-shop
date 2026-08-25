@@ -75,9 +75,21 @@
                                 <label class="text-sm font-medium text-slate-700">Mã cấp duyệt<input wire:model="stages.{{ $stageIndex }}.stage_key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"></label>
                                 <label class="text-sm font-medium text-slate-700">Tên<input wire:model.live="stages.{{ $stageIndex }}.name" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"></label>
                                 <label class="text-sm font-medium text-slate-700">Chế độ<select wire:model="stages.{{ $stageIndex }}.mode" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="single">Một người duyệt</option><option value="parallel_all">Song song - tất cả</option><option value="parallel_any">Song song - bất kỳ</option></select></label>
-                                <label class="text-sm font-medium text-slate-700">Bộ phân giải<select wire:model="stages.{{ $stageIndex }}.resolver_key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="fixed_users">Người dùng cố định</option><option value="fixed_role">Vai trò cố định</option></select></label>
-                                <label class="text-sm font-medium text-slate-700 md:col-span-2">Cấu hình bộ phân giải (JSON)<textarea wire:model="stages.{{ $stageIndex }}.resolver_config_json" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"></textarea></label>
-                                @error('stages.'.$stageIndex.'.resolver_config_json')<p class="text-sm text-red-600 md:col-span-2">{{ $message }}</p>@enderror
+                                <label class="text-sm font-medium text-slate-700">Bộ phân giải<select wire:model.live="stages.{{ $stageIndex }}.resolver_key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="fixed_users">Người dùng cố định</option><option value="fixed_role">Vai trò cố định</option></select></label>
+                                @if(($stage['resolver_key'] ?? 'fixed_users') === 'fixed_users')
+                                    <label class="text-sm font-medium text-slate-700 md:col-span-2">Người được phê duyệt
+                                        <select wire:model="stages.{{ $stageIndex }}.resolver_user_ids" multiple size="6" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                                            @foreach($approverUsers as $approverUser)
+                                                <option value="{{ $approverUser->id }}">{{ $approverUser->name }} · {{ $approverUser->email }}</option>
+                                            @endforeach
+                                        </select>
+                                        <span class="mt-1 block text-xs font-normal text-slate-500">Giữ Ctrl/Cmd để chọn nhiều người. Với chế độ “Một người duyệt”, chỉ chọn một tài khoản.</span>
+                                    </label>
+                                    @error('stages.'.$stageIndex.'.resolver_user_ids')<p class="text-sm text-red-600 md:col-span-2">Vui lòng chọn ít nhất một người phê duyệt.</p>@enderror
+                                @else
+                                    <label class="text-sm font-medium text-slate-700 md:col-span-2">Cấu hình bộ phân giải (JSON)<textarea wire:model="stages.{{ $stageIndex }}.resolver_config_json" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"></textarea></label>
+                                    @error('stages.'.$stageIndex.'.resolver_config_json')<p class="text-sm text-red-600 md:col-span-2">{{ $message }}</p>@enderror
+                                @endif
                                 <label class="text-sm font-medium text-slate-700 md:col-span-2">Hướng dẫn<textarea wire:model="stages.{{ $stageIndex }}.instructions" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"></textarea></label>
                                 <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="stages.{{ $stageIndex }}.allow_reassignment" class="h-4 w-4 rounded border-slate-300"> Cho phép giao lại</label>
                             </div>
