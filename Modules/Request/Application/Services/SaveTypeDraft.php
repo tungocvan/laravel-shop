@@ -17,61 +17,34 @@ final class SaveTypeDraft
     {
         return DB::transaction(function () use ($type, $data, $actorId, $expectedVersion): RequestTypeVersion {
             $lockedType = RequestType::query()->lockForUpdate()->findOrFail($type->id);
-            if ($lockedType->lock_version !== $expectedVersion) {
-                throw ValidationException::withMessages(['lock_version' => 'stale_version']);
-            }
+            if ($lockedType->lock_version !== $expectedVersion) throw ValidationException::withMessages(['lock_version' => 'stale_version']);
             $draft = RequestTypeVersion::query()->lockForUpdate()->findOrFail($lockedType->active_draft_version_id);
-            if ($draft->status !== RequestTypeVersionStatus::Draft) {
-                throw ValidationException::withMessages(['version' => 'draft_required']);
-            }
+            if ($draft->status !== RequestTypeVersionStatus::Draft) throw ValidationException::withMessages(['version' => 'draft_required']);
 
-            $draft->update([
-                'title' => $data['title'], 'description' => $data['description'] ?? null,
-                'requester_guidance' => $data['requester_guidance'] ?? null,
-                'form_schema_json' => $data['form_schema_json'], 'policy_json' => $data['policy_json'] ?? [],
-                'presentation_json' => $data['presentation_json'] ?? [], 'updated_by' => $actorId,
-            ]);
+            $draft->update(['title' => $data['title'], 'description' => $data['description'] ?? null, 'requester_guidance' => $data['requester_guidance'] ?? null, 'form_schema_json' => $data['form_schema_json'], 'policy_json' => $data['policy_json'] ?? [], 'presentation_json' => $data['presentation_json'] ?? [], 'updated_by' => $actorId]);
             $draft->audiences()->delete();
-            foreach ((array) ($data['audiences'] ?? []) as $audience) {
-                $draft->audiences()->create([
-                    'actor_type' => $audience['actor_type'],
-                    'actor_id' => $audience['actor_id'],
-                    'capability' => $audience['capability'],
-                ]);
-            }
+            foreach ((array) ($data['audiences'] ?? []) as $audience) $draft->audiences()->create(['actor_type' => $audience['actor_type'], 'actor_id' => $audience['actor_id'], 'capability' => $audience['capability']]);
             $draft->stages()->delete();
             foreach ((array) ($data['stages'] ?? []) as $stage) {
                 $slaMinutes = isset($stage['sla_minutes']) ? max(1, (int) $stage['sla_minutes']) : null;
                 $warningMinutes = isset($stage['warning_minutes_before']) ? max(0, (int) $stage['warning_minutes_before']) : null;
                 $graceMinutes = max(0, (int) ($stage['grace_minutes'] ?? 0));
                 $timeoutAction = (string) ($stage['timeout_action'] ?? 'notify_only');
-
-                if (! in_array($timeoutAction, ['notify_only', 'suspend'], true)) {
-                    throw ValidationException::withMessages(['stages' => 'timeout_action_invalid']);
-                }
-                if ($slaMinutes !== null && $warningMinutes !== null && $warningMinutes > $slaMinutes) {
-                    throw ValidationException::withMessages(['stages' => 'warning_exceeds_sla']);
-                }
+                if (! in_array($timeoutAction, ['notify_only', 'suspend'], true)) throw ValidationException::withMessages(['stages' => 'timeout_action_invalid']);
+                if ($slaMinutes !== null && $warningMinutes !== null && $warningMinutes > $slaMinutes) throw ValidationException::withMessages(['stages' => 'warning_exceeds_sla']);
 
                 $draft->stages()->create([
-                    'stage_key' => $stage['stage_key'],
-                    'name' => $stage['name'],
-                    'position' => $stage['position'],
-                    'mode' => $stage['mode'],
-                    'resolver_key' => $stage['resolver_key'],
-                    'resolver_config_json' => $stage['resolver_config_json'],
-                    'instructions' => $stage['instructions'] ?? null,
-                    'allow_reassignment' => $stage['allow_reassignment'] ?? false,
-                    'sla_minutes' => $slaMinutes,
-                    'warning_minutes_before' => $warningMinutes,
-                    'grace_minutes' => $graceMinutes,
-                    'timeout_action' => $timeoutAction,
+                    'stage_key' => $stage['stage_key'], 'name' => $stage['name'], 'position' => $stage['position'], 'mode' => $stage['mode'],
+                    'resolver_key' => $stage['resolver_key'], 'resolver_config_json' => $stage['resolver_config_json'], 'instructions' => $stage['instructions'] ?? null,
+                    'allow_reassignment' => $stage['allow_reassignment'] ?? false, 'sla_minutes' => $slaMinutes,
+                    'warning_minutes_before' => $warningMinutes, 'grace_minutes' => $graceMinutes, 'timeout_action' => $timeoutAction,
+                    'email_on_assignment' => (bool) ($stage['email_on_assignment'] ?? true),
+                    'email_on_decision' => (bool) ($stage['email_on_decision'] ?? true),
+                    'email_on_sla_warning' => (bool) ($stage['email_on_sla_warning'] ?? true),
                 ]);
             }
-            $lockedType->increment('lock_version');
-            $lockedType->update(['updated_by' => $actorId]);
+            $lockedType->increment('lock_version'); $lockedType->update(['updated_by' => $actorId]);
             $this->audit->append('request_type', $lockedType->public_id, 'request.type.draft_saved.v1', $actorId, (string) Str::uuid());
-
             return $draft->load(['audiences', 'stages']);
         });
     }
