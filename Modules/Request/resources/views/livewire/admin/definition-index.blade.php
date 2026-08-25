@@ -1,20 +1,76 @@
 <div class="space-y-6">
-    @if(session('request_success'))<div class="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{{ session('request_success') }}</div>@endif
-    <div class="grid gap-6 lg:grid-cols-2">
-        <form wire:submit="createGroup" class="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 class="font-semibold">{{ __('Request::request.groups.create') }}</h2>
-            <label class="mt-4 block text-sm">{{ __('Request::request.code') }}<input wire:model="groupCode" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>@error('groupCode')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-            <label class="mt-4 block text-sm">{{ __('Request::request.name') }}<input wire:model="groupName" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>@error('groupName')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-            <button class="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-white" wire:loading.attr="disabled">{{ __('Request::request.create') }}</button>
-        </form>
-        <form wire:submit="createType" class="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 class="font-semibold">{{ __('Request::request.types.create') }}</h2>
-            <label class="mt-4 block text-sm">{{ __('Request::request.groups.title') }}<select wire:model="requestGroupId" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">—</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
-            <label class="mt-4 block text-sm">{{ __('Request::request.code') }}<input wire:model="typeCode" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
-            <label class="mt-4 block text-sm">{{ __('Request::request.name') }}<input wire:model="typeName" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
-            <button class="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-white" wire:loading.attr="disabled">{{ __('Request::request.create') }}</button>
-        </form>
-    </div>
-    <label class="block max-w-md text-sm">{{ __('Request::request.search') }}<input wire:model.live.debounce.300ms="search" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
-    <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white"><table class="min-w-full text-sm"><thead><tr class="border-b bg-gray-50"><th class="p-3 text-left">{{ __('Request::request.code') }}</th><th class="p-3 text-left">{{ __('Request::request.name') }}</th><th class="p-3 text-left">{{ __('Request::request.status') }}</th><th></th></tr></thead><tbody>@forelse($types as $type)<tr class="border-b"><td class="p-3">{{ $type->code }}</td><td class="p-3">{{ $type->name }}</td><td class="p-3">{{ $type->status->value }}</td><td class="p-3"><a class="text-indigo-600" href="{{ route('request.admin.types.designer', $type->public_id) }}">{{ __('Request::request.edit') }}</a></td></tr>@empty<tr><td colspan="4" class="p-6 text-center">{{ __('Request::request.empty') }}</td></tr>@endforelse</tbody></table></div><div>{{ $types->links() }}</div>
+    @if(session('request_success'))
+        <div class="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800" role="status">{{ session('request_success') }}</div>
+    @endif
+
+    <header class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Definition Management</div>
+        <h1 class="mt-1 text-2xl font-bold text-slate-900">Quản lý loại đề nghị</h1>
+        <p class="mt-1 max-w-3xl text-sm text-slate-600">Tạo nhóm và loại đề nghị, theo dõi trạng thái bản nháp/phát hành và mở đúng công cụ để chỉnh sửa hoặc xem lịch sử phiên bản.</p>
+    </header>
+
+    <section aria-labelledby="definition-create-heading" class="space-y-3">
+        <div><h2 id="definition-create-heading" class="text-lg font-bold text-slate-900">Khởi tạo định nghĩa</h2><p class="text-sm text-slate-600">Tạo nhóm trước, sau đó tạo loại đề nghị thuộc nhóm phù hợp.</p></div>
+        <div class="grid gap-6 lg:grid-cols-2">
+            <form wire:submit="createGroup" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h3 class="font-semibold text-slate-900">Tạo nhóm đề nghị</h3>
+                <p class="mt-1 text-xs text-slate-500">Nhóm dùng để tổ chức các loại đề nghị theo nghiệp vụ.</p>
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.code') }}<input wire:model="groupCode" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                @error('groupCode')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.name') }}<input wire:model="groupName" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                @error('groupName')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <button class="mt-4 min-h-11 rounded-xl border border-indigo-300 bg-white px-4 py-2 font-semibold text-indigo-700" wire:loading.attr="disabled">Tạo nhóm đề nghị</button>
+            </form>
+
+            <form wire:submit="createType" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h3 class="font-semibold text-slate-900">Tạo loại đề nghị</h3>
+                <p class="mt-1 text-xs text-slate-500">Loại mới bắt đầu ở trạng thái bản nháp và được hoàn thiện trong Designer.</p>
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.groups.title') }}<select wire:model="requestGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">— Chọn nhóm —</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
+                @error('requestGroupId')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.code') }}<input wire:model="typeCode" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                @error('typeCode')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.name') }}<input wire:model="typeName" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                @error('typeName')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <button class="mt-4 min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white" wire:loading.attr="disabled">Tạo loại đề nghị</button>
+            </form>
+        </div>
+    </section>
+
+    <section aria-labelledby="definition-filter-heading" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 id="definition-filter-heading" class="text-lg font-bold text-slate-900">Tìm kiếm & lọc</h2><p class="text-sm text-slate-600">Tìm theo mã hoặc tên và thu hẹp theo trạng thái vận hành.</p></div><button type="button" wire:click="resetFilters" class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Đặt lại</button></div>
+        <div class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+            <label class="text-sm font-medium text-slate-700">{{ __('Request::request.search') }}<input wire:model.live.debounce.300ms="search" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" placeholder="Mã hoặc tên loại đề nghị"></label>
+            <label class="text-sm font-medium text-slate-700">Trạng thái<select wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">Tất cả trạng thái</option><option value="draft">Bản nháp</option><option value="published">Đang phát hành</option><option value="retired">Ngừng sử dụng</option></select></label>
+        </div>
+    </section>
+
+    <section aria-labelledby="definition-list-heading" class="space-y-3">
+        <div><h2 id="definition-list-heading" class="text-lg font-bold text-slate-900">Danh sách loại đề nghị</h2><p class="text-sm text-slate-600">Mỗi loại hiển thị trạng thái và phiên bản để bạn chọn đúng hành động quản trị.</p></div>
+        <div class="grid gap-3">
+            @forelse($types as $type)
+                @php($statusValue = $type->status->value)
+                @php($statusMeta = match($statusValue) {'draft' => ['Bản nháp', 'border-amber-200 bg-amber-50 text-amber-800'], 'published' => ['Đang phát hành', 'border-emerald-200 bg-emerald-50 text-emerald-800'], 'retired' => ['Ngừng sử dụng', 'border-slate-200 bg-slate-100 text-slate-700'], default => [$statusValue, 'border-slate-200 bg-slate-50 text-slate-700']})
+                <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2"><span class="font-mono text-xs text-slate-500">{{ $type->code }}</span><span class="rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span></div>
+                            <h3 class="mt-2 text-base font-bold text-slate-900">{{ $type->name }}</h3>
+                            <p class="mt-1 text-sm text-slate-600">Nhóm: {{ $type->group?->name ?? '—' }}</p>
+                            <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                                <div class="rounded-lg bg-slate-50 px-3 py-2"><dt class="text-xs font-medium text-slate-500">Bản nháp hiện tại</dt><dd class="mt-0.5 font-semibold text-slate-800">{{ $type->activeDraft ? 'v'.$type->activeDraft->version_number : 'Chưa có' }}</dd></div>
+                                <div class="rounded-lg bg-slate-50 px-3 py-2"><dt class="text-xs font-medium text-slate-500">Phiên bản hiện hành</dt><dd class="mt-0.5 font-semibold text-slate-800">{{ $type->currentPublishedVersion ? 'v'.$type->currentPublishedVersion->version_number : 'Chưa phát hành' }}</dd></div>
+                            </dl>
+                        </div>
+                        <div class="flex flex-col gap-2 sm:flex-row lg:flex-col lg:min-w-44">
+                            <a class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" href="{{ route('request.admin.types.designer', $type->public_id) }}">Mở Designer</a>
+                            <a class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" href="{{ route('request.admin.types.versions', $type->public_id) }}">Lịch sử phiên bản</a>
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><div class="font-semibold text-slate-800">Không có loại đề nghị phù hợp.</div><p class="mt-1 text-sm text-slate-500">Thử thay đổi từ khóa hoặc trạng thái lọc.</p></div>
+            @endforelse
+        </div>
+        <div>{{ $types->links() }}</div>
+    </section>
 </div>
