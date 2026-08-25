@@ -31,9 +31,9 @@ class RequestVersionHistoryWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('use Modules\\User\\Contracts\\UserDirectory;', $controller);
         $this->assertStringContainsString('UserDirectory $users', $controller);
         $this->assertStringContainsString('findManyActive($actorIds, 100)', $controller);
-        $this->assertStringContainsString("Gate::authorize('view', $type)", $controller);
-        $this->assertStringContainsString("Published Request type versions are immutable.", $model);
-        $this->assertStringContainsString("Published Request type versions cannot be deleted.", $model);
+        $this->assertStringContainsString("Gate::authorize('view', \$type)", $controller);
+        $this->assertStringContainsString('Published Request type versions are immutable.', $model);
+        $this->assertStringContainsString('Published Request type versions cannot be deleted.', $model);
         $this->assertStringNotContainsString('App\\Models\\User', $controller.$model.$view);
     }
 }
