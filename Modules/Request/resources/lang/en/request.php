@@ -61,6 +61,11 @@ return [
     'types' => ['title' => 'Request types', 'description' => 'Manage versioned forms and approval definitions.', 'create' => 'Create request type'],
     'catalog' => ['title' => 'Request catalog', 'description' => 'Choose an internal request available to you.', 'empty' => 'No request types available', 'empty_help' => 'Try another filter or contact an administrator if access is expected.', 'no_summary' => 'Open this request type to review its guidance.'],
     'mine' => ['title' => 'My Requests', 'description' => 'Resume and track your own internal requests.', 'empty' => 'No requests found', 'empty_help' => 'Create a draft or change the current filters.'],
+    'exports' => [
+        'too_many_rows' => 'The export scope exceeds the :max row limit. Narrow the filters before continuing.',
+        'invalid_fields' => 'No valid export fields were selected.',
+        'invalid_filters' => 'The export filters are invalid. Review the scope before continuing.',
+    ],
     'group' => 'Group',
     'all' => 'All',
     'page_size' => 'Rows per page',

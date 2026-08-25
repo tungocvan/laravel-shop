@@ -78,6 +78,7 @@ return [
     'exports' => [
         'too_many_rows' => 'Phạm vi xuất vượt quá giới hạn :max dòng. Hãy thu hẹp bộ lọc trước khi tiếp tục.',
         'invalid_fields' => 'Không có trường xuất dữ liệu hợp lệ trong danh sách đã chọn.',
+        'invalid_filters' => 'Bộ lọc xuất dữ liệu không hợp lệ. Hãy kiểm tra lại phạm vi trước khi tiếp tục.',
     ],
     'group' => 'Nhóm',
     'all' => 'Tất cả',

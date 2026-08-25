@@ -22,6 +22,7 @@ class RequestVietnameseUiContractTest extends TestCase
         $this->assertSame('Tạo bản nháp', __('Request::request.create_draft'));
         $this->assertSame('Báo cáo Đề nghị', __('Request::request.reports.title'));
         $this->assertSame('Sổ đăng ký đề nghị', __('Request::request.reports.register'));
+        $this->assertSame('Bộ lọc xuất dữ liệu không hợp lệ. Hãy kiểm tra lại phạm vi trước khi tiếp tục.', __('Request::request.exports.invalid_filters'));
         $this->assertSame('Gói định nghĩa Đề nghị', __('Request::definition_package.title'));
         $this->assertSame('Chạy thử và xem khác biệt', __('Request::definition_package.preview'));
         $this->assertSame('Vận hành Đề nghị', __('Request::operations.title'));

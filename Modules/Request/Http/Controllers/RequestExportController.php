@@ -6,10 +6,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Modules\Request\Application\Services\PlanRequestExport;
 use Modules\Request\Application\Services\RequestExportQuery;
 use Modules\Request\Application\Services\StartRequestExport;
 use Modules\Request\Domain\Enums\ExportStatus;
+use Modules\Request\Domain\Enums\RequestStatus;
 use Modules\Request\Models\RequestExportJob;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -22,11 +24,19 @@ final class RequestExportController extends Controller
 
         $validated = $request->validate([
             'format' => ['required', 'in:csv,xlsx'],
-            'status' => ['nullable', 'string'],
+            'status' => ['nullable', 'string', Rule::in(array_column(RequestStatus::cases(), 'value'))],
+            'type_public_id' => ['nullable', 'ulid'],
+            'group_public_id' => ['nullable', 'ulid'],
+            'created_from' => ['nullable', 'date_format:Y-m-d'],
+            'created_to' => ['nullable', 'date_format:Y-m-d', Rule::when($request->filled('created_from'), 'after_or_equal:created_from')],
+            'confirmed' => ['required', 'accepted'],
             'idempotency_key' => ['required', 'string', 'max:191'],
         ]);
 
-        $filters = filled($validated['status'] ?? null) ? ['status' => $validated['status']] : [];
+        $filters = collect($validated)
+            ->only(['status', 'type_public_id', 'group_public_id', 'created_from', 'created_to'])
+            ->filter(fn (mixed $value): bool => filled($value))
+            ->all();
         $plan = $planner->plan($user, $filters);
         $export = $starter->handle($user, $plan, $validated['format'], $validated['idempotency_key']);
 
