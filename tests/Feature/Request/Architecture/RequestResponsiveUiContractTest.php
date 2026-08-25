@@ -14,7 +14,9 @@ class RequestResponsiveUiContractTest extends TestCase
         $this->assertStringContainsString('moveSection', $designer);
         $this->assertStringContainsString('moveField', $designer);
         $this->assertStringContainsString('moveStage', $designer);
-        $this->assertStringContainsString('xl:grid-cols-[14rem_minmax(0,1fr)_18rem]', $designer);
+        $this->assertStringContainsString('xl:grid-cols-[14rem_minmax(0,1fr)_19rem]', $designer);
+        $this->assertStringContainsString('xl:sticky xl:top-4 xl:self-start', $designer);
+        $this->assertStringContainsString('Sẵn sàng phát hành', $designer);
         $this->assertStringContainsString('min-h-11', $designer);
         $this->assertStringContainsString('Xem chi tiết định nghĩa chuẩn hóa', $versions);
         $this->assertStringNotContainsString('draggable=', $designer);
