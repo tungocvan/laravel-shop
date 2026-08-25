@@ -36,7 +36,7 @@ class RequestVietnameseUiContractTest extends TestCase
         $reports = file_get_contents(base_path('Modules/Request/resources/views/admin/reports.blade.php'));
         $package = file_get_contents(base_path('Modules/Request/resources/views/admin/definition-package.blade.php'));
         $operations = file_get_contents(base_path('Modules/Request/resources/views/admin/operations.blade.php'));
-        $seeder = file_get_contents(base_path('Modules/Request/Database/Seeders/RequestDemoSeeder.php'));
+        $seeder = file_get_contents(base_path('database/seeders/RequestDemoSeeder.php'));
 
         foreach ([
             'Local draft',
