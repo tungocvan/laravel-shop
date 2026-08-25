@@ -32,4 +32,22 @@ class RequestEmployeeWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('REQUEST_UI_DEMO', $view);
         $this->assertStringNotContainsString('App\\Models\\User', $component.$query);
     }
+
+    public function test_employee_workspace_counts_use_a_strict_sql_safe_aggregate_projection(): void
+    {
+        $query = file_get_contents(base_path('Modules/Request/Application/Queries/MyRequestsQuery.php'));
+        $start = strpos($query, 'public function workspaceCounts');
+        $end = strpos($query, 'public function findVisible');
+
+        $this->assertNotFalse($start);
+        $this->assertNotFalse($end);
+
+        $workspaceCounts = substr($query, $start, $end - $start);
+
+        $this->assertStringContainsString('InternalRequest::query()', $workspaceCounts);
+        $this->assertStringContainsString("selectRaw('status, COUNT(*) as aggregate')", $workspaceCounts);
+        $this->assertStringContainsString("groupBy('status')", $workspaceCounts);
+        $this->assertStringNotContainsString('$this->baseQuery(', $workspaceCounts);
+        $this->assertStringNotContainsString("select(['id'", $workspaceCounts);
+    }
 }
