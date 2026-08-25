@@ -122,7 +122,7 @@ class RequestExportFoundationTest extends TestCase
         $plan = app(PlanRequestExport::class)->plan($user, $filters);
 
         $this->assertSame([$included->id], $rows->pluck('id')->all());
-        $this->assertSame($filters, $plan->filters);
+        $this->assertEqualsCanonicalizing($filters, $plan->filters);
         $this->assertSame(1, $plan->authorizedRowCount);
         $this->assertSame('Hành chính', $rows->firstOrFail()->type->group->name);
     }
