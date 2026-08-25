@@ -2,9 +2,9 @@
 @section('title', __('Request::operations.title'))
 @section('content')
 <div class="mx-auto w-full max-w-6xl p-3 sm:p-4 lg:p-6">
-    @include('Request::partials.dashboard-back')
+    @include('Request::partials.workspace-navigation')
 
-    <div class="mb-6">
+    <div class="mb-6 mt-6">
         <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">MR-09 · Vận hành</p>
         <h1 class="mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">{{ __('Request::operations.title') }}</h1>
         <p class="mt-2 max-w-3xl text-sm text-slate-600">{{ __('Request::operations.description') }}</p>
