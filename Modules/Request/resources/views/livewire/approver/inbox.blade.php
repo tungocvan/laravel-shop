@@ -3,31 +3,47 @@
 
     <header>
         <h1 class="text-2xl font-bold text-gray-900">{{ __('Request::request.inbox.title') }}</h1>
-        <p class="mt-1 text-sm text-gray-600">Ưu tiên các đề nghị sắp quá hạn hoặc đã quá hạn để bạn xử lý đúng thời gian.</p>
+        <p class="mt-1 text-sm text-gray-600">{{ $view === 'processed' ? 'Tra cứu lại các đề nghị bạn đã duyệt, từ chối hoặc trả lại.' : 'Ưu tiên các đề nghị sắp quá hạn hoặc đã quá hạn để bạn xử lý đúng thời gian.' }}</p>
     </header>
 
     @if(session('request_success'))
         <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ session('request_success') }}</div>
     @endif
 
-    <section aria-label="Khối lượng phê duyệt" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        @foreach([
-            ['label' => 'Chờ bạn duyệt', 'value' => $workload['pending'], 'class' => 'border-indigo-200 bg-indigo-50 text-indigo-900'],
-            ['label' => 'Sắp quá hạn', 'value' => $workload['warning'], 'class' => 'border-amber-200 bg-amber-50 text-amber-900'],
-            ['label' => 'Đã quá hạn', 'value' => $workload['overdue'], 'class' => 'border-orange-200 bg-orange-50 text-orange-900'],
-            ['label' => 'Đã tạm dừng', 'value' => $workload['suspended'], 'class' => 'border-red-200 bg-red-50 text-red-900'],
-        ] as $metric)
-            <div class="rounded-2xl border p-4 {{ $metric['class'] }}">
-                <div class="text-sm font-medium">{{ $metric['label'] }}</div>
-                <div class="mt-1 text-2xl font-bold tabular-nums">{{ $metric['value'] }}</div>
-            </div>
-        @endforeach
-    </section>
+    @if($view === 'processed')
+        <section aria-label="Lịch sử quyết định" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach([
+                ['key' => 'all', 'label' => 'Tất cả đã xử lý', 'class' => 'border-slate-200 bg-slate-50 text-slate-900'],
+                ['key' => 'approved', 'label' => 'Đã duyệt', 'class' => 'border-emerald-200 bg-emerald-50 text-emerald-900'],
+                ['key' => 'rejected', 'label' => 'Đã từ chối', 'class' => 'border-red-200 bg-red-50 text-red-900'],
+                ['key' => 'returned', 'label' => 'Đã trả lại', 'class' => 'border-orange-200 bg-orange-50 text-orange-900'],
+            ] as $metric)
+                <button type="button" wire:click="$set('decision', '{{ $metric['key'] }}')" @if($decision === $metric['key']) aria-current="page" @endif class="min-h-11 rounded-2xl border p-4 text-left transition {{ $metric['class'] }} {{ $decision === $metric['key'] ? 'ring-2 ring-indigo-500 ring-offset-2' : '' }}">
+                    <div class="text-sm font-medium">{{ $metric['label'] }}</div>
+                    <div class="mt-1 text-2xl font-bold tabular-nums">{{ $processedSummary[$metric['key']] }}</div>
+                </button>
+            @endforeach
+        </section>
+    @else
+        <section aria-label="Khối lượng phê duyệt" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach([
+                ['label' => 'Chờ bạn duyệt', 'value' => $workload['pending'], 'class' => 'border-indigo-200 bg-indigo-50 text-indigo-900'],
+                ['label' => 'Sắp quá hạn', 'value' => $workload['warning'], 'class' => 'border-amber-200 bg-amber-50 text-amber-900'],
+                ['label' => 'Đã quá hạn', 'value' => $workload['overdue'], 'class' => 'border-orange-200 bg-orange-50 text-orange-900'],
+                ['label' => 'Đã tạm dừng', 'value' => $workload['suspended'], 'class' => 'border-red-200 bg-red-50 text-red-900'],
+            ] as $metric)
+                <div class="rounded-2xl border p-4 {{ $metric['class'] }}">
+                    <div class="text-sm font-medium">{{ $metric['label'] }}</div>
+                    <div class="mt-1 text-2xl font-bold tabular-nums">{{ $metric['value'] }}</div>
+                </div>
+            @endforeach
+        </section>
+    @endif
 
     <div class="rounded-2xl border border-gray-200 bg-white p-4">
         <div class="mb-4 flex gap-2 overflow-x-auto pb-1">
             @foreach(['pending' => 'Chờ duyệt', 'processed' => 'Đã xử lý', 'all' => 'Tất cả'] as $value => $label)
-                <button type="button" wire:click="$set('view', '{{ $value }}')" @if($view === $value) aria-current="page" @endif class="min-h-11 shrink-0 rounded-xl px-4 py-2 text-sm font-semibold {{ $view === $value ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
+                <button type="button" wire:click="selectView('{{ $value }}')" @if($view === $value) aria-current="page" @endif class="min-h-11 shrink-0 rounded-xl px-4 py-2 text-sm font-semibold {{ $view === $value ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
                     {{ $label }}
                 </button>
             @endforeach
@@ -71,7 +87,7 @@
 
                 <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-600">
                     <span>{{ __('Request::request.inbox.submitted_at') }} {{ optional($request->submitted_at)->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>
-                    @if(!$isPending && $task->decided_at)<span>Đã xử lý: {{ $task->decided_at->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>@endif
+                    @if(!$isPending && $task->decided_at)<span>Quyết định lúc: {{ $task->decided_at->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>@endif
                 </div>
 
                 @if($sla)
@@ -90,7 +106,7 @@
             </article>
         @empty
             <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600">
-                {{ $view === 'processed' ? 'Chưa có đề nghị nào đã xử lý.' : __('Request::request.inbox.empty') }}
+                {{ $view === 'processed' ? 'Không có đề nghị nào phù hợp với lịch sử quyết định đang chọn.' : __('Request::request.inbox.empty') }}
             </div>
         @endforelse
     </div>
