@@ -28,7 +28,7 @@
                 </select>
 
                 <label for="request-decision-reason" class="mt-4 block text-sm font-medium text-gray-700">
-                    {{ $decision === 'approve' ? __('Request::request.decision_note') : __('Request::request.reason') }}
+                    {{ __('Request::request.reason') }}
                     @if($decision !== 'approve')
                         <span class="text-red-600" aria-hidden="true">*</span>
                     @endif
@@ -38,7 +38,6 @@
                     wire:model="reason"
                     rows="4"
                     class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"
-                    placeholder="{{ $decision === 'approve' ? __('Request::request.decision_note_placeholder') : __('Request::request.reason_placeholder') }}"
                 ></textarea>
                 @error('reason')
                     <p class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
@@ -60,9 +59,9 @@
                         class="rounded-xl px-4 py-2.5 font-semibold text-white disabled:opacity-60 {{ $decision === 'reject' ? 'bg-red-700' : ($decision === 'return' ? 'bg-amber-600' : 'bg-indigo-600') }}"
                     >
                         <span wire:loading.remove wire:target="decide">
-                            {{ $decision === 'reject' ? __('Request::request.reject_request') : ($decision === 'return' ? __('Request::request.return_request') : __('Request::request.approve_request')) }}
+                            {{ $decision === 'reject' ? __('Request::request.reject') : ($decision === 'return' ? __('Request::request.return') : __('Request::request.approve')) }}
                         </span>
-                        <span wire:loading wire:target="decide">{{ __('Request::request.processing') }}</span>
+                        <span wire:loading wire:target="decide">{{ __('Request::request.loading') }}</span>
                     </button>
                 </div>
             </div>
