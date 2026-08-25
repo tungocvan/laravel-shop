@@ -11,5 +11,6 @@ final readonly class NotificationPlan
         public string $requestNumber,
         public string $requestTitle,
         public string $status,
+        public array $channels = ['database', 'email'],
     ) {}
 }
