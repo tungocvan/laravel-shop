@@ -48,7 +48,7 @@ final class RequestTaskSlaPresenter
             'state' => $state,
             'label' => $label,
             'detail' => $detail,
-            'deadline' => $displayDue->format('d/m/Y H:i'),
+            'deadline' => $displayDue->format('d/m/Y H:i:s'),
             'deadline_iso' => $displayDue->toIso8601String(),
         ];
     }
