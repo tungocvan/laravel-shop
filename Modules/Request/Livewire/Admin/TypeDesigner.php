@@ -46,35 +46,42 @@ class TypeDesigner extends Component
         $this->sections = array_values((array) ($schema['sections'] ?? []));
         $this->schemaExtras = array_diff_key($schema, array_flip(['schema_version', 'sections']));
         $this->audiencesJson = json_encode($draft->audiences->map->only(['actor_type', 'actor_id', 'capability'])->all(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $this->stages = $draft->stages->values()->map(fn ($stage): array => [
-            'stage_key' => $stage->stage_key,
-            'name' => $stage->name,
-            'mode' => $stage->mode->value,
-            'resolver_key' => $stage->resolver_key,
-            'resolver_config_json' => json_encode($stage->resolver_config_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'instructions' => $stage->instructions ?? '',
-            'allow_reassignment' => (bool) $stage->allow_reassignment,
-        ])->all();
+        $this->stages = $draft->stages->values()->map(function ($stage): array {
+            [$slaValue, $slaUnit] = $this->minutesForEditor($stage->sla_minutes);
+            [$warningValue, $warningUnit] = $this->minutesForEditor($stage->warning_minutes_before);
+            [$graceValue, $graceUnit] = $this->minutesForEditor($stage->grace_minutes ?? 0);
+
+            return [
+                'stage_key' => $stage->stage_key,
+                'name' => $stage->name,
+                'mode' => $stage->mode->value,
+                'resolver_key' => $stage->resolver_key,
+                'resolver_config_json' => json_encode($stage->resolver_config_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'instructions' => $stage->instructions ?? '',
+                'allow_reassignment' => (bool) $stage->allow_reassignment,
+                'sla_value' => $slaValue,
+                'sla_unit' => $slaUnit,
+                'warning_value' => $warningValue,
+                'warning_unit' => $warningUnit,
+                'grace_value' => $graceValue,
+                'grace_unit' => $graceUnit,
+                'timeout_action' => $stage->timeout_action ?? 'notify_only',
+            ];
+        })->all();
         $this->lockVersion = $type->lock_version;
     }
 
     public function addSection(): void
     {
         $number = count($this->sections) + 1;
-        $this->sections[] = [
-            'key' => 'section_'.$number,
-            'label' => 'Phần '.$number,
-            'fields' => [],
-        ];
+        $this->sections[] = ['key' => 'section_'.$number, 'label' => 'Phần '.$number, 'fields' => []];
     }
 
     public function removeSection(int $section): void
     {
-        if (! isset($this->sections[$section])) {
-            return;
+        if (isset($this->sections[$section])) {
+            array_splice($this->sections, $section, 1);
         }
-
-        array_splice($this->sections, $section, 1);
     }
 
     public function moveSection(int $section, int $direction): void
@@ -87,17 +94,9 @@ class TypeDesigner extends Component
         if (! isset($this->sections[$section])) {
             return;
         }
-
         $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
         $number = count($fields) + 1;
-        $fields[] = [
-            'key' => 'field_'.$number,
-            'type' => 'text',
-            'label' => 'Trường '.$number,
-            'required' => false,
-            'classification' => 'internal',
-            'offline_draft' => true,
-        ];
+        $fields[] = ['key' => 'field_'.$number, 'type' => 'text', 'label' => 'Trường '.$number, 'required' => false, 'classification' => 'internal', 'offline_draft' => true];
         $this->sections[$section]['fields'] = $fields;
     }
 
@@ -106,7 +105,6 @@ class TypeDesigner extends Component
         if (! isset($this->sections[$section]['fields'][$field])) {
             return;
         }
-
         $fields = array_values((array) $this->sections[$section]['fields']);
         array_splice($fields, $field, 1);
         $this->sections[$section]['fields'] = $fields;
@@ -117,7 +115,6 @@ class TypeDesigner extends Component
         if (! isset($this->sections[$section])) {
             return;
         }
-
         $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
         $this->moveItem($fields, $field, $direction);
         $this->sections[$section]['fields'] = $fields;
@@ -130,20 +127,25 @@ class TypeDesigner extends Component
             'stage_key' => 'stage_'.$number,
             'name' => 'Cấp duyệt '.$number,
             'mode' => 'single',
-            'resolver_key' => 'fixed_user',
-            'resolver_config_json' => '{}',
+            'resolver_key' => 'fixed_users',
+            'resolver_config_json' => '{"user_ids":[]}',
             'instructions' => '',
             'allow_reassignment' => false,
+            'sla_value' => 24,
+            'sla_unit' => 'hours',
+            'warning_value' => 4,
+            'warning_unit' => 'hours',
+            'grace_value' => 12,
+            'grace_unit' => 'hours',
+            'timeout_action' => 'suspend',
         ];
     }
 
     public function removeStage(int $stage): void
     {
-        if (! isset($this->stages[$stage])) {
-            return;
+        if (isset($this->stages[$stage])) {
+            array_splice($this->stages, $stage, 1);
         }
-
-        array_splice($this->stages, $stage, 1);
     }
 
     public function moveStage(int $stage, int $direction): void
@@ -163,7 +165,11 @@ class TypeDesigner extends Component
         $stages = [];
         foreach (array_values($this->stages) as $index => $stage) {
             $stage['position'] = $index + 1;
-            $stage['resolver_config_json'] = $this->decode((string) ($stage['resolver_config_json'] ?? '{}'), 'stages.'.($index).'.resolver_config_json');
+            $stage['resolver_config_json'] = $this->decode((string) ($stage['resolver_config_json'] ?? '{}'), 'stages.'.$index.'.resolver_config_json');
+            $stage['sla_minutes'] = $this->editorDurationToMinutes($stage['sla_value'] ?? null, (string) ($stage['sla_unit'] ?? 'hours'), true, 'stages.'.$index.'.sla_value');
+            $stage['warning_minutes_before'] = $this->editorDurationToMinutes($stage['warning_value'] ?? null, (string) ($stage['warning_unit'] ?? 'hours'), false, 'stages.'.$index.'.warning_value');
+            $stage['grace_minutes'] = $this->editorDurationToMinutes($stage['grace_value'] ?? 0, (string) ($stage['grace_unit'] ?? 'hours'), false, 'stages.'.$index.'.grace_value') ?? 0;
+            unset($stage['sla_value'], $stage['sla_unit'], $stage['warning_value'], $stage['warning_unit'], $stage['grace_value'], $stage['grace_unit']);
             $stages[] = $stage;
         }
 
@@ -214,6 +220,46 @@ class TypeDesigner extends Component
         return $value;
     }
 
+    /** @return array{0:int|string,1:string} */
+    private function minutesForEditor(?int $minutes): array
+    {
+        if ($minutes === null) {
+            return ['', 'hours'];
+        }
+        if ($minutes > 0 && $minutes % 1440 === 0) {
+            return [$minutes / 1440, 'days'];
+        }
+        if ($minutes > 0 && $minutes % 60 === 0) {
+            return [$minutes / 60, 'hours'];
+        }
+
+        return [$minutes, 'minutes'];
+    }
+
+    private function editorDurationToMinutes(mixed $value, string $unit, bool $required, string $field): ?int
+    {
+        if ($value === '' || $value === null) {
+            if ($required) {
+                throw ValidationException::withMessages([$field => 'duration_required']);
+            }
+
+            return null;
+        }
+
+        if (! is_numeric($value) || (float) $value < 0 || ($required && (float) $value <= 0)) {
+            throw ValidationException::withMessages([$field => 'duration_invalid']);
+        }
+
+        $factor = match ($unit) {
+            'minutes' => 1,
+            'hours' => 60,
+            'days' => 1440,
+            default => throw ValidationException::withMessages([$field => 'duration_unit_invalid']),
+        };
+
+        return (int) round((float) $value * $factor);
+    }
+
     private function moveItem(array &$items, int $index, int $direction): void
     {
         $items = array_values($items);
@@ -221,7 +267,6 @@ class TypeDesigner extends Component
         if (! isset($items[$index], $items[$target])) {
             return;
         }
-
         [$items[$index], $items[$target]] = [$items[$target], $items[$index]];
     }
 }
