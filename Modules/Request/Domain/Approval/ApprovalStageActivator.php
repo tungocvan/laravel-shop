@@ -32,8 +32,36 @@ final class ApprovalStageActivator
         }
 
         $now = now('UTC');
-        $tasks = $users->map(function ($user) use ($run, $stage, $resolved, $now) {
-            $task = $run->tasks()->create(['request_stage_definition_id' => $stage->id, 'stage_key_snapshot' => $stage->stage_key, 'stage_name_snapshot' => $stage->name, 'stage_position' => $stage->position, 'stage_mode' => $stage->mode, 'status' => TaskStatus::Active, 'assignee_user_id' => $user->id, 'resolver_key_snapshot' => $stage->resolver_key, 'resolver_source_snapshot_json' => ['source' => $resolved->source->value, 'reference' => $resolved->sourceReference], 'activated_at' => $now]);
+        $slaMinutes = $stage->sla_minutes;
+        $warningMinutes = $stage->warning_minutes_before;
+        $graceMinutes = $stage->grace_minutes ?? 0;
+        $dueAt = $slaMinutes ? $now->copy()->addMinutes($slaMinutes) : null;
+        $warningAt = $dueAt && $warningMinutes !== null ? $dueAt->copy()->subMinutes($warningMinutes) : null;
+        $graceExpiresAt = $dueAt ? $dueAt->copy()->addMinutes($graceMinutes) : null;
+        $slaSnapshot = $slaMinutes ? [
+            'sla_minutes' => $slaMinutes,
+            'warning_minutes_before' => $warningMinutes,
+            'grace_minutes' => $graceMinutes,
+            'timeout_action' => $stage->timeout_action ?? 'notify_only',
+        ] : null;
+
+        $tasks = $users->map(function ($user) use ($run, $stage, $resolved, $now, $slaSnapshot, $warningAt, $dueAt, $graceExpiresAt) {
+            $task = $run->tasks()->create([
+                'request_stage_definition_id' => $stage->id,
+                'stage_key_snapshot' => $stage->stage_key,
+                'stage_name_snapshot' => $stage->name,
+                'stage_position' => $stage->position,
+                'stage_mode' => $stage->mode,
+                'status' => TaskStatus::Active,
+                'assignee_user_id' => $user->id,
+                'resolver_key_snapshot' => $stage->resolver_key,
+                'resolver_source_snapshot_json' => ['source' => $resolved->source->value, 'reference' => $resolved->sourceReference],
+                'sla_snapshot_json' => $slaSnapshot,
+                'activated_at' => $now,
+                'warning_at' => $warningAt,
+                'due_at' => $dueAt,
+                'grace_expires_at' => $graceExpiresAt,
+            ]);
             $task->candidates()->create(['user_id' => $user->id, 'source_type' => $resolved->source, 'source_reference' => $resolved->sourceReference, 'user_snapshot_json' => ['id' => $user->id, 'display_name' => $user->displayName], 'is_effective' => true, 'created_at' => $now]);
 
             return $task;
