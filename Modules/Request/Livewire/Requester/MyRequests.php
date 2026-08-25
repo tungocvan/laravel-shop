@@ -17,21 +17,32 @@ class MyRequests extends Component
 
     public string $status = '';
 
+    public string $workspace = 'all';
+
     public int $perPage = 25;
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'status', 'perPage'], true)) {
+        if (in_array($property, ['search', 'status', 'workspace', 'perPage'], true)) {
             $this->search = mb_substr(trim($this->search), 0, 100);
             $this->status = in_array($this->status, array_column(RequestStatus::cases(), 'value'), true) ? $this->status : '';
+            $this->workspace = in_array($this->workspace, ['all', 'draft', 'processing', 'returned', 'completed'], true) ? $this->workspace : 'all';
             $this->perPage = in_array($this->perPage, config('request.settings.page_sizes', [10, 25, 50, 100]), true) ? $this->perPage : 25;
             $this->resetPage();
         }
     }
 
+    public function selectWorkspace(string $workspace): void
+    {
+        $this->workspace = in_array($workspace, ['all', 'draft', 'processing', 'returned', 'completed'], true) ? $workspace : 'all';
+        $this->status = '';
+        $this->resetPage();
+    }
+
     public function resetFilters(): void
     {
         $this->reset('search', 'status');
+        $this->workspace = 'all';
         $this->resetPage();
     }
 
@@ -41,7 +52,8 @@ class MyRequests extends Component
         Gate::forUser($user)->authorize('viewAny', InternalRequest::class);
 
         return view('Request::livewire.requester.my-requests', [
-            'requests' => $query->paginate((int) $user->getAuthIdentifier(), $this->search, $this->status, $this->perPage),
+            'requests' => $query->paginate((int) $user->getAuthIdentifier(), $this->search, $this->status, $this->workspace, $this->perPage),
+            'workspaceCounts' => $query->workspaceCounts((int) $user->getAuthIdentifier()),
             'statuses' => RequestStatus::cases(),
             'pageSizes' => config('request.settings.page_sizes', [10, 25, 50, 100]),
         ]);
