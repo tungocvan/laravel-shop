@@ -41,8 +41,8 @@ final class DecideRequestTask
             $target->candidates()->where('user_id', $actorId)->where('is_effective', true)->lockForUpdate()->first();
 
             return $this->idempotency->execute($actorId, 'request.task.'.$type->value, $target->public_id, $key, ['decision' => $type->value, 'reason' => $reason, 'request_version' => $requestVersion, 'task_version' => $taskVersion], function (string $correlationId, string $keyHash) use ($request, $run, $tasks, $target, $type, $reason, $actorId, $requestVersion, $taskVersion): array {
-                if ($request->status !== RequestStatus::Pending || $run->status !== RunStatus::Active || $request->current_run_id !== $run->id || $target->status !== TaskStatus::Active || $target->stage_position !== $run->current_stage_position || $target->assignee_user_id !== $actorId || $request->requester_id === $actorId || ! $target->candidates()->where('user_id', $actorId)->where('is_effective', true)->exists()) {
-                    throw ValidationException::withMessages(['task' => ['task_not_actionable']]);
+                if ($request->status !== RequestStatus::Pending || $run->status !== RunStatus::Active || $request->current_run_id !== $run->id || $target->status !== TaskStatus::Active || $target->suspended_at !== null || $target->stage_position !== $run->current_stage_position || $target->assignee_user_id !== $actorId || $request->requester_id === $actorId || ! $target->candidates()->where('user_id', $actorId)->where('is_effective', true)->exists()) {
+                    throw ValidationException::withMessages(['task' => [$target->suspended_at !== null ? 'task_suspended' : 'task_not_actionable']]);
                 }
                 if ($request->lock_version !== $requestVersion || $target->lock_version !== $taskVersion) {
                     throw ValidationException::withMessages(['lock_version' => ['stale_version']]);
