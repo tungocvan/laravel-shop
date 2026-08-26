@@ -8,7 +8,10 @@ use Livewire\Component;
 use Modules\Request\Application\Services\CreateTypeDraft;
 use Modules\Request\Application\Services\PublishTypeVersion;
 use Modules\Request\Application\Services\SaveTypeDraft;
+use Modules\Request\Domain\Enums\AudienceActorType;
+use Modules\Request\Domain\Enums\AudienceCapability;
 use Modules\Request\Models\RequestType;
+use Modules\Request\Models\RequestTypeVersion;
 use Modules\User\Contracts\UserDirectory;
 
 class TypeDesigner extends Component
@@ -27,7 +30,10 @@ class TypeDesigner extends Component
 
     public array $sections = [];
 
-    public string $audiencesJson = '[]';
+    /** @var list<int> */
+    public array $audienceUserIds = [];
+
+    public string $audienceSearch = '';
 
     public array $stages = [];
 
@@ -59,7 +65,7 @@ class TypeDesigner extends Component
         $this->schemaVersion = max(1, (int) ($schema['schema_version'] ?? 1));
         $this->sections = array_values((array) ($schema['sections'] ?? []));
         $this->schemaExtras = array_diff_key($schema, array_flip(['schema_version', 'sections']));
-        $this->audiencesJson = json_encode($draft->audiences->map->only(['actor_type', 'actor_id', 'capability'])->all(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $this->audienceUserIds = $this->userCreateAudienceIds($draft);
         $this->stages = $draft->stages->values()->map(function ($stage): array {
             [$slaValue, $slaUnit] = $this->minutesForEditor($stage->sla_minutes);
             [$warningValue, $warningUnit] = $this->minutesForEditor($stage->warning_minutes_before);
@@ -221,17 +227,60 @@ class TypeDesigner extends Component
 
     public function render()
     {
-        $approverUsers = collect(app(UserDirectory::class)->searchActive('@', 100))
+        $type = $this->type();
+        $directory = app(UserDirectory::class);
+        $approverUsers = collect($directory->searchActive('@', 100))
             ->map(fn ($identity): object => (object) [
                 'id' => $identity->id,
                 'name' => $identity->displayName,
                 'email' => $identity->maskedEmail,
             ]);
 
+        $selectedAudienceIds = $this->normalizedAudienceUserIds();
+        $selectedAudienceUsers = $selectedAudienceIds === []
+            ? collect()
+            : collect($directory->findManyActive($selectedAudienceIds, min(count($selectedAudienceIds), 100)));
+        $activeSelectedAudienceIds = $selectedAudienceUsers
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+        $unavailableAudienceUsers = collect(array_values(array_diff($selectedAudienceIds, $activeSelectedAudienceIds)))
+            ->map(fn (int $id): object => (object) [
+                'id' => $id,
+                'displayName' => 'Tài khoản không còn hoạt động',
+                'maskedEmail' => null,
+                'unavailable' => true,
+            ]);
+        $canManageAudience = Gate::allows('manageAudience', $type);
+        $matchedAudienceUsers = $canManageAudience
+            ? collect($directory->searchActive(trim($this->audienceSearch) !== '' ? $this->audienceSearch : '@', 100))
+            : collect();
+        $audienceUsers = $selectedAudienceUsers
+            ->merge($unavailableAudienceUsers)
+            ->merge($matchedAudienceUsers)
+            ->unique(fn ($identity): int => $identity->id)
+            ->sortBy(fn ($identity): string => mb_strtolower($identity->displayName))
+            ->map(fn ($identity): object => (object) [
+                'id' => $identity->id,
+                'name' => $identity->displayName,
+                'email' => $identity->maskedEmail,
+                'selected' => in_array($identity->id, $selectedAudienceIds, true),
+                'unavailable' => (bool) ($identity->unavailable ?? false),
+            ])
+            ->values();
+        $draft = $type->activeDraft()->with('audiences')->firstOrFail();
+        $preservedAudienceCount = $draft->audiences
+            ->reject(fn ($audience): bool => $this->isUserCreateAudience($audience))
+            ->count();
+
         return view('Request::livewire.admin.type-designer', [
-            'type' => $this->type(),
+            'type' => $type,
             'approverUsers' => $approverUsers,
             'approvalReady' => $this->approvalReady(),
+            'audienceUsers' => $audienceUsers,
+            'audienceReady' => $this->audienceReady($draft, $activeSelectedAudienceIds),
+            'canManageAudience' => $canManageAudience,
+            'preservedAudienceCount' => $preservedAudienceCount,
         ]);
     }
 
@@ -247,13 +296,14 @@ class TypeDesigner extends Component
         $schema = $this->schemaExtras;
         $schema['schema_version'] = $this->schemaVersion;
         $schema['sections'] = array_values($this->sections);
+        $audiences = $this->audiencesForSave($type);
 
         $service->handle($type, [
             'title' => $this->title,
             'description' => $this->description ?: null,
             'requester_guidance' => $this->requesterGuidance ?: null,
             'form_schema_json' => $schema,
-            'audiences' => $this->decode($this->audiencesJson, 'audiencesJson'),
+            'audiences' => $audiences,
             'stages' => $this->normalizedStages(),
         ], (int) auth('admin')->id(), $this->lockVersion);
 
@@ -321,7 +371,8 @@ class TypeDesigner extends Component
             'stage_limit_exceeded' => 'Số cấp phê duyệt vượt quá giới hạn cho phép.',
             'invalid_json', 'array_required' => $this->validationSection($field).' phải là JSON hợp lệ.',
             'unsupported_schema_version', 'invalid_sections', 'invalid_key', 'invalid_or_duplicate_key', 'unsupported_field_type', 'field_limit_exceeded' => 'Biểu mẫu còn trường hoặc cấu trúc chưa hợp lệ.',
-            'actor_unavailable' => 'Đối tượng được phép tạo đề nghị không còn hoạt động.',
+            'actor_unavailable' => 'Một hoặc nhiều người được phép tạo đề nghị không còn hoạt động.',
+            'audience_limit_exceeded' => 'Mỗi loại đề nghị chỉ được phân trực tiếp cho tối đa 100 người dùng.',
             'stale_version' => 'Bản nháp đã thay đổi trên máy chủ. Hãy tải lại trang trước khi tiếp tục.',
             default => $this->validationSection($field).' còn dữ liệu chưa hợp lệ.',
         };
@@ -332,7 +383,7 @@ class TypeDesigner extends Component
         return match (true) {
             str_starts_with($field, 'stages') => 'Phê duyệt & SLA',
             str_starts_with($field, 'form_schema_json') => 'Biểu mẫu',
-            str_starts_with($field, 'audiences'), $field === 'audiencesJson' => 'Đối tượng tạo đề nghị',
+            str_starts_with($field, 'audiences'), $field === 'audienceUserIds' => 'Đối tượng tạo đề nghị',
             default => 'Bản nháp',
         };
     }
@@ -501,6 +552,99 @@ class TypeDesigner extends Component
         } catch (ValidationException) {
             return false;
         }
+    }
+
+    /** @return list<int> */
+    private function normalizedAudienceUserIds(): array
+    {
+        return collect($this->audienceUserIds)
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /** @return list<int> */
+    private function userCreateAudienceIds(RequestTypeVersion $draft): array
+    {
+        return $draft->audiences
+            ->filter(fn ($audience): bool => $this->isUserCreateAudience($audience))
+            ->pluck('actor_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    private function isUserCreateAudience(mixed $audience): bool
+    {
+        return $audience->actor_type === AudienceActorType::User
+            && $audience->capability === AudienceCapability::Create;
+    }
+
+    /** @return list<array{actor_type:string,actor_id:int,capability:string}> */
+    private function audiencesForSave(RequestType $type): array
+    {
+        $draft = $type->activeDraft()->with('audiences')->firstOrFail();
+        $currentUserIds = $this->userCreateAudienceIds($draft);
+        $selectedUserIds = $this->normalizedAudienceUserIds();
+        $audienceChanged = $selectedUserIds !== $currentUserIds;
+
+        if ($audienceChanged) {
+            Gate::authorize('manageAudience', $type);
+        }
+
+        if ($audienceChanged && count($selectedUserIds) > 100) {
+            throw ValidationException::withMessages(['audienceUserIds' => 'audience_limit_exceeded']);
+        }
+
+        if ($audienceChanged && $selectedUserIds !== []) {
+            $activeUserIds = collect(app(UserDirectory::class)->findManyActive($selectedUserIds, count($selectedUserIds)))
+                ->pluck('id')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->sort()
+                ->values()
+                ->all();
+            if ($activeUserIds !== $selectedUserIds) {
+                throw ValidationException::withMessages(['audienceUserIds' => 'actor_unavailable']);
+            }
+        }
+
+        $preserved = $draft->audiences
+            ->reject(fn ($audience): bool => $this->isUserCreateAudience($audience))
+            ->map(fn ($audience): array => [
+                'actor_type' => $audience->actor_type->value,
+                'actor_id' => (int) $audience->actor_id,
+                'capability' => $audience->capability->value,
+            ])
+            ->values()
+            ->all();
+        $selectedUsers = collect($selectedUserIds)
+            ->map(fn (int $userId): array => [
+                'actor_type' => AudienceActorType::User->value,
+                'actor_id' => $userId,
+                'capability' => AudienceCapability::Create->value,
+            ])
+            ->all();
+
+        return array_values(array_merge($preserved, $selectedUsers));
+    }
+
+    /** @param list<int> $activeSelectedUserIds */
+    private function audienceReady(RequestTypeVersion $draft, array $activeSelectedUserIds): bool
+    {
+        if ($this->normalizedAudienceUserIds() !== []
+            && $this->normalizedAudienceUserIds() === collect($activeSelectedUserIds)->sort()->values()->all()) {
+            return true;
+        }
+
+        return $draft->audiences->contains(
+            fn ($audience): bool => $audience->capability === AudienceCapability::Create
+                && ! $this->isUserCreateAudience($audience),
+        );
     }
 
     private function moveItem(array &$items, int $index, int $direction): void

@@ -55,6 +55,7 @@ The first UI smoke passed the planned Phase 2.14 scenarios. A follow-up inspecti
 - the readiness summary counted any stage as ready without validating the resolver and SLA configuration.
 - publish validation stayed inside Livewire's field error bag without an obvious global warning, so an incomplete SLA could make the publish action appear unresponsive.
 - rerunning the Request DEMO/E2E seeder rewrote version 1 as published, moved the current-version pointer back to version 1, and reused the newest draft; this could leave multiple versions marked published and hide the administrator's intended version from the catalog.
+- the requester audience was exposed as raw JSON, so a correctly published type could remain absent from an employee catalog without an understandable administrative control. The designer now uses a searchable user selector, preserves non-user rules server-side, and requires the separate `request.type.audience.manage` permission for assignment changes; ordinary definition editors see the assignments read-only.
 
 PR #37 is therefore reopened for a corrective audit. The correction must prove persisted notification preferences, UTC SLA boundaries, idempotent enforcement, suspension safety, responsive layout, actionable publish-validation feedback, non-destructive DEMO seeding, single-current-version recovery, and Request-only regression before final acceptance is restored.
 

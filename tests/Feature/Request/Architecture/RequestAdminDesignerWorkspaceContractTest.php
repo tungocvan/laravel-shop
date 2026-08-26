@@ -19,7 +19,7 @@ class RequestAdminDesignerWorkspaceContractTest extends TestCase
             $this->assertStringContainsString($summary, $view);
         }
 
-        foreach (['Lưu bản nháp', 'Phát hành phiên bản', 'Phát hành có tác động runtime', 'Cấu hình nâng cao · Audience JSON', 'Cấu hình nâng cao · Bộ phân giải JSON'] as $ux) {
+        foreach (['Lưu bản nháp', 'Phát hành phiên bản', 'Phát hành có tác động runtime', 'Phân quyền tạo đề nghị theo người dùng', 'Tìm người dùng', 'Cấu hình nâng cao · Bộ phân giải JSON'] as $ux) {
             $this->assertStringContainsString($ux, $view);
         }
 
@@ -45,6 +45,9 @@ class RequestAdminDesignerWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('PublishTypeVersion', $component);
         $this->assertStringContainsString('UserDirectory::class', $component);
         $this->assertStringContainsString('approvalReady', $component.$view);
+        $this->assertStringContainsString('audienceReady', $component.$view);
+        $this->assertStringContainsString("Gate::authorize('manageAudience', \$type)", $component);
+        $this->assertStringContainsString('Bạn chỉ có quyền xem danh sách này', $view);
         $this->assertStringContainsString('showValidationModal', $component.$view);
         $this->assertStringContainsString('presentValidationFailure', $component);
         $this->assertStringContainsString('role="alertdialog"', $view);
@@ -55,6 +58,8 @@ class RequestAdminDesignerWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('suspend_on_overdue', $view);
         $this->assertStringNotContainsString('email_notification_enabled', $view);
         $this->assertStringNotContainsString('<option value="fixed_role">', $view);
+        $this->assertStringNotContainsString('Audience JSON', $view);
+        $this->assertStringNotContainsString('audiencesJson', $component.$view);
         $this->assertStringNotContainsString('App\\Models\\User', $component.$view);
     }
 }

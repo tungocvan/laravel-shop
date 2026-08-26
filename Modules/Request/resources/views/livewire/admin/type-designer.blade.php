@@ -3,7 +3,8 @@
     @php($hasMetadata = trim((string) $title) !== '')
     @php($hasForm = count($sections) > 0 && $fieldCount > 0)
     @php($hasApproval = $approvalReady)
-    @php($readyCount = collect([$hasMetadata, $hasForm, $hasApproval])->filter()->count())
+    @php($hasAudience = $audienceReady)
+    @php($readyCount = collect([$hasMetadata, $hasForm, $hasApproval, $hasAudience])->filter()->count())
 
     @if(session('request_success'))
         <div class="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800" role="status">{{ session('request_success') }}</div>
@@ -143,15 +144,79 @@
                 </div>
             </section>
 
-            <section id="request-designer-audience" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-audience-title"><h2 id="request-audience-title" class="text-lg font-semibold text-slate-900">Đối tượng được phép tạo đề nghị</h2><p class="mt-1 text-sm text-slate-600">Cấu hình này dành cho quản trị nâng cao. Thay đổi sai có thể làm người dùng mất quyền nhìn thấy loại đề nghị.</p><details class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-700">Cấu hình nâng cao · Audience JSON</summary><textarea wire:model="audiencesJson" rows="8" class="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm"></textarea>@error('audiencesJson')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror</details></section>
+            <section id="request-designer-audience" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-audience-title">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 id="request-audience-title" class="text-lg font-semibold text-slate-900">Đối tượng được phép tạo đề nghị</h2>
+                        <p class="mt-1 text-sm text-slate-600">Chọn chính xác người dùng được nhìn thấy và tạo loại đề nghị này sau khi phát hành.</p>
+                    </div>
+                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $hasAudience ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800' }}">{{ $hasAudience ? 'Đã phân quyền' : 'Chưa phân quyền' }}</span>
+                </div>
+
+                @if($canManageAudience)
+                    <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <div class="text-sm font-semibold text-indigo-950">Phân quyền tạo đề nghị theo người dùng</div>
+                                <p class="mt-1 text-xs leading-5 text-indigo-800">Chỉ những tài khoản được chọn mới nhận loại đề nghị này trong Danh mục đề nghị.</p>
+                            </div>
+                            <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-800">Đã chọn {{ count($audienceUserIds) }} người</span>
+                        </div>
+
+                        <label class="mt-4 block text-sm font-medium text-slate-700">
+                            Tìm người dùng
+                            <input
+                                type="search"
+                                wire:model.live.debounce.300ms="audienceSearch"
+                                placeholder="Nhập tên hoặc email"
+                                class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                            >
+                        </label>
+
+                        <div class="mt-3 grid max-h-80 gap-2 overflow-y-auto pr-1 sm:grid-cols-2" role="group" aria-label="Người dùng được phép tạo đề nghị">
+                            @forelse($audienceUsers as $audienceUser)
+                                <label wire:key="request-audience-user-{{ $audienceUser->id }}" class="flex min-h-14 cursor-pointer items-start gap-3 rounded-lg border p-3 {{ $audienceUser->unavailable ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white hover:border-indigo-300' }}">
+                                    <input type="checkbox" value="{{ $audienceUser->id }}" wire:model.live="audienceUserIds" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600">
+                                    <span class="min-w-0">
+                                        <span class="block truncate text-sm font-semibold text-slate-900">{{ $audienceUser->name }}</span>
+                                        <span class="mt-0.5 block truncate text-xs {{ $audienceUser->unavailable ? 'text-amber-800' : 'text-slate-500' }}">{{ $audienceUser->unavailable ? 'Bỏ chọn để gỡ quyền cũ' : ($audienceUser->email ?? 'Không có email') }}</span>
+                                    </span>
+                                </label>
+                            @empty
+                                <p class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600 sm:col-span-2">Không tìm thấy người dùng đang hoạt động.</p>
+                            @endforelse
+                        </div>
+                        @error('audienceUserIds')<p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                @else
+                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4" role="note">
+                        <div class="text-sm font-semibold text-amber-900">Bạn chỉ có quyền xem danh sách này</div>
+                        <p class="mt-1 text-xs leading-5 text-amber-800">Cần quyền “Quản lý đối tượng tạo đề nghị” để thêm hoặc gỡ người dùng.</p>
+                    </div>
+                    <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                        @forelse($audienceUsers as $audienceUser)
+                            <div wire:key="request-audience-readonly-user-{{ $audienceUser->id }}" class="rounded-lg border p-3 {{ $audienceUser->unavailable ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50' }}">
+                                <div class="truncate text-sm font-semibold text-slate-900">{{ $audienceUser->name }}</div>
+                                <div class="mt-0.5 truncate text-xs {{ $audienceUser->unavailable ? 'text-amber-800' : 'text-slate-500' }}">{{ $audienceUser->unavailable ? 'Cần quản trị có quyền gỡ phân quyền cũ' : ($audienceUser->email ?? 'Không có email') }}</div>
+                            </div>
+                        @empty
+                            <p class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 sm:col-span-2">Chưa có người dùng nào được phân quyền trực tiếp.</p>
+                        @endforelse
+                    </div>
+                @endif
+
+                @if($preservedAudienceCount > 0)
+                    <p class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">Có {{ $preservedAudienceCount }} quy tắc đối tượng theo vai trò hoặc khả năng khám phá đang được giữ nguyên bởi hệ thống.</p>
+                @endif
+            </section>
         </main>
 
         <aside class="rounded-xl border border-slate-200 bg-white p-4 xl:sticky xl:top-4 xl:self-start" aria-label="Trạng thái và thao tác thiết kế">
             <h2 class="font-semibold text-slate-900">Sẵn sàng phát hành</h2>
             <p class="mt-1 text-xs leading-5 text-slate-500">Hoàn thiện các phần chính trước khi phát hành phiên bản mới.</p>
-            <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full bg-indigo-600" style="width: {{ ($readyCount / 3) * 100 }}%"></div></div>
-            <div class="mt-2 text-xs font-semibold text-slate-600">{{ $readyCount }}/3 nhóm cấu hình chính</div>
-            <ul class="mt-4 space-y-2 text-sm"><li class="flex items-center justify-between gap-2"><span>Thông tin chung</span><strong class="{{ $hasMetadata ? 'text-emerald-700' : 'text-amber-700' }}">{{ $hasMetadata ? 'Sẵn sàng' : 'Chưa đủ' }}</strong></li><li class="flex items-center justify-between gap-2"><span>Biểu mẫu</span><strong class="{{ $hasForm ? 'text-emerald-700' : 'text-amber-700' }}">{{ $hasForm ? 'Sẵn sàng' : 'Chưa đủ' }}</strong></li><li class="flex items-center justify-between gap-2"><span>Phê duyệt & SLA</span><strong class="{{ $hasApproval ? 'text-emerald-700' : 'text-amber-700' }}">{{ $hasApproval ? 'Sẵn sàng' : 'Chưa đủ' }}</strong></li></ul>
+            <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full bg-indigo-600" style="width: {{ ($readyCount / 4) * 100 }}%"></div></div>
+            <div class="mt-2 text-xs font-semibold text-slate-600">{{ $readyCount }}/4 nhóm cấu hình chính</div>
+            <ul class="mt-4 space-y-2 text-sm"><li class="flex items-center justify-between gap-2"><span>Thông tin chung</span><strong class="{{ $hasMetadata ? 'text-emerald-700' : 'text-amber-700' }}">{{ $hasMetadata ? 'Sẵn sàng' : 'Chưa đủ' }}</strong></li><li class="flex items-center justify-between gap-2"><span>Biểu mẫu</span><strong class="{{ $hasForm ? 'text-emerald-700' : 'text-amber-700' }}">{{ $hasForm ? 'Sẵn sàng' : 'Chưa đủ' }}</strong></li><li class="flex items-center justify-between gap-2"><span>Phê duyệt & SLA</span><strong class="{{ $hasApproval ? 'text-emerald-700' : 'text-amber-700' }}">{{ $hasApproval ? 'Sẵn sàng' : 'Chưa đủ' }}</strong></li><li class="flex items-center justify-between gap-2"><span>Đối tượng tạo đề nghị</span><strong class="{{ $hasAudience ? 'text-emerald-700' : 'text-amber-700' }}">{{ $hasAudience ? 'Sẵn sàng' : 'Chưa đủ' }}</strong></li></ul>
             <dl class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm"><div class="flex justify-between gap-3"><dt class="text-slate-500">Phiên bản khóa</dt><dd class="font-mono">{{ $lockVersion }}</dd></div><div class="flex justify-between gap-3"><dt class="text-slate-500">Schema</dt><dd>v{{ $schemaVersion }}</dd></div><div class="flex justify-between gap-3"><dt class="text-slate-500">Số phần</dt><dd>{{ count($sections) }}</dd></div><div class="flex justify-between gap-3"><dt class="text-slate-500">Số trường</dt><dd>{{ $fieldCount }}</dd></div><div class="flex justify-between gap-3"><dt class="text-slate-500">Cấp duyệt</dt><dd>{{ count($stages) }}</dd></div></dl>
             @error('lock_version')<div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" role="alert">Bản nháp đã thay đổi trên máy chủ. Hãy tải lại và kiểm tra trước khi lưu tiếp.</div>@enderror
             <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3"><div class="text-sm font-semibold text-amber-900">Phát hành có tác động runtime</div><p class="mt-1 text-xs leading-5 text-amber-800">Sau khi phát hành, phiên bản trở thành bất biến và các đề nghị mới có thể sử dụng cấu hình này. Hãy lưu và kiểm tra bản nháp trước.</p></div>

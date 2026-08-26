@@ -12,7 +12,7 @@ class RequestDefinitionPolicyTest extends RequestDefinitionTestCase
 {
     public function test_definition_policies_require_named_permissions_and_record_state(): void
     {
-        $allowed = new PermissionActor(['request.group.update', 'request.group.archive', 'request.type.update', 'request.type.publish']);
+        $allowed = new PermissionActor(['request.group.update', 'request.group.archive', 'request.type.update', 'request.type.audience.manage', 'request.type.publish']);
         $denied = new PermissionActor([]);
         $group = new RequestGroup(['archived_at' => null]);
         $type = new RequestType(['status' => RequestTypeStatus::Draft]);
@@ -22,11 +22,14 @@ class RequestDefinitionPolicyTest extends RequestDefinitionTestCase
         $this->assertFalse((new RequestGroupPolicy)->update($denied, $group));
         $this->assertTrue((new RequestTypePolicy)->publish($allowed, $type));
         $this->assertFalse((new RequestTypePolicy)->publish($denied, $type));
+        $this->assertTrue((new RequestTypePolicy)->manageAudience($allowed, $type));
+        $this->assertFalse((new RequestTypePolicy)->manageAudience($denied, $type));
 
         $group->archived_at = now();
         $type->status = RequestTypeStatus::Retired;
         $this->assertFalse((new RequestGroupPolicy)->archive($allowed, $group));
         $this->assertFalse((new RequestTypePolicy)->update($allowed, $type));
+        $this->assertFalse((new RequestTypePolicy)->manageAudience($allowed, $type));
     }
 }
 

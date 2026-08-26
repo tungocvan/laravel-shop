@@ -98,6 +98,7 @@ Failure codes include `resolver_not_registered`, `resolver_config_invalid`, `use
 | Cancel any | `request.instance.cancel-any` | authorized scope, eligible pending, reason |
 | Comment/upload | respective permission | request visible, state permits, classification/limits |
 | Download attachment | `request.attachment.download` | request/attachment visible and current authorization |
+| Assign type audience | `request.type.audience.manage` | editable type, active target users; other definition editors remain read-only |
 | Publish type | `request.type.publish` | valid draft, publisher scope, expected version |
 | Audit/report/export | respective permission | field/classification/record scope and explicit filters |
 | Retry operation | `request.operation.retry` | allowlisted retry type, failed state, idempotent, reason if required |

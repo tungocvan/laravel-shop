@@ -21,6 +21,7 @@ class RequestTypeDesignerSlaTest extends RequestDefinitionTestCase
         $this->app['view']->addNamespace('Request', base_path('Modules/Request/resources/views'));
         Gate::policy(RequestType::class, RequestTypePolicy::class);
         Permission::findOrCreate('request.type.update', 'admin');
+        Permission::findOrCreate('request.type.audience.manage', 'admin');
         Permission::findOrCreate('request.type.publish', 'admin');
     }
 

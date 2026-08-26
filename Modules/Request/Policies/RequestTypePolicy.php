@@ -30,6 +30,12 @@ final class RequestTypePolicy
         return $type->status !== RequestTypeStatus::Retired && $this->hasPermission($user, 'request.type.update');
     }
 
+    public function manageAudience(mixed $user, RequestType $type): bool
+    {
+        return $type->status !== RequestTypeStatus::Retired
+            && $this->hasPermission($user, 'request.type.audience.manage');
+    }
+
     public function publish(mixed $user, RequestType $type): bool
     {
         return $type->active_draft_version_id !== null && $this->hasPermission($user, 'request.type.publish');

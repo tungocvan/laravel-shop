@@ -11,8 +11,9 @@ class RequestPermissionTest extends TestCase
     {
         $permissions = (require base_path('Modules/Request/config/module.php'))['permissions'];
 
-        $this->assertCount(31, $permissions);
+        $this->assertCount(32, $permissions);
         $this->assertSame($permissions, array_values(array_unique($permissions)));
+        $this->assertContains('request.type.audience.manage', $permissions);
         $this->assertContains('request.type.publish', $permissions);
         $this->assertContains('request.instance.submit', $permissions);
         $this->assertContains('request.task.decide', $permissions);
