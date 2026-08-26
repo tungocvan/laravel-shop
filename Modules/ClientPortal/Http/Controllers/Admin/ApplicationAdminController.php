@@ -26,24 +26,29 @@ class ApplicationAdminController extends Controller
     public function syncPermissions(ApplicationPermissionService $permissions): RedirectResponse
     {
         $created = $permissions->sync();
-        return back()->with('success', "Đã đồng bộ permission Client. Tạo mới {$created} permission.");
+
+        return back()->with('success', "Đã đồng bộ permission Web. Tạo mới {$created} permission.");
     }
 
     public function syncSuperAdmin(ApplicationPermissionService $permissions): RedirectResponse
     {
         $permissions->sync();
         $count = $permissions->syncSuperAdminUsers();
-        return back()->with('success', "Đã đồng bộ quyền Client cho {$count} Super Admin.");
+
+        return back()->with('success', "Đã đồng bộ quyền Web cho {$count} Super Admin.");
     }
 
     public function editUser(User $user, ApplicationPermissionService $permissions): View
     {
         $permissions->sync();
+        $definitions = $permissions->definitions();
+        $managed = $definitions->pluck('name');
+
         return view('ClientPortal::admin.user-permissions', [
             'user' => $user,
-            'definitions' => $permissions->definitions(),
+            'definitions' => $definitions,
             'selected' => $user->permissions->where('guard_name', 'web')->pluck('name')
-                ->filter(fn (string $name): bool => str_starts_with($name, 'client.'))->all(),
+                ->intersect($managed)->values()->all(),
         ]);
     }
 
@@ -52,18 +57,22 @@ class ApplicationAdminController extends Controller
         $validated = $request->validate(['permissions' => ['sometimes', 'array'], 'permissions.*' => ['string', 'max:255']]);
         $permissions->sync();
         $permissions->syncUser($user, $validated['permissions'] ?? []);
-        return back()->with('success', 'Đã cập nhật quyền Application cho User.');
+
+        return back()->with('success', 'Đã cập nhật quyền Web cho User.');
     }
 
     public function editRole(Role $role, ApplicationPermissionService $permissions): View
     {
         abort_unless($role->guard_name === 'web', 404);
         $permissions->sync();
+        $definitions = $permissions->definitions();
+        $managed = $definitions->pluck('name');
+
         return view('ClientPortal::admin.role-permissions', [
             'role' => $role,
-            'definitions' => $permissions->definitions(),
+            'definitions' => $definitions,
             'selected' => $role->permissions->where('guard_name', 'web')->pluck('name')
-                ->filter(fn (string $name): bool => str_starts_with($name, 'client.'))->all(),
+                ->intersect($managed)->values()->all(),
         ]);
     }
 
@@ -73,6 +82,7 @@ class ApplicationAdminController extends Controller
         $validated = $request->validate(['permissions' => ['sometimes', 'array'], 'permissions.*' => ['string', 'max:255']]);
         $permissions->sync();
         $permissions->syncRole($role, $validated['permissions'] ?? []);
-        return back()->with('success', 'Đã cập nhật quyền Application cho Role.');
+
+        return back()->with('success', 'Đã cập nhật quyền Web cho Role.');
     }
 }
