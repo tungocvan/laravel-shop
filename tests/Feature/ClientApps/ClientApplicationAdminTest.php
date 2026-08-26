@@ -25,8 +25,24 @@ class ClientApplicationAdminTest extends TestCase
         $this->assertSame('domain', $requestCreate['source']);
         $this->assertSame('Request', $requestCreate['group']);
         $this->assertTrue($definitions->contains('name', 'request.instance.submit'));
+        $this->assertTrue($definitions->contains('name', 'request.instance.view-participant'));
+        $this->assertTrue($definitions->contains('name', 'request.task.decide'));
         $this->assertTrue($definitions->contains('name', 'request.comment.create'));
         $this->assertFalse($definitions->contains('name', 'request.dashboard.view'));
+    }
+
+    public function test_requester_and_approver_profiles_are_web_only_managed_presets(): void
+    {
+        $profiles = app(ApplicationPermissionService::class)->profiles();
+
+        $this->assertArrayHasKey('requester', $profiles);
+        $this->assertArrayHasKey('approver', $profiles);
+        $this->assertContains('client.request.create.view', $profiles['requester']['permissions']);
+        $this->assertContains('request.instance.submit', $profiles['requester']['permissions']);
+        $this->assertContains('client.request.inbox.view', $profiles['approver']['permissions']);
+        $this->assertContains('request.task.decide', $profiles['approver']['permissions']);
+        $this->assertNotContains('request.dashboard.view', $profiles['requester']['permissions']);
+        $this->assertNotContains('request.dashboard.view', $profiles['approver']['permissions']);
     }
 
     public function test_web_permission_admin_contract_preserves_guard_boundary(): void
@@ -40,10 +56,14 @@ class ClientApplicationAdminTest extends TestCase
         $this->assertStringContainsString("where('guard_name', 'web')", $controller);
         $this->assertStringContainsString("abort_unless(\$role->guard_name === 'web'", $controller);
         $this->assertStringContainsString("intersect(\$managed)", $controller);
+        $this->assertStringContainsString("\$user->roles->where('guard_name', 'web')", $service);
+        $this->assertStringContainsString('$user->removeRole($role)', $service);
+        $this->assertStringContainsString('$user->assignRole($role)', $service);
+        $this->assertStringNotContainsString('$user->syncRoles(', $service);
         $this->assertStringContainsString('Quyền nghiệp vụ Domain', $userView);
         $this->assertStringContainsString('Quyền nghiệp vụ Domain', $roleView);
-        $this->assertStringContainsString('quyền guard admin không bị thay đổi', $userView);
-        $this->assertStringContainsString('quyền guard admin không bị thay đổi', $roleView);
+        $this->assertStringContainsString('guard admin được giữ nguyên', $userView);
+        $this->assertStringContainsString('guard admin không bị tác động', $roleView);
     }
 
     public function test_client_application_admin_routes_are_protected_by_admin_guard_and_named_permissions(): void
@@ -54,8 +74,10 @@ class ClientApplicationAdminTest extends TestCase
             'admin.client-apps.sync-super-admin' => ['admin/client-apps/sync-super-admin', 'permission:edit_role,admin'],
             'admin.client-apps.users.edit' => ['admin/client-apps/users/{user}', 'permission:edit_user,admin'],
             'admin.client-apps.users.update' => ['admin/client-apps/users/{user}', 'permission:edit_user,admin'],
+            'admin.client-apps.roles.store' => ['admin/client-apps/roles', 'permission:edit_role,admin'],
             'admin.client-apps.roles.edit' => ['admin/client-apps/roles/{role}', 'permission:edit_role,admin'],
             'admin.client-apps.roles.update' => ['admin/client-apps/roles/{role}', 'permission:edit_role,admin'],
+            'admin.client-apps.roles.profile' => ['admin/client-apps/roles/{role}/profile', 'permission:edit_role,admin'],
         ];
 
         foreach ($expectations as $name => [$uri, $permission]) {
