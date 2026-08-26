@@ -4,7 +4,8 @@
 - Repository: `tungocvan/laravel-shop`
 - Base branch: `main`
 - Documentation closeout branch: `docs/request-mr5-handoff-closeout`
-- Documentation closeout PR: **PENDING — not created**
+- Documentation closeout PR: `#44 docs: close Request MR-5 handoff and add PR gates`
+- Documentation closeout PR state: **OPEN — not merged**
 - Main checkpoint inspected: `815aae1065cc58744be15abf5817446175fad944`
 - MR-5 source checkpoint: `2d361411dc05ebd791ae3e4bccfc7c846b54bc9c`
 
@@ -148,9 +149,8 @@ The following items are not automatically MR-6 and must be scoped separately bef
 
 ## Next authorized step
 
-1. Review the diff on `docs/request-mr5-handoff-closeout`.
-2. Validate that this handoff and `docs/GITHUB_COLLABORATION_WORKFLOW.md` contain no stale MR-3/MR-5 state.
-3. Create a docs-only closeout PR after user approval.
-4. Refresh this handoff with the actual closeout PR number before merge.
-5. Merge only after documentation gates pass, then verify `main`.
-6. Do not name or begin another Request MR/phase without a source/documented requirement and explicit authorization.
+1. Pull the latest `docs/request-mr5-handoff-closeout` after this PR-number refresh.
+2. Validate `git diff --check`, the two-file scope and Git cleanliness.
+3. Review PR `#44` and confirm the pre-merge documentation gate.
+4. Merge only after explicit user approval, then verify PR state and `main`.
+5. Do not name or begin another Request MR/phase without a source/documented requirement and explicit authorization.
