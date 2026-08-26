@@ -70,7 +70,7 @@ class Inbox extends Component
             'tasks' => $query->paginate($userId, $this->search, $this->perPage, $this->view, $this->decision),
             'workload' => $query->workloadSummary($userId),
             'processedSummary' => $query->processedSummary($userId),
-            'showRouteName' => $this->requestGuard === 'admin' ? 'request.show' : null,
+            'showRouteName' => $this->requestGuard === 'web' ? 'client.request.approval.show' : 'request.show',
         ]);
     }
 }
