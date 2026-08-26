@@ -3,24 +3,25 @@
 - Last updated: 2026-08-26
 - Repository: `tungocvan/laravel-shop`
 - Base branch: `main`
-- Documentation closeout branch: `docs/request-mr5-handoff-closeout`
+- Finalized checkpoint: Request ClientPortal MR-3 through MR-5
 - Documentation closeout PR: `#44 docs: close Request MR-5 handoff and add PR gates`
-- Documentation closeout PR state: **OPEN — not merged**
-- Main checkpoint inspected: `815aae1065cc58744be15abf5817446175fad944`
+- Documentation closeout merge commit: `66b6f7ddb1fdfae55b6535479d9d81d77574b156`
+- Main checkpoint verified: `66b6f7ddb1fdfae55b6535479d9d81d77574b156`
 - MR-5 source checkpoint: `2d361411dc05ebd791ae3e4bccfc7c846b54bc9c`
 
 ## Checkpoint status
 
 - MR-5 implementation and merge: **COMPLETED**
 - Post-merge local acceptance on `main`: **PASS**
-- Documentation handoff closeout: **IN PROGRESS** until this update is merged into `main`
+- Documentation handoff closeout through PR `#44`: **COMPLETED**
+- Post-merge handoff verification on `main`: **PASS**
 - Request production enablement: **NOT AUTHORIZED**
 - Next MR/phase: **NOT DETERMINED**
 - MR-6: **NOT DEFINED** by current source or documentation
 
 ## Current objective
 
-Close the documentation drift left after MR-5. This branch updates the Request collaboration handoff and the repository collaboration workflow only. It does not change application source, create a new Request capability, enable the Request module, or authorize production rollout.
+The Request ClientPortal MR-3 through MR-5 checkpoint is closed for collaboration handoff. This file records the durable state verified on `main` after documentation closeout PR `#44`; it is not an active delivery plan. No Request implementation, production activation or next MR/phase is authorized by this handoff.
 
 ## Integrated checkpoint
 
@@ -101,12 +102,23 @@ git status --short:
 
 Post-merge acceptance result: **PASS**.
 
+### Documentation closeout verification
+
+- PR `#44` merged on 2026-08-26.
+- Merge commit: `66b6f7ddb1fdfae55b6535479d9d81d77574b156`.
+- GitHub comparison confirmed `main` is identical to the merge commit.
+- The checkpoint comparison from `815aae10` to `66b6f7dd` changed only `docs/GITHUB_COLLABORATION_WORKFLOW.md` and this handoff.
+- Local `main` was fast-forwarded to `66b6f7dd`; `git status --short` remained empty.
+- GitHub reported no status checks for the merge commit; this is not GitHub Actions CI evidence.
+
+Documentation closeout verification result: **PASS**.
+
 ## Remaining work classification
 
 | Category | Status | Remaining work |
 |---|---|---|
 | Post-merge acceptance | **PASS** | No application regression remains from MR-5 acceptance. |
-| Documentation closeout | **IN PROGRESS** | Review and merge this handoff/workflow update; then verify `main` and clean up completed feature branches when authorized. |
+| Documentation closeout | **COMPLETED** | PR `#44` is merged and `main` is verified. Only optional branch cleanup remains, subject to explicit authorization. |
 | Production enablement | **NOT AUTHORIZED** | Perform a separately approved deployment/readiness process before enabling Request. |
 | Next MR/phase | **NOT DETERMINED** | Current source and docs do not define MR-6. Do not infer one from deferred work or documentation drift. |
 
@@ -145,12 +157,12 @@ The following items are not automatically MR-6 and must be scoped separately bef
 - reconcile historical Request acceptance/release documents that still describe an earlier checkpoint
 - update the ClientPortal README application inventory/conventions to reflect the current Request adapter where useful
 - reconcile Request runbook permission-sync commands with the command/seeder that exists in source
-- delete merged MR-3/MR-4/MR-5 remote feature branches only after closeout gates pass and cleanup is authorized
+- delete merged MR-3/MR-4/MR-5 and documentation-closeout branches only when cleanup is explicitly authorized
 
 ## Next authorized step
 
-1. Pull the latest `docs/request-mr5-handoff-closeout` after this PR-number refresh.
-2. Validate `git diff --check`, the two-file scope and Git cleanliness.
-3. Review PR `#44` and confirm the pre-merge documentation gate.
-4. Merge only after explicit user approval, then verify PR state and `main`.
+1. No new Request implementation MR is authorized by default.
+2. Clean up merged feature/documentation branches only after explicit user authorization.
+3. Treat production enablement as a separate approval with the readiness gates above.
+4. Scope historical documentation/runbook maintenance separately before modifying it.
 5. Do not name or begin another Request MR/phase without a source/documented requirement and explicit authorization.

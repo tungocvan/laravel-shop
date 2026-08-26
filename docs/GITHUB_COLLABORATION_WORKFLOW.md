@@ -537,14 +537,14 @@ Trước khi tạo PR cho branch feature/fix/docs của một Module, phải c�
 
 Handoff trước khi tạo PR phải phản ánh tối thiểu:
 
-- repository, base branch và working branch hiện tại
+- repository, base branch và delivery/checkpoint hiện tại
 - mục tiêu, phạm vi và các batch đã hoàn thành/chưa hoàn thành
 - quyết định kiến trúc, phân quyền và safety boundary applicable
 - bằng chứng test/UI/Git-clean đã có; không ghi PASS cho gate chưa chạy
 - blocker, deferred work, production boundary và next authorized step
 - trạng thái branch/checkpoint trung thực
 
-Vì PR chưa tồn tại ở thời điểm này, được phép ghi:
+Với PR feature/fix/docs thông thường, vì PR chưa tồn tại ở thời điểm này, được phép ghi:
 
 ```text
 Pull request: PENDING — not created
@@ -553,13 +553,26 @@ Merge commit: NOT AVAILABLE
 
 Không tự đoán số PR, merge commit hoặc trạng thái merged. Nếu handoff chưa tồn tại, còn trỏ tới branch/PR/checkpoint cũ hoặc chưa phản ánh batch hiện tại thì **không tạo PR**.
 
+#### Ngoại lệ bền vững cho docs-only post-merge closeout
+
+Một PR docs-only có mục đích duy nhất là làm cho handoff sau merge trở thành trạng thái cuối, bền vững trên `main` không được ghi trạng thái tạm của chính delivery container vào handoff, ví dụ:
+
+- branch corrective đang hoạt động
+- PR của chính closeout đang `PENDING`, `OPEN` hoặc `READY TO MERGE`
+- merge SHA chưa tồn tại của chính closeout
+- next step yêu cầu review/merge chính PR đang chứa handoff
+
+Delivery envelope của closeout — branch, số PR, head SHA, review và merge result — phải được ghi trong PR description và xác minh từ GitHub/Git history. Handoff bền vững chỉ ghi checkpoint nghiệp vụ đang được khép, merge/checkpoint đã tồn tại cần ghi nhận, gates, production boundary và next authorized step **sau khi closeout đã nằm trên `main`**.
+
+Ngoại lệ này không bỏ gate trước tạo PR. Trước khi tạo PR, nội dung handoff vẫn phải hoàn chỉnh, diff phải được review và PR description phải tuyên bố rõ đây là stable post-merge closeout.
+
 ### 16.8 Gate bắt buộc trước khi merge PR
 
 Sau review, test và các corrective batch, nhưng trước khi merge, phải refresh handoff ngay trên PR branch.
 
 Handoff trước merge phải ghi hoặc đối chiếu:
 
-- số PR thực tế và base branch
+- số PR thực tế và base branch đối với delivery thông thường; stable post-merge closeout dùng delivery envelope trong PR/GitHub theo mục 16.7
 - implementation/source checkpoint applicable
 - trạng thái branch `COMPLETED` hoặc `IN PROGRESS` đúng với gates
 - focused test, Module/system regression, full regression và manual UI smoke applicable
@@ -570,12 +583,15 @@ Handoff trước merge phải ghi hoặc đối chiếu:
 
 Không yêu cầu file handoff tự tham chiếu SHA của chính commit đang cập nhật nó. Head PR và commit cuối phải được xác minh từ GitHub; implementation/source checkpoint có thể được ghi riêng. Merge commit chưa tồn tại trước merge phải ghi `PENDING POST-MERGE VERIFICATION`, không được ghi giả.
 
+Đối với stable post-merge closeout, trước merge phải xác nhận PR description/GitHub chứa delivery envelope thật và handoff không chứa trạng thái tạm hoặc next step tự yêu cầu merge chính container đó.
+
 PR không được merge khi handoff còn stale, thiếu gate applicable hoặc mô tả công việc chưa hoàn tất thành đã hoàn tất.
 
 Checklist bắt buộc trước merge:
 
 - [ ] Handoff nằm trong PR branch.
-- [ ] Handoff ghi đúng PR hiện tại, scope và checkpoint.
+- [ ] Delivery thông thường ghi đúng PR/scope/checkpoint; stable post-merge closeout có delivery envelope đúng trong PR description/GitHub.
+- [ ] Stable post-merge closeout không lưu trạng thái tạm của chính container trong handoff.
 - [ ] Test/UI/Git-clean evidence khớp kết quả thực tế.
 - [ ] Production enablement không bị suy ra từ việc merge source.
 - [ ] Next authorized step rõ ràng và không tự tạo MR/phase mới.
@@ -605,4 +621,6 @@ Khi đó:
 - batch closeout này không tự động trở thành MR kế tiếp
 - chỉ dọn feature branch sau khi post-merge acceptance và handoff closeout PASS
 
-PR docs-only dùng để closeout vẫn phải tuân thủ gate trước tạo PR và trước merge. Tuy nhiên, sau khi closeout PR merge, không tạo thêm một PR chỉ để ghi merge SHA của chính closeout PR; xác minh GitHub/main là đủ nếu nội dung checkpoint nghiệp vụ, gates, production boundary và next authorized step không thay đổi.
+Stable post-merge closeout phải được viết theo ngoại lệ ở mục 16.7. Sau khi PR chứa closeout merge, xác minh delivery envelope từ GitHub/Git history và `main`; không tạo thêm PR chỉ để ghi số PR hoặc merge SHA của chính container nếu checkpoint nghiệp vụ, gates, production boundary và next authorized step bền vững không thay đổi.
+
+Nếu handoff trên `main` vẫn chứa trạng thái tạm của container như `PENDING`, `OPEN`, `READY TO MERGE` hoặc next step yêu cầu review/merge chính container đã merge, ngoại lệ không áp dụng: phải ghi `POST-MERGE HANDOFF INCOMPLETE` và thực hiện corrective closeout được phê duyệt.
