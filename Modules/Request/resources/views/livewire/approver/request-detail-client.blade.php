@@ -29,13 +29,13 @@
         @foreach((array) ($schema['sections'] ?? []) as $section)
             <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <h3 class="border-b border-slate-100 pb-3 text-base font-bold text-slate-900">{{ $section['label'] ?? $section['key'] ?? 'Thông tin' }}</h3>
-                <dl class="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
+                <dl class="mt-4 space-y-5 lg:grid lg:grid-cols-2 lg:gap-x-6 lg:gap-y-5 lg:space-y-0">
                     @foreach((array) ($section['fields'] ?? []) as $field)
                         @php($key = $field['key'] ?? '')
                         @php($value = data_get($values, $key))
-                        <div class="min-w-0 {{ in_array($field['type'] ?? '', ['textarea', 'attachment', 'multiselect'], true) ? 'md:col-span-2' : '' }}">
-                            <dt class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $field['label'] ?? $key }}</dt>
-                            <dd class="mt-1.5 break-words whitespace-pre-wrap text-sm leading-6 text-slate-800">
+                        <div class="block min-w-0 {{ in_array($field['type'] ?? '', ['textarea', 'attachment', 'multiselect'], true) ? 'lg:col-span-2' : '' }}">
+                            <dt class="block text-xs font-bold uppercase tracking-wide text-slate-400">{{ $field['label'] ?? $key }}</dt>
+                            <dd class="mt-1.5 block break-words whitespace-pre-wrap text-left text-sm leading-6 text-slate-800">
                                 @if(is_bool($value))
                                     {{ $value ? 'Có' : 'Không' }}
                                 @elseif(is_array($value))
