@@ -20,12 +20,14 @@ return [
         'create' => [
             'name' => 'Tạo đề nghị',
             'description' => 'Chọn loại đề nghị và bắt đầu một đề nghị mới.',
+            'route' => 'client.request.catalog',
             'permission' => 'client.request.create.view',
             'sort_order' => 20,
         ],
         'mine' => [
             'name' => 'Đề nghị của tôi',
             'description' => 'Theo dõi bản nháp, đề nghị đang xử lý, cần bổ sung và đã hoàn tất.',
+            'route' => 'client.request.mine',
             'permission' => 'client.request.mine.view',
             'sort_order' => 30,
         ],
