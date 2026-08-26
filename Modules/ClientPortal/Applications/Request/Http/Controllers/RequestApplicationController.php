@@ -46,4 +46,35 @@ final class RequestApplicationController extends Controller
             'processedCounts',
         ));
     }
+
+    public function catalog(ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->requesterView('catalog', $registry, $settings);
+    }
+
+    public function create(string $typePublicId, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->requesterView('create', $registry, $settings, compact('typePublicId'));
+    }
+
+    public function mine(ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->requesterView('mine', $registry, $settings);
+    }
+
+    public function show(string $requestPublicId, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->requesterView('show', $registry, $settings, compact('requestPublicId'));
+    }
+
+    private function requesterView(string $view, ApplicationRegistry $registry, ClientPortalSettingsService $settings, array $data = []): View
+    {
+        $application = $registry->find('request');
+        abort_if($application === null, 404);
+
+        return view('ClientPortal::applications.request.'.$view, array_merge([
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+        ], $data));
+    }
 }
