@@ -1,12 +1,12 @@
 # Request Module — Collaboration Handoff
 
-Last updated: 2026-08-26  
-Repository: `tungocvan/laravel-shop`  
-Base branch: `main`  
-Documentation closeout branch: `docs/request-mr5-handoff-closeout`  
-Documentation closeout PR: **PENDING — not created**  
-Main checkpoint inspected: `815aae1065cc58744be15abf5817446175fad944`  
-MR-5 source checkpoint: `2d361411dc05ebd791ae3e4bccfc7c846b54bc9c`  
+- Last updated: 2026-08-26
+- Repository: `tungocvan/laravel-shop`
+- Base branch: `main`
+- Documentation closeout branch: `docs/request-mr5-handoff-closeout`
+- Documentation closeout PR: **PENDING — not created**
+- Main checkpoint inspected: `815aae1065cc58744be15abf5817446175fad944`
+- MR-5 source checkpoint: `2d361411dc05ebd791ae3e4bccfc7c846b54bc9c`
 
 ## Checkpoint status
 
