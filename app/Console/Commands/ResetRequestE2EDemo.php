@@ -172,6 +172,9 @@ class ResetRequestE2EDemo extends Command
             if (Schema::hasTable('request_types')) {
                 DB::table('request_types')->update(['current_published_version_id' => null, 'active_draft_version_id' => null]);
             }
+            if (Schema::hasTable('request_type_versions')) {
+                DB::table('request_type_versions')->update(['created_from_version_id' => null]);
+            }
 
             foreach (self::REQUEST_TABLES as $table) {
                 if (Schema::hasTable($table)) {

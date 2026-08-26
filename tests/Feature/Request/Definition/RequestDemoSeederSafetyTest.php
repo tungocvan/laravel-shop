@@ -122,6 +122,7 @@ class RequestDemoSeederSafetyTest extends RequestDefinitionTestCase
         $attachment = DB::table('request_attachments')->first();
         Storage::disk($attachment->storage_disk)->assertExists($attachment->storage_path);
         $this->assertSame(1, DB::table('request_type_versions')->where('status', 'published')->count());
+        $this->assertGreaterThan(0, DB::table('request_type_versions')->whereNotNull('created_from_version_id')->count());
         $this->assertSame(5, DB::table('request_types')->count());
 
         $this->assertSame(0, Artisan::call('request:e2e-reset', ['--rebuild' => true]));
