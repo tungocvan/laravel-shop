@@ -3,7 +3,7 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 class="text-2xl font-bold text-gray-900">Ứng dụng Client</h1><p class="mt-1 text-sm text-gray-500">Quét manifest trong ClientPortal, đồng bộ permission, phân quyền User/Role và quản trị giao diện PWA.</p></div>
+        <div><h1 class="text-2xl font-bold text-gray-900">Ứng dụng Client</h1><p class="mt-1 text-sm text-gray-500">Quét manifest, đồng bộ permission Web, quản lý User/Role và giao diện PWA.</p></div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('admin.client-apps.pwa.edit') }}" class="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Cấu hình PWA</a>
             <a href="{{ route('admin.client-apps.pwa.launcher.edit') }}" class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100">Launcher</a>
@@ -12,6 +12,18 @@
         </div>
     </div>
     @if(session('success'))<div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
+
+    <section class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+        <div class="grid gap-5 lg:grid-cols-[1fr_1.2fr] lg:items-end">
+            <div><h2 class="text-lg font-bold text-indigo-950">Tạo Role guard web</h2><p class="mt-1 text-sm text-indigo-700">Có thể tạo Role trống hoặc khởi tạo nhanh bằng profile Requester/Approver.</p></div>
+            <form method="POST" action="{{ route('admin.client-apps.roles.store') }}" class="grid gap-3 sm:grid-cols-[1fr_220px_auto]">@csrf
+                <input name="name" required maxlength="100" placeholder="Ví dụ: Nhân viên đề nghị" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm">
+                <select name="profile" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"><option value="">Role trống</option>@foreach($profiles as $key => $profile)<option value="{{ $key }}">{{ $profile['name'] }}</option>@endforeach</select>
+                <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Tạo Role</button>
+            </form>
+        </div>
+    </section>
+
     <div class="grid gap-4 lg:grid-cols-2">
         @forelse($applications as $app)
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -22,8 +34,8 @@
         @empty<div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">Chưa có Application adapter khả dụng.</div>@endforelse
     </div>
     <div class="grid gap-6 lg:grid-cols-2">
-        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Phân quyền theo User</h2><div class="mt-4 divide-y">@foreach($users as $user)<a href="{{ route('admin.client-apps.users.edit', $user) }}" class="flex justify-between py-3 text-sm hover:text-blue-600"><span><strong>{{ $user->name }}</strong> <span class="text-gray-400">{{ $user->email }}</span></span><span>Thiết lập →</span></a>@endforeach</div></section>
-        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Phân quyền theo Role Client</h2><div class="mt-4 divide-y">@forelse($roles as $role)<a href="{{ route('admin.client-apps.roles.edit', $role) }}" class="flex justify-between py-3 text-sm hover:text-blue-600"><strong>{{ $role->name }}</strong><span>Thiết lập →</span></a>@empty<p class="py-4 text-sm text-gray-500">Chưa có Role Client guard web.</p>@endforelse</div></section>
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Phân quyền theo User</h2><p class="mt-1 text-xs text-gray-500">Gán Role web hoặc quyền trực tiếp.</p><div class="mt-4 divide-y">@foreach($users as $user)<a href="{{ route('admin.client-apps.users.edit', $user) }}" class="flex justify-between py-3 text-sm hover:text-blue-600"><span><strong>{{ $user->name }}</strong> <span class="text-gray-400">{{ $user->email }}</span></span><span>Thiết lập →</span></a>@endforeach</div></section>
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Role guard web</h2><p class="mt-1 text-xs text-gray-500">Role admin không xuất hiện và không bị chỉnh sửa tại đây.</p><div class="mt-4 divide-y">@forelse($roles as $role)<a href="{{ route('admin.client-apps.roles.edit', $role) }}" class="flex justify-between py-3 text-sm hover:text-blue-600"><strong>{{ $role->name }}</strong><span>Thiết lập →</span></a>@empty<p class="py-4 text-sm text-gray-500">Chưa có Role guard web.</p>@endforelse</div></section>
     </div>
 </div>
 @endsection
