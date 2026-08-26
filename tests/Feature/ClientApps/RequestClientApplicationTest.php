@@ -24,6 +24,8 @@ class RequestClientApplicationTest extends TestCase
             ['overview', 'create', 'mine', 'inbox', 'processed'],
             collect($application['features'])->pluck('key')->all(),
         );
+        $this->assertSame('client.request.inbox', $application['features'][3]['route']);
+        $this->assertSame('client.request.processed', $application['features'][4]['route']);
     }
 
     public function test_request_application_disappears_when_source_module_is_disabled(): void
@@ -53,5 +55,39 @@ class RequestClientApplicationTest extends TestCase
         $this->assertContains('client.application:request', $route->gatherMiddleware());
         $this->assertContains('client.feature:request,overview', $route->gatherMiddleware());
         $this->assertContains(UseRequestAuthorizationGuard::class.':web', $route->gatherMiddleware());
+    }
+
+    public function test_request_approver_routes_use_web_guard_and_feature_boundaries(): void
+    {
+        config()->set('modules.registry.Request.enabled', true);
+
+        foreach ([
+            'client.request.inbox' => ['apps/request/inbox', 'client.feature:request,inbox'],
+            'client.request.processed' => ['apps/request/processed', 'client.feature:request,processed'],
+        ] as $name => [$uri, $featureMiddleware]) {
+            $route = Route::getRoutes()->getByName($name);
+
+            $this->assertNotNull($route, $name);
+            $this->assertSame($uri, $route->uri(), $name);
+            $this->assertContains('auth:web', $route->gatherMiddleware(), $name);
+            $this->assertContains('client.application:request', $route->gatherMiddleware(), $name);
+            $this->assertContains($featureMiddleware, $route->gatherMiddleware(), $name);
+            $this->assertContains(UseRequestAuthorizationGuard::class.':web', $route->gatherMiddleware(), $name);
+        }
+    }
+
+    public function test_approver_inbox_component_is_channel_aware(): void
+    {
+        $component = file_get_contents(base_path('Modules/Request/Livewire/Approver/Inbox.php'));
+        $view = file_get_contents(base_path('Modules/Request/resources/views/livewire/approver/inbox.blade.php'));
+        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/request/dashboard.blade.php'));
+
+        $this->assertStringContainsString('InteractsWithRequestAuthorization', $component);
+        $this->assertStringContainsString('$this->requestActor($context)', $component);
+        $this->assertStringContainsString('Gate::forUser($user)->authorize', $component);
+        $this->assertStringNotContainsString("auth('admin')->id()", $component);
+        $this->assertStringContainsString("\$requestGuard === 'admin'", $view);
+        $this->assertStringContainsString("route('client.request.inbox')", $dashboard);
+        $this->assertStringContainsString("route('client.request.processed')", $dashboard);
     }
 }
