@@ -266,7 +266,38 @@ git branch -d <feature-branch>
 git push origin --delete <feature-branch>
 ```
 
-## 16. Prompt dùng khi mở chat mới
+## 16. Bàn giao theo Module khi kết thúc branch
+
+Mỗi Module phải có một file bàn giao duy nhất theo quy ước:
+
+```text
+docs/modules/<Module>/COLLABORATION_HANDOFF.md
+```
+
+Trước khi kết thúc một feature/fix branch, ChatGPT phải cập nhật file này trong chính branch đó. Nội dung tối thiểu gồm:
+
+- repository, base branch, working branch, PR và commit checkpoint mới nhất
+- mục tiêu và phạm vi đã hoàn thành
+- lịch sử các batch/branch quan trọng
+- lỗi hoặc root cause đã phát hiện và cách đã sửa
+- quyết định kiến trúc, phân quyền và ranh giới an toàn cần giữ
+- migrations, seeders, runtime storage hoặc lệnh vận hành liên quan
+- kết quả focused test, module regression, UI smoke và Git clean
+- việc còn lại, blocker và bước tiếp theo được phép thực hiện
+
+File handoff là bản tóm tắt tiếp tục công việc, không thay thế requirements, runbook hoặc acceptance document. Chỉ giữ thông tin còn hữu ích cho lần làm việc tiếp theo; không sao chép log dài hoặc output test đầy đủ.
+
+Khi bắt đầu chat mới và người dùng yêu cầu áp dụng workflow này kèm tên Module, ChatGPT phải thực hiện theo thứ tự:
+
+1. đọc toàn bộ `docs/GITHUB_COLLABORATION_WORKFLOW.md`
+2. tự tìm và đọc toàn bộ `docs/modules/<Module>/COLLABORATION_HANDOFF.md`
+3. kiểm tra branch/PR/checkpoint thực tế trên GitHub
+4. đối chiếu code và tests hiện tại trước khi đề xuất hoặc sửa đổi
+5. tiếp tục từ mục “Việc còn lại / Bước tiếp theo”, không khởi động lại từ đầu
+
+Nếu file handoff chưa tồn tại, ChatGPT phải ghi rõ điều đó, đọc các tài liệu Module liên quan và tạo file trong branch đang làm việc trước khi kết thúc batch.
+
+## 17. Prompt dùng khi mở chat mới
 
 Có thể dùng khung ngắn sau:
 
@@ -279,12 +310,14 @@ Hãy làm việc trực tiếp qua GitHub theo docs/GITHUB_COLLABORATION_WORKFLO
 Yêu cầu:
 [TASK HIỆN TẠI]
 
+Module: [TÊN MODULE]
+
 Trước tiên đọc code/tests thực tế, phân tích hiện trạng và đề xuất plan.
 Chưa sửa code nếu tôi chưa duyệt thay đổi kiến trúc lớn.
 Khi cần CLI, nói rõ số lệnh và chờ output trước khi tiếp tục.
 ```
 
-## 17. Nguyên tắc an toàn
+## 18. Nguyên tắc an toàn
 
 Không thực hiện các thao tác phá hủy như:
 
