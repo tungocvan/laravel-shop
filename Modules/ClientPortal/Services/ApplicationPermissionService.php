@@ -112,6 +112,46 @@ class ApplicationPermissionService
             ->values();
     }
 
+    public function profiles(): array
+    {
+        return [
+            'requester' => [
+                'name' => 'Request Requester',
+                'description' => 'Nhân viên tạo, chỉnh sửa, gửi và theo dõi đề nghị của chính mình.',
+                'permissions' => [
+                    'client.request.access',
+                    'client.request.overview.view',
+                    'client.request.create.view',
+                    'client.request.mine.view',
+                    'request.instance.view-own',
+                    'request.instance.create',
+                    'request.instance.update-own',
+                    'request.instance.submit',
+                    'request.instance.cancel-own',
+                    'request.comment.create',
+                    'request.attachment.upload',
+                    'request.attachment.download',
+                ],
+            ],
+            'approver' => [
+                'name' => 'Request Approver',
+                'description' => 'Người phê duyệt xem các đề nghị được phân công và thực hiện quyết định.',
+                'permissions' => [
+                    'client.request.access',
+                    'client.request.overview.view',
+                    'client.request.inbox.view',
+                    'client.request.processed.view',
+                    'request.instance.view-participant',
+                    'request.task.view',
+                    'request.task.decide',
+                    'request.comment.create',
+                    'request.attachment.upload',
+                    'request.attachment.download',
+                ],
+            ],
+        ];
+    }
+
     public function sync(): int
     {
         $created = 0;
@@ -147,6 +187,45 @@ class ApplicationPermissionService
             $user->givePermissionTo(Permission::findByName($permission, 'web'));
         }
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function syncUserRoles(User $user, array $roleIds): void
+    {
+        $selected = Role::query()
+            ->where('guard_name', 'web')
+            ->whereIn('id', collect($roleIds)->map(fn ($id): int => (int) $id)->all())
+            ->get();
+
+        foreach ($user->roles->where('guard_name', 'web') as $role) {
+            $user->removeRole($role);
+        }
+        foreach ($selected as $role) {
+            $user->assignRole($role);
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function createRole(string $name, ?string $profile = null): Role
+    {
+        $this->sync();
+        $role = Role::query()->firstOrCreate(['name' => trim($name), 'guard_name' => 'web']);
+
+        if ($profile !== null && $profile !== '') {
+            $this->applyProfile($role, $profile);
+        }
+
+        return $role;
+    }
+
+    public function applyProfile(Role $role, string $profile): void
+    {
+        abort_unless($role->guard_name === 'web', 422, 'Chỉ role guard web mới được áp dụng profile Web.');
+        $definition = $this->profiles()[$profile] ?? null;
+        abort_unless($definition !== null, 422, 'Profile Web không hợp lệ.');
+
+        $this->sync();
+        $this->syncRole($role, $definition['permissions']);
     }
 
     public function syncRole(Role $role, array $selected): void
