@@ -4,6 +4,7 @@ namespace Modules\Request\Application\Queries;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Request\Authorization\RequestAuthorizationContext;
 use Modules\Request\Models\InternalRequest;
 
 final class MyRequestsQuery
@@ -38,6 +39,7 @@ final class MyRequestsQuery
 
     public function findVisible(string $publicId, mixed $user): InternalRequest
     {
+        $guard = app(RequestAuthorizationContext::class)->guard() ?? 'admin';
         $query = InternalRequest::query()->with([
             'type:id,public_id,name',
             'typeVersion:id,public_id,title,form_schema_json,schema_version',
@@ -49,10 +51,10 @@ final class MyRequestsQuery
             'runs.tasks.candidates',
             'currentRun.tasks',
         ]);
-        if (! method_exists($user, 'checkPermissionTo') || ! $user->checkPermissionTo('request.instance.view-all', 'admin')) {
-            $query->where(function ($scope) use ($user): void {
+        if (! method_exists($user, 'checkPermissionTo') || ! $user->checkPermissionTo('request.instance.view-all', $guard)) {
+            $query->where(function ($scope) use ($user, $guard): void {
                 $scope->where('requester_id', (int) $user->getAuthIdentifier());
-                if (method_exists($user, 'checkPermissionTo') && $user->checkPermissionTo('request.instance.view-participant', 'admin')) {
+                if (method_exists($user, 'checkPermissionTo') && $user->checkPermissionTo('request.instance.view-participant', $guard)) {
                     $scope->orWhereHas('runs.tasks', fn ($tasks) => $tasks->where('assignee_user_id', (int) $user->getAuthIdentifier()));
                 }
             });
