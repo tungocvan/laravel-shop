@@ -12,19 +12,23 @@ class ModulePermissionManager
 {
     public function sync(array $module): int
     {
-        $permissionNames = $this->permissionsFromPath($module['path']);
+        $permissionsByGuard = $this->permissionsByGuardFromPath($module['path']);
 
         $this->forgetCache();
 
-        $permissionModels = collect($permissionNames)
-            ->map(fn (string $permission): Permission => Permission::findOrCreate($permission, 'admin'))
-            ->values();
+        $permissionModelsByGuard = collect($permissionsByGuard)
+            ->map(fn (array $permissions, string $guard) => collect($permissions)
+                ->map(fn (string $permission): Permission => Permission::findOrCreate($permission, $guard))
+                ->values());
 
-        $superAdmin = Role::findOrCreate('Super Admin', 'admin');
-        $superAdmin->givePermissionTo($permissionModels);
+        $adminPermissions = $permissionModelsByGuard->get('admin', collect());
+        if ($adminPermissions->isNotEmpty()) {
+            Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($adminPermissions);
+        }
+
         $this->forgetCache();
 
-        return $permissionModels->count();
+        return $permissionModelsByGuard->sum(fn ($permissions): int => $permissions->count());
     }
 
     public function activeGroups(): array
@@ -118,18 +122,22 @@ class ModulePermissionManager
     public function syncAllActiveToSuperAdmin(): array
     {
         $before = $this->previewActiveSync();
-        $permissionNames = collect($this->activeGroups())->flatten()->unique()->values();
+        $permissionsByGuard = $this->activePermissionsByGuard();
 
-        DB::transaction(function () use ($permissionNames): void {
-            $permissionModels = $permissionNames
-                ->map(fn (string $permission): Permission => Permission::findOrCreate($permission, 'admin'))
-                ->values();
+        DB::transaction(function () use ($permissionsByGuard): void {
+            collect($permissionsByGuard)->each(function (array $permissions, string $guard): void {
+                $permissionModels = collect($permissions)
+                    ->map(fn (string $permission): Permission => Permission::findOrCreate($permission, $guard))
+                    ->values();
 
-            // Pass persisted Permission models directly. This avoids a second
-            // name lookup through Spatie's cached permission collection, which
-            // can still be stale in Docker/Redis-backed environments during a
-            // fresh seed.
-            Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissionModels);
+                if ($guard === 'admin' && $permissionModels->isNotEmpty()) {
+                    // Pass persisted Permission models directly. This avoids a second
+                    // name lookup through Spatie's cached permission collection, which
+                    // can still be stale in Docker/Redis-backed environments during a
+                    // fresh seed.
+                    Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissionModels);
+                }
+            });
         });
 
         $this->forgetCache();
@@ -155,7 +163,30 @@ class ModulePermissionManager
             ->first(fn (string $path): bool => File::exists($path));
     }
 
+    private function activePermissionsByGuard(): array
+    {
+        $permissionsByGuard = [];
+
+        collect(config('modules.registry', []))
+            ->filter(fn (array $module): bool => (bool) ($module['enabled'] ?? false))
+            ->each(function (array $module) use (&$permissionsByGuard): void {
+                foreach ($this->permissionsByGuardFromPath($module['path']) as $guard => $permissions) {
+                    $permissionsByGuard[$guard] = array_values(array_unique([
+                        ...($permissionsByGuard[$guard] ?? []),
+                        ...$permissions,
+                    ]));
+                }
+            });
+
+        return $permissionsByGuard;
+    }
+
     private function permissionsFromPath(string $modulePath): array
+    {
+        return $this->permissionsByGuardFromPath($modulePath)['admin'] ?? [];
+    }
+
+    private function permissionsByGuardFromPath(string $modulePath): array
     {
         $manifest = $this->manifestPath($modulePath);
         if ($manifest === null) {
@@ -163,10 +194,32 @@ class ModulePermissionManager
         }
 
         $config = require $manifest;
+        $permissionsByGuard = [
+            'admin' => $this->normalizePermissions($config['permissions'] ?? []),
+        ];
 
-        return collect($config['permissions'] ?? [])
+        foreach ((array) ($config['permissions_by_guard'] ?? []) as $guard => $permissions) {
+            if (! is_string($guard) || trim($guard) === '') {
+                continue;
+            }
+
+            $guard = trim($guard);
+            $permissionsByGuard[$guard] = array_values(array_unique([
+                ...($permissionsByGuard[$guard] ?? []),
+                ...$this->normalizePermissions($permissions),
+            ]));
+        }
+
+        return array_filter($permissionsByGuard, fn (array $permissions): bool => $permissions !== []);
+    }
+
+    private function normalizePermissions(mixed $permissions): array
+    {
+        return collect(is_array($permissions) ? $permissions : [])
             ->filter(fn (mixed $permission): bool => is_string($permission) && trim($permission) !== '')
             ->map(fn (string $permission): string => trim($permission))
-            ->unique()->values()->all();
+            ->unique()
+            ->values()
+            ->all();
     }
 }

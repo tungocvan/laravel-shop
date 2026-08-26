@@ -8,15 +8,17 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Modules\Request\Application\Queries\RequestAttachmentQuery;
 use Modules\Request\Application\Services\RequestAuditAppender;
+use Modules\Request\Authorization\RequestAuthorizationContext;
 use Modules\Request\Contracts\PrivateRequestFileStore;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class RequestAttachmentController extends Controller
 {
-    public function __invoke(string $requestPublicId, string $attachmentPublicId, HttpRequest $request, RequestAttachmentQuery $query, PrivateRequestFileStore $files, RequestAuditAppender $audit): StreamedResponse
+    public function __invoke(string $requestPublicId, string $attachmentPublicId, HttpRequest $request, RequestAttachmentQuery $query, PrivateRequestFileStore $files, RequestAuditAppender $audit, RequestAuthorizationContext $context): StreamedResponse
     {
-        $user = $request->user('admin') ?? $request->user();
+        $guard = $context->guard() ?? 'admin';
+        $user = $request->user($guard);
         abort_unless($user, 401);
         $attachment = $query->findVisible($requestPublicId, $attachmentPublicId, $user);
         Gate::forUser($user)->authorize('download', $attachment);

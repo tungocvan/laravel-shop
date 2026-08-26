@@ -1,9 +1,11 @@
 <div class="space-y-6">
-    @include('Request::partials.workspace-navigation')
+    @if($requestGuard === 'admin')
+        @include('Request::partials.workspace-navigation')
+    @endif
 
     <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div><h1 class="text-2xl font-bold text-gray-900">{{ __('Request::request.catalog.title') }}</h1><p class="mt-1 text-sm text-gray-600">{{ __('Request::request.catalog.description') }}</p></div>
-        <a href="{{ route('request.mine') }}" class="inline-flex justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-indigo-700">{{ __('Request::request.mine.title') }}</a>
+        <a href="{{ route($mineRouteName) }}" class="inline-flex justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-indigo-700">{{ __('Request::request.mine.title') }}</a>
     </header>
 
     <div class="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-4">
@@ -20,7 +22,7 @@
                 <div class="text-xs font-semibold uppercase tracking-wide text-indigo-600">{{ $type->group->name }}</div>
                 <h2 class="mt-2 text-lg font-bold text-gray-900">{{ $type->name }}</h2>
                 <p class="mt-2 flex-1 text-sm leading-6 text-gray-600">{{ $type->summary ?: __('Request::request.catalog.no_summary') }}</p>
-                <a href="{{ route('request.create', $type->public_id) }}" class="mt-5 inline-flex justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">{{ __('Request::request.create_draft') }}</a>
+                <a href="{{ route($createRouteName, $type->public_id) }}" class="mt-5 inline-flex justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">{{ __('Request::request.create_draft') }}</a>
             </article>
         @empty
             <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center md:col-span-2 xl:col-span-3"><h2 class="font-semibold text-gray-900">{{ __('Request::request.catalog.empty') }}</h2><p class="mt-1 text-sm text-gray-500">{{ __('Request::request.catalog.empty_help') }}</p></div>

@@ -7,11 +7,14 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Request\Application\Queries\MyRequestsQuery;
+use Modules\Request\Authorization\RequestAuthorizationContext;
 use Modules\Request\Domain\Enums\RequestStatus;
+use Modules\Request\Livewire\Concerns\InteractsWithRequestAuthorization;
 use Modules\Request\Models\InternalRequest;
 
 class MyRequests extends Component
 {
+    use InteractsWithRequestAuthorization;
     use WithPagination;
 
     public string $search = '';
@@ -22,6 +25,11 @@ class MyRequests extends Component
     public string $workspace = 'all';
 
     public int $perPage = 25;
+
+    public function mount(RequestAuthorizationContext $context): void
+    {
+        $this->initializeRequestAuthorization($context);
+    }
 
     public function updated(string $property): void
     {
@@ -48,16 +56,19 @@ class MyRequests extends Component
         $this->resetPage();
     }
 
-    public function render(MyRequestsQuery $query)
+    public function render(MyRequestsQuery $query, RequestAuthorizationContext $context)
     {
-        $user = auth('admin')->user();
+        $user = $this->requestActor($context);
         Gate::forUser($user)->authorize('viewAny', InternalRequest::class);
+        $userId = (int) $user->getAuthIdentifier();
 
         return view('Request::livewire.requester.my-requests', [
-            'requests' => $query->paginate((int) $user->getAuthIdentifier(), $this->search, $this->status, $this->perPage, $this->workspace),
-            'workspaceCounts' => $query->workspaceCounts((int) $user->getAuthIdentifier()),
+            'requests' => $query->paginate($userId, $this->search, $this->status, $this->perPage, $this->workspace),
+            'workspaceCounts' => $query->workspaceCounts($userId),
             'statuses' => RequestStatus::cases(),
             'pageSizes' => config('request.settings.page_sizes', [10, 25, 50, 100]),
+            'catalogRouteName' => $this->requestRouteName('catalog'),
+            'showRouteName' => $this->requestRouteName('show'),
         ]);
     }
 }

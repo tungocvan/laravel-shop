@@ -9,10 +9,13 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Request\Application\Queries\RequestCollaborationQuery;
 use Modules\Request\Application\Services\AddRequestComment;
+use Modules\Request\Authorization\RequestAuthorizationContext;
+use Modules\Request\Livewire\Concerns\InteractsWithRequestAuthorization;
 use Modules\Request\Models\RequestComment;
 
 class CommentComposer extends Component
 {
+    use InteractsWithRequestAuthorization;
     use WithPagination;
 
     public string $requestPublicId;
@@ -23,19 +26,21 @@ class CommentComposer extends Component
 
     public string $idempotencyKey;
 
-    public function mount(string $requestPublicId, int $requestVersion): void
+    public function mount(string $requestPublicId, int $requestVersion, RequestAuthorizationContext $context): void
     {
+        $this->initializeRequestAuthorization($context);
         $this->requestPublicId = $requestPublicId;
         $this->requestVersion = $requestVersion;
         $this->idempotencyKey = (string) Str::uuid();
     }
 
-    public function add(RequestCollaborationQuery $collaboration, AddRequestComment $service): void
+    public function add(RequestCollaborationQuery $collaboration, AddRequestComment $service, RequestAuthorizationContext $context): void
     {
+        $user = $this->requestActor($context);
         $this->validate(['body' => ['required', 'string', 'max:5000']]);
-        $request = $collaboration->findVisible($this->requestPublicId, auth('admin')->user());
-        Gate::authorize('create', [RequestComment::class, $request]);
-        $service->handle($request, $this->body, (int) auth('admin')->id(), $this->requestVersion, $this->idempotencyKey);
+        $request = $collaboration->findVisible($this->requestPublicId, $user);
+        Gate::forUser($user)->authorize('create', [RequestComment::class, $request]);
+        $service->handle($request, $this->body, (int) $user->getAuthIdentifier(), $this->requestVersion, $this->idempotencyKey);
         $this->requestVersion = $request->refresh()->lock_version;
         $this->body = '';
         $this->idempotencyKey = (string) Str::uuid();
@@ -50,10 +55,11 @@ class CommentComposer extends Component
         $this->requestVersion = $version;
     }
 
-    public function render(RequestCollaborationQuery $collaboration)
+    public function render(RequestCollaborationQuery $collaboration, RequestAuthorizationContext $context)
     {
-        $request = $collaboration->findVisible($this->requestPublicId, auth('admin')->user());
-        Gate::authorize('view', $request);
+        $user = $this->requestActor($context);
+        $request = $collaboration->findVisible($this->requestPublicId, $user);
+        Gate::forUser($user)->authorize('view', $request);
 
         return view('Request::livewire.requester.comment-composer', ['request' => $request, 'comments' => $collaboration->comments($request)]);
     }

@@ -3,17 +3,21 @@
 namespace Modules\Request\Application\Queries;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Modules\Request\Authorization\RequestAuthorizationContext;
 use Modules\Request\Models\InternalRequest;
 
 final class RequestCollaborationQuery
 {
+    public function __construct(private readonly RequestAuthorizationContext $context) {}
+
     public function findVisible(string $publicId, mixed $user): InternalRequest
     {
+        $guard = $this->context->guard() ?? 'admin';
         $query = InternalRequest::query()->select(['id', 'public_id', 'requester_id', 'status', 'lock_version', 'archived_at']);
-        if (! method_exists($user, 'checkPermissionTo') || ! $user->checkPermissionTo('request.instance.view-all', 'admin')) {
-            $query->where(function ($scope) use ($user): void {
+        if (! method_exists($user, 'checkPermissionTo') || ! $user->checkPermissionTo('request.instance.view-all', $guard)) {
+            $query->where(function ($scope) use ($user, $guard): void {
                 $scope->where('requester_id', (int) $user->getAuthIdentifier());
-                if (method_exists($user, 'checkPermissionTo') && $user->checkPermissionTo('request.instance.view-participant', 'admin')) {
+                if (method_exists($user, 'checkPermissionTo') && $user->checkPermissionTo('request.instance.view-participant', $guard)) {
                     $scope->orWhereHas('runs.tasks', fn ($tasks) => $tasks->where('assignee_user_id', (int) $user->getAuthIdentifier()));
                 }
             });

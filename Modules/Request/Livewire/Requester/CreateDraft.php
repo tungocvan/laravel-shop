@@ -7,35 +7,46 @@ use Illuminate\Support\Str;
 use Livewire\Component;
 use Modules\Request\Application\Queries\RequestCatalogQuery;
 use Modules\Request\Application\Services\CreateInternalRequest;
+use Modules\Request\Authorization\RequestAuthorizationContext;
 use Modules\Request\Domain\Enums\AudienceCapability;
+use Modules\Request\Livewire\Concerns\InteractsWithRequestAuthorization;
 use Modules\Request\Models\InternalRequest;
 
 class CreateDraft extends Component
 {
+    use InteractsWithRequestAuthorization;
+
     public string $typePublicId;
 
     public string $idempotencyKey;
 
-    public function mount(string $typePublicId, RequestCatalogQuery $query): void
+    public function mount(string $typePublicId, RequestCatalogQuery $query, RequestAuthorizationContext $context): void
     {
-        Gate::authorize('create', InternalRequest::class);
+        $this->initializeRequestAuthorization($context);
+        $user = $this->requestActor($context);
+        Gate::forUser($user)->authorize('create', InternalRequest::class);
         $this->typePublicId = $typePublicId;
-        $query->findEligible($typePublicId, (int) auth('admin')->id(), AudienceCapability::Create);
+        $query->findEligible($typePublicId, (int) $user->getAuthIdentifier(), AudienceCapability::Create);
         $this->idempotencyKey = (string) Str::uuid();
     }
 
-    public function create(CreateInternalRequest $service, RequestCatalogQuery $query): void
+    public function create(CreateInternalRequest $service, RequestCatalogQuery $query, RequestAuthorizationContext $context): void
     {
-        Gate::authorize('create', InternalRequest::class);
-        $type = $query->findEligible($this->typePublicId, (int) auth('admin')->id(), AudienceCapability::Create);
-        $request = $service->handle($type, (int) auth('admin')->id(), $this->idempotencyKey);
-        $this->redirectRoute('request.show', $request->public_id);
+        $user = $this->requestActor($context);
+        Gate::forUser($user)->authorize('create', InternalRequest::class);
+        $type = $query->findEligible($this->typePublicId, (int) $user->getAuthIdentifier(), AudienceCapability::Create);
+        $request = $service->handle($type, (int) $user->getAuthIdentifier(), $this->idempotencyKey);
+        $this->redirectRoute($this->requestRouteName('show'), ['requestPublicId' => $request->public_id]);
     }
 
-    public function render(RequestCatalogQuery $query)
+    public function render(RequestCatalogQuery $query, RequestAuthorizationContext $context)
     {
-        $type = $query->findEligible($this->typePublicId, (int) auth('admin')->id(), AudienceCapability::Create);
+        $user = $this->requestActor($context);
+        $type = $query->findEligible($this->typePublicId, (int) $user->getAuthIdentifier(), AudienceCapability::Create);
 
-        return view('Request::livewire.requester.create-draft', ['type' => $type]);
+        return view('Request::livewire.requester.create-draft', [
+            'type' => $type,
+            'catalogRouteName' => $this->requestRouteName('catalog'),
+        ]);
     }
 }

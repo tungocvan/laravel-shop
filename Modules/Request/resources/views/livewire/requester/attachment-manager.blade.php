@@ -11,7 +11,7 @@
     @endcan
     <ul class="mt-4 space-y-2">
         @forelse($attachments as $attachment)
-            <li class="flex flex-col gap-2 rounded-xl border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between"><div class="min-w-0"><p class="truncate text-sm font-medium text-gray-900">{{ $attachment->original_filename }}</p><p class="text-xs text-gray-500">{{ number_format($attachment->size_bytes / 1024, 1) }} KB · {{ __('Request::request.attachment_scan_statuses.'.$attachment->scan_status->value) }}</p></div>@can('download', $attachment)<a href="{{ route('request.attachments.download', [$request->public_id, $attachment->public_id]) }}" class="text-sm font-semibold text-indigo-700">{{ __('Request::request.download') }}</a>@endcan</li>
+            <li class="flex flex-col gap-2 rounded-xl border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between"><div class="min-w-0"><p class="truncate text-sm font-medium text-gray-900">{{ $attachment->original_filename }}</p><p class="text-xs text-gray-500">{{ number_format($attachment->size_bytes / 1024, 1) }} KB · {{ __('Request::request.attachment_scan_statuses.'.$attachment->scan_status->value) }}</p></div>@can('download', $attachment)<a href="{{ route($downloadRouteName, [$request->public_id, $attachment->public_id]) }}" class="text-sm font-semibold text-indigo-700">{{ __('Request::request.download') }}</a>@endcan</li>
         @empty
             <li class="text-sm text-gray-500">{{ __('Request::request.no_attachments') }}</li>
         @endforelse
