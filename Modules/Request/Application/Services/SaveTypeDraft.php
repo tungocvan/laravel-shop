@@ -32,15 +32,29 @@ final class SaveTypeDraft
             }
             $draft->stages()->delete();
             foreach ((array) ($data['stages'] ?? []) as $stage) {
-                $slaMinutes = isset($stage['sla_minutes']) ? max(1, (int) $stage['sla_minutes']) : null;
-                $warningMinutes = isset($stage['warning_minutes_before']) ? max(0, (int) $stage['warning_minutes_before']) : null;
-                $graceMinutes = max(0, (int) ($stage['grace_minutes'] ?? 0));
+                $maxDuration = (int) config('request.settings.max_sla_duration_minutes', 525600);
+                $slaMinutes = isset($stage['sla_minutes']) ? (int) $stage['sla_minutes'] : null;
+                $warningMinutes = isset($stage['warning_minutes_before']) ? (int) $stage['warning_minutes_before'] : null;
+                $warningMinutes = $warningMinutes === 0 ? null : $warningMinutes;
+                $graceMinutes = (int) ($stage['grace_minutes'] ?? 0);
                 $timeoutAction = (string) ($stage['timeout_action'] ?? 'notify_only');
                 if (! in_array($timeoutAction, ['notify_only', 'suspend'], true)) {
                     throw ValidationException::withMessages(['stages' => 'timeout_action_invalid']);
                 }
+                if (($slaMinutes !== null && ($slaMinutes < 1 || $slaMinutes > $maxDuration))
+                    || ($warningMinutes !== null && ($warningMinutes < 0 || $warningMinutes > $maxDuration))
+                    || $graceMinutes < 0
+                    || $graceMinutes > $maxDuration) {
+                    throw ValidationException::withMessages(['stages' => 'sla_duration_invalid']);
+                }
+                if ($slaMinutes === null && ($warningMinutes !== null || $graceMinutes > 0 || $timeoutAction === 'suspend')) {
+                    throw ValidationException::withMessages(['stages' => 'sla_required_for_timeout_configuration']);
+                }
                 if ($slaMinutes !== null && $warningMinutes !== null && $warningMinutes > $slaMinutes) {
                     throw ValidationException::withMessages(['stages' => 'warning_exceeds_sla']);
+                }
+                if ($timeoutAction === 'notify_only' && $graceMinutes > 0) {
+                    throw ValidationException::withMessages(['stages' => 'grace_requires_suspension']);
                 }
 
                 $draft->stages()->create([
@@ -50,7 +64,7 @@ final class SaveTypeDraft
                     'warning_minutes_before' => $warningMinutes, 'grace_minutes' => $graceMinutes, 'timeout_action' => $timeoutAction,
                     'email_on_assignment' => (bool) ($stage['email_on_assignment'] ?? true),
                     'email_on_decision' => (bool) ($stage['email_on_decision'] ?? true),
-                    'email_on_sla_warning' => (bool) ($stage['email_on_sla_warning'] ?? true),
+                    'email_on_sla_warning' => $warningMinutes !== null && (bool) ($stage['email_on_sla_warning'] ?? true),
                 ]);
             }
             $lockedType->increment('lock_version');

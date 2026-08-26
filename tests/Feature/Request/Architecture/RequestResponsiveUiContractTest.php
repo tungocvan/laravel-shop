@@ -18,6 +18,10 @@ class RequestResponsiveUiContractTest extends TestCase
         $this->assertStringContainsString('xl:sticky xl:top-4 xl:self-start', $designer);
         $this->assertStringContainsString('Sẵn sàng phát hành', $designer);
         $this->assertStringContainsString('min-h-11', $designer);
+        $this->assertStringContainsString('grid min-w-0 gap-4 md:grid-cols-2', $designer);
+        $this->assertStringContainsString('grid-cols-[minmax(0,1fr)_minmax(5rem,auto)]', $designer);
+        $this->assertStringContainsString('min-h-11 min-w-0 w-full', $designer);
+        $this->assertStringNotContainsString('<div class="grid gap-4 lg:grid-cols-3">', $designer);
         $this->assertStringContainsString('Xem chi tiết định nghĩa chuẩn hóa', $versions);
         $this->assertStringNotContainsString('draggable=', $designer);
     }

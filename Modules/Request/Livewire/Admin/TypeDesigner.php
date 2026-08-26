@@ -63,7 +63,7 @@ class TypeDesigner extends Component
                 'stage_key' => $stage->stage_key,
                 'name' => $stage->name,
                 'mode' => $stage->mode->value,
-                'resolver_key' => $stage->resolver_key,
+                'resolver_key' => $stage->resolver_key === 'fixed_role' ? 'role_members' : $stage->resolver_key,
                 'resolver_user_ids' => array_values(array_map('intval', (array) ($resolverConfig['user_ids'] ?? []))),
                 'resolver_config_json' => json_encode($resolverConfig, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'instructions' => $stage->instructions ?? '',
@@ -179,33 +179,7 @@ class TypeDesigner extends Component
         $schema = $this->schemaExtras;
         $schema['schema_version'] = $this->schemaVersion;
         $schema['sections'] = array_values($this->sections);
-        $stages = [];
-
-        foreach (array_values($this->stages) as $index => $stage) {
-            $stage['position'] = $index + 1;
-            if (($stage['resolver_key'] ?? 'fixed_users') === 'fixed_users') {
-                $userIds = collect((array) ($stage['resolver_user_ids'] ?? []))
-                    ->map(fn (mixed $id): int => (int) $id)
-                    ->filter(fn (int $id): bool => $id > 0)
-                    ->unique()
-                    ->values()
-                    ->all();
-                if ($userIds === []) {
-                    throw ValidationException::withMessages(['stages.'.$index.'.resolver_user_ids' => 'approver_required']);
-                }
-                $stage['resolver_config_json'] = ['user_ids' => $userIds];
-            } else {
-                $stage['resolver_config_json'] = $this->decode((string) ($stage['resolver_config_json'] ?? '{}'), 'stages.'.$index.'.resolver_config_json');
-            }
-            $stage['sla_minutes'] = $this->editorDurationToMinutes($stage['sla_value'] ?? null, (string) ($stage['sla_unit'] ?? 'hours'), true, 'stages.'.$index.'.sla_value');
-            $stage['warning_minutes_before'] = $this->editorDurationToMinutes($stage['warning_value'] ?? null, (string) ($stage['warning_unit'] ?? 'hours'), false, 'stages.'.$index.'.warning_value');
-            $stage['grace_minutes'] = $this->editorDurationToMinutes($stage['grace_value'] ?? 0, (string) ($stage['grace_unit'] ?? 'hours'), false, 'stages.'.$index.'.grace_value') ?? 0;
-            $stage['email_on_assignment'] = (bool) ($stage['email_on_assignment'] ?? false);
-            $stage['email_on_decision'] = (bool) ($stage['email_on_decision'] ?? false);
-            $stage['email_on_sla_warning'] = (bool) ($stage['email_on_sla_warning'] ?? false);
-            unset($stage['resolver_user_ids'], $stage['sla_value'], $stage['sla_unit'], $stage['warning_value'], $stage['warning_unit'], $stage['grace_value'], $stage['grace_unit']);
-            $stages[] = $stage;
-        }
+        $stages = $this->normalizedStages();
 
         $service->handle($type, [
             'title' => $this->title,
@@ -243,6 +217,7 @@ class TypeDesigner extends Component
         return view('Request::livewire.admin.type-designer', [
             'type' => $this->type(),
             'approverUsers' => $approverUsers,
+            'approvalReady' => $this->approvalReady(),
         ]);
     }
 
@@ -305,7 +280,116 @@ class TypeDesigner extends Component
             default => throw ValidationException::withMessages([$field => 'duration_unit_invalid']),
         };
 
-        return (int) round((float) $value * $factor);
+        $minutes = (int) round((float) $value * $factor);
+        if ($minutes > (int) config('request.settings.max_sla_duration_minutes', 525600)) {
+            throw ValidationException::withMessages([$field => 'duration_exceeds_maximum']);
+        }
+
+        return $minutes;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function normalizedStages(): array
+    {
+        if (count($this->stages) > (int) config('request.settings.max_stage_count', 20)) {
+            throw ValidationException::withMessages(['stages' => 'stage_limit_exceeded']);
+        }
+
+        $stages = [];
+        foreach (array_values($this->stages) as $index => $stage) {
+            $path = 'stages.'.$index;
+            $stage['position'] = $index + 1;
+            $stage['stage_key'] = trim((string) ($stage['stage_key'] ?? ''));
+            $stage['name'] = trim((string) ($stage['name'] ?? ''));
+            if ($stage['stage_key'] === '' || $stage['name'] === '') {
+                throw ValidationException::withMessages([$path => 'stage_identity_required']);
+            }
+
+            $mode = (string) ($stage['mode'] ?? 'single');
+            if (! in_array($mode, ['single', 'parallel_all', 'parallel_any'], true)) {
+                throw ValidationException::withMessages([$path.'.mode' => 'stage_mode_invalid']);
+            }
+
+            $resolverKey = (string) ($stage['resolver_key'] ?? 'fixed_users');
+            $resolverKey = $resolverKey === 'fixed_role' ? 'role_members' : $resolverKey;
+            if (! in_array($resolverKey, ['fixed_users', 'role_members', 'form_user_field'], true)) {
+                throw ValidationException::withMessages([$path.'.resolver_key' => 'resolver_not_registered']);
+            }
+            $stage['resolver_key'] = $resolverKey;
+
+            if ($resolverKey === 'fixed_users') {
+                $userIds = collect((array) ($stage['resolver_user_ids'] ?? []))
+                    ->map(fn (mixed $id): int => (int) $id)
+                    ->filter(fn (int $id): bool => $id > 0)
+                    ->unique()
+                    ->values()
+                    ->all();
+                if ($userIds === [] || ($mode === 'single' && count($userIds) !== 1)) {
+                    throw ValidationException::withMessages([$path.'.resolver_user_ids' => $mode === 'single' ? 'single_approver_required' : 'approver_required']);
+                }
+                $stage['resolver_config_json'] = ['user_ids' => $userIds];
+            } else {
+                $resolverConfig = $this->decode((string) ($stage['resolver_config_json'] ?? '{}'), $path.'.resolver_config_json');
+                if ($resolverKey === 'role_members' && (int) ($resolverConfig['role_id'] ?? 0) <= 0) {
+                    throw ValidationException::withMessages([$path.'.resolver_config_json' => 'role_required']);
+                }
+                if ($resolverKey === 'form_user_field' && trim((string) ($resolverConfig['field_key'] ?? '')) === '') {
+                    throw ValidationException::withMessages([$path.'.resolver_config_json' => 'user_field_required']);
+                }
+                $stage['resolver_config_json'] = $resolverConfig;
+            }
+
+            $stage['sla_minutes'] = $this->editorDurationToMinutes($stage['sla_value'] ?? null, (string) ($stage['sla_unit'] ?? 'hours'), true, $path.'.sla_value');
+            $stage['warning_minutes_before'] = $this->editorDurationToMinutes($stage['warning_value'] ?? null, (string) ($stage['warning_unit'] ?? 'hours'), false, $path.'.warning_value');
+            $stage['warning_minutes_before'] = $stage['warning_minutes_before'] === 0 ? null : $stage['warning_minutes_before'];
+            if ($stage['warning_minutes_before'] !== null && $stage['warning_minutes_before'] > $stage['sla_minutes']) {
+                throw ValidationException::withMessages([$path.'.warning_value' => 'warning_exceeds_sla']);
+            }
+
+            $timeoutAction = (string) ($stage['timeout_action'] ?? 'notify_only');
+            if (! in_array($timeoutAction, ['notify_only', 'suspend'], true)) {
+                throw ValidationException::withMessages([$path.'.timeout_action' => 'timeout_action_invalid']);
+            }
+            $stage['timeout_action'] = $timeoutAction;
+            $stage['grace_minutes'] = $timeoutAction === 'suspend'
+                ? ($this->editorDurationToMinutes($stage['grace_value'] ?? 0, (string) ($stage['grace_unit'] ?? 'hours'), false, $path.'.grace_value') ?? 0)
+                : 0;
+
+            $stage['email_on_assignment'] = (bool) ($stage['email_on_assignment'] ?? false);
+            $stage['email_on_decision'] = (bool) ($stage['email_on_decision'] ?? false);
+            $stage['email_on_sla_warning'] = $stage['warning_minutes_before'] !== null
+                && (bool) ($stage['email_on_sla_warning'] ?? false);
+
+            unset(
+                $stage['resolver_user_ids'],
+                $stage['sla_value'],
+                $stage['sla_unit'],
+                $stage['warning_value'],
+                $stage['warning_unit'],
+                $stage['grace_value'],
+                $stage['grace_unit'],
+                $stage['suspend_on_overdue'],
+                $stage['email_notification_enabled'],
+            );
+            $stages[] = $stage;
+        }
+
+        return $stages;
+    }
+
+    private function approvalReady(): bool
+    {
+        if ($this->stages === []) {
+            return false;
+        }
+
+        try {
+            $this->normalizedStages();
+
+            return true;
+        } catch (ValidationException) {
+            return false;
+        }
     }
 
     private function moveItem(array &$items, int $index, int $direction): void

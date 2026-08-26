@@ -41,7 +41,10 @@ final class EnforceRequestTaskSla
                         $snapshot = (array) $target->sla_snapshot_json;
                         $timeoutAction = (string) ($snapshot['timeout_action'] ?? 'notify_only');
 
-                        if ($target->warning_at && $target->warning_at->lte($now) && empty($snapshot['warning_emitted_at'])) {
+                        if ($target->warning_at
+                            && $target->warning_at->lte($now)
+                            && (! $target->due_at || $now->lt($target->due_at))
+                            && empty($snapshot['warning_emitted_at'])) {
                             $snapshot['warning_emitted_at'] = $now->toIso8601String();
                             $counts['warned']++;
                             $this->emit($target, $request->id, 'request.task.sla_warning.v1', $now, ['due_at' => $target->due_at?->toIso8601String()]);

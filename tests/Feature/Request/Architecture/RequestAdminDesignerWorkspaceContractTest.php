@@ -23,6 +23,10 @@ class RequestAdminDesignerWorkspaceContractTest extends TestCase
             $this->assertStringContainsString($ux, $view);
         }
 
+        foreach (['email_on_assignment', 'email_on_decision', 'email_on_sla_warning', 'timeout_action'] as $binding) {
+            $this->assertStringContainsString('stages.{{ $stageIndex }}.'.$binding, $view);
+        }
+
         $this->assertStringContainsString('Bản nháp trên máy chủ là nguồn dữ liệu chính thức', $view);
         $this->assertStringContainsString('Phiên bản đã phát hành là bất biến', $view);
         $this->assertStringContainsString('SLA không tự động phê duyệt hoặc từ chối đề nghị.', $view);
@@ -40,6 +44,12 @@ class RequestAdminDesignerWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('SaveTypeDraft::class', $component);
         $this->assertStringContainsString('PublishTypeVersion', $component);
         $this->assertStringContainsString('UserDirectory::class', $component);
+        $this->assertStringContainsString('approvalReady', $component.$view);
+        $this->assertStringContainsString("'role_members'", $component);
+        $this->assertStringContainsString('<option value="role_members">', $view);
+        $this->assertStringNotContainsString('suspend_on_overdue', $view);
+        $this->assertStringNotContainsString('email_notification_enabled', $view);
+        $this->assertStringNotContainsString('<option value="fixed_role">', $view);
         $this->assertStringNotContainsString('App\\Models\\User', $component.$view);
     }
 }

@@ -2,7 +2,7 @@
     @php($fieldCount = collect($sections)->sum(fn ($section) => count((array) ($section['fields'] ?? []))))
     @php($hasMetadata = trim((string) $title) !== '')
     @php($hasForm = count($sections) > 0 && $fieldCount > 0)
-    @php($hasApproval = count($stages) > 0)
+    @php($hasApproval = $approvalReady)
     @php($readyCount = collect([$hasMetadata, $hasForm, $hasApproval])->filter()->count())
 
     @if(session('request_success'))
@@ -61,12 +61,83 @@
                     @forelse($stages as $stageIndex => $stage)
                         <article wire:key="stage-{{ $stageIndex }}" class="rounded-xl border border-slate-200 p-4">
                             <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-3"><div><div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Cấp {{ $stageIndex + 1 }}</div><div class="font-semibold text-slate-900">{{ $stage['name'] ?? 'Cấp phê duyệt' }}</div></div><div class="flex gap-1"><button type="button" wire:click="moveStage({{ $stageIndex }}, -1)" class="min-h-10 min-w-10 rounded-lg border border-slate-300">↑</button><button type="button" wire:click="moveStage({{ $stageIndex }}, 1)" class="min-h-10 min-w-10 rounded-lg border border-slate-300">↓</button><button type="button" wire:click="removeStage({{ $stageIndex }})" wire:confirm="Xóa cấp phê duyệt này?" class="min-h-10 rounded-lg border border-red-200 px-3 text-sm text-red-700">Xóa cấp</button></div></div>
-                            <div class="mt-4 grid gap-3 md:grid-cols-2"><label class="text-sm font-medium text-slate-700">Mã cấp duyệt<input wire:model="stages.{{ $stageIndex }}.stage_key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"></label><label class="text-sm font-medium text-slate-700">Tên<input wire:model.live="stages.{{ $stageIndex }}.name" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"></label><label class="text-sm font-medium text-slate-700">Chế độ<select wire:model="stages.{{ $stageIndex }}.mode" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="single">Một người duyệt</option><option value="parallel_all">Song song - tất cả</option><option value="parallel_any">Song song - bất kỳ</option></select></label><label class="text-sm font-medium text-slate-700">Bộ phân giải<select wire:model.live="stages.{{ $stageIndex }}.resolver_key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="fixed_users">Người dùng cố định</option><option value="fixed_role">Vai trò cố định</option></select></label>
+                            <div class="mt-4 grid gap-3 md:grid-cols-2"><label class="text-sm font-medium text-slate-700">Mã cấp duyệt<input wire:model.blur="stages.{{ $stageIndex }}.stage_key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"></label><label class="text-sm font-medium text-slate-700">Tên<input wire:model.live="stages.{{ $stageIndex }}.name" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"></label><label class="text-sm font-medium text-slate-700">Chế độ<select wire:model.live="stages.{{ $stageIndex }}.mode" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="single">Một người duyệt</option><option value="parallel_all">Song song - tất cả</option><option value="parallel_any">Song song - bất kỳ</option></select></label><label class="text-sm font-medium text-slate-700">Bộ phân giải<select wire:model.live="stages.{{ $stageIndex }}.resolver_key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="fixed_users">Người dùng cố định</option><option value="role_members">Thành viên vai trò</option><option value="form_user_field">Người dùng từ trường biểu mẫu</option></select></label>
                                 @if(($stage['resolver_key'] ?? 'fixed_users') === 'fixed_users')<label class="text-sm font-medium text-slate-700 md:col-span-2">Người được phê duyệt<select wire:model="stages.{{ $stageIndex }}.resolver_user_ids" multiple size="6" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">@foreach($approverUsers as $approverUser)<option value="{{ $approverUser->id }}">{{ $approverUser->name }} · {{ $approverUser->email }}</option>@endforeach</select><span class="mt-1 block text-xs font-normal text-slate-500">Giữ Ctrl/Cmd để chọn nhiều người. Với chế độ “Một người duyệt”, chỉ chọn một tài khoản.</span></label>@error('stages.'.$stageIndex.'.resolver_user_ids')<p class="text-sm text-red-600 md:col-span-2">Vui lòng chọn ít nhất một người phê duyệt.</p>@enderror
                                 @else<details class="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3"><summary class="cursor-pointer text-sm font-semibold text-slate-700">Cấu hình nâng cao · Bộ phân giải JSON</summary><label class="mt-3 block text-sm font-medium text-slate-700">JSON<textarea wire:model="stages.{{ $stageIndex }}.resolver_config_json" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm"></textarea></label></details>@error('stages.'.$stageIndex.'.resolver_config_json')<p class="text-sm text-red-600 md:col-span-2">{{ $message }}</p>@enderror @endif
                                 <label class="text-sm font-medium text-slate-700 md:col-span-2">Hướng dẫn<textarea wire:model="stages.{{ $stageIndex }}.instructions" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"></textarea></label><label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="stages.{{ $stageIndex }}.allow_reassignment" class="h-4 w-4 rounded border-slate-300"> Cho phép giao lại</label>
                             </div>
-                            <fieldset class="mt-5 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4"><legend class="px-2 text-sm font-semibold text-indigo-900">SLA & quá hạn</legend><p class="mb-4 text-xs leading-5 text-slate-600">Thời gian được tính trong backend theo UTC. Người dùng nhìn thấy thời gian theo Giờ Việt Nam (GMT+7).</p><div class="grid gap-4 lg:grid-cols-3">@foreach([['key'=>'sla','label'=>'Thời hạn xử lý'],['key'=>'warning','label'=>'Cảnh báo trước hạn'],['key'=>'grace','label'=>'Thời gian gia hạn']] as $slaField)<label class="text-sm font-medium text-slate-700">{{ $slaField['label'] }}<div class="mt-1 grid grid-cols-[1fr_auto] gap-2"><input wire:model="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_value" type="number" min="0" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2"><select wire:model="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_unit" class="min-h-11 rounded-lg border border-slate-300 bg-white px-2 py-2"><option value="minutes">phút</option><option value="hours">giờ</option><option value="days">ngày</option></select></div></label>@endforeach</div><div class="mt-4 grid gap-2 sm:grid-cols-2"><label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="stages.{{ $stageIndex }}.suspend_on_overdue"> Tạm dừng khi quá hạn</label><label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="stages.{{ $stageIndex }}.email_notification_enabled"> Gửi email khi đến lượt duyệt</label></div><p class="mt-3 text-xs font-medium text-indigo-800">SLA không tự động phê duyệt hoặc từ chối đề nghị.</p></fieldset>
+                            <fieldset class="mt-5 min-w-0 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                                <legend class="px-2 text-sm font-semibold text-indigo-900">SLA & quá hạn</legend>
+                                <p class="mb-4 text-xs leading-5 text-slate-600">Thời gian được tính trong backend theo UTC và hiển thị theo {{ config('app.timezone') }}. Thời lượng tối đa là 365 ngày.</p>
+
+                                @php($timeoutAction = $stage['timeout_action'] ?? 'notify_only')
+                                @php($warningConfigured = is_numeric($stage['warning_value'] ?? null) && (float) $stage['warning_value'] > 0)
+                                <div class="grid min-w-0 gap-4 md:grid-cols-2">
+                                    @foreach([
+                                        ['key' => 'sla', 'label' => 'Thời hạn xử lý', 'required' => true],
+                                        ['key' => 'warning', 'label' => 'Cảnh báo trước hạn', 'required' => false],
+                                        ['key' => 'grace', 'label' => 'Thời gian gia hạn', 'required' => false],
+                                    ] as $slaField)
+                                        @php($unit = $stage[$slaField['key'].'_unit'] ?? 'hours')
+                                        @php($maxValue = match ($unit) { 'days' => 365, 'hours' => 8760, default => 525600 })
+                                        @php($disabled = $slaField['key'] === 'grace' && $timeoutAction !== 'suspend')
+                                        <label class="min-w-0 text-sm font-medium text-slate-700">
+                                            {{ $slaField['label'] }}{{ $slaField['required'] ? ' *' : '' }}
+                                            <div class="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(5rem,auto)] gap-2">
+                                                <input
+                                                    wire:model.blur="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_value"
+                                                    type="number"
+                                                    min="0"
+                                                    max="{{ $maxValue }}"
+                                                    step="1"
+                                                    @disabled($disabled)
+                                                    class="min-h-11 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-100"
+                                                >
+                                                <select
+                                                    wire:model.live="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_unit"
+                                                    @disabled($disabled)
+                                                    class="min-h-11 min-w-20 rounded-lg border border-slate-300 bg-white px-2 py-2 disabled:bg-slate-100"
+                                                >
+                                                    <option value="minutes">phút</option>
+                                                    <option value="hours">giờ</option>
+                                                    <option value="days">ngày</option>
+                                                </select>
+                                            </div>
+                                            @error('stages.'.$stageIndex.'.'.$slaField['key'].'_value')
+                                                <span class="mt-1 block text-xs font-medium text-red-600">
+                                                    @if($slaField['key'] === 'sla') Thời hạn xử lý phải lớn hơn 0 và không vượt quá 365 ngày.
+                                                    @elseif($slaField['key'] === 'warning') Cảnh báo phải từ 0 đến thời hạn xử lý.
+                                                    @else Thời gian gia hạn phải từ 0 đến 365 ngày.
+                                                    @endif
+                                                </span>
+                                            @enderror
+                                            @if($slaField['key'] === 'warning')<span class="mt-1 block text-xs font-normal text-slate-500">Để trống hoặc nhập 0 nếu không cần cảnh báo trước hạn.</span>@endif
+                                        </label>
+                                    @endforeach
+                                </div>
+
+                                <label class="mt-4 block text-sm font-medium text-slate-700">
+                                    Hành vi sau khi quá hạn
+                                    <select wire:model.live="stages.{{ $stageIndex }}.timeout_action" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                                        <option value="notify_only">Chỉ đánh dấu quá hạn, vẫn cho phép xử lý</option>
+                                        <option value="suspend">Tạm dừng sau khi hết thời gian gia hạn</option>
+                                    </select>
+                                    @error('stages.'.$stageIndex.'.timeout_action')<span class="mt-1 block text-xs font-medium text-red-600">Hãy chọn một hành vi quá hạn hợp lệ.</span>@enderror
+                                </label>
+
+                                <div class="mt-4 rounded-xl border border-slate-200 bg-white/80 p-3">
+                                    <div class="text-sm font-semibold text-slate-800">Thông báo email</div>
+                                    <p class="mt-1 text-xs leading-5 text-slate-600">Khi tắt email, thông báo trong ứng dụng vẫn được tạo.</p>
+                                    <div class="mt-2 grid gap-2 md:grid-cols-2">
+                                        <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_assignment" class="h-4 w-4 rounded border-slate-300"> Khi đến lượt duyệt</label>
+                                        <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_decision" class="h-4 w-4 rounded border-slate-300"> Kết quả xử lý cho người đề nghị</label>
+                                        <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700 md:col-span-2"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_sla_warning" @disabled(! $warningConfigured) class="h-4 w-4 rounded border-slate-300 disabled:opacity-50"> Cảnh báo SLA cho người duyệt</label>
+                                    </div>
+                                </div>
+
+                                @error('stages')<p class="mt-3 text-xs font-medium text-red-600">Cấu hình SLA chưa hợp lệ. Hãy kiểm tra thời hạn, cảnh báo và hành vi quá hạn.</p>@enderror
+                                <p class="mt-3 text-xs font-medium text-indigo-800">SLA không tự động phê duyệt hoặc từ chối đề nghị.</p>
+                            </fieldset>
                         </article>
                     @empty<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">Chưa có cấp phê duyệt.</div>@endforelse
                 </div>

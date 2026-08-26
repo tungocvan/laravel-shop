@@ -90,6 +90,34 @@ class RequestDefinitionServiceTest extends RequestDefinitionTestCase
         $this->assertDatabaseHas('request_outbox_messages', ['event_key' => 'request.type.retired.v1']);
     }
 
+    public function test_save_draft_rejects_unsafe_sla_combinations_at_the_service_boundary(): void
+    {
+        $actorId = $this->user('SLA publisher');
+        $invalidStages = [
+            ['sla_minutes' => 525601, 'warning_minutes_before' => null, 'grace_minutes' => 0, 'timeout_action' => 'notify_only'],
+            ['sla_minutes' => 60, 'warning_minutes_before' => 61, 'grace_minutes' => 0, 'timeout_action' => 'notify_only'],
+            ['sla_minutes' => 60, 'warning_minutes_before' => 15, 'grace_minutes' => 30, 'timeout_action' => 'notify_only'],
+            ['sla_minutes' => null, 'warning_minutes_before' => null, 'grace_minutes' => 0, 'timeout_action' => 'suspend'],
+        ];
+
+        foreach ($invalidStages as $index => $invalidSla) {
+            $group = app(CreateRequestGroup::class)->handle(['code' => 'SLA'.$index.uniqid(), 'name' => 'SLA'], $actorId);
+            $type = app(CreateRequestType::class)->handle(['request_group_id' => $group->id, 'code' => 'SLA_TYPE'.$index.uniqid(), 'name' => 'SLA type'], $actorId);
+            $draft = $this->validDraft($actorId);
+            $draft['stages'][0] += $invalidSla;
+
+            try {
+                app(SaveTypeDraft::class)->handle($type, $draft, $actorId, 1);
+                $this->fail('Unsafe SLA configuration must be rejected.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('stages', $exception->errors());
+            }
+
+            $this->assertSame(0, $type->activeDraft->stages()->count());
+            $this->assertSame(1, $type->refresh()->lock_version);
+        }
+    }
+
     private function publishedType(): array
     {
         $actorId = $this->user('Publisher '.uniqid());

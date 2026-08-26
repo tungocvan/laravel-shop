@@ -1,6 +1,6 @@
 # Request UX Phase 2 — Final Acceptance
 
-Status: **PHASE 2.14 FINAL ACCEPTANCE PASSED**  
+Status: **PHASE 2.14 CORRECTIVE AUDIT IN PROGRESS**  
 Checkpoint: `feat/request-ux-phase-2-reports-exports` / `9698c8a8`  
 Audit branch: `feat/request-ux-phase-2-final-acceptance-audit`
 
@@ -21,7 +21,7 @@ Audit branch: `feat/request-ux-phase-2-final-acceptance-audit`
 | 2.11 | Definition package | `RequestDefinitionPackageWorkspaceContractTest` | Implemented |
 | 2.12 | Operations and recovery | `RequestOperationsWorkspaceContractTest` | Implemented / gates passed |
 | 2.13 | Reports and exports | `RequestReportsExportWorkspaceContractTest`, export feature tests | Implemented / gates passed |
-| 2.14 | Cross-slice final acceptance | `RequestUxPhaseTwoFinalAcceptanceContractTest` | Implemented / gates passed |
+| 2.14 | Cross-slice final acceptance | `RequestUxPhaseTwoFinalAcceptanceContractTest` | Corrective audit in progress |
 
 ## Verified checkpoint evidence
 
@@ -46,14 +46,24 @@ The final cross-slice review found and hardened:
 
 ## Final gate evidence
 
+The first UI smoke passed the planned Phase 2.14 scenarios. A follow-up inspection then found that the visible SLA controls did not all map to the persisted stage contract:
+
+- `email_notification_enabled` did not control `email_on_assignment`, so clearing the checkbox could still leave assignment email enabled;
+- `suspend_on_overdue` did not control the runtime `timeout_action`;
+- the role resolver option used the unregistered key `fixed_role` instead of `role_members`;
+- the compact three-column duration layout could overflow the designer content column;
+- the readiness summary counted any stage as ready without validating the resolver and SLA configuration.
+
+PR #37 is therefore reopened for a corrective audit. The correction must prove persisted notification preferences, UTC SLA boundaries, idempotent enforcement, suspension safety, responsive layout, and Request-only regression before final acceptance is restored.
+
 | Gate | Result |
 |---|---|
-| Phase 2.14 focused contracts | PASS — 6 tests, 97 assertions |
-| Full Request module regression | PASS — 103 tests, 5336 assertions |
-| Manual Request UI smoke | PASS |
-| Git working tree | PASS — clean and tracking the audit branch |
+| Corrective focused tests | PENDING |
+| Full Request module regression | PENDING (previous evidence: 103 tests, 5336 assertions) |
+| Corrective manual Request UI smoke | PENDING |
+| Git working tree | PENDING |
 | Review branch | `feat/request-ux-phase-2-final-acceptance-audit` |
 
-Phase 2.14 is complete. The branch is ready for pull-request review; no merge is implied by this evidence record.
+Phase 2.14 remains open until all corrective gates pass. No merge is implied by the earlier evidence record.
 
 Production enablement and operational readiness remain governed by `IMPLEMENTATION_RUNBOOK.md` and `RELEASE_RUNBOOK.md`.
