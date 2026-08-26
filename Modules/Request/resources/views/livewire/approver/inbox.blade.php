@@ -1,5 +1,7 @@
 <div class="mx-auto max-w-6xl space-y-5">
-    @include('Request::partials.workspace-navigation')
+    @if($requestGuard === 'admin')
+        @include('Request::partials.workspace-navigation')
+    @endif
 
     <header>
         <h1 class="text-2xl font-bold text-gray-900">{{ __('Request::request.inbox.title') }}</h1>
@@ -99,9 +101,13 @@
                 @endif
 
                 <div class="mt-4 flex justify-end border-t border-gray-100 pt-4">
-                    <a href="{{ route('request.show', $request->public_id) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold {{ $isPending ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
-                        {{ $isPending ? 'Xem và xử lý' : 'Xem lịch sử' }} →
-                    </a>
+                    @if($showRouteName)
+                        <a href="{{ route($showRouteName, $request->public_id) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold {{ $isPending ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
+                            {{ $isPending ? 'Xem và xử lý' : 'Xem lịch sử' }} →
+                        </a>
+                    @else
+                        <span class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-500">Chi tiết sẽ mở ở bước tiếp theo</span>
+                    @endif
                 </div>
             </article>
         @empty

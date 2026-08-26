@@ -49,25 +49,40 @@ final class RequestApplicationController extends Controller
 
     public function catalog(ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
     {
-        return $this->requesterView('catalog', $registry, $settings);
+        return $this->applicationView('catalog', $registry, $settings);
     }
 
     public function create(string $typePublicId, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
     {
-        return $this->requesterView('create', $registry, $settings, compact('typePublicId'));
+        return $this->applicationView('create', $registry, $settings, compact('typePublicId'));
     }
 
     public function mine(ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
     {
-        return $this->requesterView('mine', $registry, $settings);
+        return $this->applicationView('mine', $registry, $settings);
     }
 
     public function show(string $requestPublicId, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
     {
-        return $this->requesterView('show', $registry, $settings, compact('requestPublicId'));
+        return $this->applicationView('show', $registry, $settings, compact('requestPublicId'));
     }
 
-    private function requesterView(string $view, ApplicationRegistry $registry, ClientPortalSettingsService $settings, array $data = []): View
+    public function inbox(ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->applicationView('inbox', $registry, $settings, ['initialView' => 'pending']);
+    }
+
+    public function processed(ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->applicationView('inbox', $registry, $settings, ['initialView' => 'processed']);
+    }
+
+    public function approvalShow(string $requestPublicId, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->applicationView('approval-show', $registry, $settings, compact('requestPublicId'));
+    }
+
+    private function applicationView(string $view, ApplicationRegistry $registry, ClientPortalSettingsService $settings, array $data = []): View
     {
         $application = $registry->find('request');
         abort_if($application === null, 404);

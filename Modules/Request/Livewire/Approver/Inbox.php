@@ -3,22 +3,32 @@
 namespace Modules\Request\Livewire\Approver;
 
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Request\Application\Queries\ApproverInboxQuery;
+use Modules\Request\Authorization\RequestAuthorizationContext;
+use Modules\Request\Livewire\Concerns\InteractsWithRequestAuthorization;
 use Modules\Request\Models\RequestTask;
 
 class Inbox extends Component
 {
+    use InteractsWithRequestAuthorization;
     use WithPagination;
 
     public string $search = '';
 
+    #[Url(except: 'pending')]
     public string $view = 'pending';
 
     public string $decision = 'all';
 
     public int $perPage = 25;
+
+    public function mount(RequestAuthorizationContext $context): void
+    {
+        $this->initializeRequestAuthorization($context);
+    }
 
     public function updated(string $property): void
     {
@@ -50,15 +60,17 @@ class Inbox extends Component
         $this->resetPage();
     }
 
-    public function render(ApproverInboxQuery $query)
+    public function render(ApproverInboxQuery $query, RequestAuthorizationContext $context)
     {
-        Gate::authorize('viewAny', RequestTask::class);
-        $userId = (int) auth('admin')->id();
+        $user = $this->requestActor($context);
+        Gate::forUser($user)->authorize('viewAny', RequestTask::class);
+        $userId = (int) $user->getAuthIdentifier();
 
         return view('Request::livewire.approver.inbox', [
             'tasks' => $query->paginate($userId, $this->search, $this->perPage, $this->view, $this->decision),
             'workload' => $query->workloadSummary($userId),
             'processedSummary' => $query->processedSummary($userId),
+            'showRouteName' => $this->requestGuard === 'web' ? 'client.request.approval.show' : 'request.show',
         ]);
     }
 }
