@@ -140,6 +140,7 @@ class RequestClientApplicationTest extends TestCase
         $commentView = file_get_contents(base_path('Modules/Request/resources/views/livewire/requester/comment-composer.blade.php'));
         $policy = file_get_contents(base_path('Modules/Request/Policies/RequestCommentPolicy.php'));
         $profiles = app(ApplicationPermissionService::class)->profiles();
+        $translations = require base_path('Modules/Request/resources/lang/vi/request.php');
 
         $this->assertStringContainsString('request.requester.comment-composer', $detailView);
         $this->assertStringContainsString(':request-version="$request->lock_version"', $detailView);
@@ -149,7 +150,8 @@ class RequestClientApplicationTest extends TestCase
         $this->assertStringContainsString("Gate::forUser(\$user)->authorize('view', \$request)", $component);
         $this->assertStringContainsString("\$this->dispatch('request-version-changed'", $component);
         $this->assertStringContainsString('Trao đổi', $commentView);
-        $this->assertStringContainsString('Gửi bình luận', $commentView);
+        $this->assertStringContainsString("__('Request::request.post_comment')", $commentView);
+        $this->assertSame('Gửi bình luận', $translations['post_comment']);
         $this->assertStringContainsString("request.comment.create", $policy);
         $this->assertStringContainsString('InternalRequestPolicy', $policy);
         $this->assertContains('request.comment.create', $profiles['requester']['permissions']);
