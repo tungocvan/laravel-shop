@@ -45,8 +45,16 @@ class RequestStarterTemplateSeeder extends Seeder
                 continue;
             }
 
+            $typeGroup = $group;
+            if (is_array($template['group'] ?? null)) {
+                $typeGroup = RequestGroup::query()->where('code', $template['group']['code'])->first();
+                if ($typeGroup === null) {
+                    $typeGroup = app(CreateRequestGroup::class)->handle($template['group'], $actorId);
+                }
+            }
+
             $type = app(CreateRequestType::class)->handle([
-                'request_group_id' => $group->id,
+                'request_group_id' => $typeGroup->id,
                 'code' => $template['code'],
                 'name' => $template['name'],
                 'summary' => $template['summary'],
@@ -62,12 +70,19 @@ class RequestStarterTemplateSeeder extends Seeder
                 'audiences' => [['actor_type' => 'user', 'actor_id' => $actorId, 'capability' => 'create']],
                 'stages' => [[
                     'stage_key' => 'approval',
-                    'name' => 'Phê duyệt',
+                    'name' => $template['approval_stage_name'] ?? 'Phê duyệt',
                     'position' => 1,
                     'mode' => 'single',
                     'resolver_key' => 'fixed_users',
                     'resolver_config_json' => ['user_ids' => [$approverId]],
                     'allow_reassignment' => true,
+                    'sla_minutes' => 1440,
+                    'warning_minutes_before' => 240,
+                    'grace_minutes' => 0,
+                    'timeout_action' => 'notify_only',
+                    'email_on_assignment' => true,
+                    'email_on_decision' => true,
+                    'email_on_sla_warning' => true,
                 ]],
             ], $actorId, 1);
         }
@@ -116,15 +131,72 @@ class RequestStarterTemplateSeeder extends Seeder
             ],
             [
                 'code' => 'EXPENSE_REIMBURSEMENT',
-                'name' => 'Đề nghị thanh toán / hoàn ứng',
-                'summary' => 'Mẫu thanh toán chi phí với số tiền, nội dung và thông tin chứng từ.',
-                'description' => 'Mẫu tài chính dựng sẵn; có thể bổ sung attachment hoặc thêm cấp duyệt tài chính trước khi phát hành.',
-                'guidance' => 'Nhập số tiền, nội dung chi và thông tin chứng từ liên quan.',
-                'schema' => $this->schema([
-                    ['key' => 'expense_subject', 'type' => 'text', 'label' => 'Nội dung chi', 'required' => true],
-                    ['key' => 'amount', 'type' => 'currency', 'label' => 'Số tiền', 'required' => true],
-                    ['key' => 'expense_date', 'type' => 'date', 'label' => 'Ngày phát sinh', 'required' => true],
-                    ['key' => 'invoice_note', 'type' => 'textarea', 'label' => 'Thông tin chứng từ', 'required' => false],
+                'name' => 'Đề xuất tạm ứng chi phí',
+                'summary' => 'Một biểu mẫu dùng chung cho tiếp khách, công tác, bán hàng, marketing, sự kiện và các chi phí kinh doanh khác.',
+                'description' => 'Đề xuất xin phê duyệt và tạm ứng trước khi phát sinh chi phí của Phòng Kinh doanh.',
+                'guidance' => 'Chọn nhóm chi phí, trình bày mục đích, thời gian, dự toán và kế hoạch hoàn ứng. Đính kèm báo giá hoặc kế hoạch nếu có.',
+                'approval_stage_name' => 'Phê duyệt đề xuất tạm ứng',
+                'group' => [
+                    'code' => 'SALES',
+                    'name' => 'Phòng Kinh doanh',
+                    'description' => 'Các đề xuất phục vụ hoạt động bán hàng, chăm sóc khách hàng và phát triển thị trường.',
+                ],
+                'schema' => $this->sectionedSchema([
+                    [
+                        'key' => 'proposal_overview',
+                        'label' => 'Thông tin đề xuất',
+                        'fields' => [
+                            ['key' => 'proposal_title', 'type' => 'text', 'label' => 'Tiêu đề đề xuất', 'required' => true, 'validation' => ['max_length' => 200], 'help' => 'Ví dụ: Tạm ứng chi phí tiếp khách Công ty ABC tháng 9/2026.'],
+                            ['key' => 'expense_category', 'type' => 'select', 'label' => 'Nhóm chi phí', 'required' => true, 'options' => [
+                                ['key' => 'customer_entertainment', 'label' => 'Chi phí tiếp khách'],
+                                ['key' => 'business_trip', 'label' => 'Chi phí đi công tác'],
+                                ['key' => 'sales', 'label' => 'Chi phí bán hàng'],
+                                ['key' => 'marketing', 'label' => 'Marketing / quảng cáo'],
+                                ['key' => 'event', 'label' => 'Hội nghị / sự kiện'],
+                                ['key' => 'sample_or_gift', 'label' => 'Hàng mẫu / quà tặng'],
+                                ['key' => 'transport', 'label' => 'Giao nhận / vận chuyển'],
+                                ['key' => 'other', 'label' => 'Chi phí khác'],
+                            ]],
+                            ['key' => 'other_expense_category', 'type' => 'text', 'label' => 'Tên nhóm chi phí khác', 'required' => true, 'validation' => ['max_length' => 200], 'visible_when' => ['field' => 'expense_category', 'operator' => 'equals', 'value' => 'other']],
+                            ['key' => 'purpose', 'type' => 'textarea', 'label' => 'Mục đích và lý do đề xuất', 'required' => true, 'validation' => ['max_length' => 2000], 'help' => 'Nêu bối cảnh, đối tượng phục vụ và lý do cần tạm ứng.'],
+                            ['key' => 'expected_result', 'type' => 'textarea', 'label' => 'Kết quả / hiệu quả mong đợi', 'required' => false, 'validation' => ['max_length' => 2000]],
+                        ],
+                    ],
+                    [
+                        'key' => 'expense_plan',
+                        'label' => 'Kế hoạch và dự toán chi phí',
+                        'fields' => [
+                            ['key' => 'sales_team', 'type' => 'text', 'label' => 'Đơn vị / nhóm thuộc Phòng Kinh doanh', 'required' => true, 'validation' => ['max_length' => 150]],
+                            ['key' => 'needed_on', 'type' => 'date', 'label' => 'Ngày cần nhận tiền', 'required' => true],
+                            ['key' => 'expense_from', 'type' => 'date', 'label' => 'Dự kiến chi từ ngày', 'required' => true],
+                            ['key' => 'expense_to', 'type' => 'date', 'label' => 'Dự kiến chi đến ngày', 'required' => true],
+                            ['key' => 'advance_amount_vnd', 'type' => 'integer', 'label' => 'Số tiền đề nghị tạm ứng (VND)', 'required' => true, 'validation' => ['min' => 1, 'max' => 1000000000000]],
+                            ['key' => 'budget_status', 'type' => 'select', 'label' => 'Tình trạng ngân sách', 'required' => true, 'options' => [
+                                ['key' => 'planned', 'label' => 'Đã có trong ngân sách / kế hoạch'],
+                                ['key' => 'unplanned', 'label' => 'Ngoài ngân sách / phát sinh'],
+                            ]],
+                            ['key' => 'cost_breakdown', 'type' => 'textarea', 'label' => 'Chi tiết các hạng mục và dự toán', 'required' => true, 'validation' => ['max_length' => 4000], 'help' => 'Liệt kê từng hạng mục, số lượng, đơn giá và thành tiền dự kiến.'],
+                        ],
+                    ],
+                    [
+                        'key' => 'payment_and_settlement',
+                        'label' => 'Nhận tiền và hoàn ứng',
+                        'fields' => [
+                            ['key' => 'advance_recipient', 'type' => 'text', 'label' => 'Người nhận tạm ứng', 'required' => true, 'validation' => ['max_length' => 200]],
+                            ['key' => 'payment_method', 'type' => 'select', 'label' => 'Hình thức nhận tiền', 'required' => true, 'options' => [
+                                ['key' => 'bank_transfer', 'label' => 'Chuyển khoản'],
+                                ['key' => 'cash', 'label' => 'Tiền mặt'],
+                            ]],
+                            ['key' => 'bank_information', 'type' => 'textarea', 'label' => 'Thông tin tài khoản nhận tiền', 'required' => true, 'validation' => ['max_length' => 500], 'visible_when' => ['field' => 'payment_method', 'operator' => 'equals', 'value' => 'bank_transfer'], 'help' => 'Ghi chủ tài khoản, số tài khoản và ngân hàng.'],
+                            ['key' => 'previous_advance_status', 'type' => 'select', 'label' => 'Tình trạng khoản tạm ứng trước', 'required' => true, 'options' => [
+                                ['key' => 'none', 'label' => 'Không có khoản tạm ứng trước'],
+                                ['key' => 'settled', 'label' => 'Đã hoàn ứng đầy đủ'],
+                                ['key' => 'outstanding', 'label' => 'Còn khoản chưa hoàn ứng'],
+                            ]],
+                            ['key' => 'settlement_due_on', 'type' => 'date', 'label' => 'Ngày dự kiến hoàn ứng', 'required' => true],
+                            ['key' => 'supporting_documents', 'type' => 'attachment', 'label' => 'Báo giá, kế hoạch hoặc tài liệu liên quan', 'required' => false, 'classification' => 'confidential', 'offline_draft' => false, 'validation' => ['max_count' => 5], 'help' => 'Có thể tải lần lượt tối đa 5 tệp: PDF, PNG, JPG, DOCX hoặc XLSX; mỗi tệp tối đa 10 MB.'],
+                        ],
+                    ],
                 ]),
             ],
         ];
@@ -132,16 +204,25 @@ class RequestStarterTemplateSeeder extends Seeder
 
     private function schema(array $fields): array
     {
+        return $this->sectionedSchema([[
+            'key' => 'details',
+            'label' => 'Thông tin đề nghị',
+            'fields' => $fields,
+        ]]);
+    }
+
+    private function sectionedSchema(array $sections): array
+    {
         return [
             'schema_version' => 1,
-            'sections' => [[
-                'key' => 'details',
-                'label' => 'Thông tin đề nghị',
-                'fields' => array_map(fn (array $field): array => $field + [
+            'sections' => array_map(function (array $section): array {
+                $section['fields'] = array_map(fn (array $field): array => $field + [
                     'classification' => 'internal',
                     'offline_draft' => true,
-                ], $fields),
-            ]],
+                ], (array) ($section['fields'] ?? []));
+
+                return $section;
+            }, $sections),
         ];
     }
 }
