@@ -53,6 +53,12 @@
         @endforeach
     </section>
 
+    <livewire:request.requester.comment-composer
+        :request-public-id="$request->public_id"
+        :request-version="$request->lock_version"
+        :key="'client-approval-comments-'.$request->public_id"
+    />
+
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <h2 class="text-lg font-bold text-slate-900">Thông tin phê duyệt</h2>
         <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
