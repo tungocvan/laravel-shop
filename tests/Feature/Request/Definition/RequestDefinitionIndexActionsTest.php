@@ -36,6 +36,8 @@ class RequestDefinitionIndexActionsTest extends RequestDefinitionTestCase
             ->test(DefinitionIndex::class)
             ->call('prepareDuplicate', $source->public_id)
             ->assertSet('duplicateSourcePublicId', $source->public_id)
+            ->assertSeeHtml('role="dialog"')
+            ->assertSeeHtml('aria-modal="true"')
             ->set('duplicateCode', 'DUPLICATE_UI_COPY')
             ->set('duplicateName', 'Duplicate UI copy')
             ->call('duplicateType')

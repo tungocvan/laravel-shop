@@ -37,22 +37,24 @@
     </section>
 
     @if($duplicateSourcePublicId)
-        <section class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5" aria-labelledby="duplicate-type-heading">
-            <h2 id="duplicate-type-heading" class="text-lg font-bold text-slate-900">Nhân bản thành loại đề nghị mới</h2>
-            <p class="mt-1 text-sm text-slate-600">Bản sao luôn bắt đầu ở v1 bản nháp và không tự phát hành.</p>
-            @if($errors->hasAny(['duplicateGroupId', 'duplicateCode', 'duplicateName', 'duplicateAudience', 'duplicateType']))
-                <div class="mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
-                    Không thể tạo bản sao. Vui lòng kiểm tra các trường được đánh dấu bên dưới.
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="presentation">
+            <section role="dialog" aria-modal="true" aria-labelledby="duplicate-type-heading" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-indigo-200 bg-white p-5 shadow-2xl sm:p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div><h2 id="duplicate-type-heading" class="text-lg font-bold text-slate-900">Nhân bản thành loại đề nghị mới</h2><p class="mt-1 text-sm text-slate-600">Bản sao luôn bắt đầu ở v1 bản nháp và không tự phát hành.</p></div>
+                    <button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-600" aria-label="Đóng cửa sổ nhân bản">Đóng</button>
                 </div>
-            @endif
-            <form wire:submit="duplicateType" class="mt-4 grid gap-3 md:grid-cols-2">
-                <label class="text-sm font-medium">Nhóm<select wire:model="duplicateGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select>@error('duplicateGroupId')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
-                <label class="text-sm font-medium">Mã mới<input wire:model="duplicateCode" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@error('duplicateCode')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
-                <label class="text-sm font-medium md:col-span-2">Tên mới<input wire:model="duplicateName" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@error('duplicateName')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
-                @if(auth('admin')->user()?->can('request.type.audience.manage'))<label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" wire:model="duplicateAudience" class="rounded border-slate-300"> Sao chép đối tượng được phép tạo đề nghị</label>@endif
-                <div class="flex gap-2 md:col-span-2"><button type="submit" wire:loading.attr="disabled" wire:target="duplicateType" class="min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:opacity-60"><span wire:loading.remove wire:target="duplicateType">Tạo bản sao</span><span wire:loading wire:target="duplicateType">Đang tạo…</span></button><button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold">Hủy</button></div>
-            </form>
-        </section>
+                @if($errors->hasAny(['duplicateGroupId', 'duplicateCode', 'duplicateName', 'duplicateAudience', 'duplicateType']))
+                    <div class="mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">Không thể tạo bản sao. Vui lòng kiểm tra các trường được đánh dấu bên dưới.</div>
+                @endif
+                <form wire:submit="duplicateType" class="mt-4 grid gap-3 md:grid-cols-2">
+                    <label class="text-sm font-medium">Nhóm<select wire:model="duplicateGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select>@error('duplicateGroupId')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
+                    <label class="text-sm font-medium">Mã mới<input wire:model="duplicateCode" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@error('duplicateCode')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
+                    <label class="text-sm font-medium md:col-span-2">Tên mới<input wire:model="duplicateName" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@error('duplicateName')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
+                    @if(auth('admin')->user()?->can('request.type.audience.manage'))<label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" wire:model="duplicateAudience" class="rounded border-slate-300"> Sao chép đối tượng được phép tạo đề nghị</label>@endif
+                    <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end md:col-span-2"><button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold">Hủy</button><button type="submit" wire:loading.attr="disabled" wire:target="duplicateType" class="min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:opacity-60"><span wire:loading.remove wire:target="duplicateType">Tạo bản sao</span><span wire:loading wire:target="duplicateType">Đang tạo…</span></button></div>
+                </form>
+            </section>
+        </div>
     @endif
 
     <section aria-labelledby="definition-filter-heading" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
