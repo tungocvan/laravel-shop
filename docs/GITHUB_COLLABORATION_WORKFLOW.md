@@ -187,6 +187,43 @@ Nếu task có UI, kiểm tra tối thiểu:
 - không lỗi Livewire quan trọng
 - browser console không có lỗi quan trọng
 
+### 10.1 Admin UI/UX standard bắt buộc
+
+Mọi task có liên quan tới giao diện Admin — gồm tạo mới, sửa, refactor, review hoặc acceptance UI — **bắt buộc phải đọc và tuân thủ**:
+
+```text
+.codex/standards/ADMIN_UI_STANDARD.md
+```
+
+Đây là canonical Admin UI/UX standard của repository. AI không được tự tạo một design system riêng cho từng Module khi repository đã có chuẩn hoặc shared component tương ứng.
+
+Trước khi sửa Admin UI, AI phải:
+
+1. đọc `.codex/standards/ADMIN_UI_STANDARD.md`
+2. đọc layout/shell và shared components thực tế đang được dùng
+3. kiểm tra UI hiện tại của Module và các Module tương đồng khi cần
+4. xác định component/pattern nào phải reuse trước khi tạo mới
+5. giữ đúng ownership giữa Admin shell và feature view
+
+Các nguyên tắc bắt buộc gồm:
+
+- dùng canonical admin layout hiện hành, ví dụ `Admin::layouts.master` khi applicable
+- ưu tiên workspace-first cho màn hình nhiều chức năng; không dàn tất cả chức năng thành chuỗi card dài nếu không cần
+- page Blade chỉ là shell; interactive feature UI thuộc Livewire Blade
+- ưu tiên class-based Livewire và không đặt business logic/query DB trong Blade
+- reuse shared inputs, searchable select, modal, pagination, status badge, upload, import/export và các component chuẩn khi đã tồn tại
+- form control phải có boundary/focus/error/disabled/read-only state rõ ràng; không dùng borderless input làm mặc định
+- dataset lớn phải pagination có giới hạn; không dùng `All` không giới hạn
+- destructive action phải permission-aware và confirmation rõ ràng
+- loading/disabled state phải ngăn double-submit với mutation có thể mất thời gian
+- responsive và accessibility là acceptance criteria, không phải phần tùy chọn
+- không hardcode width/spacing của Sidebar/Header/Footer trong feature view; Admin shell sở hữu layout tổng thể
+- không thực hiện global frontend migration ngoài phạm vi chỉ để hoàn thành một Module
+
+Khi UI có thay đổi đáng kể, trước khi đánh dấu hoàn tất phải kiểm tra actual rendered UI ở representative desktop và mobile widths. Phải đánh giá tối thiểu: visual hierarchy, spacing, content width, form/table usability, sidebar/shell balance, responsive behavior, overflow, loading/error states và action visibility.
+
+Nếu tài liệu UI cũ của Module mâu thuẫn với `.codex/standards/ADMIN_UI_STANDARD.md`, phải đối chiếu source/shared components hiện tại; canonical standard và repository reality được ưu tiên hơn generic hoặc historical UI guidance.
+
 ## 11. Git working tree
 
 Sau runtime operation có khả năng ghi file, phải kiểm tra:
@@ -340,6 +377,7 @@ Chỉ merge khi các gate applicable đã PASS:
 - module regression
 - full regression
 - manual UI smoke
+- Admin UI standard acceptance nếu task có Admin UI
 - Git clean
 - Docker/production check nếu liên quan
 - docs cập nhật
@@ -404,6 +442,8 @@ Sau kiểm tra quyền và trước khi thực hiện công việc, xác minh Mo
 
 Nếu dữ liệu không nhất quán, dừng để người dùng xác nhận thay vì tự phỏng đoán.
 
+Nếu working scope có Admin UI, bootstrap phải ghi nhận `.codex/standards/ADMIN_UI_STANDARD.md` là tài liệu bắt buộc và phải đọc trước khi đưa ra plan hoặc sửa UI.
+
 ### 16.4 Xác minh Module và cây fallback tài liệu
 
 Phải xác minh chính xác `Modules/<Module>` trước. Nếu không tồn tại, không tự chọn Module có tên gần giống; phải kiểm tra sai tên, chữ hoa/thường, branch thiếu source, tài liệu orphan hoặc yêu cầu tạo Module mới.
@@ -457,7 +497,7 @@ Dừng và yêu cầu xác nhận tên Module, branch hoặc đây có phải Mo
 
 1. Source code, schema và configuration hiện tại; với cơ chế Module phải đối chiếu thêm `Modules/ModuleServiceProvider.php`, `ModuleStateResolver` và runtime state repository.
 2. Branch, PR và checkpoint thực tế trên GitHub.
-3. `.codex/bootstrap/*`, standards và `ROADMAP.md`.
+3. `.codex/bootstrap/*`, `.codex/standards/*` và `ROADMAP.md`; riêng Admin UI, `.codex/standards/ADMIN_UI_STANDARD.md` là canonical UI/UX standard và phải được áp dụng cùng repository reality/shared components hiện tại.
 4. Handoff đã được kiểm chứng.
 5. Requirements/analysis/tài liệu Module.
 6. Tài liệu lịch sử hoặc kế hoạch cũ.
@@ -471,6 +511,8 @@ docs/modules/<Module>/COLLABORATION_HANDOFF.md
 ```
 
 Trước khi kết thúc feature/fix branch, cập nhật trong chính branch đó: repository/base/branch/PR/checkpoint, phạm vi hoàn thành, batch quan trọng, root cause và cách sửa, quyết định kiến trúc/phân quyền/ranh giới an toàn, migration/seeder/storage/lệnh vận hành, focused test, module regression, UI smoke, Git clean, blocker, việc còn lại và bước tiếp theo được phép.
+
+Nếu branch có Admin UI, handoff phải ghi rõ mức tuân thủ `.codex/standards/ADMIN_UI_STANDARD.md`, shared components/patterns đã reuse và kết quả kiểm tra UI desktop/mobile applicable.
 
 Chỉ ghi thông tin hữu ích để tiếp tục; không sao chép log dài. Handoff không thay thế requirements, runbook hoặc acceptance document.
 
