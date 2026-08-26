@@ -11,8 +11,9 @@ use Modules\Request\Http\Controllers\Api\V1\RequestResubmissionController;
 use Modules\Request\Http\Controllers\Api\V1\RequestSubmissionController;
 use Modules\Request\Http\Controllers\Api\V1\RequestTaskReassignmentController;
 use Modules\Request\Http\Controllers\RequestAttachmentController;
+use Modules\Request\Http\Middleware\UseRequestAuthorizationGuard;
 
-Route::middleware('auth:sanctum')->prefix('request/v1')->name('request.api.v1.')->group(function (): void {
+Route::middleware(['auth:sanctum', UseRequestAuthorizationGuard::class.':admin'])->prefix('request/v1')->name('request.api.v1.')->group(function (): void {
     Route::post('/requests/{publicId}/submit', RequestSubmissionController::class)->whereUlid('publicId')->middleware('throttle:request-submit')->name('requests.submit');
     Route::post('/requests/{publicId}/resubmit', RequestResubmissionController::class)->whereUlid('publicId')->middleware('throttle:request-submit')->name('requests.resubmit');
     Route::post('/requests/{publicId}/cancel', RequestCancellationController::class)->whereUlid('publicId')->middleware('throttle:request-submit')->name('requests.cancel');

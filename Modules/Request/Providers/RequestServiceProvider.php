@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Modules\Request\Authorization\RequestAuthorizationContext;
 use Modules\Request\Contracts\PrivateRequestFileStore;
 use Modules\Request\Contracts\RequestDefinitionPackage;
 use Modules\Request\Domain\Approval\ActorResolverConfigRegistry;
@@ -37,6 +38,7 @@ class RequestServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->scoped(RequestAuthorizationContext::class);
         $this->app->singleton(FormFieldRegistry::class);
         $this->app->singleton(ActorResolverConfigRegistry::class);
         $this->app->singleton(DefinitionCanonicalizer::class);
