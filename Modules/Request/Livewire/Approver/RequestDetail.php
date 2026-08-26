@@ -45,6 +45,7 @@ class RequestDetail extends Component
             'task' => $task,
             'values' => $values,
             'schema' => (array) $request->typeVersion->form_schema_json,
+            'canDecide' => Gate::forUser($user)->allows('decide', $task),
             'inboxRouteName' => $this->requestGuard === 'web' ? 'client.request.inbox' : 'request.inbox',
         ]);
     }
