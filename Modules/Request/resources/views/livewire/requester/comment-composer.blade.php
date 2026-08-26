@@ -1,7 +1,7 @@
 <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="request-comments-title">
     <div>
-        <h2 id="request-comments-title" class="text-lg font-bold text-slate-900">{{ __('Request::request.comments') }}</h2>
-        <p class="mt-1 text-sm text-slate-500">{{ __('Request::request.comments_help') }}</p>
+        <h2 id="request-comments-title" class="text-lg font-bold text-slate-900">Trao đổi</h2>
+        <p class="mt-1 text-sm text-slate-500">Trao đổi thông tin giữa người đề nghị và người xử lý.</p>
     </div>
 
     @if(session('request_comment_success'))
@@ -29,7 +29,7 @@
     @can('create', [\Modules\Request\Models\RequestComment::class, $request])
         <form wire:submit="add" class="mt-5 border-t border-slate-100 pt-4">
             <label for="request-comment-body" class="sr-only">{{ __('Request::request.add_comment') }}</label>
-            <textarea id="request-comment-body" wire:model="body" rows="3" maxlength="5000" placeholder="{{ __('Request::request.comment_placeholder') }}" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" aria-describedby="request-comment-error"></textarea>
+            <textarea id="request-comment-body" wire:model="body" rows="3" maxlength="5000" placeholder="Viết bình luận..." class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" aria-describedby="request-comment-error"></textarea>
             @error('body')<p id="request-comment-error" class="mt-2 text-sm text-red-600" role="alert">{{ $message }}</p>@enderror
             <button type="submit" wire:loading.attr="disabled" wire:target="add" class="mt-3 min-h-11 w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 sm:w-auto">{{ __('Request::request.post_comment') }}</button>
         </form>
