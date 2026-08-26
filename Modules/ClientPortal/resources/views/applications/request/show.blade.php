@@ -6,5 +6,7 @@
 @section('mobile-nav')@include('ClientPortal::applications.request.partials.mobile-nav')@endsection
 
 @section('content')
+    @livewireStyles
     @livewire('request.requester.request-detail', ['requestPublicId' => $requestPublicId])
+    @livewireScripts
 @endsection
