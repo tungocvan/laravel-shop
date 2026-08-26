@@ -29,7 +29,7 @@ class AttachmentManager extends Component
 
     public string $idempotencyKey;
 
-    public function mount(string $requestPublicId, int $requestVersion, ?string $fieldKey = null, RequestAuthorizationContext $context): void
+    public function mount(string $requestPublicId, int $requestVersion, RequestAuthorizationContext $context, ?string $fieldKey = null): void
     {
         $this->initializeRequestAuthorization($context);
         $this->requestPublicId = $requestPublicId;
