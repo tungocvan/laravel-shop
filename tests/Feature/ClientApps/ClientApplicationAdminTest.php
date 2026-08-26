@@ -60,7 +60,7 @@ class ClientApplicationAdminTest extends TestCase
         $this->assertStringContainsString('$user->removeRole($role)', $service);
         $this->assertStringContainsString('$user->assignRole($role)', $service);
         $this->assertStringNotContainsString('$user->syncRoles(', $service);
-        $this->assertStringContainsString('Quyền nghiệp vụ Domain', $userView);
+        $this->assertStringContainsString('Quyền trực tiếp · Domain', $userView);
         $this->assertStringContainsString('Quyền nghiệp vụ Domain', $roleView);
         $this->assertStringContainsString('guard admin được giữ nguyên', $userView);
         $this->assertStringContainsString('guard admin không bị tác động', $roleView);
