@@ -3,6 +3,7 @@
 namespace Modules\Request\Livewire\Requester;
 
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Request\Application\Queries\MyRequestsQuery;
@@ -17,6 +18,7 @@ class MyRequests extends Component
 
     public string $status = '';
 
+    #[Url(except: 'all')]
     public string $workspace = 'all';
 
     public int $perPage = 25;

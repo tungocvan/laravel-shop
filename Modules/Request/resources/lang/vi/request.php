@@ -72,8 +72,8 @@ return [
         'export_limits' => 'Xuất đồng bộ tối đa :sync dòng; trên ngưỡng này sẽ xếp hàng, tối đa :max dòng.',
         'unknown_type' => 'Loại đề nghị không xác định',
         'empty' => 'Không có đề nghị nào trong phạm vi và bộ lọc hiện tại.',
-        'export_foundation_title' => 'Nền tảng xuất dữ liệu an toàn đã sẵn sàng',
-        'export_foundation_help' => 'Checkpoint MR-09A mới thiết lập phạm vi, giới hạn và lưu trữ riêng tư. Các định dạng CSV/XLSX/PDF sẽ được kích hoạt ở checkpoint tiếp theo sau khi hoàn tất kiểm thử bảo mật.',
+        'export_foundation_title' => 'Xuất dữ liệu an toàn',
+        'export_foundation_help' => 'Tệp CSV, XLSX và PDF sử dụng phạm vi được phân quyền, lưu trữ riêng tư và thời hạn tải xuống.',
     ],
     'exports' => [
         'too_many_rows' => 'Phạm vi xuất vượt quá giới hạn :max dòng. Hãy thu hẹp bộ lọc trước khi tiếp tục.',

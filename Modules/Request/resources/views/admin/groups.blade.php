@@ -8,7 +8,7 @@
     <header class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Request administration</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Quản trị Đề nghị</p>
                 <h1 class="mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">Quản lý nhóm đề nghị</h1>
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Theo dõi cấu trúc nhóm, thứ tự hiển thị, trạng thái vận hành và các loại đề nghị đang thuộc từng nhóm.</p>
             </div>

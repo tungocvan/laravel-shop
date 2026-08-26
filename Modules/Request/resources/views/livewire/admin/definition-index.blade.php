@@ -4,7 +4,7 @@
     @endif
 
     <header class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Definition Management</div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Quản lý định nghĩa</div>
         <h1 class="mt-1 text-2xl font-bold text-slate-900">Quản lý loại đề nghị</h1>
         <p class="mt-1 max-w-3xl text-sm text-slate-600">Tạo nhóm và loại đề nghị, theo dõi trạng thái bản nháp/phát hành và mở đúng công cụ để chỉnh sửa hoặc xem lịch sử phiên bản.</p>
     </header>

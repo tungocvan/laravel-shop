@@ -25,12 +25,19 @@ class RequestEmployeeWorkspaceContractTest extends TestCase
         }
 
         $this->assertStringContainsString('workspaceCounts', $component);
+        $this->assertStringContainsString('use Livewire\\Attributes\\Url;', $component);
+        $this->assertStringContainsString("#[Url(except: 'all')]", $component);
         $this->assertStringContainsString("where('requester_id', \$userId)", $query);
         $this->assertStringContainsString("whereIn('status', ['approved', 'rejected', 'cancelled'])", $query);
         $this->assertStringContainsString('aria-label="Trạng thái đề nghị của tôi"', $view);
         $this->assertStringContainsString('min-h-11', $view);
         $this->assertStringNotContainsString('REQUEST_UI_DEMO', $view);
         $this->assertStringNotContainsString('App\\Models\\User', $component.$query);
+
+        $dashboard = file_get_contents(base_path('Modules/Request/resources/views/dashboard.blade.php'));
+        $this->assertStringContainsString("route('request.mine', ['workspace' => 'processing'])", $dashboard);
+        $this->assertStringContainsString("route('request.mine', ['workspace' => 'returned'])", $dashboard);
+        $this->assertStringNotContainsString("route('request.mine', ['status' => 'pending'])", $dashboard);
     }
 
     public function test_employee_workspace_counts_use_a_strict_sql_safe_aggregate_projection(): void

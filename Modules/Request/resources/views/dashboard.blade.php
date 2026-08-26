@@ -27,13 +27,13 @@
 
     <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Tóm tắt công việc">
         @if($capabilities['view_own'])
-            <a href="{{ route('request.mine', ['status' => 'pending']) }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300">
+            <a href="{{ route('request.mine', ['workspace' => 'processing']) }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300">
                 <div class="text-sm font-medium text-slate-600">Đề nghị đang xử lý</div>
                 <div class="mt-2 text-3xl font-bold text-slate-900">{{ number_format($ownCounts['active']) }}</div>
                 <div class="mt-2 text-xs text-slate-500">Các đề nghị của bạn đang chờ xử lý.</div>
             </a>
 
-            <a href="{{ route('request.mine', ['status' => 'returned']) }}" class="rounded-2xl border {{ $ownCounts['returned'] > 0 ? 'border-orange-300 bg-orange-50' : 'border-slate-200 bg-white' }} p-5 shadow-sm transition hover:border-orange-400">
+            <a href="{{ route('request.mine', ['workspace' => 'returned']) }}" class="rounded-2xl border {{ $ownCounts['returned'] > 0 ? 'border-orange-300 bg-orange-50' : 'border-slate-200 bg-white' }} p-5 shadow-sm transition hover:border-orange-400">
                 <div class="text-sm font-medium text-slate-600">Cần bạn bổ sung</div>
                 <div class="mt-2 text-3xl font-bold {{ $ownCounts['returned'] > 0 ? 'text-orange-700' : 'text-slate-900' }}">{{ number_format($ownCounts['returned']) }}</div>
                 <div class="mt-2 text-xs text-slate-500">Ưu tiên hoàn thiện các đề nghị đã được trả lại.</div>

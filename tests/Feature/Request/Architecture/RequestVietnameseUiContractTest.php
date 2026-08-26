@@ -37,6 +37,10 @@ class RequestVietnameseUiContractTest extends TestCase
         $reports = file_get_contents(base_path('Modules/Request/resources/views/admin/reports.blade.php'));
         $package = file_get_contents(base_path('Modules/Request/resources/views/admin/definition-package.blade.php'));
         $operations = file_get_contents(base_path('Modules/Request/resources/views/admin/operations.blade.php'));
+        $groups = file_get_contents(base_path('Modules/Request/resources/views/admin/groups.blade.php'));
+        $versions = file_get_contents(base_path('Modules/Request/resources/views/admin/versions.blade.php'));
+        $definitionIndex = file_get_contents(base_path('Modules/Request/resources/views/livewire/admin/definition-index.blade.php'));
+        $dashboardBack = file_get_contents(base_path('Modules/Request/resources/views/partials/dashboard-back.blade.php'));
         $seeder = file_get_contents(base_path('database/seeders/RequestDemoSeeder.php'));
 
         foreach ([
@@ -60,8 +64,18 @@ class RequestVietnameseUiContractTest extends TestCase
             'Request operations',
             'Retryable failures',
             'Run arbitrary command',
+            'Admin Designer',
+            'Definition Management',
+            'Request administration',
+            'Release review',
+            'Published = read-only',
+            'Bảng kiểm thử Đề nghị',
         ] as $englishCopy) {
-            $this->assertStringNotContainsString($englishCopy, $detail.$offline.$designer.$reports.$package.$operations.$seeder);
+            $this->assertStringNotContainsString($englishCopy, $detail.$offline.$designer.$reports.$package.$operations.$groups.$versions.$definitionIndex.$dashboardBack.$seeder);
+        }
+
+        foreach (['Trình thiết kế quản trị', 'Quản lý định nghĩa', 'Quản trị Đề nghị', 'Rà soát phát hành', 'Đã phát hành = chỉ đọc', 'Quay về Tổng quan Đề nghị'] as $vietnameseCopy) {
+            $this->assertStringContainsString($vietnameseCopy, $designer.$groups.$versions.$definitionIndex.$dashboardBack);
         }
     }
 }

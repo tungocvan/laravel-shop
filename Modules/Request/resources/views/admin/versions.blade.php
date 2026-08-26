@@ -19,7 +19,7 @@
     <header class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Release review</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Rà soát phát hành</p>
                 <h1 class="mt-1 break-words text-2xl font-semibold text-slate-900 sm:text-3xl">Lịch sử phiên bản · {{ $type->name }}</h1>
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Theo dõi dòng thời gian phát hành, đối chiếu thay đổi và kiểm tra định nghĩa chuẩn hóa. Phiên bản đã phát hành là bất biến và màn hình này chỉ dùng để xem lại.</p>
             </div>
@@ -33,7 +33,7 @@
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4"><div class="text-xs font-semibold uppercase tracking-wide text-amber-700">Bản nháp hiện tại</div><div class="mt-1 text-xl font-bold text-amber-950">{{ $draftVersion ? 'v'.$draftVersion->version_number : 'Không có' }}</div></div>
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Phiên bản hiện hành</div><div class="mt-1 text-xl font-bold text-emerald-950">{{ $publishedVersion ? 'v'.$publishedVersion->version_number : 'Chưa phát hành' }}</div></div>
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tổng phiên bản</div><div class="mt-1 text-xl font-bold text-slate-900">{{ $versions->count() }}</div></div>
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nguyên tắc</div><div class="mt-1 text-sm font-semibold text-slate-900">Published = read-only</div></div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nguyên tắc</div><div class="mt-1 text-sm font-semibold text-slate-900">Đã phát hành = chỉ đọc</div></div>
         </div>
     </header>
 

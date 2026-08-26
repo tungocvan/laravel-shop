@@ -12,7 +12,7 @@
     <header class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-                <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Admin Designer</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Trình thiết kế quản trị</div>
                 <h1 id="request-designer-title" class="mt-1 text-2xl font-bold text-slate-900">Thiết kế loại đề nghị</h1>
                 <p class="mt-1 max-w-3xl text-sm text-slate-600">Cấu hình bản nháp trước, kiểm tra biểu mẫu và luồng phê duyệt, sau đó mới phát hành phiên bản bất biến cho runtime.</p>
             </div>
