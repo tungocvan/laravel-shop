@@ -606,4 +606,3 @@ Khi đó:
 - chỉ dọn feature branch sau khi post-merge acceptance và handoff closeout PASS
 
 PR docs-only dùng để closeout vẫn phải tuân thủ gate trước tạo PR và trước merge. Tuy nhiên, sau khi closeout PR merge, không tạo thêm một PR chỉ để ghi merge SHA của chính closeout PR; xác minh GitHub/main là đủ nếu nội dung checkpoint nghiệp vụ, gates, production boundary và next authorized step không thay đổi.
-
