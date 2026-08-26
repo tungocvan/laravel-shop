@@ -201,6 +201,69 @@ Mục tiêu:
 
 Runtime state/cache/user settings trên production không được làm tracked source dirty nếu kiến trúc không yêu cầu.
 
+### 11.1 Bật/tắt Module bằng runtime state
+
+Trạng thái bật/tắt thực tế của Module được lưu mặc định tại:
+
+```text
+storage/app/system/module-state.json
+```
+
+Dạng dữ liệu:
+
+```json
+{
+  "version": 1,
+  "modules": {
+    "Request": true
+  }
+}
+```
+
+Quy tắc:
+
+- Đây là runtime state, không phải tracked source và không được commit vào Git.
+- Không sửa `module-state.json` thủ công. Mọi thao tác bật/tắt/reset phải đi qua cơ chế quản trị hoặc `ModuleStateRepository` của hệ thống.
+- Repository runtime state dùng file lock độc quyền và ghi file tạm rồi thay thế nguyên tử; không được thay thế cơ chế này bằng thao tác ghi JSON trực tiếp.
+- Không sửa `Modules/<Module>/config/module.php` chỉ để bật/tắt Module trong runtime.
+
+`ModuleStateResolver` xác định trạng thái theo thứ tự:
+
+1. Shell Module bắt buộc (`required`) luôn bật.
+2. Nếu runtime state có giá trị cho Module thì dùng đúng `true`/`false` từ runtime state.
+3. Nếu chưa có runtime state thì dùng `default_enabled` trong manifest.
+4. Để tương thích manifest cũ, nếu không có `default_enabled` thì dùng `enabled`; nếu cả hai không tồn tại, fallback chung hiện tại là `true`.
+
+Riêng Module `Request`, `default_enabled=false`, vì vậy:
+
+```text
+runtime Request=true
+    → Request ENABLED
+
+runtime Request=false
+    → Request DISABLED
+
+không có runtime override Request
+    → default_enabled=false
+    → Request DISABLED
+```
+
+Thao tác chuẩn:
+
+```text
+BẬT Module
+→ ghi runtime override <Module>=true qua cơ chế quản trị/runtime repository
+
+TẮT Module
+→ ghi runtime override <Module>=false qua cơ chế quản trị/runtime repository
+
+RESET Module về mặc định
+→ xóa riêng runtime override của <Module>
+→ ModuleStateResolver quay về manifest default
+```
+
+Sau thao tác runtime phải kiểm tra trạng thái thực tế và `git status`; runtime state không được làm working tree tracked source bị dirty.
+
 ## 12. Docker / production
 
 Nếu feature tạo runtime file/directory:
@@ -276,33 +339,20 @@ Việc yêu cầu “áp dụng workflow” không tự cấp quyền sửa code
 
 ### 16.2 Kiểm tra quyền truy cập GitHub trước tiên
 
-Trước khi đọc handoff hoặc phân tích Module, phải xác nhận bằng thao tác chỉ đọc:
+Trước khi đọc handoff hoặc phân tích Module, phải xác nhận bằng thao tác chỉ đọc rằng repository được chỉ định là chính xác và quyền truy cập hiện tại đủ cho phạm vi công việc yêu cầu. Không tạo commit, branch hoặc file thử chỉ để kiểm tra quyền ghi.
 
-1. repository chính xác và tài khoản GitHub đang kết nối
-2. mức quyền hiện tại: không truy cập, chỉ đọc, có thể ghi hoặc quản trị khi thực sự cần
-3. branch, PR, base branch và commit HEAD liên quan
-4. repository/branch có khớp yêu cầu người dùng không
+Nếu quyền đã đầy đủ, chỉ cần báo ngắn gọn đúng một câu:
 
-Không tạo commit, branch hoặc file thử chỉ để kiểm tra quyền ghi.
+`Tôi đã có toàn quyền thực hiện trên kho mà bạn chỉ định trong tài liệu.`
 
-- Không truy cập được: dừng và yêu cầu kết nối lại.
-- Chỉ đọc: được phân tích nhưng không được hứa sửa hoặc push.
-- Repository, branch hoặc PR không khớp: dừng và yêu cầu xác nhận.
+Không cần liệt kê tài khoản, mức quyền, branch, API permission hoặc chi tiết kỹ thuật khác khi mọi thứ hợp lệ.
 
-### 16.3 Bảng xác nhận dữ liệu bootstrap
+- Không truy cập được hoặc quyền không đủ: dừng và chỉ báo ngắn gọn vấn đề cần người dùng xử lý.
+- Repository không khớp yêu cầu: dừng và yêu cầu xác nhận.
 
-Sau kiểm tra chỉ đọc và trước khi thực hiện công việc, phải báo lại tối thiểu:
+### 16.3 Xác nhận dữ liệu bootstrap
 
-| Dữ liệu | Nội dung |
-|---|---|
-| Repository và GitHub access | Repository, tài khoản/mức quyền đã xác minh |
-| Module | Tên Module yêu cầu |
-| Module source | `Modules/<Module>` có tồn tại không |
-| Module docs | `docs/modules/<Module>` có tồn tại không |
-| Handoff | Có/không có `COLLABORATION_HANDOFF.md` |
-| Branch / PR / checkpoint | Trạng thái thực tế trên GitHub |
-| Working scope | Loại công việc được yêu cầu |
-| Remaining work | Lấy từ handoff/tài liệu hoặc ghi chưa xác định |
+Sau kiểm tra quyền và trước khi thực hiện công việc, xác minh Module source, Module docs, handoff, branch/PR/checkpoint và working scope. Chỉ báo những dữ liệu cần thiết để người dùng xác nhận; không liệt kê chi tiết quyền truy cập đã được xác nhận ở mục 16.2.
 
 Nếu dữ liệu không nhất quán, dừng để người dùng xác nhận thay vì tự phỏng đoán.
 
@@ -377,36 +427,3 @@ Trước khi kết thúc feature/fix branch, cập nhật trong chính branch đ
 Chỉ ghi thông tin hữu ích để tiếp tục; không sao chép log dài. Handoff không thay thế requirements, runbook hoặc acceptance document.
 
 Chỉ ghi branch `COMPLETED` khi mọi gate applicable đã PASS. Nếu chưa hoàn tất phải ghi `IN PROGRESS`. Không tự cập nhật handoff ngoài phạm vi đã được người dùng phê duyệt.
-
-## 17. Prompt dùng khi mở chat mới
-
-Có thể dùng khung ngắn sau:
-
-```text
-Repository:
-git@github.com:tungocvan/laravel-shop.git
-
-Áp dụng docs/GITHUB_COLLABORATION_WORKFLOW.md.
-
-Module: [TÊN MODULE]
-
-Yêu cầu:
-[TASK HIỆN TẠI]
-
-Trước tiên kiểm tra quyền repository và báo bảng xác nhận dữ liệu bootstrap. Sau đó đọc handoff hoặc áp dụng cây fallback tài liệu, kiểm tra code/tests thực tế và đề xuất plan.
-Chưa sửa code nếu tôi chưa duyệt thay đổi kiến trúc lớn.
-Khi cần CLI, nói rõ số lệnh và chờ output trước khi tiếp tục.
-```
-
-## 18. Nguyên tắc an toàn
-
-Không thực hiện các thao tác phá hủy như:
-
-- force push
-- reset hard
-- clean dữ liệu
-- migrate fresh
-- xóa volume
-- xóa database/runtime data
-
-nếu chưa phân tích và được người dùng đồng ý.
