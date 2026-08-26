@@ -25,8 +25,10 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/client-apps')->name('adm
     Route::put('/pwa/applications/{application}/features/{feature}', [PwaSettingsController::class, 'updateFeature'])->middleware('permission:edit_role,admin')->name('pwa.features.update');
     Route::get('/users/{user}', [ApplicationAdminController::class, 'editUser'])->middleware('permission:edit_user,admin')->name('users.edit');
     Route::put('/users/{user}', [ApplicationAdminController::class, 'updateUser'])->middleware('permission:edit_user,admin')->name('users.update');
+    Route::post('/roles', [ApplicationAdminController::class, 'storeRole'])->middleware('permission:edit_role,admin')->name('roles.store');
     Route::get('/roles/{role}', [ApplicationAdminController::class, 'editRole'])->middleware('permission:edit_role,admin')->name('roles.edit');
     Route::put('/roles/{role}', [ApplicationAdminController::class, 'updateRole'])->middleware('permission:edit_role,admin')->name('roles.update');
+    Route::post('/roles/{role}/profile', [ApplicationAdminController::class, 'applyRoleProfile'])->middleware('permission:edit_role,admin')->name('roles.profile');
 });
 
 foreach (File::glob(base_path('Modules/ClientPortal/Applications/*/routes.php')) as $applicationRoutes) { require $applicationRoutes; }
