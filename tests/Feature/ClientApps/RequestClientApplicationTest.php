@@ -3,6 +3,7 @@
 namespace Tests\Feature\ClientApps;
 
 use Illuminate\Support\Facades\Route;
+use Modules\ClientPortal\Services\ApplicationPermissionService;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\Request\Http\Middleware\UseRequestAuthorizationGuard;
 use Tests\TestCase;
@@ -130,5 +131,28 @@ class RequestClientApplicationTest extends TestCase
         $this->assertSame('Đã duyệt', $translations['task_statuses']['approved']);
         $this->assertSame('Từ chối', $translations['task_statuses']['rejected']);
         $this->assertSame('Trả lại', $translations['task_statuses']['returned']);
+    }
+
+    public function test_request_discussion_is_shared_and_channel_aware_for_requester_and_approver(): void
+    {
+        $detailView = file_get_contents(base_path('Modules/Request/resources/views/livewire/approver/request-detail-client.blade.php'));
+        $component = file_get_contents(base_path('Modules/Request/Livewire/Requester/CommentComposer.php'));
+        $commentView = file_get_contents(base_path('Modules/Request/resources/views/livewire/requester/comment-composer.blade.php'));
+        $policy = file_get_contents(base_path('Modules/Request/Policies/RequestCommentPolicy.php'));
+        $profiles = app(ApplicationPermissionService::class)->profiles();
+
+        $this->assertStringContainsString('request.requester.comment-composer', $detailView);
+        $this->assertStringContainsString(':request-version="$request->lock_version"', $detailView);
+        $this->assertStringContainsString('InteractsWithRequestAuthorization', $component);
+        $this->assertStringContainsString('$this->requestActor($context)', $component);
+        $this->assertStringContainsString("Gate::forUser(\$user)->authorize('create', [RequestComment::class, \$request])", $component);
+        $this->assertStringContainsString("Gate::forUser(\$user)->authorize('view', \$request)", $component);
+        $this->assertStringContainsString("\$this->dispatch('request-version-changed'", $component);
+        $this->assertStringContainsString('Trao đổi', $commentView);
+        $this->assertStringContainsString('Gửi bình luận', $commentView);
+        $this->assertStringContainsString("request.comment.create", $policy);
+        $this->assertStringContainsString('InternalRequestPolicy', $policy);
+        $this->assertContains('request.comment.create', $profiles['requester']['permissions']);
+        $this->assertContains('request.comment.create', $profiles['approver']['permissions']);
     }
 }
