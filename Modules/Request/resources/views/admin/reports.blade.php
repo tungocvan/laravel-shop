@@ -80,7 +80,7 @@
         <form method="GET" action="{{ route('request.admin.reports') }}" class="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-6">
             <div>
                 <label for="report-group" class="mb-1 block text-sm font-semibold text-slate-700">Nhóm đề nghị</label>
-                <select id="report-group" name="group_public_id" class="min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <select id="report-group" name="group_public_id" class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Tất cả nhóm</option>
                     @foreach($groups as $group)
                         <option value="{{ $group->public_id }}" @selected(($filters['group_public_id'] ?? '') === $group->public_id)>{{ $group->name }}</option>
@@ -90,7 +90,7 @@
 
             <div>
                 <label for="report-type" class="mb-1 block text-sm font-semibold text-slate-700">Loại đề nghị</label>
-                <select id="report-type" name="type_public_id" class="min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <select id="report-type" name="type_public_id" class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Tất cả loại</option>
                     @foreach($types as $type)
                         <option value="{{ $type->public_id }}" @selected(($filters['type_public_id'] ?? '') === $type->public_id)>{{ $type->name }}@if($type->group) · {{ $type->group->name }}@endif</option>
@@ -100,7 +100,7 @@
 
             <div>
                 <label for="report-status" class="mb-1 block text-sm font-semibold text-slate-700">Trạng thái</label>
-                <select id="report-status" name="status" class="min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <select id="report-status" name="status" class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Tất cả trạng thái</option>
                     @foreach($statuses as $status)
                         <option value="{{ $status->value }}" @selected($selectedStatus === $status->value)>{{ __('Request::request.statuses.'.$status->value) }}</option>
@@ -110,17 +110,17 @@
 
             <div>
                 <label for="report-created-from" class="mb-1 block text-sm font-semibold text-slate-700">Tạo từ ngày</label>
-                <input id="report-created-from" type="date" name="created_from" value="{{ $filters['created_from'] ?? '' }}" class="min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <input id="report-created-from" type="date" name="created_from" value="{{ $filters['created_from'] ?? '' }}" class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
             </div>
 
             <div>
                 <label for="report-created-to" class="mb-1 block text-sm font-semibold text-slate-700">Đến hết ngày</label>
-                <input id="report-created-to" type="date" name="created_to" value="{{ $filters['created_to'] ?? '' }}" class="min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <input id="report-created-to" type="date" name="created_to" value="{{ $filters['created_to'] ?? '' }}" class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
             </div>
 
             <div>
                 <label for="report-page-size" class="mb-1 block text-sm font-semibold text-slate-700">Số dòng mỗi trang</label>
-                <select id="report-page-size" name="per_page" class="min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <select id="report-page-size" name="per_page" class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     @foreach([10, 25, 50, 100] as $size)
                         <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }}</option>
                     @endforeach
@@ -183,7 +183,7 @@
             <div class="space-y-3">
                 <div>
                     <label for="export-format" class="mb-1 block text-sm font-semibold text-slate-700">Định dạng tệp</label>
-                    <select id="export-format" name="format" class="min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <select id="export-format" name="format" class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="csv">CSV</option>
                         <option value="xlsx">XLSX</option>
                     </select>
@@ -229,6 +229,7 @@
                             <div><span class="block text-xs text-slate-500">Đã gửi</span><strong class="text-slate-800">{{ $item->submitted_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '—' }}</strong></div>
                             <div><span class="block text-xs text-slate-500">Cập nhật</span><strong class="text-slate-800">{{ $item->updated_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '—' }}</strong></div>
                         </div>
+                        @if($canDeleteRequests && in_array($item->status->value, ['approved', 'rejected', 'cancelled'], true))<form method="POST" action="{{ route('request.admin.reports.requests.destroy', $item->public_id) }}" onsubmit="return confirm('Xóa vĩnh viễn đề nghị đã kết thúc này? Tệp đính kèm cũng sẽ bị xóa.')">@csrf @method('DELETE')<button class="min-h-11 w-full rounded-lg border border-rose-300 bg-white px-4 py-2 font-semibold text-rose-700">Xóa lịch sử đề nghị</button></form>@endif
                     </article>
                 @endforeach
             </div>
@@ -236,7 +237,7 @@
             <div class="hidden overflow-x-auto md:block">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                        <tr><th class="px-4 py-3">Mã đề nghị</th><th class="px-4 py-3">Nội dung</th><th class="px-4 py-3">Loại / Nhóm</th><th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3">Đã gửi</th><th class="px-4 py-3">Cập nhật</th></tr>
+                        <tr><th class="px-4 py-3">Mã đề nghị</th><th class="px-4 py-3">Nội dung</th><th class="px-4 py-3">Loại / Nhóm</th><th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3">Đã gửi</th><th class="px-4 py-3">Cập nhật</th>@if($canDeleteRequests)<th class="px-4 py-3"><span class="sr-only">Hành động</span></th>@endif</tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($requests as $item)
@@ -247,6 +248,7 @@
                                 <td class="px-4 py-3"><span class="whitespace-nowrap rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{{ __('Request::request.statuses.'.$item->status->value) }}</span></td>
                                 <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ $item->submitted_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ $item->updated_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '—' }}</td>
+                                @if($canDeleteRequests)<td class="px-4 py-3 text-right">@if(in_array($item->status->value, ['approved', 'rejected', 'cancelled'], true))<form method="POST" action="{{ route('request.admin.reports.requests.destroy', $item->public_id) }}" onsubmit="return confirm('Xóa vĩnh viễn đề nghị đã kết thúc này? Tệp đính kèm cũng sẽ bị xóa.')">@csrf @method('DELETE')<button class="min-h-10 rounded-lg border border-rose-300 bg-white px-3 py-2 font-semibold text-rose-700">Xóa</button></form>@else<span class="text-xs text-slate-400">Đang hoạt động</span>@endif</td>@endif
                             </tr>
                         @endforeach
                     </tbody>

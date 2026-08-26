@@ -4,9 +4,11 @@ namespace Modules\Request\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Modules\Request\Application\Services\RequestExportQuery;
+use Modules\Request\Application\Services\DeleteCompletedRequest;
 use Modules\Request\Domain\Enums\RequestStatus;
 use Modules\Request\Models\RequestExportJob;
 use Modules\Request\Models\RequestGroup;
@@ -82,10 +84,19 @@ final class RequestReportController extends Controller
             'activeFilterCount' => count($filters),
             'refreshedAt' => now()->timezone((string) config('app.timezone', 'UTC')),
             'canExport' => $this->hasPermission($user, 'request.export'),
+            'canDeleteRequests' => $this->hasPermission($user, 'request.instance.delete'),
             'exportAllowed' => $requests->total() <= (int) config('request.exports.max_rows', 100000),
             'syncRowLimit' => (int) config('request.exports.sync_row_limit', 500),
             'maxRows' => (int) config('request.exports.max_rows', 100000),
         ]);
+    }
+
+    public function destroy(string $requestPublicId, DeleteCompletedRequest $delete): RedirectResponse
+    {
+        $user = auth('admin')->user();
+        abort_unless($user && $this->hasPermission($user, 'request.instance.delete'), 403);
+        $delete->handle($requestPublicId, (int) $user->getAuthIdentifier());
+        return redirect()->route('request.admin.reports')->with('request_success', 'Đã xóa đề nghị đã kết thúc; dấu vết quản trị vẫn được lưu trong audit.');
     }
 
     private function hasPermission(mixed $user, string $permission): bool

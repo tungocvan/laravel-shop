@@ -36,6 +36,20 @@
         </div>
     </section>
 
+    @if($duplicateSourcePublicId)
+        <section class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5" aria-labelledby="duplicate-type-heading">
+            <h2 id="duplicate-type-heading" class="text-lg font-bold text-slate-900">Nhân bản thành loại đề nghị mới</h2>
+            <p class="mt-1 text-sm text-slate-600">Bản sao luôn bắt đầu ở v1 bản nháp và không tự phát hành.</p>
+            <form wire:submit="duplicateType" class="mt-4 grid gap-3 md:grid-cols-2">
+                <label class="text-sm font-medium">Nhóm<select wire:model="duplicateGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
+                <label class="text-sm font-medium">Mã mới<input wire:model="duplicateCode" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"></label>
+                <label class="text-sm font-medium md:col-span-2">Tên mới<input wire:model="duplicateName" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"></label>
+                @if(auth('admin')->user()?->can('request.type.audience.manage'))<label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" wire:model="duplicateAudience" class="rounded border-slate-300"> Sao chép đối tượng được phép tạo đề nghị</label>@endif
+                <div class="flex gap-2 md:col-span-2"><button class="min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white">Tạo bản sao</button><button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold">Hủy</button></div>
+            </form>
+        </section>
+    @endif
+
     <section aria-labelledby="definition-filter-heading" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 id="definition-filter-heading" class="text-lg font-bold text-slate-900">Tìm kiếm & lọc</h2><p class="text-sm text-slate-600">Tìm theo mã hoặc tên và thu hẹp theo trạng thái vận hành.</p></div><button type="button" wire:click="resetFilters" class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Đặt lại</button></div>
         <div class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
@@ -64,6 +78,8 @@
                         <div class="flex flex-col gap-2 sm:flex-row lg:flex-col lg:min-w-44">
                             <a class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" href="{{ route('request.admin.types.designer', $type->public_id) }}">Mở Designer</a>
                             <a class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" href="{{ route('request.admin.types.versions', $type->public_id) }}">Lịch sử phiên bản</a>
+                            @can('create', Modules\Request\Models\RequestType::class)<button type="button" wire:click="prepareDuplicate('{{ $type->public_id }}')" class="min-h-11 rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700">Nhân bản</button>@endcan
+                            @can('delete', $type)<button type="button" wire:click="deleteType('{{ $type->public_id }}')" wire:confirm="Xóa vĩnh viễn loại đề nghị chưa phát hành này?" class="min-h-11 rounded-xl border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700">Xóa loại</button>@endcan
                         </div>
                     </div>
                 </article>

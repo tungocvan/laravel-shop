@@ -15,6 +15,7 @@ return [
         'request.group.archive',
         'request.type.view',
         'request.type.create',
+        'request.type.delete',
         'request.type.update',
         'request.type.audience.manage',
         'request.type.publish',
@@ -29,6 +30,7 @@ return [
         'request.instance.submit',
         'request.instance.cancel-own',
         'request.instance.cancel-any',
+        'request.instance.delete',
         'request.task.view',
         'request.task.decide',
         'request.task.reassign',
@@ -40,6 +42,7 @@ return [
         'request.export',
         'request.operation.view',
         'request.operation.retry',
+        'request.operation.delete',
     ],
     'tables' => [
         'request_groups',

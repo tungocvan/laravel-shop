@@ -7,6 +7,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Request\Application\Services\CreateRequestGroup;
 use Modules\Request\Application\Services\CreateRequestType;
+use Modules\Request\Application\Services\DeleteUnpublishedRequestType;
+use Modules\Request\Application\Services\DuplicateRequestType;
 use Modules\Request\Domain\Enums\RequestTypeStatus;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestType;
@@ -28,6 +30,12 @@ class DefinitionIndex extends Component
     public string $typeCode = '';
 
     public string $typeName = '';
+
+    public ?string $duplicateSourcePublicId = null;
+    public ?int $duplicateGroupId = null;
+    public string $duplicateCode = '';
+    public string $duplicateName = '';
+    public bool $duplicateAudience = true;
 
     public function updatedSearch(): void
     {
@@ -83,6 +91,46 @@ class DefinitionIndex extends Component
 
         $this->reset('requestGroupId', 'typeCode', 'typeName');
         session()->flash('request_success', __('Request::request.saved'));
+    }
+
+    public function prepareDuplicate(string $publicId): void
+    {
+        $type = RequestType::query()->where('public_id', $publicId)->firstOrFail();
+        Gate::authorize('update', $type);
+        Gate::authorize('create', RequestType::class);
+        $this->duplicateSourcePublicId = $type->public_id;
+        $this->duplicateGroupId = $type->request_group_id;
+        $this->duplicateCode = $type->code.'_COPY';
+        $this->duplicateName = $type->name.' (Bản sao)';
+        $this->duplicateAudience = Gate::allows('manageAudience', $type);
+    }
+
+    public function duplicateType(DuplicateRequestType $service): void
+    {
+        $source = RequestType::query()->where('public_id', $this->duplicateSourcePublicId)->firstOrFail();
+        Gate::authorize('update', $source);
+        Gate::authorize('create', RequestType::class);
+        if ($this->duplicateAudience) {
+            Gate::authorize('manageAudience', $source);
+        }
+        $data = $this->validate([
+            'duplicateGroupId' => ['required', 'integer', 'exists:request_groups,id'],
+            'duplicateCode' => ['required', 'alpha_dash', 'max:80', 'unique:request_types,code'],
+            'duplicateName' => ['required', 'string', 'max:180'],
+            'duplicateAudience' => ['boolean'],
+        ]);
+        $type = $service->handle($source, [
+            'request_group_id' => $data['duplicateGroupId'], 'code' => strtoupper($data['duplicateCode']), 'name' => $data['duplicateName'],
+        ], (int) auth('admin')->id(), (bool) $data['duplicateAudience']);
+        $this->redirectRoute('request.admin.types.designer', ['typePublicId' => $type->public_id]);
+    }
+
+    public function deleteType(string $publicId, DeleteUnpublishedRequestType $service): void
+    {
+        $type = RequestType::query()->where('public_id', $publicId)->firstOrFail();
+        Gate::authorize('delete', $type);
+        $service->handle($type, (int) auth('admin')->id());
+        session()->flash('request_success', 'Đã xóa loại đề nghị chưa phát hành.');
     }
 
     public function render()
