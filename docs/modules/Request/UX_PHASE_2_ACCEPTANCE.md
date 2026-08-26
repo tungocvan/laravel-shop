@@ -58,6 +58,8 @@ The first UI smoke passed the planned Phase 2.14 scenarios. A follow-up inspecti
 
 PR #37 is therefore reopened for a corrective audit. The correction must prove persisted notification preferences, UTC SLA boundaries, idempotent enforcement, suspension safety, responsive layout, actionable publish-validation feedback, non-destructive DEMO seeding, single-current-version recovery, and Request-only regression before final acceptance is restored.
 
+For local UI acceptance, `php artisan request:e2e-reset --rebuild` is the explicit destructive path. It is production-blocked, deletes only Request-owned data/storage targets, and rebuilds the complete Phase 2 status/SLA/recovery/collaboration matrix, including comments and a private attachment; ordinary seeder reruns remain non-destructive to administrator-managed definitions.
+
 | Gate | Result |
 |---|---|
 | Corrective focused tests | PENDING |

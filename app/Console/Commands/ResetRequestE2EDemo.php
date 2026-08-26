@@ -6,12 +6,37 @@ use Database\Seeders\RequestE2EDemoSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class ResetRequestE2EDemo extends Command
 {
-    protected $signature = 'request:e2e-reset {--seed : Seed lại E2E pack sau khi reset}';
+    protected $signature = 'request:e2e-reset
+        {--seed : Seed lại E2E pack sau khi reset runtime của REQUEST_UI_DEMO}
+        {--rebuild : Xóa toàn bộ dữ liệu các bảng Request rồi dựng lại E2E pack đầy đủ}';
 
-    protected $description = 'Xóa runtime dữ liệu Request DEMO ngoài production và tùy chọn seed lại E2E pack';
+    protected $description = 'Reset dữ liệu Request DEMO/E2E ngoài production';
+
+    private const REQUEST_TABLES = [
+        'request_notification_deliveries',
+        'request_export_jobs',
+        'request_attachments',
+        'request_comments',
+        'request_decisions',
+        'request_task_candidates',
+        'request_tasks',
+        'request_audit_events',
+        'request_outbox_messages',
+        'request_idempotency_keys',
+        'request_runs',
+        'request_payload_revisions',
+        'request_instances',
+        'request_stage_definitions',
+        'request_type_audiences',
+        'request_type_versions',
+        'request_types',
+        'request_groups',
+    ];
 
     public function handle(): int
     {
@@ -19,6 +44,20 @@ class ResetRequestE2EDemo extends Command
             $this->error('request:e2e-reset không được phép chạy ở production.');
 
             return self::FAILURE;
+        }
+
+        if ($this->option('rebuild')) {
+            if (! app()->environment(['local', 'testing'])) {
+                $this->error('Tùy chọn --rebuild chỉ được phép chạy trong môi trường local/testing.');
+
+                return self::FAILURE;
+            }
+
+            $this->deleteStoredRequestFiles();
+            $this->deleteAllRequestRows();
+            $this->info('Đã xóa toàn bộ dữ liệu trong các bảng Request.');
+
+            return $this->seedE2EPack();
         }
 
         $typeId = DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->value('id');
@@ -83,6 +122,11 @@ class ResetRequestE2EDemo extends Command
             return self::SUCCESS;
         }
 
+        return $this->seedE2EPack();
+    }
+
+    private function seedE2EPack(): int
+    {
         $exitCode = Artisan::call('db:seed', [
             '--class' => RequestE2EDemoSeeder::class,
             '--force' => true,
@@ -91,5 +135,51 @@ class ResetRequestE2EDemo extends Command
         $this->output->write(Artisan::output());
 
         return $exitCode;
+    }
+
+    private function deleteStoredRequestFiles(): void
+    {
+        foreach (['request_attachments', 'request_export_jobs'] as $table) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            DB::table($table)
+                ->whereNotNull('storage_disk')
+                ->whereNotNull('storage_path')
+                ->get(['storage_disk', 'storage_path'])
+                ->each(function (object $file): void {
+                    try {
+                        Storage::disk((string) $file->storage_disk)->delete((string) $file->storage_path);
+                    } catch (\Throwable $exception) {
+                        $this->warn('Không thể xóa file Request '.$file->storage_path.': '.$exception->getMessage());
+                    }
+                });
+        }
+    }
+
+    private function deleteAllRequestRows(): void
+    {
+        Schema::disableForeignKeyConstraints();
+
+        try {
+            if (Schema::hasTable('request_tasks')) {
+                DB::table('request_tasks')->update(['replaces_task_id' => null, 'replaced_by_task_id' => null]);
+            }
+            if (Schema::hasTable('request_instances')) {
+                DB::table('request_instances')->update(['current_payload_revision_id' => null, 'current_run_id' => null]);
+            }
+            if (Schema::hasTable('request_types')) {
+                DB::table('request_types')->update(['current_published_version_id' => null, 'active_draft_version_id' => null]);
+            }
+
+            foreach (self::REQUEST_TABLES as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->delete();
+                }
+            }
+        } finally {
+            Schema::enableForeignKeyConstraints();
+        }
     }
 }

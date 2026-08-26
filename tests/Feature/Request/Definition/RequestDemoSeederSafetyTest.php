@@ -5,7 +5,9 @@ namespace Tests\Feature\Request\Definition;
 use App\Models\User;
 use Database\Seeders\RequestDemoSeeder;
 use Database\Seeders\RequestE2EDemoSeeder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class RequestDemoSeederSafetyTest extends RequestDefinitionTestCase
 {
@@ -85,5 +87,47 @@ class RequestDemoSeederSafetyTest extends RequestDefinitionTestCase
 
         $this->assertStringContainsString('use Database\\Seeders\\RequestE2EDemoSeeder;', $command);
         $this->assertStringNotContainsString('use Modules\\Request\\Database\\Seeders\\RequestE2EDemoSeeder;', $command);
+        $this->assertStringContainsString('{--rebuild', $command);
+    }
+
+    public function test_rebuild_command_creates_a_complete_request_ui_matrix(): void
+    {
+        $superAdmin = User::factory()->create(['email' => 'tungocvan@gmail.com', 'is_active' => true]);
+        config()->set('request.files.disk', 'local');
+        Storage::fake('local');
+
+        $this->assertSame(0, Artisan::call('request:e2e-reset', ['--rebuild' => true]));
+
+        $requesterId = (int) DB::table('users')->where('email', 'tungocvan1@gmail.com')->value('id');
+        $approverId = (int) DB::table('users')->where('email', 'vhdtshop@gmail.com')->value('id');
+        $this->assertNotSame($superAdmin->id, $requesterId);
+        $this->assertSame([
+            'approved' => 1,
+            'cancelled' => 1,
+            'draft' => 1,
+            'pending' => 5,
+            'rejected' => 1,
+            'returned' => 1,
+        ], DB::table('request_instances')->selectRaw('status, COUNT(*) as aggregate')->groupBy('status')->orderBy('status')->pluck('aggregate', 'status')->map(fn ($count) => (int) $count)->all());
+        $this->assertSame(10, DB::table('request_instances')->where('requester_id', $requesterId)->count());
+        $this->assertSame(4, DB::table('request_tasks')->where('assignee_user_id', $approverId)->where('status', 'active')->count());
+        $this->assertSame(3, DB::table('request_tasks')->where('assignee_user_id', $approverId)->whereIn('status', ['approved', 'rejected', 'returned'])->count());
+        $this->assertSame(2, DB::table('request_tasks')->whereNotNull('overdue_at')->count());
+        $this->assertSame(1, DB::table('request_tasks')->whereNotNull('suspended_at')->count());
+        $this->assertSame(1, DB::table('request_runs')->where('status', 'failed_activation')->count());
+        $this->assertSame(1, DB::table('request_outbox_messages')->whereNotNull('failed_at')->count());
+        $this->assertSame(1, DB::table('request_export_jobs')->where('status', 'failed')->count());
+        $this->assertSame(2, DB::table('request_comments')->count());
+        $this->assertSame(1, DB::table('request_attachments')->count());
+        $attachment = DB::table('request_attachments')->first();
+        Storage::disk($attachment->storage_disk)->assertExists($attachment->storage_path);
+        $this->assertSame(1, DB::table('request_type_versions')->where('status', 'published')->count());
+        $this->assertSame(5, DB::table('request_types')->count());
+
+        $this->assertSame(0, Artisan::call('request:e2e-reset', ['--rebuild' => true]));
+        $this->assertSame(10, DB::table('request_instances')->count());
+        $this->assertSame(5, DB::table('request_types')->count());
+        $this->assertSame(2, DB::table('request_comments')->count());
+        $this->assertSame(1, DB::table('request_attachments')->count());
     }
 }

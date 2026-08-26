@@ -118,4 +118,12 @@ Additional targeted tests covered Request architecture, migrations, operational 
 
 Root demo seeders are developer/E2E infrastructure and intentionally live outside `Modules/Request` because they may prepare canonical application users/roles. They are not part of the production `DatabaseSeeder` path.
 
+For the fastest repeatable local UI pass, rebuild only the Request-owned tables and seed the complete E2E matrix with:
+
+```bash
+php artisan request:e2e-reset --rebuild
+```
+
+The command is blocked in production. It removes Request database rows and exact Request attachment/export storage paths, preserves unrelated module data, then recreates Request accounts/roles, the published DEMO definition, starter templates, and scenarios for draft, pending, warning, overdue, suspended, approved, rejected, returned, cancelled, failed activation, failed outbox and failed export UI states. The normal pending scenario also contains two participant comments and one real private attachment so the collaboration/detail UI can be checked without additional setup.
+
 Never document or commit real passwords in this runbook. Local E2E credentials are environment/test-fixture concerns only.
