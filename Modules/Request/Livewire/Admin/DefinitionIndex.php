@@ -95,6 +95,7 @@ class DefinitionIndex extends Component
 
     public function prepareDuplicate(string $publicId): void
     {
+        $this->resetValidation();
         $type = RequestType::query()->where('public_id', $publicId)->firstOrFail();
         Gate::authorize('update', $type);
         Gate::authorize('create', RequestType::class);
@@ -122,6 +123,7 @@ class DefinitionIndex extends Component
         $type = $service->handle($source, [
             'request_group_id' => $data['duplicateGroupId'], 'code' => strtoupper($data['duplicateCode']), 'name' => $data['duplicateName'],
         ], (int) auth('admin')->id(), (bool) $data['duplicateAudience']);
+        session()->flash('request_success', 'Đã nhân bản thành loại đề nghị v1 bản nháp.');
         $this->redirectRoute('request.admin.types.designer', ['typePublicId' => $type->public_id]);
     }
 

@@ -17,6 +17,9 @@ final class DeleteCompletedRequest
             $id = $request->id; $runIds = DB::table('request_runs')->where('request_instance_id', $id)->pluck('id'); $taskIds = DB::table('request_tasks')->whereIn('request_run_id', $runIds)->pluck('id');
             $files = DB::table('request_attachments')->where('request_instance_id', $id)->get(['storage_disk', 'storage_path'])->map(fn ($f) => [$f->storage_disk, $f->storage_path])->all();
             DB::table('request_instances')->where('id', $id)->update(['current_run_id' => null, 'current_payload_revision_id' => null]);
+            // Preserve the immutable audit trail while releasing its restrictive
+            // runtime FK before the business aggregate is permanently removed.
+            DB::table('request_audit_events')->where('request_instance_id', $id)->update(['request_instance_id' => null]);
             DB::table('request_decisions')->where('request_instance_id', $id)->delete();
             DB::table('request_task_candidates')->whereIn('request_task_id', $taskIds)->delete();
             DB::table('request_tasks')->whereIn('id', $taskIds)->update(['replaces_task_id' => null, 'replaced_by_task_id' => null]);

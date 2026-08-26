@@ -21,6 +21,7 @@ use Modules\Request\Models\RequestExportJob;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestType;
 use Modules\Request\Models\InternalRequest;
+use Modules\Request\Models\RequestAuditEvent;
 use Modules\Request\Domain\Enums\RequestStatus;
 use Tests\TestCase;
 
@@ -83,8 +84,14 @@ class RequestOperationsTest extends TestCase
         $this->assertDatabaseHas('request_audit_events', ['event_key' => 'request.operation.deleted.v1', 'aggregate_public_id' => $export->public_id]);
 
         $completed = InternalRequest::factory()->create(['status' => RequestStatus::Approved, 'requester_id' => $actorId]);
+        $linkedAudit = RequestAuditEvent::factory()->create([
+            'request_instance_id' => $completed->id,
+            'aggregate_type' => 'request',
+            'aggregate_public_id' => $completed->public_id,
+        ]);
         app(DeleteCompletedRequest::class)->handle($completed->public_id, $actorId);
         $this->assertDatabaseMissing('request_instances', ['public_id' => $completed->public_id]);
+        $this->assertDatabaseHas('request_audit_events', ['id' => $linkedAudit->id, 'request_instance_id' => null]);
         $this->assertDatabaseHas('request_audit_events', ['event_key' => 'request.deleted.v1', 'aggregate_public_id' => $completed->public_id]);
 
         $active = InternalRequest::factory()->create(['status' => RequestStatus::Pending, 'requester_id' => $actorId]);
