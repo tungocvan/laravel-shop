@@ -9,6 +9,8 @@ use Modules\Request\Application\Services\CloneTypeVersion;
 use Modules\Request\Application\Services\CompareTypeVersions;
 use Modules\Request\Application\Services\CreateRequestGroup;
 use Modules\Request\Application\Services\CreateRequestType;
+use Modules\Request\Application\Services\DuplicateRequestType;
+use Modules\Request\Application\Services\DeleteUnpublishedRequestType;
 use Modules\Request\Application\Services\PublishTypeVersion;
 use Modules\Request\Application\Services\RetireRequestType;
 use Modules\Request\Application\Services\SaveTypeDraft;
@@ -71,6 +73,43 @@ class RequestDefinitionServiceTest extends RequestDefinitionTestCase
 
         $this->expectException(LogicException::class);
         $published->update(['title' => 'Mutated']);
+    }
+
+    public function test_type_duplication_creates_an_independent_v1_draft_with_optional_audience_copy(): void
+    {
+        $actorId = $this->user('Duplicator');
+        $group = app(CreateRequestGroup::class)->handle(['code' => 'DUPLICATE', 'name' => 'Duplicate'], $actorId);
+        $source = app(CreateRequestType::class)->handle(['request_group_id' => $group->id, 'code' => 'SOURCE', 'name' => 'Source'], $actorId);
+        app(SaveTypeDraft::class)->handle($source, $this->validDraft($actorId), $actorId, 1);
+
+        $copy = app(DuplicateRequestType::class)->handle($source->refresh(), [
+            'request_group_id' => $group->id, 'code' => 'SOURCE_COPY', 'name' => 'Source copy',
+        ], $actorId, true);
+
+        $this->assertSame(RequestTypeStatus::Draft, $copy->status);
+        $this->assertNull($copy->current_published_version_id);
+        $this->assertSame(1, $copy->activeDraft->version_number);
+        $this->assertSame('Source copy', $copy->activeDraft->title);
+        $this->assertSame(1, $copy->activeDraft->audiences()->count());
+        $this->assertSame(1, $copy->activeDraft->stages()->count());
+        $this->assertDatabaseHas('request_audit_events', ['event_key' => 'request.type.duplicated.v1', 'aggregate_public_id' => $copy->public_id]);
+    }
+
+    public function test_only_never_published_unused_type_can_be_deleted(): void
+    {
+        $actorId = $this->user('Definition deleter');
+        $group = app(CreateRequestGroup::class)->handle(['code' => 'DELETE', 'name' => 'Delete'], $actorId);
+        $draft = app(CreateRequestType::class)->handle(['request_group_id' => $group->id, 'code' => 'DELETE_ME', 'name' => 'Delete me'], $actorId);
+        $publicId = $draft->public_id;
+
+        app(DeleteUnpublishedRequestType::class)->handle($draft, $actorId);
+
+        $this->assertDatabaseMissing('request_types', ['public_id' => $publicId]);
+        $this->assertDatabaseHas('request_audit_events', ['event_key' => 'request.type.deleted.v1', 'aggregate_public_id' => $publicId]);
+
+        [, $publishedType] = $this->publishedType();
+        $this->expectException(ValidationException::class);
+        app(DeleteUnpublishedRequestType::class)->handle($publishedType, $actorId);
     }
 
     public function test_stale_version_is_rejected_and_retirement_preserves_history(): void

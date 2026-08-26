@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Modules\Request\Application\Services\RequestOperationsQuery;
+use Modules\Request\Application\Services\DeleteRequestOperationFailure;
+use Modules\Request\Application\Services\DeleteCompletedRequest;
 use Modules\Request\Application\Services\RetryRequestOperation;
 use Modules\Request\Application\Services\ValidateTypeDraft;
 use Modules\Request\Database\Seeders\RequestStarterTemplateSeeder;
@@ -18,6 +20,8 @@ use Modules\Request\Jobs\GenerateRequestExport;
 use Modules\Request\Models\RequestExportJob;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestType;
+use Modules\Request\Models\InternalRequest;
+use Modules\Request\Domain\Enums\RequestStatus;
 use Tests\TestCase;
 
 class RequestOperationsTest extends TestCase
@@ -68,6 +72,28 @@ class RequestOperationsTest extends TestCase
         $this->assertSame(ExportStatus::Pending, $export->refresh()->status);
         Queue::assertPushed(GenerateRequestExport::class, 1);
         $this->assertSame(1, DB::table('request_idempotency_keys')->where('actor_id', $actorId)->where('command_key', 'request.operation.retry.export_generation')->count());
+    }
+
+    public function test_admin_cleanup_deletes_only_safe_operation_and_completed_request_records(): void
+    {
+        $actorId = $this->user('Cleanup Admin');
+        $export = RequestExportJob::factory()->create(['status' => ExportStatus::Failed]);
+        app(DeleteRequestOperationFailure::class)->handle('export_generation', $export->public_id, $actorId);
+        $this->assertDatabaseMissing('request_export_jobs', ['public_id' => $export->public_id]);
+        $this->assertDatabaseHas('request_audit_events', ['event_key' => 'request.operation.deleted.v1', 'aggregate_public_id' => $export->public_id]);
+
+        $completed = InternalRequest::factory()->create(['status' => RequestStatus::Approved, 'requester_id' => $actorId]);
+        app(DeleteCompletedRequest::class)->handle($completed->public_id, $actorId);
+        $this->assertDatabaseMissing('request_instances', ['public_id' => $completed->public_id]);
+        $this->assertDatabaseHas('request_audit_events', ['event_key' => 'request.deleted.v1', 'aggregate_public_id' => $completed->public_id]);
+
+        $active = InternalRequest::factory()->create(['status' => RequestStatus::Pending, 'requester_id' => $actorId]);
+        try {
+            app(DeleteCompletedRequest::class)->handle($active->public_id, $actorId);
+            $this->fail('An active request must not be deleted.');
+        } catch (ValidationException) {
+            $this->assertDatabaseHas('request_instances', ['public_id' => $active->public_id]);
+        }
     }
 
     public function test_starter_template_is_opt_in_and_creates_draft_only(): void
