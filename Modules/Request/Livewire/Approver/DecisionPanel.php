@@ -4,6 +4,7 @@ namespace Modules\Request\Livewire\Approver;
 
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Modules\Request\Application\Queries\ApproverInboxQuery;
 use Modules\Request\Application\Services\DecideRequestTask;
@@ -37,6 +38,12 @@ class DecisionPanel extends Component
         $this->requestVersion = $requestVersion;
         $this->taskVersion = $taskVersion;
         $this->idempotencyKey = (string) Str::uuid();
+    }
+
+    #[On('request-version-changed')]
+    public function updateRequestVersion(int $version): void
+    {
+        $this->requestVersion = $version;
     }
 
     public function updatedDecision(): void
