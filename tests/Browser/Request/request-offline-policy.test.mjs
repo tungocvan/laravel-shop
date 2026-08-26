@@ -10,6 +10,7 @@ import {
     sanitizeDraft,
     sanitizeSnapshot,
 } from '../../../Modules/Request/resources/js/request-offline-policy.js';
+import { formatGroupedInteger } from '../../../Modules/Request/resources/js/request-offline.js';
 
 test('owner scope is user and installation bound', () => {
     assert.equal(ownerScope(12, 'admin.example.test'), '12:admin.example.test');
@@ -67,4 +68,11 @@ test('records enforce ttl and owner mismatch checks', () => {
 
 test('business mutation queue is deliberately unsupported', () => {
     assert.equal(mutationQueueSupported(), false);
+});
+
+test('grouped integer formatter uses Vietnamese thousands without decimals', () => {
+    assert.equal(formatGroupedInteger('15000000'), '15.000.000');
+    assert.equal(formatGroupedInteger('15.000.000'), '15.000.000');
+    assert.equal(formatGroupedInteger('001500'), '1.500');
+    assert.equal(formatGroupedInteger(''), '');
 });

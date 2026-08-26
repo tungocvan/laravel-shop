@@ -63,7 +63,7 @@ final class RequestNotificationPlanner
         $stage = RequestStageDefinition::query()->where('request_type_version_id', $run->request_type_version_id)->where('position', $position)->first();
         $recipients = $run->tasks()->where('stage_position', $position)->where('status', TaskStatus::Active)->pluck('assignee_user_id')->map(fn (mixed $id): int => (int) $id)->all();
 
-        return [$run->requestInstance, $recipients, 'approval_action_required', $this->channels((bool) ($stage?->email_on_assignment ?? true))];
+        return [$run->requestInstance, $recipients, 'approval_action_required', $this->channels((bool) ($stage?->email_on_assignment ?? false))];
     }
 
     private function taskReassigned(RequestOutboxMessage $outbox): array
@@ -71,7 +71,7 @@ final class RequestNotificationPlanner
         $target = $outbox->payload_json['target_user_id'] ?? null;
         $task = RequestTask::query()->with(['run.requestInstance', 'stageDefinition'])->where('public_id', $outbox->aggregate_public_id)->first();
 
-        return [$task?->run?->requestInstance, is_int($target) ? [$target] : [], 'approval_reassigned', $this->channels((bool) ($task?->stageDefinition?->email_on_assignment ?? true))];
+        return [$task?->run?->requestInstance, is_int($target) ? [$target] : [], 'approval_reassigned', $this->channels((bool) ($task?->stageDefinition?->email_on_assignment ?? false))];
     }
 
     private function slaWarning(RequestOutboxMessage $outbox): array
@@ -80,7 +80,7 @@ final class RequestNotificationPlanner
         $request = $task?->run?->requestInstance;
         $recipients = $task && $task->assignee_user_id ? [(int) $task->assignee_user_id] : [];
 
-        return [$request, $recipients, 'approval_sla_warning', $this->channels((bool) ($task?->stageDefinition?->email_on_sla_warning ?? true))];
+        return [$request, $recipients, 'approval_sla_warning', $this->channels((bool) ($task?->stageDefinition?->email_on_sla_warning ?? false))];
     }
 
     private function requesterForTask(RequestOutboxMessage $outbox, string $template): array
@@ -88,7 +88,7 @@ final class RequestNotificationPlanner
         $task = RequestTask::query()->with(['run.requestInstance', 'stageDefinition'])->where('public_id', $outbox->aggregate_public_id)->first();
         $request = $task?->run?->requestInstance;
 
-        return [$request, $request ? [$request->requester_id] : [], $template, $this->channels((bool) ($task?->stageDefinition?->email_on_decision ?? true))];
+        return [$request, $request ? [$request->requester_id] : [], $template, $this->channels((bool) ($task?->stageDefinition?->email_on_decision ?? false))];
     }
 
     private function requesterForDecision(RequestOutboxMessage $outbox, string $template): array
@@ -104,7 +104,7 @@ final class RequestNotificationPlanner
                 ->first()
             : null;
 
-        return [$request, $request ? [$request->requester_id] : [], $template, $this->channels((bool) ($task?->stageDefinition?->email_on_decision ?? true))];
+        return [$request, $request ? [$request->requester_id] : [], $template, $this->channels((bool) ($task?->stageDefinition?->email_on_decision ?? false))];
     }
 
     private function requester(RequestOutboxMessage $outbox, string $template): array

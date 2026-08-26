@@ -29,6 +29,7 @@ final class RequestOperationsQuery
                 'error_code' => 'failed_activation',
                 'attempt_count' => (int) ($request->currentRun?->activation_retry_count ?? 0),
                 'updated_at' => $request->updated_at,
+                'deletable' => false,
             ]);
 
         $outbox = RequestOutboxMessage::query()
@@ -43,6 +44,7 @@ final class RequestOperationsQuery
                 'error_code' => $message->last_error_code,
                 'attempt_count' => $message->attempt_count,
                 'updated_at' => $message->failed_at,
+                'deletable' => true,
             ]);
 
         $exports = RequestExportJob::query()
@@ -57,6 +59,7 @@ final class RequestOperationsQuery
                 'error_code' => $export->last_error_code,
                 'attempt_count' => $export->attempt_count,
                 'updated_at' => $export->updated_at,
+                'deletable' => true,
             ]);
 
         return $stage

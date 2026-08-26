@@ -17,4 +17,9 @@ final class RequestOperationPolicy
     {
         return $this->hasPermission($user, 'request.operation.retry');
     }
+
+    public function delete(mixed $user): bool
+    {
+        return $this->hasPermission($user, 'request.operation.delete');
+    }
 }

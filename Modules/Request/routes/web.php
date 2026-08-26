@@ -21,9 +21,11 @@ Route::middleware(['web', UseVietnameseRequestLocale::class, 'auth:admin'])->pre
     Route::get('/types/{typePublicId}/designer', [RequestDefinitionController::class, 'designer'])->whereUlid('typePublicId')->middleware('permission:request.type.update,admin')->name('types.designer');
     Route::get('/types/{typePublicId}/versions', [RequestDefinitionController::class, 'versions'])->whereUlid('typePublicId')->middleware('permission:request.type.view,admin')->name('types.versions');
     Route::get('/reports', RequestReportController::class)->middleware('permission:request.report.view,admin')->name('reports');
+    Route::delete('/reports/requests/{requestPublicId}', [RequestReportController::class, 'destroy'])->whereUlid('requestPublicId')->middleware(['permission:request.instance.delete,admin', 'throttle:request-decide'])->name('reports.requests.destroy');
     Route::post('/reports/exports', [RequestExportController::class, 'store'])->middleware(['permission:request.export,admin', 'throttle:request-export'])->name('reports.exports.store');
     Route::get('/operations', [RequestOperationsController::class, 'index'])->middleware('permission:request.operation.view,admin')->name('operations');
     Route::post('/operations/retry', [RequestOperationsController::class, 'retry'])->middleware(['permission:request.operation.retry,admin', 'throttle:request-decide'])->name('operations.retry');
+    Route::delete('/operations', [RequestOperationsController::class, 'destroy'])->middleware(['permission:request.operation.delete,admin', 'throttle:request-decide'])->name('operations.destroy');
 });
 
 Route::middleware(['web', UseVietnameseRequestLocale::class, 'auth:admin'])->prefix('admin/requests')->name('request.')->group(function (): void {

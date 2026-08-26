@@ -43,11 +43,10 @@ final class PublishTypeVersion
             ];
             $now = now('UTC');
             $correlationId ??= (string) Str::uuid();
-            if ($lockedType->current_published_version_id) {
-                DB::table('request_type_versions')
-                    ->where('id', $lockedType->current_published_version_id)
-                    ->update(['status' => RequestTypeVersionStatus::Superseded->value, 'updated_at' => $now]);
-            }
+            DB::table('request_type_versions')
+                ->where('request_type_id', $lockedType->id)
+                ->where('status', RequestTypeVersionStatus::Published->value)
+                ->update(['status' => RequestTypeVersionStatus::Superseded->value, 'updated_at' => $now]);
             $draft->update(['status' => RequestTypeVersionStatus::Published, 'canonical_checksum' => $this->canonicalizer->checksum($definition), 'published_by' => $actorId, 'published_at' => $now, 'updated_by' => $actorId]);
             $lockedType->forceFill(['status' => RequestTypeStatus::Published, 'current_published_version_id' => $draft->id, 'active_draft_version_id' => null, 'lock_version' => $lockedType->lock_version + 1, 'updated_by' => $actorId])->save();
             $this->audit->append('request_type', $lockedType->public_id, 'request.type.published.v1', $actorId, $correlationId, ['version' => $draft->version_number, 'checksum' => $draft->canonical_checksum]);

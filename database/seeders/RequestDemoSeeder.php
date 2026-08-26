@@ -10,6 +10,8 @@ class RequestDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        $existingType = DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->first();
+
         $actorId = (int) (DB::table('users')->where('email', 'tungocvan@gmail.com')->value('id')
             ?? DB::table('users')->orderBy('id')->value('id')
             ?? 1);
@@ -32,36 +34,41 @@ class RequestDemoSeeder extends Seeder
 
         $now = now();
 
-        DB::transaction(function () use ($actorId, $approverId, $now): void {
-            $groupId = DB::table('request_groups')->where('code', 'REQUEST_UI_DEMO')->value('id');
-            if (! $groupId) {
-                $groupId = DB::table('request_groups')->insertGetId([
-                    'public_id' => (string) Str::ulid(),
-                    'code' => 'REQUEST_UI_DEMO',
-                    'name' => 'DEMO · Kiểm thử giao diện',
-                    'description' => 'Dữ liệu mẫu phục vụ kiểm thử UI-01 đến UI-07 của phân hệ Đề nghị.',
-                    'icon_key' => 'clipboard-check',
-                    'color_key' => 'blue',
-                    'sort_order' => 1,
-                    'is_active' => true,
-                    'created_by' => $actorId,
-                    'updated_by' => $actorId,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
+        DB::transaction(function () use ($actorId, $approverId, $existingType, $now): void {
+            if ($existingType !== null) {
+                $type = DB::table('request_types')->lockForUpdate()->where('id', $existingType->id)->first();
+                $publishedId = (int) ($type->current_published_version_id ?? 0);
+                if ($publishedId <= 0 || ! DB::table('request_type_versions')->where('id', $publishedId)->where('request_type_id', $type->id)->where('status', 'published')->exists()) {
+                    throw new \RuntimeException('REQUEST_UI_DEMO không có phiên bản hiện hành hợp lệ; hãy dùng request:e2e-reset --rebuild trên môi trường local.');
+                }
             } else {
-                DB::table('request_groups')->where('id', $groupId)->update([
-                    'name' => 'DEMO · Kiểm thử giao diện',
-                    'description' => 'Dữ liệu mẫu phục vụ kiểm thử UI-01 đến UI-07 của phân hệ Đề nghị.',
-                    'is_active' => true,
-                    'archived_at' => null,
-                    'updated_by' => $actorId,
-                    'updated_at' => $now,
-                ]);
-            }
+                $groupId = DB::table('request_groups')->where('code', 'REQUEST_UI_DEMO')->value('id');
+                if (! $groupId) {
+                    $groupId = DB::table('request_groups')->insertGetId([
+                        'public_id' => (string) Str::ulid(),
+                        'code' => 'REQUEST_UI_DEMO',
+                        'name' => 'DEMO · Kiểm thử giao diện',
+                        'description' => 'Dữ liệu mẫu phục vụ kiểm thử UI-01 đến UI-07 của phân hệ Đề nghị.',
+                        'icon_key' => 'clipboard-check',
+                        'color_key' => 'blue',
+                        'sort_order' => 1,
+                        'is_active' => true,
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                } else {
+                    DB::table('request_groups')->where('id', $groupId)->update([
+                        'name' => 'DEMO · Kiểm thử giao diện',
+                        'description' => 'Dữ liệu mẫu phục vụ kiểm thử UI-01 đến UI-07 của phân hệ Đề nghị.',
+                        'is_active' => true,
+                        'archived_at' => null,
+                        'updated_by' => $actorId,
+                        'updated_at' => $now,
+                    ]);
+                }
 
-            $type = DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->first();
-            if (! $type) {
                 $typeId = DB::table('request_types')->insertGetId([
                     'public_id' => (string) Str::ulid(),
                     'request_group_id' => $groupId,
@@ -77,55 +84,36 @@ class RequestDemoSeeder extends Seeder
                     'updated_at' => $now,
                 ]);
                 $type = DB::table('request_types')->where('id', $typeId)->first();
-            } else {
-                DB::table('request_types')->where('id', $type->id)->update([
-                    'request_group_id' => $groupId,
-                    'name' => 'DEMO · Đề nghị cấp thiết bị',
-                    'summary' => 'Biểu mẫu mẫu để kiểm thử giao diện thích ứng, chế độ ngoại tuyến và dữ liệu nhạy cảm.',
+
+                $schema = [
+                    'schema_version' => 1,
+                    'sections' => [[
+                        'key' => 'request_details',
+                        'label' => 'Thông tin đề nghị',
+                        'fields' => [
+                            ['key' => 'item_name', 'type' => 'text', 'label' => 'Tên thiết bị', 'required' => true, 'classification' => 'internal', 'offline_draft' => true],
+                            ['key' => 'quantity', 'type' => 'integer', 'label' => 'Số lượng', 'required' => true, 'classification' => 'internal', 'offline_draft' => true],
+                            ['key' => 'business_reason', 'type' => 'textarea', 'label' => 'Lý do sử dụng', 'required' => false, 'classification' => 'internal', 'offline_draft' => true],
+                            ['key' => 'confidential_note', 'type' => 'textarea', 'label' => 'Ghi chú bảo mật', 'required' => false, 'classification' => 'confidential', 'offline_draft' => false],
+                        ],
+                    ]],
+                ];
+
+                $publishedValues = [
                     'status' => 'published',
-                    'available_from' => null,
-                    'available_until' => null,
+                    'title' => 'DEMO · Đề nghị cấp thiết bị',
+                    'description' => 'Phiên bản đã phát hành để kiểm thử danh mục và luồng tạo đề nghị.',
+                    'requester_guidance' => 'Chỉ sử dụng loại đề nghị này để kiểm thử giao diện.',
+                    'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
+                    'policy_json' => json_encode([], JSON_THROW_ON_ERROR),
+                    'presentation_json' => json_encode([], JSON_THROW_ON_ERROR),
+                    'schema_version' => 1,
+                    'published_by' => $actorId,
+                    'published_at' => $now,
                     'updated_by' => $actorId,
                     'updated_at' => $now,
-                ]);
-                $type = DB::table('request_types')->where('id', $type->id)->first();
-            }
+                ];
 
-            $schema = [
-                'schema_version' => 1,
-                'sections' => [[
-                    'key' => 'request_details',
-                    'label' => 'Thông tin đề nghị',
-                    'fields' => [
-                        ['key' => 'item_name', 'type' => 'text', 'label' => 'Tên thiết bị', 'required' => true, 'classification' => 'internal', 'offline_draft' => true],
-                        ['key' => 'quantity', 'type' => 'integer', 'label' => 'Số lượng', 'required' => true, 'classification' => 'internal', 'offline_draft' => true],
-                        ['key' => 'business_reason', 'type' => 'textarea', 'label' => 'Lý do sử dụng', 'required' => false, 'classification' => 'internal', 'offline_draft' => true],
-                        ['key' => 'confidential_note', 'type' => 'textarea', 'label' => 'Ghi chú bảo mật', 'required' => false, 'classification' => 'confidential', 'offline_draft' => false],
-                    ],
-                ]],
-            ];
-
-            $publishedId = DB::table('request_type_versions')
-                ->where('request_type_id', $type->id)
-                ->where('version_number', 1)
-                ->value('id');
-
-            $publishedValues = [
-                'status' => 'published',
-                'title' => 'DEMO · Đề nghị cấp thiết bị',
-                'description' => 'Phiên bản đã phát hành để kiểm thử danh mục và luồng tạo đề nghị.',
-                'requester_guidance' => 'Chỉ sử dụng loại đề nghị này để kiểm thử giao diện.',
-                'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
-                'policy_json' => json_encode([], JSON_THROW_ON_ERROR),
-                'presentation_json' => json_encode([], JSON_THROW_ON_ERROR),
-                'schema_version' => 1,
-                'published_by' => $actorId,
-                'published_at' => $now,
-                'updated_by' => $actorId,
-                'updated_at' => $now,
-            ];
-
-            if (! $publishedId) {
                 $publishedId = DB::table('request_type_versions')->insertGetId($publishedValues + [
                     'public_id' => (string) Str::ulid(),
                     'request_type_id' => $type->id,
@@ -133,16 +121,7 @@ class RequestDemoSeeder extends Seeder
                     'created_by' => $actorId,
                     'created_at' => $now,
                 ]);
-            } else {
-                DB::table('request_type_versions')->where('id', $publishedId)->update($publishedValues);
-            }
 
-            $draftId = DB::table('request_type_versions')
-                ->where('request_type_id', $type->id)
-                ->where('status', 'draft')
-                ->value('id');
-
-            if (! $draftId) {
                 $draftId = DB::table('request_type_versions')->insertGetId([
                     'public_id' => (string) Str::ulid(),
                     'request_type_id' => $type->id,
@@ -161,56 +140,47 @@ class RequestDemoSeeder extends Seeder
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
-            } else {
-                DB::table('request_type_versions')->where('id', $draftId)->update([
-                    'title' => 'DEMO · Đề nghị cấp thiết bị v2',
-                    'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên máy tính bảng.',
-                    'requester_guidance' => 'Thử thêm, xóa, di chuyển trường hoặc cấp duyệt rồi lưu lại.',
-                    'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
+
+                DB::table('request_types')->where('id', $type->id)->update([
+                    'status' => 'published',
+                    'current_published_version_id' => $publishedId,
+                    'active_draft_version_id' => $draftId,
                     'updated_by' => $actorId,
                     'updated_at' => $now,
                 ]);
-            }
 
-            DB::table('request_types')->where('id', $type->id)->update([
-                'status' => 'published',
-                'current_published_version_id' => $publishedId,
-                'active_draft_version_id' => $draftId,
-                'updated_by' => $actorId,
-                'updated_at' => $now,
-            ]);
+                foreach ([$publishedId, $draftId] as $versionId) {
+                    DB::table('request_type_audiences')->updateOrInsert(
+                        ['request_type_version_id' => $versionId, 'actor_type' => 'user', 'actor_id' => $actorId, 'capability' => 'create'],
+                        ['created_at' => $now, 'updated_at' => $now]
+                    );
 
-            foreach ([$publishedId, $draftId] as $versionId) {
-                DB::table('request_type_audiences')->updateOrInsert(
-                    ['request_type_version_id' => $versionId, 'actor_type' => 'user', 'actor_id' => $actorId, 'capability' => 'create'],
-                    ['created_at' => $now, 'updated_at' => $now]
-                );
+                    $stage = DB::table('request_stage_definitions')
+                        ->where('request_type_version_id', $versionId)
+                        ->where('stage_key', 'manager_review')
+                        ->first();
 
-                $stage = DB::table('request_stage_definitions')
-                    ->where('request_type_version_id', $versionId)
-                    ->where('stage_key', 'manager_review')
-                    ->first();
+                    $stageValues = [
+                        'name' => 'Quản lý phê duyệt',
+                        'position' => 1,
+                        'mode' => 'single',
+                        'resolver_key' => 'fixed_users',
+                        'resolver_config_json' => json_encode(['user_ids' => [$approverId]], JSON_THROW_ON_ERROR),
+                        'instructions' => 'Cấp duyệt DEMO để kiểm thử bàn phím và thao tác quyết định.',
+                        'allow_reassignment' => true,
+                        'updated_at' => $now,
+                    ];
 
-                $stageValues = [
-                    'name' => 'Quản lý phê duyệt',
-                    'position' => 1,
-                    'mode' => 'single',
-                    'resolver_key' => 'fixed_user',
-                    'resolver_config_json' => json_encode(['user_id' => $approverId], JSON_THROW_ON_ERROR),
-                    'instructions' => 'Cấp duyệt DEMO để kiểm thử bàn phím và thao tác quyết định.',
-                    'allow_reassignment' => true,
-                    'updated_at' => $now,
-                ];
-
-                if ($stage) {
-                    DB::table('request_stage_definitions')->where('id', $stage->id)->update($stageValues);
-                } else {
-                    DB::table('request_stage_definitions')->insert($stageValues + [
-                        'public_id' => (string) Str::ulid(),
-                        'request_type_version_id' => $versionId,
-                        'stage_key' => 'manager_review',
-                        'created_at' => $now,
-                    ]);
+                    if ($stage) {
+                        DB::table('request_stage_definitions')->where('id', $stage->id)->update($stageValues);
+                    } else {
+                        DB::table('request_stage_definitions')->insert($stageValues + [
+                            'public_id' => (string) Str::ulid(),
+                            'request_type_version_id' => $versionId,
+                            'stage_key' => 'manager_review',
+                            'created_at' => $now,
+                        ]);
+                    }
                 }
             }
 
@@ -257,6 +227,9 @@ class RequestDemoSeeder extends Seeder
         $requesterEmail = DB::table('users')->where('id', $actorId)->value('email');
         $approverEmail = DB::table('users')->where('id', $approverId)->value('email');
 
+        if ($existingType !== null) {
+            $this->command?->info('Đã giữ nguyên định nghĩa/lịch sử REQUEST_UI_DEMO và bổ sung runtime fixture còn thiếu.');
+        }
         $this->command?->info("Dữ liệu DEMO Request đã sẵn sàng. Requester: {$requesterEmail}; Approver: {$approverEmail}. Mở /admin/requests");
     }
 }
