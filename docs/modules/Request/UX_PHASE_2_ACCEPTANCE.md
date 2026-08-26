@@ -53,8 +53,9 @@ The first UI smoke passed the planned Phase 2.14 scenarios. A follow-up inspecti
 - the role resolver option used the unregistered key `fixed_role` instead of `role_members`;
 - the compact three-column duration layout could overflow the designer content column;
 - the readiness summary counted any stage as ready without validating the resolver and SLA configuration.
+- publish validation stayed inside Livewire's field error bag without an obvious global warning, so an incomplete SLA could make the publish action appear unresponsive.
 
-PR #37 is therefore reopened for a corrective audit. The correction must prove persisted notification preferences, UTC SLA boundaries, idempotent enforcement, suspension safety, responsive layout, and Request-only regression before final acceptance is restored.
+PR #37 is therefore reopened for a corrective audit. The correction must prove persisted notification preferences, UTC SLA boundaries, idempotent enforcement, suspension safety, responsive layout, actionable publish-validation feedback, and Request-only regression before final acceptance is restored.
 
 | Gate | Result |
 |---|---|

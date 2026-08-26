@@ -45,6 +45,11 @@ class RequestAdminDesignerWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('PublishTypeVersion', $component);
         $this->assertStringContainsString('UserDirectory::class', $component);
         $this->assertStringContainsString('approvalReady', $component.$view);
+        $this->assertStringContainsString('showValidationModal', $component.$view);
+        $this->assertStringContainsString('presentValidationFailure', $component);
+        $this->assertStringContainsString('role="alertdialog"', $view);
+        $this->assertStringContainsString('Chưa thể phát hành phiên bản', $component);
+        $this->assertStringContainsString('Quay lại chỉnh sửa', $view);
         $this->assertStringContainsString("'role_members'", $component);
         $this->assertStringContainsString('<option value="role_members">', $view);
         $this->assertStringNotContainsString('suspend_on_overdue', $view);

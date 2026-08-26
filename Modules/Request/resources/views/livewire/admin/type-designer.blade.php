@@ -159,4 +159,36 @@
             <p class="mt-4 text-xs leading-5 text-slate-500">Bản nháp trên máy chủ là nguồn dữ liệu chính thức. Phiên bản đã phát hành là bất biến; SLA được snapshot khi task kích hoạt.</p>
         </aside>
     </div>
+
+    @if($showValidationModal)
+        <div
+            class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="request-validation-modal-title"
+            aria-describedby="request-validation-modal-description"
+            wire:click.self="closeValidationModal"
+            wire:keydown.escape.window="closeValidationModal"
+        >
+            <div class="w-full max-w-lg rounded-2xl border border-red-200 bg-white p-5 shadow-2xl sm:p-6">
+                <div class="flex items-start gap-4">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-xl font-bold text-red-700" aria-hidden="true">!</div>
+                    <div class="min-w-0">
+                        <h2 id="request-validation-modal-title" class="text-lg font-bold text-slate-900">{{ $validationModalTitle }}</h2>
+                        <p id="request-validation-modal-description" class="mt-1 text-sm leading-6 text-slate-600">
+                            {{ str_contains($validationModalTitle, 'phát hành') ? 'Phiên bản chưa được phát hành.' : 'Bản nháp chưa được lưu.' }} Hãy hoàn thiện các mục sau rồi thử lại:
+                        </p>
+                    </div>
+                </div>
+                <ul class="mt-4 max-h-64 list-disc space-y-2 overflow-y-auto rounded-xl border border-red-100 bg-red-50 p-4 pl-9 text-sm leading-6 text-red-800">
+                    @foreach($validationModalMessages as $message)
+                        <li wire:key="request-validation-message-{{ $loop->index }}">{{ $message }}</li>
+                    @endforeach
+                </ul>
+                <div class="mt-5 flex justify-end">
+                    <button type="button" wire:click="closeValidationModal" class="min-h-11 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Quay lại chỉnh sửa</button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

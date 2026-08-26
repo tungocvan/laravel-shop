@@ -33,6 +33,13 @@ class TypeDesigner extends Component
 
     public int $lockVersion = 1;
 
+    public bool $showValidationModal = false;
+
+    public string $validationModalTitle = '';
+
+    /** @var list<string> */
+    public array $validationModalMessages = [];
+
     public function mount(string $typePublicId): void
     {
         $this->typePublicId = $typePublicId;
@@ -174,35 +181,42 @@ class TypeDesigner extends Component
 
     public function save(SaveTypeDraft $service): void
     {
-        $type = $this->type();
-        Gate::authorize('update', $type);
-        $schema = $this->schemaExtras;
-        $schema['schema_version'] = $this->schemaVersion;
-        $schema['sections'] = array_values($this->sections);
-        $stages = $this->normalizedStages();
+        $this->resetValidationFeedback();
 
-        $service->handle($type, [
-            'title' => $this->title,
-            'description' => $this->description ?: null,
-            'requester_guidance' => $this->requesterGuidance ?: null,
-            'form_schema_json' => $schema,
-            'audiences' => $this->decode($this->audiencesJson, 'audiencesJson'),
-            'stages' => $stages,
-        ], (int) auth('admin')->id(), $this->lockVersion);
+        try {
+            $this->persistDraft($service);
+        } catch (ValidationException $exception) {
+            $this->presentValidationFailure($exception, 'Chưa thể lưu bản nháp');
 
-        $this->lockVersion = $type->refresh()->lock_version;
+            return;
+        }
+
         session()->flash('request_success', __('Request::request.saved'));
         $this->js("window.alert('Đã lưu bản nháp thành công.');");
     }
 
     public function publish(PublishTypeVersion $service): void
     {
-        $this->save(app(SaveTypeDraft::class));
+        $this->resetValidationFeedback();
         $type = $this->type();
         Gate::authorize('publish', $type);
-        $service->handle($type, (int) auth('admin')->id(), $this->lockVersion);
+
+        try {
+            $type = $this->persistDraft(app(SaveTypeDraft::class));
+            $service->handle($type, (int) auth('admin')->id(), $this->lockVersion);
+        } catch (ValidationException $exception) {
+            $this->presentValidationFailure($exception, 'Chưa thể phát hành phiên bản');
+
+            return;
+        }
+
         session()->flash('request_success', __('Request::request.published'));
         $this->redirectRoute('request.admin.types.versions', $type->public_id);
+    }
+
+    public function closeValidationModal(): void
+    {
+        $this->showValidationModal = false;
     }
 
     public function render()
@@ -224,6 +238,103 @@ class TypeDesigner extends Component
     private function type(): RequestType
     {
         return RequestType::query()->where('public_id', $this->typePublicId)->firstOrFail();
+    }
+
+    private function persistDraft(SaveTypeDraft $service): RequestType
+    {
+        $type = $this->type();
+        Gate::authorize('update', $type);
+        $schema = $this->schemaExtras;
+        $schema['schema_version'] = $this->schemaVersion;
+        $schema['sections'] = array_values($this->sections);
+
+        $service->handle($type, [
+            'title' => $this->title,
+            'description' => $this->description ?: null,
+            'requester_guidance' => $this->requesterGuidance ?: null,
+            'form_schema_json' => $schema,
+            'audiences' => $this->decode($this->audiencesJson, 'audiencesJson'),
+            'stages' => $this->normalizedStages(),
+        ], (int) auth('admin')->id(), $this->lockVersion);
+
+        $type->refresh();
+        $this->lockVersion = $type->lock_version;
+
+        return $type;
+    }
+
+    private function resetValidationFeedback(): void
+    {
+        $this->resetErrorBag();
+        $this->showValidationModal = false;
+        $this->validationModalTitle = '';
+        $this->validationModalMessages = [];
+    }
+
+    private function presentValidationFailure(ValidationException $exception, string $title): void
+    {
+        $this->setErrorBag($exception->validator->errors());
+        $this->validationModalTitle = $title;
+        $this->validationModalMessages = $this->validationMessages($exception->errors());
+        $this->showValidationModal = true;
+    }
+
+    /**
+     * @param  array<string, array<int, string>>  $errors
+     * @return list<string>
+     */
+    private function validationMessages(array $errors): array
+    {
+        $messages = [];
+        foreach ($errors as $field => $codes) {
+            foreach ((array) $codes as $code) {
+                $messages[] = $this->validationMessage((string) $field, (string) $code);
+            }
+        }
+
+        return array_values(array_unique($messages ?: ['Một hoặc nhiều phần cấu hình chưa hợp lệ. Hãy kiểm tra lại bản nháp.']));
+    }
+
+    private function validationMessage(string $field, string $code): string
+    {
+        $stage = '';
+        if (preg_match('/^stages\.(\d+)/', $field, $matches) === 1) {
+            $stage = 'Cấp duyệt '.((int) $matches[1] + 1).': ';
+        }
+
+        return match ($code) {
+            'duration_required' => $stage.'Hãy nhập thời hạn xử lý SLA.',
+            'duration_invalid', 'duration_unit_invalid', 'sla_duration_invalid' => $stage.'Thời lượng SLA chưa hợp lệ.',
+            'duration_exceeds_maximum' => $stage.'Thời lượng SLA không được vượt quá 365 ngày.',
+            'warning_exceeds_sla' => $stage.'Cảnh báo trước hạn không được lớn hơn thời hạn xử lý.',
+            'grace_requires_suspension' => $stage.'Chỉ cấu hình thời gian gia hạn khi chọn tạm dừng quá hạn.',
+            'sla_required_for_timeout_configuration' => $stage.'Hãy nhập thời hạn xử lý trước khi cấu hình cảnh báo hoặc tạm dừng.',
+            'single_approver_required' => $stage.'Chế độ một người duyệt phải có đúng một người phê duyệt.',
+            'approver_required', 'fixed_users_invalid' => $stage.'Hãy chọn người phê duyệt đang hoạt động.',
+            'role_required', 'role_unavailable' => $stage.'Hãy chọn một vai trò quản trị hợp lệ.',
+            'user_field_required', 'user_field_invalid' => $stage.'Hãy chọn một trường người dùng hợp lệ từ biểu mẫu.',
+            'resolver_not_registered' => $stage.'Bộ phân giải người duyệt không được hỗ trợ.',
+            'stage_identity_required' => $stage.'Mã và tên cấp duyệt là bắt buộc.',
+            'stage_mode_invalid', 'invalid_mode' => $stage.'Chế độ phê duyệt chưa hợp lệ.',
+            'timeout_action_invalid' => $stage.'Hành vi sau khi quá hạn chưa hợp lệ.',
+            'at_least_one_stage_required' => 'Hãy thêm ít nhất một cấp phê duyệt và hoàn thiện cấu hình SLA.',
+            'stage_limit_exceeded' => 'Số cấp phê duyệt vượt quá giới hạn cho phép.',
+            'invalid_json', 'array_required' => $this->validationSection($field).' phải là JSON hợp lệ.',
+            'unsupported_schema_version', 'invalid_sections', 'invalid_key', 'invalid_or_duplicate_key', 'unsupported_field_type', 'field_limit_exceeded' => 'Biểu mẫu còn trường hoặc cấu trúc chưa hợp lệ.',
+            'actor_unavailable' => 'Đối tượng được phép tạo đề nghị không còn hoạt động.',
+            'stale_version' => 'Bản nháp đã thay đổi trên máy chủ. Hãy tải lại trang trước khi tiếp tục.',
+            default => $this->validationSection($field).' còn dữ liệu chưa hợp lệ.',
+        };
+    }
+
+    private function validationSection(string $field): string
+    {
+        return match (true) {
+            str_starts_with($field, 'stages') => 'Phê duyệt & SLA',
+            str_starts_with($field, 'form_schema_json') => 'Biểu mẫu',
+            str_starts_with($field, 'audiences'), $field === 'audiencesJson' => 'Đối tượng tạo đề nghị',
+            default => 'Bản nháp',
+        };
     }
 
     private function decode(string $json, string $field): array
