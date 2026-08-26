@@ -25,9 +25,21 @@ final class RequestTypePolicy
         return $this->hasPermission($user, 'request.type.create');
     }
 
+    public function delete(mixed $user, RequestType $type): bool
+    {
+        return $type->current_published_version_id === null
+            && $this->hasPermission($user, 'request.type.delete');
+    }
+
     public function update(mixed $user, RequestType $type): bool
     {
         return $type->status !== RequestTypeStatus::Retired && $this->hasPermission($user, 'request.type.update');
+    }
+
+    public function manageAudience(mixed $user, RequestType $type): bool
+    {
+        return $type->status !== RequestTypeStatus::Retired
+            && $this->hasPermission($user, 'request.type.audience.manage');
     }
 
     public function publish(mixed $user, RequestType $type): bool

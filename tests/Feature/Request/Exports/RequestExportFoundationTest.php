@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Request\Exports;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Validation\ValidationException;
 use Modules\Request\Application\Services\PlanRequestExport;
 use Modules\Request\Application\Services\RequestExportQuery;
 use Modules\Request\Models\InternalRequest;
+use Modules\Request\Models\RequestGroup;
+use Modules\Request\Models\RequestType;
+use Modules\Request\Models\RequestTypeVersion;
 use Modules\Request\Support\RequestPrivateExportStorage;
 use RuntimeException;
 use Tests\TestCase;
@@ -68,6 +72,68 @@ class RequestExportFoundationTest extends TestCase
         $this->assertSame(['request_number', 'title'], $plan->fields);
         $this->assertNotContains('payload_json', $plan->fields);
         $this->assertNotContains('confidential_note', $plan->fields);
+    }
+
+    public function test_report_filters_keep_group_type_and_local_date_boundaries_inside_authorized_scope(): void
+    {
+        config(['app.timezone' => 'Asia/Ho_Chi_Minh']);
+
+        $group = RequestGroup::factory()->create(['name' => 'Hành chính']);
+        $otherGroup = RequestGroup::factory()->create(['name' => 'Nhân sự']);
+        $type = RequestType::factory()->for($group, 'group')->create(['name' => 'Đề nghị thiết bị']);
+        $otherType = RequestType::factory()->for($otherGroup, 'group')->create(['name' => 'Đề nghị nghỉ phép']);
+        $version = RequestTypeVersion::factory()->for($type, 'type')->create();
+        $otherVersion = RequestTypeVersion::factory()->for($otherType, 'type')->create();
+
+        $included = InternalRequest::factory()->create([
+            'request_type_id' => $type->id,
+            'request_type_version_id' => $version->id,
+            'requester_id' => 81,
+            'created_at' => CarbonImmutable::parse('2026-08-25 16:59:59', 'UTC'),
+        ]);
+        InternalRequest::factory()->create([
+            'request_type_id' => $type->id,
+            'request_type_version_id' => $version->id,
+            'requester_id' => 81,
+            'created_at' => CarbonImmutable::parse('2026-08-25 17:00:00', 'UTC'),
+        ]);
+        InternalRequest::factory()->create([
+            'request_type_id' => $otherType->id,
+            'request_type_version_id' => $otherVersion->id,
+            'requester_id' => 81,
+            'created_at' => CarbonImmutable::parse('2026-08-25 10:00:00', 'UTC'),
+        ]);
+        InternalRequest::factory()->create([
+            'request_type_id' => $type->id,
+            'request_type_version_id' => $version->id,
+            'requester_id' => 999,
+            'created_at' => CarbonImmutable::parse('2026-08-25 10:00:00', 'UTC'),
+        ]);
+
+        $user = $this->user(81, ['request.export', 'request.instance.view-own']);
+        $filters = [
+            'group_public_id' => $group->public_id,
+            'type_public_id' => $type->public_id,
+            'created_from' => '2026-08-25',
+            'created_to' => '2026-08-25',
+        ];
+
+        $rows = app(RequestExportQuery::class)->queryFor($user, $filters)->get();
+        $plan = app(PlanRequestExport::class)->plan($user, $filters);
+
+        $this->assertSame([$included->id], $rows->pluck('id')->all());
+        $this->assertEqualsCanonicalizing($filters, $plan->filters);
+        $this->assertSame(1, $plan->authorizedRowCount);
+        $this->assertSame('Hành chính', $rows->firstOrFail()->type->group->name);
+    }
+
+    public function test_export_planner_rejects_invalid_filters_instead_of_broadening_scope(): void
+    {
+        $user = $this->user(91, ['request.export', 'request.instance.view-own']);
+
+        $this->expectException(ValidationException::class);
+
+        app(PlanRequestExport::class)->plan($user, ['status' => 'not-a-real-status']);
     }
 
     public function test_private_export_storage_rejects_public_disk_and_uses_opaque_paths(): void

@@ -8,6 +8,7 @@ use Livewire\Component;
 use Modules\Request\Application\Queries\ApproverInboxQuery;
 use Modules\Request\Application\Services\DecideRequestTask;
 use Modules\Request\Domain\Enums\DecisionType;
+use Modules\Request\Models\RequestTask;
 
 class DecisionPanel extends Component
 {
@@ -33,6 +34,11 @@ class DecisionPanel extends Component
         $this->idempotencyKey = (string) Str::uuid();
     }
 
+    public function updatedDecision(): void
+    {
+        $this->resetValidation('reason');
+    }
+
     public function approve(ApproverInboxQuery $query, DecideRequestTask $service): void
     {
         $this->decision = 'approve';
@@ -41,16 +47,44 @@ class DecisionPanel extends Component
 
     public function decide(ApproverInboxQuery $query, DecideRequestTask $service): void
     {
-        $validated = $this->validate(['decision' => ['required', 'in:approve,reject,return'], 'reason' => ['nullable', 'string', 'max:2000']]);
+        $validated = $this->validate([
+            'decision' => ['required', 'in:approve,reject,return'],
+            'reason' => $this->decision === 'approve'
+                ? ['nullable', 'string', 'max:2000']
+                : ['required', 'string', 'max:2000'],
+        ]);
+
         $task = $query->findActionable($this->taskPublicId, (int) auth('admin')->id());
         Gate::authorize('decide', $task);
-        $service->handle($task, DecisionType::from($validated['decision']), $validated['reason'], (int) auth('admin')->id(), $this->requestVersion, $this->taskVersion, $this->idempotencyKey);
-        session()->flash('request_success', __('Request::request.decision_approved'));
+
+        $service->handle(
+            $task,
+            DecisionType::from($validated['decision']),
+            $validated['reason'] ?? '',
+            (int) auth('admin')->id(),
+            $this->requestVersion,
+            $this->taskVersion,
+            $this->idempotencyKey,
+        );
+
+        session()->flash('request_success', match ($validated['decision']) {
+            'reject' => __('Request::request.reject'),
+            'return' => __('Request::request.return'),
+            default => __('Request::request.decision_approved'),
+        });
+
         $this->redirectRoute('request.inbox');
     }
 
     public function render()
     {
-        return view('Request::livewire.approver.decision-panel');
+        $task = RequestTask::query()
+            ->select(['id', 'public_id', 'suspended_at'])
+            ->where('public_id', $this->taskPublicId)
+            ->first();
+
+        return view('Request::livewire.approver.decision-panel', [
+            'suspended' => $task?->suspended_at !== null,
+        ]);
     }
 }

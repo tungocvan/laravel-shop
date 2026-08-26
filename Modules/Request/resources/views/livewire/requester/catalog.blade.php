@@ -1,4 +1,6 @@
 <div class="space-y-6">
+    @include('Request::partials.workspace-navigation')
+
     <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div><h1 class="text-2xl font-bold text-gray-900">{{ __('Request::request.catalog.title') }}</h1><p class="mt-1 text-sm text-gray-600">{{ __('Request::request.catalog.description') }}</p></div>
         <a href="{{ route('request.mine') }}" class="inline-flex justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-indigo-700">{{ __('Request::request.mine.title') }}</a>

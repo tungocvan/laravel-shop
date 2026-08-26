@@ -198,6 +198,7 @@ request.group.archive
 request.type.view
 request.type.create
 request.type.update
+request.type.audience.manage
 request.type.publish
 request.type.retire
 request.type.import

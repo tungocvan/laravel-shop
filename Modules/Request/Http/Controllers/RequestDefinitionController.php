@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestType;
+use Modules\User\Contracts\UserDirectory;
 
 final class RequestDefinitionController extends Controller
 {
@@ -14,7 +15,14 @@ final class RequestDefinitionController extends Controller
     {
         Gate::authorize('viewAny', RequestGroup::class);
 
-        return view('Request::admin.groups', ['groups' => RequestGroup::query()->withCount('types')->orderBy('sort_order')->paginate(25)]);
+        $groups = RequestGroup::query()
+            ->with(['types:id,request_group_id,public_id,code,name,status'])
+            ->withCount('types')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->paginate(25);
+
+        return view('Request::admin.groups', compact('groups'));
     }
 
     public function types(): View
@@ -32,15 +40,26 @@ final class RequestDefinitionController extends Controller
         return view('Request::admin.designer', compact('type'));
     }
 
-    public function versions(string $typePublicId): View
+    public function versions(string $typePublicId, UserDirectory $users): View
     {
         $type = RequestType::query()->where('public_id', $typePublicId)->with([
+            'activeDraft:id,request_type_id,version_number',
+            'currentPublishedVersion:id,request_type_id,version_number',
             'versions' => fn ($query) => $query->latest('version_number'),
             'versions.audiences',
             'versions.stages',
         ])->firstOrFail();
         Gate::authorize('view', $type);
 
-        return view('Request::admin.versions', compact('type'));
+        $actorIds = $type->versions
+            ->flatMap(fn ($version) => [$version->created_by, $version->published_by])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $versionActors = collect($users->findManyActive($actorIds, 100))->keyBy('id');
+
+        return view('Request::admin.versions', compact('type', 'versionActors'));
     }
 }

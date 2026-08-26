@@ -1,6 +1,6 @@
 # Request v1 — CREATE PLAN
 
-Status: **APPROVED FOR IMPLEMENTATION**  
+Status: **IMPLEMENTATION VERIFIED — SEE SECTION 33**
 Command: `/create-module Request`  
 Target module: `Modules/Request`  
 Module type: `domain`  
@@ -174,6 +174,7 @@ request.group.archive
 request.type.view
 request.type.create
 request.type.update
+request.type.audience.manage
 request.type.publish
 request.type.retire
 request.type.import
@@ -1137,3 +1138,34 @@ Request v1 is complete only when:
 - Workflow remains deferred and no overlapping runtime artifact exists.
 
 Implementation is authorized beginning with MR-01 and must follow the ordering, gates, stop conditions, and change control in this document.
+
+## 33. Implementation completion and approved deviation reconciliation
+
+Implementation verification was completed on 2026-08-25.
+
+Execution evidence and operator handoff are recorded in:
+
+- `IMPLEMENTATION_COMPLETION_ADDENDUM.md`
+- `RELEASE_EVIDENCE.md`
+- `IMPLEMENTATION_RUNBOOK.md`
+- `RELEASE_NOTES.md`
+- `12-TRACEABILITY_MATRIX.md`
+
+### Final implementation gates
+
+- Gate #1 — Request feature suite: PASS (`84 passed`, `4904 assertions`).
+- Gate #2 — User/Role regression, Pint, `git diff --check`, frontend build: PASS.
+- Gate #3 — migrations, deployment contract, and operational sanity: PASS.
+- Gate #4 — browser/responsive/PWA acceptance: PASS.
+- Gate #5 — reporting/export/operations automated and real UI export: PASS.
+- Gate #6 — final regression/release hardening: PASS.
+
+### Approved SLA deviation
+
+The original v1 plan deferred SLA/timers. During implementation a constrained, Request-owned task SLA capability was explicitly accepted and verified.
+
+The accepted scope consists of stage SLA configuration, immutable task SLA snapshots, warning/due/grace timestamps, warning/overdue/suspended events, enforcement, notification delivery, email toggles, and timezone-correct presentation.
+
+This does not authorize or introduce generic Workflow/BPMN, graph conditions, delegation, subflows, manager/department resolution, domain posting, or offline business mutation replay. Those capabilities remain deferred.
+
+For the agreed implementation scope and executed release gates, Request v1 is **IMPLEMENTATION COMPLETE**. Production enablement remains subject to the operator checklist in `IMPLEMENTATION_RUNBOOK.md`.

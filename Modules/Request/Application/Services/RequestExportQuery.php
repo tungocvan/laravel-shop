@@ -2,6 +2,7 @@
 
 namespace Modules\Request\Application\Services;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Modules\Request\Domain\Enums\RequestStatus;
@@ -33,7 +34,10 @@ final class RequestExportQuery
                 'request_instances.created_at',
                 'request_instances.updated_at',
             ])
-            ->with('type:id,public_id,code,name');
+            ->with([
+                'type:id,public_id,request_group_id,code,name',
+                'type.group:id,public_id,name',
+            ]);
 
         $this->applyAuthorizationSnapshot($query, $scope);
         $this->applyFilters($query, $filters);
@@ -105,17 +109,28 @@ final class RequestExportQuery
             $query->whereHas('type', fn (Builder $type): Builder => $type->where('public_id', $filters['type_public_id']));
         }
 
+        if (! empty($filters['group_public_id'])) {
+            $query->whereHas('type.group', fn (Builder $group): Builder => $group->where('public_id', $filters['group_public_id']));
+        }
+
         if (! empty($filters['request_public_id'])) {
             $query->where('request_instances.public_id', $filters['request_public_id']);
         }
 
         if (! empty($filters['created_from'])) {
-            $query->whereDate('request_instances.created_at', '>=', $filters['created_from']);
+            $query->where('request_instances.created_at', '>=', $this->localDayBoundary($filters['created_from'], false));
         }
 
         if (! empty($filters['created_to'])) {
-            $query->whereDate('request_instances.created_at', '<=', $filters['created_to']);
+            $query->where('request_instances.created_at', '<=', $this->localDayBoundary($filters['created_to'], true));
         }
+    }
+
+    private function localDayBoundary(string $date, bool $endOfDay): CarbonImmutable
+    {
+        $local = CarbonImmutable::createFromFormat('!Y-m-d', $date, (string) config('app.timezone', 'UTC'));
+
+        return ($endOfDay ? $local->endOfDay() : $local->startOfDay())->utc();
     }
 
     private function hasPermission(mixed $user, string $permission): bool

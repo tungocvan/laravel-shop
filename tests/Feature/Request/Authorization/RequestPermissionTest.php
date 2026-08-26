@@ -11,12 +11,16 @@ class RequestPermissionTest extends TestCase
     {
         $permissions = (require base_path('Modules/Request/config/module.php'))['permissions'];
 
-        $this->assertCount(31, $permissions);
+        $this->assertCount(35, $permissions);
         $this->assertSame($permissions, array_values(array_unique($permissions)));
+        $this->assertContains('request.type.audience.manage', $permissions);
+        $this->assertContains('request.type.delete', $permissions);
         $this->assertContains('request.type.publish', $permissions);
         $this->assertContains('request.instance.submit', $permissions);
+        $this->assertContains('request.instance.delete', $permissions);
         $this->assertContains('request.task.decide', $permissions);
         $this->assertContains('request.operation.retry', $permissions);
+        $this->assertContains('request.operation.delete', $permissions);
         $this->assertTrue(collect($permissions)->every(fn (string $permission): bool => str_starts_with($permission, 'request.')));
     }
 

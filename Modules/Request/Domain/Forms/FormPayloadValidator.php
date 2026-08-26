@@ -14,6 +14,7 @@ final class FormPayloadValidator
 {
     public function __construct(
         private readonly FormPayloadNormalizer $normalizer,
+        private readonly FormDefaultValueResolver $defaults,
         private readonly VisibilityRuleEvaluator $visibility,
         private readonly UserDirectory $users,
         private readonly RoleDirectory $roles,
@@ -50,13 +51,14 @@ final class FormPayloadValidator
             }
 
             $present = array_key_exists($key, $input);
-            $value = $present ? $this->normalizer->normalizeValue($type, $input[$key], $field) : ($field['default'] ?? null);
-            if ($forSubmit && ($field['required'] ?? false) && ($value === null || $value === '' || $value === [])) {
+            $value = $present ? $this->normalizer->normalizeValue($type, $input[$key], $field) : $this->defaults->value($field);
+            $blank = $value === null || $value === '' || $value === [];
+            if ($forSubmit && ($field['required'] ?? false) === true && $blank) {
                 $errors["payload.$key"][] = 'required';
 
                 continue;
             }
-            if (! $present && $value === null) {
+            if ($blank) {
                 continue;
             }
 

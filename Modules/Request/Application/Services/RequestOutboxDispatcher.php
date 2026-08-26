@@ -44,26 +44,17 @@ final class RequestOutboxDispatcher
                 if (! $outbox || $outbox->dispatched_at || $outbox->failed_at || $outbox->available_at->isFuture()) {
                     return null;
                 }
-                $outbox->update([
-                    'attempt_count' => $outbox->attempt_count + 1,
-                    'available_at' => now('UTC')->addSeconds((int) config('request.notifications.outbox_lease_seconds', 120)),
-                    'last_error_code' => null,
-                    'last_error_at' => null,
-                ]);
+                $outbox->update(['attempt_count' => $outbox->attempt_count + 1, 'available_at' => now('UTC')->addSeconds((int) config('request.notifications.outbox_lease_seconds', 120)), 'last_error_code' => null, 'last_error_at' => null]);
                 $claimed = true;
-                $channels = array_values(array_intersect(['database', 'email'], (array) config('request.notifications.channels', ['database', 'email'])));
+                $configuredChannels = array_values(array_intersect(['database', 'email'], (array) config('request.notifications.channels', ['database', 'email'])));
                 $deliveries = [];
                 foreach ($this->planner->plans($outbox) as $plan) {
+                    $channels = array_values(array_intersect($configuredChannels, $plan->channels));
                     foreach ($channels as $channel) {
                         $delivery = RequestNotificationDelivery::query()->firstOrCreate([
-                            'logical_key' => $outbox->public_id.':'.$plan->templateKey.':v1',
-                            'channel' => $channel,
-                            'recipient_id' => $plan->recipientId,
+                            'logical_key' => $outbox->public_id.':'.$plan->templateKey.':v1', 'channel' => $channel, 'recipient_id' => $plan->recipientId,
                         ], [
-                            'outbox_public_id' => $outbox->public_id,
-                            'template_key' => $plan->templateKey,
-                            'template_version' => 1,
-                            'status' => NotificationDeliveryStatus::Pending,
+                            'outbox_public_id' => $outbox->public_id, 'template_key' => $plan->templateKey, 'template_version' => 1, 'status' => NotificationDeliveryStatus::Pending,
                         ]);
                         if ($delivery->status !== NotificationDeliveryStatus::Delivered) {
                             $deliveries[] = $delivery->public_id;
@@ -100,13 +91,7 @@ final class RequestOutboxDispatcher
             $attempts = $outbox->attempt_count + ($claimed ? 0 : 1);
             $maxAttempts = (int) config('request.notifications.outbox_max_attempts', 5);
             $terminal = $attempts >= $maxAttempts;
-            $outbox->update([
-                'attempt_count' => $attempts,
-                'last_error_code' => $errorCode,
-                'last_error_at' => now('UTC'),
-                'available_at' => now('UTC')->addSeconds($this->backoff($attempts)),
-                'failed_at' => $terminal ? now('UTC') : null,
-            ]);
+            $outbox->update(['attempt_count' => $attempts, 'last_error_code' => $errorCode, 'last_error_at' => now('UTC'), 'available_at' => now('UTC')->addSeconds($this->backoff($attempts)), 'failed_at' => $terminal ? now('UTC') : null]);
         });
     }
 

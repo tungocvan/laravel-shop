@@ -15,7 +15,7 @@ final class FormPayloadNormalizer
 
         return match ($type) {
             'text', 'textarea', 'select' => is_string($value) ? trim($value) : $value,
-            'integer' => filter_var($value, FILTER_VALIDATE_INT) !== false ? (int) $value : $value,
+            'integer' => $this->integer($value, $field),
             'decimal' => is_int($value) || is_string($value) ? $this->decimal((string) $value) : $value,
             'currency' => $this->currency($value),
             'date' => is_string($value) ? trim($value) : $value,
@@ -25,6 +25,18 @@ final class FormPayloadNormalizer
             'user', 'role' => filter_var($value, FILTER_VALIDATE_INT) !== false ? (int) $value : $value,
             default => $value,
         };
+    }
+
+    private function integer(mixed $value, array $field): mixed
+    {
+        if (($field['display_format'] ?? null) === 'grouped_integer' && is_string($value)) {
+            $value = trim($value);
+            if (preg_match('/^-?\d{1,3}(?:\.\d{3})+$/', $value) === 1) {
+                $value = str_replace('.', '', $value);
+            }
+        }
+
+        return filter_var($value, FILTER_VALIDATE_INT) !== false ? (int) $value : $value;
     }
 
     private function decimal(string $value): string

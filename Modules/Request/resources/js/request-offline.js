@@ -162,6 +162,25 @@ function applyDraftValues(form, values) {
     }
 }
 
+export function formatGroupedInteger(value) {
+    const digits = String(value ?? '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function setupGroupedIntegerFields(scope) {
+    for (const control of scope?.querySelectorAll?.('[data-request-grouped-integer]') ?? []) {
+        if (!(control instanceof HTMLInputElement) || control.dataset.requestGroupedIntegerBound === '1') continue;
+        control.dataset.requestGroupedIntegerBound = '1';
+        const format = () => {
+            const formatted = formatGroupedInteger(control.value);
+            if (control.value !== formatted) control.value = formatted;
+        };
+        format();
+        control.addEventListener('input', format);
+    }
+}
+
 function setupDraftPersistence(store) {
     const form = document.querySelector('[data-request-draft-form]');
     if (!form || form.dataset.requestLocalEditable !== '1') return;
@@ -232,6 +251,7 @@ export function bootRequestOffline() {
     if (!userId) return null;
     const scope = marker.parentElement;
     const store = new RequestOfflineStore({ userId, installationScope: marker.dataset.requestInstallation || location.host });
+    setupGroupedIntegerFields(scope);
 
     const emitConnectivity = () => {
         const online = navigator.onLine;
@@ -242,7 +262,10 @@ export function bootRequestOffline() {
 
     window.addEventListener('online', emitConnectivity);
     window.addEventListener('offline', emitConnectivity);
-    if (scope) new MutationObserver(emitConnectivity).observe(scope, { childList: true, subtree: true });
+    if (scope) new MutationObserver(() => {
+        emitConnectivity();
+        setupGroupedIntegerFields(scope);
+    }).observe(scope, { childList: true, subtree: true });
 
     document.addEventListener('submit', (event) => {
         const form = event.target;

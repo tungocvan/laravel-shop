@@ -25,31 +25,46 @@ final class SaveTypeDraft
                 throw ValidationException::withMessages(['version' => 'draft_required']);
             }
 
-            $draft->update([
-                'title' => $data['title'], 'description' => $data['description'] ?? null,
-                'requester_guidance' => $data['requester_guidance'] ?? null,
-                'form_schema_json' => $data['form_schema_json'], 'policy_json' => $data['policy_json'] ?? [],
-                'presentation_json' => $data['presentation_json'] ?? [], 'updated_by' => $actorId,
-            ]);
+            $draft->update(['title' => $data['title'], 'description' => $data['description'] ?? null, 'requester_guidance' => $data['requester_guidance'] ?? null, 'form_schema_json' => $data['form_schema_json'], 'policy_json' => $data['policy_json'] ?? [], 'presentation_json' => $data['presentation_json'] ?? [], 'updated_by' => $actorId]);
             $draft->audiences()->delete();
             foreach ((array) ($data['audiences'] ?? []) as $audience) {
-                $draft->audiences()->create([
-                    'actor_type' => $audience['actor_type'],
-                    'actor_id' => $audience['actor_id'],
-                    'capability' => $audience['capability'],
-                ]);
+                $draft->audiences()->create(['actor_type' => $audience['actor_type'], 'actor_id' => $audience['actor_id'], 'capability' => $audience['capability']]);
             }
             $draft->stages()->delete();
             foreach ((array) ($data['stages'] ?? []) as $stage) {
+                $maxDuration = (int) config('request.settings.max_sla_duration_minutes', 525600);
+                $slaMinutes = isset($stage['sla_minutes']) ? (int) $stage['sla_minutes'] : null;
+                $warningMinutes = isset($stage['warning_minutes_before']) ? (int) $stage['warning_minutes_before'] : null;
+                $warningMinutes = $warningMinutes === 0 ? null : $warningMinutes;
+                $graceMinutes = (int) ($stage['grace_minutes'] ?? 0);
+                $timeoutAction = (string) ($stage['timeout_action'] ?? 'notify_only');
+                if (! in_array($timeoutAction, ['notify_only', 'suspend'], true)) {
+                    throw ValidationException::withMessages(['stages' => 'timeout_action_invalid']);
+                }
+                if (($slaMinutes !== null && ($slaMinutes < 1 || $slaMinutes > $maxDuration))
+                    || ($warningMinutes !== null && ($warningMinutes < 0 || $warningMinutes > $maxDuration))
+                    || $graceMinutes < 0
+                    || $graceMinutes > $maxDuration) {
+                    throw ValidationException::withMessages(['stages' => 'sla_duration_invalid']);
+                }
+                if ($slaMinutes === null && ($warningMinutes !== null || $graceMinutes > 0 || $timeoutAction === 'suspend')) {
+                    throw ValidationException::withMessages(['stages' => 'sla_required_for_timeout_configuration']);
+                }
+                if ($slaMinutes !== null && $warningMinutes !== null && $warningMinutes > $slaMinutes) {
+                    throw ValidationException::withMessages(['stages' => 'warning_exceeds_sla']);
+                }
+                if ($timeoutAction === 'notify_only' && $graceMinutes > 0) {
+                    throw ValidationException::withMessages(['stages' => 'grace_requires_suspension']);
+                }
+
                 $draft->stages()->create([
-                    'stage_key' => $stage['stage_key'],
-                    'name' => $stage['name'],
-                    'position' => $stage['position'],
-                    'mode' => $stage['mode'],
-                    'resolver_key' => $stage['resolver_key'],
-                    'resolver_config_json' => $stage['resolver_config_json'],
-                    'instructions' => $stage['instructions'] ?? null,
-                    'allow_reassignment' => $stage['allow_reassignment'] ?? false,
+                    'stage_key' => $stage['stage_key'], 'name' => $stage['name'], 'position' => $stage['position'], 'mode' => $stage['mode'],
+                    'resolver_key' => $stage['resolver_key'], 'resolver_config_json' => $stage['resolver_config_json'], 'instructions' => $stage['instructions'] ?? null,
+                    'allow_reassignment' => $stage['allow_reassignment'] ?? false, 'sla_minutes' => $slaMinutes,
+                    'warning_minutes_before' => $warningMinutes, 'grace_minutes' => $graceMinutes, 'timeout_action' => $timeoutAction,
+                    'email_on_assignment' => (bool) ($stage['email_on_assignment'] ?? true),
+                    'email_on_decision' => (bool) ($stage['email_on_decision'] ?? true),
+                    'email_on_sla_warning' => $warningMinutes !== null && (bool) ($stage['email_on_sla_warning'] ?? true),
                 ]);
             }
             $lockedType->increment('lock_version');

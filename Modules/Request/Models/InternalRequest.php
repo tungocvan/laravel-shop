@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Modules\Request\Casts\UtcImmutableDateTime;
 use Modules\Request\Database\Factories\InternalRequestFactory;
 use Modules\Request\Domain\Enums\RequestStatus;
 use Modules\Request\Models\Concerns\HasPublicUlid;
@@ -26,7 +27,18 @@ class InternalRequest extends Model
 
     protected function casts(): array
     {
-        return ['requester_id' => 'integer', 'status' => RequestStatus::class, 'requester_snapshot_json' => 'array', 'lock_version' => 'integer', 'submitted_at' => 'immutable_datetime', 'approved_at' => 'immutable_datetime', 'rejected_at' => 'immutable_datetime', 'returned_at' => 'immutable_datetime', 'cancelled_at' => 'immutable_datetime', 'archived_at' => 'immutable_datetime'];
+        return [
+            'requester_id' => 'integer',
+            'status' => RequestStatus::class,
+            'requester_snapshot_json' => 'array',
+            'lock_version' => 'integer',
+            'submitted_at' => UtcImmutableDateTime::class,
+            'approved_at' => UtcImmutableDateTime::class,
+            'rejected_at' => UtcImmutableDateTime::class,
+            'returned_at' => UtcImmutableDateTime::class,
+            'cancelled_at' => UtcImmutableDateTime::class,
+            'archived_at' => UtcImmutableDateTime::class,
+        ];
     }
 
     public function type(): BelongsTo

@@ -4,6 +4,7 @@ namespace Modules\Request\Livewire\Requester;
 
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -21,7 +22,7 @@ class AttachmentManager extends Component
 
     public ?string $fieldKey = null;
 
-    public $upload = null;
+    public array $uploads = [];
 
     public string $idempotencyKey;
 
@@ -35,18 +36,44 @@ class AttachmentManager extends Component
 
     public function store(RequestCollaborationQuery $collaboration, UploadRequestAttachment $service): void
     {
-        $validated = $this->validate(['upload' => ['required', 'file', 'max:'.max(1, (int) ceil(config('request.files.max_bytes', 10485760) / 1024))]]);
+        $maxFiles = max(1, (int) config('request.files.max_count_per_field', 5));
+        $maxKilobytes = max(1, (int) ceil(config('request.files.max_bytes', 10485760) / 1024));
+        $validated = $this->validate([
+            'uploads' => ['required', 'array', 'min:1', 'max:'.$maxFiles],
+            'uploads.*' => ['required', 'file', 'max:'.$maxKilobytes],
+        ]);
         $request = $collaboration->findVisible($this->requestPublicId, auth('admin')->user());
         Gate::authorize('upload', [RequestAttachment::class, $request]);
-        $attachment = $service->handle($request, $validated['upload'], (int) auth('admin')->id(), $this->requestVersion, $this->idempotencyKey, $this->fieldKey);
-        $this->requestVersion = $request->refresh()->lock_version;
-        $this->reset('upload');
-        $this->idempotencyKey = (string) Str::uuid();
-        $this->dispatch('request-version-changed', version: $this->requestVersion);
-        if ($this->fieldKey !== null && $attachment->scan_status->value === 'clean') {
-            $this->dispatch('request-attachment-created', attachmentPublicId: $attachment->public_id, fieldKey: $this->fieldKey, version: $this->requestVersion);
+
+        foreach ($validated['uploads'] as $upload) {
+            try {
+                $attachment = $service->handle($request, $upload, (int) auth('admin')->id(), $this->requestVersion, $this->idempotencyKey, $this->fieldKey);
+            } catch (ValidationException $exception) {
+                $this->addError('uploads', $this->attachmentError($exception));
+                $this->reset('uploads');
+
+                return;
+            }
+
+            $this->requestVersion = $request->refresh()->lock_version;
+            $this->idempotencyKey = (string) Str::uuid();
+            $this->dispatch('request-version-changed', version: $this->requestVersion);
+            if ($this->fieldKey !== null && $attachment->scan_status->value === 'clean') {
+                $this->dispatch('request-attachment-created', attachmentPublicId: $attachment->public_id, fieldKey: $this->fieldKey, version: $this->requestVersion);
+            }
         }
+
+        $this->reset('uploads');
         session()->flash('request_attachment_success', __('Request::request.attachment_added'));
+    }
+
+    private function attachmentError(ValidationException $exception): string
+    {
+        $code = (string) collect($exception->errors())->flatten()->first();
+        $key = 'Request::request.attachment_errors.'.$code;
+        $message = __($key);
+
+        return $message === $key ? __('Request::request.attachment_errors.upload_failed') : $message;
     }
 
     #[On('request-version-changed')]

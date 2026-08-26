@@ -3,6 +3,7 @@
 namespace Modules\Request\Application\Services;
 
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Request\Data\RequestExportPlan;
 use Modules\Request\Domain\Enums\RequestStatus;
@@ -59,17 +60,52 @@ final readonly class PlanRequestExport
     {
         $normalized = [];
 
-        if (isset($filters['status']) && in_array($filters['status'], array_column(RequestStatus::cases(), 'value'), true)) {
+        if (isset($filters['status']) && $filters['status'] !== '') {
+            if (! is_string($filters['status']) || ! in_array($filters['status'], array_column(RequestStatus::cases(), 'value'), true)) {
+                $this->invalidFilters();
+            }
+
             $normalized['status'] = $filters['status'];
         }
 
-        foreach (['type_public_id', 'request_public_id', 'created_from', 'created_to'] as $key) {
-            if (isset($filters[$key]) && is_string($filters[$key]) && trim($filters[$key]) !== '') {
-                $normalized[$key] = trim($filters[$key]);
+        foreach (['type_public_id', 'group_public_id', 'request_public_id'] as $key) {
+            if (! isset($filters[$key]) || $filters[$key] === '') {
+                continue;
             }
+
+            $value = is_string($filters[$key]) ? trim($filters[$key]) : '';
+            if (! Str::isUlid($value)) {
+                $this->invalidFilters();
+            }
+
+            $normalized[$key] = $value;
+        }
+
+        foreach (['created_from', 'created_to'] as $key) {
+            if (! isset($filters[$key]) || $filters[$key] === '') {
+                continue;
+            }
+
+            $value = is_string($filters[$key]) ? trim($filters[$key]) : '';
+            if (! preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts) || ! checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
+                $this->invalidFilters();
+            }
+
+            $normalized[$key] = $value;
+        }
+
+        if (isset($normalized['created_from'], $normalized['created_to']) && $normalized['created_to'] < $normalized['created_from']) {
+            $this->invalidFilters();
         }
 
         return $normalized;
+    }
+
+    private function invalidFilters(): never
+    {
+        throw ValidationException::withMessages([
+            'filters' => __('Request::request.exports.invalid_filters'),
+        ]);
     }
 
     private function normalizeFields(array $fields): array

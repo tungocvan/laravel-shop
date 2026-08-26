@@ -1,111 +1,149 @@
 @extends('Admin::layouts.master')
-@section('title', 'Bảng kiểm thử Đề nghị')
+@section('title', 'Tổng quan Đề nghị')
 @section('content')
-<div class="p-4 sm:p-6 space-y-6">
+<div class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
     @include('Request::partials.offline-runtime')
-
-    <div>
-        <h1 class="text-2xl font-semibold">Bảng kiểm thử giao diện Đề nghị</h1>
-        <p class="mt-1 text-sm text-gray-600">Trang tổng hợp để kiểm thử nhanh MR-08 từ UI-01 đến UI-07 mà không cần nhớ route.</p>
-    </div>
+    @include('Request::partials.workspace-navigation')
 
     @php
-        $countLabels = [
-            'request_groups' => 'Nhóm đề nghị',
-            'request_types' => 'Loại đề nghị',
-            'request_instances' => 'Đề nghị',
-            'request_tasks' => 'Tác vụ duyệt',
-            'request_comments' => 'Bình luận',
-            'request_attachments' => 'Tệp đính kèm',
-        ];
+        $capabilities = $dashboard['capabilities'];
+        $ownCounts = $dashboard['own_counts'];
+        $approvalCounts = $dashboard['approval_counts'];
     @endphp
 
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        @foreach ($counts as $table => $count)
-            <div class="rounded-lg border bg-white p-4">
-                <div class="text-xs uppercase tracking-wide text-gray-500">{{ $countLabels[$table] ?? $table }}</div>
-                <div class="mt-1 text-2xl font-semibold">{{ $count }}</div>
-            </div>
-        @endforeach
-    </div>
-
-    <section class="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 sm:p-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="text-lg font-semibold text-slate-900">Dữ liệu DEMO đang có</h2>
-                <p class="mt-1 text-sm text-slate-600">Các bản ghi dưới đây được tạo bởi RequestDemoSeeder và có thể chạy lại an toàn.</p>
-            </div>
-            <code class="rounded bg-white px-2 py-1 text-xs text-slate-600">REQUEST_UI_DEMO</code>
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Không gian làm việc</p>
+            <h1 class="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">Tổng quan Đề nghị</h1>
+            <p class="mt-2 max-w-2xl text-sm text-slate-600">Theo dõi các đề nghị của bạn, công việc cần xử lý và truy cập nhanh các chức năng được cấp quyền.</p>
         </div>
 
-        <div class="mt-4 grid gap-3 md:grid-cols-2">
-            <div class="rounded-lg border border-slate-200 bg-white p-4">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Loại đề nghị mẫu</div>
-                @if ($demoType)
-                    <div class="mt-2 font-semibold text-slate-900">{{ $demoType->name }}</div>
-                    <div class="mt-1 text-sm text-slate-600">Mã: {{ $demoType->code }}</div>
-                    <div class="mt-1 break-all text-xs text-slate-500">Public ID: {{ $demoType->public_id }}</div>
-                @else
-                    <div class="mt-2 text-sm text-amber-700">Chưa có dữ liệu loại đề nghị DEMO. Hãy chạy RequestDemoSeeder.</div>
-                @endif
-            </div>
+        @if($capabilities['create'])
+            <a href="{{ route('request.catalog') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                + Tạo đề nghị
+            </a>
+        @endif
+    </header>
 
-            <div class="rounded-lg border border-slate-200 bg-white p-4">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Đề nghị mẫu</div>
-                @if ($draftRequest)
-                    <div class="mt-2 font-semibold text-slate-900">{{ $draftRequest->title_snapshot }}</div>
-                    <div class="mt-1 text-sm text-slate-600">Số đề nghị: {{ $draftRequest->request_number }} · Trạng thái: {{ __('Request::request.statuses.'.$draftRequest->status) }}</div>
-                    <div class="mt-1 break-all text-xs text-slate-500">Public ID: {{ $draftRequest->public_id }}</div>
-                @else
-                    <div class="mt-2 text-sm text-amber-700">Chưa có đề nghị DEMO. Hãy chạy RequestDemoSeeder.</div>
-                @endif
-            </div>
-        </div>
+    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Tóm tắt công việc">
+        @if($capabilities['view_own'])
+            <a href="{{ route('request.mine', ['workspace' => 'processing']) }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300">
+                <div class="text-sm font-medium text-slate-600">Đề nghị đang xử lý</div>
+                <div class="mt-2 text-3xl font-bold text-slate-900">{{ number_format($ownCounts['active']) }}</div>
+                <div class="mt-2 text-xs text-slate-500">Các đề nghị của bạn đang chờ xử lý.</div>
+            </a>
+
+            <a href="{{ route('request.mine', ['workspace' => 'returned']) }}" class="rounded-2xl border {{ $ownCounts['returned'] > 0 ? 'border-orange-300 bg-orange-50' : 'border-slate-200 bg-white' }} p-5 shadow-sm transition hover:border-orange-400">
+                <div class="text-sm font-medium text-slate-600">Cần bạn bổ sung</div>
+                <div class="mt-2 text-3xl font-bold {{ $ownCounts['returned'] > 0 ? 'text-orange-700' : 'text-slate-900' }}">{{ number_format($ownCounts['returned']) }}</div>
+                <div class="mt-2 text-xs text-slate-500">Ưu tiên hoàn thiện các đề nghị đã được trả lại.</div>
+            </a>
+        @endif
+
+        @if($capabilities['approve'])
+            <a href="{{ route('request.inbox') }}" class="rounded-2xl border {{ $approvalCounts['pending'] > 0 ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white' }} p-5 shadow-sm transition hover:border-indigo-400">
+                <div class="text-sm font-medium text-slate-600">Chờ bạn duyệt</div>
+                <div class="mt-2 text-3xl font-bold text-slate-900">{{ number_format($approvalCounts['pending']) }}</div>
+                <div class="mt-2 text-xs text-slate-500">Tác vụ phê duyệt đang được giao cho bạn.</div>
+            </a>
+
+            <a href="{{ route('request.inbox') }}" class="rounded-2xl border {{ $approvalCounts['overdue'] > 0 ? 'border-red-300 bg-red-50' : ($approvalCounts['warning'] > 0 ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white') }} p-5 shadow-sm transition hover:border-amber-400">
+                <div class="text-sm font-medium text-slate-600">SLA cần chú ý</div>
+                <div class="mt-2 flex items-baseline gap-3">
+                    <span class="text-3xl font-bold text-slate-900">{{ number_format($approvalCounts['warning'] + $approvalCounts['overdue']) }}</span>
+                    <span class="text-xs font-semibold text-slate-500">{{ number_format($approvalCounts['overdue']) }} quá hạn</span>
+                </div>
+                <div class="mt-2 text-xs text-slate-500">Sắp quá hạn hoặc đã quá hạn xử lý.</div>
+            </a>
+        @endif
     </section>
 
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.catalog') }}">
-            <div class="font-semibold">UI-01 · Danh mục / Tạo đề nghị</div>
-            <div class="mt-1 text-sm text-gray-600">Kiểm thử danh mục và luồng tạo đề nghị trên màn hình di động.</div>
-        </a>
-        <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.mine') }}">
-            <div class="font-semibold">UI-01 / UI-05 · Đề nghị của tôi</div>
-            <div class="mt-1 text-sm text-gray-600">Tiếp tục bản nháp và kiểm thử khôi phục bản nháp cục bộ.</div>
-        </a>
-        <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.inbox') }}">
-            <div class="font-semibold">UI-02 · Hộp thư / Quyết định</div>
-            <div class="mt-1 text-sm text-gray-600">Kiểm thử bàn phím, focus và luồng quyết định.</div>
-        </a>
-        <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.admin.types') }}">
-            <div class="font-semibold">UI-03 · Quản lý loại đề nghị</div>
-            <div class="mt-1 text-sm text-gray-600">Mở trình thiết kế và xem lịch sử phiên bản.</div>
-        </a>
-        @if ($demoType)
-            <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.admin.types.designer', $demoType->public_id) }}">
-                <div class="font-semibold">UI-03 · Trình thiết kế DEMO</div>
-                <div class="mt-1 text-sm text-gray-600">Đi thẳng tới loại đề nghị mẫu đã seed.</div>
-            </a>
-            <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.admin.types.versions', $demoType->public_id) }}">
-                <div class="font-semibold">UI-03 · Phiên bản DEMO</div>
-                <div class="mt-1 text-sm text-gray-600">Xem so sánh và chi tiết các phiên bản.</div>
-            </a>
+    <div class="grid gap-6 xl:grid-cols-2">
+        @if($capabilities['approve'])
+            <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-200 p-5">
+                    <div>
+                        <h2 class="font-bold text-slate-900">Việc cần bạn xử lý</h2>
+                        <p class="mt-1 text-sm text-slate-500">Ưu tiên theo hạn xử lý gần nhất.</p>
+                    </div>
+                    <a href="{{ route('request.inbox') }}" class="text-sm font-semibold text-indigo-700">Xem tất cả</a>
+                </div>
+
+                <div class="divide-y divide-slate-100">
+                    @forelse($dashboard['pending_tasks'] as $task)
+                        @php($item = $task->run?->requestInstance)
+                        @if($item)
+                            <a href="{{ route('request.show', $item->public_id) }}" class="block p-5 transition hover:bg-slate-50">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <span class="font-mono text-xs text-slate-500">{{ $item->request_number }}</span>
+                                    @if($task->due_at)
+                                        <time datetime="{{ $task->due_at->toIso8601String() }}" class="text-xs font-medium text-slate-600">
+                                            Hạn {{ $task->due_at->timezone(config('app.timezone'))->format('d/m/Y H:i') }}
+                                        </time>
+                                    @endif
+                                </div>
+                                <div class="mt-2 font-semibold text-slate-900">{{ $item->title_snapshot }}</div>
+                                <div class="mt-1 text-sm text-slate-500">{{ $task->stage_name_snapshot }}</div>
+                            </a>
+                        @endif
+                    @empty
+                        <div class="p-8 text-center text-sm text-slate-500">Bạn không có đề nghị nào đang chờ duyệt.</div>
+                    @endforelse
+                </div>
+            </section>
         @endif
-        @if ($draftRequest)
-            <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.show', $draftRequest->public_id) }}">
-                <div class="font-semibold">UI-04..06 · Bản nháp DEMO</div>
-                <div class="mt-1 text-sm text-gray-600">Kiểm thử offline, bản nháp cục bộ và dữ liệu bảo mật.</div>
-            </a>
-        @endif
-        @if ($pendingRequest)
-            <a class="min-h-11 rounded-lg border bg-white p-4 hover:bg-gray-50 focus:outline-none focus:ring-2" href="{{ route('request.show', $pendingRequest->public_id) }}">
-                <div class="font-semibold">UI-02 / UI-04 · Đề nghị chờ duyệt DEMO</div>
-                <div class="mt-1 text-sm text-gray-600">Kiểm thử chi tiết, quyết định và khóa thao tác khi offline.</div>
-            </a>
+
+        @if($capabilities['view_own'])
+            <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-200 p-5">
+                    <div>
+                        <h2 class="font-bold text-slate-900">Đề nghị gần đây của tôi</h2>
+                        <p class="mt-1 text-sm text-slate-500">Theo dõi các thay đổi mới nhất.</p>
+                    </div>
+                    <a href="{{ route('request.mine') }}" class="text-sm font-semibold text-indigo-700">Xem tất cả</a>
+                </div>
+
+                <div class="divide-y divide-slate-100">
+                    @forelse($dashboard['recent_requests'] as $item)
+                        <a href="{{ route('request.show', $item->public_id) }}" class="block p-5 transition hover:bg-slate-50">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="font-mono text-xs text-slate-500">{{ $item->request_number }}</span>
+                                <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{{ __('Request::request.statuses.'.$item->status->value) }}</span>
+                            </div>
+                            <div class="mt-2 font-semibold text-slate-900">{{ $item->title_snapshot }}</div>
+                            <time datetime="{{ $item->updated_at?->toIso8601String() }}" class="mt-1 block text-xs text-slate-500">Cập nhật {{ $item->updated_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') }}</time>
+                        </a>
+                    @empty
+                        <div class="p-8 text-center text-sm text-slate-500">Bạn chưa có đề nghị nào.</div>
+                    @endforelse
+                </div>
+            </section>
         @endif
     </div>
 
-    <div class="rounded-lg border bg-amber-50 p-4 text-sm">
-        <strong>UI-07:</strong> tạo dữ liệu Request cục bộ, đăng xuất, sau đó kiểm tra <code>Clear-Site-Data</code> và IndexedDB đã được dọn sạch.
-    </div>
+    @if($capabilities['manage_groups'] || $capabilities['manage_types'] || $capabilities['reports'] || $capabilities['operations'])
+        <section class="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Quản trị</p>
+                <h2 class="mt-1 text-lg font-bold text-slate-900">Quản trị Đề nghị</h2>
+                <p class="mt-1 text-sm text-slate-600">Các chức năng quản trị chỉ xuất hiện khi tài khoản có quyền tương ứng.</p>
+            </div>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                @if($capabilities['manage_groups'])
+                    <a href="{{ route('request.admin.groups') }}" class="min-h-24 rounded-xl border border-slate-200 bg-white p-4 font-semibold text-slate-800 shadow-sm hover:border-indigo-300">Nhóm đề nghị</a>
+                @endif
+                @if($capabilities['manage_types'])
+                    <a href="{{ route('request.admin.types') }}" class="min-h-24 rounded-xl border border-slate-200 bg-white p-4 font-semibold text-slate-800 shadow-sm hover:border-indigo-300">Loại đề nghị</a>
+                @endif
+                @if($capabilities['reports'])
+                    <a href="{{ route('request.admin.reports') }}" class="min-h-24 rounded-xl border border-slate-200 bg-white p-4 font-semibold text-slate-800 shadow-sm hover:border-indigo-300">Báo cáo</a>
+                @endif
+                @if($capabilities['operations'])
+                    <a href="{{ route('request.admin.operations') }}" class="min-h-24 rounded-xl border border-slate-200 bg-white p-4 font-semibold text-slate-800 shadow-sm hover:border-indigo-300">Vận hành</a>
+                @endif
+            </div>
+        </section>
+    @endif
 </div>
 @endsection

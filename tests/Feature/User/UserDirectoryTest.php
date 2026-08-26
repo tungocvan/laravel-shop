@@ -38,7 +38,7 @@ class UserDirectoryTest extends TestCase
         $this->assertTrue(app(UserMailGateway::class)->sendToActive($active, $message));
         $this->assertFalse(app(UserMailGateway::class)->sendToActive($inactive, $message));
         Mail::assertSent(UserMessageMail::class, 1);
-        Mail::assertSent(UserMessageMail::class, fn (UserMessageMail $mail): bool => $mail->hasTo('active@example.test') && $mail->message === $message);
+        Mail::assertSent(UserMessageMail::class, fn (UserMessageMail $mail): bool => $mail->hasTo('active@example.test') && $mail->mailMessage === $message);
     }
 
     public function test_it_returns_only_active_non_deleted_safe_identities(): void

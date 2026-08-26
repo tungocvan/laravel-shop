@@ -33,6 +33,37 @@ final class FormSchemaValidator
                 if (! $this->fields->supports((string) ($field['type'] ?? ''))) {
                     $errors["$path.type"][] = 'unsupported_field_type';
                 }
+                if (array_key_exists('required', $field) && ! is_bool($field['required'])) {
+                    $errors["$path.required"][] = 'invalid_required_flag';
+                }
+                if (isset($field['width']) && ! in_array($field['width'], ['auto', 'full', 'half', 'third'], true)) {
+                    $errors["$path.width"][] = 'invalid_field_width';
+                }
+                if (($field['default'] ?? null) === 'today' && ($field['type'] ?? null) !== 'date') {
+                    $errors["$path.default"][] = 'invalid_field_default';
+                }
+                if (isset($field['display_format']) && (($field['type'] ?? null) !== 'integer' || $field['display_format'] !== 'grouped_integer')) {
+                    $errors["$path.display_format"][] = 'invalid_field_display_format';
+                }
+                if (in_array($field['type'] ?? null, ['select', 'multiselect'], true)) {
+                    $options = $field['options'] ?? null;
+                    if (! is_array($options) || $options === [] || count($options) > (int) config('request.forms.max_options_per_field', 100)) {
+                        $errors["$path.options"][] = 'invalid_field_options';
+                    } else {
+                        $optionKeys = [];
+                        foreach ($options as $optionIndex => $option) {
+                            $optionKey = (string) (is_array($option) ? ($option['key'] ?? '') : $option);
+                            $optionLabel = (string) (is_array($option) ? ($option['label'] ?? $optionKey) : $option);
+                            if (! preg_match('/^[a-z0-9][a-z0-9_.-]{0,79}$/', $optionKey) || isset($optionKeys[$optionKey])) {
+                                $errors["$path.options.$optionIndex.key"][] = 'invalid_or_duplicate_option_key';
+                            }
+                            if (trim($optionLabel) === '' || mb_strlen($optionLabel) > 200) {
+                                $errors["$path.options.$optionIndex.label"][] = 'invalid_option_label';
+                            }
+                            $optionKeys[$optionKey] = true;
+                        }
+                    }
+                }
             }
         }
         if ($fieldCount > (int) config('request.forms.max_fields', 200)) {
