@@ -63,6 +63,7 @@ class RequestClientApplicationTest extends TestCase
 
         foreach ([
             'client.request.inbox' => ['apps/request/inbox', 'client.feature:request,inbox'],
+            'client.request.approval.show' => ['apps/request/inbox/{requestPublicId}', 'client.feature:request,inbox'],
             'client.request.processed' => ['apps/request/processed', 'client.feature:request,processed'],
         ] as $name => [$uri, $featureMiddleware]) {
             $route = Route::getRoutes()->getByName($name);
@@ -86,8 +87,27 @@ class RequestClientApplicationTest extends TestCase
         $this->assertStringContainsString('$this->requestActor($context)', $component);
         $this->assertStringContainsString('Gate::forUser($user)->authorize', $component);
         $this->assertStringNotContainsString("auth('admin')->id()", $component);
+        $this->assertStringContainsString("client.request.approval.show", $component);
         $this->assertStringContainsString("\$requestGuard === 'admin'", $view);
         $this->assertStringContainsString("route('client.request.inbox')", $dashboard);
         $this->assertStringContainsString("route('client.request.processed')", $dashboard);
+    }
+
+    public function test_approver_detail_and_decision_panel_are_channel_aware(): void
+    {
+        $detail = file_get_contents(base_path('Modules/Request/Livewire/Approver/RequestDetail.php'));
+        $decision = file_get_contents(base_path('Modules/Request/Livewire/Approver/DecisionPanel.php'));
+        $detailView = file_get_contents(base_path('Modules/Request/resources/views/livewire/approver/request-detail-client.blade.php'));
+
+        $this->assertStringContainsString('InteractsWithRequestAuthorization', $detail);
+        $this->assertStringContainsString('request.instance.view-participant', file_get_contents(base_path('Modules/Request/Policies/InternalRequestPolicy.php')));
+        $this->assertStringContainsString('Gate::forUser($user)->authorize', $detail);
+        $this->assertStringContainsString("Gate::forUser(\$user)->allows('decide', \$task)", $detail);
+        $this->assertStringContainsString('InteractsWithRequestAuthorization', $decision);
+        $this->assertStringContainsString('$this->requestActor($context)', $decision);
+        $this->assertStringContainsString("Gate::forUser(\$user)->authorize('decide', \$task)", $decision);
+        $this->assertStringNotContainsString("auth('admin')->id()", $decision);
+        $this->assertStringContainsString("client.request.inbox", $decision);
+        $this->assertStringContainsString('request.approver.decision-panel', $detailView);
     }
 }
