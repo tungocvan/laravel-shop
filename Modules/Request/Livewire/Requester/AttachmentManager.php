@@ -10,10 +10,13 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Request\Application\Queries\RequestCollaborationQuery;
 use Modules\Request\Application\Services\UploadRequestAttachment;
+use Modules\Request\Authorization\RequestAuthorizationContext;
+use Modules\Request\Livewire\Concerns\InteractsWithRequestAuthorization;
 use Modules\Request\Models\RequestAttachment;
 
 class AttachmentManager extends Component
 {
+    use InteractsWithRequestAuthorization;
     use WithFileUploads;
 
     public string $requestPublicId;
@@ -26,28 +29,30 @@ class AttachmentManager extends Component
 
     public string $idempotencyKey;
 
-    public function mount(string $requestPublicId, int $requestVersion, ?string $fieldKey = null): void
+    public function mount(string $requestPublicId, int $requestVersion, ?string $fieldKey = null, RequestAuthorizationContext $context): void
     {
+        $this->initializeRequestAuthorization($context);
         $this->requestPublicId = $requestPublicId;
         $this->requestVersion = $requestVersion;
         $this->fieldKey = $fieldKey;
         $this->idempotencyKey = (string) Str::uuid();
     }
 
-    public function store(RequestCollaborationQuery $collaboration, UploadRequestAttachment $service): void
+    public function store(RequestCollaborationQuery $collaboration, UploadRequestAttachment $service, RequestAuthorizationContext $context): void
     {
+        $user = $this->requestActor($context);
         $maxFiles = max(1, (int) config('request.files.max_count_per_field', 5));
         $maxKilobytes = max(1, (int) ceil(config('request.files.max_bytes', 10485760) / 1024));
         $validated = $this->validate([
             'uploads' => ['required', 'array', 'min:1', 'max:'.$maxFiles],
             'uploads.*' => ['required', 'file', 'max:'.$maxKilobytes],
         ]);
-        $request = $collaboration->findVisible($this->requestPublicId, auth('admin')->user());
-        Gate::authorize('upload', [RequestAttachment::class, $request]);
+        $request = $collaboration->findVisible($this->requestPublicId, $user);
+        Gate::forUser($user)->authorize('upload', [RequestAttachment::class, $request]);
 
         foreach ($validated['uploads'] as $upload) {
             try {
-                $attachment = $service->handle($request, $upload, (int) auth('admin')->id(), $this->requestVersion, $this->idempotencyKey, $this->fieldKey);
+                $attachment = $service->handle($request, $upload, (int) $user->getAuthIdentifier(), $this->requestVersion, $this->idempotencyKey, $this->fieldKey);
             } catch (ValidationException $exception) {
                 $this->addError('uploads', $this->attachmentError($exception));
                 $this->reset('uploads');
@@ -82,11 +87,16 @@ class AttachmentManager extends Component
         $this->requestVersion = $version;
     }
 
-    public function render(RequestCollaborationQuery $collaboration)
+    public function render(RequestCollaborationQuery $collaboration, RequestAuthorizationContext $context)
     {
-        $request = $collaboration->findVisible($this->requestPublicId, auth('admin')->user());
-        Gate::authorize('view', $request);
+        $user = $this->requestActor($context);
+        $request = $collaboration->findVisible($this->requestPublicId, $user);
+        Gate::forUser($user)->authorize('view', $request);
 
-        return view('Request::livewire.requester.attachment-manager', ['request' => $request, 'attachments' => collect($collaboration->attachments($request))->filter(fn (RequestAttachment $attachment): bool => $this->fieldKey === null ? $attachment->payload_field_key === null : $attachment->payload_field_key === $this->fieldKey)]);
+        return view('Request::livewire.requester.attachment-manager', [
+            'request' => $request,
+            'attachments' => collect($collaboration->attachments($request))->filter(fn (RequestAttachment $attachment): bool => $this->fieldKey === null ? $attachment->payload_field_key === null : $attachment->payload_field_key === $this->fieldKey),
+            'downloadRouteName' => $this->requestRouteName('attachments.download'),
+        ]);
     }
 }
