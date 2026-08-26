@@ -108,6 +108,21 @@ Sau đó dừng và chờ output.
 
 Không đưa trước một chuỗi dài lệnh cho nhiều bước chưa tới.
 
+### 5.1 Pull và kiểm thử theo hai tầng
+
+Khi ChatGPT yêu cầu cập nhật một batch mới, hướng dẫn phải cung cấp trong cùng một lần:
+
+1. lệnh `git pull --ff-only`
+2. **Test 1**: kiểm thử tập trung cho phần vừa thay đổi
+3. **Test 2**: Request/module regression phù hợp
+
+Người dùng thực hiện theo điều kiện:
+
+- nếu Test 1 **FAIL**, dừng, không chạy Test 2 và gửi nguyên output lỗi
+- nếu Test 1 **PASS**, chạy ngay Test 2 rồi gửi kết quả của cả hai tầng
+
+Không tách ba bước trên thành ba lượt trao đổi nếu các lệnh kiểm thử đã xác định được tại thời điểm yêu cầu pull.
+
 ## 6. Khi GitHub write bị chặn
 
 Nếu thao tác write GitHub thất bại:
