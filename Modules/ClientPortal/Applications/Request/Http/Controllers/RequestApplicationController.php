@@ -77,6 +77,11 @@ final class RequestApplicationController extends Controller
         return $this->applicationView('inbox', $registry, $settings, ['initialView' => 'processed']);
     }
 
+    public function approvalShow(string $requestPublicId, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        return $this->applicationView('approval-show', $registry, $settings, compact('requestPublicId'));
+    }
+
     private function applicationView(string $view, ApplicationRegistry $registry, ClientPortalSettingsService $settings, array $data = []): View
     {
         $application = $registry->find('request');
