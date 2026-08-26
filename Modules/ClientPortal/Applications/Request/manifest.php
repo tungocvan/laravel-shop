@@ -34,12 +34,14 @@ return [
         'inbox' => [
             'name' => 'Cần phê duyệt',
             'description' => 'Xem các công việc đang chờ bạn xem xét và quyết định.',
+            'route' => 'client.request.inbox',
             'permission' => 'client.request.inbox.view',
             'sort_order' => 40,
         ],
         'processed' => [
             'name' => 'Đã xử lý',
             'description' => 'Tra cứu các công việc phê duyệt bạn đã xử lý.',
+            'route' => 'client.request.processed',
             'permission' => 'client.request.processed.view',
             'sort_order' => 50,
         ],
