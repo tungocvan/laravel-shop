@@ -12,7 +12,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{{ __('Request::request.statuses.'.$requestStatus) }}</span>
-                <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">{{ $taskStatus === 'active' ? 'Chờ quyết định' : ucfirst($taskStatus) }}</span>
+                <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">{{ $taskStatus === 'active' ? 'Chờ quyết định' : __('Request::request.task_statuses.'.$taskStatus) }}</span>
             </div>
         </div>
         @if($request->submitted_at)<p class="mt-3 text-sm text-slate-500">Gửi lúc {{ $request->submitted_at->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</p>@endif
@@ -57,7 +57,7 @@
         <h2 class="text-lg font-bold text-slate-900">Thông tin phê duyệt</h2>
         <dl class="mt-4 grid gap-4 sm:grid-cols-2">
             <div><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">Bước</dt><dd class="mt-1 text-sm text-slate-800">{{ $task->stage_name_snapshot }}</dd></div>
-            <div><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">Trạng thái</dt><dd class="mt-1 text-sm text-slate-800">{{ $taskStatus }}</dd></div>
+            <div><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">Trạng thái</dt><dd class="mt-1 text-sm text-slate-800">{{ $taskStatus === 'active' ? 'Chờ quyết định' : __('Request::request.task_statuses.'.$taskStatus) }}</dd></div>
             @if($task->due_at)<div><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">Hạn xử lý</dt><dd class="mt-1 text-sm text-slate-800">{{ $task->due_at->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</dd></div>@endif
             @if($task->decided_at)<div><dt class="text-xs font-bold uppercase tracking-wide text-slate-400">Đã quyết định</dt><dd class="mt-1 text-sm text-slate-800">{{ $task->decided_at->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</dd></div>@endif
         </dl>
