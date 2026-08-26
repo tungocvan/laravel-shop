@@ -110,4 +110,22 @@ class RequestClientApplicationTest extends TestCase
         $this->assertStringContainsString("client.request.inbox", $decision);
         $this->assertStringContainsString('request.approver.decision-panel', $detailView);
     }
+
+    public function test_client_approver_visible_statuses_are_vietnamese(): void
+    {
+        $detailView = file_get_contents(base_path('Modules/Request/resources/views/livewire/approver/request-detail-client.blade.php'));
+        $decisionView = file_get_contents(base_path('Modules/Request/resources/views/livewire/approver/decision-panel.blade.php'));
+        $translations = require base_path('Modules/Request/resources/lang/vi/request.php');
+
+        $this->assertStringContainsString("__('Request::request.task_statuses.'.\$taskStatus)", $detailView);
+        $this->assertStringNotContainsString('ucfirst($taskStatus)', $detailView);
+        $this->assertStringNotContainsString('<dd class="mt-1 text-sm text-slate-800">{{ $taskStatus }}</dd>', $detailView);
+        $this->assertStringContainsString("__('Request::request.approve')", $decisionView);
+        $this->assertStringContainsString("__('Request::request.return')", $decisionView);
+        $this->assertStringContainsString("__('Request::request.reject')", $decisionView);
+        $this->assertSame('Đang xử lý', $translations['task_statuses']['active']);
+        $this->assertSame('Đã duyệt', $translations['task_statuses']['approved']);
+        $this->assertSame('Từ chối', $translations['task_statuses']['rejected']);
+        $this->assertSame('Trả lại', $translations['task_statuses']['returned']);
+    }
 }
