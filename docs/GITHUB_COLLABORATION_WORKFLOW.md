@@ -266,36 +266,117 @@ git branch -d <feature-branch>
 git push origin --delete <feature-branch>
 ```
 
-## 16. Bàn giao theo Module khi kết thúc branch
+## 16. Khởi động và bàn giao công việc theo Module
 
-Mỗi Module phải có một file bàn giao duy nhất theo quy ước:
+### 16.1 Phản hồi đầu tiên và giới hạn hành động
+
+Khi người dùng yêu cầu áp dụng workflow này kèm tên Module, phản hồi đầu tiên phải xác nhận rằng ChatGPT **chưa sửa code hoặc thay đổi GitHub**. Trước tiên ChatGPT thực hiện kiểm tra chỉ đọc về quyền repository, branch/PR/checkpoint, Module source, tài liệu và handoff; sau đó báo dữ liệu đã xác minh trước khi tiếp tục.
+
+Việc yêu cầu “áp dụng workflow” không tự cấp quyền sửa code, merge, xóa dữ liệu hoặc thực hiện thao tác phá hủy. Phạm vi phải được phân loại rõ là: phân tích, diagnose, review, implementation, kiểm thử/acceptance hay chuẩn bị merge.
+
+### 16.2 Kiểm tra quyền truy cập GitHub trước tiên
+
+Trước khi đọc handoff hoặc phân tích Module, phải xác nhận bằng thao tác chỉ đọc:
+
+1. repository chính xác và tài khoản GitHub đang kết nối
+2. mức quyền hiện tại: không truy cập, chỉ đọc, có thể ghi hoặc quản trị khi thực sự cần
+3. branch, PR, base branch và commit HEAD liên quan
+4. repository/branch có khớp yêu cầu người dùng không
+
+Không tạo commit, branch hoặc file thử chỉ để kiểm tra quyền ghi.
+
+- Không truy cập được: dừng và yêu cầu kết nối lại.
+- Chỉ đọc: được phân tích nhưng không được hứa sửa hoặc push.
+- Repository, branch hoặc PR không khớp: dừng và yêu cầu xác nhận.
+
+### 16.3 Bảng xác nhận dữ liệu bootstrap
+
+Sau kiểm tra chỉ đọc và trước khi thực hiện công việc, phải báo lại tối thiểu:
+
+| Dữ liệu | Nội dung |
+|---|---|
+| Repository và GitHub access | Repository, tài khoản/mức quyền đã xác minh |
+| Module | Tên Module yêu cầu |
+| Module source | `Modules/<Module>` có tồn tại không |
+| Module docs | `docs/modules/<Module>` có tồn tại không |
+| Handoff | Có/không có `COLLABORATION_HANDOFF.md` |
+| Branch / PR / checkpoint | Trạng thái thực tế trên GitHub |
+| Working scope | Loại công việc được yêu cầu |
+| Remaining work | Lấy từ handoff/tài liệu hoặc ghi chưa xác định |
+
+Nếu dữ liệu không nhất quán, dừng để người dùng xác nhận thay vì tự phỏng đoán.
+
+### 16.4 Xác minh Module và cây fallback tài liệu
+
+Phải xác minh chính xác `Modules/<Module>` trước. Nếu không tồn tại, không tự chọn Module có tên gần giống; phải kiểm tra sai tên, chữ hoa/thường, branch thiếu source, tài liệu orphan hoặc yêu cầu tạo Module mới.
+
+#### A. Có handoff
+
+Nếu có `docs/modules/<Module>/COLLABORATION_HANDOFF.md`:
+
+1. đọc toàn bộ handoff
+2. đối chiếu checkpoint/branch/PR với GitHub
+3. kiểm tra các file source và tests liên quan
+4. tiếp tục từ “Remaining work / Next step”, không phân tích lại từ đầu
+
+Handoff không được ghi đè bằng chứng hiện tại. Khi khác source, source/schema/config là nguồn sự thật và phải báo documentation drift.
+
+#### B. Có thư mục docs nhưng không có handoff
+
+Không đọc toàn bộ `.md` một cách máy móc. Trước tiên lập inventory và ưu tiên:
+
+1. `README.md`, `REQUIREMENTS.md`
+2. `ANALYSIS.md`, `INFORMATION.md` khi có
+3. master spec, domain invariants và architecture contract
+4. implementation completion/summary/addendum
+5. acceptance, release evidence và release notes
+6. runbook liên quan trực tiếp
+7. phase/kế hoạch lịch sử chỉ khi nhiệm vụ hoặc source dẫn tới
+
+Tài liệu phải được kiểm chứng với source/tests hiện tại. Đề xuất tạo handoff khi branch hoàn thành.
+
+#### C. Có Module source nhưng chưa có thư mục docs
+
+Đề xuất áp dụng `.codex/tasks/analyze-module.md`. Task `/analyze` chỉ phân tích, không sửa application code và chỉ được tạo/cập nhật:
+
+```text
+docs/modules/<Module>/ANALYSIS.md
+docs/modules/<Module>/INFORMATION.md
+docs/modules/<Module>/README.md
+```
+
+Tạo `COLLABORATION_HANDOFF.md` là batch riêng sau baseline analysis, không trộn vào contract `/analyze`.
+
+#### D. Có docs nhưng không có Module source
+
+Báo tài liệu có thể orphan/stale và dừng để xác nhận.
+
+#### E. Không có cả source lẫn docs
+
+Dừng và yêu cầu xác nhận tên Module, branch hoặc đây có phải Module mới không.
+
+### 16.5 Thứ tự nguồn sự thật
+
+1. Source code, schema và configuration hiện tại.
+2. Branch, PR và checkpoint thực tế trên GitHub.
+3. `.codex/bootstrap/*`, standards và `ROADMAP.md`.
+4. Handoff đã được kiểm chứng.
+5. Requirements/analysis/tài liệu Module.
+6. Tài liệu lịch sử hoặc kế hoạch cũ.
+
+### 16.6 File handoff bắt buộc khi kết thúc branch
+
+Mỗi Module dùng một file duy nhất:
 
 ```text
 docs/modules/<Module>/COLLABORATION_HANDOFF.md
 ```
 
-Trước khi kết thúc một feature/fix branch, ChatGPT phải cập nhật file này trong chính branch đó. Nội dung tối thiểu gồm:
+Trước khi kết thúc feature/fix branch, cập nhật trong chính branch đó: repository/base/branch/PR/checkpoint, phạm vi hoàn thành, batch quan trọng, root cause và cách sửa, quyết định kiến trúc/phân quyền/ranh giới an toàn, migration/seeder/storage/lệnh vận hành, focused test, module regression, UI smoke, Git clean, blocker, việc còn lại và bước tiếp theo được phép.
 
-- repository, base branch, working branch, PR và commit checkpoint mới nhất
-- mục tiêu và phạm vi đã hoàn thành
-- lịch sử các batch/branch quan trọng
-- lỗi hoặc root cause đã phát hiện và cách đã sửa
-- quyết định kiến trúc, phân quyền và ranh giới an toàn cần giữ
-- migrations, seeders, runtime storage hoặc lệnh vận hành liên quan
-- kết quả focused test, module regression, UI smoke và Git clean
-- việc còn lại, blocker và bước tiếp theo được phép thực hiện
+Chỉ ghi thông tin hữu ích để tiếp tục; không sao chép log dài. Handoff không thay thế requirements, runbook hoặc acceptance document.
 
-File handoff là bản tóm tắt tiếp tục công việc, không thay thế requirements, runbook hoặc acceptance document. Chỉ giữ thông tin còn hữu ích cho lần làm việc tiếp theo; không sao chép log dài hoặc output test đầy đủ.
-
-Khi bắt đầu chat mới và người dùng yêu cầu áp dụng workflow này kèm tên Module, ChatGPT phải thực hiện theo thứ tự:
-
-1. đọc toàn bộ `docs/GITHUB_COLLABORATION_WORKFLOW.md`
-2. tự tìm và đọc toàn bộ `docs/modules/<Module>/COLLABORATION_HANDOFF.md`
-3. kiểm tra branch/PR/checkpoint thực tế trên GitHub
-4. đối chiếu code và tests hiện tại trước khi đề xuất hoặc sửa đổi
-5. tiếp tục từ mục “Việc còn lại / Bước tiếp theo”, không khởi động lại từ đầu
-
-Nếu file handoff chưa tồn tại, ChatGPT phải ghi rõ điều đó, đọc các tài liệu Module liên quan và tạo file trong branch đang làm việc trước khi kết thúc batch.
+Chỉ ghi branch `COMPLETED` khi mọi gate applicable đã PASS. Nếu chưa hoàn tất phải ghi `IN PROGRESS`. Không tự cập nhật handoff ngoài phạm vi đã được người dùng phê duyệt.
 
 ## 17. Prompt dùng khi mở chat mới
 
@@ -305,14 +386,14 @@ Có thể dùng khung ngắn sau:
 Repository:
 git@github.com:tungocvan/laravel-shop.git
 
-Hãy làm việc trực tiếp qua GitHub theo docs/GITHUB_COLLABORATION_WORKFLOW.md.
+Áp dụng docs/GITHUB_COLLABORATION_WORKFLOW.md.
+
+Module: [TÊN MODULE]
 
 Yêu cầu:
 [TASK HIỆN TẠI]
 
-Module: [TÊN MODULE]
-
-Trước tiên đọc code/tests thực tế, phân tích hiện trạng và đề xuất plan.
+Trước tiên kiểm tra quyền repository và báo bảng xác nhận dữ liệu bootstrap. Sau đó đọc handoff hoặc áp dụng cây fallback tài liệu, kiểm tra code/tests thực tế và đề xuất plan.
 Chưa sửa code nếu tôi chưa duyệt thay đổi kiến trúc lớn.
 Khi cần CLI, nói rõ số lệnh và chờ output trước khi tiếp tục.
 ```

@@ -6,7 +6,8 @@ Base branch: `fix/request-e2e-submit-demo`
 Working branch: `feat/request-ux-phase-2-final-acceptance-audit`  
 Pull request: `#37 feat(request): complete UX phase 2`  
 Last verified code checkpoint: `66d9a6c9`  
-Merge status: all applicable gates passed; PR mergeable; **not merged** without explicit user approval.
+Documentation checkpoint before merge: `8ee0b439`  
+Merge status: all applicable gates passed; user explicitly approved merging PR #37 after the final workflow/handoff documentation commit.
 
 ## Current outcome
 
@@ -105,7 +106,7 @@ If Test 1 fails, stop before Test 2 and return the raw failure. Do not request t
 
 ## Remaining work / next authorized step
 
-- PR #37 is open and mergeable.
-- Do not merge until the user explicitly approves merge.
-- Before merge, re-check PR head, base, reviews/checks and working-tree evidence.
+- PR #37 was open and mergeable at the last handoff verification.
+- User explicitly approved updating this workflow/handoff and merging PR #37.
+- Before merge, re-check PR head, base and mergeability; after merge, a new chat must verify the merged state on GitHub rather than relying only on this snapshot.
 - This PR does not enable the Request module in production; production enablement remains governed by `IMPLEMENTATION_RUNBOOK.md` and `RELEASE_RUNBOOK.md`.
