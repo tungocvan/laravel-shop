@@ -77,6 +77,14 @@ Manual UI smoke
     ↓
 Git-clean verification
     ↓
+Cập nhật COLLABORATION_HANDOFF.md
+    ↓
+Gate trước khi tạo PR
+    ↓
+Tạo/review PR
+    ↓
+Refresh COLLABORATION_HANDOFF.md trước merge
+    ↓
 Merge main
     ↓
 Push main
@@ -381,6 +389,9 @@ Chỉ merge khi các gate applicable đã PASS:
 - Git clean
 - Docker/production check nếu liên quan
 - docs cập nhật
+- `COLLABORATION_HANDOFF.md` đã được cập nhật trong branch trước khi tạo PR
+- handoff đã được refresh trước merge với PR, checkpoint, gates, production boundary và next authorized step hiện tại
+- MR cuối của checkpoint/Module không còn trạng thái, branch hoặc PR cũ trong handoff
 - không còn debug/temp files
 
 ## 15. Quy trình merge chuẩn
@@ -396,6 +407,8 @@ Sau merge:
 - `git status`
 - chạy regression cần thiết
 - kiểm tra log/commit
+- đối chiếu PR, merge commit và checkpoint thực tế với `COLLABORATION_HANDOFF.md`
+- áp dụng post-merge handoff closeout ở mục 16.9 nếu đây là MR cuối của checkpoint/Module
 
 Chỉ khi PASS mới:
 
@@ -517,3 +530,79 @@ Nếu branch có Admin UI, handoff phải ghi rõ mức tuân thủ `.codex/stan
 Chỉ ghi thông tin hữu ích để tiếp tục; không sao chép log dài. Handoff không thay thế requirements, runbook hoặc acceptance document.
 
 Chỉ ghi branch `COMPLETED` khi mọi gate applicable đã PASS. Nếu chưa hoàn tất phải ghi `IN PROGRESS`. Không tự cập nhật handoff ngoài phạm vi đã được người dùng phê duyệt.
+
+### 16.7 Gate bắt buộc trước khi tạo PR
+
+Trước khi tạo PR cho branch feature/fix/docs của một Module, phải cập nhật `docs/modules/<Module>/COLLABORATION_HANDOFF.md` trong chính branch đó.
+
+Handoff trước khi tạo PR phải phản ánh tối thiểu:
+
+- repository, base branch và working branch hiện tại
+- mục tiêu, phạm vi và các batch đã hoàn thành/chưa hoàn thành
+- quyết định kiến trúc, phân quyền và safety boundary applicable
+- bằng chứng test/UI/Git-clean đã có; không ghi PASS cho gate chưa chạy
+- blocker, deferred work, production boundary và next authorized step
+- trạng thái branch/checkpoint trung thực
+
+Vì PR chưa tồn tại ở thời điểm này, được phép ghi:
+
+```text
+Pull request: PENDING — not created
+Merge commit: NOT AVAILABLE
+```
+
+Không tự đoán số PR, merge commit hoặc trạng thái merged. Nếu handoff chưa tồn tại, còn trỏ tới branch/PR/checkpoint cũ hoặc chưa phản ánh batch hiện tại thì **không tạo PR**.
+
+### 16.8 Gate bắt buộc trước khi merge PR
+
+Sau review, test và các corrective batch, nhưng trước khi merge, phải refresh handoff ngay trên PR branch.
+
+Handoff trước merge phải ghi hoặc đối chiếu:
+
+- số PR thực tế và base branch
+- implementation/source checkpoint applicable
+- trạng thái branch `COMPLETED` hoặc `IN PROGRESS` đúng với gates
+- focused test, Module/system regression, full regression và manual UI smoke applicable
+- Admin UI standard acceptance nếu có Admin UI
+- Git-clean, blocker và deferred work
+- ranh giới giữa post-merge acceptance, production enablement và MR/phase tiếp theo
+- next authorized step; không tự đặt tên MR kế tiếp nếu source/docs chưa định nghĩa
+
+Không yêu cầu file handoff tự tham chiếu SHA của chính commit đang cập nhật nó. Head PR và commit cuối phải được xác minh từ GitHub; implementation/source checkpoint có thể được ghi riêng. Merge commit chưa tồn tại trước merge phải ghi `PENDING POST-MERGE VERIFICATION`, không được ghi giả.
+
+PR không được merge khi handoff còn stale, thiếu gate applicable hoặc mô tả công việc chưa hoàn tất thành đã hoàn tất.
+
+Checklist bắt buộc trước merge:
+
+- [ ] Handoff nằm trong PR branch.
+- [ ] Handoff ghi đúng PR hiện tại, scope và checkpoint.
+- [ ] Test/UI/Git-clean evidence khớp kết quả thực tế.
+- [ ] Production enablement không bị suy ra từ việc merge source.
+- [ ] Next authorized step rõ ràng và không tự tạo MR/phase mới.
+- [ ] Nếu đây là MR cuối của checkpoint/Module, handoff không còn trạng thái/branch/PR của checkpoint cũ.
+
+### 16.9 Xác minh và khép handoff sau merge
+
+Sau merge, phải kiểm tra trên `main`:
+
+1. PR thực sự đã merged
+2. merge commit/main checkpoint thực tế
+3. source tree đúng với PR đã duyệt
+4. post-merge regression và Git-clean applicable
+5. handoff trên `main` có đủ dữ liệu để chat kế tiếp tiếp tục an toàn
+
+Nếu MR cuối của checkpoint/Module đã merge nhưng handoff trên `main` chưa phản ánh PR, merge checkpoint, gates, production boundary hoặc next authorized step, trạng thái bắt buộc là:
+
+```text
+POST-MERGE HANDOFF INCOMPLETE
+```
+
+Khi đó:
+
+- checkpoint/Module chưa được coi là hoàn tất handoff cho chat kế tiếp
+- không tự đặt tên hoặc bắt đầu MR/phase tiếp theo
+- tạo branch/PR docs-only để closeout checkpoint cũ nếu được người dùng phê duyệt
+- batch closeout này không tự động trở thành MR kế tiếp
+- chỉ dọn feature branch sau khi post-merge acceptance và handoff closeout PASS
+
+PR docs-only dùng để closeout vẫn phải tuân thủ gate trước tạo PR và trước merge. Tuy nhiên, sau khi closeout PR merge, không tạo thêm một PR chỉ để ghi merge SHA của chính closeout PR; xác minh GitHub/main là đủ nếu nội dung checkpoint nghiệp vụ, gates, production boundary và next authorized step không thay đổi.
