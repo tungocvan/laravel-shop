@@ -134,7 +134,65 @@ class ResetRequestE2EDemo extends Command
 
         $this->output->write(Artisan::output());
 
+        if ($exitCode === self::SUCCESS) {
+            $this->normalizeLocalRequestStoragePermissions();
+        }
+
         return $exitCode;
+    }
+
+    private function normalizeLocalRequestStoragePermissions(): void
+    {
+        if ((string) config('request.files.disk', 'local') !== 'local') {
+            return;
+        }
+
+        $root = Storage::disk('local')->path('request');
+        if (! is_dir($root) && ! mkdir($root, 02770, true) && ! is_dir($root)) {
+            $this->warn('Không thể tạo thư mục storage riêng của Request: '.$root);
+
+            return;
+        }
+
+        if (! function_exists('posix_geteuid') || posix_geteuid() !== 0) {
+            if (! is_writable($root)) {
+                $this->warn('Storage Request chưa ghi được bởi tiến trình hiện tại: '.$root);
+            }
+
+            return;
+        }
+
+        $owner = (string) config('request.files.local_owner', 'www-data');
+        $group = (string) config('request.files.local_group', 'www-data');
+        if (! function_exists('posix_getpwnam') || ! function_exists('posix_getgrnam') || posix_getpwnam($owner) === false || posix_getgrnam($group) === false) {
+            $this->warn("Không tìm thấy user/group {$owner}:{$group}; chưa thể chuẩn hóa quyền storage Request.");
+
+            return;
+        }
+
+        $paths = [$root];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+        foreach ($iterator as $item) {
+            if (! $item->isLink()) {
+                $paths[] = $item->getPathname();
+            }
+        }
+
+        $failed = false;
+        foreach ($paths as $path) {
+            $failed = ! @chown($path, $owner) || ! @chgrp($path, $group) || ! @chmod($path, is_dir($path) ? 02770 : 0660) || $failed;
+        }
+
+        if ($failed) {
+            $this->warn('Một hoặc nhiều tệp Request chưa được chuẩn hóa quyền đầy đủ.');
+
+            return;
+        }
+
+        $this->info("Đã chuẩn hóa quyền storage Request cho {$owner}:{$group}.");
     }
 
     private function deleteStoredRequestFiles(): void

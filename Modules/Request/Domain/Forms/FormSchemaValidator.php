@@ -33,6 +33,15 @@ final class FormSchemaValidator
                 if (! $this->fields->supports((string) ($field['type'] ?? ''))) {
                     $errors["$path.type"][] = 'unsupported_field_type';
                 }
+                if (array_key_exists('required', $field) && ! is_bool($field['required'])) {
+                    $errors["$path.required"][] = 'invalid_required_flag';
+                }
+                if (isset($field['width']) && ! in_array($field['width'], ['auto', 'full', 'half', 'third'], true)) {
+                    $errors["$path.width"][] = 'invalid_field_width';
+                }
+                if (($field['default'] ?? null) === 'today' && ($field['type'] ?? null) !== 'date') {
+                    $errors["$path.default"][] = 'invalid_field_default';
+                }
             }
         }
         if ($fieldCount > (int) config('request.forms.max_fields', 200)) {

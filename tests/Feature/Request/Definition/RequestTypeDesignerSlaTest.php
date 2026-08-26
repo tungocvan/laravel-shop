@@ -48,6 +48,34 @@ class RequestTypeDesignerSlaTest extends RequestDefinitionTestCase
         $this->assertFalse($stage->email_on_sla_warning);
     }
 
+    public function test_designer_persists_required_as_boolean_and_date_today_layout_options(): void
+    {
+        [$designer, , $type] = $this->designerFixture();
+
+        Livewire::actingAs($designer, 'admin')
+            ->test(TypeDesigner::class, ['typePublicId' => $type->public_id])
+            ->call('addSection')
+            ->call('addField', 0)
+            ->set('sections.0.fields.0.type', 'date')
+            ->set('sections.0.fields.0.required', false)
+            ->set('sections.0.fields.0.default_today', true)
+            ->set('sections.0.fields.0.width', 'third')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $field = $type->activeDraft()->firstOrFail()->form_schema_json['sections'][0]['fields'][0];
+        $this->assertFalse($field['required']);
+        $this->assertSame('today', $field['default']);
+        $this->assertSame('third', $field['width']);
+        $this->assertArrayNotHasKey('default_today', $field);
+
+        Livewire::actingAs($designer, 'admin')
+            ->test(TypeDesigner::class, ['typePublicId' => $type->public_id])
+            ->assertSet('sections.0.fields.0.required', false)
+            ->assertSet('sections.0.fields.0.default_today', true)
+            ->assertSet('sections.0.fields.0.width', 'third');
+    }
+
     public function test_designer_rejects_warning_after_deadline_and_unbounded_duration(): void
     {
         [$designer, $approver, $type] = $this->designerFixture();

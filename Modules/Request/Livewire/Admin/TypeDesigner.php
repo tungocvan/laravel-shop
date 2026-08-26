@@ -63,7 +63,7 @@ class TypeDesigner extends Component
         $this->description = (string) ($draft->description ?? '');
         $this->requesterGuidance = (string) ($draft->requester_guidance ?? '');
         $this->schemaVersion = max(1, (int) ($schema['schema_version'] ?? 1));
-        $this->sections = array_values((array) ($schema['sections'] ?? []));
+        $this->sections = $this->editableSections((array) ($schema['sections'] ?? []));
         $this->schemaExtras = array_diff_key($schema, array_flip(['schema_version', 'sections']));
         $this->audienceUserIds = $this->userCreateAudienceIds($draft);
         $this->stages = $draft->stages->values()->map(function ($stage): array {
@@ -122,7 +122,7 @@ class TypeDesigner extends Component
 
         $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
         $number = count($fields) + 1;
-        $fields[] = ['key' => 'field_'.$number, 'type' => 'text', 'label' => 'Trường '.$number, 'required' => false, 'classification' => 'internal', 'offline_draft' => true];
+        $fields[] = ['key' => 'field_'.$number, 'type' => 'text', 'label' => 'Trường '.$number, 'required' => false, 'classification' => 'internal', 'offline_draft' => true, 'default_today' => false, 'width' => 'auto'];
         $this->sections[$section]['fields'] = $fields;
     }
 
@@ -295,7 +295,7 @@ class TypeDesigner extends Component
         Gate::authorize('update', $type);
         $schema = $this->schemaExtras;
         $schema['schema_version'] = $this->schemaVersion;
-        $schema['sections'] = array_values($this->sections);
+        $schema['sections'] = $this->normalizedSections();
         $audiences = $this->audiencesForSave($type);
 
         $service->handle($type, [
@@ -319,6 +319,56 @@ class TypeDesigner extends Component
         $this->showValidationModal = false;
         $this->validationModalTitle = '';
         $this->validationModalMessages = [];
+    }
+
+    private function editableSections(array $sections): array
+    {
+        return collect(array_values($sections))->map(function (array $section): array {
+            $section['fields'] = collect(array_values((array) ($section['fields'] ?? [])))
+                ->map(function (array $field): array {
+                    $field['required'] = $this->booleanValue($field['required'] ?? false);
+                    $field['offline_draft'] = $this->booleanValue($field['offline_draft'] ?? false);
+                    $field['default_today'] = ($field['type'] ?? null) === 'date' && ($field['default'] ?? null) === 'today';
+                    $field['width'] = in_array($field['width'] ?? null, ['auto', 'full', 'half', 'third'], true)
+                        ? $field['width']
+                        : 'auto';
+
+                    return $field;
+                })->all();
+
+            return $section;
+        })->all();
+    }
+
+    private function normalizedSections(): array
+    {
+        return collect(array_values($this->sections))->map(function (array $section): array {
+            $section['fields'] = collect(array_values((array) ($section['fields'] ?? [])))
+                ->map(function (array $field): array {
+                    $field['required'] = $this->booleanValue($field['required'] ?? false);
+                    $field['offline_draft'] = $this->booleanValue($field['offline_draft'] ?? false);
+                    $field['width'] = in_array($field['width'] ?? null, ['full', 'half', 'third'], true)
+                        ? $field['width']
+                        : 'auto';
+
+                    if (($field['type'] ?? null) === 'date' && ($field['default_today'] ?? false) === true) {
+                        $field['default'] = 'today';
+                    } elseif (($field['default'] ?? null) === 'today') {
+                        unset($field['default']);
+                    }
+
+                    unset($field['default_today']);
+
+                    return $field;
+                })->all();
+
+            return $section;
+        })->all();
+    }
+
+    private function booleanValue(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
     }
 
     private function presentValidationFailure(ValidationException $exception, string $title): void
@@ -370,7 +420,7 @@ class TypeDesigner extends Component
             'at_least_one_stage_required' => 'Hãy thêm ít nhất một cấp phê duyệt và hoàn thiện cấu hình SLA.',
             'stage_limit_exceeded' => 'Số cấp phê duyệt vượt quá giới hạn cho phép.',
             'invalid_json', 'array_required' => $this->validationSection($field).' phải là JSON hợp lệ.',
-            'unsupported_schema_version', 'invalid_sections', 'invalid_key', 'invalid_or_duplicate_key', 'unsupported_field_type', 'field_limit_exceeded' => 'Biểu mẫu còn trường hoặc cấu trúc chưa hợp lệ.',
+            'unsupported_schema_version', 'invalid_sections', 'invalid_key', 'invalid_or_duplicate_key', 'unsupported_field_type', 'invalid_required_flag', 'invalid_field_width', 'invalid_field_default', 'field_limit_exceeded' => 'Biểu mẫu còn trường hoặc cấu trúc chưa hợp lệ.',
             'actor_unavailable' => 'Một hoặc nhiều người được phép tạo đề nghị không còn hoạt động.',
             'audience_limit_exceeded' => 'Mỗi loại đề nghị chỉ được phân trực tiếp cho tối đa 100 người dùng.',
             'stale_version' => 'Bản nháp đã thay đổi trên máy chủ. Hãy tải lại trang trước khi tiếp tục.',

@@ -146,8 +146,8 @@ class RequestStarterTemplateSeeder extends Seeder
                         'key' => 'proposal_overview',
                         'label' => 'Thông tin đề xuất',
                         'fields' => [
-                            ['key' => 'proposal_title', 'type' => 'text', 'label' => 'Tiêu đề đề xuất', 'required' => true, 'validation' => ['max_length' => 200], 'help' => 'Ví dụ: Tạm ứng chi phí tiếp khách Công ty ABC tháng 9/2026.'],
-                            ['key' => 'expense_category', 'type' => 'select', 'label' => 'Nhóm chi phí', 'required' => true, 'options' => [
+                            ['key' => 'proposal_title', 'type' => 'text', 'label' => 'Tiêu đề đề xuất', 'required' => true, 'width' => 'half', 'validation' => ['max_length' => 200], 'help' => 'Ví dụ: Tạm ứng chi phí tiếp khách Công ty ABC tháng 9/2026.'],
+                            ['key' => 'expense_category', 'type' => 'select', 'label' => 'Nhóm chi phí', 'required' => true, 'width' => 'half', 'options' => [
                                 ['key' => 'customer_entertainment', 'label' => 'Chi phí tiếp khách'],
                                 ['key' => 'business_trip', 'label' => 'Chi phí đi công tác'],
                                 ['key' => 'sales', 'label' => 'Chi phí bán hàng'],
@@ -157,44 +157,44 @@ class RequestStarterTemplateSeeder extends Seeder
                                 ['key' => 'transport', 'label' => 'Giao nhận / vận chuyển'],
                                 ['key' => 'other', 'label' => 'Chi phí khác'],
                             ]],
-                            ['key' => 'other_expense_category', 'type' => 'text', 'label' => 'Tên nhóm chi phí khác', 'required' => true, 'validation' => ['max_length' => 200], 'visible_when' => ['field' => 'expense_category', 'operator' => 'equals', 'value' => 'other']],
-                            ['key' => 'purpose', 'type' => 'textarea', 'label' => 'Mục đích và lý do đề xuất', 'required' => true, 'validation' => ['max_length' => 2000], 'help' => 'Nêu bối cảnh, đối tượng phục vụ và lý do cần tạm ứng.'],
-                            ['key' => 'expected_result', 'type' => 'textarea', 'label' => 'Kết quả / hiệu quả mong đợi', 'required' => false, 'validation' => ['max_length' => 2000]],
+                            ['key' => 'other_expense_category', 'type' => 'text', 'label' => 'Tên nhóm chi phí khác', 'required' => true, 'width' => 'full', 'validation' => ['max_length' => 200], 'visible_when' => ['field' => 'expense_category', 'operator' => 'equals', 'value' => 'other']],
+                            ['key' => 'purpose', 'type' => 'textarea', 'label' => 'Mục đích và lý do đề xuất', 'required' => true, 'width' => 'full', 'validation' => ['max_length' => 2000], 'help' => 'Nêu bối cảnh, đối tượng phục vụ và lý do cần tạm ứng.'],
+                            ['key' => 'expected_result', 'type' => 'textarea', 'label' => 'Kết quả / hiệu quả mong đợi', 'required' => false, 'width' => 'full', 'validation' => ['max_length' => 2000]],
                         ],
                     ],
                     [
                         'key' => 'expense_plan',
                         'label' => 'Kế hoạch và dự toán chi phí',
                         'fields' => [
-                            ['key' => 'sales_team', 'type' => 'text', 'label' => 'Đơn vị / nhóm thuộc Phòng Kinh doanh', 'required' => true, 'validation' => ['max_length' => 150]],
-                            ['key' => 'needed_on', 'type' => 'date', 'label' => 'Ngày cần nhận tiền', 'required' => true],
-                            ['key' => 'expense_from', 'type' => 'date', 'label' => 'Dự kiến chi từ ngày', 'required' => true],
-                            ['key' => 'expense_to', 'type' => 'date', 'label' => 'Dự kiến chi đến ngày', 'required' => true],
-                            ['key' => 'advance_amount_vnd', 'type' => 'integer', 'label' => 'Số tiền đề nghị tạm ứng (VND)', 'required' => true, 'validation' => ['min' => 1, 'max' => 1000000000000]],
-                            ['key' => 'budget_status', 'type' => 'select', 'label' => 'Tình trạng ngân sách', 'required' => true, 'options' => [
+                            ['key' => 'sales_team', 'type' => 'text', 'label' => 'Đơn vị / nhóm thuộc Phòng Kinh doanh', 'required' => false, 'width' => 'full', 'validation' => ['max_length' => 150]],
+                            ['key' => 'needed_on', 'type' => 'date', 'label' => 'Ngày cần nhận tiền', 'required' => false, 'width' => 'third', 'default' => 'today'],
+                            ['key' => 'expense_from', 'type' => 'date', 'label' => 'Dự kiến chi từ ngày', 'required' => false, 'width' => 'third', 'default' => 'today'],
+                            ['key' => 'expense_to', 'type' => 'date', 'label' => 'Dự kiến chi đến ngày', 'required' => false, 'width' => 'third', 'default' => 'today'],
+                            ['key' => 'advance_amount_vnd', 'type' => 'integer', 'label' => 'Số tiền đề nghị tạm ứng (VND)', 'required' => false, 'width' => 'half', 'validation' => ['min' => 1, 'max' => 1000000000000]],
+                            ['key' => 'budget_status', 'type' => 'select', 'label' => 'Tình trạng ngân sách', 'required' => false, 'width' => 'half', 'options' => [
                                 ['key' => 'planned', 'label' => 'Đã có trong ngân sách / kế hoạch'],
                                 ['key' => 'unplanned', 'label' => 'Ngoài ngân sách / phát sinh'],
                             ]],
-                            ['key' => 'cost_breakdown', 'type' => 'textarea', 'label' => 'Chi tiết các hạng mục và dự toán', 'required' => true, 'validation' => ['max_length' => 4000], 'help' => 'Liệt kê từng hạng mục, số lượng, đơn giá và thành tiền dự kiến.'],
+                            ['key' => 'cost_breakdown', 'type' => 'textarea', 'label' => 'Chi tiết các hạng mục và dự toán', 'required' => false, 'width' => 'full', 'validation' => ['max_length' => 4000], 'help' => 'Có thể liệt kê từng hạng mục, số lượng, đơn giá và thành tiền dự kiến.'],
                         ],
                     ],
                     [
                         'key' => 'payment_and_settlement',
                         'label' => 'Nhận tiền và hoàn ứng',
                         'fields' => [
-                            ['key' => 'advance_recipient', 'type' => 'text', 'label' => 'Người nhận tạm ứng', 'required' => true, 'validation' => ['max_length' => 200]],
-                            ['key' => 'payment_method', 'type' => 'select', 'label' => 'Hình thức nhận tiền', 'required' => true, 'options' => [
+                            ['key' => 'advance_recipient', 'type' => 'text', 'label' => 'Người nhận tạm ứng', 'required' => false, 'width' => 'half', 'validation' => ['max_length' => 200]],
+                            ['key' => 'payment_method', 'type' => 'select', 'label' => 'Hình thức nhận tiền', 'required' => false, 'width' => 'half', 'options' => [
                                 ['key' => 'bank_transfer', 'label' => 'Chuyển khoản'],
                                 ['key' => 'cash', 'label' => 'Tiền mặt'],
                             ]],
-                            ['key' => 'bank_information', 'type' => 'textarea', 'label' => 'Thông tin tài khoản nhận tiền', 'required' => true, 'validation' => ['max_length' => 500], 'visible_when' => ['field' => 'payment_method', 'operator' => 'equals', 'value' => 'bank_transfer'], 'help' => 'Ghi chủ tài khoản, số tài khoản và ngân hàng.'],
-                            ['key' => 'previous_advance_status', 'type' => 'select', 'label' => 'Tình trạng khoản tạm ứng trước', 'required' => true, 'options' => [
+                            ['key' => 'bank_information', 'type' => 'textarea', 'label' => 'Thông tin tài khoản nhận tiền', 'required' => false, 'width' => 'full', 'validation' => ['max_length' => 500], 'visible_when' => ['field' => 'payment_method', 'operator' => 'equals', 'value' => 'bank_transfer'], 'help' => 'Nếu cần chuyển khoản, ghi chủ tài khoản, số tài khoản và ngân hàng.'],
+                            ['key' => 'previous_advance_status', 'type' => 'select', 'label' => 'Tình trạng khoản tạm ứng trước', 'required' => false, 'width' => 'half', 'options' => [
                                 ['key' => 'none', 'label' => 'Không có khoản tạm ứng trước'],
                                 ['key' => 'settled', 'label' => 'Đã hoàn ứng đầy đủ'],
                                 ['key' => 'outstanding', 'label' => 'Còn khoản chưa hoàn ứng'],
                             ]],
-                            ['key' => 'settlement_due_on', 'type' => 'date', 'label' => 'Ngày dự kiến hoàn ứng', 'required' => true],
-                            ['key' => 'supporting_documents', 'type' => 'attachment', 'label' => 'Báo giá, kế hoạch hoặc tài liệu liên quan', 'required' => false, 'classification' => 'confidential', 'offline_draft' => false, 'validation' => ['max_count' => 5], 'help' => 'Có thể tải lần lượt tối đa 5 tệp: PDF, PNG, JPG, DOCX hoặc XLSX; mỗi tệp tối đa 10 MB.'],
+                            ['key' => 'settlement_due_on', 'type' => 'date', 'label' => 'Ngày dự kiến hoàn ứng', 'required' => false, 'width' => 'half', 'default' => 'today'],
+                            ['key' => 'supporting_documents', 'type' => 'attachment', 'label' => 'Báo giá, kế hoạch hoặc tài liệu liên quan', 'required' => false, 'width' => 'full', 'classification' => 'confidential', 'offline_draft' => false, 'validation' => ['max_count' => 5], 'help' => 'Có thể chọn cùng lúc tối đa 5 tệp: PDF, PNG, JPG, DOCX hoặc XLSX; mỗi tệp tối đa 10 MB.'],
                         ],
                     ],
                 ]),

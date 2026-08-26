@@ -39,4 +39,21 @@ class RequestResponsiveUiContractTest extends TestCase
         $this->assertStringNotContainsString('Background Sync', $runtime);
         $this->assertStringNotContainsString('.submit()', $runtime);
     }
+
+    public function test_request_form_supports_compact_field_widths_multi_upload_and_private_storage_bootstrap(): void
+    {
+        $detail = file_get_contents(base_path('Modules/Request/resources/views/livewire/requester/request-detail.blade.php'));
+        $attachments = file_get_contents(base_path('Modules/Request/resources/views/livewire/requester/attachment-manager.blade.php'));
+        $designer = file_get_contents(base_path('Modules/Request/resources/views/livewire/admin/type-designer.blade.php'));
+        $dockerfile = file_get_contents(base_path('Dockerfile'));
+        $entrypoint = file_get_contents(base_path('docker/entrypoint.sh'));
+
+        $this->assertStringContainsString("'third' => 'sm:col-span-1 lg:col-span-2'", $detail);
+        $this->assertStringContainsString('Không bắt buộc', $detail);
+        $this->assertStringContainsString('Mặc định ngày hôm nay', $designer);
+        $this->assertStringContainsString('Độ rộng hiển thị', $designer);
+        $this->assertStringContainsString('type="file" multiple', $attachments);
+        $this->assertStringContainsString('storage/app/request/attachments', $dockerfile);
+        $this->assertStringContainsString('storage/app/request/attachments', $entrypoint);
+    }
 }

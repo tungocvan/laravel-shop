@@ -88,6 +88,9 @@ class RequestDemoSeederSafetyTest extends RequestDefinitionTestCase
         $this->assertStringContainsString('use Database\\Seeders\\RequestE2EDemoSeeder;', $command);
         $this->assertStringNotContainsString('use Modules\\Request\\Database\\Seeders\\RequestE2EDemoSeeder;', $command);
         $this->assertStringContainsString('{--rebuild', $command);
+        $this->assertStringContainsString('normalizeLocalRequestStoragePermissions', $command);
+        $this->assertStringContainsString("config('request.files.local_owner', 'www-data')", $command);
+        $this->assertStringContainsString('02770', $command);
     }
 
     public function test_rebuild_command_creates_a_complete_request_ui_matrix(): void

@@ -15,7 +15,13 @@ final class LaravelPrivateRequestFileStore implements PrivateRequestFileStore
         if ($disk === 'public') {
             throw ValidationException::withMessages(['attachment' => ['private_disk_required']]);
         }
-        $stored = Storage::disk($disk)->putFileAs($path, $file, $filename);
+        try {
+            $stored = Storage::disk($disk)->putFileAs($path, $file, $filename);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            throw ValidationException::withMessages(['attachment' => ['attachment_storage_unavailable']]);
+        }
         if (! is_string($stored) || $stored === '') {
             throw ValidationException::withMessages(['attachment' => ['attachment_store_failed']]);
         }

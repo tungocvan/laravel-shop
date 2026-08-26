@@ -3,6 +3,7 @@
 namespace Tests\Feature\Request\Operations;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -22,6 +23,13 @@ use Tests\TestCase;
 class RequestOperationsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     protected function setUp(): void
     {
@@ -102,6 +110,14 @@ class RequestOperationsTest extends TestCase
         $this->assertSame(5, $fields['supporting_documents']['validation']['max_count']);
         $this->assertSame('confidential', $fields['supporting_documents']['classification']);
         $this->assertFalse($fields['supporting_documents']['offline_draft']);
+        foreach (['sales_team', 'needed_on', 'expense_from', 'expense_to', 'advance_amount_vnd', 'budget_status', 'cost_breakdown', 'advance_recipient', 'payment_method', 'bank_information', 'previous_advance_status', 'settlement_due_on', 'supporting_documents'] as $optionalField) {
+            $this->assertFalse($fields[$optionalField]['required']);
+        }
+        foreach (['needed_on', 'expense_from', 'expense_to', 'settlement_due_on'] as $todayField) {
+            $this->assertSame('today', $fields[$todayField]['default']);
+        }
+        $this->assertSame('third', $fields['needed_on']['width']);
+        $this->assertSame('full', $fields['supporting_documents']['width']);
         $this->assertSame('Phê duyệt đề xuất tạm ứng', $advanceDraft->stages->firstOrFail()->name);
         $this->assertSame(1440, $advanceDraft->stages->firstOrFail()->sla_minutes);
         $this->assertSame(240, $advanceDraft->stages->firstOrFail()->warning_minutes_before);
@@ -125,10 +141,44 @@ class RequestOperationsTest extends TestCase
         ];
         $payloads = app(FormPayloadValidator::class);
         $this->assertSame([], $payloads->validate($advanceDraft->form_schema_json, $validCashProposal, true)['errors']);
-        $bankProposal = array_replace($validCashProposal, ['payment_method' => 'bank_transfer']);
+        Carbon::setTestNow('2026-08-26 05:30:00 UTC');
+        $minimalProposal = [
+            'proposal_title' => 'Tạm ứng chi phí bán hàng',
+            'expense_category' => 'sales',
+            'purpose' => 'Chuẩn bị hoạt động bán hàng trong tháng.',
+        ];
+        $minimalResult = $payloads->validate($advanceDraft->form_schema_json, $minimalProposal, true);
+        $this->assertSame([], $minimalResult['errors']);
+        foreach (['needed_on', 'expense_from', 'expense_to', 'settlement_due_on'] as $todayField) {
+            $this->assertSame('2026-08-26', $minimalResult['payload'][$todayField]);
+        }
+
+        $blankOptionalResult = $payloads->validate($advanceDraft->form_schema_json, $minimalProposal + [
+            'needed_on' => '',
+            'expense_from' => '',
+            'expense_to' => '',
+            'settlement_due_on' => '',
+            'advance_amount_vnd' => '',
+            'payment_method' => '',
+        ], true);
+        $this->assertSame([], $blankOptionalResult['errors']);
+        $this->assertArrayNotHasKey('needed_on', $blankOptionalResult['payload']);
+        $this->assertArrayNotHasKey('advance_amount_vnd', $blankOptionalResult['payload']);
+
+        $bankProposal = array_replace($minimalProposal, ['payment_method' => 'bank_transfer']);
+        $this->assertSame([], $payloads->validate($advanceDraft->form_schema_json, $bankProposal, true)['errors']);
+        $requiredBankSchema = $advanceDraft->form_schema_json;
+        foreach ($requiredBankSchema['sections'] as &$section) {
+            foreach ($section['fields'] as &$field) {
+                if ($field['key'] === 'bank_information') {
+                    $field['required'] = true;
+                }
+            }
+        }
+        unset($field, $section);
         $this->assertSame(
             ['required'],
-            $payloads->validate($advanceDraft->form_schema_json, $bankProposal, true)['errors']['payload.bank_information'],
+            $payloads->validate($requiredBankSchema, $bankProposal, true)['errors']['payload.bank_information'],
         );
     }
 

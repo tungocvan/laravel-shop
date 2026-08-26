@@ -16,6 +16,7 @@ Do not edit historical migrations on a populated environment. Do not expose Requ
 - Confirm PHP/extensions, database connectivity, queue connection, scheduler, mail, and private storage are healthy.
 - Confirm Request queues are configured as `request-outbox`, `request-notifications`, and `request-exports`.
 - Confirm Request private disk is configured and is not `public`.
+- Confirm `storage/app/request/attachments` exists and is writable by the deployed PHP-FPM user (normally `www-data`). A CLI command run as `root` must not leave `storage` owned only by `root`; never repair this with `chmod 777`.
 - Put the application into the normal maintenance/drain workflow before module enablement/migrations if required by the platform bootstrap.
 
 ## 3. Runtime enablement
@@ -124,6 +125,6 @@ For the fastest repeatable local UI pass, rebuild only the Request-owned tables 
 php artisan request:e2e-reset --rebuild
 ```
 
-The command is blocked in production. It removes Request database rows and exact Request attachment/export storage paths, preserves unrelated module data, then recreates Request accounts/roles, the published DEMO definition, starter templates, and scenarios for draft, pending, warning, overdue, suspended, approved, rejected, returned, cancelled, failed activation, failed outbox and failed export UI states. The normal pending scenario also contains two participant comments and one real private attachment so the collaboration/detail UI can be checked without additional setup.
+The command is blocked in production. It removes Request database rows and exact Request attachment/export storage paths, preserves unrelated module data, then recreates Request accounts/roles, the published DEMO definition, starter templates, and scenarios for draft, pending, warning, overdue, suspended, approved, rejected, returned, cancelled, failed activation, failed outbox and failed export UI states. The normal pending scenario also contains two participant comments and one real private attachment so the collaboration/detail UI can be checked without additional setup. When the command is run as `root` against the local disk, it normalizes only `storage/app/request` back to the configured PHP-FPM owner/group (`REQUEST_FILES_LOCAL_OWNER` / `REQUEST_FILES_LOCAL_GROUP`, default `www-data`) with group-writable, setgid directories; this prevents root-owned DEMO fixtures from breaking browser uploads.
 
 Never document or commit real passwords in this runbook. Local E2E credentials are environment/test-fixture concerns only.

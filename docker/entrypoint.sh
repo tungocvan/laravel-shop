@@ -4,6 +4,7 @@ set -eu
 mkdir -p \
   storage/app \
   storage/app/system \
+  storage/app/request/attachments \
   storage/framework/cache \
   storage/framework/sessions \
   storage/framework/views \
@@ -12,6 +13,7 @@ mkdir -p \
 
 if [ "$(id -u)" = "0" ]; then
     chown -R www-data:www-data storage bootstrap/cache
+    chmod 2770 storage/app/request storage/app/request/attachments
 
     if [ -d Modules ]; then
         chown -R www-data:www-data Modules

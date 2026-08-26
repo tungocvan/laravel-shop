@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
+use Livewire\Livewire;
 use Modules\Request\Application\Services\AddRequestComment;
 use Modules\Request\Application\Services\CreateInternalRequest;
 use Modules\Request\Application\Services\SaveRequestDraft;
@@ -22,9 +23,11 @@ use Modules\Request\Domain\Enums\AttachmentScanStatus;
 use Modules\Request\Domain\Enums\RequestStatus;
 use Modules\Request\Domain\Forms\FormPayloadValidator;
 use Modules\Request\Http\Controllers\RequestAttachmentController;
+use Modules\Request\Livewire\Requester\AttachmentManager;
 use Modules\Request\Models\RequestAuditEvent;
 use Modules\Request\Models\RequestComment;
 use Modules\Request\Providers\RequestServiceProvider;
+use Modules\Request\Support\LaravelPrivateRequestFileStore;
 use Spatie\Permission\Models\Permission;
 use Tests\Feature\Request\Draft\RequestDraftTestCase;
 use ZipArchive;
@@ -41,6 +44,7 @@ class RequestCollaborationTest extends RequestDraftTestCase
         Storage::fake('local');
         $this->app->register(RequestServiceProvider::class);
         $this->app['view']->addNamespace('Request', base_path('Modules/Request/resources/views'));
+        Livewire::component('request.requester.attachment-manager', AttachmentManager::class);
         Route::middleware('web')->group(base_path('Modules/Request/routes/web.php'));
         Route::prefix('api')->middleware('api')->group(base_path('Modules/Request/routes/api.php'));
         Route::get('/request-collaboration-test/{requestPublicId}/attachments/{attachmentPublicId}', RequestAttachmentController::class)->name('request.attachments.download');
@@ -143,6 +147,55 @@ class RequestCollaborationTest extends RequestDraftTestCase
 
         $this->assertDatabaseCount('request_attachments', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_field_attachment_manager_accepts_multiple_files_in_one_selection(): void
+    {
+        [$owner, , $request] = $this->draftRequest();
+        $owner->givePermissionTo(['request.instance.view-own', 'request.attachment.upload']);
+
+        Livewire::actingAs($owner, 'admin')
+            ->test(AttachmentManager::class, [
+                'requestPublicId' => $request->public_id,
+                'requestVersion' => $request->lock_version,
+                'fieldKey' => 'evidence',
+            ])
+            ->set('uploads', [
+                UploadedFile::fake()->createWithContent('quote.pdf', "%PDF-1.7\nquote"),
+                UploadedFile::fake()->createWithContent('plan.pdf', "%PDF-1.7\nplan"),
+            ])
+            ->call('store')
+            ->assertHasNoErrors();
+
+        $this->assertSame(2, $request->attachments()->where('payload_field_key', 'evidence')->count());
+    }
+
+    public function test_private_file_store_converts_an_unwritable_disk_into_a_validation_error(): void
+    {
+        $fileRoot = tempnam(sys_get_temp_dir(), 'request-unwritable-');
+        config([
+            'request.files.disk' => 'request_unwritable',
+            'filesystems.disks.request_unwritable' => [
+                'driver' => 'local',
+                'root' => $fileRoot,
+                'throw' => true,
+            ],
+        ]);
+
+        try {
+            app(LaravelPrivateRequestFileStore::class)->put(
+                UploadedFile::fake()->createWithContent('quote.pdf', "%PDF-1.7\nquote"),
+                'request/attachments/example',
+                'quote.pdf',
+            );
+            $this->fail('An unwritable private disk must not leak a filesystem exception.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(['attachment_storage_unavailable'], $exception->errors()['attachment']);
+        } finally {
+            if (is_string($fileRoot) && is_file($fileRoot)) {
+                unlink($fileRoot);
+            }
+        }
     }
 
     public function test_co_04_file_attack_corpus_is_rejected_without_persistence(): void

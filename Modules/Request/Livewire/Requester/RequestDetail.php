@@ -11,6 +11,7 @@ use Modules\Request\Application\Services\CancelInternalRequest;
 use Modules\Request\Application\Services\ResubmitInternalRequest;
 use Modules\Request\Application\Services\SaveRequestDraft;
 use Modules\Request\Application\Services\SubmitInternalRequest;
+use Modules\Request\Domain\Forms\FormDefaultValueResolver;
 use Modules\Request\Domain\Forms\VisibilityRuleEvaluator;
 
 class RequestDetail extends Component
@@ -31,12 +32,14 @@ class RequestDetail extends Component
 
     public bool $confirmingSubmit = false;
 
-    public function mount(string $requestPublicId, MyRequestsQuery $query): void
+    public function mount(string $requestPublicId, MyRequestsQuery $query, FormDefaultValueResolver $defaults): void
     {
         $this->requestPublicId = $requestPublicId;
         $request = $query->findVisible($requestPublicId, auth('admin')->user());
         Gate::authorize('view', $request);
-        $this->values = (array) ($request->latestPayloadRevision?->payload_json ?? []);
+        $this->values = $request->latestPayloadRevision
+            ? (array) $request->latestPayloadRevision->payload_json
+            : $defaults->values((array) $request->typeVersion->form_schema_json);
         $this->lockVersion = $request->lock_version;
         $this->saveKey = (string) Str::uuid();
         $this->cancelKey = (string) Str::uuid();
