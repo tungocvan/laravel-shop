@@ -114,7 +114,7 @@ Khi ChatGPT yêu cầu cập nhật một batch mới, hướng dẫn phải cun
 
 1. lệnh `git pull --ff-only`
 2. **Test 1**: kiểm thử tập trung cho phần vừa thay đổi
-3. **Test 2**: Request/module regression phù hợp
+3. **Test 2**: Module/system regression phù hợp với phạm vi thay đổi
 
 Người dùng thực hiện theo điều kiện:
 
@@ -201,21 +201,37 @@ Mục tiêu:
 
 Runtime state/cache/user settings trên production không được làm tracked source dirty nếu kiến trúc không yêu cầu.
 
-### 11.1 Bật/tắt Module bằng runtime state
+### 11.1 Cơ chế bật/tắt và autoload Module toàn project
 
-Trạng thái bật/tắt thực tế của Module được lưu mặc định tại:
+Đây là quy tắc chung cho **toàn bộ hệ thống Module**, không dành riêng cho bất kỳ Module cụ thể nào.
+
+Các source phải được đọc/đối chiếu khi xử lý bật/tắt hoặc autoload Module:
+
+```text
+Modules/ModuleServiceProvider.php
+app/Modules/ModuleStateResolver.php
+app/Modules/ModuleStateRepository.php
+app/Modules/FileModuleStateRepository.php
+app/Providers/AppServiceProvider.php
+Modules/<Module>/config/module.php hoặc Modules/<Module>/Config/module.php
+```
+
+#### Runtime state
+
+Trạng thái bật/tắt thực tế của các Module được lưu mặc định tại:
 
 ```text
 storage/app/system/module-state.json
 ```
 
-Dạng dữ liệu:
+Ví dụ cấu trúc dữ liệu tổng quát:
 
 ```json
 {
   "version": 1,
   "modules": {
-    "Request": true
+    "ModuleA": true,
+    "ModuleB": false
   }
 }
 ```
@@ -227,6 +243,8 @@ Quy tắc:
 - Repository runtime state dùng file lock độc quyền và ghi file tạm rồi thay thế nguyên tử; không được thay thế cơ chế này bằng thao tác ghi JSON trực tiếp.
 - Không sửa `Modules/<Module>/config/module.php` chỉ để bật/tắt Module trong runtime.
 
+#### Cách xác định trạng thái Module
+
 `ModuleStateResolver` xác định trạng thái theo thứ tự:
 
 1. Shell Module bắt buộc (`required`) luôn bật.
@@ -234,21 +252,51 @@ Quy tắc:
 3. Nếu chưa có runtime state thì dùng `default_enabled` trong manifest.
 4. Để tương thích manifest cũ, nếu không có `default_enabled` thì dùng `enabled`; nếu cả hai không tồn tại, fallback chung hiện tại là `true`.
 
-Riêng Module `Request`, `default_enabled=false`, vì vậy:
+Tóm tắt tổng quát:
 
 ```text
-runtime Request=true
-    → Request ENABLED
+runtime <Module>=true
+    → Module ENABLED
 
-runtime Request=false
-    → Request DISABLED
+runtime <Module>=false
+    → Module DISABLED
 
-không có runtime override Request
-    → default_enabled=false
-    → Request DISABLED
+không có runtime override
+    → dùng default_enabled
+    → nếu thiếu default_enabled thì dùng enabled
+    → nếu cả hai đều thiếu thì fallback chung = true
 ```
 
-Thao tác chuẩn:
+Shell Module là ngoại lệ bắt buộc: `required=true` thì luôn enabled và không được tắt bằng runtime state.
+
+#### Cách autoload Module
+
+`Modules/ModuleServiceProvider.php` là entry point autoload chung của toàn project. Luồng xử lý phải được hiểu như sau:
+
+```text
+Discover toàn bộ thư mục con trong Modules/
+    ↓
+Đọc manifest config/module.php hoặc Config/module.php nếu có
+    ↓
+Xác định type / required / depends
+    ↓
+Gọi ModuleStateResolver để resolve enabled thực tế
+    ↓
+Sắp xếp boot order: shell → support → domain
+    ↓
+Validate dependency graph
+    ↓
+Chỉ giữ các Module enabled
+    ↓
+Register ServiceProvider + config + routes + resources + helpers
++ migrations + Livewire + Blade components + console commands
+```
+
+Khi một Module đang `disabled`, `ModuleServiceProvider` không chạy `registerModule()` cho Module đó, vì vậy các provider/routes/resources/helpers/migrations/components/commands của Module không được autoload bởi cơ chế Module chung.
+
+Dependency phải được kiểm tra trước khi autoload: Module enabled không được phụ thuộc vào Module bị thiếu, bị disabled, tự phụ thuộc hoặc tạo circular dependency.
+
+#### Thao tác chuẩn
 
 ```text
 BẬT Module
@@ -262,7 +310,7 @@ RESET Module về mặc định
 → ModuleStateResolver quay về manifest default
 ```
 
-Sau thao tác runtime phải kiểm tra trạng thái thực tế và `git status`; runtime state không được làm working tree tracked source bị dirty.
+Trước và sau thao tác bật/tắt phải kiểm tra dependency, trạng thái resolve thực tế và tác động autoload. Sau runtime operation phải kiểm tra `git status`; runtime state không được làm working tree tracked source bị dirty.
 
 ## 12. Docker / production
 
@@ -407,7 +455,7 @@ Dừng và yêu cầu xác nhận tên Module, branch hoặc đây có phải Mo
 
 ### 16.5 Thứ tự nguồn sự thật
 
-1. Source code, schema và configuration hiện tại.
+1. Source code, schema và configuration hiện tại; với cơ chế Module phải đối chiếu thêm `Modules/ModuleServiceProvider.php`, `ModuleStateResolver` và runtime state repository.
 2. Branch, PR và checkpoint thực tế trên GitHub.
 3. `.codex/bootstrap/*`, standards và `ROADMAP.md`.
 4. Handoff đã được kiểm chứng.
