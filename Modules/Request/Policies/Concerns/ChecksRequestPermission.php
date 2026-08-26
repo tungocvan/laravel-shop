@@ -8,12 +8,12 @@ trait ChecksRequestPermission
 {
     private function hasPermission(mixed $user, string $permission): bool
     {
-        if (! method_exists($user, 'checkPermissionTo')) {
-            return false;
+        if (method_exists($user, 'checkPermissionTo')) {
+            $guard = app(RequestAuthorizationContext::class)->guard() ?? 'admin';
+
+            return $user->checkPermissionTo($permission, $guard);
         }
 
-        $guard = app(RequestAuthorizationContext::class)->guard() ?? 'admin';
-
-        return $user->checkPermissionTo($permission, $guard);
+        return method_exists($user, 'can') && $user->can($permission);
     }
 }
