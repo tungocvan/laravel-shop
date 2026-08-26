@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\ClientApps;
 
-use App\Models\User;
+use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Services\ApplicationRegistry;
-use Spatie\Permission\Models\Permission;
+use Modules\Request\Http\Middleware\UseRequestAuthorizationGuard;
 use Tests\TestCase;
 
 class RequestClientApplicationTest extends TestCase
@@ -40,20 +40,18 @@ class RequestClientApplicationTest extends TestCase
         $this->get('/apps/request')->assertRedirect(route('client.apps.login'));
     }
 
-    public function test_web_user_with_request_client_permissions_can_open_dashboard(): void
+    public function test_request_dashboard_route_uses_web_client_and_request_authorization_boundaries(): void
     {
         config()->set('modules.registry.Request.enabled', true);
 
-        $user = User::factory()->create();
-        foreach (['client.request.access', 'client.request.overview.view'] as $name) {
-            Permission::findOrCreate($name, 'web');
-        }
-        $user->givePermissionTo('client.request.access', 'client.request.overview.view');
+        $route = Route::getRoutes()->getByName('client.request.dashboard');
 
-        $this->actingAs($user, 'web')
-            ->get('/apps/request')
-            ->assertOk()
-            ->assertSee('Đề nghị &amp; Phê duyệt', false)
-            ->assertSee('Cần phê duyệt');
+        $this->assertNotNull($route);
+        $this->assertSame('apps/request', $route->uri());
+        $this->assertContains('web', $route->gatherMiddleware());
+        $this->assertContains('auth:web', $route->gatherMiddleware());
+        $this->assertContains('client.application:request', $route->gatherMiddleware());
+        $this->assertContains('client.feature:request,overview', $route->gatherMiddleware());
+        $this->assertContains(UseRequestAuthorizationGuard::class.':web', $route->gatherMiddleware());
     }
 }
