@@ -8,7 +8,7 @@ use Tests\TestCase;
 
 class ClientApplicationAdminTest extends TestCase
 {
-    public function test_permission_definitions_are_built_from_application_manifest(): void
+    public function test_permission_definitions_include_application_and_domain_web_permissions(): void
     {
         $definitions = app(ApplicationPermissionService::class)->definitions();
 
@@ -19,6 +19,31 @@ class ClientApplicationAdminTest extends TestCase
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.wishlist.view'));
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.contractors.view'));
         $this->assertTrue($definitions->contains('name', 'client.muasamcong.analytics.view'));
+
+        $requestCreate = $definitions->firstWhere('name', 'request.instance.create');
+        $this->assertNotNull($requestCreate);
+        $this->assertSame('domain', $requestCreate['source']);
+        $this->assertSame('Request', $requestCreate['group']);
+        $this->assertTrue($definitions->contains('name', 'request.instance.submit'));
+        $this->assertTrue($definitions->contains('name', 'request.comment.create'));
+        $this->assertFalse($definitions->contains('name', 'request.dashboard.view'));
+    }
+
+    public function test_web_permission_admin_contract_preserves_guard_boundary(): void
+    {
+        $service = file_get_contents(base_path('Modules/ClientPortal/Services/ApplicationPermissionService.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/Admin/ApplicationAdminController.php'));
+        $userView = file_get_contents(base_path('Modules/ClientPortal/resources/views/admin/user-permissions.blade.php'));
+        $roleView = file_get_contents(base_path('Modules/ClientPortal/resources/views/admin/role-permissions.blade.php'));
+
+        $this->assertStringContainsString("data_get(\$config, 'permissions_by_guard.web'", $service);
+        $this->assertStringContainsString("where('guard_name', 'web')", $controller);
+        $this->assertStringContainsString("abort_unless(\$role->guard_name === 'web'", $controller);
+        $this->assertStringContainsString("intersect(\$managed)", $controller);
+        $this->assertStringContainsString('Quyền nghiệp vụ Domain', $userView);
+        $this->assertStringContainsString('Quyền nghiệp vụ Domain', $roleView);
+        $this->assertStringContainsString('quyền guard admin không bị thay đổi', $userView);
+        $this->assertStringContainsString('quyền guard admin không bị thay đổi', $roleView);
     }
 
     public function test_client_application_admin_routes_are_protected_by_admin_guard_and_named_permissions(): void
