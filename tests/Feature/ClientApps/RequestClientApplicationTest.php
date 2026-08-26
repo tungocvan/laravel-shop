@@ -115,6 +115,7 @@ class RequestClientApplicationTest extends TestCase
     {
         $detailView = file_get_contents(base_path('Modules/Request/resources/views/livewire/approver/request-detail-client.blade.php'));
         $decisionView = file_get_contents(base_path('Modules/Request/resources/views/livewire/approver/decision-panel.blade.php'));
+        $authorization = file_get_contents(base_path('Modules/Request/Livewire/Concerns/InteractsWithRequestAuthorization.php'));
         $translations = require base_path('Modules/Request/resources/lang/vi/request.php');
 
         $this->assertStringContainsString("__('Request::request.task_statuses.'.\$taskStatus)", $detailView);
@@ -123,6 +124,8 @@ class RequestClientApplicationTest extends TestCase
         $this->assertStringContainsString("__('Request::request.approve')", $decisionView);
         $this->assertStringContainsString("__('Request::request.return')", $decisionView);
         $this->assertStringContainsString("__('Request::request.reject')", $decisionView);
+        $this->assertStringContainsString("if (\$this->requestGuard === 'web')", $authorization);
+        $this->assertStringContainsString("app()->setLocale('vi')", $authorization);
         $this->assertSame('Đang xử lý', $translations['task_statuses']['active']);
         $this->assertSame('Đã duyệt', $translations['task_statuses']['approved']);
         $this->assertSame('Từ chối', $translations['task_statuses']['rejected']);
