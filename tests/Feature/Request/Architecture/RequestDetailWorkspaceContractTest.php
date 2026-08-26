@@ -30,10 +30,11 @@ class RequestDetailWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("timezone(config('app.timezone'))", $view);
         $this->assertStringContainsString("sortBy('stage_position')", $view);
         $this->assertStringContainsString('min-h-11', $view);
-        $this->assertStringContainsString("Gate::authorize('view', \$request)", $component);
-        $this->assertStringContainsString("Gate::authorize('submit', \$request)", $component);
-        $this->assertStringContainsString("Gate::authorize('update', \$request)", $component);
-        $this->assertStringContainsString("Gate::authorize('cancel', \$request)", $component);
+        $this->assertStringContainsString("Gate::forUser(\$user)->authorize('view', \$request)", $component);
+        $this->assertStringContainsString("Gate::forUser(\$user)->authorize('submit', \$request)", $component);
+        $this->assertStringContainsString("Gate::forUser(\$user)->authorize('update', \$request)", $component);
+        $this->assertStringContainsString("Gate::forUser(\$user)->authorize('cancel', \$request)", $component);
+        $this->assertStringContainsString('InteractsWithRequestAuthorization', $component);
         $this->assertStringNotContainsString('App\\Models\\User', $component.$view);
     }
 }
