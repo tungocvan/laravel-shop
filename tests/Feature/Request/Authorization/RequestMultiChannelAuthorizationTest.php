@@ -69,11 +69,24 @@ class RequestMultiChannelAuthorizationTest extends TestCase
         $this->assertFalse((new InternalRequestPolicy)->submit($user, $request));
     }
 
-    public function test_policy_fails_closed_without_an_authorization_channel(): void
+    public function test_missing_authorization_channel_preserves_legacy_admin_behavior(): void
     {
         $request = $this->draftRequest(7);
         $user = $this->user(7, [
             'admin' => ['request.instance.submit'],
+            'web' => [],
+        ]);
+
+        app(RequestAuthorizationContext::class)->restore(null);
+
+        $this->assertTrue((new InternalRequestPolicy)->submit($user, $request));
+    }
+
+    public function test_missing_authorization_channel_does_not_fallback_to_web_permissions(): void
+    {
+        $request = $this->draftRequest(7);
+        $user = $this->user(7, [
+            'admin' => [],
             'web' => ['request.instance.submit'],
         ]);
 
