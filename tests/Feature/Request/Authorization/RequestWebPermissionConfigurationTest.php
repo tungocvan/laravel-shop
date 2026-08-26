@@ -21,6 +21,7 @@ class RequestWebPermissionConfigurationTest extends TestCase
         $this->assertContains('request.instance.update-own', $webPermissions);
         $this->assertContains('request.instance.submit', $webPermissions);
         $this->assertContains('request.instance.cancel-own', $webPermissions);
+        $this->assertContains('request.comment.create', $webPermissions);
         $this->assertContains('request.attachment.upload', $webPermissions);
         $this->assertContains('request.attachment.download', $webPermissions);
     }
