@@ -64,8 +64,30 @@
                                                 @if(($field['type'] ?? null) === 'date')
                                                     <label class="flex min-h-8 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.default_today"> Mặc định ngày hôm nay</label>
                                                 @endif
+                                                @if(($field['type'] ?? null) === 'integer')
+                                                    <label class="flex min-h-8 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.grouped_integer"> Phân cách hàng nghìn, không có số lẻ</label>
+                                                @endif
                                             </div>
                                         </div>
+                                        @if(in_array($field['type'] ?? null, ['select', 'multiselect'], true))
+                                            <section class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3" aria-label="Danh sách lựa chọn của {{ $field['label'] ?? $field['key'] }}">
+                                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                                    <div><h4 class="text-sm font-semibold text-indigo-950">Danh sách lựa chọn</h4><p class="text-xs leading-5 text-slate-600">Mã dùng để lưu dữ liệu nên viết thường, không dấu và không đổi sau khi đã phát hành.</p></div>
+                                                    <button type="button" wire:click="addFieldOption({{ $sectionIndex }}, {{ $fieldIndex }})" class="min-h-10 rounded-lg border border-indigo-300 bg-white px-3 text-sm font-medium text-indigo-700">Thêm lựa chọn</button>
+                                                </div>
+                                                <div class="mt-3 space-y-2">
+                                                    @forelse((array) ($field['options'] ?? []) as $optionIndex => $option)
+                                                        <div wire:key="field-option-{{ $sectionIndex }}-{{ $fieldIndex }}-{{ $optionIndex }}" class="grid gap-2 rounded-lg border border-slate-200 bg-white p-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
+                                                            <label class="text-xs font-medium text-slate-600">Mã lựa chọn<input wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.options.{{ $optionIndex }}.key" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm" placeholder="vi_du_chi_phi"></label>
+                                                            <label class="text-xs font-medium text-slate-600">Tên hiển thị<input wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.options.{{ $optionIndex }}.label" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Ví dụ chi phí"></label>
+                                                            <div class="flex items-end gap-1"><button type="button" wire:click="moveFieldOption({{ $sectionIndex }}, {{ $fieldIndex }}, {{ $optionIndex }}, -1)" class="min-h-10 min-w-10 rounded-lg border border-slate-300" aria-label="Đưa lựa chọn lên">↑</button><button type="button" wire:click="moveFieldOption({{ $sectionIndex }}, {{ $fieldIndex }}, {{ $optionIndex }}, 1)" class="min-h-10 min-w-10 rounded-lg border border-slate-300" aria-label="Đưa lựa chọn xuống">↓</button><button type="button" wire:click="removeFieldOption({{ $sectionIndex }}, {{ $fieldIndex }}, {{ $optionIndex }})" wire:confirm="Xóa lựa chọn này? Đề nghị thuộc phiên bản cũ vẫn giữ dữ liệu đã lưu." class="min-h-10 rounded-lg border border-red-200 px-3 text-sm text-red-700">Xóa</button></div>
+                                                        </div>
+                                                    @empty
+                                                        <p class="rounded-lg border border-dashed border-indigo-200 bg-white p-3 text-sm text-slate-600">Chưa có lựa chọn. Hãy thêm ít nhất một lựa chọn trước khi lưu hoặc phát hành.</p>
+                                                    @endforelse
+                                                </div>
+                                            </section>
+                                        @endif
                                         <div class="mt-3 flex flex-wrap gap-2"><button type="button" wire:click="moveField({{ $sectionIndex }}, {{ $fieldIndex }}, -1)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm">Di chuyển lên</button><button type="button" wire:click="moveField({{ $sectionIndex }}, {{ $fieldIndex }}, 1)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm">Di chuyển xuống</button><button type="button" wire:click="removeField({{ $sectionIndex }}, {{ $fieldIndex }})" wire:confirm="Xóa trường này khỏi biểu mẫu?" class="min-h-10 rounded-lg border border-red-200 px-3 text-sm text-red-700">Xóa trường</button></div>
                                     </div>
                                 @endforeach

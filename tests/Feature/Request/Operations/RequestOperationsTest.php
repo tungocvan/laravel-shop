@@ -117,6 +117,7 @@ class RequestOperationsTest extends TestCase
             $this->assertSame('today', $fields[$todayField]['default']);
         }
         $this->assertSame('third', $fields['needed_on']['width']);
+        $this->assertSame('grouped_integer', $fields['advance_amount_vnd']['display_format']);
         $this->assertSame('full', $fields['supporting_documents']['width']);
         $this->assertSame('Phê duyệt đề xuất tạm ứng', $advanceDraft->stages->firstOrFail()->name);
         $this->assertSame(1440, $advanceDraft->stages->firstOrFail()->sla_minutes);
@@ -131,7 +132,7 @@ class RequestOperationsTest extends TestCase
             'needed_on' => '2026-09-01',
             'expense_from' => '2026-09-02',
             'expense_to' => '2026-09-02',
-            'advance_amount_vnd' => '15000000',
+            'advance_amount_vnd' => '15.000.000',
             'budget_status' => 'planned',
             'cost_breakdown' => 'Tiếp khách: 10 người x 1.500.000 VND.',
             'advance_recipient' => 'Nguyễn Văn A',
@@ -140,7 +141,13 @@ class RequestOperationsTest extends TestCase
             'settlement_due_on' => '2026-09-09',
         ];
         $payloads = app(FormPayloadValidator::class);
-        $this->assertSame([], $payloads->validate($advanceDraft->form_schema_json, $validCashProposal, true)['errors']);
+        $validCashResult = $payloads->validate($advanceDraft->form_schema_json, $validCashProposal, true);
+        $this->assertSame([], $validCashResult['errors']);
+        $this->assertSame(15000000, $validCashResult['payload']['advance_amount_vnd']);
+        $this->assertSame(
+            ['invalid_integer'],
+            $payloads->validate($advanceDraft->form_schema_json, array_replace($validCashProposal, ['advance_amount_vnd' => '15.000,50']), true)['errors']['payload.advance_amount_vnd'],
+        );
         Carbon::setTestNow('2026-08-26 05:30:00 UTC');
         $minimalProposal = [
             'proposal_title' => 'Tạm ứng chi phí bán hàng',

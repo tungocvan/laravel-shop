@@ -52,6 +52,11 @@ class RequestResponsiveUiContractTest extends TestCase
         $this->assertStringContainsString('Không bắt buộc', $detail);
         $this->assertStringContainsString('Mặc định ngày hôm nay', $designer);
         $this->assertStringContainsString('Độ rộng hiển thị', $designer);
+        $this->assertStringContainsString('Phân cách hàng nghìn, không có số lẻ', $designer);
+        $this->assertStringContainsString('addFieldOption', $designer);
+        $this->assertStringContainsString('Danh sách lựa chọn', $designer);
+        $this->assertStringContainsString('data-request-grouped-integer', $detail);
+        $this->assertStringContainsString('formatGroupedInteger', file_get_contents(base_path('Modules/Request/resources/js/request-offline.js')));
         $this->assertStringContainsString('type="file" multiple', $attachments);
         $this->assertStringContainsString('storage/app/request/attachments', $dockerfile);
         $this->assertStringContainsString('storage/app/request/attachments', $entrypoint);

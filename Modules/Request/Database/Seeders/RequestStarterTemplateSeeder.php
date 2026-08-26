@@ -170,7 +170,7 @@ class RequestStarterTemplateSeeder extends Seeder
                             ['key' => 'needed_on', 'type' => 'date', 'label' => 'Ngày cần nhận tiền', 'required' => false, 'width' => 'third', 'default' => 'today'],
                             ['key' => 'expense_from', 'type' => 'date', 'label' => 'Dự kiến chi từ ngày', 'required' => false, 'width' => 'third', 'default' => 'today'],
                             ['key' => 'expense_to', 'type' => 'date', 'label' => 'Dự kiến chi đến ngày', 'required' => false, 'width' => 'third', 'default' => 'today'],
-                            ['key' => 'advance_amount_vnd', 'type' => 'integer', 'label' => 'Số tiền đề nghị tạm ứng (VND)', 'required' => false, 'width' => 'half', 'validation' => ['min' => 1, 'max' => 1000000000000]],
+                            ['key' => 'advance_amount_vnd', 'type' => 'integer', 'label' => 'Số tiền đề nghị tạm ứng (VND)', 'required' => false, 'width' => 'half', 'display_format' => 'grouped_integer', 'validation' => ['min' => 1, 'max' => 1000000000000], 'help' => 'Hiển thị phân cách hàng nghìn và lưu dưới dạng số nguyên, không có phần thập phân.'],
                             ['key' => 'budget_status', 'type' => 'select', 'label' => 'Tình trạng ngân sách', 'required' => false, 'width' => 'half', 'options' => [
                                 ['key' => 'planned', 'label' => 'Đã có trong ngân sách / kế hoạch'],
                                 ['key' => 'unplanned', 'label' => 'Ngoài ngân sách / phát sinh'],

@@ -122,7 +122,7 @@ class TypeDesigner extends Component
 
         $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
         $number = count($fields) + 1;
-        $fields[] = ['key' => 'field_'.$number, 'type' => 'text', 'label' => 'Trường '.$number, 'required' => false, 'classification' => 'internal', 'offline_draft' => true, 'default_today' => false, 'width' => 'auto'];
+        $fields[] = ['key' => 'field_'.$number, 'type' => 'text', 'label' => 'Trường '.$number, 'required' => false, 'classification' => 'internal', 'offline_draft' => true, 'default_today' => false, 'grouped_integer' => false, 'width' => 'auto'];
         $this->sections[$section]['fields'] = $fields;
     }
 
@@ -146,6 +146,44 @@ class TypeDesigner extends Component
         $fields = array_values((array) ($this->sections[$section]['fields'] ?? []));
         $this->moveItem($fields, $field, $direction);
         $this->sections[$section]['fields'] = $fields;
+    }
+
+    public function addFieldOption(int $section, int $field): void
+    {
+        if (! isset($this->sections[$section]['fields'][$field])) {
+            return;
+        }
+
+        $options = array_values((array) ($this->sections[$section]['fields'][$field]['options'] ?? []));
+        $number = count($options) + 1;
+        $keys = collect($options)->map(fn (mixed $option): string => (string) (is_array($option) ? ($option['key'] ?? '') : $option))->all();
+        while (in_array('option_'.$number, $keys, true)) {
+            $number++;
+        }
+        $options[] = ['key' => 'option_'.$number, 'label' => 'Lựa chọn '.$number];
+        $this->sections[$section]['fields'][$field]['options'] = $options;
+    }
+
+    public function removeFieldOption(int $section, int $field, int $option): void
+    {
+        if (! isset($this->sections[$section]['fields'][$field]['options'][$option])) {
+            return;
+        }
+
+        $options = array_values((array) $this->sections[$section]['fields'][$field]['options']);
+        array_splice($options, $option, 1);
+        $this->sections[$section]['fields'][$field]['options'] = $options;
+    }
+
+    public function moveFieldOption(int $section, int $field, int $option, int $direction): void
+    {
+        if (! isset($this->sections[$section]['fields'][$field])) {
+            return;
+        }
+
+        $options = array_values((array) ($this->sections[$section]['fields'][$field]['options'] ?? []));
+        $this->moveItem($options, $option, $direction);
+        $this->sections[$section]['fields'][$field]['options'] = $options;
     }
 
     public function addStage(): void
@@ -329,9 +367,17 @@ class TypeDesigner extends Component
                     $field['required'] = $this->booleanValue($field['required'] ?? false);
                     $field['offline_draft'] = $this->booleanValue($field['offline_draft'] ?? false);
                     $field['default_today'] = ($field['type'] ?? null) === 'date' && ($field['default'] ?? null) === 'today';
+                    $field['grouped_integer'] = ($field['type'] ?? null) === 'integer' && ($field['display_format'] ?? null) === 'grouped_integer';
                     $field['width'] = in_array($field['width'] ?? null, ['auto', 'full', 'half', 'third'], true)
                         ? $field['width']
                         : 'auto';
+                    if (in_array($field['type'] ?? null, ['select', 'multiselect'], true)) {
+                        $field['options'] = collect(array_values((array) ($field['options'] ?? [])))
+                            ->map(fn (mixed $option): array => is_array($option)
+                                ? ['key' => (string) ($option['key'] ?? ''), 'label' => (string) ($option['label'] ?? $option['key'] ?? '')]
+                                : ['key' => (string) $option, 'label' => (string) $option])
+                            ->all();
+                    }
 
                     return $field;
                 })->all();
@@ -357,7 +403,23 @@ class TypeDesigner extends Component
                         unset($field['default']);
                     }
 
-                    unset($field['default_today']);
+                    if (($field['type'] ?? null) === 'integer' && ($field['grouped_integer'] ?? false) === true) {
+                        $field['display_format'] = 'grouped_integer';
+                    } else {
+                        unset($field['display_format']);
+                    }
+
+                    if (in_array($field['type'] ?? null, ['select', 'multiselect'], true)) {
+                        $field['options'] = collect(array_values((array) ($field['options'] ?? [])))
+                            ->map(fn (mixed $option): array => [
+                                'key' => trim((string) (is_array($option) ? ($option['key'] ?? '') : $option)),
+                                'label' => trim((string) (is_array($option) ? ($option['label'] ?? $option['key'] ?? '') : $option)),
+                            ])->all();
+                    } else {
+                        unset($field['options']);
+                    }
+
+                    unset($field['default_today'], $field['grouped_integer']);
 
                     return $field;
                 })->all();
@@ -420,7 +482,7 @@ class TypeDesigner extends Component
             'at_least_one_stage_required' => 'Hãy thêm ít nhất một cấp phê duyệt và hoàn thiện cấu hình SLA.',
             'stage_limit_exceeded' => 'Số cấp phê duyệt vượt quá giới hạn cho phép.',
             'invalid_json', 'array_required' => $this->validationSection($field).' phải là JSON hợp lệ.',
-            'unsupported_schema_version', 'invalid_sections', 'invalid_key', 'invalid_or_duplicate_key', 'unsupported_field_type', 'invalid_required_flag', 'invalid_field_width', 'invalid_field_default', 'field_limit_exceeded' => 'Biểu mẫu còn trường hoặc cấu trúc chưa hợp lệ.',
+            'unsupported_schema_version', 'invalid_sections', 'invalid_key', 'invalid_or_duplicate_key', 'unsupported_field_type', 'invalid_required_flag', 'invalid_field_width', 'invalid_field_default', 'invalid_field_display_format', 'invalid_field_options', 'invalid_or_duplicate_option_key', 'invalid_option_label', 'field_limit_exceeded' => 'Biểu mẫu còn trường hoặc cấu trúc chưa hợp lệ.',
             'actor_unavailable' => 'Một hoặc nhiều người được phép tạo đề nghị không còn hoạt động.',
             'audience_limit_exceeded' => 'Mỗi loại đề nghị chỉ được phân trực tiếp cho tối đa 100 người dùng.',
             'stale_version' => 'Bản nháp đã thay đổi trên máy chủ. Hãy tải lại trang trước khi tiếp tục.',

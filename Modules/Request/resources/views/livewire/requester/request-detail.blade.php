@@ -91,6 +91,8 @@
                                     <div id="request-field-{{ $key }}" class="mt-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-600">{{ __('Request::request.server_computed') }}</div>
                                 @elseif($type === 'attachment')
                                     <div id="request-field-{{ $key }}" class="mt-2"><livewire:request.requester.attachment-manager :request-public-id="$request->public_id" :request-version="$request->lock_version" :field-key="$key" :key="'attachment-'.$key" /></div>
+                                @elseif($type === 'integer' && ($field['display_format'] ?? null) === 'grouped_integer')
+                                    <input id="request-field-{{ $key }}" wire:model.change="values.{{ $key }}" type="text" inputmode="numeric" autocomplete="off" data-request-grouped-integer @if($required) aria-required="true" @endif @disabled(!in_array($status, ['draft', 'returned'], true)) class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm tabular-nums disabled:bg-gray-50" placeholder="0">
                                 @else
                                     <input id="request-field-{{ $key }}" wire:model="values.{{ $key }}" type="{{ match($type) {'integer' => 'number', 'date' => 'date', 'datetime' => 'datetime-local', default => 'text'} }}" @if($required) aria-required="true" @endif @if($type === 'decimal') inputmode="decimal" @endif @disabled(!in_array($status, ['draft', 'returned'], true)) class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm disabled:bg-gray-50">
                                 @endif
