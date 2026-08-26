@@ -47,10 +47,12 @@ class RequestE2EDemoSeeder extends Seeder
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $demoType = DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->first();
+        $configureDemoDefinition = $demoType === null || $this->isPristineDemoDefinition($demoType);
         $this->call(RequestDemoSeeder::class);
 
         $typeId = DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->value('id');
-        if ($typeId) {
+        if ($typeId && $configureDemoDefinition) {
             DB::table('request_types')->where('id', $typeId)->update(['available_from' => $now, 'available_until' => $now->copy()->addDays(90), 'updated_at' => $now]);
             $versionIds = DB::table('request_type_versions')->where('request_type_id', $typeId)->pluck('id');
             foreach ($versionIds as $versionId) {
@@ -77,6 +79,26 @@ class RequestE2EDemoSeeder extends Seeder
         $this->command?->line('Kiểm toán: hamadaqc01@gmail.com / '.self::PASSWORD);
         $this->command?->line('SLA DEMO: 24 giờ; cảnh báo trước 4 giờ; grace 12 giờ; hết grace sẽ tạm dừng.');
         $this->command?->line('Hiệu lực DEMO: 90 ngày kể từ lần seed local gần nhất; timestamp persistence dùng UTC.');
+    }
+
+    private function isPristineDemoDefinition(object $type): bool
+    {
+        if ((int) $type->lock_version !== 1) {
+            return false;
+        }
+
+        $versions = DB::table('request_type_versions')
+            ->where('request_type_id', $type->id)
+            ->orderBy('version_number')
+            ->get(['id', 'version_number', 'status']);
+
+        return $versions->count() === 2
+            && (int) $versions[0]->id === (int) $type->current_published_version_id
+            && (int) $versions[0]->version_number === 1
+            && $versions[0]->status === 'published'
+            && (int) $versions[1]->id === (int) $type->active_draft_version_id
+            && (int) $versions[1]->version_number === 2
+            && $versions[1]->status === 'draft';
     }
 
     private function upsertUser(string $email, string $name, mixed $now): User

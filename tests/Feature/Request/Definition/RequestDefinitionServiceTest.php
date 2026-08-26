@@ -90,6 +90,27 @@ class RequestDefinitionServiceTest extends RequestDefinitionTestCase
         $this->assertDatabaseHas('request_outbox_messages', ['event_key' => 'request.type.retired.v1']);
     }
 
+    public function test_publish_repairs_multiple_published_versions_left_by_external_data_mutation(): void
+    {
+        [$actorId, $type, $first] = $this->publishedType();
+        app(CloneTypeVersion::class)->handle($type->refresh(), $first, $actorId);
+        $second = app(PublishTypeVersion::class)->handle($type->refresh(), $actorId, $type->refresh()->lock_version);
+        $thirdDraft = app(CloneTypeVersion::class)->handle($type->refresh(), $second, $actorId);
+
+        DB::table('request_type_versions')->where('id', $first->id)->update(['status' => RequestTypeVersionStatus::Published->value]);
+        DB::table('request_types')->where('id', $type->id)->update(['current_published_version_id' => $first->id]);
+
+        $published = app(PublishTypeVersion::class)->handle($type->refresh(), $actorId, $type->refresh()->lock_version);
+
+        $this->assertSame($thirdDraft->id, $published->id);
+        $this->assertSame($published->id, $type->refresh()->current_published_version_id);
+        $this->assertNull($type->active_draft_version_id);
+        $this->assertSame(1, $type->versions()->where('status', RequestTypeVersionStatus::Published->value)->count());
+        $this->assertDatabaseHas('request_type_versions', ['id' => $first->id, 'status' => RequestTypeVersionStatus::Superseded->value]);
+        $this->assertDatabaseHas('request_type_versions', ['id' => $second->id, 'status' => RequestTypeVersionStatus::Superseded->value]);
+        $this->assertDatabaseHas('request_type_versions', ['id' => $thirdDraft->id, 'status' => RequestTypeVersionStatus::Published->value]);
+    }
+
     public function test_save_draft_rejects_unsafe_sla_combinations_at_the_service_boundary(): void
     {
         $actorId = $this->user('SLA publisher');

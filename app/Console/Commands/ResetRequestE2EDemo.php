@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
+use Database\Seeders\RequestE2EDemoSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Modules\Request\Database\Seeders\RequestE2EDemoSeeder;
 
 class ResetRequestE2EDemo extends Command
 {

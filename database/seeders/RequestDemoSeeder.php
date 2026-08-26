@@ -10,6 +10,12 @@ class RequestDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        if (DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->exists()) {
+            $this->command?->info('Dữ liệu DEMO Request đã tồn tại; giữ nguyên cấu hình và lịch sử phiên bản hiện tại.');
+
+            return;
+        }
+
         $actorId = (int) (DB::table('users')->where('email', 'tungocvan@gmail.com')->value('id')
             ?? DB::table('users')->orderBy('id')->value('id')
             ?? 1);
@@ -60,36 +66,21 @@ class RequestDemoSeeder extends Seeder
                 ]);
             }
 
-            $type = DB::table('request_types')->where('code', 'REQUEST_UI_DEMO')->first();
-            if (! $type) {
-                $typeId = DB::table('request_types')->insertGetId([
-                    'public_id' => (string) Str::ulid(),
-                    'request_group_id' => $groupId,
-                    'code' => 'REQUEST_UI_DEMO',
-                    'name' => 'DEMO · Đề nghị cấp thiết bị',
-                    'summary' => 'Biểu mẫu mẫu để kiểm thử giao diện thích ứng, chế độ ngoại tuyến và dữ liệu nhạy cảm.',
-                    'status' => 'published',
-                    'sort_order' => 1,
-                    'lock_version' => 1,
-                    'created_by' => $actorId,
-                    'updated_by' => $actorId,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-                $type = DB::table('request_types')->where('id', $typeId)->first();
-            } else {
-                DB::table('request_types')->where('id', $type->id)->update([
-                    'request_group_id' => $groupId,
-                    'name' => 'DEMO · Đề nghị cấp thiết bị',
-                    'summary' => 'Biểu mẫu mẫu để kiểm thử giao diện thích ứng, chế độ ngoại tuyến và dữ liệu nhạy cảm.',
-                    'status' => 'published',
-                    'available_from' => null,
-                    'available_until' => null,
-                    'updated_by' => $actorId,
-                    'updated_at' => $now,
-                ]);
-                $type = DB::table('request_types')->where('id', $type->id)->first();
-            }
+            $typeId = DB::table('request_types')->insertGetId([
+                'public_id' => (string) Str::ulid(),
+                'request_group_id' => $groupId,
+                'code' => 'REQUEST_UI_DEMO',
+                'name' => 'DEMO · Đề nghị cấp thiết bị',
+                'summary' => 'Biểu mẫu mẫu để kiểm thử giao diện thích ứng, chế độ ngoại tuyến và dữ liệu nhạy cảm.',
+                'status' => 'published',
+                'sort_order' => 1,
+                'lock_version' => 1,
+                'created_by' => $actorId,
+                'updated_by' => $actorId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $type = DB::table('request_types')->where('id', $typeId)->first();
 
             $schema = [
                 'schema_version' => 1,
@@ -104,11 +95,6 @@ class RequestDemoSeeder extends Seeder
                     ],
                 ]],
             ];
-
-            $publishedId = DB::table('request_type_versions')
-                ->where('request_type_id', $type->id)
-                ->where('version_number', 1)
-                ->value('id');
 
             $publishedValues = [
                 'status' => 'published',
@@ -125,52 +111,32 @@ class RequestDemoSeeder extends Seeder
                 'updated_at' => $now,
             ];
 
-            if (! $publishedId) {
-                $publishedId = DB::table('request_type_versions')->insertGetId($publishedValues + [
-                    'public_id' => (string) Str::ulid(),
-                    'request_type_id' => $type->id,
-                    'version_number' => 1,
-                    'created_by' => $actorId,
-                    'created_at' => $now,
-                ]);
-            } else {
-                DB::table('request_type_versions')->where('id', $publishedId)->update($publishedValues);
-            }
+            $publishedId = DB::table('request_type_versions')->insertGetId($publishedValues + [
+                'public_id' => (string) Str::ulid(),
+                'request_type_id' => $type->id,
+                'version_number' => 1,
+                'created_by' => $actorId,
+                'created_at' => $now,
+            ]);
 
-            $draftId = DB::table('request_type_versions')
-                ->where('request_type_id', $type->id)
-                ->where('status', 'draft')
-                ->value('id');
-
-            if (! $draftId) {
-                $draftId = DB::table('request_type_versions')->insertGetId([
-                    'public_id' => (string) Str::ulid(),
-                    'request_type_id' => $type->id,
-                    'version_number' => 2,
-                    'status' => 'draft',
-                    'title' => 'DEMO · Đề nghị cấp thiết bị v2',
-                    'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên máy tính bảng.',
-                    'requester_guidance' => 'Thử thêm, xóa, di chuyển trường hoặc cấp duyệt rồi lưu lại.',
-                    'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
-                    'policy_json' => json_encode([], JSON_THROW_ON_ERROR),
-                    'presentation_json' => json_encode([], JSON_THROW_ON_ERROR),
-                    'schema_version' => 1,
-                    'created_from_version_id' => $publishedId,
-                    'created_by' => $actorId,
-                    'updated_by' => $actorId,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            } else {
-                DB::table('request_type_versions')->where('id', $draftId)->update([
-                    'title' => 'DEMO · Đề nghị cấp thiết bị v2',
-                    'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên máy tính bảng.',
-                    'requester_guidance' => 'Thử thêm, xóa, di chuyển trường hoặc cấp duyệt rồi lưu lại.',
-                    'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
-                    'updated_by' => $actorId,
-                    'updated_at' => $now,
-                ]);
-            }
+            $draftId = DB::table('request_type_versions')->insertGetId([
+                'public_id' => (string) Str::ulid(),
+                'request_type_id' => $type->id,
+                'version_number' => 2,
+                'status' => 'draft',
+                'title' => 'DEMO · Đề nghị cấp thiết bị v2',
+                'description' => 'Bản nháp dùng để kiểm thử trình thiết kế trên máy tính bảng.',
+                'requester_guidance' => 'Thử thêm, xóa, di chuyển trường hoặc cấp duyệt rồi lưu lại.',
+                'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
+                'policy_json' => json_encode([], JSON_THROW_ON_ERROR),
+                'presentation_json' => json_encode([], JSON_THROW_ON_ERROR),
+                'schema_version' => 1,
+                'created_from_version_id' => $publishedId,
+                'created_by' => $actorId,
+                'updated_by' => $actorId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
 
             DB::table('request_types')->where('id', $type->id)->update([
                 'status' => 'published',
@@ -195,8 +161,8 @@ class RequestDemoSeeder extends Seeder
                     'name' => 'Quản lý phê duyệt',
                     'position' => 1,
                     'mode' => 'single',
-                    'resolver_key' => 'fixed_user',
-                    'resolver_config_json' => json_encode(['user_id' => $approverId], JSON_THROW_ON_ERROR),
+                    'resolver_key' => 'fixed_users',
+                    'resolver_config_json' => json_encode(['user_ids' => [$approverId]], JSON_THROW_ON_ERROR),
                     'instructions' => 'Cấp duyệt DEMO để kiểm thử bàn phím và thao tác quyết định.',
                     'allow_reassignment' => true,
                     'updated_at' => $now,
