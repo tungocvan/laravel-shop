@@ -32,5 +32,12 @@ if ((bool) config('modules.registry.Request.enabled', false)) {
         Route::get('/mine/{requestPublicId}/attachments/{attachmentPublicId}', RequestAttachmentController::class)
             ->middleware(['client.feature:request,mine', 'throttle:request-download'])
             ->name('attachments.download');
+
+        Route::get('/inbox', [RequestApplicationController::class, 'inbox'])
+            ->middleware('client.feature:request,inbox')
+            ->name('inbox');
+        Route::get('/processed', [RequestApplicationController::class, 'processed'])
+            ->middleware('client.feature:request,processed')
+            ->name('processed');
     });
 }
