@@ -83,7 +83,7 @@
                                                             <div class="flex items-end gap-1"><button type="button" wire:click="moveFieldOption({{ $sectionIndex }}, {{ $fieldIndex }}, {{ $optionIndex }}, -1)" class="min-h-10 min-w-10 rounded-lg border border-slate-300" aria-label="Đưa lựa chọn lên">↑</button><button type="button" wire:click="moveFieldOption({{ $sectionIndex }}, {{ $fieldIndex }}, {{ $optionIndex }}, 1)" class="min-h-10 min-w-10 rounded-lg border border-slate-300" aria-label="Đưa lựa chọn xuống">↓</button><button type="button" wire:click="removeFieldOption({{ $sectionIndex }}, {{ $fieldIndex }}, {{ $optionIndex }})" wire:confirm="Xóa lựa chọn này? Đề nghị thuộc phiên bản cũ vẫn giữ dữ liệu đã lưu." class="min-h-10 rounded-lg border border-red-200 px-3 text-sm text-red-700">Xóa</button></div>
                                                         </div>
                                                     @empty
-                                                        <p class="rounded-lg border border-dashed border-indigo-200 bg-white p-3 text-sm text-slate-600">Chưa có lựa chọn. Hãy thêm ít nhất một lựa chọn trước khi lưu hoặc phát hành.</p>
+                                                        <p class="rounded-lg border border-dashed border-indigo-200 bg-white p-3 text-sm text-slate-600">Chưa có lựa chọn. Bản nháp vẫn có thể lưu, nhưng phải thêm ít nhất một lựa chọn trước khi phát hành.</p>
                                                     @endforelse
                                                 </div>
                                             </section>

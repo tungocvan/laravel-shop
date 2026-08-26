@@ -116,7 +116,7 @@ class RequestTypeDesignerSlaTest extends RequestDefinitionTestCase
 
         $component
             ->set('sections.0.fields.1.options.1.key', 'market_research')
-            ->call('save')
+            ->call('publish')
             ->assertSet('showValidationModal', true)
             ->assertSee('Biểu mẫu còn trường hoặc cấu trúc chưa hợp lệ.');
     }
