@@ -1,5 +1,5 @@
 <div class="mx-auto max-w-3xl space-y-6">
-    <a href="{{ route('request.catalog') }}" class="text-sm font-semibold text-indigo-700">← {{ __('Request::request.catalog.title') }}</a>
+    <a href="{{ route($catalogRouteName) }}" class="text-sm font-semibold text-indigo-700">← {{ __('Request::request.catalog.title') }}</a>
     <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
         <div class="text-sm font-semibold text-indigo-600">{{ $type->group->name }}</div>
         <h1 class="mt-2 text-2xl font-bold text-gray-900">{{ $type->currentPublishedVersion->title }}</h1>
