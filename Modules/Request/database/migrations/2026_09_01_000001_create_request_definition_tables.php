@@ -97,8 +97,8 @@ return new class extends Migration
             $table->text('instructions')->nullable();
             $table->boolean('allow_reassignment')->default(false);
             $table->timestamps();
-            $table->unique(['request_type_version_id', 'stage_key']);
-            $table->unique(['request_type_version_id', 'position']);
+            $table->unique(['request_type_version_id', 'stage_key'], 'request_stage_version_key_unique');
+            $table->unique(['request_type_version_id', 'position'], 'request_stage_version_position_unique');
         });
     }
 
