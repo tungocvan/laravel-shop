@@ -45,9 +45,27 @@ php artisan module:migration-recover Request --apply
 
 Không tự insert bảng `migrations` bằng SQL/Tinker.
 
-## 3. Enablement và permission sync
+## 3. Enablement, cache refresh và permission sync
 
-Sau khi migrations sẵn sàng, bật Request bằng UI module hoặc runtime module-state mechanism hiện hành. Sau đó đồng bộ permissions bằng command hiện hành của hệ thống:
+Sau khi migrations sẵn sàng, bật Request bằng UI module hoặc runtime module-state mechanism hiện hành. Vì production có thể đang dùng `config:cache`, `route:cache` hoặc `artisan optimize`, thay đổi runtime Module state phải được theo sau bởi cache refresh để process Laravel mới boot lại với Request đã được discover/register.
+
+Thứ tự production chuẩn:
+
+```text
+Request schema READY
+→ bật Request qua runtime Module state
+→ php artisan optimize:clear
+→ php artisan optimize
+→ đồng bộ permissions
+→ readiness check
+→ nếu REQUEST_ENV=true và cần demo data thì chạy db:seed --force
+→ verify queue-request + scheduler
+→ smoke test
+```
+
+Không chạy demo seeder trước khi Request đã được boot lại sau cache refresh, vì `request.*` config và module provider/routes/commands chỉ tồn tại khi Module được register đúng trạng thái runtime.
+
+Sau cache refresh, đồng bộ permissions bằng command hiện hành của hệ thống:
 
 ```bash
 php artisan module:permissions-sync
@@ -55,6 +73,15 @@ php artisan request:release-readiness
 ```
 
 Nếu command permission sync không tồn tại ở một deployment cũ, dùng deployment flow hiện hành có `RolesAndPermissionsSeeder`; không tạo permission registry riêng cho Request.
+
+Khi tắt Request trên production, cũng phải refresh cache theo cùng nguyên tắc để process mới không tiếp tục dùng config/routes/provider snapshot khi Request còn enabled:
+
+```text
+tắt Request qua runtime Module state
+→ php artisan optimize:clear
+→ php artisan optimize
+→ verify Request routes/app không còn operational
+```
 
 ## 4. Local development — PM2
 
@@ -119,9 +146,17 @@ Các role liên quan:
 request-outbox,request-notifications,request-exports
 ```
 
-Các biến tuning production có trong `.env.docker.example`:
+Các biến production có trong `.env.docker.example`:
 
 ```text
+REQUEST_ENV
+REQUEST_STARTER_TEMPLATES_ENABLED
+REQUEST_STARTER_TEMPLATE_ACTOR_ID
+REQUEST_STARTER_TEMPLATE_APPROVER_ID
+REQUEST_FILES_DISK
+REQUEST_FILES_LOCAL_OWNER
+REQUEST_FILES_LOCAL_GROUP
+REQUEST_FILE_SCAN_DRIVER
 REQUEST_QUEUE_SLEEP
 REQUEST_QUEUE_TRIES
 REQUEST_QUEUE_TIMEOUT
@@ -130,11 +165,59 @@ REQUEST_QUEUE_MEMORY_LIMIT
 REQUEST_QUEUE_CPU_LIMIT
 ```
 
+`.env.docker.example` là template. Giá trị production được cập nhật vào `.env` trên Docker host; Compose mount file này vào các Laravel container. `.env` thật không được copy vào image layer.
+
 Không đưa các queue Request vào `QUEUE_NAMES` để thay worker riêng; worker chung và worker Request có lifecycle/resource riêng.
+
+### 5.1 Runtime state và private storage permissions
+
+Named volume `app_storage` phải giữ persistent `storage/` qua recreate container. Hai vùng private của Request/runtime state phải thuộc `www-data:www-data` và writable bởi application:
+
+```text
+storage/app/system
+storage/app/request
+storage/app/request/attachments
+```
+
+Docker image/entrypoint chuẩn hóa các directory private này về mode `2770`; các file runtime state hiện có dưới `storage/app/system` được chuẩn hóa `0660` khi container khởi động với root entrypoint. Không dùng `chmod 777`.
+
+Không đổi toàn bộ `storage/app` thành `2770`, vì `storage/app/public` còn phục vụ contract public storage chung của hệ thống.
+
+Sau recreate/deploy phải kiểm tra quyền ghi của `www-data` trước khi bật/tắt Module nếu production trước đó từng tạo runtime state bằng owner khác.
+
+### 5.2 Request demo seeding trên production
+
+Không thay `APP_ENV=production` chỉ để chạy dữ liệu demo Request.
+
+`REQUEST_ENV` là gate riêng của Module Request:
+
+```text
+REQUEST_ENV=false  -> DatabaseSeeder không gọi RequestDemoSeeder
+REQUEST_ENV=true   -> DatabaseSeeder gọi RequestDemoSeeder
+```
+
+`RequestDemoSeeder` chỉ aggregate demo/starter seeders thuộc Module Request; nó không mở khóa demo seeder của Module khác. Hiện tại aggregator gọi `RequestStarterTemplateSeeder`.
+
+Khi `REQUEST_ENV=true`, starter templates được bật cho demo flow. Production vẫn phải cấu hình hai user hợp lệ và khác nhau:
+
+```text
+REQUEST_STARTER_TEMPLATE_ACTOR_ID
+REQUEST_STARTER_TEMPLATE_APPROVER_ID
+```
+
+Sau khi Request đã được enable, cache đã refresh và schema/permissions đã READY, có thể chủ đích chạy:
+
+```bash
+php artisan db:seed --force
+```
+
+Không tự thêm `db:seed --force` vào Docker entrypoint hoặc `deploy.sh`: demo data production phải là thao tác có chủ đích. Sau khi hoàn tất test demo production, đặt `REQUEST_ENV=false`, chạy lại `php artisan optimize:clear` rồi `php artisan optimize`, và xác nhận demo seeder không còn được gọi bởi `DatabaseSeeder`.
 
 ## 6. Deploy production sau khi dự án hoàn thiện
 
 Dùng `deploy.sh` gốc. Script hiện hành chịu trách nhiệm validate Compose, backup DB trước deploy, build images, maintenance mode, migrations, optimize, permission sync nếu command tồn tại và health check.
+
+Nếu Request đang disabled trong lúc generic deploy chạy migrations/optimize, không coi generic deploy là bước enablement đầy đủ cho Request. Enablement Request phải đi qua procedure ở mục 3 để runtime state và cache snapshot đồng bộ với nhau.
 
 Sau deploy, xác nhận:
 

@@ -1,29 +1,38 @@
 # Request Module — Collaboration Handoff
 
-- Last updated: 2026-08-26
+- Last updated: 2026-08-27
 - Repository: `tungocvan/laravel-shop`
 - Base branch: `main`
 - Finalized checkpoint: Request ClientPortal MR-3 through MR-5
 - Documentation closeout PR: `#44 docs: close Request MR-5 handoff and add PR gates`
 - Documentation closeout merge commit: `66b6f7ddb1fdfae55b6535479d9d81d77574b156`
-- Main checkpoint verified: `66b6f7ddb1fdfae55b6535479d9d81d77574b156`
-- MR-5 source checkpoint: `2d361411dc05ebd791ae3e4bccfc7c846b54bc9c`
+- Main checkpoint before production-readiness preparation: `d89333d20fcf3666cf84acb86743810e3b8dd9f8`
+- Active preparation branch: `chore/request-production-readiness`
 
 ## Checkpoint status
 
 - MR-5 implementation and merge: **COMPLETED**
 - Post-merge local acceptance on `main`: **PASS**
 - Documentation handoff closeout through PR `#44`: **COMPLETED**
-- Post-merge handoff verification on `main`: **PASS**
+- Request production-readiness preparation: **IMPLEMENTED ON FEATURE BRANCH / PR PENDING**
 - Request production enablement: **NOT AUTHORIZED**
-- Next MR/phase: **NOT DETERMINED**
-- MR-6: **NOT DEFINED** by current source or documentation
+- Production mutation/demo seeding: **NOT EXECUTED**
+- Next application MR/phase: **NOT DETERMINED**
 
 ## Current objective
 
-The Request ClientPortal MR-3 through MR-5 checkpoint is closed for collaboration handoff. This file records the durable state verified on `main` after documentation closeout PR `#44`; it is not an active delivery plan. No Request implementation, production activation or next MR/phase is authorized by this handoff.
+The currently authorized work is limited to preparing Request for a later, separately approved Docker production enablement. The preparation branch does not enable Request and does not mutate production.
 
-## Integrated checkpoint
+The approved preparation scope is:
+
+- keep the existing root `Dockerfile` and `compose.yaml` architecture;
+- add Request production variables to `.env.docker.example`;
+- prevent the real `.env` from being copied into image layers while continuing to mount the host `.env` at runtime;
+- normalize private Request/runtime-state storage ownership and permissions under Docker;
+- allow Request-only demo seeding on `APP_ENV=production` through an explicit `REQUEST_ENV=true` gate;
+- document runtime cache refresh, permission, worker/scheduler, smoke and rollback expectations.
+
+## Integrated checkpoint through MR-5
 
 | Delivery | Pull request | Result | Merge commit |
 |---|---|---|---|
@@ -31,138 +40,106 @@ The Request ClientPortal MR-3 through MR-5 checkpoint is closed for collaboratio
 | MR-4 — Web Guard role and permission administration | `#42` | Merged into `main` | `fd3f2a3bc87875fb3b05b1cbbc5a2abd0d55edd5` |
 | MR-5 — ClientPortal Request approver PWA | `#43` | Merged into `main` | `815aae1065cc58744be15abf5817446175fad944` |
 
-PR `#43` head tree was merged without source-tree drift: the MR-5 head checkpoint is `2d361411dc05ebd791ae3e4bccfc7c846b54bc9c`, and `main` after merge is `815aae1065cc58744be15abf5817446175fad944`.
+## Production-readiness preparation implemented
 
-## Delivered through MR-5
+### Docker/env contract
 
-### ClientPortal requester delivery
+- Request continues to use the root `Dockerfile` and `compose.yaml`; no Request-specific image/compose stack is introduced.
+- `.env.docker.example` now documents `REQUEST_ENV`, starter-template actor/approver IDs, private file storage settings and Request worker tuning.
+- `.env` is excluded by `.dockerignore`; production values are still prepared from `.env.docker.example` into the host `.env` and mounted by Compose at runtime.
 
-- Request is exposed as a ClientPortal application only while its source Module is enabled.
-- Requester routes use guard `web`, ClientPortal application/feature permissions and `UseRequestAuthorizationGuard:web`.
-- Catalog, draft creation, own-request list, detail, comments, attachments, submit, resubmit and cancellation reuse the existing Request domain services and policies.
-- The Admin Request requester flow remains on the existing Admin routes and views.
+### Private storage/runtime Module state
 
-### Web Guard administration
-
-- Client application permissions and Request operational permissions are managed for guard `web`.
-- Requester and approver permission profiles are available through `ApplicationPermissionService`.
-- Admin role/user management preserves the guard boundary and does not replace or synchronize away guard `admin` assignments.
-- No separate ClientPortal Request permission seeder was introduced.
-
-### ClientPortal approver delivery
-
-- Approver Inbox, processed history and detail routes are available through the Request ClientPortal adapter.
-- Approve, return and reject decisions reuse `DecideRequestTask`; ClientPortal does not own a second approval workflow.
-- The decision surface is channel-aware and uses the active `web` actor.
-- Approver visibility remains limited by participant/assignee policy, actionable task state and the self-approval prohibition.
-- ClientPortal status/action text is Vietnamese.
-- The PWA detail layout is responsive and includes a mobile sticky decision surface.
-- Request discussion/comments are shared between requester and approver through the existing Request collaboration domain.
-
-## Architecture and safety decisions
-
-- `ClientPortal` owns presentation, routes and application/feature access for the Client/PWA channel.
-- `Request` owns workflow, queries, policies, application services, audit, comments and attachments.
-- ClientPortal may consume Request services, but Request does not depend on ClientPortal.
-- Guard `admin` and guard `web` permissions remain isolated.
-- A ClientPortal feature permission only opens a UI surface; it does not replace the Request operational permission required by policy.
-- Request decisions continue to enforce assignee, participant, task-state, optimistic-lock and self-approval invariants.
-- Private attachment storage and authorization boundaries remain owned by Request.
-
-## Verification evidence
-
-### MR-5 evidence recorded before merge
-
-PR `#43` recorded PASS for:
-
-```bash
-php artisan test tests/Feature/ClientApps/RequestClientApplicationTest.php
-php artisan test tests/Feature/Request/Collaboration/RequestCollaborationTest.php
-php artisan test tests/Feature/Request
-```
-
-The recorded manual UI smoke covered Inbox, Detail, decision actions, Vietnamese runtime text, mobile/responsive behavior and shared discussion/comments.
-
-The repository has no `.github/workflows` directory at this checkpoint. Therefore this evidence is local/manual acceptance recorded on the PR; it must not be described as GitHub Actions CI.
-
-### Post-merge acceptance on local `main`
-
-The repository owner synchronized local `main` to `815aae10` and confirmed:
+The Docker image/entrypoint prepares and normalizes:
 
 ```text
-Focused ClientPortal + collaboration:
-20 tests passed (136 assertions)
+storage/app/system
+storage/app/request
+storage/app/request/attachments
+```
 
+These private directories use `www-data:www-data` and mode `2770`; existing runtime-state files directly under `storage/app/system` are normalized to `0660` at container startup when the entrypoint runs as root. The preparation intentionally does not chmod all of `storage/app` to `2770`, preserving the shared `storage/app/public` contract.
+
+### Request demo seeding gate
+
+Production does not need to change `APP_ENV` to seed Request demo data.
+
+```text
+REQUEST_ENV=false -> DatabaseSeeder does not call RequestDemoSeeder
+REQUEST_ENV=true  -> DatabaseSeeder calls RequestDemoSeeder
+```
+
+`RequestDemoSeeder` is scoped to Request and currently aggregates `RequestStarterTemplateSeeder`. It does not unlock demo seeders belonging to other Modules. Production demo seeding remains an explicit operation; it is not added to Docker entrypoint or `deploy.sh`.
+
+When starter/demo templates are required, valid and distinct values are still required for:
+
+```text
+REQUEST_STARTER_TEMPLATE_ACTOR_ID
+REQUEST_STARTER_TEMPLATE_APPROVER_ID
+```
+
+### Runtime cache boundary
+
+Production uses Laravel optimize/config/route caches. After changing runtime Module state, the enablement procedure must rebuild application caches so the new Module set is reflected consistently. The runbook records an explicit `optimize:clear` then `optimize` refresh after runtime enable/disable and before readiness/demo-seed verification.
+
+## Verification evidence for preparation branch
+
+Local owner acceptance on `chore/request-production-readiness`:
+
+```text
 Request regression:
-140 tests passed (5900 assertions)
+142 tests passed (5922 assertions)
 
 git status --short:
 (empty)
 ```
 
-Post-merge acceptance result: **PASS**.
+The regression includes the new Request demo-seeder gate tests and existing Request operations coverage.
 
-### Documentation closeout verification
+GitHub comparison before this handoff update showed the branch ahead of `main` with no behind commits. The preparation changes were limited to Docker/env/storage readiness, Request demo-seeder/config integration, tests and Request operations documentation.
 
-- PR `#44` merged on 2026-08-26.
-- Merge commit: `66b6f7ddb1fdfae55b6535479d9d81d77574b156`.
-- GitHub comparison confirmed `main` is identical to the merge commit.
-- The checkpoint comparison from `815aae10` to `66b6f7dd` changed only `docs/GITHUB_COLLABORATION_WORKFLOW.md` and this handoff.
-- Local `main` was fast-forwarded to `66b6f7dd`; `git status --short` remained empty.
-- GitHub reported no status checks for the merge commit; this is not GitHub Actions CI evidence.
+This is local/manual acceptance evidence; it must not be represented as GitHub Actions CI.
 
-Documentation closeout verification result: **PASS**.
+## Architecture and safety decisions retained
 
-## Remaining work classification
-
-| Category | Status | Remaining work |
-|---|---|---|
-| Post-merge acceptance | **PASS** | No application regression remains from MR-5 acceptance. |
-| Documentation closeout | **COMPLETED** | PR `#44` is merged and `main` is verified. Only optional branch cleanup remains, subject to explicit authorization. |
-| Production enablement | **NOT AUTHORIZED** | Perform a separately approved deployment/readiness process before enabling Request. |
-| Next MR/phase | **NOT DETERMINED** | Current source and docs do not define MR-6. Do not infer one from deferred work or documentation drift. |
+- `ClientPortal` owns presentation, routes and application/feature access for the Client/PWA channel.
+- `Request` owns workflow, queries, policies, application services, audit, comments and attachments.
+- Guard `admin` and guard `web` permissions remain isolated.
+- Private attachment storage and authorization boundaries remain owned by Request.
+- Request remains `default_enabled=false`; preparation does not change `Modules/Request/config/module.php` to enable it.
+- Runtime Module state remains the canonical enable/disable mechanism.
+- Do not use `chmod 777` for Request/runtime-state storage.
+- Do not automatically run production demo seeders during container startup/deploy.
 
 ## Production enablement boundary
 
-`Modules/Request/config/module.php` currently declares:
+Production enablement remains **NOT AUTHORIZED** by this handoff or by the preparation PR.
 
-```php
-'enabled' => false,
-'default_enabled' => false,
-```
+A separately approved production operation must verify and order at least:
 
-Merging MR-3, MR-4, MR-5 or this documentation closeout does not enable Request in any environment.
+1. database backup and migration/schema readiness;
+2. runtime Module enable through the canonical Module state mechanism;
+3. Laravel cache refresh after runtime state change;
+4. Role permission synchronization and guard `web` requester/approver assignments;
+5. private attachment/runtime-state storage ownership and persistence;
+6. `queue-request`, Redis and scheduler health;
+7. optional Request demo seeding only when `REQUEST_ENV=true` and valid actor/approver IDs are configured;
+8. Admin, requester, approver and async smoke tests;
+9. runtime-disable/code/data rollback path;
+10. post-operation Git cleanliness and evidence capture.
 
-A separately approved production enablement must verify at least:
+No production enable, migration, seed or runtime-state mutation has been executed as part of the preparation branch.
 
-- runtime Module state through the canonical Module state repository/admin mechanism
-- dependency readiness and migrations
-- Role permission synchronization and guard `web` requester/approver assignments
-- private attachment storage, persistence and ownership
-- Request queues/workers, scheduler and operational readiness
-- production smoke, rollback path and post-operation Git cleanliness
+## Known remaining readiness issue
 
-Permission changes use the existing Role lifecycle:
+The production migration ordering still requires an explicit preflight/enablement procedure. Request migrations are registered through the enabled Module lifecycle, while Request is disabled by default. The preparation PR does not silently solve this by enabling Request or by changing production state. Migration/schema readiness must be verified before the separately approved enablement operation.
 
-```bash
-php artisan db:seed --class='Modules\Role\database\seeders\RolesAndPermissionsSeeder'
-```
-
-Do not create a separate ClientPortal Request permission seeder.
-
-## Known documentation/operations follow-up
-
-The following items are not automatically MR-6 and must be scoped separately before modification:
-
-- reconcile historical Request acceptance/release documents that still describe an earlier checkpoint
-- update the ClientPortal README application inventory/conventions to reflect the current Request adapter where useful
-- reconcile Request runbook permission-sync commands with the command/seeder that exists in source
-- delete merged MR-3/MR-4/MR-5 and documentation-closeout branches only when cleanup is explicitly authorized
+The Request release runbook also contains historical readiness/migration command references that must be verified against executable source before they are relied upon on production. Do not assume a documented Artisan command exists without command inventory/source confirmation.
 
 ## Next authorized step
 
-1. No new Request implementation MR is authorized by default.
-2. Clean up merged feature/documentation branches only after explicit user authorization.
-3. Treat production enablement as a separate approval with the readiness gates above.
-4. Scope historical documentation/runbook maintenance separately before modifying it.
-5. Do not name or begin another Request MR/phase without a source/documented requirement and explicit authorization.
+1. Open a PR from `chore/request-production-readiness` into `main` for review.
+2. Do not merge the PR until separately approved.
+3. Do not enable Request or run production demo seeders as part of PR review/merge.
+4. After merge, perform production preflight only under a separate explicit authorization.
+5. Do not name or begin another Request application MR/phase without a source/documented requirement and explicit authorization.
