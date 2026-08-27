@@ -624,3 +624,149 @@ Khi đó:
 Stable post-merge closeout phải được viết theo ngoại lệ ở mục 16.7. Sau khi PR chứa closeout merge, xác minh delivery envelope từ GitHub/Git history và `main`; không tạo thêm PR chỉ để ghi số PR hoặc merge SHA của chính container nếu checkpoint nghiệp vụ, gates, production boundary và next authorized step bền vững không thay đổi.
 
 Nếu handoff trên `main` vẫn chứa trạng thái tạm của container như `PENDING`, `OPEN`, `READY TO MERGE` hoặc next step yêu cầu review/merge chính container đã merge, ngoại lệ không áp dụng: phải ghi `POST-MERGE HANDOFF INCOMPLETE` và thực hiện corrective closeout được phê duyệt.
+
+## 17. Chuyển đổi làm việc giữa hai máy tính đã cấu hình
+
+Mục này áp dụng khi người dùng làm việc luân phiên trên nhiều máy tính đã có sẵn repository và kết nối GitHub, ví dụ máy tính công ty và máy tính ở nhà.
+
+### 17.1 Trigger và cách hiểu mặc định
+
+Khi người dùng gửi câu:
+
+```text
+chuyển sang máy tính khác
+```
+
+kèm output `git status`, phải hiểu mặc định:
+
+- đây là chuyển sang một máy tính **đã được cấu hình Git/GitHub và đã có repository**
+- output được gửi từ máy đích mà người dùng muốn tiếp tục làm việc, trừ khi người dùng nói rõ khác
+- mục tiêu là kiểm tra an toàn branch/local source rồi đồng bộ từ remote để tiếp tục
+- đây không phải yêu cầu cài đặt máy tính mới, clone repository, tạo SSH key hoặc chuyển `.env`/database/storage
+
+Phản hồi đầu tiên phải xác nhận đúng cách hiểu trên và nói rõ chưa switch, pull, push, merge, reset hoặc xóa branch khi chưa hoàn tất kiểm tra an toàn.
+
+Chỉ chuyển sang quy trình máy mới/clone/SSH khi:
+
+- người dùng nói rõ đây là máy mới hoặc repository chưa tồn tại
+- output chứng minh remote/authentication/repository chưa được cấu hình
+- người dùng yêu cầu chuyển cả environment/runtime data
+
+### 17.2 Kiểm tra an toàn trước khi pull
+
+Trước tiên đọc output người dùng cung cấp để xác định:
+
+- working tree clean hay dirty
+- current branch
+- upstream tracking branch
+- trạng thái ahead/behind/diverged nếu có
+- có dấu hiệu local commit hoặc file chưa được bảo toàn hay không
+
+Sau đó thực hiện kiểm tra GitHub chỉ đọc applicable:
+
+- repository và quyền truy cập
+- default branch và checkpoint `main` hiện tại
+- current branch có tồn tại trên remote không
+- PR của branch đã open, closed hay merged
+- local branch head có phải ancestor của `main` hay còn commit chưa tích hợp
+- quan hệ với upstream và quan hệ với `main` phải được đánh giá riêng
+
+Nếu output chưa đủ, hướng dẫn tối thiểu theo quy tắc số lượng lệnh ở mục 5:
+
+```bash
+git fetch origin
+git status --short
+git branch --show-current
+git branch -vv
+```
+
+`git fetch origin` chỉ cập nhật remote-tracking refs và không thay đổi working tree. Không dùng `git pull` trước khi phân loại xong.
+
+### 17.3 Quy tắc phân loại branch
+
+#### Working tree dirty
+
+Nếu `git status` có modified/untracked/conflict:
+
+- dừng trước switch/pull
+- xem `git diff` và xác định dữ liệu cần giữ
+- không tự stash, commit, restore, reset hoặc clean
+- không dùng `git pull` để che lấp tình trạng dirty
+
+#### Current branch là `main`, clean và không diverged
+
+- xác minh `origin/main`
+- dùng `git pull --ff-only origin main`
+- xác nhận HEAD và Git-clean sau pull
+
+#### Current branch là branch cũ đã merge
+
+Nếu branch head đã là ancestor của `main` và không có local-only commit:
+
+- branch an toàn; không cần push hoặc pull riêng branch cũ
+- switch về `main`
+- pull `main` bằng `--ff-only`
+- không checkout/cập nhật hàng loạt các branch lịch sử
+
+#### Current branch còn công việc chưa tích hợp
+
+Nếu branch có commit chưa nằm trong `main`:
+
+- phân biệt commit đã push lên upstream với commit chỉ tồn tại local
+- không switch/pull một branch khác cho đến khi xác định cách bảo toàn
+- nếu commit chỉ tồn tại local, dừng và yêu cầu người dùng chọn push/commit/stash phù hợp
+- nếu tiếp tục đúng active branch trên máy đích, chỉ pull branch đó sau khi xác nhận upstream và fast-forward safety
+
+#### Ahead/behind và diverged
+
+- `ahead N` so với upstream không tự động có nghĩa là commit chưa nằm trong `main`; phải kiểm tra ancestry với `main`
+- `behind N` trên branch lịch sử không tự động là blocker nếu branch đó không phải active delivery
+- nếu local và upstream diverged, không pull/merge/rebase theo phỏng đoán; báo rõ và dừng
+- không dùng pull thường; chỉ dùng `git pull --ff-only` sau khi đã chứng minh fast-forward an toàn
+
+### 17.4 Luồng đồng bộ chuẩn
+
+Khi đã chứng minh an toàn và mục tiêu là tiếp tục từ `main`:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git rev-parse --short HEAD
+git status --short
+```
+
+Nếu đã ở `main`, không bắt buộc switch lại; chỉ yêu cầu lệnh cần thiết theo mục 5.
+
+Kết quả phải được đối chiếu với remote checkpoint:
+
+- local HEAD bằng `origin/main`
+- working tree clean
+- không có commit local bị bỏ lại trên branch khác
+
+Nếu `git pull --ff-only` trả `Already up to date.` và các gate trên PASS, xác nhận ngay máy đích đã sẵn sàng tiếp tục; không tạo thêm bước cài đặt không cần thiết.
+
+### 17.5 Hành động không được tự thực hiện
+
+Trong luồng chuyển giữa hai máy đã cấu hình, không tự:
+
+- hướng dẫn clone repository, tạo/copy SSH key hoặc di chuyển environment data
+- push branch cũ chỉ vì `git branch -vv` hiển thị `ahead`
+- pull hoặc cập nhật toàn bộ branch lịch sử
+- xóa local/remote branch
+- force-push, rebase, reset, restore hoặc clean
+- sửa code, tạo branch công việc mới hoặc suy ra task tiếp theo
+
+Các thao tác trên chỉ được thực hiện khi output chứng minh cần thiết và người dùng phê duyệt phạm vi tương ứng.
+
+### 17.6 Mẫu kết luận
+
+Kết luận phải nêu ngắn gọn:
+
+- máy đích đang ở branch nào
+- working tree có sạch không
+- có local-only commit cần bảo toàn không
+- branch hiện tại có an toàn/đã nằm trong `main` không
+- lệnh switch/pull chính xác cần chạy
+- checkpoint mong đợi sau pull
+
+Không gọi đây là “máy tính mới” khi trigger và output phù hợp với quy trình chuyển giữa các máy đã cấu hình.
