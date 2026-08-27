@@ -45,9 +45,27 @@ php artisan module:migration-recover Request --apply
 
 Không tự insert bảng `migrations` bằng SQL/Tinker.
 
-## 3. Enablement và permission sync
+## 3. Enablement, cache refresh và permission sync
 
-Sau khi migrations sẵn sàng, bật Request bằng UI module hoặc runtime module-state mechanism hiện hành. Sau đó đồng bộ permissions bằng command hiện hành của hệ thống:
+Sau khi migrations sẵn sàng, bật Request bằng UI module hoặc runtime module-state mechanism hiện hành. Vì production có thể đang dùng `config:cache`, `route:cache` hoặc `artisan optimize`, thay đổi runtime Module state phải được theo sau bởi cache refresh để process Laravel mới boot lại với Request đã được discover/register.
+
+Thứ tự production chuẩn:
+
+```text
+Request schema READY
+→ bật Request qua runtime Module state
+→ php artisan optimize:clear
+→ php artisan optimize
+→ đồng bộ permissions
+→ readiness check
+→ nếu REQUEST_ENV=true và cần demo data thì chạy db:seed --force
+→ verify queue-request + scheduler
+→ smoke test
+```
+
+Không chạy demo seeder trước khi Request đã được boot lại sau cache refresh, vì `request.*` config và module provider/routes/commands chỉ tồn tại khi Module được register đúng trạng thái runtime.
+
+Sau cache refresh, đồng bộ permissions bằng command hiện hành của hệ thống:
 
 ```bash
 php artisan module:permissions-sync
@@ -55,6 +73,15 @@ php artisan request:release-readiness
 ```
 
 Nếu command permission sync không tồn tại ở một deployment cũ, dùng deployment flow hiện hành có `RolesAndPermissionsSeeder`; không tạo permission registry riêng cho Request.
+
+Khi tắt Request trên production, cũng phải refresh cache theo cùng nguyên tắc để process mới không tiếp tục dùng config/routes/provider snapshot khi Request còn enabled:
+
+```text
+tắt Request qua runtime Module state
+→ php artisan optimize:clear
+→ php artisan optimize
+→ verify Request routes/app không còn operational
+```
 
 ## 4. Local development — PM2
 
@@ -178,17 +205,19 @@ REQUEST_STARTER_TEMPLATE_ACTOR_ID
 REQUEST_STARTER_TEMPLATE_APPROVER_ID
 ```
 
-Sau khi Request đã được enable và schema/permissions đã READY, có thể chủ đích chạy:
+Sau khi Request đã được enable, cache đã refresh và schema/permissions đã READY, có thể chủ đích chạy:
 
 ```bash
 php artisan db:seed --force
 ```
 
-Không tự thêm `db:seed --force` vào Docker entrypoint hoặc `deploy.sh`: demo data production phải là thao tác có chủ đích. Sau khi hoàn tất test demo production, đặt `REQUEST_ENV=false`, làm mới config/runtime theo deployment flow hiện hành và xác nhận demo seeder không còn được gọi bởi `DatabaseSeeder`.
+Không tự thêm `db:seed --force` vào Docker entrypoint hoặc `deploy.sh`: demo data production phải là thao tác có chủ đích. Sau khi hoàn tất test demo production, đặt `REQUEST_ENV=false`, chạy lại `php artisan optimize:clear` rồi `php artisan optimize`, và xác nhận demo seeder không còn được gọi bởi `DatabaseSeeder`.
 
 ## 6. Deploy production sau khi dự án hoàn thiện
 
 Dùng `deploy.sh` gốc. Script hiện hành chịu trách nhiệm validate Compose, backup DB trước deploy, build images, maintenance mode, migrations, optimize, permission sync nếu command tồn tại và health check.
+
+Nếu Request đang disabled trong lúc generic deploy chạy migrations/optimize, không coi generic deploy là bước enablement đầy đủ cho Request. Enablement Request phải đi qua procedure ở mục 3 để runtime state và cache snapshot đồng bộ với nhau.
 
 Sau deploy, xác nhận:
 
