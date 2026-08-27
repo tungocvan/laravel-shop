@@ -216,62 +216,37 @@
 
     const approvalArticles = (approval) => Array.from(approval?.querySelectorAll('[wire\\:key^="stage-"]') ?? []);
 
-    const activateApprovalStage = (approval, index) => {
-        const articles = approvalArticles(approval);
-        const tabs = Array.from(approval.querySelectorAll('[data-request-approval-tab]'));
-        if (articles.length === 0) return;
-
-        selectedApprovalStage = Math.max(0, Math.min(index, articles.length - 1));
-
-        articles.forEach((article, articleIndex) => {
-            article.hidden = articleIndex !== selectedApprovalStage;
-        });
-
-        tabs.forEach((button, tabIndex) => {
-            const active = tabIndex === selectedApprovalStage;
-            button.setAttribute('aria-selected', active ? 'true' : 'false');
-            button.className = active
-                ? 'min-h-10 shrink-0 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-800'
-                : 'min-h-10 shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-indigo-200 hover:text-indigo-700';
-        });
-    };
-
-    const syncApprovalTabs = (approval) => {
+    const renderApprovalTabs = (approval) => {
         const articles = approvalArticles(approval);
         const tabList = approval.querySelector('[data-request-approval-tabs]');
         if (!tabList) return;
 
         if (articles.length === 0) {
-            tabList.replaceChildren();
+            tabList.innerHTML = '';
             return;
         }
 
-        const signature = articles.map((article, index) => {
+        selectedApprovalStage = Math.max(0, Math.min(selectedApprovalStage, articles.length - 1));
+        tabList.innerHTML = '';
+
+        articles.forEach((article, index) => {
             const name = article.querySelector('.font-semibold.text-slate-900')?.textContent?.trim() || `Cấp ${index + 1}`;
-            return `${index}:${name}`;
-        }).join('|');
-
-        if (tabList.dataset.requestApprovalSignature !== signature) {
-            tabList.dataset.requestApprovalSignature = signature;
-            tabList.replaceChildren();
-
-            articles.forEach((article, index) => {
-                const name = article.querySelector('.font-semibold.text-slate-900')?.textContent?.trim() || `Cấp ${index + 1}`;
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.dataset.requestApprovalTab = String(index);
-                button.setAttribute('role', 'tab');
-                button.textContent = `Cấp ${index + 1} · ${name}`;
-                button.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    activateApprovalStage(approval, index);
-                });
-                tabList.appendChild(button);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-selected', index === selectedApprovalStage ? 'true' : 'false');
+            button.className = index === selectedApprovalStage
+                ? 'min-h-10 shrink-0 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-800'
+                : 'min-h-10 shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-indigo-200 hover:text-indigo-700';
+            button.textContent = `Cấp ${index + 1} · ${name}`;
+            button.addEventListener('click', () => {
+                selectedApprovalStage = index;
+                renderApprovalTabs(approval);
             });
-        }
+            tabList.appendChild(button);
 
-        activateApprovalStage(approval, selectedApprovalStage);
+            article.hidden = index !== selectedApprovalStage;
+        });
     };
 
     const enhanceApprovalTabs = (root) => {
@@ -320,7 +295,7 @@
             });
         });
 
-        syncApprovalTabs(approval);
+        renderApprovalTabs(approval);
     };
 
     const enhanceDesigner = () => {

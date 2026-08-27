@@ -14,6 +14,7 @@ class RequestDemoSeeder extends Seeder
 
         $this->call([
             RequestStarterTemplateSeeder::class,
+            RequestOffboardingHandoverSeeder::class,
         ]);
     }
 }
