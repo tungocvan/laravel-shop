@@ -11,4 +11,202 @@
     </header>
     @livewire('request.admin.type-designer', ['typePublicId' => $type->public_id])
 </div>
+
+<script>
+(() => {
+    const openSections = new Set([0]);
+    let draggedField = null;
+    let observer = null;
+    let scheduled = false;
+
+    const designerRoot = () => document.querySelector('[aria-labelledby="request-designer-title"][wire\\:id]')
+        ?? document.querySelector('[aria-labelledby="request-designer-title"]');
+
+    const livewireComponent = (root) => {
+        const host = root?.hasAttribute('wire:id') ? root : root?.closest('[wire\\:id]');
+        const id = host?.getAttribute('wire:id');
+        return id && window.Livewire ? window.Livewire.find(id) : null;
+    };
+
+    const alpineState = (root) => {
+        try {
+            return window.Alpine?.$data(root) ?? null;
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const sectionIndexFromArticle = (article) => {
+        const key = article?.getAttribute('wire:key') ?? '';
+        const match = key.match(/^section-structure-(\d+)$/);
+        return match ? Number(match[1]) : null;
+    };
+
+    const fieldIndexesFromButton = (button) => {
+        const key = button?.getAttribute('wire:key') ?? '';
+        const match = key.match(/^field-picker-(\d+)-(\d+)$/);
+        return match ? { section: Number(match[1]), field: Number(match[2]) } : null;
+    };
+
+    const setSectionOpen = (article, index, isOpen) => {
+        const children = Array.from(article.children);
+        children.slice(1).forEach((child) => {
+            child.hidden = !isOpen;
+        });
+
+        const toggle = article.querySelector('[data-request-section-toggle]');
+        if (toggle) {
+            toggle.textContent = isOpen ? '▾' : '▸';
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            toggle.setAttribute('aria-label', isOpen ? 'Thu gọn phần' : 'Mở rộng phần');
+        }
+    };
+
+    const enhanceSections = (root) => {
+        root.querySelectorAll('[wire\\:key^="section-structure-"]').forEach((article) => {
+            const index = sectionIndexFromArticle(article);
+            if (index === null) return;
+
+            const header = article.firstElementChild;
+            if (!header) return;
+
+            let toggle = article.querySelector('[data-request-section-toggle]');
+            if (!toggle) {
+                toggle = document.createElement('button');
+                toggle.type = 'button';
+                toggle.dataset.requestSectionToggle = '1';
+                toggle.className = 'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-base font-semibold text-slate-600 hover:border-indigo-300 hover:text-indigo-700';
+                toggle.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const nextOpen = !openSections.has(index);
+                    if (nextOpen) openSections.add(index);
+                    else openSections.delete(index);
+                    setSectionOpen(article, index, nextOpen);
+                });
+                header.prepend(toggle);
+            }
+
+            setSectionOpen(article, index, openSections.has(index));
+        });
+    };
+
+    const clearDropState = (root) => {
+        root.querySelectorAll('[data-request-drop-target="1"]').forEach((button) => {
+            button.dataset.requestDropTarget = '0';
+            button.classList.remove('ring-2', 'ring-indigo-300', 'border-indigo-400');
+        });
+    };
+
+    const reorderField = async (root, source, target, dropAfter) => {
+        const component = livewireComponent(root);
+        if (!component) return;
+
+        const current = component.get('sections');
+        const sections = JSON.parse(JSON.stringify(current ?? []));
+        const sourceFields = sections[source.section]?.fields;
+        const targetFields = sections[target.section]?.fields;
+        if (!Array.isArray(sourceFields) || !Array.isArray(targetFields) || !sourceFields[source.field]) return;
+
+        const [moved] = sourceFields.splice(source.field, 1);
+        let insertIndex = target.field + (dropAfter ? 1 : 0);
+        if (source.section === target.section && source.field < insertIndex) insertIndex--;
+        insertIndex = Math.max(0, Math.min(insertIndex, targetFields.length));
+        targetFields.splice(insertIndex, 0, moved);
+
+        openSections.add(target.section);
+        const state = alpineState(root);
+        if (state) {
+            state.selectedSection = target.section;
+            state.selectedField = insertIndex;
+            state.formPane = 'editor';
+        }
+
+        await component.set('sections', sections);
+    };
+
+    const enhanceDragAndDrop = (root) => {
+        root.querySelectorAll('[wire\\:key^="field-picker-"]').forEach((button) => {
+            if (button.dataset.requestDndReady === '1') return;
+            button.dataset.requestDndReady = '1';
+            button.draggable = true;
+            button.title = 'Kéo để sắp xếp trường';
+            button.classList.add('cursor-move');
+
+            button.addEventListener('dragstart', (event) => {
+                const indexes = fieldIndexesFromButton(button);
+                if (!indexes) return;
+                draggedField = indexes;
+                button.classList.add('opacity-50');
+                if (event.dataTransfer) {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', `${indexes.section}:${indexes.field}`);
+                }
+            });
+
+            button.addEventListener('dragend', () => {
+                draggedField = null;
+                button.classList.remove('opacity-50');
+                clearDropState(root);
+            });
+
+            button.addEventListener('dragover', (event) => {
+                if (!draggedField) return;
+                event.preventDefault();
+                if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+                clearDropState(root);
+                button.dataset.requestDropTarget = '1';
+                button.classList.add('ring-2', 'ring-indigo-300', 'border-indigo-400');
+            });
+
+            button.addEventListener('dragleave', () => {
+                button.dataset.requestDropTarget = '0';
+                button.classList.remove('ring-2', 'ring-indigo-300', 'border-indigo-400');
+            });
+
+            button.addEventListener('drop', async (event) => {
+                if (!draggedField) return;
+                event.preventDefault();
+                const target = fieldIndexesFromButton(button);
+                if (!target) return;
+                const rect = button.getBoundingClientRect();
+                const dropAfter = event.clientY > rect.top + rect.height / 2;
+                const source = draggedField;
+                draggedField = null;
+                clearDropState(root);
+                await reorderField(root, source, target, dropAfter);
+            });
+        });
+    };
+
+    const enhanceDesigner = () => {
+        scheduled = false;
+        const root = designerRoot();
+        if (!root) return;
+
+        root.querySelectorAll('[x-show].hidden').forEach((element) => {
+            element.classList.remove('hidden');
+        });
+
+        enhanceSections(root);
+        enhanceDragAndDrop(root);
+
+        if (!observer) {
+            observer = new MutationObserver(() => {
+                if (scheduled) return;
+                scheduled = true;
+                requestAnimationFrame(enhanceDesigner);
+            });
+            observer.observe(root, { childList: true, subtree: true });
+        }
+    };
+
+    const boot = () => requestAnimationFrame(enhanceDesigner);
+
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+    document.addEventListener('livewire:init', boot);
+    document.addEventListener('livewire:navigated', boot);
+    window.addEventListener('load', boot, { once: true });
+})();
+</script>
 @endsection
