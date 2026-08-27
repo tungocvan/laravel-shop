@@ -34,8 +34,8 @@ class RequestE2EDemoSeeder extends Seeder
 
     public function run(): void
     {
-        if (app()->environment('production')) {
-            throw new \RuntimeException('RequestE2EDemoSeeder chỉ được phép chạy ngoài production.');
+        if (app()->environment('production') && ! filter_var(env('REQUEST_ENV', false), FILTER_VALIDATE_BOOL)) {
+            throw new \RuntimeException('RequestE2EDemoSeeder trên production yêu cầu REQUEST_ENV=true.');
         }
 
         $now = now('UTC');
