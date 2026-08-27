@@ -13,7 +13,8 @@ mkdir -p \
 
 if [ "$(id -u)" = "0" ]; then
     chown -R www-data:www-data storage bootstrap/cache
-    chmod 2770 storage/app/request storage/app/request/attachments
+    chmod 2770 storage/app/system storage/app/request storage/app/request/attachments
+    find storage/app/system -maxdepth 1 -type f -exec chmod 0660 {} \;
 
     if [ -d Modules ]; then
         chown -R www-data:www-data Modules
