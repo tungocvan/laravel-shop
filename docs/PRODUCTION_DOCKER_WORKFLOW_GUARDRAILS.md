@@ -300,6 +300,35 @@ Nếu dùng feature flag/env flag cho seeder:
 - phải xác minh đúng DB target trước chạy
 - phải ưu tiên idempotent behavior hoặc guard rõ ràng
 
+### 14.1 Runbook demo seeder bắt buộc theo Module
+
+Nếu một Module có demo/sample/starter seeder hoặc command chuyên dùng để tạo dữ liệu test/demo, phải tạo và duy trì file:
+
+```text
+docs/modules/<Module>/DEMO_SEEDER_RUNBOOK.md
+```
+
+File này là runbook vận hành để người dùng có thể tự lấy lệnh chuẩn mà không phải hỏi lại ChatGPT mỗi lần.
+
+Runbook phải được viết từ source thực tế của Module và tối thiểu phải có:
+
+- danh sách seeder/command liên quan
+- ENV/feature flag cần thiết và default an toàn
+- điều kiện database/Module/permission trước khi chạy
+- lệnh local nếu applicable
+- lệnh Production Docker nếu applicable
+- `--force` khi Laravel production yêu cầu
+- cách kiểm tra effective config trước khi seed
+- cách xác minh dữ liệu sau seed
+- idempotency/duplicate behavior nếu có
+- cách tắt demo flag sau khi hoàn tất
+- cleanup/reset boundary; nếu không có command cleanup an toàn phải ghi rõ là không được tự xóa dữ liệu
+- cảnh báo destructive operation và yêu cầu approval khi applicable
+
+Khi seeder, command, ENV flag hoặc cấu trúc demo data thay đổi, `DEMO_SEEDER_RUNBOOK.md` phải được cập nhật trong cùng branch/MR.
+
+Khi bootstrap một Module theo `docs/GITHUB_COLLABORATION_WORKFLOW.md`, nếu source có demo seeder nhưng thiếu runbook này thì phải ghi nhận documentation gap và đề xuất/tạo runbook trong scope docs phù hợp trước khi coi production/demo workflow hoàn chỉnh.
+
 Không chạy destructive/reset seeder trên production nếu chưa có authorization rõ ràng.
 
 ## 15. Before/After evidence
@@ -380,6 +409,7 @@ Một production deployment/enablement chỉ được đánh dấu PASS khi các
 - [ ] Module effective state đúng
 - [ ] routes representative được đăng ký
 - [ ] HTTP/UI smoke applicable PASS
+- [ ] nếu Module có demo seeder, `docs/modules/<Module>/DEMO_SEEDER_RUNBOOK.md` tồn tại và khớp source
 - [ ] không có 404/500 bất thường
 - [ ] logs không có lỗi mới quan trọng
 - [ ] Git working tree không bị runtime operation làm dirty ngoài thiết kế
