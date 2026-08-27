@@ -15,13 +15,15 @@ if (config('services.facebook.scheduler_enabled', false)) {
         ->withoutOverlapping();
 }
 
-Schedule::job(new DispatchRequestOutboxBatch)
-    ->everyMinute()
-    ->withoutOverlapping();
+if (config('modules.registry.Request.enabled', false)) {
+    Schedule::job(new DispatchRequestOutboxBatch)
+        ->everyMinute()
+        ->withoutOverlapping();
 
-Schedule::command('request:sla-enforce')
-    ->everyMinute()
-    ->withoutOverlapping();
+    Schedule::command('request:sla-enforce')
+        ->everyMinute()
+        ->withoutOverlapping();
+}
 
 Schedule::command('system:cloud-backup')
     ->everyMinute()
