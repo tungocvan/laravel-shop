@@ -83,4 +83,16 @@ class ModuleStateRepositoryTest extends TestCase
         $this->assertSame(1, $payload['version']);
         $this->assertSame(['Website' => false], $payload['modules']);
     }
+
+    public function test_state_and_lock_files_are_group_writable_after_mutation(): void
+    {
+        $repository = new FileModuleStateRepository($this->path);
+        $repository->set('Request', true);
+
+        clearstatcache(true, $this->path);
+        clearstatcache(true, $this->path.'.lock');
+
+        $this->assertSame('0660', substr(sprintf('%o', fileperms($this->path)), -4));
+        $this->assertSame('0660', substr(sprintf('%o', fileperms($this->path.'.lock')), -4));
+    }
 }
