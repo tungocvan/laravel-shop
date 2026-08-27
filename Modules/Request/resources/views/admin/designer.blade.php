@@ -16,6 +16,7 @@
 (() => {
     const openSections = new Set([0]);
     let draggedField = null;
+    let selectedApprovalStage = 0;
     let observer = null;
     let scheduled = false;
 
@@ -91,6 +92,31 @@
         });
     };
 
+    const enhanceFormColumns = (root) => {
+        const form = root.querySelector('#request-designer-form');
+        if (!form) return;
+
+        const structureTitle = Array.from(form.querySelectorAll('h3')).find((heading) => heading.textContent.trim() === 'Cấu trúc biểu mẫu');
+        const editorTitle = Array.from(form.querySelectorAll('h3')).find((heading) => heading.textContent.trim() === 'Thuộc tính trường');
+        const structurePanel = structureTitle?.closest('div.min-w-0.rounded-xl');
+        const editorPanel = editorTitle?.closest('div.min-w-0.rounded-xl');
+        const workspaceGrid = structurePanel?.parentElement;
+        if (!structurePanel || !editorPanel || !workspaceGrid) return;
+
+        const desktop = window.matchMedia('(min-width: 1024px)').matches;
+        if (desktop) {
+            workspaceGrid.style.display = 'grid';
+            workspaceGrid.style.gridTemplateColumns = 'minmax(0, 2fr) minmax(0, 3fr)';
+            workspaceGrid.style.alignItems = 'start';
+            structurePanel.style.display = 'block';
+            editorPanel.style.display = 'block';
+            structurePanel.style.minWidth = '0';
+            editorPanel.style.minWidth = '0';
+        } else {
+            workspaceGrid.style.gridTemplateColumns = '';
+        }
+    };
+
     const clearDropState = (root) => {
         root.querySelectorAll('[data-request-drop-target="1"]').forEach((button) => {
             button.dataset.requestDropTarget = '0';
@@ -132,6 +158,15 @@
             button.draggable = true;
             button.title = 'Kéo để sắp xếp trường';
             button.classList.add('cursor-move');
+
+            const handle = button.querySelector('span[aria-hidden="true"]');
+            if (handle) {
+                handle.textContent = '⋮⋮';
+                handle.title = 'Kéo để sắp xếp';
+                handle.style.cursor = 'grab';
+                handle.style.fontWeight = '700';
+                handle.style.letterSpacing = '-2px';
+            }
 
             button.addEventListener('dragstart', (event) => {
                 const indexes = fieldIndexesFromButton(button);
@@ -179,6 +214,90 @@
         });
     };
 
+    const approvalArticles = (approval) => Array.from(approval?.querySelectorAll('[wire\\:key^="stage-"]') ?? []);
+
+    const renderApprovalTabs = (approval) => {
+        const articles = approvalArticles(approval);
+        const tabList = approval.querySelector('[data-request-approval-tabs]');
+        if (!tabList) return;
+
+        if (articles.length === 0) {
+            tabList.innerHTML = '';
+            return;
+        }
+
+        selectedApprovalStage = Math.max(0, Math.min(selectedApprovalStage, articles.length - 1));
+        tabList.innerHTML = '';
+
+        articles.forEach((article, index) => {
+            const name = article.querySelector('.font-semibold.text-slate-900')?.textContent?.trim() || `Cấp ${index + 1}`;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-selected', index === selectedApprovalStage ? 'true' : 'false');
+            button.className = index === selectedApprovalStage
+                ? 'min-h-10 shrink-0 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-800'
+                : 'min-h-10 shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-indigo-200 hover:text-indigo-700';
+            button.textContent = `Cấp ${index + 1} · ${name}`;
+            button.addEventListener('click', () => {
+                selectedApprovalStage = index;
+                renderApprovalTabs(approval);
+            });
+            tabList.appendChild(button);
+
+            article.hidden = index !== selectedApprovalStage;
+        });
+    };
+
+    const enhanceApprovalTabs = (root) => {
+        const approval = root.querySelector('#request-designer-approval');
+        if (!approval) return;
+
+        const articles = approvalArticles(approval);
+        const articlesContainer = articles[0]?.parentElement;
+        if (!articlesContainer) return;
+
+        let tabList = approval.querySelector('[data-request-approval-tabs]');
+        if (!tabList) {
+            tabList = document.createElement('div');
+            tabList.dataset.requestApprovalTabs = '1';
+            tabList.setAttribute('role', 'tablist');
+            tabList.setAttribute('aria-label', 'Các cấp phê duyệt');
+            tabList.className = 'mt-4 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2';
+            articlesContainer.before(tabList);
+        }
+
+        articlesContainer.classList.remove('space-y-4');
+        articlesContainer.style.marginTop = '12px';
+
+        const addButton = approval.querySelector('button[wire\\:click="addStage"]');
+        if (addButton && addButton.dataset.requestApprovalAddReady !== '1') {
+            addButton.dataset.requestApprovalAddReady = '1';
+            addButton.addEventListener('click', () => {
+                selectedApprovalStage = approvalArticles(approval).length;
+            });
+        }
+
+        articles.forEach((article, index) => {
+            article.style.marginTop = '0';
+            const moveUp = article.querySelector(`button[wire\\:click="moveStage(${index}, -1)"]`);
+            const moveDown = article.querySelector(`button[wire\\:click="moveStage(${index}, 1)"]`);
+            const remove = article.querySelector(`button[wire\\:click="removeStage(${index})"]`);
+
+            [moveUp, moveDown, remove].forEach((button) => {
+                if (!button || button.dataset.requestApprovalActionReady === '1') return;
+                button.dataset.requestApprovalActionReady = '1';
+                button.addEventListener('click', () => {
+                    if (button === moveUp) selectedApprovalStage = Math.max(0, index - 1);
+                    if (button === moveDown) selectedApprovalStage = Math.min(approvalArticles(approval).length - 1, index + 1);
+                    if (button === remove) selectedApprovalStage = Math.max(0, Math.min(index, approvalArticles(approval).length - 2));
+                });
+            });
+        });
+
+        renderApprovalTabs(approval);
+    };
+
     const enhanceDesigner = () => {
         scheduled = false;
         const root = designerRoot();
@@ -189,7 +308,9 @@
         });
 
         enhanceSections(root);
+        enhanceFormColumns(root);
         enhanceDragAndDrop(root);
+        enhanceApprovalTabs(root);
 
         if (!observer) {
             observer = new MutationObserver(() => {
@@ -207,6 +328,7 @@
     document.addEventListener('livewire:init', boot);
     document.addEventListener('livewire:navigated', boot);
     window.addEventListener('load', boot, { once: true });
+    window.addEventListener('resize', boot);
 })();
 </script>
 @endsection
