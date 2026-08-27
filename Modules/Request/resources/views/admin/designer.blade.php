@@ -17,6 +17,7 @@
     const openSections = new Set([0]);
     let draggedField = null;
     let selectedApprovalStage = 0;
+    let pendingNewStageEmailOff = null;
     let observer = null;
     let scheduled = false;
 
@@ -274,6 +275,125 @@
         activateApprovalStage(approval, selectedApprovalStage);
     };
 
+    const setLabelText = (select, text) => {
+        const label = select?.closest('label');
+        if (!label) return;
+        const textNode = Array.from(label.childNodes).find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '');
+        if (textNode) textNode.textContent = `${text}\n`;
+    };
+
+    const setApprovalEmailState = async (component, index, enabled) => {
+        await component.set(`stages.${index}.email_on_assignment`, enabled);
+        await component.set(`stages.${index}.email_on_decision`, enabled);
+        await component.set(`stages.${index}.email_on_sla_warning`, enabled);
+    };
+
+    const enhanceApprovalBusinessUi = (root) => {
+        const approval = root.querySelector('#request-designer-approval');
+        const component = livewireComponent(root);
+        if (!approval || !component) return;
+
+        const articles = approvalArticles(approval);
+        const stages = component.get('stages') ?? [];
+
+        if (pendingNewStageEmailOff !== null && articles[pendingNewStageEmailOff] && stages[pendingNewStageEmailOff]) {
+            const stageIndex = pendingNewStageEmailOff;
+            pendingNewStageEmailOff = null;
+            setApprovalEmailState(component, stageIndex, false);
+        }
+
+        articles.forEach((article, index) => {
+            const modeSelect = article.querySelector(`select[wire\\:model\\.live="stages.${index}.mode"]`);
+            const resolverSelect = article.querySelector(`select[wire\\:model\\.live="stages.${index}.resolver_key"]`);
+            const approverSelect = article.querySelector(`select[wire\\:model="stages.${index}.resolver_user_ids"]`);
+
+            if (modeSelect) {
+                setLabelText(modeSelect, 'Chế độ phê duyệt');
+                const labels = {
+                    single: 'Một người phê duyệt',
+                    parallel_all: 'Nhiều người – Tất cả phải duyệt',
+                    parallel_any: 'Nhiều người – Một người duyệt là đủ',
+                };
+                Array.from(modeSelect.options).forEach((option) => {
+                    if (labels[option.value]) option.textContent = labels[option.value];
+                });
+
+                if (modeSelect.dataset.requestApprovalModeReady !== '1') {
+                    modeSelect.dataset.requestApprovalModeReady = '1';
+                    modeSelect.addEventListener('change', () => {
+                        if (modeSelect.value !== 'single') return;
+                        queueMicrotask(() => {
+                            const currentStages = component.get('stages') ?? [];
+                            const ids = Array.from(currentStages[index]?.resolver_user_ids ?? []).map(Number).filter(Boolean);
+                            if (ids.length > 1) component.set(`stages.${index}.resolver_user_ids`, [ids[0]]);
+                        });
+                    });
+                }
+            }
+
+            if (resolverSelect) {
+                setLabelText(resolverSelect, 'Cách xác định người phê duyệt');
+                const labels = {
+                    fixed_users: 'Chọn người phê duyệt',
+                    role_members: 'Theo vai trò',
+                    form_user_field: 'Theo trường trong biểu mẫu',
+                };
+                Array.from(resolverSelect.options).forEach((option) => {
+                    if (labels[option.value]) option.textContent = labels[option.value];
+                });
+            }
+
+            if (approverSelect) {
+                setLabelText(approverSelect, 'Người phê duyệt');
+                const mode = modeSelect?.value ?? stages[index]?.mode ?? 'single';
+                const help = approverSelect.parentElement?.querySelector('span');
+                if (help) {
+                    help.textContent = mode === 'single'
+                        ? 'Chế độ một người: chỉ được chọn 1 người phê duyệt.'
+                        : 'Chế độ nhiều người: có thể chọn nhiều người phê duyệt.';
+                }
+
+                if (approverSelect.dataset.requestApproverReady !== '1') {
+                    approverSelect.dataset.requestApproverReady = '1';
+                    approverSelect.addEventListener('change', () => {
+                        const currentMode = article.querySelector(`select[wire\\:model\\.live="stages.${index}.mode"]`)?.value ?? 'single';
+                        if (currentMode !== 'single') return;
+
+                        queueMicrotask(() => {
+                            const latestStages = component.get('stages') ?? [];
+                            const previous = Array.from(latestStages[index]?.resolver_user_ids ?? []).map(Number);
+                            const selected = Array.from(approverSelect.selectedOptions).map((option) => Number(option.value)).filter(Boolean);
+                            if (selected.length <= 1) return;
+                            const newlySelected = selected.find((id) => !previous.includes(id));
+                            const keep = newlySelected ?? selected[selected.length - 1];
+                            component.set(`stages.${index}.resolver_user_ids`, [keep]);
+                        });
+                    });
+                }
+            }
+
+            const emailPanelTitle = Array.from(article.querySelectorAll('div')).find((element) => element.textContent.trim() === 'Thông báo email');
+            const emailPanel = emailPanelTitle?.parentElement;
+            if (emailPanel && !emailPanel.querySelector('[data-request-email-master]')) {
+                const master = document.createElement('label');
+                master.dataset.requestEmailMaster = '1';
+                master.className = 'mt-3 flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700';
+                master.innerHTML = '<input type="checkbox" class="h-4 w-4 rounded border-slate-300"> Tắt toàn bộ email của cấp này';
+                const checkbox = master.querySelector('input');
+                const current = stages[index] ?? {};
+                checkbox.checked = !current.email_on_assignment && !current.email_on_decision && !current.email_on_sla_warning;
+                checkbox.addEventListener('change', () => setApprovalEmailState(component, index, !checkbox.checked));
+                emailPanelTitle.nextElementSibling?.after(master) ?? emailPanel.appendChild(master);
+            } else if (emailPanel) {
+                const checkbox = emailPanel.querySelector('[data-request-email-master] input');
+                const current = (component.get('stages') ?? [])[index] ?? {};
+                if (checkbox && document.activeElement !== checkbox) {
+                    checkbox.checked = !current.email_on_assignment && !current.email_on_decision && !current.email_on_sla_warning;
+                }
+            }
+        });
+    };
+
     const enhanceApprovalTabs = (root) => {
         const approval = root.querySelector('#request-designer-approval');
         if (!approval) return;
@@ -299,7 +419,9 @@
         if (addButton && addButton.dataset.requestApprovalAddReady !== '1') {
             addButton.dataset.requestApprovalAddReady = '1';
             addButton.addEventListener('click', () => {
-                selectedApprovalStage = approvalArticles(approval).length;
+                const nextIndex = approvalArticles(approval).length;
+                selectedApprovalStage = nextIndex;
+                pendingNewStageEmailOff = nextIndex;
             });
         }
 
@@ -336,6 +458,7 @@
         enhanceFormColumns(root);
         enhanceDragAndDrop(root);
         enhanceApprovalTabs(root);
+        enhanceApprovalBusinessUi(root);
 
         if (!observer) {
             observer = new MutationObserver(() => {
