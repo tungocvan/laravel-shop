@@ -3,6 +3,7 @@
 .github
 .well-known
 .user.ini
+.env
 Dockerfile*
 docker-compose*.yml
 wp-config.php
