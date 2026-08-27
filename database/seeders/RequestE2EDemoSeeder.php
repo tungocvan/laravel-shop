@@ -34,7 +34,7 @@ class RequestE2EDemoSeeder extends Seeder
 
     public function run(): void
     {
-        if (app()->environment('production') && ! filter_var(env('REQUEST_ENV', false), FILTER_VALIDATE_BOOL)) {
+        if (app()->environment('production') && ! config('request.settings.demo_seeders_enabled', false)) {
             throw new \RuntimeException('RequestE2EDemoSeeder trên production yêu cầu REQUEST_ENV=true.');
         }
 
