@@ -24,11 +24,11 @@ class RequestMigrationIdentifierLengthTest extends TestCase
         }
 
         $this->assertStringNotContainsString(
-            "$table->unique(['request_type_version_id', 'stage_key']);",
+            '$table->unique([\'request_type_version_id\', \'stage_key\']);',
             $contents,
         );
         $this->assertStringNotContainsString(
-            "$table->unique(['request_type_version_id', 'position']);",
+            '$table->unique([\'request_type_version_id\', \'position\']);',
             $contents,
         );
     }
