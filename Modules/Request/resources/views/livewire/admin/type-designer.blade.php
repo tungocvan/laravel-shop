@@ -1,4 +1,8 @@
-<div class="space-y-5" aria-labelledby="request-designer-title">
+<div
+    class="space-y-5"
+    aria-labelledby="request-designer-title"
+    x-data="{ activeWorkspace: 'form', selectedSection: 0, selectedField: 0, formPane: 'structure' }"
+>
     @php($fieldCount = collect($sections)->sum(fn ($section) => count((array) ($section['fields'] ?? []))))
     @php($hasMetadata = trim((string) $title) !== '')
     @php($hasForm = count($sections) > 0 && $fieldCount > 0)
@@ -27,14 +31,28 @@
     <div class="grid gap-5 xl:grid-cols-[14rem_minmax(0,1fr)_19rem]">
         <nav class="rounded-xl border border-slate-200 bg-white p-3 xl:sticky xl:top-4 xl:self-start" aria-label="Các phần của trình thiết kế">
             <div class="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Cấu hình</div>
-            <a href="#request-designer-metadata" class="block min-h-10 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Thông tin chung</a>
-            <a href="#request-designer-form" class="block min-h-10 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Biểu mẫu</a>
-            <a href="#request-designer-approval" class="block min-h-10 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Phê duyệt & SLA</a>
-            <a href="#request-designer-audience" class="block min-h-10 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Đối tượng</a>
+            @foreach([
+                ['key' => 'metadata', 'label' => 'Thông tin chung'],
+                ['key' => 'form', 'label' => 'Biểu mẫu'],
+                ['key' => 'approval', 'label' => 'Phê duyệt & SLA'],
+                ['key' => 'audience', 'label' => 'Đối tượng'],
+            ] as $workspace)
+                <button
+                    type="button"
+                    @click="activeWorkspace = '{{ $workspace['key'] }}'"
+                    class="block min-h-10 w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition"
+                    :class="activeWorkspace === '{{ $workspace['key'] }}' ? 'bg-indigo-50 text-indigo-800 ring-1 ring-indigo-100' : 'text-slate-700 hover:bg-slate-50'"
+                >{{ $workspace['label'] }}</button>
+            @endforeach
         </nav>
 
-        <main class="min-w-0 space-y-5">
-            <section id="request-designer-metadata" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-metadata-title">
+        <main class="min-w-0">
+            <section
+                id="request-designer-metadata"
+                x-show="activeWorkspace === 'metadata'"
+                class="hidden rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
+                aria-labelledby="request-metadata-title"
+            >
                 <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 id="request-metadata-title" class="text-lg font-semibold text-slate-900">Thông tin chung</h2><p class="mt-1 text-sm text-slate-600">Tên và hướng dẫn mà người gửi sẽ nhìn thấy khi tạo đề nghị.</p></div><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $hasMetadata ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800' }}">{{ $hasMetadata ? 'Đã cấu hình' : 'Cần hoàn thiện' }}</span></div>
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
                     <label class="block text-sm font-medium text-slate-700 md:col-span-2">Tiêu đề<input wire:model="title" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"></label>
@@ -43,18 +61,134 @@
                 </div>
             </section>
 
-            <section id="request-designer-form" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-form-title">
-                <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 id="request-form-title" class="text-lg font-semibold text-slate-900">Thiết kế biểu mẫu</h2><p class="text-sm text-slate-600">Mã phần và mã trường được giữ ổn định. Dùng các nút di chuyển để sắp xếp.</p><p class="mt-1 text-xs leading-5 text-amber-700">Thay đổi “Bắt buộc” chỉ có hiệu lực sau khi lưu, phát hành phiên bản mới và tạo đề nghị mới; đề nghị đã tạo luôn giữ nguyên phiên bản cũ.</p></div><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ count($sections) }} phần · {{ $fieldCount }} trường</span><button type="button" wire:click="addSection" class="min-h-11 rounded-lg border border-indigo-300 px-4 py-2 text-sm font-medium text-indigo-700">Thêm phần</button></div></div>
-                <div class="mt-4 space-y-4">
-                    @forelse($sections as $sectionIndex => $section)
-                        <article wire:key="section-{{ $sectionIndex }}" class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                            <div class="flex flex-wrap items-start gap-3"><div class="grid min-w-0 flex-1 gap-3 sm:grid-cols-2"><label class="text-sm font-medium text-slate-700">Mã phần<input wire:model="sections.{{ $sectionIndex }}.key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm"></label><label class="text-sm font-medium text-slate-700">Nhãn hiển thị<input wire:model="sections.{{ $sectionIndex }}.label" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"></label></div><div class="flex gap-1"><button type="button" wire:click="moveSection({{ $sectionIndex }}, -1)" class="min-h-11 min-w-11 rounded-lg border border-slate-300 bg-white">↑</button><button type="button" wire:click="moveSection({{ $sectionIndex }}, 1)" class="min-h-11 min-w-11 rounded-lg border border-slate-300 bg-white">↓</button><button type="button" wire:click="removeSection({{ $sectionIndex }})" wire:confirm="Xóa phần này và toàn bộ trường bên trong?" class="min-h-11 rounded-lg border border-red-200 bg-white px-3 text-sm text-red-700">Xóa</button></div></div>
-                            <div class="mt-4 space-y-3">
-                                @foreach((array)($section['fields'] ?? []) as $fieldIndex => $field)
-                                    <div wire:key="field-{{ $sectionIndex }}-{{ $fieldIndex }}" class="rounded-lg border border-slate-200 bg-white p-3">
-                                        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                            <label class="text-sm font-medium text-slate-700">Mã trường<input wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"></label>
-                                            <label class="text-sm font-medium text-slate-700">Nhãn hiển thị<input wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.label" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"></label>
+            <section
+                id="request-designer-form"
+                x-show="activeWorkspace === 'form'"
+                class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
+                aria-labelledby="request-form-title"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 id="request-form-title" class="text-lg font-semibold text-slate-900">Thiết kế biểu mẫu</h2>
+                        <p class="mt-1 text-sm text-slate-600">Quản lý cấu trúc ở bên trái và chỉ chỉnh trường đang chọn ở vùng thuộc tính.</p>
+                        <p class="mt-1 text-xs leading-5 text-amber-700">Thay đổi “Bắt buộc” chỉ có hiệu lực sau khi lưu, phát hành phiên bản mới và tạo đề nghị mới; đề nghị đã tạo luôn giữ nguyên phiên bản cũ.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ count($sections) }} phần · {{ $fieldCount }} trường</span>
+                        <button type="button" wire:click="addSection" class="min-h-11 rounded-lg border border-indigo-300 px-4 py-2 text-sm font-medium text-indigo-700">Thêm phần</button>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex rounded-xl border border-slate-200 bg-slate-50 p-1 lg:hidden" aria-label="Chế độ chỉnh biểu mẫu">
+                    <button type="button" @click="formPane = 'structure'" class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold" :class="formPane === 'structure' ? 'bg-white text-indigo-800 shadow-sm' : 'text-slate-600'">Cấu trúc</button>
+                    <button type="button" @click="formPane = 'editor'" class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold" :class="formPane === 'editor' ? 'bg-white text-indigo-800 shadow-sm' : 'text-slate-600'">Thuộc tính</button>
+                </div>
+
+                <div class="mt-4 grid min-h-[38rem] gap-4 lg:grid-cols-[minmax(17rem,0.85fr)_minmax(0,1.65fr)]">
+                    <div
+                        x-show="formPane === 'structure' || window.innerWidth >= 1024"
+                        class="min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3 lg:max-h-[68vh] lg:overflow-y-auto"
+                    >
+                        <div class="sticky top-0 z-10 -mx-1 mb-3 flex items-center justify-between bg-slate-50/95 px-1 pb-2 backdrop-blur">
+                            <div>
+                                <h3 class="text-sm font-semibold text-slate-900">Cấu trúc biểu mẫu</h3>
+                                <p class="mt-0.5 text-xs text-slate-500">Chọn một trường để chỉnh thuộc tính.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            @forelse($sections as $sectionIndex => $section)
+                                <article wire:key="section-structure-{{ $sectionIndex }}" class="rounded-xl border border-slate-200 bg-white p-3">
+                                    <div class="flex items-start gap-2">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="truncate text-sm font-semibold text-slate-900">{{ $section['label'] ?? $section['key'] ?? 'Phần '.($sectionIndex + 1) }}</div>
+                                            <div class="mt-0.5 text-xs text-slate-500">{{ count((array) ($section['fields'] ?? [])) }} trường · <span class="font-mono">{{ $section['key'] ?? '' }}</span></div>
+                                        </div>
+                                        <div class="flex gap-1">
+                                            <button type="button" wire:click="moveSection({{ $sectionIndex }}, -1)" class="min-h-9 min-w-9 rounded-lg border border-slate-300 bg-white text-sm" aria-label="Đưa phần lên">↑</button>
+                                            <button type="button" wire:click="moveSection({{ $sectionIndex }}, 1)" class="min-h-9 min-w-9 rounded-lg border border-slate-300 bg-white text-sm" aria-label="Đưa phần xuống">↓</button>
+                                        </div>
+                                    </div>
+
+                                    <details class="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                                        <summary class="cursor-pointer text-xs font-semibold text-slate-600">Thông tin phần</summary>
+                                        <div class="mt-2 grid gap-2">
+                                            <label class="text-xs font-medium text-slate-600">Mã phần<input wire:model="sections.{{ $sectionIndex }}.key" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm"></label>
+                                            <label class="text-xs font-medium text-slate-600">Nhãn hiển thị<input wire:model="sections.{{ $sectionIndex }}.label" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"></label>
+                                        </div>
+                                    </details>
+
+                                    <div class="mt-2 space-y-1.5">
+                                        @foreach((array) ($section['fields'] ?? []) as $fieldIndex => $field)
+                                            <button
+                                                type="button"
+                                                wire:key="field-picker-{{ $sectionIndex }}-{{ $fieldIndex }}"
+                                                @click="selectedSection = {{ $sectionIndex }}; selectedField = {{ $fieldIndex }}; formPane = 'editor'"
+                                                class="flex min-h-11 w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition"
+                                                :class="selectedSection === {{ $sectionIndex }} && selectedField === {{ $fieldIndex }} ? 'border-indigo-300 bg-indigo-50 ring-1 ring-indigo-100' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'"
+                                            >
+                                                <span class="text-slate-400" aria-hidden="true">≡</span>
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-sm font-medium text-slate-800">{{ $field['label'] ?? $field['key'] ?? 'Trường '.($fieldIndex + 1) }}{{ !empty($field['required']) ? ' *' : '' }}</span>
+                                                    <span class="mt-0.5 block truncate font-mono text-[11px] text-slate-500">{{ $field['key'] ?? '' }}</span>
+                                                </span>
+                                                <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">{{ $field['type'] ?? 'text' }}</span>
+                                            </button>
+                                        @endforeach
+                                    </div>
+
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            wire:click="addField({{ $sectionIndex }})"
+                                            @click="selectedSection = {{ $sectionIndex }}; selectedField = {{ count((array) ($section['fields'] ?? [])) }}; formPane = 'editor'"
+                                            class="min-h-9 rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-700"
+                                        >+ Thêm trường</button>
+                                        <button type="button" wire:click="removeSection({{ $sectionIndex }})" wire:confirm="Xóa phần này và toàn bộ trường bên trong?" class="min-h-9 rounded-lg border border-red-200 bg-white px-3 text-xs font-semibold text-red-700">Xóa phần</button>
+                                    </div>
+                                </article>
+                            @empty
+                                <div class="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-600">Chưa có phần biểu mẫu.</div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <div
+                        x-show="formPane === 'editor' || window.innerWidth >= 1024"
+                        class="min-w-0 rounded-xl border border-slate-200 bg-white p-4 lg:max-h-[68vh] lg:overflow-y-auto sm:p-5"
+                    >
+                        <div class="sticky top-0 z-10 -mx-1 mb-4 flex items-start justify-between gap-3 border-b border-slate-100 bg-white/95 px-1 pb-3 backdrop-blur">
+                            <div>
+                                <h3 class="text-sm font-semibold text-slate-900">Thuộc tính trường</h3>
+                                <p class="mt-0.5 text-xs text-slate-500">Chỉ trường đang chọn được mở để chỉnh sửa.</p>
+                            </div>
+                            <button type="button" @click="formPane = 'structure'" class="min-h-9 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-600 lg:hidden">← Cấu trúc</button>
+                        </div>
+
+                        @if($fieldCount === 0)
+                            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                                <div class="text-sm font-semibold text-slate-800">Chưa có trường để chỉnh</div>
+                                <p class="mt-1 text-xs leading-5 text-slate-500">Tạo một phần hoặc thêm trường từ cột cấu trúc.</p>
+                            </div>
+                        @else
+                            @foreach($sections as $sectionIndex => $section)
+                                @foreach((array) ($section['fields'] ?? []) as $fieldIndex => $field)
+                                    <div
+                                        wire:key="field-editor-{{ $sectionIndex }}-{{ $fieldIndex }}"
+                                        x-show="selectedSection === {{ $sectionIndex }} && selectedField === {{ $fieldIndex }}"
+                                        class="hidden"
+                                    >
+                                        <div class="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                                            <div class="min-w-0">
+                                                <div class="text-xs font-semibold uppercase tracking-wide text-indigo-600">{{ $section['label'] ?? 'Phần '.($sectionIndex + 1) }}</div>
+                                                <div class="mt-1 truncate text-base font-semibold text-indigo-950">{{ $field['label'] ?? $field['key'] ?? 'Trường '.($fieldIndex + 1) }}</div>
+                                            </div>
+                                            <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-indigo-800">{{ $field['type'] ?? 'text' }}</span>
+                                        </div>
+
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <label class="text-sm font-medium text-slate-700">Mã trường<input wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.key" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm"></label>
+                                            <label class="text-sm font-medium text-slate-700">Nhãn hiển thị<input wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.label" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"></label>
                                             <label class="text-sm font-medium text-slate-700">Kiểu dữ liệu<select wire:model.live="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.type" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">@foreach(['text','textarea','integer','decimal','currency','date','datetime','boolean','select','multiselect','user','role','attachment','computed_display'] as $fieldType)<option value="{{ $fieldType }}">{{ $fieldType }}</option>@endforeach</select></label>
                                             <label class="text-sm font-medium text-slate-700">Phân loại dữ liệu<select wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.classification" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="public_internal">Nội bộ công khai</option><option value="internal">Nội bộ</option><option value="confidential">Bảo mật</option></select></label>
                                             <label class="text-sm font-medium text-slate-700">Độ rộng hiển thị<select wire:model="sections.{{ $sectionIndex }}.fields.{{ $fieldIndex }}.width" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="auto">Tự động</option><option value="full">Toàn dòng</option><option value="half">Một nửa dòng</option><option value="third">Một phần ba dòng</option></select></label>
@@ -69,8 +203,9 @@
                                                 @endif
                                             </div>
                                         </div>
+
                                         @if(in_array($field['type'] ?? null, ['select', 'multiselect'], true))
-                                            <section class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3" aria-label="Danh sách lựa chọn của {{ $field['label'] ?? $field['key'] }}">
+                                            <section class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3" aria-label="Danh sách lựa chọn của {{ $field['label'] ?? $field['key'] }}">
                                                 <div class="flex flex-wrap items-center justify-between gap-2">
                                                     <div><h4 class="text-sm font-semibold text-indigo-950">Danh sách lựa chọn</h4><p class="text-xs leading-5 text-slate-600">Mã dùng để lưu dữ liệu nên viết thường, không dấu và không đổi sau khi đã phát hành.</p></div>
                                                     <button type="button" wire:click="addFieldOption({{ $sectionIndex }}, {{ $fieldIndex }})" class="min-h-10 rounded-lg border border-indigo-300 bg-white px-3 text-sm font-medium text-indigo-700">Thêm lựa chọn</button>
@@ -88,17 +223,21 @@
                                                 </div>
                                             </section>
                                         @endif
-                                        <div class="mt-3 flex flex-wrap gap-2"><button type="button" wire:click="moveField({{ $sectionIndex }}, {{ $fieldIndex }}, -1)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm">Di chuyển lên</button><button type="button" wire:click="moveField({{ $sectionIndex }}, {{ $fieldIndex }}, 1)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm">Di chuyển xuống</button><button type="button" wire:click="removeField({{ $sectionIndex }}, {{ $fieldIndex }})" wire:confirm="Xóa trường này khỏi biểu mẫu?" class="min-h-10 rounded-lg border border-red-200 px-3 text-sm text-red-700">Xóa trường</button></div>
+
+                                        <div class="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                                            <button type="button" wire:click="moveField({{ $sectionIndex }}, {{ $fieldIndex }}, -1)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm">Di chuyển lên</button>
+                                            <button type="button" wire:click="moveField({{ $sectionIndex }}, {{ $fieldIndex }}, 1)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm">Di chuyển xuống</button>
+                                            <button type="button" wire:click="removeField({{ $sectionIndex }}, {{ $fieldIndex }})" wire:confirm="Xóa trường này khỏi biểu mẫu?" @click="selectedField = Math.max(0, selectedField - 1); formPane = 'structure'" class="min-h-10 rounded-lg border border-red-200 px-3 text-sm text-red-700">Xóa trường</button>
+                                        </div>
                                     </div>
                                 @endforeach
-                            </div>
-                            <button type="button" wire:click="addField({{ $sectionIndex }})" class="mt-3 min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700">Thêm trường</button>
-                        </article>
-                    @empty<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">Chưa có phần biểu mẫu.</div>@endforelse
+                            @endforeach
+                        @endif
+                    </div>
                 </div>
             </section>
 
-            <section id="request-designer-approval" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-approval-title">
+            <section id="request-designer-approval" x-show="activeWorkspace === 'approval'" class="hidden rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-approval-title">
                 <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 id="request-approval-title" class="text-lg font-semibold text-slate-900">Các cấp phê duyệt & SLA</h2><p class="text-sm text-slate-600">Mỗi cấp duyệt có thời hạn riêng. Quá hạn chỉ cảnh báo/tạm dừng theo cấu hình, không tự duyệt hoặc từ chối.</p></div><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ count($stages) }} cấp</span><button type="button" wire:click="addStage" class="min-h-11 rounded-lg border border-indigo-300 px-4 py-2 text-sm font-medium text-indigo-700">Thêm cấp duyệt</button></div></div>
                 <div class="mt-4 space-y-4">
                     @forelse($stages as $stageIndex => $stage)
@@ -127,57 +266,18 @@
                                         <label class="min-w-0 text-sm font-medium text-slate-700">
                                             {{ $slaField['label'] }}{{ $slaField['required'] ? ' *' : '' }}
                                             <div class="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(5rem,auto)] gap-2">
-                                                <input
-                                                    wire:model.blur="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_value"
-                                                    type="number"
-                                                    min="0"
-                                                    max="{{ $maxValue }}"
-                                                    step="1"
-                                                    @disabled($disabled)
-                                                    class="min-h-11 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-100"
-                                                >
-                                                <select
-                                                    wire:model.live="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_unit"
-                                                    @disabled($disabled)
-                                                    class="min-h-11 min-w-20 rounded-lg border border-slate-300 bg-white px-2 py-2 disabled:bg-slate-100"
-                                                >
-                                                    <option value="minutes">phút</option>
-                                                    <option value="hours">giờ</option>
-                                                    <option value="days">ngày</option>
-                                                </select>
+                                                <input wire:model.blur="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_value" type="number" min="0" max="{{ $maxValue }}" step="1" @disabled($disabled) class="min-h-11 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-100">
+                                                <select wire:model.live="stages.{{ $stageIndex }}.{{ $slaField['key'] }}_unit" @disabled($disabled) class="min-h-11 min-w-20 rounded-lg border border-slate-300 bg-white px-2 py-2 disabled:bg-slate-100"><option value="minutes">phút</option><option value="hours">giờ</option><option value="days">ngày</option></select>
                                             </div>
-                                            @error('stages.'.$stageIndex.'.'.$slaField['key'].'_value')
-                                                <span class="mt-1 block text-xs font-medium text-red-600">
-                                                    @if($slaField['key'] === 'sla') Thời hạn xử lý phải lớn hơn 0 và không vượt quá 365 ngày.
-                                                    @elseif($slaField['key'] === 'warning') Cảnh báo phải từ 0 đến thời hạn xử lý.
-                                                    @else Thời gian gia hạn phải từ 0 đến 365 ngày.
-                                                    @endif
-                                                </span>
-                                            @enderror
+                                            @error('stages.'.$stageIndex.'.'.$slaField['key'].'_value')<span class="mt-1 block text-xs font-medium text-red-600">@if($slaField['key'] === 'sla') Thời hạn xử lý phải lớn hơn 0 và không vượt quá 365 ngày.@elseif($slaField['key'] === 'warning') Cảnh báo phải từ 0 đến thời hạn xử lý.@else Thời gian gia hạn phải từ 0 đến 365 ngày.@endif</span>@enderror
                                             @if($slaField['key'] === 'warning')<span class="mt-1 block text-xs font-normal text-slate-500">Để trống hoặc nhập 0 nếu không cần cảnh báo trước hạn.</span>@endif
                                         </label>
                                     @endforeach
                                 </div>
 
-                                <label class="mt-4 block text-sm font-medium text-slate-700">
-                                    Hành vi sau khi quá hạn
-                                    <select wire:model.live="stages.{{ $stageIndex }}.timeout_action" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
-                                        <option value="notify_only">Chỉ đánh dấu quá hạn, vẫn cho phép xử lý</option>
-                                        <option value="suspend">Tạm dừng sau khi hết thời gian gia hạn</option>
-                                    </select>
-                                    @error('stages.'.$stageIndex.'.timeout_action')<span class="mt-1 block text-xs font-medium text-red-600">Hãy chọn một hành vi quá hạn hợp lệ.</span>@enderror
-                                </label>
+                                <label class="mt-4 block text-sm font-medium text-slate-700">Hành vi sau khi quá hạn<select wire:model.live="stages.{{ $stageIndex }}.timeout_action" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="notify_only">Chỉ đánh dấu quá hạn, vẫn cho phép xử lý</option><option value="suspend">Tạm dừng sau khi hết thời gian gia hạn</option></select>@error('stages.'.$stageIndex.'.timeout_action')<span class="mt-1 block text-xs font-medium text-red-600">Hãy chọn một hành vi quá hạn hợp lệ.</span>@enderror</label>
 
-                                <div class="mt-4 rounded-xl border border-slate-200 bg-white/80 p-3">
-                                    <div class="text-sm font-semibold text-slate-800">Thông báo email</div>
-                                    <p class="mt-1 text-xs leading-5 text-slate-600">Khi tắt email, thông báo trong ứng dụng vẫn được tạo.</p>
-                                    <div class="mt-2 grid gap-2 md:grid-cols-2">
-                                        <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_assignment" class="h-4 w-4 rounded border-slate-300"> Khi đến lượt duyệt</label>
-                                        <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_decision" class="h-4 w-4 rounded border-slate-300"> Kết quả xử lý cho người đề nghị</label>
-                                        <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700 md:col-span-2"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_sla_warning" @disabled(! $warningConfigured) class="h-4 w-4 rounded border-slate-300 disabled:opacity-50"> Cảnh báo SLA cho người duyệt</label>
-                                    </div>
-                                </div>
-
+                                <div class="mt-4 rounded-xl border border-slate-200 bg-white/80 p-3"><div class="text-sm font-semibold text-slate-800">Thông báo email</div><p class="mt-1 text-xs leading-5 text-slate-600">Khi tắt email, thông báo trong ứng dụng vẫn được tạo.</p><div class="mt-2 grid gap-2 md:grid-cols-2"><label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_assignment" class="h-4 w-4 rounded border-slate-300"> Khi đến lượt duyệt</label><label class="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_decision" class="h-4 w-4 rounded border-slate-300"> Kết quả xử lý cho người đề nghị</label><label class="flex min-h-11 items-center gap-2 text-sm text-slate-700 md:col-span-2"><input type="checkbox" wire:model.live="stages.{{ $stageIndex }}.email_on_sla_warning" @disabled(! $warningConfigured) class="h-4 w-4 rounded border-slate-300 disabled:opacity-50"> Cảnh báo SLA cho người duyệt</label></div></div>
                                 @error('stages')<p class="mt-3 text-xs font-medium text-red-600">Cấu hình SLA chưa hợp lệ. Hãy kiểm tra thời hạn, cảnh báo và hành vi quá hạn.</p>@enderror
                                 <p class="mt-3 text-xs font-medium text-indigo-800">SLA không tự động phê duyệt hoặc từ chối đề nghị.</p>
                             </fieldset>
@@ -186,70 +286,26 @@
                 </div>
             </section>
 
-            <section id="request-designer-audience" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-audience-title">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h2 id="request-audience-title" class="text-lg font-semibold text-slate-900">Đối tượng được phép tạo đề nghị</h2>
-                        <p class="mt-1 text-sm text-slate-600">Chọn chính xác người dùng được nhìn thấy và tạo loại đề nghị này sau khi phát hành.</p>
-                    </div>
-                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $hasAudience ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800' }}">{{ $hasAudience ? 'Đã phân quyền' : 'Chưa phân quyền' }}</span>
-                </div>
+            <section id="request-designer-audience" x-show="activeWorkspace === 'audience'" class="hidden rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="request-audience-title">
+                <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 id="request-audience-title" class="text-lg font-semibold text-slate-900">Đối tượng được phép tạo đề nghị</h2><p class="mt-1 text-sm text-slate-600">Chọn chính xác người dùng được nhìn thấy và tạo loại đề nghị này sau khi phát hành.</p></div><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $hasAudience ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800' }}">{{ $hasAudience ? 'Đã phân quyền' : 'Chưa phân quyền' }}</span></div>
 
                 @if($canManageAudience)
                     <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                                <div class="text-sm font-semibold text-indigo-950">Phân quyền tạo đề nghị theo người dùng</div>
-                                <p class="mt-1 text-xs leading-5 text-indigo-800">Chỉ những tài khoản được chọn mới nhận loại đề nghị này trong Danh mục đề nghị.</p>
-                            </div>
-                            <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-800">Đã chọn {{ count($audienceUserIds) }} người</span>
-                        </div>
-
-                        <label class="mt-4 block text-sm font-medium text-slate-700">
-                            Tìm người dùng
-                            <input
-                                type="search"
-                                wire:model.live.debounce.300ms="audienceSearch"
-                                placeholder="Nhập tên hoặc email"
-                                class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
-                            >
-                        </label>
-
+                        <div class="flex flex-wrap items-center justify-between gap-2"><div><div class="text-sm font-semibold text-indigo-950">Phân quyền tạo đề nghị theo người dùng</div><p class="mt-1 text-xs leading-5 text-indigo-800">Chỉ những tài khoản được chọn mới nhận loại đề nghị này trong Danh mục đề nghị.</p></div><span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-800">Đã chọn {{ count($audienceUserIds) }} người</span></div>
+                        <label class="mt-4 block text-sm font-medium text-slate-700">Tìm người dùng<input type="search" wire:model.live.debounce.300ms="audienceSearch" placeholder="Nhập tên hoặc email" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"></label>
                         <div class="mt-3 grid max-h-80 gap-2 overflow-y-auto pr-1 sm:grid-cols-2" role="group" aria-label="Người dùng được phép tạo đề nghị">
                             @forelse($audienceUsers as $audienceUser)
-                                <label wire:key="request-audience-user-{{ $audienceUser->id }}" class="flex min-h-14 cursor-pointer items-start gap-3 rounded-lg border p-3 {{ $audienceUser->unavailable ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white hover:border-indigo-300' }}">
-                                    <input type="checkbox" value="{{ $audienceUser->id }}" wire:model.live="audienceUserIds" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600">
-                                    <span class="min-w-0">
-                                        <span class="block truncate text-sm font-semibold text-slate-900">{{ $audienceUser->name }}</span>
-                                        <span class="mt-0.5 block truncate text-xs {{ $audienceUser->unavailable ? 'text-amber-800' : 'text-slate-500' }}">{{ $audienceUser->unavailable ? 'Bỏ chọn để gỡ quyền cũ' : ($audienceUser->email ?? 'Không có email') }}</span>
-                                    </span>
-                                </label>
-                            @empty
-                                <p class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600 sm:col-span-2">Không tìm thấy người dùng đang hoạt động.</p>
-                            @endforelse
+                                <label wire:key="request-audience-user-{{ $audienceUser->id }}" class="flex min-h-14 cursor-pointer items-start gap-3 rounded-lg border p-3 {{ $audienceUser->unavailable ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white hover:border-indigo-300' }}"><input type="checkbox" value="{{ $audienceUser->id }}" wire:model.live="audienceUserIds" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600"><span class="min-w-0"><span class="block truncate text-sm font-semibold text-slate-900">{{ $audienceUser->name }}</span><span class="mt-0.5 block truncate text-xs {{ $audienceUser->unavailable ? 'text-amber-800' : 'text-slate-500' }}">{{ $audienceUser->unavailable ? 'Bỏ chọn để gỡ quyền cũ' : ($audienceUser->email ?? 'Không có email') }}</span></span></label>
+                            @empty<p class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600 sm:col-span-2">Không tìm thấy người dùng đang hoạt động.</p>@endforelse
                         </div>
                         @error('audienceUserIds')<p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                 @else
-                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4" role="note">
-                        <div class="text-sm font-semibold text-amber-900">Bạn chỉ có quyền xem danh sách này</div>
-                        <p class="mt-1 text-xs leading-5 text-amber-800">Cần quyền “Quản lý đối tượng tạo đề nghị” để thêm hoặc gỡ người dùng.</p>
-                    </div>
-                    <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                        @forelse($audienceUsers as $audienceUser)
-                            <div wire:key="request-audience-readonly-user-{{ $audienceUser->id }}" class="rounded-lg border p-3 {{ $audienceUser->unavailable ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50' }}">
-                                <div class="truncate text-sm font-semibold text-slate-900">{{ $audienceUser->name }}</div>
-                                <div class="mt-0.5 truncate text-xs {{ $audienceUser->unavailable ? 'text-amber-800' : 'text-slate-500' }}">{{ $audienceUser->unavailable ? 'Cần quản trị có quyền gỡ phân quyền cũ' : ($audienceUser->email ?? 'Không có email') }}</div>
-                            </div>
-                        @empty
-                            <p class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 sm:col-span-2">Chưa có người dùng nào được phân quyền trực tiếp.</p>
-                        @endforelse
-                    </div>
+                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4" role="note"><div class="text-sm font-semibold text-amber-900">Bạn chỉ có quyền xem danh sách này</div><p class="mt-1 text-xs leading-5 text-amber-800">Cần quyền “Quản lý đối tượng tạo đề nghị” để thêm hoặc gỡ người dùng.</p></div>
+                    <div class="mt-3 grid gap-2 sm:grid-cols-2">@forelse($audienceUsers as $audienceUser)<div wire:key="request-audience-readonly-user-{{ $audienceUser->id }}" class="rounded-lg border p-3 {{ $audienceUser->unavailable ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50' }}"><div class="truncate text-sm font-semibold text-slate-900">{{ $audienceUser->name }}</div><div class="mt-0.5 truncate text-xs {{ $audienceUser->unavailable ? 'text-amber-800' : 'text-slate-500' }}">{{ $audienceUser->unavailable ? 'Cần quản trị có quyền gỡ phân quyền cũ' : ($audienceUser->email ?? 'Không có email') }}</div></div>@empty<p class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 sm:col-span-2">Chưa có người dùng nào được phân quyền trực tiếp.</p>@endforelse</div>
                 @endif
 
-                @if($preservedAudienceCount > 0)
-                    <p class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">Có {{ $preservedAudienceCount }} quy tắc đối tượng theo vai trò hoặc khả năng khám phá đang được giữ nguyên bởi hệ thống.</p>
-                @endif
+                @if($preservedAudienceCount > 0)<p class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">Có {{ $preservedAudienceCount }} quy tắc đối tượng theo vai trò hoặc khả năng khám phá đang được giữ nguyên bởi hệ thống.</p>@endif
             </section>
         </main>
 
@@ -268,33 +324,11 @@
     </div>
 
     @if($showValidationModal)
-        <div
-            class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="request-validation-modal-title"
-            aria-describedby="request-validation-modal-description"
-            wire:click.self="closeValidationModal"
-            wire:keydown.escape.window="closeValidationModal"
-        >
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="alertdialog" aria-modal="true" aria-labelledby="request-validation-modal-title" aria-describedby="request-validation-modal-description" wire:click.self="closeValidationModal" wire:keydown.escape.window="closeValidationModal">
             <div class="w-full max-w-lg rounded-2xl border border-red-200 bg-white p-5 shadow-2xl sm:p-6">
-                <div class="flex items-start gap-4">
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-xl font-bold text-red-700" aria-hidden="true">!</div>
-                    <div class="min-w-0">
-                        <h2 id="request-validation-modal-title" class="text-lg font-bold text-slate-900">{{ $validationModalTitle }}</h2>
-                        <p id="request-validation-modal-description" class="mt-1 text-sm leading-6 text-slate-600">
-                            {{ str_contains($validationModalTitle, 'phát hành') ? 'Phiên bản chưa được phát hành.' : 'Bản nháp chưa được lưu.' }} Hãy hoàn thiện các mục sau rồi thử lại:
-                        </p>
-                    </div>
-                </div>
-                <ul class="mt-4 max-h-64 list-disc space-y-2 overflow-y-auto rounded-xl border border-red-100 bg-red-50 p-4 pl-9 text-sm leading-6 text-red-800">
-                    @foreach($validationModalMessages as $message)
-                        <li wire:key="request-validation-message-{{ $loop->index }}">{{ $message }}</li>
-                    @endforeach
-                </ul>
-                <div class="mt-5 flex justify-end">
-                    <button type="button" wire:click="closeValidationModal" class="min-h-11 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Quay lại chỉnh sửa</button>
-                </div>
+                <div class="flex items-start gap-4"><div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-xl font-bold text-red-700" aria-hidden="true">!</div><div class="min-w-0"><h2 id="request-validation-modal-title" class="text-lg font-bold text-slate-900">{{ $validationModalTitle }}</h2><p id="request-validation-modal-description" class="mt-1 text-sm leading-6 text-slate-600">{{ str_contains($validationModalTitle, 'phát hành') ? 'Phiên bản chưa được phát hành.' : 'Bản nháp chưa được lưu.' }} Hãy hoàn thiện các mục sau rồi thử lại:</p></div></div>
+                <ul class="mt-4 max-h-64 list-disc space-y-2 overflow-y-auto rounded-xl border border-red-100 bg-red-50 p-4 pl-9 text-sm leading-6 text-red-800">@foreach($validationModalMessages as $message)<li wire:key="request-validation-message-{{ $loop->index }}">{{ $message }}</li>@endforeach</ul>
+                <div class="mt-5 flex justify-end"><button type="button" wire:click="closeValidationModal" class="min-h-11 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Quay lại chỉnh sửa</button></div>
             </div>
         </div>
     @endif
