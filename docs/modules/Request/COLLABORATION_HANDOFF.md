@@ -3,140 +3,170 @@
 - Last updated: 2026-08-27
 - Repository: `tungocvan/laravel-shop`
 - Base branch: `main`
-- Closeout branch: `docs/request-pr53-handoff-closeout`
-- Completed source PR: `#53 fix(request): allow production E2E demo seeding with REQUEST_ENV`
-- Completed source PR state: **MERGED**
-- Source PR merge commit: `9d4bd2869f5604ffa1a0760528cd297af370a3bb`
-- Source PR head checkpoint: `db9f62cfd94427f1523f2fc47bf2011d6b356702`
-- Main checkpoint after PR #53 merge: `9d4bd2869f5604ffa1a0760528cd297af370a3bb`
+- Working branch: `fix/request-demo-seeder-config-cache`
+- Pull request: **PENDING — not created**
+- Merge commit: **NOT AVAILABLE**
+- Main checkpoint inspected: `62afb2e31b9fcf68656768885fee8ffcf3a5ca5b`
+- Source checkpoint before handoff refresh: `e3d5b4e34e413bf70e976cb40c489f6a5134cb33`
 
 ## Checkpoint status
 
 - Request ClientPortal MR-3 through MR-5: **COMPLETED**
-- Production Docker/readiness source integration: **COMPLETED**
-- PR #53 production E2E demo-seeder correction: **COMPLETED / MERGED**
-- Request production runtime state: **outside this source checkpoint**
-- Production demo-data execution: **NOT EXECUTED by PR #53; separate explicit production operation**
+- PR #53 production E2E demo-seeder opt-in: **COMPLETED / MERGED**
+- PR #54 handoff closeout: **COMPLETED / MERGED**
+- Current config-cache corrective batch: **IN PROGRESS — source/test/docs implemented; owner focused test pending**
+- Production demo-data execution after this correction: **NOT YET RETRIED**
 - Next Request application MR/phase: **NOT DETERMINED**
 
-## What PR #53 delivered
+## Production defect reproduced
 
-PR #53 intentionally changed only the production demo-test path for Request and its documentation:
-
-1. `Database\\Seeders\\RequestE2EDemoSeeder` may run on `APP_ENV=production` only when `REQUEST_ENV=true`;
-2. production remains blocked by default when `REQUEST_ENV` is absent or false;
-3. `docs/modules/Request/DEMO_SEEDER_RUNBOOK.md` documents the repeatable local/production demo-test procedure;
-4. the change does not modify Request workflow/domain rules, routes, permission model, Module runtime-state mechanism, Docker architecture or demo seeders from other Modules.
-
-The merged production guard is:
+Production used cached Laravel configuration. With host `.env` containing:
 
 ```text
-APP_ENV=production + REQUEST_ENV missing/false
-    -> RequestE2EDemoSeeder rejected
-
-APP_ENV=production + REQUEST_ENV=true
-    -> RequestE2EDemoSeeder allowed to run explicitly
+REQUEST_ENV=true
 ```
 
-`REQUEST_ENV` remains the single explicit opt-in for Request demo seeding. No second E2E enablement flag was added.
-
-## Standard production demo-test flow
-
-The canonical command/runbook is:
+the exact application container reported:
 
 ```text
+app_env             = production
+env_REQUEST_ENV     = null
+config_demo_enabled = true
+```
+
+`RequestE2EDemoSeeder` still rejected execution because PR #53 used direct runtime access:
+
+```php
+env('REQUEST_ENV', false)
+```
+
+This is incompatible with the production config-cache contract. `env()` outside config files may return `null` after Laravel configuration is cached even though the effective application config is correct.
+
+## Corrective scope
+
+This branch is intentionally narrow:
+
+1. change `RequestE2EDemoSeeder` to gate production execution using:
+
+```php
+config('request.settings.demo_seeders_enabled', false)
+```
+
+2. add a focused contract test preventing a regression back to direct `env('REQUEST_ENV')` access;
+3. update `docs/modules/Request/DEMO_SEEDER_RUNBOOK.md` with cached-config behavior and corrected Artisan namespace quoting;
+4. add `docs/PRODUCTION_DOCKER_WORKFLOW_GUARDRAILS.md` so the `env()` vs `config()` rule and Compose-project/runtime lessons apply to future production work;
+5. do not alter Request domain workflow, Module state, permission model, migrations or unrelated seeders.
+
+## Files before this handoff-only update
+
+GitHub comparison against `main` showed branch `ahead`, `behind_by: 0`, with exactly:
+
+```text
+database/seeders/RequestE2EDemoSeeder.php
+tests/Feature/Modules/RequestE2EDemoSeederConfigGateTest.php
 docs/modules/Request/DEMO_SEEDER_RUNBOOK.md
+docs/PRODUCTION_DOCKER_WORKFLOW_GUARDRAILS.md
 ```
 
-For Docker production, the workflow must follow the applicable production guardrails and at minimum:
+This handoff file is the fifth expected PR file and exists to satisfy the collaboration gate before PR creation.
 
-1. identify the exact Compose project and target containers before any command;
-2. update production source to the intended `main` checkpoint;
-3. determine whether the changed file is image-baked or bind-mounted and rebuild/recreate the affected services when required;
-4. verify inside the exact application container that Request is enabled and `request.settings.demo_seeders_enabled=true`;
-5. keep `APP_ENV=production` and set `REQUEST_ENV=true` only for the intentional demo-test window;
-6. run `Database\\Seeders\\RequestE2EDemoSeeder` explicitly with `--force`;
-7. verify created users, roles/permissions, Request definitions, starter templates and E2E lifecycle data;
-8. verify Request routes plus representative Admin/ClientPortal UI and authorization behavior;
-9. return `REQUEST_ENV=false` after the test window unless there is an explicit reason to retain the opt-in;
-10. do not assume disabling `REQUEST_ENV` deletes existing demo data.
+## Runtime configuration rule
 
-For the production site discussed during this checkpoint, the correct Compose project was identified as `tnv`; generic `docker compose ...` commands previously targeted a second `laravel-app` stack and produced misleading diagnostics. Future production work must re-verify the project name rather than relying on historical assumptions.
+Production runtime must follow:
+
+```text
+.env
+  ↓
+config files call env()
+  ↓
+Laravel cached/effective configuration
+  ↓
+application / command / seeder / service calls config()
+```
+
+Do not use direct `env()` access in application runtime as an acceptance gate.
+
+For Request demo seeding:
+
+```text
+REQUEST_ENV=true
+        ↓
+request.settings.demo_seeders_enabled=true
+        ↓
+RequestE2EDemoSeeder reads config()
+```
+
+`optimize:clear` was useful only to diagnose the defect. It must not become the normal workaround for a runtime component that reads `env()` incorrectly.
+
+## Seeder command correction
+
+Before seed, verify the class exists:
+
+```bash
+docker compose -p tnv exec -T app php artisan tinker --execute='
+dump(class_exists(\Database\Seeders\RequestE2EDemoSeeder::class));
+'
+```
+
+Canonical Docker command:
+
+```bash
+docker compose -p tnv exec -T app php artisan db:seed \
+  --class="Database\\Seeders\\RequestE2EDemoSeeder" \
+  --force
+```
+
+The shell must pass the actual PHP class name with single namespace separators:
+
+```text
+Database\Seeders\RequestE2EDemoSeeder
+```
 
 ## Production safety boundary
 
-Merge of PR #53 does **not** itself authorize or perform:
+This branch does not itself:
 
-- production demo seeding;
-- Request Module enable/disable mutation;
-- database migration outside the canonical Module lifecycle;
-- permission bypass;
-- automatic seeding during Docker build, entrypoint or deploy;
-- cleanup/deletion of demo data;
-- changes to other Module seeders.
+- seed production data;
+- enable/disable Request;
+- bypass permission checks;
+- change Role/Spatie infrastructure;
+- migrate/reset the database;
+- clear existing demo data;
+- authorize a new Request application feature phase.
 
-Request production acceptance must continue to verify applicable layers independently:
+Production retry after merge remains a separate explicit operation on the correct Compose project/runtime.
 
-```text
-container/image/source freshness
-effective ENV/config
-runtime Module state
-database/migration readiness
-Role/Spatie permission infrastructure
-admin/web guard assignments
-registered routes
-HTTP/UI behavior
-queue-request / scheduler / Redis
-private storage ownership and persistence
-```
+## Focused verification required
 
-A runtime Module state of `true` is not sufficient acceptance by itself, and a route appearing in `route:list` does not prove the intended actor has authorization.
-
-## Verification evidence for PR #53
-
-Owner local verification on `fix/request-production-demo-seeder` recorded:
-
-```text
-## fix/request-production-demo-seeder...origin/fix/request-production-demo-seeder
-No syntax errors detected in database/seeders/RequestE2EDemoSeeder.php
-```
-
-Commands recorded as PASS:
+Owner local test should be limited to:
 
 ```bash
+php artisan test tests/Feature/Modules/RequestE2EDemoSeederConfigGateTest.php
 php -l database/seeders/RequestE2EDemoSeeder.php
 git diff --check main...HEAD
 ```
 
-GitHub verification after merge:
+Do not run the full test suite for this corrective batch unless a focused failure expands the scope.
 
-```text
-PR: #53
-state: closed
-merged: true
-head: db9f62cfd94427f1523f2fc47bf2011d6b356702
-merge commit: 9d4bd2869f5604ffa1a0760528cd297af370a3bb
-changed files: 3
-```
+## PR gate status
 
-The merged files were:
-
-```text
-database/seeders/RequestE2EDemoSeeder.php
-docs/modules/Request/DEMO_SEEDER_RUNBOOK.md
-docs/modules/Request/COLLABORATION_HANDOFF.md
-```
-
-This evidence is repository/local verification, not GitHub Actions CI and not evidence that the production E2E seeder has already been executed successfully.
-
-## Closeout scope
-
-This docs-only closeout exists because the handoff committed before PR #53 creation still contained `Pull request: PENDING — not created`. PR #53 is already merged, so this closeout updates the historical checkpoint only.
-
-This closeout does not modify application source and does not create a new Request feature phase.
+- [x] Corrective branch created from current `main`.
+- [x] Branch comparison: ahead, behind_by=0 before handoff refresh.
+- [x] Seeder source corrected to runtime `config()`.
+- [x] Focused regression test added.
+- [x] Request demo runbook corrected.
+- [x] Production Docker guardrails added.
+- [x] Handoff refreshed before PR.
+- [ ] Owner focused test PASS.
+- [ ] Pull request created and actual PR number recorded.
+- [ ] PR review/diff gate completed.
+- [ ] Merge explicitly authorized.
+- [ ] Production E2E seeder retried after merged/deployed correction.
 
 ## Next authorized step
 
-After this handoff closeout is merged, the next work may be the separately authorized production demo-test operation using `docs/modules/Request/DEMO_SEEDER_RUNBOOK.md`.
-
-Do not automatically name or begin a new Request application MR/phase. If production execution reveals a defect, capture the exact failing command, correct Compose project, effective configuration and deployed source checkpoint before proposing a new corrective branch.
+1. Owner switches local repository to `fix/request-demo-seeder-config-cache` and runs only the focused verification commands above.
+2. If PASS, create/review the corrective PR into `main`.
+3. Do not merge until explicitly approved.
+4. After merge/deploy, verify effective config through `config()` and retry the production E2E seeder on the correct `tnv` stack.
+5. Do not begin a new Request feature MR/phase as part of this corrective batch.
