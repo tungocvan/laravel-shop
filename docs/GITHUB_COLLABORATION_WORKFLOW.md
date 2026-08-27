@@ -359,14 +359,19 @@ Trước và sau thao tác bật/tắt phải kiểm tra dependency, trạng th�
 
 ## 12. Docker / production
 
-Nếu feature tạo runtime file/directory:
+Mọi task có liên quan tới triển khai, diagnose, acceptance, thay đổi runtime hoặc enable/disable Module trên môi trường Production Docker **bắt buộc phải đọc và tuân thủ**:
 
-- kiểm tra `Dockerfile`
-- kiểm tra `docker/entrypoint.sh`
-- kiểm tra volume persistence
-- kiểm tra ownership của `www-data`
-- phân biệt CLI chạy bằng `root` với PHP-FPM chạy bằng `www-data`
-- không dùng `chmod 777`
+```text
+docs/PRODUCTION_DOCKER_WORKFLOW_GUARDRAILS.md
+```
+
+Tài liệu trên là canonical production Docker guardrail của repository và phải được áp dụng cùng workflow này trước khi đề xuất lệnh production hoặc kết luận production đã PASS.
+
+Tối thiểu phải xác định đúng ENV contract, image/container source, bind mount/volume, rebuild/recreate requirement, database/migration readiness, Module/permission readiness, runtime ownership/process user, queue/scheduler lifecycle, route registration và HTTP/UI smoke applicable.
+
+Không kết luận production đã nhận thay đổi chỉ từ Git HEAD trên host. Không kết luận Module đã hoạt động chỉ vì runtime state là `true`.
+
+Nếu feature tạo runtime file/directory, vẫn phải kiểm tra `Dockerfile`, `docker/entrypoint.sh`, volume persistence, ownership/mode của runtime user thực tế và không dùng `chmod 777`.
 
 ## 13. Working tree đang dirty
 
@@ -457,6 +462,8 @@ Nếu dữ liệu không nhất quán, dừng để người dùng xác nhận t
 
 Nếu working scope có Admin UI, bootstrap phải ghi nhận `.codex/standards/ADMIN_UI_STANDARD.md` là tài liệu bắt buộc và phải đọc trước khi đưa ra plan hoặc sửa UI.
 
+Nếu working scope có triển khai, diagnose, acceptance hoặc runtime operation trên Production Docker, bootstrap phải ghi nhận `docs/PRODUCTION_DOCKER_WORKFLOW_GUARDRAILS.md` là tài liệu bắt buộc và phải đọc trước khi đưa ra production plan hoặc lệnh vận hành.
+
 ### 16.4 Xác minh Module và cây fallback tài liệu
 
 Phải xác minh chính xác `Modules/<Module>` trước. Nếu không tồn tại, không tự chọn Module có tên gần giống; phải kiểm tra sai tên, chữ hoa/thường, branch thiếu source, tài liệu orphan hoặc yêu cầu tạo Module mới.
@@ -510,7 +517,7 @@ Dừng và yêu cầu xác nhận tên Module, branch hoặc đây có phải Mo
 
 1. Source code, schema và configuration hiện tại; với cơ chế Module phải đối chiếu thêm `Modules/ModuleServiceProvider.php`, `ModuleStateResolver` và runtime state repository.
 2. Branch, PR và checkpoint thực tế trên GitHub.
-3. `.codex/bootstrap/*`, `.codex/standards/*` và `ROADMAP.md`; riêng Admin UI, `.codex/standards/ADMIN_UI_STANDARD.md` là canonical UI/UX standard và phải được áp dụng cùng repository reality/shared components hiện tại.
+3. `.codex/bootstrap/*`, `.codex/standards/*` và `ROADMAP.md`; riêng Admin UI, `.codex/standards/ADMIN_UI_STANDARD.md` là canonical UI/UX standard và phải được áp dụng cùng repository reality/shared components hiện tại; riêng Production Docker, `docs/PRODUCTION_DOCKER_WORKFLOW_GUARDRAILS.md` là canonical runtime/deployment guardrail và phải được áp dụng cùng source/Docker/Compose reality hiện tại.
 4. Handoff đã được kiểm chứng.
 5. Requirements/analysis/tài liệu Module.
 6. Tài liệu lịch sử hoặc kế hoạch cũ.
