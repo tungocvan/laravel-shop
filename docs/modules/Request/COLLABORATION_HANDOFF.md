@@ -15,8 +15,9 @@
 - Cached-configuration correction through PR #55: **COMPLETED / MERGED**
 - Request Type Designer / Approval & SLA UX update through PR #56: **COMPLETED / MERGED**
 - Local Git synchronization on final PR #56 checkpoint: **PASS** — `main == origin/main == 2bf622c3`, working tree clean
-- Production E2E demo-data execution after PR #55: **NOT EVIDENCED / NOT CONFIRMED**
-- Request production enablement: **NOT AUTHORIZED**
+- Production E2E demo-data execution after PR #55: **COMPLETED / OWNER CONFIRMED ON PRODUCTION**
+- Production runtime enable/disable after Docker rebuild: **COMPLETED / OWNER VERIFIED**
+- Current Request production effective state: **ON / OWNER CONFIRMED**
 - Post-merge handoff through PR #56: **COMPLETED**
 
 ## Integrated delivery checkpoints
@@ -43,13 +44,15 @@ default_enabled=false
 18 Request tables
 ```
 
-Merging Request source does not enable the Module on production. Runtime enable/disable remains owned by the canonical Module-state mechanism and its persistent runtime state under:
+`Modules/Request/config/module.php` remains the Request manifest for Module metadata, dependencies, default state, permissions and expected tables. PR #49 removed the old behavior that mutated this tracked manifest when an operator toggled a Module; it did not remove the manifest from Module discovery or readiness checks.
+
+Runtime enable/disable is owned by the canonical Module-state mechanism and its persistent runtime state under:
 
 ```text
 storage/app/system/module-state.json
 ```
 
-Do not edit the runtime-state JSON or the Module manifest manually merely to enable/disable Request.
+The source default remains `default_enabled=false`, while the owner confirms that the current effective production state is `ON` after the canonical runtime operation and Docker rebuild. Do not edit the runtime-state JSON or the Module manifest manually merely to enable/disable Request.
 
 ### Production E2E demo gate
 
@@ -117,13 +120,26 @@ On the destination DELL machine:
 
 ```text
 branch: main
-HEAD: 2bf622c3
+HEAD: 047f54fe
 upstream: origin/main
 working tree: clean
 local-only commits on main: none
 ```
 
-No post-merge automated test rerun on `main` was supplied as part of this docs-only closeout.
+No post-merge automated test rerun on `main` was supplied as part of the preceding docs-only closeout.
+
+## Owner-confirmed production state
+
+The owner supplied the following production acceptance evidence after the preceding handoff closeout:
+
+```text
+Docker rebuild: COMPLETED
+Runtime enable/disable operation: COMPLETED / VERIFIED
+Current Request effective state: ON
+Production E2E demo seeding: COMPLETED
+```
+
+This is owner-provided operational evidence. This corrective docs-only closeout records the final state; it does not itself rebuild Docker, toggle the Module, run seeders or mutate production.
 
 ## Known blocker and deferred work
 
@@ -138,10 +154,9 @@ The current Request manifest contains 35 admin-guard permissions. PR #56 recorde
 The following remain separate work and are not performed by this closeout:
 
 1. a focused corrective batch for the stale readiness permission-count contract;
-2. production deploy/preflight and verification of effective Request configuration;
-3. optional production E2E demo seeding under an explicit operation;
-4. runtime enablement of Request;
-5. any new Request application feature MR/phase.
+2. any new Request application feature MR/phase.
+
+The stale `31` versus `35` permission assertion is independent of runtime toggling: the manifest is still the source of the permission contract even though enable/disable state is no longer written into that tracked file.
 
 ## Production safety boundary
 
@@ -156,13 +171,13 @@ This handoff and its docs-only closeout do not:
 - deploy containers or change the active Compose stack;
 - authorize a new Request feature phase.
 
-Production E2E retry remains **NOT CONFIRMED** until an explicitly authorized operator run provides evidence from the correct `tnv` Compose project/runtime.
+Production E2E demo seeding is **COMPLETED / OWNER CONFIRMED** on the production runtime.
 
-Request production enablement remains **NOT AUTHORIZED**. Before any future enablement, follow the canonical readiness order: migration/schema readiness, runtime Module enablement, cache rebuild, permissions, private storage, workers/scheduler, smoke tests, rollback readiness and Git-clean verification.
+Request production effective state is **ON / OWNER CONFIRMED** after Docker rebuild and completion of the runtime enable/disable operation. The source default remains disabled and must not be changed merely to mirror production runtime state. Any future ON/OFF mutation remains a separate explicit operation and must continue to follow the canonical readiness order: migration/schema readiness, runtime Module state, cache rebuild, permissions, private storage, workers/scheduler, smoke tests, rollback readiness and Git-clean verification.
 
 ## Next authorized step
 
 1. Review and propose a narrowly scoped correction for the stale `RequestReleaseReadinessContractTest` permission-count assertion; do not implement it without explicit approval.
-2. Keep production E2E seeder retry and Request runtime enablement as separate explicitly authorized operations.
+2. Preserve the recorded production state as `ON`; any future runtime toggle or production mutation requires separate explicit authorization.
 3. Do not name or begin another Request application MR/phase until a source/documented requirement and explicit authorization exist.
 4. Until then, the next Request application MR/phase remains **NOT DETERMINED**.
