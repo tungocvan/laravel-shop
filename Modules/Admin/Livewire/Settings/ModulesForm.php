@@ -4,8 +4,8 @@ namespace Modules\Admin\Livewire\Settings;
 
 use App\Modules\ModuleLifecycleManager;
 use App\Modules\ModulePermissionManager;
+use App\Modules\ModuleStateRepository;
 use App\Services\RealtimeManager;
-use Illuminate\Support\Facades\File;
 use Livewire\Component;
 
 class ModulesForm extends Component
@@ -70,12 +70,19 @@ class ModulesForm extends Component
         })->sortBy(['type', 'name'])->values()->all();
     }
 
-    public function toggleModule($moduleName, ModuleLifecycleManager $lifecycle, ModulePermissionManager $permissions)
-    {
+    public function toggleModule(
+        $moduleName,
+        ModuleLifecycleManager $lifecycle,
+        ModulePermissionManager $permissions,
+        ModuleStateRepository $states,
+    ) {
         $module = collect($this->modules)->firstWhere('name', $moduleName);
-        if (!$module) return;
+        if (! $module) {
+            return;
+        }
 
-        $newEnabled = !$module['enabled'];
+        $newEnabled = ! $module['enabled'];
+        $migration = ['migrated' => false];
 
         if (! $newEnabled && $module['required']) {
             session()->flash('error', "{$moduleName} là Shell Module bắt buộc và không thể tắt.");
@@ -114,25 +121,24 @@ class ModulesForm extends Component
             return;
         }
 
-        // Update manifest file
-        $success = $this->updateModuleManifest($module['path'], $newEnabled);
-
-        if ($success) {
-            // Update in-memory config
-            config(['modules.registry.' . $moduleName . '.enabled' => $newEnabled]);
-
-            if (! $newEnabled) {
-                $permissions->forgetCache();
-            }
-
-            // Reload modules
-            $this->loadModules();
-
-            $suffix = $newEnabled && ($migration['migrated'] ?? false) ? ' và đã migrate database' : '';
-            $suffix .= $newEnabled && $permissionCount > 0 ? "; đã đồng bộ {$permissionCount} quyền" : '';
-            session()->flash('message', 'Module ' . $moduleName . ' đã được ' . ($newEnabled ? 'bật' : 'tắt') . $suffix);
+        try {
+            $states->set($moduleName, $newEnabled);
+        } catch (\Throwable $e) {
+            session()->flash('error', "Không thể cập nhật trạng thái runtime module {$moduleName}: {$e->getMessage()}");
+            return;
         }
-        // If not successful, error message is already set in updateModuleManifest
+
+        config(['modules.registry.' . $moduleName . '.enabled' => $newEnabled]);
+
+        if (! $newEnabled) {
+            $permissions->forgetCache();
+        }
+
+        $this->loadModules();
+
+        $suffix = $newEnabled && ($migration['migrated'] ?? false) ? ' và đã migrate database' : '';
+        $suffix .= $newEnabled && $permissionCount > 0 ? "; đã đồng bộ {$permissionCount} quyền" : '';
+        session()->flash('message', 'Module ' . $moduleName . ' đã được ' . ($newEnabled ? 'bật' : 'tắt') . $suffix);
     }
 
     public function deleteModule(string $moduleName, ModuleLifecycleManager $lifecycle): void
@@ -152,47 +158,6 @@ class ModulesForm extends Component
         } catch (\Throwable $e) {
             session()->flash('error', $e->getMessage());
         }
-    }
-
-    private function updateModuleManifest($modulePath, $enabled)
-    {
-        $manifestPaths = [
-            $modulePath . '/config/module.php',
-            $modulePath . '/Config/module.php',
-        ];
-
-        foreach ($manifestPaths as $manifestPath) {
-            if (File::exists($manifestPath)) {
-                try {
-                    // Check if file is writable
-                    if (!File::isWritable($manifestPath)) {
-                        throw new \Exception("File không có quyền ghi: {$manifestPath}");
-                    }
-
-                    $manifest = require $manifestPath;
-
-                    if (is_array($manifest)) {
-                        $manifest['enabled'] = $enabled;
-
-                        $content = "<?php\n\nreturn " . var_export($manifest, true) . ";\n";
-                        File::put($manifestPath, $content);
-                        clearstatcache(true, $manifestPath);
-
-                        if (function_exists('opcache_invalidate')) {
-                            opcache_invalidate($manifestPath, true);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    // Log error and show user-friendly message
-                    \Log::error("Không thể cập nhật manifest module: " . $e->getMessage());
-                    session()->flash('error', 'Không thể cập nhật module: ' . $e->getMessage());
-                    return false;
-                }
-                break;
-            }
-        }
-
-        return true;
     }
 
     public function render()
