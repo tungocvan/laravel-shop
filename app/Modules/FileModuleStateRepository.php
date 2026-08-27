@@ -7,6 +7,8 @@ use RuntimeException;
 
 class FileModuleStateRepository implements ModuleStateRepository
 {
+    private const FILE_MODE = 0660;
+
     public function __construct(private readonly string $path) {}
 
     public function has(string $module): bool
@@ -78,10 +80,16 @@ class FileModuleStateRepository implements ModuleStateRepository
             throw new RuntimeException('Unable to create module runtime state directory.');
         }
 
-        $lock = fopen($this->path.'.lock', 'c');
+        $lockPath = $this->path.'.lock';
+        $lock = fopen($lockPath, 'c');
 
         if ($lock === false) {
             throw new RuntimeException('Unable to open module runtime state lock.');
+        }
+
+        if (! chmod($lockPath, self::FILE_MODE)) {
+            fclose($lock);
+            throw new RuntimeException('Unable to set module runtime state lock permissions.');
         }
 
         $temporaryPath = null;
@@ -106,6 +114,10 @@ class FileModuleStateRepository implements ModuleStateRepository
 
             if (file_put_contents($temporaryPath, $payload.PHP_EOL) === false) {
                 throw new RuntimeException('Unable to write temporary module runtime state.');
+            }
+
+            if (! chmod($temporaryPath, self::FILE_MODE)) {
+                throw new RuntimeException('Unable to set temporary module runtime state permissions.');
             }
 
             if (! rename($temporaryPath, $this->path)) {
