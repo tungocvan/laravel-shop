@@ -77,7 +77,6 @@ class ModuleLifecycleManager
         $exitCode = Artisan::call('migrate', [
             '--path' => $relativePath,
             '--force' => true,
-            '--no-interaction' => true,
         ]);
 
         if ($exitCode !== 0) {
