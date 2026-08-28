@@ -113,7 +113,7 @@
                     panel.status.textContent = 'Không thể chuyển tệp sang ứng dụng khác. Vui lòng thử lại.';
                     panel.shareButton.disabled = false;
                 }
-            }, {once: true});
+            });
         } catch (error) {
             panel.status.textContent = 'Không thể chuẩn bị tệp. Vui lòng kiểm tra kết nối hoặc quyền truy cập rồi thử lại.';
         }
