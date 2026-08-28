@@ -11,7 +11,8 @@
 - MR-7 status: **MERGED / CLOSED**
 - Active delivery: **MR-8 — PWA Header Account Menu**
 - Active branch: `feat/clientportal-pwa-header-account-menu`
-- MR-8 status: **READY FOR REVIEW — automated/manual UI acceptance passed; local working tree clean**
+- MR-8 pull request: **#68 — OPEN**
+- MR-8 status: **READY FOR MANUAL REVIEW — mergeable; all acceptance gates passed**
 
 ## Stable architecture
 
@@ -147,7 +148,7 @@ MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
 MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
 MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — PR #67
-MR-8 — PWA Header Account Menu: IN PROGRESS
+MR-8 — PWA Header Account Menu: PR #68 OPEN — READY FOR MANUAL REVIEW
 Next MR/phase after MR-8: NOT DETERMINED
 ```
 
@@ -182,11 +183,11 @@ Duration: 8.52s
 - mobile evidence: **PASS at 430 × 932**; the account panel stays inside the viewport and exposes all three actions
 - frontend asset note: the first mobile check used stale compiled Tailwind output; `npm run build` restored the intended responsive positioning without a source correction
 - Git-clean on user local: **CLEAN** (`git status --short` returned no output after synchronizing commit `1095af9f`)
-- pull request: **PENDING — not created**
+- pull request: **#68 — OPEN / READY FOR MANUAL REVIEW**
 - merge commit: **NOT AVAILABLE**
 
 Production deployment remains a separate operational action. MR-8 introduces no new environment variable, Google credential, migration or runtime module-state change.
 
 ## Next-step boundary
 
-MR-8 focused/impacted tests, manual UI acceptance and the user-local Git-clean gate have passed. The branch is ready for a pull request and manual review; merge remains a user-controlled action. The next MR after MR-8 remains **NOT DETERMINED**.
+MR-8 focused/impacted tests, manual UI acceptance and the user-local Git-clean gate have passed. PR #68 is open and mergeable; the next authorized action is user review and manual merge. The next MR after MR-8 remains **NOT DETERMINED**.
