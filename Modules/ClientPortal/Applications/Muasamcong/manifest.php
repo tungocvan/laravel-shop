@@ -24,6 +24,12 @@ return [
                 'view' => 'ClientPortal::applications.muasamcong.partials.sync-queue-status',
             ],
         ],
+        'scripts' => [
+            [
+                'routes' => ['client.muasamcong.price-list*'],
+                'view' => 'ClientPortal::applications.muasamcong.partials.price-list-file-availability',
+            ],
+        ],
     ],
     'quick_actions' => [
         'drug-search' => [
