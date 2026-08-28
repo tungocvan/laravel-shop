@@ -25,7 +25,6 @@
         </div>
     </div>
 </header>
-<main class="mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-10 lg:px-8">@yield('content')</main>
 @php
     $applicationContext = app(\Modules\ClientPortal\Support\ApplicationContext::class)->current();
     $portalNavigation = $applicationContext
@@ -38,6 +37,13 @@
         ? route('client.muasamcong.drug-pricing.sync-status', ['syncRequest' => $syncRequestId])
         : null;
 @endphp
+<div class="mx-auto flex min-h-[calc(100dvh-65px)] max-w-7xl">
+    @include('ClientPortal::partials.adaptive-navigation', [
+        'primaryNavigation' => $primaryNavigation,
+        'moreNavigation' => $moreNavigation,
+    ])
+    <main class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-10 lg:px-8">@yield('content')</main>
+</div>
 @if($syncStatusUrl)
 <div id="queue-status" class="fixed bottom-20 right-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-xl sm:bottom-5" data-status-url="{{ $syncStatusUrl }}" role="status" aria-live="polite">
     <div class="flex items-start gap-3">
@@ -49,35 +55,6 @@
     </div>
 </div>
 @endif
-<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" aria-label="Điều hướng ứng dụng">
-    @if($primaryNavigation->isNotEmpty() || $moreNavigation->isNotEmpty())
-        <div class="mx-auto flex max-w-md items-end justify-around gap-1 text-center text-[11px] font-semibold text-slate-500">
-            @foreach($primaryNavigation as $item)
-                @php($active = request()->routeIs($item['route'], $item['route'].'.*'))
-                <a href="{{ route($item['route']) }}" class="min-w-0 flex-1 rounded-xl px-1 py-2 {{ $active ? 'bg-slate-100 text-slate-950' : 'text-slate-500' }}" @if($active) aria-current="page" @endif>
-                    <span class="mx-auto mb-1 block h-1.5 w-1.5 rounded-full {{ $active ? 'bg-slate-950' : 'bg-slate-300' }}"></span>
-                    <span class="block truncate">{{ $item['name'] }}</span>
-                </a>
-            @endforeach
-            @if($moreNavigation->isNotEmpty())
-                <details class="group relative min-w-0 flex-1">
-                    <summary class="cursor-pointer list-none rounded-xl px-1 py-2 text-slate-500 [&::-webkit-details-marker]:hidden">
-                        <span class="mx-auto mb-1 block h-1.5 w-1.5 rounded-full bg-slate-300"></span>
-                        <span class="block truncate">Thêm</span>
-                    </summary>
-                    <div class="absolute bottom-full right-0 mb-3 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-xl">
-                        @foreach($moreNavigation as $item)
-                            @php($active = request()->routeIs($item['route'], $item['route'].'.*'))
-                            <a href="{{ route($item['route']) }}" class="block rounded-xl px-3 py-2.5 text-sm {{ $active ? 'bg-slate-100 font-bold text-slate-950' : 'font-semibold text-slate-600' }}" @if($active) aria-current="page" @endif>{{ $item['name'] }}</a>
-                        @endforeach
-                    </div>
-                </details>
-            @endif
-        </div>
-    @else
-        <div class="mx-auto max-w-md text-center text-xs font-semibold text-slate-500"><a href="{{ route('client.apps.index') }}" class="inline-flex rounded-xl px-4 py-2"><span class="mr-2">▦</span>Ứng dụng</a></div>
-    @endif
-</nav>
 <script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
 (() => {
