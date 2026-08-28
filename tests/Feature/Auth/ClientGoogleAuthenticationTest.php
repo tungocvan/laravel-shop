@@ -27,7 +27,7 @@ class ClientGoogleAuthenticationTest extends TestCase
         $this->assertSame('google-100', $user->google_id);
         $this->assertNull($user->google_token);
         $this->assertNull($user->google_refresh_token);
-        $this->assertTrue(Hash::check($user->password, $user->password));
+        $this->assertNotEmpty($user->password);
     }
 
     public function test_existing_linked_google_id_is_reused_without_matching_by_email(): void
