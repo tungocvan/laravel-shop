@@ -48,7 +48,10 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod 0755 /usr/local/bin/entrypoint \
     && mkdir -p storage/app storage/app/system storage/app/request/attachments storage/framework storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache Modules \
-    && chmod 2770 storage/app/system storage/app/request storage/app/request/attachments \
+    && find storage/app -type d -exec chmod 2770 {} \; \
+    && find storage/app -type f -exec chmod 0660 {} \; \
+    && find storage/framework storage/logs bootstrap/cache -type d -exec chmod 2770 {} \; \
+    && find storage/framework storage/logs bootstrap/cache -type f -exec chmod 0660 {} \; \
     && find Modules -type d -exec chmod ug+rwx {} \; \
     && find Modules -type f -exec chmod ug+rw {} \;
 ENTRYPOINT ["entrypoint"]
@@ -61,7 +64,7 @@ CMD ["node", "server.js"]
 
 FROM nginx:1.28-alpine AS web
 COPY public /var/www/html/public
-COPY --from=frontend-build /var/www/html/public/build /var/www/html/public/build
+COPY --from=frontend-build /var/www/html/public/build ./public/build
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY docker/nginx/site-snippets /etc/nginx/site-snippets
 RUN ln -s /var/www/html/storage/app/public /var/www/html/public/storage
