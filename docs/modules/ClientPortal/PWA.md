@@ -121,21 +121,19 @@ which resolves to `/my-apps`.
 
 ---
 
-## 4. Google Login limitation
+## 4. Client Google authentication
 
-Google login is intentionally not exposed on the Client PWA login screen at this stage.
+MR-7 added a dedicated Client Google OAuth flow for the `web` guard. It is separate from the Admin Google callback and returns authenticated users to ClientPortal.
 
-Reason: the current Google OAuth implementation is Admin-oriented. `GoogleController` delegates to `Modules\Admin\Services\AuthService`, which logs the account into guard `admin` and redirects to the Admin dashboard.
+The Client flow:
 
-Therefore this would be incorrect:
+- requires a Google-verified email;
+- rejects provider/email ownership conflicts;
+- limits automatic same-email linking to eligible MR-7 OTP-verified accounts;
+- requires an authenticated explicit linking flow for other existing accounts;
+- does not persist Google access or refresh tokens for PWA authentication.
 
-```text
-PWA Login -> Google OAuth -> admin guard
-```
-
-Before Google login can be shown in `/my-apps/login`, a dedicated Client OAuth flow must be designed that authenticates guard `web` and redirects back to ClientPortal.
-
-Do not simply reuse the current Admin Google callback in the PWA UI.
+MR-8 surfaces the existing explicit linking action from ClientPortal account settings; it does not duplicate or weaken Auth-owned identity rules.
 
 ---
 
@@ -307,6 +305,19 @@ For a PWA-oriented session, the preferred post-logout destination is:
 Do not redirect Client PWA users to `/admin/login`.
 
 Admin logout and Client logout are separate flows.
+
+### Header account menu
+
+MR-8 replaces duplicated Header logout actions with one shared ClientPortal account menu on both the `/my-apps` launcher and every application shell.
+
+The menu provides:
+
+- a safe current-user identity summary;
+- read-only account information;
+- Client account settings backed by existing Auth capabilities;
+- the canonical CSRF-protected `POST /logout` action.
+
+The Header presentation remains ClientPortal-owned. Logout, session invalidation and Google linking remain Auth-owned.
 
 ---
 

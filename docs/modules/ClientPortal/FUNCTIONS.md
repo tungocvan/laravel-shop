@@ -186,12 +186,16 @@ ClientPortal::layouts.application
 - quay về launcher;
 - tên application hiện tại;
 - route Dashboard tùy application;
-- logout;
+- shared Header account menu;
+- read-only account information và Client settings;
+- Auth-owned POST logout;
 - mobile bottom navigation;
 - service worker registration;
 - responsive layout;
 - safe area cho thiết bị mobile;
 - queue status UI cho workflow đồng bộ hiện tại.
+
+Header account menu được dùng chung bởi launcher và application shell. ClientPortal chỉ sở hữu presentation/routes phía Client; dữ liệu phiên, logout và Google linking tiếp tục dùng Auth boundary hiện có. `Modules/Account` là Admin domain module và không phải dependency của self-service ClientPortal.
 
 ### Service Worker
 

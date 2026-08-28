@@ -24,11 +24,11 @@
     <div class="mx-auto flex max-w-[1536px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
         <div class="flex min-w-0 items-center gap-3">
             <a href="{{ route('client.apps.index') }}" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg shadow-sm" aria-label="Ứng dụng của tôi">←</a>
-            <div class="min-w-0"><div class="truncate font-bold">@yield('app-name', 'INAFO')</div><div class="truncate text-xs text-slate-500">INAFO Client Application</div></div>
+            <div class="min-w-0"><div class="truncate font-bold">@yield('app-name', 'INAFO')</div><div class="truncate text-xs text-slate-500">@yield('app-subtitle', 'INAFO Client Application')</div></div>
         </div>
         <div class="flex items-center gap-2">
             @hasSection('app-dashboard-route')<a href="@yield('app-dashboard-route')" class="hidden rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:block">Tổng quan</a>@endif
-            <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Đăng xuất</button></form>
+            @include('ClientPortal::partials.account-menu')
         </div>
     </div>
 </header>
