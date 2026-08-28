@@ -8,8 +8,8 @@
 - MR-4 merge commit: `b8ace3f913c2bfab846ee28ee70db2fda625858c`
 - Current MR: **MR-5 — PWA External File Download & Return UX**
 - Feature branch: `fix/clientportal-pwa-external-file-handoff`
-- Pull request: **PENDING — not created**
-- MR-5 status: **IN PROGRESS — WEB SHARE CORRECTIVE IMPLEMENTED / ACCEPTANCE REQUIRED**
+- Pull request: **PENDING — not created yet**
+- MR-5 status: **ACCEPTANCE PASS — PR READY**
 
 ## Stable architecture entering MR-5
 
@@ -23,52 +23,21 @@ MR-1 through MR-4 are merged/closed. MR-4 moved Muasamcong-specific presentation
 
 ## MR-5 trigger and root cause
 
-After MR-4 closeout, manual testing on an installed iPhone PWA found a separate UX defect: opening a generated Excel file replaced the active PWA document with the OS/browser document preview. The user could open the XLSX file, but the PWA workspace/navigation context was no longer available as the active page.
+Manual testing on an installed iPhone PWA found that opening a generated Excel/PDF file could replace the active PWA document with the OS/browser file preview. The application then lost the visible workspace/navigation context.
 
-The relevant backend download routes are authenticated same-origin routes and correctly return files through `Storage::disk('local')->download(...)`. File generation, storage availability and authorization were not the cause.
+The relevant backend download routes remain authenticated same-origin routes. File generation, authorization and storage availability are not changed by MR-5.
 
-The presentation issue is the mobile installed-PWA handoff from an application workspace to an authenticated binary response.
+The required contract is:
 
-Important boundary:
+- preserve the installed-PWA top-level workspace before handing a file to the OS;
+- keep authenticated access and existing permissions unchanged;
+- avoid public temporary URLs;
+- avoid service-worker caching of private binary responses;
+- keep normal desktop/browser native download behavior unchanged.
 
-- a web application cannot require iOS/Excel/native preview to provide a custom "Back to PWA" button;
-- the application must preserve its own top-level workspace before handing the file to the OS;
-- authenticated file access must continue to use the existing session and protected route.
+## MR-5 implementation
 
-## MR-5 approved scope
-
-```text
-MR-5 — PWA External File Download & Return UX
-
-- preserve installed-PWA workspace when downloading/opening Excel/PDF
-- apply the behavior to both Excel and PDF Price List actions
-- keep desktop/ordinary browser native behavior unchanged
-- keep authenticated routes, permissions and file-existence checks unchanged
-- do not create public temporary URLs
-- do not broadly cache private binary responses
-- document the behavior as a project-wide rule for future Modules
-- update docs/GITHUB_COLLABORATION_WORKFLOW.md so future Module work checks this gate
-```
-
-No Request changes, database/schema changes, Module enablement changes, storage-generation changes or production feature activation are part of MR-5.
-
-## MR-5 implementation evolution
-
-### Rejected approach 1 — hidden iframe
-
-The first implementation intercepted Excel/PDF links in installed-PWA mode and loaded the authenticated binary URL through a hidden iframe.
-
-After the VPS was confirmed on the correct MR-5 branch and Laravel cache was cleared, manual iPhone testing reproduced the original native XLSX preview behavior. Hidden iframe is therefore **REJECTED for this iOS installed-PWA case**.
-
-### Rejected approach 2 — external `window.open`
-
-A corrective attempt used a capture-phase handler and `window.open(binaryUrl, '_blank')` to try to move the binary response into an external context.
-
-Manual iPhone testing again reproduced the same old preview behavior. This approach is also **REJECTED** and must not be treated as an accepted generic PWA solution. It additionally risks authenticated-session differences between standalone PWA and external browser contexts.
-
-### Current corrective — authenticated fetch + Web Share File handoff
-
-The current implementation keeps the behavior Muasamcong-scoped through:
+The accepted implementation is Muasamcong-scoped through:
 
 ```text
 Modules/ClientPortal/resources/views/applications/muasamcong/partials/external-file-handoff.blade.php
@@ -77,17 +46,23 @@ Modules/ClientPortal/resources/views/applications/muasamcong/partials/external-f
 In installed/standalone PWA mode:
 
 1. Excel/PDF link navigation is intercepted before top-level navigation.
-2. The existing protected same-origin URL is fetched with `credentials: 'same-origin'` and `cache: 'no-store'`.
-3. The binary response is converted to a temporary `Blob` / `File` in the current authenticated PWA context.
-4. The UI shows a ready state and an explicit **Mở / Chia sẻ tệp** button.
-5. A second user tap calls `navigator.share({ files: [...] })`, preserving the user-activation requirement of Web Share.
-6. If native file sharing is unsupported, the PWA stays intact and shows a safe fallback instruction instead of navigating to the binary URL.
+2. The protected same-origin URL is fetched with `credentials: 'same-origin'` and `cache: 'no-store'`.
+3. The response is converted to a temporary `Blob` / `File`.
+4. The PWA shows an in-app ready state with an explicit **Mở / Chia sẻ tệp** action.
+5. A second user gesture calls `navigator.share({ files: [...] })` so transient user activation is preserved.
+6. Unsupported file-share capability keeps the PWA workspace intact and shows a safe fallback instruction instead of replacing the top-level page.
 
-Normal desktop/browser behavior remains native because interception is gated to installed/standalone PWA mode.
+Normal desktop/browser behavior remains native because interception is limited to installed/standalone PWA mode.
 
-The old hidden-iframe runtime helper has been removed from the Price List workspace partial. The current handoff code contains neither binary `window.open` nor top-level `window.location` fallback.
+### Rejected approaches
 
-The implementation remains application-scoped for MR-5. It is not promoted into a speculative shared ClientPortal component until another active application needs the same primitive or an approved MR requires promotion.
+The following patterns were tested on iPhone installed PWA and are rejected for this case:
+
+- hidden iframe navigation to the authenticated binary URL;
+- `window.open(binaryUrl, '_blank')`;
+- top-level `window.location` fallback to the binary URL.
+
+These approaches reproduced the original preview/workspace-loss behavior and must not be restored as the generic solution.
 
 ## Project-wide documentation contract
 
@@ -97,71 +72,98 @@ Canonical guidance:
 docs/PWA_EXTERNAL_FILE_HANDOFF.md
 ```
 
-It now records:
-
-- the requirement to preserve the top-level installed-PWA workspace;
-- authenticated same-origin fetch and private-cache boundaries;
-- Web Share file handoff with a second explicit user gesture after asynchronous preparation;
-- hidden iframe and `window.open(binaryUrl, '_blank')` as empirically failed iOS patterns in MR-5;
-- safe unsupported-platform fallback behavior;
-- iOS/Android/desktop acceptance requirements;
-- the boundary that web code cannot force a native viewer to provide a "Back to PWA" control.
-
 `docs/GITHUB_COLLABORATION_WORKFLOW.md` contains the mandatory PWA download/open-file gate. Future Module work involving PWA-capable file actions must read the canonical document and verify applicable iOS/Android/desktop behavior before merge.
 
-## Automated coverage
+## Automated acceptance
 
-Focused test:
+Latest owner-reported ClientApps regression after the Web Share corrective:
+
+```text
+Tests: 87 passed (611 assertions)
+Duration: 13.13s
+```
+
+Automated status: **PASS**.
+
+Focused MR-5 contract remains in:
 
 ```text
 tests/Feature/ClientApps/ClientPortalPwaExternalFileHandoffTest.php
 ```
 
-The corrective contract now locks:
+It locks the installed/standalone detection, Excel/PDF markers, authenticated no-store fetch, Blob/File conversion, Web Share handoff, explicit second user action and absence of the rejected iframe/window-open/top-level-navigation patterns.
 
-- installed/standalone PWA detection;
-- Excel and PDF handoff markers;
-- authenticated `fetch` with `cache: 'no-store'`;
-- Blob/File construction;
-- `navigator.canShare` / `navigator.share` native file handoff;
-- explicit second user action;
-- absence of hidden iframe, binary `window.open`, and top-level location fallback in the current handoff implementation;
-- project-wide workflow/documentation contract.
+## Manual acceptance
 
-Historical pre-Web-Share checkpoint reported by owner:
-
-```text
-ClientApps: 87 passed (598 assertions)
-```
-
-That result predates the current corrective implementation and does **not** validate the new Web Share code.
-
-Current corrective automated status: **NOT YET RUN by owner**.
-
-## Manual acceptance required
-
-Before MR-5 can be marked completed, verify at minimum:
+Owner-reported manual acceptance for the final Web Share implementation:
 
 ```text
 iPhone installed PWA
-- tap Excel: PWA shows file preparation/ready UI instead of replacing the workspace
-- tap “Mở / Chia sẻ tệp”: native share/open sheet appears
-- cancel or complete handoff: Price List workspace remains recoverable
-- repeat for PDF
+- Excel: PASS
+- PDF: PASS
+- native open/share handoff: PASS
+- PWA workspace/context remains recoverable: PASS
 
 Android installed PWA
-- Excel/PDF handoff does not destroy application navigation context
-- Web Share file handoff works, or a safe unsupported message is shown
+- Excel: PASS
+- PDF: PASS
 
-Desktop / ordinary browser
-- Excel/PDF native download behavior still works
-
-Security
-- protected file routes still require the same authenticated session/permissions
-- no public URL or private service-worker cache was introduced
+Desktop / normal browser
+- Excel: PASS
+- PDF: PASS
+- native browser download behavior preserved: PASS
 ```
 
-If a native viewer itself has no visible return button, that is not by itself a failure; the acceptance target is that the PWA page remains alive and recoverable when the user returns to the app.
+MR-5 file-handoff acceptance status: **PASS**.
+
+## Separate issue discovered during MR-5 acceptance
+
+A separate PWA installation UX issue was discovered on iPhone: the current launcher install button relies on the Chromium-style `beforeinstallprompt` event. iOS Safari does not provide that install flow, so the current iPhone install button/path can appear non-functional.
+
+This issue is intentionally **not added to MR-5**. It becomes MR-6 so the accepted external-file handoff scope remains isolated.
+
+Planned MR-6 contract:
+
+```text
+MR-6 — PWA Install UX
+
+- detect iPhone/iPad browser context correctly
+- provide Safari Share → Add to Home Screen guidance instead of relying on beforeinstallprompt
+- preserve beforeinstallprompt behavior for supported Chromium/Android browsers
+- hide or adapt install UI when already running standalone
+- add automated contract coverage and iPhone/Android/manual acceptance
+```
+
+## Approved authentication roadmap
+
+A later MR will add end-user account registration/authentication for ClientPortal/PWA without creating a separate PWA identity system.
+
+Planned MR-7 contract:
+
+```text
+MR-7 — PWA Account Registration & Google Authentication
+
+Standard registration
+- registration form for ordinary user accounts
+- new account starts inactive/unverified
+- send OTP to the registered email
+- OTP verifies email and activates the account
+- OTP expiration, resend controls and rate limiting
+- OTP must not be stored as plaintext
+
+Google authentication
+- Google OAuth sign-in/registration
+- valid Google-verified email can activate the new account immediately
+- no OTP required for the Google path
+- existing-email linking must be handled safely and must not allow account takeover merely because an email matches
+
+Shared auth boundary
+- same user/account model for PWA and normal browser
+- preserve current session, CSRF, authorization and logout behavior
+- successful login returns users to the appropriate ClientPortal/PWA workspace
+```
+
+MR-7 is roadmap only. No authentication implementation belongs to MR-5 or MR-6 unless separately approved.
 
 ## Roadmap checkpoint
 
@@ -170,9 +172,13 @@ MR-1 — Portal Architecture Foundation: MERGED / CLOSED
 MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
-MR-5 — PWA External File Download & Return UX: IN PROGRESS
+MR-5 — PWA External File Download & Return UX: ACCEPTANCE PASS / PR READY
+MR-6 — PWA Install UX: APPROVED NEXT MR / NOT STARTED
+MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-MR-5 Web Share corrective implementation is present on `fix/clientportal-pwa-external-file-handoff`, but the branch is not PR-ready until focused automated tests, ClientApps regression, applicable manual PWA/browser acceptance and Git-clean verification are reported.
+MR-5 may now proceed to pull-request review. Do not merge until the PR diff/state is reviewed and the owner explicitly approves the merge.
+
+After MR-5 is merged, update `main`, refresh this handoff with the merge commit, then create a new branch for MR-6 only after confirming the new `main` checkpoint.
