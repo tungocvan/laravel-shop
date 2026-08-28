@@ -11,6 +11,20 @@ return [
     'sort_order' => 10,
     'layout' => ['mode' => 'workspace'],
     'capabilities' => ['search', 'filter', 'share', 'background-jobs', 'export'],
+    'shell_extensions' => [
+        'head' => [
+            [
+                'routes' => ['client.muasamcong.price-list*'],
+                'view' => 'ClientPortal::applications.muasamcong.partials.price-list-workspace-polish',
+            ],
+        ],
+        'overlays' => [
+            [
+                'routes' => ['client.muasamcong.drug-pricing*'],
+                'view' => 'ClientPortal::applications.muasamcong.partials.sync-queue-status',
+            ],
+        ],
+    ],
     'quick_actions' => [
         'drug-search' => [
             'name' => 'Tra cứu thuốc',
