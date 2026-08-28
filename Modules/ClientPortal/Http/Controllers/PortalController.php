@@ -27,8 +27,12 @@ class PortalController extends Controller
         Request $request,
         PortalContextResolver $portalContext,
         ClientPortalSettingsService $settings
-    ): View {
+    ): View|RedirectResponse {
         $context = $portalContext->resolve($request->user('web'));
+
+        if ($context['application_count'] === 1 && is_array($context['single_application'])) {
+            return redirect()->route($context['single_application']['route']);
+        }
 
         return view('ClientPortal::pages.apps', [
             'applications' => $settings->presentApplications($context['applications']),
