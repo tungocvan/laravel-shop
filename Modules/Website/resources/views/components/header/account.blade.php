@@ -40,10 +40,10 @@
     @else
         <div class="flex items-center gap-3">
             @if($guestActions['login_enabled'] ?? true)
-                <a href="{{ route('login') }}" class="hidden md:inline-block text-sm font-bold text-gray-700 hover:text-blue-600">{{ $guestActions['login_label'] ?? 'Đăng nhập' }}</a>
+                <a href="{{ route('login') }}" data-pwa-auth-target="{{ route('client.apps.login') }}" class="hidden md:inline-block text-sm font-bold text-gray-700 hover:text-blue-600">{{ $guestActions['login_label'] ?? 'Đăng nhập' }}</a>
             @endif
             @if($guestActions['register_enabled'] ?? true)
-                <a href="{{ route('register') }}" class="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-full hover:bg-blue-600">{{ $guestActions['register_label'] ?? 'Đăng ký' }}</a>
+                <a href="{{ route('register') }}" data-pwa-auth-target="{{ route('client.apps.register') }}" class="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-full hover:bg-blue-600">{{ $guestActions['register_label'] ?? 'Đăng ký' }}</a>
             @endif
         </div>
     @endauth
