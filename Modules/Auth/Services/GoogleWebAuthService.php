@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\Models\UserEmailVerification;
 
 class GoogleWebAuthService
 {
@@ -56,6 +57,19 @@ class GoogleWebAuthService
                 if ($emailOwner->google_id && $emailOwner->google_id !== $googleId) {
                     throw ValidationException::withMessages([
                         'email' => 'Tài khoản này đã liên kết với một tài khoản Google khác.',
+                    ]);
+                }
+
+                $otpVerified = UserEmailVerification::query()
+                    ->where('user_id', $emailOwner->getKey())
+                    ->whereRaw('LOWER(email) = ?', [$email])
+                    ->where('verified_at', $emailOwner->email_verified_at)
+                    ->whereNull('invalidated_at')
+                    ->exists();
+
+                if (! $otpVerified) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Hãy đăng nhập bằng mật khẩu trước khi liên kết Google với tài khoản hiện có.',
                     ]);
                 }
 
