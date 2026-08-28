@@ -2,6 +2,14 @@
 /* P4.4.1E — Price List Workspace UI Polish
  * Route-scoped presentation only. Keep existing forms/routes/queue behavior untouched.
  */
+.export-card form[action*="/pdf"] {
+    display: none;
+}
+
+.export-card.excel-file-ready form[action*="/pdf"] {
+    display: block;
+}
+
 @media (max-width: 639px) {
     .export-card {
         border-radius: 1.25rem !important;
@@ -221,6 +229,31 @@ document.addEventListener('DOMContentLoaded', () => {
         document: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7"/><path d="M8.5 12h7"/><path d="M8.5 16h5"/></svg>'
     };
 
+    const syncPdfAvailability = async (card, attempts = 0) => {
+        const pdfForm = card.querySelector('form[action*="/pdf"]');
+        const statusUrl = card.dataset.statusUrl;
+        if (!pdfForm || !statusUrl) return;
+
+        try {
+            const response = await fetch(statusUrl, {
+                headers: {'Accept': 'application/json'},
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+            if (!response.ok) throw new Error('price-list-status-failed');
+
+            const data = await response.json();
+            card.classList.toggle('excel-file-ready', data.file_available === true);
+
+            if (data.file_available !== true && ['queued', 'processing'].includes(data.status) && attempts < 90) {
+                window.setTimeout(() => syncPdfAvailability(card, attempts + 1), 2000);
+            }
+        } catch (error) {
+            card.classList.remove('excel-file-ready');
+            if (attempts < 3) window.setTimeout(() => syncPdfAvailability(card, attempts + 1), 2000);
+        }
+    };
+
     document.querySelectorAll('.export-card').forEach((card) => {
         const excel = card.querySelector('a[href*="/download"]:not([href*="/pdf/"])');
         const pdf = card.querySelector('a[href*="/pdf/download"], form[action*="/pdf"] > button');
@@ -255,6 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const history = card.querySelector('.border-emerald-100.bg-emerald-50\\/60 > p:first-child');
         if (history) history.textContent = 'Đã gửi gần nhất';
+
+        syncPdfAvailability(card);
     });
 });
 </script>
