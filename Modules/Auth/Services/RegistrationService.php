@@ -61,6 +61,7 @@ class RegistrationService
             $challenge = UserEmailVerification::query()
                 ->where('user_id', $user->getKey())
                 ->whereNull('verified_at')
+                ->whereNull('invalidated_at')
                 ->latest('id')
                 ->lockForUpdate()
                 ->first();
@@ -103,6 +104,7 @@ class RegistrationService
         $latest = UserEmailVerification::query()
             ->where('user_id', $user->getKey())
             ->whereNull('verified_at')
+            ->whereNull('invalidated_at')
             ->latest('id')
             ->first();
 
@@ -118,7 +120,8 @@ class RegistrationService
             UserEmailVerification::query()
                 ->where('user_id', $user->getKey())
                 ->whereNull('verified_at')
-                ->update(['verified_at' => now()]);
+                ->whereNull('invalidated_at')
+                ->update(['invalidated_at' => now()]);
 
             UserEmailVerification::query()->create([
                 'user_id' => $user->getKey(),
