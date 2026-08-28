@@ -13,7 +13,7 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('PortalNavigationResolver', $layout);
         $this->assertStringContainsString("where('placement', 'primary')", $layout);
         $this->assertStringContainsString("where('placement', 'more')", $layout);
-        $this->assertStringContainsString("ClientPortal::partials.adaptive-navigation", $layout);
+        $this->assertStringContainsString('ClientPortal::partials.adaptive-navigation', $layout);
         $this->assertStringNotContainsString('partials.mobile-nav', $layout);
     }
 
@@ -26,7 +26,7 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('lg:w-64', $navigation);
         $this->assertStringContainsString('$primaryNavigation', $navigation);
         $this->assertStringContainsString('$moreNavigation', $navigation);
-        $this->assertStringContainsString("aria-current=\"page\"", $navigation);
+        $this->assertStringContainsString('aria-current="page"', $navigation);
     }
 
     public function test_shared_navigation_is_application_neutral_and_uses_manifest_icons(): void
@@ -44,7 +44,7 @@ class ClientAdaptiveNavigationTest extends TestCase
         $icon = file_get_contents(base_path('Modules/ClientPortal/resources/views/components/navigation-icon.blade.php'));
 
         $this->assertStringContainsString("'squares-2x2'", $icon);
-        $this->assertStringContainsString("$paths[$name] ?? $paths['squares-2x2']", $icon);
+        $this->assertStringContainsString('$paths[$name] ?? $paths[\'squares-2x2\']', $icon);
         $this->assertStringContainsString('aria-hidden="true"', $icon);
     }
 }
