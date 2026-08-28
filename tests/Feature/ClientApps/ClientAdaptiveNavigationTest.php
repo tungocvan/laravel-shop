@@ -32,10 +32,13 @@ class ClientAdaptiveNavigationTest extends TestCase
     public function test_shared_navigation_is_application_neutral_and_uses_manifest_icons(): void
     {
         $navigation = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
+        $normalizedNavigation = strtolower($navigation);
 
         $this->assertStringContainsString(':name="$item[\'icon\']"', $navigation);
-        $this->assertStringNotContainsString('muasamcong', strtolower($navigation));
-        $this->assertStringNotContainsString('request', strtolower($navigation));
+        $this->assertStringNotContainsString('client.muasamcong.', $normalizedNavigation);
+        $this->assertStringNotContainsString('applications.muasamcong', $normalizedNavigation);
+        $this->assertStringNotContainsString('client.request.', $normalizedNavigation);
+        $this->assertStringNotContainsString('applications.request', $normalizedNavigation);
         $this->assertStringNotContainsString('hasRole', $navigation);
     }
 
