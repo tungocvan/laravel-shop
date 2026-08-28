@@ -4,7 +4,7 @@
 - Repository: `tungocvan/laravel-shop`
 - Base branch: `main`
 - Active corrective branch: `fix/request-readiness-permission-count`
-- Pull request: PENDING — not created
+- Pull request: `#59 test(request): align readiness permission count`
 - Branch status: **IN PROGRESS**
 - Latest integrated Request source checkpoint: `2bf622c33702a4c644f7d86b7adbf654fb500f0c`
 - Latest integrated Request pull request: `#56 feat(request): improve type designer workspace and approval UX`
@@ -21,7 +21,7 @@
 - Production runtime enable/disable after Docker rebuild: **COMPLETED / OWNER VERIFIED**
 - Current Request production effective state: **ON / OWNER CONFIRMED**
 - Post-merge handoff through PR #56 and production-status closeout through PR #58: **COMPLETED**
-- Stale Request readiness permission-count contract: **CORRECTED ON ACTIVE BRANCH / TESTED**
+- Stale Request readiness permission-count contract: **CORRECTED ON PR #59 / TESTED**
 
 ## Integrated delivery checkpoints
 
@@ -56,7 +56,7 @@ The source default remains `default_enabled=false`, while the owner confirms tha
 
 ### Readiness permission-count corrective batch
 
-The active branch corrects only the stale assertion in:
+PR #59 corrects only the stale assertion in:
 
 ```text
 tests/Feature/System/RequestReleaseReadinessContractTest.php
@@ -80,13 +80,19 @@ Implementation commit:
 276f131fd97a56f132bca4666ae547aa1bc60525
 ```
 
+Current PR head before final pre-merge refresh:
+
+```text
+00f8b9206bd5750410e87602186f59841b8f7063
+```
+
 No Request permission was added, removed or renamed by this corrective batch. No runtime state, production configuration, schema, seeder or application feature code was changed.
 
 ## Verification and acceptance evidence
 
-### Corrective branch
+### Corrective branch / PR #59
 
-Owner-executed verification after pulling implementation commit:
+Owner-executed verification:
 
 ```text
 git pull --ff-only origin fix/request-readiness-permission-count: PASS
@@ -100,7 +106,7 @@ The focused stale contract is now aligned with the 35 admin-guard permissions in
 
 Manual UI smoke: **NOT APPLICABLE** — no UI or application behavior changed.
 
-Full project regression: **NOT YET RUN** — retained as a pre-merge gate, not required for PR creation for this narrow corrective batch.
+Full project regression: **NOT YET RUN** — required before merge.
 
 Git-clean verification after the handoff update: **PASS**.
 
@@ -113,23 +119,24 @@ Current Request effective state: ON
 Production E2E demo seeding: COMPLETED
 ```
 
-This corrective branch does not rebuild Docker, toggle the Module, run seeders or mutate production.
+This corrective PR does not rebuild Docker, toggle the Module, run seeders or mutate production.
 
 ## Known blocker and deferred work
 
-The stale `31` versus `35` readiness assertion is no longer a known code blocker on this active branch.
+The stale `31` versus `35` readiness assertion is no longer a known code blocker on PR #59.
 
-Remaining delivery gates for this corrective branch:
+Remaining delivery gates for PR #59:
 
-1. create and review the corrective PR;
-2. run the applicable full project regression before merge;
-3. refresh this handoff before merge with the actual PR metadata and final gate evidence.
+1. pull this PR-metadata handoff refresh locally;
+2. run the full project regression;
+3. confirm final Git-clean/diff gate;
+4. refresh this handoff before merge with the final evidence and actual PR head.
 
 Any new Request application feature remains separate and is not authorized by this corrective batch.
 
 ## Production safety boundary
 
-This branch does not:
+This PR does not:
 
 - enable or disable Request;
 - change production runtime Module state;
@@ -144,7 +151,7 @@ Request production effective state remains **ON / OWNER CONFIRMED**. Any future 
 
 ## Next authorized step
 
-1. Create and review a PR for this corrective test/docs batch.
-2. Complete the applicable full project regression before merge and refresh this handoff with final PR/gate evidence.
+1. Complete the full project regression and final Git-clean/diff gates for PR #59.
+2. Refresh this handoff with final pre-merge evidence, then review merge readiness.
 3. Do not name or begin another Request application MR/phase until a source/documented requirement and explicit authorization exist.
 4. Until then, the next Request application MR/phase remains **NOT DETERMINED**.
