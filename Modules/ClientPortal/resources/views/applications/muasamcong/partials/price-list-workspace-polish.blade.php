@@ -232,6 +232,27 @@ document.addEventListener('DOMContentLoaded', () => {
         document: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7"/><path d="M8.5 12h7"/><path d="M8.5 16h5"/></svg>'
     };
 
+    const isInstalledPwa = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    const preservePwaContextForFile = (link) => {
+        if (!link || !isInstalledPwa) return;
+
+        link.dataset.pwaFileHandoff = '1';
+        link.addEventListener('click', (event) => {
+            if (event.defaultPrevented || event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+            event.preventDefault();
+
+            const frame = document.createElement('iframe');
+            frame.hidden = true;
+            frame.setAttribute('aria-hidden', 'true');
+            frame.src = link.href;
+            document.body.appendChild(frame);
+
+            window.setTimeout(() => frame.remove(), 60000);
+        });
+    };
+
     const syncPdfAvailability = async (card, attempts = 0) => {
         const pdfForm = card.querySelector('form[action*="/pdf"]');
         const statusUrl = card.dataset.statusUrl;
@@ -279,6 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setIconAction(pdfConvert, 'pdf-convert', icons.pdfConvert, 'Tạo PDF');
         setIconAction(pdfDownload, 'pdf', icons.pdf, 'Tải PDF');
         setIconAction(share, 'share', icons.share, 'Chia sẻ');
+        preservePwaContextForFile(excel);
+        preservePwaContextForFile(pdfDownload);
 
         if (email) {
             email.innerHTML = `${icons.mail}<span>Gửi bảng giá</span>`;
