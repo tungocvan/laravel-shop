@@ -21,19 +21,42 @@ class ClientApplicationRegistryTest extends TestCase
         $this->assertSame('drug-pricing', $application['features'][0]['key']);
     }
 
-    public function test_registry_exposes_open_portal_ui_contract_without_requiring_manifest_migration(): void
+    public function test_registry_exposes_explicit_open_portal_ui_contract(): void
     {
         $application = app(ApplicationRegistry::class)->find('muasamcong');
 
         $this->assertNotNull($application);
-        $this->assertSame(['mode' => 'standard'], $application['layout']);
-        $this->assertSame([], $application['capabilities']);
-        $this->assertSame([], $application['quick_actions']);
-        $this->assertNotEmpty($application['navigation']);
-        $this->assertSame('drug-pricing', $application['navigation'][0]['key']);
-        $this->assertSame('client.muasamcong.drug-pricing', $application['navigation'][0]['route']);
-        $this->assertSame('client.muasamcong.drug-pricing.view', $application['navigation'][0]['permission']);
+        $this->assertSame(['mode' => 'workspace'], $application['layout']);
+        $this->assertContains('search', $application['capabilities']);
+        $this->assertContains('background-jobs', $application['capabilities']);
+        $this->assertSame('drug-search', $application['quick_actions'][0]['key']);
+        $this->assertSame('overview', $application['navigation'][0]['key']);
+        $this->assertSame('client.muasamcong.dashboard', $application['navigation'][0]['route']);
         $this->assertSame('primary', $application['navigation'][0]['placement']);
+        $this->assertSame('more', collect($application['navigation'])->firstWhere('key', 'wishlist')['placement']);
+    }
+
+    public function test_request_uses_same_manifest_contract_without_portal_core_special_case(): void
+    {
+        $application = app(ApplicationRegistry::class)->find('request');
+
+        $this->assertNotNull($application);
+        $this->assertSame('Request', $application['module']);
+        $this->assertSame(['mode' => 'workspace'], $application['layout']);
+        $this->assertContains('background-jobs', $application['capabilities']);
+        $this->assertSame('create', $application['quick_actions'][0]['key']);
+        $this->assertSame('overview', $application['navigation'][0]['key']);
+        $this->assertSame('more', collect($application['navigation'])->firstWhere('key', 'processed')['placement']);
+    }
+
+    public function test_application_shell_consumes_resolved_navigation_instead_of_app_specific_mobile_partial(): void
+    {
+        $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
+
+        $this->assertStringContainsString('PortalNavigationResolver', $layout);
+        $this->assertStringContainsString("where('placement', 'primary')", $layout);
+        $this->assertStringContainsString("where('placement', 'more')", $layout);
+        $this->assertStringNotContainsString("partials.mobile-nav", $layout);
     }
 
     public function test_portal_context_has_stable_shape_when_user_has_no_available_applications(): void
