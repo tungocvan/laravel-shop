@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
+use Modules\ClientPortal\Services\PortalContextResolver;
 
 class PortalController extends Controller
 {
@@ -25,13 +25,14 @@ class PortalController extends Controller
 
     public function index(
         Request $request,
-        ApplicationRegistry $registry,
+        PortalContextResolver $portalContext,
         ClientPortalSettingsService $settings
     ): View {
-        $applications = $registry->forUser($request->user('web'));
+        $context = $portalContext->resolve($request->user('web'));
 
         return view('ClientPortal::pages.apps', [
-            'applications' => $settings->presentApplications($applications),
+            'applications' => $settings->presentApplications($context['applications']),
+            'portalContext' => $context,
             'pwaGeneral' => $settings->pwaGeneral(),
             'launcher' => $settings->pwaLauncher(),
         ]);
