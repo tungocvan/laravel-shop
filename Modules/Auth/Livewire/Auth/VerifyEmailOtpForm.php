@@ -3,6 +3,8 @@
 namespace Modules\Auth\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Modules\Auth\Services\RegistrationService;
 
@@ -23,8 +25,17 @@ class VerifyEmailOtpForm extends Component
             'otp' => ['required', 'digits:6'],
         ]);
 
+        $key = 'client-otp-verify:'.request()->ip().':'.mb_strtolower(trim($validated['email']));
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            throw ValidationException::withMessages([
+                'otp' => 'Bạn đã thử xác minh quá nhiều lần. Vui lòng thử lại sau.',
+            ]);
+        }
+        RateLimiter::hit($key, 300);
+
         $user = $registration->verify($validated['email'], $validated['otp']);
 
+        RateLimiter::clear($key);
         Auth::guard('web')->login($user);
         session()->regenerate();
         session()->forget('auth.pending_verification_email');
@@ -35,6 +46,15 @@ class VerifyEmailOtpForm extends Component
     public function resend(RegistrationService $registration): void
     {
         $this->validateOnly('email', ['email' => ['required', 'email']]);
+
+        $key = 'client-otp-resend:'.request()->ip().':'.mb_strtolower(trim($this->email));
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            throw ValidationException::withMessages([
+                'otp' => 'Bạn đã yêu cầu gửi lại OTP quá nhiều lần. Vui lòng thử lại sau.',
+            ]);
+        }
+        RateLimiter::hit($key, 300);
+
         $registration->resend($this->email);
         session()->flash('otp_status', 'Mã OTP mới đã được gửi.');
     }
