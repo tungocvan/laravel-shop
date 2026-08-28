@@ -56,7 +56,7 @@ class RegistrationService
     {
         $user = $this->findPendingUser($email);
 
-        return DB::transaction(function () use ($user, $code): User {
+        $result = DB::transaction(function () use ($user, $code): array {
             /** @var UserEmailVerification|null $challenge */
             $challenge = UserEmailVerification::query()
                 ->where('user_id', $user->getKey())
@@ -66,23 +66,17 @@ class RegistrationService
                 ->first();
 
             if (! $challenge || $challenge->expires_at->isPast()) {
-                throw ValidationException::withMessages([
-                    'otp' => 'Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại mã mới.',
-                ]);
+                return ['error' => 'Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại mã mới.'];
             }
 
             if ($challenge->attempts >= self::OTP_MAX_ATTEMPTS) {
-                throw ValidationException::withMessages([
-                    'otp' => 'Bạn đã nhập sai quá số lần cho phép. Vui lòng yêu cầu gửi lại OTP.',
-                ]);
+                return ['error' => 'Bạn đã nhập sai quá số lần cho phép. Vui lòng yêu cầu gửi lại OTP.'];
             }
 
             $challenge->increment('attempts');
 
             if (! hash_equals($challenge->code_hash, $this->hashOtp($user, $code))) {
-                throw ValidationException::withMessages([
-                    'otp' => 'Mã OTP không chính xác.',
-                ]);
+                return ['error' => 'Mã OTP không chính xác.'];
             }
 
             $now = now();
@@ -92,8 +86,16 @@ class RegistrationService
                 'is_active' => true,
             ])->save();
 
-            return $user->refresh();
+            return ['user' => $user->refresh()];
         });
+
+        if (isset($result['error'])) {
+            throw ValidationException::withMessages([
+                'otp' => $result['error'],
+            ]);
+        }
+
+        return $result['user'];
     }
 
     private function issueOtp(User $user, bool $initial = false): void
