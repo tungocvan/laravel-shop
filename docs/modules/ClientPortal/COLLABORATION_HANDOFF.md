@@ -116,6 +116,14 @@ Modules/ClientPortal/resources/views/partials/pwa-install.blade.php
 tests/Feature/ClientApps/ClientPortalPwaInstallUxTest.php
 ```
 
+Owner-requested workflow policy adjustment in the same branch:
+
+```text
+docs/GITHUB_COLLABORATION_WORKFLOW.md
+```
+
+The canonical workflow now uses focused tests + Module regression + impacted/cross-module regression as the default for large multi-Module projects. Full project regression is no longer a default per-MR gate and is only applicable for broad shared/core/system changes, release-wide checkpoints, or an explicit request.
+
 Behavior checkpoint:
 
 - iPhone/iPad Safari receives explicit Share → Add to Home Screen guidance.
@@ -128,14 +136,9 @@ Behavior checkpoint:
 
 ## MR-6 acceptance checkpoint
 
-Focused MR-6 test:
+Focused MR-6 test: **PASS**.
 
-```text
-Tests: 8 passed
-Status: PASS
-```
-
-ClientApps regression after the backward-compatibility corrective:
+ClientApps Module/impacted regression after the backward-compatibility corrective:
 
 ```text
 Tests: 95 passed (650 assertions)
@@ -143,6 +146,10 @@ Duration: 14.33s
 ```
 
 Automated status: **PASS**.
+
+Regression scope covers ClientPortal plus ClientApps adapters/contracts directly exercised by the ClientPortal surface, including its Request and Muasamcong integrations.
+
+Full project regression: **NOT APPLICABLE — module-scoped regression strategy**. MR-6 application changes are confined to ClientPortal launcher/PWA presentation and its focused tests; no broad shared/core runtime infrastructure change requires a project-wide suite. The workflow documentation change is docs-only.
 
 Manual UI acceptance: **PASS**.
 
