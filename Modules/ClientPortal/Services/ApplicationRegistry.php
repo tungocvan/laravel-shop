@@ -157,6 +157,7 @@ class ApplicationRegistry
             ->filter(fn (mixed $item): bool => is_array($item))
             ->map(function (array $item, string|int $itemKey): array {
                 $fallbackKey = is_string($itemKey) ? $itemKey : ($item['name'] ?? 'item-'.$itemKey);
+                $placement = $item['placement'] ?? 'primary';
 
                 return [
                     'key' => Str::lower(trim((string) ($item['key'] ?? $fallbackKey))),
@@ -165,9 +166,7 @@ class ApplicationRegistry
                     'permission' => $this->nullableString($item['permission'] ?? null),
                     'icon' => trim((string) ($item['icon'] ?? 'square-3-stack-3d')),
                     'sort_order' => (int) ($item['sort_order'] ?? 100),
-                    'placement' => in_array(($item['placement'] ?? 'primary'), ['primary', 'more'], true)
-                        ? $item['placement']
-                        : 'primary',
+                    'placement' => in_array($placement, ['primary', 'more'], true) ? $placement : 'primary',
                 ];
             })
             ->filter(fn (array $item): bool => $item['key'] !== '' && $item['name'] !== '' && $item['route'] !== null)
