@@ -11,7 +11,7 @@
 - MR-7 status: **MERGED / CLOSED**
 - Active delivery: **MR-8 — PWA Header Account Menu**
 - Active branch: `feat/clientportal-pwa-header-account-menu`
-- MR-8 status: **IN PROGRESS — automated and manual UI acceptance passed; Git-clean gate pending**
+- MR-8 status: **READY FOR REVIEW — automated/manual UI acceptance passed; local working tree clean**
 
 ## Stable architecture
 
@@ -181,7 +181,7 @@ Duration: 8.52s
 - desktop/tablet/mobile/standalone manual UI: **PASS — user confirmed**
 - mobile evidence: **PASS at 430 × 932**; the account panel stays inside the viewport and exposes all three actions
 - frontend asset note: the first mobile check used stale compiled Tailwind output; `npm run build` restored the intended responsive positioning without a source correction
-- Git-clean on user local: **PENDING**
+- Git-clean on user local: **CLEAN** (`git status --short` returned no output after synchronizing commit `1095af9f`)
 - pull request: **PENDING — not created**
 - merge commit: **NOT AVAILABLE**
 
@@ -189,4 +189,4 @@ Production deployment remains a separate operational action. MR-8 introduces no 
 
 ## Next-step boundary
 
-MR-8 focused/impacted tests and manual UI acceptance have passed. The remaining pre-PR gate is confirmation that the user local working tree is clean; after that confirmation, the MR-8 pull request may be prepared for manual review. The next MR after MR-8 remains **NOT DETERMINED**.
+MR-8 focused/impacted tests, manual UI acceptance and the user-local Git-clean gate have passed. The branch is ready for a pull request and manual review; merge remains a user-controlled action. The next MR after MR-8 remains **NOT DETERMINED**.
