@@ -3,17 +3,14 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint before MR-6: `69d9c7b052e7bc4f580426eed52e42c1e6e33ae6`
-- Completed stable MR: **MR-5 — PWA External File Download & Return UX**
-- MR-5 pull request: **#64 — MERGED / CLOSED**
-- MR-5 merge commit: `e3353cdfe326642eb0ed3081ea20d93ee7f8a363`
-- Active MR: **MR-6 — PWA Install UX**
-- MR-6 branch: `feat/clientportal-pwa-install-ux`
-- MR-6 pull request: **#65 — OPEN / READY TO MERGE**
-- MR-6 merge commit: **PENDING POST-MERGE VERIFICATION**
-- MR-6 status: **COMPLETED / READY TO MERGE**
+- Stable `main` checkpoint after MR-6: `db9a4418593bb62518f4787d7f40199d8214a1c6`
+- Completed MR: **MR-6 — PWA Install UX**
+- MR-6 pull request: **#65 — MERGED / CLOSED**
+- MR-6 merge commit: `db9a4418593bb62518f4787d7f40199d8214a1c6`
+- Next authorized roadmap item: **MR-7 — PWA Account Registration & Google Authentication**
+- MR-7 status: **APPROVED ROADMAP / NOT STARTED**
 
-## Stable architecture after MR-5
+## Stable architecture after MR-6
 
 ClientPortal remains an authenticated Client/WebApp platform that can host multiple applications without placing Module-specific business logic in Portal core.
 
@@ -21,81 +18,9 @@ Core rule:
 
 > Không được thêm logic đặc thù Module vào ClientPortal core.
 
-MR-1 through MR-5 are merged/closed. MR-4 moved Muasamcong-specific presentation concerns out of the shared App Shell and established application-neutral `shell_extensions`. MR-5 adds an authenticated installed-PWA external-file handoff contract without making ClientPortal core Muasamcong-specific.
+MR-1 through MR-6 are merged/closed. MR-4 moved Muasamcong-specific presentation concerns out of the shared App Shell and established application-neutral `shell_extensions`. MR-5 added the authenticated installed-PWA external-file handoff contract. MR-6 adds adaptive PWA installation UX while preserving the launcher/authentication boundary and keeping installation behavior browser-capability aware.
 
-## MR-5 completed contract
-
-Manual testing on an installed iPhone PWA found that opening generated Excel/PDF files could replace the active PWA document with OS/browser preview and lose the visible workspace/navigation context.
-
-The accepted implementation preserves the installed PWA top-level workspace, keeps authenticated same-origin access and existing permissions unchanged, avoids public temporary URLs, avoids service-worker caching of private binary responses, and preserves normal desktop/browser native download behavior.
-
-The Muasamcong-scoped implementation lives in:
-
-```text
-Modules/ClientPortal/resources/views/applications/muasamcong/partials/external-file-handoff.blade.php
-```
-
-Installed/standalone flow:
-
-1. Excel/PDF link navigation is intercepted before top-level navigation.
-2. The protected same-origin URL is fetched with `credentials: 'same-origin'` and `cache: 'no-store'`.
-3. The response is converted to a temporary `Blob` / `File`.
-4. The PWA shows an in-app ready state with an explicit **Mở / Chia sẻ tệp** action.
-5. A second user gesture calls `navigator.share({ files: [...] })` so transient user activation is preserved.
-6. Unsupported file-share capability keeps the PWA workspace intact and shows a safe fallback instruction instead of replacing the top-level page.
-7. The share action disables while a share attempt is running and remains retryable after a non-`AbortError` failure.
-
-Rejected generic approaches for this iOS installed-PWA case:
-
-- hidden iframe navigation to the authenticated binary URL;
-- `window.open(binaryUrl, '_blank')`;
-- top-level `window.location` fallback to the binary URL.
-
-Canonical project-wide guidance is in:
-
-```text
-docs/PWA_EXTERNAL_FILE_HANDOFF.md
-```
-
-`docs/GITHUB_COLLABORATION_WORKFLOW.md` contains the mandatory PWA download/open-file gate for future Modules.
-
-## MR-5 acceptance checkpoint
-
-Latest owner-reported ClientApps regression after the retry corrective:
-
-```text
-Tests: 87 passed (613 assertions)
-Duration: 13.17s
-```
-
-Automated status: **PASS**.
-
-Manual acceptance:
-
-```text
-iPhone installed PWA
-- Excel: PASS
-- PDF: PASS
-- native open/share handoff: PASS
-- PWA workspace/context remains recoverable: PASS
-
-Android installed PWA
-- Excel: PASS
-- PDF: PASS
-
-Desktop / normal browser
-- Excel: PASS
-- PDF: PASS
-- native browser download behavior preserved: PASS
-```
-
-MR-5 status: **MERGED / CLOSED**.
-
-## MR-6 — PWA Install UX
-
-MR-6 replaces the launcher-only Chromium assumption with an adaptive install UX while preserving the existing ClientPortal launcher and authentication boundaries.
-
-Implemented contract:
+## MR-6 completed contract
 
 ```text
 MR-6 — PWA Install UX
@@ -117,14 +42,6 @@ Modules/ClientPortal/resources/views/pages/apps.blade.php
 Modules/ClientPortal/resources/views/partials/pwa-install.blade.php
 tests/Feature/ClientApps/ClientPortalPwaInstallUxTest.php
 ```
-
-Owner-requested workflow policy adjustment in the same branch:
-
-```text
-docs/GITHUB_COLLABORATION_WORKFLOW.md
-```
-
-The canonical workflow now uses focused tests + Module regression + impacted/cross-module regression as the default for large multi-Module projects. Full project regression is no longer a default per-MR gate and is only applicable for broad shared/core/system changes, release-wide checkpoints, or an explicit request.
 
 Behavior checkpoint:
 
@@ -149,28 +66,46 @@ Duration: 14.33s
 
 Automated status: **PASS**.
 
-Regression scope covers ClientPortal plus ClientApps adapters/contracts directly exercised by the ClientPortal surface, including its Request and Muasamcong integrations.
+Regression scope covered ClientPortal plus ClientApps adapters/contracts directly exercised by the ClientPortal surface, including its Request and Muasamcong integrations.
 
-Full project regression: **NOT APPLICABLE — module-scoped regression strategy**. MR-6 application changes are confined to ClientPortal launcher/PWA presentation and its focused tests; no broad shared/core runtime infrastructure change requires a project-wide suite. The workflow documentation change is docs-only.
+Full project regression: **NOT APPLICABLE — module-scoped regression strategy**. MR-6 application changes were confined to ClientPortal launcher/PWA presentation and focused tests; no broad shared/core runtime infrastructure change required a project-wide suite.
 
 Manual UI acceptance: **PASS**.
 
-Git working tree after acceptance: **CLEAN** (`git status --short` returned no output).
+Git working tree before PR/merge acceptance: **CLEAN** (`git status --short` returned no output).
 
-PR review checkpoint:
+PR #65 review/merge checkpoint:
 
 ```text
-PR #65 — OPEN
 Base: main
-Mergeable: PASS
 Diff review: PASS — no unexpected application scope found
+Mergeable before merge: PASS
 GitHub status checks: none configured/reported for the PR head
 GitHub Actions PR workflow runs: none reported
+Merged: 2026-08-28
+Merge commit: db9a4418593bb62518f4787d7f40199d8214a1c6
 ```
 
-MR-6 branch status: **COMPLETED / READY TO MERGE**.
+MR-6 status: **MERGED / CLOSED**.
 
 No production enablement is implied by MR-6 completion or merge. Production deployment/enablement remains a separate operational action.
+
+## Workflow policy checkpoint
+
+During MR-6, the canonical workflow was updated at owner request for a large multi-Module repository:
+
+```text
+focused tests
+→ Module regression
+→ impacted/cross-module regression when dependencies/shared contracts are involved
+→ full project regression only when applicable to broad shared/core/system scope, a release-wide checkpoint, or an explicit request
+```
+
+When full project regression is not applicable, handoff/PR gate records:
+
+```text
+NOT APPLICABLE — module-scoped regression strategy
+```
 
 ## Approved authentication roadmap
 
@@ -199,7 +134,7 @@ Shared auth boundary
 - successful login returns users to the appropriate ClientPortal/PWA workspace
 ```
 
-MR-7 remains roadmap only and is not part of MR-6.
+MR-7 remains roadmap only and has not started.
 
 ## Roadmap checkpoint
 
@@ -209,10 +144,10 @@ MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
-MR-6 — PWA Install UX: COMPLETED / READY TO MERGE — PR #65
+MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
 MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-Next authorized step for MR-6 is merge PR #65 into `main`. After merge, refresh `main`, verify the real merge checkpoint, update this handoff to the stable post-merge state, and only then begin any separately approved MR-7 work.
+MR-6 is fully closed at source/handoff level once this docs-only post-merge closeout is merged into `main`. Do not begin MR-7 implementation merely because it is present in the roadmap; on the next chat/session, re-bootstrap `main`, verify current source/docs, propose the exact MR-7 implementation plan, and only create/mutate an MR-7 branch after that plan is approved.
