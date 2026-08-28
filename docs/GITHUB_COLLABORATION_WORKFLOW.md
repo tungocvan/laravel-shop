@@ -69,9 +69,9 @@ Focused tests
     ↓
 Debug nếu fail
     ↓
-Module/System regression
+Module regression
     ↓
-Full regression
+Impacted / cross-module regression nếu có dependency liên quan
     ↓
 Manual UI smoke
     ↓
@@ -91,6 +91,8 @@ Push main
     ↓
 Delete feature branch
 ```
+
+**Full project regression không phải gate mặc định cho từng MR/Module.** Chỉ chạy khi phạm vi thay đổi có mức ảnh hưởng toàn hệ thống, thay đổi shared/core infrastructure rộng, release/checkpoint yêu cầu, hoặc người dùng yêu cầu rõ.
 
 ## 4. Làm việc theo batch
 
@@ -154,13 +156,22 @@ Nếu cần user kích hoạt bước tiếp theo, nói rõ ví dụ:
 
 ## 8. Test strategy
 
-Test theo tầng:
+Test theo tầng, ưu tiên đúng phạm vi thay đổi:
 
 1. Syntax / lint cần thiết
 2. Focused tests cho phần vừa sửa
-3. Module regression
-4. System/shared-infrastructure regression khi liên quan
-5. Full project regression trước merge
+3. Module regression cho Module đang triển khai
+4. Impacted/cross-module regression cho các Module hoặc shared boundary thực sự liên quan
+5. Full project regression chỉ khi có lý do toàn hệ thống rõ ràng
+
+Quy tắc mặc định:
+
+- không chạy `php artisan test` toàn project chỉ vì một MR sắp merge;
+- với project nhiều Module, regression phải tập trung vào Module đang làm và các Module/shared infrastructure có dependency hoặc contract bị tác động;
+- trước khi chọn impacted regression, phải đọc dependency/source/tests để giải thích vì sao Module hoặc test suite đó liên quan;
+- không kéo các Module độc lập vào regression nếu source/contract hiện tại không cho thấy tác động;
+- full project regression chỉ applicable khi thay đổi chạm shared/core infrastructure rộng, bootstrap/autoload/module framework, security/auth boundary toàn hệ thống, migration/schema dùng chung, release/checkpoint diện rộng, hoặc khi người dùng yêu cầu rõ;
+- nếu full project regression không applicable, handoff/PR gate ghi `NOT APPLICABLE — module-scoped regression strategy`, không coi đó là gate thiếu.
 
 Không chạy full regression sau mọi chỉnh sửa nhỏ.
 
@@ -404,7 +415,8 @@ Chỉ merge khi các gate applicable đã PASS:
 
 - focused tests
 - module regression
-- full regression
+- impacted/cross-module regression nếu dependency hoặc shared contract liên quan
+- full project regression **chỉ khi applicable theo mục 8**, không phải gate mặc định
 - manual UI smoke
 - Admin UI standard acceptance nếu task có Admin UI
 - PWA file handoff acceptance theo `docs/PWA_EXTERNAL_FILE_HANDOFF.md` nếu task có download/open file trên PWA-capable surface
@@ -547,7 +559,7 @@ Mỗi Module dùng một file duy nhất:
 docs/modules/<Module>/COLLABORATION_HANDOFF.md
 ```
 
-Trước khi kết thúc feature/fix branch, cập nhật trong chính branch đó: repository/base/branch/PR/checkpoint, phạm vi hoàn thành, batch quan trọng, root cause và cách sửa, quyết định kiến trúc/phân quyền/ranh giới an toàn, migration/seeder/storage/lệnh vận hành, focused test, module regression, UI smoke, Git clean, blocker, việc còn lại và bước tiếp theo được phép.
+Trước khi kết thúc feature/fix branch, cập nhật trong chính branch đó: repository/base/branch/PR/checkpoint, phạm vi hoàn thành, batch quan trọng, root cause và cách sửa, quyết định kiến trúc/phân quyền/ranh giới an toàn, migration/seeder/storage/lệnh vận hành, focused test, module regression, impacted/cross-module regression applicable, UI smoke, Git clean, blocker, việc còn lại và bước tiếp theo được phép.
 
 Nếu branch có Admin UI, handoff phải ghi rõ mức tuân thủ `.codex/standards/ADMIN_UI_STANDARD.md`, shared components/patterns đã reuse và kết quả kiểm tra UI desktop/mobile applicable.
 
@@ -601,7 +613,7 @@ Handoff trước merge phải ghi hoặc đối chiếu:
 - số PR thực tế và base branch đối với delivery thông thường; stable post-merge closeout dùng delivery envelope trong PR/GitHub theo mục 16.7
 - implementation/source checkpoint applicable
 - trạng thái branch `COMPLETED` hoặc `IN PROGRESS` đúng với gates
-- focused test, Module/system regression, full regression và manual UI smoke applicable
+- focused test, Module regression, impacted/cross-module regression applicable, full project regression chỉ khi applicable theo mục 8, và manual UI smoke applicable
 - Admin UI standard acceptance nếu có Admin UI
 - PWA file handoff acceptance nếu branch có download/open file trên PWA-capable surface
 - Git-clean, blocker và deferred work
@@ -620,6 +632,7 @@ Checklist bắt buộc trước merge:
 - [ ] Delivery thông thường ghi đúng PR/scope/checkpoint; stable post-merge closeout có delivery envelope đúng trong PR description/GitHub.
 - [ ] Stable post-merge closeout không lưu trạng thái tạm của chính container trong handoff.
 - [ ] Test/UI/Git-clean evidence khớp kết quả thực tế.
+- [ ] Full project regression chỉ được coi là gate khi applicable theo mục 8; nếu không applicable phải ghi rõ module-scoped regression strategy.
 - [ ] PWA file handoff acceptance đã PASS hoặc được ghi rõ NOT VERIFIED nếu applicable.
 - [ ] Production enablement không bị suy ra từ việc merge source.
 - [ ] Next authorized step rõ ràng và không tự tạo MR/phase mới.
