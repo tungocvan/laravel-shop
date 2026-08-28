@@ -9,6 +9,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
+use Modules\Auth\Models\UserEmailVerification;
 use Modules\Auth\Services\GoogleWebAuthService;
 use Tests\TestCase;
 
@@ -48,15 +49,17 @@ class ClientGoogleAuthenticationTest extends TestCase
         $this->assertSame('old@example.com', $resolved->email);
     }
 
-    public function test_verified_active_existing_email_is_auto_linked_to_google(): void
+    public function test_recent_otp_verified_existing_email_is_auto_linked_to_google(): void
     {
+        $verifiedAt = now();
         $existing = User::query()->create([
-            'name' => 'Verified Password User',
+            'name' => 'OTP Verified Password User',
             'email' => 'existing@example.com',
             'password' => Hash::make('Password123!'),
             'is_active' => true,
         ]);
-        $existing->forceFill(['email_verified_at' => now()])->save();
+        $existing->forceFill(['email_verified_at' => $verifiedAt])->save();
+        $this->createOtpProof($existing, $verifiedAt);
 
         $resolved = app(GoogleWebAuthService::class)->resolve(
             $this->googleUser('google-300', 'existing@example.com', true),
@@ -66,6 +69,28 @@ class ClientGoogleAuthenticationTest extends TestCase
         $this->assertSame('google-300', $resolved->google_id);
         $this->assertNull($resolved->google_token);
         $this->assertNull($resolved->google_refresh_token);
+    }
+
+    public function test_legacy_verified_existing_email_is_not_auto_linked_without_otp_proof(): void
+    {
+        $existing = User::query()->create([
+            'name' => 'Legacy Verified User',
+            'email' => 'legacy@example.com',
+            'password' => Hash::make('Password123!'),
+            'is_active' => true,
+        ]);
+        $existing->forceFill(['email_verified_at' => now()])->save();
+
+        try {
+            app(GoogleWebAuthService::class)->resolve(
+                $this->googleUser('google-302', 'legacy@example.com', true),
+            );
+            $this->fail('Expected legacy verified account auto-linking to be rejected without OTP provenance.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('email', $e->errors());
+        }
+
+        $this->assertNull($existing->refresh()->google_id);
     }
 
     public function test_unverified_existing_email_is_not_auto_linked_to_google(): void
@@ -87,6 +112,29 @@ class ClientGoogleAuthenticationTest extends TestCase
         }
 
         $this->assertNull(User::query()->where('email', 'pending@example.com')->sole()->google_id);
+    }
+
+    public function test_google_id_conflict_with_different_email_owner_is_rejected(): void
+    {
+        User::query()->create([
+            'name' => 'Google Owner',
+            'email' => 'owner@example.com',
+            'password' => Hash::make('Password123!'),
+            'google_id' => 'google-conflict',
+            'is_active' => true,
+        ]);
+        User::query()->create([
+            'name' => 'Email Owner',
+            'email' => 'incoming@example.com',
+            'password' => Hash::make('Password123!'),
+            'is_active' => true,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        app(GoogleWebAuthService::class)->resolve(
+            $this->googleUser('google-conflict', 'incoming@example.com', true),
+        );
     }
 
     public function test_unverified_google_email_is_rejected(): void
@@ -117,6 +165,20 @@ class ClientGoogleAuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user, 'web');
         $this->assertGuest('admin');
         $this->assertNotNull($user->last_login_at);
+    }
+
+    private function createOtpProof(User $user, $verifiedAt): void
+    {
+        UserEmailVerification::query()->create([
+            'user_id' => $user->getKey(),
+            'email' => mb_strtolower($user->email),
+            'code_hash' => str_repeat('a', 64),
+            'expires_at' => $verifiedAt->copy()->addMinutes(10),
+            'last_sent_at' => $verifiedAt->copy()->subMinute(),
+            'attempts' => 1,
+            'verified_at' => $verifiedAt,
+            'invalidated_at' => null,
+        ]);
     }
 
     private function googleUser(string $id, string $email, bool $verified): SocialiteUser
