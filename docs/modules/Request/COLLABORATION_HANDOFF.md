@@ -5,7 +5,7 @@
 - Base branch: `main`
 - Active corrective branch: `fix/request-readiness-permission-count`
 - Pull request: `#59 test(request): align readiness permission count`
-- Branch status: **IN PROGRESS**
+- Branch status: **PRE-MERGE READY**
 - Latest integrated Request source checkpoint: `2bf622c33702a4c644f7d86b7adbf654fb500f0c`
 - Latest integrated Request pull request: `#56 feat(request): improve type designer workspace and approval UX`
 - Next Request application MR/phase: **NOT DETERMINED**
@@ -80,12 +80,6 @@ Implementation commit:
 276f131fd97a56f132bca4666ae547aa1bc60525
 ```
 
-Current PR head before final pre-merge refresh:
-
-```text
-00f8b9206bd5750410e87602186f59841b8f7063
-```
-
 No Request permission was added, removed or renamed by this corrective batch. No runtime state, production configuration, schema, seeder or application feature code was changed.
 
 ## Verification and acceptance evidence
@@ -98,17 +92,18 @@ Owner-executed verification:
 git pull --ff-only origin fix/request-readiness-permission-count: PASS
 php artisan test tests/Feature/System/RequestReleaseReadinessContractTest.php: PASS
 php artisan test tests/Feature/Request: PASS
+php artisan test tests/Feature/System/ModuleStateRepositoryTest.php tests/Feature/System/ModuleStateResolverTest.php tests/Feature/System/ModuleBootstrapRuntimeStateTest.php: PASS
 git diff --check main...HEAD: PASS
 git status --short: PASS / no output
 ```
 
-The focused stale contract is now aligned with the 35 admin-guard permissions in the current manifest, and the Request feature regression passes.
+The focused stale contract is aligned with the 35 admin-guard permissions in the current manifest. Request feature regression and related Module/System runtime-state regressions pass.
 
 Manual UI smoke: **NOT APPLICABLE** — no UI or application behavior changed.
 
-Full project regression: **NOT YET RUN** — required before merge.
+Full project regression: **NOT REQUIRED FOR THIS NARROW CORRECTIVE SCOPE**. Validation is intentionally limited to the directly affected Request test suite plus related Module/System contracts.
 
-Git-clean verification after the handoff update: **PASS**.
+Git-clean verification: **PASS**.
 
 ## Owner-confirmed production state
 
@@ -125,12 +120,7 @@ This corrective PR does not rebuild Docker, toggle the Module, run seeders or mu
 
 The stale `31` versus `35` readiness assertion is no longer a known code blocker on PR #59.
 
-Remaining delivery gates for PR #59:
-
-1. pull this PR-metadata handoff refresh locally;
-2. run the full project regression;
-3. confirm final Git-clean/diff gate;
-4. refresh this handoff before merge with the final evidence and actual PR head.
+No additional test gate remains for this corrective scope beyond PR review/merge readiness checks.
 
 Any new Request application feature remains separate and is not authorized by this corrective batch.
 
@@ -151,7 +141,8 @@ Request production effective state remains **ON / OWNER CONFIRMED**. Any future 
 
 ## Next authorized step
 
-1. Complete the full project regression and final Git-clean/diff gates for PR #59.
-2. Refresh this handoff with final pre-merge evidence, then review merge readiness.
-3. Do not name or begin another Request application MR/phase until a source/documented requirement and explicit authorization exist.
-4. Until then, the next Request application MR/phase remains **NOT DETERMINED**.
+1. Review PR #59 merge readiness.
+2. If merge gates are satisfied, merge PR #59 into `main`.
+3. After merge, refresh the stable handoff with the actual merge checkpoint if required by workflow.
+4. Do not name or begin another Request application MR/phase until a source/documented requirement and explicit authorization exist.
+5. Until then, the next Request application MR/phase remains **NOT DETERMINED**.
