@@ -1,3 +1,12 @@
+@php
+    $installButtonText = trim((string) ($launcher['install_button_text'] ?? 'Cài ứng dụng')) ?: 'Cài ứng dụng';
+    $installIosHeading = trim((string) ($launcher['install_ios_heading'] ?? 'Cài ứng dụng trên iPhone/iPad')) ?: 'Cài ứng dụng trên iPhone/iPad';
+    $installIosDescription = trim((string) ($launcher['install_ios_description'] ?? 'Safari trên iPhone/iPad cài ứng dụng bằng chức năng Thêm vào Màn hình chính.')) ?: 'Safari trên iPhone/iPad cài ứng dụng bằng chức năng Thêm vào Màn hình chính.';
+    $installIosBrowserHeading = trim((string) ($launcher['install_ios_browser_heading'] ?? 'Hãy mở trang này bằng Safari')) ?: 'Hãy mở trang này bằng Safari';
+    $installIosBrowserDescription = trim((string) ($launcher['install_ios_browser_description'] ?? 'Mở trang này trong Safari, sau đó dùng Chia sẻ → Thêm vào Màn hình chính.')) ?: 'Mở trang này trong Safari, sau đó dùng Chia sẻ → Thêm vào Màn hình chính.';
+    $installCloseText = trim((string) ($launcher['install_close_text'] ?? 'Đã hiểu')) ?: 'Đã hiểu';
+@endphp
+
 <button
     id="install-app"
     type="button"
@@ -5,7 +14,7 @@
     data-pwa-install-button
     class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
 >
-    {{ $launcher['install_button_text'] }}
+    {{ $installButtonText }}
 </button>
 
 <div
@@ -22,14 +31,14 @@
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Progressive Web App</p>
                 <h2 id="client-pwa-install-heading" class="mt-1 text-2xl font-bold tracking-tight">
-                    {{ $launcher['install_ios_heading'] }}
+                    {{ $installIosHeading }}
                 </h2>
             </div>
-            <button type="button" data-pwa-install-close class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500" aria-label="{{ $launcher['install_close_text'] }}">✕</button>
+            <button type="button" data-pwa-install-close class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500" aria-label="{{ $installCloseText }}">✕</button>
         </div>
 
         <div data-pwa-ios-guide class="mt-5 hidden">
-            <p class="text-sm leading-6 text-slate-600">{{ $launcher['install_ios_description'] }}</p>
+            <p class="text-sm leading-6 text-slate-600">{{ $installIosDescription }}</p>
             <ol class="mt-5 space-y-3">
                 <li class="flex gap-3 rounded-2xl bg-slate-50 p-4">
                     <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">1</span>
@@ -48,13 +57,13 @@
 
         <div data-pwa-ios-browser-guide class="mt-5 hidden">
             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                <strong class="text-sm text-amber-900">{{ $launcher['install_ios_browser_heading'] }}</strong>
-                <p class="mt-1 text-xs leading-5 text-amber-800">{{ $launcher['install_ios_browser_description'] }}</p>
+                <strong class="text-sm text-amber-900">{{ $installIosBrowserHeading }}</strong>
+                <p class="mt-1 text-xs leading-5 text-amber-800">{{ $installIosBrowserDescription }}</p>
             </div>
         </div>
 
         <button type="button" data-pwa-install-close class="mt-6 h-12 w-full rounded-2xl bg-slate-900 text-sm font-bold text-white">
-            {{ $launcher['install_close_text'] }}
+            {{ $installCloseText }}
         </button>
     </div>
 </div>
