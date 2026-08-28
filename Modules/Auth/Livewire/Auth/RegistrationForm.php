@@ -23,13 +23,22 @@ class RegistrationForm extends Component
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
-        $key = 'client-register:'.request()->ip().':'.mb_strtolower(trim($validated['email']));
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages([
-                'email' => 'Bạn đã thử đăng ký quá nhiều lần. Vui lòng thử lại sau.',
-            ]);
+        $email = mb_strtolower(trim($validated['email']));
+        $limits = [
+            ['key' => 'client-register:email:'.$email, 'max' => 5],
+            ['key' => 'client-register:ip:'.request()->ip(), 'max' => 20],
+        ];
+
+        foreach ($limits as $limit) {
+            if (RateLimiter::tooManyAttempts($limit['key'], $limit['max'])) {
+                throw ValidationException::withMessages([
+                    'email' => 'Bạn đã thử đăng ký quá nhiều lần. Vui lòng thử lại sau.',
+                ]);
+            }
         }
-        RateLimiter::hit($key, 300);
+        foreach ($limits as $limit) {
+            RateLimiter::hit($limit['key'], 300);
+        }
 
         $user = $registration->register(
             $validated['name'],
@@ -37,7 +46,6 @@ class RegistrationForm extends Component
             $validated['password'],
         );
 
-        RateLimiter::clear($key);
         session()->put('auth.pending_verification_email', $user->email);
 
         return redirect()->route('client.apps.verify-email');
