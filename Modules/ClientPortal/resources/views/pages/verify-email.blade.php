@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="{{ $pwaGeneral['theme_color'] }}">
     <meta name="application-name" content="{{ $pwaGeneral['application_name'] }}">
-    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="manifest" href="{{ route('website.manifest') }}">
     <link rel="icon" href="/pwa/icon.svg" type="image/svg+xml">
     <title>Xác minh email · {{ $pwaGeneral['browser_title'] }}</title>
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
