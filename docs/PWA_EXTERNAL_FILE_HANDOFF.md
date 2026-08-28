@@ -10,7 +10,7 @@ The problem is not limited to ClientPortal or Muasamcong. Any Module that expose
 
 An installed PWA must not use top-level navigation to an authenticated binary download when that navigation can replace the active application workspace.
 
-The application should preserve its current browsing context while handing the file to the browser/OS download or preview mechanism.
+The application should preserve its current browsing context while handing the file to the browser/OS download, share or preview mechanism.
 
 ```text
 PWA workspace
@@ -19,7 +19,7 @@ Preserve top-level application page
     ↓
 Authenticated same-origin file request
     ↓
-Browser / OS download or document preview
+Native file handoff / share sheet
     ↓
 User returns to PWA
     ↓
@@ -36,13 +36,39 @@ The correct design goal is therefore not to control the native viewer. The goal 
 
 Do not solve this by blindly forcing the URL into an external browser window. Installed PWA and browser cookie/session behavior can differ by platform, and a protected URL may not have the same authenticated session outside the PWA context.
 
-For same-origin authenticated files, prefer a technique that initiates the file request from the existing authenticated PWA context while preserving the top-level page. Examples include:
+For same-origin authenticated files, the preferred installed-PWA pattern is:
 
-- a hidden iframe used only to initiate an attachment response;
-- an authenticated fetch followed by a Blob/ObjectURL handoff when file size and platform support make that appropriate;
-- another application-neutral mechanism that demonstrably preserves the active PWA navigation stack.
+```text
+user taps file action
+    ↓
+PWA intercepts the navigation
+    ↓
+authenticated fetch(credentials: same-origin, cache: no-store)
+    ↓
+Blob → File
+    ↓
+show an explicit ready action inside the PWA
+    ↓ user taps again
+navigator.share({ files: [...] })
+    ↓
+OS share/open sheet
+```
+
+The second user gesture is intentional. Web Share requires transient user activation on relevant browsers, so code must not assume that a user activation remains valid after an asynchronous file fetch finishes.
+
+Use `navigator.canShare({ files: [...] })` when available before enabling the native file-share action. If file sharing is unsupported, keep the installed PWA workspace intact and show a clear fallback instruction instead of navigating the PWA document to the binary URL.
 
 Do not expose a protected file through a new public URL merely to work around PWA navigation.
+
+## Known failed patterns on iOS installed PWA
+
+The following patterns are not accepted as a generic solution unless a future platform-specific test proves otherwise:
+
+- **Hidden iframe to the binary URL.** iOS may still hand the XLSX/PDF response to its native preview and occupy the standalone PWA context. This was reproduced manually in ClientPortal MR-5.
+- **`window.open(binaryUrl, '_blank')`.** This does not reliably create a recoverable external context from an installed iOS PWA, may still lead to the same native preview behavior, and may introduce session-sharing problems if an external browser context is involved. This was also reproduced manually in ClientPortal MR-5.
+- **Top-level `window.location` fallback.** This intentionally replaces the PWA workspace and therefore violates the core rule.
+
+These failed patterns must not be reintroduced in another Module merely because they work in a desktop browser.
 
 ## Normal browser behavior
 
@@ -68,6 +94,8 @@ File handoff must preserve the existing authorization contract:
 - no permanent public URL is created as a convenience workaround;
 - UI visibility is not a substitute for authorization.
 
+An authenticated fetch used for file handoff must use the existing protected route and preserve the same-origin session. The client-side Blob/File is only a temporary handoff object; it is not a new authorization boundary.
+
 ## Service worker boundary
 
 Authenticated binary responses should not be added to a broad offline cache. A file download request should normally pass through to the network unless a separately reviewed secure offline-file design explicitly requires otherwise.
@@ -78,12 +106,15 @@ For any Module that adds or modifies file download/open behavior in a PWA-capabl
 
 ```text
 iOS installed PWA
-- starting the download does not replace the current workspace
-- Excel/PDF/native preview can be dismissed or left without losing the PWA page
-- returning to the PWA restores the same application context
+- tapping the file action does not replace the current workspace
+- authenticated file preparation succeeds inside the existing PWA session
+- the native share/open sheet appears only after an explicit user action
+- Excel/PDF can be handed to Files, Excel or another compatible application
+- cancelling or completing the handoff leaves the PWA workspace recoverable
 
 Android installed PWA
 - download/open does not destroy the application navigation stack
+- supported Web Share file handoff works, or a safe fallback is shown
 - returning to the PWA preserves the current page/context
 
 Desktop / normal browser
@@ -106,7 +137,9 @@ When a user reports that opening a file prevents returning to the PWA, inspect i
 3. whether the route is authenticated and must retain the PWA session;
 4. whether the service worker intercepts or caches the request;
 5. whether the platform is installed PWA, mobile browser or desktop browser;
-6. whether the implementation preserves the original application document before handing off the file.
+6. whether the implementation preserves the original application document before handing off the file;
+7. whether Web Share supports file payloads on the affected device;
+8. whether the share call is made from a fresh user gesture rather than after an asynchronous fetch without another tap.
 
 Do not start by changing storage permissions, file generation, route authorization or service-worker caching unless evidence points there.
 
