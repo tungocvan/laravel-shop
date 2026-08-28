@@ -18,16 +18,12 @@ class ClientGoogleController extends Controller
 {
     public function redirect(Request $request): RedirectResponse
     {
-        if (! $this->hasGoogleConfiguration()) {
-            return redirect()->route('client.apps.login')->withErrors([
-                'email' => 'Đăng nhập Google chưa được cấu hình đầy đủ.',
-            ]);
-        }
+        return $this->redirectToGoogle($request, false);
+    }
 
-        $this->useClientCallback();
-        $request->session()->regenerate();
-
-        return Socialite::driver('google')->redirect();
+    public function linkRedirect(Request $request): RedirectResponse
+    {
+        return $this->redirectToGoogle($request, true);
     }
 
     public function callback(Request $request, GoogleWebAuthService $accounts): RedirectResponse
@@ -35,6 +31,24 @@ class ClientGoogleController extends Controller
         try {
             $this->useClientCallback();
             $googleUser = Socialite::driver('google')->user();
+            $linking = $request->session()->pull('auth.google_linking', false);
+
+            if ($linking) {
+                $current = Auth::guard('web')->user();
+
+                if (! $current) {
+                    return redirect()->route('client.apps.login')->withErrors([
+                        'email' => 'Phiên liên kết Google đã hết hạn. Hãy đăng nhập lại bằng mật khẩu.',
+                    ]);
+                }
+
+                $accounts->link($current, $googleUser);
+                $request->session()->regenerate();
+
+                return redirect()->route('client.apps.index')
+                    ->with('status', 'Đã liên kết tài khoản Google thành công.');
+            }
+
             $user = $accounts->resolve($googleUser);
 
             Auth::guard('web')->login($user);
@@ -65,9 +79,24 @@ class ClientGoogleController extends Controller
             ]);
 
             return redirect()->route('client.apps.login')->withErrors([
-                'email' => 'Không thể đăng nhập bằng Google. Vui lòng thử lại.',
+                'email' => 'Không thể xử lý tài khoản Google. Vui lòng thử lại.',
             ]);
         }
+    }
+
+    private function redirectToGoogle(Request $request, bool $linking): RedirectResponse
+    {
+        if (! $this->hasGoogleConfiguration()) {
+            return redirect()->route('client.apps.login')->withErrors([
+                'email' => 'Đăng nhập Google chưa được cấu hình đầy đủ.',
+            ]);
+        }
+
+        $this->useClientCallback();
+        $request->session()->put('auth.google_linking', $linking);
+        $request->session()->regenerate();
+
+        return Socialite::driver('google')->redirect();
     }
 
     private function useClientCallback(): void
