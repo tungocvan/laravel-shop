@@ -44,7 +44,13 @@ class LoginForm extends Component
     {
         $this->validate();
 
-        if (Auth::guard($this->guard)->attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        $credentials = [
+            'email' => $this->email,
+            'password' => $this->password,
+            'is_active' => true,
+        ];
+
+        if (Auth::guard($this->guard)->attempt($credentials, $this->remember)) {
             session()->regenerate();
 
             if ($this->guard === 'admin') {
@@ -56,7 +62,7 @@ class LoginForm extends Component
                 : redirect('/');
         }
 
-        $this->addError('email', 'Thông tin đăng nhập không chính xác.');
+        $this->addError('email', 'Thông tin đăng nhập không chính xác hoặc tài khoản chưa được kích hoạt.');
     }
 
     public function render()
