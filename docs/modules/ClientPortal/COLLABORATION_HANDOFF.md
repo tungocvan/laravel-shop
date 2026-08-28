@@ -3,14 +3,12 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint before MR-7: `302e051686f8b2bfa0e608f300d4cbde3f82a634`
-- Completed MR: **MR-6 — PWA Install UX**
-- MR-6 pull request: **#65 — MERGED / CLOSED**
-- MR-6 merge commit: `db9a4418593bb62518f4787d7f40199d8214a1c6`
-- Active MR: **MR-7 — PWA Account Registration & Google Authentication**
-- MR-7 branch: `feat/clientportal-pwa-account-auth`
-- MR-7 pull request: **#67 — OPEN / MERGEABLE**
-- MR-7 status: **ACCEPTANCE PASS / PR GATE PASS / READY FOR MANUAL MERGE**
+- Stable `main` checkpoint after MR-7 merge: `3d8adbaa7356d5e41f67af9601693e74ccd5e9b5`
+- Completed MR: **MR-7 — PWA Account Registration & Google Authentication**
+- MR-7 pull request: **#67 — MERGED / CLOSED**
+- MR-7 merge commit: `3d8adbaa7356d5e41f67af9601693e74ccd5e9b5`
+- MR-7 source head: `a6a26445af363dffbcf85fba043bdc5b6b58c94d`
+- MR-7 status: **MERGED / CLOSED**
 
 ## Stable architecture
 
@@ -20,7 +18,7 @@ Core rule:
 
 > Không được thêm logic đặc thù Module vào ClientPortal core.
 
-MR-1 through MR-6 are merged/closed. MR-7 extends the shared Auth boundary and ClientPortal PWA presentation without creating a separate PWA user model, JWT boundary, or Module-specific authentication stack.
+MR-1 through MR-7 are merged/closed. MR-7 extends the shared Auth boundary and ClientPortal PWA presentation without creating a separate PWA user model, JWT boundary, or Module-specific authentication stack.
 
 ## MR-7 implemented contract
 
@@ -119,24 +117,22 @@ Manual UI acceptance: **PASS** for:
 
 Full project regression: **NOT APPLICABLE — scoped Auth + impacted ClientApps strategy**. PR-gate review confirmed `tests/Feature/Auth` contains the same three Auth test files covered by the 19-test run; Website changes are limited to PWA manifest/auth handoff presentation and are covered by ClientApps contracts plus manual UI acceptance.
 
-Local working-tree cleanliness: **CLEAN** (`git status --short` returned no output).
+Local working-tree cleanliness before merge: **CLEAN** (`git status --short` returned no output).
 
-## PR #67 gate checkpoint
+## MR-7 merge checkpoint
 
 ```text
-Base: main
-Base checkpoint: 302e051686f8b2bfa0e608f300d4cbde3f82a634
-Head branch: feat/clientportal-pwa-account-auth
 PR: #67
-State: OPEN
-Draft: false
-Mergeable: true
-Unexpected diff scope: none found
-GitHub commit statuses/checks: none configured/reported
-PR gate: PASS
+PR state: CLOSED
+Merged: true
+Base: main
+Source head: a6a26445af363dffbcf85fba043bdc5b6b58c94d
+Merge commit: 3d8adbaa7356d5e41f67af9601693e74ccd5e9b5
+main immediately after merge: 3d8adbaa7356d5e41f67af9601693e74ccd5e9b5
+MR-7: MERGED / CLOSED
 ```
 
-MR-7 is ready for owner/manual merge. Do not interpret this source acceptance as production deployment or Google credential/callback enablement; production operational enablement remains a separate action.
+Source acceptance does not imply production deployment or Google credential/callback enablement; production operational enablement remains a separate action.
 
 ## Roadmap checkpoint
 
@@ -147,14 +143,15 @@ MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
 MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
-MR-7 — PWA Account Registration & Google Authentication: PR #67 / READY FOR MANUAL MERGE
+MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — PR #67
+Next MR/phase: NOT DETERMINED
 ```
 
 ## Next-step boundary
 
-The owner may now merge PR #67 after reviewing the PR link. After merge:
+MR-7 is complete. Before starting further ClientPortal work:
 
-1. switch/pull `main`;
-2. verify the actual merge commit/checkpoint;
-3. refresh this handoff against merged `main` and mark MR-7 **MERGED / CLOSED**;
-4. do not start a new roadmap MR until the next target is explicitly selected and approved.
+1. use the latest `main` plus this handoff as the bootstrap source of truth;
+2. explicitly select the next ClientPortal target/requirement;
+3. inspect affected source and dependencies;
+4. propose the next MR plan and obtain owner approval before creating a branch or changing code.
