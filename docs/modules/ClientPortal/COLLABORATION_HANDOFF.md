@@ -3,13 +3,16 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable main checkpoint before MR-3: `b5f377319419bd2c9eed1516f101e99675338158`
-- Current MR: **MR-3 — Dynamic Portal Home**
+- MR-3 merge commit / stable code checkpoint: `35aa90bf771869c4eb0cf065eac635f8137b1b95`
+- Completed MR: **MR-3 — Dynamic Portal Home**
+- Pull request: **#62 — MERGED**
 - Feature branch: `feat/clientportal-dynamic-portal-home`
-- MR-3 status: **IMPLEMENTED / AUTOMATED TESTS PASS / MANUAL ACCEPTANCE PASS / PR READY**
-- Merge status: **NOT MERGED — OWNER APPROVAL REQUIRED**
+- Feature head before merge: `e8d33a75b0ca561cf427e2a9fc65581d3742976c`
+- MR-3 status: **CLOSED / ACCEPTED**
+- Next planned MR: **MR-4 — Muasamcong reference migration**
+- MR-4 implementation status: **NOT STARTED / PLAN APPROVAL REQUIRED**
 
-## Stable architecture
+## Stable architecture after MR-3
 
 ClientPortal remains an open authenticated Client/WebApp platform that can host multiple applications without adding Module-specific business logic to Portal core.
 
@@ -29,11 +32,11 @@ Modules/ClientPortal/Services/PortalContextResolver.php
 Modules/ClientPortal/Services/PortalNavigationResolver.php
 ```
 
-`PortalContextResolver` is the source of truth for Dynamic Portal Home availability through `applications`, `application_count`, `single_application`, `requires_application_selection`, and `has_access`.
+`PortalContextResolver` is the source of truth for Portal Home availability through `applications`, `application_count`, `single_application`, `requires_application_selection`, and `has_access`.
 
 ## MR-3 delivered scope
 
-MR-3 implements the previously deferred 0/1/N Portal Home behavior at the canonical `/my-apps` / `client.apps.index` entry point without introducing a new route.
+MR-3 implements the 0/1/N Portal Home behavior at the canonical `/my-apps` / `client.apps.index` entry point without introducing a new route.
 
 ```text
 0 applications  -> Work Home / clear no-access state
@@ -115,7 +118,7 @@ Owner-verified 0/1/N behavior:
 - no visible horizontal overflow or content overlap observed
 ```
 
-Manual acceptance therefore confirms the core MR-3 contract:
+Manual acceptance therefore confirms:
 
 ```text
 0 app  -> Work Home / no-access       PASS
@@ -156,7 +159,7 @@ MR-3 did not:
 - alter Muasamcong or Request domain authorization rules;
 - add organization/department/branch routing.
 
-## Explicitly deferred / out of MR-3
+## Explicitly deferred after MR-3
 
 Still outside MR-3:
 
@@ -168,25 +171,39 @@ Still outside MR-3:
 - general offline caching of authenticated business content;
 - unrelated runtime/production changes.
 
+## Merge closeout
+
+MR-3 was merged through PR #62 after explicit owner approval.
+
+```text
+Feature head before merge:
+e8d33a75b0ca561cf427e2a9fc65581d3742976c
+
+Merge commit / stable code checkpoint:
+35aa90bf771869c4eb0cf065eac635f8137b1b95
+```
+
+MR-3 is therefore **CLOSED / ACCEPTED**. Do not continue implementation on `feat/clientportal-dynamic-portal-home`.
+
 ## Roadmap checkpoint
 
 ```text
 MR-1 — Portal Architecture Foundation: MERGED / CLOSED
 MR-2 — Adaptive Navigation: MERGED / CLOSED
-MR-3 — Dynamic Portal Home: IMPLEMENTED / ACCEPTED / PR READY
-MR-4 — Muasamcong reference migration: PLANNED — NOT STARTED
+MR-3 — Dynamic Portal Home: MERGED / CLOSED
+MR-4 — Muasamcong reference migration: NEXT PLANNED
 ```
 
-## PR and merge gate
+## Next-step boundary
 
-MR-3 implementation and owner acceptance are complete on `feat/clientportal-dynamic-portal-home`.
+MR-4 — Muasamcong reference migration is the next planned phase, but implementation is **not authorized by this handoff alone**.
 
-Before merge:
+Before creating an MR-4 branch or changing code:
 
-1. Review the final feature-branch diff against current `main`.
-2. Confirm the branch is not behind `main` and contains only approved MR-3 scope.
-3. Open/review the MR-3 pull request and inspect GitHub mergeability/check status.
-4. Merge only after explicit owner approval.
-5. After merge, verify the resulting `main` checkpoint and update this handoff to CLOSED / ACCEPTED with the PR and merge commit.
+1. Read this handoff and `.codex/standards/CLIENT_APP_UI_STANDARD.md` from current `main`.
+2. Inspect the current Muasamcong ClientPortal adapter, manifest, App Shell integration and remaining Muasamcong-specific presentation concerns.
+3. Define a narrow MR-4 migration scope with explicit domain/ClientPortal ownership boundaries, testing and manual acceptance.
+4. Present the plan to the owner.
+5. Create a new feature branch and implement only after explicit owner approval.
 
-Do not begin MR-4 from the MR-3 feature branch.
+Do not broaden MR-4 into Request domain behavior, organization/department routing, unrelated runtime/production changes, or speculative shared component work without separately approved scope.
