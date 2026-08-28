@@ -60,16 +60,28 @@ class ClientPortalPwaInstallUxTest extends TestCase
         $this->assertStringNotContainsString("showModal('generic')", $installer);
     }
 
-    public function test_launcher_install_copy_is_config_driven(): void
+    public function test_launcher_install_copy_is_config_driven_with_backward_compatible_fallbacks(): void
     {
         $installer = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/pwa-install.blade.php'));
 
-        $this->assertStringContainsString("\$launcher['install_button_text']", $installer);
-        $this->assertStringContainsString("\$launcher['install_ios_heading']", $installer);
-        $this->assertStringContainsString("\$launcher['install_ios_description']", $installer);
-        $this->assertStringContainsString("\$launcher['install_ios_browser_heading']", $installer);
-        $this->assertStringContainsString("\$launcher['install_ios_browser_description']", $installer);
-        $this->assertStringContainsString("\$launcher['install_close_text']", $installer);
+        $this->assertStringContainsString("\$launcher['install_button_text'] ?? 'Cài ứng dụng'", $installer);
+        $this->assertStringContainsString("\$launcher['install_ios_heading'] ?? 'Cài ứng dụng trên iPhone/iPad'", $installer);
+        $this->assertStringContainsString("\$launcher['install_ios_description'] ??", $installer);
+        $this->assertStringContainsString("\$launcher['install_ios_browser_heading'] ?? 'Hãy mở trang này bằng Safari'", $installer);
+        $this->assertStringContainsString("\$launcher['install_ios_browser_description'] ??", $installer);
+        $this->assertStringContainsString("\$launcher['install_close_text'] ?? 'Đã hiểu'", $installer);
+    }
+
+    public function test_install_partial_renders_when_launcher_only_has_legacy_install_button_key(): void
+    {
+        $html = view('ClientPortal::partials.pwa-install', [
+            'launcher' => ['install_button_text' => 'Cài đặt'],
+        ])->render();
+
+        $this->assertStringContainsString('Cài đặt', $html);
+        $this->assertStringContainsString('Cài ứng dụng trên iPhone/iPad', $html);
+        $this->assertStringContainsString('Hãy mở trang này bằng Safari', $html);
+        $this->assertStringContainsString('Đã hiểu', $html);
     }
 
     public function test_authenticated_launcher_renders_install_ux_contract(): void
