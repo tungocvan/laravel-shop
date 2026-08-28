@@ -34,7 +34,7 @@ class ClientAdaptiveNavigationTest extends TestCase
         $navigation = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
         $normalizedNavigation = strtolower($navigation);
 
-        $this->assertStringContainsString("'name' => $item['icon']", $navigation);
+        $this->assertStringContainsString("'name' => \$item['icon']", $navigation);
         $this->assertStringContainsString('ClientPortal::partials.navigation-icon', $navigation);
         $this->assertStringNotContainsString('client.muasamcong.', $normalizedNavigation);
         $this->assertStringNotContainsString('applications.muasamcong', $normalizedNavigation);
