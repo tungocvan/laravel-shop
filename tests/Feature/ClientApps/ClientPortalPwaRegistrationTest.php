@@ -69,8 +69,9 @@ class ClientPortalPwaRegistrationTest extends TestCase
             },
         );
 
-        Livewire::withSession(['auth.pending_verification_email' => 'portal@example.com'])
-            ->test(VerifyEmailOtpForm::class)
+        $this->withSession(['auth.pending_verification_email' => 'portal@example.com']);
+
+        Livewire::test(VerifyEmailOtpForm::class)
             ->set('otp', $otp)
             ->call('verify')
             ->assertRedirect(route('client.apps.index'));
