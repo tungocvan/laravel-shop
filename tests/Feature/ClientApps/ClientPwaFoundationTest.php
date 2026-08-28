@@ -21,10 +21,12 @@ class ClientPwaFoundationTest extends TestCase
     public function test_service_worker_does_not_cache_authenticated_navigation_responses(): void
     {
         $serviceWorker = file_get_contents(public_path('service-worker.js'));
+        $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
 
         $this->assertStringContainsString("request.mode === 'navigate'", $serviceWorker);
-        $this->assertStringContainsString('fetch(request).catch', $serviceWorker);
+        $this->assertStringContainsString("fetch(request, { cache: 'no-store' }).catch", $serviceWorker);
         $this->assertStringNotContainsString("cache.put(request", $serviceWorker);
+        $this->assertStringContainsString("updateViaCache: 'none'", $layout);
     }
 
     public function test_dedicated_pwa_login_route_is_public_and_named(): void
