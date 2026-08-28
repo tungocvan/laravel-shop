@@ -4,13 +4,18 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Http\Controllers\Admin\ApplicationAdminController;
 use Modules\ClientPortal\Http\Controllers\Admin\PwaSettingsController;
+use Modules\ClientPortal\Http\Controllers\AccountController;
 use Modules\ClientPortal\Http\Controllers\PortalController;
 
 Route::middleware(['web'])->group(function () {
     Route::get('/my-apps/login', [PortalController::class, 'login'])->name('client.apps.login');
     Route::get('/my-apps/register', [PortalController::class, 'register'])->name('client.apps.register');
     Route::get('/my-apps/verify-email', [PortalController::class, 'verifyEmail'])->name('client.apps.verify-email');
-    Route::middleware('auth:web')->group(function () { Route::get('/my-apps', [PortalController::class, 'index'])->name('client.apps.index'); });
+    Route::middleware('auth:web')->group(function () {
+        Route::get('/my-apps', [PortalController::class, 'index'])->name('client.apps.index');
+        Route::get('/my-apps/account', [AccountController::class, 'show'])->name('client.apps.account');
+        Route::get('/my-apps/settings', [AccountController::class, 'settings'])->name('client.apps.settings');
+    });
 });
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin/client-apps')->name('admin.client-apps.')->group(function () {

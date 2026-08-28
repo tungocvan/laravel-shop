@@ -26,15 +26,7 @@
             </a>
             <div class="flex items-center gap-2">
                 @include('ClientPortal::partials.pwa-install')
-                @if(Route::has('client.apps.google.link') && ! auth('web')->user()?->google_id)
-                    <a href="{{ route('client.apps.google.link') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
-                        Liên kết Google
-                    </a>
-                @endif
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm">{{ $launcher['logout_button_text'] }}</button>
-                </form>
+                @include('ClientPortal::partials.account-menu')
             </div>
         </div>
     </header>

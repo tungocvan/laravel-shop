@@ -9,6 +9,10 @@
 - MR-7 merge commit: `3d8adbaa7356d5e41f67af9601693e74ccd5e9b5`
 - MR-7 source head: `a6a26445af363dffbcf85fba043bdc5b6b58c94d`
 - MR-7 status: **MERGED / CLOSED**
+- Active delivery: **MR-8 — PWA Header Account Menu**
+- Active branch: `feat/clientportal-pwa-header-account-menu`
+- MR-8 pull request: **#68 — OPEN**
+- MR-8 status: **READY FOR MANUAL REVIEW — mergeable; all acceptance gates passed**
 
 ## Stable architecture
 
@@ -144,14 +148,46 @@ MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
 MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
 MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — PR #67
-Next MR/phase: NOT DETERMINED
+MR-8 — PWA Header Account Menu: PR #68 OPEN — READY FOR MANUAL REVIEW
+Next MR/phase after MR-8: NOT DETERMINED
 ```
+
+## MR-8 implementation checkpoint
+
+Approved scope:
+
+- one shared ClientPortal account menu for the launcher and application shell;
+- read-only `/my-apps/account` information;
+- bounded `/my-apps/settings` using the existing Auth-owned Google link;
+- canonical CSRF-protected Auth logout;
+- no dependency on the disabled Admin-only `Modules/Account`;
+- no schema, migration, Website, manifest or service-worker change.
+
+Architecture boundary:
+
+- ClientPortal owns Header/menu/account/settings presentation;
+- `App\Models\User` through `auth:web` is the current identity source;
+- Auth owns logout, session invalidation, CSRF and Google linking;
+- application-specific business logic remains outside ClientPortal core.
+
+Acceptance status:
+
+- focused account-menu tests + impacted ClientApps/Auth regression: **PASS**
+
+```text
+Tests: 130 passed (834 assertions)
+Duration: 8.52s
+```
+
+- desktop/tablet/mobile/standalone manual UI: **PASS — user confirmed**
+- mobile evidence: **PASS at 430 × 932**; the account panel stays inside the viewport and exposes all three actions
+- frontend asset note: the first mobile check used stale compiled Tailwind output; `npm run build` restored the intended responsive positioning without a source correction
+- Git-clean on user local: **CLEAN** (`git status --short` returned no output after synchronizing commit `1095af9f`)
+- pull request: **#68 — OPEN / READY FOR MANUAL REVIEW**
+- merge commit: **NOT AVAILABLE**
+
+Production deployment remains a separate operational action. MR-8 introduces no new environment variable, Google credential, migration or runtime module-state change.
 
 ## Next-step boundary
 
-MR-7 is complete. Before starting further ClientPortal work:
-
-1. use the latest `main` plus this handoff as the bootstrap source of truth;
-2. explicitly select the next ClientPortal target/requirement;
-3. inspect affected source and dependencies;
-4. propose the next MR plan and obtain owner approval before creating a branch or changing code.
+MR-8 focused/impacted tests, manual UI acceptance and the user-local Git-clean gate have passed. PR #68 is open and mergeable; the next authorized action is user review and manual merge. The next MR after MR-8 remains **NOT DETERMINED**.
