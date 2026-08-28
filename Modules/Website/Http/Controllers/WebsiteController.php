@@ -34,7 +34,7 @@ class WebsiteController extends Controller
             'short_name' => $appearance['apple_title'],
             'description' => $appearance['application_name'],
             'lang' => str_replace('_', '-', app()->getLocale()),
-            'start_url' => '/',
+            'start_url' => '/my-apps',
             'scope' => '/',
             'display' => 'standalone',
             'orientation' => 'any',

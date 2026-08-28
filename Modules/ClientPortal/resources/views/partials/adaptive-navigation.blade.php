@@ -3,7 +3,7 @@
 @endphp
 
 @if($allNavigation->isNotEmpty())
-    <aside class="hidden sm:flex sm:w-20 sm:shrink-0 sm:flex-col sm:border-r sm:border-slate-200 sm:bg-white lg:w-64" aria-label="Điều hướng ứng dụng">
+    <aside class="hidden sm:flex sm:w-20 sm:shrink-0 sm:flex-col sm:border-r sm:border-slate-200 sm:bg-white lg:w-56 xl:w-60" aria-label="Điều hướng ứng dụng">
         <div class="sticky top-[65px] flex min-h-[calc(100dvh-65px)] flex-col px-2 py-4 lg:px-3">
             <nav class="space-y-1">
                 @foreach($primaryNavigation as $item)

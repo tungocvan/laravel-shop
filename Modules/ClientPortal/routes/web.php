@@ -8,6 +8,8 @@ use Modules\ClientPortal\Http\Controllers\PortalController;
 
 Route::middleware(['web'])->group(function () {
     Route::get('/my-apps/login', [PortalController::class, 'login'])->name('client.apps.login');
+    Route::get('/my-apps/register', [PortalController::class, 'register'])->name('client.apps.register');
+    Route::get('/my-apps/verify-email', [PortalController::class, 'verifyEmail'])->name('client.apps.verify-email');
     Route::middleware('auth:web')->group(function () { Route::get('/my-apps', [PortalController::class, 'index'])->name('client.apps.index'); });
 });
 

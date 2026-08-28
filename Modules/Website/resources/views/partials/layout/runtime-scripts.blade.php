@@ -1,4 +1,15 @@
 @stack('scripts')
+<script>
+(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (!standalone) return;
+
+    document.querySelectorAll('[data-pwa-auth-target]').forEach((link) => {
+        const target = link.getAttribute('data-pwa-auth-target');
+        if (target) link.setAttribute('href', target);
+    });
+})();
+</script>
 @if(data_get($websiteAppearance ?? [], 'service_worker_enabled', true))
 <script>
 (() => {

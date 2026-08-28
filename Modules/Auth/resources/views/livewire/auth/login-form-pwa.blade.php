@@ -49,6 +49,22 @@
         </button>
     </form>
 
+    @if(Route::has('client.apps.google'))
+        <div class="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
+            <span class="h-px flex-1 bg-slate-200"></span><span>hoặc</span><span class="h-px flex-1 bg-slate-200"></span>
+        </div>
+        <a href="{{ route('client.apps.google') }}" class="flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-800 transition hover:bg-slate-50">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.35 12.18c0-.7-.06-1.22-.2-1.77H12v3.22h5.37a4.6 4.6 0 0 1-2 3.02l-.03.11 2.84 2.2.2.02c1.83-1.69 2.97-4.18 2.97-6.8Z"/><path fill="currentColor" d="M12 21.7c2.62 0 4.82-.86 6.43-2.72l-3.06-2.33c-.82.56-1.92.95-3.37.95a5.85 5.85 0 0 1-5.53-4.04l-.1.01-2.95 2.29-.04.09A9.7 9.7 0 0 0 12 21.7Z"/><path fill="currentColor" d="M6.47 13.56A5.98 5.98 0 0 1 6.15 12c0-.54.1-1.06.3-1.56v-.11L3.45 8l-.1.05A9.7 9.7 0 0 0 2.3 12c0 1.43.38 2.78 1.07 3.95l3.1-2.39Z"/><path fill="currentColor" d="M12 6.4c1.84 0 3.08.8 3.78 1.45l2.72-2.66C16.83 3.63 14.62 2.3 12 2.3A9.7 9.7 0 0 0 3.35 8.05l3.1 2.39A5.87 5.87 0 0 1 12 6.4Z"/></svg>
+            Tiếp tục với Google
+        </a>
+    @endif
+
+    @if(Route::has('client.apps.register'))
+        <a href="{{ route('client.apps.register') }}" class="mt-4 flex h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-800 transition hover:bg-slate-50">
+            Đăng ký tài khoản
+        </a>
+    @endif
+
     <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-xs leading-5 text-slate-500">
         Phiên đăng nhập được bảo vệ bằng HTTPS. Chỉ các ứng dụng được quản trị viên cấp quyền mới xuất hiện sau khi đăng nhập.
     </div>

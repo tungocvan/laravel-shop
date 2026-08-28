@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="{{ $pwaGeneral['apple_title'] }}">
-    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="manifest" href="{{ route('website.manifest') }}">
     <link rel="icon" href="/pwa/icon.svg" type="image/svg+xml">
     <title>{{ $launcher['browser_title'] }}</title>
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
@@ -26,6 +26,11 @@
             </a>
             <div class="flex items-center gap-2">
                 @include('ClientPortal::partials.pwa-install')
+                @if(Route::has('client.apps.google.link') && ! auth('web')->user()?->google_id)
+                    <a href="{{ route('client.apps.google.link') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                        Liên kết Google
+                    </a>
+                @endif
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm">{{ $launcher['logout_button_text'] }}</button>
@@ -35,6 +40,12 @@
     </header>
 
     <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        @if(session('status'))
+            <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                {{ session('status') }}
+            </div>
+        @endif
+
         <section class="mb-8 rounded-3xl bg-slate-900 px-6 py-7 text-white shadow-sm sm:px-8 sm:py-9">
             <p class="text-sm font-semibold text-slate-300">{{ $launcher['workspace_label'] }}</p>
             <h1 class="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{{ $launcher['heading'] }}</h1>

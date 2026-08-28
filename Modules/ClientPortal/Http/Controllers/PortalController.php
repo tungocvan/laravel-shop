@@ -23,6 +23,30 @@ class PortalController extends Controller
         ]);
     }
 
+    public function register(Request $request, ClientPortalSettingsService $settings): View|RedirectResponse
+    {
+        if ($request->user('web')) {
+            return redirect()->route('client.apps.index');
+        }
+
+        return view('ClientPortal::pages.register', [
+            'pwaGeneral' => $settings->pwaGeneral(),
+            'pwaLogin' => $settings->pwaLogin(),
+        ]);
+    }
+
+    public function verifyEmail(Request $request, ClientPortalSettingsService $settings): View|RedirectResponse
+    {
+        if ($request->user('web')) {
+            return redirect()->route('client.apps.index');
+        }
+
+        return view('ClientPortal::pages.verify-email', [
+            'pwaGeneral' => $settings->pwaGeneral(),
+            'pwaLogin' => $settings->pwaLogin(),
+        ]);
+    }
+
     public function index(
         Request $request,
         PortalContextResolver $portalContext,
