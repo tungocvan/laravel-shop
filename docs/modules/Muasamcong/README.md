@@ -1,227 +1,177 @@
-# Muasamcong Module — Documentation Index
+# Muasamcong Module
 
-> Cập nhật: 2026-08-18. Tài liệu này là entry point cho AI/lập trình viên tiếp quản module.
+> Documentation entry point updated 2026-08-28 from `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`.
 
-## 1. Module làm gì?
+## Module Overview
 
-`Modules/Muasamcong` là module tích hợp dữ liệu Hệ thống mạng đấu thầu quốc gia (`muasamcong.mpi.gov.vn`) phục vụ tra cứu và lưu trữ nghiệp vụ thuốc/đấu thầu.
+`Modules/Muasamcong` is the domain integration and persistence layer for medicine pricing and public-procurement workflows backed by `muasamcong.mpi.gov.vn`.
 
-Các chức năng hiện tại:
+It owns upstream access, normalization, snapshots, synced pricing, wishlist, contractor history, KQLCNT/HSMT data, manual lot confirmation, export profiles, and personal upstream sessions. Customer-facing pages are presented by the ClientPortal Muasamcong adapter, which consumes this module's models/services.
 
-- Tra cứu Smart Pricing theo thuốc, hoạt chất, mã TBMT và dữ liệu winner upstream hỗ trợ.
-- Tải đủ các page khi tra cứu TBMT lớn, sau đó phân trang local.
-- Lưu snapshot lịch sử tra cứu: từ khóa cũ ưu tiên database; `Tìm kiếm mới` mới force API.
-- Filter local theo tên thuốc, hoạt chất, nhóm thuốc, đơn vị trúng thầu.
-- Checkbox lựa chọn thuốc xuyên nhiều trang và đồng bộ các thuốc đã chọn vào database.
-- Quản lý danh sách thuốc đã đồng bộ: search, pagination, cross-page selection, edit winner/KQLCNT metadata, bulk delete.
-- Export Profile cho `/admin/muasamcong/synced`: nhiều cấu hình/user, kéo thứ tự cột, rename header, type/decimal/alignment/width, Header/Footer, logo và chữ ký.
-- Wishlist thuốc cần theo dõi theo user.
-- Tra cứu lịch sử nhà thầu/doanh nghiệp.
-- Xem KQLCNT và danh sách các đơn vị trúng thầu của TBMT.
-- Lấy và snapshot HSMT/danh mục hàng hóa-thuốc.
-- Tra cứu HSMT và export XLSX.
-- Quản trị cấu hình upstream với security boundary riêng.
+Baseline recommendation: **Major Refactor through compatible incremental batches; no full rebuild.** See `ANALYSIS.md` for evidence and priorities.
 
-**Quan trọng:** README cũ từng ghi module không persistence/database và chỉ tải page đầu. Điều đó KHÔNG còn đúng. Module hiện có migrations/models/snapshots/wishlist/synced results và pagination đầy đủ cho luồng TBMT.
+## Registration
 
-## 2. Tài liệu phải đọc
+- Loader: `Modules\ModuleServiceProvider`.
+- Manifest: `Modules/Muasamcong/config/module.php`.
+- Type: `domain`.
+- Declared module dependencies: none.
+- Configuration provider: `Modules\Muasamcong\Providers\MuasamcongServiceProvider`.
+- Runtime/production enablement: **NOT VERIFIED** by this documentation baseline.
 
-AI/lập trình viên mở chat mới đọc theo thứ tự:
+## Main Routes
 
-1. `docs/modules/Muasamcong/README.md` — entry point và invariants.
-2. `docs/modules/Muasamcong/AI_HANDOFF.md` — tài liệu bàn giao chi tiết nhất, bao gồm endpoint đã điều tra, case thực tế, các kết luận và việc chưa giải quyết.
-3. `docs/modules/Muasamcong/SYNCED.md` — mô tả chi tiết `/admin/muasamcong/synced`, Export Profile và Excel/BBG.
-4. `docs/modules/Muasamcong/ROUTES.md` — route reference web/API, middleware, handler và domain map.
-5. `docs/modules/Muasamcong/INFORMATION.md` — inventory/lịch sử module.
-6. `docs/modules/Muasamcong/ANALYSIS.md` — phân tích kiến trúc trước đó; có thể chứa thông tin lịch sử đã cũ.
-7. `docs/modules/Muasamcong/ENV_DOCTOR.md` — chẩn đoán cấu hình môi trường.
-8. `.codex/skills/configurable-excel-export/SKILL.md` — skill tái sử dụng Export Profile cho module khác.
-9. Code + tests hiện tại — source of truth cuối cùng.
+| Route | Current purpose |
+|---|---|
+| `/admin/muasamcong` | Smart Pricing workspace; currently not an Admin Dashboard |
+| `/admin/muasamcong/contractors` | Contractor lookup and queued history |
+| `/admin/muasamcong/contractors/history` | Archived contractor searches |
+| `/admin/muasamcong/hsmt` | HSMT search/export |
+| `/admin/muasamcong/synced` | Synced pricing and export profiles |
+| `/admin/muasamcong/wishlist` | Admin pricing wishlist |
+| `/admin/muasamcong/config` | Integration/session configuration |
+| `/api/muasamcong` | Authenticated API availability |
+| `/api/muasamcong/search-pricing` | Authenticated pricing search |
+| `/api/muasamcong/update-cookie` | Throttled one-time session import |
+| `/apps/muasamcong` | ClientPortal end-user dashboard, owned by ClientPortal |
 
-Nếu tài liệu lịch sử mâu thuẫn code hiện tại, phải báo rõ và ưu tiên code/tests hiện tại.
+The complete route inventory is in `INFORMATION.md`.
 
-## 3. Kiến trúc repository
+## Admin Dashboard Status
 
-Dự án dùng module architecture riêng qua:
+An Admin management Dashboard is requested but does not exist at this checkpoint. It is a separate capability, not part of this docs-only baseline.
 
-```text
-Modules\ModuleServiceProvider
-```
+The recommended compatibility contract is:
 
-Không giả định `nwidart/laravel-modules`.
+- add `/admin/muasamcong/dashboard` and leave the Smart Pricing index unchanged.
 
-Luồng chuẩn:
+If the user instead approves `/admin/muasamcong` as the canonical Dashboard, Smart Pricing can move to `/admin/muasamcong/pricing`, but the existing index bookmark/link behavior changes and needs an explicit route-name/redirect migration plan.
 
-```text
-Route -> Controller/Page Blade -> Livewire -> Service -> Model/DB hoặc upstream HTTP
-```
+The Dashboard should provide permission-aware links and bounded operational summaries without loading full payloads or exposing secrets.
 
-Integration parsing, persistence và UI state phải tiếp tục tách thành services; không gom lại vào Livewire.
+## Permissions
 
-## 4. Trang admin
+- `view_muasamcong`
+- `muasamcong.config.manage`
+- `muasamcong.pricing.sync`
+- `muasamcong.pricing.wishlist`
 
-```text
-/admin/muasamcong              Tra cứu thuốc / Smart Pricing
-/admin/muasamcong/contractors  Lịch sử nhà thầu
-/admin/muasamcong/hsmt         Tra cứu HSMT
-/admin/muasamcong/synced       Danh sách thuốc đã đồng bộ + Export Profile
-/admin/muasamcong/wishlist     Wishlist thuốc cần theo dõi
-/admin/muasamcong/config       Cấu hình tích hợp
-```
+Important: current enforcement is inconsistent. Several contractor, history, manual-lot, verified-lot, and wishlist bulk mutations rely only on the view boundary. Do not treat hidden UI actions as authorization; see P1-01 in `ANALYSIS.md`.
 
-API:
+ClientPortal uses separate `client.muasamcong.*` application/feature/action permissions.
 
-```text
-GET  /api/muasamcong
-POST /api/muasamcong/search-pricing
-POST /api/muasamcong/update-cookie
-```
+## Features
 
-Các route search/admin dùng `auth:admin` + permission `view_muasamcong`; config có permission riêng `muasamcong.config.manage`. Mutation sync sử dụng permission chuyên biệt theo code hiện tại.
+- Smart Pricing with database-first snapshots and explicit refresh.
+- Bounded multi-page TBMT/company search, local filters, pagination, and cross-page selection.
+- Duplicate-safe selected pricing sync and per-user wishlist.
+- Synced record management, configurable Excel profiles, and BBG export.
+- Contractor participation history, queue jobs, archives, KQLCNT, and HSMT catalogue snapshots.
+- Manual contractor-lot confirmation and download.
+- Privileged integration/environment management and encrypted personal sessions.
+- Internal Sanctum API.
+- ClientPortal search, queue, history, wishlist, price-list, sharing, and PWA file handoff.
 
-Xem chi tiết toàn bộ route tại `docs/modules/Muasamcong/ROUTES.md`.
+## Dependencies
 
-## 5. Chức năng và service chịu trách nhiệm
-
-| Chức năng | Thành phần chính | Trách nhiệm |
-|---|---|---|
-| Smart Pricing | `TracuuThuoctrungthau`, `MuaSamCongService` | Tra cứu thuốc/TBMT và normalize kết quả |
-| Full TBMT pagination | `PricingTbmtPaginationService` | Tải đủ page upstream, merge/chống trùng |
-| Search snapshot | `PricingSearchSnapshotService` | Database-first cho từ khóa cũ, timestamp/access count, force refresh |
-| Đồng bộ thuốc | `PricingResultSyncService` | Map selected source rows vào `PricingResult` |
-| Synced list | `SyncedPricingList` | Search, pagination, checkbox xuyên trang, edit/bulk delete |
-| Configurable Excel | `SyncedPricingExportPreferenceService`, `SyncedExportProfile`, `SyncedPricingExportController` | Multi-profile export, typed Excel, Header/Footer, logo/chữ ký |
-| Wishlist | `PricingWishlistService`, `PricingWishlist` | Danh sách thuốc theo dõi theo user |
-| Lịch sử nhà thầu | `ContractorHistory`, `ContractorHistoryService` | Tìm doanh nghiệp và các TBMT đã tham gia |
-| KQLCNT | `KqlcntService` | Contract/winner metadata của TBMT |
-| HSMT detail | `HsmtDetailService` | Parse form HSMT/danh mục thuốc |
-| HSMT snapshot | `HsmtSnapshotService` | Lưu và tái sử dụng dữ liệu HSMT |
-| Config | `MuasamcongConfigService` | Quản lý integration config an toàn |
-
-## 6. Invariants nghiệp vụ không được phá
-
-### Search/cache
-
-- Từ khóa đã tra cứu: ưu tiên database snapshot, không gọi API lại.
-- UI phải hiển thị thời gian dữ liệu được tra cứu/lấy nguồn gần nhất.
-- `Tìm kiếm mới` là hành động rõ ràng để gọi upstream lại và refresh snapshot.
-
-### Pagination
-
-- TBMT có >20 rows phải tải đủ upstream pages.
-- Sau khi tải full set, UI phân trang local 20 rows/page.
-- Không regression về chỉ page 0.
-
-### Checkbox
-
-- Selection phải giữ xuyên trang.
-- Header checkbox thao tác trang hiện tại.
-- Có thao tác chọn tất cả kết quả/bỏ tất cả/xem danh sách đã chọn.
-- Sync phải nhận toàn bộ selected IDs ở nhiều trang.
-
-### Winner
-
-- Upstream có `winningName` (đã thấy ở dữ liệu 2026) => hiển thị bình thường.
-- Upstream không có `winningName` (thường gặp 2025) => hiển thị `Nguồn không cung cấp`.
-- Không suy đoán/gán winner toàn TBMT vào từng medicine.
-- Chưa có mapping đáng tin cậy winner ↔ lot/medicine.
-
-### HSMT
-
-- HSMT catalogue có thể rất lớn; modal phải scroll đúng cả ngang/dọc.
-- Dữ liệu đã snapshot ưu tiên local; refresh chỉ khi người dùng chủ động đồng bộ lại.
-
-### Synced export
-
-- Save cấu hình không tự export.
-- Export chỉ nhận identifier từ browser và query DB lại.
-- Export profile luôn scope theo user.
-- Cột export luôn đi qua server-side whitelist.
-- `GĐKLH/GPNK` phải giữ dạng text khi xuất.
-- Number phải là numeric cell, decimal/format do profile quyết định.
-- Header/Footer chỉ thay presentation, không mutate domain data.
-
-## 7. Kết luận điều tra winner ↔ thuốc
-
-Đã xác minh hai nguồn độc lập:
+- Laravel 12 / PHP 8.2+ / MySQL.
+- Livewire 3.1 class-based components.
+- Repository Admin authentication and permission infrastructure.
+- Laravel HTTP client, queue, storage, validation, and Eloquent.
+- FastExcel and PhpSpreadsheet.
+- ClientPortal as a one-way presentation consumer:
 
 ```text
-list-contract-for-po
- -> danh sách contract / các công ty trúng thầu của TBMT
-
-lcnt_tbmt_hsmt
- -> toàn bộ danh mục lô/thuốc HSMT của TBMT
+ClientPortal -> Muasamcong domain
 ```
 
-Chưa tìm được khóa chính xác nối contractor với từng `lotNo`/medicine.
+No circular module dependency was observed.
 
-Case `IB2600008930`, notifyId `894fb581-2622-421e-aada-320c53332745`: HSMT trả 285 rows và có `lotNo`, `medicineCode`, nhưng không có `contractorCode`, `contractorName`, `winningCode`, `resultId` trên medicine rows.
+## Configuration
 
-Case `IB2600099293`: `list-contract-for-po` đã test HTTP 200 nhưng response `[]`; bấm đồng bộ lại không thể tạo winner từ một source rỗng.
+Tracked defaults live in `Modules/Muasamcong/config/muasamcong.php`; safe examples live in `.env.example`.
 
-Chi tiết endpoint, payload và các thử nghiệm thất bại/thành công nằm trong `AI_HANDOFF.md`.
+Key groups:
 
-## 8. Security
+- origin, timeout, user agent, page sizes;
+- Smart token and session cookie;
+- pricing, contractor, KQLCNT, contract, and HSMT endpoints;
+- portal/pricing/contractor/KQLCNT referers.
 
-- Không hard-code token/cookie.
-- Không commit secret.
-- Không đưa secret vào Livewire public state/HTML/JS/log.
-- Chỉ HTTPS và host allowlist `muasamcong.mpi.gov.vn`.
-- SSL verification production phải bật.
-- Endpoint/schema/token/cookie upstream có thể thay đổi.
-- HTTP 200 phải kiểm tra body/count/schema, không mặc định là success có dữ liệu.
-- Export/download phải validate selected IDs và query DB server-side.
-- Export profile không được cross-user.
+Security invariants:
 
-## 9. Pre-merge verification
+- exact HTTPS host `muasamcong.mpi.gov.vn` only;
+- no URL credentials or non-443 ports;
+- redirects disabled;
+- production TLS verification always on;
+- never commit/log/render real token or cookie values.
+
+## Operational Notes
+
+- Queue workers are required for contractor-history jobs and ClientPortal background workflows.
+- HSMT snapshots are stored privately under `muasamcong/hsmt/<notifyNo>/` as JSON, XLSX, and metadata.
+- Configurable synced exports accept at most 5,000 selected IDs and generate temporary private downloads.
+- Search snapshots/raw payloads/HSMT files currently have no defined retention policy.
+- Large upstream searches and formatted exports may be expensive despite hard caps.
+- A reliable winner/contractor-to-exact-lot/medicine join key has not been found. Never introduce heuristic mapping.
+- Upstream HTTP 200 is not sufficient; body/schema/count must be validated.
+
+## Developer Notes
+
+Preferred flow:
+
+```text
+Route -> thin Controller -> Page Blade -> Livewire -> Service -> Model/DB or upstream
+```
+
+Preserve these compatibility contracts unless an approved change says otherwise:
+
+- Admin/API route names and URIs;
+- ClientPortal adapter contracts;
+- database tables/columns and migration history;
+- private HSMT/export storage paths;
+- export profile schema and generated workbook behavior;
+- separation between upstream source data and manual enrichment.
+
+Targeted test locations:
+
+```text
+tests/Feature/MuasamcongModuleTest.php
+tests/Feature/Muasamcong/
+tests/Feature/ClientApps/   # when ClientPortal contracts are affected
+```
+
+No fresh test run was performed for this documentation-only baseline. For a local docs review:
 
 ```bash
-php artisan optimize:clear
-php artisan migrate:status
-php artisan route:list --path=muasamcong
-vendor/bin/pint --test Modules/Muasamcong tests/Feature/Muasamcong
-php artisan test tests/Feature/Muasamcong
+git diff --check main...HEAD
+git diff --stat main...HEAD
 ```
 
-Sau module regression nên chạy full project regression trước khi merge `main`.
+For runtime changes, select formatting/tests according to the touched domain and expand to ClientPortal/shared coverage only when those contracts change.
 
-Manual smoke tối thiểu:
+## Documentation
 
-1. Keyword mới -> API.
-2. Keyword cũ -> DB snapshot.
-3. `Tìm kiếm mới` -> API refresh.
-4. TBMT >20 rows -> đủ dữ liệu + local pagination.
-5. Filter thuốc/hoạt chất/nhóm/winner.
-6. Chọn checkbox ở nhiều trang -> selection giữ nguyên -> sync đủ.
-7. Winner 2026 vẫn hiện khi source có `winningName`.
-8. Source thiếu winner không bị suy đoán.
-9. Synced list edit/bulk delete/cross-page checkbox.
-10. Synced Export Profile: save, reload, duplicate, chọn profile, export đúng format.
-11. Wishlist persistence.
-12. Contractor history + KQLCNT modal.
-13. HSMT snapshot/catalogue scroll.
+Read in this order:
 
-## 10. Khi mở chat mới
+1. `README.md` — current entry point.
+2. `INFORMATION.md` — factual inventory.
+3. `ANALYSIS.md` — findings, evidence, Dashboard assessment, and recommendation.
+4. `ROUTES.md`, `SYNCED.md`, `ENV_DOCTOR.md` — supporting references; verify against source because they were outside this baseline output scope.
+5. `AI_HANDOFF.md` — legacy investigation context, especially winner/lot research; it is not a canonical current handoff.
+6. Source and tests — final source of truth.
 
-Dùng prompt:
+`docs/modules/Muasamcong/COLLABORATION_HANDOFF.md` is not present. Create it only in a separately approved handoff batch after the baseline is accepted.
 
-```text
-Hãy tiếp tục Modules/Muasamcong. Trước tiên đọc toàn bộ:
-- docs/modules/Muasamcong/README.md
-- docs/modules/Muasamcong/AI_HANDOFF.md
-- docs/modules/Muasamcong/SYNCED.md
-- docs/modules/Muasamcong/ROUTES.md
-- docs/modules/Muasamcong/INFORMATION.md
-- docs/modules/Muasamcong/ANALYSIS.md
-- code/tests hiện tại của Modules/Muasamcong
+## Future Improvements
 
-Không implement ngay. Hãy tóm tắt kiến trúc hiện tại, chức năng đã hoàn thành, invariants, các endpoint/source dữ liệu, vấn đề winner ↔ lot/medicine chưa giải quyết và đề xuất kế hoạch thay đổi. Nếu docs lịch sử mâu thuẫn code/tests, dùng code/tests làm source of truth và nêu rõ mâu thuẫn.
-```
+Recommended order:
 
-Để áp dụng Export Profile cho module khác, dùng:
-
-```text
-Hãy sử dụng `.codex/skills/configurable-excel-export/SKILL.md` để phân tích và triển khai configurable Excel export cho Modules/<Module>.
-```
-
-Xem `AI_HANDOFF.md` để có tài liệu bàn giao đầy đủ nhất.
+1. enforce capability-specific authorization and add denial tests;
+2. atomically claim one-time session tokens;
+3. make contractor job/sync workflows idempotent;
+4. correct ClientPortal search completeness beyond 500 matching rows;
+5. define snapshot/file retention and operational metrics;
+6. implement the approved Admin Dashboard route contract;
+7. extract controller/Livewire/export orchestration into focused services;
+8. remove unused scaffolds and modernize manifest/model policies in compatibility-checked cleanup.
