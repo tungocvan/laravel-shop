@@ -48,25 +48,45 @@ class ClientGoogleAuthenticationTest extends TestCase
         $this->assertSame('old@example.com', $resolved->email);
     }
 
-    public function test_matching_existing_email_is_not_auto_linked_to_google(): void
+    public function test_verified_active_existing_email_is_auto_linked_to_google(): void
+    {
+        $existing = User::query()->create([
+            'name' => 'Verified Password User',
+            'email' => 'existing@example.com',
+            'password' => Hash::make('Password123!'),
+            'is_active' => true,
+        ]);
+        $existing->forceFill(['email_verified_at' => now()])->save();
+
+        $resolved = app(GoogleWebAuthService::class)->resolve(
+            $this->googleUser('google-300', 'existing@example.com', true),
+        );
+
+        $this->assertTrue($resolved->is($existing));
+        $this->assertSame('google-300', $resolved->google_id);
+        $this->assertNull($resolved->google_token);
+        $this->assertNull($resolved->google_refresh_token);
+    }
+
+    public function test_unverified_existing_email_is_not_auto_linked_to_google(): void
     {
         User::query()->create([
-            'name' => 'Password User',
-            'email' => 'existing@example.com',
+            'name' => 'Unverified Password User',
+            'email' => 'pending@example.com',
             'password' => Hash::make('Password123!'),
             'is_active' => true,
         ]);
 
         try {
             app(GoogleWebAuthService::class)->resolve(
-                $this->googleUser('google-300', 'existing@example.com', true),
+                $this->googleUser('google-301', 'pending@example.com', true),
             );
-            $this->fail('Expected unsafe email-only linking to be rejected.');
+            $this->fail('Expected unverified local account auto-linking to be rejected.');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('email', $e->errors());
         }
 
-        $this->assertNull(User::query()->where('email', 'existing@example.com')->sole()->google_id);
+        $this->assertNull(User::query()->where('email', 'pending@example.com')->sole()->google_id);
     }
 
     public function test_unverified_google_email_is_rejected(): void
