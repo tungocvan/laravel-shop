@@ -47,9 +47,21 @@ class GoogleWebAuthService
                 ->first();
 
             if ($emailOwner) {
-                throw ValidationException::withMessages([
-                    'email' => 'Email này đã có tài khoản. Hãy đăng nhập bằng mật khẩu trước khi liên kết Google.',
-                ]);
+                if ($emailOwner->trashed() || ! $emailOwner->is_active || ! $emailOwner->email_verified_at) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Email này đã có tài khoản nhưng chưa đủ điều kiện liên kết Google tự động.',
+                    ]);
+                }
+
+                if ($emailOwner->google_id && $emailOwner->google_id !== $googleId) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Tài khoản này đã liên kết với một tài khoản Google khác.',
+                    ]);
+                }
+
+                $emailOwner->forceFill(['google_id' => $googleId])->save();
+
+                return $emailOwner->refresh();
             }
 
             $user = User::query()->create([
