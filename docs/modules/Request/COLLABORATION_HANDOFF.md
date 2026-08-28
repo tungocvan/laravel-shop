@@ -92,15 +92,17 @@ Owner-executed verification after pulling implementation commit:
 git pull --ff-only origin fix/request-readiness-permission-count: PASS
 php artisan test tests/Feature/System/RequestReleaseReadinessContractTest.php: PASS
 php artisan test tests/Feature/Request: PASS
+git diff --check main...HEAD: PASS
+git status --short: PASS / no output
 ```
 
 The focused stale contract is now aligned with the 35 admin-guard permissions in the current manifest, and the Request feature regression passes.
 
 Manual UI smoke: **NOT APPLICABLE** — no UI or application behavior changed.
 
-Full project regression: **NOT YET RUN**.
+Full project regression: **NOT YET RUN** — retained as a pre-merge gate, not required for PR creation for this narrow corrective batch.
 
-Git-clean verification after the handoff update: **PENDING**.
+Git-clean verification after the handoff update: **PASS**.
 
 ## Owner-confirmed production state
 
@@ -119,11 +121,9 @@ The stale `31` versus `35` readiness assertion is no longer a known code blocker
 
 Remaining delivery gates for this corrective branch:
 
-1. pull the handoff update locally;
-2. run `git diff --check main...HEAD`;
-3. confirm local working tree clean;
-4. create/review PR only after the above gates pass;
-5. refresh this handoff before merge if PR metadata or evidence changes.
+1. create and review the corrective PR;
+2. run the applicable full project regression before merge;
+3. refresh this handoff before merge with the actual PR metadata and final gate evidence.
 
 Any new Request application feature remains separate and is not authorized by this corrective batch.
 
@@ -144,7 +144,7 @@ Request production effective state remains **ON / OWNER CONFIRMED**. Any future 
 
 ## Next authorized step
 
-1. Complete the remaining pre-PR validation for this corrective branch.
-2. If all applicable gates pass, prepare a PR for this corrective test/docs batch.
+1. Create and review a PR for this corrective test/docs batch.
+2. Complete the applicable full project regression before merge and refresh this handoff with final PR/gate evidence.
 3. Do not name or begin another Request application MR/phase until a source/documented requirement and explicit authorization exist.
 4. Until then, the next Request application MR/phase remains **NOT DETERMINED**.
