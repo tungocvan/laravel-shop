@@ -8,8 +8,8 @@
 - MR-4 merge commit: `b8ace3f913c2bfab846ee28ee70db2fda625858c`
 - Current MR: **MR-5 — PWA External File Download & Return UX**
 - Feature branch: `fix/clientportal-pwa-external-file-handoff`
-- Pull request: **PENDING — not created yet**
-- MR-5 status: **ACCEPTANCE PASS — PR READY**
+- Pull request: **#64 — OPEN**
+- MR-5 status: **ACCEPTANCE PASS — FINAL PR REVIEW CORRECTIVE REQUIRED**
 
 ## Stable architecture entering MR-5
 
@@ -116,6 +116,16 @@ Desktop / normal browser
 
 MR-5 file-handoff acceptance status: **PASS**.
 
+## Final PR review finding
+
+PR #64 final diff review found one small retry defect in `external-file-handoff.blade.php`:
+
+- the `Mở / Chia sẻ tệp` click handler is registered with `{ once: true }`;
+- when `navigator.share(...)` fails with a non-`AbortError`, the UI re-enables the button and tells the user to retry;
+- however the listener has already been removed because it was one-shot, so the retry button no longer invokes `navigator.share(...)`.
+
+This does not invalidate the successful first-attempt device acceptance already reported, but it is a real error-path UX defect and should be corrected before merge. Do not reintroduce iframe, `window.open`, or top-level binary navigation while fixing it.
+
 ## Separate issue discovered during MR-5 acceptance
 
 A separate PWA installation UX issue was discovered on iPhone: the current launcher install button relies on the Chromium-style `beforeinstallprompt` event. iOS Safari does not provide that install flow, so the current iPhone install button/path can appear non-functional.
@@ -172,13 +182,13 @@ MR-1 — Portal Architecture Foundation: MERGED / CLOSED
 MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
-MR-5 — PWA External File Download & Return UX: ACCEPTANCE PASS / PR READY
+MR-5 — PWA External File Download & Return UX: PR #64 OPEN / FINAL CORRECTIVE REQUIRED
 MR-6 — PWA Install UX: APPROVED NEXT MR / NOT STARTED
 MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-MR-5 may now proceed to pull-request review. Do not merge until the PR diff/state is reviewed and the owner explicitly approves the merge.
+Do not merge PR #64 until the one-shot retry defect is corrected, relevant automated coverage passes, the PR diff/state is re-reviewed and the owner explicitly approves the merge.
 
 After MR-5 is merged, update `main`, refresh this handoff with the merge commit, then create a new branch for MR-6 only after confirming the new `main` checkpoint.
