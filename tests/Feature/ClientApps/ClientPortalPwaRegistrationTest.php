@@ -5,6 +5,7 @@ namespace Tests\Feature\ClientApps;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
 use Modules\Auth\Livewire\Auth\RegistrationForm;
 use Modules\Auth\Livewire\Auth\VerifyEmailOtpForm;
@@ -79,5 +80,54 @@ class ClientPortalPwaRegistrationTest extends TestCase
         $this->assertAuthenticatedAs($user->refresh(), 'web');
         $this->assertTrue($user->refresh()->is_active);
         $this->assertNotNull($user->email_verified_at);
+    }
+
+    public function test_registration_email_rate_limit_blocks_excess_attempts(): void
+    {
+        $key = 'client-register:email:limited@example.com';
+        RateLimiter::clear($key);
+        foreach (range(1, 5) as $attempt) {
+            RateLimiter::hit($key, 300);
+        }
+
+        Livewire::test(RegistrationForm::class)
+            ->set('name', 'Limited User')
+            ->set('email', 'limited@example.com')
+            ->set('password', 'StrongPassword123!')
+            ->set('password_confirmation', 'StrongPassword123!')
+            ->call('register')
+            ->assertHasErrors('email');
+
+        $this->assertDatabaseMissing('users', ['email' => 'limited@example.com']);
+        RateLimiter::clear($key);
+    }
+
+    public function test_otp_verify_and_resend_email_rate_limits_are_enforced(): void
+    {
+        $verifyKey = 'client-otp-verify:email:limited-otp@example.com';
+        $resendKey = 'client-otp-resend:email:limited-otp@example.com';
+        RateLimiter::clear($verifyKey);
+        RateLimiter::clear($resendKey);
+
+        foreach (range(1, 5) as $attempt) {
+            RateLimiter::hit($verifyKey, 300);
+        }
+        foreach (range(1, 3) as $attempt) {
+            RateLimiter::hit($resendKey, 300);
+        }
+
+        Livewire::test(VerifyEmailOtpForm::class)
+            ->set('email', 'limited-otp@example.com')
+            ->set('otp', '123456')
+            ->call('verify')
+            ->assertHasErrors('otp');
+
+        Livewire::test(VerifyEmailOtpForm::class)
+            ->set('email', 'limited-otp@example.com')
+            ->call('resend')
+            ->assertHasErrors('otp');
+
+        RateLimiter::clear($verifyKey);
+        RateLimiter::clear($resendKey);
     }
 }
