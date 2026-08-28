@@ -2,9 +2,9 @@
 
 namespace Modules\Auth\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
 
 class UserEmailVerification extends Model
 {
@@ -16,6 +16,7 @@ class UserEmailVerification extends Model
         'last_sent_at',
         'attempts',
         'verified_at',
+        'invalidated_at',
     ];
 
     protected $hidden = [
@@ -28,6 +29,7 @@ class UserEmailVerification extends Model
             'expires_at' => 'datetime',
             'last_sent_at' => 'datetime',
             'verified_at' => 'datetime',
+            'invalidated_at' => 'datetime',
             'attempts' => 'integer',
         ];
     }
