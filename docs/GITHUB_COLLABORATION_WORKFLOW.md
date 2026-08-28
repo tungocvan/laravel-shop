@@ -232,6 +232,27 @@ Khi UI có thay đổi đáng kể, trước khi đánh dấu hoàn tất phải
 
 Nếu tài liệu UI cũ của Module mâu thuẫn với `.codex/standards/ADMIN_UI_STANDARD.md`, phải đối chiếu source/shared components hiện tại; canonical standard và repository reality được ưu tiên hơn generic hoặc historical UI guidance.
 
+### 10.2 PWA download/open file gate bắt buộc
+
+Khi một Module hoặc Client application thêm/sửa hành vi tải hoặc mở file trên bề mặt có thể chạy dưới installed PWA, phải đọc và áp dụng:
+
+```text
+docs/PWA_EXTERNAL_FILE_HANDOFF.md
+```
+
+Quy tắc chung:
+
+- không để top-level navigation của installed PWA bị thay thế trực tiếp bởi response Excel/PDF/CSV/attachment nếu việc đó làm mất workspace hoặc navigation stack hiện tại;
+- với file authenticated cùng origin, ưu tiên kích hoạt request từ chính authenticated PWA context trong khi giữ nguyên top-level application page;
+- không mặc định ép protected download sang browser ngoài vì session/cookie của browser và installed PWA có thể khác nhau theo platform;
+- không tạo public URL chỉ để né vấn đề PWA download;
+- không cache rộng private binary response trong service worker;
+- desktop/browser thông thường nên giữ native download behavior nếu không có bằng chứng cần override;
+- tránh user-agent sniffing nếu có thể; ưu tiên phát hiện standalone/display-mode;
+- nếu native viewer của OS không cung cấp nút quay lại PWA, acceptance tập trung vào việc PWA workspace vẫn còn sống và người dùng quay lại app vẫn ở đúng context.
+
+Manual acceptance phải kiểm tra iOS installed PWA và Android installed PWA khi phạm vi có file handoff trên mobile, cùng với desktop/browser regression. Nếu chưa có thiết bị/platform để xác nhận thì gate phải ghi `NOT VERIFIED`, không tự suy luận PASS.
+
 ## 11. Git working tree
 
 Sau runtime operation có khả năng ghi file, phải kiểm tra:
@@ -386,6 +407,7 @@ Chỉ merge khi các gate applicable đã PASS:
 - full regression
 - manual UI smoke
 - Admin UI standard acceptance nếu task có Admin UI
+- PWA file handoff acceptance theo `docs/PWA_EXTERNAL_FILE_HANDOFF.md` nếu task có download/open file trên PWA-capable surface
 - Git clean
 - Docker/production check nếu liên quan
 - docs cập nhật
@@ -457,6 +479,8 @@ Nếu dữ liệu không nhất quán, dừng để người dùng xác nhận t
 
 Nếu working scope có Admin UI, bootstrap phải ghi nhận `.codex/standards/ADMIN_UI_STANDARD.md` là tài liệu bắt buộc và phải đọc trước khi đưa ra plan hoặc sửa UI.
 
+Nếu working scope có download/open file trên bề mặt có thể chạy dưới installed PWA, bootstrap phải ghi nhận `docs/PWA_EXTERNAL_FILE_HANDOFF.md` là tài liệu bắt buộc và manual acceptance phải bao gồm platform/PWA gate applicable.
+
 ### 16.4 Xác minh Module và cây fallback tài liệu
 
 Phải xác minh chính xác `Modules/<Module>` trước. Nếu không tồn tại, không tự chọn Module có tên gần giống; phải kiểm tra sai tên, chữ hoa/thường, branch thiếu source, tài liệu orphan hoặc yêu cầu tạo Module mới.
@@ -527,6 +551,8 @@ Trước khi kết thúc feature/fix branch, cập nhật trong chính branch đ
 
 Nếu branch có Admin UI, handoff phải ghi rõ mức tuân thủ `.codex/standards/ADMIN_UI_STANDARD.md`, shared components/patterns đã reuse và kết quả kiểm tra UI desktop/mobile applicable.
 
+Nếu branch có PWA file download/open behavior, handoff phải ghi rõ cách preserved top-level PWA context, security/session boundary và kết quả acceptance iOS/Android/desktop applicable theo `docs/PWA_EXTERNAL_FILE_HANDOFF.md`.
+
 Chỉ ghi thông tin hữu ích để tiếp tục; không sao chép log dài. Handoff không thay thế requirements, runbook hoặc acceptance document.
 
 Chỉ ghi branch `COMPLETED` khi mọi gate applicable đã PASS. Nếu chưa hoàn tất phải ghi `IN PROGRESS`. Không tự cập nhật handoff ngoài phạm vi đã được người dùng phê duyệt.
@@ -577,6 +603,7 @@ Handoff trước merge phải ghi hoặc đối chiếu:
 - trạng thái branch `COMPLETED` hoặc `IN PROGRESS` đúng với gates
 - focused test, Module/system regression, full regression và manual UI smoke applicable
 - Admin UI standard acceptance nếu có Admin UI
+- PWA file handoff acceptance nếu branch có download/open file trên PWA-capable surface
 - Git-clean, blocker và deferred work
 - ranh giới giữa post-merge acceptance, production enablement và MR/phase tiếp theo
 - next authorized step; không tự đặt tên MR kế tiếp nếu source/docs chưa định nghĩa
@@ -593,6 +620,7 @@ Checklist bắt buộc trước merge:
 - [ ] Delivery thông thường ghi đúng PR/scope/checkpoint; stable post-merge closeout có delivery envelope đúng trong PR description/GitHub.
 - [ ] Stable post-merge closeout không lưu trạng thái tạm của chính container trong handoff.
 - [ ] Test/UI/Git-clean evidence khớp kết quả thực tế.
+- [ ] PWA file handoff acceptance đã PASS hoặc được ghi rõ NOT VERIFIED nếu applicable.
 - [ ] Production enablement không bị suy ra từ việc merge source.
 - [ ] Next authorized step rõ ràng và không tự tạo MR/phase mới.
 - [ ] Nếu đây là MR cuối của checkpoint/Module, handoff không còn trạng thái/branch/PR của checkpoint cũ.
