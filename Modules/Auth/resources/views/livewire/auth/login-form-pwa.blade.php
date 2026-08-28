@@ -49,6 +49,12 @@
         </button>
     </form>
 
+    @if(Route::has('client.apps.register'))
+        <a href="{{ route('client.apps.register') }}" class="mt-4 flex h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-800 transition hover:bg-slate-50">
+            Đăng ký tài khoản
+        </a>
+    @endif
+
     <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-xs leading-5 text-slate-500">
         Phiên đăng nhập được bảo vệ bằng HTTPS. Chỉ các ứng dụng được quản trị viên cấp quyền mới xuất hiện sau khi đăng nhập.
     </div>
