@@ -66,13 +66,17 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString('Thêm vào Màn hình chính', $installer);
     }
 
-    public function test_price_list_workspace_polish_is_scoped_to_price_list_routes(): void
+    public function test_price_list_workspace_polish_is_scoped_through_application_shell_extensions(): void
     {
         $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Muasamcong/manifest.php'));
         $polish = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/muasamcong/partials/price-list-workspace-polish.blade.php'));
 
-        $this->assertStringContainsString("routeIs('client.muasamcong.price-list*')", $layout);
-        $this->assertStringContainsString('price-list-workspace-polish', $layout);
+        $this->assertStringContainsString('shell_extensions', $layout);
+        $this->assertStringNotContainsString("routeIs('client.muasamcong.price-list*')", $layout);
+        $this->assertStringNotContainsString('price-list-workspace-polish', $layout);
+        $this->assertStringContainsString("'route' => 'client.muasamcong.price-list*'", $manifest);
+        $this->assertStringContainsString('price-list-workspace-polish', $manifest);
         $this->assertStringContainsString('.export-card', $polish);
         $this->assertStringContainsString('price-list-icon-action', $polish);
         $this->assertStringContainsString('data-action-icon', $polish);
