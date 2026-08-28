@@ -9,7 +9,8 @@
 - MR-6 merge commit: `db9a4418593bb62518f4787d7f40199d8214a1c6`
 - Active MR: **MR-7 — PWA Account Registration & Google Authentication**
 - MR-7 branch: `feat/clientportal-pwa-account-auth`
-- MR-7 status: **IMPLEMENTATION + AUTOMATED REGRESSION + MANUAL UI ACCEPTANCE PASS / PR GATE PENDING**
+- MR-7 pull request: **#67 — OPEN / MERGEABLE**
+- MR-7 status: **ACCEPTANCE PASS / PR GATE PASS / READY FOR MANUAL MERGE**
 
 ## Stable architecture
 
@@ -116,13 +117,26 @@ Manual UI acceptance: **PASS** for:
 - standalone PWA Website → ClientPortal auth handoff
 - desktop/fullscreen shared ClientPortal layout
 
-Full project regression: **NOT YET REQUIRED AT THIS CHECKPOINT**. MR-7 changes shared Auth behavior plus ClientPortal/Website auth presentation, so PR-gate review must reassess whether any broader regression beyond the completed focused Auth + ClientApps impacted suites is warranted before merge.
+Full project regression: **NOT APPLICABLE — scoped Auth + impacted ClientApps strategy**. PR-gate review confirmed `tests/Feature/Auth` contains the same three Auth test files covered by the 19-test run; Website changes are limited to PWA manifest/auth handoff presentation and are covered by ClientApps contracts plus manual UI acceptance.
 
-Local working-tree cleanliness: **PENDING USER EVIDENCE**.
+Local working-tree cleanliness: **CLEAN** (`git status --short` returned no output).
 
-PR review / merge checkpoint: **PENDING**.
+## PR #67 gate checkpoint
 
-No production deployment or Google credential/callback enablement is implied by MR-7 source acceptance. Production operational enablement remains a separate action.
+```text
+Base: main
+Base checkpoint: 302e051686f8b2bfa0e608f300d4cbde3f82a634
+Head branch: feat/clientportal-pwa-account-auth
+PR: #67
+State: OPEN
+Draft: false
+Mergeable: true
+Unexpected diff scope: none found
+GitHub commit statuses/checks: none configured/reported
+PR gate: PASS
+```
+
+MR-7 is ready for owner/manual merge. Do not interpret this source acceptance as production deployment or Google credential/callback enablement; production operational enablement remains a separate action.
 
 ## Roadmap checkpoint
 
@@ -133,18 +147,14 @@ MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
 MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
-MR-7 — PWA Account Registration & Google Authentication: ACCEPTANCE PASS / PR GATE PENDING
+MR-7 — PWA Account Registration & Google Authentication: PR #67 / READY FOR MANUAL MERGE
 ```
 
 ## Next-step boundary
 
-Before opening/recommending merge of the MR-7 PR:
+The owner may now merge PR #67 after reviewing the PR link. After merge:
 
-1. pull the latest MR-7 branch checkpoint locally;
-2. confirm `git status --short` is clean;
-3. review the complete `main...feat/clientportal-pwa-account-auth` diff for unexpected scope/security regressions;
-4. reassess whether broader regression is required because MR-7 touches shared Auth;
-5. open/inspect the PR, its mergeability and any available checks;
-6. only recommend manual merge after the PR gate is explicitly PASS.
-
-After MR-7 merges, refresh this handoff against the actual `main` merge checkpoint before selecting or starting the next roadmap item.
+1. switch/pull `main`;
+2. verify the actual merge commit/checkpoint;
+3. refresh this handoff against merged `main` and mark MR-7 **MERGED / CLOSED**;
+4. do not start a new roadmap MR until the next target is explicitly selected and approved.
