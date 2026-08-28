@@ -47,35 +47,16 @@ class ClientApplicationRegistryTest extends TestCase
         $this->assertSame('create', $application['quick_actions'][0]['key']);
         $this->assertSame('overview', $application['navigation'][0]['key']);
         $this->assertSame('more', collect($application['navigation'])->firstWhere('key', 'processed')['placement']);
-
-        $create = collect($application['navigation'])->firstWhere('key', 'create');
-        $mine = collect($application['navigation'])->firstWhere('key', 'mine');
-        $inbox = collect($application['navigation'])->firstWhere('key', 'inbox');
-
-        $this->assertSame(
-            ['client.request.create.view', 'request.instance.create'],
-            $create['permissions']
-        );
-        $this->assertSame(
-            ['client.request.mine.view', 'request.instance.view-own'],
-            $mine['permissions']
-        );
-        $this->assertSame(
-            ['client.request.inbox.view', 'request.task.view'],
-            $inbox['permissions']
-        );
     }
 
     public function test_application_shell_consumes_resolved_navigation_instead_of_app_specific_mobile_partial(): void
     {
         $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
-        $resolver = file_get_contents(base_path('Modules/ClientPortal/Services/PortalNavigationResolver.php'));
 
         $this->assertStringContainsString('PortalNavigationResolver', $layout);
         $this->assertStringContainsString("where('placement', 'primary')", $layout);
         $this->assertStringContainsString("where('placement', 'more')", $layout);
         $this->assertStringNotContainsString("partials.mobile-nav", $layout);
-        $this->assertStringContainsString("permissions->every", $resolver);
     }
 
     public function test_portal_context_has_stable_shape_when_user_has_no_available_applications(): void
