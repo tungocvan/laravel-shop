@@ -3,15 +3,14 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint before MR-5: `de4a2df3585fb713446e2c46d96d1867c81c338a`
-- Completed MR: **MR-4 — Muasamcong reference migration**
-- MR-4 merge commit: `b8ace3f913c2bfab846ee28ee70db2fda625858c`
-- Current MR: **MR-5 — PWA External File Download & Return UX**
-- Feature branch: `fix/clientportal-pwa-external-file-handoff`
-- Pull request: **#64 — OPEN**
-- MR-5 status: **ACCEPTANCE PASS — OWNER MERGE APPROVAL REQUIRED**
+- Stable `main` checkpoint after MR-5: `e3353cdfe326642eb0ed3081ea20d93ee7f8a363`
+- Completed MR: **MR-5 — PWA External File Download & Return UX**
+- MR-5 pull request: **#64 — MERGED / CLOSED**
+- MR-5 merge commit: `e3353cdfe326642eb0ed3081ea20d93ee7f8a363`
+- Next MR: **MR-6 — PWA Install UX**
+- MR-6 status: **APPROVED / NOT STARTED**
 
-## Stable architecture entering MR-5
+## Stable architecture after MR-5
 
 ClientPortal remains an authenticated Client/WebApp platform that can host multiple applications without placing Module-specific business logic in Portal core.
 
@@ -19,31 +18,21 @@ Core rule:
 
 > Không được thêm logic đặc thù Module vào ClientPortal core.
 
-MR-1 through MR-4 are merged/closed. MR-4 moved Muasamcong-specific presentation concerns out of the shared App Shell and established application-neutral `shell_extensions`. MR-2 adaptive navigation and MR-3 0/1/N Portal Home behavior remain preserved.
+MR-1 through MR-5 are merged/closed. MR-4 moved Muasamcong-specific presentation concerns out of the shared App Shell and established application-neutral `shell_extensions`. MR-5 adds an authenticated installed-PWA external-file handoff contract without making ClientPortal core Muasamcong-specific.
 
-## MR-5 trigger and root cause
+## MR-5 completed contract
 
-Manual testing on an installed iPhone PWA found that opening a generated Excel/PDF file could replace the active PWA document with the OS/browser file preview. The application then lost the visible workspace/navigation context.
+Manual testing on an installed iPhone PWA found that opening generated Excel/PDF files could replace the active PWA document with OS/browser preview and lose the visible workspace/navigation context.
 
-The relevant backend download routes remain authenticated same-origin routes. File generation, authorization and storage availability are not changed by MR-5.
+The accepted implementation preserves the installed PWA top-level workspace, keeps authenticated same-origin access and existing permissions unchanged, avoids public temporary URLs, avoids service-worker caching of private binary responses, and preserves normal desktop/browser native download behavior.
 
-The required contract is:
-
-- preserve the installed-PWA top-level workspace before handing a file to the OS;
-- keep authenticated access and existing permissions unchanged;
-- avoid public temporary URLs;
-- avoid service-worker caching of private binary responses;
-- keep normal desktop/browser native download behavior unchanged.
-
-## MR-5 implementation
-
-The accepted implementation is Muasamcong-scoped through:
+The Muasamcong-scoped implementation lives in:
 
 ```text
 Modules/ClientPortal/resources/views/applications/muasamcong/partials/external-file-handoff.blade.php
 ```
 
-In installed/standalone PWA mode:
+Installed/standalone flow:
 
 1. Excel/PDF link navigation is intercepted before top-level navigation.
 2. The protected same-origin URL is fetched with `credentials: 'same-origin'` and `cache: 'no-store'`.
@@ -53,29 +42,21 @@ In installed/standalone PWA mode:
 6. Unsupported file-share capability keeps the PWA workspace intact and shows a safe fallback instruction instead of replacing the top-level page.
 7. The share action disables while a share attempt is running and remains retryable after a non-`AbortError` failure.
 
-Normal desktop/browser behavior remains native because interception is limited to installed/standalone PWA mode.
-
-### Rejected approaches
-
-The following patterns were tested on iPhone installed PWA and are rejected for this case:
+Rejected generic approaches for this iOS installed-PWA case:
 
 - hidden iframe navigation to the authenticated binary URL;
 - `window.open(binaryUrl, '_blank')`;
 - top-level `window.location` fallback to the binary URL.
 
-These approaches reproduced the original preview/workspace-loss behavior and must not be restored as the generic solution.
-
-## Project-wide documentation contract
-
-Canonical guidance:
+Canonical project-wide guidance is in:
 
 ```text
 docs/PWA_EXTERNAL_FILE_HANDOFF.md
 ```
 
-`docs/GITHUB_COLLABORATION_WORKFLOW.md` contains the mandatory PWA download/open-file gate. Future Module work involving PWA-capable file actions must read the canonical document and verify applicable iOS/Android/desktop behavior before merge.
+`docs/GITHUB_COLLABORATION_WORKFLOW.md` contains the mandatory PWA download/open-file gate for future Modules.
 
-## Automated acceptance
+## MR-5 acceptance checkpoint
 
 Latest owner-reported ClientApps regression after the retry corrective:
 
@@ -86,17 +67,7 @@ Duration: 13.17s
 
 Automated status: **PASS**.
 
-Focused MR-5 contract remains in:
-
-```text
-tests/Feature/ClientApps/ClientPortalPwaExternalFileHandoffTest.php
-```
-
-It locks the installed/standalone detection, Excel/PDF markers, authenticated no-store fetch, Blob/File conversion, Web Share handoff, explicit second user action, retry contract and absence of the rejected iframe/window-open/top-level-navigation patterns.
-
-## Manual acceptance
-
-Owner-reported manual acceptance for the final Web Share implementation:
+Manual acceptance:
 
 ```text
 iPhone installed PWA
@@ -115,27 +86,13 @@ Desktop / normal browser
 - native browser download behavior preserved: PASS
 ```
 
-MR-5 file-handoff acceptance status: **PASS**.
+MR-5 status: **MERGED / CLOSED**.
 
-## Final PR review corrective
-
-PR #64 final diff review found that the share click handler used `{ once: true }`, which made a non-`AbortError` retry button visually re-enable without retaining a listener.
-
-Corrective status: **FIXED**.
-
-- `{ once: true }` was removed;
-- the button remains disabled while `navigator.share(...)` is active;
-- a non-`AbortError` re-enables the same live handler so the user can retry;
-- focused contract coverage asserts the retry behavior;
-- latest ClientApps regression is `87 passed (613 assertions)`.
-
-## Separate issue discovered during MR-5 acceptance
+## MR-6 — PWA Install UX
 
 A separate PWA installation UX issue was discovered on iPhone: the current launcher install button relies on the Chromium-style `beforeinstallprompt` event. iOS Safari does not provide that install flow, so the current iPhone install button/path can appear non-functional.
 
-This issue is intentionally **not added to MR-5**. It becomes MR-6 so the accepted external-file handoff scope remains isolated.
-
-Planned MR-6 contract:
+Approved MR-6 contract:
 
 ```text
 MR-6 — PWA Install UX
@@ -147,9 +104,9 @@ MR-6 — PWA Install UX
 - add automated contract coverage and iPhone/Android/manual acceptance
 ```
 
-## Approved authentication roadmap
+MR-6 must start from refreshed `main` after the MR-5 merge checkpoint above. Do not create or mutate the MR-6 branch until repository/source bootstrap is re-checked and the implementation plan is confirmed for that new branch.
 
-A later MR will add end-user account registration/authentication for ClientPortal/PWA without creating a separate PWA identity system.
+## Approved authentication roadmap
 
 Planned MR-7 contract:
 
@@ -176,7 +133,7 @@ Shared auth boundary
 - successful login returns users to the appropriate ClientPortal/PWA workspace
 ```
 
-MR-7 is roadmap only. No authentication implementation belongs to MR-5 or MR-6 unless separately approved.
+MR-7 remains roadmap only and is not part of MR-6.
 
 ## Roadmap checkpoint
 
@@ -185,13 +142,11 @@ MR-1 — Portal Architecture Foundation: MERGED / CLOSED
 MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
-MR-5 — PWA External File Download & Return UX: PR #64 OPEN / ACCEPTANCE PASS / OWNER MERGE APPROVAL REQUIRED
+MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
 MR-6 — PWA Install UX: APPROVED NEXT MR / NOT STARTED
 MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-PR #64 implementation, automated acceptance and applicable manual file-handoff acceptance are PASS. Merge only after GitHub reports a mergeable state and the owner explicitly approves the merge.
-
-After MR-5 is merged, update `main`, refresh this handoff with the merge commit, then create a new branch for MR-6 only after confirming the new `main` checkpoint.
+Before MR-6 implementation, confirm current `main`, read the current launcher/PWA source and relevant workflow/docs, then propose the exact MR-6 branch/scope. Only create the new MR-6 branch after that bootstrap is confirmed.
