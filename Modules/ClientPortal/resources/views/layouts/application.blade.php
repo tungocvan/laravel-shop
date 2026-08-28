@@ -8,6 +8,15 @@
     <link rel="icon" href="/pwa/icon.svg" type="image/svg+xml">
     <title>@yield('title', 'Ứng dụng') · INAFO</title>
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
+    @php
+        $applicationContext = app(\Modules\ClientPortal\Support\ApplicationContext::class)->current();
+        $shellExtensions = $applicationContext['shell_extensions'] ?? [];
+    @endphp
+    @foreach($shellExtensions['head'] ?? [] as $extension)
+        @if(request()->routeIs(...$extension['routes']))
+            @include($extension['view'])
+        @endif
+    @endforeach
     @stack('application-head')
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
@@ -24,7 +33,6 @@
     </div>
 </header>
 @php
-    $applicationContext = app(\Modules\ClientPortal\Support\ApplicationContext::class)->current();
     $portalNavigation = $applicationContext
         ? app(\Modules\ClientPortal\Services\PortalNavigationResolver::class)->forApplication($applicationContext, auth('web')->user())
         : collect();
@@ -38,10 +46,20 @@
     ])
     <main class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-10 lg:px-8">@yield('content')</main>
 </div>
+@foreach($shellExtensions['overlays'] ?? [] as $extension)
+    @if(request()->routeIs(...$extension['routes']))
+        @include($extension['view'])
+    @endif
+@endforeach
 @stack('application-overlays')
 <script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
 </script>
+@foreach($shellExtensions['scripts'] ?? [] as $extension)
+    @if(request()->routeIs(...$extension['routes']))
+        @include($extension['view'])
+    @endif
+@endforeach
 @stack('application-scripts')
 </body>
 </html>
