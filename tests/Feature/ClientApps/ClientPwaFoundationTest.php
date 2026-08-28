@@ -100,7 +100,7 @@ class ClientPwaFoundationTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/my-apps')
             ->assertOk()
-            ->assertSee('/manifest.webmanifest', false)
+            ->assertSee(route('website.manifest'), false)
             ->assertSee('/service-worker.js', false)
             ->assertSee('Ứng dụng của tôi');
     }
