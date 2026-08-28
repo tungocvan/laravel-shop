@@ -93,6 +93,7 @@ class ApplicationRegistry
                     'name' => $feature['name'],
                     'route' => $feature['route'],
                     'permission' => $feature['permission'],
+                    'permissions' => array_values(array_filter([$feature['permission']])),
                     'icon' => $feature['icon'],
                     'sort_order' => $feature['sort_order'],
                     'placement' => 'primary',
@@ -158,12 +159,15 @@ class ApplicationRegistry
             ->map(function (array $item, string|int $itemKey): array {
                 $fallbackKey = is_string($itemKey) ? $itemKey : ($item['name'] ?? 'item-'.$itemKey);
                 $placement = $item['placement'] ?? 'primary';
+                $permission = $this->nullableString($item['permission'] ?? null);
+                $permissions = $this->normalizePermissions((array) ($item['permissions'] ?? []), $permission);
 
                 return [
                     'key' => Str::lower(trim((string) ($item['key'] ?? $fallbackKey))),
                     'name' => trim((string) ($item['name'] ?? Str::headline((string) $fallbackKey))),
                     'route' => $this->nullableString($item['route'] ?? null),
-                    'permission' => $this->nullableString($item['permission'] ?? null),
+                    'permission' => $permission,
+                    'permissions' => $permissions,
                     'icon' => trim((string) ($item['icon'] ?? 'square-3-stack-3d')),
                     'sort_order' => (int) ($item['sort_order'] ?? 100),
                     'placement' => in_array($placement, ['primary', 'more'], true) ? $placement : 'primary',
@@ -181,18 +185,31 @@ class ApplicationRegistry
             ->filter(fn (mixed $action): bool => is_array($action))
             ->map(function (array $action, string|int $actionKey): array {
                 $fallbackKey = is_string($actionKey) ? $actionKey : ($action['name'] ?? 'action-'.$actionKey);
+                $permission = $this->nullableString($action['permission'] ?? null);
 
                 return [
                     'key' => Str::lower(trim((string) ($action['key'] ?? $fallbackKey))),
                     'name' => trim((string) ($action['name'] ?? Str::headline((string) $fallbackKey))),
                     'route' => $this->nullableString($action['route'] ?? null),
-                    'permission' => $this->nullableString($action['permission'] ?? null),
+                    'permission' => $permission,
+                    'permissions' => $this->normalizePermissions((array) ($action['permissions'] ?? []), $permission),
                     'icon' => trim((string) ($action['icon'] ?? 'bolt')),
                     'sort_order' => (int) ($action['sort_order'] ?? 100),
                 ];
             })
             ->filter(fn (array $action): bool => $action['key'] !== '' && $action['name'] !== '' && $action['route'] !== null)
             ->sortBy(fn (array $action): array => [$action['sort_order'], $action['name']])
+            ->values()
+            ->all();
+    }
+
+    private function normalizePermissions(array $permissions, ?string $permission = null): array
+    {
+        return collect($permissions)
+            ->push($permission)
+            ->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')
+            ->map(fn (string $value): string => trim($value))
+            ->unique()
             ->values()
             ->all();
     }
