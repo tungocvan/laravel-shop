@@ -57,9 +57,11 @@ class RegistrationService
         $user = $this->findPendingUser($email);
 
         $result = DB::transaction(function () use ($user, $code): array {
+            $current = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
             /** @var UserEmailVerification|null $challenge */
             $challenge = UserEmailVerification::query()
-                ->where('user_id', $user->getKey())
+                ->where('user_id', $current->getKey())
                 ->whereNull('verified_at')
                 ->whereNull('invalidated_at')
                 ->latest('id')
@@ -76,18 +78,18 @@ class RegistrationService
 
             $challenge->increment('attempts');
 
-            if (! hash_equals($challenge->code_hash, $this->hashOtp($user, $code))) {
+            if (! hash_equals($challenge->code_hash, $this->hashOtp($current, $code))) {
                 return ['error' => 'Mã OTP không chính xác.'];
             }
 
             $now = now();
             $challenge->forceFill(['verified_at' => $now])->save();
-            $user->forceFill([
+            $current->forceFill([
                 'email_verified_at' => $now,
                 'is_active' => true,
             ])->save();
 
-            return ['user' => $user->refresh()];
+            return ['user' => $current->refresh()];
         });
 
         if (isset($result['error'])) {
@@ -101,39 +103,45 @@ class RegistrationService
 
     private function issueOtp(User $user, bool $initial = false): void
     {
-        $latest = UserEmailVerification::query()
-            ->where('user_id', $user->getKey())
-            ->whereNull('verified_at')
-            ->whereNull('invalidated_at')
-            ->latest('id')
-            ->first();
-
-        if (! $initial && $latest && $latest->last_sent_at->gt(now()->subSeconds(self::OTP_RESEND_COOLDOWN_SECONDS))) {
-            throw ValidationException::withMessages([
-                'otp' => 'Vui lòng chờ trước khi yêu cầu gửi lại OTP.',
-            ]);
-        }
-
         $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        DB::transaction(function () use ($user, $otp): void {
+        $current = DB::transaction(function () use ($user, $otp, $initial): User {
+            $current = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            /** @var UserEmailVerification|null $latest */
+            $latest = UserEmailVerification::query()
+                ->where('user_id', $current->getKey())
+                ->whereNull('verified_at')
+                ->whereNull('invalidated_at')
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $initial && $latest && $latest->last_sent_at->gt(now()->subSeconds(self::OTP_RESEND_COOLDOWN_SECONDS))) {
+                throw ValidationException::withMessages([
+                    'otp' => 'Vui lòng chờ trước khi yêu cầu gửi lại OTP.',
+                ]);
+            }
+
             UserEmailVerification::query()
-                ->where('user_id', $user->getKey())
+                ->where('user_id', $current->getKey())
                 ->whereNull('verified_at')
                 ->whereNull('invalidated_at')
                 ->update(['invalidated_at' => now()]);
 
             UserEmailVerification::query()->create([
-                'user_id' => $user->getKey(),
-                'email' => $this->normalizeEmail($user->email),
-                'code_hash' => $this->hashOtp($user, $otp),
+                'user_id' => $current->getKey(),
+                'email' => $this->normalizeEmail($current->email),
+                'code_hash' => $this->hashOtp($current, $otp),
                 'expires_at' => now()->addMinutes(self::OTP_EXPIRES_MINUTES),
                 'last_sent_at' => now(),
                 'attempts' => 0,
             ]);
+
+            return $current;
         });
 
-        $user->notify(new EmailVerificationOtpNotification($otp, self::OTP_EXPIRES_MINUTES));
+        $current->notify(new EmailVerificationOtpNotification($otp, self::OTP_EXPIRES_MINUTES));
     }
 
     private function findPendingUser(string $email): User
