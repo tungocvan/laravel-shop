@@ -28,6 +28,8 @@ class ClientPortalPwaExternalFileHandoffTest extends TestCase
         $this->assertStringContainsString('await navigator.share(shareData);', $handoff);
         $this->assertStringContainsString('Mở / Chia sẻ tệp', $handoff);
         $this->assertStringContainsString('event.stopImmediatePropagation();', $handoff);
+        $this->assertStringContainsString('panel.shareButton.disabled = false;', $handoff);
+        $this->assertStringNotContainsString('}, {once: true});', $handoff);
         $this->assertStringNotContainsString("window.open(link.href", $handoff);
         $this->assertStringNotContainsString('window.location.assign(link.href)', $handoff);
         $this->assertStringNotContainsString("document.createElement('iframe')", $handoff);
