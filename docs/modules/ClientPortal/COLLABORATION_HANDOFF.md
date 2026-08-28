@@ -3,12 +3,15 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint after MR-5: `e3353cdfe326642eb0ed3081ea20d93ee7f8a363`
-- Completed MR: **MR-5 — PWA External File Download & Return UX**
+- Stable `main` checkpoint before MR-6: `69d9c7b052e7bc4f580426eed52e42c1e6e33ae6`
+- Completed stable MR: **MR-5 — PWA External File Download & Return UX**
 - MR-5 pull request: **#64 — MERGED / CLOSED**
 - MR-5 merge commit: `e3353cdfe326642eb0ed3081ea20d93ee7f8a363`
-- Next MR: **MR-6 — PWA Install UX**
-- MR-6 status: **APPROVED / NOT STARTED**
+- Active MR: **MR-6 — PWA Install UX**
+- MR-6 branch: `feat/clientportal-pwa-install-ux`
+- MR-6 pull request: **#65 — OPEN / READY TO MERGE**
+- MR-6 merge commit: **PENDING POST-MERGE VERIFICATION**
+- MR-6 status: **COMPLETED / READY TO MERGE**
 
 ## Stable architecture after MR-5
 
@@ -90,9 +93,9 @@ MR-5 status: **MERGED / CLOSED**.
 
 ## MR-6 — PWA Install UX
 
-A separate PWA installation UX issue was discovered on iPhone: the current launcher install button relies on the Chromium-style `beforeinstallprompt` event. iOS Safari does not provide that install flow, so the current iPhone install button/path can appear non-functional.
+MR-6 replaces the launcher-only Chromium assumption with an adaptive install UX while preserving the existing ClientPortal launcher and authentication boundaries.
 
-Approved MR-6 contract:
+Implemented contract:
 
 ```text
 MR-6 — PWA Install UX
@@ -100,11 +103,74 @@ MR-6 — PWA Install UX
 - detect iPhone/iPad browser context correctly
 - provide Safari Share → Add to Home Screen guidance instead of relying on beforeinstallprompt
 - preserve beforeinstallprompt behavior for supported Chromium/Android browsers
-- hide or adapt install UI when already running standalone
-- add automated contract coverage and iPhone/Android/manual acceptance
+- hide install UI when already running standalone
+- keep unsupported non-iOS browsers free of a fake install CTA
+- keep install copy configurable and backward-compatible with older launcher settings/mocks
+- add automated contract coverage and manual UI acceptance
 ```
 
-MR-6 must start from refreshed `main` after the MR-5 merge checkpoint above. Do not create or mutate the MR-6 branch until repository/source bootstrap is re-checked and the implementation plan is confirmed for that new branch.
+Implementation scope:
+
+```text
+Modules/ClientPortal/config/pwa.php
+Modules/ClientPortal/resources/views/pages/apps.blade.php
+Modules/ClientPortal/resources/views/partials/pwa-install.blade.php
+tests/Feature/ClientApps/ClientPortalPwaInstallUxTest.php
+```
+
+Owner-requested workflow policy adjustment in the same branch:
+
+```text
+docs/GITHUB_COLLABORATION_WORKFLOW.md
+```
+
+The canonical workflow now uses focused tests + Module regression + impacted/cross-module regression as the default for large multi-Module projects. Full project regression is no longer a default per-MR gate and is only applicable for broad shared/core/system changes, release-wide checkpoints, or an explicit request.
+
+Behavior checkpoint:
+
+- iPhone/iPad Safari receives explicit Share → Add to Home Screen guidance.
+- iOS/iPadOS non-Safari receives guidance to open the page in Safari before installation.
+- Chromium/Android keeps the native `beforeinstallprompt` flow.
+- installed/standalone mode hides the install CTA.
+- unsupported non-iOS browsers do not receive a fake generic install flow.
+- launcher service-worker registration remains intact.
+- install-copy keys have view-boundary fallbacks so older launcher settings/mocks do not fail with undefined-array-key errors.
+
+## MR-6 acceptance checkpoint
+
+Focused MR-6 test: **PASS**.
+
+ClientApps Module/impacted regression after the backward-compatibility corrective:
+
+```text
+Tests: 95 passed (650 assertions)
+Duration: 14.33s
+```
+
+Automated status: **PASS**.
+
+Regression scope covers ClientPortal plus ClientApps adapters/contracts directly exercised by the ClientPortal surface, including its Request and Muasamcong integrations.
+
+Full project regression: **NOT APPLICABLE — module-scoped regression strategy**. MR-6 application changes are confined to ClientPortal launcher/PWA presentation and its focused tests; no broad shared/core runtime infrastructure change requires a project-wide suite. The workflow documentation change is docs-only.
+
+Manual UI acceptance: **PASS**.
+
+Git working tree after acceptance: **CLEAN** (`git status --short` returned no output).
+
+PR review checkpoint:
+
+```text
+PR #65 — OPEN
+Base: main
+Mergeable: PASS
+Diff review: PASS — no unexpected application scope found
+GitHub status checks: none configured/reported for the PR head
+GitHub Actions PR workflow runs: none reported
+```
+
+MR-6 branch status: **COMPLETED / READY TO MERGE**.
+
+No production enablement is implied by MR-6 completion or merge. Production deployment/enablement remains a separate operational action.
 
 ## Approved authentication roadmap
 
@@ -143,10 +209,10 @@ MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
-MR-6 — PWA Install UX: APPROVED NEXT MR / NOT STARTED
+MR-6 — PWA Install UX: COMPLETED / READY TO MERGE — PR #65
 MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-Before MR-6 implementation, confirm current `main`, read the current launcher/PWA source and relevant workflow/docs, then propose the exact MR-6 branch/scope. Only create the new MR-6 branch after that bootstrap is confirmed.
+Next authorized step for MR-6 is merge PR #65 into `main`. After merge, refresh `main`, verify the real merge checkpoint, update this handoff to the stable post-merge state, and only then begin any separately approved MR-7 work.
