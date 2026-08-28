@@ -3,26 +3,23 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- MR-3 merge commit / stable code checkpoint: `35aa90bf771869c4eb0cf065eac635f8137b1b95`
-- Completed MR: **MR-3 — Dynamic Portal Home**
-- Pull request: **#62 — MERGED**
-- Feature branch: `feat/clientportal-dynamic-portal-home`
-- Feature head before merge: `e8d33a75b0ca561cf427e2a9fc65581d3742976c`
-- MR-3 status: **CLOSED / ACCEPTED**
-- Next planned MR: **MR-4 — Muasamcong reference migration**
-- MR-4 implementation status: **NOT STARTED / PLAN APPROVAL REQUIRED**
+- Stable `main` checkpoint before MR-4: `67e92ebfdc2599efae47318f3740e78dea98481f`
+- Current MR: **MR-4 — Muasamcong reference migration**
+- Feature branch: `feat/clientportal-muasamcong-reference-migration`
+- MR-4 status: **IMPLEMENTED / AUTOMATED TESTS PASS / MANUAL UI ACCEPTED / PR APPROVAL REQUIRED**
+- Pull request: **NOT YET CREATED**
 
-## Stable architecture after MR-3
+## Stable architecture entering MR-4
 
-ClientPortal remains an open authenticated Client/WebApp platform that can host multiple applications without adding Module-specific business logic to Portal core.
+ClientPortal is an authenticated Client/WebApp platform that hosts multiple applications without putting Module-specific business logic in Portal core.
 
 Core rule:
 
 > Không được thêm logic đặc thù Module vào ClientPortal core.
 
-Applications integrate through manifest/contracts, permissions and adapters rather than application-specific conditions in the shared Portal shell/home.
+Applications integrate through manifests/contracts, permissions and adapters rather than application-specific conditions in the shared Portal shell/home.
 
-The shared application contract remains normalized by `Modules/ClientPortal/Services/ApplicationRegistry.php`, including `key`, `module`, `name`, `description`, `icon`, `route`, `permission`, `sort_order`, `layout`, `capabilities`, `quick_actions`, `navigation`, and `features`.
+The shared application contract is normalized by `Modules/ClientPortal/Services/ApplicationRegistry.php`. MR-4 extends that normalized contract with application-neutral `shell_extensions` so application presentation can attach route-scoped head, overlay and script concerns without named application checks in the shared shell.
 
 The stable shared resolvers remain:
 
@@ -32,158 +29,234 @@ Modules/ClientPortal/Services/PortalContextResolver.php
 Modules/ClientPortal/Services/PortalNavigationResolver.php
 ```
 
-`PortalContextResolver` is the source of truth for Portal Home availability through `applications`, `application_count`, `single_application`, `requires_application_selection`, and `has_access`.
+## MR-4 approved scope
 
-## MR-3 delivered scope
-
-MR-3 implements the 0/1/N Portal Home behavior at the canonical `/my-apps` / `client.apps.index` entry point without introducing a new route.
+Approved contract:
 
 ```text
-0 applications  -> Work Home / clear no-access state
-1 application   -> generic direct entry to the application's manifest route
-N applications  -> permission-filtered Work Home / application selection
+MR-4 — Muasamcong Reference Migration
+
+Shared ClientPortal core:
+- application-neutral extension points only
+- no Muasamcong route/queue/price-list conditions
+
+Muasamcong application layer:
+- owns price-list polish
+- owns sync queue-status UI/polling
+
+No domain behavior changes.
+No Request changes.
+No DB/runtime/production enablement changes.
+No speculative shared component library.
 ```
 
-`Modules/ClientPortal/Http/Controllers/PortalController.php` resolves Portal context once. When exactly one application is available, it redirects generically through the `route` declared by `single_application`; it does not branch on an application or Module name.
+Corrective fixes discovered during manual acceptance were included only where required to make the migrated behavior reliable:
 
-For zero or multiple applications, `Modules/ClientPortal/resources/views/pages/apps.blade.php` renders the shared Work Home. The zero state preserves a clear no-access message, while the multiple state presents the available application count and application cards.
+- stale PWA navigation/service-worker hardening;
+- file-availability-aware Price List actions;
+- ClientPortal-friendly 403/404 recovery;
+- storage permission contract for files created by web/queue processes;
+- distinct pre-convert and post-convert PDF action icons.
 
-The implementation does not add role-based routing, named Module conditions, domain queries, or domain authorization logic to ClientPortal core.
+## MR-4 delivered architecture
 
-## Backward compatibility
+### 1. Shared App Shell is application-neutral
 
-The intentional MR-3 behavior change is limited to users with exactly one available application:
+`Modules/ClientPortal/resources/views/layouts/application.blade.php` no longer owns Muasamcong-specific route checks, `sync_request_id`, drug-pricing polling, queue-status text, or Price List polish includes.
+
+The shell resolves normalized `shell_extensions` from the current application and provides generic extension points. Adding another application-specific presentation extension does not require adding a named Module condition to ClientPortal core.
+
+### 2. Muasamcong owns its presentation extensions
+
+`Modules/ClientPortal/Applications/Muasamcong/manifest.php` declares route-scoped shell extensions for:
+
+- Price List workspace polish;
+- Drug Pricing sync queue-status overlay/polling.
+
+Muasamcong-specific presentation remains under:
 
 ```text
-Before MR-3: /my-apps -> launcher -> user clicks application
-After MR-3:  /my-apps -> direct application entry
+Modules/ClientPortal/resources/views/applications/muasamcong/partials/
 ```
 
-Users with zero or multiple available applications continue to use `/my-apps` as Work Home. Existing application routes, deep links, MR-2 App Shell behavior, adaptive navigation, application manifests and domain authorization boundaries remain unchanged.
+including the Price List polish, file-availability behavior and sync queue-status UI.
 
-## Automated verification for MR-3
+### 3. Domain behavior remains authoritative
 
-Focused Dynamic Portal Home coverage was added in:
+MR-4 does not move Muasamcong domain behavior into ClientPortal core. Existing controllers, jobs, permission checks, status routes and domain data remain authoritative.
+
+The Price List backend continues to verify actual Excel/PDF file existence before download, PDF conversion, sharing or email delivery.
+
+## Price List availability corrective fix
+
+Manual acceptance found a case where the database record was `completed` while the web process could not read the generated Excel file. Rendering actions from `status === completed` alone therefore produced misleading UI and a 404 download.
+
+The presentation layer now checks the existing Price List status contract and distinguishes logical completion from physical file availability:
 
 ```text
-tests/Feature/ClientApps/ClientPortalDynamicHomeTest.php
+completed + file_available=true  -> Excel-dependent actions available
+completed + file_available=false -> "Thiếu file" state / recreate action
+queued/processing                -> keep polling
+failed                           -> show failure state/error
 ```
 
-It verifies:
+PDF conversion is only exposed when the Excel file is actually available. The PDF action also uses different visual states:
 
-- zero applications render the no-access Work Home;
-- exactly one application redirects through the manifest route;
-- multiple applications render Work Home without redirect;
-- shared Dynamic Home source remains free of named business-application branching and role-based UI conditions.
+```text
+Before conversion -> "Tạo PDF" / convert icon
+After conversion  -> "Tải PDF" / PDF document icon
+```
 
-An initial anti-hardcode assertion produced a false positive because the framework controller legitimately imports `Illuminate\\Http\\Request`. The assertion was corrected to detect business-specific Request conditions without banning the framework class; no implementation behavior was changed by that correction.
+## Storage permission root cause and permanent contract
 
-Final ClientPortal/ClientApps regression reported by the owner:
+The owner reproduced a newly generated Excel record with:
+
+```text
+status      = completed
+file_path   = client-portal/price-lists/1/bang-gia-20260828-125103.xlsx
+Storage::disk('local')->exists(...) = true from CLI/root
+```
+
+Filesystem inspection then showed:
+
+```text
+storage/app/client-portal  -> root:root 0700
+storage/app/client-portal/price-lists -> root:root 0700
+PHP-FPM workers            -> www-data:www-data
+```
+
+Root/queue could therefore create and see the file while PHP-FPM could not traverse the parent directories. This caused web `Storage::exists()` to report false and downloads to return 404.
+
+After normalizing group/modes, the same existing Excel file downloaded successfully; a new end-to-end Price List flow also passed.
+
+MR-4 now establishes a project-level storage contract rather than a ClientPortal-only workaround:
+
+```text
+private storage/app directories -> group-readable/writable/traversable
+private storage/app files       -> group-readable/writable
+Docker runtime                  -> normalize storage ownership/modes on entry
+queue and PHP-FPM               -> must share a compatible filesystem group
+```
+
+Implementation/docs:
+
+```text
+config/filesystems.php
+docker/entrypoint.sh
+Dockerfile
+docs/STORAGE_PERMISSIONS.md
+tests/Feature/System/StoragePermissionsContractTest.php
+```
+
+The operational guide covers local development, VPS without Docker, Docker/Compose, `namei -l` diagnosis, queue/web user mismatch and recovery. It explicitly avoids `chmod 777` as the normal solution.
+
+## PWA corrective fix
+
+During acceptance the website rendered current Price List data while the installed PWA could present stale behavior. The service worker itself did not intentionally cache authenticated navigation, but an installed worker/cache could remain stale.
+
+The PWA contract was hardened so authenticated navigation is network-first/no-store, worker registration does not rely on the HTTP cache, and the shell cache version was bumped so old cache entries are discarded.
+
+No broad authenticated business-response caching was introduced.
+
+## 403/404 recovery
+
+ClientPortal users should not be pushed to the website root `/` after an application error.
+
+MR-4 provides recovery behavior for 403/404 pages:
+
+```text
+preferred action -> browser "Quay lại" when a valid same-origin history exists
+fallback         -> /my-apps for ClientPortal context
+```
+
+This keeps PWA/ClientPortal navigation inside the client application experience.
+
+## Automated verification
+
+Focused coverage added/updated includes:
+
+```text
+tests/Feature/ClientApps/ClientPortalMuasamcongReferenceMigrationTest.php
+tests/Feature/ClientApps/ClientPwaFoundationTest.php
+tests/Feature/ClientApps/ClientPortalFileAvailabilityAndErrorRecoveryTest.php
+tests/Feature/System/StoragePermissionsContractTest.php
+```
+
+Verification evidence reported by the owner during MR-4:
+
+```text
+ClientPortalMuasamcongReferenceMigrationTest: PASS
+ClientPwaFoundationTest: PASS
+ClientPortalFileAvailabilityAndErrorRecoveryTest: PASS
+StoragePermissionsContractTest: PASS
+ClientApps regression: PASS
+```
+
+Earlier full ClientApps checkpoint during MR-4:
 
 ```text
 php artisan test tests/Feature/ClientApps
-PASS — 79 tests, 532 assertions
+PASS — 83 tests, 555 assertions
 ```
 
-Impact-Based Testing result:
+Additional focused tests and corrective assertions were added after that checkpoint and were also reported PASS. The final owner report confirms the requested automated checks pass; do not infer a newer assertion count unless a fresh full-suite output is supplied.
+
+## Manual UI acceptance for MR-4
+
+Owner-verified behaviors:
 
 ```text
-Focused Dynamic Portal Home tests: PASS
-ClientPortal/ClientApps regression: PASS — 79 tests, 532 assertions
-Unrelated project-wide regression: NOT RUN / NOT REQUIRED for MR-3 checkpoint
+Muasamcong Price List source/profile/products: PASS
+- synced product data visible in PWA after PWA cache hardening
+- export profile and product selection available
+
+Excel generation/download: PASS
+- new Price List generated
+- root filesystem permission mismatch diagnosed
+- storage permission repaired
+- existing generated Excel downloaded successfully
+
+PDF conversion/download: PASS
+- PDF action hidden until Excel is actually available
+- conversion flow completes
+- PDF download works
+- pre-convert and post-convert PDF icons are visually distinct
+
+File-missing behavior: PASS
+- missing physical file no longer presents misleading download/convert actions
+- UI presents a recoverable missing-file state
+
+ClientPortal error recovery: PASS
+- 403/404 recovery no longer forces the user to website root
+- back/fallback behavior targets the ClientPortal experience
 ```
 
-## Manual UI acceptance for MR-3
+The owner explicitly reported the final UI flow as PASS.
 
-Owner-verified 0/1/N behavior:
+## Preserved behavior and boundaries
+
+MR-4 preserves:
+
+- MR-2 adaptive navigation;
+- MR-3 0/1/N Portal Home behavior;
+- manifest-driven application availability and permissions;
+- Request application behavior;
+- Muasamcong domain authorization and data ownership;
+- existing Price List routes/status contracts;
+- no database/schema/seeder changes;
+- no Module enable/disable changes;
+- no production feature activation changes.
+
+## Current GitHub checkpoint
 
 ```text
-0 applications: PASS
-- /my-apps renders the clear no-access Work Home
-- no HTTP 403/500 observed
-- responsive presentation verified at 430x932, 768x1024 and 1024x1366
-- header/logout and empty-state presentation remain usable
-- no visible horizontal overflow or content overlap observed
-
-1 application: PASS
-- /my-apps enters the single available application directly
-- no intermediate application launcher is shown
-- direct-entry behavior matches the approved MR-3 contract
-
-2 applications: PASS
-- /my-apps renders Work Home/application selection
-- Mua sắm công and Đề nghị & Phê duyệt were presented for the test account
-- mobile presentation stacks cards vertically
-- tablet/desktop presentation uses the available responsive grid
-- no visible horizontal overflow or content overlap observed
+Base: main @ 67e92ebfdc2599efae47318f3740e78dea98481f
+Head branch: feat/clientportal-muasamcong-reference-migration
+PR: not yet created
+MR-4 acceptance: automated PASS + manual UI PASS
 ```
 
-Manual acceptance therefore confirms:
-
-```text
-0 app  -> Work Home / no-access       PASS
-1 app  -> Direct entry                PASS
-N apps -> Work Home / app selection   PASS
-Responsive 430 / 768 / 1024           PASS
-```
-
-## MR-2 preserved behavior
-
-MR-3 does not replace or duplicate MR-2 adaptive navigation. Application pages continue to use the shared adaptive navigation contract:
-
-```text
-mobile < sm      -> bottom navigation
-sm to < lg       -> compact tablet navigation rail
-lg and above     -> desktop application sidebar
-```
-
-Permission-filtered navigation, `primary` / `more` placement, active-route state, manifest-driven icons and the ClientPortal-neutral App Shell remain owned by the merged MR-2 implementation.
-
-## Permission and domain boundary
-
-ClientPortal presentation permissions and domain-operation permissions remain separate layers. MR-3 only decides how the user enters or selects an application from the permission-filtered application collection.
-
-Domain services and permissions remain authoritative for business operations. MR-3 does not alter Request authorization, Muasamcong behavior, application domain scope, role assignments or Module enablement.
-
-## Production safety boundary
-
-MR-3 did not:
-
-- enable or disable any Module;
-- change runtime Module-state storage;
-- migrate/reset databases;
-- add or modify schema/seeders;
-- change production role assignments;
-- deploy/rebuild containers;
-- enable private authenticated response caching;
-- alter Muasamcong or Request domain authorization rules;
-- add organization/department/branch routing.
-
-## Explicitly deferred after MR-3
-
-Still outside MR-3:
-
-- MR-4 Muasamcong reference migration;
-- Muasamcong-specific queue-status or price-list refactoring;
-- Request authentication/domain authorization changes;
-- shared action-sheet/filter/search component library;
-- organization/department/branch context or hardcoded role routing;
-- general offline caching of authenticated business content;
-- unrelated runtime/production changes.
-
-## Merge closeout
-
-MR-3 was merged through PR #62 after explicit owner approval.
-
-```text
-Feature head before merge:
-e8d33a75b0ca561cf427e2a9fc65581d3742976c
-
-Merge commit / stable code checkpoint:
-35aa90bf771869c4eb0cf065eac635f8137b1b95
-```
-
-MR-3 is therefore **CLOSED / ACCEPTED**. Do not continue implementation on `feat/clientportal-dynamic-portal-home`.
+Before PR creation, verify the current branch is still ahead of and not behind `main`, inspect the final changed-file set, and confirm no unrelated change entered the branch.
 
 ## Roadmap checkpoint
 
@@ -191,19 +264,11 @@ MR-3 is therefore **CLOSED / ACCEPTED**. Do not continue implementation on `feat
 MR-1 — Portal Architecture Foundation: MERGED / CLOSED
 MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
-MR-4 — Muasamcong reference migration: NEXT PLANNED
+MR-4 — Muasamcong reference migration: IMPLEMENTED / ACCEPTED / PR APPROVAL REQUIRED
 ```
 
 ## Next-step boundary
 
-MR-4 — Muasamcong reference migration is the next planned phase, but implementation is **not authorized by this handoff alone**.
+MR-4 implementation and manual acceptance are complete. The next action is **PR preparation/creation only after explicit owner approval**.
 
-Before creating an MR-4 branch or changing code:
-
-1. Read this handoff and `.codex/standards/CLIENT_APP_UI_STANDARD.md` from current `main`.
-2. Inspect the current Muasamcong ClientPortal adapter, manifest, App Shell integration and remaining Muasamcong-specific presentation concerns.
-3. Define a narrow MR-4 migration scope with explicit domain/ClientPortal ownership boundaries, testing and manual acceptance.
-4. Present the plan to the owner.
-5. Create a new feature branch and implement only after explicit owner approval.
-
-Do not broaden MR-4 into Request domain behavior, organization/department routing, unrelated runtime/production changes, or speculative shared component work without separately approved scope.
+Do not merge MR-4 without a separate explicit merge approval after the PR state, exact head, changed files and mergeability have been checked.
