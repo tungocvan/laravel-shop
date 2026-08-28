@@ -56,9 +56,11 @@ class ClientPwaFoundationTest extends TestCase
     public function test_website_footer_uses_adaptive_pwa_installer(): void
     {
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
+        $appInstall = file_get_contents(base_path('Modules/Website/resources/views/components/footer/app-install.blade.php'));
         $installer = file_get_contents(base_path('Modules/Website/resources/views/partials/pwa-installer.blade.php'));
 
-        $this->assertStringContainsString("Website::partials.pwa-installer", $footer);
+        $this->assertStringContainsString('Website::components.footer.slot', $footer);
+        $this->assertStringContainsString('Website::partials.pwa-installer', $appInstall);
         $this->assertStringContainsString('beforeinstallprompt', $installer);
         $this->assertStringContainsString('navigator.standalone', $installer);
         $this->assertStringContainsString('Thêm vào Màn hình chính', $installer);
