@@ -119,7 +119,7 @@ class ClientPortalPwaInstallUxTest extends TestCase
             ->json();
 
         $this->assertSame('/', $manifest['id']);
-        $this->assertSame('/', $manifest['start_url']);
+        $this->assertSame('/my-apps', $manifest['start_url']);
         $this->assertSame('/', $manifest['scope']);
         $this->assertSame('standalone', $manifest['display']);
     }
