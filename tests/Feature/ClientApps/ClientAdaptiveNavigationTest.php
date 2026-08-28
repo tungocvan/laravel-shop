@@ -23,7 +23,9 @@ class ClientAdaptiveNavigationTest extends TestCase
 
         $this->assertStringContainsString('sm:hidden', $navigation);
         $this->assertStringContainsString('hidden sm:flex', $navigation);
-        $this->assertStringContainsString('lg:w-64', $navigation);
+        $this->assertStringContainsString('sm:w-20', $navigation);
+        $this->assertStringContainsString('lg:w-56', $navigation);
+        $this->assertStringContainsString('xl:w-60', $navigation);
         $this->assertStringContainsString('$primaryNavigation', $navigation);
         $this->assertStringContainsString('$moreNavigation', $navigation);
         $this->assertStringContainsString('aria-current="page"', $navigation);
