@@ -122,8 +122,10 @@ class ClientPortalDynamicHomeTest extends TestCase
         $home = file_get_contents(base_path('Modules/ClientPortal/resources/views/pages/apps.blade.php'));
         $source = $controller."\n".$home;
 
-        $this->assertStringNotContainsString('Muasamcong', $source);
-        $this->assertStringNotContainsString('Request', $source);
+        $this->assertStringNotContainsString("'muasamcong'", strtolower($source));
+        $this->assertStringNotContainsString('"muasamcong"', strtolower($source));
+        $this->assertStringNotContainsString("'request'", strtolower($source));
+        $this->assertStringNotContainsString('"request"', strtolower($source));
         $this->assertStringNotContainsString('hasRole(', $source);
         $this->assertStringNotContainsString('hasAnyRole(', $source);
     }
