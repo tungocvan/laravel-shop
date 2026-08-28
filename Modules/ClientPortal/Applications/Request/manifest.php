@@ -9,6 +9,62 @@ return [
     'route' => 'client.request.dashboard',
     'permission' => 'client.request.access',
     'sort_order' => 20,
+    'layout' => ['mode' => 'workspace'],
+    'capabilities' => ['search', 'filter', 'background-jobs'],
+    'quick_actions' => [
+        'create' => [
+            'name' => 'Tạo đề nghị',
+            'route' => 'client.request.catalog',
+            'permission' => 'client.request.create.view',
+            'icon' => 'plus-circle',
+            'sort_order' => 10,
+        ],
+        'inbox' => [
+            'name' => 'Cần phê duyệt',
+            'route' => 'client.request.inbox',
+            'permission' => 'client.request.inbox.view',
+            'icon' => 'inbox',
+            'sort_order' => 20,
+        ],
+    ],
+    'navigation' => [
+        'overview' => [
+            'name' => 'Tổng quan',
+            'route' => 'client.request.dashboard',
+            'permission' => 'client.request.overview.view',
+            'icon' => 'home',
+            'sort_order' => 10,
+        ],
+        'create' => [
+            'name' => 'Tạo đề nghị',
+            'route' => 'client.request.catalog',
+            'permission' => 'client.request.create.view',
+            'icon' => 'plus-circle',
+            'sort_order' => 20,
+        ],
+        'mine' => [
+            'name' => 'Của tôi',
+            'route' => 'client.request.mine',
+            'permission' => 'client.request.mine.view',
+            'icon' => 'document-text',
+            'sort_order' => 30,
+        ],
+        'inbox' => [
+            'name' => 'Phê duyệt',
+            'route' => 'client.request.inbox',
+            'permission' => 'client.request.inbox.view',
+            'icon' => 'inbox',
+            'sort_order' => 40,
+        ],
+        'processed' => [
+            'name' => 'Đã xử lý',
+            'route' => 'client.request.processed',
+            'permission' => 'client.request.processed.view',
+            'icon' => 'check-circle',
+            'placement' => 'more',
+            'sort_order' => 50,
+        ],
+    ],
     'features' => [
         'overview' => [
             'name' => 'Tổng quan',
