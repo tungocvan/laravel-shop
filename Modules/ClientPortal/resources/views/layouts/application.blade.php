@@ -53,7 +53,11 @@
 @endforeach
 @stack('application-overlays')
 <script>
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' }).catch(() => {});
+    });
+}
 </script>
 @foreach($shellExtensions['scripts'] ?? [] as $extension)
     @if(request()->routeIs(...$extension['routes']))
