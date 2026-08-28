@@ -9,7 +9,9 @@
 - MR-5 merge commit: `e3353cdfe326642eb0ed3081ea20d93ee7f8a363`
 - Active MR: **MR-6 — PWA Install UX**
 - MR-6 branch: `feat/clientportal-pwa-install-ux`
-- MR-6 status: **COMPLETED / READY FOR PR**
+- MR-6 pull request: **#65 — OPEN / READY TO MERGE**
+- MR-6 merge commit: **PENDING POST-MERGE VERIFICATION**
+- MR-6 status: **COMPLETED / READY TO MERGE**
 
 ## Stable architecture after MR-5
 
@@ -155,7 +157,18 @@ Manual UI acceptance: **PASS**.
 
 Git working tree after acceptance: **CLEAN** (`git status --short` returned no output).
 
-MR-6 branch status: **COMPLETED / READY FOR PR**.
+PR review checkpoint:
+
+```text
+PR #65 — OPEN
+Base: main
+Mergeable: PASS
+Diff review: PASS — no unexpected application scope found
+GitHub status checks: none configured/reported for the PR head
+GitHub Actions PR workflow runs: none reported
+```
+
+MR-6 branch status: **COMPLETED / READY TO MERGE**.
 
 No production enablement is implied by MR-6 completion or merge. Production deployment/enablement remains a separate operational action.
 
@@ -196,10 +209,10 @@ MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
-MR-6 — PWA Install UX: COMPLETED / READY FOR PR
+MR-6 — PWA Install UX: COMPLETED / READY TO MERGE — PR #65
 MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-Next authorized step for MR-6 is PR creation/review against `main`, then merge only after the PR gate remains clean. After merge, refresh `main`, record the final PR/merge checkpoint in this handoff, and only then begin any separately approved MR-7 work.
+Next authorized step for MR-6 is merge PR #65 into `main`. After merge, refresh `main`, verify the real merge checkpoint, update this handoff to the stable post-merge state, and only then begin any separately approved MR-7 work.
