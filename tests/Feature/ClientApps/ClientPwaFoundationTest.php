@@ -82,6 +82,9 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString('data-action-icon', $polish);
         $this->assertStringContainsString('[data-email-open]', $polish);
         $this->assertStringContainsString('Đã gửi gần nhất', $polish);
+        $this->assertStringContainsString('excel-file-ready', $polish);
+        $this->assertStringContainsString('data.file_available === true', $polish);
+        $this->assertStringContainsString('form[action*="/pdf"]', $polish);
     }
 
     public function test_client_launcher_exposes_pwa_metadata_for_authenticated_user(): void
