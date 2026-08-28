@@ -64,7 +64,7 @@ CMD ["node", "server.js"]
 
 FROM nginx:1.28-alpine AS web
 COPY public /var/www/html/public
-COPY --from=frontend-build /var/www/html/public/build ./public/build
+COPY --from=frontend-build /var/www/html/public/build /var/www/html/public/build
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY docker/nginx/site-snippets /etc/nginx/site-snippets
 RUN ln -s /var/www/html/storage/app/public /var/www/html/public/storage
