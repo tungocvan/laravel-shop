@@ -17,8 +17,8 @@
                     </div>
                 @else
                     <div class="grid grid-cols-2 gap-3">
-                        <a href="{{ route('login') }}" class="text-center py-2 bg-white/10 rounded-lg text-sm font-bold">Đăng nhập</a>
-                        <a href="{{ route('register') }}" class="text-center py-2 bg-blue-600 rounded-lg text-sm font-bold">Đăng ký</a>
+                        <a href="{{ route('login') }}" data-pwa-auth-target="{{ route('client.apps.login') }}" class="text-center py-2 bg-white/10 rounded-lg text-sm font-bold">Đăng nhập</a>
+                        <a href="{{ route('register') }}" data-pwa-auth-target="{{ route('client.apps.register') }}" class="text-center py-2 bg-blue-600 rounded-lg text-sm font-bold">Đăng ký</a>
                     </div>
                 @endauth
             </div>
