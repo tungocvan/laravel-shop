@@ -1,8 +1,3 @@
-@props([
-    'primaryNavigation',
-    'moreNavigation',
-])
-
 @php
     $allNavigation = $primaryNavigation->concat($moreNavigation)->values();
 @endphp
