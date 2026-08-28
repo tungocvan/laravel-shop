@@ -6,19 +6,25 @@ use Tests\TestCase;
 
 class ClientPortalPwaExternalFileHandoffTest extends TestCase
 {
-    public function test_muasamcong_price_list_preserves_installed_pwa_context_for_excel_and_pdf_downloads(): void
+    public function test_muasamcong_price_list_hands_excel_and_pdf_to_external_context_in_installed_pwa(): void
     {
         $polish = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/muasamcong/partials/price-list-workspace-polish.blade.php'));
+        $handoff = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/muasamcong/partials/external-file-handoff.blade.php'));
+        $manifest = require base_path('Modules/ClientPortal/Applications/Muasamcong/manifest.php');
 
         $this->assertStringContainsString("window.matchMedia('(display-mode: standalone)').matches", $polish);
         $this->assertStringContainsString('window.navigator.standalone === true', $polish);
-        $this->assertStringContainsString('const preservePwaContextForFile = (link) => {', $polish);
-        $this->assertStringContainsString("link.dataset.pwaFileHandoff = '1'", $polish);
-        $this->assertStringContainsString('event.preventDefault();', $polish);
-        $this->assertStringContainsString("document.createElement('iframe')", $polish);
-        $this->assertStringContainsString('frame.src = link.href;', $polish);
         $this->assertStringContainsString('preservePwaContextForFile(excel);', $polish);
         $this->assertStringContainsString('preservePwaContextForFile(pdfDownload);', $polish);
+
+        $this->assertStringContainsString("document.addEventListener('click'", $handoff);
+        $this->assertStringContainsString("event.target.closest('a[data-pwa-file-handoff]')", $handoff);
+        $this->assertStringContainsString('event.stopImmediatePropagation();', $handoff);
+        $this->assertStringContainsString("window.open(link.href, '_blank', 'noopener')", $handoff);
+        $this->assertStringNotContainsString("document.createElement('iframe')", $handoff);
+
+        $scriptViews = array_column($manifest['shell_extensions']['scripts'], 'view');
+        $this->assertContains('ClientPortal::applications.muasamcong.partials.external-file-handoff', $scriptViews);
     }
 
     public function test_project_workflow_requires_pwa_file_handoff_review_for_all_modules(): void
