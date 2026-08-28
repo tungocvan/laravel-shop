@@ -17,7 +17,7 @@ class RequestReleaseReadinessContractTest extends TestCase
 
         $this->assertSame('Request', $manifest['name']);
         $this->assertFalse($manifest['default_enabled']);
-        $this->assertCount(31, $manifest['permissions']);
+        $this->assertCount(35, $manifest['permissions']);
         $this->assertCount(18, $manifest['tables']);
 
         $this->assertNotSame('public', $files['disk']);
