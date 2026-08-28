@@ -3,16 +3,14 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint after MR-7 merge: `3d8adbaa7356d5e41f67af9601693e74ccd5e9b5`
-- Completed MR: **MR-7 — PWA Account Registration & Google Authentication**
-- MR-7 pull request: **#67 — MERGED / CLOSED**
-- MR-7 merge commit: `3d8adbaa7356d5e41f67af9601693e74ccd5e9b5`
-- MR-7 source head: `a6a26445af363dffbcf85fba043bdc5b6b58c94d`
-- MR-7 status: **MERGED / CLOSED**
-- Active delivery: **MR-8 — PWA Header Account Menu**
-- Active branch: `feat/clientportal-pwa-header-account-menu`
-- MR-8 pull request: **#68 — OPEN**
-- MR-8 status: **READY FOR MANUAL REVIEW — mergeable; all acceptance gates passed**
+- Stable `main` checkpoint after MR-8 merge: `90290f492fde65fdac9b179705285273c69cd317`
+- Completed MR: **MR-8 — PWA Header Account Menu**
+- MR-8 pull request: **#68 — MERGED / CLOSED**
+- MR-8 merge commit: `90290f492fde65fdac9b179705285273c69cd317`
+- MR-8 source head: `96d870807d9e12f3d8b71b3e8ae0d69e060263ca`
+- MR-8 status: **MERGED / CLOSED**
+- Active delivery: **NONE**
+- Next MR/phase: **NOT DETERMINED**
 
 ## Stable architecture
 
@@ -22,7 +20,7 @@ Core rule:
 
 > Không được thêm logic đặc thù Module vào ClientPortal core.
 
-MR-1 through MR-7 are merged/closed. MR-7 extends the shared Auth boundary and ClientPortal PWA presentation without creating a separate PWA user model, JWT boundary, or Module-specific authentication stack.
+MR-1 through MR-8 are merged/closed. MR-7 extends the shared Auth boundary and ClientPortal PWA presentation without creating a separate PWA user model, JWT boundary, or Module-specific authentication stack. MR-8 adds the shared ClientPortal account-menu presentation while preserving that Auth boundary.
 
 ## MR-7 implemented contract
 
@@ -148,11 +146,11 @@ MR-4 — Muasamcong reference migration: MERGED / CLOSED
 MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
 MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
 MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — PR #67
-MR-8 — PWA Header Account Menu: PR #68 OPEN — READY FOR MANUAL REVIEW
+MR-8 — PWA Header Account Menu: MERGED / CLOSED — PR #68
 Next MR/phase after MR-8: NOT DETERMINED
 ```
 
-## MR-8 implementation checkpoint
+## MR-8 implemented contract
 
 Approved scope:
 
@@ -183,11 +181,26 @@ Duration: 8.52s
 - mobile evidence: **PASS at 430 × 932**; the account panel stays inside the viewport and exposes all three actions
 - frontend asset note: the first mobile check used stale compiled Tailwind output; `npm run build` restored the intended responsive positioning without a source correction
 - Git-clean on user local: **CLEAN** (`git status --short` returned no output after synchronizing commit `1095af9f`)
-- pull request: **#68 — OPEN / READY FOR MANUAL REVIEW**
-- merge commit: **NOT AVAILABLE**
+- pull request: **#68 — MERGED / CLOSED**
+- source head: `96d870807d9e12f3d8b71b3e8ae0d69e060263ca`
+- merge commit: `90290f492fde65fdac9b179705285273c69cd317`
+- stable `main` immediately after merge: `90290f492fde65fdac9b179705285273c69cd317`
+
+## MR-8 merge checkpoint
+
+```text
+PR: #68
+PR state: CLOSED
+Merged: true
+Base: main
+Source head: 96d870807d9e12f3d8b71b3e8ae0d69e060263ca
+Merge commit: 90290f492fde65fdac9b179705285273c69cd317
+main immediately after merge: 90290f492fde65fdac9b179705285273c69cd317
+MR-8: MERGED / CLOSED
+```
 
 Production deployment remains a separate operational action. MR-8 introduces no new environment variable, Google credential, migration or runtime module-state change.
 
 ## Next-step boundary
 
-MR-8 focused/impacted tests, manual UI acceptance and the user-local Git-clean gate have passed. PR #68 is open and mergeable; the next authorized action is user review and manual merge. The next MR after MR-8 remains **NOT DETERMINED**.
+MR-8 is complete and merged into `main`. Before starting further ClientPortal work: use the latest `main` plus this handoff as the bootstrap source of truth, explicitly select the next target, inspect affected source/dependencies, and approve a new plan before branch creation or implementation. The next MR/phase remains **NOT DETERMINED**.
