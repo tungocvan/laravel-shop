@@ -25,7 +25,7 @@
                 </div>
             </a>
             <div class="flex items-center gap-2">
-                <button id="install-app" type="button" hidden class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50">{{ $launcher['install_button_text'] }}</button>
+                @include('ClientPortal::partials.pwa-install')
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm">{{ $launcher['logout_button_text'] }}</button>
@@ -83,10 +83,9 @@
 </div>
 <script>
 (() => {
-    if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
-    let installPrompt = null; const button = document.getElementById('install-app');
-    window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; button.hidden = false; });
-    button?.addEventListener('click', async () => { if (!installPrompt) return; await installPrompt.prompt(); installPrompt = null; button.hidden = true; });
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' }).catch(() => {}));
+    }
 })();
 </script>
 </body>
