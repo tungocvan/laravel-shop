@@ -97,4 +97,30 @@ class ClientPortalPwaInstallUxTest extends TestCase
             ->assertSee('beforeinstallprompt', false)
             ->assertSee('Thêm vào Màn hình chính');
     }
+
+    public function test_client_portal_pages_reuse_the_root_website_pwa_manifest(): void
+    {
+        $pages = [
+            'login.blade.php',
+            'register.blade.php',
+            'verify-email.blade.php',
+            'apps.blade.php',
+        ];
+
+        foreach ($pages as $page) {
+            $content = file_get_contents(base_path('Modules/ClientPortal/resources/views/pages/'.$page));
+
+            $this->assertStringContainsString("route('website.manifest')", $content, $page);
+            $this->assertStringNotContainsString('/manifest.webmanifest', $content, $page);
+        }
+
+        $manifest = $this->get('/website-manifest.webmanifest')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame('/', $manifest['id']);
+        $this->assertSame('/', $manifest['start_url']);
+        $this->assertSame('/', $manifest['scope']);
+        $this->assertSame('standalone', $manifest['display']);
+    }
 }
