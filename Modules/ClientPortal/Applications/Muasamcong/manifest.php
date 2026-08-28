@@ -29,6 +29,10 @@ return [
                 'routes' => ['client.muasamcong.price-list*'],
                 'view' => 'ClientPortal::applications.muasamcong.partials.price-list-file-availability',
             ],
+            [
+                'routes' => ['client.muasamcong.price-list*'],
+                'view' => 'ClientPortal::applications.muasamcong.partials.external-file-handoff',
+            ],
         ],
     ],
     'quick_actions' => [

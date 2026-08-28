@@ -3,15 +3,15 @@
 - Last updated: 2026-08-28
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint after MR-4: `b8ace3f913c2bfab846ee28ee70db2fda625858c`
+- Stable `main` checkpoint before MR-5: `de4a2df3585fb713446e2c46d96d1867c81c338a`
 - Completed MR: **MR-4 — Muasamcong reference migration**
-- Pull request: **#63 — MERGED**
-- Feature branch: `feat/clientportal-muasamcong-reference-migration`
-- Feature head before merge: `aeaf070231ac28a225e03935b807b479989ce730`
-- MR-4 status: **CLOSED / ACCEPTED**
-- Next planned MR: **NOT DETERMINED**
+- MR-4 merge commit: `b8ace3f913c2bfab846ee28ee70db2fda625858c`
+- Current MR: **MR-5 — PWA External File Download & Return UX**
+- Feature branch: `fix/clientportal-pwa-external-file-handoff`
+- Pull request: **#64 — OPEN**
+- MR-5 status: **ACCEPTANCE PASS — OWNER MERGE APPROVAL REQUIRED**
 
-## Stable architecture after MR-4
+## Stable architecture entering MR-5
 
 ClientPortal remains an authenticated Client/WebApp platform that can host multiple applications without placing Module-specific business logic in Portal core.
 
@@ -19,161 +19,164 @@ Core rule:
 
 > Không được thêm logic đặc thù Module vào ClientPortal core.
 
-Applications integrate through manifests/contracts, permissions and adapters rather than application-specific conditions in the shared Portal shell/home.
+MR-1 through MR-4 are merged/closed. MR-4 moved Muasamcong-specific presentation concerns out of the shared App Shell and established application-neutral `shell_extensions`. MR-2 adaptive navigation and MR-3 0/1/N Portal Home behavior remain preserved.
 
-The shared application contract is normalized by `Modules/ClientPortal/Services/ApplicationRegistry.php`. MR-4 adds application-neutral `shell_extensions`, allowing application presentation to attach route-scoped head, overlay and script concerns without named application checks in the shared shell.
+## MR-5 trigger and root cause
 
-The stable shared resolvers remain:
+Manual testing on an installed iPhone PWA found that opening a generated Excel/PDF file could replace the active PWA document with the OS/browser file preview. The application then lost the visible workspace/navigation context.
 
-```text
-Modules/ClientPortal/Services/PortalAccessResolver.php
-Modules/ClientPortal/Services/PortalContextResolver.php
-Modules/ClientPortal/Services/PortalNavigationResolver.php
-```
+The relevant backend download routes remain authenticated same-origin routes. File generation, authorization and storage availability are not changed by MR-5.
 
-MR-2 adaptive navigation and MR-3 0/1/N Portal Home behavior remain preserved.
+The required contract is:
 
-## MR-4 delivered scope
+- preserve the installed-PWA top-level workspace before handing a file to the OS;
+- keep authenticated access and existing permissions unchanged;
+- avoid public temporary URLs;
+- avoid service-worker caching of private binary responses;
+- keep normal desktop/browser native download behavior unchanged.
 
-MR-4 migrated Muasamcong-specific presentation ownership out of the shared ClientPortal App Shell while preserving Muasamcong domain behavior.
+## MR-5 implementation
 
-Shared ClientPortal core now provides only application-neutral extension points. The shared layout no longer owns Muasamcong-specific route checks, `sync_request_id`, queue-status UI/polling, or Price List presentation details.
-
-Muasamcong presentation remains under its application layer and manifest contract, including:
+The accepted implementation is Muasamcong-scoped through:
 
 ```text
-Modules/ClientPortal/Applications/Muasamcong/manifest.php
-Modules/ClientPortal/resources/views/applications/muasamcong/partials/
+Modules/ClientPortal/resources/views/applications/muasamcong/partials/external-file-handoff.blade.php
 ```
 
-The application owns Price List workspace polish, file-availability presentation, sync queue-status UI/polling and related route-scoped behavior.
+In installed/standalone PWA mode:
 
-No Request domain behavior, Muasamcong domain authorization, database schema, Module enablement or production role assignments were changed.
+1. Excel/PDF link navigation is intercepted before top-level navigation.
+2. The protected same-origin URL is fetched with `credentials: 'same-origin'` and `cache: 'no-store'`.
+3. The response is converted to a temporary `Blob` / `File`.
+4. The PWA shows an in-app ready state with an explicit **Mở / Chia sẻ tệp** action.
+5. A second user gesture calls `navigator.share({ files: [...] })` so transient user activation is preserved.
+6. Unsupported file-share capability keeps the PWA workspace intact and shows a safe fallback instruction instead of replacing the top-level page.
+7. The share action disables while a share attempt is running and remains retryable after a non-`AbortError` failure.
 
-## Price List availability and recovery
+Normal desktop/browser behavior remains native because interception is limited to installed/standalone PWA mode.
 
-MR-4 hardened Price List actions so logical completion is not confused with physical file availability.
+### Rejected approaches
+
+The following patterns were tested on iPhone installed PWA and are rejected for this case:
+
+- hidden iframe navigation to the authenticated binary URL;
+- `window.open(binaryUrl, '_blank')`;
+- top-level `window.location` fallback to the binary URL.
+
+These approaches reproduced the original preview/workspace-loss behavior and must not be restored as the generic solution.
+
+## Project-wide documentation contract
+
+Canonical guidance:
 
 ```text
-completed + file_available=true  -> Excel-dependent actions available
-completed + file_available=false -> "Thiếu file" / recreate guidance
-queued/processing                -> status polling
-failed                           -> failure/error state
+docs/PWA_EXTERNAL_FILE_HANDOFF.md
 ```
 
-PDF conversion is exposed only when the Excel source file is actually available.
+`docs/GITHUB_COLLABORATION_WORKFLOW.md` contains the mandatory PWA download/open-file gate. Future Module work involving PWA-capable file actions must read the canonical document and verify applicable iOS/Android/desktop behavior before merge.
 
-The PDF action has distinct visual states:
+## Automated acceptance
+
+Latest owner-reported ClientApps regression after the retry corrective:
 
 ```text
-Before conversion -> "Tạo PDF" / convert icon
-After conversion  -> "Tải PDF" / PDF document icon
+Tests: 87 passed (613 assertions)
+Duration: 13.17s
 ```
 
-Manual acceptance confirmed Excel generation/download and PDF conversion/download work after the storage permission issue was corrected.
+Automated status: **PASS**.
 
-## Project-wide storage permission contract
-
-MR-4 identified a deployment/runtime class of issue that can affect any Module using `storage/app`.
-
-Observed root cause:
+Focused MR-5 contract remains in:
 
 ```text
-storage/app/client-portal             -> root:root 0700
-storage/app/client-portal/price-lists -> root:root 0700
-PHP-FPM workers                       -> www-data:www-data
+tests/Feature/ClientApps/ClientPortalPwaExternalFileHandoffTest.php
 ```
 
-A queue/root process could create and see files while PHP-FPM could not traverse the parent directories, causing web `Storage::exists()` checks to fail and downloads to return 404 even though the file existed.
+It locks the installed/standalone detection, Excel/PDF markers, authenticated no-store fetch, Blob/File conversion, Web Share handoff, explicit second user action, retry contract and absence of the rejected iframe/window-open/top-level-navigation patterns.
 
-The permanent project-level contract is now documented and enforced through:
+## Manual acceptance
+
+Owner-reported manual acceptance for the final Web Share implementation:
 
 ```text
-config/filesystems.php
-Dockerfile
-docker/entrypoint.sh
-docs/STORAGE_PERMISSIONS.md
-tests/Feature/System/StoragePermissionsContractTest.php
+iPhone installed PWA
+- Excel: PASS
+- PDF: PASS
+- native open/share handoff: PASS
+- PWA workspace/context remains recoverable: PASS
+
+Android installed PWA
+- Excel: PASS
+- PDF: PASS
+
+Desktop / normal browser
+- Excel: PASS
+- PDF: PASS
+- native browser download behavior preserved: PASS
 ```
 
-Operational rules:
+MR-5 file-handoff acceptance status: **PASS**.
+
+## Final PR review corrective
+
+PR #64 final diff review found that the share click handler used `{ once: true }`, which made a non-`AbortError` retry button visually re-enable without retaining a listener.
+
+Corrective status: **FIXED**.
+
+- `{ once: true }` was removed;
+- the button remains disabled while `navigator.share(...)` is active;
+- a non-`AbortError` re-enables the same live handler so the user can retry;
+- focused contract coverage asserts the retry behavior;
+- latest ClientApps regression is `87 passed (613 assertions)`.
+
+## Separate issue discovered during MR-5 acceptance
+
+A separate PWA installation UX issue was discovered on iPhone: the current launcher install button relies on the Chromium-style `beforeinstallprompt` event. iOS Safari does not provide that install flow, so the current iPhone install button/path can appear non-functional.
+
+This issue is intentionally **not added to MR-5**. It becomes MR-6 so the accepted external-file handoff scope remains isolated.
+
+Planned MR-6 contract:
 
 ```text
-private storage/app directories -> group-readable/writable/traversable
-private storage/app files       -> group-readable/writable
-Docker runtime                  -> normalize existing storage ownership/modes on entry
-queue and PHP-FPM               -> must share a compatible filesystem group
+MR-6 — PWA Install UX
+
+- detect iPhone/iPad browser context correctly
+- provide Safari Share → Add to Home Screen guidance instead of relying on beforeinstallprompt
+- preserve beforeinstallprompt behavior for supported Chromium/Android browsers
+- hide or adapt install UI when already running standalone
+- add automated contract coverage and iPhone/Android/manual acceptance
 ```
 
-The deployment guide covers local development, VPS without Docker, Docker/Compose, `namei -l` diagnosis, queue/web user mismatch and recovery. `chmod 777` is explicitly not the normal solution.
+## Approved authentication roadmap
 
-## PWA and error-recovery hardening
+A later MR will add end-user account registration/authentication for ClientPortal/PWA without creating a separate PWA identity system.
 
-MR-4 also corrected stale installed-PWA behavior by keeping authenticated navigation network-first/no-store, disabling reliance on HTTP cache for service-worker updates and bumping the shell cache version. No broad caching of authenticated business responses was introduced.
-
-ClientPortal 403/404 recovery now prefers a valid same-origin browser Back action and falls back to `/my-apps` for ClientPortal context instead of pushing the user to website root `/`.
-
-## Verification evidence
-
-Automated coverage added/updated includes:
+Planned MR-7 contract:
 
 ```text
-tests/Feature/ClientApps/ClientPortalMuasamcongReferenceMigrationTest.php
-tests/Feature/ClientApps/ClientPwaFoundationTest.php
-tests/Feature/ClientApps/ClientPortalFileAvailabilityAndErrorRecoveryTest.php
-tests/Feature/System/StoragePermissionsContractTest.php
+MR-7 — PWA Account Registration & Google Authentication
+
+Standard registration
+- registration form for ordinary user accounts
+- new account starts inactive/unverified
+- send OTP to the registered email
+- OTP verifies email and activates the account
+- OTP expiration, resend controls and rate limiting
+- OTP must not be stored as plaintext
+
+Google authentication
+- Google OAuth sign-in/registration
+- valid Google-verified email can activate the new account immediately
+- no OTP required for the Google path
+- existing-email linking must be handled safely and must not allow account takeover merely because an email matches
+
+Shared auth boundary
+- same user/account model for PWA and normal browser
+- preserve current session, CSRF, authorization and logout behavior
+- successful login returns users to the appropriate ClientPortal/PWA workspace
 ```
 
-Owner-reported verification during MR-4:
-
-```text
-ClientPortalMuasamcongReferenceMigrationTest: PASS
-ClientPwaFoundationTest: PASS
-ClientPortalFileAvailabilityAndErrorRecoveryTest: PASS
-StoragePermissionsContractTest: PASS
-ClientApps regression: PASS
-```
-
-Recorded full ClientApps checkpoint during MR-4:
-
-```text
-php artisan test tests/Feature/ClientApps
-PASS — 83 tests, 555 assertions
-```
-
-Additional focused assertions were added after that full checkpoint and were separately reported PASS. Do not infer a newer full-suite assertion count unless a fresh full-suite output is supplied.
-
-## Manual UI acceptance
-
-Owner-verified MR-4 behaviors:
-
-```text
-Muasamcong Price List source/profile/products: PASS
-Excel generation/download: PASS
-PDF conversion/download: PASS
-Pre-convert vs post-convert PDF icons: PASS
-Missing-file recovery state: PASS
-PWA stale-data corrective behavior: PASS
-ClientPortal 403/404 recovery: PASS
-```
-
-The final manual UI acceptance was explicitly reported PASS before PR creation and merge.
-
-## Merge closeout
-
-MR-4 was merged through PR #63 after explicit owner approval.
-
-```text
-Feature head before merge:
-aeaf070231ac28a225e03935b807b479989ce730
-
-Merge commit / stable code checkpoint:
-b8ace3f913c2bfab846ee28ee70db2fda625858c
-```
-
-PR #63 was verified open, non-draft and mergeable immediately before merge. The exact expected feature head SHA was used as the merge guard. GitHub had no registered CI status checks for that head; the merge relied on the owner-reported automated and manual acceptance evidence recorded above.
-
-MR-4 is therefore **CLOSED / ACCEPTED**. Do not continue implementation on `feat/clientportal-muasamcong-reference-migration`.
+MR-7 is roadmap only. No authentication implementation belongs to MR-5 or MR-6 unless separately approved.
 
 ## Roadmap checkpoint
 
@@ -182,19 +185,13 @@ MR-1 — Portal Architecture Foundation: MERGED / CLOSED
 MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
-Next MR / phase: NOT DETERMINED
+MR-5 — PWA External File Download & Return UX: PR #64 OPEN / ACCEPTANCE PASS / OWNER MERGE APPROVAL REQUIRED
+MR-6 — PWA Install UX: APPROVED NEXT MR / NOT STARTED
+MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-There is currently no authorized MR-5 or next ClientPortal implementation phase.
+PR #64 implementation, automated acceptance and applicable manual file-handoff acceptance are PASS. Merge only after GitHub reports a mergeable state and the owner explicitly approves the merge.
 
-Before creating another branch or changing code:
-
-1. Start from current `main` and read this handoff plus `docs/GITHUB_COLLABORATION_WORKFLOW.md` and `.codex/standards/CLIENT_APP_UI_STANDARD.md` where applicable.
-2. Inspect the current source relevant to the new requested goal.
-3. Define a narrow scope, ownership boundary, tests and manual acceptance criteria.
-4. Present the proposal to the owner.
-5. Create a new branch and implement only after explicit owner approval.
-
-Do not infer that the next phase should modify Request, Muasamcong, organization/department routing, shared components, production enablement or runtime configuration without an explicit new requirement and approval.
+After MR-5 is merged, update `main`, refresh this handoff with the merge commit, then create a new branch for MR-6 only after confirming the new `main` checkpoint.

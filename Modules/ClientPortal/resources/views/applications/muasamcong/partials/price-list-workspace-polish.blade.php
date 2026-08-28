@@ -280,6 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
         setIconAction(pdfDownload, 'pdf', icons.pdf, 'Tải PDF');
         setIconAction(share, 'share', icons.share, 'Chia sẻ');
 
+        if (excel) excel.dataset.pwaFileHandoff = '1';
+        if (pdfDownload) pdfDownload.dataset.pwaFileHandoff = '1';
+
         if (email) {
             email.innerHTML = `${icons.mail}<span>Gửi bảng giá</span>`;
             email.setAttribute('aria-label', 'Gửi bảng giá');
