@@ -34,7 +34,8 @@ class ClientAdaptiveNavigationTest extends TestCase
         $navigation = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
         $normalizedNavigation = strtolower($navigation);
 
-        $this->assertStringContainsString(':name="$item[\'icon\']"', $navigation);
+        $this->assertStringContainsString("'name' => $item['icon']", $navigation);
+        $this->assertStringContainsString('ClientPortal::partials.navigation-icon', $navigation);
         $this->assertStringNotContainsString('client.muasamcong.', $normalizedNavigation);
         $this->assertStringNotContainsString('applications.muasamcong', $normalizedNavigation);
         $this->assertStringNotContainsString('client.request.', $normalizedNavigation);
@@ -42,9 +43,19 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringNotContainsString('hasRole', $navigation);
     }
 
-    public function test_navigation_icon_component_has_generic_fallback(): void
+    public function test_shared_navigation_blade_compiles_without_custom_component_registration(): void
     {
-        $icon = file_get_contents(base_path('Modules/ClientPortal/resources/views/components/navigation-icon.blade.php'));
+        $navigation = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
+
+        $compiled = app('blade.compiler')->compileString($navigation);
+
+        $this->assertNotEmpty($compiled);
+        $this->assertStringNotContainsString('<x-client-portal::navigation-icon', $navigation);
+    }
+
+    public function test_navigation_icon_partial_has_generic_fallback(): void
+    {
+        $icon = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/navigation-icon.blade.php'));
 
         $this->assertStringContainsString("'squares-2x2'", $icon);
         $this->assertStringContainsString('$paths[$name] ?? $paths[\'squares-2x2\']', $icon);
