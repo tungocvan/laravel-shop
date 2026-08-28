@@ -111,8 +111,8 @@ class ClientPortalHeaderAccountMenuTest extends TestCase
         );
         $this->assertSame('NA', $account['initials']);
         $this->assertTrue($account['google_linked']);
-        $this->assertNotContains('provider-id', $account, true);
-        $this->assertNotContains('provider-token', $account, true);
+        $this->assertNotContains('provider-id', $account);
+        $this->assertNotContains('provider-token', $account);
     }
 
     public function test_account_menu_core_is_application_neutral(): void
@@ -131,11 +131,21 @@ class ClientPortalHeaderAccountMenuTest extends TestCase
 
     private function createUser(array $attributes): User
     {
-        return User::query()->create(array_merge([
+        $emailVerifiedAt = $attributes['email_verified_at'] ?? null;
+
+        unset($attributes['email_verified_at']);
+
+        $user = User::query()->create(array_merge([
             'name' => 'Portal User',
             'email' => 'portal-'.uniqid().'@example.com',
             'password' => Hash::make('StrongPassword123!'),
             'is_active' => true,
         ], $attributes));
+
+        if ($emailVerifiedAt !== null) {
+            $user->forceFill(['email_verified_at' => $emailVerifiedAt])->save();
+        }
+
+        return $user->refresh();
     }
 }
