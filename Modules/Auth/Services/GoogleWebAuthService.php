@@ -53,15 +53,20 @@ class GoogleWebAuthService
                 ]);
             }
 
-            return User::query()->create([
+            $user = User::query()->create([
                 'name' => trim((string) $googleUser->getName()) ?: $email,
                 'email' => $email,
                 'password' => Hash::make(Str::random(64)),
                 'google_id' => $googleId,
                 'avatar' => $googleUser->getAvatar(),
                 'is_active' => true,
-                'email_verified_at' => now(),
             ]);
+
+            $user->forceFill([
+                'email_verified_at' => now(),
+            ])->save();
+
+            return $user->refresh();
         });
     }
 }
