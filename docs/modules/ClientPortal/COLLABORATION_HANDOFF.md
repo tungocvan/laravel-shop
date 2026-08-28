@@ -5,7 +5,7 @@
 - Base branch: `main`
 - Active feature branch: `feat/clientportal-portal-architecture-foundation`
 - Pull request: **NOT CREATED**
-- Branch status: **IMPLEMENTATION COMPLETE / MANUAL UI SMOKE PENDING**
+- Branch status: **IMPLEMENTATION COMPLETE / PRE-PR CLEANLINESS PENDING**
 - Base checkpoint: `85c400d8489f974f371178d6ede5afdd9b1b7a53`
 - Current MR: **MR-1 — Portal Architecture Foundation**
 - Next planned MR: **MR-2 — Adaptive Navigation**
@@ -115,6 +115,24 @@ Added:
 
 The standard defines ClientPortal ownership boundaries, responsive shell direction, manifest-driven navigation/capabilities, PWA/private-data safety, permissions, accessibility, domain separation and Impact-Based Testing.
 
+## Permission model clarified during manual acceptance
+
+Client application visibility permissions and domain-operation permissions remain separate layers.
+
+For Request, permissions such as:
+
+```text
+client.request.create.view
+client.request.mine.view
+client.request.inbox.view
+```
+
+control whether the corresponding ClientPortal feature/navigation is presented. Domain permissions such as `request.instance.create` continue to control whether the underlying business operation is actually authorized.
+
+Therefore, if an administrator intentionally grants `client.request.create.view` without `request.instance.create`, the `Tạo đề nghị` navigation may be visible while the protected domain operation returns `403`. This is accepted behavior for the current permission model, not a Portal navigation defect.
+
+A temporary all-of permission experiment introduced during acceptance was fully reverted after this clarification. Final focused and ClientPortal regression tests passed after the revert.
+
 ## Test correction discovered during MR-1
 
 `tests/Feature/ClientApps/ClientPwaFoundationTest.php` contained a stale Website-footer assertion expecting the PWA installer to be included directly by:
@@ -134,14 +152,14 @@ The test was aligned to the current runtime architecture. Website runtime code w
 
 ## Verification evidence
 
-Owner-executed focused verification after MR-1 contract/navigation implementation:
+Final owner-executed focused verification:
 
 ```text
 php artisan test tests/Feature/ClientApps/ClientApplicationRegistryTest.php
 PASS — 9 tests, 40 assertions
 ```
 
-Owner-executed ClientPortal regression:
+Final owner-executed ClientPortal regression:
 
 ```text
 php artisan test tests/Feature/ClientApps
@@ -164,20 +182,33 @@ ClientPortal/ClientApps regression: PASS
 Unrelated project-wide regression: NOT RUN / NOT REQUIRED AT THIS checkpoint
 ```
 
-## Manual UI acceptance still required
+## Manual UI acceptance
 
-Because the shared mobile App Shell navigation changed, manual UI smoke remains required before PR/merge readiness is declared.
+Owner-verified manual UI smoke:
 
-Minimum smoke scope:
+```text
+Muasamcong mobile / iPhone 15 Pro Max 430px: PASS
+- bottom navigation rendered
+- Tổng quan active state rendered
+- Tra cứu / Bảng giá / Lịch sử rendered
+- Thêm group rendered
 
-1. Sign in as a user with Muasamcong access and open a Muasamcong Client page on a mobile-width viewport.
-2. Confirm the bottom navigation renders from the manifest, primary items are usable, and the `Thêm`/more group is reachable.
-3. Sign in as a user with Request access and repeat the mobile navigation check.
-4. Verify a representative desktop Client application page still renders correctly and has no unexpected mobile bottom navigation.
-5. Confirm permissions still hide inaccessible navigation items.
-6. Confirm existing Muasamcong queue-status/Price List behavior used during normal navigation is not visibly broken.
+Request mobile / 430px: PASS
+- bottom navigation rendered
+- Tổng quan active state rendered
+- Tạo đề nghị / Của tôi / Phê duyệt / Thêm rendered according to granted ClientPortal view permissions
 
-Manual UI smoke: **PENDING OWNER CONFIRMATION**.
+Representative 1024px viewport: PASS
+- mobile bottom navigation hidden
+- Request workspace rendered without visible overflow/breakage
+
+Permission behavior: PASS / MODEL CONFIRMED
+- ClientPortal view permission controls presentation
+- domain permission independently enforces the business operation
+- an intentionally visible Request feature can return 403 when its domain-operation permission is not granted
+```
+
+Manual UI smoke: **PASS**.
 
 ## Scope intentionally deferred
 
@@ -243,7 +274,7 @@ MR-1 does not:
 ```text
 Focused tests: PASS
 ClientPortal regression: PASS
-Manual UI smoke: PENDING
+Manual UI smoke: PASS
 Git diff/check cleanliness: PENDING
 Local working-tree cleanliness: PENDING
 PR review: NOT STARTED
@@ -251,9 +282,8 @@ PR review: NOT STARTED
 
 ## Next authorized step
 
-1. Perform the minimum manual UI smoke for Muasamcong + Request navigation and one desktop representative page.
-2. If UI smoke passes, run narrow Git cleanliness checks.
-3. Refresh this handoff with final gate evidence.
-4. Create the MR-1 pull request for review.
-5. Do not merge until owner acceptance and PR gates are satisfied.
-6. After merge, update the stable handoff with the actual merge checkpoint before beginning MR-2.
+1. Run narrow Git cleanliness checks on the feature branch.
+2. Refresh this handoff with final Git-clean evidence.
+3. Create the MR-1 pull request for review.
+4. Do not merge until owner acceptance and PR gates are satisfied.
+5. After merge, update the stable handoff with the actual merge checkpoint before beginning MR-2.
