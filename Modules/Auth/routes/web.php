@@ -14,6 +14,7 @@ Route::middleware(['web'])->group(function () {
     Route::get('/my-apps/auth/google/callback', [ClientGoogleController::class, 'callback'])->name('client.apps.google.callback');
 
     Route::middleware('auth:web')->group(function () {
+        Route::get('/my-apps/auth/google/link', [ClientGoogleController::class, 'linkRedirect'])->name('client.apps.google.link');
         Route::post('/logout', [AuthController::class, 'clientLogout'])->name('logout');
     });
 });
