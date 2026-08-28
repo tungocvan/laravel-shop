@@ -9,7 +9,7 @@
 - Current MR: **MR-5 — PWA External File Download & Return UX**
 - Feature branch: `fix/clientportal-pwa-external-file-handoff`
 - Pull request: **#64 — OPEN**
-- MR-5 status: **ACCEPTANCE PASS — FINAL PR REVIEW CORRECTIVE REQUIRED**
+- MR-5 status: **ACCEPTANCE PASS — OWNER MERGE APPROVAL REQUIRED**
 
 ## Stable architecture entering MR-5
 
@@ -51,6 +51,7 @@ In installed/standalone PWA mode:
 4. The PWA shows an in-app ready state with an explicit **Mở / Chia sẻ tệp** action.
 5. A second user gesture calls `navigator.share({ files: [...] })` so transient user activation is preserved.
 6. Unsupported file-share capability keeps the PWA workspace intact and shows a safe fallback instruction instead of replacing the top-level page.
+7. The share action disables while a share attempt is running and remains retryable after a non-`AbortError` failure.
 
 Normal desktop/browser behavior remains native because interception is limited to installed/standalone PWA mode.
 
@@ -76,11 +77,11 @@ docs/PWA_EXTERNAL_FILE_HANDOFF.md
 
 ## Automated acceptance
 
-Latest owner-reported ClientApps regression after the Web Share corrective:
+Latest owner-reported ClientApps regression after the retry corrective:
 
 ```text
-Tests: 87 passed (611 assertions)
-Duration: 13.13s
+Tests: 87 passed (613 assertions)
+Duration: 13.17s
 ```
 
 Automated status: **PASS**.
@@ -91,7 +92,7 @@ Focused MR-5 contract remains in:
 tests/Feature/ClientApps/ClientPortalPwaExternalFileHandoffTest.php
 ```
 
-It locks the installed/standalone detection, Excel/PDF markers, authenticated no-store fetch, Blob/File conversion, Web Share handoff, explicit second user action and absence of the rejected iframe/window-open/top-level-navigation patterns.
+It locks the installed/standalone detection, Excel/PDF markers, authenticated no-store fetch, Blob/File conversion, Web Share handoff, explicit second user action, retry contract and absence of the rejected iframe/window-open/top-level-navigation patterns.
 
 ## Manual acceptance
 
@@ -116,15 +117,17 @@ Desktop / normal browser
 
 MR-5 file-handoff acceptance status: **PASS**.
 
-## Final PR review finding
+## Final PR review corrective
 
-PR #64 final diff review found one small retry defect in `external-file-handoff.blade.php`:
+PR #64 final diff review found that the share click handler used `{ once: true }`, which made a non-`AbortError` retry button visually re-enable without retaining a listener.
 
-- the `Mở / Chia sẻ tệp` click handler is registered with `{ once: true }`;
-- when `navigator.share(...)` fails with a non-`AbortError`, the UI re-enables the button and tells the user to retry;
-- however the listener has already been removed because it was one-shot, so the retry button no longer invokes `navigator.share(...)`.
+Corrective status: **FIXED**.
 
-This does not invalidate the successful first-attempt device acceptance already reported, but it is a real error-path UX defect and should be corrected before merge. Do not reintroduce iframe, `window.open`, or top-level binary navigation while fixing it.
+- `{ once: true }` was removed;
+- the button remains disabled while `navigator.share(...)` is active;
+- a non-`AbortError` re-enables the same live handler so the user can retry;
+- focused contract coverage asserts the retry behavior;
+- latest ClientApps regression is `87 passed (613 assertions)`.
 
 ## Separate issue discovered during MR-5 acceptance
 
@@ -182,13 +185,13 @@ MR-1 — Portal Architecture Foundation: MERGED / CLOSED
 MR-2 — Adaptive Navigation: MERGED / CLOSED
 MR-3 — Dynamic Portal Home: MERGED / CLOSED
 MR-4 — Muasamcong reference migration: MERGED / CLOSED
-MR-5 — PWA External File Download & Return UX: PR #64 OPEN / FINAL CORRECTIVE REQUIRED
+MR-5 — PWA External File Download & Return UX: PR #64 OPEN / ACCEPTANCE PASS / OWNER MERGE APPROVAL REQUIRED
 MR-6 — PWA Install UX: APPROVED NEXT MR / NOT STARTED
 MR-7 — PWA Account Registration & Google Authentication: APPROVED ROADMAP / NOT STARTED
 ```
 
 ## Next-step boundary
 
-Do not merge PR #64 until the one-shot retry defect is corrected, relevant automated coverage passes, the PR diff/state is re-reviewed and the owner explicitly approves the merge.
+PR #64 implementation, automated acceptance and applicable manual file-handoff acceptance are PASS. Merge only after GitHub reports a mergeable state and the owner explicitly approves the merge.
 
 After MR-5 is merged, update `main`, refresh this handoff with the merge commit, then create a new branch for MR-6 only after confirming the new `main` checkpoint.
