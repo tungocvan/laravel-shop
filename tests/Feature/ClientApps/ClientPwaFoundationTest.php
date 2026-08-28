@@ -75,8 +75,8 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString('shell_extensions', $layout);
         $this->assertStringNotContainsString("routeIs('client.muasamcong.price-list*')", $layout);
         $this->assertStringNotContainsString('price-list-workspace-polish', $layout);
-        $this->assertStringContainsString("'route' => 'client.muasamcong.price-list*'", $manifest);
-        $this->assertStringContainsString('price-list-workspace-polish', $manifest);
+        $this->assertStringContainsString("'routes' => ['client.muasamcong.price-list*']", $manifest);
+        $this->assertStringContainsString("'view' => 'ClientPortal::applications.muasamcong.partials.price-list-workspace-polish'", $manifest);
         $this->assertStringContainsString('.export-card', $polish);
         $this->assertStringContainsString('price-list-icon-action', $polish);
         $this->assertStringContainsString('data-action-icon', $polish);
