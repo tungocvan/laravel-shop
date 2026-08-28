@@ -25,17 +25,26 @@ class VerifyEmailOtpForm extends Component
             'otp' => ['required', 'digits:6'],
         ]);
 
-        $key = 'client-otp-verify:'.request()->ip().':'.mb_strtolower(trim($validated['email']));
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages([
-                'otp' => 'Bạn đã thử xác minh quá nhiều lần. Vui lòng thử lại sau.',
-            ]);
+        $email = mb_strtolower(trim($validated['email']));
+        $limits = [
+            ['key' => 'client-otp-verify:email:'.$email, 'max' => 5],
+            ['key' => 'client-otp-verify:ip:'.request()->ip(), 'max' => 20],
+        ];
+
+        foreach ($limits as $limit) {
+            if (RateLimiter::tooManyAttempts($limit['key'], $limit['max'])) {
+                throw ValidationException::withMessages([
+                    'otp' => 'Bạn đã thử xác minh quá nhiều lần. Vui lòng thử lại sau.',
+                ]);
+            }
         }
-        RateLimiter::hit($key, 300);
+        foreach ($limits as $limit) {
+            RateLimiter::hit($limit['key'], 300);
+        }
 
         $user = $registration->verify($validated['email'], $validated['otp']);
 
-        RateLimiter::clear($key);
+        RateLimiter::clear('client-otp-verify:email:'.$email);
         Auth::guard('web')->login($user);
         session()->regenerate();
         session()->forget('auth.pending_verification_email');
@@ -47,13 +56,22 @@ class VerifyEmailOtpForm extends Component
     {
         $this->validateOnly('email', ['email' => ['required', 'email']]);
 
-        $key = 'client-otp-resend:'.request()->ip().':'.mb_strtolower(trim($this->email));
-        if (RateLimiter::tooManyAttempts($key, 3)) {
-            throw ValidationException::withMessages([
-                'otp' => 'Bạn đã yêu cầu gửi lại OTP quá nhiều lần. Vui lòng thử lại sau.',
-            ]);
+        $email = mb_strtolower(trim($this->email));
+        $limits = [
+            ['key' => 'client-otp-resend:email:'.$email, 'max' => 3],
+            ['key' => 'client-otp-resend:ip:'.request()->ip(), 'max' => 10],
+        ];
+
+        foreach ($limits as $limit) {
+            if (RateLimiter::tooManyAttempts($limit['key'], $limit['max'])) {
+                throw ValidationException::withMessages([
+                    'otp' => 'Bạn đã yêu cầu gửi lại OTP quá nhiều lần. Vui lòng thử lại sau.',
+                ]);
+            }
         }
-        RateLimiter::hit($key, 300);
+        foreach ($limits as $limit) {
+            RateLimiter::hit($limit['key'], 300);
+        }
 
         $registration->resend($this->email);
         session()->flash('otp_status', 'Mã OTP mới đã được gửi.');
