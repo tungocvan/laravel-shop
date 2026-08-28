@@ -87,6 +87,9 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString('excel-file-ready', $polish);
         $this->assertStringContainsString('data.file_available === true', $polish);
         $this->assertStringContainsString('form[action*="/pdf"]', $polish);
+        $this->assertStringContainsString('pdfConvert:', $polish);
+        $this->assertStringContainsString("setIconAction(pdfConvert, 'pdf-convert', icons.pdfConvert, 'Tạo PDF')", $polish);
+        $this->assertStringContainsString("setIconAction(pdfDownload, 'pdf', icons.pdf, 'Tải PDF')", $polish);
     }
 
     public function test_client_launcher_exposes_pwa_metadata_for_authenticated_user(): void
