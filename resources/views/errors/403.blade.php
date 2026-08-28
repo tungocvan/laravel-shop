@@ -1,8 +1,14 @@
+@php
+    $isClientPortal = request()->is('apps/*') || request()->is('my-apps*');
+    $fallbackUrl = $isClientPortal && \Illuminate\Support\Facades\Route::has('client.apps.index')
+        ? route('client.apps.index')
+        : (\Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/'));
+@endphp
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>403 - Không có quyền truy cập</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -14,11 +20,24 @@
             </svg>
         </div>
         <h1 class="text-2xl font-bold text-gray-900 mb-2">Truy cập bị từ chối (403)</h1>
-        <p class="text-gray-500 mb-6">Xin lỗi, bạn không có quyền truy cập vào khu vực này. Vui lòng liên hệ quản trị viên nếu bạn nghĩ đây là sự nhầm lẫn.</p>
-        
-        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition">
-            Quay về Dashboard
-        </a>
+        <p class="text-gray-500 mb-6">Bạn không có quyền thực hiện thao tác này. Hãy quay lại màn hình trước hoặc trở về khu vực ứng dụng của bạn.</p>
+        <div class="flex flex-col sm:flex-row gap-2 justify-center">
+            <button type="button" data-error-back class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">Quay lại</button>
+            <a href="{{ $fallbackUrl }}" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition">
+                {{ $isClientPortal ? 'Ứng dụng của tôi' : 'Về Dashboard' }}
+            </a>
+        </div>
     </div>
+<script>
+document.querySelector('[data-error-back]')?.addEventListener('click', () => {
+    try {
+        if (document.referrer && new URL(document.referrer).origin === window.location.origin) {
+            history.back();
+            return;
+        }
+    } catch (error) {}
+    window.location.href = @json($fallbackUrl);
+});
+</script>
 </body>
 </html>
