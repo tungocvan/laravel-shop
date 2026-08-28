@@ -21,10 +21,12 @@ class ClientPwaFoundationTest extends TestCase
     public function test_service_worker_does_not_cache_authenticated_navigation_responses(): void
     {
         $serviceWorker = file_get_contents(public_path('service-worker.js'));
+        $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
 
         $this->assertStringContainsString("request.mode === 'navigate'", $serviceWorker);
-        $this->assertStringContainsString('fetch(request).catch', $serviceWorker);
+        $this->assertStringContainsString("fetch(request, { cache: 'no-store' }).catch", $serviceWorker);
         $this->assertStringNotContainsString("cache.put(request", $serviceWorker);
+        $this->assertStringContainsString("updateViaCache: 'none'", $layout);
     }
 
     public function test_dedicated_pwa_login_route_is_public_and_named(): void
@@ -66,18 +68,28 @@ class ClientPwaFoundationTest extends TestCase
         $this->assertStringContainsString('Thêm vào Màn hình chính', $installer);
     }
 
-    public function test_price_list_workspace_polish_is_scoped_to_price_list_routes(): void
+    public function test_price_list_workspace_polish_is_scoped_through_application_shell_extensions(): void
     {
         $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Muasamcong/manifest.php'));
         $polish = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/muasamcong/partials/price-list-workspace-polish.blade.php'));
 
-        $this->assertStringContainsString("routeIs('client.muasamcong.price-list*')", $layout);
-        $this->assertStringContainsString('price-list-workspace-polish', $layout);
+        $this->assertStringContainsString('shell_extensions', $layout);
+        $this->assertStringNotContainsString("routeIs('client.muasamcong.price-list*')", $layout);
+        $this->assertStringNotContainsString('price-list-workspace-polish', $layout);
+        $this->assertStringContainsString("'routes' => ['client.muasamcong.price-list*']", $manifest);
+        $this->assertStringContainsString("'view' => 'ClientPortal::applications.muasamcong.partials.price-list-workspace-polish'", $manifest);
         $this->assertStringContainsString('.export-card', $polish);
         $this->assertStringContainsString('price-list-icon-action', $polish);
         $this->assertStringContainsString('data-action-icon', $polish);
         $this->assertStringContainsString('[data-email-open]', $polish);
         $this->assertStringContainsString('Đã gửi gần nhất', $polish);
+        $this->assertStringContainsString('excel-file-ready', $polish);
+        $this->assertStringContainsString('data.file_available === true', $polish);
+        $this->assertStringContainsString('form[action*="/pdf"]', $polish);
+        $this->assertStringContainsString('pdfConvert:', $polish);
+        $this->assertStringContainsString("setIconAction(pdfConvert, 'pdf-convert', icons.pdfConvert, 'Tạo PDF')", $polish);
+        $this->assertStringContainsString("setIconAction(pdfDownload, 'pdf', icons.pdf, 'Tải PDF')", $polish);
     }
 
     public function test_client_launcher_exposes_pwa_metadata_for_authenticated_user(): void

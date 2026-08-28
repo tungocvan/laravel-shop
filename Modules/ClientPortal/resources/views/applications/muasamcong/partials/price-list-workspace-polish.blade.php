@@ -2,6 +2,14 @@
 /* P4.4.1E — Price List Workspace UI Polish
  * Route-scoped presentation only. Keep existing forms/routes/queue behavior untouched.
  */
+.export-card form[action*="/pdf"] {
+    display: none;
+}
+
+.export-card.excel-file-ready form[action*="/pdf"] {
+    display: block;
+}
+
 @media (max-width: 639px) {
     .export-card {
         border-radius: 1.25rem !important;
@@ -90,6 +98,7 @@
     }
     .export-card .price-list-icon-action .action-label { display: none; }
     .export-card .price-list-icon-action[data-action-icon="excel"] { color: rgb(22 163 74) !important; }
+    .export-card .price-list-icon-action[data-action-icon="pdf-convert"] { color: rgb(124 58 237) !important; }
     .export-card .price-list-icon-action[data-action-icon="pdf"] { color: rgb(225 29 72) !important; }
     .export-card .price-list-icon-action[data-action-icon="share"] { color: rgb(30 41 59) !important; }
     .export-card .price-list-icon-action:active { transform: scale(.96); }
@@ -177,6 +186,7 @@
     }
     .export-card .price-list-icon-action .action-label { display: inline; }
     .export-card .price-list-icon-action[data-action-icon="excel"] { color: rgb(21 128 61) !important; }
+    .export-card .price-list-icon-action[data-action-icon="pdf-convert"] { color: rgb(109 40 217) !important; }
     .export-card .price-list-icon-action[data-action-icon="pdf"] { color: rgb(190 18 60) !important; }
     .export-card .price-list-icon-action[data-action-icon="share"] { color: rgb(30 41 59) !important; }
 
@@ -214,6 +224,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const icons = {
         excel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="m9.5 12 4 5"/><path d="m13.5 12-4 5"/></svg>',
+        pdfConvert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v8"/><path d="M14 3v5h5"/><path d="M7 21v-4"/><path d="m4.5 19.5 2.5 2.5 2.5-2.5"/><path d="M13 17h7"/><path d="m17.5 14.5 2.5 2.5-2.5 2.5"/></svg>',
         pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9.5 16v-4h1.2a1.4 1.4 0 1 1 0 2.8H9.5"/><path d="M13.5 12v4h1a2 2 0 0 0 0-4z"/></svg>',
         share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.5"/><path d="m8.2 13.2 7.6 4.5"/></svg>',
         mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
@@ -221,26 +232,53 @@ document.addEventListener('DOMContentLoaded', () => {
         document: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7"/><path d="M8.5 12h7"/><path d="M8.5 16h5"/></svg>'
     };
 
+    const syncPdfAvailability = async (card, attempts = 0) => {
+        const pdfForm = card.querySelector('form[action*="/pdf"]');
+        const statusUrl = card.dataset.statusUrl;
+        if (!pdfForm || !statusUrl) return;
+
+        try {
+            const response = await fetch(statusUrl, {
+                headers: {'Accept': 'application/json'},
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+            if (!response.ok) throw new Error('price-list-status-failed');
+
+            const data = await response.json();
+            card.classList.toggle('excel-file-ready', data.file_available === true);
+
+            if (data.file_available !== true && ['queued', 'processing'].includes(data.status) && attempts < 90) {
+                window.setTimeout(() => syncPdfAvailability(card, attempts + 1), 2000);
+            }
+        } catch (error) {
+            card.classList.remove('excel-file-ready');
+            if (attempts < 3) window.setTimeout(() => syncPdfAvailability(card, attempts + 1), 2000);
+        }
+    };
+
     document.querySelectorAll('.export-card').forEach((card) => {
         const excel = card.querySelector('a[href*="/download"]:not([href*="/pdf/"])');
-        const pdf = card.querySelector('a[href*="/pdf/download"], form[action*="/pdf"] > button');
+        const pdfDownload = card.querySelector('a[href*="/pdf/download"]');
+        const pdfConvert = card.querySelector('form[action*="/pdf"] > button');
         const share = card.querySelector('.share-export');
         const email = card.querySelector('[data-email-open]');
         const more = card.querySelector('details.ml-auto > summary');
         const documentIcon = card.querySelector(':scope > .flex.items-start.justify-between .h-9.w-9');
 
-        const setIconAction = (element, type, label) => {
+        const setIconAction = (element, type, icon, label) => {
             if (!element) return;
             element.classList.add('price-list-icon-action');
             element.dataset.actionIcon = type;
             element.setAttribute('title', label);
             element.setAttribute('aria-label', label);
-            element.innerHTML = `${icons[type]}<span class="action-label">${label}</span>`;
+            element.innerHTML = `${icon}<span class="action-label">${label}</span>`;
         };
 
-        setIconAction(excel, 'excel', 'Excel');
-        setIconAction(pdf, 'pdf', pdf?.closest('form') ? 'Tạo PDF' : 'PDF');
-        setIconAction(share, 'share', 'Chia sẻ');
+        setIconAction(excel, 'excel', icons.excel, 'Excel');
+        setIconAction(pdfConvert, 'pdf-convert', icons.pdfConvert, 'Tạo PDF');
+        setIconAction(pdfDownload, 'pdf', icons.pdf, 'Tải PDF');
+        setIconAction(share, 'share', icons.share, 'Chia sẻ');
 
         if (email) {
             email.innerHTML = `${icons.mail}<span>Gửi bảng giá</span>`;
@@ -255,6 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const history = card.querySelector('.border-emerald-100.bg-emerald-50\\/60 > p:first-child');
         if (history) history.textContent = 'Đã gửi gần nhất';
+
+        syncPdfAvailability(card);
     });
 });
 </script>

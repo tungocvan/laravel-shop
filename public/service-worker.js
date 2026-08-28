@@ -1,4 +1,4 @@
-const CACHE_NAME = 'website-storefront-shell-v3';
+const CACHE_NAME = 'website-storefront-shell-v4';
 const OFFLINE_URL = '/pwa/offline.html';
 const VERSION_URL = '/website-pwa-version.json';
 const WEBSITE_MANIFEST_URL = '/website-manifest.webmanifest';
@@ -45,7 +45,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
+    event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => caches.match(OFFLINE_URL)));
     return;
   }
 

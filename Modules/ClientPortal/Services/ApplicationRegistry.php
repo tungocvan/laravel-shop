@@ -115,6 +115,7 @@ class ApplicationRegistry
             'quick_actions' => $this->normalizeQuickActions((array) ($manifest['quick_actions'] ?? [])),
             'navigation' => $navigation,
             'features' => $features,
+            'shell_extensions' => $this->normalizeShellExtensions((array) ($manifest['shell_extensions'] ?? [])),
         ];
     }
 
@@ -195,6 +196,29 @@ class ApplicationRegistry
             ->sortBy(fn (array $action): array => [$action['sort_order'], $action['name']])
             ->values()
             ->all();
+    }
+
+    private function normalizeShellExtensions(array $extensions): array
+    {
+        return collect(['head', 'overlays', 'scripts'])->mapWithKeys(function (string $slot) use ($extensions): array {
+            $rules = collect($extensions[$slot] ?? [])
+                ->filter(fn (mixed $rule): bool => is_array($rule))
+                ->map(function (array $rule): array {
+                    $view = trim((string) ($rule['view'] ?? ''));
+                    $routes = collect($rule['routes'] ?? [])
+                        ->filter(fn (mixed $route): bool => is_string($route) && trim($route) !== '')
+                        ->map(fn (string $route): string => trim($route))
+                        ->values()
+                        ->all();
+
+                    return ['view' => $view, 'routes' => $routes];
+                })
+                ->filter(fn (array $rule): bool => $rule['view'] !== '' && $rule['routes'] !== [])
+                ->values()
+                ->all();
+
+            return [$slot => $rules];
+        })->all();
     }
 
     private function normalizeCapabilities(array $capabilities): array

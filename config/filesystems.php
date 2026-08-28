@@ -22,7 +22,7 @@ return [
     |
     | Below you may configure as many filesystem disks as necessary, and you
     | may even configure multiple disks for the same driver. Examples for
-    | most supported storage drivers are configured here for reference.
+    | most supported drivers are configured here for reference.
     |
     | Supported drivers: "local", "ftp", "sftp", "s3"
     |
@@ -33,6 +33,21 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app'),
+            // Private application files must remain readable/writable by the
+            // shared web/queue group even when a worker runs as another user.
+            // Without this, Flysystem may create private directories as 0700,
+            // which makes files appear missing to PHP-FPM despite existing.
+            'permissions' => [
+                'file' => [
+                    'public' => 0664,
+                    'private' => 0660,
+                ],
+                'dir' => [
+                    'public' => 0775,
+                    'private' => 0770,
+                ],
+            ],
+            'directory_visibility' => 'private',
             'serve' => true,
             'throw' => false,
             'report' => false,
@@ -43,6 +58,17 @@ return [
             'root' => storage_path('app/public'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
+            'permissions' => [
+                'file' => [
+                    'public' => 0664,
+                    'private' => 0660,
+                ],
+                'dir' => [
+                    'public' => 0775,
+                    'private' => 0770,
+                ],
+            ],
+            'directory_visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],
@@ -62,6 +88,17 @@ return [
         'backups' => [
             'driver' => 'local',
             'root' => storage_path('app/private/backups'),
+            'permissions' => [
+                'file' => [
+                    'public' => 0664,
+                    'private' => 0660,
+                ],
+                'dir' => [
+                    'public' => 0775,
+                    'private' => 0770,
+                ],
+            ],
+            'directory_visibility' => 'private',
             'throw' => false,
         ],
 
@@ -72,8 +109,8 @@ return [
     | Symbolic Links
     |--------------------------------------------------------------------------
     |
-    | Here you may configure the symbolic links that will be created when the
-    | `storage:link` Artisan command is executed. The array keys should be
+    | Here you may configure the symbolic links that will be created when
+    | the `storage:link` Artisan command is executed. The array keys should be
     | the locations of the links and the values should be their targets.
     |
     */

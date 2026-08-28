@@ -48,7 +48,10 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod 0755 /usr/local/bin/entrypoint \
     && mkdir -p storage/app storage/app/system storage/app/request/attachments storage/framework storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache Modules \
-    && chmod 2770 storage/app/system storage/app/request storage/app/request/attachments \
+    && find storage/app -type d -exec chmod 2770 {} \; \
+    && find storage/app -type f -exec chmod 0660 {} \; \
+    && find storage/framework storage/logs bootstrap/cache -type d -exec chmod 2770 {} \; \
+    && find storage/framework storage/logs bootstrap/cache -type f -exec chmod 0660 {} \; \
     && find Modules -type d -exec chmod ug+rwx {} \; \
     && find Modules -type f -exec chmod ug+rw {} \;
 ENTRYPOINT ["entrypoint"]
