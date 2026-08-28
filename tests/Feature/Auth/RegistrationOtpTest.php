@@ -63,12 +63,13 @@ class RegistrationOtpTest extends TestCase
         );
 
         $verified = $service->verify($user->email, (string) $otp);
+        $challenge = UserEmailVerification::query()->where('user_id', $user->id)->sole();
 
         $this->assertTrue($verified->is_active);
         $this->assertNotNull($verified->email_verified_at);
-        $this->assertNotNull(
-            UserEmailVerification::query()->where('user_id', $user->id)->sole()->verified_at,
-        );
+        $this->assertNotNull($challenge->verified_at);
+        $this->assertNull($challenge->invalidated_at);
+        $this->assertTrue($challenge->verified_at->equalTo($verified->email_verified_at));
     }
 
     public function test_wrong_otp_does_not_activate_account(): void
@@ -77,9 +78,21 @@ class RegistrationOtpTest extends TestCase
 
         $service = app(RegistrationService::class);
         $user = $service->register('Portal User', 'wrong@example.com', 'StrongPassword123!');
+        $sentOtp = null;
+
+        Notification::assertSentTo(
+            $user,
+            EmailVerificationOtpNotification::class,
+            function (EmailVerificationOtpNotification $notification) use (&$sentOtp): bool {
+                $sentOtp = $notification->code;
+                return true;
+            },
+        );
+
+        $wrongOtp = $sentOtp === '000000' ? '000001' : '000000';
 
         try {
-            $service->verify($user->email, '000000');
+            $service->verify($user->email, $wrongOtp);
             $this->fail('Expected OTP validation to fail.');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('otp', $e->errors());
@@ -99,6 +112,23 @@ class RegistrationOtpTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $service->resend($user->email);
+    }
+
+    public function test_resend_invalidates_old_challenge_without_marking_it_verified(): void
+    {
+        Notification::fake();
+
+        $service = app(RegistrationService::class);
+        $user = $service->register('Portal User', 'resend@example.com', 'StrongPassword123!');
+        $old = UserEmailVerification::query()->where('user_id', $user->id)->sole();
+        $old->forceFill(['last_sent_at' => now()->subSeconds(RegistrationService::OTP_RESEND_COOLDOWN_SECONDS + 1)])->save();
+
+        $service->resend($user->email);
+
+        $old->refresh();
+        $this->assertNull($old->verified_at);
+        $this->assertNotNull($old->invalidated_at);
+        $this->assertSame(2, UserEmailVerification::query()->where('user_id', $user->id)->count());
     }
 
     public function test_existing_email_cannot_be_registered_again(): void
