@@ -6,7 +6,8 @@
 - Feature: read-only Admin Dashboard
 - Delivery branch: `feat/system-admin-dashboard`
 - Base/source checkpoint: `main@645e7737540436333e82ad4798ad67390c882cc6`
-- Implementation status: **READY FOR OPERATOR VERIFICATION**
+- Verified feature checkpoint: `92904c832ebf3f9c90ecf495a363871018a82013`
+- Implementation status: **VERIFIED — READY FOR PR**
 - Pull request: **NOT OPENED**
 - Merge status: **NOT MERGED**
 
@@ -146,21 +147,21 @@ Neither correction changes production behavior or broadens the Dashboard data co
 
 ## Verification Gate
 
-Required before opening the PR:
+The operator confirmed the approved targeted automated gates and desktop/mobile UI acceptance on 2026-08-29:
 
 ```text
-Pint changed PHP files                         PENDING
-Focused SystemDashboardTest                   PENDING
-System module regression                      PENDING
-Admin Feature regression                      PENDING
-Route inspection                              PENDING
-Frontend production build                     PENDING
-Desktop UI acceptance                         PENDING
-Mobile UI acceptance                          PENDING
-Working tree clean                            PENDING
+Pint changed PHP files                         PASS
+Focused SystemDashboardTest                   PASS (included in System regression)
+System module regression                      PASS (163 tests, 883 assertions)
+Admin Feature regression                      PASS (133 tests, 1265 assertions)
+Route inspection                              PASS (GET|HEAD admin/system/dashboard)
+Frontend production build                     PASS (Vite 7.3.6, 34 modules)
+Desktop UI acceptance                         PASS
+Mobile UI acceptance                          PASS
+Working tree clean                            PASS
 ```
 
-Verification remains limited to System and directly impacted Admin tests. Full-project regression is not required unless the implementation scope expands.
+Verification was intentionally limited to System and directly impacted Admin tests under the approved scope. Full-project regression was not required because the implementation scope did not expand.
 
 ## Deferred Refactor Roadmap
 
@@ -187,9 +188,9 @@ No deferred item is authorized for implementation by approval of this Dashboard 
 
 ## PR and Merge Gate
 
-1. Operator pulls the feature commit and runs the focused verification matrix.
-2. Operator confirms desktop/mobile Dashboard UI acceptance.
-3. Verification results and the final source checkpoint are recorded in this handoff.
-4. PR is opened for manual user review.
+1. **COMPLETE** — Operator pulled the feature commit and ran the focused verification matrix.
+2. **COMPLETE** — Operator confirmed desktop/mobile Dashboard UI acceptance.
+3. **COMPLETE** — Verification results and the verified feature checkpoint are recorded in this handoff.
+4. **NEXT** — PR is opened for manual user review.
 5. The user reviews the PR link and merges manually.
 6. A docs-only post-merge closeout is created if the merge checkpoint or deferred roadmap needs recording.
