@@ -3,187 +3,147 @@
 ## Current Status
 
 - Module: `System`
-- Feature: P0 Google Drive and database-backup boundary hardening
-- Delivery branch: `fix/system-drive-backup-boundaries`
-- Closeout branch: `docs/system-drive-backup-boundaries-closeout`
-- Base/source checkpoint: `main@d1c080e6a3e90478bde3830c9760686307af1835`
-- Verified feature checkpoint: `11da525cdba355f4ac0a1abf41f0a2563773a159`
-- Feature branch head: `85c02d17e7418fa075198b47dfd06f82b2c9e7d8`
-- Main merge checkpoint: `54ff2527ff906832dbff6087d36448a26d450894`
-- Implementation status: **COMPLETE — MERGED TO MAIN**
-- Pull request: [#78 — fix(system): harden Drive backup boundaries](https://github.com/tungocvan/laravel-shop/pull/78) — **MERGED**
-- Merged at: **2026-08-29 06:23:06 UTC**
-- Merge status: **MERGED**
+- Feature: System settings ownership and Admin compatibility adapters
+- Delivery branch: `refactor/system-settings-ownership-adapters`
+- Base/source checkpoint: `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`
+- Implementation checkpoint: pending operator verification
+- Implementation status: **IMPLEMENTED — OPERATOR VERIFICATION PENDING**
+- Pull request: pending operator verification
 
-This phase is the first deferred refactor after the read-only System Dashboard. The operator confirmed all approved automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29, then manually merged PR #78 into `main`. This docs-only closeout records the stable merge checkpoint; the remaining System refactor roadmap stays deferred to separate branches and PRs.
+This phase consolidates settings behavior under `Modules\System` without breaking the established Admin PHP class names or the historical `/admin/settings` URL. It follows the merged Google Drive/database-backup boundary phase and does not change database schemas, setting keys, permissions, or canonical System routes.
 
 ## Approved Scope
 
-This phase corrects only the P0 boundary around System-owned database backups and Google Drive:
+- replace duplicate Admin settings Livewire implementations with thin deprecated adapters that extend their System counterparts;
+- replace duplicate Admin environment/database services with thin deprecated adapters that extend System services;
+- retain the old Admin settings controllers as redirect-only compatibility adapters;
+- redirect `/admin/settings` to `/admin/system/settings` behind `system.settings.view`;
+- seed new Website admin-menu rows with the canonical settings URL;
+- repair Admission's settings-model import to use `Modules\System\Models\Setting`;
+- remove obsolete Admin settings views after their adapters render the canonical System views;
+- update directly impacted architecture and module-runtime tests.
 
-- replace browser-supplied local filenames/paths and remote Drive IDs with opaque server-issued references;
-- validate every local/remote action against the bounded server-owned backup catalog;
-- require backup and destructive-retention permissions for automation management;
-- prevent raw exception, external payload, path and persisted error text from reaching UI/status/log output;
-- bound Google Drive traversal and remove three-second remote polling;
-- stream Drive uploads instead of loading the full SQL file into PHP memory;
-- retire the legacy public Drive URL import;
-- require remote download to local storage and a separate explicit restore confirmation;
-- create database dumps through a temporary file and publish them with an atomic rename;
-- return the newly created backup descriptor directly instead of identifying it with before/after full-directory scans.
+## Ownership Contract
 
-## Security and Data Contract
+System owns all active settings behavior:
 
-### Local backup references
+| Concern | Canonical owner | Compatibility boundary |
+|---|---|---|
+| Settings Livewire screens | `Modules\System\Livewire\Settings` | Existing `Modules\Admin\Livewire\Settings` names extend the System classes |
+| Environment services | `Modules\System\Services\Env` | Existing Admin service names extend the System classes |
+| Database connection test | `Modules\System\Services\Database\DbConnectionService` | Admin class remains as an adapter |
+| Settings pages | `/admin/system/settings` and `/admin/system/settings/env` | Old controllers and `/admin/settings` redirect to canonical routes |
+| Settings model | `Modules\System\Models\Setting` | No Admin model alias is introduced |
 
-`DatabaseBackupCatalogService` owns local discovery and resolution. UI and download routes receive a deterministic 64-character HMAC reference, never a trusted filename or filesystem path. The service resolves the reference only against allowlisted `.sql`/`.zip` files in the existing private and legacy-compatible backup directories.
+The Admin layout/theme/header settings classes and views remain Admin-owned. The intentionally active `admin.theme-switcher` and `admin.header.menu-manager` components are unchanged.
 
-Public descriptors may contain:
-
-- opaque reference;
-- display filename;
-- size and modification time;
-- full-database classification.
-
-Absolute and relative paths remain service-internal. Queue jobs keep their existing filename payload for serialized-job compatibility, but resolve it through the explicit trusted internal adapter before reading a file.
-
-### Remote backup references
-
-`GoogleDriveBackupBrowserService` returns an HMAC reference bound to the Drive file ID, filename, year and month. Download and delete resolve that reference only inside the application-owned `database/YYYY/MM` namespace. A raw Drive ID is rejected before network access.
-
-Remote discovery is capped at:
-
-- 10 year folders;
-- 12 month folders per year;
-- 100 files for UI actions;
-- 1,000 files for retention.
-
-The UI does not poll the remote API. The operator explicitly refreshes the list.
-
-### Restore boundary
-
-There is no direct remote download-and-restore operation. A remote file must first pass the 500 MB download bound and SQL/full-backup validation while being imported into local backup storage. Restore is then a separate local action protected by `database.restore` and its own confirmation.
-
-The legacy public Google Drive URL importer is removed.
-
-## Permission Contract
-
-| Capability | Behavior in this phase |
-|---|---|
-| `database.backup` | Create local backups and queue an existing local SQL backup for Drive upload |
-| `database.download` | Download an opaque local reference, download a permitted remote backup to local, or queue a small local backup email |
-| `database.restore` | Upload a local SQL file and explicitly restore a validated full local backup |
-| `database.destroy` | Delete local/remote backups and authorize retention policy execution |
-| `system.env.update` | Configure OAuth and scheduling; automation save/manual run additionally require `database.backup` and `database.destroy` |
-
-No permission is added or renamed. Route middleware and server-side Livewire authorization remain authoritative; capability-aware UI only mirrors those boundaries.
-
-## Compatibility Boundary
+## Compatibility Details
 
 Preserved:
 
-- existing Google OAuth routes and names;
-- Google Drive configuration, token and settings keys;
-- `Laravel-Backup/database/YYYY/MM` folder layout;
-- `system:cloud-backup` command and scheduler registration;
-- upload and email queue job class names and serialized filename payloads;
-- existing permission names;
-- private and legacy-compatible local backup directories;
-- existing Admin route names, including the database download route.
+- nine legacy Admin Livewire class names for external/custom references;
+- six legacy Admin service class names;
+- `SettingController::index`, `SettingController::profile`, `SettingController::modules`, and `EnvConfigController::index` entry points;
+- existing production links to `/admin/settings` through a permission-protected redirect;
+- all canonical System route names, permission names, setting keys, OAuth routes and backup behavior.
 
-Intentionally retired:
+Retired:
 
-- public Google Drive URL import;
-- direct Drive download-and-restore;
-- browser-supplied local filename/path and Drive file ID actions;
-- automatic remote list polling.
+- duplicate Admin settings component logic and views;
+- duplicate Admin environment/database service logic;
+- four unused Admin settings page views;
+- the broken Admin `Placeholder` Livewire class and placeholder page. The class referenced a nonexistent component view and had no repository consumer; the corresponding System placeholder had already been retired.
 
-No migration, seeder, configuration key, ClientPortal/PWA change or business-Module change is included.
+## Data and Migration Boundary
+
+No migration, schema or stored-setting transformation is included. The historical Admin migration that creates `settings` remains in place for migration-history compatibility. Existing Header menu rows are not rewritten; their legacy URL remains functional through the redirect. A future seeder run writes the canonical URL directly.
 
 ## Files
 
 ### Added
 
 ```text
-Modules/System/Services/Database/DatabaseBackupCatalogService.php
-tests/Feature/System/SystemDriveBackupBoundaryTest.php
+tests/Feature/System/SystemSettingsOwnershipTest.php
 ```
 
 ### Updated
 
 ```text
-Modules/System/Console/CloudBackupCommand.php
-Modules/System/Http/Controllers/GoogleDriveOAuthController.php
-Modules/System/Jobs/SendDatabaseBackupEmail.php
-Modules/System/Jobs/UploadDatabaseBackupToGoogleDrive.php
-Modules/System/Livewire/Database/BackupManager.php
-Modules/System/Livewire/Database/TableList.php
-Modules/System/Livewire/Settings/StorageConfig.php
-Modules/System/Services/Cloud/CloudBackupAutomationService.php
-Modules/System/Services/Cloud/GoogleDriveBackupBrowserService.php
-Modules/System/Services/Cloud/GoogleDriveConnectionService.php
-Modules/System/Services/DatabaseService.php
-Modules/System/Services/Env/SystemGoogleDriveConfigService.php
-Modules/System/resources/views/livewire/database/backup-manager.blade.php
-Modules/System/resources/views/livewire/database/table-list.blade.php
-Modules/System/resources/views/livewire/settings/storage-automation.blade.php
-Modules/System/resources/views/livewire/settings/storage-config.blade.php
+Modules/Admin/Http/Controllers/EnvConfigController.php
+Modules/Admin/Http/Controllers/SettingController.php
+Modules/Admin/Livewire/Settings/*.php (nine compatibility adapters)
+Modules/Admin/Services/Database/DbConnectionService.php
+Modules/Admin/Services/Env/*.php (five compatibility adapters)
+Modules/Admission/Livewire/Admin/SchoolSettingsForm.php
 Modules/System/routes/web.php
-docs/GOOGLE_DRIVE_AND_SCHEDULER_REUSE_GUIDE.md
-docs/modules/System/COLLABORATION_HANDOFF.md
-tests/Feature/System/SystemBackupManagerTest.php
-tests/Feature/System/SystemGoogleDriveSchedulerTest.php
+Modules/Website/database/Seeders/HeaderSeeder.php
+tests/Feature/Modules/ModuleRuntimeStateToggleTest.php
+tests/Feature/System/CanonicalSettingsServiceTest.php
+```
+
+### Removed
+
+```text
+Modules/Admin/Livewire/Settings/Placeholder.php
+Modules/Admin/resources/views/livewire/settings/{advanced-config,database-config,env-manager,mail-config,modules-form,momo-config,setting-form,social-config,storage-config}.blade.php
+Modules/Admin/resources/views/pages/settings/{env,index,modules,placeholder}.blade.php
 ```
 
 ## Verification Gate
 
-The operator confirmed the approved impacted scope on 2026-08-29. A full-project regression was not required.
+Run only the directly impacted and current-module suites; a full-project run is not required.
 
-```text
-Pint all changed PHP files                    PASS (17 files)
-Focused backup-boundary tests                 PASS (6 tests, 78 assertions)
-System module regression                      PASS (166 tests, 924 assertions)
-Admin Feature regression                      PASS (133 tests, 1265 assertions)
-Route inspection                              PASS (3 database routes)
-Frontend production build                     PASS (Vite 7.3.6, 34 modules, 1.90s)
-Desktop UI acceptance                         PASS
-Mobile UI acceptance                          PASS
-Working tree clean                            PASS
+```bash
+./vendor/bin/pint --test \
+  Modules/Admin/Http/Controllers/EnvConfigController.php \
+  Modules/Admin/Http/Controllers/SettingController.php \
+  Modules/Admin/Livewire/Settings \
+  Modules/Admin/Services/Database/DbConnectionService.php \
+  Modules/Admin/Services/Env \
+  Modules/Admission/Livewire/Admin/SchoolSettingsForm.php \
+  Modules/System/routes/web.php \
+  Modules/Website/database/Seeders/HeaderSeeder.php \
+  tests/Feature/Modules/ModuleRuntimeStateToggleTest.php \
+  tests/Feature/System/CanonicalSettingsServiceTest.php \
+  tests/Feature/System/SystemSettingsOwnershipTest.php
+
+php artisan test \
+  tests/Feature/System/SystemSettingsOwnershipTest.php \
+  tests/Feature/System/CanonicalSettingsServiceTest.php \
+  tests/Feature/System/SystemRetiredSettingsPlaceholdersTest.php \
+  tests/Feature/Modules/ModuleRuntimeStateToggleTest.php
+
+php artisan test tests/Feature/System
+php artisan test tests/Feature/Admin
+php artisan test tests/Feature/Admission
+
+php artisan route:list --path=admin/settings
+php artisan route:list --path=admin/system/settings
+npm run build
+git status --short --branch
 ```
 
-The route inspection confirmed:
+Manual UI acceptance:
 
-```text
-GET|HEAD admin/system/database
-GET|HEAD admin/system/database/backup-restore
-GET|HEAD admin/system/database/download/{filename}
-```
-
-The operator also confirmed every manual acceptance item:
-
-1. A user without `database.backup` or `database.destroy` cannot save/run automation.
-2. Local download, restore, delete, Drive upload and email actions work with rendered opaque references; a filename/path returns 404 or a safe error.
-3. A raw Drive file ID cannot download or delete a file.
-4. Remote download creates a local backup but never restores automatically.
-5. Legacy public URL import and direct remote restore are absent.
-6. Remote list refresh is explicit and the page does not poll every three seconds.
-7. Upload failure shows only the generic safe message; logs do not contain external response bodies or raw exception text.
-8. Existing queued upload/email jobs with filename payloads still resolve a trusted local backup.
+1. Open `/admin/settings` as a settings viewer and confirm redirect to `/admin/system/settings`.
+2. Confirm a user without `system.settings.view` cannot use the legacy URL.
+3. Verify settings and environment tabs on desktop and mobile.
+4. Verify module controls still use the canonical System permission/service boundary.
+5. Confirm Admin layout/theme/header screens remain unchanged.
 
 ## Deferred Work
 
-- Consolidate broader settings ownership while retaining compatibility adapters.
+- Decide whether the long-term settings contract belongs in Shared after the current System ownership stabilizes.
 - Separate Module registry discovery from runtime mutation.
-- Improve scheduler idempotency/distributed locking and persisted health heartbeat behavior.
-- Split database operations behind smaller services beyond this catalog boundary.
+- Improve scheduler idempotency, distributed locking and persisted health heartbeat behavior.
+- Split database operations behind smaller services beyond the completed backup catalog boundary.
 - Consolidate historical System analysis documents after implementation phases settle.
 
 ## PR and Merge Gate
 
-1. **COMPLETE** — Operator pulled implementation checkpoint `481a4211387440657aa9df845daba2f1ed6c051c` and style checkpoint `11da525cdba355f4ac0a1abf41f0a2563773a159`.
-2. **COMPLETE** — Focused, System, Admin, route, build and desktop/mobile UI gates passed.
-3. **COMPLETE** — Verification results and the verified feature checkpoint are recorded in this handoff.
-4. **COMPLETE** — PR [#78](https://github.com/tungocvan/laravel-shop/pull/78) was opened for manual user review.
-5. **COMPLETE** — The user manually merged PR #78; automatic merge was not used.
-6. **COMPLETE** — Main merge checkpoint `54ff2527ff906832dbff6087d36448a26d450894` was verified.
-7. This docs-only closeout records the final merged state; no source changes are included.
+1. **COMPLETE** — Scope approved and branch created from `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`.
+2. **COMPLETE** — Ownership adapters, redirect boundary, dead-view cleanup and directly impacted tests implemented.
+3. **PENDING** — Operator pulls the implementation checkpoint and runs the approved gates.
+4. **PENDING** — Verification results and verified checkpoint are recorded here.
+5. **PENDING** — PR is opened for manual user review; automatic merge is not used.
+6. **PENDING** — User manually merges after approval.

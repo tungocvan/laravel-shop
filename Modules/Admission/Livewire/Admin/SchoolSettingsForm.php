@@ -5,8 +5,8 @@ namespace Modules\Admission\Livewire\Admin;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Admin\Models\Setting;
 use Modules\Admission\Services\SchoolSettingService;
+use Modules\System\Models\Setting;
 
 class SchoolSettingsForm extends Component
 {

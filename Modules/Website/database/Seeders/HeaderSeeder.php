@@ -118,7 +118,7 @@ class HeaderSeeder extends Seeder
         HeaderMenuItem::create([
             'header_menu_id' => $menuId,
             'title' => 'Cài đặt',
-            'url' => '/admin/settings',
+            'url' => '/admin/system/settings',
             'sort_order' => 2,
             'is_active' => true,
         ]);

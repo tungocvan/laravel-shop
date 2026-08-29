@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Mockery;
-use Modules\Admin\Livewire\Settings\ModulesForm;
+use Modules\System\Services\SystemModuleControlService;
 use Tests\TestCase;
 
 class ModuleRuntimeStateToggleTest extends TestCase
@@ -84,10 +84,6 @@ class ModuleRuntimeStateToggleTest extends TestCase
             ->once()
             ->with($module)
             ->andReturn(['migrated' => false]);
-        $lifecycle->shouldReceive('databaseStatus')
-            ->once()
-            ->andReturn(['tables' => [], 'missing_tables' => [], 'ready' => true]);
-        app()->instance(ModuleLifecycleManager::class, $lifecycle);
 
         $permissions = Mockery::mock(ModulePermissionManager::class);
         $permissions->shouldReceive('sync')
@@ -100,11 +96,10 @@ class ModuleRuntimeStateToggleTest extends TestCase
             ->once()
             ->with('Fixture', true);
 
-        $component = new ModulesForm();
-        $component->modules = [$module];
+        $service = new SystemModuleControlService($lifecycle, $permissions, $states);
 
         try {
-            $component->toggleModule('Fixture', $lifecycle, $permissions, $states);
+            $service->toggle('Fixture');
 
             $this->assertTrue(config('modules.registry.Fixture.enabled'));
             $this->assertSame($manifestBefore, File::get($manifestPath));

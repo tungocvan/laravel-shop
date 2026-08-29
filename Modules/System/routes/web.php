@@ -9,6 +9,10 @@ use Modules\System\Http\Controllers\SystemController;
 use Modules\System\Http\Controllers\SystemDashboardController;
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::redirect('/settings', '/admin/system/settings')
+        ->middleware('permission:system.settings.view,admin')
+        ->name('system.settings.legacy');
+
     Route::prefix('/system')->name('system.')->group(function () {
         Route::get('/dashboard', SystemDashboardController::class)
             ->middleware('permission:system.manage,admin')

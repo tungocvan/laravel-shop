@@ -1,15 +1,12 @@
 <?php
+
 namespace Modules\Admin\Livewire\Settings;
 
-use Livewire\Component;
-use Modules\Admin\Services\Env\EnvManagerService;
-use Illuminate\Support\Facades\Http;
+use Modules\System\Livewire\Settings\StorageConfig as SystemStorageConfig;
 
-class StorageConfig extends Component
+/**
+ * @deprecated Use {@see SystemStorageConfig}.
+ */
+class StorageConfig extends SystemStorageConfig
 {
-   
-    public function render()
-    {
-        return view('Admin::livewire.settings.storage-config');
-    }
 }

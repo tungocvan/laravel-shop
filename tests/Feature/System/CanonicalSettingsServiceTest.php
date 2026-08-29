@@ -125,13 +125,17 @@ class CanonicalSettingsServiceTest extends TestCase
         foreach ([
             'Modules/Admin/Support/ThemeManager.php',
             'Modules/Admin/Support/AdminLayoutManager.php',
-            'Modules/Admin/Livewire/Settings/SettingForm.php',
             'app/Services/RealtimeManager.php',
         ] as $file) {
             $contents = file_get_contents(base_path($file));
             $this->assertStringContainsString('Modules\\System\\Models\\Setting', $contents, $file);
             $this->assertStringNotContainsString('Modules\\Admin\\Models\\Setting', $contents, $file);
         }
+
+        $this->assertTrue(is_subclass_of(
+            \Modules\Admin\Livewire\Settings\SettingForm::class,
+            \Modules\System\Livewire\Settings\SettingForm::class,
+        ));
 
         $adminHome = file_get_contents(base_path('Modules/Admin/resources/views/pages/home/index.blade.php'));
         $this->assertStringContainsString("@livewire('website.admin.home.home-settings')", $adminHome);
