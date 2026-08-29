@@ -13,13 +13,21 @@ class Create extends Component
     use AuthorizesPharmaActions;
 
     public string $sheetName = 'TỔNG HỢP';
+
     public string $search = '';
+
     public array $selectedRows = [];
+
     public bool $selectAllFiltered = false;
+
     public string $columns = 'A:X';
+
     public string $recipient = 'QUÝ KHÁCH HÀNG';
+
     public string $signatureDate = '';
+
     public string $signatureTitle = 'GIÁM ĐỐC CÔNG TY';
+
     public array $analysis = [];
 
     protected PriceListService $service;
