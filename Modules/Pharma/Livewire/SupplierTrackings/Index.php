@@ -4,23 +4,26 @@ namespace Modules\Pharma\Livewire\SupplierTrackings;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\SupplierTrackingService;
 
 class Index extends Component
 {
+    use AuthorizesPharmaActions;
     use WithPagination;
 
     public string $search = '';
-
     public string $status = '';
-
     public int $perPage = 15;
-
     public array $selected = [];
-
     public bool $selectAll = false;
 
     protected string $paginationTheme = 'tailwind';
+
+    public function mount(): void
+    {
+        $this->authorizePharmaView();
+    }
 
     public function updatedSearch(): void
     {
@@ -56,34 +59,30 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset([
-            'search',
-            'status',
-        ]);
-
+        $this->reset(['search', 'status']);
         $this->perPage = 15;
-
         $this->resetPage();
         $this->resetSelection();
     }
 
     public function delete(int $id, SupplierTrackingService $service): void
     {
+        $this->authorizePharmaDelete();
+
         try {
             $service->delete($id);
-
             $this->resetSelection();
-
             session()->flash('success', 'Đã xóa dữ liệu theo dõi nhà cung cấp.');
         } catch (\Throwable $e) {
             report($e);
-
             session()->flash('error', 'Không thể xóa dữ liệu. Vui lòng thử lại.');
         }
     }
 
     public function deleteSelected(SupplierTrackingService $service): void
     {
+        $this->authorizePharmaDelete();
+
         if (empty($this->selected)) {
             session()->flash('error', 'Vui lòng chọn ít nhất một dòng cần xóa.');
 
@@ -92,13 +91,10 @@ class Index extends Component
 
         try {
             $service->deleteMany($this->selected);
-
             $this->resetSelection();
-
             session()->flash('success', 'Đã xóa các dòng đã chọn.');
         } catch (\Throwable $e) {
             report($e);
-
             session()->flash('error', 'Không thể xóa các dòng đã chọn. Vui lòng thử lại.');
         }
     }
@@ -115,20 +111,12 @@ class Index extends Component
 
     public function money($value): string
     {
-        if ($value === null || $value === '') {
-            return '0';
-        }
-
-        return number_format((float) $value, 0, ',', '.');
+        return ($value === null || $value === '') ? '0' : number_format((float) $value, 0, ',', '.');
     }
 
     public function percent($value): string
     {
-        if ($value === null || $value === '') {
-            return '0%';
-        }
-
-        return number_format((float) $value, 2, ',', '.').'%';
+        return ($value === null || $value === '') ? '0%' : number_format((float) $value, 2, ',', '.').'%';
     }
 
     private function filters(): array
@@ -148,10 +136,7 @@ class Index extends Component
     public function render(SupplierTrackingService $service)
     {
         return view('Pharma::livewire.supplier-trackings.index', [
-            'items' => $service->paginate(
-                filters: $this->filters(),
-                perPage: $this->perPage
-            ),
+            'items' => $service->paginate(filters: $this->filters(), perPage: $this->perPage),
             'statuses' => $this->statuses(),
         ]);
     }
