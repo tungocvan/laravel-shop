@@ -60,10 +60,15 @@ class SystemSeoSettingsTest extends TestCase
         $this->assertStringNotContainsString("'header_script' => \$header", $source);
     }
 
-    public function test_website_public_layout_still_marks_header_script_as_trusted_raw_configuration(): void
+    public function test_website_runtime_head_still_marks_header_script_as_trusted_raw_configuration(): void
     {
         $layout = file_get_contents(base_path('Modules/Website/resources/views/layouts/frontend.blade.php'));
-        $this->assertStringContainsString('{!! $headerScript !!}', $layout);
-        $this->assertStringContainsString('Privileged trusted configuration', $layout);
+        $runtimeHead = file_get_contents(base_path('Modules/Website/resources/views/partials/layout/runtime-head.blade.php'));
+
+        $this->assertIsString($layout);
+        $this->assertIsString($runtimeHead);
+        $this->assertStringContainsString("@include('Website::partials.layout.runtime-head')", $layout);
+        $this->assertStringContainsString('{!! $headerScript !!}', $runtimeHead);
+        $this->assertStringContainsString('Privileged trusted configuration', $runtimeHead);
     }
 }

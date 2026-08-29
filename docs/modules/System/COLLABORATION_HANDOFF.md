@@ -133,7 +133,16 @@ Modules/System/resources/views/pages/settings/artisan.blade.php
 Modules/System/resources/views/pages/settings/scripts.blade.php
 Modules/System/resources/views/pages/database.blade.php
 Modules/System/resources/views/pages/database-backup-restore.blade.php
+tests/Feature/System/ComposeHealthcheckContractTest.php
+tests/Feature/System/SystemSeoSettingsTest.php
 ```
+
+The two existing contract tests above were corrected test-only after the first System regression run exposed baseline drift already present at the source checkpoint:
+
+- the Compose contract now expects `$$c`, which is the required Compose escape that becomes `$c` inside the container shell;
+- the SEO contract verifies both the parent include and the trusted raw header-script marker in the extracted `runtime-head` partial.
+
+Neither correction changes production behavior or broadens the Dashboard data contract.
 
 ## Verification Gate
 
