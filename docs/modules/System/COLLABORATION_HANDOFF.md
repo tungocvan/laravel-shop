@@ -6,11 +6,12 @@
 - Feature: P0 Google Drive and database-backup boundary hardening
 - Delivery branch: `fix/system-drive-backup-boundaries`
 - Base/source checkpoint: `main@d1c080e6a3e90478bde3830c9760686307af1835`
-- Implementation status: **IMPLEMENTED LOCALLY — AWAITING OPERATOR VERIFICATION**
+- Verified feature checkpoint: `11da525cdba355f4ac0a1abf41f0a2563773a159`
+- Implementation status: **VERIFIED — READY FOR PR**
 - Pull request: not opened
 - Merge status: not merged
 
-This PR is the first deferred refactor phase after the read-only System Dashboard. The Dashboard feature was completed in PR #76 and remains outside this branch.
+This PR is the first deferred refactor phase after the read-only System Dashboard. The Dashboard feature was completed in PR #76 and remains outside this branch. The operator confirmed all approved automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29.
 
 ## Approved Scope
 
@@ -132,38 +133,29 @@ tests/Feature/System/SystemGoogleDriveSchedulerTest.php
 
 ## Verification Gate
 
-The operator should run only the approved impacted scope; a full-project regression is not required.
+The operator confirmed the approved impacted scope on 2026-08-29. A full-project regression was not required.
 
-```bash
-./vendor/bin/pint --test \
-  Modules/System/Console/CloudBackupCommand.php \
-  Modules/System/Http/Controllers/GoogleDriveOAuthController.php \
-  Modules/System/Jobs/SendDatabaseBackupEmail.php \
-  Modules/System/Jobs/UploadDatabaseBackupToGoogleDrive.php \
-  Modules/System/Livewire/Database/BackupManager.php \
-  Modules/System/Livewire/Database/TableList.php \
-  Modules/System/Livewire/Settings/StorageConfig.php \
-  Modules/System/Services/Cloud/CloudBackupAutomationService.php \
-  Modules/System/Services/Cloud/GoogleDriveBackupBrowserService.php \
-  Modules/System/Services/Cloud/GoogleDriveConnectionService.php \
-  Modules/System/Services/Database/DatabaseBackupCatalogService.php \
-  Modules/System/Services/DatabaseService.php \
-  Modules/System/Services/Env/SystemGoogleDriveConfigService.php \
-  tests/Feature/System/SystemBackupManagerTest.php \
-  tests/Feature/System/SystemDriveBackupBoundaryTest.php \
-  tests/Feature/System/SystemGoogleDriveSchedulerTest.php
-
-php artisan test \
-  tests/Feature/System/SystemBackupManagerTest.php \
-  tests/Feature/System/SystemDriveBackupBoundaryTest.php \
-  tests/Feature/System/SystemGoogleDriveSchedulerTest.php
-
-php artisan test tests/Feature/System
-php artisan route:list --path=admin/system/database
-npm run build
+```text
+Pint all changed PHP files                    PASS (17 files)
+Focused backup-boundary tests                 PASS (6 tests, 78 assertions)
+System module regression                      PASS (166 tests, 924 assertions)
+Admin Feature regression                      PASS (133 tests, 1265 assertions)
+Route inspection                              PASS (3 database routes)
+Frontend production build                     PASS (Vite 7.3.6, 34 modules, 1.90s)
+Desktop UI acceptance                         PASS
+Mobile UI acceptance                          PASS
+Working tree clean                            PASS
 ```
 
-Manual acceptance:
+The route inspection confirmed:
+
+```text
+GET|HEAD admin/system/database
+GET|HEAD admin/system/database/backup-restore
+GET|HEAD admin/system/database/download/{filename}
+```
+
+The operator also confirmed every manual acceptance item:
 
 1. A user without `database.backup` or `database.destroy` cannot save/run automation.
 2. Local download, restore, delete, Drive upload and email actions work with rendered opaque references; a filename/path returns 404 or a safe error.
@@ -173,8 +165,6 @@ Manual acceptance:
 6. Remote list refresh is explicit and the page does not poll every three seconds.
 7. Upload failure shows only the generic safe message; logs do not contain external response bodies or raw exception text.
 8. Existing queued upload/email jobs with filename payloads still resolve a trusted local backup.
-
-Record the verified commit, test totals and desktop/mobile acceptance here before opening the PR.
 
 ## Deferred Work
 
@@ -186,8 +176,9 @@ Record the verified commit, test totals and desktop/mobile acceptance here befor
 
 ## PR and Merge Gate
 
-1. Operator pulls the implementation commit and runs the focused, System and UI/build gates above.
-2. Verification results and the verified checkpoint are recorded in this handoff.
-3. A PR is opened for manual user review.
-4. The user merges manually; no automatic merge is allowed.
-5. Post-merge closeout records the `main` checkpoint if requested.
+1. **COMPLETE** — Operator pulled implementation checkpoint `481a4211387440657aa9df845daba2f1ed6c051c` and style checkpoint `11da525cdba355f4ac0a1abf41f0a2563773a159`.
+2. **COMPLETE** — Focused, System, Admin, route, build and desktop/mobile UI gates passed.
+3. **COMPLETE** — Verification results and the verified feature checkpoint are recorded in this handoff.
+4. **NEXT** — Open a PR for manual user review.
+5. The user merges manually; no automatic merge is allowed.
+6. Post-merge closeout records the `main` checkpoint if requested.
