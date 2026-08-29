@@ -8,8 +8,8 @@
 - Base/source checkpoint: `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`
 - Implementation checkpoint: `b82670ab7a6935b2d1cf4421b8af9032b5eb5d61`
 - Verified feature checkpoint: `eacf009f91c2ca932058afe4fcf613a7919ef89c`
-- Implementation status: **COMPLETE — VERIFIED, PR PENDING**
-- Pull request: pending creation
+- Implementation status: **COMPLETE — VERIFIED, READY FOR MANUAL MERGE**
+- Pull request: [#80 — refactor(system): consolidate settings ownership](https://github.com/tungocvan/laravel-shop/pull/80) — **OPEN**
 
 This phase consolidates settings behavior under `Modules\System` without breaking the established Admin PHP class names or the historical `/admin/settings` URL. It follows the merged Google Drive/database-backup boundary phase and does not change database schemas, setting keys, permissions, or canonical System routes.
 
@@ -130,5 +130,5 @@ GET|HEAD admin/system/settings/env
 2. **COMPLETE** — Ownership adapters, redirect boundary, dead-view cleanup and directly impacted tests implemented.
 3. **COMPLETE** — Operator pulled the implementation/style checkpoints and ran the approved gates.
 4. **COMPLETE** — Pint, focused/System/Admin/Admission, routes, build, desktop/mobile UI and clean-tree gates passed.
-5. **PENDING** — PR is opened for manual user review; automatic merge is not used.
+5. **COMPLETE** — PR [#80](https://github.com/tungocvan/laravel-shop/pull/80) is open and mergeable for manual user review; automatic merge is not used.
 6. **PENDING** — User manually merges after approval.
