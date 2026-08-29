@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\System;
 
+use App\Modules\ModuleCatalog;
+use App\Modules\ModuleGraphValidator;
 use App\Modules\ModuleLifecycleManager;
 use App\Modules\ModulePermissionManager;
+use App\Modules\ModuleRegistry;
 use App\Modules\ModuleStateRepository;
 use Illuminate\Support\Facades\File;
 use Modules\System\Services\SystemModuleControlService;
@@ -59,8 +62,14 @@ PHP);
         $lifecycle->shouldReceive('migrateIfNeeded')->once()->andReturn(['migrated' => false]);
         $permissions->shouldReceive('sync')->once()->andReturn(0);
         $states->shouldReceive('set')->once()->with('Demo', true);
+        $catalog = $this->mock(ModuleCatalog::class);
+        $catalog->shouldReceive('discover')
+            ->once()
+            ->andReturnUsing(fn () => collect(config('modules.registry', []))->values());
+        $validator = new ModuleGraphValidator;
+        $registry = new ModuleRegistry($catalog, $validator);
 
-        (new SystemModuleControlService($lifecycle, $permissions, $states))->toggle('Demo', 1);
+        (new SystemModuleControlService($registry, $validator, $lifecycle, $permissions, $states))->toggle('Demo', 1);
 
         $this->assertSame($before, File::get($manifestPath));
         $this->assertFalse((bool) ((require $manifestPath)['enabled'] ?? true));

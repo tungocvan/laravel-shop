@@ -3,137 +3,128 @@
 ## Current Status
 
 - Module: `System`
-- Feature: System settings ownership and Admin compatibility adapters
-- Delivery branch: `refactor/system-settings-ownership-adapters`
-- Closeout branch: `docs/system-settings-ownership-closeout`
-- Base/source checkpoint: `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`
-- Implementation checkpoint: `b82670ab7a6935b2d1cf4421b8af9032b5eb5d61`
-- Verified feature checkpoint: `eacf009f91c2ca932058afe4fcf613a7919ef89c`
-- Feature branch head: `5f63042ed6bc5b1c4aeb247426540d77e871cf72`
-- Main merge checkpoint: `df4a37f2afcf52543593355b619bba669b5a8229`
-- Implementation status: **COMPLETE — MERGED TO MAIN**
-- Pull request: [#80 — refactor(system): consolidate settings ownership](https://github.com/tungocvan/laravel-shop/pull/80) — **MERGED**
-- Merged at: **2026-08-29 08:44:41 UTC**
+- Feature: Module Catalog & Runtime Boundaries — Phase A
+- Delivery branch: `refactor/system-module-catalog-runtime-boundaries`
+- Base/source checkpoint: `main@62eb2e76126f92842a906ffb58fa0deb076c26d5`
+- Implementation status: **IMPLEMENTED — AWAITING OPERATOR VERIFICATION**
+- Pull request: **NOT OPENED**
 
-This phase consolidated settings behavior under `Modules\System` without breaking the established Admin PHP class names or the historical `/admin/settings` URL. The operator confirmed every approved automated and UI gate before manually merging PR #80. This docs-only closeout records the stable main checkpoint; no source behavior is changed here.
+This phase separates filesystem catalog discovery, graph validation and current-request registry projection without changing the established `config('modules.registry')` consumer contract. Module runtime state remains an atomic file-backed override, manifests remain immutable at runtime, and the root provider keeps its existing registration behavior and boot order.
 
 ## Approved Scope
 
-- replace duplicate Admin settings Livewire implementations with thin deprecated adapters that extend their System counterparts;
-- replace duplicate Admin environment/database services with thin deprecated adapters that extend System services;
-- retain the old Admin settings controllers as redirect-only compatibility adapters;
-- redirect `/admin/settings` to `/admin/system/settings` behind `system.settings.view`;
-- seed new Website admin-menu rows with the canonical settings URL;
-- repair Admission's settings-model import to use `Modules\System\Models\Setting`;
-- remove obsolete Admin settings views after their adapters render the canonical System views;
-- update directly impacted architecture and module-runtime tests.
+- introduce one read-only `ModuleCatalog` for filesystem discovery, manifest normalization and runtime-state resolution;
+- introduce one pure `ModuleGraphValidator` for boot and runtime transition rules;
+- introduce `ModuleRegistry` as the compatible current-request projection boundary;
+- reduce the root `ModuleServiceProvider` to catalog/validation/projection orchestration plus enabled-module registration;
+- make `ModulePermissionManager` consume canonical catalog descriptors instead of independently scanning module directories;
+- make System module control preflight against a fresh catalog and publish through `ModuleRegistry` after persistence;
+- extract module overview rows and realtime mutation into dedicated System services;
+- retire browser-driven module source archival and its `Gỡ` action;
+- migrate directly affected Request, Ebook, System and module-runtime tests from private provider discovery/graph methods to public contracts.
 
-## Ownership Contract
+## Runtime Ownership Contract
 
-System owns all active settings behavior:
-
-| Concern | Canonical owner | Compatibility boundary |
+| Concern | Canonical owner | Contract |
 |---|---|---|
-| Settings Livewire screens | `Modules\System\Livewire\Settings` | Existing `Modules\Admin\Livewire\Settings` names extend the System classes |
-| Environment services | `Modules\System\Services\Env` | Existing Admin service names extend the System classes |
-| Database connection test | `Modules\System\Services\Database\DbConnectionService` | Admin class remains as an adapter |
-| Settings pages | `/admin/system/settings` and `/admin/system/settings/env` | Old controllers and `/admin/settings` redirect to canonical routes |
-| Settings model | `Modules\System\Models\Setting` | No Admin model alias is introduced |
+| Filesystem discovery and manifest normalization | `App\Modules\ModuleCatalog` | Read-only descriptors; directory name remains the canonical module name |
+| Runtime enabled-state resolution | `ModuleCatalog` + `ModuleStateResolver` | Runtime override wins over manifest default; shell modules remain enabled |
+| Dependency rules | `App\Modules\ModuleGraphValidator` | Required, missing, disabled, self and circular dependency rules share one implementation |
+| Current-request registry | `App\Modules\ModuleRegistry` | Publishes the existing seven-field `config('modules.registry')` shape |
+| Boot registration | `Modules\ModuleServiceProvider` | Registers only enabled modules in the existing type/name order |
+| Runtime mutation | `Modules\System\Services\SystemModuleControlService` | Fresh preflight, migration/permission sync, atomic state persistence, then registry refresh |
+| System module overview | `SystemModuleOverviewService` | Builds dependency and database-health rows for the existing Livewire screen |
+| Realtime mutation | `SystemRealtimeControlService` | No longer coupled to module lifecycle control |
 
-The Admin layout/theme/header settings classes and views remain Admin-owned. The intentionally active `admin.theme-switcher` and `admin.header.menu-manager` components are unchanged.
+## Preserved Boundaries
 
-## Compatibility Details
+- no migration, schema, setting-key, permission-name or stored-data change;
+- no module manifest mutation;
+- no change to `storage/app/system/module-state.json` schema or locking behavior;
+- no change to the public registry keys: `name`, `type`, `enabled`, `required`, `depends`, `path`, `source`;
+- no change to module type fallback, required-shell behavior, existing type/name boot order, provider/config/route/resource registration or Super Admin gate;
+- no route-name or URL change for `/admin/system/modules` and the historical settings component alias;
+- no package addition.
 
-Preserved:
+## Retired Boundary
 
-- nine legacy Admin Livewire class names for external/custom references;
-- six legacy Admin service class names;
-- `SettingController::index`, `SettingController::profile`, `SettingController::modules`, and `EnvConfigController::index` entry points;
-- existing production links to `/admin/settings` through a permission-protected redirect;
-- all canonical System route names, permission names, setting keys, OAuth routes and backup behavior.
-
-Retired:
-
-- duplicate Admin settings component logic and views;
-- duplicate Admin environment/database service logic;
-- four unused Admin settings page views;
-- the broken Admin `Placeholder` Livewire class and placeholder page. The class referenced a nonexistent component view and had no repository consumer; the corresponding System placeholder had already been retired.
-
-## Data and Migration Boundary
-
-No migration, schema or stored-setting transformation is included. The historical Admin migration that creates `settings` remains in place for migration-history compatibility. Existing Header menu rows are not rewritten; their legacy URL remains functional through the redirect. A future seeder run writes the canonical URL directly.
+The browser no longer moves `Modules/<Module>` into `storage/app/module-trash`. The Livewire `deleteModule` action, the control/lifecycle `archive` methods and the `Gỡ` button were removed. Adding or removing tracked module source must use a reviewed deployment workflow rather than a browser permission that dirties the production Git worktree.
 
 ## Files
 
 ### Added
 
 ```text
-tests/Feature/System/SystemSettingsOwnershipTest.php
+app/Modules/ModuleCatalog.php
+app/Modules/ModuleGraphValidator.php
+app/Modules/ModuleRegistry.php
+Modules/System/Services/SystemModuleOverviewService.php
+Modules/System/Services/SystemRealtimeControlService.php
+tests/Feature/System/ModuleCatalogRegistryTest.php
+tests/Feature/System/ModuleGraphValidatorTest.php
 ```
 
 ### Updated
 
 ```text
-Modules/Admin/Http/Controllers/EnvConfigController.php
-Modules/Admin/Http/Controllers/SettingController.php
-Modules/Admin/Livewire/Settings/*.php (nine compatibility adapters)
-Modules/Admin/Services/Database/DbConnectionService.php
-Modules/Admin/Services/Env/*.php (five compatibility adapters)
-Modules/Admission/Livewire/Admin/SchoolSettingsForm.php
-Modules/System/routes/web.php
-Modules/Website/database/Seeders/HeaderSeeder.php
+Modules/ModuleServiceProvider.php
+app/Modules/ModuleLifecycleManager.php
+app/Modules/ModulePermissionManager.php
+Modules/System/Livewire/Settings/ModulesForm.php
+Modules/System/Services/SystemModuleControlService.php
+Modules/System/resources/views/livewire/settings/modules-form.blade.php
+tests/Feature/Ebook/EbookBootstrapTest.php
 tests/Feature/Modules/ModuleRuntimeStateToggleTest.php
-tests/Feature/System/CanonicalSettingsServiceTest.php
-```
-
-### Removed
-
-```text
-Modules/Admin/Livewire/Settings/Placeholder.php
-Modules/Admin/resources/views/livewire/settings/{advanced-config,database-config,env-manager,mail-config,modules-form,momo-config,setting-form,social-config,storage-config}.blade.php
-Modules/Admin/resources/views/pages/settings/{env,index,modules,placeholder}.blade.php
+tests/Feature/Request/Architecture/RequestBootstrapTest.php
+tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
+tests/Feature/System/SystemModuleRuntimeControlTest.php
+tests/Feature/System/SystemModuleRuntimeGitCleanTest.php
+tests/Feature/System/SystemModuleRuntimeLifecycleTest.php
+tests/Feature/System/SystemModulesControlTest.php
 ```
 
 ## Verification Gate
 
-The operator confirmed the approved impacted scope at verified feature checkpoint `eacf009f91c2ca932058afe4fcf613a7919ef89c`. A full-project regression was not required.
+Completed locally:
 
 ```text
-Pint changed PHP files                    PASS (23 files)
-Focused ownership/runtime tests           PASS (17 tests, 117 assertions)
-System Feature regression                 PASS (48 tests, 254 assertions)
-Admin Feature regression                  PASS (133 tests, 1265 assertions)
-Admission Feature regression              PASS (48 tests, 254 assertions)
-Legacy and canonical route inspection     PASS
-Frontend production build                 PASS (Vite 7.3.6, 34 modules, 2.20s)
-Desktop/mobile UI acceptance              PASS
-Working tree clean                        PASS
+PHP syntax parse for changed/new PHP files    PASS
+Pint 1.30.5 changed/new PHP files             PASS
+git diff --check                              PASS
 ```
 
-The route inspection confirmed the permission-protected legacy redirect and all canonical settings routes:
+Pending operator verification in the application environment:
 
 ```text
-ANY      admin/settings
-GET|HEAD admin/system/settings
-GET|HEAD admin/system/settings/cloud/google/callback
-GET|HEAD admin/system/settings/cloud/google/connect
-GET|HEAD admin/system/settings/env
+Focused catalog/graph/registry/state/control tests
+System Feature regression
+Role Feature regression
+Request architecture/authorization/module-state regression
+Ebook bootstrap regression
+Admission permission-catalog regression
+ClientPortal and ClientApps registry-consumer regression
+Admin Feature regression
+System module route inspection
+Frontend production build
+Desktop/mobile System Modules UI acceptance
+Toggle round-trip with manifest and Git worktree unchanged
 ```
+
+A full-project regression is outside the approved gate.
 
 ## Deferred Work
 
-- Decide whether the long-term settings contract belongs in Shared after the current System ownership stabilizes.
-- Separate Module registry discovery from runtime mutation.
-- Improve scheduler idempotency, distributed locking and persisted health heartbeat behavior.
-- Split database operations behind smaller services beyond the completed backup catalog boundary.
-- Consolidate historical System analysis documents after implementation phases settle.
+- Dependency-topological boot ordering. Phase A intentionally preserves the established type/name order across all modules.
+- Splitting the existing module screen into separate Livewire child components. This is a Phase B decision after Phase A stabilizes.
+- Cross-module/distributed locking for concurrent dependency transitions.
+- Consolidating other permission-domain filesystem scans that are not part of root module discovery.
+- Scheduler idempotency, distributed locks and persisted health heartbeat improvements.
 
 ## PR and Merge Gate
 
-1. **COMPLETE** — Scope approved and branch created from `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`.
-2. **COMPLETE** — Ownership adapters, redirect boundary, dead-view cleanup and directly impacted tests implemented.
-3. **COMPLETE** — Operator pulled the implementation/style checkpoints and ran the approved gates.
-4. **COMPLETE** — Pint, focused/System/Admin/Admission, routes, build, desktop/mobile UI and clean-tree gates passed.
-5. **COMPLETE** — PR [#80](https://github.com/tungocvan/laravel-shop/pull/80) was opened for manual user review; automatic merge was not used.
-6. **COMPLETE** — User manually merged PR #80; main checkpoint `df4a37f2afcf52543593355b619bba669b5a8229` was verified.
-7. This docs-only closeout records the final merged state; no source changes are included.
+1. **COMPLETE** — Scope approved and branch created from `main@62eb2e76126f92842a906ffb58fa0deb076c26d5`.
+2. **COMPLETE** — Catalog, validator, registry, System adapters, archive retirement and directly affected tests implemented.
+3. **COMPLETE** — Local syntax, Pint and whitespace gates passed.
+4. **PENDING** — Operator pulls the branch and runs the approved focused/regression/build/UI gates.
+5. **PENDING** — A PR is opened only after the operator reports the required gates.
+6. **PENDING** — User performs manual review and merge; automatic merge is not authorized.

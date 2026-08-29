@@ -10,6 +10,10 @@ use Spatie\Permission\PermissionRegistrar;
 
 class ModulePermissionManager
 {
+    public function __construct(
+        private readonly ModuleCatalog $catalog,
+    ) {}
+
     public function sync(array $module): int
     {
         $permissionsByGuard = $this->permissionsByGuardFromPath($module['path']);
@@ -46,26 +50,23 @@ class ModulePermissionManager
     public function discoverModules(): array
     {
         $registry = collect(config('modules.registry', []));
-        $directories = collect(File::directories(base_path('Modules')))
-            ->map(fn (string $path): array => ['name' => basename($path), 'path' => $path])
+        $modules = $this->catalog->discover()
             ->sortBy(fn (array $module): string => strtolower($module['name']))
             ->values();
 
-        return $directories->map(function (array $module) use ($registry): array {
+        return $modules->map(function (array $module) use ($registry): array {
             $registryKey = $registry->keys()->first(fn (string $name): bool => strcasecmp($name, $module['name']) === 0);
             $registered = $registryKey !== null;
             $registryModule = $registered ? (array) $registry->get($registryKey) : [];
-            $manifest = $this->manifestPath($module['path']);
-            $permissions = $manifest ? $this->permissionsFromPath($module['path']) : [];
-            $manifestConfig = $manifest ? (array) require $manifest : [];
-            $permissionsRequired = $manifest !== null
-                ? (bool) ($manifestConfig['permissions_required'] ?? true)
-                : true;
+            $permissions = $module['manifest_exists']
+                ? ($this->permissionsByGuardFromManifest($module['manifest'])['admin'] ?? [])
+                : [];
+            $permissionsRequired = $module['permissions_required'];
 
             $status = 'ok';
             if (! $registered) {
                 $status = 'missing_registry';
-            } elseif ($manifest === null) {
+            } elseif (! $module['manifest_exists']) {
                 $status = 'missing_manifest';
             } elseif (! $permissionsRequired) {
                 $status = 'no_permission_required';
@@ -78,8 +79,8 @@ class ModulePermissionManager
                 'path' => $module['path'],
                 'registered' => $registered,
                 'registry_enabled' => $registered ? (bool) ($registryModule['enabled'] ?? false) : false,
-                'manifest' => $manifest !== null,
-                'manifest_enabled' => $manifest !== null ? (bool) ($manifestConfig['enabled'] ?? false) : false,
+                'manifest' => $module['manifest_exists'],
+                'manifest_enabled' => $module['manifest_exists'] ? $module['default_enabled'] : false,
                 'permissions_required' => $permissionsRequired,
                 'permission_count' => count($permissions),
                 'permissions' => $permissions,
@@ -194,6 +195,12 @@ class ModulePermissionManager
         }
 
         $config = require $manifest;
+
+        return is_array($config) ? $this->permissionsByGuardFromManifest($config) : [];
+    }
+
+    private function permissionsByGuardFromManifest(array $config): array
+    {
         $permissionsByGuard = [
             'admin' => $this->normalizePermissions($config['permissions'] ?? []),
         ];

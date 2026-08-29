@@ -2,11 +2,10 @@
 
 namespace Tests\Feature\System;
 
+use App\Modules\ModuleCatalog;
 use App\Modules\ModuleStateRepository;
 use Illuminate\Support\Facades\File;
 use Mockery;
-use Modules\ModuleServiceProvider;
-use ReflectionMethod;
 use Tests\TestCase;
 
 class ModuleBootstrapRuntimeStateTest extends TestCase
@@ -86,11 +85,7 @@ class ModuleBootstrapRuntimeStateTest extends TestCase
 
     private function resolveManifest(string $modulePath): array
     {
-        $provider = new ModuleServiceProvider($this->app);
-        $method = new ReflectionMethod($provider, 'resolveModuleManifest');
-        $method->setAccessible(true);
-
-        return $method->invoke($provider, $modulePath);
+        return $this->app->make(ModuleCatalog::class)->resolve($modulePath);
     }
 
     private function writeModule(string $name, array $manifest): string

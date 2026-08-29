@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Request\Architecture;
 
+use App\Modules\ModuleCatalog;
+use App\Modules\ModuleGraphValidator;
 use App\Modules\ModuleStateRepository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -21,7 +23,7 @@ class RequestBootstrapTest extends TestCase
         $this->app->instance(ModuleStateRepository::class, $states);
 
         $provider = new ModuleServiceProvider($this->app);
-        $module = $this->invoke($provider, 'resolveModuleManifest', [base_path('Modules/Request')]);
+        $module = $this->app->make(ModuleCatalog::class)->resolve(base_path('Modules/Request'));
 
         $this->invoke($provider, 'registerModule', [$module]);
         $this->invoke($provider, 'registerModule', [$module]);
@@ -80,12 +82,12 @@ class RequestBootstrapTest extends TestCase
 
     public function test_enabled_module_fails_safely_for_missing_or_disabled_dependencies(): void
     {
-        $provider = new ModuleServiceProvider($this->app);
+        $validator = $this->app->make(ModuleGraphValidator::class);
 
         foreach (['missing', 'disabled'] as $case) {
             try {
                 $modules = $this->dependencyFixture($case);
-                $this->invoke($provider, 'validateModuleGraph', [$modules]);
+                $validator->validate($modules);
                 $this->fail("The {$case} dependency case must fail.");
             } catch (LogicException $exception) {
                 $this->assertStringContainsString($case === 'missing' ? 'missing module' : 'disabled module', $exception->getMessage());

@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\System;
 
+use App\Modules\ModuleCatalog;
+use App\Modules\ModuleGraphValidator;
 use App\Modules\ModuleLifecycleManager;
 use App\Modules\ModulePermissionManager;
+use App\Modules\ModuleRegistry;
 use App\Modules\ModuleStateRepository;
 use LogicException;
 use Modules\System\Services\SystemModuleControlService;
@@ -24,7 +27,7 @@ class SystemModuleRuntimeControlTest extends TestCase
         $permissions->shouldReceive('sync')->once()->andReturn(3);
         $states->shouldReceive('set')->once()->with('Demo', true);
 
-        $result = (new SystemModuleControlService($lifecycle, $permissions, $states))->toggle('Demo', 1);
+        $result = $this->service($lifecycle, $permissions, $states)->toggle('Demo', 1);
 
         $this->assertTrue($result['enabled']);
         $this->assertTrue($result['migrated']);
@@ -46,7 +49,7 @@ class SystemModuleRuntimeControlTest extends TestCase
         $states->shouldNotReceive('set');
 
         $this->expectException(RuntimeException::class);
-        (new SystemModuleControlService($lifecycle, $permissions, $states))->toggle('Demo', 1);
+        $this->service($lifecycle, $permissions, $states)->toggle('Demo', 1);
     }
 
     public function test_failed_permission_sync_does_not_persist_runtime_state(): void
@@ -62,7 +65,7 @@ class SystemModuleRuntimeControlTest extends TestCase
         $states->shouldNotReceive('set');
 
         $this->expectException(RuntimeException::class);
-        (new SystemModuleControlService($lifecycle, $permissions, $states))->toggle('Demo', 1);
+        $this->service($lifecycle, $permissions, $states)->toggle('Demo', 1);
     }
 
     public function test_disable_persists_false_and_clears_permission_cache(): void
@@ -78,7 +81,7 @@ class SystemModuleRuntimeControlTest extends TestCase
         $permissions->shouldReceive('forgetCache')->once();
         $states->shouldReceive('set')->once()->with('Demo', false);
 
-        $result = (new SystemModuleControlService($lifecycle, $permissions, $states))->toggle('Demo', 1);
+        $result = $this->service($lifecycle, $permissions, $states)->toggle('Demo', 1);
 
         $this->assertFalse($result['enabled']);
         $this->assertFalse(config('modules.registry.Demo.enabled'));
@@ -96,7 +99,22 @@ class SystemModuleRuntimeControlTest extends TestCase
         $states->shouldNotReceive('set');
 
         $this->expectException(LogicException::class);
-        (new SystemModuleControlService($lifecycle, $permissions, $states))->toggle('Demo', 1);
+        $this->service($lifecycle, $permissions, $states)->toggle('Demo', 1);
+    }
+
+    private function service(
+        ModuleLifecycleManager $lifecycle,
+        ModulePermissionManager $permissions,
+        ModuleStateRepository $states,
+    ): SystemModuleControlService {
+        $catalog = $this->mock(ModuleCatalog::class);
+        $catalog->shouldReceive('discover')
+            ->once()
+            ->andReturnUsing(fn () => collect(config('modules.registry', []))->values());
+        $validator = new ModuleGraphValidator;
+        $registry = new ModuleRegistry($catalog, $validator);
+
+        return new SystemModuleControlService($registry, $validator, $lifecycle, $permissions, $states);
     }
 
     private function moduleConfig(bool $enabled, bool $required = false, array $depends = []): array
