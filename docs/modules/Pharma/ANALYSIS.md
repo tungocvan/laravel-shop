@@ -1,399 +1,487 @@
-# Phân tích module Pharma
+# Pharma Module Analysis
 
-Ngày phân tích lại: 2026-07-20. Phạm vi gồm `Modules/Pharma`, tài liệu hiện có, shared import/export được module gọi trực tiếp, Admin menu, bootstrap/config/routes liên quan và workbook nguồn `storage/app/excel/BANG_GIA_TONG_HOP.xlsx`.
+Last verified: 2026-08-30
 
-## 1. Executive Summary
+Scope: `Modules/Pharma/**`, `docs/modules/Pharma/**`, plus direct dependencies used by the module (`Modules/Shared` import/export infrastructure and Admin shell conventions). This is a documentation-only analysis; application source was not changed.
 
-Pharma quản lý hồ sơ thuốc, kết quả trúng thầu, theo dõi nhà cung cấp và chức năng mới tạo báo giá Excel. Luồng báo giá có phân lớp tốt: controller mỏng, Livewire quản lý tương tác, `PriceListService` điều phối, `WorkbookAnalyzer` phân tích workbook, `PriceListWorkbookBuilder` tạo XLSX, output mặc định nằm trong private storage và được xóa sau khi tải. Workbook thực tế tồn tại (67.259 byte), sheet XML không chứa công thức và ba unit test xác nhận header, 44 sản phẩm, lọc, chọn cột không liên tục, style, drawing và print area.
+## Executive Summary
 
-Tuy vậy, module chưa sẵn sàng cho dữ liệu thương mại production. Toàn bộ web route chỉ dùng `auth:admin`, không dùng bốn permission đã khai báo; mọi mutation Livewire, import/export và tạo báo giá đều thiếu authorization tại action. Đặc biệt, `PriceList\Create::$analysis` là public Livewire state chứa `products[*].values` A:X, nên toàn bộ nội dung bảng giá được serialize về browser dù UI chỉ hiển thị vài trường. Shared import/export panel còn nhận `serviceClass` qua public state và resolve động, tạo bề mặt gọi service ngoài dự kiến. Export dữ liệu Pharma lưu trên public disk và không có cleanup rõ ràng.
+Pharma is a domain module for medicine master data, drug bid awards, supplier/commercial tracking, and XLSX price-list generation. The current architecture already contains useful boundaries: thin web controllers, Livewire UI components, domain services, Eloquent models, migrations, shared import/export integration, and a dedicated spreadsheet pipeline for price lists.
 
-Khuyến nghị: **Major Refactor**. Giữ lại domain/model/service hiện tại và pipeline báo giá, nhưng phải đóng P0 về quyền, dữ liệu Livewire, service động và file public trước; sau đó chuẩn hóa import/export, hiệu năng, transaction, validation và test.
+The module is **not structurally broken enough to justify a full rebuild**, but it has multiple security, correctness, performance, and operational gaps that require coordinated work. The correct recommendation remains **Major Refactor**.
 
-## 2. Module Overview
+Highest-risk findings:
 
-Evidence: `config/module.php` khai báo module `domain`, enabled, bốn permission và ba table. Code hiện tại có bốn feature: Medicine, DrugBidAward, SupplierTracking, PriceList. PriceList không có model/table riêng; nó tạo file tạm từ workbook chuẩn trong storage.
+- admin routes use only `web` + `auth:admin`; capability permissions are not enforced at route/action boundaries;
+- Livewire mutations (`save`, `delete`, bulk delete, price-list generation) do not authorize the specific capability;
+- `PriceList\Create::$analysis` is public Livewire state and contains the workbook product payload, including column values not necessarily rendered by the UI;
+- shared Import/Export still stores generated files on the public disk;
+- shared Import/Export keeps `serviceClass` in mutable public Livewire state and dynamically resolves it during actions; `mount()` checks subclassing but the action path does not lock/re-resolve from a server-owned registry;
+- Medicine and DrugBidAward expose an unbounded-like `All` option by converting it to `999999`; SupplierTracking select-all loads every filtered ID;
+- exports build full collections using `get()` and imports materialize the full spreadsheet collection;
+- `GET /api/pharma` calls an `index()` method that does not exist;
+- SupplierTracking business-key semantics are not enforced by a unique database constraint;
+- some Livewire paths return raw exception messages to the operator.
 
-Evidence: `Modules/ModuleServiceProvider.php` tự đăng ký routes, views, migrations, Livewire và console command. Không có `PharmaServiceProvider`; module không cần binding riêng.
+Current source also shows one important state drift from older documentation: `Modules/Pharma/config/module.php` currently has `enabled => false`.
 
-## 3. Dependency Graph
+## Module Purpose and Overview
+
+Current functional areas:
+
+1. **Medicine** — medicine profile CRUD, search/filter, bulk selection/delete, import/export.
+2. **DrugBidAward** — drug bid award CRUD, filtering, bulk selection/delete, import/export.
+3. **SupplierTracking** — supplier/commercial tracking, financial calculations, CRUD/list, bulk delete, import/export.
+4. **PriceList** — analyze a source workbook and generate a filtered XLSX quotation/price list.
+
+Current manifest:
 
 ```text
-Web Route -> Controller -> Admin page Blade -> Pharma Livewire
-  Medicine -> MedicineService -> MedicineImportExport -> Shared BaseImportExportService -> Medicine -> DB
-  DrugBidAward -> DrugBidAwardService -> DrugBidAwardImportExport -> Shared Base -> DrugBidAward -> DB
-  SupplierTracking -> SupplierTrackingService / ImportExport -> Shared Base -> SupplierTracking -> DB
-  PriceList -> PriceListService -> WorkbookAnalyzer -> private source XLSX
-                                -> PriceListWorkbookBuilder -> private generated XLSX -> download/delete
-
-API Route -> empty Api\PharmaController@index (method absent)
-Shared panel -> public serviceClass -> app(serviceClass) -> import/export/template
-Console -> ImportMedicineCommand / GeneratePriceListCommand -> Pharma services
-Views -> Admin::layouts.master
+name: Pharma
+type: domain
+enabled: false
+depends: Shared
+permissions:
+  view_pharma
+  create_pharma
+  edit_pharma
+  delete_pharma
+tables:
+  pharma_medicines
+  pharma_drug_bid_awards
+  pharma_supplier_trackings
 ```
 
-Không thấy circular class dependency. Cross-module trực tiếp: Pharma -> Shared import/export và Pharma views -> Admin shell.
+No Pharma-specific service provider is required; repository-level `Modules\ModuleServiceProvider` owns module discovery/registration.
 
-## 4. Route Analysis
+## Bootstrap / Standards Context
 
-Evidence: tất cả admin route có `web`, `auth:admin`, nhưng không có `permission:*`. Route giá mới: `GET /admin/pharma/price-lists/create`, tên `admin.pharma.price-lists.create`.
+Verified against:
 
-Evidence: route `supplier-trackings/import-export` gọi `SupplierTrackingController::importExport()` không tồn tại. API `GET /api/pharma` public gọi `Api\PharmaController::index()` không tồn tại.
+- `composer.json`
+- `.codex/bootstrap/CODEX_BOOTSTRAP.md`
+- `.codex/bootstrap/PROJECT_BOOTSTRAP.md`
+- `.codex/standards/MODULE_STANDARD.md`
+- `.codex/standards/ADMIN_UI_STANDARD.md`
+- `.codex/tasks/analyze-module.md`
 
-Evidence: `{id}` edit chưa có `whereNumber`; route model binding/policy không được dùng.
+Relevant project conventions:
 
-## 5. Controller Analysis
+- Laravel 12 / PHP 8.3 / Livewire 3;
+- first-party modular monolith under `Modules/`;
+- controllers should remain thin;
+- Livewire owns UI state/validation but not domain workflows;
+- sensitive Livewire mutations must authorize server-side;
+- services own domain workflows, transactions, import/export orchestration, and reusable queries;
+- production-capable lists must use bounded pagination;
+- sensitive generated files should use private storage;
+- shared import/export infrastructure should be reused instead of creating a competing engine.
 
-Các controller web mỏng, chỉ trả view và truyền ID, phù hợp kiến trúc. Tuy nhiên không controller nào authorize. `PharmaController` còn middleware permission bị comment. `PriceListController::create()` không kiểm tra capability tạo/xuất báo giá. API controller là scaffold rỗng.
+## Dependency Graph
 
-## 6. Page Blade Analysis
+```text
+Web routes
+  -> Pharma controllers
+    -> Admin page Blade
+      -> Pharma Livewire
 
-Evidence: page Blade extend `Admin::layouts.master` và mount đúng alias. Output dùng escaped echo. Link tài liệu ngoài có `target="_blank"`; cần xác nhận tất cả đều có `rel="noopener noreferrer"` (supplier có, một số medicine/award cần chuẩn hóa).
+Medicine
+  -> MedicineService
+    -> MedicineImportExport
+      -> Shared BaseImportExportService
+    -> Medicine model
+      -> pharma_medicines
 
-Evidence: các nút create/edit/delete/import/export không được bọc `@can`; đây không thay thế server authorization nhưng làm UX không phản ánh quyền. Admin menu chưa có mục tạo báo giá; code route tồn tại nhưng menu chỉ có ba feature cũ.
+DrugBidAward
+  -> DrugBidAwardService
+    -> DrugBidAwardImportExport
+      -> Shared BaseImportExportService
+    -> DrugBidAward model
+      -> pharma_drug_bid_awards
 
-## 7. Livewire Analysis
+SupplierTracking
+  -> SupplierTrackingService / Pharma ImportExport service
+    -> Shared BaseImportExportService
+    -> SupplierTracking model
+      -> pharma_supplier_trackings
 
-Evidence: không component nào gọi Gate/policy/`authorize()`. Các action save/delete/deleteSelected/import/export/generate chỉ dựa vào admin session của page ban đầu. Livewire action phải tự authorize.
+PriceList
+  -> PriceListService
+    -> WorkbookAnalyzer
+    -> PriceListWorkbookBuilder
+    -> private source workbook / generated XLSX
 
-Evidence: `PriceList\Create` validate sheet, columns, row IDs và ba chuỗi hiển thị; service xác minh selected row và allowed columns lại từ workbook. Đây là defense-in-depth tốt cho row/column tampering.
+API route
+  -> Api\PharmaController@index (method currently absent)
+```
 
-Evidence: `PriceList\Create::$analysis` public chứa `WorkbookAnalysis::toArray()`, trong đó mỗi sản phẩm có `values` cho mọi cột. Public Livewire state được đưa tới client. `filteredProducts()` còn đọc lại workbook mỗi render thay vì lọc snapshot an toàn.
+Direct module dependencies are appropriate: Pharma -> Shared import/export; Pharma views -> Admin shell. No circular module dependency was observed.
 
-Evidence: `loadWorkbook()` và `generate()` flash/addError trực tiếp `$exception->getMessage()`, có thể lộ đường dẫn, sheet/header hoặc chi tiết hệ thống. `useColumns()` là public action nhưng service vẫn validate lại.
+## Route / Controller / Blade / Livewire Analysis
 
-Evidence: Medicine/DrugBidAward hỗ trợ `All` bằng `999999`; select-all DrugBidAward tải toàn bộ ID. Supplier select-all cũng pluck toàn bộ filtered IDs. Public filter/perPage chưa validate/cap.
+### Routes
 
-Evidence: form Medicine/DrugBidAward flash raw exception. DrugBidAward form query toàn bộ Medicine trực tiếp trong `render()`; SupplierTracking service cũng tải toàn bộ Medicine cho select.
+`Modules/Pharma/routes/web.php` groups all admin pages under `/admin/pharma` with `web` and `auth:admin` only. The declared `view/create/edit/delete_pharma` capabilities are not applied there.
 
-## 8. Shared UI Component Analysis
+`Modules/Pharma/routes/api.php` exposes `GET /api/pharma` without Sanctum or another explicit guard and targets `Api\PharmaController@index`; the controller is currently empty. This route is therefore a broken public contract and should either be removed or implemented with an intentional authentication/authorization contract.
 
-Evidence: ba index mount `shared.import-export.panel`. `Panel::$serviceClass` là public, sau đó `app($this->serviceClass)` và gọi `import/export/exportTemplate`; không allowlist/interface check và không authorization. Một request Livewire bị sửa có thể đổi class đích.
+The supplier import/export page route should be re-verified during refactor against `SupplierTrackingController`; older analysis identified a route/action mismatch and no source change in this analysis authorizes assuming it is fixed.
 
-Evidence: upload validate xlsx/csv/10 MB, nhưng export/import actions không permission. Filters cũng là public state. Panel trả file từ public disk.
+### Controllers
 
-## 9. Service Analysis
+The web controllers are generally thin and consistent with repository architecture: they return page views and pass IDs. `PharmaController` still contains commented legacy permission middleware, which confirms authorization was considered but is not currently active.
 
-CRUD service dùng Eloquent và transaction; query list đã eager-load relation khi cần. Supplier calculated fields được server tính lại.
+### Page Blade / Admin UI
 
-PriceList strengths: source path cố định; selected rows và column set được đối chiếu server-side; output mặc định private; tên ngẫu nhiên; builder tạo directory; source workbook không có formula ở snapshot hiện tại.
+The module uses the Admin shell and delegates interactive behavior to Livewire, which is the correct ownership model. During implementation work, rendered UI should be checked against current Admin UI standards for:
 
-PriceList risks: `generate()` chấp nhận `output_path` tùy ý và builder tạo directory/write trực tiếp—an toàn cho CLI tin cậy nhưng service chưa bảo vệ nếu caller web tương lai truyền input; mỗi request có thể load workbook nhiều lần; tác vụ đồng bộ có thể nặng; không có audit/correlation; user text ghi trực tiếp vào cell và chưa chặn spreadsheet formula prefix cho signature fields.
+- visible input borders/focus states;
+- bounded pagination choices;
+- responsive table overflow;
+- empty/loading states;
+- clear permission-aware actions;
+- destructive bulk confirmation;
+- shared import/export presentation rather than module-specific duplicate UI.
 
-Evidence: `WorkbookAnalyzer` quét đến 50 cột để tìm STT, 200 cột để tìm last header, rồi mọi data row; toàn workbook được `IOFactory::load()`. Builder load workbook lần nữa. Trong `generate()` UI còn analyze trước, service generate analyze lại, rồi builder load lại.
+No broad UI rewrite is justified by this analysis alone.
 
-## 10. Import Analysis
+### Livewire
 
-Medicine A–U, DrugBidAward A–L và SupplierTracking A–V đều dùng `BaseImportExportService`, mode mặc định `update_or_create`, bỏ qua null khi update, có validation và fixtures/tests một phần. Supplier derived fields được tính lại.
+#### Medicine
 
-Evidence: Shared base gọi FastExcel `import()` rồi giữ toàn collection, mở một transaction cho toàn file nhưng tiếp tục sau lỗi row và commit các row hợp lệ. Đây là partial import có transaction toàn file về mặt kỹ thuật nhưng không atomic về nghiệp vụ.
+`Medicine\Index` maintains custom page state and converts `perPage === 'All'` to `999999`. Select-all also requests the same oversized page. This conflicts with the bounded pagination standard.
 
-Evidence: lookup existing Medicine/Supplier mỗi row gây N+1. Supplier fallback theo tên lấy record đầu tiên nếu tên trùng. Column mapping theo vị trí array, không thực sự xác minh header tương ứng. Mode do public panel cho người dùng đổi, kể cả `create_only`/`skip_duplicate`, thay đổi semantics nghiệp vụ.
+`deleteMedicine()` and `deleteSelected()` do not authorize deletion. `Medicine\Form::save()` validates fields but does not authorize create/update and flashes raw exception text on failure.
 
-Evidence: file tạm Livewire do framework quản lý; retention/cleanup production chưa được tài liệu hóa. Debug report chứa exception nội bộ trong `debug`, có nguy cơ hiển thị nếu shared Blade render trường này.
+#### DrugBidAward
 
-## 11. Export Analysis
+`DrugBidAward\Index` uses Livewire pagination but still maps `All` to `999999`; select-all explicitly requests `999999` rows. Delete actions do not authorize.
 
-Các service áp dụng filter và map cột rõ, eager-load relation. Tuy nhiên `exportRows()` đều `get()` toàn bộ rồi map collection; Shared base lưu vào `storage/app/public/...`. Không thấy expiration/cleanup hoặc tokenized private download. Dữ liệu giá, nhà cung cấp, hợp đồng và thầu có thể tồn tại trên public disk sau download.
+`DrugBidAward\Form::save()` validates but does not authorize and returns `$e->getMessage()` in the flash message. Its `render()` loads the complete Medicine collection directly with `get()`, which will not scale well for a large medicine catalog and bypasses a service/query abstraction.
 
-PriceList export khác: file nằm private và `deleteFileAfterSend(true)`, tốt hơn shared export. Nhưng không có cleanup cho file còn lại khi process lỗi/response không hoàn tất.
+#### SupplierTracking
 
-## 12. Shared Service Analysis
+`SupplierTrackings\Form` correctly recalculates derived commercial values server-side through `SupplierTrackingService`, and validation constrains status to known values. However, create/update actions do not authorize.
 
-`BaseImportExportService` cung cấp mapping, normalization, report và storage, đúng hướng roadmap. Các vấn đề shared tác động trực tiếp Pharma: unbounded collection, public export storage, dynamic service selection ở panel, mode do client chọn, transaction/report semantics và thiếu authorization contract.
+`SupplierTrackings\Index` reports caught delete errors safely, but delete and bulk delete do not authorize. Select-all uses `getFilteredIds()` which plucks the entire matching ID set, so selection is not bounded to the visible page.
 
-## 13. Model Analysis
+#### PriceList
 
-Medicine, DrugBidAward, SupplierTracking có `$fillable` và casts hợp lý. DrugBidAward/SupplierTracking có `belongsTo Medicine`; Medicine chưa khai báo inverse relations. Không model nào soft delete/audit actor/version.
+`PriceList\Create` validates sheet name, column expression, selected rows, recipient, and signature fields. `PriceListService` independently validates selected columns and product rows against a fresh workbook analysis; this is a good defense against row/column tampering.
 
-Supplier `$exceptExport=[]`, trái tài liệu cũ từng nói loại contract/status/note. Derived fields vẫn fillable; current UI/service tính lại nhưng caller khác có thể mass assign trực tiếp. Status/type chưa có enum/cast.
+Risks:
 
-Model scaffold `Pharma.php` không có table và có vẻ không dùng.
+- `public array $analysis` contains `WorkbookAnalysis::toArray()` and therefore serializes workbook analysis data into Livewire state;
+- `mount()` analyzes the workbook before capability authorization;
+- `loadWorkbook()` and `generate()` expose raw exception messages to the UI;
+- `filteredProducts()` analyzes the workbook again during render, causing repeated workbook loads;
+- generation is synchronous and can become expensive for larger workbooks;
+- no capability-specific authorization is performed before analyze/generate/download.
 
-## 14. Database Analysis
+## Service Analysis
 
-Ba migration sở hữu đúng table; Medicine và DrugBidAward có composite unique; foreign key rõ. Supplier có index `(medicine_id,supplier_name)` và status nhưng không có unique `(medicine_id,supplier_name,working_date)` dù import dùng key này. `working_date` nullable trong DB/form nhưng required trong import, làm semantics duplicate khác nhau.
+### Strengths
 
-Supplier cascade delete khi xóa Medicine có thể xóa lịch sử thương mại không phục hồi; Medicine không soft delete. Không có audit `created_by/updated_by`, check constraint status, hay index phù hợp mọi filter/search. PriceList không persist quotation record, người tạo, recipient, selected products, hash nguồn, file hash hoặc thời điểm phát hành.
+- Medicine, DrugBidAward, and SupplierTracking services own Eloquent queries and CRUD workflows.
+- CRUD writes use database transactions.
+- DrugBidAward list eager-loads Medicine.
+- SupplierTracking derived values are recalculated server-side instead of trusting client-computed values.
+- PriceList uses a dedicated service, analyzer, builder, DTOs, server-side row validation, and a private default output path.
 
-## 15. Security Analysis
+### Risks
 
-### PH-P0-01
+- list page-size inputs are not normalized/capped at the service boundary;
+- `SupplierTrackingService::medicinesForSelect()` loads the complete Medicine catalog;
+- `SupplierTrackingService::getFilteredIds()` loads every matching ID;
+- bulk delete accepts an array of IDs and deletes them in one transaction but authorization/ownership checks are absent at the caller boundary;
+- PriceList repeatedly analyzes/loads the workbook within a single interaction;
+- `PriceListService::generate()` accepts an optional caller-provided `output_path`; this is acceptable only for trusted callers and needs an explicit boundary if retained.
 
-Priority:
-P0
+## Import / Export Analysis
 
-File:
-`Modules/Pharma/routes/web.php`; `Modules/Pharma/Livewire/**`; `Modules/Shared/Livewire/ImportExport/Panel.php`
+### Shared foundation
 
-Evidence:
-Chỉ `auth:admin`; không permission middleware/policy/action authorization. Manifest có `view/create/edit/delete_pharma`.
+Pharma correctly reuses `Modules/Shared/Services/ImportExport/BaseImportExportService` and `Modules/Shared/Livewire/ImportExport/Panel`.
 
-Problem:
-Mọi admin đều có thể đọc, sửa, xóa, import/export và tạo báo giá.
+The shared panel now performs an improvement not accurately reflected in the older Pharma analysis: `mount()` verifies that the supplied class extends `BaseImportExportService`, and the panel supports an optional permission check. However:
 
-Impact:
-Truy cập trái phép dữ liệu thuốc, giá, hợp đồng, nhà cung cấp; thay đổi/xóa dữ liệu hoặc phát hành báo giá.
+- `serviceClass` remains a public mutable Livewire property;
+- action methods resolve `app($this->serviceClass)` without locking/revalidating the class against a server-owned module registry;
+- permission is optional, so callers that omit it get no capability guard;
+- import mode is client-selectable across `create_only`, `update_or_create`, `skip_duplicate`, and `replace`, which may be too broad for domain invariants.
 
-Recommendation:
-Định nghĩa permission theo capability (`view/create/update/delete/import/export/price-list.generate`), enforce ở route và từng Livewire action/policy, kiểm tra ID server-side, thêm denied tests.
+Therefore the older finding should be narrowed from "arbitrary container class" to **cross-service substitution within the shared import/export service family unless the property is locked/server-owned**.
 
-### PH-P0-02
+### Import
 
-Priority:
-P0
+`BaseImportExportService` uses FastExcel `import()` and receives a collection of rows before iterating, so large input is not streamed end-to-end. A transaction is opened for non-dry-run imports; non-`replace` modes continue processing row errors and can commit successful rows, while `replace` rolls back when row errors exist. This is a valid partial-import design only if the business contract explicitly permits it.
 
-File:
-`Modules/Pharma/Livewire/PriceList/Create.php`; `Modules/Pharma/DTOs/WorkbookAnalysis.php`
+Import validation includes extension checking and row-level validation. Column-letter mapping is positional and `shouldUseColumnMapping()` currently always returns true in the base service, so header identity is not the primary integrity check for mapped Pharma imports.
 
-Evidence:
-Public `$analysis` chứa `products[*].values` A:X; `mount()` load toàn workbook.
+### Export
 
-Problem:
-Toàn bộ dữ liệu workbook được serialize vào Livewire browser state.
+`BaseImportExportService::export()` maps an in-memory collection and writes to:
 
-Impact:
-Lộ cột giá/nội dung thương mại không được UI hiển thị cho bất kỳ admin đăng nhập nào truy cập URL.
+```text
+storage/app/public/<generated-path>
+```
 
-Recommendation:
-Chỉ đưa DTO projection tối thiểu (`row,stt,name,active_ingredient,registration_number`) ra client; giữ workbook/column values server-side; authorize trước khi analyze.
+The Livewire panel downloads from `Storage::disk('public')`. For Pharma commercial data this is not an appropriate default production boundary. There is also no explicit expiry/retention policy in the observed path.
 
-### PH-P0-03
+Module export implementations such as Medicine use query `get()`, so export memory grows with result count.
 
-Priority:
-P0
+PriceList is safer: default output is under `storage/app/private/exports/price-lists` and the HTTP response uses `deleteFileAfterSend(true)`. A fallback cleanup policy is still desirable for failed/aborted responses.
 
-File:
-`Modules/Shared/Livewire/ImportExport/Panel.php`
+## Shared Dependencies
 
-Evidence:
-Public `$serviceClass` được resolve bằng `app()` trong ba action; không interface/allowlist/authorization.
+- `Modules/Shared/Services/ImportExport/*`
+- `Modules/Shared/Livewire/ImportExport/Panel.php`
+- Admin layout/shell
+- Laravel Storage / DB / Livewire
+- FastExcel / Maatwebsite Excel / PhpSpreadsheet ecosystem
 
-Problem:
-Client có thể thay đổi class service được container resolve.
+PhpSpreadsheet classes are imported directly by Pharma. Dependency ownership should be verified so a transitive package removal cannot silently break PriceList.
 
-Impact:
-Có thể gọi ngoài ý muốn các method import/export/template trên class khác, mở rộng quyền và phạm vi dữ liệu.
+## Model / Migration / Database Analysis
 
-Recommendation:
-Không tin class từ Livewire state; dùng server-owned registry/key đã ký/locked, bắt buộc interface, allowlist và capability mapping cho từng service/action.
+### Medicine
 
-### PH-P0-04
+`Medicine` defines fillable fields and casts dates, special-control boolean, and `declared_price` as decimal. Migration uses `decimal(15,2)` and a unique composite key on registration number + packaging specification. These are good integrity controls.
 
-Priority:
-P0
+### DrugBidAward
 
-File:
-`Modules/Shared/Services/ImportExport/BaseImportExportService.php`
+The model/migration pair owns bid-award persistence and links to Medicine. Existing structure is suitable for refactor rather than rebuild; authorization, bounded queries, and compatibility are higher priorities than model replacement.
 
-Evidence:
-Export ghi `storage/app/public`; không thấy cleanup/expiry; Pharma exports chứa giá, thầu, supplier, URL hợp đồng.
+### SupplierTracking
 
-Problem:
-File dữ liệu nghiệp vụ nhạy cảm tồn tại trên public storage.
+Migration uses decimal types for money/percent values and indexes `(medicine_id, supplier_name)` plus `status`. `medicine_id` cascades on delete.
 
-Impact:
-URL bị đoán/rò log/history có thể cho phép tải không qua authorization; file tích tụ lâu dài.
+There is no unique constraint for the practical importer/business-key candidate of Medicine + supplier + working date. `working_date` is nullable in CRUD/database semantics, so the canonical duplicate rule needs to be decided before adding a forward migration.
 
-Recommendation:
-Chuyển private disk, tải qua controller/token ngắn hạn có authorization, đặt retention và scheduled cleanup/audit.
+Cascade deletion from Medicine can remove commercial tracking history. Whether that is acceptable is a business/data-retention question, not something to change during analysis.
 
-### PH-P1-SEC-05
+### PriceList
 
-Priority:
-P1
+PriceList has no database entity. Generated quotations therefore have no persisted lifecycle, actor, recipient, source/version hash, selected-product snapshot, or audit history. This may be acceptable if price lists are deliberately disposable files; otherwise a later feature decision is required.
 
-File:
-`Modules/Pharma/Livewire/PriceList/Create.php`; `Modules/Pharma/Services/Spreadsheet/PriceListWorkbookBuilder.php`
+## Security
 
-Evidence:
-`signatureDate`/`signatureTitle` là input string ghi bằng `setCellValue`; raw exception được trả UI.
+### PH-P0-01 — Missing capability authorization
 
-Problem:
-Chưa neutralize spreadsheet formula prefix và lỗi nội bộ bị lộ.
+**Priority:** P0  
+**Files:** `Modules/Pharma/routes/web.php`, `Modules/Pharma/Livewire/**`  
+**Evidence:** routes use only `auth:admin`; mutations do not call Gate/policy/`authorize()`; manifest declares Pharma permissions.  
+**Problem:** any authenticated admin who can reach the route may execute Pharma operations.  
+**Impact:** unauthorized viewing, mutation, deletion, import/export, or quotation generation.  
+**Recommendation:** define capability mapping and enforce it at route/page and every sensitive Livewire action; add denied-path tests.
 
-Impact:
-File mở trong Excel có thể thực thi công thức do người dùng chèn; người dùng thấy chi tiết nội bộ.
+### PH-P0-02 — PriceList workbook data in public Livewire state
 
-Recommendation:
-Ghi user text bằng explicit string/sanitize prefix; map exception sang message an toàn, log có correlation ID.
+**Priority:** P0  
+**Files:** `Modules/Pharma/Livewire/PriceList/Create.php`, workbook DTOs  
+**Evidence:** `$analysis` is public and assigned `WorkbookAnalysis::toArray()`.  
+**Problem:** more workbook data can be serialized to the browser than the visible UI requires.  
+**Impact:** commercial/pricing data exposure to any user able to load the component.  
+**Recommendation:** authorize before analysis; expose a minimal projection only; keep full workbook values server-side.
 
-SQL injection trực tiếp không thấy: query dùng Eloquent binding; `whereRaw` có parameter binding. XSS Blade giảm nhờ escaped output.
+### PH-P0-03 — Public-disk business exports
 
-## 16. Performance Analysis
+**Priority:** P0  
+**Files:** `Modules/Shared/Services/ImportExport/BaseImportExportService.php`, `Modules/Shared/Livewire/ImportExport/Panel.php`  
+**Evidence:** export/template writes to `storage/app/public` and downloads via the public disk.  
+**Problem:** sensitive Pharma exports are stored in a publicly oriented storage area with no observed retention contract.  
+**Impact:** persistent sensitive files and avoidable download-surface risk.  
+**Recommendation:** private disk + authorized download + retention/cleanup policy.
 
-### PH-P1-PERF-01
+### PH-P1-SEC-04 — Mutable import/export service selector
 
-Priority:
-P1
+**Priority:** P1  
+**Files:** `Modules/Shared/Livewire/ImportExport/Panel.php`  
+**Evidence:** `serviceClass` is public; subclass validation occurs in `mount()`, actions later dynamically resolve the property.  
+**Problem:** the browser-owned state still determines which shared import/export service is called.  
+**Impact:** cross-dataset operation risk if the property can be tampered to another allowed import/export service.  
+**Recommendation:** use `#[Locked]` or a server-owned registry key and revalidate capability/service pairing at action time.
 
-File:
-`Modules/Pharma/Livewire/PriceList/Create.php`; `WorkbookAnalyzer.php`; `PriceListService.php`; `PriceListWorkbookBuilder.php`
+### PH-P1-SEC-05 — Raw exception exposure
 
-Evidence:
-Workbook được load lại trong render/filter, generate validation, service generate và builder.
+**Priority:** P1  
+**Files:** `Medicine/Form.php`, `DrugBidAward/Form.php`, `PriceList/Create.php`  
+**Evidence:** user-facing flash/error text concatenates exception messages.  
+**Problem:** internal paths/workbook/parser/database details can leak.  
+**Impact:** information disclosure and poor UX.  
+**Recommendation:** report/log exceptions server-side and return stable user-safe messages.
 
-Problem:
-Phân tích/tạo XLSX đồng bộ và lặp I/O/memory.
+## Performance
 
-Impact:
-Workbook lớn gây chậm Livewire, timeout hoặc memory exhaustion.
+### PH-P1-PERF-01 — Unbounded page/select behavior
 
-Recommendation:
-Phân tích một lần thành server-side cached snapshot theo file hash/mtime, chỉ gửi projection; generate dùng snapshot tin cậy hoặc queue khi vượt threshold; đặt giới hạn kích thước/hàng/cột.
+**Priority:** P1  
+**Files:** Medicine/DrugBidAward/SupplierTracking indexes and services  
+**Evidence:** `All -> 999999`, DrugBidAward select-all `999999`, SupplierTracking plucks all filtered IDs.  
+**Problem:** list and bulk-selection memory/database cost scale with full dataset size.  
+**Impact:** slow requests, high memory, Livewire payload growth.  
+**Recommendation:** bounded page sizes (`10/25/50/100` or domain-approved set) and page-scoped selection unless explicit server-side "all matching" semantics are designed.
 
-### PH-P1-PERF-02
+### PH-P1-PERF-02 — Collection-based import/export
 
-Priority:
-P1
+**Priority:** P1  
+**Files:** shared base + Pharma import/export services  
+**Evidence:** FastExcel import result is materialized; exportRows implementations use `get()`; export maps complete collections.  
+**Problem:** memory scales with file/query size.  
+**Impact:** large imports/exports can exhaust request time or memory.  
+**Recommendation:** chunk/lazy/generator/queue strategy and explicit thresholds.
 
-File:
-`Modules/Pharma/Services/*ImportExport.php`; `BaseImportExportService.php`; các Index Livewire
+### PH-P1-PERF-03 — Full Medicine option lists
 
-Evidence:
-Import/export dùng collections/get; `All=999999`; select-all tải toàn ID; lookup relation theo row.
+**Priority:** P1  
+**Files:** `DrugBidAward/Form.php`, `SupplierTrackingService.php`  
+**Evidence:** complete Medicine list is loaded for form selects.  
+**Problem:** option-list cost grows with the catalog.  
+**Recommendation:** shared searchable select / bounded server-side lookup.
 
-Problem:
-Luồng dữ liệu lớn không bounded/chunk/lazy.
+### PH-P2-PERF-04 — Repeated workbook analysis
 
-Impact:
-Tăng memory, query count và thời gian request.
+`PriceList\Create` can analyze the same workbook during mount, render filtering, pre-generate validation, service generation, and builder processing. Cache/request-scoped analysis or a server-side snapshot should be evaluated after security boundaries are fixed.
 
-Recommendation:
-Loại All, cap page size, chunk/lazy/queue import-export, preload lookup keys, progress và cleanup.
+## Validation and Authorization
 
-## 17. Technical Debt Analysis
+Field validation is generally present for CRUD forms and PriceList inputs. Important gaps are authorization and normalization of client-controlled list parameters (`perPage`, filter values, bulk IDs).
 
-### PH-P1-COR-01
+Server-side PriceList row/column validation is a strength and should be preserved.
 
-Priority:
-P1
+## Transactions, Concurrency and Data Integrity
 
-File:
-`Modules/Pharma/routes/api.php`; `Modules/Pharma/routes/web.php`; controllers tương ứng
+CRUD services use transactions. Shared imports also use transactions, but partial-success semantics differ from strict atomic import and must be documented per aggregate.
 
-Evidence:
-Hai route gọi method không tồn tại.
+Supplier duplicate prevention is not database-enforced. Concurrent import/CRUD can therefore create ambiguous duplicate rows depending on the intended business key.
 
-Problem:
-Route contract hỏng và API public ngoài chủ đích.
+Bulk delete operations should validate/canonicalize IDs and rely on authorization before transaction execution.
 
-Impact:
-500 khi truy cập, bề mặt API không kiểm soát, route regression.
+## Admin UI / UX Standard Review
 
-Recommendation:
-Gỡ route scaffold hoặc triển khai action + guard + permission + tests; thêm numeric constraints.
+Current list behavior conflicts with the canonical pagination standard because Medicine/DrugBidAward expose an `All` path. Bulk selection semantics are inconsistent: Medicine/DrugBidAward/SupplierTracking can represent more than the visible page.
 
-### PH-P1-COR-02
+During refactor, use the shared admin patterns for:
 
-Priority:
-P1
+- bounded pagination;
+- search/filter reset;
+- page-scoped selection or explicitly labelled all-matching selection;
+- server-authorized bulk actions;
+- confirmation modal with affected count;
+- loading/disabled state;
+- shared Import/Export panel;
+- searchable Medicine picker instead of a huge native select.
 
-File:
-`Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php`; `Services/ImportExport.php`
+## Cross-Module Dependencies
 
-Evidence:
-Import update_or_create dùng triple key nhưng DB không unique; working_date nullable ở CRUD và required ở import.
+Pharma owns its domain models/migrations/services. Shared import/export is an appropriate cross-module foundation. Admin owns the shell/presentation layout. No evidence supports moving Pharma business logic into Admin or another module.
 
-Problem:
-Duplicate/invariant không thống nhất.
+Any security fix in Shared Import/Export must be treated as a shared-foundation change with impacted-module regression, not as Pharma-local behavior only.
 
-Impact:
-Concurrent import/CRUD tạo trùng hoặc update không xác định.
+## Technical Debt
 
-Recommendation:
-Chốt business key/nullability, dọn duplicate, thêm forward unique constraint và validation thống nhất.
+### PH-P1-COR-01 — Broken API route contract
 
-### PH-P1-COR-03
+`GET /api/pharma` calls a missing `Api\PharmaController@index` and is not guarded by Sanctum in the active route definition. Remove the scaffold route if unused or implement it intentionally with authentication/authorization and tests.
 
-Priority:
-P1
+### PH-P1-COR-02 — Supplier duplicate invariant not enforced
 
-File:
-`Modules/Pharma/Services/PriceListService.php`; `GeneratePriceListCommand.php`
+Decide whether `(medicine_id, supplier_name, working_date)` or another key is canonical; align CRUD/import nullability and then add a forward unique constraint after duplicate cleanup if appropriate.
 
-Evidence:
-Service cho phép caller truyền `output_path` bất kỳ; builder mkdir/write trực tiếp.
+### PH-P1-COR-03 — PriceList output path boundary
 
-Problem:
-Boundary ghi file không bị giới hạn ở service.
+`PriceListService::generate()` accepts optional `output_path`. Keep this only as a trusted CLI/internal contract or enforce an allowlisted root.
 
-Impact:
-Caller không tin cậy tương lai có thể ghi đè/tạo file ngoài export directory.
+### PH-P2-MAINT-01 — Legacy/scaffold artifacts
 
-Recommendation:
-Tách trusted CLI output contract hoặc bắt buộc resolved path nằm trong allowlisted directory; không truyền browser input vào path.
+`Models/Pharma.php`, old scaffold README content, commented permission middleware, and any unused placeholder controller/routes should be removed only after caller/route tests prove they are unused.
 
-### PH-P2-MAINT-01
+## Test Coverage
 
-Priority:
-P2
+Observed module-local test inventory under `Modules/Pharma/Tests` currently contains only:
 
-File:
-`Modules/Pharma/Models/Pharma.php`; placeholder views; `Modules/Pharma/readme.md`
+```text
+Unit/PriceListServiceTest.php
+```
 
-Evidence:
-Scaffold/placeholder và README lệnh module cũ còn tồn tại.
+Repository search did not find the previously documented `PharmaImportExportTest`, so older documentation overstated the current observable test inventory.
 
-Problem:
-Dead artifacts và docs không mô tả module thực.
+Coverage gaps to address before a major refactor is accepted:
 
-Impact:
-Developer confusion.
+- route boot and broken API contract;
+- view/create/update/delete permission denial and success paths;
+- Livewire mutation authorization;
+- bulk delete and tampered IDs;
+- import/export permission/service selection;
+- private export/download/cleanup;
+- Medicine and DrugBidAward bounded pagination;
+- Supplier duplicate/invariant behavior;
+- raw exception non-disclosure;
+- workbook missing/corrupt/large cases;
+- PriceList browser-state projection and row/column tampering;
+- import partial/atomic semantics and large-file behavior.
 
-Recommendation:
-Xóa sau khi architecture/route tests chứng minh không có caller; cập nhật README.
+No test commands were run in this documentation-only analysis; findings are based on repository source and current test inventory.
 
-## 18. Test Coverage Analysis
+## Documentation Drift
 
-Có `PharmaImportExportTest` cho fixtures/dry-run/null preservation/partial row/calculation và `PriceListServiceTest` cho workbook thực, filter và builder. Đây là tiến bộ so với tài liệu cũ.
+Verified drift from the previous Pharma docs:
 
-Thiếu: route boot/API/method; auth/permissions; từng Livewire mutation; tampered IDs/serviceClass/rows/columns; browser-state data leak; private/public download; cleanup; formula injection; output path traversal; workbook missing/corrupt/duplicate header/multiple sheets/large files; queue/memory; CRUD unique/transactions; Supplier concurrency; MySQL migration/query behavior.
+- manifest currently has `enabled => false`, not enabled;
+- Shared Import/Export panel now checks subclassing in `mount()` and supports an optional permission, so the old "no interface check / no authorization support" wording is stale; the remaining issue is mutable public service selection plus optional permission enforcement;
+- observable module-local tests currently show only `PriceListServiceTest.php`; previously documented `PharmaImportExportTest` was not found;
+- previous docs remain correct that API routing, capability authorization, public export storage, workbook Livewire state, bounded pagination, and Supplier invariant require work.
 
-## 19. Cross-Module Dependencies
+## Issue List
 
-Pharma phụ thuộc Shared import/export và Admin layout/menu. `phpoffice/phpspreadsheet` được dùng trực tiếp nhưng chỉ là transitive dependency từ Maatwebsite Excel trong `composer.lock`, chưa khai báo direct requirement—rủi ro dependency integrity. Không có event/job dependency; không queue nào trong module. Không thấy circular module dependency.
+| ID | Priority | Area | Summary |
+|---|---|---|---|
+| PH-P0-01 | P0 | Authorization | Capability-specific authorization missing |
+| PH-P0-02 | P0 | Data exposure | PriceList workbook payload in public Livewire state |
+| PH-P0-03 | P0 | File security | Pharma exports written to public disk |
+| PH-P1-SEC-04 | P1 | Shared UI security | Mutable import/export service selector |
+| PH-P1-SEC-05 | P1 | Error handling | Raw exception messages exposed |
+| PH-P1-PERF-01 | P1 | Pagination | `All`/all-ID selection is unbounded |
+| PH-P1-PERF-02 | P1 | Import/export | Collection-based large-data processing |
+| PH-P1-PERF-03 | P1 | Forms | Full Medicine catalog loaded for selects |
+| PH-P1-COR-01 | P1 | Routes | Public API route calls missing method |
+| PH-P1-COR-02 | P1 | Database | Supplier business key not database-enforced |
+| PH-P1-COR-03 | P1 | File boundary | Caller-supplied PriceList output path |
+| PH-P2-PERF-04 | P2 | Spreadsheet | Repeated workbook analysis/load |
+| PH-P2-MAINT-01 | P2 | Maintenance | Legacy/scaffold artifacts |
 
-## 20. Documentation Drift
+## Module Health Summary
 
-- Tài liệu 2026-07-14 chưa có PriceList route/Livewire/service/builder/command/test.
-- Tài liệu cũ nói Supplier `$exceptExport` loại ba field; code hiện là `[]` và export đủ field.
-- Tài liệu cũ ghi import/export “đã triển khai” nhưng vẫn mô tả mapping là đề xuất/chưa duyệt ở phần khác.
-- Tài liệu cũ nói thiếu `$fillable` Medicine; code hiện đã có.
-- Tài liệu cũ chưa ghi shared panel dynamic service, public export storage và P0 Livewire workbook exposure.
-- `Modules/Pharma/readme.md` chỉ chứa lệnh scaffold không còn đại diện module.
+| Dimension | Assessment |
+|---|---|
+| Architecture | Moderate-good foundation; service boundaries exist |
+| Security | Poor until P0 authorization/data/file findings are fixed |
+| Correctness | Moderate; broken API and Supplier invariant remain |
+| Performance | Moderate-poor for large lists/import/export/workbooks |
+| Database | Generally sensible types/indexes; Supplier invariant unresolved |
+| Import/Export | Canonical shared foundation reused, but storage/scaling/security need work |
+| Admin UI | Functional patterns present; pagination/selection/permissions need alignment |
+| Tests | Insufficient for current module risk surface |
+| Documentation | Refreshed to current source in this analysis |
 
-## 21. Module Health Score
-
-| Dimension | Điểm |
-|---|---:|
-| Architecture | 6.5/10 |
-| Security/authorization | 2.5/10 |
-| Correctness/data integrity | 5/10 |
-| Performance | 4.5/10 |
-| Import/export | 5/10 |
-| Price-list implementation | 6/10 functional, 3/10 access control |
-| Tests | 4.5/10 |
-| Documentation | 4/10 trước lần cập nhật này |
-| **Overall** | **4.7/10** |
-
-## 22. Final Recommendation
+## Final Recommendation
 
 - [ ] Minor Refactor
-- [x] Major Refactor
+- [x] **Major Refactor**
 - [ ] Full Rebuild
+- [ ] No Structural Refactor Required
 
-Không cần full rebuild vì model/schema, service CRUD, shared foundation và pipeline báo giá có thể giữ. Nhưng authorization, public Livewire data, dynamic service resolution, file storage, route hỏng, large-data architecture và DB invariants cần thay đổi phối hợp.
+Do **not** rebuild the entire module. Preserve working domain models, migrations, service boundaries, shared import/export adoption, and PriceList spreadsheet pipeline. Refactor in priority order: P0 authorization/data/file security first, then route/data invariants, bounded large-data behavior, shared Import/Export hardening, test coverage, and UI consistency.
 
-## 23. Open Questions
+## Open Questions / Unknowns
 
-1. Ai được xem workbook nguồn và ai được tạo/phát hành báo giá?
-2. Có cần permission riêng `generate_price_list` và audit người tạo/recipient/sản phẩm/hash file không?
-3. Báo giá chỉ là file tạm hay phải persist phiên bản/lịch sử và trạng thái duyệt?
-4. Cột nào trong A:X là bí mật và cột nào được phép đưa vào quotation?
-5. Workbook nguồn được cập nhật bởi ai, quy trình kiểm duyệt/hash/version/backup thế nào?
-6. Có cho phép CLI `--output` ngoài private export directory không?
-7. Supplier business key có chính thức là medicine + supplier + working date, và working date có bắt buộc không?
-8. Import mode có được người dùng chọn hay cố định theo từng aggregate?
-9. Partial import hay atomic toàn file là contract chính thức?
-10. API Pharma có yêu cầu thực tế không?
+1. Is Pharma intentionally disabled (`enabled => false`) in every environment, or is production/runtime enablement managed elsewhere?
+2. Which roles/capabilities may view, create, edit, delete, import, export, and generate PriceList files?
+3. Is PriceList a disposable generated file or a business document requiring audit/version/history?
+4. Which workbook columns are sensitive and which are allowed to reach the browser/client?
+5. Should users be able to choose import mode, especially destructive `replace`, or should mode be fixed per aggregate/capability?
+6. Is partial import the intended contract, or must some Pharma imports be atomic?
+7. What is the canonical SupplierTracking unique/business key, and is `working_date` mandatory?
+8. Is `/api/pharma` required at all?
+9. May trusted CLI callers write PriceList files outside the private export root?
+10. What dataset/file-size thresholds should trigger queued import/export/PriceList generation?

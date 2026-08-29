@@ -42,8 +42,11 @@ Modules/ModuleServiceProvider.php
 .codex/bootstrap/AI_PROJECT_CONTEXT.md
 .codex/standards/MODULE_STANDARD.md
 .codex/standards/ADMIN_UI_STANDARD.md
+docs/GITHUB_COLLABORATION_WORKFLOW.md
 ROADMAP.md
 ```
+
+If the task was entered through a repository workflow prompt such as `docs/chuyen_chat.md` or `docs/chuyen_may.md`, read and preserve that workflow context as well.
 
 If the target module contains import/export behavior, also read the repository's canonical import/export guidance when present.
 
@@ -58,6 +61,7 @@ Determine the project conventions relevant to the target module:
 - security standards
 - performance standards
 - documentation standards
+- collaboration / PR governance
 - roadmap priorities
 
 ## 3. Instruction Priority
@@ -65,14 +69,17 @@ Determine the project conventions relevant to the target module:
 When guidance conflicts, use this order:
 
 1. Current repository source/configuration and actual runtime architecture.
-2. `.codex/bootstrap/*` and `ROADMAP.md`.
-3. `.codex/standards/MODULE_STANDARD.md` and `.codex/standards/ADMIN_UI_STANDARD.md`.
-4. Existing module documentation.
-5. Older/general guidance files.
+2. Repository workflow/governance that controls collaboration, branch, handoff and PR gates.
+3. `.codex/bootstrap/*` and `ROADMAP.md`.
+4. `.codex/standards/MODULE_STANDARD.md` and `.codex/standards/ADMIN_UI_STANDARD.md`.
+5. Existing module documentation.
+6. Older/general guidance files.
 
 Source code is the source of truth for current behavior.
 
 Standards define the expected target quality. A mismatch between current source and standards is a finding, not permission to rewrite source during `/analyze`.
+
+Workflow metadata required by repository governance, especially `COLLABORATION_HANDOFF.md`, is not application source and is not considered a violation of the `/analyze` documentation-output scope.
 
 Do not classify repository-specific architecture as defective merely because an older generic/master prompt uses another architecture.
 
@@ -90,9 +97,12 @@ At minimum inspect when present:
 ANALYSIS.md
 INFORMATION.md
 README.md
+COLLABORATION_HANDOFF.md
 ```
 
 Existing docs are context only. Verify them against source code. If docs and source differ, record documentation drift.
+
+`COLLABORATION_HANDOFF.md` is workflow metadata. Preserve its historical/current checkpoint information and update only what is required to hand off the completed analysis safely.
 
 ## 5. Scope
 
@@ -113,6 +123,8 @@ Inspect shared or other-module files only when directly referenced by the target
 - Blade/Livewire/shared component references
 
 Do not inspect unrelated modules or the entire project unnecessarily.
+
+Repository-level workflow/task documentation may be updated only when the user explicitly approves a governance/task-standardization change. Such a change must remain documentation-only.
 
 ## 6. Analysis Flow
 
@@ -249,7 +261,9 @@ If a category does not exist in the module, state `Not present` rather than inve
 
 ## 11. Output Files
 
-Create or update only:
+### 11.1 Analysis deliverables
+
+Create or update only these module-analysis deliverables:
 
 ```text
 docs/modules/<ModuleName>/ANALYSIS.md
@@ -257,7 +271,32 @@ docs/modules/<ModuleName>/INFORMATION.md
 docs/modules/<ModuleName>/README.md
 ```
 
-Do NOT create `REFACTOR_PLAN.md` or `REBUILD_SPEC.md` during `/analyze` unless explicitly requested in a separate task.
+Do NOT create or update `REFACTOR_PLAN.md` or `REBUILD_SPEC.md` during `/analyze` unless explicitly requested in a separate task.
+
+### 11.2 Workflow metadata
+
+When repository workflow requires a handoff checkpoint before PR/merge, also update:
+
+```text
+docs/modules/<ModuleName>/COLLABORATION_HANDOFF.md
+```
+
+If it does not exist, create a minimal handoff file before the PR gate.
+
+This file is workflow metadata, not an additional analysis deliverable. It must not expand the implementation scope.
+
+The analysis handoff should record at minimum:
+
+- task `/analyze <ModuleName>` completed
+- analysis branch/checkpoint when known
+- analysis deliverables updated
+- final recommendation
+- material P0/P1 risks or unresolved unknowns
+- application-source modification status: none
+- runtime/module/UI test applicability for this documentation-only task
+- next implementation/refactor phase: `NOT AUTHORIZED` until separately proposed and approved
+
+Do not treat completion of `/analyze` as authorization to create a refactor/rebuild branch or modify application code.
 
 ### ANALYSIS.md
 
@@ -288,7 +327,7 @@ Final Recommendation
 Open Questions / Unknowns
 ```
 
-Final recommendation should choose one when evidence is sufficient:
+Final recommendation should choose exactly one when evidence is sufficient:
 
 ```text
 Minor Refactor
@@ -350,16 +389,43 @@ Future Improvements
 - Prefer concise factual documentation over duplicated prose.
 - Code is the source of truth for current behavior.
 - Standards are the reference for target quality.
+- Repository collaboration workflow governs handoff and PR metadata.
 - Mark unknowns explicitly.
 - Do not recommend introducing `nwidart`, `module.json`, a new CSS framework, or a new module-registration mechanism unless current repository infrastructure explicitly requires it.
+- Completing `/analyze` never implicitly authorizes refactor/rebuild implementation.
 
-## 13. Quality Gate
+## 13. Documentation-Only Verification
+
+For `/analyze`, application runtime behavior is not changed. Therefore runtime-focused gates are normally:
+
+```text
+Focused application tests: NOT APPLICABLE — documentation-only
+Module regression: NOT APPLICABLE — documentation-only
+Manual UI smoke: NOT APPLICABLE — documentation-only
+```
+
+Do not run application tests merely to satisfy a generic gate when no application source/config/schema/runtime behavior changed.
+
+Instead perform documentation verification:
+
+1. source evidence and documentation statements are consistent
+2. recommendation matches recorded evidence
+3. required sections are present
+4. documentation drift is explicitly recorded
+5. diff contains no application source/config/schema/runtime changes
+6. no `REFACTOR_PLAN.md` or `REBUILD_SPEC.md` mutation occurred unless separately authorized
+7. handoff checkpoint satisfies the collaboration workflow before PR
+
+If the analysis itself changes repository-level workflow/task documentation by explicit user approval, verify that those changes remain documentation/governance-only and do not weaken mutation approval gates.
+
+## 14. Quality Gate
 
 Before finishing verify:
 
 - target module was resolved
 - bootstrap/context files were read
 - `MODULE_STANDARD.md` and `ADMIN_UI_STANDARD.md` were read
+- collaboration workflow was read when present
 - existing module docs were checked
 - scope stayed within the target module plus direct dependencies
 - analysis followed the required flow
@@ -368,14 +434,44 @@ Before finishing verify:
 - UI standard was reviewed when the module has admin UI
 - P0/P1 findings have evidence
 - unknowns were identified
-- exactly the requested documentation files were created or updated
+- exactly the three analysis deliverables were created or updated
+- workflow metadata was updated when required by repository governance
+- documentation-only verification passed
 - no application code was modified
+- next implementation/refactor phase remains unauthorized unless separately approved
+
+## 15. PR / Handoff Gate
+
+When `/analyze` is performed under `docs/GITHUB_COLLABORATION_WORKFLOW.md`:
+
+```text
+Full source inspection
+-> ANALYSIS.md / INFORMATION.md / README.md
+-> documentation drift check
+-> exactly one final recommendation
+-> COLLABORATION_HANDOFF.md checkpoint
+-> diff-scope verification
+-> documentation-only PR
+```
+
+Before creating the PR:
+
+- working tree/checkpoint must be clean and synchronized where applicable
+- handoff must describe the current analysis checkpoint
+- PR must be clearly labeled/documented as documentation-only
+- application tests/UI smoke must not be reported as PASS when they were not run; use `NOT APPLICABLE — documentation-only`
+- no refactor/rebuild implementation may be bundled into the PR
+
+Before merge, refresh the handoff if PR review changes the analysis conclusion, material findings, branch checkpoint or next-step status.
 
 ## Final Response
 
 Return only a short summary containing:
 
-- documentation files created/updated
+- analysis documentation files created/updated
+- workflow metadata updated when applicable
 - most important findings
 - unresolved unknowns, if any
+- final recommendation
 - confirmation that application source code was not modified
+- next implementation/refactor authorization status

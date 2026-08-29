@@ -1,57 +1,140 @@
 # Pharma Module
 
+Last verified: 2026-08-30
+
 ## Module Overview
 
-Pharma là domain owner của hồ sơ thuốc, thuốc trúng thầu, theo dõi nhà cung cấp và tạo báo giá Excel. Trạng thái đánh giá hiện tại: cần **Major Refactor** trước khi dùng dữ liệu giá/hợp đồng ở production.
+Pharma is the domain owner for:
 
-## Installation / Registration
+- medicine master data;
+- drug bid awards;
+- supplier/commercial tracking;
+- generated XLSX price lists.
 
-Module được `Modules\ModuleServiceProvider` tự discover từ `config/module.php`, load routes/views/migrations/Livewire/console. Cần chạy migrations, bảo đảm workbook nguồn tồn tại và private storage có quyền ghi. Không dùng các lệnh `module:*` cũ trong `Modules/Pharma/readme.md` làm runbook chính thức.
+Current assessment: **Major Refactor required**. The module has a useful service/model/spreadsheet foundation and does not require a full rebuild.
 
-## Routes
+## Registration
 
-Admin UI dưới `/admin/pharma`: `hssp`, `drug-bid-awards`, `supplier-trackings`, `price-lists/create`. API `/api/pharma` và supplier import-export page hiện có contract hỏng; xem `ANALYSIS.md`.
+Pharma is automatically discovered by `Modules\ModuleServiceProvider`.
+
+Current manifest:
+
+```text
+type: domain
+enabled: false
+depends: Shared
+```
+
+Do not introduce a separate Pharma service provider or another module-registration system unless repository infrastructure changes.
+
+## Main Routes
+
+Admin UI is under `/admin/pharma`:
+
+- `hssp`
+- `drug-bid-awards`
+- `supplier-trackings`
+- `price-lists/create`
+
+Current admin route middleware is only `web, auth:admin`; capability-specific authorization still needs to be enforced.
+
+`GET /api/pharma` currently points to a missing API `index()` action and should be treated as a broken/unfinished contract.
 
 ## Permissions
 
-Các permission đã khai báo: view/create/edit/delete Pharma, nhưng code hiện chưa enforce. Cần bổ sung import/export/generate-price-list và authorization từng Livewire action trước production.
+Declared permissions:
+
+```text
+view_pharma
+create_pharma
+edit_pharma
+delete_pharma
+```
+
+These are not yet consistently enforced in routes and Livewire actions. Import/export/PriceList generation also need an explicit capability contract.
 
 ## Features
 
-CRUD/filter/bulk actions, spreadsheet import/export, Supplier financial calculations, và PriceList builder chọn sheet/columns/products/recipient/signature để tạo file Excel.
+### Medicine
+
+CRUD, filters/search, bulk operations, import/export.
+
+### DrugBidAward
+
+CRUD, filters/search, bulk operations, import/export.
+
+### SupplierTracking
+
+CRUD/list/filter, supplier/commercial data, server-side financial calculations, import/export.
+
+### PriceList
+
+Analyzes `storage/app/excel/BANG_GIA_TONG_HOP.xlsx`, allows product/column selection, and generates XLSX output. Default generated files are written under private storage and deleted after successful HTTP download.
 
 ## Dependencies
 
-Admin shell, Shared import/export, Laravel Storage/DB/Livewire, FastExcel và PhpSpreadsheet. Nên khai báo PhpSpreadsheet trực tiếp trong Composer vì Pharma import namespace của package này.
+- Admin shell/layout
+- Shared Import/Export foundation
+- Laravel DB / Storage / Livewire
+- FastExcel / spreadsheet libraries
 
-## Import
-
-Medicine A–U, Award A–L, Supplier A–V; update-or-create và row report. Hiện xử lý đồng bộ, collection-based; cần chốt mode và transaction contract theo aggregate.
-
-## Export
-
-Shared exports cần chuyển từ public sang private và chunk/expire. Báo giá đã dùng private output và delete-after-send, nhưng cần audit/cleanup fallback và authorization.
+Cross-module dependency direction is appropriate: Pharma owns business logic; Shared owns reusable import/export infrastructure; Admin owns shell presentation.
 
 ## Configuration
 
-Workbook báo giá mặc định: `storage/app/excel/BANG_GIA_TONG_HOP.xlsx`, sheet `TỔNG HỢP`, cột mặc định `A:X`. Snapshot phân tích ngày 2026-07-20: header row 9, 24 cột, 44 sản phẩm, không có formula trong sheet XML.
+Primary config:
 
-## Events
+```text
+Modules/Pharma/config/module.php
+```
 
-Chưa có. Nên phát event safe-metadata cho import/export/quotation lifecycle sau commit.
+Current source sets:
 
-## Jobs
+```text
+enabled => false
+```
 
-Chưa có. Large import/export/quotation nên queue theo threshold với progress, retry và cleanup.
+PriceList default source:
 
-## Operations Notes
+```text
+storage/app/excel/BANG_GIA_TONG_HOP.xlsx
+```
 
-- Không cấp URL PriceList cho admin không có nhu cầu cho đến khi permission và Livewire data leak được sửa.
-- Không coi generated quotation là audit record; hiện file tạm không persist history.
-- Giữ workbook nguồn private, version/hash/backup và giới hạn người cập nhật.
-- Theo dõi public export cũ và lên kế hoạch migration/cleanup.
-- PHP không có trong shell phân tích nên test không được chạy; kết quả test được đánh giá từ code.
+## Operational Notes
+
+Do not treat this analysis as authorization to enable Pharma in production.
+
+Before production-capable use, prioritize:
+
+1. capability authorization at route and Livewire mutation boundaries;
+2. removal of unnecessary workbook data from public Livewire state;
+3. private storage + retention for Pharma import/export output;
+4. correction/removal of the broken API route;
+5. bounded pagination/selection and scalable import/export;
+6. SupplierTracking duplicate/business-key decision;
+7. targeted security/authorization/import-export tests.
+
+## Developer Notes
+
+- Controllers should remain thin.
+- Business workflows belong in Pharma services.
+- Keep PriceList row/column server-side validation; it is a useful defense-in-depth layer.
+- Avoid `All -> 999999`; use bounded page sizes.
+- Use a searchable/bounded Medicine picker instead of loading the complete catalog for large datasets.
+- Do not return raw exception text to operators.
+- Shared Import/Export currently accepts a public `serviceClass`; harden it with locked/server-owned service selection before relying on it as a sensitive cross-module boundary.
+- Shared exports currently use public storage; Pharma commercial exports should move to an authorized private-download path.
+
+## Testing
+
+Current observable module-local test inventory:
+
+```text
+Modules/Pharma/Tests/Unit/PriceListServiceTest.php
+```
+
+No test command was executed during this documentation-only analysis.
 
 ## Future Improvements
 
-Thực hiện `REFACTOR_PLAN.md`: P0 authorization/data exposure/private storage, rồi route correctness, quotation lifecycle, Supplier invariant, bounded processing, queue/cache/audit/monitoring và test đầy đủ.
+See `ANALYSIS.md` for the evidence-based P0/P1/P2 findings. Recommended direction remains **Major Refactor**, preserving current domain models, migrations, service boundaries, Shared import/export adoption, and the PriceList spreadsheet pipeline while fixing security, correctness, scaling, and test gaps.
