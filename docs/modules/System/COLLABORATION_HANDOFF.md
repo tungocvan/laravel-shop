@@ -11,6 +11,35 @@
 
 This phase separates filesystem catalog discovery, graph validation and current-request registry projection without changing the established `config('modules.registry')` consumer contract. Module runtime state remains an atomic file-backed override, manifests remain immutable at runtime, and the root provider keeps its existing registration behavior and boot order.
 
+## Corrective Closeout — Account Migration Ledger Recovery
+
+After the Phase A runtime work was verified, enabling `Account` exposed an existing database state where all Account schema artifacts were already present while none of the five Account migrations were recorded in Laravel's migration ledger. The lifecycle safety gate correctly refused to replay migrations over the existing schema.
+
+Corrective branch: `fix/account-migration-recovery-ownership`
+
+The corrective change adds an explicit Account migration ownership contract covering exactly these verified schema artifacts:
+
+- `users.account_type` for `2026_05_26_143653_update_users_for_account`;
+- `employee_profiles` for `2026_05_26_143725_employee_profiles`;
+- `customer_profiles` for `2026_05_26_143744_customer_profiles`;
+- `user_metas` for `2026_05_26_143758_user_metas`;
+- `user_identity_profiles` for `2026_05_27_000005_create_user_identity_profiles_table`.
+
+The recovery command first reported `RECOVERABLE`, the operator explicitly confirmed `--apply`, and only the five verified migration ledger rows were restored. No Account migration was replayed and no schema/data mutation was requested by the corrective contract. A subsequent dry-run reported `READY: Schema và migration ledger đã đồng bộ.` Account was then enabled successfully and four Account permissions were synchronized.
+
+Focused corrective verification completed locally:
+
+```text
+AccountMigrationRecoveryContractTest           PASS (2 tests, 6 assertions)
+Ownership verifier + recovery assessor         PASS (9 tests, 22 assertions)
+Runtime recovery apply                          PASS (5 verified ledger rows restored)
+Post-recovery dry-run                           PASS (READY)
+Account module enable                           PASS
+Account permission synchronization              PASS (4 permissions)
+```
+
+Safety invariant: never manually insert Account rows into the `migrations` table; recovery must remain ownership-verified and operator-confirmed through `module:migration-recover`.
+
 ## Approved Scope
 
 - introduce one read-only `ModuleCatalog` for filesystem discovery, manifest normalization and runtime-state resolution;
@@ -62,6 +91,8 @@ Modules/System/Services/SystemModuleOverviewService.php
 Modules/System/Services/SystemRealtimeControlService.php
 tests/Feature/System/ModuleCatalogRegistryTest.php
 tests/Feature/System/ModuleGraphValidatorTest.php
+Modules/Account/config/migration_ownership.php
+tests/Feature/System/AccountMigrationRecoveryContractTest.php
 ```
 
 ### Updated
@@ -82,6 +113,7 @@ tests/Feature/System/SystemModuleRuntimeGitCleanTest.php
 tests/Feature/System/SystemModuleRuntimeLifecycleTest.php
 tests/Feature/System/SystemModuleRuntimeUiTest.php
 tests/Feature/System/SystemModulesControlTest.php
+docs/modules/System/COLLABORATION_HANDOFF.md
 ```
 
 ## Verification Gate
@@ -109,6 +141,11 @@ Frontend production build                      PASS (Vite 7.3.6, 34 modules, 3.6
 Desktop/mobile System Modules UI               PASS
 Realtime and module toggle round-trip          PASS
 Manifest and Git worktree after toggle         PASS (clean)
+Account recovery contract                      PASS (2 tests, 6 assertions)
+Recovery verifier/assessor                     PASS (9 tests, 22 assertions)
+Account migration ledger recovery              PASS
+Account post-recovery status                    PASS (READY)
+Account module enable + permission sync         PASS (4 permissions)
 ```
 
 A full-project regression is outside the approved gate.
@@ -127,5 +164,6 @@ A full-project regression is outside the approved gate.
 2. **COMPLETE** — Catalog, validator, registry, System adapters, archive retirement and directly affected tests implemented.
 3. **COMPLETE** — Local syntax, Pint and whitespace gates passed.
 4. **COMPLETE** — Operator ran the approved focused/regression/build/UI gates; all passed.
-5. **PENDING** — Open a PR for manual user review.
-6. **PENDING** — User performs manual review and merge; automatic merge is not authorized.
+5. **COMPLETE** — Account migration ownership corrective recovery verified; Account is `READY`, enabled, and permissions synchronized.
+6. **PENDING** — Open corrective PR for manual user review.
+7. **PENDING** — User performs manual review and merge; automatic merge is not authorized.
