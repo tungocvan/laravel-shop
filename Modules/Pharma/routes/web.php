@@ -41,9 +41,6 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/{id}/edit', [SupplierTrackingController::class, 'edit'])
             ->middleware('can:edit_pharma')
             ->name('edit');
-        Route::get('/import-export', [SupplierTrackingController::class, 'importExport'])
-            ->middleware('can:edit_pharma')
-            ->name('import-export');
     });
 
     Route::get('/price-lists/create', [PriceListController::class, 'create'])
