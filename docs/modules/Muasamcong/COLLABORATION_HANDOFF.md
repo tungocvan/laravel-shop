@@ -8,7 +8,7 @@
 - Delivery: **Muasamcong Admin Dashboard**
 - Source implementation checkpoint: `d47457a164dc7722c351984b567530de842dcec0`
 - Documentation checkpoint verified locally: `0430e531b68bf9bcfaee9d2fca40ae63948a2534`
-- Pull request: **PENDING — not created**
+- Pull request: **#72 — OPEN / READY FOR REVIEW**
 - Merge commit: **NOT AVAILABLE**
 - Delivery status: **COMPLETED / READY FOR REVIEW — all applicable implementation, test, formatting, route, UI, diff, and Git-clean gates PASS**
 - Production enablement/deployment: **NOT AUTHORIZED / NOT CHANGED**
@@ -149,7 +149,7 @@ Module-wide Pint initially reported four pre-existing style issues in unrelated 
 | Runtime/upstream verification | NOT RUN | Dashboard uses local bounded summaries; live upstream testing outside scope |
 | Markdown whitespace check | PASS | `git diff --check origin/main...HEAD` produced no output at `0430e531` |
 | Local Git clean after docs | PASS | User local branch matched `origin/feat/muasamcong-admin-dashboard`; no modified/untracked paths reported |
-| PR review/merge | PENDING | PR not created |
+| PR review/merge | PENDING USER REVIEW | PR #72 is open; merge not performed |
 
 ## Files in this delivery
 
@@ -202,8 +202,7 @@ Merge readiness does not authorize deployment, production enablement, migrations
 
 ## Remaining work / next authorized step
 
-1. Create a PR from `feat/muasamcong-admin-dashboard` to `main`.
-2. User reviews the PR link and decides whether to merge manually.
-3. After merge, verify `main`, module regression/Git-clean as applicable, and whether a docs-only post-merge handoff closeout is required.
+1. User reviews PR #72 and decides whether to merge manually.
+2. After merge, verify `main`, module regression/Git-clean as applicable, and whether a docs-only post-merge handoff closeout is required.
 
 Do not infer a next refactor MR, production action, or post-merge closeout until this delivery is reviewed and merged.
