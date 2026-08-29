@@ -1,78 +1,217 @@
 # Pharma Module Information
 
+Last verified: 2026-08-30
+
 ## Purpose
 
-Quản lý hồ sơ thuốc, kết quả trúng thầu, theo dõi nhà cung cấp/giá vốn/lợi nhuận và tạo báo giá XLSX từ workbook tổng hợp.
+Pharma owns medicine master data, drug bid awards, supplier/commercial tracking, and XLSX price-list generation.
+
+## Module State
+
+```text
+Type: domain
+Enabled in config: false
+Direct module dependency: Shared
+```
+
+Declared permissions:
+
+```text
+view_pharma
+create_pharma
+edit_pharma
+delete_pharma
+```
+
+These permissions are currently declared but not consistently enforced by Pharma routes/Livewire actions.
 
 ## Features
 
-- CRUD/list/filter/bulk delete cho ba aggregate.
-- Import/export Medicine A–U, DrugBidAward A–L, SupplierTracking A–V.
-- Tính server-side chênh lệch hóa đơn, phí, giá vốn, lợi nhuận.
-- Tạo báo giá: phân tích sheet/header, tìm/chọn sản phẩm, chọn cột, recipient/chữ ký, giữ style/drawing/print setup và tải XLSX.
-- CLI import Medicine và generate PriceList.
+- Medicine CRUD, search/filter, bulk selection/delete, import/export.
+- DrugBidAward CRUD, filters, bulk selection/delete, import/export.
+- SupplierTracking CRUD/list/filter, commercial calculations, bulk delete, import/export.
+- PriceList workbook analysis, product/column selection, recipient/signature metadata, XLSX generation/download.
+- CLI support for selected Pharma workflows.
 
 ## Routes
 
-Admin prefix `/admin/pharma`, middleware hiện tại `web, auth:admin`:
+Admin prefix: `/admin/pharma`, active middleware currently `web, auth:admin`.
 
-- `/hssp`: index/create/{id}/edit.
-- `/drug-bid-awards`: index/create/{id}/edit.
-- `/supplier-trackings`: index/create/{id}/edit và `/import-export` (route hỏng vì method thiếu).
-- `/price-lists/create`: tạo báo giá.
-- Public `GET /api/pharma` hiện hỏng vì controller thiếu `index`.
+Main routes:
 
-## Permissions
+- `/admin/pharma/hssp`
+- `/admin/pharma/hssp/create`
+- `/admin/pharma/hssp/{id}/edit`
+- `/admin/pharma/drug-bid-awards`
+- `/admin/pharma/drug-bid-awards/create`
+- `/admin/pharma/drug-bid-awards/{id}/edit`
+- `/admin/pharma/supplier-trackings`
+- `/admin/pharma/supplier-trackings/create`
+- `/admin/pharma/supplier-trackings/{id}/edit`
+- `/admin/pharma/supplier-trackings/import-export`
+- `/admin/pharma/price-lists/create`
 
-Manifest: `view_pharma`, `create_pharma`, `edit_pharma`, `delete_pharma`. Chưa được enforce ở routes/actions. Chưa có `import_pharma`, `export_pharma`, `generate_price_list`.
+API:
 
-## Dependencies
+- `GET /api/pharma` currently targets `Api\PharmaController@index`, but the controller has no `index()` method. The active API route is not guarded by Sanctum.
 
-Laravel 12/PHP 8.3, Livewire 3, FastExcel, Maatwebsite Excel, PhpSpreadsheet (đang dùng qua transitive dependency), Shared import/export, Admin layout/menu, private/public Storage.
+## Controllers
+
+- `Http/Controllers/PharmaController.php`
+- `Http/Controllers/DrugBidAwardController.php`
+- `Http/Controllers/SupplierTrackingController.php`
+- `Http/Controllers/PriceListController.php`
+- `Http/Controllers/Api/PharmaController.php` — empty scaffold at current checkpoint.
+
+Web controllers are primarily thin page controllers.
+
+## Livewire Components
+
+- `Medicine/Index.php`
+- `Medicine/Form.php`
+- `DrugBidAward/Index.php`
+- `DrugBidAward/Form.php`
+- `SupplierTrackings/Index.php`
+- `SupplierTrackings/Form.php`
+- `PriceList/Create.php`
+
+Important current behavior:
+
+- Medicine and DrugBidAward support an `All` path implemented as `999999` rows.
+- SupplierTracking select-all loads every filtered ID.
+- CRUD/delete/generate Livewire actions do not currently enforce capability authorization.
+- Medicine/DrugBidAward/PriceList contain user-facing raw exception paths.
+- PriceList keeps workbook analysis in a public Livewire property.
+
+## Blade Views
+
+Module views live under `Modules/Pharma/resources/views` and use the Admin shell. Interactive feature behavior is delegated to Livewire.
 
 ## Services
 
-CRUD: `MedicineService`, `DrugBidAwardService`, `SupplierTrackingService`. Import/export: `MedicineImportExport`, `DrugBidAwardImportExport`, `ImportExport` (Supplier), compatibility `MedicineImportService`. PriceList: `PriceListService`, `WorkbookAnalyzer`, `PriceListWorkbookBuilder`.
+Core services:
 
-## Imports
+- `MedicineService`
+- `DrugBidAwardService`
+- `SupplierTrackingService`
+- `PriceListService`
 
-Mode mặc định update-or-create, giữ giá trị cũ khi cell null, report theo row. Medicine key registration+packaging; Award key notice+medicine+company; Supplier key service-level medicine+supplier+working date. Import hiện giữ toàn collection và chạy sync.
+Import/export:
 
-## Exports
+- `MedicineImportExport`
+- `DrugBidAwardImportExport`
+- `ImportExport` (SupplierTracking)
+- compatibility helper `MedicineImportService`
 
-Ba data export dùng Shared base, filter + map nhưng `get()` toàn bộ và lưu public disk. PriceList dùng source cố định `storage/app/excel/BANG_GIA_TONG_HOP.xlsx`, output private `storage/app/private/exports/price-lists`, download rồi delete.
+Spreadsheet:
+
+- `Spreadsheet/WorkbookAnalyzer`
+- `Spreadsheet/PriceListWorkbookBuilder`
+
+## Imports / Exports
+
+Pharma reuses the canonical Shared import/export foundation.
+
+Shared panel behavior currently includes:
+
+- upload validation for xlsx/csv and max size;
+- dry-run support;
+- modes `create_only`, `update_or_create`, `skip_duplicate`, `replace`;
+- optional permission check;
+- subclass check for the configured service during `mount()`.
+
+Known concerns:
+
+- `serviceClass` remains public mutable Livewire state and is dynamically resolved during actions;
+- permission is optional;
+- imports are collection-based;
+- exports are collection-based and written to `storage/app/public`;
+- no observed explicit retention/cleanup contract for shared exports.
+
+PriceList differs from shared exports: its default generated file is under private storage and the HTTP response deletes the file after send.
 
 ## Models
 
-`Medicine`, `DrugBidAward`, `SupplierTracking`; scaffold `Pharma` không thấy sử dụng. PriceList chưa có model/audit record.
+- `Medicine`
+- `DrugBidAward`
+- `SupplierTracking`
+- `Pharma` — scaffold/unused status should be confirmed before removal.
 
 ## Database Tables
 
-`pharma_medicines`, `pharma_drug_bid_awards`, `pharma_supplier_trackings`. Không có table quotation. Supplier chưa có unique key mà importer giả định.
+- `pharma_medicines`
+- `pharma_drug_bid_awards`
+- `pharma_supplier_trackings`
 
-## Events
+Medicine has a composite unique constraint for registration number + packaging specification.
 
-Không có domain event/listener.
+SupplierTracking has indexes on `(medicine_id, supplier_name)` and `status`, but no unique constraint for a supplier business key involving working date.
 
-## Jobs
+PriceList has no table/model; generated quotations are not persisted as audit records.
 
-Không có queue job. Import/export/generate chạy đồng bộ.
+## Relationships
 
-## Configuration
+- DrugBidAward -> Medicine (`belongsTo`).
+- SupplierTracking -> Medicine (`belongsTo`).
+- Medicine inverse relationships are not a major requirement for current behavior and should only be added if callers need them.
 
-`config/module.php` quản lý enabled/type/permissions/table catalog. PriceList source path là constant, không có config feature riêng.
+## Shared / Cross-Module Dependencies
 
-## Environment Variables
+- `Modules/Shared/Services/ImportExport/*`
+- `Modules/Shared/Livewire/ImportExport/Panel.php`
+- Admin layout/shell
 
-Không có environment variable Pharma-specific được quan sát.
+No circular module dependency was observed.
 
-## Known Risks
+## Events / Jobs
 
-- Thiếu permission/action authorization.
-- Full workbook values nằm trong public Livewire state.
-- Shared panel resolve class từ public client state.
-- Business exports tồn tại trên public disk.
-- API và supplier route gọi method thiếu.
-- Workbook được load lặp, import/export unbounded.
-- Raw exceptions/formula-like spreadsheet input/output path boundary.
-- Thiếu audit/version/lifecycle cho báo giá.
+No Pharma domain event/listener or queue job was observed in the current module structure. Long-running import/export/PriceList work currently runs synchronously.
+
+## Configuration / Environment Variables
+
+`Modules/Pharma/config/module.php` defines module metadata, dependency, permissions, table catalog, and currently `enabled => false`.
+
+PriceList default source:
+
+```text
+storage/app/excel/BANG_GIA_TONG_HOP.xlsx
+```
+
+Default generated directory:
+
+```text
+storage/app/private/exports/price-lists
+```
+
+No Pharma-specific environment variable was observed.
+
+## Test Inventory
+
+Observed module-local tests:
+
+```text
+Modules/Pharma/Tests/Unit/PriceListServiceTest.php
+```
+
+The previously documented `PharmaImportExportTest` was not found in the current repository search.
+
+## Known Limitations
+
+- capability authorization is incomplete;
+- PriceList analysis data is stored in public Livewire state;
+- shared exports use public storage;
+- shared import/export service selection remains browser-influenced;
+- API route is currently broken/public;
+- large lists/import/export are not bounded/streamed sufficiently;
+- full Medicine collections are loaded for some form selectors;
+- SupplierTracking duplicate/business-key semantics are not database-enforced;
+- PriceList has no persisted lifecycle/audit history;
+- some raw exception text can reach UI.
+
+## Maintenance Notes
+
+- Treat Pharma as a **Major Refactor** candidate, not a full rebuild.
+- Fix P0 authorization/data/file boundaries before performance or visual cleanup.
+- Preserve existing route names/tables/Livewire aliases unless compatibility impact is explicitly planned.
+- Shared Import/Export fixes require impacted-module regression beyond Pharma.
+- Do not enable Pharma in production merely because source/documentation analysis is complete; runtime enablement is a separate operational decision.
