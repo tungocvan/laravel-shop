@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Modules;
 
+use App\Modules\ModuleCatalog;
+use App\Modules\ModuleGraphValidator;
 use App\Modules\ModuleLifecycleManager;
 use App\Modules\ModulePermissionManager;
+use App\Modules\ModuleRegistry;
 use App\Modules\ModuleStateRepository;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -95,8 +98,14 @@ class ModuleRuntimeStateToggleTest extends TestCase
         $states->shouldReceive('set')
             ->once()
             ->with('Fixture', true);
+        $catalog = Mockery::mock(ModuleCatalog::class);
+        $catalog->shouldReceive('discover')
+            ->once()
+            ->andReturn(collect([$module]));
+        $validator = new ModuleGraphValidator;
+        $registry = new ModuleRegistry($catalog, $validator);
 
-        $service = new SystemModuleControlService($lifecycle, $permissions, $states);
+        $service = new SystemModuleControlService($registry, $validator, $lifecycle, $permissions, $states);
 
         try {
             $service->toggle('Fixture');

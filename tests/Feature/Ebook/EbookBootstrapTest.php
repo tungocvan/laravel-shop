@@ -2,11 +2,10 @@
 
 namespace Tests\Feature\Ebook;
 
+use App\Modules\ModuleCatalog;
 use App\Modules\ModuleStateRepository;
 use Illuminate\Support\Facades\Route;
 use Mockery;
-use Modules\ModuleServiceProvider;
-use ReflectionMethod;
 use Tests\TestCase;
 
 class EbookBootstrapTest extends TestCase
@@ -61,11 +60,7 @@ class EbookBootstrapTest extends TestCase
         $states->shouldReceive('get')->with('Ebook')->once()->andReturn(false);
         $this->app->instance(ModuleStateRepository::class, $states);
 
-        $provider = new ModuleServiceProvider($this->app);
-        $method = new ReflectionMethod($provider, 'resolveModuleManifest');
-        $method->setAccessible(true);
-
-        $module = $method->invoke($provider, base_path('Modules/Ebook'));
+        $module = $this->app->make(ModuleCatalog::class)->resolve(base_path('Modules/Ebook'));
 
         $this->assertSame('Ebook', $module['name']);
         $this->assertSame('domain', $module['type']);

@@ -6,15 +6,19 @@ use Tests\TestCase;
 
 class SystemModuleRuntimeUiTest extends TestCase
 {
-    public function test_modules_form_reads_effective_state_from_registry(): void
+    public function test_modules_form_delegates_effective_registry_rows_to_overview_service(): void
     {
-        $source = file_get_contents(base_path('Modules/System/Livewire/Settings/ModulesForm.php'));
+        $form = file_get_contents(base_path('Modules/System/Livewire/Settings/ModulesForm.php'));
+        $overview = file_get_contents(base_path('Modules/System/Services/SystemModuleOverviewService.php'));
+        $registry = file_get_contents(base_path('app/Modules/ModuleRegistry.php'));
 
-        $this->assertStringContainsString("config('modules.registry', [])", $source);
-        $this->assertStringContainsString("'enabled' => (bool) (\$module['enabled'] ?? false)", $source);
-        $this->assertStringContainsString("'source' => \$module['source'] ?? ''", $source);
-        $this->assertStringNotContainsString("config/module.php", $source);
-        $this->assertStringNotContainsString("Config/module.php", $source);
+        $this->assertStringContainsString('SystemModuleOverviewService::class', $form);
+        $this->assertStringContainsString('->current()', $overview);
+        $this->assertStringContainsString("'enabled' => (bool) (\$module['enabled'] ?? false)", $overview);
+        $this->assertStringContainsString("'source' => \$module['source'] ?? ''", $overview);
+        $this->assertStringContainsString("config('modules.registry', [])", $registry);
+        $this->assertStringNotContainsString('config/module.php', $overview);
+        $this->assertStringNotContainsString('Config/module.php', $overview);
     }
 
     public function test_modules_view_distinguishes_runtime_and_manifest_state_sources(): void

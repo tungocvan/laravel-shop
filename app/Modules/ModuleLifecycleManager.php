@@ -93,44 +93,6 @@ class ModuleLifecycleManager
         return $after + ['migrated' => true, 'output' => trim(Artisan::output())];
     }
 
-    public function archive(array $module, array $registry): string
-    {
-        if ($module['required'] ?? false) {
-            throw new \LogicException("{$module['name']} là Shell Module và không thể xóa.");
-        }
-
-        if ($module['enabled'] ?? false) {
-            throw new \LogicException("Hãy tắt module {$module['name']} trước khi xóa.");
-        }
-
-        $dependents = collect($registry)
-            ->filter(fn (array $candidate): bool => in_array($module['name'], $candidate['depends'] ?? [], true))
-            ->keys()
-            ->values();
-
-        if ($dependents->isNotEmpty()) {
-            throw new \LogicException(
-                "Không thể xóa module {$module['name']} vì còn được khai báo phụ thuộc bởi: {$dependents->join(', ')}."
-            );
-        }
-
-        $source = realpath($module['path']);
-        $modulesRoot = realpath(base_path('Modules'));
-        if ($source === false || $modulesRoot === false || ! str_starts_with($source, $modulesRoot.DIRECTORY_SEPARATOR)) {
-            throw new \RuntimeException('Đường dẫn module không hợp lệ.');
-        }
-
-        $trashRoot = storage_path('app/module-trash');
-        File::ensureDirectoryExists($trashRoot);
-        $destination = $trashRoot.DIRECTORY_SEPARATOR.$module['name'].'-'.now()->format('Ymd-His');
-
-        if (! File::moveDirectory($source, $destination)) {
-            throw new \RuntimeException("Không thể chuyển module {$module['name']} vào thư mục lưu trữ.");
-        }
-
-        return $destination;
-    }
-
     private function expectedTables(array $module): array
     {
         $manifestPath = collect([

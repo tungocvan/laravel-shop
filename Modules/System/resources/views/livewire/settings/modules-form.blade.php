@@ -85,18 +85,6 @@
                                 </div>
 
                                 <div class="ml-2 flex items-center gap-3">
-                                    @if (! $module['required'])
-                                        <button
-                                            type="button"
-                                            wire:click="deleteModule('{{ $module['name'] }}')"
-                                            wire:confirm="Gỡ module {{ $module['name'] }}? Mã nguồn sẽ được chuyển vào module-trash và database được giữ nguyên."
-                                            wire:loading.attr="disabled"
-                                            wire:target="deleteModule"
-                                            @disabled(! $canUpdate || $module['enabled'])
-                                            class="rounded-md px-2.5 py-1.5 text-xs font-semibold {{ $module['enabled'] ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'bg-red-50 text-red-700 hover:bg-red-100' }} disabled:cursor-not-allowed disabled:opacity-50"
-                                        >Gỡ</button>
-                                    @endif
-
                                     <label class="relative inline-flex items-center {{ (! $canUpdate || $module['required']) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer' }}">
                                         <input
                                             type="checkbox"
@@ -137,7 +125,7 @@
             <div class="ml-3">
                 <h3 class="text-sm font-medium text-blue-800">Lưu ý</h3>
                 <div class="mt-2 text-sm text-blue-700">
-                    <p>Shell Modules không thể tắt hoặc gỡ. Khi bật, hệ thống kiểm tra bảng, có thể chạy migration còn thiếu rồi đồng bộ quyền. Chỉ module đã tắt và không có module khác phụ thuộc mới được lưu trữ; database luôn được giữ lại.</p>
+                    <p>Shell Modules không thể tắt. Khi bật, hệ thống kiểm tra bảng, có thể chạy migration còn thiếu rồi đồng bộ quyền. Việc thêm hoặc gỡ mã nguồn module phải thực hiện qua quy trình triển khai có kiểm soát, không qua trình duyệt.</p>
                 </div>
             </div>
         </div>

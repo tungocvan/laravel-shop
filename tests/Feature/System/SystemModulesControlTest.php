@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\System;
 
+use App\Modules\ModuleCatalog;
+use App\Modules\ModuleGraphValidator;
 use App\Modules\ModuleLifecycleManager;
 use App\Modules\ModulePermissionManager;
+use App\Modules\ModuleRegistry;
 use App\Modules\ModuleStateRepository;
 use Illuminate\Support\Facades\Route;
 use LogicException;
 use Modules\System\Services\SystemModuleControlService;
+use Modules\System\Services\SystemModuleOverviewService;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -37,7 +41,7 @@ class SystemModulesControlTest extends TestCase
 
         $this->assertStringContainsString('AuthorizesSystemActions', $source);
 
-        foreach (['toggleRealtime', 'toggleModule', 'deleteModule', 'saveRouteTitle', 'addRouteToMenu'] as $method) {
+        foreach (['toggleRealtime', 'toggleModule', 'saveRouteTitle', 'addRouteToMenu'] as $method) {
             $start = strpos($source, 'function '.$method.'(');
             $this->assertNotFalse($start, "Missing {$method} method.");
             $next = strpos($source, '\n    public function ', $start + 1);
@@ -47,6 +51,7 @@ class SystemModulesControlTest extends TestCase
 
         $this->assertStringNotContainsString('updateModuleManifest(', $source);
         $this->assertStringNotContainsString('File::put(', $source);
+        $this->assertStringNotContainsString('function deleteModule(', $source);
     }
 
     public function test_required_module_cannot_be_disabled(): void
@@ -141,9 +146,12 @@ class SystemModulesControlTest extends TestCase
         $source = file_get_contents(base_path('Modules/System/Services/SystemModuleControlService.php'));
 
         $this->assertStringContainsString('ModuleStateRepository', $source);
-        $this->assertStringContainsString("->set(\$moduleName, \$newEnabled)", $source);
+        $this->assertStringContainsString('ModuleRegistry', $source);
+        $this->assertStringContainsString('->set($moduleName, $newEnabled)', $source);
+        $this->assertStringContainsString('->publish($updatedModules)', $source);
         $this->assertStringNotContainsString('writeEnabledManifest', $source);
         $this->assertStringNotContainsString('File::put(', $source);
+        $this->assertStringNotContainsString('config(["modules.registry.', $source);
     }
 
     public function test_control_service_uses_per_module_lock_and_livewire_validates_route_title(): void
@@ -157,6 +165,36 @@ class SystemModulesControlTest extends TestCase
         $this->assertStringContainsString("'routeTitle' => ['required', 'string', 'max:255']", $livewireSource);
         $this->assertStringContainsString("->pluck('url')", $routeManagerSource);
         $this->assertStringContainsString('normalizeMenuUrl', $routeManagerSource);
+    }
+
+    public function test_overview_service_builds_dependency_and_database_rows(): void
+    {
+        $registry = $this->mock(ModuleRegistry::class);
+        $lifecycle = $this->mock(ModuleLifecycleManager::class);
+        $modules = collect([
+            $this->moduleConfig(true),
+            $this->moduleConfig(true, false, ['Demo'], 'Consumer'),
+        ]);
+
+        $registry->shouldReceive('current')->once()->andReturn($modules);
+        $lifecycle->shouldReceive('databaseStatus')
+            ->twice()
+            ->andReturn(['tables' => [], 'missing_tables' => [], 'ready' => true]);
+
+        $rows = (new SystemModuleOverviewService($registry, $lifecycle))->rows();
+
+        $this->assertSame(['Consumer'], collect($rows)->firstWhere('name', 'Demo')['used_by']);
+        $this->assertTrue(collect($rows)->firstWhere('name', 'Demo')['database']['ready']);
+    }
+
+    public function test_realtime_mutation_is_owned_by_dedicated_service(): void
+    {
+        $moduleControlSource = file_get_contents(base_path('Modules/System/Services/SystemModuleControlService.php'));
+        $realtimeControlSource = file_get_contents(base_path('Modules/System/Services/SystemRealtimeControlService.php'));
+
+        $this->assertStringNotContainsString('RealtimeManager', $moduleControlSource);
+        $this->assertStringContainsString('RealtimeManager', $realtimeControlSource);
+        $this->assertStringContainsString('->setEnabled($target)', $realtimeControlSource);
     }
 
     public function test_browser_messages_do_not_append_raw_internal_exceptions(): void
@@ -173,8 +211,19 @@ class SystemModulesControlTest extends TestCase
         $lifecycle = $this->mock(ModuleLifecycleManager::class);
         $permissions = $this->mock(ModulePermissionManager::class);
         $states = $this->mock(ModuleStateRepository::class);
+        $catalog = $this->mock(ModuleCatalog::class);
+        $catalog->shouldReceive('discover')
+            ->once()
+            ->andReturnUsing(fn () => collect(config('modules.registry', []))->values());
+        $validator = new ModuleGraphValidator;
+        $registry = new ModuleRegistry($catalog, $validator);
 
-        return [new SystemModuleControlService($lifecycle, $permissions, $states), $lifecycle, $permissions, $states];
+        return [
+            new SystemModuleControlService($registry, $validator, $lifecycle, $permissions, $states),
+            $lifecycle,
+            $permissions,
+            $states,
+        ];
     }
 
     private function moduleConfig(bool $enabled, bool $required = false, array $depends = [], string $name = 'Demo'): array
