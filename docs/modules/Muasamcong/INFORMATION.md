@@ -1,7 +1,7 @@
 # Muasamcong Module Information
 
-> Inventory date: 2026-08-28  
-> Source reviewed: `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`  
+> Inventory date: 2026-08-28
+> Source reviewed: `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`
 > Source/config/schema are authoritative. Runtime enablement, production data, and upstream availability were not verified.
 
 ## Purpose

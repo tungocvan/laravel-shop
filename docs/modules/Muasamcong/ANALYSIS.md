@@ -1,8 +1,8 @@
 # Muasamcong Baseline Analysis
 
-> Baseline date: 2026-08-28  
-> Source checkpoint reviewed: `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`  
-> Scope: `Modules/Muasamcong`, its tests, module documentation, and directly referenced ClientPortal adapters.  
+> Baseline date: 2026-08-28
+> Source checkpoint reviewed: `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`
+> Scope: `Modules/Muasamcong`, its tests, module documentation, and directly referenced ClientPortal adapters.
 > Verification status: source/config/schema/tests were statically reviewed. No fresh runtime, database, upstream API, or automated test execution was performed for this documentation-only batch.
 
 ## Executive Summary
@@ -362,102 +362,102 @@ No P0 issue was observed in the reviewed source. Runtime secrets, database conte
 
 ### P1-01 — Mutation authorization is inconsistent
 
-**Priority:** P1  
-**File:** `Modules/Muasamcong/routes/web.php`; `Http/Controllers/PricingWishlistBulkController.php`; `Http/Controllers/PricingSearchHistoryController.php`; `Livewire/ContractorSearchList.php`; `Livewire/QueuedContractorHistory.php`; `Livewire/ContractorHistory.php`; `Livewire/ManualContractorLots.php`; `Livewire/SmartPricingVerifiedLots.php`  
-**Evidence:** state-changing routes/actions rely on `view_muasamcong` and omit action-level `Gate` checks, while dedicated sync/wishlist permissions already exist.  
-**Problem:** a view-only Admin can invoke writes/deletes/queue work server-side.  
-**Impact:** privilege escalation within the authenticated Admin boundary; unintended data mutation and upstream load.  
-**Recommendation:** define the required capability for every mutation, enforce it in route middleware and/or the action itself, and add negative authorization tests. Split additional permissions only where `pricing.sync`/`pricing.wishlist` do not express contractor or archive ownership.
+- **Priority:** P1
+- **File:** `Modules/Muasamcong/routes/web.php`; `Http/Controllers/PricingWishlistBulkController.php`; `Http/Controllers/PricingSearchHistoryController.php`; `Livewire/ContractorSearchList.php`; `Livewire/QueuedContractorHistory.php`; `Livewire/ContractorHistory.php`; `Livewire/ManualContractorLots.php`; `Livewire/SmartPricingVerifiedLots.php`
+- **Evidence:** state-changing routes/actions rely on `view_muasamcong` and omit action-level `Gate` checks, while dedicated sync/wishlist permissions already exist.
+- **Problem:** a view-only Admin can invoke writes/deletes/queue work server-side.
+- **Impact:** privilege escalation within the authenticated Admin boundary; unintended data mutation and upstream load.
+- **Recommendation:** define the required capability for every mutation, enforce it in route middleware and/or the action itself, and add negative authorization tests. Split additional permissions only where `pricing.sync`/`pricing.wishlist` do not express contractor or archive ownership.
 
 ### P1-02 — One-time session token can be replayed concurrently before consumption
 
-**Priority:** P1  
-**File:** `Http/Controllers/Api/PersonalSessionImportController.php`; `Services/SessionImportTokenService.php`; `Services/PersonalSessionService.php`  
-**Evidence:** controller validates the token, saves/tests the cookie, and calls locked `consume()` last.  
-**Problem:** two concurrent requests can both validate and reach secret mutation before only one consumes the token.  
-**Impact:** one-time semantics and session integrity are not guaranteed.  
-**Recommendation:** atomically claim/consume the token before mutation, with an explicit claimed/failed state or a safe retry/rollback design; add a concurrency/replay test.
+- **Priority:** P1
+- **File:** `Http/Controllers/Api/PersonalSessionImportController.php`; `Services/SessionImportTokenService.php`; `Services/PersonalSessionService.php`
+- **Evidence:** controller validates the token, saves/tests the cookie, and calls locked `consume()` last.
+- **Problem:** two concurrent requests can both validate and reach secret mutation before only one consumes the token.
+- **Impact:** one-time semantics and session integrity are not guaranteed.
+- **Recommendation:** atomically claim/consume the token before mutation, with an explicit claimed/failed state or a safe retry/rollback design; add a concurrency/replay test.
 
 ### P1-03 — Contractor jobs and selected sync are not fully idempotent
 
-**Priority:** P1  
-**File:** `Livewire/QueuedContractorHistory.php`; `Livewire/ContractorSearchList.php`; `Livewire/ContractorHistory.php`; migration `2026_08_17_120000_create_muasamcong_contractor_search_jobs_table.php`  
-**Evidence:** job dispatch uses check-then-create without a unique active-job key; selected bid sync checks existence then creates rows individually.  
-**Problem:** concurrent requests can enqueue duplicate work or hit uniqueness exceptions mid-sync.  
-**Impact:** duplicate upstream load, inconsistent UX, partial writes, and noisy failures.  
-**Recommendation:** introduce a transactional/idempotent dispatch command and duplicate-safe bulk persistence (`upsert`/`insertOrIgnore` as appropriate), with concurrency tests.
+- **Priority:** P1
+- **File:** `Livewire/QueuedContractorHistory.php`; `Livewire/ContractorSearchList.php`; `Livewire/ContractorHistory.php`; migration `2026_08_17_120000_create_muasamcong_contractor_search_jobs_table.php`
+- **Evidence:** job dispatch uses check-then-create without a unique active-job key; selected bid sync checks existence then creates rows individually.
+- **Problem:** concurrent requests can enqueue duplicate work or hit uniqueness exceptions mid-sync.
+- **Impact:** duplicate upstream load, inconsistent UX, partial writes, and noisy failures.
+- **Recommendation:** introduce a transactional/idempotent dispatch command and duplicate-safe bulk persistence (`upsert`/`insertOrIgnore` as appropriate), with concurrency tests.
 
 ### P1-04 — ClientPortal local search can silently omit matching rows
 
-**Priority:** P1  
-**File:** `Modules/ClientPortal/Applications/Muasamcong/Services/ClientPricingSearchService.php`  
-**Evidence:** the filtered query returns at most 500 `PricingResult` rows, then reports `partial=false` and `capped=false` without checking whether more matches exist.  
-**Problem:** matching results beyond the first 500 are invisible without a completeness warning.  
-**Impact:** incorrect search results and misleading UI.  
-**Recommendation:** move supported filters/pagination into the database, or accurately mark capped/partial results and provide a deterministic continuation strategy.
+- **Priority:** P1
+- **File:** `Modules/ClientPortal/Applications/Muasamcong/Services/ClientPricingSearchService.php`
+- **Evidence:** the filtered query returns at most 500 `PricingResult` rows, then reports `partial=false` and `capped=false` without checking whether more matches exist.
+- **Problem:** matching results beyond the first 500 are invisible without a completeness warning.
+- **Impact:** incorrect search results and misleading UI.
+- **Recommendation:** move supported filters/pagination into the database, or accurately mark capped/partial results and provide a deterministic continuation strategy.
 
 ### P1-05 — Snapshot and raw-payload retention is undefined
 
-**Priority:** P1  
-**File:** `Services/PricingSearchSnapshotService.php`; `Services/HsmtSnapshotService.php`; related snapshot/raw-payload migrations  
-**Evidence:** full upstream payloads and HSMT JSON/XLSX files are persisted; no cleanup command, TTL, quota, or retention documentation was found.  
-**Problem:** database and private storage growth are unbounded over module lifetime.  
-**Impact:** capacity/performance degradation and operational uncertainty.  
-**Recommendation:** define retention by data class, protect actively referenced snapshots, add scheduled cleanup/dry-run reporting, and expose bounded storage health on the future Dashboard.
+- **Priority:** P1
+- **File:** `Services/PricingSearchSnapshotService.php`; `Services/HsmtSnapshotService.php`; related snapshot/raw-payload migrations
+- **Evidence:** full upstream payloads and HSMT JSON/XLSX files are persisted; no cleanup command, TTL, quota, or retention documentation was found.
+- **Problem:** database and private storage growth are unbounded over module lifetime.
+- **Impact:** capacity/performance degradation and operational uncertainty.
+- **Recommendation:** define retention by data class, protect actively referenced snapshots, add scheduled cleanup/dry-run reporting, and expose bounded storage health on the future Dashboard.
 
 ### P1-06 — Core orchestration classes exceed the preferred responsibility boundary
 
-**Priority:** P1  
-**File:** `Http/Controllers/MuasamcongController.php`; `Http/Controllers/SyncedPricingExportController.php`; `Livewire/ContractorHistory.php`; `Livewire/SyncedPricingList.php`; `Livewire/TracuuThuoctrungthau.php`  
-**Evidence:** these classes combine presentation state, queries, workbook construction, file packaging, persistence, and upstream orchestration.  
-**Problem:** behavior is hard to authorize, test, profile, and change independently.  
-**Impact:** regression risk and slower maintenance across multiple workflows.  
-**Recommendation:** extract bounded command/query/export services incrementally while preserving routes, Livewire aliases, schemas, profile formats, and output files.
+- **Priority:** P1
+- **File:** `Http/Controllers/MuasamcongController.php`; `Http/Controllers/SyncedPricingExportController.php`; `Livewire/ContractorHistory.php`; `Livewire/SyncedPricingList.php`; `Livewire/TracuuThuoctrungthau.php`
+- **Evidence:** these classes combine presentation state, queries, workbook construction, file packaging, persistence, and upstream orchestration.
+- **Problem:** behavior is hard to authorize, test, profile, and change independently.
+- **Impact:** regression risk and slower maintenance across multiple workflows.
+- **Recommendation:** extract bounded command/query/export services incrementally while preserving routes, Livewire aliases, schemas, profile formats, and output files.
 
 ### P1-07 — Long synchronous upstream/export workflows need operational thresholds
 
-**Priority:** P1  
-**File:** `Services/PricingTbmtPaginationService.php`; `Services/MuaSamCongService.php`; synced export controllers; large Livewire components  
-**Evidence:** a request may fetch up to 100 TBMT pages; company search uses multiple strategies; formatted exports build up to 5,000 rows in memory.  
-**Problem:** current hard caps prevent infinity but not worker starvation or memory pressure.  
-**Impact:** slow requests, timeouts, and degraded Admin responsiveness under load.  
-**Recommendation:** measure actual latency/memory, define synchronous thresholds, queue larger jobs, report progress/partial state, and keep downloads private.
+- **Priority:** P1
+- **File:** `Services/PricingTbmtPaginationService.php`; `Services/MuaSamCongService.php`; synced export controllers; large Livewire components
+- **Evidence:** a request may fetch up to 100 TBMT pages; company search uses multiple strategies; formatted exports build up to 5,000 rows in memory.
+- **Problem:** current hard caps prevent infinity but not worker starvation or memory pressure.
+- **Impact:** slow requests, timeouts, and degraded Admin responsiveness under load.
+- **Recommendation:** measure actual latency/memory, define synchronous thresholds, queue larger jobs, report progress/partial state, and keep downloads private.
 
 ### P2-01 — Admin Dashboard is a missing management capability
 
-**Priority:** P2  
-**File:** `Modules/Muasamcong/routes/web.php`; Admin page views  
-**Evidence:** the Admin index is Smart Pricing and no management overview exists; ClientPortal's dashboard serves a different audience.  
-**Problem:** module functions and operational status lack one discoverable Admin entry point.  
-**Impact:** fragmented navigation and slower operations.  
-**Recommendation:** implement the separate Dashboard capability described above after choosing route compatibility.
+- **Priority:** P2
+- **File:** `Modules/Muasamcong/routes/web.php`; Admin page views
+- **Evidence:** the Admin index is Smart Pricing and no management overview exists; ClientPortal's dashboard serves a different audience.
+- **Problem:** module functions and operational status lack one discoverable Admin entry point.
+- **Impact:** fragmented navigation and slower operations.
+- **Recommendation:** implement the separate Dashboard capability described above after choosing route compatibility.
 
 ### P2-02 — Model mass-assignment policy is broad
 
-**Priority:** P2  
-**File:** all active files under `Modules/Muasamcong/Models`  
-**Evidence:** every model uses `protected $guarded = []`.  
-**Problem:** future callers can accidentally assign audit, ownership, or raw-payload fields.  
-**Impact:** latent integrity/security risk as workflows evolve.  
-**Recommendation:** adopt explicit `$fillable` or service-owned `forceFill` patterns in a compatibility-checked cleanup, with tests for protected fields.
+- **Priority:** P2
+- **File:** all active files under `Modules/Muasamcong/Models`
+- **Evidence:** every model uses `protected $guarded = []`.
+- **Problem:** future callers can accidentally assign audit, ownership, or raw-payload fields.
+- **Impact:** latent integrity/security risk as workflows evolve.
+- **Recommendation:** adopt explicit `$fillable` or service-owned `forceFill` patterns in a compatibility-checked cleanup, with tests for protected fields.
 
 ### P2-03 — Scaffolds and legacy metadata remain
 
-**Priority:** P2  
-**File:** `Models/Muasamcong.php`; `Livewire/Hsmt.php`; `resources/views/livewire/hsmt.blade.php`; `config/module.php`; price-list profile migrations  
-**Evidence:** empty scaffolds are unused, manifest uses legacy `enabled`, and a historical table is created then dropped.  
-**Problem:** repository intent is harder to read.  
-**Impact:** developer confusion and accidental reuse of obsolete artifacts.  
-**Recommendation:** clean up only after reference search and migration-history review; do not rewrite applied migrations.
+- **Priority:** P2
+- **File:** `Models/Muasamcong.php`; `Livewire/Hsmt.php`; `resources/views/livewire/hsmt.blade.php`; `config/module.php`; price-list profile migrations
+- **Evidence:** empty scaffolds are unused, manifest uses legacy `enabled`, and a historical table is created then dropped.
+- **Problem:** repository intent is harder to read.
+- **Impact:** developer confusion and accidental reuse of obsolete artifacts.
+- **Recommendation:** clean up only after reference search and migration-history review; do not rewrite applied migrations.
 
 ### P2-04 — Observability and tests do not express critical contracts fully
 
-**Priority:** P2  
-**File:** Muasamcong/ClientApps tests and operational docs  
-**Evidence:** no fresh queue/storage dashboard, mutation denial, concurrency, or retention coverage; route count is asserted globally.  
-**Problem:** failures may be detected late and route additions create brittle test maintenance.  
-**Impact:** weaker confidence in hardening and future Dashboard changes.  
-**Recommendation:** add semantic authorization/concurrency tests and bounded operational metrics as each capability is implemented.
+- **Priority:** P2
+- **File:** Muasamcong/ClientApps tests and operational docs
+- **Evidence:** no fresh queue/storage dashboard, mutation denial, concurrency, or retention coverage; route count is asserted globally.
+- **Problem:** failures may be detected late and route additions create brittle test maintenance.
+- **Impact:** weaker confidence in hardening and future Dashboard changes.
+- **Recommendation:** add semantic authorization/concurrency tests and bounded operational metrics as each capability is implemented.
 
 ## Module Health Summary
 
