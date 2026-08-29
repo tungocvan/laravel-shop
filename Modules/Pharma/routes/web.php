@@ -3,10 +3,15 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Pharma\Http\Controllers\DrugBidAwardController;
 use Modules\Pharma\Http\Controllers\PharmaController;
+use Modules\Pharma\Http\Controllers\PharmaDashboardController;
 use Modules\Pharma\Http\Controllers\PriceListController;
 use Modules\Pharma\Http\Controllers\SupplierTrackingController;
 
 Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:admin'])->group(function () {
+    Route::get('/', PharmaDashboardController::class)
+        ->middleware('can:view_pharma')
+        ->name('dashboard');
+
     Route::prefix('hssp')->name('hssp.')->group(function () {
         Route::get('/', [PharmaController::class, 'index'])
             ->middleware('can:view_pharma')
