@@ -33,10 +33,6 @@ Route::middleware('web')->group(function () use ($websitePrefix) {
         Route::get('/register', 'register')->name('register');
     });
 
-    Route::middleware('auth')->prefix($websitePrefix)->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    });
-
     Route::controller(WebsiteController::class)->group(function () {
         Route::get('/', 'home')->name('home');
         Route::get('/help', 'help')->name('help');
