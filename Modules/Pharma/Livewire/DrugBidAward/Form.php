@@ -13,19 +13,31 @@ class Form extends Component
     use AuthorizesPharmaActions;
 
     public ?int $awardId = null;
+
     public bool $isEditMode = false;
 
     public $medicine_id = null;
+
     public $medicine_name = '';
+
     public $packaging_specification = '';
+
     public $quantity = '';
+
     public $unit_price = '';
+
     public $bidding_notice_code = '';
+
     public $investor_name = '';
+
     public $decision_number = '';
+
     public $decision_date = '';
+
     public $contract_duration_months = '';
+
     public $winning_company_name = '';
+
     public $decision_document_url = '';
 
     public function mount(?int $id = null)
