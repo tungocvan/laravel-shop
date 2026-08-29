@@ -9,10 +9,13 @@
                 <code class="mt-2 inline-block rounded bg-gray-100 px-2 py-1 text-xs text-gray-600">{{ route('admin.system.database.backup-restore', absolute: false) }}</code>
             </div>
 
-            <a href="{{ route('admin.system.database.index') }}"
-               class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                Quản lý Database
-            </a>
+            <div class="flex flex-wrap items-center gap-3">
+                @include('System::partials.dashboard-return-link')
+                <a href="{{ route('admin.system.database.index') }}"
+                   class="inline-flex min-h-11 items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    Quản lý Database
+                </a>
+            </div>
         </div>
 
         @livewire('system.database.backup-manager')
