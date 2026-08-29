@@ -129,5 +129,4 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertNotContains('muasamcong/wishlist', $allUris);
         $this->assertNotContains('muasamcong/config', $allUris);
     }
-
 }
