@@ -1,4 +1,13 @@
 <div class="space-y-6">
+    @php
+        $modeLabels = [
+            'update_or_create' => 'Cập nhật hoặc tạo mới',
+            'create_only' => 'Chỉ tạo mới',
+            'skip_duplicate' => 'Bỏ qua dữ liệu trùng',
+            'replace' => 'Xóa sạch và nhập lại',
+        ];
+    @endphp
+
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-200 px-6 py-5">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -34,17 +43,16 @@
                 <div>
                     <label class="text-sm font-medium text-gray-700">Chế độ import</label>
                     <select wire:model.live="mode" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-                        <option value="update_or_create">Cập nhật hoặc tạo mới</option>
-                        <option value="create_only">Chỉ tạo mới</option>
-                        <option value="skip_duplicate">Bỏ qua dữ liệu trùng</option>
-                        <option value="replace">Xóa sạch và nhập lại</option>
+                        @foreach ($allowedModes as $allowedMode)
+                            <option value="{{ $allowedMode }}">{{ $modeLabels[$allowedMode] ?? $allowedMode }}</option>
+                        @endforeach
                     </select>
                     @error('mode')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
             </div>
 
             @if ($mode === 'replace')
-                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><strong>Cảnh báo:</strong> chế độ replace có thể bị module đích vô hiệu hóa khi không bảo đảm audit/soft-delete.</div>
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><strong>Cảnh báo:</strong> chế độ replace sẽ xóa dữ liệu hiện có trước khi nhập lại.</div>
             @endif
 
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
