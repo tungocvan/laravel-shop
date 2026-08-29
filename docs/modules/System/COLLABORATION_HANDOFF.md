@@ -5,13 +5,17 @@
 - Module: `System`
 - Feature: P0 Google Drive and database-backup boundary hardening
 - Delivery branch: `fix/system-drive-backup-boundaries`
+- Closeout branch: `docs/system-drive-backup-boundaries-closeout`
 - Base/source checkpoint: `main@d1c080e6a3e90478bde3830c9760686307af1835`
 - Verified feature checkpoint: `11da525cdba355f4ac0a1abf41f0a2563773a159`
-- Implementation status: **VERIFIED — READY FOR PR**
-- Pull request: not opened
-- Merge status: not merged
+- Feature branch head: `85c02d17e7418fa075198b47dfd06f82b2c9e7d8`
+- Main merge checkpoint: `54ff2527ff906832dbff6087d36448a26d450894`
+- Implementation status: **COMPLETE — MERGED TO MAIN**
+- Pull request: [#78 — fix(system): harden Drive backup boundaries](https://github.com/tungocvan/laravel-shop/pull/78) — **MERGED**
+- Merged at: **2026-08-29 06:23:06 UTC**
+- Merge status: **MERGED**
 
-This PR is the first deferred refactor phase after the read-only System Dashboard. The Dashboard feature was completed in PR #76 and remains outside this branch. The operator confirmed all approved automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29.
+This phase is the first deferred refactor after the read-only System Dashboard. The operator confirmed all approved automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29, then manually merged PR #78 into `main`. This docs-only closeout records the stable merge checkpoint; the remaining System refactor roadmap stays deferred to separate branches and PRs.
 
 ## Approved Scope
 
@@ -179,6 +183,7 @@ The operator also confirmed every manual acceptance item:
 1. **COMPLETE** — Operator pulled implementation checkpoint `481a4211387440657aa9df845daba2f1ed6c051c` and style checkpoint `11da525cdba355f4ac0a1abf41f0a2563773a159`.
 2. **COMPLETE** — Focused, System, Admin, route, build and desktop/mobile UI gates passed.
 3. **COMPLETE** — Verification results and the verified feature checkpoint are recorded in this handoff.
-4. **NEXT** — Open a PR for manual user review.
-5. The user merges manually; no automatic merge is allowed.
-6. Post-merge closeout records the `main` checkpoint if requested.
+4. **COMPLETE** — PR [#78](https://github.com/tungocvan/laravel-shop/pull/78) was opened for manual user review.
+5. **COMPLETE** — The user manually merged PR #78; automatic merge was not used.
+6. **COMPLETE** — Main merge checkpoint `54ff2527ff906832dbff6087d36448a26d450894` was verified.
+7. This docs-only closeout records the final merged state; no source changes are included.
