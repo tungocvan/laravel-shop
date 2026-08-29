@@ -5,24 +5,19 @@ namespace Modules\Pharma\Livewire\DrugBidAward;
 use Exception;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\DrugBidAwardService;
 
 class Index extends Component
 {
+    use AuthorizesPharmaActions;
     use WithPagination;
 
-    // Bộ lọc và tìm kiếm
     public $search = '';
-
     public $filterInvestor = '';
-
     public $filterCompany = '';
-
     public $perPage = 10;
-
-    // Quản lý Checkbox xóa hàng loạt
     public array $selectedIds = [];
-
     public bool $selectAll = false;
 
     protected $queryString = [
@@ -32,25 +27,15 @@ class Index extends Component
         'perPage' => ['except' => 10],
     ];
 
-    public function updatingSearch()
+    public function mount(): void
     {
-        $this->resetPage();
+        $this->authorizePharmaView();
     }
 
-    public function updatingFilterInvestor()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFilterCompany()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingPerPage()
-    {
-        $this->resetPage();
-    }
+    public function updatingSearch() { $this->resetPage(); }
+    public function updatingFilterInvestor() { $this->resetPage(); }
+    public function updatingFilterCompany() { $this->resetPage(); }
+    public function updatingPerPage() { $this->resetPage(); }
 
     public function updatedSelectAll($value)
     {
@@ -69,34 +54,33 @@ class Index extends Component
         }
     }
 
-    public function updatedSelectedIds()
-    {
-        $this->selectAll = false;
-    }
+    public function updatedSelectedIds() { $this->selectAll = false; }
 
     public function resetFilters()
     {
-        // Reset toàn bộ các thuộc tính filter trên Backend về mặc định
         $this->reset(['search', 'filterInvestor', 'filterCompany', 'selectedIds', 'selectAll']);
         $this->resetPage();
-
-        // Bắn sự kiện thông báo cho Frontend biết bộ lọc đã được reset
         $this->dispatch('filters-reset');
     }
 
     public function deleteAward(DrugBidAwardService $service, int $id)
     {
+        $this->authorizePharmaDelete();
+
         try {
             $service->delete($id);
             $this->selectedIds = array_diff($this->selectedIds, [$id]);
             session()->flash('success', 'Đã xóa bản ghi trúng thầu thành công.');
         } catch (Exception $e) {
+            report($e);
             session()->flash('error', 'Không thể xóa bản ghi này.');
         }
     }
 
     public function deleteSelected(DrugBidAwardService $service)
     {
+        $this->authorizePharmaDelete();
+
         if (empty($this->selectedIds)) {
             return;
         }
@@ -108,6 +92,7 @@ class Index extends Component
             $this->reset(['selectedIds', 'selectAll']);
             session()->flash('success', 'Đã xóa hàng loạt bản ghi thành công.');
         } catch (Exception $e) {
+            report($e);
             session()->flash('error', 'Có lỗi xảy ra khi xóa hàng loạt.');
         }
     }
