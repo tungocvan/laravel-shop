@@ -3,8 +3,6 @@
 namespace Tests\Feature\System;
 
 use Illuminate\Support\Facades\Route;
-use Modules\System\Models\Setting;
-use Modules\System\Services\SeoSettingsService;
 use Tests\TestCase;
 
 class SystemSeoSettingsTest extends TestCase
