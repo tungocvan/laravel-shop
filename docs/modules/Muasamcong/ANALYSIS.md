@@ -1,9 +1,10 @@
 # Muasamcong Baseline Analysis
 
 > Baseline date: 2026-08-28
-> Source checkpoint reviewed: `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`
+> Baseline source checkpoint: `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`
+> Admin Dashboard implementation update: 2026-08-29 on `feat/muasamcong-admin-dashboard@d47457a164dc7722c351984b567530de842dcec0`
 > Scope: `Modules/Muasamcong`, its tests, module documentation, and directly referenced ClientPortal adapters.
-> Verification status: source/config/schema/tests were statically reviewed. No fresh runtime, database, upstream API, or automated test execution was performed for this documentation-only batch.
+> Current verification: focused tests, final Muasamcong regression, changed-file Pint, route inspection, and Admin desktop/mobile UI passed. Runtime production/upstream behavior was not verified.
 
 ## Executive Summary
 
@@ -20,7 +21,7 @@ No P0 issue was found in the reviewed source. The baseline does identify multipl
 - snapshots/raw payloads/files have no documented retention policy;
 - large controllers and Livewire components combine presentation, persistence, export, and orchestration responsibilities.
 
-The requested Admin Dashboard does not currently exist. `/admin/muasamcong` is the Smart Pricing workspace, while ClientPortal already owns a separate end-user dashboard at `/apps/muasamcong`. The Admin Dashboard should be implemented as a separate capability after this baseline, with a compatibility decision for the existing index route.
+The Admin Dashboard is implemented additively at `/admin/muasamcong/dashboard`. `/admin/muasamcong` remains the Smart Pricing workspace, while ClientPortal continues to own the separate end-user dashboard at `/apps/muasamcong`.
 
 ```text
 Final recommendation: Major Refactor
@@ -31,6 +32,7 @@ Delivery approach: incremental hardening and extraction; no full rebuild
 
 The module currently provides:
 
+- permission-aware Admin Dashboard with bounded operational summaries and workspace navigation;
 - Smart Pricing search and normalized upstream results;
 - database-first search snapshots and explicit upstream refresh;
 - TBMT multi-page loading with local filtering/pagination;
@@ -82,7 +84,7 @@ The cross-module direction is one-way: ClientPortal imports Muasamcong domain ty
 
 ### Routes
 
-The domain route set contains 21 routes: 18 Admin web routes and 3 API routes.
+The domain route set contains 22 routes: 19 Admin web routes and 3 API routes.
 
 - Admin read/workspace routes use `web`, `auth:admin`, and `permission:view_muasamcong,admin`.
 - Config and Windows session-tool routes use `permission:muasamcong.config.manage,admin`.
@@ -91,23 +93,19 @@ The domain route set contains 21 routes: 18 Admin web routes and 3 API routes.
 
 The route layer is clearly namespaced and has no duplicate legacy root routes. However, destructive history/wishlist routes and several mutation-capable page routes remain inside the view-only middleware group.
 
-### Admin Dashboard capability assessment
+### Admin Dashboard implementation assessment
 
-Evidence:
+Implemented evidence:
 
-- `GET /admin/muasamcong` (`muasamcong.index`) currently renders Smart Pricing.
-- No Admin route/page aggregates module navigation, health, counts, queue state, or configuration status.
-- ClientPortal already has an end-user dashboard at `GET /apps/muasamcong` (`client.muasamcong.dashboard`); it is not an Admin management dashboard.
+- `GET /admin/muasamcong/dashboard` (`muasamcong.dashboard`) is the Admin management overview.
+- `GET /admin/muasamcong` (`muasamcong.index`) remains Smart Pricing for compatibility.
+- `MuasamcongDashboardController` is thin and delegates bounded DTO construction to `MuasamcongDashboardService`.
+- Recent pricing searches and contractor jobs are capped at five; raw payloads, error messages, cookies, tokens, and encrypted session data are not selected or rendered.
+- Wishlist and configuration/session surfaces are capability-aware.
+- Existing workspaces expose a permission-aware Dashboard return link.
+- ClientPortal's `GET /apps/muasamcong` remains a separate end-user dashboard.
 
-Recommended separate implementation:
-
-1. Build a permission-aware Admin Dashboard with links to Smart Pricing, contractor/history/manual-lot workflows, HSMT, synced data/export, wishlist, and configuration/session tools.
-2. Keep the dashboard controller/page shell thin. Obtain bounded summary DTOs from a service; do not query models from Blade.
-3. Show only authorized actions. Summary widgets may include record counts, recent jobs, stale/failed queue status, snapshot freshness, and configuration/session health without exposing secrets.
-4. Follow `ADMIN_UI_STANDARD.md`: clear module header, responsive card/workspace layout, loading/empty/error states, keyboard-accessible links, and compact mobile navigation.
-5. Default to the lowest-risk route contract: add `/admin/muasamcong/dashboard` and keep the current index unchanged. If the user instead approves `/admin/muasamcong` as the canonical Dashboard, move Smart Pricing to `/admin/muasamcong/pricing` and document the unavoidable behavior change for existing index bookmarks/links, plus the route-name/redirect strategy.
-
-This baseline does not choose or implement the route migration. That requires user acceptance of the compatibility behavior and its own tests/docs batch.
+The Dashboard is intentionally read-only. Existing specialized workspaces retain all mutations and their current authorization contracts; the baseline P1 mutation gaps remain deferred.
 
 ### Controllers
 
@@ -119,7 +117,7 @@ The API controller is small and validates the search keyword. Its Sanctum middle
 
 Page Blades generally follow the shell pattern and use the canonical Admin layout. Feature views include responsive overflow, modal scrolling, validation feedback, loading states, bounded pagination, and selection feedback in the principal workspaces.
 
-The UI does not use one unified Admin landing page. Several workflows are discoverable only through direct page links or existing module navigation.
+The Admin Dashboard now provides the unified landing page, while specialized workflows remain in their existing page shells.
 
 ### Livewire components
 
@@ -252,7 +250,7 @@ Material risks:
 - PhpSpreadsheet builds formatted workbooks in memory for up to 5,000 rows;
 - snapshot/raw payload/file growth is unbounded over time;
 - ClientPortal local search silently truncates matching rows to 500;
-- Dashboard summaries, when implemented, must use bounded aggregate queries and must not load full result payloads.
+- Dashboard summaries use bounded aggregate/limited queries and do not load full result payloads.
 
 ## Validation and Authorization
 
@@ -288,12 +286,16 @@ Upstream source data and manual administrative enrichment are stored separately.
 
 Current pages generally use the canonical layout, visible form controls, responsive overflow, bounded pagination, selection feedback, loading states, and scrollable modal content. Feature workspaces are split into dedicated pages instead of one unbounded screen.
 
-Gaps/improvements:
+Current Dashboard result:
 
-- no Admin overview/dashboard or permission-aware module navigation hub;
+- responsive Admin overview and permission-aware module navigation are implemented;
+- bounded empty/unavailable/failed-job/configuration-warning states avoid secret exposure;
+- desktop/mobile UI and return navigation passed user acceptance.
+
+Remaining gaps:
+
 - mutation affordances are not consistently aligned with server-side capabilities;
 - large Livewire modal/workspace payloads may degrade responsiveness;
-- Dashboard implementation needs distinct empty, loading, stale, failed-job, and configuration-warning states without exposing secrets;
 - destructive operations need explicit confirmation and scope messaging where not already present.
 
 ## Cross-Module Dependencies
@@ -311,9 +313,7 @@ This is an acceptable one-way dependency because the domain owner remains Muasam
 - broad mass-assignment model policy;
 - unused scaffold model/component/view;
 - legacy manifest enablement key;
-- historical duplicate price-list migration;
-- brittle route test based on total route count;
-- no canonical `COLLABORATION_HANDOFF.md`; `AI_HANDOFF.md` is historical context, not the current workflow handoff.
+- historical duplicate price-list migration.
 
 ## Test Coverage
 
@@ -331,12 +331,11 @@ Important missing cases:
 - concurrent one-time token replay;
 - concurrent contractor job dispatch and selected contractor sync;
 - ClientPortal search behavior beyond 500 candidates;
-- snapshot/file retention behavior;
-- Admin Dashboard route, permission filtering, bounded summaries, and responsive states once implemented.
+- snapshot/file retention behavior.
 
-The route suite's global assertion of exactly 21 Muasamcong routes is brittle. Dashboard implementation will require updating it; semantic route/middleware assertions should remain the primary contract.
+Dashboard coverage now verifies authentication/view denial, capability-aware rendering, secret exclusion, bounded DTOs, user-scoped Wishlist metrics, return-link permission behavior, and workspace inclusion. The route suite validates semantic route/middleware/URI uniqueness instead of a fixed total count.
 
-No tests were executed during this docs-only baseline. Existing test files are evidence of coverage intent, not a fresh PASS result.
+Final verification on 2026-08-29: 48 Muasamcong tests passed with 383 assertions; changed-file Pint and desktop/mobile Admin UI passed.
 
 ## Documentation Drift
 
@@ -423,14 +422,12 @@ No P0 issue was observed in the reviewed source. Runtime secrets, database conte
 - **Impact:** slow requests, timeouts, and degraded Admin responsiveness under load.
 - **Recommendation:** measure actual latency/memory, define synchronous thresholds, queue larger jobs, report progress/partial state, and keep downloads private.
 
-### P2-01 — Admin Dashboard is a missing management capability
+### P2-01 — Admin Dashboard management capability — RESOLVED IN ACTIVE DELIVERY
 
 - **Priority:** P2
-- **File:** `Modules/Muasamcong/routes/web.php`; Admin page views
-- **Evidence:** the Admin index is Smart Pricing and no management overview exists; ClientPortal's dashboard serves a different audience.
-- **Problem:** module functions and operational status lack one discoverable Admin entry point.
-- **Impact:** fragmented navigation and slower operations.
-- **Recommendation:** implement the separate Dashboard capability described above after choosing route compatibility.
+- **File:** `Modules/Muasamcong/routes/web.php`; `MuasamcongDashboardController`; `MuasamcongDashboardService`; Admin Dashboard/page views
+- **Resolution:** added the separate permission-aware Dashboard route with bounded summaries and workspace/return navigation while preserving Smart Pricing and ClientPortal contracts.
+- **Verification:** focused authorization/data-safety tests, final module regression, changed-file Pint, route inspection, and desktop/mobile UI passed.
 
 ### P2-02 — Model mass-assignment policy is broad
 
@@ -454,7 +451,7 @@ No P0 issue was observed in the reviewed source. Runtime secrets, database conte
 
 - **Priority:** P2
 - **File:** Muasamcong/ClientApps tests and operational docs
-- **Evidence:** no fresh queue/storage dashboard, mutation denial, concurrency, or retention coverage; route count is asserted globally.
+- **Evidence:** mutation denial, concurrency, and retention coverage remain incomplete. Dashboard/route coverage is now semantic and bounded.
 - **Problem:** failures may be detected late and route additions create brittle test maintenance.
 - **Impact:** weaker confidence in hardening and future Dashboard changes.
 - **Recommendation:** add semantic authorization/concurrency tests and bounded operational metrics as each capability is implemented.
@@ -468,9 +465,9 @@ No P0 issue was observed in the reviewed source. Runtime secrets, database conte
 | Correctness/data integrity | Mixed | Good unique keys/transactions; concurrency and 500-row completeness risks |
 | Performance | Needs hardening | Bounded but potentially expensive synchronous/search/export paths |
 | Database design | Generally sound | Useful keys/indexes; retention and job idempotency missing |
-| Admin UI | Functional, fragmented | Good feature workspaces; no Admin Dashboard |
+| Admin UI | Functional, unified entry | Dashboard and specialized workspaces pass desktop/mobile acceptance |
 | Maintainability | Needs major incremental refactor | Several oversized controllers/components |
-| Tests | Broad baseline, critical gaps | Good feature inventory; no fresh run and missing denial/concurrency cases |
+| Tests | Broad baseline, critical gaps | Fresh module regression PASS; mutation denial/concurrency gaps remain |
 | Documentation | Baseline refreshed | Supporting historical docs may still drift |
 
 ## Final Recommendation
@@ -482,8 +479,7 @@ Choose **Major Refactor**, delivered as small compatible batches rather than a r
 3. contractor job/sync idempotency;
 4. ClientPortal search completeness;
 5. retention/observability policy;
-6. Admin Dashboard capability with an approved route-compatibility contract;
-7. incremental controller/Livewire/export extraction.
+6. incremental controller/Livewire/export extraction.
 
 Preserve existing domain tables, route names, ClientPortal contracts, export profile formats, private storage behavior, and the no-heuristic winner-to-lot invariant unless an explicitly approved migration/compatibility plan says otherwise.
 
@@ -491,8 +487,8 @@ Preserve existing domain tables, route names, ClientPortal contracts, export pro
 
 - Effective production module enablement, configuration, queue worker state, secrets, database volume, and storage usage: **NOT VERIFIED**. Verify in the authorized runtime environment without exposing secret values.
 - Intended callers and capability policy for `GET/POST /api/muasamcong`: **NOT DETERMINED**. Confirm before tightening middleware.
-- Admin Dashboard route choice and backward-compatibility behavior: **NOT DETERMINED**. User acceptance is required before implementation.
+- Admin Dashboard route choice: **DETERMINED / IMPLEMENTED** at `/admin/muasamcong/dashboard`; Smart Pricing remains at `/admin/muasamcong`.
 - Retention periods for search snapshots, raw payloads, exports, jobs, and HSMT files: **NOT DETERMINED**. Product/operations input is required.
 - Reliable upstream join key from winning contractor to exact lot/medicine: **NOT FOUND** in reviewed evidence. Continue official Network/API investigation; do not infer heuristically.
-- Fresh automated/manual test results at this checkpoint: **NOT RUN** in this documentation-only batch.
-- Canonical `docs/modules/Muasamcong/COLLABORATION_HANDOFF.md`: **NOT PRESENT**. Create/update only in a separately approved handoff batch after baseline acceptance.
+- Fresh Dashboard/module/UI verification: **PASS** on 2026-08-29; production/upstream runtime remains unverified.
+- Canonical continuation state is maintained in `docs/modules/Muasamcong/COLLABORATION_HANDOFF.md`.

@@ -1,6 +1,6 @@
 # Muasamcong Module
 
-> Documentation entry point updated 2026-08-28 from `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`.
+> Baseline documentation: 2026-08-28. Admin Dashboard implementation update: 2026-08-29 on `feat/muasamcong-admin-dashboard`.
 
 ## Module Overview
 
@@ -23,7 +23,8 @@ Baseline recommendation: **Major Refactor through compatible incremental batches
 
 | Route | Current purpose |
 |---|---|
-| `/admin/muasamcong` | Smart Pricing workspace; currently not an Admin Dashboard |
+| `/admin/muasamcong/dashboard` | Permission-aware Admin management Dashboard |
+| `/admin/muasamcong` | Smart Pricing workspace; unchanged for compatibility |
 | `/admin/muasamcong/contractors` | Contractor lookup and queued history |
 | `/admin/muasamcong/contractors/history` | Archived contractor searches |
 | `/admin/muasamcong/hsmt` | HSMT search/export |
@@ -39,15 +40,11 @@ The complete route inventory is in `INFORMATION.md`.
 
 ## Admin Dashboard Status
 
-An Admin management Dashboard is requested but does not exist at this checkpoint. It is a separate capability, not part of this docs-only baseline.
+The Admin Dashboard is implemented on the active feature branch at `/admin/muasamcong/dashboard` with route name `muasamcong.dashboard`. The existing `/admin/muasamcong` route remains Smart Pricing.
 
-The recommended compatibility contract is:
+The Dashboard uses a thin controller and `MuasamcongDashboardService` to provide bounded metrics, recent searches/jobs, queue status, and permission-aware configuration/session health. It does not load or render raw payloads, errors, cookies, tokens, or encrypted session values.
 
-- add `/admin/muasamcong/dashboard` and leave the Smart Pricing index unchanged.
-
-If the user instead approves `/admin/muasamcong` as the canonical Dashboard, Smart Pricing can move to `/admin/muasamcong/pricing`, but the existing index bookmark/link behavior changes and needs an explicit route-name/redirect migration plan.
-
-The Dashboard should provide permission-aware links and bounded operational summaries without loading full payloads or exposing secrets.
+Workspace actions remain in their existing pages. Each Admin page shell includes a permission-aware `Quay về Dashboard` link.
 
 ## Permissions
 
@@ -62,6 +59,7 @@ ClientPortal uses separate `client.muasamcong.*` application/feature/action perm
 
 ## Features
 
+- Permission-aware Admin Dashboard with bounded operational summaries and links to specialized workspaces.
 - Smart Pricing with database-first snapshots and explicit refresh.
 - Bounded multi-page TBMT/company search, local filters, pagination, and cross-page selection.
 - Duplicate-safe selected pricing sync and per-user wishlist.
@@ -141,14 +139,16 @@ tests/Feature/Muasamcong/
 tests/Feature/ClientApps/   # when ClientPortal contracts are affected
 ```
 
-No fresh test run was performed for this documentation-only baseline. For a local docs review:
+Dashboard verification on 2026-08-29:
 
-```bash
-git diff --check main...HEAD
-git diff --stat main...HEAD
+```text
+Focused Dashboard/route tests: 6 passed, 159 assertions
+Final Muasamcong regression: 48 passed, 383 assertions
+Changed-file Pint: PASS
+Admin desktop/mobile UI and Dashboard return navigation: PASS
 ```
 
-For runtime changes, select formatting/tests according to the touched domain and expand to ClientPortal/shared coverage only when those contracts change.
+ClientPortal and full-project regression were not applicable because no shared/core or ClientPortal contract changed.
 
 ## Documentation
 
@@ -161,7 +161,7 @@ Read in this order:
 5. `AI_HANDOFF.md` — legacy investigation context, especially winner/lot research; it is not a canonical current handoff.
 6. Source and tests — final source of truth.
 
-`docs/modules/Muasamcong/COLLABORATION_HANDOFF.md` is not present. Create it only in a separately approved handoff batch after the baseline is accepted.
+`docs/modules/Muasamcong/COLLABORATION_HANDOFF.md` is the canonical continuation checkpoint and must be refreshed before PR/merge.
 
 ## Future Improvements
 
@@ -172,6 +172,5 @@ Recommended order:
 3. make contractor job/sync workflows idempotent;
 4. correct ClientPortal search completeness beyond 500 matching rows;
 5. define snapshot/file retention and operational metrics;
-6. implement the approved Admin Dashboard route contract;
-7. extract controller/Livewire/export orchestration into focused services;
-8. remove unused scaffolds and modernize manifest/model policies in compatibility-checked cleanup.
+6. extract controller/Livewire/export orchestration into focused services;
+7. remove unused scaffolds and modernize manifest/model policies in compatibility-checked cleanup.
