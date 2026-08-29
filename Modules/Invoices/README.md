@@ -198,24 +198,27 @@ Không commit `.env`, token, captcha, mật khẩu hoặc nội dung Authorizati
 
 ## 6. Route
 
-Web routes dùng middleware `web`, `auth`:
+Admin routes dùng middleware `web`, `auth:admin` và capability riêng:
 
-| Method | URI | Tên |
-|---|---|---|
-| GET | `/invoices` | `invoices.index` |
-| GET | `/invoices/create-token` | `invoices.create-token` |
-| GET | `/invoices/hoadon` | `invoices.hoadon` |
-| GET | `/invoices/hoadon-list` | `invoices.hoadon-list` |
-| GET | `/invoices/download/{lookup_code}` | `invoices.download` |
+| Method | URI | Tên | Permission |
+|---|---|---|---|
+| GET | `/admin/invoices` | `admin.invoices.index` | `invoices-list` |
+| GET | `/admin/invoices/dashboard` | `admin.invoices.dashboard` | `invoices-list` |
+| GET | `/admin/invoices/create-token` | `admin.invoices.create-token` | `invoices-configure` |
+| GET | `/admin/invoices/hoadon` | `admin.invoices.hoadon` | `invoices-create` |
+| GET | `/admin/invoices/hoadon-list` | `admin.invoices.hoadon-list` | `invoices-list` |
+| GET | `/admin/invoices/reports/partners` | `admin.invoices.reports.partners` | `invoices-list` |
+| GET | `/admin/invoices/download-invoice/{invoice}` | `admin.invoices.download-invoice` | `invoices-download` |
+| GET | `/admin/invoices/download/{lookup_code}` | `admin.invoices.download` | `invoices-download` |
+
+`admin.invoices.index` vẫn redirect tới danh sách hóa đơn. Alias `/invoices/*` được giữ để tương thích bookmark.
 
 API routes dùng `api`, `auth:sanctum`:
 
 | Method | URI |
 |---|---|
-| GET | `/api/invoices` |
-| POST | `/api/invoices` |
-
-Middleware có thể chỉnh trong `config/invoices.php`.
+| GET | `/api/invoices/status` |
+| POST | `/api/invoices/filter` |
 
 ## 7. Command
 

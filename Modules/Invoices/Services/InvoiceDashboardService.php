@@ -3,7 +3,6 @@
 namespace Modules\Invoices\Services;
 
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Modules\Invoices\Data\InvoiceDashboardData;
@@ -379,7 +378,12 @@ final class InvoiceDashboardService
     private function hasPermission(mixed $user, string $permission): bool
     {
         try {
-            return Gate::forUser($user)->allows($permission);
+            if (method_exists($user, 'hasRole') && $user->hasRole('Super Admin', 'admin')) {
+                return true;
+            }
+
+            return method_exists($user, 'checkPermissionTo')
+                && $user->checkPermissionTo($permission, 'admin');
         } catch (Throwable) {
             return false;
         }

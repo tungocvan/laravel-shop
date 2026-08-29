@@ -4,7 +4,13 @@
 
     if ($invoiceDashboardUser) {
         try {
-            $canReturnToInvoiceDashboard = $invoiceDashboardUser->can('invoices-list');
+            $canReturnToInvoiceDashboard = (
+                method_exists($invoiceDashboardUser, 'hasRole')
+                && $invoiceDashboardUser->hasRole('Super Admin', 'admin')
+            ) || (
+                method_exists($invoiceDashboardUser, 'checkPermissionTo')
+                && $invoiceDashboardUser->checkPermissionTo('invoices-list', 'admin')
+            );
         } catch (\Throwable) {
             $canReturnToInvoiceDashboard = false;
         }

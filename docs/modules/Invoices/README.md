@@ -322,15 +322,18 @@ php artisan test \
   tests/Feature/InvoicesPartnerReportTest.php
 ```
 
-Then run:
+Then run the scoped suites only:
 
 ```bash
-php artisan test
+php artisan test tests/Feature/InvoicesDashboardTest.php
+php artisan test tests/Feature/InvoicesModuleTest.php tests/Feature/InvoicesFilterSortTest.php tests/Feature/InvoicesPdfStorageTest.php tests/Feature/InvoicesFileManagementTest.php tests/Feature/InvoicesPartnerReportTest.php tests/Feature/InvoicesAutomaticBackupTest.php
+php artisan test tests/Feature/Admin
 ```
 
 Required manual smoke checks:
 
 ```text
+/admin/invoices/dashboard
 /admin/invoices/create-token
 /admin/invoices/hoadon
 /admin/invoices/hoadon-list
