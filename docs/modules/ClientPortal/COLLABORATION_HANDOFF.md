@@ -1,6 +1,6 @@
 # ClientPortal Module — Collaboration Handoff
 
-- Last updated: 2026-08-28
+- Last updated: 2026-08-29
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
 - Stable `main` checkpoint after MR-8 merge: `90290f492fde65fdac9b179705285273c69cd317`
@@ -9,7 +9,7 @@
 - MR-8 merge commit: `90290f492fde65fdac9b179705285273c69cd317`
 - MR-8 source head: `96d870807d9e12f3d8b71b3e8ae0d69e060263ca`
 - MR-8 status: **MERGED / CLOSED**
-- Active delivery: **NONE**
+- Active delivery: **Corrective — canonical web logout / route cache**
 - Next MR/phase: **NOT DETERMINED**
 
 ## Stable architecture
@@ -201,6 +201,43 @@ MR-8: MERGED / CLOSED
 
 Production deployment remains a separate operational action. MR-8 introduces no new environment variable, Google credential, migration or runtime module-state change.
 
+## Corrective — Canonical Web Logout / Route Cache
+
+Production optimization exposed a pre-existing duplicate global route name `logout`: Auth owned `POST /logout`, while Website also exposed `POST /website/logout` with the same name. This prevented `php artisan route:cache` from serializing routes.
+
+Approved corrective contract:
+
+```text
+branch: fix/auth-canonical-web-logout-route-cache
+canonical route: POST /logout
+route name: logout
+owner: Modules/Auth
+handler: Modules\Auth\Http\Controllers\AuthController::clientLogout
+legacy /website/logout: removed
+admin.logout: unchanged
+```
+
+Regression protection requires exactly one route named `logout`, canonical Auth ownership/action, and absence of the legacy Website endpoint.
+
+Acceptance evidence before PR:
+
+```text
+php artisan route:cache
+PASS — Routes cached successfully.
+
+ClientApps impacted regression
+111 passed (754 assertions)
+Duration: 8.52s
+
+AuthGuardSeparationTest
+6 passed (35 assertions)
+Duration: 0.54s
+```
+
+Full-project regression: **NOT APPLICABLE — bounded Auth/Website/ClientPortal corrective**. No migration, schema, manifest, service-worker or environment-variable change is introduced.
+
+Production operational note: for the `tnv` stack, `.env` changes require the established `platform-v2 deploy optimize tnv` / `OPTIMIZE / RELOAD .ENV: tnv` operation so long-lived PHP/web processes reload environment. This corrective restores route-cache compatibility for that optimization path.
+
 ## Next-step boundary
 
-MR-8 is complete and merged into `main`. Before starting further ClientPortal work: use the latest `main` plus this handoff as the bootstrap source of truth, explicitly select the next target, inspect affected source/dependencies, and approve a new plan before branch creation or implementation. The next MR/phase remains **NOT DETERMINED**.
+The canonical logout corrective is awaiting PR review/merge. After merge, update this handoff with its PR/merge checkpoint and return `Active delivery` to `NONE`. Further ClientPortal work still requires an explicitly selected target and approved plan; the next MR/phase remains **NOT DETERMINED**.

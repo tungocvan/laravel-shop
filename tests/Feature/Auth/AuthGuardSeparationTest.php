@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\View;
 use Modules\Auth\Http\Controllers\AuthController;
 use Tests\TestCase;
@@ -43,6 +44,25 @@ class AuthGuardSeparationTest extends TestCase
         $this->assertInstanceOf(View::class, $adminView);
         $this->assertSame('Auth::pages.auth.login', $adminView->name());
         $this->assertSame('admin', $adminView->getData()['guard'] ?? null);
+    }
+
+    public function test_client_logout_route_is_canonical_and_unique(): void
+    {
+        $routes = collect(Route::getRoutes()->getRoutes());
+        $logoutRoutes = $routes->filter(
+            static fn ($route): bool => $route->getName() === 'logout',
+        );
+
+        $this->assertCount(1, $logoutRoutes);
+
+        $logout = $logoutRoutes->first();
+
+        $this->assertSame('logout', $logout->uri());
+        $this->assertContains('POST', $logout->methods());
+        $this->assertSame(AuthController::class.'@clientLogout', $logout->getActionName());
+        $this->assertFalse($routes->contains(
+            static fn ($route): bool => $route->uri() === 'website/logout',
+        ));
     }
 
     public function test_client_logout_does_not_logout_admin_guard_and_clears_site_data(): void
