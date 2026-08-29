@@ -1,7 +1,7 @@
 # Muasamcong Module Information
 
-> Inventory date: 2026-08-28
-> Source reviewed: `main@3c755169ecb99610a0a00c6a023d57b80cfe6f2b`
+> Baseline inventory date: 2026-08-28
+> Admin Dashboard implementation update: 2026-08-29 on `feat/muasamcong-admin-dashboard@d47457a164dc7722c351984b567530de842dcec0`
 > Source/config/schema are authoritative. Runtime enablement, production data, and upstream availability were not verified.
 
 ## Purpose
@@ -12,6 +12,7 @@ Customer-facing presentation is provided by the ClientPortal Muasamcong adapter.
 
 ## Features
 
+- Permission-aware Admin Dashboard with bounded metrics, queue/recent activity, health summaries, and workspace navigation.
 - Smart Pricing search by medicine, active ingredient, TBMT code, and supported winning-company data.
 - Exact/fallback normalization and bounded multi-page company/TBMT loading.
 - Database-first pricing search snapshots with explicit refresh.
@@ -41,11 +42,12 @@ Customer-facing presentation is provided by the ClientPortal Muasamcong adapter.
 
 ### Admin routes
 
-All Admin routes use the configured base middleware `web`, `auth:admin`. The first 16 routes below also use `permission:view_muasamcong,admin`; the final two use `permission:muasamcong.config.manage,admin`.
+All Admin routes use the configured base middleware `web`, `auth:admin`. The first 17 routes below also use `permission:view_muasamcong,admin`; the final two use `permission:muasamcong.config.manage,admin`.
 
 | Method | URI | Name | Handler / purpose |
 |---|---|---|---|
-| GET | `/admin/muasamcong` | `muasamcong.index` | `MuasamcongController@index`; Smart Pricing workspace, not a Dashboard |
+| GET | `/admin/muasamcong/dashboard` | `muasamcong.dashboard` | `MuasamcongDashboardController`; bounded Admin management overview |
+| GET | `/admin/muasamcong` | `muasamcong.index` | `MuasamcongController@index`; Smart Pricing workspace |
 | POST | `/admin/muasamcong/pricing/export-selected` | `muasamcong.pricing.export-selected` | Selected pricing snapshot export |
 | DELETE | `/admin/muasamcong/pricing/history/item` | `muasamcong.pricing.history.destroy` | Delete one pricing search snapshot |
 | DELETE | `/admin/muasamcong/pricing/history` | `muasamcong.pricing.history.clear` | Clear all pricing search snapshots |
@@ -64,7 +66,7 @@ All Admin routes use the configured base middleware `web`, `auth:admin`. The fir
 | GET | `/admin/muasamcong/config` | `muasamcong.config` | Integration configuration/environment doctor |
 | GET | `/admin/muasamcong/session-tool/windows` | `muasamcong.session-tool.windows` | Download Windows session-tool package |
 
-There is no Admin Dashboard route at this checkpoint. A separate capability is proposed in `ANALYSIS.md`. Route compatibility for the existing Smart Pricing index is not yet determined.
+The Dashboard route is additive. `/admin/muasamcong` and all existing Admin/API/ClientPortal route names and URIs remain unchanged.
 
 ### API routes
 
@@ -103,6 +105,7 @@ ClientPortal defines separate `client.muasamcong.*` application/feature/action p
 
 | Controller | Responsibilities |
 |---|---|
+| `Http/Controllers/MuasamcongDashboardController` | Thin invokable Admin Dashboard page controller |
 | `Http/Controllers/MuasamcongController` | Admin page shells, contractor/manual-lot queries and downloads, selected pricing export, wishlist page, config page, Windows tool package |
 | `Http/Controllers/PricingSearchHistoryController` | Delete one/all pricing search snapshots |
 | `Http/Controllers/PricingWishlistBulkController` | Per-Admin selected wishlist delete/export |
@@ -130,6 +133,8 @@ ClientPortal defines separate `client.muasamcong.*` application/feature/action p
 
 Admin page shells:
 
+- `resources/views/dashboard.blade.php`
+- `resources/views/partials/dashboard-return-link.blade.php`
 - `resources/views/muasamcong.blade.php`
 - `resources/views/contractors.blade.php`
 - `resources/views/contractor-searches.blade.php`
@@ -151,6 +156,7 @@ ClientPortal owns all customer-facing Muasamcong views under `Modules/ClientPort
 
 | Service | Responsibility |
 |---|---|
+| `MuasamcongDashboardService` | Permission-aware bounded Dashboard DTOs; excludes raw payloads, errors, and secrets |
 | `MuaSamCongService` | Core upstream pricing/HSMT requests, URL security, normalization, company search |
 | `PricingTbmtPaginationService` | Bounded full-page loading for TBMT searches |
 | `PricingSearchSnapshotService` | Normalize/hash keyword, store/retrieve/delete search payloads |
@@ -312,7 +318,6 @@ Console commands are registered through the repository module loader.
 - ClientPortal DB search returns a maximum of 500 matching rows while reporting a complete result.
 - Large searches/exports can be synchronous and memory/latency intensive.
 - Snapshot/raw payload/HSMT file retention is undefined.
-- No Admin Dashboard exists; `/admin/muasamcong` is Smart Pricing.
 - Intended permission model for Sanctum search API is not documented.
 
 ## Maintenance Notes
@@ -322,7 +327,7 @@ Console commands are registered through the repository module loader.
 - Keep source data separate from manual administrative enrichment.
 - Do not expose cookie/token values through Livewire, HTML, logs, Dashboard widgets, or error messages.
 - Keep upstream redirects disabled and production TLS verification enabled.
-- Use bounded queries for any future Dashboard summary.
+- Keep Dashboard queries bounded, explicit-field only, and free of raw payloads/errors/secrets.
 - Prefer module-scoped verification for module-only changes; expand to ClientPortal/shared tests when direct contracts change.
-- Existing tests were reviewed but not run during this docs-only baseline.
-- `AI_HANDOFF.md` is legacy context. A canonical `COLLABORATION_HANDOFF.md` does not yet exist and requires a separate approved batch.
+- Dashboard-focused tests and final Muasamcong regression passed on 2026-08-29.
+- `COLLABORATION_HANDOFF.md` is canonical; `AI_HANDOFF.md` remains legacy context.

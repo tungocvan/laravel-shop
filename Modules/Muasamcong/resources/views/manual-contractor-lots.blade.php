@@ -14,6 +14,7 @@
                 </p>
             </div>
             <div class="flex flex-wrap gap-2">
+                @include('Muasamcong::partials.dashboard-return-link')
                 <a href="{{ route('muasamcong.contractors.manual-lots.download', ['contractorCode' => $contractorCode, 'notifyNo' => $notifyNo]) }}"
                    class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
                     Tải Excel

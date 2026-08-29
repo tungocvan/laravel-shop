@@ -19,6 +19,7 @@
                 <p class="mt-1 text-sm text-gray-500">Danh sách riêng của tài khoản hiện tại, lưu các thuốc cần theo dõi để tra cứu lại nhanh.</p>
             </div>
             <div class="flex flex-wrap gap-2">
+                @include('Muasamcong::partials.dashboard-return-link')
                 <a href="{{ route('muasamcong.synced') }}" class="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Danh sách đã đồng bộ</a>
                 <a href="{{ route('muasamcong.index') }}" class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">← Về tra cứu thuốc</a>
             </div>

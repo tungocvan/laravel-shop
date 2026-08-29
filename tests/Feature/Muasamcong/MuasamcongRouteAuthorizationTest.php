@@ -9,6 +9,7 @@ class MuasamcongRouteAuthorizationTest extends TestCase
 {
     public function test_search_routes_use_admin_prefix_and_view_permission(): void
     {
+        $dashboard = Route::getRoutes()->getByName('muasamcong.dashboard');
         $index = Route::getRoutes()->getByName('muasamcong.index');
         $pricingExport = Route::getRoutes()->getByName('muasamcong.pricing.export-selected');
         $pricingHistoryDestroy = Route::getRoutes()->getByName('muasamcong.pricing.history.destroy');
@@ -26,7 +27,7 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $wishlistExport = Route::getRoutes()->getByName('muasamcong.wishlist.export-selected');
         $wishlistDestroy = Route::getRoutes()->getByName('muasamcong.wishlist.destroy-selected');
 
-        foreach ([$index, $pricingExport, $pricingHistoryDestroy, $pricingHistoryClear, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $syncedExport, $syncedBbg, $wishlist, $wishlistExport, $wishlistDestroy] as $route) {
+        foreach ([$dashboard, $index, $pricingExport, $pricingHistoryDestroy, $pricingHistoryClear, $hsmt, $contractors, $contractorHistory, $contractorHistoryShow, $manualLotsShow, $manualLotsDownload, $synced, $syncedExport, $syncedBbg, $wishlist, $wishlistExport, $wishlistDestroy] as $route) {
             $this->assertNotNull($route);
             $middleware = $route->gatherMiddleware();
             $this->assertContains('auth:admin', $middleware);
@@ -34,6 +35,8 @@ class MuasamcongRouteAuthorizationTest extends TestCase
             $this->assertNotContains('permission:muasamcong.config.manage,admin', $middleware);
         }
 
+        $this->assertSame('admin/muasamcong/dashboard', $dashboard->uri());
+        $this->assertSame(['GET', 'HEAD'], $dashboard->methods());
         $this->assertSame('admin/muasamcong', $index->uri());
         $this->assertSame('admin/muasamcong/pricing/export-selected', $pricingExport->uri());
         $this->assertSame(['POST'], $pricingExport->methods());
@@ -79,15 +82,26 @@ class MuasamcongRouteAuthorizationTest extends TestCase
 
     public function test_api_routes_remain_unchanged_and_module_routes_are_not_duplicated(): void
     {
-        $uris = collect(Route::getRoutes()->getRoutes())
-            ->map(fn ($route): string => $route->uri())
-            ->filter(fn (string $uri): bool => str_contains($uri, 'muasamcong'))
-            ->values();
+        $routes = collect(Route::getRoutes()->getRoutes());
+        $moduleRoutes = $routes
+            ->filter(function ($route): bool {
+                $uri = $route->uri();
 
-        $this->assertCount(21, $uris);
+                return str_starts_with($uri, 'admin/muasamcong')
+                    || str_starts_with($uri, 'api/muasamcong');
+            })
+            ->values();
+        $uris = $moduleRoutes->map(fn ($route): string => $route->uri());
+        $signatures = $moduleRoutes->flatMap(
+            fn ($route) => collect($route->methods())
+                ->map(fn (string $method): string => $method.' '.$route->uri())
+        );
+
+        $this->assertSame([], $signatures->duplicates()->values()->all());
         $this->assertContains('api/muasamcong', $uris);
         $this->assertContains('api/muasamcong/search-pricing', $uris);
         $this->assertContains('api/muasamcong/update-cookie', $uris);
+        $this->assertContains('admin/muasamcong/dashboard', $uris);
         $this->assertContains('admin/muasamcong', $uris);
         $this->assertContains('admin/muasamcong/pricing/export-selected', $uris);
         $this->assertContains('admin/muasamcong/pricing/history/item', $uris);
@@ -106,11 +120,13 @@ class MuasamcongRouteAuthorizationTest extends TestCase
         $this->assertContains('admin/muasamcong/wishlist/selected', $uris);
         $this->assertContains('admin/muasamcong/config', $uris);
         $this->assertContains('admin/muasamcong/session-tool/windows', $uris);
-        $this->assertNotContains('muasamcong', $uris);
-        $this->assertNotContains('muasamcong/hsmt', $uris);
-        $this->assertNotContains('muasamcong/contractors', $uris);
-        $this->assertNotContains('muasamcong/synced', $uris);
-        $this->assertNotContains('muasamcong/wishlist', $uris);
-        $this->assertNotContains('muasamcong/config', $uris);
+
+        $allUris = $routes->map(fn ($route): string => $route->uri());
+        $this->assertNotContains('muasamcong', $allUris);
+        $this->assertNotContains('muasamcong/hsmt', $allUris);
+        $this->assertNotContains('muasamcong/contractors', $allUris);
+        $this->assertNotContains('muasamcong/synced', $allUris);
+        $this->assertNotContains('muasamcong/wishlist', $allUris);
+        $this->assertNotContains('muasamcong/config', $allUris);
     }
 }

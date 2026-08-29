@@ -3,226 +3,206 @@
 - Last updated: 2026-08-29
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint after baseline merge: `eefe9f4dcd8eb615ebcf18a81b183e6ff532245d`
-- Completed delivery: **Muasamcong baseline analysis documentation**
-- Pull request: **#70 — MERGED / CLOSED**
-- Source head: `b3f88336f39cc42618a0c8dfcd0f1032af74f9bf`
-- Merge commit: `eefe9f4dcd8eb615ebcf18a81b183e6ff532245d`
-- Delivery status: **MERGED / CLOSED — documentation-only baseline accepted**
-- Active delivery: **NONE**
-- Accepted next capability: **Admin Dashboard — implementation not started**
+- Stable `main` checkpoint before this delivery: `5479bb494dd737fbd6f4fc9032aeaa38f7d1ac09`
+- Active branch: `feat/muasamcong-admin-dashboard`
+- Delivery: **Muasamcong Admin Dashboard**
+- Source implementation checkpoint: `d47457a164dc7722c351984b567530de842dcec0`
+- Documentation checkpoint verified locally: `0430e531b68bf9bcfaee9d2fca40ae63948a2534`
+- Pull request: **#72 — OPEN / READY FOR REVIEW**
+- Merge commit: **NOT AVAILABLE**
+- Delivery status: **COMPLETED / READY FOR REVIEW — all applicable implementation, test, formatting, route, UI, diff, and Git-clean gates PASS**
+- Production enablement/deployment: **NOT AUTHORIZED / NOT CHANGED**
 - Next MR/phase: **NOT DETERMINED**
 
 ## Current checkpoint
 
-The Muasamcong baseline analysis was accepted by the user and merged into `main` through PR #70. This file records the stable post-merge continuation state; temporary branch/PR-review state has been removed.
-
-Files refreshed by the baseline:
-
-- `docs/modules/Muasamcong/ANALYSIS.md`
-- `docs/modules/Muasamcong/INFORMATION.md`
-- `docs/modules/Muasamcong/README.md`
-
-No application source, route, controller, Livewire component, service, model, migration, test, configuration, runtime state, or production state was changed by the baseline delivery.
-
-## Baseline merge checkpoint
+The approved Admin Dashboard implementation is complete on the active feature branch. It adds the canonical Admin management entry point:
 
 ```text
-PR: #70
-PR state: CLOSED
-Merged: true
-Base: main
-Source head: b3f88336f39cc42618a0c8dfcd0f1032af74f9bf
-Merge commit: eefe9f4dcd8eb615ebcf18a81b183e6ff532245d
-main immediately after merge: eefe9f4dcd8eb615ebcf18a81b183e6ff532245d
-Delivery: MERGED / CLOSED
+GET /admin/muasamcong/dashboard
+name: muasamcong.dashboard
+middleware: web, auth:admin, permission:view_muasamcong,admin
 ```
 
-## Baseline conclusion
+The existing `GET /admin/muasamcong` route remains the Smart Pricing workspace. No existing Admin/API/ClientPortal URI, route name, storage contract, database schema, export contract, or production setting was migrated.
 
-Final recommendation:
+All applicable implementation, module regression, formatting, route, desktop/mobile UI, Dashboard-return-link, whitespace, and Git-clean checks have passed. The branch is ready for PR review.
 
-```text
-Major Refactor
-Delivery approach: compatible incremental hardening and extraction
-Full rebuild: not recommended
-```
+## Completed scope
 
-No P0 issue was observed in the reviewed tracked source. Runtime secrets, production data, effective production module state, and live upstream behavior were not inspected.
+### Dashboard foundation
 
-Material P1 findings accepted as the current starting point:
+- Added `MuasamcongDashboardController` as a thin invokable page controller.
+- Added `MuasamcongDashboardService` as the only Dashboard query/summary owner.
+- Added `resources/views/dashboard.blade.php` using `Admin::layouts.master` and responsive repository Admin patterns.
+- Added `muasamcong.dashboard` without changing `muasamcong.index`.
+- Added Dashboard navigation from Smart Pricing.
 
-1. mutation authorization is inconsistent across wishlist deletion, pricing-history deletion, contractor refresh/delete/sync, KQLCNT/HSMT sync, manual-lot replacement, and verified-lot sync;
-2. one-time session import token validation/consumption does not atomically claim the token before cookie mutation;
-3. contractor queue dispatch and selected contractor sync are not fully idempotent under concurrency;
-4. ClientPortal local search returns at most 500 matching rows while reporting the result as complete;
-5. database/file snapshot and raw-payload retention is undefined;
-6. long synchronous upstream/export workflows need measured operational thresholds;
-7. core controllers and Livewire components carry excessive orchestration responsibility.
+### Management overview
 
-The detailed evidence, file paths, impact, recommendation, test gaps, and unknowns are canonicalized in `ANALYSIS.md`.
+The Dashboard provides read-only, bounded summaries and links for:
 
-## Accepted Admin Dashboard requirement
+- Smart Pricing and pricing-search history;
+- synced pricing data;
+- per-user Wishlist when authorized;
+- HSMT;
+- contractor lookup, queue state, recent jobs, archives, and manual-lot paths;
+- configuration and Personal Session health when authorized.
 
-The user requested an Admin Dashboard that centralizes Muasamcong information and links to the module's management functions.
+Dashboard actions navigate to the existing specialized workspaces. The Dashboard intentionally does not expose direct sync, retry, delete, export, session mutation, or other state-changing operations.
 
-Accepted compatibility contract for the future capability:
+### Return navigation
 
-```text
-New Admin Dashboard route: /admin/muasamcong/dashboard
-Existing /admin/muasamcong: remains the Smart Pricing workspace
-```
+A shared `partials/dashboard-return-link.blade.php` is included by the eight Muasamcong Admin workspace shells:
 
-This avoids changing the current index URI behavior and preserves existing Smart Pricing bookmarks and links.
+- Smart Pricing;
+- synced pricing;
+- Wishlist;
+- HSMT;
+- contractor lookup;
+- contractor archives;
+- manual contractor lots;
+- configuration.
 
-Expected Dashboard boundary for the future implementation:
+The link is permission-aware and is omitted when the Admin does not have `view_muasamcong`. This preserves the separate `muasamcong.config.manage` route boundary for configuration-only operators.
 
-- permission-aware links to Smart Pricing, contractor/history/manual-lot workflows, HSMT, synced data/export, wishlist, and configuration/session tools;
-- bounded aggregate/status DTOs from a service; no model queries or business logic in Blade;
-- recent/failed queue state, snapshot freshness, bounded record counts, and configuration/session health without exposing secrets;
-- canonical Admin page shell and responsive workspace/card patterns;
-- explicit empty/loading/error/stale states and keyboard-accessible actions;
-- no domain logic moved into ClientPortal.
+## Architecture and data boundaries
 
-Dashboard source implementation has **NOT STARTED** in this branch. A focused implementation plan, affected-file inventory, permission design, tests, UI acceptance, compatibility boundary, and new branch require explicit approval before code changes.
+- Request flow: `Route -> thin Controller -> MuasamcongDashboardService -> bounded DTO -> Blade`.
+- Blade does not query Eloquent models or load raw payloads.
+- Recent pricing searches and contractor jobs are capped at five rows each.
+- Queries select explicit safe fields and exclude `result_payload`, `raw_payload`, `error_message`, cookies, tokens, and encrypted session content.
+- Wishlist metrics remain scoped to the authenticated Admin.
+- Missing-table/config/session failures degrade to safe availability states and server-side exception-class logging.
+- No domain logic moved into ClientPortal; dependency direction remains `ClientPortal -> Muasamcong`.
 
-## Architecture and ownership boundaries
+## Authorization decisions
 
-- Muasamcong remains the domain owner for upstream integration, normalization, persistence, snapshots, jobs, export profiles, and personal sessions.
-- ClientPortal remains the presentation owner for customer-facing Muasamcong routes/views and consumes Muasamcong models/services in one direction.
-- Dependency direction remains `ClientPortal -> Muasamcong`; no circular dependency was observed.
-- Canonical repository loader remains `Modules\ModuleServiceProvider`.
-- Existing route names, table/schema contracts, storage paths, export profile formats, and ClientPortal consumers require an explicit compatibility plan before change.
-- Upstream source data must remain separate from manual administrative enrichment.
-- A winner/contractor must not be mapped to an exact lot/medicine without a verified join key.
+No new permission or migration was introduced.
 
-## Security and safety boundaries
+| Capability | Dashboard behavior |
+|---|---|
+| `view_muasamcong` | Required to access the Dashboard |
+| `muasamcong.pricing.wishlist` | Controls Wishlist card/count/workspace visibility |
+| `muasamcong.config.manage` | Controls configuration/session health and tool links |
+| `muasamcong.pricing.sync` | Displayed only as a capability badge; no mutation is performed |
 
-The following existing controls must be preserved:
+The baseline P1 mutation-authorization findings remain open. Hiding Dashboard actions is not treated as a replacement for server-side authorization.
 
-- exact HTTPS host `muasamcong.mpi.gov.vn` and port validation;
-- upstream redirects disabled;
-- production TLS verification always enabled;
-- token/cookie values never committed, logged, rendered, or hydrated into public Livewire state;
-- personal session cookie encrypted at rest;
-- private/temporary export and HSMT storage behavior;
-- server-side export identifier validation and user-scoped export profiles;
-- ClientPortal protected-file/PWA handoff security and session boundary.
+## Compatibility boundary
 
-The next implementation work should begin with capability-specific authorization and denial tests before adding broader mutation/navigation surfaces.
+Preserved:
 
-## Database, migration, storage, and operations
+- `/admin/muasamcong` and `muasamcong.index` remain Smart Pricing;
+- existing Admin route names and mutation behavior;
+- all Muasamcong API routes;
+- all ClientPortal Muasamcong routes and application behavior;
+- database tables, migrations, model contracts, storage paths, queue behavior, export profile formats, and generated files;
+- source/manual-enrichment separation and the no-heuristic contractor-to-lot invariant.
 
-Current baseline inventory:
+Changed:
 
-- 13 active Muasamcong-owned database tables;
-- 19 historical/current migration files;
-- private HSMT JSON/XLSX/metadata snapshots under `muasamcong/hsmt/<notifyNo>/`;
-- one domain queue job: `FetchContractorHistoryJob`;
-- FastExcel and PhpSpreadsheet exports;
-- encrypted personal-session storage and hashed one-time import tokens.
+- one new Admin GET route;
+- one Dashboard controller, service, and view;
+- permission-aware return navigation in existing Admin page shells;
+- route tests now validate semantic Admin/API uniqueness instead of a brittle total count.
 
-This delivery introduced:
+## Corrective batches and root causes
+
+### Route test count
+
+The previous test counted every URI containing `muasamcong`, including ClientPortal routes, and expected a fixed total of 21. Adding the Admin Dashboard exposed this brittle assertion.
+
+Resolution:
+
+- filter only canonical `admin/muasamcong*` and `api/muasamcong*` routes;
+- assert no duplicate `METHOD URI` signatures;
+- keep explicit route/middleware/URI assertions for the Dashboard and existing contracts.
+
+### Blade / Livewire ExtendBlade parse error
+
+The first Dashboard rendering attempts produced `unexpected token "endif"` in the compiled view. Clearing compiled views proved this was source compilation, not stale cache.
+
+Resolution:
+
+- removed anonymous `x-admin::*` wrappers from the Dashboard view while preserving the Admin layout and equivalent responsive patterns;
+- replaced inline `@php(...)` with block-form `@php ... @endphp`;
+- retained semantic HTML, accessibility labels, focus styles, and responsive behavior.
+
+### Formatting
+
+Module-wide Pint initially reported four pre-existing style issues in unrelated legacy Muasamcong files. They were not reformatted in this feature. Changed PHP files were checked independently and passed.
+
+## Verification evidence
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Focused Dashboard + route authorization | PASS | 6 tests, 159 assertions |
+| Final Muasamcong module regression | PASS | 48 tests, 383 assertions, 2.94s |
+| Changed-file Pint | PASS | Five changed PHP files passed; final Dashboard test spacing recheck passed |
+| Route registration | PASS | `GET|HEAD admin/muasamcong/dashboard` -> `muasamcong.dashboard` |
+| Dashboard UI smoke | PASS | User confirmed desktop/mobile UI and linked functions |
+| Return-link UI smoke | PASS | User confirmed `Quay về Dashboard` navigation |
+| Admin UI standard | PASS within approved scope | Canonical Admin layout, responsive cards/workspaces, safe states, accessible links |
+| ClientPortal impacted regression | NOT APPLICABLE | No ClientPortal source/contract changed |
+| Full project regression | NOT APPLICABLE | Approved module-scoped strategy; no shared/core behavior changed |
+| Runtime/upstream verification | NOT RUN | Dashboard uses local bounded summaries; live upstream testing outside scope |
+| Markdown whitespace check | PASS | `git diff --check origin/main...HEAD` produced no output at `0430e531` |
+| Local Git clean after docs | PASS | User local branch matched `origin/feat/muasamcong-admin-dashboard`; no modified/untracked paths reported |
+| PR review/merge | PENDING USER REVIEW | PR #72 is open; merge not performed |
+
+## Files in this delivery
+
+### Added
+
+- `Modules/Muasamcong/Http/Controllers/MuasamcongDashboardController.php`
+- `Modules/Muasamcong/Services/MuasamcongDashboardService.php`
+- `Modules/Muasamcong/resources/views/dashboard.blade.php`
+- `Modules/Muasamcong/resources/views/partials/dashboard-return-link.blade.php`
+- `tests/Feature/Muasamcong/MuasamcongDashboardTest.php`
+
+### Updated
+
+- `Modules/Muasamcong/routes/web.php`
+- eight Admin page-shell views for Dashboard return navigation;
+- `tests/Feature/Muasamcong/MuasamcongRouteAuthorizationTest.php`;
+- canonical Muasamcong documentation.
+
+## Database, storage, configuration, and operations
 
 ```text
 Migrations: none
 Seeders: none
+Database writes introduced by Dashboard: none
 Storage changes: none
 Environment changes: none
+Queue/job changes: none
 Operational commands: none
-Runtime module-state changes: none
 Production changes: none
 ```
 
-Retention periods, cleanup rules, capacity thresholds, and production data/storage volume remain **NOT DETERMINED / NOT VERIFIED**.
+## Deferred work and blockers
 
-## Verification evidence
+No implementation or UI blocker remains.
 
-### Static baseline review
+Still deferred from the accepted baseline:
 
-- module source/config/migrations/views/controllers/Livewire/services/models/jobs reviewed;
-- 14 Muasamcong feature test files inventoried;
-- 11 directly related ClientPortal/ClientApps test files inventoried;
-- repository bootstrap, module/admin standards, import/export guidance, workflow, module docs, and direct ClientPortal adapter reviewed;
-- GitHub branch/PR/main checkpoints reverified before this handoff.
+1. capability-specific authorization and denial tests for existing mutation surfaces;
+2. atomic Personal Session import-token claim;
+3. contractor job/sync idempotency;
+4. ClientPortal search completeness beyond 500 candidates;
+5. snapshot/raw-payload/file retention and capacity thresholds;
+6. incremental extraction of oversized controller/Livewire/export orchestration.
 
-### User local synchronization
-
-User local fast-forwarded successfully:
-
-```text
-Final pre-merge head: b3f88336f39cc42618a0c8dfcd0f1032af74f9bf
-Working tree paths: none reported
-```
-
-The final user-local gate reported no `git diff --check` error and no working-tree file path. GitHub verified PR #70 contained exactly the four approved Muasamcong documentation files.
-
-### Gate status
-
-| Gate | Status | Evidence / scope |
-|---|---|---|
-| Baseline source/static analysis | PASS | Required source, direct dependencies, standards, docs, and test inventory reviewed |
-| User review/acceptance | PASS | User explicitly accepted the baseline and Dashboard route proposal on 2026-08-29 |
-| Markdown whitespace check | PASS | Final `git diff --check main...HEAD` produced no reported error at PR head |
-| Focused automated tests | NOT APPLICABLE | Documentation-only delivery; no executable behavior changed |
-| Muasamcong regression | NOT APPLICABLE | Documentation-only delivery |
-| ClientPortal impacted regression | NOT APPLICABLE | Documentation-only delivery; adapter source/contracts unchanged |
-| Full project regression | NOT APPLICABLE — module-scoped documentation strategy | No shared/core/runtime change |
-| Admin UI smoke | NOT APPLICABLE | No Admin UI implementation/change in this delivery |
-| Admin UI standard | REVIEWED FOR ANALYSIS | Mandatory future Dashboard implementation boundary recorded; no rendered UI to accept |
-| PWA file handoff acceptance | NOT APPLICABLE | No download/open behavior changed |
-| Runtime/upstream verification | NOT RUN | Outside documentation-only scope |
-| Production enablement | NOT AUTHORIZED / NOT CHANGED | Source documentation does not imply production action |
-| Local Git clean | PASS at PR head `b3f88336` | User pulled the final handoff refresh; output showed aligned branch status and no working-tree file paths |
-| PR review/merge | PASS | PR #70 was mergeable with no unresolved review thread and merged as `eefe9f4d` |
-
-Automated test files were inspected as evidence of coverage intent. This handoff does not claim a fresh runtime test PASS.
-
-## Documentation state
-
-Current entry order:
-
-1. `COLLABORATION_HANDOFF.md` — current continuation checkpoint.
-2. `README.md` — developer entry point and operational boundaries.
-3. `INFORMATION.md` — factual route/component/service/model/table inventory.
-4. `ANALYSIS.md` — evidence, P0/P1/P2 findings, Dashboard assessment, and final recommendation.
-5. `ROUTES.md`, `SYNCED.md`, `ENV_DOCTOR.md` — supporting references outside the baseline output contract; verify against source.
-6. `AI_HANDOFF.md` — legacy investigation context, especially winner/lot research; not the canonical current handoff.
-
-Historical/supporting docs may still contain stale route or workflow statements because the `/analyze` contract authorized only `ANALYSIS.md`, `INFORMATION.md`, and `README.md`.
-
-## Blockers and deferred work
-
-No baseline-delivery blocker remains. Post-merge synchronization of the user local `main` is the only pending closeout verification.
-
-Deferred/unknown:
-
-- effective production Muasamcong enablement and current runtime configuration;
-- intended callers/capability policy for the Sanctum Muasamcong API;
-- snapshot/raw-payload/HSMT/export/job retention policy;
-- actual production queue, database, and storage volumes;
-- verified upstream winner/contractor-to-exact-lot/medicine join key;
-- implementation design and tests for the accepted Admin Dashboard capability;
-- correction batches for the P1 findings.
+The four pre-existing module-wide Pint findings remain outside this Dashboard delivery.
 
 ## Production boundary
 
-The merged documentation delivery did not:
-
-- deploy source;
-- enable or disable Muasamcong;
-- change secrets, endpoint configuration, queue workers, database state, storage, or permissions;
-- authorize production changes;
-- authorize a Dashboard implementation automatically.
-
-Production verification/enablement remains a separate operational action with explicit authorization.
+Merge readiness does not authorize deployment, production enablement, migrations, queue operations, environment changes, or upstream session changes. Production remains unchanged and unverified by this delivery.
 
 ## Remaining work / next authorized step
 
-The current authorized sequence is:
+1. User reviews PR #72 and decides whether to merge manually.
+2. After merge, verify `main`, module regression/Git-clean as applicable, and whether a docs-only post-merge handoff closeout is required.
 
-1. synchronize user local `main` and verify it contains merge commit `eefe9f4d` with a clean working tree;
-2. after post-merge verification, treat the baseline delivery and its handoff as closed;
-3. bootstrap a separate Dashboard implementation task from latest `main`, read `ADMIN_UI_STANDARD.md` and shared Admin patterns, propose the focused architecture/permission/test/UI plan, and wait for explicit implementation approval.
-
-No Dashboard feature branch, MR number, source change, merge, production action, or next refactor batch should be inferred from this handoff. The next MR/phase remains **NOT DETERMINED**.
+Do not infer a next refactor MR, production action, or post-merge closeout until this delivery is reviewed and merged.

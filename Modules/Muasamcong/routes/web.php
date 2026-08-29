@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
+use Modules\Muasamcong\Http\Controllers\MuasamcongDashboardController;
 use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
 use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingBbgExportController;
@@ -9,6 +10,7 @@ use Modules\Muasamcong\Http\Controllers\SyncedPricingExportController;
 
 Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))->prefix('admin/muasamcong')->name('muasamcong.')->group(function () {
     Route::middleware(config('muasamcong.view_middleware', ['permission:view_muasamcong,admin']))->group(function () {
+        Route::get('/dashboard', MuasamcongDashboardController::class)->name('dashboard');
         Route::get('/', [MuasamcongController::class, 'index'])->name('index');
         Route::post('/pricing/export-selected', [MuasamcongController::class, 'exportSelectedPricing'])->name('pricing.export-selected');
         Route::delete('/pricing/history/item', [PricingSearchHistoryController::class, 'destroy'])->name('pricing.history.destroy');
