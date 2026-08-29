@@ -6,11 +6,12 @@
 - Feature: read-only Admin Dashboard
 - Branch: `feat/invoices-admin-dashboard`
 - Base checkpoint: `main@e491aa44701c2303cef100207e632d199bbf0fa6`
-- Implementation status: **IMPLEMENTED — VERIFICATION PENDING**
-- Pull request: **NOT OPENED**
+- Verified source checkpoint: `7bae2084f912398fdbcbb2d22477d6d9cfd0ca53`
+- Implementation status: **VERIFIED — READY FOR PR**
+- Pull request: **PENDING CREATION AFTER THIS HANDOFF UPDATE**
 - Merge status: **NOT MERGED**
 
-This handoff must be updated with actual test, UI acceptance and PR results before merge.
+The user confirmed all scoped automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29. The PR reference will be recorded after creation.
 
 ## Approved Scope
 
@@ -133,18 +134,21 @@ Modules/Invoices/README.md
 
 ## Verification Gate
 
-The following results are pending and must be recorded before PR:
+User-confirmed results on 2026-08-29:
 
 ```text
-Pint changed PHP files                         PENDING
-Focused InvoicesDashboardTest                 PENDING
-Invoices module regression                    PENDING
-Admin Feature regression                      PENDING
-Route inspection                              PENDING
-Frontend production build                     PENDING
-Desktop UI acceptance                         PENDING
-Mobile UI acceptance                          PENDING
+Pint changed PHP files                         PASS
+Focused InvoicesDashboardTest                 PASS
+Invoices module regression                    PASS
+Admin Feature regression                      PASS
+Route inspection                              PASS
+Frontend production build                     PASS
+Desktop UI acceptance                         PASS
+Mobile UI acceptance                          PASS
+Working tree clean                            PASS
 ```
+
+Verification scope remained limited to Invoices and directly impacted Admin tests. No full-project regression was run or required.
 
 Full-project regression is not required unless the implementation scope expands beyond Invoices and its direct dependencies.
 
@@ -164,8 +168,8 @@ The Dashboard does not expand or silently fix these existing concerns:
 
 ## PR and Merge Gate
 
-1. Run only focused Invoices, directly impacted Admin tests and UI acceptance.
-2. Update this handoff with exact commands/results and final branch checkpoint.
-3. Open a PR for manual user review and merge.
+1. Focused Invoices, directly impacted Admin tests and UI acceptance: **COMPLETE**.
+2. Verification results and source checkpoint recorded in this handoff: **COMPLETE**.
+3. Open a PR for manual user review and merge: **NEXT**.
 4. Do not auto-merge.
 5. After merge, create a docs-only closeout only if the merged handoff lacks actual PR/merge verification details.
