@@ -3,7 +3,7 @@
 namespace Modules\Shared\Livewire\ImportExport;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -13,6 +13,7 @@ class Panel extends Component
 {
     use WithFileUploads;
 
+    #[Locked]
     public string $serviceClass;
 
     public string $title = 'Import / Export dữ liệu';
@@ -30,6 +31,7 @@ class Panel extends Component
     #[Reactive]
     public array $filters = [];
 
+    #[Locked]
     public ?string $permission = null;
 
     public bool $showSuccessModal = false;
@@ -45,11 +47,7 @@ class Panel extends Component
         array $filters = [],
         ?string $permission = null
     ): void {
-        abort_unless(
-            is_subclass_of($serviceClass, BaseImportExportService::class),
-            422,
-            'Dịch vụ Import / Export không hợp lệ.'
-        );
+        $this->assertServiceClass($serviceClass);
 
         $this->serviceClass = $serviceClass;
         $this->title = $title;
@@ -60,19 +58,19 @@ class Panel extends Component
 
     protected function rules(): array
     {
+        $allowedModes = implode(',', $this->service()->allowedImportModes());
+
         return [
             'file' => ['required', 'file', 'mimes:xlsx,csv', 'max:10240'],
-            'mode' => ['required', 'in:create_only,update_or_create,skip_duplicate,replace'],
+            'mode' => ['required', 'in:'.$allowedModes],
             'dryRun' => ['boolean'],
         ];
     }
 
     public function import(): void
     {
-        $this->authorizeAction();
+        $service = $this->authorizedService();
         $this->validate();
-
-        $service = app($this->serviceClass);
 
         $this->report = $service->import($this->file->getRealPath(), [
             'mode' => $this->mode,
@@ -96,9 +94,7 @@ class Panel extends Component
 
     public function export()
     {
-        $this->authorizeAction();
-        $service = app($this->serviceClass);
-
+        $service = $this->authorizedService();
         $path = $service->export($this->filters);
         $selectedCount = count($this->filters['selected_ids'] ?? []);
 
@@ -109,17 +105,19 @@ class Panel extends Component
                 : 'Đã tạo file export dữ liệu. Nhấn OK để tải lại màn hình.'
         );
 
-        return Storage::disk('public')->download($path);
+        return response()
+            ->download($service->exportAbsolutePath($path), basename($path))
+            ->deleteFileAfterSend(true);
     }
 
     public function exportTemplate()
     {
-        $this->authorizeAction();
-        $service = app($this->serviceClass);
-
+        $service = $this->authorizedService();
         $path = $service->exportTemplate();
 
-        return Storage::disk('public')->download($path);
+        return response()
+            ->download($service->exportAbsolutePath($path), basename($path))
+            ->deleteFileAfterSend(true);
     }
 
     public function acknowledgeSuccess()
@@ -139,6 +137,29 @@ class Panel extends Component
         $this->successTitle = $title;
         $this->successMessage = $message;
         $this->showSuccessModal = true;
+    }
+
+    private function authorizedService(): BaseImportExportService
+    {
+        $this->authorizeAction();
+
+        return $this->service();
+    }
+
+    private function service(): BaseImportExportService
+    {
+        $this->assertServiceClass($this->serviceClass);
+
+        return app($this->serviceClass);
+    }
+
+    private function assertServiceClass(string $serviceClass): void
+    {
+        abort_unless(
+            is_subclass_of($serviceClass, BaseImportExportService::class),
+            422,
+            'Dịch vụ Import / Export không hợp lệ.'
+        );
     }
 
     private function authorizeAction(): void
