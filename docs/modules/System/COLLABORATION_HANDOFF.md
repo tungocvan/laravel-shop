@@ -5,13 +5,17 @@
 - Module: `System`
 - Feature: System settings ownership and Admin compatibility adapters
 - Delivery branch: `refactor/system-settings-ownership-adapters`
+- Closeout branch: `docs/system-settings-ownership-closeout`
 - Base/source checkpoint: `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`
 - Implementation checkpoint: `b82670ab7a6935b2d1cf4421b8af9032b5eb5d61`
 - Verified feature checkpoint: `eacf009f91c2ca932058afe4fcf613a7919ef89c`
-- Implementation status: **COMPLETE — VERIFIED, READY FOR MANUAL MERGE**
-- Pull request: [#80 — refactor(system): consolidate settings ownership](https://github.com/tungocvan/laravel-shop/pull/80) — **OPEN**
+- Feature branch head: `5f63042ed6bc5b1c4aeb247426540d77e871cf72`
+- Main merge checkpoint: `df4a37f2afcf52543593355b619bba669b5a8229`
+- Implementation status: **COMPLETE — MERGED TO MAIN**
+- Pull request: [#80 — refactor(system): consolidate settings ownership](https://github.com/tungocvan/laravel-shop/pull/80) — **MERGED**
+- Merged at: **2026-08-29 08:44:41 UTC**
 
-This phase consolidates settings behavior under `Modules\System` without breaking the established Admin PHP class names or the historical `/admin/settings` URL. It follows the merged Google Drive/database-backup boundary phase and does not change database schemas, setting keys, permissions, or canonical System routes.
+This phase consolidated settings behavior under `Modules\System` without breaking the established Admin PHP class names or the historical `/admin/settings` URL. The operator confirmed every approved automated and UI gate before manually merging PR #80. This docs-only closeout records the stable main checkpoint; no source behavior is changed here.
 
 ## Approved Scope
 
@@ -130,5 +134,6 @@ GET|HEAD admin/system/settings/env
 2. **COMPLETE** — Ownership adapters, redirect boundary, dead-view cleanup and directly impacted tests implemented.
 3. **COMPLETE** — Operator pulled the implementation/style checkpoints and ran the approved gates.
 4. **COMPLETE** — Pint, focused/System/Admin/Admission, routes, build, desktop/mobile UI and clean-tree gates passed.
-5. **COMPLETE** — PR [#80](https://github.com/tungocvan/laravel-shop/pull/80) is open and mergeable for manual user review; automatic merge is not used.
-6. **PENDING** — User manually merges after approval.
+5. **COMPLETE** — PR [#80](https://github.com/tungocvan/laravel-shop/pull/80) was opened for manual user review; automatic merge was not used.
+6. **COMPLETE** — User manually merged PR #80; main checkpoint `df4a37f2afcf52543593355b619bba669b5a8229` was verified.
+7. This docs-only closeout records the final merged state; no source changes are included.
