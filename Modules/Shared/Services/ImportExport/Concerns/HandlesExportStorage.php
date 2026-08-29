@@ -20,12 +20,12 @@ trait HandlesExportStorage
     protected function makeExportPath(string $prefix, string $extension = 'xlsx'): string
     {
         $filename = Str::slug($prefix)
-            . '-'
-            . now()->format('Ymd-His-u')
-            . '-'
-            . Str::lower(Str::random(6))
-            . '.'
-            . $extension;
+            .'-'
+            .now()->format('Ymd-His-u')
+            .'-'
+            .Str::lower(Str::random(6))
+            .'.'
+            .$extension;
 
         Storage::disk($this->exportDisk())->makeDirectory($this->exportDirectory());
 
