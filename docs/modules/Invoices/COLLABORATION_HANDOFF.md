@@ -8,10 +8,10 @@
 - Base checkpoint: `main@e491aa44701c2303cef100207e632d199bbf0fa6`
 - Verified source checkpoint: `7bae2084f912398fdbcbb2d22477d6d9cfd0ca53`
 - Implementation status: **VERIFIED — READY FOR PR**
-- Pull request: **PENDING CREATION AFTER THIS HANDOFF UPDATE**
+- Pull request: [#74 — feat(invoices): add read-only admin dashboard](https://github.com/tungocvan/laravel-shop/pull/74) — **OPEN FOR MANUAL REVIEW**
 - Merge status: **NOT MERGED**
 
-The user confirmed all scoped automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29. The PR reference will be recorded after creation.
+The user confirmed all scoped automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29. PR #74 is open for manual review and must not be auto-merged.
 
 ## Approved Scope
 
@@ -170,6 +170,6 @@ The Dashboard does not expand or silently fix these existing concerns:
 
 1. Focused Invoices, directly impacted Admin tests and UI acceptance: **COMPLETE**.
 2. Verification results and source checkpoint recorded in this handoff: **COMPLETE**.
-3. Open a PR for manual user review and merge: **NEXT**.
+3. PR #74 opened for manual user review and merge: **COMPLETE**.
 4. Do not auto-merge.
 5. After merge, create a docs-only closeout only if the merged handoff lacks actual PR/merge verification details.
