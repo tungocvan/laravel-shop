@@ -7,8 +7,10 @@
 - Delivery: **Muasamcong baseline analysis documentation**
 - Delivery branch: `docs/muasamcong-baseline-analysis`
 - Accepted analysis checkpoint: `0715a6494de0bf1818c7f7177881a08fe1cabc47`
-- Pull request: **PENDING — not created**
-- Merge commit: **NOT AVAILABLE**
+- Pull request: **#70 — OPEN / awaiting user review**
+- Pull request URL: `https://github.com/tungocvan/laravel-shop/pull/70`
+- PR head before handoff refresh: `089f1615690418b9ccd8b304a870f7129b68a28e`
+- Merge commit: **PENDING POST-MERGE VERIFICATION**
 - Delivery status: **COMPLETED — documentation-only baseline accepted by user**
 - Next MR/phase: **NOT DETERMINED**
 
@@ -161,7 +163,7 @@ The user-reported diff contained exactly the three baseline documentation files 
 | PWA file handoff acceptance | NOT APPLICABLE | No download/open behavior changed |
 | Runtime/upstream verification | NOT RUN | Outside documentation-only scope |
 | Production enablement | NOT AUTHORIZED / NOT CHANGED | Source documentation does not imply production action |
-| Local Git clean | PASS at accepted analysis checkpoint | User output showed only aligned branch status and no working-tree file paths |
+| Local Git clean | PASS at initial handoff checkpoint `089f1615` | User pulled the handoff commit; output showed aligned branch status and no working-tree file paths |
 
 Automated test files were inspected as evidence of coverage intent. This handoff does not claim a fresh runtime test PASS.
 
@@ -208,9 +210,9 @@ Production verification/enablement remains a separate operational action with ex
 
 The current authorized sequence is:
 
-1. synchronize and verify this handoff commit on the user local branch;
-2. after the handoff/diff gate is confirmed, prepare the documentation pull request for user review and manual merge;
-3. after merge, verify `main` and perform the required stable handoff closeout if the merged handoff still contains temporary delivery state;
+1. synchronize and verify the PR #70 handoff-refresh commit on the user local branch;
+2. review PR #70 and merge it manually only after the refreshed diff/Git-clean gate passes;
+3. after merge, verify `main` and perform the required stable handoff closeout because this delivery handoff contains temporary PR state;
 4. bootstrap a separate Dashboard implementation task from latest `main`, read `ADMIN_UI_STANDARD.md` and shared Admin patterns, propose the focused architecture/permission/test/UI plan, and wait for explicit implementation approval.
 
-No Dashboard feature branch, MR number, source change, PR, merge, production action, or next refactor batch should be inferred from this handoff. The next MR/phase remains **NOT DETERMINED**.
+No Dashboard feature branch, MR number, source change, merge, production action, or next refactor batch should be inferred from this handoff. The next MR/phase remains **NOT DETERMINED**.
