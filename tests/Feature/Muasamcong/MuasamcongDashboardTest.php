@@ -151,6 +151,47 @@ class MuasamcongDashboardTest extends TestCase
         $this->assertStringNotContainsString('error_message', $serialized);
     }
 
+
+    public function test_admin_workspaces_expose_a_permission_aware_dashboard_return_link(): void
+    {
+        $viewer = $this->adminWithPermissions(['view_muasamcong']);
+
+        $this->actingAs($viewer, 'admin');
+        $rendered = view('Muasamcong::partials.dashboard-return-link')->render();
+
+        $this->assertStringContainsString(route('muasamcong.dashboard'), $rendered);
+        $this->assertStringContainsString('Quay về Dashboard', $rendered);
+
+        $configManager = $this->adminWithPermissions(['muasamcong.config.manage']);
+
+        $this->actingAs($configManager, 'admin');
+        $renderedWithoutViewPermission = view('Muasamcong::partials.dashboard-return-link')->render();
+
+        $this->assertStringNotContainsString(route('muasamcong.dashboard'), $renderedWithoutViewPermission);
+
+        $workspaceViews = [
+            'muasamcong.blade.php',
+            'synced.blade.php',
+            'wishlist.blade.php',
+            'hsmt.blade.php',
+            'contractors.blade.php',
+            'contractor-searches.blade.php',
+            'manual-contractor-lots.blade.php',
+            'config.blade.php',
+        ];
+
+        foreach ($workspaceViews as $workspaceView) {
+            $source = file_get_contents(base_path('Modules/Muasamcong/resources/views/'.$workspaceView));
+
+            $this->assertIsString($source);
+            $this->assertStringContainsString(
+                "@include('Muasamcong::partials.dashboard-return-link')",
+                $source,
+                $workspaceView
+            );
+        }
+    }
+
     private function adminWithPermissions(array $permissions): User
     {
         $admin = User::factory()->create();
