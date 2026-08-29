@@ -3,14 +3,41 @@
 namespace Modules\Pharma\Tests\Unit;
 
 use Modules\Pharma\Services\PriceListService;
+use Modules\Pharma\Services\Spreadsheet\PriceListWorkbookBuilder;
+use Modules\Pharma\Services\Spreadsheet\WorkbookAnalyzer;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Tests\TestCase;
 
 class PriceListServiceTest extends TestCase
 {
+    private string $fixturePath;
+
+    private string $fixtureImagePath;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fixturePath = sys_get_temp_dir().'/pharma-price-list-source-'.uniqid().'.xlsx';
+        $this->fixtureImagePath = sys_get_temp_dir().'/pharma-price-list-logo-'.uniqid().'.png';
+
+        $this->createWorkbookFixture();
+    }
+
+    protected function tearDown(): void
+    {
+        @unlink($this->fixturePath);
+        @unlink($this->fixtureImagePath);
+
+        parent::tearDown();
+    }
+
     public function test_it_detects_real_header_and_product_boundaries(): void
     {
-        $analysis = app(PriceListService::class)->analyze('TỔNG HỢP');
+        $analysis = $this->service()->analyze('TỔNG HỢP');
 
         $this->assertSame(9, $analysis->headerRow);
         $this->assertSame('X', $analysis->lastHeaderColumn);
@@ -22,7 +49,7 @@ class PriceListServiceTest extends TestCase
 
     public function test_it_filters_products_by_stt_and_name(): void
     {
-        $service = app(PriceListService::class);
+        $service = $this->service();
         $analysis = $service->analyze('TỔNG HỢP');
 
         $this->assertSame([4], array_column($service->filteredProducts($analysis, 'Trosicam'), 'stt'));
@@ -32,7 +59,7 @@ class PriceListServiceTest extends TestCase
     public function test_it_builds_non_contiguous_columns_and_repositions_signature(): void
     {
         $path = sys_get_temp_dir().'/price-list-'.uniqid().'.xlsx';
-        $service = app(PriceListService::class);
+        $service = $this->service();
         $analysis = $service->analyze('TỔNG HỢP');
 
         $service->generate([
@@ -55,5 +82,87 @@ class PriceListServiceTest extends TestCase
         $this->assertCount(1, $sheet->getDrawingCollection());
 
         @unlink($path);
+    }
+
+    private function service(): PriceListService
+    {
+        return new PriceListService(
+            app(WorkbookAnalyzer::class),
+            app(PriceListWorkbookBuilder::class),
+            $this->fixturePath,
+        );
+    }
+
+    private function createWorkbookFixture(): void
+    {
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('TỔNG HỢP');
+
+        $sheet->setCellValue('A1', 'CÔNG TY KIỂM THỬ');
+        $sheet->setCellValue('A6', 'BẢNG GIÁ');
+        $sheet->setCellValue('A7', 'Kính gửi: KHÁCH HÀNG');
+        $sheet->setCellValue('A8', 'Đơn vị tính: VNĐ');
+
+        $headers = [
+            'STT',
+            'Tên biệt dược',
+            'Tên hoạt chất',
+            'Giấy phép lưu hành sản phẩm',
+            'Nồng độ - Hàm lượng',
+            'Dạng bào chế',
+            'Đường dùng',
+            'Đơn vị tính',
+            'Quy cách đóng gói',
+            'Nhà sản xuất',
+            'Nước sản xuất',
+            'Giá kê khai',
+            'Giá bán',
+            'VAT',
+            'Cột O',
+            'Cột P',
+            'Cột Q',
+            'Cột R',
+            'Cột S',
+            'Cột T',
+            'Cột U',
+            'Ngày hiệu lực',
+            'Cột W',
+            'Cột X',
+        ];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValue([$index + 1, 9], $header);
+        }
+
+        for ($stt = 1; $stt <= 44; $stt++) {
+            $row = $stt + 9;
+            $name = $stt === 4 ? 'Trosicam 15mg' : "Thuốc kiểm thử {$stt}";
+
+            $sheet->setCellValue("A{$row}", $stt);
+            $sheet->setCellValue("B{$row}", $name);
+            $sheet->setCellValue("C{$row}", "Hoạt chất {$stt}");
+            $sheet->setCellValue("D{$row}", "VN-{$stt}");
+            $sheet->setCellValue("E{$row}", "Hàm lượng {$stt}");
+            $sheet->setCellValue("V{$row}", Date::PHPToExcel(new \DateTimeImmutable('2026-01-01')));
+            $sheet->getStyle("V{$row}")->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+        }
+
+        $this->writeTinyPng($this->fixtureImagePath);
+
+        $drawing = new Drawing;
+        $drawing->setPath($this->fixtureImagePath);
+        $drawing->setCoordinates('A1');
+        $drawing->setWorksheet($sheet);
+
+        IOFactory::createWriter($spreadsheet, 'Xlsx')->save($this->fixturePath);
+    }
+
+    private function writeTinyPng(string $path): void
+    {
+        file_put_contents(
+            $path,
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true)
+        );
     }
 }
