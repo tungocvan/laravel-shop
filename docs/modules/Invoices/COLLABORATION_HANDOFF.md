@@ -4,14 +4,18 @@
 
 - Module: `Invoices`
 - Feature: read-only Admin Dashboard
-- Branch: `feat/invoices-admin-dashboard`
+- Delivery branch: `feat/invoices-admin-dashboard`
+- Closeout branch: `docs/invoices-admin-dashboard-closeout`
 - Base checkpoint: `main@e491aa44701c2303cef100207e632d199bbf0fa6`
 - Verified source checkpoint: `7bae2084f912398fdbcbb2d22477d6d9cfd0ca53`
-- Implementation status: **VERIFIED — READY FOR PR**
-- Pull request: [#74 — feat(invoices): add read-only admin dashboard](https://github.com/tungocvan/laravel-shop/pull/74) — **OPEN FOR MANUAL REVIEW**
-- Merge status: **NOT MERGED**
+- Feature branch head: `30c594fe181aa190d4cc29fa1ee714b20856918a`
+- Main merge checkpoint: `ab7b7bfebebd97a5a7ec9e8abedf77c90f47685f`
+- Implementation status: **COMPLETE — MERGED TO MAIN**
+- Pull request: [#74 — feat(invoices): add read-only admin dashboard](https://github.com/tungocvan/laravel-shop/pull/74) — **MERGED**
+- Merged at: **2026-08-29 02:20:50 UTC**
+- Merge status: **MERGED**
 
-The user confirmed all scoped automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29. PR #74 is open for manual review and must not be auto-merged.
+The user confirmed all scoped automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29. PR #74 was manually merged into `main`; this docs-only closeout records the stable merge checkpoint.
 
 ## Approved Scope
 
@@ -170,6 +174,7 @@ The Dashboard does not expand or silently fix these existing concerns:
 
 1. Focused Invoices, directly impacted Admin tests and UI acceptance: **COMPLETE**.
 2. Verification results and source checkpoint recorded in this handoff: **COMPLETE**.
-3. PR #74 opened for manual user review and merge: **COMPLETE**.
-4. Do not auto-merge.
-5. After merge, create a docs-only closeout only if the merged handoff lacks actual PR/merge verification details.
+3. PR #74 opened for manual user review: **COMPLETE**.
+4. User manually merged PR #74: **COMPLETE**.
+5. Main merge checkpoint `ab7b7bfebebd97a5a7ec9e8abedf77c90f47685f` verified: **COMPLETE**.
+6. This docs-only closeout records the final merged state; no source changes are included.
