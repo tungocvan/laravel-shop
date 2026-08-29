@@ -3,20 +3,19 @@
 - Last updated: 2026-08-29
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Baseline source checkpoint: `3c755169ecb99610a0a00c6a023d57b80cfe6f2b`
-- Delivery: **Muasamcong baseline analysis documentation**
-- Delivery branch: `docs/muasamcong-baseline-analysis`
-- Accepted analysis checkpoint: `0715a6494de0bf1818c7f7177881a08fe1cabc47`
-- Pull request: **#70 — OPEN / awaiting user review**
-- Pull request URL: `https://github.com/tungocvan/laravel-shop/pull/70`
-- PR head before handoff refresh: `089f1615690418b9ccd8b304a870f7129b68a28e`
-- Merge commit: **PENDING POST-MERGE VERIFICATION**
-- Delivery status: **COMPLETED — documentation-only baseline accepted by user**
+- Stable `main` checkpoint after baseline merge: `eefe9f4dcd8eb615ebcf18a81b183e6ff532245d`
+- Completed delivery: **Muasamcong baseline analysis documentation**
+- Pull request: **#70 — MERGED / CLOSED**
+- Source head: `b3f88336f39cc42618a0c8dfcd0f1032af74f9bf`
+- Merge commit: `eefe9f4dcd8eb615ebcf18a81b183e6ff532245d`
+- Delivery status: **MERGED / CLOSED — documentation-only baseline accepted**
+- Active delivery: **NONE**
+- Accepted next capability: **Admin Dashboard — implementation not started**
 - Next MR/phase: **NOT DETERMINED**
 
 ## Current checkpoint
 
-The Muasamcong baseline analysis has been completed and accepted by the user. The delivery is documentation-only and follows `.codex/tasks/analyze-module.md` plus the repository collaboration workflow.
+The Muasamcong baseline analysis was accepted by the user and merged into `main` through PR #70. This file records the stable post-merge continuation state; temporary branch/PR-review state has been removed.
 
 Files refreshed by the baseline:
 
@@ -24,7 +23,20 @@ Files refreshed by the baseline:
 - `docs/modules/Muasamcong/INFORMATION.md`
 - `docs/modules/Muasamcong/README.md`
 
-This handoff was created as the separately approved post-analysis handoff batch required before a pull request. No application source, route, controller, Livewire component, service, model, migration, test, configuration, runtime state, or production state was changed.
+No application source, route, controller, Livewire component, service, model, migration, test, configuration, runtime state, or production state was changed by the baseline delivery.
+
+## Baseline merge checkpoint
+
+```text
+PR: #70
+PR state: CLOSED
+Merged: true
+Base: main
+Source head: b3f88336f39cc42618a0c8dfcd0f1032af74f9bf
+Merge commit: eefe9f4dcd8eb615ebcf18a81b183e6ff532245d
+main immediately after merge: eefe9f4dcd8eb615ebcf18a81b183e6ff532245d
+Delivery: MERGED / CLOSED
+```
 
 ## Baseline conclusion
 
@@ -139,13 +151,11 @@ Retention periods, cleanup rules, capacity thresholds, and production data/stora
 User local fast-forwarded successfully:
 
 ```text
-3c755169..0715a649
-Branch: docs/muasamcong-baseline-analysis
-Tracking: origin/docs/muasamcong-baseline-analysis
+Final pre-merge head: b3f88336f39cc42618a0c8dfcd0f1032af74f9bf
 Working tree paths: none reported
 ```
 
-The user-reported diff contained exactly the three baseline documentation files before this handoff was added.
+The final user-local gate reported no `git diff --check` error and no working-tree file path. GitHub verified PR #70 contained exactly the four approved Muasamcong documentation files.
 
 ### Gate status
 
@@ -153,7 +163,7 @@ The user-reported diff contained exactly the three baseline documentation files 
 |---|---|---|
 | Baseline source/static analysis | PASS | Required source, direct dependencies, standards, docs, and test inventory reviewed |
 | User review/acceptance | PASS | User explicitly accepted the baseline and Dashboard route proposal on 2026-08-29 |
-| Markdown whitespace check | PASS | `git diff --check main...HEAD` produced no reported error before handoff creation; generated handoff checked separately before commit |
+| Markdown whitespace check | PASS | Final `git diff --check main...HEAD` produced no reported error at PR head |
 | Focused automated tests | NOT APPLICABLE | Documentation-only delivery; no executable behavior changed |
 | Muasamcong regression | NOT APPLICABLE | Documentation-only delivery |
 | ClientPortal impacted regression | NOT APPLICABLE | Documentation-only delivery; adapter source/contracts unchanged |
@@ -163,7 +173,8 @@ The user-reported diff contained exactly the three baseline documentation files 
 | PWA file handoff acceptance | NOT APPLICABLE | No download/open behavior changed |
 | Runtime/upstream verification | NOT RUN | Outside documentation-only scope |
 | Production enablement | NOT AUTHORIZED / NOT CHANGED | Source documentation does not imply production action |
-| Local Git clean | PASS at initial handoff checkpoint `089f1615` | User pulled the handoff commit; output showed aligned branch status and no working-tree file paths |
+| Local Git clean | PASS at PR head `b3f88336` | User pulled the final handoff refresh; output showed aligned branch status and no working-tree file paths |
+| PR review/merge | PASS | PR #70 was mergeable with no unresolved review thread and merged as `eefe9f4d` |
 
 Automated test files were inspected as evidence of coverage intent. This handoff does not claim a fresh runtime test PASS.
 
@@ -182,7 +193,7 @@ Historical/supporting docs may still contain stale route or workflow statements 
 
 ## Blockers and deferred work
 
-No blocker prevents review of this documentation delivery.
+No baseline-delivery blocker remains. Post-merge synchronization of the user local `main` is the only pending closeout verification.
 
 Deferred/unknown:
 
@@ -196,7 +207,7 @@ Deferred/unknown:
 
 ## Production boundary
 
-Merging this documentation branch does not:
+The merged documentation delivery did not:
 
 - deploy source;
 - enable or disable Muasamcong;
@@ -210,9 +221,8 @@ Production verification/enablement remains a separate operational action with ex
 
 The current authorized sequence is:
 
-1. synchronize and verify the PR #70 handoff-refresh commit on the user local branch;
-2. review PR #70 and merge it manually only after the refreshed diff/Git-clean gate passes;
-3. after merge, verify `main` and perform the required stable handoff closeout because this delivery handoff contains temporary PR state;
-4. bootstrap a separate Dashboard implementation task from latest `main`, read `ADMIN_UI_STANDARD.md` and shared Admin patterns, propose the focused architecture/permission/test/UI plan, and wait for explicit implementation approval.
+1. synchronize user local `main` and verify it contains merge commit `eefe9f4d` with a clean working tree;
+2. after post-merge verification, treat the baseline delivery and its handoff as closed;
+3. bootstrap a separate Dashboard implementation task from latest `main`, read `ADMIN_UI_STANDARD.md` and shared Admin patterns, propose the focused architecture/permission/test/UI plan, and wait for explicit implementation approval.
 
 No Dashboard feature branch, MR number, source change, merge, production action, or next refactor batch should be inferred from this handoff. The next MR/phase remains **NOT DETERMINED**.
