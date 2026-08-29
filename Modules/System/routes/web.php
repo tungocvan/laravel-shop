@@ -51,7 +51,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
             Route::get('/download/{filename}', [DatabaseController::class, 'download'])
                 ->middleware('permission:database.download,admin')
                 ->name('download')
-                ->where('filename', '[A-Za-z0-9_.-]+');
+                ->where('filename', '[a-f0-9]{64}');
         });
     });
 });

@@ -164,9 +164,10 @@ Modules\System\Services\Cloud\GoogleDriveBackupBrowserService
 
 Dùng cho backup database để:
 
-- list remote backup;
-- download bằng OAuth;
-- delete remote file;
+- list remote backup theo giới hạn cứng;
+- phát hành reference ký bởi server thay cho Drive file ID trong action;
+- download bằng OAuth về kho backup local;
+- delete remote file sau khi reference được resolve trong namespace database;
 - prune retention.
 
 UI:
@@ -177,13 +178,18 @@ UI:
 
 Có các thao tác:
 
-- Copy URL;
 - Mở Drive;
 - Tải về Local;
 - Xóa Drive;
-- Tải & Restore.
 
-File backup do hệ thống tạo là OAuth/private, **không cần share “Anyone with the link”**. Chức năng URL public chỉ là legacy cho file Drive bên ngoài.
+File backup do hệ thống tạo là OAuth/private, **không cần share “Anyone with the link”**. Import từ URL Drive public và thao tác `Tải & Restore` trực tiếp đã được loại bỏ.
+
+Restore từ Drive bắt buộc có hai bước độc lập:
+
+1. tải file remote về kho backup local, có giới hạn dung lượng và kiểm tra định dạng;
+2. người có quyền `database.restore` chọn bản local đã xác minh và xác nhận restore riêng.
+
+UI không gửi filename, filesystem path hoặc Drive file ID làm định danh tin cậy. Mọi action local/remote phải dùng reference do service System phát hành và được resolve lại trong catalog/namespace allowlist. Danh sách remote không được polling liên tục; chỉ tải khi render hoặc người vận hành chủ động làm mới.
 
 ## 6. Scheduler dùng chung
 
@@ -326,8 +332,11 @@ AI/Codex phải kiểm tra theo thứ tự:
 6. Operation nặng đã đưa vào Queue chưa?
 7. Có log và trạng thái success/failed chưa?
 8. UI đã có progress/result modal chưa?
-9. Có permission phù hợp chưa?
-10. Có test contract/regression System và Module liên quan chưa?
+9. Action đã dùng opaque server-issued reference thay vì filename/path/Drive ID chưa?
+10. Error/status/log đã loại raw exception, external payload, token, path và ID không cần thiết chưa?
+11. List/traversal/download đã có giới hạn cứng và timeout chưa?
+12. Có permission phù hợp chưa?
+13. Có test contract/regression System và Module liên quan chưa?
 
 **Mặc định: tái sử dụng kết nối System. Chỉ tạo OAuth riêng khi nghiệp vụ thực sự yêu cầu một Google account/credential độc lập.**
 

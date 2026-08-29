@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Modules\System\Services\Database\DatabaseBackupCatalogService;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use ZipArchive;
@@ -23,6 +24,8 @@ class DatabaseService
 
     protected ?array $tableModuleMap = null;
 
+    public function __construct(private readonly DatabaseBackupCatalogService $backupCatalog) {}
+
     public function getAllTables(string $search = '', string $module = ''): array
     {
         $search = mb_substr($search, 0, 100);
@@ -32,6 +35,7 @@ class DatabaseService
         $result = array_map(function ($table) use ($moduleMap) {
             $tableName = $table->Name;
             $fileName = $this->backupFileName($tableName);
+            $backupId = $this->backupCatalog->referenceForFileName($fileName, ['sql']);
 
             return [
                 'name' => $tableName,
@@ -39,8 +43,9 @@ class DatabaseService
                 'rows' => $table->Rows,
                 'size_mb' => round(($table->Data_length + $table->Index_length) / 1024 / 1024, 2),
                 'collation' => $table->Collation,
-                'has_backup' => Storage::disk('local')->exists("private/backups/{$fileName}"),
+                'has_backup' => $backupId !== null,
                 'backup_file' => $fileName,
+                'backup_id' => $backupId,
                 'is_protected' => in_array($tableName, $this->protectedTables, true),
             ];
         }, $tables);
@@ -84,10 +89,7 @@ class DatabaseService
         $this->assertAllowedTable($tableName, allowProtected: true);
 
         $fileName = $this->backupFileName($tableName);
-        $path = Storage::disk('local')->path("private/backups/{$fileName}");
-
-        $this->ensureDirectory(dirname($path));
-        $this->runDump([$tableName], $path, 120);
+        $this->dumpAtomically([$tableName], "private/backups/{$fileName}", 120);
 
         return true;
     }
@@ -157,14 +159,25 @@ class DatabaseService
 
     public function backupFullDatabase(): bool
     {
-        $timestamp = now()->format('Y-m-d_H-i-s');
-        $fileName = "db_backup_full_{$timestamp}.sql";
-        $path = Storage::disk('local')->path("private/backups/{$fileName}");
-
-        $this->ensureDirectory(dirname($path));
-        $this->runDump([], $path, 300);
+        $this->createFullDatabaseBackup();
 
         return true;
+    }
+
+    public function createFullDatabaseBackup(): array
+    {
+        $timestamp = now()->format('Y-m-d_H-i-s-u');
+        $fileName = "db_backup_full_{$timestamp}.sql";
+
+        $this->dumpAtomically([], "private/backups/{$fileName}", 300);
+
+        $backup = $this->backupCatalog->resolveTrustedFileName($fileName, ['sql']);
+
+        if ($backup === null || ! $backup['is_full']) {
+            throw new Exception('Không thể xác minh file full database backup vừa tạo.');
+        }
+
+        return array_diff_key($backup, array_flip(['relative_path', 'absolute_path']));
     }
 
     public function restoreTable(string $tableName): bool
@@ -172,13 +185,13 @@ class DatabaseService
         $this->assertAllowedTable($tableName, allowProtected: true);
 
         return $this->withTableLock($tableName, function () use ($tableName): bool {
-            $path = Storage::disk('local')->path('private/backups/'.$this->backupFileName($tableName));
+            $backup = $this->backupCatalog->resolveTrustedFileName($this->backupFileName($tableName), ['sql']);
 
-            if (! file_exists($path)) {
+            if ($backup === null) {
                 return false;
             }
 
-            $this->runMysqlImport($path, 300);
+            $this->runMysqlImport($backup['absolute_path'], 300);
 
             return true;
         });
@@ -192,10 +205,10 @@ class DatabaseService
 
         return $this->withTableLock($tableName, function () use ($tableName, $inputPath): string {
             $safetyFile = 'backup_'.$tableName.'_before_import_'.now()->format('Y-m-d_H-i-s').'.sql';
-            $safetyPath = Storage::disk('local')->path('private/backups/'.$safetyFile);
+            $safetyRelativePath = 'private/backups/'.$safetyFile;
+            $safetyPath = Storage::disk('local')->path($safetyRelativePath);
 
-            $this->ensureDirectory(dirname($safetyPath));
-            $this->runDump([$tableName], $safetyPath, 180);
+            $this->dumpAtomically([$tableName], $safetyRelativePath, 180);
 
             try {
                 $this->runMysqlImport($inputPath, 300);
@@ -206,8 +219,8 @@ class DatabaseService
                     Log::critical('Table import and automatic recovery both failed.', [
                         'table' => $tableName,
                         'safety_backup' => $safetyFile,
-                        'import_error' => $importException->getMessage(),
-                        'recovery_error' => $recoveryException->getMessage(),
+                        'import_exception' => $importException::class,
+                        'recovery_exception' => $recoveryException::class,
                     ]);
 
                     throw new Exception(
@@ -259,48 +272,44 @@ class DatabaseService
         }
     }
 
-    public function getDownloadPath(string $fileName): ?string
+    public function getDownloadPath(string $backupId): ?string
     {
-        return $this->resolveBackupIdentifier($fileName);
+        return $this->backupCatalog->resolveReference($backupId, ['sql', 'zip'])['absolute_path'] ?? null;
+    }
+
+    public function getBackupDescriptor(string $backupId, array $extensions = ['sql']): ?array
+    {
+        $backup = $this->backupCatalog->resolveReference($backupId, $extensions);
+
+        return $backup === null
+            ? null
+            : array_diff_key($backup, array_flip(['relative_path', 'absolute_path']));
+    }
+
+    public function getBackupReference(string $fileName, array $extensions = ['sql', 'zip']): ?string
+    {
+        return $this->backupCatalog->referenceForFileName($fileName, $extensions);
+    }
+
+    public function getTrustedBackupPath(string $fileName): ?string
+    {
+        return $this->backupCatalog->resolveTrustedFileName($fileName, ['sql'])['absolute_path'] ?? null;
     }
 
     public function getAllBackupFiles(): array
     {
-        $files = [];
-
-        foreach (['private/backups', 'backups'] as $directory) {
-            foreach (Storage::disk('local')->files($directory) as $path) {
-                $fileName = basename($path);
-
-                if (! preg_match('/\A[A-Za-z0-9_.-]+\.sql\z/', $fileName)) {
-                    continue;
-                }
-
-                $files[] = [
-                    'id' => $fileName,
-                    'name' => $fileName,
-                    'path' => $fileName,
-                    'size' => Storage::disk('local')->size($path),
-                    'time' => Storage::disk('local')->lastModified($path),
-                    'is_full' => $this->looksLikeFullBackup(Storage::disk('local')->path($path)),
-                ];
-            }
-        }
-
-        usort($files, fn ($a, $b) => $b['time'] <=> $a['time']);
-
-        return $files;
+        return $this->backupCatalog->listBackups(2000);
     }
 
     public function restoreFromFile(string $backupId): bool
     {
-        $path = $this->resolveBackupIdentifier($backupId);
+        $path = $this->getDownloadPath($backupId);
 
         if ($path === null || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'sql') {
             throw new Exception('Backup file not found.');
         }
 
-        if (! $this->looksLikeFullBackup($path)) {
+        if (! $this->backupCatalog->isFullDatabaseBackup($path)) {
             throw new Exception('File đã chọn không phải full database backup hợp lệ.');
         }
 
@@ -315,13 +324,11 @@ class DatabaseService
             throw new Exception('Một tiến trình restore database khác đang chạy.');
         }
 
-        $safetyPath = Storage::disk('local')->path(
-            'private/backups/db_backup_before_restore_'.now()->format('Y-m-d_H-i-s').'.sql'
-        );
+        $safetyRelativePath = 'private/backups/db_backup_before_restore_'.now()->format('Y-m-d_H-i-s').'.sql';
+        $safetyPath = Storage::disk('local')->path($safetyRelativePath);
 
         try {
-            $this->ensureDirectory(dirname($safetyPath));
-            $this->runDump([], $safetyPath, 300);
+            $this->dumpAtomically([], $safetyRelativePath, 300);
 
             try {
                 $this->runMysqlImport($path, 600);
@@ -331,9 +338,9 @@ class DatabaseService
                 } catch (\Throwable $recoveryException) {
                     Log::critical('Database restore and automatic recovery both failed.', [
                         'backup' => $backupId,
-                        'safety_backup' => $safetyPath,
-                        'restore_error' => $restoreException->getMessage(),
-                        'recovery_error' => $recoveryException->getMessage(),
+                        'safety_backup' => basename($safetyPath),
+                        'restore_exception' => $restoreException::class,
+                        'recovery_exception' => $recoveryException::class,
                     ]);
 
                     throw new Exception(
@@ -378,7 +385,7 @@ class DatabaseService
             throw new Exception('File SQL không được vượt quá 500 MB.');
         }
 
-        if (! $this->looksLikeFullBackup($sourcePath)) {
+        if (! $this->backupCatalog->isFullDatabaseBackup($sourcePath)) {
             throw new Exception('File không phải full database backup MySQL/MariaDB hợp lệ.');
         }
 
@@ -397,25 +404,7 @@ class DatabaseService
 
     public function deleteBackup(string $backupId): int
     {
-        if ($backupId !== basename($backupId) || ! preg_match('/\A[A-Za-z0-9_.-]+\.sql\z/', $backupId)) {
-            throw new Exception('Invalid backup file.');
-        }
-
-        $deleted = 0;
-
-        foreach (['private/backups', 'backups'] as $directory) {
-            $path = "{$directory}/{$backupId}";
-
-            if (Storage::disk('local')->exists($path) && Storage::disk('local')->delete($path)) {
-                $deleted++;
-            }
-        }
-
-        if ($deleted === 0) {
-            throw new Exception('Backup file not found.');
-        }
-
-        return $deleted;
+        return $this->backupCatalog->deleteReference($backupId);
     }
 
     public function assertAllowedTable(string $tableName, bool $allowProtected = false): void
@@ -463,13 +452,32 @@ class DatabaseService
             if (! $process->isSuccessful()) {
                 Log::error('Database dump failed.', [
                     'exit_code' => $process->getExitCode(),
-                    'error' => $process->getErrorOutput(),
                 ]);
 
                 throw new ProcessFailedException($process);
             }
         } finally {
             fclose($output);
+        }
+    }
+
+    private function dumpAtomically(array $tables, string $relativePath, int $timeout): void
+    {
+        $finalPath = Storage::disk('local')->path($relativePath);
+        $temporaryPath = $finalPath.'.partial-'.bin2hex(random_bytes(6));
+
+        $this->ensureDirectory(dirname($finalPath));
+
+        try {
+            $this->runDump($tables, $temporaryPath, $timeout);
+
+            if (! rename($temporaryPath, $finalPath)) {
+                throw new Exception('Không thể hoàn tất file database backup.');
+            }
+        } finally {
+            if (is_file($temporaryPath)) {
+                @unlink($temporaryPath);
+            }
         }
     }
 
@@ -499,7 +507,6 @@ class DatabaseService
             if (! $process->isSuccessful()) {
                 Log::error('Database import failed.', [
                     'exit_code' => $process->getExitCode(),
-                    'error' => $process->getErrorOutput(),
                 ]);
 
                 throw new ProcessFailedException($process);
@@ -514,47 +521,6 @@ class DatabaseService
         return filled($config['password'] ?? null)
             ? ['MYSQL_PWD' => $config['password']]
             : [];
-    }
-
-    private function resolveBackupIdentifier(string $backupId): ?string
-    {
-        if ($backupId !== basename($backupId) || ! preg_match('/\A[A-Za-z0-9_.-]+\.(?:sql|zip)\z/i', $backupId)) {
-            return null;
-        }
-
-        foreach (['private/backups', 'backups'] as $directory) {
-            $path = "{$directory}/{$backupId}";
-
-            if (Storage::disk('local')->exists($path)) {
-                return Storage::disk('local')->path($path);
-            }
-        }
-
-        return null;
-    }
-
-    private function looksLikeFullBackup(string $path): bool
-    {
-        if (! is_readable($path) || filesize($path) < 100) {
-            return false;
-        }
-
-        $handle = fopen($path, 'rb');
-
-        if ($handle === false) {
-            return false;
-        }
-
-        try {
-            $sample = fread($handle, 1024 * 1024);
-        } finally {
-            fclose($handle);
-        }
-
-        return is_string($sample)
-            && (str_contains($sample, 'MySQL dump') || str_contains($sample, 'MariaDB dump'))
-            && str_contains($sample, 'DROP TABLE IF EXISTS')
-            && substr_count($sample, 'CREATE TABLE') >= 2;
     }
 
     private function assertReadableSqlFile(string $path): void

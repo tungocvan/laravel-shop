@@ -3,199 +3,191 @@
 ## Current Status
 
 - Module: `System`
-- Feature: read-only Admin Dashboard
-- Delivery branch: `feat/system-admin-dashboard`
-- Closeout branch: `docs/system-admin-dashboard-closeout`
-- Base/source checkpoint: `main@645e7737540436333e82ad4798ad67390c882cc6`
-- Verified feature checkpoint: `92904c832ebf3f9c90ecf495a363871018a82013`
-- Feature branch head: `73e41e0352fa2974fd2998b1ae24fac2964789b9`
-- Main merge checkpoint: `4aadc7536fe6b01e5f3611edd1b21860d553e16d`
-- Implementation status: **COMPLETE — MERGED TO MAIN**
-- Pull request: [#76 — feat(system): add read-only admin dashboard](https://github.com/tungocvan/laravel-shop/pull/76) — **MERGED**
-- Merged at: **2026-08-29 03:45:24 UTC**
-- Merge status: **MERGED**
+- Feature: P0 Google Drive and database-backup boundary hardening
+- Delivery branch: `fix/system-drive-backup-boundaries`
+- Base/source checkpoint: `main@d1c080e6a3e90478bde3830c9760686307af1835`
+- Implementation status: **IMPLEMENTED LOCALLY — AWAITING OPERATOR VERIFICATION**
+- Pull request: not opened
+- Merge status: not merged
 
-The user confirmed all scoped automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29. PR #76 was manually merged into `main`; this docs-only closeout records the stable merge checkpoint. The broader System consolidation roadmap remains deferred to separate branches and PRs.
+This PR is the first deferred refactor phase after the read-only System Dashboard. The Dashboard feature was completed in PR #76 and remains outside this branch.
 
 ## Approved Scope
 
-Add a permission-aware Dashboard at:
+This phase corrects only the P0 boundary around System-owned database backups and Google Drive:
 
-```text
-GET /admin/system/dashboard
-admin.system.dashboard
-web, auth:admin, permission:system.manage
-```
+- replace browser-supplied local filenames/paths and remote Drive IDs with opaque server-issued references;
+- validate every local/remote action against the bounded server-owned backup catalog;
+- require backup and destructive-retention permissions for automation management;
+- prevent raw exception, external payload, path and persisted error text from reaching UI/status/log output;
+- bound Google Drive traversal and remove three-second remote polling;
+- stream Drive uploads instead of loading the full SQL file into PHP memory;
+- retire the legacy public Drive URL import;
+- require remote download to local storage and a separate explicit restore confirmation;
+- create database dumps through a temporary file and publish them with an atomic rename;
+- return the newly created backup descriptor directly instead of identifying it with before/after full-directory scans.
 
-The existing route and behavior at `GET /admin/system` / `admin.system.index` remain unchanged.
+## Security and Data Contract
 
-The Dashboard may navigate to existing workspaces but must not directly change configuration, run Artisan or shell operations, probe workers, synchronize Google Drive, create/delete backups, restore data, clear cache or perform any other mutation.
+### Local backup references
 
-## Architecture
+`DatabaseBackupCatalogService` owns local discovery and resolution. UI and download routes receive a deterministic 64-character HMAC reference, never a trusted filename or filesystem path. The service resolves the reference only against allowlisted `.sql`/`.zip` files in the existing private and legacy-compatible backup directories.
 
-```text
-SystemDashboardController
-    -> SystemDashboardService
-        -> SystemDashboardData (immutable bounded safe DTO)
-            -> System::pages.dashboard
-```
+Public descriptors may contain:
 
-The Dashboard service:
+- opaque reference;
+- display filename;
+- size and modification time;
+- full-database classification.
 
-- checks table availability before querying;
-- uses fixed aggregate queries for queue counts;
-- reads only four allowlisted settings keys for sanitized Drive/backup state;
-- does not scan backup directories or Module manifests;
-- does not call Google or another remote API;
-- does not execute Artisan, shell commands or scheduler operations;
-- limits warnings to five and workspace definitions to eight;
-- returns generic unavailable states instead of raw exceptions;
-- logs only section context and exception class.
+Absolute and relative paths remain service-internal. Queue jobs keep their existing filename payload for serialized-job compatibility, but resolve it through the explicit trusted internal adapter before reading a file.
+
+### Remote backup references
+
+`GoogleDriveBackupBrowserService` returns an HMAC reference bound to the Drive file ID, filename, year and month. Download and delete resolve that reference only inside the application-owned `database/YYYY/MM` namespace. A raw Drive ID is rejected before network access.
+
+Remote discovery is capped at:
+
+- 10 year folders;
+- 12 month folders per year;
+- 100 files for UI actions;
+- 1,000 files for retention.
+
+The UI does not poll the remote API. The operator explicitly refreshes the list.
+
+### Restore boundary
+
+There is no direct remote download-and-restore operation. A remote file must first pass the 500 MB download bound and SQL/full-backup validation while being imported into local backup storage. Restore is then a separate local action protected by `database.restore` and its own confirmation.
+
+The legacy public Google Drive URL importer is removed.
 
 ## Permission Contract
 
-| Capability | Dashboard behavior |
+| Capability | Behavior in this phase |
 |---|---|
-| `system.manage` | Required to open the Dashboard; shows the existing System workspace |
-| `system.settings.view` | Shows settings/queue navigation and sanitized local queue counts |
-| `system.env.view` | Shows environment/integration navigation and boolean configuration, Drive and cloud-backup state |
-| `system.modules.view` | Shows the Module workspace link |
-| `system.commands.run` | Shows links to the existing allowlisted Artisan and script operation workspaces; no operation exists on Dashboard |
-| `database.view` | Shows database and backup/restore links plus database metadata availability |
+| `database.backup` | Create local backups and queue an existing local SQL backup for Drive upload |
+| `database.download` | Download an opaque local reference, download a permitted remote backup to local, or queue a small local backup email |
+| `database.restore` | Upload a local SQL file and explicitly restore a validated full local backup |
+| `database.destroy` | Delete local/remote backups and authorize retention policy execution |
+| `system.env.update` | Configure OAuth and scheduling; automation save/manual run additionally require `database.backup` and `database.destroy` |
 
-No new permission, migration, seeder, menu entry or configuration key is introduced. Hiding a Dashboard section does not replace authorization on the target route or action.
-
-## Data Safety Contract
-
-Allowed Dashboard data:
-
-- capability booleans;
-- table/subsystem availability booleans;
-- bounded workspace and warning counts;
-- aggregate pending, reserved and failed job counts;
-- configuration completeness counts;
-- allowlisted `success` / `failed` backup state;
-- sanitized timestamps;
-- boolean Google OAuth configuration and stored-connection state.
-
-The DTO and HTML must not contain:
-
-- environment or raw configuration values;
-- Google client ID, client secret, token, email or folder ID;
-- backup filename, private path, persisted error message or raw file list;
-- queue payload;
-- database credentials;
-- raw exception text or external payload.
-
-## Workspace Navigation
-
-The following routed Admin pages include the shared permission-aware `Quay về Dashboard` partial:
-
-- current System tab workspace;
-- general settings;
-- environment/integration settings;
-- Module manager;
-- Artisan operations;
-- script operations;
-- database manager;
-- database backup/restore.
-
-The Dashboard follows `ADMIN_UI_STANDARD.md`: Admin shell-owned width, responsive grids, semantic sections, visible focus states, capability-aware links and readable empty/unavailable/error states.
+No permission is added or renamed. Route middleware and server-side Livewire authorization remain authoritative; capability-aware UI only mirrors those boundaries.
 
 ## Compatibility Boundary
 
-- `admin.system.index` is preserved with its current controller and behavior.
-- Existing controllers, Livewire components, services, routes and permission names are not renamed.
-- No public System service contract is modified.
-- No business Module consumer is changed.
-- No migration, config, seeder or storage ownership change is included.
-- ClientPortal/PWA is untouched; Admin Blade, routes and authentication are not reused there.
-- Rollback is limited to the Dashboard route/files, shared return-link includes and this handoff.
+Preserved:
+
+- existing Google OAuth routes and names;
+- Google Drive configuration, token and settings keys;
+- `Laravel-Backup/database/YYYY/MM` folder layout;
+- `system:cloud-backup` command and scheduler registration;
+- upload and email queue job class names and serialized filename payloads;
+- existing permission names;
+- private and legacy-compatible local backup directories;
+- existing Admin route names, including the database download route.
+
+Intentionally retired:
+
+- public Google Drive URL import;
+- direct Drive download-and-restore;
+- browser-supplied local filename/path and Drive file ID actions;
+- automatic remote list polling.
+
+No migration, seeder, configuration key, ClientPortal/PWA change or business-Module change is included.
 
 ## Files
 
 ### Added
 
 ```text
-Modules/System/Data/SystemDashboardData.php
-Modules/System/Http/Controllers/SystemDashboardController.php
-Modules/System/Services/SystemDashboardService.php
-Modules/System/resources/views/pages/dashboard.blade.php
-Modules/System/resources/views/partials/dashboard-return-link.blade.php
-tests/Feature/System/SystemDashboardTest.php
-docs/modules/System/COLLABORATION_HANDOFF.md
+Modules/System/Services/Database/DatabaseBackupCatalogService.php
+tests/Feature/System/SystemDriveBackupBoundaryTest.php
 ```
 
 ### Updated
 
 ```text
+Modules/System/Console/CloudBackupCommand.php
+Modules/System/Http/Controllers/GoogleDriveOAuthController.php
+Modules/System/Jobs/SendDatabaseBackupEmail.php
+Modules/System/Jobs/UploadDatabaseBackupToGoogleDrive.php
+Modules/System/Livewire/Database/BackupManager.php
+Modules/System/Livewire/Database/TableList.php
+Modules/System/Livewire/Settings/StorageConfig.php
+Modules/System/Services/Cloud/CloudBackupAutomationService.php
+Modules/System/Services/Cloud/GoogleDriveBackupBrowserService.php
+Modules/System/Services/Cloud/GoogleDriveConnectionService.php
+Modules/System/Services/DatabaseService.php
+Modules/System/Services/Env/SystemGoogleDriveConfigService.php
+Modules/System/resources/views/livewire/database/backup-manager.blade.php
+Modules/System/resources/views/livewire/database/table-list.blade.php
+Modules/System/resources/views/livewire/settings/storage-automation.blade.php
+Modules/System/resources/views/livewire/settings/storage-config.blade.php
 Modules/System/routes/web.php
-Modules/System/resources/views/system.blade.php
-Modules/System/resources/views/pages/settings/env.blade.php
-Modules/System/resources/views/pages/settings/index.blade.php
-Modules/System/resources/views/pages/settings/modules.blade.php
-Modules/System/resources/views/pages/settings/artisan.blade.php
-Modules/System/resources/views/pages/settings/scripts.blade.php
-Modules/System/resources/views/pages/database.blade.php
-Modules/System/resources/views/pages/database-backup-restore.blade.php
-tests/Feature/System/ComposeHealthcheckContractTest.php
-tests/Feature/System/SystemSeoSettingsTest.php
+docs/GOOGLE_DRIVE_AND_SCHEDULER_REUSE_GUIDE.md
+docs/modules/System/COLLABORATION_HANDOFF.md
+tests/Feature/System/SystemBackupManagerTest.php
+tests/Feature/System/SystemGoogleDriveSchedulerTest.php
 ```
-
-The two existing contract tests above were corrected test-only after the first System regression run exposed baseline drift already present at the source checkpoint:
-
-- the Compose contract now expects `$$c`, which is the required Compose escape that becomes `$c` inside the container shell;
-- the SEO contract verifies both the parent include and the trusted raw header-script marker in the extracted `runtime-head` partial.
-
-Neither correction changes production behavior or broadens the Dashboard data contract.
 
 ## Verification Gate
 
-The operator confirmed the approved targeted automated gates and desktop/mobile UI acceptance on 2026-08-29:
+The operator should run only the approved impacted scope; a full-project regression is not required.
 
-```text
-Pint changed PHP files                         PASS
-Focused SystemDashboardTest                   PASS (included in System regression)
-System module regression                      PASS (163 tests, 883 assertions)
-Admin Feature regression                      PASS (133 tests, 1265 assertions)
-Route inspection                              PASS (GET|HEAD admin/system/dashboard)
-Frontend production build                     PASS (Vite 7.3.6, 34 modules)
-Desktop UI acceptance                         PASS
-Mobile UI acceptance                          PASS
-Working tree clean                            PASS
+```bash
+./vendor/bin/pint --test \
+  Modules/System/Console/CloudBackupCommand.php \
+  Modules/System/Http/Controllers/GoogleDriveOAuthController.php \
+  Modules/System/Jobs/SendDatabaseBackupEmail.php \
+  Modules/System/Jobs/UploadDatabaseBackupToGoogleDrive.php \
+  Modules/System/Livewire/Database/BackupManager.php \
+  Modules/System/Livewire/Database/TableList.php \
+  Modules/System/Livewire/Settings/StorageConfig.php \
+  Modules/System/Services/Cloud/CloudBackupAutomationService.php \
+  Modules/System/Services/Cloud/GoogleDriveBackupBrowserService.php \
+  Modules/System/Services/Cloud/GoogleDriveConnectionService.php \
+  Modules/System/Services/Database/DatabaseBackupCatalogService.php \
+  Modules/System/Services/DatabaseService.php \
+  Modules/System/Services/Env/SystemGoogleDriveConfigService.php \
+  tests/Feature/System/SystemBackupManagerTest.php \
+  tests/Feature/System/SystemDriveBackupBoundaryTest.php \
+  tests/Feature/System/SystemGoogleDriveSchedulerTest.php
+
+php artisan test \
+  tests/Feature/System/SystemBackupManagerTest.php \
+  tests/Feature/System/SystemDriveBackupBoundaryTest.php \
+  tests/Feature/System/SystemGoogleDriveSchedulerTest.php
+
+php artisan test tests/Feature/System
+php artisan route:list --path=admin/system/database
+npm run build
 ```
 
-Verification was intentionally limited to System and directly impacted Admin tests under the approved scope. Full-project regression was not required because the implementation scope did not expand.
+Manual acceptance:
 
-## Deferred Refactor Roadmap
+1. A user without `database.backup` or `database.destroy` cannot save/run automation.
+2. Local download, restore, delete, Drive upload and email actions work with rendered opaque references; a filename/path returns 404 or a safe error.
+3. A raw Drive file ID cannot download or delete a file.
+4. Remote download creates a local backup but never restores automatically.
+5. Legacy public URL import and direct remote restore are absent.
+6. Remote list refresh is explicit and the page does not poll every three seconds.
+7. Upload failure shows only the generic safe message; logs do not contain external response bodies or raw exception text.
+8. Existing queued upload/email jobs with filename payloads still resolve a trusted local backup.
 
-The approved roadmap continues in separate PRs only:
+Record the verified commit, test totals and desktop/mobile acceptance here before opening the PR.
 
-1. Correct the identified Google Drive/backup P0 boundaries.
-2. Consolidate settings ownership and preserve compatibility adapters.
-3. Separate Module registry/runtime control responsibilities.
-4. Improve queue and scheduler health contracts, locking and multi-server behavior.
-5. Split database operations behind smaller explicit services.
-6. Deprecate/remove legacy or duplicate components only after consumer and compatibility tests prove they are removable.
+## Deferred Work
 
-No deferred item is authorized for implementation by approval of this Dashboard phase.
-
-## Deferred Existing Debt
-
-- Google Drive and database-backup operations still require their dedicated P0 correction PR.
-- Queue worker health still depends on explicit probe behavior in Queue Manager; Dashboard does not infer worker liveness.
-- Scheduler runtime/distributed-lock health has no canonical persisted heartbeat contract.
-- System/Admin settings ownership and duplicated presentation components remain unchanged.
-- Module registry discovery and runtime mutation remain coupled in existing services.
-- Database operations remain concentrated in the existing large service.
-- Historical System analysis documents contain drift from already completed containment work and need a later documentation consolidation.
+- Consolidate broader settings ownership while retaining compatibility adapters.
+- Separate Module registry discovery from runtime mutation.
+- Improve scheduler idempotency/distributed locking and persisted health heartbeat behavior.
+- Split database operations behind smaller services beyond this catalog boundary.
+- Consolidate historical System analysis documents after implementation phases settle.
 
 ## PR and Merge Gate
 
-1. **COMPLETE** — Operator pulled the feature commit and ran the focused verification matrix.
-2. **COMPLETE** — Operator confirmed desktop/mobile Dashboard UI acceptance.
-3. **COMPLETE** — Verification results and the verified feature checkpoint are recorded in this handoff.
-4. **COMPLETE** — PR [#76](https://github.com/tungocvan/laravel-shop/pull/76) was opened for manual user review.
-5. **COMPLETE** — The user manually merged PR #76.
-6. **COMPLETE** — Main merge checkpoint `4aadc7536fe6b01e5f3611edd1b21860d553e16d` was verified.
-7. This docs-only closeout records the final merged state; no source changes are included.
+1. Operator pulls the implementation commit and runs the focused, System and UI/build gates above.
+2. Verification results and the verified checkpoint are recorded in this handoff.
+3. A PR is opened for manual user review.
+4. The user merges manually; no automatic merge is allowed.
+5. Post-merge closeout records the `main` checkpoint if requested.

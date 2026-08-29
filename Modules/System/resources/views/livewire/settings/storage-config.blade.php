@@ -33,7 +33,7 @@
                     </div>
                     <div class="mt-5 pt-5 border-t border-gray-100 flex flex-wrap items-center gap-3">
                         <button wire:click="save" wire:loading.attr="disabled" wire:target="save" @disabled(!$canUpdate) class="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-lg shadow hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"><span wire:loading.remove wire:target="save">LƯU CẤU HÌNH GOOGLE</span><span wire:loading wire:target="save">ĐANG LƯU...</span></button>
-                        @if($configured && !($status['connected'] ?? false))<a href="{{ route('admin.system.settings.cloud.google.connect') }}" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg shadow hover:bg-blue-700 transition">KẾT NỐI GOOGLE DRIVE</a>@endif
+                        @if($canUpdate && $configured && !($status['connected'] ?? false))<a href="{{ route('admin.system.settings.cloud.google.connect') }}" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg shadow hover:bg-blue-700 transition">KẾT NỐI GOOGLE DRIVE</a>@endif
                     </div>
                 </div>
 
@@ -68,7 +68,7 @@
             </div>
 
             <div class="space-y-5">
-                <div class="rounded-xl border border-blue-100 bg-blue-50 p-5"><h4 class="text-sm font-black text-blue-900">Phạm vi hiện tại</h4><ul class="mt-3 space-y-2 text-xs text-blue-800 list-disc pl-5"><li>OAuth Google Drive.</li><li>Backup/upload database.</li><li>Duyệt và restore backup remote.</li><li>Lịch backup và retention.</li></ul></div>
+                <div class="rounded-xl border border-blue-100 bg-blue-50 p-5"><h4 class="text-sm font-black text-blue-900">Phạm vi hiện tại</h4><ul class="mt-3 space-y-2 text-xs text-blue-800 list-disc pl-5"><li>OAuth Google Drive.</li><li>Backup/upload database.</li><li>Duyệt và tải backup remote về vùng backup local.</li><li>Restore được xác nhận riêng từ backup local.</li><li>Lịch backup và retention.</li></ul></div>
                 <div class="rounded-xl border border-amber-200 bg-amber-50 p-5"><h4 class="text-sm font-black text-amber-900">Lưu ý bảo mật</h4><p class="mt-2 text-xs leading-5 text-amber-800">Access token và refresh token được mã hóa bằng APP_KEY trước khi lưu trong bảng settings. Không hiển thị token ra giao diện quản trị.</p></div>
             </div>
         </div>

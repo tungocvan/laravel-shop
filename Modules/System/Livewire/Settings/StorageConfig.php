@@ -31,13 +31,22 @@ class StorageConfig extends Component
     ];
 
     public array $automationStatus = [];
+
     public array $status = [];
+
     public bool $canUpdate = false;
+
+    public bool $canManageAutomation = false;
+
     public bool $configured = false;
 
     public function mount(SystemGoogleDriveConfigService $configService, GoogleDriveConnectionService $connectionService, CloudBackupAutomationService $automationService): void
     {
-        $this->canUpdate = (bool) auth('admin')->user()?->can('system.env.update');
+        $user = auth('admin')->user() ?: auth()->user();
+        $this->canUpdate = (bool) $user?->can('system.env.update');
+        $this->canManageAutomation = $this->canUpdate
+            && (bool) $user?->can('database.backup')
+            && (bool) $user?->can('database.destroy');
         $this->form = $configService->publicConfig() + ['GOOGLE_DRIVE_CLIENT_SECRET' => ''];
         $this->form['GOOGLE_DRIVE_CLIENT_SECRET'] = '';
         $this->configured = $configService->isConfigured();
@@ -71,6 +80,8 @@ class StorageConfig extends Component
     public function saveAutomation(CloudBackupAutomationService $service): void
     {
         $this->authorizePermission('system.env.update');
+        $this->authorizePermission('database.backup');
+        $this->authorizePermission('database.destroy');
         $validated = $this->validate([
             'automation.enabled' => ['boolean'],
             'automation.time' => ['required', 'date_format:H:i'],
@@ -95,12 +106,14 @@ class StorageConfig extends Component
     public function runAutomationNow(CloudBackupAutomationService $service): void
     {
         $this->authorizePermission('system.env.update');
+        $this->authorizePermission('database.backup');
+        $this->authorizePermission('database.destroy');
         try {
             $exitCode = Artisan::call('system:cloud-backup', ['--force' => true]);
             $this->automationStatus = $service->config();
             $this->dispatch('notify', type: $exitCode === 0 ? 'success' : 'error', message: $exitCode === 0 ? 'Đã chạy backup tự động thử nghiệm.' : 'Backup thử nghiệm thất bại. Vui lòng kiểm tra log.');
         } catch (Throwable $e) {
-            Log::error('Manual cloud backup run failed.', ['error' => $e->getMessage()]);
+            Log::error('Manual cloud backup run failed.', ['exception' => $e::class]);
             $this->dispatch('notify', type: 'error', message: 'Không thể chạy backup tự động thử nghiệm.');
         }
     }

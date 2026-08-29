@@ -114,7 +114,12 @@ class TableList extends Component
         }
 
         try {
-            $this->selectedExportFile = $this->service->backupTablesAsZip($this->selectedTables);
+            $fileName = $this->service->backupTablesAsZip($this->selectedTables);
+            $this->selectedExportFile = $this->service->getBackupReference($fileName, ['zip']);
+
+            if ($this->selectedExportFile === null) {
+                throw new \RuntimeException('Không thể tạo download reference cho file ZIP.');
+            }
             $this->notify('success', 'Đã export các bảng đã chọn thành file ZIP!');
         } catch (\Throwable $e) {
             $this->reportOperationError('Bulk table export failed.', $e, ['tables' => $this->selectedTables]);
@@ -200,10 +205,7 @@ class TableList extends Component
             $this->closeImportStateAfterSuccess();
         } catch (\Throwable $e) {
             $this->reportOperationError('Table import failed.', $e, ['table' => $tableName]);
-            $message = str_contains($e->getMessage(), 'Dữ liệu cũ đã được phục hồi')
-                ? 'Import bảng thất bại. Dữ liệu cũ đã được phục hồi.'
-                : 'Import bảng thất bại. Vui lòng kiểm tra log hệ thống.';
-            $this->notify('error', $message);
+            $this->notify('error', 'Import bảng thất bại. Vui lòng tải lại dữ liệu và kiểm tra log hệ thống.');
         } finally {
             $this->isImporting = false;
         }
@@ -294,6 +296,10 @@ class TableList extends Component
         return view('System::livewire.database.table-list', [
             'tables' => $this->service->getAllTables($this->search, $this->moduleFilter),
             'modules' => $this->service->getModuleOptions(),
+            'canBackup' => (bool) auth('admin')->user()?->can('database.backup'),
+            'canDownload' => (bool) auth('admin')->user()?->can('database.download'),
+            'canRestore' => (bool) auth('admin')->user()?->can('database.restore'),
+            'canDestroy' => (bool) auth('admin')->user()?->can('database.destroy'),
         ]);
     }
 
@@ -313,7 +319,6 @@ class TableList extends Component
     {
         Log::error($message, $context + [
             'exception' => $exception::class,
-            'error' => $exception->getMessage(),
         ]);
     }
 
