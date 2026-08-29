@@ -257,10 +257,11 @@
 
         @if ($capabilities['manage_config'])
             @php($configuration = $health['configuration'])
-            <x-admin::content-section
-                title="Cấu hình & Personal Session"
-                description="Khu vực vận hành chỉ hiển thị cho tài khoản có quyền quản lý cấu hình."
-            >
+            <section class="min-w-0" aria-labelledby="muasamcong-integration-heading">
+                <div class="mb-4">
+                    <h2 id="muasamcong-integration-heading" class="text-lg font-semibold text-slate-900">Cấu hình & Personal Session</h2>
+                    <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Khu vực vận hành chỉ hiển thị cho tài khoản có quyền quản lý cấu hình.</p>
+                </div>
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
                     @if ($configuration && $configuration['available'])
                         @php
@@ -307,7 +308,7 @@
                         </a>
                     </div>
                 </div>
-            </x-admin::content-section>
+            </section>
         @endif
 
         <p class="text-right text-xs text-slate-400">
