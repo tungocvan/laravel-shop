@@ -4,27 +4,33 @@ namespace Modules\Pharma\Livewire\Medicine;
 
 use Exception;
 use Livewire\Component;
+use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\MedicineService;
 
 class Index extends Component
 {
+    use AuthorizesPharmaActions;
+
     public $search = '';
 
     public $page = 1;
 
     public $perPage = 10;
 
-    // Các thuộc tính phục vụ bộ lọc mới
     public $filterCircularGroup = '';
 
     public $filterSpecialControl = '';
 
-    // Trạng thái checkbox chọn hàng loạt
     public array $selectedIds = [];
 
     public bool $selectAll = false;
 
     protected $listeners = ['refreshComponent' => '$refresh'];
+
+    public function mount(): void
+    {
+        $this->authorizePharmaView();
+    }
 
     public function updatedSearch()
     {
@@ -92,17 +98,22 @@ class Index extends Component
 
     public function deleteMedicine(MedicineService $medicineService, int $id)
     {
+        $this->authorizePharmaDelete();
+
         try {
             $medicineService->delete($id);
             $this->clearSelection();
             session()->flash('success', 'Đã xóa hồ sơ thuốc ra khỏi hệ thống.');
         } catch (Exception $e) {
+            report($e);
             session()->flash('error', 'Không thể xóa bản ghi này.');
         }
     }
 
     public function deleteSelected(MedicineService $medicineService)
     {
+        $this->authorizePharmaDelete();
+
         if (empty($this->selectedIds)) {
             return;
         }
@@ -114,13 +125,13 @@ class Index extends Component
             $this->clearSelection();
             session()->flash('success', 'Đã xóa các bản ghi được chọn thành công.');
         } catch (Exception $e) {
+            report($e);
             session()->flash('error', 'Có lỗi xảy ra khi xóa hàng loạt dữ liệu.');
         }
     }
 
     public function render(MedicineService $medicineService)
     {
-        // Lấy danh sách các phân nhóm duy nhất phục vụ ô Select Filter ở giao diện
         $circularGroups = $medicineService->getUniqueCircularGroups();
 
         $medicines = $medicineService->getPaginatedMedicines(
