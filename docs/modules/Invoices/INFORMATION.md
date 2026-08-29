@@ -2,86 +2,37 @@
 
 ## Purpose
 
-`Modules/Invoices` manages electronic invoice integration and local invoice data for both sold and purchase invoices.
+`Modules/Invoices` owns electronic-invoice integration, local sold/purchase invoice data, PDF lifecycle, import/export, partner reporting and automated PDF backup.
 
-## Features
+It is a `domain` module registered through `Modules/ModuleServiceProvider.php` and `Modules/Invoices/config/module.php`.
 
-- GDT captcha and authentication.
-- Server-side GDT token cache.
-- Query sold/purchase invoices from GDT.
-- Queue-based invoice processing.
-- Import invoice Excel files.
-- List/filter invoice records.
-- Invoice statistics and dashboard summaries.
-- Export selected invoices.
-- Download invoice PDFs.
-- Sanctum-protected invoice API.
-- MeInvoice integration for PDF-related workflow.
+## Admin Workspaces
 
-## Registration
+| Route name | URI | Capability | Purpose |
+|---|---|---|---|
+| `admin.invoices.dashboard` | `/admin/invoices/dashboard` | `invoices-list` | Read-only safe overview and workspace navigation |
+| `admin.invoices.index` | `/admin/invoices` | `invoices-list` | Preserved redirect to the invoice list |
+| `admin.invoices.create-token` | `/admin/invoices/create-token` | `invoices-configure` | GDT configuration/authentication |
+| `admin.invoices.hoadon` | `/admin/invoices/hoadon` | `invoices-create` | GDT synchronization, import and backup workspace |
+| `admin.invoices.hoadon-list` | `/admin/invoices/hoadon-list` | `invoices-list` | Filtered invoice/PDF workspace |
+| `admin.invoices.reports.partners` | `/admin/invoices/reports/partners` | `invoices-list` | Partner aggregation report |
+| `admin.invoices.download-invoice` | `/admin/invoices/download-invoice/{invoice}` | `invoices-download` | Structured PDF download |
+| `admin.invoices.download` | `/admin/invoices/download/{lookup_code}` | `invoices-download` | Legacy lookup-code PDF download |
 
-Canonical registration uses the repository first-party module system:
+All Admin routes use `web` and `auth:admin`. Legacy `/invoices/*` aliases are retained for bookmark compatibility.
 
-```text
-Modules/ModuleServiceProvider.php
-Modules/Invoices/config/module.php
-```
+The four linked workspaces expose a shared permission-aware `Quay về Dashboard` link.
 
-Module manifest:
+## API
 
-- Name: `Invoices`
-- Type: `domain`
-- Enabled: `true`
-- Owned table: `invoices`
-- Declared module dependencies: none
+The module exposes Sanctum-protected API endpoints under `/api/invoices`:
 
-A legacy `Modules/Invoices/module.json` also exists but is not the canonical registration mechanism.
+- `GET /api/invoices/status`
+- `POST /api/invoices/filter`
 
-## Routes
-
-### Admin web routes
-
-Base prefix:
-
-```text
-/admin/invoices
-```
-
-Route names:
-
-```text
-admin.invoices.index
-admin.invoices.create-token
-admin.invoices.hoadon
-admin.invoices.hoadon-list
-admin.invoices.download
-```
-
-Backward-compatible `/invoices/*` aliases also exist.
-
-### API routes
-
-Base prefix after global API registration:
-
-```text
-/api/invoices
-```
-
-Methods:
-
-- `GET /api/invoices`
-- `POST /api/invoices`
-
-Default middleware:
-
-```text
-api
-auth:sanctum
-```
+The filter endpoint validates range, sorting and pagination input and caps `per_page` at 200. The Admin Dashboard does not change the API contract.
 
 ## Permissions
-
-Declared in `Modules/Invoices/config/module.php`:
 
 ```text
 invoices-list
@@ -91,239 +42,28 @@ invoices-download
 invoices-configure
 ```
 
-Current route enforcement primarily uses `invoices-list` and `invoices-create`; more granular action-level enforcement is recommended during refactor.
+The Dashboard reuses `invoices-list` for route access and gates optional navigation/status sections with the existing capability permissions. It adds no new permission.
 
-## Controllers
-
-### `Modules\Invoices\Http\Controllers\InvoicesController`
-
-Responsibilities:
-
-- Redirect module index to invoice list.
-- Return authentication page.
-- Return sync page.
-- Return invoice list page.
-- Download invoice PDF through `InvoiceFileService`.
-
-### `Modules\Invoices\Http\Controllers\Api\InvoicesController`
-
-Responsibilities:
-
-- API health/status response.
-- Validate filter request.
-- Build invoice filter query through `InvoiceService`.
-- Apply amount/tax ranges.
-- Sort and paginate results.
-- Return summary metadata.
-
-## Livewire Components
-
-### `GdtLogin`
-
-- Ensures default GDT environment keys exist.
-- Loads current GDT config without exposing stored password to public state.
-- Loads captcha.
-- Authenticates against GDT.
-- Saves GDT config.
-- Clears server-side token.
-
-### `GdtInvoice`
-
-- Accepts date range.
-- Supports `sold` / `purchase` type.
-- Calls `GdtInvoiceService` to query GDT.
-- Displays result count/items.
-
-### `HoadonList`
-
-- Invoice filters.
-- Date range filter.
-- Tax-rate filter.
-- Pagination.
-- Dynamic name/tax-code options.
-- Statistics.
-- Dashboard data.
-- Row selection.
-- Selected Excel export.
-- Selected PDF download.
-
-### Other classes
-
-- `InvoiceList`
-- `InvoiceManager`
-- `SearchHoadon`
-
-`InvoiceList` and `InvoiceManager` should be verified for active runtime usage before future cleanup.
-
-## Blade Views
-
-Page shells:
+## Dashboard Architecture
 
 ```text
-Modules/Invoices/resources/views/pages/invoices/authenticate.blade.php
-Modules/Invoices/resources/views/pages/invoices/index.blade.php
-Modules/Invoices/resources/views/pages/invoices/sync.blade.php
+InvoicesDashboardController
+    -> InvoiceDashboardService
+        -> InvoiceDashboardData
+            -> Invoices::pages.invoices.dashboard
 ```
 
-Livewire views live under:
+The service returns an immutable bounded DTO. It guards missing tables, uses explicit selection, limits recent lists to five, makes no external HTTP calls and never sends models or raw exceptions to Blade.
 
-```text
-Modules/Invoices/resources/views/livewire/
-```
+Dashboard output is restricted to counts, direction/status allowlists, timestamps and boolean integration state. Financial amounts, invoice/partner identity, contact data, credentials, tokens, backup recipient, file metadata, raw payloads and error messages are excluded.
 
-## Services
+`InvoiceService::dashboard()` remains part of the existing invoice-list workflow and is not used by the Admin Dashboard because it includes financial and partner-derived summaries.
 
-### `GdtApiService`
+## Models and Owned Tables
 
-- GDT HTTP client.
-- Captcha retrieval.
-- Authentication.
-- Server-side token caching.
-- Token invalidation.
+### `Invoices`
 
-### `GdtConfigService`
-
-- Ensures GDT environment keys.
-- Writes allowed GDT settings to root `.env`.
-
-### `GdtInvoiceService`
-
-- GDT invoice-query workflow.
-- Supports sold/purchase synchronization behavior.
-
-### `InvoiceService`
-
-- Filtered invoice query.
-- Pagination.
-- Filter option lists.
-- Statistics.
-- Dashboard summaries.
-- Selected-record retrieval.
-
-### `InvoiceImportService`
-
-- Imports Excel rows through FastExcel.
-- Maps exported Vietnamese headers.
-- Detects application-level duplicates.
-- Persists invoice rows.
-
-### `InvoiceExportService`
-
-- Creates XLSX workbooks with PhpSpreadsheet.
-
-### `InvoiceFileService`
-
-- Resolves invoice PDF path.
-- Rejects path-like lookup codes.
-- Verifies PDF existence.
-
-### `MeInvoiceService`
-
-- External MeInvoice integration used by PDF/download workflow.
-
-### `ScanInvoiceService`
-
-- Invoice scanning/extraction-related workflow.
-
-## Imports / Exports
-
-### Imports
-
-Primary import service:
-
-```text
-Modules/Invoices/Services/InvoiceImportService.php
-```
-
-Supported logical invoice types:
-
-```text
-sold
-purchase
-```
-
-Current duplicate match:
-
-```text
-lookup_code
-invoice_number
-issued_date
-tax_code
-```
-
-Current implementation does not yet use the repository canonical `Modules/Shared/Services/ImportExport` foundation.
-
-### Exports
-
-Observed paths:
-
-```text
-Modules/Invoices/Exports/InvoicesSelectedExport.php
-Modules/Invoices/Services/InvoiceExportService.php
-```
-
-Libraries:
-
-- Maatwebsite Excel.
-- PhpSpreadsheet.
-
-## Models
-
-### `Modules\Invoices\Models\Invoices`
-
-Table:
-
-```text
-invoices
-```
-
-Fillable fields:
-
-```text
-lookup_code
-symbol
-invoice_number
-type
-issued_date
-tax_code
-name
-address
-email
-phone
-tax_rate
-vat_amount
-amount_before_vat
-total_amount
-invoice_type
-```
-
-Casts:
-
-```text
-issued_date        date
-tax_rate           decimal:0
-vat_amount         decimal:2
-amount_before_vat  decimal:2
-total_amount       decimal:2
-```
-
-## Database Tables
-
-### `invoices`
-
-Important columns:
-
-- invoice lookup code.
-- symbol.
-- invoice number.
-- GDT invoice type text.
-- issued date.
-- partner tax code/name/address/email/phone.
-- tax rate.
-- VAT amount.
-- amount before VAT.
-- total amount.
-- invoice direction (`sold` / `purchase`).
+Table `invoices` contains invoice identity, partner/contact data, financial fields and `invoice_type` (`sold` or `purchase`). It has one optional `InvoiceFile`.
 
 Indexes:
 
@@ -333,121 +73,113 @@ tax_code
 invoice_number
 ```
 
-No database unique constraint currently enforces the import duplicate identity.
+No database unique constraint currently enforces the application-level import identity.
 
-## Relationships
+### `InvoiceFile`
 
-No Eloquent relationships were observed on the `Invoices` model in the analyzed source.
+Table `invoice_files` has one row per invoice and stores provider, PDF status, private relative path, size, last error and download timestamp.
 
-## Shared / Cross-Module Dependencies
+### `InvoiceBackupRun`
 
-No business-domain module dependency is declared.
+Table `invoice_backup_runs` stores mode/status, recipient, aggregate counts, file fingerprints, raw run message and timestamps. Recipient, file list and message are sensitive operational fields and are never loaded into the Dashboard DTO.
 
-Shared/framework dependencies include:
+## Livewire Workspaces
 
-- Laravel Cache.
-- Laravel HTTP Client.
-- Laravel Queue.
-- Sanctum.
-- Maatwebsite Excel.
-- FastExcel.
-- PhpSpreadsheet.
+- `GdtLogin`: GDT configuration, captcha, login and server-side token lifecycle.
+- `GdtInvoice`: quick sold/purchase lookup.
+- `SearchHoadon`: direct/queued synchronization, intermediate Excel management and import.
+- `AutomaticBackupPanel`: automatic backup configuration and run history.
+- `HoadonList`: bounded pagination, filters, invoice statistics, PDF management, ZIP and export.
+- `PartnerReport`: bounded partner aggregation and export.
+- `InvoiceList` and `InvoiceManager`: inactive placeholders retained for later cleanup review.
 
-Canonical Shared import/export infrastructure is available in the repository but not currently consumed by this module.
+## Services and Integrations
 
-## Events / Jobs
+### Query and reporting
 
-Observed job:
+- `InvoiceService`
+- `InvoicePartnerReportService`
 
-```text
-Modules/Invoices/Jobs/ProcessGdtInvoicesJob.php
-```
+### Import/export
 
-The feature test confirms queue command dispatch for sold/purchase invoice processing.
+- `InvoiceImportExportService`
+- `InvoiceImportService`
+- `InvoiceExportService`
+- canonical Shared base: `Modules/Shared/Services/ImportExport/BaseImportExportService`
 
-No cross-module event contract was established in the analyzed subset.
+Invoice import accepts XLSX/CSV mappings, normalizes Vietnamese headers/numbers/dates and uses a cache lock plus skip-duplicate behavior. Selected export sanitizes positive unique IDs. Large exports remain an existing boundedness/private-storage follow-up.
 
-## Console
+### External systems
 
-The module contains a `Console` directory and supports GDT invoice commands. Existing tests exercise:
+- `GdtApiService`, `GdtConfigService`, `GdtInvoiceService`, `GdtPdfService`
+- `MeInvoiceService`
 
-```text
-gdt:invoices
-gdt:import-excel
-```
+GDT token stays in server cache. The Dashboard checks only a boolean cache/config state and never calls GDT or MeInvoice.
 
-## Configuration / Environment Variables
+### PDF and backup
 
-### GDT
+- `InvoiceFileService`
+- `InvoiceFileManagerService`
+- `InvoicePdfService`
+- `ScanInvoiceService`
+- `AutomaticInvoiceBackupService`
+- `InvoiceFilesEmailBackupService`
+- `InvoiceBackupEnvironmentService`
 
-```text
-GDT_API_BASE_URL
-GDT_API_USERNAME
-GDT_API_PASSWORD
-GDT_API_VERIFY_SSL
-GDT_API_TIMEOUT
-GDT_TOKEN_TTL
-GDT_TOKEN_CACHE_KEY
-```
+## Jobs, Commands and Scheduler
 
-Default API base URL:
+Job:
 
 ```text
-https://hoadondientu.gdt.gov.vn/api
+ProcessGdtInvoicesJob
 ```
 
-### MeInvoice
+Commands include GDT retrieval/import and `invoices:backup-files`.
 
-```text
-MEINVOICE_API_TOKEN
-```
+When automatic backup is enabled, the provider schedules the command monthly on a clamped day 1–28, uses the configured time, `withoutOverlapping(120)` and `onOneServer()`.
 
-Default service base URL:
+Current GDT job progress is stored under a per-run cache key and cannot be enumerated safely as a global queue. The Dashboard therefore directs users to the sync workspace instead of inventing a global processing state.
 
-```text
-https://api.meinvoice.vn/api/integration
-```
+## Storage and Sensitive Data
 
-### Storage config
+Structured PDFs are resolved from private application storage, with a legacy `hoadon_temp` fallback. The Dashboard never returns file paths or names.
 
-```text
-invoices.storage.export_directory = gdt
-invoices.storage.pdf_directory    = hoadon_temp
-```
+Credentials, cached tokens, captcha content, Authorization headers, invoice financial fields, partner identity/contact data, backup recipient, file fingerprint lists and raw errors must not be placed in Dashboard DTO/HTML/log context.
 
-## Known Limitations
+## ClientPortal / PWA Boundary
 
-- GDT configuration currently edits root `.env` at runtime.
-- Sensitive Livewire mutations need explicit action-level authorization.
-- `HoadonList` currently offers unbounded `All` page size.
-- Import/export is not yet unified with Shared import/export infrastructure.
-- Duplicate invoice identity is not enforced by a unique DB constraint.
-- Import amount normalization uses float conversion.
-- Some exports can be memory-heavy.
-- Statistics may execute repeated aggregate queries.
+Invoices is expected to become a ClientPortal PWA application later. The Admin Dashboard does not register or modify ClientPortal.
+
+Future client integration must be manifest/registry-driven, use ClientPortal authentication/permissions/adaptive navigation, provide a client-specific presentation and keep Admin routes/Blade separate. If PDF download/open is introduced to the PWA, it requires a separate authorized external-file handoff design.
 
 ## Tests
 
-Primary module feature test:
+Dashboard coverage:
+
+```text
+tests/Feature/InvoicesDashboardTest.php
+```
+
+Existing Invoices regression:
 
 ```text
 tests/Feature/InvoicesModuleTest.php
+tests/Feature/InvoicesFilterSortTest.php
+tests/Feature/InvoicesPdfStorageTest.php
+tests/Feature/InvoicesFileManagementTest.php
+tests/Feature/InvoicesPartnerReportTest.php
+tests/Feature/InvoicesAutomaticBackupTest.php
 ```
 
-Current coverage includes:
+Run focused/module tests and the impacted `tests/Feature/Admin` suite. Do not run full-project regression for an Invoices-only change.
 
-- enabled module configuration;
-- GDT token kept server-side;
-- GDT cursor behavior;
-- queue command dispatch;
-- sold/purchase Excel import;
-- invoice list rendering after import.
+## Known Direct Debt
 
-## Maintenance Notes
-
-- Treat `config/module.php` as authoritative over legacy `module.json`.
-- Preserve route names and `/invoices` compatibility aliases unless migration impact is explicitly approved.
-- Preserve `sold` and `purchase` semantics.
-- Do not expose GDT token or stored password to Livewire/browser state.
-- Validate production data before introducing a new unique invoice constraint.
-- Prefer bounded lists and queued/chunked large import/export operations.
+- Runtime GDT `.env` mutation needs a production-grade settings/secrets replacement.
+- Some sync workspace actions share a broad route capability and need deeper action-level review.
+- Existing export/ZIP/filter option/storage breakdown/backup fingerprint paths can become unbounded.
+- Current Shared export output uses public storage for potentially sensitive spreadsheets.
+- The list can perform per-row PDF status lookups.
+- Public-link Google Drive ingestion is not the canonical private System OAuth flow.
+- The module manifest lists only `invoices`, although the module also owns `invoice_files` and `invoice_backup_runs`.
+- The import business identity has no database unique constraint.

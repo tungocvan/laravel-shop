@@ -4,7 +4,7 @@
 
 `Invoices` is the electronic-invoice domain module for GDT integration, sold/purchase invoice synchronization, Excel import/export, local PDF management and partner reporting.
 
-Refactor status: **R1–R6.5 implemented on `agent/invoices-refactor`; R7 final regression/merge verification pending.**
+Current source status: **R1–R6.5 behavior is present on `main`; read-only Admin Dashboard implementation is pending focused verification on `feat/invoices-admin-dashboard`.**
 
 ## Registration
 
@@ -22,6 +22,7 @@ Owned tables:
 ```text
 invoices
 invoice_files
+invoice_backup_runs
 ```
 
 Do not use legacy `module.json` as the architectural source of truth.
@@ -37,7 +38,8 @@ Admin prefix:
 Important routes:
 
 ```text
-admin.invoices.index              -> invoices-list
+admin.invoices.index              -> invoices-list (preserved redirect)
+admin.invoices.dashboard          -> invoices-list
 admin.invoices.create-token       -> invoices-configure
 admin.invoices.hoadon             -> invoices-create
 admin.invoices.hoadon-list        -> invoices-list
@@ -320,15 +322,18 @@ php artisan test \
   tests/Feature/InvoicesPartnerReportTest.php
 ```
 
-Then run:
+Then run the scoped suites only:
 
 ```bash
-php artisan test
+php artisan test tests/Feature/InvoicesDashboardTest.php
+php artisan test tests/Feature/InvoicesModuleTest.php tests/Feature/InvoicesFilterSortTest.php tests/Feature/InvoicesPdfStorageTest.php tests/Feature/InvoicesFileManagementTest.php tests/Feature/InvoicesPartnerReportTest.php tests/Feature/InvoicesAutomaticBackupTest.php
+php artisan test tests/Feature/Admin
 ```
 
 Required manual smoke checks:
 
 ```text
+/admin/invoices/dashboard
 /admin/invoices/create-token
 /admin/invoices/hoadon
 /admin/invoices/hoadon-list
@@ -353,6 +358,28 @@ Verify:
 3. Move very large PDF batches/import/export jobs to background queue orchestration with persistent progress if scale requires it.
 4. Remove legacy PDF/routes only after compatibility usage is verified.
 
+## Read-only Admin Dashboard
+
+The Admin Dashboard is available at:
+
+```text
+/admin/invoices/dashboard
+admin.invoices.dashboard
+```
+
+Architecture:
+
+```text
+InvoicesDashboardController
+    -> InvoiceDashboardService
+        -> InvoiceDashboardData
+            -> Blade
+```
+
+The Dashboard uses bounded aggregate/recent queries, guards missing tables and excludes financial amounts, invoice/partner identity, credentials, tokens, backup recipient, file metadata, raw payloads and raw errors. Existing workspaces keep their current routes and expose a shared permission-aware `Quay về Dashboard` link.
+
+Invoices is expected to integrate with `Modules/ClientPortal` for PWA use later. That future work must use the ClientPortal manifest/registry, client authentication/permissions/adaptive navigation and a client-specific presentation; this Admin Dashboard does not modify ClientPortal.
+
 ## Related Documentation
 
 ```text
@@ -360,6 +387,7 @@ docs/modules/Invoices/ANALYSIS.md
 docs/modules/Invoices/INFORMATION.md
 docs/modules/Invoices/REFACTOR_PLAN.md
 docs/modules/Invoices/IMPORT_EXPORT_PLAN.md
+docs/modules/Invoices/COLLABORATION_HANDOFF.md
 .codex/standards/MODULE_STANDARD.md
 .codex/standards/ADMIN_UI_STANDARD.md
 ```

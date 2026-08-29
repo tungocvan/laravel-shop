@@ -20,6 +20,7 @@ Livewire: `3.x`
 - Tải PDF hàng loạt từ MeInvoice khi có token tích hợp.
 - Cung cấp API lọc hóa đơn cục bộ có validation và authentication.
 - Cung cấp command chạy trực tiếp hoặc qua queue.
+- Cung cấp read-only Admin Dashboard với safe DTO, trạng thái PDF/backup và workspace links theo permission.
 
 ## 2. Kiến trúc
 
@@ -164,8 +165,9 @@ php artisan migrate
 ```text
 invoices-list
 invoices-create
-invoices-edit
-invoices-delete
+invoices-export
+invoices-download
+invoices-configure
 ```
 
 Nếu dự án không dùng `spatie/laravel-permission`, bỏ middleware permission trong constructor của `Http/Controllers/InvoicesController.php`.
@@ -196,24 +198,27 @@ Không commit `.env`, token, captcha, mật khẩu hoặc nội dung Authorizati
 
 ## 6. Route
 
-Web routes dùng middleware `web`, `auth`:
+Admin routes dùng middleware `web`, `auth:admin` và capability riêng:
 
-| Method | URI | Tên |
-|---|---|---|
-| GET | `/invoices` | `invoices.index` |
-| GET | `/invoices/create-token` | `invoices.create-token` |
-| GET | `/invoices/hoadon` | `invoices.hoadon` |
-| GET | `/invoices/hoadon-list` | `invoices.hoadon-list` |
-| GET | `/invoices/download/{lookup_code}` | `invoices.download` |
+| Method | URI | Tên | Permission |
+|---|---|---|---|
+| GET | `/admin/invoices` | `admin.invoices.index` | `invoices-list` |
+| GET | `/admin/invoices/dashboard` | `admin.invoices.dashboard` | `invoices-list` |
+| GET | `/admin/invoices/create-token` | `admin.invoices.create-token` | `invoices-configure` |
+| GET | `/admin/invoices/hoadon` | `admin.invoices.hoadon` | `invoices-create` |
+| GET | `/admin/invoices/hoadon-list` | `admin.invoices.hoadon-list` | `invoices-list` |
+| GET | `/admin/invoices/reports/partners` | `admin.invoices.reports.partners` | `invoices-list` |
+| GET | `/admin/invoices/download-invoice/{invoice}` | `admin.invoices.download-invoice` | `invoices-download` |
+| GET | `/admin/invoices/download/{lookup_code}` | `admin.invoices.download` | `invoices-download` |
+
+`admin.invoices.index` vẫn redirect tới danh sách hóa đơn. Alias `/invoices/*` được giữ để tương thích bookmark.
 
 API routes dùng `api`, `auth:sanctum`:
 
 | Method | URI |
 |---|---|
-| GET | `/api/invoices` |
-| POST | `/api/invoices` |
-
-Middleware có thể chỉnh trong `config/invoices.php`.
+| GET | `/api/invoices/status` |
+| POST | `/api/invoices/filter` |
 
 ## 7. Command
 
@@ -311,7 +316,22 @@ Giới hạn còn lại:
 - Tải PDF MeInvoice phụ thuộc token tích hợp và giả định mỗi lookup code tương ứng một trang.
 - UI page sử dụng layout AdminLTE. Nếu dự án đích dùng layout khác, thay các file page trong `resources/views`.
 
-## 13. Thông tin cần cung cấp để rebuild từ đầu
+## 13. Admin Dashboard và ClientPortal/PWA boundary
+
+Dashboard tại `/admin/invoices/dashboard` là read-only và dùng:
+
+```text
+InvoicesDashboardController
+    -> InvoiceDashboardService
+        -> InvoiceDashboardData
+            -> Invoices::pages.invoices.dashboard
+```
+
+Dashboard chỉ trả count, status allowlist, timestamp và boolean cấu hình. Không trả số tiền, định danh hóa đơn/đối tác, thông tin liên hệ, token/credential, recipient backup, file path/list hoặc lỗi thô.
+
+Module dự kiến sẽ được đăng ký vào `Modules/ClientPortal` để dùng trên PWA ở một phase riêng. ClientPortal phải dùng manifest/registry, client guard/permission, adaptive navigation và view riêng; không nhúng Admin route, `auth:admin` hoặc Admin Blade. Nếu PWA cần tải/mở PDF, phải có external-file handoff được authorize riêng.
+
+## 14. Thông tin cần cung cấp để rebuild từ đầu
 
 Khi giao module này cho AI/lập trình viên ở dự án khác, cung cấp:
 
