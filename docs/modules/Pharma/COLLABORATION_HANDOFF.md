@@ -3,74 +3,113 @@
 ## Current checkpoint
 
 - Module: `Pharma`
-- Task: `/analyze Pharma`
-- Branch: `docs/pharma-analyze-refresh`
-- Status: **ANALYSIS COMPLETE — DOCUMENTATION ONLY**
+- Phase: Major Refactor
+- Branch: `refactor/pharma-security-import-export-foundation`
+- Status: **MR-1 + MR-2 IMPLEMENTED — READY FOR PR REVIEW**
 - Date: 2026-08-30
-- Application source modified: **NO**
+- Application source modified: **YES**
+- Production/runtime enablement changed: **NO**
 
-## Analysis deliverables
+## Completed scope
 
-Updated and verified against current repository source:
+This branch combines the first two approved Major Refactor slices because they share the same security/import-export boundary.
 
-- `docs/modules/Pharma/ANALYSIS.md`
-- `docs/modules/Pharma/INFORMATION.md`
-- `docs/modules/Pharma/README.md`
+### MR-1 — Security Foundation
 
-Repository task governance was also aligned so future `/analyze` runs can satisfy the canonical collaboration workflow without treating handoff metadata as an analysis deliverable:
+- Added capability-aware authorization at Pharma admin route boundaries:
+  - `view_pharma` for list/workspace routes;
+  - `create_pharma` for create and PriceList creation routes;
+  - `edit_pharma` for edit routes.
+- Added action-level authorization inside Pharma Livewire components so direct Livewire calls cannot bypass route middleware.
+- Delete and bulk-delete mutations require `delete_pharma`.
+- Replaced raw user-facing exception messages in touched Pharma flows with safe messages while still reporting exceptions server-side.
+- Removed the broken public `/api/pharma` route that targeted an API action without a valid consumer/implementation contract.
+- Removed the unreachable SupplierTracking import/export route; the Shared import/export panel remains embedded in the SupplierTracking workspace.
 
-- `.codex/tasks/analyze-module.md`
+### MR-2 — Shared Import/Export Hardening
 
-## Final recommendation
+- Locked Shared Import/Export component state that must remain server-owned, including service selection, allowed modes and configured permission.
+- Revalidates service type and permission at action time.
+- Added server-owned `allowedImportModes()` contract while preserving broad defaults for backward compatibility.
+- Pharma SupplierTracking explicitly excludes destructive `replace` import mode until its business/data-integrity contract is settled.
+- SupplierTracking explicitly requires `edit_pharma` for Shared import/export actions.
+- Shared export/template files now use private local storage and authorized download responses with delete-after-send cleanup.
+- Added normalized-path containment checks for export files.
 
-**Major Refactor**
+## PriceList regression reliability correction
 
-The current module has reusable domain structure and services, so a full rebuild is not justified by the observed evidence. Refactoring should be planned separately and must address high-risk boundaries before broader cleanup.
+The pre-existing `PriceListServiceTest` depended on runtime file `storage/app/excel/BANG_GIA_TONG_HOP.xlsx`, causing the module regression suite to fail whenever that operational file was absent.
 
-## Material findings to carry forward
+The test is now self-contained: it creates its own temporary XLSX fixture and injects that source into `PriceListService`. Runtime behavior keeps the existing default source path unchanged.
 
-### P0
+The actual runtime workbook was subsequently provisioned locally at:
 
-1. Capability-specific authorization is not consistently enforced at Pharma route/action mutation boundaries.
-2. PriceList keeps workbook analysis/product data in public Livewire state, creating an avoidable client-serialization/data-exposure boundary.
-3. Pharma business import/export output still uses public-disk storage in shared export paths.
+`storage/app/excel/BANG_GIA_TONG_HOP.xlsx`
 
-### P1 highlights
+and the PriceList UI smoke passed. This operational workbook is not committed as application source.
 
-- Shared import/export panel still exposes a mutable service selector even though it now validates the service base class.
-- Some forms expose raw exception messages.
-- DrugBidAward supports effectively unbounded `All` behavior and SupplierTracking can materialize all matching IDs.
-- Medicine option lists are loaded without bounded/searchable selection in relevant flows.
-- Collection-oriented import/export remains a scalability risk.
-- Active public Pharma API route targets an API controller without the required `index` implementation.
-- SupplierTracking business-key integrity is not enforced at database level.
-- PriceList output-path override requires hardening if exposed beyond trusted callers.
+## Verification completed
 
-See `ANALYSIS.md` for evidence, file paths, impact and detailed recommendations.
+- Changed-files Pint:
+  - `git diff --name-only origin/main...HEAD -- '*.php' | xargs ./vendor/bin/pint --test`
+  - **PASS — 17 PHP files** at the time of the formatting gate.
+- Focused contract test:
+  - `php artisan test tests/Feature/Pharma/PharmaSecurityImportExportFoundationTest.php`
+  - **PASS — 4 tests, 20 assertions**.
+- Pharma regression:
+  - `php artisan test Modules/Pharma/Tests`
+  - **PASS — 3 tests, 14 assertions**.
+- Route gate:
+  - `php artisan route:list --path=admin/pharma`
+  - **PASS — 10 Pharma admin routes present**.
+  - `php artisan route:list --path=api/pharma`
+  - **PASS — no public Pharma API route remains**.
+- Frontend build:
+  - `npm run build`
+  - **PASS — Vite production build completed**.
+- Manual UI smoke:
+  - **PASS**.
+  - PriceList successfully analyzed the provisioned runtime workbook after it was placed at the expected storage path.
 
-## Documentation drift resolved in this analysis
+No full-project regression was run; this follows the collaboration workflow preference for focused module and directly impacted regression only.
 
-The refreshed documentation now reflects that:
+## Scope intentionally deferred
 
-- the tracked Pharma manifest currently has `enabled => false`;
-- current observable Pharma tests are limited compared with older documentation claims;
-- Shared import/export service selection has gained base-class validation, narrowing the previous security finding rather than eliminating the mutable-state concern.
+The following findings remain for later Major Refactor slices and were not broadened into this foundation branch:
 
-## Verification status
+- Medicine bounded pagination/page-scoped selection and Admin UI cleanup.
+- DrugBidAward bounded pagination and searchable Medicine selection.
+- SupplierTracking business-key integrity, duplicate audit and bounded selection.
+- PriceList public Livewire analysis state, repeated analysis and deeper pipeline hardening.
+- Queue/performance work unless later benchmarking proves it necessary.
+- Production enablement.
 
-Because this task changes documentation/governance only:
+## Approved next slice after this PR merges
 
-- Focused application tests: **NOT APPLICABLE — documentation-only**
-- Pharma regression: **NOT APPLICABLE — documentation-only**
-- Manual UI smoke: **NOT APPLICABLE — documentation-only**
-- Application source/config/schema/runtime changes: **NONE**
+### Pharma Admin Dashboard
 
-Required gate before PR: verify final branch diff remains documentation/governance-only.
+User approved adding a dedicated `/admin/pharma` landing dashboard before continuing the remaining workspace refactors.
 
-## Next phase
+Planned dashboard scope:
 
-**NOT AUTHORIZED**
+- canonical Admin layout; no custom shell;
+- route `GET /admin/pharma` named `admin.pharma.dashboard` guarded by `view_pharma`;
+- navigation cards for Medicine/HSSP, Drug Bid Awards, Supplier Tracking and PriceList;
+- permission-aware quick actions;
+- lightweight operational summary/counts only;
+- workbook readiness indicator for PriceList without exposing sensitive filesystem paths;
+- no large data tables or expensive unbounded queries on the dashboard.
 
-Do not start Pharma refactor/rebuild implementation from this handoff alone.
+This dashboard must be implemented in a separate branch/PR after the current security/import-export foundation PR is merged.
 
-After this documentation-only analysis is merged, the next step is to propose a separate Pharma Major Refactor plan, prioritizing P0 findings and coherent MR boundaries. Implementation requires explicit user approval before creating or modifying application source for that phase.
+## Remaining Major Refactor sequence
+
+After the dashboard slice, continue with the previously approved boundaries:
+
+1. Medicine Workspace refactor.
+2. Drug Bid Award Workspace refactor.
+3. Supplier Tracking integrity/workspace refactor.
+4. PriceList security/pipeline refactor.
+5. Final acceptance and closeout.
+
+Do not change SupplierTracking cascade semantics, enable Pharma in production, or expand into unrelated module cleanup without a separate approved decision.

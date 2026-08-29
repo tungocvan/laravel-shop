@@ -3,13 +3,15 @@
 namespace Modules\Pharma\Livewire\PriceList;
 
 use Livewire\Component;
+use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\PriceListService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
 
 class Create extends Component
 {
-    // STATE
+    use AuthorizesPharmaActions;
+
     public string $sheetName = 'TỔNG HỢP';
 
     public string $search = '';
@@ -30,7 +32,6 @@ class Create extends Component
 
     protected PriceListService $service;
 
-    // LIFECYCLE
     public function boot(PriceListService $service): void
     {
         $this->service = $service;
@@ -38,11 +39,11 @@ class Create extends Component
 
     public function mount(): void
     {
+        $this->authorizePharmaCreate();
         $this->signatureDate = 'Tp.HCM, ngày….tháng…...năm '.now()->year;
         $this->loadWorkbook();
     }
 
-    // VALIDATION
     protected function rules(): array
     {
         return [
@@ -65,9 +66,10 @@ class Create extends Component
         ];
     }
 
-    // ACTIONS
     public function loadWorkbook(): void
     {
+        $this->authorizePharmaCreate();
+
         try {
             $this->analysis = $this->service->analyze($this->sheetName)->toArray();
             $this->selectedRows = array_column($this->analysis['products'], 'row');
@@ -75,7 +77,7 @@ class Create extends Component
         } catch (Throwable $exception) {
             report($exception);
             $this->analysis = [];
-            session()->flash('error', 'Không thể phân tích workbook: '.$exception->getMessage());
+            session()->flash('error', 'Không thể phân tích workbook. Vui lòng kiểm tra nguồn dữ liệu hoặc log hệ thống.');
         }
     }
 
@@ -112,10 +114,10 @@ class Create extends Component
 
     public function generate(): ?BinaryFileResponse
     {
+        $this->authorizePharmaCreate();
         $validated = $this->validate();
 
         try {
-            // Xác thực cú pháp cột sớm để hiển thị lỗi ngay trên UI.
             $analysis = $this->service->analyze($validated['sheetName']);
             $this->service->parseColumns($validated['columns'], $analysis);
 
@@ -131,7 +133,7 @@ class Create extends Component
             return response()->download($path, basename($path))->deleteFileAfterSend(true);
         } catch (Throwable $exception) {
             report($exception);
-            $this->addError('columns', $exception->getMessage());
+            $this->addError('columns', 'Không thể tạo bảng giá với lựa chọn hiện tại. Vui lòng kiểm tra dữ liệu hoặc log hệ thống.');
 
             return null;
         }

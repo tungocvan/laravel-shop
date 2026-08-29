@@ -2,32 +2,48 @@
 
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
-use Livewire\Component;
-use Modules\Pharma\Services\DrugBidAwardService;
-use Modules\Pharma\Models\Medicine;
 use Exception;
+use Livewire\Component;
+use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
+use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Services\DrugBidAwardService;
 
 class Form extends Component
 {
+    use AuthorizesPharmaActions;
+
     public ?int $awardId = null;
+
     public bool $isEditMode = false;
 
-    // Form fields
     public $medicine_id = null;
+
     public $medicine_name = '';
+
     public $packaging_specification = '';
+
     public $quantity = '';
+
     public $unit_price = '';
+
     public $bidding_notice_code = '';
+
     public $investor_name = '';
+
     public $decision_number = '';
+
     public $decision_date = '';
+
     public $contract_duration_months = '';
+
     public $winning_company_name = '';
+
     public $decision_document_url = '';
 
     public function mount(?int $id = null)
     {
+        $id ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
+
         if ($id) {
             $this->awardId = $id;
             $this->isEditMode = true;
@@ -52,39 +68,40 @@ class Form extends Component
     protected function rules(): array
     {
         return [
-            'medicine_id'              => 'nullable|exists:pharma_medicines,id',
-            'medicine_name'            => 'required|string|max:255',
-            'packaging_specification'  => 'required|string|max:255',
-            'quantity'                 => 'required|integer|min:1',
-            'unit_price'               => 'required|numeric|min:0',
-            'bidding_notice_code'      => 'required|string|max:100',
-            'investor_name'            => 'required|string|max:255',
-            'decision_number'          => 'required|string|max:100',
-            'decision_date'            => 'required|date',
+            'medicine_id' => 'nullable|exists:pharma_medicines,id',
+            'medicine_name' => 'required|string|max:255',
+            'packaging_specification' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
+            'bidding_notice_code' => 'required|string|max:100',
+            'investor_name' => 'required|string|max:255',
+            'decision_number' => 'required|string|max:100',
+            'decision_date' => 'required|date',
             'contract_duration_months' => 'required|integer|min:1',
-            'winning_company_name'     => 'required|string|max:255',
-            'decision_document_url'    => 'nullable|url|max:255',
+            'winning_company_name' => 'required|string|max:255',
+            'decision_document_url' => 'nullable|url|max:255',
         ];
     }
 
     protected function validationAttributes(): array
     {
         return [
-            'medicine_name'            => 'Tên thuốc thầu',
-            'packaging_specification'  => 'Quy cách đóng gói',
-            'quantity'                 => 'Số lượng',
-            'unit_price'               => 'Đơn giá trúng thầu',
-            'bidding_notice_code'      => 'Mã thông báo mời thầu',
-            'investor_name'            => 'Tên chủ đầu tư',
-            'decision_number'          => 'Số quyết định',
-            'decision_date'            => 'Ngày ban hành',
+            'medicine_name' => 'Tên thuốc thầu',
+            'packaging_specification' => 'Quy cách đóng gói',
+            'quantity' => 'Số lượng',
+            'unit_price' => 'Đơn giá trúng thầu',
+            'bidding_notice_code' => 'Mã thông báo mời thầu',
+            'investor_name' => 'Tên chủ đầu tư',
+            'decision_number' => 'Số quyết định',
+            'decision_date' => 'Ngày ban hành',
             'contract_duration_months' => 'Thời hạn hiệu lực',
-            'winning_company_name'     => 'Công ty trúng thầu',
+            'winning_company_name' => 'Công ty trúng thầu',
         ];
     }
 
     public function save(DrugBidAwardService $service)
     {
+        $this->isEditMode ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
         $data = $this->validate();
 
         try {
@@ -95,16 +112,18 @@ class Form extends Component
                 $service->store($data);
                 session()->flash('success', 'Thêm hồ sơ trúng thầu mới thành công.');
             }
+
             return redirect()->route('admin.pharma.drug-bid-awards.index');
         } catch (Exception $e) {
-            session()->flash('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+            report($e);
+            session()->flash('error', 'Không thể lưu hồ sơ trúng thầu. Vui lòng thử lại hoặc kiểm tra log hệ thống.');
         }
     }
 
     public function render()
     {
         return view('Pharma::livewire.drug-bid-award.form', [
-            'medicines' => Medicine::query()->latest()->get()
+            'medicines' => Medicine::query()->latest()->get(),
         ]);
     }
 }

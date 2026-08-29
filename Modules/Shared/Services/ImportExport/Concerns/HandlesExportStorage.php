@@ -7,6 +7,11 @@ use Illuminate\Support\Str;
 
 trait HandlesExportStorage
 {
+    protected function exportDisk(): string
+    {
+        return 'local';
+    }
+
     protected function exportDirectory(): string
     {
         return 'exports';
@@ -15,20 +20,30 @@ trait HandlesExportStorage
     protected function makeExportPath(string $prefix, string $extension = 'xlsx'): string
     {
         $filename = Str::slug($prefix)
-            . '-'
-            . now()->format('Ymd-His-u')
-            . '-'
-            . Str::lower(Str::random(6))
-            . '.'
-            . $extension;
+            .'-'
+            .now()->format('Ymd-His-u')
+            .'-'
+            .Str::lower(Str::random(6))
+            .'.'
+            .$extension;
 
-        Storage::disk('public')->makeDirectory($this->exportDirectory());
+        Storage::disk($this->exportDisk())->makeDirectory($this->exportDirectory());
 
-        return $this->exportDirectory() . '/' . $filename;
+        return $this->exportDirectory().'/'.$filename;
     }
 
-    protected function publicDownloadUrl(string $path): string
+    public function exportDiskName(): string
     {
-        return Storage::disk('public')->url($path);
+        return $this->exportDisk();
+    }
+
+    public function exportAbsolutePath(string $path): string
+    {
+        $normalizedPath = ltrim(str_replace('\\', '/', $path), '/');
+        $directory = trim($this->exportDirectory(), '/').'/';
+
+        abort_unless(str_starts_with($normalizedPath, $directory), 422, 'Đường dẫn export không hợp lệ.');
+
+        return Storage::disk($this->exportDisk())->path($normalizedPath);
     }
 }

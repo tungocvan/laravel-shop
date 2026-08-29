@@ -42,6 +42,11 @@ class ImportExport extends BaseImportExportService
         'note' => ['nullable', 'string'],
     ];
 
+    public function allowedImportModes(): array
+    {
+        return ['create_only', 'update_or_create', 'skip_duplicate'];
+    }
+
     protected function modelClass(): string
     {
         return SupplierTracking::class;
