@@ -435,8 +435,7 @@ final class SystemDashboardService
         array $queueMetrics,
         array $drive,
         array $cloudBackup,
-    ): array
-    {
+    ): array {
         $warnings = [];
 
         if ($queueMetrics['visible'] && $queueMetrics['available'] && $queueMetrics['failed'] > 0) {
