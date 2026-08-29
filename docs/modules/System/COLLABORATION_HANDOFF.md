@@ -133,3 +133,20 @@ A full-project regression is outside the approved gate.
 5. **COMPLETE** — PR [#82](https://github.com/tungocvan/laravel-shop/pull/82) was opened for manual user review.
 6. **COMPLETE** — User manually merged PR #82; main checkpoint `f2dd9ca6565d12b2931b9aa0a844742e0fec23b4` was verified.
 7. This docs-only closeout records the final merged state; no source behavior is changed.
+
+## Corrective Closeout — Account Migration Recovery
+
+After Phase A was merged, enabling `Account` exposed an existing schema/migration-ledger mismatch. All five Account schema artifacts already existed, while the corresponding migration ledger rows were absent. The lifecycle safety gate correctly blocked migration replay until ownership could be verified.
+
+- Corrective implementation: `fix/account-migration-recovery-ownership`
+- Corrective PR: [#84 — fix(account): add safe migration recovery ownership](https://github.com/tungocvan/laravel-shop/pull/84) — **MERGED into the refactor branch**
+- Main transfer branch: `fix/account-migration-recovery-main`
+- Ownership coverage: `users.account_type`, `employee_profiles`, `customer_profiles`, `user_metas`, `user_identity_profiles`
+- Recovery apply: **PASS** — exactly five verified migration ledger records restored; migrations were not replayed
+- Post-recovery dry-run: **READY**
+- Account runtime toggle: **PASS** — module enabled successfully
+- Permission synchronization: **PASS** — 4 permissions
+- `AccountMigrationRecoveryContractTest`: **PASS** — 2 tests, 6 assertions
+- Ownership verifier + recovery assessor: **PASS** — 9 tests, 22 assertions
+
+Safety invariant: never manually insert Account migration ledger rows. Recovery remains ownership-verified and operator-confirmed through `module:migration-recover`.
