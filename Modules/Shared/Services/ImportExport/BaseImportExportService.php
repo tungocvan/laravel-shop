@@ -49,6 +49,11 @@ abstract class BaseImportExportService
         return $data;
     }
 
+    public function allowedImportModes(): array
+    {
+        return ['create_only', 'update_or_create', 'skip_duplicate', 'replace'];
+    }
+
     public function import(string $filePath, array $options = []): array
     {
         $this->resetReport();
@@ -56,7 +61,7 @@ abstract class BaseImportExportService
         $mode = $options['mode'] ?? $this->mode;
         $dryRun = (bool) ($options['dry_run'] ?? false);
 
-        if (! in_array($mode, ['create_only', 'update_or_create', 'skip_duplicate', 'replace'], true)) {
+        if (! in_array($mode, $this->allowedImportModes(), true)) {
             throw new \InvalidArgumentException("Import mode không hợp lệ: {$mode}");
         }
 
@@ -258,7 +263,7 @@ abstract class BaseImportExportService
         $rows = $this->exportRows($filters)
             ->map(fn ($item) => $this->mapExportRow($item));
 
-        (new FastExcel($rows))->export(storage_path('app/public/'.$path));
+        (new FastExcel($rows))->export($this->exportAbsolutePath($path));
 
         return $path;
     }
@@ -271,7 +276,7 @@ abstract class BaseImportExportService
             $this->templateSampleRow(),
         ]);
 
-        (new FastExcel($rows))->export(storage_path('app/public/'.$path));
+        (new FastExcel($rows))->export($this->exportAbsolutePath($path));
 
         return $path;
     }
