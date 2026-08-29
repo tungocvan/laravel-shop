@@ -128,7 +128,7 @@ class DatabaseService
                 $sqlFiles[$tableName.'.sql'] = $sqlPath;
             }
 
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $opened = $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
             if ($opened !== true) {

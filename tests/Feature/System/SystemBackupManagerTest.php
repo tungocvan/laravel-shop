@@ -12,14 +12,14 @@ class SystemBackupManagerTest extends TestCase
         $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/backup-manager.blade.php'));
         $routes = file_get_contents(base_path('Modules/System/routes/web.php'));
 
-        $this->assertStringContainsString("permission:database.view,admin", $routes);
-        $this->assertStringContainsString("permission:database.download,admin", $routes);
+        $this->assertStringContainsString('permission:database.view,admin', $routes);
+        $this->assertStringContainsString('permission:database.download,admin', $routes);
 
         $this->assertGreaterThanOrEqual(2, substr_count($component, "authorizePermission('database.restore')"));
         $this->assertGreaterThanOrEqual(2, substr_count($component, "authorizePermission('database.destroy')"));
         $this->assertGreaterThanOrEqual(2, substr_count($component, "authorizePermission('database.download')"));
 
-        $this->assertStringNotContainsString("message: \$e->getMessage()", $component);
+        $this->assertStringNotContainsString('message: $e->getMessage()', $component);
         $this->assertStringNotContainsString("addError('sqlFile', \$e->getMessage())", $component);
         $this->assertStringNotContainsString('$e->getMessage()', $component);
         $this->assertStringContainsString('reportOperationError(', $component);
