@@ -42,7 +42,7 @@ class MuasamcongDashboardTest extends TestCase
             ->assertSee('Tổng quan Mua sắm công')
             ->assertSee('Smart Pricing')
             ->assertDontSee('Wishlist của tôi')
-            ->assertDontSee('Cấu hình &amp; Personal Session', false);
+            ->assertDontSee('Cấu hình & Personal Session', false);
 
         $secret = 'session-secret-must-not-be-rendered';
         PersonalSession::query()->create([
@@ -62,7 +62,7 @@ class MuasamcongDashboardTest extends TestCase
             ->get(route('muasamcong.dashboard'))
             ->assertOk()
             ->assertSee('Wishlist của tôi')
-            ->assertSee('Cấu hình &amp; Personal Session', false)
+            ->assertSee('Cấu hình & Personal Session', false)
             ->assertDontSee($secret)
             ->assertDontSee('cookie_encrypted');
     }
