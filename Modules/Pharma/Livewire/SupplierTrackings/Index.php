@@ -13,9 +13,13 @@ class Index extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $status = '';
+
     public int $perPage = 15;
+
     public array $selected = [];
+
     public bool $selectAll = false;
 
     protected string $paginationTheme = 'tailwind';
@@ -111,12 +115,12 @@ class Index extends Component
 
     public function money($value): string
     {
-        return ($value === null || $value === '') ? '0' : number_format((float) $value, 0, ',', '.');
+        return $value === null || $value === '' ? '0' : number_format((float) $value, 0, ',', '.');
     }
 
     public function percent($value): string
     {
-        return ($value === null || $value === '') ? '0%' : number_format((float) $value, 2, ',', '.').'%';
+        return $value === null || $value === '' ? '0%' : number_format((float) $value, 2, ',', '.').'%';
     }
 
     private function filters(): array
