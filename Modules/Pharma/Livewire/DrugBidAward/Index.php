@@ -14,10 +14,15 @@ class Index extends Component
     use WithPagination;
 
     public $search = '';
+
     public $filterInvestor = '';
+
     public $filterCompany = '';
+
     public $perPage = 10;
+
     public array $selectedIds = [];
+
     public bool $selectAll = false;
 
     protected $queryString = [
@@ -32,10 +37,25 @@ class Index extends Component
         $this->authorizePharmaView();
     }
 
-    public function updatingSearch() { $this->resetPage(); }
-    public function updatingFilterInvestor() { $this->resetPage(); }
-    public function updatingFilterCompany() { $this->resetPage(); }
-    public function updatingPerPage() { $this->resetPage(); }
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterInvestor()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterCompany()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
 
     public function updatedSelectAll($value)
     {
@@ -54,7 +74,10 @@ class Index extends Component
         }
     }
 
-    public function updatedSelectedIds() { $this->selectAll = false; }
+    public function updatedSelectedIds()
+    {
+        $this->selectAll = false;
+    }
 
     public function resetFilters()
     {
