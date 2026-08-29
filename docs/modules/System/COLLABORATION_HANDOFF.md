@@ -80,6 +80,7 @@ tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
 tests/Feature/System/SystemModuleRuntimeControlTest.php
 tests/Feature/System/SystemModuleRuntimeGitCleanTest.php
 tests/Feature/System/SystemModuleRuntimeLifecycleTest.php
+tests/Feature/System/SystemModuleRuntimeUiTest.php
 tests/Feature/System/SystemModulesControlTest.php
 ```
 
