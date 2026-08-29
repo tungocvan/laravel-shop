@@ -12,8 +12,8 @@ class ComposeHealthcheckContractTest extends TestCase
 
         $this->assertIsString($compose);
         $this->assertStringNotContainsString("tr '\\0'", $compose);
-        $this->assertStringContainsString('str_contains($$c,"queue:work")', $compose);
-        $this->assertStringContainsString('str_contains($$c,"admission-documents")', $compose);
-        $this->assertStringContainsString('str_contains($$c,"schedule:work")', $compose);
+        $this->assertStringContainsString('str_contains($$c,\"queue:work\")', $compose);
+        $this->assertStringContainsString('str_contains($$c,\"admission-documents\")', $compose);
+        $this->assertStringContainsString('str_contains($$c,\"schedule:work\")', $compose);
     }
 }
