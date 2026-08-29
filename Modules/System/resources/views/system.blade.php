@@ -21,6 +21,7 @@
                 & <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded font-bold border border-blue-100">Local</span>
             </p>
         </div>
+        @include('System::partials.dashboard-return-link')
 {{-- 
         @livewire('system.settings.env-manager') --}}
   

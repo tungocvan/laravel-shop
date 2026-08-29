@@ -6,9 +6,13 @@ use Modules\System\Http\Controllers\EnvConfigController;
 use Modules\System\Http\Controllers\GoogleDriveOAuthController;
 use Modules\System\Http\Controllers\SettingController;
 use Modules\System\Http\Controllers\SystemController;
+use Modules\System\Http\Controllers\SystemDashboardController;
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::prefix('/system')->name('system.')->group(function () {
+        Route::get('/dashboard', SystemDashboardController::class)
+            ->middleware('permission:system.manage,admin')
+            ->name('dashboard');
         Route::get('/', [SystemController::class, 'index'])
             ->middleware('permission:system.manage,admin')
             ->name('index');
