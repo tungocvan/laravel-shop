@@ -3,19 +3,25 @@
 namespace Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 
+/**
+ * @deprecated Use the System settings routes directly.
+ */
 class SettingController extends Controller
 {
-    public function index()
+    public function index(): RedirectResponse
     {
-        return view('Admin::pages.settings.index');
+        return redirect()->route('admin.system.settings.index');
     }
-    public function profile()
+
+    public function profile(): RedirectResponse
     {
-        return view('Admin::pages.settings.profile');
+        return redirect()->route('admin.profile');
     }
-    public function modules()
+
+    public function modules(): RedirectResponse
     {
-        return view('Admin::pages.settings.modules');
+        return redirect()->route('admin.system.modules');
     }
 }
