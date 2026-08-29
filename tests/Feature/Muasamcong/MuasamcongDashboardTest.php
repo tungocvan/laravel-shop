@@ -151,7 +151,6 @@ class MuasamcongDashboardTest extends TestCase
         $this->assertStringNotContainsString('error_message', $serialized);
     }
 
-
     public function test_admin_workspaces_expose_a_permission_aware_dashboard_return_link(): void
     {
         $viewer = $this->adminWithPermissions(['view_muasamcong']);
