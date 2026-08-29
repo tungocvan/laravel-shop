@@ -1,17 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Modules\Pharma\Http\Controllers\Api\PharmaController;
-
-// Route::middleware('auth:sanctum')
-//     ->controller(PharmaController::class)
-//     ->prefix('pharma')
-//     ->group(function () {
-//         Route::get('/', 'index');
-//     });
-
-Route::prefix('pharma')
-    ->controller(PharmaController::class)
-    ->group(function () {
-        Route::get('/', 'index');
-    });
+// Pharma currently exposes no public API contract.
+// Add authenticated API routes here only when a concrete consumer and
+// capability boundary are defined.
