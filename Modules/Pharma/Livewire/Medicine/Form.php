@@ -12,27 +12,47 @@ class Form extends Component
     use AuthorizesPharmaActions;
 
     public ?int $medicineId = null;
+
     public bool $isEditMode = false;
 
     public $circular_order_number;
+
     public $circular_group;
+
     public $active_ingredients;
+
     public $concentration;
+
     public $name;
+
     public $dosage_form;
+
     public $route_of_administration;
+
     public $unit;
+
     public $packaging_specification;
+
     public $registration_number;
+
     public $shelf_life;
+
     public $registered_company;
+
     public $manufacturing_company;
+
     public $manufacturing_country;
+
     public $visa_validity_date;
+
     public $gmp_certification_date;
+
     public $declared_price;
+
     public $is_special_control = false;
+
     public $profile_link;
+
     public $notes;
 
     protected function rules()
