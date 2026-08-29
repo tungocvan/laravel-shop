@@ -69,12 +69,10 @@
                     class="inline-flex h-[50px] items-center justify-center rounded-xl border border-gray-300 bg-white px-4 font-semibold text-gray-700 hover:bg-gray-50">
                     Reset
                 </button>
-
             </div>
         </div>
 
-        <div
-            class="mt-5 flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
+        <div class="mt-5 flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
             <div class="flex items-center gap-3">
                 @if ($this->hasSelected)
                     <span class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
@@ -97,6 +95,7 @@
         'title' => 'Import / Export theo dõi nhà cung cấp',
         'description' => 'File Excel chuẩn A–V; các cột công thức được hệ thống tự tính lại.',
         'filters' => ['search' => $search, 'status' => $status],
+        'permission' => 'edit_pharma',
     ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status]))))
 
     {{-- TABLE --}}
@@ -114,8 +113,7 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Nhà cung cấp</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá nhập</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá HĐ</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Chênh lệch HĐ
-                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Chênh lệch HĐ</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">% phí</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Phí CL</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá vốn</th>
@@ -152,61 +150,30 @@
                             </td>
 
                             <td class="px-4 py-4 align-top">
-                                <div class="font-medium text-gray-900">
-                                    {{ $item->supplier_name }}
-                                </div>
-                                <div class="mt-1 text-xs text-gray-500">
-                                    Đại diện: {{ $item->supplier_representative ?: '---' }}
-                                </div>
-                                <div class="mt-1 text-xs text-gray-500">
-                                    Khu vực: {{ $item->area ?: '---' }}
-                                </div>
+                                <div class="font-medium text-gray-900">{{ $item->supplier_name }}</div>
+                                <div class="mt-1 text-xs text-gray-500">Đại diện: {{ $item->supplier_representative ?: '---' }}</div>
+                                <div class="mt-1 text-xs text-gray-500">Khu vực: {{ $item->area ?: '---' }}</div>
                             </td>
 
-                            <td class="px-4 py-4 text-right align-top font-medium text-gray-900">
-                                {{ $this->money($item->import_price) }}
-                            </td>
+                            <td class="px-4 py-4 text-right align-top font-medium text-gray-900">{{ $this->money($item->import_price) }}</td>
+                            <td class="px-4 py-4 text-right align-top">{{ $this->money($item->invoice_price) }}</td>
+                            <td class="px-4 py-4 text-right align-top">{{ $this->money($item->invoice_difference_amount) }}</td>
+                            <td class="px-4 py-4 text-right align-top">{{ $this->percent($item->invoice_difference_percent) }}</td>
+                            <td class="px-4 py-4 text-right align-top text-amber-700">{{ $this->money($item->invoice_difference_fee) }}</td>
+                            <td class="px-4 py-4 text-right align-top font-semibold text-gray-900">{{ $this->money($item->cost_price) }}</td>
+                            <td class="px-4 py-4 text-right align-top">{{ $this->money($item->selling_price) }}</td>
 
                             <td class="px-4 py-4 text-right align-top">
-                                {{ $this->money($item->invoice_price) }}
-                            </td>
-
-                            <td class="px-4 py-4 text-right align-top">
-                                {{ $this->money($item->invoice_difference_amount) }}
-                            </td>
-
-                            <td class="px-4 py-4 text-right align-top">
-                                {{ $this->percent($item->invoice_difference_percent) }}
-                            </td>
-
-                            <td class="px-4 py-4 text-right align-top text-amber-700">
-                                {{ $this->money($item->invoice_difference_fee) }}
-                            </td>
-
-                            <td class="px-4 py-4 text-right align-top font-semibold text-gray-900">
-                                {{ $this->money($item->cost_price) }}
-                            </td>
-
-                            <td class="px-4 py-4 text-right align-top">
-                                {{ $this->money($item->selling_price) }}
-                            </td>
-
-                            <td class="px-4 py-4 text-right align-top">
-                                <span
-                                    class="rounded-full px-3 py-1 text-xs font-semibold
-                                    {{ $item->gross_profit_percent >= 30 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700' }}">
+                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $item->gross_profit_percent >= 30 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700' }}">
                                     {{ $this->percent($item->gross_profit_percent) }}
                                 </span>
                             </td>
 
                             <td class="px-4 py-4 align-top">
                                 <div class="text-sm text-gray-900">
-                                    {{ $item->committed_quantity ? $this->money($item->committed_quantity) : '---' }}
-                                    {{ $item->unit }}
+                                    {{ $item->committed_quantity ? $this->money($item->committed_quantity) : '---' }} {{ $item->unit }}
                                 </div>
-                                <div class="mt-1 text-xs text-gray-500">
-                                    Cọc: {{ $item->deposit_amount ? $this->money($item->deposit_amount) : '---' }}
-                                </div>
+                                <div class="mt-1 text-xs text-gray-500">Cọc: {{ $item->deposit_amount ? $this->money($item->deposit_amount) : '---' }}</div>
                             </td>
 
                             <td class="px-4 py-4 align-top">
@@ -236,8 +203,7 @@
                                     ];
                                 @endphp
 
-                                <span
-                                    class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$item->status] ?? 'bg-gray-100 text-gray-700' }}">
+                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$item->status] ?? 'bg-gray-100 text-gray-700' }}">
                                     {{ $statuses[$item->status] ?? $item->status }}
                                 </span>
                             </td>
@@ -260,12 +226,8 @@
                     @empty
                         <tr>
                             <td colspan="15" class="px-4 py-12 text-center">
-                                <div class="text-sm font-medium text-gray-900">
-                                    Chưa có dữ liệu theo dõi nhà cung cấp
-                                </div>
-                                <div class="mt-1 text-sm text-gray-500">
-                                    Hãy thêm mới hoặc import Excel để bắt đầu quản lý.
-                                </div>
+                                <div class="text-sm font-medium text-gray-900">Chưa có dữ liệu theo dõi nhà cung cấp</div>
+                                <div class="mt-1 text-sm text-gray-500">Hãy thêm mới hoặc import Excel để bắt đầu quản lý.</div>
                             </td>
                         </tr>
                     @endforelse
