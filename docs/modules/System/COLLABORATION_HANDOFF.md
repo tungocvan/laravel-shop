@@ -6,7 +6,7 @@
 - Feature: Module Catalog & Runtime Boundaries — Phase A
 - Delivery branch: `refactor/system-module-catalog-runtime-boundaries`
 - Base/source checkpoint: `main@62eb2e76126f92842a906ffb58fa0deb076c26d5`
-- Implementation status: **IMPLEMENTED — AWAITING OPERATOR VERIFICATION**
+- Implementation status: **VERIFIED — AWAITING PR REVIEW**
 - Pull request: **NOT OPENED**
 
 This phase separates filesystem catalog discovery, graph validation and current-request registry projection without changing the established `config('modules.registry')` consumer contract. Module runtime state remains an atomic file-backed override, manifests remain immutable at runtime, and the root provider keeps its existing registration behavior and boot order.
@@ -94,21 +94,21 @@ Pint 1.30.5 changed/new PHP files             PASS
 git diff --check                              PASS
 ```
 
-Pending operator verification in the application environment:
+Operator verification completed:
 
 ```text
-Focused catalog/graph/registry/state/control tests
-System Feature regression
-Role Feature regression
-Request architecture/authorization/module-state regression
-Ebook bootstrap regression
-Admission permission-catalog regression
-ClientPortal and ClientApps registry-consumer regression
-Admin Feature regression
-System module route inspection
-Frontend production build
-Desktop/mobile System Modules UI acceptance
-Toggle round-trip with manifest and Git worktree unchanged
+Focused catalog/graph/registry/state/control   PASS (46 tests, 208 assertions)
+System Feature regression                      PASS (178 tests, 1030 assertions)
+Role Feature regression                        PASS (10 tests, 27 assertions)
+Request architecture/auth/module state         PASS (44 tests, 5316 assertions)
+Ebook bootstrap + Admission permission         PASS (24 tests, 102 assertions)
+ClientApps registry consumers                  PASS (29 tests, 222 assertions)
+Admin Feature regression                       PASS (133 tests, 1265 assertions)
+System module route inspection                 PASS
+Frontend production build                      PASS (Vite 7.3.6, 34 modules, 3.69s)
+Desktop/mobile System Modules UI               PASS
+Realtime and module toggle round-trip          PASS
+Manifest and Git worktree after toggle         PASS (clean)
 ```
 
 A full-project regression is outside the approved gate.
@@ -126,6 +126,6 @@ A full-project regression is outside the approved gate.
 1. **COMPLETE** — Scope approved and branch created from `main@62eb2e76126f92842a906ffb58fa0deb076c26d5`.
 2. **COMPLETE** — Catalog, validator, registry, System adapters, archive retirement and directly affected tests implemented.
 3. **COMPLETE** — Local syntax, Pint and whitespace gates passed.
-4. **PENDING** — Operator pulls the branch and runs the approved focused/regression/build/UI gates.
-5. **PENDING** — A PR is opened only after the operator reports the required gates.
+4. **COMPLETE** — Operator ran the approved focused/regression/build/UI gates; all passed.
+5. **PENDING** — Open a PR for manual user review.
 6. **PENDING** — User performs manual review and merge; automatic merge is not authorized.
