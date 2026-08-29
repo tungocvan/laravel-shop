@@ -24,6 +24,9 @@ class Panel extends Component
 
     public string $mode = 'update_or_create';
 
+    #[Locked]
+    public array $allowedModes = [];
+
     public bool $dryRun = false;
 
     public ?array $report = null;
@@ -54,15 +57,18 @@ class Panel extends Component
         $this->description = $description;
         $this->filters = $filters;
         $this->permission = $permission;
+        $this->allowedModes = $this->service()->allowedImportModes();
+
+        if (! in_array($this->mode, $this->allowedModes, true)) {
+            $this->mode = $this->allowedModes[0] ?? '';
+        }
     }
 
     protected function rules(): array
     {
-        $allowedModes = implode(',', $this->service()->allowedImportModes());
-
         return [
             'file' => ['required', 'file', 'mimes:xlsx,csv', 'max:10240'],
-            'mode' => ['required', 'in:'.$allowedModes],
+            'mode' => ['required', 'in:'.implode(',', $this->allowedModes)],
             'dryRun' => ['boolean'],
         ];
     }
@@ -71,6 +77,8 @@ class Panel extends Component
     {
         $service = $this->authorizedService();
         $this->validate();
+
+        abort_unless(in_array($this->mode, $service->allowedImportModes(), true), 422, 'Chế độ import không hợp lệ.');
 
         $this->report = $service->import($this->file->getRealPath(), [
             'mode' => $this->mode,
