@@ -12,16 +12,16 @@ class SystemBackupManagerTest extends TestCase
         $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/backup-manager.blade.php'));
         $routes = file_get_contents(base_path('Modules/System/routes/web.php'));
 
-        $this->assertStringContainsString("permission:database.view,admin", $routes);
-        $this->assertStringContainsString("permission:database.download,admin", $routes);
+        $this->assertStringContainsString('permission:database.view,admin', $routes);
+        $this->assertStringContainsString('permission:database.download,admin', $routes);
 
-        $this->assertGreaterThanOrEqual(3, substr_count($component, "authorizePermission('database.restore')"));
-        $this->assertStringContainsString("authorizePermission('database.destroy')", $component);
+        $this->assertGreaterThanOrEqual(2, substr_count($component, "authorizePermission('database.restore')"));
+        $this->assertGreaterThanOrEqual(2, substr_count($component, "authorizePermission('database.destroy')"));
         $this->assertGreaterThanOrEqual(2, substr_count($component, "authorizePermission('database.download')"));
 
-        $this->assertStringNotContainsString("message: \$e->getMessage()", $component);
+        $this->assertStringNotContainsString('message: $e->getMessage()', $component);
         $this->assertStringNotContainsString("addError('sqlFile', \$e->getMessage())", $component);
-        $this->assertStringNotContainsString("addError('googleDriveUrl', \$e->getMessage())", $component);
+        $this->assertStringNotContainsString('$e->getMessage()', $component);
         $this->assertStringContainsString('reportOperationError(', $component);
         $this->assertStringContainsString('Log::error(', $component);
 
@@ -30,14 +30,20 @@ class SystemBackupManagerTest extends TestCase
         $this->assertStringContainsString('backupHistoryTruncated', $component);
         $this->assertStringContainsString('backupHistoryLimit', $view);
 
-        $this->assertStringContainsString('https://drive.usercontent.google.com/download', $component);
+        $this->assertStringNotContainsString('drive.usercontent.google.com', $component);
+        $this->assertStringNotContainsString('restoreFromGoogleDrive', $component);
+        $this->assertStringNotContainsString('importFromGoogleDrive', $component);
+        $this->assertStringContainsString('downloadRemoteBackup(', $component);
+        $this->assertStringContainsString("'reference'", file_get_contents(base_path('Modules/System/Services/Cloud/GoogleDriveBackupBrowserService.php')));
         $this->assertStringContainsString('@unlink($temporaryPath)', $component);
         $this->assertStringContainsString('getDownloadPath(', $component);
         $this->assertStringContainsString('MAX_ATTACHMENT_BYTES', $component);
         $this->assertStringContainsString('SendDatabaseBackupEmail::dispatch', $component);
 
-        $this->assertStringContainsString('lg:opacity-80 lg:group-hover:opacity-100', $view);
         $this->assertStringContainsString('wire:confirm', $view);
         $this->assertStringContainsString("route('admin.system.database.download'", $view);
+        $this->assertStringNotContainsString('wire:poll', $view);
+        $this->assertStringContainsString("\$remote['reference']", $view);
+        $this->assertStringContainsString("\$file['id']", $view);
     }
 }

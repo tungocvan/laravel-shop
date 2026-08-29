@@ -31,7 +31,7 @@ class SendDatabaseBackupEmail implements ShouldQueue
 
     public function handle(DatabaseService $service): void
     {
-        $path = $service->getDownloadPath($this->backupFile);
+        $path = $service->getTrustedBackupPath($this->backupFile);
 
         if ($path === null || ! is_readable($path)) {
             throw new RuntimeException('File backup không tồn tại hoặc không thể đọc.');

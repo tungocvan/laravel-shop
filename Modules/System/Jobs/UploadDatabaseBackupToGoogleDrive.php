@@ -17,6 +17,7 @@ class UploadDatabaseBackupToGoogleDrive implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 360;
 
     public function __construct(
@@ -28,26 +29,27 @@ class UploadDatabaseBackupToGoogleDrive implements ShouldQueue
     {
         $drive->markBackupProcessing($this->fileName);
 
-        $path = $database->getDownloadPath($this->fileName);
+        $path = $database->getTrustedBackupPath($this->fileName);
+
         if ($path === null) {
-            $drive->markBackupFailed($this->fileName, 'File backup local không còn tồn tại.');
+            $drive->markBackupFailed($this->fileName, 'local_file_missing');
             Log::warning('Google Drive backup upload skipped because local file is missing.', [
                 'backup' => $this->fileName,
                 'actor_id' => $this->actorId,
             ]);
+
             return;
         }
 
         try {
-            $result = $drive->uploadBackup($path, $this->fileName);
+            $drive->uploadBackup($path, $this->fileName);
 
             Log::notice('Database backup uploaded to Google Drive.', [
                 'backup' => $this->fileName,
-                'drive_file_id' => $result['id'] ?? null,
                 'actor_id' => $this->actorId,
             ]);
         } catch (Throwable $e) {
-            $drive->markBackupFailed($this->fileName, $e->getMessage());
+            $drive->markBackupFailed($this->fileName);
             throw $e;
         }
     }
@@ -57,12 +59,12 @@ class UploadDatabaseBackupToGoogleDrive implements ShouldQueue
         try {
             app(GoogleDriveConnectionService::class)->markBackupFailed(
                 $this->fileName,
-                $exception?->getMessage() ?: 'Upload Google Drive thất bại sau các lần thử lại.'
+                'upload_failed'
             );
         } catch (Throwable $statusException) {
             Log::error('Unable to persist failed Google Drive backup status.', [
                 'backup' => $this->fileName,
-                'error' => $statusException->getMessage(),
+                'exception' => $statusException::class,
             ]);
         }
     }

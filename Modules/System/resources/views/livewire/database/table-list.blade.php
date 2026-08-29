@@ -7,16 +7,20 @@
         </div>
 
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button type="button" wire:click="backupFull" wire:loading.attr="disabled"
-                class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">
-                <span wire:loading.remove wire:target="backupFull">Full Backup</span>
-                <span wire:loading wire:target="backupFull">Đang backup...</span>
-            </button>
+            @if ($canBackup)
+                <button type="button" wire:click="backupFull" wire:loading.attr="disabled"
+                    class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">
+                    <span wire:loading.remove wire:target="backupFull">Full Backup</span>
+                    <span wire:loading wire:target="backupFull">Đang backup...</span>
+                </button>
+            @endif
 
-            <button type="button" wire:click="openRestoreModal" wire:loading.attr="disabled"
-                class="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60">
-                Restore Database
-            </button>
+            @if ($canRestore)
+                <button type="button" wire:click="openRestoreModal" wire:loading.attr="disabled"
+                    class="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60">
+                    Restore Database
+                </button>
+            @endif
 
             <select wire:model.live="moduleFilter"
                 class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 sm:w-52">
@@ -69,25 +73,31 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $table['size_mb'] }} MB</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex flex-wrap items-center gap-3">
-                                <button type="button" wire:click="exportTable('{{ $table['name'] }}')" wire:loading.attr="disabled"
-                                    class="text-indigo-600 hover:text-indigo-900 disabled:opacity-50">
-                                    <span wire:loading.remove wire:target="exportTable('{{ $table['name'] }}')">Export</span>
-                                    <span wire:loading wire:target="exportTable('{{ $table['name'] }}')">Đang export...</span>
-                                </button>
-
-                                @if ($table['has_backup'])
-                                    <a href="{{ route('admin.system.database.download', ['filename' => $table['backup_file']]) }}"
-                                        target="_blank" class="text-green-600 hover:text-green-900">SQL</a>
-
-                                    <button type="button" wire:click="restoreTable('{{ $table['name'] }}')"
-                                        wire:confirm="CẢNH BÁO: Restore sẽ ghi đè dữ liệu bảng {{ $table['name'] }}. Tiếp tục?"
-                                        wire:loading.attr="disabled"
-                                        class="text-amber-600 hover:text-amber-900 disabled:opacity-50">
-                                        Restore
+                                @if ($canBackup)
+                                    <button type="button" wire:click="exportTable('{{ $table['name'] }}')" wire:loading.attr="disabled"
+                                        class="text-indigo-600 hover:text-indigo-900 disabled:opacity-50">
+                                        <span wire:loading.remove wire:target="exportTable('{{ $table['name'] }}')">Export</span>
+                                        <span wire:loading wire:target="exportTable('{{ $table['name'] }}')">Đang export...</span>
                                     </button>
                                 @endif
 
-                                @if (! $table['is_protected'])
+                                @if ($table['has_backup'])
+                                    @if ($canDownload)
+                                        <a href="{{ route('admin.system.database.download', ['filename' => $table['backup_id']]) }}"
+                                            target="_blank" class="text-green-600 hover:text-green-900">SQL</a>
+                                    @endif
+
+                                    @if ($canRestore)
+                                        <button type="button" wire:click="restoreTable('{{ $table['name'] }}')"
+                                            wire:confirm="CẢNH BÁO: Restore sẽ ghi đè dữ liệu bảng {{ $table['name'] }}. Tiếp tục?"
+                                            wire:loading.attr="disabled"
+                                            class="text-amber-600 hover:text-amber-900 disabled:opacity-50">
+                                            Restore
+                                        </button>
+                                    @endif
+                                @endif
+
+                                @if ($canRestore && ! $table['is_protected'])
                                     <button type="button" wire:click="openImportModal('{{ $table['name'] }}')"
                                         wire:loading.attr="disabled"
                                         class="text-sky-600 hover:text-sky-900 disabled:opacity-50">
@@ -97,7 +107,7 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            @if (! $table['is_protected'])
+                            @if ($canDestroy && ! $table['is_protected'])
                                 <div class="flex items-center justify-end gap-3">
                                     <button type="button" wire:click="truncateTable('{{ $table['name'] }}')"
                                         wire:confirm="NGUY HIỂM: Xóa sạch dữ liệu bảng {{ $table['name'] }}?"
@@ -125,11 +135,11 @@
         </table>
     </div>
 
-    @if (count($selectedTables) > 0)
+    @if ($canBackup && count($selectedTables) > 0)
         <div class="flex flex-col gap-3 border-t border-indigo-100 bg-indigo-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <span class="text-sm font-medium text-indigo-700">Đã chọn {{ count($selectedTables) }} bảng</span>
             <div class="flex items-center gap-3">
-                @if ($selectedExportFile)
+                @if ($canDownload && $selectedExportFile)
                     <a href="{{ route('admin.system.database.download', ['filename' => $selectedExportFile]) }}" target="_blank"
                         class="inline-flex items-center justify-center rounded-xl border border-green-200 bg-white px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50">
                         Tải ZIP export
@@ -156,7 +166,7 @@
                         class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-gray-100">
                         <option value="">-- Chọn file backup --</option>
                         @foreach ($backupFiles as $file)
-                            <option value="{{ $file['path'] }}">{{ $file['name'] }} ({{ number_format($file['size'] / 1024, 2) }} KB)</option>
+                            <option value="{{ $file['id'] }}">{{ $file['name'] }} ({{ number_format($file['size'] / 1024, 2) }} KB)</option>
                         @endforeach
                     </select>
                 </div>

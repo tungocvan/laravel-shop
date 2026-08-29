@@ -66,7 +66,6 @@ class GoogleDriveOAuthController extends Controller
             Log::error('Google Drive OAuth callback failed.', [
                 'actor_id' => (auth('admin')->user() ?: auth()->user())?->getAuthIdentifier(),
                 'exception' => $e::class,
-                'error' => $e->getMessage(),
             ]);
 
             return redirect()

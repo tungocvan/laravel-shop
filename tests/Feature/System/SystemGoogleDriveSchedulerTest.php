@@ -24,12 +24,25 @@ class SystemGoogleDriveSchedulerTest extends TestCase
     public function google_drive_connection_and_scheduler_reuse_contracts_are_preserved(): void
     {
         $drive = file_get_contents(base_path('Modules/System/Services/Cloud/GoogleDriveConnectionService.php'));
+        $browser = file_get_contents(base_path('Modules/System/Services/Cloud/GoogleDriveBackupBrowserService.php'));
+        $storageConfig = file_get_contents(base_path('Modules/System/Livewire/Settings/StorageConfig.php'));
         $scheduler = file_get_contents(base_path('routes/console.php'));
         $job = file_get_contents(base_path('Modules/System/Jobs/UploadDatabaseBackupToGoogleDrive.php'));
 
         $this->assertStringContainsString("config('system.google_drive.redirect_uri')", $drive);
         $this->assertStringContainsString('public function status(): array', $drive);
         $this->assertStringContainsString('public function accessToken(): string', $drive);
+        $this->assertStringContainsString("fopen(\$path, 'rb')", $drive);
+        $this->assertStringContainsString("withBody(\$stream, 'application/sql')", $drive);
+        $this->assertStringNotContainsString('file_get_contents($path)', $drive);
+
+        $this->assertStringContainsString('private const MAX_LIST_LIMIT = 100;', $browser);
+        $this->assertStringContainsString('private const MAX_YEAR_FOLDERS = 10;', $browser);
+        $this->assertStringContainsString('private const MAX_MONTH_FOLDERS = 12;', $browser);
+        $this->assertStringContainsString("preg_match('/\\A[a-f0-9]{64}\\z/'", $browser);
+
+        $this->assertGreaterThanOrEqual(2, substr_count($storageConfig, "authorizePermission('database.backup')"));
+        $this->assertGreaterThanOrEqual(2, substr_count($storageConfig, "authorizePermission('database.destroy')"));
 
         $this->assertStringContainsString("Schedule::command('system:cloud-backup')", $scheduler);
         $this->assertStringContainsString('->everyMinute()', $scheduler);

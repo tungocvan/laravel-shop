@@ -25,7 +25,7 @@ class CloudBackupAutomationService
             'last_run_date' => (string) $this->settings->get('cloud.google_drive.auto.last_run_date', ''),
             'last_run_at' => (string) $this->settings->get('cloud.google_drive.auto.last_run_at', ''),
             'last_status' => (string) $this->settings->get('cloud.google_drive.auto.last_status', ''),
-            'last_message' => (string) $this->settings->get('cloud.google_drive.auto.last_message', ''),
+            'last_message' => $this->safeStatusMessage((string) $this->settings->get('cloud.google_drive.auto.last_status', '')),
             'next_run_at' => $enabled ? $this->nextRunAt($time) : '',
         ];
     }
@@ -47,23 +47,41 @@ class CloudBackupAutomationService
     public function dueNow(): bool
     {
         $config = $this->config();
-        if (! $config['enabled'] || $config['last_run_date'] === now()->toDateString()) return false;
+
+        if (! $config['enabled'] || $config['last_run_date'] === now()->toDateString()) {
+            return false;
+        }
+
         return now()->format('H:i') === $config['time'];
     }
 
     public function markRun(string $status, string $message): void
     {
+        $status = in_array($status, ['success', 'failed'], true) ? $status : 'failed';
         $this->settings->set('cloud.google_drive.auto.last_run_date', now()->toDateString(), self::GROUP);
         $this->settings->set('cloud.google_drive.auto.last_run_at', now()->toIso8601String(), self::GROUP);
         $this->settings->set('cloud.google_drive.auto.last_status', $status, self::GROUP);
-        $this->settings->set('cloud.google_drive.auto.last_message', mb_substr($message, 0, 1000), self::GROUP);
+        $this->settings->set('cloud.google_drive.auto.last_message', $this->safeStatusMessage($status), self::GROUP);
     }
 
     private function nextRunAt(string $time): string
     {
         [$hour, $minute] = array_map('intval', explode(':', $time) + [0, 0]);
         $next = Carbon::now()->setTime($hour, $minute, 0);
-        if ($next->lessThanOrEqualTo(now())) $next->addDay();
+
+        if ($next->lessThanOrEqualTo(now())) {
+            $next->addDay();
+        }
+
         return $next->toIso8601String();
+    }
+
+    private function safeStatusMessage(string $status): string
+    {
+        return match ($status) {
+            'success' => 'Lần chạy gần nhất đã tạo backup và hoàn tất bước điều phối an toàn.',
+            'failed' => 'Lần chạy gần nhất thất bại. Vui lòng kiểm tra log hệ thống.',
+            default => '',
+        };
     }
 }

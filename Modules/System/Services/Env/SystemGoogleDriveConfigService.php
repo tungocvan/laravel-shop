@@ -65,8 +65,8 @@ class SystemGoogleDriveConfigService
                 'actor_id' => $actorId,
                 'client_id_configured' => $candidate['GOOGLE_DRIVE_CLIENT_ID'] !== '',
                 'client_secret_replaced' => trim((string) ($form['GOOGLE_DRIVE_CLIENT_SECRET'] ?? '')) !== '',
-                'redirect_uri' => $candidate['GOOGLE_DRIVE_REDIRECT_URI'],
-                'folder_name' => $candidate['GOOGLE_DRIVE_FOLDER_NAME'],
+                'redirect_uri_configured' => $candidate['GOOGLE_DRIVE_REDIRECT_URI'] !== '',
+                'custom_folder_configured' => $candidate['GOOGLE_DRIVE_FOLDER_NAME'] !== 'Laravel-Backup',
             ]);
 
             return ['success' => true, 'message' => 'Cấu hình Google Drive đã được lưu.'];
