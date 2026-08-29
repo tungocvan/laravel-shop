@@ -17,6 +17,7 @@ class PriceListService
     public function __construct(
         private readonly WorkbookAnalyzer $analyzer,
         private readonly PriceListWorkbookBuilder $builder,
+        private readonly ?string $sourceFilePath = null,
     ) {}
 
     public function analyze(?string $sheetName = null): WorkbookAnalysis
@@ -136,6 +137,6 @@ class PriceListService
 
     private function sourcePath(): string
     {
-        return storage_path('app/'.self::DEFAULT_SOURCE);
+        return $this->sourceFilePath ?? storage_path('app/'.self::DEFAULT_SOURCE);
     }
 }
