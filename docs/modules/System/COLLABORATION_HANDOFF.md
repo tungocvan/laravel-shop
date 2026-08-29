@@ -6,9 +6,10 @@
 - Feature: System settings ownership and Admin compatibility adapters
 - Delivery branch: `refactor/system-settings-ownership-adapters`
 - Base/source checkpoint: `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`
-- Implementation checkpoint: pending operator verification
-- Implementation status: **IMPLEMENTED — OPERATOR VERIFICATION PENDING**
-- Pull request: pending operator verification
+- Implementation checkpoint: `b82670ab7a6935b2d1cf4421b8af9032b5eb5d61`
+- Verified feature checkpoint: `eacf009f91c2ca932058afe4fcf613a7919ef89c`
+- Implementation status: **COMPLETE — VERIFIED, PR PENDING**
+- Pull request: pending creation
 
 This phase consolidates settings behavior under `Modules\System` without breaking the established Admin PHP class names or the historical `/admin/settings` URL. It follows the merged Google Drive/database-backup boundary phase and does not change database schemas, setting keys, permissions, or canonical System routes.
 
@@ -91,45 +92,29 @@ Modules/Admin/resources/views/pages/settings/{env,index,modules,placeholder}.bla
 
 ## Verification Gate
 
-Run only the directly impacted and current-module suites; a full-project run is not required.
+The operator confirmed the approved impacted scope at verified feature checkpoint `eacf009f91c2ca932058afe4fcf613a7919ef89c`. A full-project regression was not required.
 
-```bash
-./vendor/bin/pint --test \
-  Modules/Admin/Http/Controllers/EnvConfigController.php \
-  Modules/Admin/Http/Controllers/SettingController.php \
-  Modules/Admin/Livewire/Settings \
-  Modules/Admin/Services/Database/DbConnectionService.php \
-  Modules/Admin/Services/Env \
-  Modules/Admission/Livewire/Admin/SchoolSettingsForm.php \
-  Modules/System/routes/web.php \
-  Modules/Website/database/Seeders/HeaderSeeder.php \
-  tests/Feature/Modules/ModuleRuntimeStateToggleTest.php \
-  tests/Feature/System/CanonicalSettingsServiceTest.php \
-  tests/Feature/System/SystemSettingsOwnershipTest.php
-
-php artisan test \
-  tests/Feature/System/SystemSettingsOwnershipTest.php \
-  tests/Feature/System/CanonicalSettingsServiceTest.php \
-  tests/Feature/System/SystemRetiredSettingsPlaceholdersTest.php \
-  tests/Feature/Modules/ModuleRuntimeStateToggleTest.php
-
-php artisan test tests/Feature/System
-php artisan test tests/Feature/Admin
-php artisan test tests/Feature/Admission
-
-php artisan route:list --path=admin/settings
-php artisan route:list --path=admin/system/settings
-npm run build
-git status --short --branch
+```text
+Pint changed PHP files                    PASS (23 files)
+Focused ownership/runtime tests           PASS (17 tests, 117 assertions)
+System Feature regression                 PASS (48 tests, 254 assertions)
+Admin Feature regression                  PASS (133 tests, 1265 assertions)
+Admission Feature regression              PASS (48 tests, 254 assertions)
+Legacy and canonical route inspection     PASS
+Frontend production build                 PASS (Vite 7.3.6, 34 modules, 2.20s)
+Desktop/mobile UI acceptance              PASS
+Working tree clean                        PASS
 ```
 
-Manual UI acceptance:
+The route inspection confirmed the permission-protected legacy redirect and all canonical settings routes:
 
-1. Open `/admin/settings` as a settings viewer and confirm redirect to `/admin/system/settings`.
-2. Confirm a user without `system.settings.view` cannot use the legacy URL.
-3. Verify settings and environment tabs on desktop and mobile.
-4. Verify module controls still use the canonical System permission/service boundary.
-5. Confirm Admin layout/theme/header screens remain unchanged.
+```text
+ANY      admin/settings
+GET|HEAD admin/system/settings
+GET|HEAD admin/system/settings/cloud/google/callback
+GET|HEAD admin/system/settings/cloud/google/connect
+GET|HEAD admin/system/settings/env
+```
 
 ## Deferred Work
 
@@ -143,7 +128,7 @@ Manual UI acceptance:
 
 1. **COMPLETE** — Scope approved and branch created from `main@ee8e313635d759e91658de7e751ecabbc0e96c4f`.
 2. **COMPLETE** — Ownership adapters, redirect boundary, dead-view cleanup and directly impacted tests implemented.
-3. **PENDING** — Operator pulls the implementation checkpoint and runs the approved gates.
-4. **PENDING** — Verification results and verified checkpoint are recorded here.
+3. **COMPLETE** — Operator pulled the implementation/style checkpoints and ran the approved gates.
+4. **COMPLETE** — Pint, focused/System/Admin/Admission, routes, build, desktop/mobile UI and clean-tree gates passed.
 5. **PENDING** — PR is opened for manual user review; automatic merge is not used.
 6. **PENDING** — User manually merges after approval.
