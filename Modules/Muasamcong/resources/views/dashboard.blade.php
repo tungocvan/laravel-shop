@@ -260,7 +260,9 @@
         </div>
 
         @if ($capabilities['manage_config'])
-            @php($configuration = $health['configuration'])
+            @php
+                $configuration = $health['configuration'];
+            @endphp
             <section class="min-w-0" aria-labelledby="muasamcong-integration-heading">
                 <div class="mb-4">
                     <h2 id="muasamcong-integration-heading" class="text-lg font-semibold text-slate-900">Cấu hình & Personal Session</h2>
