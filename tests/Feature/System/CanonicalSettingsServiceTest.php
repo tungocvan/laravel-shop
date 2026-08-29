@@ -6,6 +6,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Modules\Admin\Livewire\Settings\SettingForm as AdminSettingForm;
+use Modules\System\Livewire\Settings\SettingForm as SystemSettingForm;
 use Modules\System\Services\LegacySettingsAuditService;
 use Modules\System\Services\LegacySettingsMigrationService;
 use Modules\System\Services\SettingsService;
@@ -133,8 +135,8 @@ class CanonicalSettingsServiceTest extends TestCase
         }
 
         $this->assertTrue(is_subclass_of(
-            \Modules\Admin\Livewire\Settings\SettingForm::class,
-            \Modules\System\Livewire\Settings\SettingForm::class,
+            AdminSettingForm::class,
+            SystemSettingForm::class,
         ));
 
         $adminHome = file_get_contents(base_path('Modules/Admin/resources/views/pages/home/index.blade.php'));

@@ -7,6 +7,4 @@ use Modules\System\Services\Env\EnvManagerService as SystemEnvManagerService;
 /**
  * @deprecated Use {@see SystemEnvManagerService}.
  */
-class EnvManagerService extends SystemEnvManagerService
-{
-}
+class EnvManagerService extends SystemEnvManagerService {}

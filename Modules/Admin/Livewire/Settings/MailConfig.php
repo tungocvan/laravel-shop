@@ -7,6 +7,4 @@ use Modules\System\Livewire\Settings\MailConfig as SystemMailConfig;
 /**
  * @deprecated Use {@see SystemMailConfig}.
  */
-class MailConfig extends SystemMailConfig
-{
-}
+class MailConfig extends SystemMailConfig {}

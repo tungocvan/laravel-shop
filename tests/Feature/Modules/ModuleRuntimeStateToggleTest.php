@@ -50,7 +50,7 @@ class ModuleRuntimeStateToggleTest extends TestCase
         Artisan::shouldReceive('output')->once()->andReturn('Migrated fixture module.');
 
         try {
-            $result = (new ModuleLifecycleManager())->migrateIfNeeded($module);
+            $result = (new ModuleLifecycleManager)->migrateIfNeeded($module);
 
             $this->assertTrue($result['migrated']);
             $this->assertSame([], $result['missing_tables']);

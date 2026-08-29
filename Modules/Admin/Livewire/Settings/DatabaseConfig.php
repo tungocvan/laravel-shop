@@ -7,6 +7,4 @@ use Modules\System\Livewire\Settings\DatabaseConfig as SystemDatabaseConfig;
 /**
  * @deprecated Use {@see SystemDatabaseConfig}.
  */
-class DatabaseConfig extends SystemDatabaseConfig
-{
-}
+class DatabaseConfig extends SystemDatabaseConfig {}

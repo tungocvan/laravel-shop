@@ -7,6 +7,4 @@ use Modules\System\Livewire\Settings\StorageConfig as SystemStorageConfig;
 /**
  * @deprecated Use {@see SystemStorageConfig}.
  */
-class StorageConfig extends SystemStorageConfig
-{
-}
+class StorageConfig extends SystemStorageConfig {}

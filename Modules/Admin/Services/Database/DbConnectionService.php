@@ -7,6 +7,4 @@ use Modules\System\Services\Database\DbConnectionService as SystemDbConnectionSe
 /**
  * @deprecated Use {@see SystemDbConnectionService}.
  */
-class DbConnectionService extends SystemDbConnectionService
-{
-}
+class DbConnectionService extends SystemDbConnectionService {}

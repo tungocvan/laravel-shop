@@ -7,6 +7,4 @@ use Modules\System\Livewire\Settings\SettingForm as SystemSettingForm;
 /**
  * @deprecated Use {@see SystemSettingForm}.
  */
-class SettingForm extends SystemSettingForm
-{
-}
+class SettingForm extends SystemSettingForm {}

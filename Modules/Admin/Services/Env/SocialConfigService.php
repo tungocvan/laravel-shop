@@ -7,6 +7,4 @@ use Modules\System\Services\Env\SocialConfigService as SystemSocialConfigService
 /**
  * @deprecated Use {@see SystemSocialConfigService}.
  */
-class SocialConfigService extends SystemSocialConfigService
-{
-}
+class SocialConfigService extends SystemSocialConfigService {}

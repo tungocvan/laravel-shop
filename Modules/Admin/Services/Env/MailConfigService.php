@@ -7,6 +7,4 @@ use Modules\System\Services\Env\MailConfigService as SystemMailConfigService;
 /**
  * @deprecated Use {@see SystemMailConfigService}.
  */
-class MailConfigService extends SystemMailConfigService
-{
-}
+class MailConfigService extends SystemMailConfigService {}

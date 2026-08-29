@@ -7,6 +7,4 @@ use Modules\System\Livewire\Settings\MomoConfig as SystemMomoConfig;
 /**
  * @deprecated Use {@see SystemMomoConfig}.
  */
-class MomoConfig extends SystemMomoConfig
-{
-}
+class MomoConfig extends SystemMomoConfig {}

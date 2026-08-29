@@ -5,6 +5,13 @@ namespace Tests\Feature\System;
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\EnvConfigController;
 use Modules\Admin\Http\Controllers\SettingController;
+use Modules\Admin\Livewire\Settings as AdminSettings;
+use Modules\Admin\Services\Database as AdminDatabaseServices;
+use Modules\Admin\Services\Env as AdminEnvServices;
+use Modules\System\Livewire\Settings as SystemSettings;
+use Modules\System\Services\Database as SystemDatabaseServices;
+use Modules\System\Services\Env as SystemEnvServices;
+use ReflectionClass;
 use Tests\TestCase;
 
 class SystemSettingsOwnershipTest extends TestCase
@@ -12,20 +19,20 @@ class SystemSettingsOwnershipTest extends TestCase
     public function test_legacy_admin_livewire_names_delegate_to_system_components(): void
     {
         $adapters = [
-            \Modules\Admin\Livewire\Settings\AdvancedConfig::class => \Modules\System\Livewire\Settings\AdvancedConfig::class,
-            \Modules\Admin\Livewire\Settings\DatabaseConfig::class => \Modules\System\Livewire\Settings\DatabaseConfig::class,
-            \Modules\Admin\Livewire\Settings\EnvManager::class => \Modules\System\Livewire\Settings\EnvManager::class,
-            \Modules\Admin\Livewire\Settings\MailConfig::class => \Modules\System\Livewire\Settings\MailConfig::class,
-            \Modules\Admin\Livewire\Settings\ModulesForm::class => \Modules\System\Livewire\Settings\ModulesForm::class,
-            \Modules\Admin\Livewire\Settings\MomoConfig::class => \Modules\System\Livewire\Settings\MomoConfig::class,
-            \Modules\Admin\Livewire\Settings\SettingForm::class => \Modules\System\Livewire\Settings\SettingForm::class,
-            \Modules\Admin\Livewire\Settings\SocialConfig::class => \Modules\System\Livewire\Settings\SocialConfig::class,
-            \Modules\Admin\Livewire\Settings\StorageConfig::class => \Modules\System\Livewire\Settings\StorageConfig::class,
+            AdminSettings\AdvancedConfig::class => SystemSettings\AdvancedConfig::class,
+            AdminSettings\DatabaseConfig::class => SystemSettings\DatabaseConfig::class,
+            AdminSettings\EnvManager::class => SystemSettings\EnvManager::class,
+            AdminSettings\MailConfig::class => SystemSettings\MailConfig::class,
+            AdminSettings\ModulesForm::class => SystemSettings\ModulesForm::class,
+            AdminSettings\MomoConfig::class => SystemSettings\MomoConfig::class,
+            AdminSettings\SettingForm::class => SystemSettings\SettingForm::class,
+            AdminSettings\SocialConfig::class => SystemSettings\SocialConfig::class,
+            AdminSettings\StorageConfig::class => SystemSettings\StorageConfig::class,
         ];
 
         foreach ($adapters as $legacy => $canonical) {
             $this->assertTrue(is_subclass_of($legacy, $canonical), "{$legacy} must delegate to {$canonical}.");
-            $source = file_get_contents((new \ReflectionClass($legacy))->getFileName());
+            $source = file_get_contents((new ReflectionClass($legacy))->getFileName());
             $this->assertStringNotContainsString('function ', $source, "{$legacy} must remain a thin adapter.");
         }
 
@@ -35,31 +42,31 @@ class SystemSettingsOwnershipTest extends TestCase
     public function test_legacy_admin_services_delegate_to_system_services(): void
     {
         $adapters = [
-            \Modules\Admin\Services\Env\EnvBackupService::class => \Modules\System\Services\Env\EnvBackupService::class,
-            \Modules\Admin\Services\Env\EnvManagerService::class => \Modules\System\Services\Env\EnvManagerService::class,
-            \Modules\Admin\Services\Env\MailConfigService::class => \Modules\System\Services\Env\MailConfigService::class,
-            \Modules\Admin\Services\Env\SocialConfigService::class => \Modules\System\Services\Env\SocialConfigService::class,
-            \Modules\Admin\Services\Env\SystemConfigService::class => \Modules\System\Services\Env\SystemConfigService::class,
-            \Modules\Admin\Services\Database\DbConnectionService::class => \Modules\System\Services\Database\DbConnectionService::class,
+            AdminEnvServices\EnvBackupService::class => SystemEnvServices\EnvBackupService::class,
+            AdminEnvServices\EnvManagerService::class => SystemEnvServices\EnvManagerService::class,
+            AdminEnvServices\MailConfigService::class => SystemEnvServices\MailConfigService::class,
+            AdminEnvServices\SocialConfigService::class => SystemEnvServices\SocialConfigService::class,
+            AdminEnvServices\SystemConfigService::class => SystemEnvServices\SystemConfigService::class,
+            AdminDatabaseServices\DbConnectionService::class => SystemDatabaseServices\DbConnectionService::class,
         ];
 
         foreach ($adapters as $legacy => $canonical) {
             $this->assertTrue(is_subclass_of($legacy, $canonical), "{$legacy} must delegate to {$canonical}.");
-            $source = file_get_contents((new \ReflectionClass($legacy))->getFileName());
+            $source = file_get_contents((new ReflectionClass($legacy))->getFileName());
             $this->assertStringNotContainsString('function ', $source, "{$legacy} must remain a thin adapter.");
         }
     }
 
     public function test_legacy_admin_controllers_redirect_to_canonical_routes(): void
     {
-        $settings = new SettingController();
+        $settings = new SettingController;
 
         $this->assertSame(route('admin.system.settings.index'), $settings->index()->getTargetUrl());
         $this->assertSame(route('admin.profile'), $settings->profile()->getTargetUrl());
         $this->assertSame(route('admin.system.modules'), $settings->modules()->getTargetUrl());
         $this->assertSame(
             route('admin.system.settings.env'),
-            (new EnvConfigController())->index()->getTargetUrl(),
+            (new EnvConfigController)->index()->getTargetUrl(),
         );
     }
 

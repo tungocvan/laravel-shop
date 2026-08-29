@@ -7,6 +7,4 @@ use Modules\System\Services\Env\SystemConfigService as CanonicalSystemConfigServ
 /**
  * @deprecated Use {@see CanonicalSystemConfigService}.
  */
-class SystemConfigService extends CanonicalSystemConfigService
-{
-}
+class SystemConfigService extends CanonicalSystemConfigService {}
