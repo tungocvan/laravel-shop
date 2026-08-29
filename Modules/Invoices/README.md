@@ -20,6 +20,7 @@ Livewire: `3.x`
 - Tải PDF hàng loạt từ MeInvoice khi có token tích hợp.
 - Cung cấp API lọc hóa đơn cục bộ có validation và authentication.
 - Cung cấp command chạy trực tiếp hoặc qua queue.
+- Cung cấp read-only Admin Dashboard với safe DTO, trạng thái PDF/backup và workspace links theo permission.
 
 ## 2. Kiến trúc
 
@@ -164,8 +165,9 @@ php artisan migrate
 ```text
 invoices-list
 invoices-create
-invoices-edit
-invoices-delete
+invoices-export
+invoices-download
+invoices-configure
 ```
 
 Nếu dự án không dùng `spatie/laravel-permission`, bỏ middleware permission trong constructor của `Http/Controllers/InvoicesController.php`.
@@ -311,7 +313,22 @@ Giới hạn còn lại:
 - Tải PDF MeInvoice phụ thuộc token tích hợp và giả định mỗi lookup code tương ứng một trang.
 - UI page sử dụng layout AdminLTE. Nếu dự án đích dùng layout khác, thay các file page trong `resources/views`.
 
-## 13. Thông tin cần cung cấp để rebuild từ đầu
+## 13. Admin Dashboard và ClientPortal/PWA boundary
+
+Dashboard tại `/admin/invoices/dashboard` là read-only và dùng:
+
+```text
+InvoicesDashboardController
+    -> InvoiceDashboardService
+        -> InvoiceDashboardData
+            -> Invoices::pages.invoices.dashboard
+```
+
+Dashboard chỉ trả count, status allowlist, timestamp và boolean cấu hình. Không trả số tiền, định danh hóa đơn/đối tác, thông tin liên hệ, token/credential, recipient backup, file path/list hoặc lỗi thô.
+
+Module dự kiến sẽ được đăng ký vào `Modules/ClientPortal` để dùng trên PWA ở một phase riêng. ClientPortal phải dùng manifest/registry, client guard/permission, adaptive navigation và view riêng; không nhúng Admin route, `auth:admin` hoặc Admin Blade. Nếu PWA cần tải/mở PDF, phải có external-file handoff được authorize riêng.
+
+## 14. Thông tin cần cung cấp để rebuild từ đầu
 
 Khi giao module này cho AI/lập trình viên ở dự án khác, cung cấp:
 
