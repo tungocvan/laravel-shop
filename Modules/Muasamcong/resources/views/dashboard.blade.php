@@ -72,18 +72,19 @@
     @endphp
 
     <div class="space-y-8">
-        <x-admin::page-header
-            eyebrow="Mua sắm công"
-            title="Tổng quan Mua sắm công"
-            description="Theo dõi dữ liệu, tình trạng xử lý và truy cập các không gian quản lý của Module."
-        >
-            <x-slot:actions>
-                <a href="{{ route('muasamcong.index') }}"
-                   class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                    Mở Smart Pricing
-                </a>
-            </x-slot:actions>
-        </x-admin::page-header>
+        <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Mua sắm công</p>
+                <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Tổng quan Mua sắm công</h1>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Theo dõi dữ liệu, tình trạng xử lý và truy cập các không gian quản lý của Module.
+                </p>
+            </div>
+            <a href="{{ route('muasamcong.index') }}"
+               class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Mở Smart Pricing
+            </a>
+        </header>
 
         @unless ($health['tables_ready'])
             <div role="alert" class="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900">
@@ -107,11 +108,13 @@
         </section>
 
         <div class="grid gap-6 xl:grid-cols-3">
-            <x-admin::content-section
-                title="Không gian quản lý"
-                description="Các liên kết chỉ mở workspace hiện có; Dashboard không thực hiện xóa, đồng bộ hay xuất dữ liệu trực tiếp."
-                class="xl:col-span-2"
-            >
+            <section class="min-w-0 xl:col-span-2" aria-labelledby="muasamcong-workspaces-heading">
+                <div class="mb-4">
+                    <h2 id="muasamcong-workspaces-heading" class="text-lg font-semibold text-slate-900">Không gian quản lý</h2>
+                    <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                        Các liên kết chỉ mở workspace hiện có; Dashboard không thực hiện xóa, đồng bộ hay xuất dữ liệu trực tiếp.
+                    </p>
+                </div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <a href="{{ route('muasamcong.index') }}"
                        class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 transition hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -160,12 +163,13 @@
                         <p class="mt-2 text-sm leading-6 text-slate-600">Xem các nhà thầu và gói thầu đã được lưu trên server, không gọi lại upstream.</p>
                     </a>
                 </div>
-            </x-admin::content-section>
+            </section>
 
-            <x-admin::content-section
-                title="Tình trạng xử lý"
-                description="Số liệu trạng thái queue tại thời điểm tải trang."
-            >
+            <section class="min-w-0" aria-labelledby="muasamcong-queue-heading">
+                <div class="mb-4">
+                    <h2 id="muasamcong-queue-heading" class="text-lg font-semibold text-slate-900">Tình trạng xử lý</h2>
+                    <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Số liệu trạng thái queue tại thời điểm tải trang.</p>
+                </div>
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <dl class="grid grid-cols-2 gap-4">
                         @foreach ([
@@ -184,7 +188,7 @@
                         Dashboard chỉ hiển thị trạng thái tổng hợp. Retry hoặc thao tác thay đổi dữ liệu phải thực hiện tại workspace chuyên trách.
                     </p>
                 </div>
-            </x-admin::content-section>
+            </section>
         </div>
 
         <div class="grid gap-6 xl:grid-cols-2">
