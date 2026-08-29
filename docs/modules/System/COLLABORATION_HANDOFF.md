@@ -5,11 +5,14 @@
 - Module: `System`
 - Feature: Module Catalog & Runtime Boundaries — Phase A
 - Delivery branch: `refactor/system-module-catalog-runtime-boundaries`
+- Closeout branch: `docs/system-module-catalog-runtime-boundaries-closeout`
 - Base/source checkpoint: `main@62eb2e76126f92842a906ffb58fa0deb076c26d5`
-- Implementation status: **VERIFIED — AWAITING PR REVIEW**
-- Pull request: **NOT OPENED**
+- Main merge checkpoint: `f2dd9ca6565d12b2931b9aa0a844742e0fec23b4`
+- Implementation status: **COMPLETE — MERGED TO MAIN**
+- Pull request: [#82 — refactor(system): separate module runtime boundaries](https://github.com/tungocvan/laravel-shop/pull/82) — **MERGED**
+- Merged at: **2026-08-29 09:35:51 UTC**
 
-This phase separates filesystem catalog discovery, graph validation and current-request registry projection without changing the established `config('modules.registry')` consumer contract. Module runtime state remains an atomic file-backed override, manifests remain immutable at runtime, and the root provider keeps its existing registration behavior and boot order.
+This phase separates filesystem catalog discovery, graph validation and current-request registry projection without changing the established `config('modules.registry')` consumer contract. Module runtime state remains an atomic file-backed override, manifests remain immutable at runtime, and the root provider keeps its existing registration behavior and boot order. The user manually merged PR #82 after every approved gate passed; this closeout changes documentation only.
 
 ## Approved Scope
 
@@ -127,5 +130,6 @@ A full-project regression is outside the approved gate.
 2. **COMPLETE** — Catalog, validator, registry, System adapters, archive retirement and directly affected tests implemented.
 3. **COMPLETE** — Local syntax, Pint and whitespace gates passed.
 4. **COMPLETE** — Operator ran the approved focused/regression/build/UI gates; all passed.
-5. **PENDING** — Open a PR for manual user review.
-6. **PENDING** — User performs manual review and merge; automatic merge is not authorized.
+5. **COMPLETE** — PR [#82](https://github.com/tungocvan/laravel-shop/pull/82) was opened for manual user review.
+6. **COMPLETE** — User manually merged PR #82; main checkpoint `f2dd9ca6565d12b2931b9aa0a844742e0fec23b4` was verified.
+7. This docs-only closeout records the final merged state; no source behavior is changed.
