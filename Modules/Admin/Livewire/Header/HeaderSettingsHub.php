@@ -3,24 +3,16 @@
 namespace Modules\Admin\Livewire\Header;
 
 use Livewire\Component;
-use Modules\Admin\Models\HeaderMenuItem;
-use Modules\Admin\Services\HeaderMenuService;
 use Modules\System\Services\SettingsService;
+use Modules\Website\Models\HeaderMenuItem;
+use Modules\Website\Services\HeaderMenuService;
 
 class HeaderSettingsHub extends Component
 {
-    // Tab State
-    public $activeTab = 'general'; // 'general' hoặc 'menu'
-
-    // Dữ liệu cho General Tab
+    public $activeTab = 'general';
     public $generalData = [];
-
-    // Dữ liệu cho Menu Tab
     public $currentLocation = 'primary';
-
-    // State cho Modal
     public $isModalOpen = false;
-
     public $editingId = null;
 
     public $formData = [
@@ -33,16 +25,10 @@ class HeaderSettingsHub extends Component
 
     public function mount(SettingsService $settingsService)
     {
-        // Load toàn bộ setting group 'header' một lần duy nhất
         $this->generalData = $settingsService->getGroup('header');
-
-        // Gán mặc định nếu thiếu (tránh lỗi null input)
         $this->generalData['brand_name'] = $this->generalData['brand_name'] ?? 'FlexBiz';
     }
 
-    /**
-     * Xử lý lưu thông tin chung (General Tab)
-     */
     public function saveGeneral(SettingsService $settingsService)
     {
         $this->validate([
@@ -63,17 +49,17 @@ class HeaderSettingsHub extends Component
     {
         return view('Admin::livewire.header.header-settings-hub', [
             'menuLocations' => $menuService->getAvailableLocations(),
-            // Thay getMenuTreeByLocation() bằng getMenuTree()
-            'menuTree' => $menuService->getMenuTree($this->currentLocation),
+            'menuTree' => $menuService->getMenuTreeForAdmin($this->currentLocation),
         ]);
     }
 
-    public function openModal($id, HeaderMenuService $menuService)
+    public function openModal($id): void
     {
         $this->resetErrorBag();
+
         if ($id) {
             $this->editingId = $id;
-            $item = HeaderMenuItem::find($id);
+            $item = HeaderMenuItem::findOrFail($id);
             $this->formData = [
                 'title' => $item->title,
                 'url' => $item->url,
@@ -83,33 +69,39 @@ class HeaderSettingsHub extends Component
             ];
         } else {
             $this->editingId = null;
-            $this->formData = ['title' => '', 'url' => '', 'parent_id' => null, 'sort_order' => 0, 'is_active' => true];
+            $this->formData = [
+                'title' => '',
+                'url' => '',
+                'parent_id' => null,
+                'sort_order' => 0,
+                'is_active' => true,
+            ];
         }
+
         $this->isModalOpen = true;
     }
 
-    public function saveMenuItem(HeaderMenuService $menuService)
+    public function saveMenuItem(HeaderMenuService $menuService): void
     {
         $this->validate([
             'formData.title' => 'required|string|max:100',
             'formData.url' => 'nullable|string',
         ]);
 
-        // Tìm hoặc tạo Menu cha cho vị trí hiện tại
-        $menu = $menuService->findOrCreateMenu($this->currentLocation);
-
+        $menu = $menuService->ensureMenu($this->currentLocation);
         $data = array_merge($this->formData, ['header_menu_id' => $menu->id]);
 
-        $menuService->saveItem($data, $this->editingId);
+        if ($this->editingId) {
+            $menuService->updateItem($this->editingId, $data);
+        } else {
+            $menuService->createItem($data);
+        }
 
         $this->isModalOpen = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Cập nhật mục menu thành công!']);
     }
 
-    /**
-     * Xóa Menu Item thông qua Service
-     */
-    public function deleteMenuItem($id, HeaderMenuService $menuService)
+    public function deleteMenuItem($id, HeaderMenuService $menuService): void
     {
         $menuService->deleteItem($id);
 
