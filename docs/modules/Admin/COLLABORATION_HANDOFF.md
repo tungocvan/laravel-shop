@@ -2,64 +2,62 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Website Presentation Ownership Cleanup**
+Task: **Admin Major Refactor — Flash Sale Ownership Cleanup**
 
 Status: **VERIFIED — PR READY**
 
-Branch/checkpoint: `refactor/admin-website-presentation-ownership`
+Branch/checkpoint: `refactor/admin-flash-sale-ownership`
 
-This slice was explicitly approved after Role / Staff / Admin Identity ownership cleanup merged. It separates public Website presentation ownership from the canonical Admin shell and moves the active Banner/public-header management dependencies onto the Website domain without changing routes, schema, migrations, or production data.
+This approved slice follows the Website Presentation ownership cleanup. It removes independent Admin ownership of Flash Sale domain behavior while preserving the authenticated Admin management surface and the existing Website-owned route. No schema, migration, production-data, Coupon, Affiliate, or P0 database-administration change is authorized by this slice.
 
 ## Ownership decision
 
 Responsibilities are intentionally split:
 
-- `Modules/Website` is the canonical owner of Banner and public HeaderMenu/HeaderMenuItem models and services;
-- `Modules/Admin` may retain authenticated management surfaces that compose Website-owned presentation behavior;
-- Admin shell layout/header/footer/design/navigation remains canonical Admin ownership;
-- shared header/footer textual settings may continue through `Modules/System/Services/SettingsService` where already established;
-- Footer columns/social links already use Website models/services and required no ownership rewrite.
+- `Modules/Website` is the canonical owner of FlashSale/FlashSaleItem models and FlashSaleService behavior;
+- `Modules/Product` is the canonical owner of Product and the `wp_products` query boundary;
+- `Modules/Admin` retains the Flash Sale Livewire management composition only;
+- historical Admin Flash Sale model/service names remain deprecated compatibility adapters until complete external/dynamic caller proof authorizes deletion.
 
 ## Runtime changes
 
-The surviving Admin Website-management components now depend on Website ownership:
+`Modules/Admin/Livewire/FlashSale/FlashSaleManager.php` now consumes:
 
-- `Modules/Admin/Livewire/Banner/BannerManager.php` uses `Modules/Website/Services/BannerService` and Website Banner model behavior;
-- `Modules/Admin/Livewire/Header/MenuManager.php` uses Website HeaderMenu/HeaderMenuItem models and `Modules/Website/Services/HeaderMenuService`;
-- `Modules/Admin/Livewire/Header/HeaderSettingsHub.php` uses Website HeaderMenuItem and HeaderMenuService while retaining shared `SettingsService` for header settings.
+- `Modules/Website/Models/FlashSale`;
+- `Modules/Website/Services/FlashSaleService`;
+- `Modules/Product/Models/Product`.
 
-Five historical Admin classes were reduced to deprecated compatibility adapters rather than deleted without complete external/dynamic caller proof:
+The product picker no longer performs raw `DB::table('wp_products')` access. Product discovery/addition now uses the canonical Product model and its active scope.
 
-- `Modules/Admin/Models/Banner.php`
-- `Modules/Admin/Models/HeaderMenu.php`
-- `Modules/Admin/Models/HeaderMenuItem.php`
-- `Modules/Admin/Services/BannerService.php`
-- `Modules/Admin/Services/HeaderMenuService.php`
+Edit loading uses Website `FlashSaleService::findWithProducts()` so Flash Sale item/product relations remain inside the canonical domain boundary.
 
-They no longer own independent persistence/service logic; canonical behavior resolves through `Modules/Website`.
+Three historical Admin classes were reduced to deprecated compatibility adapters rather than deleted without complete caller proof:
 
-## Admin shell boundary retained
+- `Modules/Admin/Models/FlashSale.php`
+- `Modules/Admin/Models/FlashSaleItem.php`
+- `Modules/Admin/Services/FlashSaleService.php`
 
-`/admin/admin-header` remains the authenticated Admin management surface for Website presentation.
+They no longer own independent table metadata, relationships, or Flash Sale CRUD behavior.
 
-The Admin shell layout routes remain distinct and unchanged, including:
+## Route boundary retained
 
-- `/admin/layout/header`
-- `/admin/layout/footer`
-- `/admin/layout/general`
-- `/admin/layout/sidebar`
-- `/admin/layout/design`
-- `/admin/layout/navigation`
+The active management route remains unchanged and Website-owned:
 
-No Admin shell layout service/model was moved into Website.
+```text
+GET|HEAD admin/flash-sales  admin.flash-sales  Modules\Website\Http\Controllers\Admin\FlashSaleController@index
+```
+
+Admin Livewire remains a management surface rendered from that boundary; route ownership was not moved into Admin.
 
 ## Explicitly out of scope
 
-- Coupon/FlashSale/Affiliate/promotion ownership;
-- environment/system ownership cleanup;
+- Coupon runtime/ownership changes;
+- Affiliate commission/rank/scheme ownership;
+- broader promotion architecture redesign;
 - schema or migration movement;
 - production data transformation;
-- removal of compatibility adapters without caller proof;
+- deletion of compatibility adapters without caller proof;
+- environment/system ownership cleanup;
 - P0 database administration redesign.
 
 `Modules/Admin/Services/DatabaseService.php` remains quarantined and untouched.
@@ -67,36 +65,35 @@ No Admin shell layout service/model was moved into Website.
 ## Verification completed
 
 ```text
-AdminWebsitePresentationOwnershipContractTest + AdminOwnershipBoundaryContractTest: 10 passed, 70 assertions
-admin.header route list: PASS — /admin/admin-header plus Website-owned /admin/header-settings
-admin.layout route list: PASS — 7 canonical Admin shell layout routes
-Manual /admin/admin-header + /admin/layout/header + /admin/layout/footer smoke: UI PASS
+AdminFlashSaleOwnershipContractTest + AdminOwnershipBoundaryContractTest: 8 passed, 55 assertions
+admin.flash-sales route: PASS — Website-owned /admin/flash-sales route preserved
+Manual Flash Sale management smoke including product picker: UI PASS
 ```
 
 The focused ownership contract protects:
 
-- Website ownership of Banner and public HeaderMenu runtime;
-- absence of independent persistence logic in the retained Admin compatibility classes;
-- Footer's already-correct Website/shared-settings boundaries;
-- separation between Admin shell layout and Website presentation management;
-- continued exclusion of Coupon/FlashSale/Affiliate from this slice;
+- Website ownership of Flash Sale model/service behavior;
+- Product ownership of product querying rather than raw Admin table access;
+- absence of independent persistence/business logic in retained Admin Flash Sale compatibility classes;
+- continued exclusion of Coupon/Affiliate from this slice;
 - continued P0 `DatabaseService` quarantine.
 
 No full-project regression was required for this ownership-only slice.
 
 ## Acceptance criteria
 
-- canonical Banner model/service owner: **Website — VERIFIED**;
-- canonical public HeaderMenu/HeaderMenuItem model/service owner: **Website — VERIFIED**;
-- Admin management surfaces preserved: **VERIFIED**;
-- Admin shell layout ownership preserved: **VERIFIED**;
-- Footer ownership rewrite required: **NO**;
-- legacy Admin presentation classes retain independent domain logic: **NO**;
+- canonical FlashSale/FlashSaleItem model owner: **Website — VERIFIED**;
+- canonical FlashSale service owner: **Website — VERIFIED**;
+- canonical product-query owner: **Product — VERIFIED**;
+- Admin management surface preserved: **VERIFIED**;
+- active `admin.flash-sales` route preserved: **VERIFIED**;
+- raw Admin `wp_products` query removed from FlashSaleManager: **VERIFIED**;
+- legacy Admin Flash Sale classes retain independent domain logic: **NO**;
 - compatibility adapters removed without complete caller proof: **NO**;
 - schema/migration/data changes: **NONE**;
-- Coupon/FlashSale/Affiliate changes: **NONE**;
+- Coupon/Affiliate changes: **NONE**;
 - manual UI: **PASS**;
-- focused Admin ownership regression: **PASS — 10 tests / 70 assertions**;
+- focused Admin ownership regression: **PASS — 8 tests / 55 assertions**;
 - P0 database quarantine: **UNCHANGED**;
 - PR readiness: **READY**.
 
@@ -108,14 +105,18 @@ No full-project regression was required for this ownership-only slice.
 
 ### Compatibility debt
 
-The five deprecated Admin Banner/Header compatibility classes remain until repository/runtime caller proof is strong enough to authorize deletion. Their presence is compatibility debt, not canonical ownership.
+The three deprecated Admin Flash Sale compatibility classes remain until repository/runtime caller proof is strong enough to authorize deletion. Their presence is compatibility debt, not canonical ownership.
+
+The five deprecated Admin Banner/Header compatibility classes from the prior slice remain under the same deletion guardrail.
 
 ### Remaining Admin legacy families
 
-Affiliate/FlashSale/Coupon/promotion and environment/system remain separate ownership/reachability candidates.
+Affiliate commission/rank/scheme ownership requires a dedicated architectural slice because current behavior spans Website, Order, Product and shared User concerns.
 
-Production migration-ledger/table ownership for unrelated Admin legacy families remains unresolved and out of scope.
+Coupon is currently aligned with Website domain ownership through the Admin management surface and does not require an ownership migration merely to group it with promotions.
+
+Environment/system remains a separate ownership/reachability candidate.
 
 ## Next phase
 
-Website Presentation ownership cleanup is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
+Flash Sale ownership cleanup is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
