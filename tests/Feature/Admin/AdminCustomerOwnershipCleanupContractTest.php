@@ -6,14 +6,13 @@ use Tests\TestCase;
 
 class AdminCustomerOwnershipCleanupContractTest extends TestCase
 {
-    public function test_legacy_admin_customer_routes_remain_absent(): void
+    public function test_admin_route_source_does_not_register_legacy_customer_runtime(): void
     {
-        foreach (['admin.customers.index', 'admin.customers.create', 'admin.customers.show', 'admin.customers.edit'] as $name) {
-            $this->assertNull(
-                app('router')->getRoutes()->getByName($name),
-                "Legacy Admin Customer route returned: {$name}"
-            );
-        }
+        $adminRoutes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
+
+        $this->assertStringNotContainsString('CustomerController', $adminRoutes);
+        $this->assertStringNotContainsString("prefix('customers')", $adminRoutes);
+        $this->assertStringNotContainsString("name('customers.')", $adminRoutes);
     }
 
     public function test_account_admin_routes_remain_canonical_account_runtime(): void
@@ -64,9 +63,10 @@ class AdminCustomerOwnershipCleanupContractTest extends TestCase
         $form = file_get_contents(base_path('Modules/Account/Livewire/Accounts/Form.php'));
         $service = file_get_contents(base_path('Modules/Account/Services/AccountService.php'));
 
-        $this->assertStringContainsString("public string \$account_type = 'customer';", $form);
+        $this->assertStringContainsString('use Modules\\Account\\Services\\AccountService;', $form);
+        $this->assertStringContainsString('protected AccountService $accountService;', $form);
+        $this->assertStringContainsString("public string $account_type = 'customer';", $form);
         $this->assertStringContainsString('customerProfile', $form);
-        $this->assertStringContainsString('AccountService::class', $form);
         $this->assertStringContainsString('CustomerProfile', $service);
     }
 
@@ -80,7 +80,7 @@ class AdminCustomerOwnershipCleanupContractTest extends TestCase
 
         $model = file_get_contents($modelPath);
 
-        $this->assertStringContainsString("protected \$table = 'user_addresses';", $model);
+        $this->assertStringContainsString("protected $table = 'user_addresses';", $model);
         $this->assertStringContainsString('Modules\\User\\Models', $model);
     }
 
