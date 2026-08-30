@@ -31,16 +31,34 @@ class AdminProductOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString("@livewire('product.products.product-form'", $edit);
     }
 
-    public function test_product_index_keeps_single_workspace_heading_and_indigo_pagination_scope(): void
+    public function test_product_index_keeps_single_workspace_heading_and_white_indigo_pagination_scope(): void
     {
         $index = file_get_contents(base_path('Modules/Product/resources/views/pages/products/index.blade.php'));
         $table = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
 
         $this->assertStringNotContainsString('<h1 class="text-2xl font-bold mb-6 text-gray-800">Danh sách sản phẩm</h1>', $index);
         $this->assertStringContainsString('product-admin-workspace', $index);
+        $this->assertStringContainsString('nav[role="navigation"] a,', $index);
+        $this->assertStringContainsString('background-color: white !important;', $index);
         $this->assertStringContainsString('nav[role="navigation"] [aria-current="page"] > span', $index);
         $this->assertStringContainsString('rgb(79 70 229)', $index);
         $this->assertSame(1, substr_count($table, '>Danh sách sản phẩm</h1>'));
+    }
+
+    public function test_product_category_selector_is_recursive_collapsed_and_edit_aware(): void
+    {
+        $form = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductForm.php'));
+        $selector = file_get_contents(base_path('Modules/Admin/resources/views/components/category-select.blade.php'));
+        $row = file_get_contents(base_path('Modules/Admin/resources/views/components/category-select-row.blade.php'));
+
+        $this->assertStringContainsString("with('childrenRecursive')", $form);
+        $this->assertStringContainsString("@include('Admin::components.category-select-row'", $selector);
+        $this->assertStringContainsString('x-data="{ open: false }"', $row);
+        $this->assertStringContainsString("open ? '−' : '+'", $row);
+        $this->assertStringContainsString('data-category-children', $row);
+        $this->assertStringContainsString('input[type=checkbox]:checked', $row);
+        $this->assertStringContainsString('x-show="open"', $row);
+        $this->assertStringContainsString("'depth' => $depth + 1", $row);
     }
 
     public function test_legacy_admin_product_runtime_remains_absent(): void
