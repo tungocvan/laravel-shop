@@ -68,6 +68,24 @@ The local dataset was audited before migration and passed with no duplicate busi
 - `Quay về Dashboard Pharma` navigation remains available.
 - External contract links use safe new-tab attributes.
 
+### Final UI polish pass
+
+The initial functional workspace passed behavior testing but was not accepted visually because the import/export panel had too much visual weight and the 15-column financial table required excessive horizontal scrolling.
+
+The final corrective UI pass keeps all business behavior intact while improving information hierarchy:
+
+- Import/Export is now a secondary toolbar action and stays collapsed until requested.
+- The primary list was reduced from a dense 15-column layout to a compact 9-column decision-oriented table.
+- HSSP, supplier, commitment and contract information are grouped into coherent cells.
+- Primary price information is presented as import price -> selling price.
+- Secondary invoice/difference/fee/cost details move into an expandable per-row `Chi tiết giá` section instead of occupying permanent columns.
+- Profit, status and financial values use compact badges/tabular-number alignment for faster scanning.
+- Contract dates/links are kept readable without unnecessary wrapping.
+- The table minimum width was materially reduced, lowering horizontal-scroll pressure while retaining responsive overflow as a safety fallback.
+- Sticky table heading and compact workspace toolbar improve scanability for longer result sets.
+
+This polish pass did not change database schema, normalized business keys, financial formulas, import/export contracts or deletion policy.
+
 ### Bounded Medicine/HSSP lookup
 
 Supplier Tracking forms no longer require an unbounded Medicine collection.
@@ -145,9 +163,9 @@ During MR-5 regression, the older `PharmaImportExportTest` fixture was found to 
 - Frontend production build after MR-5 application/UI changes:
   - `npm run build`
   - **PASS — Vite production build completed**.
-- Manual Supplier Tracking UI smoke:
+- Final manual Supplier Tracking UI smoke after the corrective UI polish:
   - **PASS**.
-  - Verified bounded pagination, search/filtering, page-scoped selection, destructive confirmation, CRUD, bounded Medicine lookup, duplicate business-key behavior, financial calculations, Import/Export presence, contract link behavior, responsive/loading states and Dashboard navigation.
+  - Accepted the compact workspace hierarchy, collapsed Import/Export flow, reduced table density/horizontal-scroll pressure, expandable financial detail, bounded pagination/filtering, selection/bulk confirmation, CRUD, Medicine lookup, contract behavior, responsive/loading states and Dashboard navigation.
 
 No full-project regression was run; testing remains intentionally focused on Pharma and directly impacted behavior.
 
