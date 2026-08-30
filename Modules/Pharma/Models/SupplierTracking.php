@@ -13,6 +13,7 @@ class SupplierTracking extends Model
         'medicine_id',
         'working_date',
         'supplier_name',
+        'supplier_name_normalized',
         'supplier_representative',
         'area',
         'import_price',
@@ -33,13 +34,12 @@ class SupplierTracking extends Model
         'note',
     ];
 
-    public array $exceptExport = [];
+    public array $exceptExport = ['supplier_name_normalized'];
 
     protected $casts = [
         'working_date' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
-
         'import_price' => 'decimal:2',
         'selling_price' => 'decimal:2',
         'invoice_price' => 'decimal:2',
