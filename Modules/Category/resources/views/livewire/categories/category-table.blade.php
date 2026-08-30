@@ -77,16 +77,26 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
                     @forelse ($categories as $category)
+                        @php
+                            $hasCategoryImage = filled($category->image)
+                                && \Illuminate\Support\Facades\Storage::disk('public')->exists($category->image);
+                        @endphp
+
                         <tr wire:key="category-{{ $category->id }}" class="hover:bg-gray-50">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
-                                    @if ($category->image)
-                                        <img class="h-10 w-10 rounded-lg border object-cover"
+                                    @if ($hasCategoryImage)
+                                        <img class="h-10 w-10 rounded-lg border border-gray-200 object-cover"
                                             src="{{ asset('storage/'.$category->image) }}"
                                             alt="{{ $category->name }}">
                                     @else
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-lg border bg-gray-100 text-sm font-semibold text-gray-500">
-                                            {{ mb_strtoupper(mb_substr($category->name, 0, 1)) }}
+                                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600"
+                                            aria-label="Ảnh mặc định danh mục">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                                class="h-5 w-5" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M3.75 6.75A2.25 2.25 0 0 1 6 4.5h3.19c.597 0 1.169.237 1.591.659l1.06 1.06c.422.422.994.659 1.591.659H18A2.25 2.25 0 0 1 20.25 9v8.25A2.25 2.25 0 0 1 18 19.5H6a2.25 2.25 0 0 1-2.25-2.25V6.75Z" />
+                                            </svg>
                                         </div>
                                     @endif
 
