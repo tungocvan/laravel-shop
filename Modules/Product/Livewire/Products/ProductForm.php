@@ -5,6 +5,7 @@ namespace Modules\Product\Livewire\Products;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Modules\Category\Models\Category;
 use Modules\Product\Services\ProductService;
 
 class ProductForm extends Component
@@ -22,6 +23,7 @@ class ProductForm extends Component
     public $is_active = true;
     public $category_ids = [];
     public $affiliate_commission_rate;
+    public array $expandedCategoryIds = [];
 
     public $newImage;
     public $oldImage;
@@ -62,11 +64,24 @@ class ProductForm extends Component
         $this->category_ids = $product->categories->pluck('id')->map(fn ($id) => (string) $id)->all();
         $this->gallery = $product->gallery ?? [];
         $this->tags = $product->tags ?? [];
+        $this->expandedCategoryIds = $this->selectedCategoryAncestorIds();
     }
 
     public function getCategoriesProperty()
     {
         return $this->products->productCategoryTree();
+    }
+
+    public function toggleCategoryNode(int $categoryId): void
+    {
+        if (in_array($categoryId, $this->expandedCategoryIds, true)) {
+            $this->expandedCategoryIds = array_values(array_diff($this->expandedCategoryIds, [$categoryId]));
+
+            return;
+        }
+
+        $this->expandedCategoryIds[] = $categoryId;
+        $this->expandedCategoryIds = array_values(array_unique(array_map('intval', $this->expandedCategoryIds)));
     }
 
     public function addTag(): void
@@ -156,6 +171,30 @@ class ProductForm extends Component
     public function render()
     {
         return view('product::livewire.products.product-form');
+    }
+
+    private function selectedCategoryAncestorIds(): array
+    {
+        if ($this->category_ids === []) {
+            return [];
+        }
+
+        $parentById = Category::query()
+            ->where('type', 'product')
+            ->pluck('parent_id', 'id');
+        $expanded = [];
+
+        foreach ($this->category_ids as $selectedId) {
+            $parentId = $parentById->get((int) $selectedId);
+
+            while ($parentId !== null) {
+                $parentId = (int) $parentId;
+                $expanded[] = $parentId;
+                $parentId = $parentById->get($parentId);
+            }
+        }
+
+        return array_values(array_unique($expanded));
     }
 
     private function authorizeAdmin(string $permission): void
