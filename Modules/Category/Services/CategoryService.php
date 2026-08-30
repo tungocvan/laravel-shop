@@ -22,6 +22,20 @@ class CategoryService
 
     public function paginateForAdmin(array $filters): LengthAwarePaginator
     {
+        return $this->treeForAdmin($filters)['categories'];
+    }
+
+    /**
+     * Build the Admin category tree while paginating root categories only.
+     *
+     * @return array{
+     *     categories: LengthAwarePaginator,
+     *     visibleCategoryIds: array<int>|null,
+     *     autoExpandedIds: array<int>
+     * }
+     */
+    public function treeForAdmin(array $filters): array
+    {
         $search = trim((string) ($filters['search'] ?? ''));
         $type = $filters['type'] ?? null;
         $status = (string) ($filters['status'] ?? '');
@@ -33,7 +47,83 @@ class CategoryService
             ? (int) $filters['perPage']
             : 10;
 
-        return Category::query()
+        $catalog = Category::query()
+            ->select([
+                'id',
+                'name',
+                'slug',
+                'type',
+                'parent_id',
+                'is_active',
+                'sort_order',
+                'created_at',
+            ])
+            ->when($type, fn ($query) => $query->where('type', $type))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $filtersActive = $search !== '' || in_array($status, ['active', 'inactive'], true);
+        $visibleCategoryIds = null;
+        $autoExpandedIds = [];
+        $rootIds = $catalog
+            ->whereNull('parent_id')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($filtersActive) {
+            $byId = $catalog->keyBy('id');
+            $matchedIds = $catalog
+                ->filter(function (Category $category) use ($search, $status): bool {
+                    $matchesSearch = $search === ''
+                        || Str::contains(Str::lower((string) $category->name), Str::lower($search))
+                        || Str::contains(Str::lower((string) $category->slug), Str::lower($search));
+                    $matchesStatus = $status === ''
+                        || ($status === 'active' && $category->is_active)
+                        || ($status === 'inactive' && ! $category->is_active);
+
+                    return $matchesSearch && $matchesStatus;
+                })
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $visibleLookup = [];
+            $expandedLookup = [];
+            $rootLookup = [];
+
+            foreach ($matchedIds as $matchedId) {
+                $cursor = $matchedId;
+                $visited = [];
+
+                while ($cursor !== null && ! isset($visited[$cursor])) {
+                    $visited[$cursor] = true;
+                    $visibleLookup[$cursor] = true;
+                    $category = $byId->get($cursor);
+
+                    if (! $category) {
+                        break;
+                    }
+
+                    $parentId = $category->parent_id !== null ? (int) $category->parent_id : null;
+
+                    if ($parentId === null) {
+                        $rootLookup[(int) $category->id] = true;
+                        break;
+                    }
+
+                    $expandedLookup[$parentId] = true;
+                    $cursor = $parentId;
+                }
+            }
+
+            $visibleCategoryIds = array_map('intval', array_keys($visibleLookup));
+            $autoExpandedIds = array_map('intval', array_keys($expandedLookup));
+            $rootIds = array_map('intval', array_keys($rootLookup));
+        }
+
+        $categories = Category::query()
             ->select([
                 'id',
                 'name',
@@ -45,23 +135,22 @@ class CategoryService
                 'sort_order',
                 'created_at',
             ])
-            ->with([
-                'parent:id,name',
-                'typeInfo:type,title,icon',
-            ])
+            ->whereNull('parent_id')
             ->when($type, fn ($query) => $query->where('type', $type))
-            ->when($status === 'active', fn ($query) => $query->where('is_active', true))
-            ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($nested) use ($search) {
-                    $nested
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('slug', 'like', "%{$search}%");
-                });
-            })
+            ->when($filtersActive, fn ($query) => $query->whereIn('id', $rootIds ?: [-1]))
+            ->with([
+                'typeInfo:type,title,icon',
+                'childrenRecursive',
+            ])
             ->orderBy($sortBy, $sortDirection)
             ->orderBy('id')
             ->paginate($perPage);
+
+        return [
+            'categories' => $categories,
+            'visibleCategoryIds' => $visibleCategoryIds,
+            'autoExpandedIds' => $autoExpandedIds,
+        ];
     }
 
     public function findForEdit(int $id): Category
