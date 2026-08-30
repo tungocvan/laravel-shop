@@ -175,6 +175,11 @@ class ProductTable extends Component
         $this->importFile = null;
     }
 
+    public function paginationView(): string
+    {
+        return 'product::vendor.pagination.admin-products';
+    }
+
     public function render()
     {
         return view('product::livewire.products.product-table', [
