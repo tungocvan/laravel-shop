@@ -1,3 +1,4 @@
+@livewireScripts
 @stack('scripts')
 <script>
 (() => {
