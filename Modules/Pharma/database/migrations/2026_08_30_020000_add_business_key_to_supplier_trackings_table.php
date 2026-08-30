@@ -5,6 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use RuntimeException as SupplierTrackingMigrationException;
 
 return new class extends Migration {
     public function up(): void
@@ -37,7 +38,7 @@ return new class extends Migration {
             ->exists();
 
         if ($duplicates) {
-            throw new \RuntimeException(
+            throw new SupplierTrackingMigrationException(
                 'Supplier Tracking contains duplicate business keys. Resolve duplicate Medicine + Supplier + Working Date records before retrying this migration.'
             );
         }
