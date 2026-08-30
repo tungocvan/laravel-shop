@@ -16,7 +16,7 @@ class AdminPostOwnershipCleanupContractTest extends TestCase
         }
     }
 
-    public function test_canonical_post_pages_mount_post_livewire_components(): void
+    public function test_canonical_post_pages_mount_post_livewire_components_without_duplicate_page_headings(): void
     {
         $index = file_get_contents(base_path('Modules/Post/resources/views/pages/posts/index.blade.php'));
         $create = file_get_contents(base_path('Modules/Post/resources/views/pages/posts/create.blade.php'));
@@ -25,6 +25,10 @@ class AdminPostOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString("@livewire('post.posts.post-table')", $index);
         $this->assertStringContainsString("@livewire('post.posts.post-form')", $create);
         $this->assertStringContainsString("@livewire('post.posts.post-form'", $edit);
+        $this->assertStringNotContainsString('<h1', $create);
+        $this->assertStringNotContainsString('<h2', $create);
+        $this->assertStringNotContainsString('<h1', $edit);
+        $this->assertStringNotContainsString('<h2', $edit);
     }
 
     public function test_post_domain_owns_model_services_and_schema_contract(): void
@@ -72,13 +76,25 @@ class AdminPostOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString('PostService::class', $form);
         $this->assertStringContainsString('PostService::class', $table);
         $this->assertStringContainsString('ImportExport::class', $table);
+        $this->assertStringContainsString('public function resetFilters(): void', $table);
     }
 
-    public function test_post_admin_list_keeps_bounded_page_sizes(): void
+    public function test_post_admin_list_uses_bounded_page_sizes_visible_filters_and_scoped_pagination(): void
     {
         $service = file_get_contents(base_path('Modules/Post/Services/PostService.php'));
+        $table = file_get_contents(base_path('Modules/Post/resources/views/livewire/posts/post-table.blade.php'));
+        $pagination = file_get_contents(base_path('Modules/Post/resources/views/vendor/pagination/admin-posts.blade.php'));
 
         $this->assertStringContainsString('public const PER_PAGE_OPTIONS = [10, 25, 50, 100];', $service);
         $this->assertStringNotContainsString("'all'", strtolower($service));
+        $this->assertStringContainsString("links('Post::vendor.pagination.admin-posts')", $table);
+        $this->assertStringContainsString('wire:click="resetFilters"', $table);
+        $this->assertStringContainsString('border border-gray-300 bg-white', $table);
+        $this->assertStringNotContainsString('border-transparent bg-transparent', $table);
+        $this->assertStringContainsString('bg-indigo-600', $pagination);
+        $this->assertStringContainsString('bg-white', $pagination);
+        $this->assertStringContainsString('previousPage', $pagination);
+        $this->assertStringContainsString('nextPage', $pagination);
+        $this->assertStringContainsString('gotoPage', $pagination);
     }
 }
