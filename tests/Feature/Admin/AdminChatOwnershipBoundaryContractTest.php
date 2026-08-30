@@ -54,6 +54,9 @@ class AdminChatOwnershipBoundaryContractTest extends TestCase
             'Modules/Chat/Livewire/Chat/ChatManager.php',
             'Modules/Chat/Livewire/Chat/InternalChatManager.php',
             'Modules/Chat/Livewire/Chat/ChatWidget.php',
+            'Modules/Chat/resources/views/pages/chat/index.blade.php',
+            'Modules/Chat/resources/views/chat.blade.php',
+            'Modules/Chat/resources/views/livewire/chat/chat-manager.blade.php',
         ] as $file) {
             $this->assertFileExists(base_path($file));
         }
@@ -62,6 +65,21 @@ class AdminChatOwnershipBoundaryContractTest extends TestCase
 
         $this->assertNotFalse($service);
         $this->assertStringContainsString('public function deleteAllMessages(int $sessionId): bool', $service);
+    }
+
+    public function test_legacy_admin_chat_runtime_copies_are_removed(): void
+    {
+        foreach ([
+            'Modules/Admin/Http/Controllers/ChatController.php',
+            'Modules/Admin/Livewire/Chat/ChatManager.php',
+            'Modules/Admin/Models/ChatSession.php',
+            'Modules/Admin/Models/ChatMessage.php',
+            'Modules/Admin/Services/ChatService.php',
+            'Modules/Admin/resources/views/pages/chat/index.blade.php',
+            'Modules/Admin/resources/views/livewire/chat/chat-manager.blade.php',
+        ] as $file) {
+            $this->assertFileDoesNotExist(base_path($file));
+        }
     }
 
     public function test_admin_chat_livewire_actions_enforce_capability_specific_permissions(): void
@@ -79,5 +97,20 @@ class AdminChatOwnershipBoundaryContractTest extends TestCase
 
         $this->assertStringContainsString("authorizePermission('view_chat')", $internal);
         $this->assertStringContainsString("authorizePermission('create_chat')", $internal);
+    }
+
+    public function test_client_chat_widget_toggle_is_not_blocked_by_alpine_registration_timing(): void
+    {
+        $component = file_get_contents(base_path('Modules/Chat/Livewire/Chat/ChatWidget.php'));
+        $view = file_get_contents(base_path('Modules/Chat/resources/views/livewire/chat/chat-widget.blade.php'));
+
+        $this->assertNotFalse($component);
+        $this->assertNotFalse($view);
+
+        $this->assertStringContainsString('public function toggleChat(): void', $component);
+        $this->assertStringContainsString('wire:click="toggleChat"', $view);
+        $this->assertStringContainsString('@if ($isOpen)', $view);
+        $this->assertStringNotContainsString('x-data="chatWidget()"', $view);
+        $this->assertStringNotContainsString("Alpine.data('chatWidget'", $view);
     }
 }

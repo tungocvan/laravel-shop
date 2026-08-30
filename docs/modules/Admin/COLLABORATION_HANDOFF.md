@@ -2,83 +2,73 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Slice 3: Chat Canonical Ownership & Authorization Boundary**
+Task: **Admin Major Refactor — Slice 4: Chat Legacy Compatibility Cleanup**
 
 Status: **VERIFIED — READY FOR PR REVIEW**
 
-Branch/checkpoint: `refactor/admin-chat-canonical-ownership-boundary`
+Branch/checkpoint: `refactor/admin-chat-legacy-compatibility-cleanup`
 
-This slice was explicitly approved after the Category cleanup PR was merged.
+This slice was explicitly approved after the Chat canonical ownership boundary PR was merged.
 
-## Canonical ownership decision
+## Cleanup decision
 
-`Modules/Chat` is the canonical owner of Chat runtime behavior.
+`Modules/Chat` remains the canonical owner of Chat runtime behavior.
 
-Admin remains the authenticated presentation shell for Chat admin pages, but Chat owns its controller, Livewire components, services, models, realtime payload handling and Chat permissions.
+The dedicated cleanup removes only obsolete Admin Chat runtime copies after the canonical routes/controller/Livewire/service/models were already active and verified in the previous slice.
 
-Preserved route contracts:
+Preserved contracts:
 
 - `admin.chat.index` -> `/admin/chat/internal-chat`
 - `admin.chat.cskh` -> `/admin/chat`
+- both routes resolve to `Modules\Chat\Http\Controllers\ChatController`
+- both routes remain under `auth:admin`
+- both routes require `permission:view_chat,admin`
+- capability-specific Chat Livewire authorization remains in place
+- canonical realtime behavior is unchanged
 
-Both routes continue to resolve to `Modules\Chat\Http\Controllers\ChatController`.
+## Removed legacy Admin Chat runtime
 
-## Changes in this slice
+The following files were removed:
 
-### Authorization boundary
+- `Modules/Admin/Http/Controllers/ChatController.php`
+- `Modules/Admin/Livewire/Chat/ChatManager.php`
+- `Modules/Admin/Models/ChatSession.php`
+- `Modules/Admin/Models/ChatMessage.php`
+- `Modules/Admin/Services/ChatService.php`
+- `Modules/Admin/resources/views/pages/chat/index.blade.php`
+- `Modules/Admin/resources/views/livewire/chat/chat-manager.blade.php`
 
-`Modules/Chat/routes/web.php` now requires:
+Canonical `Modules/Chat/*` source was not moved back into Admin.
 
-- `web`
-- `auth:admin`
-- `permission:view_chat,admin`
+## Website client corrective fix discovered during verification
 
-for both admin Chat workspaces.
+Manual client verification exposed a pre-existing Website shell asset-loading defect: the storefront rendered the Website Livewire chat widget HTML, but Livewire JavaScript was not loaded, so `wire:click` actions could not hydrate or execute.
 
-Canonical Chat Livewire components also authorize operations at the component/action layer so Livewire update requests do not rely only on the initial page route:
+Corrective changes in this branch:
 
-- read/render/load: `view_chat`
-- send message: `create_chat`
-- assign/select customer session: `edit_chat`
-- delete message / clear session messages: `delete_chat`
-- internal-chat send: `create_chat`
+- `Modules/Website/resources/views/partials/layout/runtime-head.blade.php` now includes `@livewireStyles`;
+- `Modules/Website/resources/views/partials/layout/runtime-scripts.blade.php` now includes `@livewireScripts` before `@stack('scripts')`;
+- `Modules/Website/Livewire/Chat/ChatWidget.php` uses a server-backed `toggleChat()` action for deterministic open/close behavior;
+- `Modules/Website/resources/views/livewire/chat/chat-widget.blade.php` renders the panel from Livewire state rather than relying on Alpine entanglement for the primary toggle;
+- added `tests/Feature/Website/WebsiteLivewireRuntimeAssetContractTest.php` to protect Website Livewire runtime assets.
 
-### Canonical Chat models/services
+This corrective fix does not alter Chat routes, schema, migrations, or realtime protocol semantics.
 
-The canonical Chat runtime no longer imports Admin-owned Chat models/services:
+## Guardrails
 
-- `Modules/Chat/Services/ChatService.php` uses `Modules\Chat\Models\ChatSession` and `ChatMessage`;
-- `Modules/Chat/Livewire/Chat/ChatManager.php` uses Chat-owned models and service;
-- `Modules/Chat/Livewire/Chat/ChatWidget.php` uses Chat-owned `ChatSession`;
-- `Modules/Chat/Livewire/Chat/InternalChatManager.php` has explicit Chat permission enforcement.
+`tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` verifies:
 
-`ChatService::deleteAllMessages()` was retained in the canonical service so switching away from the legacy Admin service does not drop the existing clear-session behavior.
-
-Realtime event/channel semantics remain based on the existing canonical Chat implementation.
-
-### Compatibility / deletion boundary
-
-Legacy Admin Chat files are **not deleted yet** in this slice.
-
-Examples still physically present include legacy Admin Chat controller, Livewire manager, models, service and view. They are no longer canonical ownership, but deletion requires repository-wide caller/alias proof that is not yet complete.
-
-This deliberately avoids repeating a bulk-delete assumption.
-
-The Chat manifest still declares an `Admin` dependency because Chat pages extend `Admin::layouts.master`. Removing that presentation dependency is not authorized by this checkpoint.
-
-## Guardrail added
-
-Added `tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` to verify:
-
-- Chat admin URLs and route names remain unchanged;
-- both admin Chat routes resolve to the Chat controller;
-- both routes require `auth:admin` and `permission:view_chat,admin`;
-- canonical Chat service/Livewire code does not import Admin Chat models/service;
-- canonical Chat models/services/components remain present;
+- the seven legacy Admin Chat files remain absent;
+- canonical Chat models/service/Livewire/views remain present;
+- route URLs/names/controller ownership remain unchanged;
+- `view_chat` remains on both admin Chat routes;
+- canonical Chat runtime does not import Admin Chat models/service;
 - canonical Chat service retains `deleteAllMessages()`;
-- Chat Livewire components contain capability-specific authorization checks.
+- capability-specific Livewire permissions remain enforced.
 
-Updated `docs/modules/Admin/OWNERSHIP_BASELINE.md` to classify Chat as `BOUNDARY MOVED` rather than fully `CLEANED` until legacy caller proof is complete.
+`tests/Feature/Website/WebsiteLivewireRuntimeAssetContractTest.php` protects the Website shell Livewire bootstrap used by the storefront chat widget.
+
+`docs/modules/Admin/OWNERSHIP_BASELINE.md` classifies Chat legacy runtime as `CLEANED`.
 
 ## Runtime / schema impact
 
@@ -86,40 +76,56 @@ Route URL/name change: **NONE**
 
 Authentication guard change: **NONE**
 
-Authorization: **HARDENED** — `view_chat` now protects both Chat admin routes and Livewire actions enforce capability-specific permissions.
+Authorization change: **NONE IN THIS SLICE** — hardening from Slice 3 is preserved
 
-Chat canonical model/service ownership: **MOVED OUT OF ADMIN DEPENDENCY**
+Website Livewire runtime: **FIXED** — storefront now loads Livewire assets required by the Website chat widget
 
 Realtime protocol redesign: **NONE**
 
 Database/schema/migration change: **NONE**
 
+Chat manifest dependency on Admin: **UNCHANGED** — Chat views still use the Admin presentation shell
+
 P0 database administration quarantine: **UNCHANGED**
 
 ## Verification
 
-Focused Chat ownership / Admin guardrail verification reported:
+Focused Website Livewire runtime contract: **PASS**.
+
+Manual end-to-end client/admin verification: **PASS**.
+
+Verified flow:
+
+- storefront Chat widget opens successfully;
+- `Bắt đầu Chat ngay` successfully creates/opens the client chat session;
+- client can send a message;
+- `/admin/chat` receives the client session/message successfully;
+- no missing Livewire class/view/model/service error was observed in the verified flow.
+
+Earlier Slice 3 baseline remained green before this cleanup:
 
 ```text
 Tests: 11 passed (86 assertions)
-Duration: 0.57s
-```
-
-Focused impacted Admin + Chat regression reported:
-
-```text
 Tests: 150 passed (1400 assertions)
-Duration: 4.55s
 ```
 
-Manual UI verification: **PASS**.
+The user reported the dedicated Website Livewire runtime test PASS after the corrective fix.
 
-Verified UI surfaces include:
+Full project regression was intentionally not run; verification remains focused on Admin, Chat, Website Livewire runtime, and the directly impacted client/admin chat flow.
 
-- `/admin/chat`
-- `/admin/chat/internal-chat`
+## Acceptance criteria
 
-No full-project regression was run; verification remained scoped to Admin + Chat and directly impacted behavior.
+- legacy Admin Chat runtime files absent: **CONFIRMED**;
+- canonical Chat runtime files present: **CONFIRMED BY CONTRACT**;
+- Chat route names/URLs unchanged: **CONFIRMED BY CONTRACT**;
+- Chat route/controller ownership unchanged: **CONFIRMED BY CONTRACT**;
+- Chat permissions unchanged from Slice 3: **CONFIRMED**;
+- Website Livewire runtime asset contract: **PASS**;
+- storefront widget open: **PASS**;
+- client send message: **PASS**;
+- Admin receive message: **PASS**;
+- schema/migration changes: **NONE**;
+- PR readiness: **READY**.
 
 ## Material risks still open
 
@@ -127,28 +133,14 @@ No full-project regression was run; verification remained scoped to Admin + Chat
 
 `Modules/Admin/Services/DatabaseService.php` remains quarantined and must stay unreachable.
 
-### P1 — Chat compatibility cleanup
+### Remaining Admin legacy families
 
-Legacy Admin Chat files remain physically present until caller proof is complete. Do not delete them solely because the canonical Chat routes no longer use them.
+Product, Order, Post/content, customer/address, roles/staff, marketing/public-site and system/environment remain separate ownership/reachability candidates. This Chat cleanup does not authorize cleanup of any of those families.
 
-Production migration-ledger/table ownership remains unresolved and is intentionally out of scope.
-
-## Acceptance criteria
-
-- Chat ownership boundary contract: **PASS**;
-- existing Admin ownership/P0 guardrails: **PASS**;
-- focused Admin + Chat impacted regression: **PASS — 150 tests / 1400 assertions**;
-- focused ownership/guardrail contracts: **PASS — 11 tests / 86 assertions**;
-- `/admin/chat` UI smoke: **PASS**;
-- `/admin/chat/internal-chat` UI smoke: **PASS**;
-- route URLs/names unchanged: **CONFIRMED BY CONTRACT**;
-- `view_chat` route authorization confirmed: **YES**;
-- canonical Chat runtime has no Admin Chat model/service imports: **CONFIRMED BY CONTRACT**;
-- schema/migration changes: **NONE**;
-- PR readiness: **READY**.
+Production migration-ledger/table ownership remains unresolved and out of scope.
 
 ## Next phase
 
-Next Chat cleanup or another Admin legacy-family slice: **NOT AUTHORIZED YET**.
+Next Admin legacy-family slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is merged, first decide whether remaining legacy Admin Chat copies have sufficient repository-wide caller proof for deletion. Do not combine that decision with unrelated Product/Order/Post cleanup.
+After this checkpoint is merged, inspect the remaining candidates and propose exactly one next family before implementation.

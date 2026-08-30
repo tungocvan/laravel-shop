@@ -44,6 +44,11 @@ class ChatWidget extends Component
         $this->chatSessionId = $session?->id;
     }
 
+    public function toggleChat(): void
+    {
+        $this->isOpen = ! $this->isOpen;
+    }
+
     public function handleIncoming($data, ChatService $chatService)
     {
         $session = $chatService->findSession($this->sessionToken);
@@ -58,6 +63,7 @@ class ChatWidget extends Component
         $session = $chatService->getOrCreateSession($this->sessionToken);
         $this->chatSessionId = $session->id;
         $this->step = 'chat';
+        $this->isOpen = true;
         $this->dispatch('chat-session-ready', sessionId: $session->id);
         $this->dispatch('scroll-bottom');
     }
