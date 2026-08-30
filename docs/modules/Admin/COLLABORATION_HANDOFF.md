@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Ownership & Reachability Baseline + P0 Database Isolation + Canonical Shell Guardrails**
 
-Status: **IMPLEMENTED — awaiting local focused verification**
+Status: **VERIFIED — READY FOR PR REVIEW**
 
 Branch/checkpoint: `refactor/admin-ownership-reachability-baseline`
 
@@ -77,9 +77,16 @@ Legacy domain migration/removal: **NONE**
 
 This slice adds documentation and architecture/security contract tests only.
 
-## Required local verification
+## Verification
 
-Run only focused Admin tests for this slice:
+Local focused verification reported PASS:
+
+```text
+Tests: 11 passed (71 assertions)
+Duration: 1.25s
+```
+
+Command scope:
 
 ```bash
 php artisan test \
@@ -88,15 +95,20 @@ php artisan test \
   tests/Feature/Admin/AdminLayoutContractTest.php
 ```
 
-Then run the existing focused Admin regression suite only if the new contracts pass:
+Focused Admin regression also reported PASS:
+
+```text
+Tests: 140 passed (1313 assertions)
+Duration: 7.70s
+```
+
+Command scope:
 
 ```bash
 php artisan test tests/Feature/Admin
 ```
 
-Do not run the full project test suite for this checkpoint.
-
-Manual UI smoke is optional for this slice because no runtime/UI source changed. If performed, confirm `/admin`, `/admin/menus`, and `/admin/layout` remain unchanged.
+Full project regression was intentionally not run for this checkpoint. Manual UI smoke is not required because no runtime/UI source changed.
 
 ## Material risks still open
 
@@ -112,17 +124,15 @@ Production migration-ledger/table ownership state remains unresolved.
 
 ## Acceptance criteria for this checkpoint
 
-Before PR readiness:
-
-- new ownership boundary tests PASS;
-- new database isolation tests PASS;
-- existing Admin layout contract test PASS;
-- focused Admin regression PASS if run;
-- working tree clean after syncing the branch;
-- no runtime route/permission/schema/UI behavior drift is observed.
+- ownership boundary tests: **PASS**;
+- database isolation tests: **PASS**;
+- Admin layout contract test: **PASS**;
+- focused Admin regression: **PASS**;
+- runtime route/permission/schema/UI behavior changes: **NONE**;
+- PR readiness: **READY**.
 
 ## Next phase
 
 Next domain migration/refactor slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is verified and merged, inspect canonical module coverage and propose one legacy Admin family for migration. Do not bulk-delete legacy code and do not move schema/migrations without production-ledger verification.
+After this checkpoint is merged, inspect canonical module coverage and propose one legacy Admin family for migration. Do not bulk-delete legacy code and do not move schema/migrations without production-ledger verification.
