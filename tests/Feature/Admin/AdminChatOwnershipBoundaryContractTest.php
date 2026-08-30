@@ -98,4 +98,19 @@ class AdminChatOwnershipBoundaryContractTest extends TestCase
         $this->assertStringContainsString("authorizePermission('view_chat')", $internal);
         $this->assertStringContainsString("authorizePermission('create_chat')", $internal);
     }
+
+    public function test_client_chat_widget_toggle_is_not_blocked_by_alpine_registration_timing(): void
+    {
+        $component = file_get_contents(base_path('Modules/Chat/Livewire/Chat/ChatWidget.php'));
+        $view = file_get_contents(base_path('Modules/Chat/resources/views/livewire/chat/chat-widget.blade.php'));
+
+        $this->assertNotFalse($component);
+        $this->assertNotFalse($view);
+
+        $this->assertStringContainsString('public function toggleChat(): void', $component);
+        $this->assertStringContainsString('wire:click="toggleChat"', $view);
+        $this->assertStringContainsString('@if ($isOpen)', $view);
+        $this->assertStringNotContainsString('x-data="chatWidget()"', $view);
+        $this->assertStringNotContainsString("Alpine.data('chatWidget'", $view);
+    }
 }
