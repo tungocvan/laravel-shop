@@ -69,9 +69,9 @@ class PharmaImportExportTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $report['error_rows']);
     }
 
-    public function test_drug_bid_award_import_matches_medicine_by_registration_number(): void
+    public function test_drug_bid_award_import_links_matching_medicine(): void
     {
-        Medicine::query()->create($this->medicineData());
+        $medicine = Medicine::query()->create($this->medicineData());
         $path = $this->createWorkbook('drug-bid-import', [
             $this->drugBidAwardWorkbookRow('IB260000001', 'Trosicam 15mg', 'Hộp 3 vỉ x 10 viên', 'Công ty Dược A'),
         ]);
@@ -86,12 +86,13 @@ class PharmaImportExportTest extends TestCase
         $this->assertDatabaseHas('pharma_drug_bid_awards', [
             'bidding_notice_code' => 'IB260000001',
             'medicine_name' => 'Trosicam 15mg',
+            'medicine_id' => $medicine->id,
         ]);
     }
 
-    public function test_drug_bid_award_import_reports_missing_medicine_without_crashing(): void
+    public function test_drug_bid_award_import_keeps_unmatched_medicine_as_nullable_link(): void
     {
-        $path = $this->createWorkbook('drug-bid-import-missing', [
+        $path = $this->createWorkbook('drug-bid-import-unmatched', [
             $this->drugBidAwardWorkbookRow('IB260000002', 'Không tồn tại', 'Hộp 1', 'Công ty Dược B'),
         ]);
 
@@ -101,16 +102,21 @@ class PharmaImportExportTest extends TestCase
             @unlink($path);
         }
 
-        $this->assertFalse($report['success']);
+        $this->assertTrue($report['success']);
         $this->assertSame(1, $report['total_rows']);
-        $this->assertSame(0, $report['success_rows']);
-        $this->assertGreaterThanOrEqual(1, $report['error_rows']);
+        $this->assertSame(1, $report['success_rows']);
+        $this->assertSame(0, $report['error_rows']);
+        $this->assertDatabaseHas('pharma_drug_bid_awards', [
+            'bidding_notice_code' => 'IB260000002',
+            'medicine_name' => 'Không tồn tại',
+            'medicine_id' => null,
+        ]);
     }
 
-    public function test_drug_bid_award_import_keeps_valid_rows_when_another_row_is_invalid(): void
+    public function test_drug_bid_award_import_keeps_matched_and_unmatched_rows(): void
     {
-        Medicine::query()->create($this->medicineData());
-        $path = $this->createWorkbook('drug-bid-import-partial', [
+        $medicine = Medicine::query()->create($this->medicineData());
+        $path = $this->createWorkbook('drug-bid-import-mixed', [
             $this->drugBidAwardWorkbookRow('IB260000003', 'Trosicam 15mg', 'Hộp 3 vỉ x 10 viên', 'Công ty Dược C'),
             $this->drugBidAwardWorkbookRow('IB260000004', 'Không tồn tại', 'Hộp 1', 'Công ty Dược D'),
         ]);
@@ -121,10 +127,18 @@ class PharmaImportExportTest extends TestCase
             @unlink($path);
         }
 
-        $this->assertFalse($report['success']);
+        $this->assertTrue($report['success']);
         $this->assertSame(2, $report['total_rows']);
-        $this->assertSame(1, $report['success_rows']);
-        $this->assertGreaterThanOrEqual(1, $report['error_rows']);
+        $this->assertSame(2, $report['success_rows']);
+        $this->assertSame(0, $report['error_rows']);
+        $this->assertDatabaseHas('pharma_drug_bid_awards', [
+            'bidding_notice_code' => 'IB260000003',
+            'medicine_id' => $medicine->id,
+        ]);
+        $this->assertDatabaseHas('pharma_drug_bid_awards', [
+            'bidding_notice_code' => 'IB260000004',
+            'medicine_id' => null,
+        ]);
     }
 
     public function test_supplier_tracking_import_uses_a_to_v_and_recalculates_derived_fields(): void
