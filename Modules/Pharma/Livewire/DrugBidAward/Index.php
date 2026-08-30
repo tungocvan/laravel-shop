@@ -167,8 +167,6 @@ class Index extends Component
 
         return view('Pharma::livewire.drug-bid-award.index', [
             'awards' => $awards,
-            'investors' => $service->getUniqueInvestors(),
-            'companies' => $service->getUniqueCompanies(),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'sourceOptions' => [
                 DrugBidAward::SOURCE_MANUAL => 'Nhập thủ công',
