@@ -1,10 +1,4 @@
-@props([
-    'categories' => [],
-    'label' => 'Danh mục',
-    'selected' => [],
-    'expandedIds' => [],
-    'toggleMethod' => null,
-])
+@props(['categories' => [], 'label' => 'Danh mục', 'selected' => []])
 
 @php
     $model = $attributes->wire('model')->value();
@@ -23,8 +17,6 @@
             @include('Admin::components.category-select-row', [
                 'category' => $category,
                 'depth' => 0,
-                'expandedIds' => $expandedIds,
-                'toggleMethod' => $toggleMethod,
                 'wireModel' => $attributes->wire('model'),
             ])
         @empty
