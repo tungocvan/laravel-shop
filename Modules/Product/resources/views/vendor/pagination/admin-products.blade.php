@@ -49,7 +49,7 @@
                         @if (is_array($element))
                             @foreach ($element as $page => $url)
                                 @if ($page == $paginator->currentPage())
-                                    <span aria-current="page" class="relative z-10 inline-flex items-center border border-indigo-600 bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">{{ $page }}</span>
+                                    <span aria-current="page" class="product-pagination-active relative z-10 inline-flex items-center border px-4 py-2 text-sm font-semibold" style="background-color:#4f46e5 !important;border-color:#4f46e5 !important;color:#ffffff !important;">{{ $page }}</span>
                                 @else
                                     <button type="button" wire:click="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')" class="relative inline-flex items-center border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:z-10 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:z-20 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Đến trang {{ $page }}">{{ $page }}</button>
                                 @endif
