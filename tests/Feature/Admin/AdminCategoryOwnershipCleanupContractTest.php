@@ -88,4 +88,16 @@ class AdminCategoryOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString('xl:col-span-8', $form);
         $this->assertStringContainsString('xl:col-span-4', $form);
     }
+
+    public function test_category_table_uses_default_icon_when_image_is_missing(): void
+    {
+        $table = file_get_contents(
+            base_path('Modules/Category/resources/views/livewire/categories/category-table.blade.php')
+        );
+
+        $this->assertNotFalse($table);
+        $this->assertStringContainsString("Storage::disk('public')->exists", $table);
+        $this->assertStringContainsString('aria-label="Ảnh mặc định danh mục"', $table);
+        $this->assertStringContainsString('<svg viewBox="0 0 24 24"', $table);
+    }
 }
