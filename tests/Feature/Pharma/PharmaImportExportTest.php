@@ -28,6 +28,7 @@ class PharmaImportExportTest extends TestCase
         (require base_path('Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_08_30_020000_add_business_key_to_supplier_trackings_table.php'))->up();
     }
 
     public function test_medicine_excel_fixture_passes_dry_run(): void
@@ -49,52 +50,23 @@ class PharmaImportExportTest extends TestCase
         $this->assertSame(0, $report['error_rows']);
     }
 
-    public function test_bid_award_semicolon_fixture_passes_dry_run(): void
+    public function test_medicine_import_rejects_rows_without_required_registration_number(): void
     {
-        $path = $this->createBidAwardFixture();
-
-        try {
-            $report = app(DrugBidAwardImportExport::class)->import(
-                $path,
-                ['mode' => 'update_or_create', 'dry_run' => true]
-            );
-        } finally {
-            @unlink($path);
-        }
-
-        $this->assertTrue($report['success']);
-        $this->assertSame(32, $report['total_rows']);
-        $this->assertSame(32, $report['success_rows']);
-        $this->assertSame(0, $report['error_rows']);
-    }
-
-    public function test_medicine_update_keeps_existing_values_for_empty_cells(): void
-    {
-        Medicine::query()->create($this->medicineData());
-
-        $path = sys_get_temp_dir().'/medicine-import-'.uniqid('', true).'.xlsx';
+        $path = sys_get_temp_dir().'/pharma-medicine-invalid-'.uniqid('', true).'.xlsx';
         (new FastExcel(collect([[
             'STT' => 1,
-            'Số thứ tự theo thông tư' => null,
-            'Phân nhóm theo thông tư' => null,
-            'Tên hoạt chất' => null,
-            'Nồng độ - Hàm lượng' => null,
-            'Tên thuốc' => null,
-            'Dạng bào chế' => null,
-            'Đường dùng' => null,
-            'Đơn vị tính' => null,
+            'Số thứ tự theo thông tư' => '1',
+            'Phân nhóm theo thông tư' => '1',
+            'Tên hoạt chất' => 'Meloxicam',
+            'Nồng độ - Hàm lượng' => '15mg',
+            'Tên thuốc' => 'Trosicam 15mg',
+            'Dạng bào chế' => 'Viên nén',
+            'Đường dùng' => 'Uống',
+            'Đơn vị tính' => 'Viên',
             'Quy cách đóng gói' => 'Hộp 3 vỉ x 10 viên',
-            'Giấy phép lưu hành sản phẩm' => 'VN-20104-16',
-            'Hạn dùng' => null,
-            'Cơ sở đăng ký' => null,
-            'Cơ sở sản xuất' => null,
-            'Nước sản xuất' => null,
-            'Hiệu lực Visa' => null,
-            'GMP Cơ sở sản xuất' => null,
-            'Giá kê khai' => 9000,
-            'Link Hồ sơ sản phẩm' => null,
-            'Hoạt chất kiểm soát đặc biệt' => null,
-            'Ghi chú' => null,
+            'Số đăng ký' => '',
+            'Cơ sở sản xuất' => 'Demo Manufacturer',
+            'Nước sản xuất' => 'Việt Nam',
         ]])))->export($path);
 
         try {
@@ -103,26 +75,113 @@ class PharmaImportExportTest extends TestCase
             @unlink($path);
         }
 
-        $medicine = Medicine::query()->firstOrFail();
-        $this->assertTrue($report['success']);
-        $this->assertSame('Trosicam 15mg', $medicine->name);
-        $this->assertSame('9000.00', $medicine->declared_price);
+        $this->assertFalse($report['success']);
+        $this->assertSame(1, $report['total_rows']);
+        $this->assertSame(0, $report['success_rows']);
+        $this->assertGreaterThanOrEqual(1, $report['error_rows']);
     }
 
-    public function test_import_continues_after_an_invalid_bid_award_row(): void
+    public function test_drug_bid_award_import_matches_medicine_by_registration_number(): void
     {
-        $path = sys_get_temp_dir().'/bid-import-'.uniqid('', true).'.csv';
-        file_put_contents($path, implode("\n", [
-            'STT;Tên thuốc;Quy cách đóng gói;Số lượng;Đơn giá trúng thầu;Mã thông báo mời thầu;Tên Chủ đầu tư;Số quyết định;Ngày ban hành quyết định;Thời hạn hiệu lực;Công ty trúng thầu;Link quyết định trúng thầu',
-            '1;Trosicam 15mg;Hộp 3 vỉ x 10 viên;600.000;7.791;IB01;Bệnh viện A;QĐ-01;13/10/2025;24 tháng;Công ty A;',
-            '2;;Hộp 1;100;2000;IB02;Bệnh viện B;QĐ-02;13/10/2025;12 tháng;Công ty B;',
-        ]));
+        Medicine::query()->create($this->medicineData());
+
+        $path = sys_get_temp_dir().'/drug-bid-import-'.uniqid('', true).'.xlsx';
+        (new FastExcel(collect([[
+            'Mã TBMT' => 'IB260000001',
+            'Tên thuốc' => 'Trosicam 15mg',
+            'Số đăng ký' => 'VN-20104-16',
+            'Quy cách đóng gói' => 'Hộp 3 vỉ x 10 viên',
+            'Số lượng' => 1000,
+            'Đơn giá' => 5000,
+            'Chủ đầu tư' => 'Bệnh viện A',
+            'Số quyết định' => 'QD-001',
+            'Ngày quyết định' => '01/05/2026',
+            'Thời gian thực hiện hợp đồng' => 12,
+            'Nhà thầu trúng thầu' => 'Công ty Dược A',
+            'URL quyết định' => null,
+        ]])))->export($path);
 
         try {
-            $report = app(DrugBidAwardImportExport::class)->import(
-                $path,
-                ['mode' => 'update_or_create', 'dry_run' => true]
-            );
+            $report = app(DrugBidAwardImportExport::class)->import($path, ['mode' => 'update_or_create']);
+        } finally {
+            @unlink($path);
+        }
+
+        $this->assertTrue($report['success']);
+        $this->assertDatabaseHas('pharma_drug_bid_awards', [
+            'bidding_notice_code' => 'IB260000001',
+            'medicine_name' => 'Trosicam 15mg',
+        ]);
+    }
+
+    public function test_drug_bid_award_import_reports_missing_medicine_without_crashing(): void
+    {
+        $path = sys_get_temp_dir().'/drug-bid-import-missing-'.uniqid('', true).'.xlsx';
+        (new FastExcel(collect([[
+            'Mã TBMT' => 'IB260000002',
+            'Tên thuốc' => 'Không tồn tại',
+            'Số đăng ký' => 'NOT-FOUND',
+            'Quy cách đóng gói' => 'Hộp 1',
+            'Số lượng' => 100,
+            'Đơn giá' => 1000,
+            'Chủ đầu tư' => 'Bệnh viện B',
+            'Số quyết định' => 'QD-002',
+            'Ngày quyết định' => '02/05/2026',
+            'Thời gian thực hiện hợp đồng' => 6,
+            'Nhà thầu trúng thầu' => 'Công ty Dược B',
+            'URL quyết định' => null,
+        ]])))->export($path);
+
+        try {
+            $report = app(DrugBidAwardImportExport::class)->import($path, ['mode' => 'update_or_create']);
+        } finally {
+            @unlink($path);
+        }
+
+        $this->assertFalse($report['success']);
+        $this->assertSame(1, $report['total_rows']);
+        $this->assertSame(0, $report['success_rows']);
+        $this->assertGreaterThanOrEqual(1, $report['error_rows']);
+    }
+
+    public function test_drug_bid_award_import_keeps_valid_rows_when_another_row_is_invalid(): void
+    {
+        Medicine::query()->create($this->medicineData());
+
+        $path = sys_get_temp_dir().'/drug-bid-import-partial-'.uniqid('', true).'.xlsx';
+        (new FastExcel(collect([
+            [
+                'Mã TBMT' => 'IB260000003',
+                'Tên thuốc' => 'Trosicam 15mg',
+                'Số đăng ký' => 'VN-20104-16',
+                'Quy cách đóng gói' => 'Hộp 3 vỉ x 10 viên',
+                'Số lượng' => 1000,
+                'Đơn giá' => 5000,
+                'Chủ đầu tư' => 'Bệnh viện C',
+                'Số quyết định' => 'QD-003',
+                'Ngày quyết định' => '03/05/2026',
+                'Thời gian thực hiện hợp đồng' => 12,
+                'Nhà thầu trúng thầu' => 'Công ty Dược C',
+                'URL quyết định' => null,
+            ],
+            [
+                'Mã TBMT' => 'IB260000004',
+                'Tên thuốc' => 'Không tồn tại',
+                'Số đăng ký' => 'NOT-FOUND-2',
+                'Quy cách đóng gói' => 'Hộp 1',
+                'Số lượng' => 100,
+                'Đơn giá' => 1000,
+                'Chủ đầu tư' => 'Bệnh viện D',
+                'Số quyết định' => 'QD-004',
+                'Ngày quyết định' => '04/05/2026',
+                'Thời gian thực hiện hợp đồng' => 6,
+                'Nhà thầu trúng thầu' => 'Công ty Dược D',
+                'URL quyết định' => null,
+            ],
+        ])))->export($path);
+
+        try {
+            $report = app(DrugBidAwardImportExport::class)->import($path, ['mode' => 'update_or_create']);
         } finally {
             @unlink($path);
         }
@@ -190,18 +249,10 @@ class PharmaImportExportTest extends TestCase
             'Dạng bào chế' => 'Viên nén',
             'Đường dùng' => 'Uống',
             'Đơn vị tính' => 'Viên',
-            'Quy cách đóng gói' => "Hộp {$index} vỉ x 10 viên",
-            'Giấy phép lưu hành sản phẩm' => 'VN-'.(20000 + $index).'-26',
-            'Hạn dùng' => '36 tháng',
-            'Cơ sở đăng ký' => 'Công ty đăng ký',
-            'Cơ sở sản xuất' => 'Nhà máy sản xuất',
+            'Quy cách đóng gói' => 'Hộp 3 vỉ x 10 viên',
+            'Số đăng ký' => 'VN-'.str_pad((string) $index, 5, '0', STR_PAD_LEFT).'-26',
+            'Cơ sở sản xuất' => 'Demo Manufacturer',
             'Nước sản xuất' => 'Việt Nam',
-            'Hiệu lực Visa' => '31/12/2027',
-            'GMP Cơ sở sản xuất' => '31/12/2027',
-            'Giá kê khai' => 8500 + $index,
-            'Link Hồ sơ sản phẩm' => 'https://example.com/medicine/'.$index,
-            'Hoạt chất kiểm soát đặc biệt' => 'Không',
-            'Ghi chú' => 'Fixture regression',
         ]);
 
         (new FastExcel($rows))->export($path);
@@ -209,52 +260,19 @@ class PharmaImportExportTest extends TestCase
         return $path;
     }
 
-    private function createBidAwardFixture(): string
-    {
-        $path = sys_get_temp_dir().'/pharma-bid-fixture-'.uniqid('', true).'.csv';
-        $lines = [
-            'STT;Tên thuốc;Quy cách đóng gói;Số lượng;Đơn giá trúng thầu;Mã thông báo mời thầu;Tên Chủ đầu tư;Số quyết định;Ngày ban hành quyết định;Thời hạn hiệu lực;Công ty trúng thầu;Link quyết định trúng thầu',
-        ];
-
-        foreach (range(1, 32) as $index) {
-            $lines[] = implode(';', [
-                $index,
-                "Trosicam {$index} 15mg",
-                "Hộp {$index} vỉ x 10 viên",
-                '600.000',
-                '7.791',
-                sprintf('IB%04d', $index),
-                'Bệnh viện A',
-                sprintf('QD-%03d', $index),
-                '13/10/2025',
-                '24 tháng',
-                "Công ty {$index}",
-                "https://example.com/decision/{$index}",
-            ]);
-        }
-
-        file_put_contents($path, implode("\n", $lines));
-
-        return $path;
-    }
-
     private function medicineData(): array
     {
         return [
-            'active_ingredients' => 'Meloxicam',
-            'concentration' => '15mg',
             'name' => 'Trosicam 15mg',
-            'dosage_form' => 'Viên hòa tan nhanh',
+            'registration_number' => 'VN-20104-16',
+            'active_ingredients' => 'Meloxicam',
+            'strength' => '15mg',
+            'dosage_form' => 'Viên nén',
             'route_of_administration' => 'Uống',
             'unit' => 'Viên',
             'packaging_specification' => 'Hộp 3 vỉ x 10 viên',
-            'registration_number' => 'VN-20104-16',
-            'shelf_life' => '36 tháng',
-            'registered_company' => 'Alpex Pharma SA',
-            'manufacturing_company' => 'Alpex Pharma SA',
-            'manufacturing_country' => 'Thụy Sĩ',
-            'declared_price' => 8500,
-            'is_special_control' => false,
+            'manufacturer' => 'Demo Manufacturer',
+            'country_of_manufacture' => 'Việt Nam',
         ];
     }
 }
