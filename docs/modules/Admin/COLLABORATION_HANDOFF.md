@@ -2,101 +2,85 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Address Legacy Ownership Cleanup**
+Task: **Admin Major Refactor — Banner Legacy Runtime Tree Cleanup**
 
-Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / PR READY**
+Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / UI PASS / PR READY**
 
-Branch/checkpoint: `refactor/admin-address-ownership-cleanup`
+Branch/checkpoint: `refactor/admin-banner-legacy-runtime-cleanup`
 
-This approved slice removes independent UserAddress persistence/business ownership from Admin while preserving compatibility for historical class callers. It does not delete compatibility classes, change schema/migrations/data, or expand into historical controllers or other Admin legacy families.
+This approved slice removes the proven obsolete Admin Banner controller/view/Livewire runtime tree after caller proof established the active Banner management path in `Modules/Website`.
 
 ## Ownership decision
 
-Address ownership remains split consistently with the established Customer/Account boundary:
+- `Modules/Admin` remains the authenticated shell. Its canonical route-controller surface is limited to `AdminController`, `DashboardController`, `MenuController`, and `ProfileController` for the current architecture.
+- `Modules/Website` owns the active Banner management route, controller, wrapper view, Livewire component, model and service behavior.
+- Historical `Modules/Admin/Models/Banner.php` and `Modules/Admin/Services/BannerService.php` remain deprecated compatibility adapters and are intentionally outside this runtime-tree deletion slice.
 
-- `Modules/User` owns canonical `UserAddress` persistence and address mutation behavior;
-- `Modules/Account` owns account/customer-profile workspace where applicable;
-- `Modules/Admin` remains the authenticated shell and must not independently implement address persistence/business rules.
+## Runtime cleanup
 
-## Runtime changes
+The following obsolete Admin Banner runtime artifacts were removed:
 
-### Admin model compatibility
+- `Modules/Admin/Http/Controllers/BannerController.php`;
+- `Modules/Admin/Livewire/Banner/BannerManager.php`;
+- `Modules/Admin/resources/views/pages/banner/index.blade.php`;
+- `Modules/Admin/resources/views/livewire/banner/banner-manager.blade.php`.
 
-`Modules/Admin/Models/UserAddress.php` is now a deprecated compatibility alias extending `Modules\User\Models\UserAddress`.
+The canonical Website path remains unchanged:
 
-It no longer declares its own table, fillable fields, casts, relationships, or address helper implementation. Dynamic/external callers using the historical Admin namespace can continue resolving the class while persistence ownership remains in User.
+`Website route -> Website Admin BannerController -> Website::pages.admin.banner.index -> website.admin.banner.banner-manager`.
 
-### Admin service compatibility
+No Website Banner business behavior was redesigned.
 
-`Modules/Admin/Services/AddressService.php` is now a deprecated compatibility facade over `Modules\User\Services\UserAddressService`.
+## Guardrail
 
-The historical public API is retained:
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` asserts that the four legacy Admin Banner runtime artifacts stay absent, Admin routes do not regain `BannerController`, and the canonical Website controller/view path remains present.
 
-- `getUserAddresses($userId)`;
-- `create($userId, array $data)`;
-- `update($addressId, $userId, array $data)`;
-- `delete($addressId, $userId)`;
-- `setDefault($addressId, $userId)`.
-
-The facade delegates mutations and queries to the canonical User service instead of duplicating default-address mutation logic inside Admin.
-
-The historical `delete()` contract continues to return a boolean compatibility result after canonical deletion.
+Existing Header/Footer, Flash Sale, Coupon, Affiliate, Database and compatibility-adapter assertions remain in place and are outside this deletion slice.
 
 ## Schema and data decision
 
 No schema, migration, foreign-key or production-data change is authorized or included.
 
-The existing `user_addresses` persistence contract remains User-owned. Runtime ownership cleanup does not authorize moving or renaming applied migrations or tables.
-
 ## Verification
 
-Local focused verification reported:
+Local focused verification reported PASS:
 
 ```text
-AdminAddressOwnershipContractTest: 4 passed, 28 assertions
+AdminWebsitePresentationOwnershipContractTest: 6 passed, 57 assertions
 AdminOwnershipBoundaryContractTest: 4 passed, 21 assertions
-Total: 8 passed, 49 assertions
-Working tree: clean
+Total: 10 passed, 78 assertions
 ```
 
-`tests/Feature/Admin/AdminAddressOwnershipContractTest.php` protects:
+Route verification reported:
 
-- canonical User model ownership;
-- Admin model compatibility-only inheritance;
-- Admin AddressService delegation to UserAddressService;
-- preservation of the historical Admin service public API;
-- canonical User ownership of address mutations.
+```text
+GET|HEAD admin/banners admin.banners › Modules\Website\Http\Controllers\Admin\BannerController@index
+```
+
+Manual Banner UI smoke: **PASS**. The active Website-owned Banner management screen and tested UI behavior remain operational.
+
+Working tree after verification: **clean** at implementation checkpoint `054646ed` before this documentation closeout.
 
 ## Acceptance criteria
 
-- canonical UserAddress model owner: **User — VERIFIED**;
-- canonical address mutation owner: **User — VERIFIED**;
-- independent Admin address persistence/business logic: **REMOVED**;
-- historical Admin class compatibility: **PRESERVED**;
-- Admin Address compatibility classes deleted: **NO — caller proof remains incomplete**;
-- Account/customer-profile boundary: **UNCHANGED**;
+- canonical Banner runtime owner: **Website — VERIFIED**;
+- legacy Admin Banner controller/view/Livewire runtime tree: **REMOVED**;
+- Admin Banner model/service compatibility adapters: **PRESERVED**;
+- Admin shell controller boundary: **PRESERVED**;
+- Website Banner runtime/business behavior: **UNCHANGED**;
 - schema/migration/data changes: **NONE**;
-- Admin shell ownership guardrail: **PASS**;
-- focused regression: **PASS — 8 tests / 49 assertions**;
-- manual UI smoke: **NOT REQUIRED by this compatibility-only slice unless a historical caller is later proven reachable**.
+- focused regression: **PASS — 10 tests / 78 assertions**;
+- canonical Banner route: **PASS — Website controller-owned**;
+- manual Banner UI smoke: **PASS**.
 
 ## Remaining compatibility debt
 
-This slice does not claim zero callers for the deprecated Admin Address namespaces. Repository code-search indexing has previously proven unreliable, so the compatibility classes remain until stronger dynamic/external caller proof authorizes deletion.
+Separate scopes still remain for Header/Footer, Flash Sale, Coupon, Affiliate/Order residue, historical Admin controllers/scaffolds, environment/System adapters, and quarantined Database surfaces.
 
-Other compatibility debt remains separately scoped:
-
-- historical Admin controllers/scaffolds;
-- Banner/Header compatibility adapters;
-- Flash Sale compatibility adapters;
-- Affiliate compatibility adapters and OrderDetailModal residue;
-- Environment/System settings adapters;
-- quarantined Admin database family.
-
-Database P0 containment remains unchanged and must not be reopened as part of compatibility cleanup.
+Deprecated Banner model/service adapters remain until complete dynamic/external caller proof authorizes their removal. GitHub code-search zero results are not accepted as sufficient caller proof.
 
 ## Next phase
 
-Open and merge this Address ownership cleanup as a focused PR. Do not begin another Admin legacy family until this branch is merged and the next scope is explicitly approved.
+Open and merge this Banner legacy runtime cleanup as a focused PR. Do not begin another Admin legacy family until this branch is merged and the next scope is explicitly approved.
 
-After merge, resume Compatibility Debt Audit from historical controllers / Order-Affiliate residue and choose exactly one coherent next implementation slice.
+After merge, resume Compatibility Debt Audit and choose exactly one coherent next legacy runtime family using route -> controller -> view -> Livewire reachability proof.
