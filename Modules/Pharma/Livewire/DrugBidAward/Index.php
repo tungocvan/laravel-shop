@@ -4,128 +4,219 @@ namespace Modules\Pharma\Livewire\DrugBidAward;
 
 use Exception;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
+use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Services\DrugBidAwardService;
 
 class Index extends Component
 {
     use AuthorizesPharmaActions;
-    use WithPagination;
 
-    public $search = '';
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
-    public $filterInvestor = '';
+    public string $search = '';
 
-    public $filterCompany = '';
+    public string $filterInvestor = '';
 
-    public $perPage = 10;
+    public string $filterCompany = '';
+
+    public string $filterSource = '';
+
+    public int $perPage = 10;
+
+    public int $page = 1;
 
     public array $selectedIds = [];
 
-    public bool $selectAll = false;
+    public bool $selectPage = false;
+
+    public bool $showBulkDeleteModal = false;
 
     protected $queryString = [
         'search' => ['except' => ''],
         'filterInvestor' => ['except' => ''],
         'filterCompany' => ['except' => ''],
+        'filterSource' => ['except' => ''],
         'perPage' => ['except' => 10],
+        'page' => ['except' => 1],
     ];
 
     public function mount(): void
     {
         $this->authorizePharmaView();
+        $this->perPage = $this->normalizePerPage($this->perPage);
     }
 
-    public function updatingSearch()
+    public function updatedSearch(): void
     {
-        $this->resetPage();
+        $this->resetWorkspacePage();
     }
 
-    public function updatingFilterInvestor()
+    public function updatedFilterInvestor(): void
     {
-        $this->resetPage();
+        $this->resetWorkspacePage();
     }
 
-    public function updatingFilterCompany()
+    public function updatedFilterCompany(): void
     {
-        $this->resetPage();
+        $this->resetWorkspacePage();
     }
 
-    public function updatingPerPage()
+    public function updatedFilterSource(): void
     {
-        $this->resetPage();
+        $this->filterSource = in_array($this->filterSource, $this->sourceOptions(), true) ? $this->filterSource : '';
+        $this->resetWorkspacePage();
     }
 
-    public function updatedSelectAll($value)
+    public function updatedPerPage(mixed $value): void
     {
-        if ($value) {
-            $service = app(DrugBidAwardService::class);
-            $currentItems = $service->getPaginated(
-                $this->search,
-                $this->filterInvestor,
-                $this->filterCompany,
-                999999,
-                1
-            );
-            $this->selectedIds = collect($currentItems->items())->map(fn ($item) => (string) $item->id)->toArray();
-        } else {
-            $this->selectedIds = [];
-        }
+        $this->perPage = $this->normalizePerPage($value);
+        $this->resetWorkspacePage();
     }
 
-    public function updatedSelectedIds()
+    public function updatedSelectPage(bool $value): void
     {
-        $this->selectAll = false;
+        $this->selectedIds = $value ? $this->currentPageIds() : [];
     }
 
-    public function resetFilters()
+    public function updatedSelectedIds(): void
     {
-        $this->reset(['search', 'filterInvestor', 'filterCompany', 'selectedIds', 'selectAll']);
-        $this->resetPage();
-        $this->dispatch('filters-reset');
+        $pageIds = $this->currentPageIds();
+        $this->selectedIds = array_values(array_intersect(array_map('strval', $this->selectedIds), $pageIds));
+        $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
     }
 
-    public function deleteAward(DrugBidAwardService $service, int $id)
+    public function gotoPage(mixed $page): void
+    {
+        $this->page = max(1, (int) $page);
+        $this->clearSelection();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset(['search', 'filterInvestor', 'filterCompany', 'filterSource']);
+        $this->page = 1;
+        $this->clearSelection();
+    }
+
+    public function confirmBulkDelete(): void
+    {
+        $this->authorizePharmaDelete();
+        $this->updatedSelectedIds();
+        $this->showBulkDeleteModal = $this->selectedIds !== [];
+    }
+
+    public function cancelBulkDelete(): void
+    {
+        $this->showBulkDeleteModal = false;
+    }
+
+    public function deleteAward(DrugBidAwardService $service, int $id): void
     {
         $this->authorizePharmaDelete();
 
         try {
             $service->delete($id);
-            $this->selectedIds = array_diff($this->selectedIds, [$id]);
+            $this->clearSelection();
             session()->flash('success', 'Đã xóa bản ghi trúng thầu thành công.');
-        } catch (Exception $e) {
-            report($e);
+        } catch (Exception $exception) {
+            report($exception);
             session()->flash('error', 'Không thể xóa bản ghi này.');
         }
     }
 
-    public function deleteSelected(DrugBidAwardService $service)
+    public function deleteSelected(DrugBidAwardService $service): void
     {
         $this->authorizePharmaDelete();
+        $pageIds = $this->currentPageIds();
+        $ids = array_values(array_intersect(array_map('strval', $this->selectedIds), $pageIds));
 
-        if (empty($this->selectedIds)) {
+        if ($ids === []) {
+            $this->showBulkDeleteModal = false;
+            $this->clearSelection();
+
             return;
         }
 
         try {
-            foreach ($this->selectedIds as $id) {
+            foreach ($ids as $id) {
                 $service->delete((int) $id);
             }
-            $this->reset(['selectedIds', 'selectAll']);
-            session()->flash('success', 'Đã xóa hàng loạt bản ghi thành công.');
-        } catch (Exception $e) {
-            report($e);
+
+            $count = count($ids);
+            $this->showBulkDeleteModal = false;
+            $this->clearSelection();
+            session()->flash('success', "Đã xóa {$count} bản ghi trên trang hiện tại.");
+        } catch (Exception $exception) {
+            report($exception);
+            $this->showBulkDeleteModal = false;
             session()->flash('error', 'Có lỗi xảy ra khi xóa hàng loạt.');
         }
     }
 
     public function render(DrugBidAwardService $service)
     {
+        $this->perPage = $this->normalizePerPage($this->perPage);
+        $awards = $this->paginated($service);
+
+        if ($awards->lastPage() > 0 && $this->page > $awards->lastPage()) {
+            $this->page = $awards->lastPage();
+            $this->clearSelection();
+            $awards = $this->paginated($service);
+        }
+
         return view('Pharma::livewire.drug-bid-award.index', [
-            'awards' => $service->getPaginated($this->search, $this->filterInvestor, $this->filterCompany, $this->perPage === 'All' ? 999999 : (int) $this->perPage),
-            'investors' => $service->getUniqueInvestors(),
-            'companies' => $service->getUniqueCompanies(),
+            'awards' => $awards,
+            'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'sourceOptions' => [
+                DrugBidAward::SOURCE_MANUAL => 'Nhập thủ công',
+                DrugBidAward::SOURCE_MUASAMCONG => 'Mua sắm công',
+            ],
         ]);
+    }
+
+    private function paginated(DrugBidAwardService $service)
+    {
+        return $service->getPaginated(
+            $this->search,
+            $this->filterInvestor,
+            $this->filterCompany,
+            $this->perPage,
+            $this->page,
+            $this->filterSource ?: null,
+        );
+    }
+
+    private function currentPageIds(): array
+    {
+        return collect($this->paginated(app(DrugBidAwardService::class))->items())
+            ->map(fn (DrugBidAward $award): string => (string) $award->id)
+            ->values()
+            ->all();
+    }
+
+    private function normalizePerPage(mixed $value): int
+    {
+        $value = (int) $value;
+
+        return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : 10;
+    }
+
+    private function resetWorkspacePage(): void
+    {
+        $this->page = 1;
+        $this->clearSelection();
+    }
+
+    private function clearSelection(): void
+    {
+        $this->selectedIds = [];
+        $this->selectPage = false;
+        $this->showBulkDeleteModal = false;
+    }
+
+    private function sourceOptions(): array
+    {
+        return ['', DrugBidAward::SOURCE_MANUAL, DrugBidAward::SOURCE_MUASAMCONG];
     }
 }
