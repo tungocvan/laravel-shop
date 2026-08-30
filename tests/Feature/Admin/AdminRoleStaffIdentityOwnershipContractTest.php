@@ -36,12 +36,13 @@ class AdminRoleStaffIdentityOwnershipContractTest extends TestCase
         $routes = file_get_contents(base_path('Modules/Role/routes/web.php'));
 
         $this->assertStringContainsString("prefix('admin/roles')", $routes);
-        $this->assertStringContainsString("name('admin.roles.')", $routes);
+        $this->assertStringContainsString("name('admin.role.')", $routes);
         $this->assertStringContainsString("permission:view_role,admin", $routes);
         $this->assertStringContainsString("permission:create_role,admin", $routes);
         $this->assertStringContainsString("permission:edit_role,admin", $routes);
-        $this->assertStringContainsString("prefix('admin/role')", $routes);
-        $this->assertStringContainsString("redirect()->route('admin.roles.index')", $routes);
+        $this->assertStringContainsString("Route::redirect('/admin/role', '/admin/roles')", $routes);
+        $this->assertStringContainsString("Route::redirect('/admin/role/create', '/admin/roles/create')", $routes);
+        $this->assertStringContainsString("redirect('/admin/roles/'.\$id.'/edit')", $routes);
     }
 
     public function test_role_domain_keeps_service_and_livewire_boundaries(): void
