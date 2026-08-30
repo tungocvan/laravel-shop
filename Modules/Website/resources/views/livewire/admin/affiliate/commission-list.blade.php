@@ -1,36 +1,49 @@
 <div class="space-y-6">
-    {{-- 1. Header & Filters --}}
-    <div class="flex flex-col lg:flex-row justify-between gap-4 items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
-        <h2 class="text-xl font-black text-gray-800 uppercase tracking-tight">Đối soát hoa hồng Hybrid</h2>
-        
-        <div class="flex flex-wrap gap-3 w-full lg:w-auto">
-            <select wire:model.live="levelFilter" class="border-gray-200 rounded-xl text-xs font-bold focus:ring-blue-500">
-                <option value="all">Tất cả cấp bậc</option>
-                @foreach($levels as $lv)
-                    <option value="{{ $lv->id }}">{{ $lv->name }}</option>
-                @endforeach
-            </select>
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-black text-gray-800 uppercase tracking-tight">Đối soát hoa hồng Hybrid</h2>
+                <p class="mt-1 text-sm text-gray-500">Theo dõi, lọc và xử lý hoa hồng theo đơn hàng.</p>
+            </div>
 
-            <select wire:model.live="statusFilter" class="border-gray-300 rounded-xl text-xs font-bold focus:ring-blue-500">
-                <option value="all">Tất cả trạng thái</option>
-                <option value="pending">Chờ duyệt (Pending)</option>
-                <option value="approved">Đã duyệt (Approved)</option>
-                <option value="rejected">Đã hủy (Rejected)</option>
-            </select>
-            
-            <div class="relative flex-1 sm:w-64">
-                <input type="text" wire:model.live.debounce.300ms="search" 
-                       placeholder="Tìm mã đơn hàng..." 
-                       class="w-full border-gray-200 rounded-xl text-xs pl-10 focus:ring-blue-500">
-                <div class="absolute left-3 top-2.5 text-gray-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[auto_auto_minmax(14rem,1fr)_auto_auto] gap-3 w-full xl:w-auto">
+                <select wire:model.live="levelFilter" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    <option value="all">Tất cả cấp bậc</option>
+                    @foreach($levels as $lv)
+                        <option value="{{ $lv->id }}">{{ $lv->name }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="statusFilter" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="pending">Chờ duyệt</option>
+                    <option value="approved">Đã duyệt</option>
+                    <option value="rejected">Từ chối</option>
+                </select>
+
+                <div class="relative min-w-0">
+                    <input type="search" wire:model.live.debounce.300ms="search"
+                           placeholder="Tìm mã đơn hàng..."
+                           class="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    <div class="pointer-events-none absolute left-3 top-3 text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
                 </div>
+
+                <select wire:model.live="perPage" aria-label="Số dòng mỗi trang" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    @foreach([10, 25, 50, 100] as $size)
+                        <option value="{{ $size }}">{{ $size }}/trang</option>
+                    @endforeach
+                </select>
+
+                <button type="button" wire:click="resetFilters" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    Xóa bộ lọc
+                </button>
             </div>
         </div>
     </div>
 
-    {{-- 2. Data Table --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50/50 text-gray-500 font-bold text-[10px] uppercase tracking-widest">
                 <tr>
@@ -43,17 +56,18 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
                 @forelse($commissions as $item)
-                    <tr wire:key="comm-{{ $item->id }}" class="hover:bg-blue-50/30 transition">
+                    <tr wire:key="comm-{{ $item->id }}" class="hover:bg-indigo-50/30 transition">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button wire:click="openDetail({{ $item->id }})" 
-                                    class="text-blue-600 font-bold hover:underline flex items-center gap-1 group text-sm">
+                            <button type="button" wire:click="openDetail({{ $item->id }})" class="text-indigo-600 font-bold hover:underline flex items-center gap-1 group text-sm">
                                 {{ $item->order_code }}
                             </button>
                             <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">{{ $item->created_at->format('d/m/Y H:i') }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <img class="h-8 w-8 rounded-full border border-gray-200" src="https://ui-avatars.com/api/?name={{ urlencode($item->affiliate->name ?? 'N/A') }}&background=random" alt="">
+                                <div class="h-8 w-8 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600" aria-hidden="true">
+                                    {{ strtoupper(mb_substr($item->affiliate->name ?? 'N', 0, 1)) }}
+                                </div>
                                 <div class="ml-3">
                                     <div class="text-sm font-bold text-gray-900">{{ $item->affiliate->name ?? 'Unknown' }}</div>
                                     <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-black uppercase tracking-tighter">
@@ -63,9 +77,9 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <div class="text-sm font-black text-blue-600">{{ number_format($item->commission_amount) }}đ</div>
+                            <div class="text-sm font-black text-indigo-600">{{ number_format($item->commission_amount) }}đ</div>
                             <div class="text-[9px] text-gray-400 font-medium">
-                                ({{ number_format($item->items->sum('commission_amount')) }}% + {{ number_format($item->items->sum('commission_fixed_amount')) }} VNĐ)
+                                {{ number_format($item->items->sum('commission_amount')) }}đ + {{ number_format($item->items->sum('commission_fixed_amount')) }}đ cố định
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -78,7 +92,7 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <button wire:click="openDetail({{ $item->id }})" class="text-gray-400 hover:text-blue-600 transition p-2 bg-gray-50 rounded-lg">
+                            <button type="button" wire:click="openDetail({{ $item->id }})" class="text-gray-400 hover:text-indigo-600 transition p-2 bg-gray-50 rounded-lg" aria-label="Xem chi tiết {{ $item->order_code }}">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                             </button>
                         </td>
@@ -90,9 +104,10 @@
         </table>
     </div>
 
-    <div class="mt-4">{{ $commissions->links() }}</div>
+    @if($commissions->hasPages())
+        <div class="mt-4">{{ $commissions->links('Website::vendor.pagination.admin-affiliate') }}</div>
+    @endif
 
-    {{-- 3. MODAL CHI TIẾT & ĐỐI SOÁT HYBRID --}}
     @if($isModalOpen && $selectedOrder)
         @teleport('body')
             <div class="fixed inset-0 z-[999] overflow-y-auto">
@@ -100,35 +115,30 @@
                     <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" wire:click="closeModal"></div>
 
                     <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all">
-                        {{-- Header --}}
                         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <div>
                                 <h3 class="text-lg font-black text-gray-900 uppercase">Đối soát đơn: #{{ $selectedOrder->order_code }}</h3>
                                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Hạng tại thời điểm mua: {{ $selectedOrder->items->first()->affiliate_level_snapshot ?? 'N/A' }}</p>
                             </div>
-                            <button wire:click="closeModal" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                            <button type="button" wire:click="closeModal" class="text-gray-400 hover:text-gray-600" aria-label="Đóng"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                         </div>
 
-                        {{-- Body --}}
                         <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-                            
-                            {{-- Thông tin đối tác --}}
-                            <div class="flex items-center justify-between p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+                            <div class="flex items-center justify-between p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
                                 <div>
-                                    <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Đối tác thụ hưởng</p>
+                                    <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Đối tác thụ hưởng</p>
                                     <p class="text-base font-bold text-gray-900">{{ $selectedOrder->affiliate->name }}</p>
                                     <p class="text-xs text-gray-500">{{ $selectedOrder->affiliate->email }}</p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Tổng hoa hồng nhận</p>
-                                    <p class="text-2xl font-black text-blue-700">{{ number_format($selectedOrder->commission_amount) }}đ</p>
+                                    <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Tổng hoa hồng nhận</p>
+                                    <p class="text-2xl font-black text-indigo-700">{{ number_format($selectedOrder->commission_amount) }}đ</p>
                                 </div>
                             </div>
 
-                            {{-- Bảng kê Hybrid Snapshot --}}
                             <div>
                                 <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Phân bổ hoa hồng từng sản phẩm</h4>
-                                <div class="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                                <div class="border border-gray-100 rounded-2xl overflow-x-auto shadow-sm">
                                     <table class="w-full text-sm">
                                         <thead class="bg-gray-50 text-gray-500 font-bold text-[10px] uppercase">
                                             <tr>
@@ -145,17 +155,9 @@
                                                         <div class="font-bold text-gray-800 text-xs">{{ $item->product_name }}</div>
                                                         <div class="text-[9px] text-gray-400 uppercase">Giá: {{ number_format($item->price) }}đ x {{ $item->quantity }}</div>
                                                     </td>
-                                                    <td class="px-4 py-3 text-center">
-                                                        <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black">
-                                                            {{ $item->commission_rate }}%
-                                                        </span>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-center font-bold text-gray-600 text-[11px]">
-                                                        +{{ number_format($item->commission_fixed_amount) }}đ
-                                                    </td>
-                                                    <td class="px-4 py-3 text-right font-black text-gray-900">
-                                                        {{ number_format($item->commission_amount + ($item->commission_fixed_amount * $item->quantity)) }}đ
-                                                    </td>
+                                                    <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black">{{ $item->commission_rate }}%</span></td>
+                                                    <td class="px-4 py-3 text-center font-bold text-gray-600 text-[11px]">+{{ number_format($item->commission_fixed_amount) }}đ</td>
+                                                    <td class="px-4 py-3 text-right font-black text-gray-900">{{ number_format($item->commission_amount + ($item->commission_fixed_amount * $item->quantity)) }}đ</td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -163,43 +165,34 @@
                                 </div>
                             </div>
 
-                            {{-- Xử lý Từ chối --}}
                             @if($showRejectForm)
                                 <div class="p-5 bg-red-50 border border-red-100 rounded-2xl">
                                     <label class="block text-[10px] font-black text-red-700 uppercase tracking-widest mb-2">Lý do từ chối chi trả:</label>
-                                    <textarea wire:model="rejectionReason" class="w-full border-red-200 rounded-xl text-sm p-3 focus:ring-red-500" rows="3" placeholder="VD: Đơn hàng bị hoàn trả, khách hàng từ chối nhận..."></textarea>
-                                    @error('rejectionReason') <span class="text-[10px] text-red-600 font-bold mt-1">{{ $message }}</span> @enderror
+                                    <textarea wire:model="rejectionReason" class="w-full rounded-xl border border-red-400 bg-white p-3 text-sm text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100" rows="3" placeholder="VD: Đơn hàng bị hoàn trả, khách hàng từ chối nhận..."></textarea>
+                                    @error('rejectionReason') <span class="block text-[10px] text-red-600 font-bold mt-1">{{ $message }}</span> @enderror
                                     <div class="flex gap-2 mt-4">
-                                        <button wire:click="reject" class="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-red-700 transition shadow-lg shadow-red-200">Xác nhận từ chối</button>
-                                        <button wire:click="$set('showRejectForm', false)" class="px-6 py-2.5 bg-white border border-gray-200 rounded-xl font-bold text-sm text-gray-600">Hủy</button>
+                                        <button type="button" wire:click="reject" wire:loading.attr="disabled" class="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-red-700 disabled:opacity-60">Xác nhận từ chối</button>
+                                        <button type="button" wire:click="$set('showRejectForm', false)" class="px-6 py-2.5 bg-white border border-gray-300 rounded-xl font-bold text-sm text-gray-600">Hủy</button>
                                     </div>
                                 </div>
                             @endif
 
                             @if($selectedOrder->commission_status === 'rejected')
                                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 flex gap-3">
-                                    <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
                                     <div class="text-sm">
                                         <p class="font-bold text-gray-500 uppercase text-[10px] tracking-widest">Đã từ chối chi trả</p>
-                                        <p class="text-gray-700 italic mt-1 font-medium">"{{ $selectedOrder->rejection_reason }}"</p>
+                                        <p class="text-gray-700 italic mt-1 font-medium">“{{ $selectedOrder->rejection_reason }}”</p>
                                     </div>
                                 </div>
                             @endif
                         </div>
 
-                        {{-- Footer Actions --}}
-                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-end gap-3">
                             @if($selectedOrder->commission_status === 'pending' && !$showRejectForm)
-                                <button wire:click="approve({{ $selectedOrder->id }})" 
-                                        wire:confirm="Xác nhận duyệt chi trả và cập nhật thăng hạng cho đối tác này?"
-                                        class="px-8 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 shadow-xl shadow-green-100 transition">
-                                    Duyệt Hoa Hồng
-                                </button>
-                                <button wire:click="$set('showRejectForm', true)" class="px-6 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl font-bold text-sm hover:bg-red-50 transition">
-                                    Từ chối
-                                </button>
+                                <button type="button" wire:click="approve({{ $selectedOrder->id }})" wire:confirm="Xác nhận duyệt chi trả và cập nhật thăng hạng cho đối tác này?" wire:loading.attr="disabled" class="px-8 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 disabled:opacity-60">Duyệt Hoa Hồng</button>
+                                <button type="button" wire:click="$set('showRejectForm', true)" class="px-6 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl font-bold text-sm hover:bg-red-50">Từ chối</button>
                             @endif
-                            <button wire:click="closeModal" class="px-6 py-2.5 bg-white border border-gray-300 rounded-xl font-bold text-sm text-gray-700">Đóng</button>
+                            <button type="button" wire:click="closeModal" class="px-6 py-2.5 bg-white border border-gray-300 rounded-xl font-bold text-sm text-gray-700">Đóng</button>
                         </div>
                     </div>
                 </div>

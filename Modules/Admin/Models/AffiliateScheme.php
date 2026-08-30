@@ -1,38 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\Admin\Models;
 
-use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
-use Modules\Product\Models\Product as WpProduct;
-
-class AffiliateScheme extends Model
+/**
+ * @deprecated Canonical Affiliate scheme persistence is owned by Modules\Website.
+ * This compatibility adapter contains no independent persistence metadata or relations.
+ */
+class AffiliateScheme extends \Modules\Website\Models\AffiliateScheme
 {
-    protected $table = 'wp_affiliate_schemes';
-
-    protected $fillable = [
-        'product_id', 'level_id', 'user_id',
-        'commission_type', 'percent_value', 'fixed_value', 'is_active',
-    ];
-
-    protected $casts = [
-        'percent_value' => 'decimal:2',
-        'fixed_value' => 'decimal:2',
-        'is_active' => 'boolean',
-    ];
-
-    public function product()
-    {
-        return $this->belongsTo(WpProduct::class, 'product_id');
-    }
-
-    public function level()
-    {
-        return $this->belongsTo(AffiliateLevel::class, 'level_id');
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
 }

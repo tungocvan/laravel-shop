@@ -8,30 +8,39 @@ use Modules\Order\Models\Order;
 class AdminAffiliateService
 {
     /**
-     * Lấy danh sách hoa hồng (Có phân trang & bộ lọc)
+     * Lấy danh sách hoa hồng (Có phân trang & bộ lọc).
      */
     public function getCommissions(array $filters = [], int $perPage = 10)
     {
-        return Order::whereNotNull('affiliate_id')
-            ->with(['affiliate', 'user']) // Eager load người giới thiệu & người mua
-            ->when(isset($filters['status']) && $filters['status'] !== 'all', function ($q) use ($filters) {
-                $q->where('commission_status', $filters['status']);
+        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 10;
+        $level = $filters['level'] ?? 'all';
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        return Order::query()
+            ->whereNotNull('affiliate_id')
+            ->with(['affiliate', 'user', 'items'])
+            ->when(isset($filters['status']) && $filters['status'] !== 'all', function ($query) use ($filters) {
+                $query->where('commission_status', $filters['status']);
             })
-            ->when(isset($filters['search']), function ($q) use ($filters) {
-                $q->where('order_code', 'like', '%'.$filters['search'].'%');
+            ->when($level !== 'all', function ($query) use ($level) {
+                $query->whereHas('affiliate', function ($affiliateQuery) use ($level) {
+                    $affiliateQuery->where('affiliate_level_id', $level);
+                });
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('order_code', 'like', '%'.$search.'%');
             })
             ->latest()
             ->paginate($perPage);
     }
 
     /**
-     * Từ chối hoa hồng kèm lý do
+     * Từ chối hoa hồng kèm lý do.
      */
     public function reject($orderId, $reason)
     {
         $order = Order::findOrFail($orderId);
 
-        // Chỉ cho phép từ chối nếu chưa xử lý
         if ($order->commission_status !== 'pending') {
             throw new Exception('Trạng thái đơn hàng không hợp lệ để từ chối.');
         }
@@ -46,13 +55,12 @@ class AdminAffiliateService
 
     public function getOrderDetail($orderId)
     {
-        // Eager load 'items' để lấy commission_rate và commission_amount của từng món
         return Order::with(['items', 'user', 'affiliate'])
             ->findOrFail($orderId);
     }
 
     /**
-     * Duyệt hoa hồng (Bổ sung logic kiểm tra dữ liệu)
+     * Duyệt hoa hồng và cập nhật hạng đối tác.
      */
     public function approve($orderId)
     {
@@ -65,12 +73,10 @@ class AdminAffiliateService
         return \DB::transaction(function () use ($order) {
             $order->update(['commission_status' => 'approved']);
 
-            // GỌI LOGIC THĂNG HẠNG TẠI ĐÂY
             $rankService = app(AffiliateRankService::class);
             $rankService->checkAndUpdateRank($order->affiliate_id);
 
             return $order;
         });
-
     }
 }

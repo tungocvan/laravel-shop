@@ -61,8 +61,8 @@ A sidebar item may link to Product, Order, Post, System, Account, Role, Category
 | Role / Staff / Admin identity legacy | `CLEANED` | Role + Account/shared User split | Role owns RBAC runtime; Account owns EmployeeProfile/account runtime; `auth:admin` uses shared users provider; obsolete Admin model removed |
 | Banner/public website header/footer/home settings | `BOUNDARY MOVED` | Website + shared System settings | Banner and public HeaderMenu runtime are Website-owned; Admin may host management UI. Five deprecated Admin Banner/Header compatibility adapters remain pending complete caller proof. Footer columns/social links already use Website; footer/header text settings may use shared SettingsService. |
 | Flash Sale legacy runtime | `BOUNDARY MOVED` | Website + Product query boundary | Website owns FlashSale/FlashSaleItem/service behavior; Product owns product querying. Admin keeps management composition. Three deprecated Admin Flash Sale adapters remain pending complete caller proof. |
-| Coupon management | `KEEP management surface / domain aligned` | Website | Admin Coupon Livewire already consumes Website Coupon domain; no ownership migration required in the Flash Sale slice. |
-| Affiliate commission/rank/scheme | `UNKNOWN -> dedicated analysis` | unresolved | Behavior spans Website, Order, Product and shared User concerns; do not absorb into Website merely because historical duplicates exist there. |
+| Coupon management | `KEEP management surface / domain aligned` | Website | Admin Coupon Livewire already consumes Website Coupon domain; no ownership migration required merely because it is marketing. |
+| Affiliate commission/rank/scheme | `BOUNDARY MOVED` | Website orchestration + Order/Product/User boundaries | Active `/admin/affiliate` runtime and Affiliate models/services are Website-owned today; Order retains commission state, Product retains products, User retains affiliate identity/rank. Five deprecated Admin compatibility adapters remain pending complete caller proof. |
 | Environment/system settings legacy | `UNKNOWN -> MOVE candidate` | System or dedicated configuration owner | Requires explicit operational boundary |
 | Database administration | `QUARANTINE / P0 CONTAINED` | System | Canonical `/admin/system/database*` runtime is System-owned. Legacy Admin DatabaseService/Livewire surfaces remain fail-closed compatibility debt pending complete caller proof. |
 | Historical scaffold/resource methods | `UNKNOWN -> DEAD candidate` | none | Remove only after caller proof |
@@ -93,7 +93,7 @@ Role / Staff / Admin identity cleanup proves another split boundary:
 Website Presentation ownership cleanup proves a management-surface/domain split:
 
 - Website owns Banner and public HeaderMenu/HeaderMenuItem models/services;
-- Admin Banner/Header Livewire management surfaces now consume Website domain classes rather than independent Admin persistence/service implementations;
+- Admin Banner/Header Livewire management surfaces consume Website domain classes rather than independent Admin persistence/service implementations;
 - five historical Admin Banner/Header classes are deprecated compatibility adapters only and delegate through Website ownership;
 - FooterColumns/SocialLinks were already Website-owned and FooterInfo remains on the shared System SettingsService boundary;
 - `/admin/admin-header` remains a management surface, while `/admin/layout/*` remains canonical Admin shell presentation;
@@ -106,7 +106,7 @@ Flash Sale ownership cleanup proves another management-surface/domain split:
 - Admin FlashSaleManager consumes Website domain classes and the Product model instead of Admin Flash Sale persistence classes or raw `wp_products` queries;
 - Product remains canonical owner of the `wp_products` model/query boundary;
 - three historical Admin Flash Sale classes are deprecated compatibility adapters only;
-- Coupon and Affiliate were not modified by this slice;
+- Coupon and Affiliate were not modified by that slice;
 - schema/migrations/data and P0 DatabaseService were not changed;
 - `tests/Feature/Admin/AdminFlashSaleOwnershipContractTest.php` protects this boundary.
 
@@ -121,11 +121,23 @@ Database P0 containment proves the operational owner and closes the legacy Admin
 - no System database redesign, schema, migration, or production-data change was made;
 - `tests/Feature/Admin/AdminDatabaseP0ContainmentContractTest.php` protects this boundary.
 
+Affiliate ownership cleanup proves a cross-module management/domain boundary:
+
+- active `admin.affiliate.index` is Website-controller-owned and remains protected by `auth:admin` plus `affiliate.view`;
+- canonical Website CommissionList and CommissionMatrix retain `affiliate.manage` authorization for mutations;
+- Website currently owns AffiliateLevel/AffiliateScheme persistence models and commission/rank orchestration, while Order retains commission state, Product retains product ownership and User retains affiliate identity/rank state;
+- CommissionList now applies level filtering and bounded `10/25/50/100` pagination aligned with the Admin UI standard;
+- five historical Admin Affiliate classes are deprecated compatibility adapters with no independent business/persistence logic;
+- the historical broken Admin AffiliateLevel namespace dependency is removed from those adapters;
+- CommissionMatrix remains canonical Website capability, but direct static reachability is not claimed and its redesign is deferred;
+- no dedicated Affiliate module, schema/migration/data movement or commission business-rule redesign was performed;
+- `tests/Feature/Admin/AdminAffiliateOwnershipContractTest.php` protects this boundary.
+
 ## Reachability Proof Required Before Future MOVE / DEPRECATE / DEAD
 
 A file or family may not be removed merely because it is absent from `Modules/Admin/routes/web.php`. Each future domain slice must check routes/providers, Livewire aliases, Blade callers, imports, jobs/events/commands, tests/seeders, navigation metadata, production table/migration state, and compatibility requirements as applicable.
 
-Deprecated Banner/Header and Flash Sale compatibility adapters must not be removed until repository/runtime caller proof is complete; their existence does not restore canonical Admin ownership.
+Deprecated Banner/Header, Flash Sale and Affiliate compatibility adapters must not be removed until repository/runtime caller proof is complete; their existence does not restore canonical Admin ownership.
 
 The quarantined Admin database family must not be deleted or reactivated merely from static search results. Dynamic/external caller proof or an explicitly approved replacement/removal contract is required.
 
@@ -152,16 +164,17 @@ Canonical database administration is owned by `Modules/System`. Its `/admin/syst
 - Role/RBAC runtime remains owned by `Modules/Role`; EmployeeProfile/account runtime remains owned by `Modules/Account`.
 - Website owns Banner and public HeaderMenu/HeaderMenuItem domain runtime; Admin may provide authenticated management composition only.
 - Website owns Flash Sale domain runtime; Product owns product queries; Admin may provide authenticated Flash Sale management composition only.
-- Deprecated Admin Banner/Header/Flash Sale compatibility adapters must not regain independent persistence/business logic.
+- Website currently owns canonical Affiliate management/orchestration and Affiliate models; Order/Product/User boundaries remain separate and must not be collapsed into Website by cleanup work.
+- Deprecated Admin Banner/Header/Flash Sale/Affiliate compatibility adapters must not regain independent persistence/business logic.
 - Admin shell `/admin/layout/*` presentation must remain distinct from public Website presentation management.
 - `auth:admin` continues to use the shared users provider unless a separately approved authentication architecture change replaces it.
 - Proven legacy Admin Category, Chat, Product, Order, Post, Customer and Admin-identity residues must remain absent.
 - ProductCommission dedicated UX remains a separately scoped follow-up rather than being silently redesigned.
-- Affiliate commission/rank/scheme ownership remains a separately scoped follow-up rather than being silently absorbed into Website/Order/Product.
+- CommissionMatrix redesign or a dedicated Affiliate module requires a separately approved architecture scope.
 
 ## Schema / Migration Rule
 
-Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product, Order, Post, Customer/address, Role/Staff/Admin-identity, Website-presentation, Flash Sale and Database P0 containment do not change schema/migration ownership.
+Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product, Order, Post, Customer/address, Role/Staff/Admin-identity, Website-presentation, Flash Sale, Database P0 containment and Affiliate ownership cleanup do not change schema/migration ownership.
 
 ## Planned Refactor Sequence
 
@@ -175,9 +188,10 @@ Runtime ownership cleanup does not authorize moving or renaming applied migratio
 ## Outstanding Unknowns
 
 - complete runtime reachability of remaining legacy Admin families;
-- external/dynamic callers of deprecated Admin Banner/Header/Flash Sale compatibility adapters;
+- external/dynamic callers of deprecated Admin Banner/Header/Flash Sale/Affiliate compatibility adapters;
 - external/dynamic callers of quarantined Admin database compatibility surfaces;
-- canonical ownership of Affiliate commission/rank/scheme behavior;
+- direct runtime reachability and future scalability requirements of Website CommissionMatrix;
+- whether Affiliate should eventually become a dedicated module;
 - production usage of remaining legacy Admin tables;
 - production migration ledger for Admin migrations;
 - external dependencies on historical Admin URLs/aliases outside the cleaned/moved families;

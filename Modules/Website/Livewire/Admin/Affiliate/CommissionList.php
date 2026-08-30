@@ -22,10 +22,42 @@ class CommissionList extends Component
     #[Url]
     public $search = '';
 
+    #[Url]
+    public int $perPage = 10;
+
     public $selectedOrder = null;
     public $isModalOpen = false;
     public $showRejectForm = false;
     public $rejectionReason = '';
+
+    public function updatedStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedLevelFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage($value): void
+    {
+        $this->perPage = in_array((int) $value, [10, 25, 50, 100], true) ? (int) $value : 10;
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->statusFilter = 'all';
+        $this->levelFilter = 'all';
+        $this->search = '';
+        $this->resetPage();
+    }
 
     public function approve($orderId, AdminAffiliateService $service)
     {
@@ -77,6 +109,8 @@ class CommissionList extends Component
 
     public function render(AdminAffiliateService $service)
     {
+        $this->perPage = in_array($this->perPage, [10, 25, 50, 100], true) ? $this->perPage : 10;
+
         $filters = [
             'status' => $this->statusFilter,
             'level' => $this->levelFilter,
@@ -84,8 +118,8 @@ class CommissionList extends Component
         ];
 
         return view('Website::livewire.admin.affiliate.commission-list', [
-            'commissions' => $service->getCommissions($filters),
-            'levels' => AffiliateLevel::all(),
+            'commissions' => $service->getCommissions($filters, $this->perPage),
+            'levels' => AffiliateLevel::orderBy('min_revenue_required')->get(),
         ]);
     }
 }
