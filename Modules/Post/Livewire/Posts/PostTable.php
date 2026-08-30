@@ -65,6 +65,16 @@ class PostTable extends Component
         $this->resetSelection();
     }
 
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterCategory = '';
+        $this->filterStatus = '';
+        $this->perPage = 10;
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
     public function resetSelection(): void
     {
         $this->selected = [];
