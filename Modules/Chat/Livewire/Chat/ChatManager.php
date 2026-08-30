@@ -2,50 +2,62 @@
 
 namespace Modules\Chat\Livewire\Chat;
 
-use Livewire\Component;
-use Modules\Admin\Models\ChatSession;
-use Modules\Admin\Models\ChatMessage;
-use Modules\Chat\Services\ChatService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Livewire\Component;
+use Modules\Chat\Models\ChatMessage;
+use Modules\Chat\Models\ChatSession;
+use Modules\Chat\Services\ChatService;
 
 class ChatManager extends Component
 {
     public ?int $activeSessionId = null;
+
     public string $message = '';
+
     public array $messages = [];
 
-    // Lắng nghe sự kiện từ NodeJS gửi về thông qua trình duyệt
     protected $listeners = [
         'echo-refresh' => '$refresh',
         'appendMessage' => 'appendMessage',
     ];
 
+    public function mount(): void
+    {
+        $this->authorizePermission('view_chat');
+    }
+
     public function selectSession(int $sessionId): void
     {
-        $this->activeSessionId = $sessionId;
-        $session = ChatSession::find($sessionId);
+        $this->authorizePermission('edit_chat');
 
-        if (!$session) return;
+        $session = ChatSession::query()->find($sessionId);
 
-        // Gán admin quản lý session nếu chưa có ai
-        if (!$session->admin_id) {
-            $session->update(['admin_id' => Auth::id()]);
+        if (! $session) {
+            return;
         }
 
-        // Load 50 tin nhắn mới nhất
-        $this->loadMessages();
+        $this->activeSessionId = $sessionId;
 
-        // Dispatch sự kiện để AlpineJS Join Room bên Socket.io
+        if (! $session->admin_id) {
+            $session->update(['admin_id' => Auth::guard('admin')->id()]);
+        }
+
+        $this->loadMessages();
         $this->dispatch('chat-session-selected', sessionId: $sessionId);
     }
 
-    public function loadMessages()
+    public function loadMessages(): void
     {
-        if (!$this->activeSessionId) return;
+        $this->authorizePermission('view_chat');
+
+        if (! $this->activeSessionId) {
+            return;
+        }
 
         $this->messages = ChatMessage::query()
             ->where('chat_session_id', $this->activeSessionId)
-            ->oldest() // Lấy từ cũ đến mới để hiển thị đúng thứ tự
+            ->oldest()
             ->limit(100)
             ->get()
             ->toArray();
@@ -55,76 +67,101 @@ class ChatManager extends Component
 
     public function send(ChatService $chatService): void
     {
-        if (!$this->activeSessionId) return;
+        $this->authorizePermission('create_chat');
+
+        if (! $this->activeSessionId) {
+            return;
+        }
 
         $messageText = trim($this->message);
-        if (!$messageText) return;
+
+        if ($messageText === '') {
+            return;
+        }
 
         $sentMessage = $chatService->sendMessage([
             'chat_session_id' => $this->activeSessionId,
-            'sender_id'       => Auth::id(),
-            'sender_type'     => 'admin',
-            'message'         => $messageText,
+            'sender_id' => Auth::guard('admin')->id(),
+            'sender_type' => 'admin',
+            'message' => $messageText,
         ]);
 
-        // Hiển thị ngay trong chính request Livewire. Socket.IO vẫn phát
-        // cho các client khác; appendMessage() sẽ loại bản sao theo ID.
         $this->appendMessage($sentMessage->toArray());
         $this->reset('message');
     }
 
-    // public function appendMessage($message): void 
-    // {
-    //     // Chống trùng lặp tin nhắn
-    //     $exists = collect($this->messages)->contains('id', $message['id']);
-    //     if ($exists) return;
-
-    //     if ($message['chat_session_id'] == $this->activeSessionId) {
-    //         $this->messages[] = $message;
-    //         $this->dispatch('scroll-bottom');
-    //     }
-    // }
-
-
-
     public function appendMessage($message): void
     {
-        // Chuyển đổi nếu message là JSON string
+        $this->authorizePermission('view_chat');
+
         if (is_string($message)) {
             $message = json_decode($message, true);
         }
 
-        // Kiểm tra xem tin nhắn có thuộc session đang mở không
-        if ((int)$message['chat_session_id'] !== $this->activeSessionId) {
+        if (! is_array($message) || ! isset($message['chat_session_id'], $message['id'])) {
             return;
         }
 
-        // Chống trùng (Duplicate prevention)
-        $exists = collect($this->messages)->contains('id', $message['id']);
-        if ($exists) return;
+        if ((int) $message['chat_session_id'] !== $this->activeSessionId) {
+            return;
+        }
 
-        // Đẩy vào mảng và Livewire sẽ tự động render lại HTML
+        if (collect($this->messages)->contains('id', $message['id'])) {
+            return;
+        }
+
         $this->messages[] = $message;
-
-        // Cuộn xuống cuối
         $this->dispatch('scroll-bottom');
     }
 
     public function getSessionsProperty()
     {
+        $this->authorizePermission('view_chat');
+
         return ChatSession::query()
             ->with(['user', 'latestMessage'])
             ->latest('last_message_at')
             ->get();
     }
 
-    public function getActiveSessionProperty()
+    public function getActiveSessionProperty(): ?ChatSession
     {
-        return $this->activeSessionId ? ChatSession::find($this->activeSessionId) : null;
+        $this->authorizePermission('view_chat');
+
+        return $this->activeSessionId
+            ? ChatSession::query()->find($this->activeSessionId)
+            : null;
+    }
+
+    public function delete(int $id, ChatService $chatService): void
+    {
+        $this->authorizePermission('delete_chat');
+        $chatService->deleteMessage($id);
+        $this->dispatch('echo-refresh');
+    }
+
+    public function clearSessionMessages(int $sessionId, ChatService $chatService): void
+    {
+        $this->authorizePermission('delete_chat');
+        $chatService->deleteAllMessages($sessionId);
+
+        if ($this->activeSessionId === $sessionId) {
+            $this->loadMessages();
+        }
     }
 
     public function render()
     {
+        $this->authorizePermission('view_chat');
+
         return view('Chat::livewire.chat.chat-manager');
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $admin = Auth::guard('admin')->user();
+
+        abort_unless($admin, 403);
+        Gate::forUser($admin)->authorize($permission);
     }
 }

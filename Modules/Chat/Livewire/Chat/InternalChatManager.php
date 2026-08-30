@@ -2,9 +2,10 @@
 
 namespace Modules\Chat\Livewire\Chat;
 
-use Livewire\Component;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Livewire\Component;
 use Modules\Chat\Services\InternalChatService;
 
 class InternalChatManager extends Component
@@ -24,160 +25,68 @@ class InternalChatManager extends Component
         'setOnlineUsers',
     ];
 
-    /**
-     * =====================================================
-     * SELECT USER
-     * =====================================================
-     */
-    public function selectUser(
-        int $userId,
-        InternalChatService $service
-    ): void {
+    public function mount(): void
+    {
+        $this->authorizePermission('view_chat');
+    }
+
+    public function selectUser(int $userId, InternalChatService $service): void
+    {
+        $this->authorizePermission('view_chat');
 
         $this->selectedUserId = $userId;
-
-        /**
-         * Selected user
-         */
         $this->selectedUser = User::query()
-            ->select([
-                'id',
-                'name',
-                'email',
-            ])
+            ->select(['id', 'name', 'email'])
             ->find($userId);
 
-        /**
-         * Messages
-         */
-        $this->messages = $service
-            ->getMessages($userId)
-            ->toArray();
-
-        /**
-         * Join socket room
-         */
-        $this->dispatch(
-            'join-room',
-            room: $this->roomName()
-        );
-
-        /**
-         * Scroll bottom
-         */
+        $this->messages = $service->getMessages($userId)->toArray();
+        $this->dispatch('join-room', room: $this->roomName());
         $this->dispatch('scroll-bottom');
     }
 
-    /**
-     * =====================================================
-     * SEND MESSAGE
-     * =====================================================
-     */
-    public function send(
-        InternalChatService $service
-    ): void {
+    public function send(InternalChatService $service): void
+    {
+        $this->authorizePermission('create_chat');
 
-        if (!$this->selectedUserId) {
+        if (! $this->selectedUserId || trim($this->message) === '') {
             return;
         }
 
-        if (!trim($this->message)) {
-            return;
-        }
-
-        /**
-         * Send
-         */
-        $service->sendMessage(
-            $this->selectedUserId,
-            trim($this->message)
-        );
-
-        /**
-         * Clear input
-         */
+        $service->sendMessage($this->selectedUserId, trim($this->message));
         $this->reset('message');
-
-        /**
-         * Reload messages
-         */
-        $this->messages = $service
-            ->getMessages($this->selectedUserId)
-            ->toArray();
-
-        /**
-         * Scroll
-         */
+        $this->messages = $service->getMessages($this->selectedUserId)->toArray();
         $this->dispatch('scroll-bottom');
     }
 
-    /**
-     * =====================================================
-     * REALTIME APPEND MESSAGE
-     * =====================================================
-     */
-    public function appendMessage(
-        $message
-    ): void {
+    public function appendMessage($message): void
+    {
+        $this->authorizePermission('view_chat');
 
         if (is_string($message)) {
-
-            $message = json_decode(
-                $message,
-                true
-            );
+            $message = json_decode($message, true);
         }
 
-        if (!is_array($message)) {
+        if (! is_array($message) || ! isset($message['id'])) {
             return;
         }
 
-
-        /**
-         * Duplicate prevent
-         */
-        $exists = collect($this->messages)
-            ->contains(
-                fn($msg)
-                    =>
-                    $msg['id']
-                    ==
-                    $message['id']
-            );
-
-        if ($exists) {
+        if (collect($this->messages)->contains(fn ($item) => ($item['id'] ?? null) == $message['id'])) {
             return;
         }
 
-        /**
-         * Append realtime
-         */
         $this->messages[] = $message;
-
-        /**
-         * Scroll
-         */
         $this->dispatch('scroll-bottom');
     }
 
-    /**
-     * =====================================================
-     * ONLINE USERS
-     * =====================================================
-     */
     public function setOnlineUsers($users): void
     {
-        $this->onlineUsers = $users;
+        $this->authorizePermission('view_chat');
+        $this->onlineUsers = is_array($users) ? $users : [];
     }
 
-    /**
-     * =====================================================
-     * ROOM NAME
-     * =====================================================
-     */
     public function roomName(): ?string
     {
-        if (!$this->selectedUserId) {
+        if (! $this->selectedUserId) {
             return null;
         }
 
@@ -191,36 +100,25 @@ class InternalChatManager extends Component
         return "dm-{$ids[0]}-{$ids[1]}";
     }
 
-    /**
-     * =====================================================
-     * RENDER
-     * =====================================================
-     */
     public function render()
     {
-        return view(
-            'Chat::livewire.chat.internal-chat-manager',
-            [
+        $this->authorizePermission('view_chat');
 
-                'users' => User::query()
-                    ->select([
-                        'id',
-                        'name',
-                        'email',
-                    ])
-                    ->whereIn(
-                        'id',
-                        $this->onlineUsers
-                    )
-                    ->where(
-                        'id',
-                        '!=',
-                        Auth::guard('admin')->id()
-                    )
-                    ->orderBy('name')
-                    ->get(),
+        return view('Chat::livewire.chat.internal-chat-manager', [
+            'users' => User::query()
+                ->select(['id', 'name', 'email'])
+                ->whereIn('id', $this->onlineUsers)
+                ->where('id', '!=', Auth::guard('admin')->id())
+                ->orderBy('name')
+                ->get(),
+        ]);
+    }
 
-            ]
-        );
+    private function authorizePermission(string $permission): void
+    {
+        $admin = Auth::guard('admin')->user();
+
+        abort_unless($admin, 403);
+        Gate::forUser($admin)->authorize($permission);
     }
 }

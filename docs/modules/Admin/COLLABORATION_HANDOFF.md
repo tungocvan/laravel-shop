@@ -2,95 +2,95 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Slice 2: Category Legacy Ownership Cleanup**
+Task: **Admin Major Refactor — Slice 3: Chat Canonical Ownership & Authorization Boundary**
 
 Status: **VERIFIED — READY FOR PR REVIEW**
 
-Branch/checkpoint: `refactor/admin-category-legacy-ownership-cleanup`
+Branch/checkpoint: `refactor/admin-chat-canonical-ownership-boundary`
 
-This slice was explicitly approved after the ownership/reachability baseline PR was merged.
+This slice was explicitly approved after the Category cleanup PR was merged.
 
 ## Canonical ownership decision
 
-`Modules/Category` is the canonical owner of the Category admin workspace.
+`Modules/Chat` is the canonical owner of Chat runtime behavior.
 
-Preserved public/admin contracts:
+Admin remains the authenticated presentation shell for Chat admin pages, but Chat owns its controller, Livewire components, services, models, realtime payload handling and Chat permissions.
 
-- `admin.category.index`
-- `admin.category.create`
-- `admin.category.edit`
-- `/admin/category`
-- `/admin/category/create`
-- `/admin/category/{id}/edit`
-- `view_category`
-- `create_category`
-- `edit_category`
-- `delete_category`
+Preserved route contracts:
 
-The workspace continues to render inside the Admin shell layout, but Category owns its controller, Livewire components, services, models, validation, authorization and business behavior.
+- `admin.chat.index` -> `/admin/chat/internal-chat`
+- `admin.chat.cskh` -> `/admin/chat`
 
-## Removed legacy Admin runtime copies
+Both routes continue to resolve to `Modules\Chat\Http\Controllers\ChatController`.
 
-The canonical Category route/controller/view/Livewire replacement was already active, so this slice removes the obsolete Admin copies:
+## Changes in this slice
 
-- `Modules/Admin/Http/Controllers/CategoryController.php`
-- `Modules/Admin/Livewire/Categories/CategoryForm.php`
-- `Modules/Admin/Livewire/Categories/CategoryTable.php`
-- `Modules/Admin/resources/views/pages/categories/index.blade.php`
-- `Modules/Admin/resources/views/pages/categories/create.blade.php`
-- `Modules/Admin/resources/views/pages/categories/edit.blade.php`
-- `Modules/Admin/resources/views/livewire/categories/category-form.blade.php`
-- `Modules/Admin/resources/views/livewire/categories/category-table.blade.php`
+### Authorization boundary
 
-No canonical Category source was moved back into Admin.
+`Modules/Chat/routes/web.php` now requires:
 
-## Category workspace UX refinements
+- `web`
+- `auth:admin`
+- `permission:view_chat,admin`
 
-This slice also completes the canonical Category admin workspace without changing its route or permission contracts:
+for both admin Chat workspaces.
 
-- create/edit form uses a wider, more balanced admin layout;
-- explicit `Quay về danh sách` actions return to `admin.category.index`;
-- category rows use a resilient default folder icon when no valid image file exists;
-- the category list is now hierarchical instead of flattening child categories as roots;
-- root categories are paginated; child rows expand inline with `+` / `−` controls;
-- search/status filtering preserves ancestor context and expands matching branches;
-- recursive child levels are supported and visually indented;
-- expand/collapse state is UI-only and does not alter `parent_id` data.
+Canonical Chat Livewire components also authorize operations at the component/action layer so Livewire update requests do not rely only on the initial page route:
 
-## Guardrails added
+- read/render/load: `view_chat`
+- send message: `create_chat`
+- assign/select customer session: `edit_chat`
+- delete message / clear session messages: `delete_chat`
+- internal-chat send: `create_chat`
 
-Added/updated focused contracts to verify:
+### Canonical Chat models/services
 
-- Category admin routes resolve to `Modules\Category\Http\Controllers\CategoryController`;
-- removed Admin runtime copies stay absent;
-- canonical Category controller/Livewire/page views stay present;
-- canonical Category pages continue using `category.categories.*` Livewire aliases;
-- create/edit workspace keeps explicit return navigation and balanced layout structure;
-- missing category images fall back to the default icon instead of broken images;
-- hierarchical admin tree remains root-paginated and expandable.
+The canonical Chat runtime no longer imports Admin-owned Chat models/services:
 
-Existing `tests/Feature/Category/CategoryRouteConfigurationTest.php` continues to protect route URLs, names and permission middleware.
+- `Modules/Chat/Services/ChatService.php` uses `Modules\Chat\Models\ChatSession` and `ChatMessage`;
+- `Modules/Chat/Livewire/Chat/ChatManager.php` uses Chat-owned models and service;
+- `Modules/Chat/Livewire/Chat/ChatWidget.php` uses Chat-owned `ChatSession`;
+- `Modules/Chat/Livewire/Chat/InternalChatManager.php` has explicit Chat permission enforcement.
 
-## Documentation
+`ChatService::deleteAllMessages()` was retained in the canonical service so switching away from the legacy Admin service does not drop the existing clear-session behavior.
 
-Updated `docs/modules/Admin/OWNERSHIP_BASELINE.md`:
+Realtime event/channel semantics remain based on the existing canonical Chat implementation.
 
-- Category legacy runtime is now classified `CLEANED`;
-- canonical Category ownership evidence is recorded;
-- Category cleanup does not authorize schema/migration moves;
-- `/admin/menus` remains canonical Admin shell ownership and is unaffected.
+### Compatibility / deletion boundary
+
+Legacy Admin Chat files are **not deleted yet** in this slice.
+
+Examples still physically present include legacy Admin Chat controller, Livewire manager, models, service and view. They are no longer canonical ownership, but deletion requires repository-wide caller/alias proof that is not yet complete.
+
+This deliberately avoids repeating a bulk-delete assumption.
+
+The Chat manifest still declares an `Admin` dependency because Chat pages extend `Admin::layouts.master`. Removing that presentation dependency is not authorized by this checkpoint.
+
+## Guardrail added
+
+Added `tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` to verify:
+
+- Chat admin URLs and route names remain unchanged;
+- both admin Chat routes resolve to the Chat controller;
+- both routes require `auth:admin` and `permission:view_chat,admin`;
+- canonical Chat service/Livewire code does not import Admin Chat models/service;
+- canonical Chat models/services/components remain present;
+- canonical Chat service retains `deleteAllMessages()`;
+- Chat Livewire components contain capability-specific authorization checks.
+
+Updated `docs/modules/Admin/OWNERSHIP_BASELINE.md` to classify Chat as `BOUNDARY MOVED` rather than fully `CLEANED` until legacy caller proof is complete.
 
 ## Runtime / schema impact
 
 Route URL/name change: **NONE**
 
-Permission change: **NONE**
+Authentication guard change: **NONE**
 
-Category ownership: **MOVED OUT OF ADMIN LEGACY COPIES; CANONICAL OWNER REMAINS CATEGORY**
+Authorization: **HARDENED** — `view_chat` now protects both Chat admin routes and Livewire actions enforce capability-specific permissions.
 
-Category UI behavior: **IMPROVED** — balanced create/edit layout, return navigation, resilient image fallback, hierarchical expandable tree
+Chat canonical model/service ownership: **MOVED OUT OF ADMIN DEPENDENCY**
 
-Admin shell behavior change: **NONE OUTSIDE CATEGORY WORKSPACE**
+Realtime protocol redesign: **NONE**
 
 Database/schema/migration change: **NONE**
 
@@ -98,35 +98,28 @@ P0 database administration quarantine: **UNCHANGED**
 
 ## Verification
 
-Earlier impacted verification for the ownership cleanup reported:
+Focused Chat ownership / Admin guardrail verification reported:
 
 ```text
-Tests: 12 passed (83 assertions)
-Duration: 0.92s
-
-Tests: 145 passed (1348 assertions)
-Duration: 6.79s
+Tests: 11 passed (86 assertions)
+Duration: 0.57s
 ```
 
-After the final hierarchical tree implementation, focused Category/Admin contracts were rerun and reported:
+Focused impacted Admin + Chat regression reported:
 
 ```text
-Tests: 8 passed (61 assertions)
-Duration: 1.08s
+Tests: 150 passed (1400 assertions)
+Duration: 4.55s
 ```
 
 Manual UI verification: **PASS**.
 
-Verified UX includes:
+Verified UI surfaces include:
 
-- `/admin/category` renders the canonical Category workspace;
-- category image fallback renders correctly when image files are missing;
-- root category rows remain collapsed by default;
-- child categories appear only after expanding the parent with `+`;
-- recursive expand/collapse works and uses `−` while expanded;
-- Category create/edit navigation and layout remain usable.
+- `/admin/chat`
+- `/admin/chat/internal-chat`
 
-Full project regression was intentionally not run; verification remained scoped to Admin + Category and directly impacted behavior.
+No full-project regression was run; verification remained scoped to Admin + Chat and directly impacted behavior.
 
 ## Material risks still open
 
@@ -134,26 +127,28 @@ Full project regression was intentionally not run; verification remained scoped 
 
 `Modules/Admin/Services/DatabaseService.php` remains quarantined and must stay unreachable.
 
-### P1
+### P1 — Chat compatibility cleanup
 
-Other legacy Admin families remain physically present and are not authorized for bulk cleanup. Chat, Product, Order, Post/content, customer/address, roles/staff, marketing/public-site and system/environment families require separate ownership/reachability review.
+Legacy Admin Chat files remain physically present until caller proof is complete. Do not delete them solely because the canonical Chat routes no longer use them.
 
 Production migration-ledger/table ownership remains unresolved and is intentionally out of scope.
 
 ## Acceptance criteria
 
-- Category ownership cleanup contract: **PASS**;
-- existing Category route configuration contract: **PASS**;
-- Admin ownership/P0 guardrails in impacted regression: **PASS**;
-- focused Category + Admin regression: **PASS**;
-- final hierarchical tree focused contracts: **8 PASS / 61 assertions**;
-- manual Category UI smoke: **PASS**;
-- route names/URLs/permissions unchanged: **CONFIRMED BY CONTRACTS**;
+- Chat ownership boundary contract: **PASS**;
+- existing Admin ownership/P0 guardrails: **PASS**;
+- focused Admin + Chat impacted regression: **PASS — 150 tests / 1400 assertions**;
+- focused ownership/guardrail contracts: **PASS — 11 tests / 86 assertions**;
+- `/admin/chat` UI smoke: **PASS**;
+- `/admin/chat/internal-chat` UI smoke: **PASS**;
+- route URLs/names unchanged: **CONFIRMED BY CONTRACT**;
+- `view_chat` route authorization confirmed: **YES**;
+- canonical Chat runtime has no Admin Chat model/service imports: **CONFIRMED BY CONTRACT**;
 - schema/migration changes: **NONE**;
 - PR readiness: **READY**.
 
 ## Next phase
 
-Next legacy-family migration/refactor slice: **NOT AUTHORIZED YET**.
+Next Chat cleanup or another Admin legacy-family slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is merged, inspect the remaining candidates and propose exactly one next family. Chat remains a likely candidate, but its current Admin dependency and authorization contract must be reviewed before implementation.
+After this checkpoint is merged, first decide whether remaining legacy Admin Chat copies have sufficient repository-wide caller proof for deletion. Do not combine that decision with unrelated Product/Order/Post cleanup.
