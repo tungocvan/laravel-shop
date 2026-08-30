@@ -43,9 +43,12 @@ class PharmaMedicineWorkspaceTest extends TestCase
     public function test_workspace_preserves_existing_named_routes_and_admin_navigation(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+        $page = file_get_contents(base_path('Modules/Pharma/resources/views/pages/index.blade.php'));
 
         $this->assertStringContainsString("route('admin.pharma.hssp.create')", $view);
         $this->assertStringContainsString("route('admin.pharma.hssp.edit', \$medicine->id)", $view);
         $this->assertStringContainsString('MedicineImportExport::class', $view);
+        $this->assertStringContainsString("route('admin.pharma.dashboard')", $page);
+        $this->assertStringContainsString('Quay về Dashboard Pharma', $page);
     }
 }
