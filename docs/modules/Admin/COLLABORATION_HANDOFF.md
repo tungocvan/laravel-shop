@@ -2,113 +2,101 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Customer/address Legacy Ownership Cleanup**
+Task: **Admin Major Refactor — Role / Staff / Admin Identity Ownership**
 
 Status: **VERIFIED — PR READY**
 
-Branch/checkpoint: `refactor/admin-customer-address-ownership`
+Branch/checkpoint: `refactor/admin-role-staff-identity-ownership`
 
-This slice was explicitly approved after the Post/content ownership cleanup merged. The work focused on proving the legacy Admin Customer runtime unreachable, preserving the canonical Account/User boundaries, and avoiding schema or identity-lifecycle changes.
+This slice was explicitly approved after Customer/address ownership cleanup merged. The work proved the canonical Role, Account/employee-profile, and Admin authentication boundaries and removed only the proven obsolete Admin identity residue.
 
 ## Ownership decision
 
-The removed `Modules/Admin` Customer family was a dead/unreachable runtime copy and is now `CLEANED`.
+Responsibilities remain intentionally split:
 
-Canonical responsibilities remain split rather than moving the old Customer implementation wholesale into one module:
+- `Modules/Role` owns role/permission/RBAC runtime, services, Livewire workspace and `/admin/roles*` URLs;
+- `Modules/Account` owns the active account workspace and `EmployeeProfile` identity/profile boundary;
+- the `admin` guard remains an Admin-shell authentication context but uses the shared `users` provider rather than a separate Admin model;
+- `Modules/Admin` remains the authenticated shell and does not own Role, Staff, EmployeeProfile, or a separate persisted Admin identity model.
 
-- `Modules/Account` owns the active admin account workspace at `/admin/accounts`, including account identity editing and `CustomerProfile` behavior through the Account runtime/service boundary;
-- `Modules/User` retains `UserAddress` and the existing `user_addresses` schema contract;
-- Order history/aggregate behavior remains outside the Account form/index and was not reimplemented during this cleanup;
-- Admin remains the authenticated shell and does not own customer identity/profile/address persistence.
-
-No `/admin/customers*` compatibility route was introduced because the legacy Admin Customer controller/routes were not part of the active Admin route boundary and no live repo caller was proven to require them.
-
-## Removed legacy Admin Customer runtime
-
-The following proven obsolete files were removed:
-
-- `Modules/Admin/Http/Controllers/CustomerController.php`
-- `Modules/Admin/Livewire/Customers/CustomerCreate.php`
-- `Modules/Admin/Livewire/Customers/CustomerDetail.php`
-- `Modules/Admin/Livewire/Customers/CustomerTable.php`
-- `Modules/Admin/resources/views/livewire/customers/customer-create.blade.php`
-- `Modules/Admin/resources/views/livewire/customers/customer-detail.blade.php`
-- `Modules/Admin/resources/views/livewire/customers/customer-table.blade.php`
-- `Modules/Admin/resources/views/pages/customers/create.blade.php`
-- `Modules/Admin/resources/views/pages/customers/index.blade.php`
-- `Modules/Admin/resources/views/pages/customers/show.blade.php`
-
-The removed implementation directly mutated the historical application User model, mixed profile/password/status/address/order behavior in Admin Livewire, and included an unbounded `all`/`9999` pagination path. It was not revived or migrated as a unit.
+`Modules/Admin/Models/Admin.php` was a nearly empty legacy Eloquent model, was not configured as the `admin` guard provider, and is now removed.
 
 ## Canonical runtime retained
 
-The active Account routes remain:
+Role URLs remain:
+
+- `/admin/roles` → `admin.role.index`
+- `/admin/roles/create` → `admin.role.create`
+- `/admin/roles/{id}/edit` → `admin.role.edit`
+
+These routes resolve to `Modules\\Role\\Http\\Controllers\\RoleController` and retain the existing `view_role`, `create_role`, and `edit_role` permission middleware.
+
+Historical `/admin/role*` redirects remain in `Modules/Role/routes/web.php`. Route-name normalization from singular `admin.role.*` to plural naming was deliberately not performed because it is naming/compatibility work rather than ownership cleanup.
+
+Account URLs remain:
 
 - `/admin/accounts` → `admin.accounts.index`
 - `/admin/accounts/create` → `admin.accounts.create`
 - `/admin/accounts/{id}/edit` → `admin.accounts.edit`
 
-All three resolve to `Modules\\Account\\Http\\Controllers\\AccountController` under `auth:admin`.
+They remain owned by `Modules\\Account\\Http\\Controllers\\AccountController`.
 
-The Account form retains `account_type = customer`, customer-profile handling, and the `AccountService` boundary. `Modules/User/Models/UserAddress.php` and its existing migration remain untouched.
+## Authentication / authorization assessment
 
-## Authorization / schema assessment
+`config/auth.php` keeps both `web` and `admin` session guards on the shared `users` provider. The provider remains Eloquent-backed by the configured application User model.
 
-This cleanup does not reuse the legacy `view_customer/create_customer/edit_customer/delete_customer` controller boundary and does not add new customer mutation endpoints.
+Authentication guard/provider change: **NONE**
 
-Authentication/authorization weakening: **NONE INTRODUCED**
+Role permission middleware change: **NONE**
+
+Role route URL/name change: **NONE**
 
 Account route URL/name change: **NONE**
 
-Account/User model behavior change: **NONE**
+EmployeeProfile behavior change: **NONE**
 
-Customer/address schema or migration change: **NONE**
-
-Production data mutation: **NONE**
-
-Order history behavior change: **NONE**
+Schema/migration/data change: **NONE**
 
 P0 database administration quarantine: **UNCHANGED**
 
-Historical external bookmarks to an old `/admin/customers*` surface cannot be proven from repository source alone; no compatibility redirect is added without a verified contract.
+## Removed legacy residue
 
-## UI / UX assessment
+- `Modules/Admin/Models/Admin.php`
 
-The removed legacy Customer table's unbounded `all` pagination does not survive this cleanup. The canonical `/admin/accounts` workspace remains the active UI and the user manually verified it as **UI PASS** after the cleanup.
-
-No speculative Account UI redesign was added to this ownership slice because the canonical Account runtime was not changed.
+No Role/Account runtime was moved into Admin and no replacement Admin identity model was introduced.
 
 ## Verification completed
 
 ```text
-AdminCustomerOwnershipCleanupContractTest: 7 passed, 44 assertions
-AdminCustomerOwnershipCleanupContractTest + AdminOwnershipBoundaryContractTest: 11 passed, 65 assertions
+AdminRoleStaffIdentityOwnershipContractTest: 8 passed, 32 assertions
+AdminRoleStaffIdentityOwnershipContractTest + AdminOwnershipBoundaryContractTest: 12 passed, 53 assertions
+admin.role route list: PASS — 3 canonical Modules\\Role\\Http\\Controllers\\RoleController routes
 admin.accounts route list: PASS — 3 canonical Modules\\Account\\Http\\Controllers\\AccountController routes
-Manual /admin/accounts UI: PASS
+Manual Admin login/logout + /admin/roles + Role edit + /admin/accounts + Account edit: UI PASS
 ```
 
-The focused Customer ownership contract protects:
+The focused ownership contract protects:
 
-- absence of legacy Customer registration from the Admin route source;
-- the three canonical Account routes/controller and `auth:admin` middleware;
-- absence of all ten removed Admin Customer runtime files;
-- Account ownership of account/customer-profile runtime through `AccountService`;
-- User ownership of `UserAddress` and the existing `user_addresses` schema contract;
-- non-reimplementation of Order history/aggregate behavior in Account form/index;
+- shared User-provider ownership for `auth:admin`;
+- absence of the obsolete Admin identity model;
+- absence of Role/Staff ownership from the Admin route boundary;
+- canonical Role routes, permissions, services, Livewire components, and legacy URL redirects;
+- Account ownership of EmployeeProfile/account runtime;
+- unchanged auth/schema/migration boundaries;
 - continued P0 `DatabaseService` quarantine.
 
 No full-project regression was required for this ownership-only slice.
 
 ## Acceptance criteria
 
-- legacy Admin Customer runtime reachability: **PROVEN OBSOLETE / CLEANED**;
-- ten legacy Admin Customer artifacts absent: **VERIFIED**;
-- canonical Account routes preserved: **VERIFIED — 3 routes**;
-- Account customer-profile service boundary preserved: **VERIFIED**;
-- UserAddress ownership/schema preserved: **VERIFIED**;
-- Order history not absorbed into Account: **VERIFIED**;
+- separate persisted Admin identity model required by `auth:admin`: **NO**;
+- legacy `Modules/Admin/Models/Admin.php`: **PROVEN OBSOLETE / REMOVED**;
+- canonical Role runtime preserved: **VERIFIED**;
+- existing Role permission middleware preserved: **VERIFIED**;
+- legacy `/admin/role*` redirects preserved: **VERIFIED**;
+- canonical Account/EmployeeProfile boundary preserved: **VERIFIED**;
 - schema/migration/data changes: **NONE**;
-- Account UI after cleanup: **UI PASS**;
+- manual authentication/Role/Account UI: **UI PASS**;
 - P0 database quarantine: **UNCHANGED**;
 - focused + Admin boundary regression: **PASS**;
 - PR readiness: **READY**.
@@ -121,10 +109,12 @@ No full-project regression was required for this ownership-only slice.
 
 ### Remaining Admin legacy families
 
-Roles/staff, marketing/public-site, Affiliate/promotion and system/environment remain separate ownership/reachability candidates.
+Marketing/public-site, Affiliate/promotion and system/environment remain separate ownership/reachability candidates.
+
+Role route-name normalization (`admin.role.*` versus plural URL `/admin/roles*`) is compatibility/naming debt only and is not required for this ownership cleanup.
 
 Production migration-ledger/table ownership for unrelated Admin legacy families remains unresolved and out of scope.
 
 ## Next phase
 
-Customer/address ownership cleanup is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
+Role / Staff / Admin Identity ownership cleanup is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
