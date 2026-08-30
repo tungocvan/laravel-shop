@@ -10,7 +10,7 @@ use RuntimeException as SupplierTrackingMigrationException;
 return new class extends Migration {
     public function up(): void
     {
-        if (! Schema::hasColumn('pharma_supplier_trackings', 'supplier_name_normalized')) {
+        if (!Schema::hasColumn('pharma_supplier_trackings', 'supplier_name_normalized')) {
             Schema::table('pharma_supplier_trackings', function (Blueprint $table) {
                 $table->string('supplier_name_normalized')->nullable()->after('supplier_name');
             });
@@ -53,7 +53,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        if (! Schema::hasColumn('pharma_supplier_trackings', 'supplier_name_normalized')) {
+        if (!Schema::hasColumn('pharma_supplier_trackings', 'supplier_name_normalized')) {
             return;
         }
 
