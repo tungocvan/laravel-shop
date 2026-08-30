@@ -41,6 +41,11 @@ class OrderTable extends Component
     public function updatedStatus() { $this->resetPage(); $this->selected = []; $this->selectAll = false; }
     public function updatedPage()   { $this->selected = []; $this->selectAll = false; }
 
+    public function paginationView(): string
+    {
+        return 'Order::vendor.pagination.admin-orders';
+    }
+
     // Xử lý nút "Chọn tất cả" trên trang hiện tại
     public function updatedSelectAll($value)
     {
