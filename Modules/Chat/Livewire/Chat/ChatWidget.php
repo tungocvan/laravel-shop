@@ -68,6 +68,11 @@ class ChatWidget extends Component
         ]);
     }
 
+    public function toggleChat(): void
+    {
+        $this->isOpen = ! $this->isOpen;
+    }
+
     public function loadMessages()
     {
         $session = ChatSession::where('session_token', $this->sessionToken)
