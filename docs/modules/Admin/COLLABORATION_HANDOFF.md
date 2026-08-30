@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Banner Legacy Runtime Tree Cleanup**
 
-Status: **IMPLEMENTED — FOCUSED VERIFICATION PENDING**
+Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / UI PASS / PR READY**
 
 Branch/checkpoint: `refactor/admin-banner-legacy-runtime-cleanup`
 
@@ -33,7 +33,7 @@ No Website Banner business behavior was redesigned.
 
 ## Guardrail
 
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` now asserts that the four legacy Admin Banner runtime artifacts stay absent, Admin routes do not regain `BannerController`, and the canonical Website controller/view path remains present.
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` asserts that the four legacy Admin Banner runtime artifacts stay absent, Admin routes do not regain `BannerController`, and the canonical Website controller/view path remains present.
 
 Existing Header/Footer, Flash Sale, Coupon, Affiliate, Database and compatibility-adapter assertions remain in place and are outside this deletion slice.
 
@@ -43,28 +43,35 @@ No schema, migration, foreign-key or production-data change is authorized or inc
 
 ## Verification
 
-Focused verification is pending local execution after pulling the implementation commits.
+Local focused verification reported PASS:
 
-Recommended commands:
-
-```bash
-php artisan test tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php
-php artisan test tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php
-php artisan route:list --path=admin/banner
+```text
+AdminWebsitePresentationOwnershipContractTest: 6 passed, 57 assertions
+AdminOwnershipBoundaryContractTest: 4 passed, 21 assertions
+Total: 10 passed, 78 assertions
 ```
 
-Manual Banner UI smoke should verify the active Website-owned Banner management screen still loads and mutations behave normally.
+Route verification reported:
+
+```text
+GET|HEAD admin/banners admin.banners › Modules\Website\Http\Controllers\Admin\BannerController@index
+```
+
+Manual Banner UI smoke: **PASS**. The active Website-owned Banner management screen and tested UI behavior remain operational.
+
+Working tree after verification: **clean** at implementation checkpoint `054646ed` before this documentation closeout.
 
 ## Acceptance criteria
 
-- canonical Banner runtime owner: **Website — VERIFIED by route/controller/view/Livewire proof**;
+- canonical Banner runtime owner: **Website — VERIFIED**;
 - legacy Admin Banner controller/view/Livewire runtime tree: **REMOVED**;
 - Admin Banner model/service compatibility adapters: **PRESERVED**;
 - Admin shell controller boundary: **PRESERVED**;
 - Website Banner runtime/business behavior: **UNCHANGED**;
 - schema/migration/data changes: **NONE**;
-- focused regression: **PENDING LOCAL VERIFICATION**;
-- manual Banner UI smoke: **PENDING**.
+- focused regression: **PASS — 10 tests / 78 assertions**;
+- canonical Banner route: **PASS — Website controller-owned**;
+- manual Banner UI smoke: **PASS**.
 
 ## Remaining compatibility debt
 
@@ -74,4 +81,6 @@ Deprecated Banner model/service adapters remain until complete dynamic/external 
 
 ## Next phase
 
-Complete focused verification and Banner UI smoke for this branch. Do not begin another Admin legacy family until this slice is verified, documented, merged, and the next scope is explicitly approved.
+Open and merge this Banner legacy runtime cleanup as a focused PR. Do not begin another Admin legacy family until this branch is merged and the next scope is explicitly approved.
+
+After merge, resume Compatibility Debt Audit and choose exactly one coherent next legacy runtime family using route -> controller -> view -> Livewire reachability proof.
