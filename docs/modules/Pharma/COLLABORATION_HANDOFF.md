@@ -3,147 +3,147 @@
 ## Current checkpoint
 
 - Module: `Pharma`
-- Phase: Major Refactor
-- Branch: `refactor/pharma-price-list-secure-pipeline`
-- Status: **MR-6 PRICE LIST SECURITY + PIPELINE ACCEPTED — READY FOR PR REVIEW**
+- Phase: Major Refactor — Final Acceptance + Closeout
+- Branch: `docs/pharma-major-refactor-final-acceptance-closeout`
+- Base checkpoint: `main@c5d6e4b341c5f99f2bf73d8104fba0975ddd5375`
+- Status: **MR-7 FINAL ACCEPTANCE PASSED — READY FOR PR REVIEW**
 - Date: 2026-08-30
-- Application source modified: **YES**
+- Application source modified in MR-7: **NO**
+- Documentation modified in MR-7: **YES**
 - Production/runtime enablement changed: **NO**
 
-## Already merged foundation
+## Major Refactor delivery status
 
-- PR #88 merged MR-1 Security Foundation + MR-2 Shared Import/Export Hardening.
-- PR #89 merged the dedicated Pharma Admin Dashboard at `/admin/pharma`.
-- PR #90 merged MR-3 Medicine/HSSP Workspace.
-- PR #91 merged MR-4 Drug Bid Award Workspace + Sync-Ready Foundation.
-- PR #92 merged MR-5 Supplier Tracking Integrity + Workspace (`68bf4f5fd022a1a329cdb85cfc976435a4d5c434`).
+The planned Pharma Major Refactor implementation is complete through MR-6 and has passed the MR-7 final acceptance gate.
 
-## Completed scope — MR-6 Price List Security + Pipeline
+Merged delivery record:
 
-### Server-only workbook analysis state
+- PR #88 — MR-1 Security Foundation + MR-2 Shared Import/Export Hardening.
+- PR #89 — dedicated Pharma Admin Dashboard at `/admin/pharma`.
+- PR #90 — MR-3 Medicine/HSSP Workspace.
+- PR #91 — MR-4 Drug Bid Award Workspace + Sync-Ready Foundation.
+- PR #92 — MR-5 Supplier Tracking Integrity + Workspace.
+- PR #93 — MR-6 Price List Security + Pipeline, merged as `c5d6e4b341c5f99f2bf73d8104fba0975ddd5375`.
 
-- The PriceList Livewire component no longer exposes the full workbook analysis as public Livewire state.
-- Workbook metadata and product rows are resolved server-side for render/action work.
-- Only primitive UI state remains public: sheet, search, pagination, selection, column expression and recipient/signature values.
-- This removes the previous client round-trip of complete workbook analysis/product cell values.
+MR-7 intentionally introduces no new application feature. It validates the merged result and closes the refactor documentation.
 
-### Bounded PriceList workspace
+## Final accepted architecture
 
-- Product list pagination is bounded to `10`, `25`, `50`, `100`; there is no `All` path.
-- The default page size is 10.
-- Opening/reloading the workbook no longer auto-selects every product.
-- Header selection is page-scoped only.
-- Search/per-page/page changes clear page-selection state deterministically.
-- Users can clear the complete current selection explicitly.
-- Search remains based on STT, product name, active ingredient and registration number.
+### Security boundary
 
-### Canonical generation boundary
+- Pharma Admin routes are behind `web` + `auth:admin`.
+- Dashboard/index/create/edit routes enforce the appropriate Pharma capabilities.
+- Sensitive Livewire mutations use server-side capability checks.
+- Pharma exposes no public API contract; `routes/api.php` is intentionally empty of routes.
 
-- The Livewire component no longer performs a second independent column-validation pass before generation.
-- `PriceListService::generate()` is the canonical execution boundary for:
-  - workbook analysis;
-  - column-expression validation;
-  - selected-product-row validation;
-  - output allocation;
-  - workbook build.
-- The existing XLSX business output contract is preserved.
+### Admin workspaces
 
-### Private output-path hardening
+- Dashboard provides the canonical Pharma entry point.
+- Medicine/HSSP, Drug Bid Award, Supplier Tracking and PriceList use the Admin shell and Dashboard return navigation.
+- Production-facing list workspaces use bounded `10/25/50/100` pagination rather than `All`.
+- Bulk selection is page-scoped and destructive operations use explicit confirmation/permission boundaries.
+- Large Medicine selectors were replaced with bounded lookup behavior where refactored.
 
-- Production generation no longer accepts arbitrary `output_path` input from request/component data.
-- Generated files are allocated only under:
+### Import/export and generated files
 
-  `storage/app/private/exports/price-lists`
+- Pharma reuses the Shared Import/Export infrastructure.
+- Shared service resolution is hardened against mutable client-side service substitution.
+- Generated Shared exports are private and use authorized download behavior.
+- PriceList generation uses a private service-controlled output directory and does not trust a request-controlled output path.
 
-- Filenames remain timestamped and randomized.
-- Partial output is removed when workbook building fails.
-- Successful UI downloads continue to use `deleteFileAfterSend(true)`.
-- Tests can still exercise the generated workbook through the service's private export contract without opening a request-controlled filesystem path.
+### Domain integrity
 
-### PriceList UI polish
+- Drug Bid Awards include stable source metadata and idempotent source projection for future synchronization.
+- Supplier Tracking enforces the accepted normalized supplier business key when working date is non-null.
+- Medicine -> Supplier Tracking cascade-delete behavior remains intentionally unchanged.
+- PriceList workbook analysis remains server-side rather than public Livewire state.
 
-- The workspace keeps the canonical Pharma/Admin shell and `Quay về Dashboard Pharma` navigation.
-- Workbook readiness/status is presented as a compact summary instead of exposing raw analysis data.
-- Recipient/signature settings and source-column selection remain explicit.
-- Product selection is presented as a bounded searchable workspace with page-size controls and page-scoped selection wording.
-- Selection count, filtered result count and page range are visible before generation.
-- Loading/disabled states cover workbook reload, selection changes and generation.
-- Error and unavailable-workbook states remain user-readable while exceptions are reported to system logs.
+## MR-7 final acceptance evidence
 
-## Verification completed
+Executed on the dedicated closeout branch based on merged `main@c5d6e4b341c5f99f2bf73d8104fba0975ddd5375`.
 
-### Focused PriceList gate
+### Route inventory
 
 ```bash
-./vendor/bin/pint --test \
-  Modules/Pharma/Livewire/PriceList/Create.php \
-  Modules/Pharma/Services/PriceListService.php \
-  Modules/Pharma/Tests/Unit/PriceListServiceTest.php \
-  tests/Feature/Pharma/PharmaPriceListPipelineTest.php
-
-php artisan test \
-  tests/Feature/Pharma/PharmaPriceListPipelineTest.php \
-  Modules/Pharma/Tests/Unit/PriceListServiceTest.php
+php artisan route:list --path=admin/pharma
 ```
 
-Result:
+Result: **PASS — 11 Pharma Admin routes**.
 
-- Pint: **PASS — 4 files**.
-- Focused PriceList tests: **PASS — 8 tests, 42 assertions**.
-- Coverage includes server-only analysis-state contract, service-only validation boundary, private output-path confinement, bounded/page-scoped workspace behavior, workbook analysis/filtering and generated XLSX correctness.
+Accepted route surface:
 
-### Pharma impacted regression
+- Pharma Dashboard;
+- Medicine/HSSP index/create/edit;
+- Drug Bid Award index/create/edit;
+- Supplier Tracking index/create/edit;
+- Price List create.
+
+### Focused Pharma regression
 
 ```bash
 php artisan test tests/Feature/Pharma Modules/Pharma/Tests
 ```
 
-Result: **PASS — 41 tests, 240 assertions**.
+Result: **PASS — 41 tests, 240 assertions** in 2.93s.
 
-No full-project regression was run; verification remains intentionally focused on Pharma and directly impacted behavior.
+No full-project suite was run; verification remains intentionally scoped to Pharma and directly impacted behavior.
 
-### Frontend build
+### Frontend production build
 
 ```bash
 npm run build
 ```
 
-Result: **PASS — Vite production build completed, 34 modules transformed**.
+Result: **PASS — Vite production build, 34 modules transformed** in 1.90s.
 
-### Manual UI acceptance
+### UI acceptance lineage
 
-Final manual PriceList UI smoke: **PASS**.
+MR-6 PriceList final manual UI smoke was **PASS** immediately before PR #93 merge. Earlier Medicine, Drug Bid Award, Supplier Tracking and Dashboard delivery phases were likewise manually accepted before their respective merges.
 
-Accepted behavior includes:
+No new application UI was introduced by MR-7, so no additional MR-7 UI change requires acceptance.
 
-- compact PriceList workspace hierarchy;
-- no automatic all-workbook selection;
-- bounded `10/25/50/100` pagination;
-- page-scoped checkbox selection;
-- correct search/pagination interaction;
-- explicit clear-selection behavior;
-- recipient/column/signature workflow;
-- successful XLSX generation/download;
-- preserved generated workbook content/format;
-- loading/error states and Dashboard navigation.
+## Documentation closeout
 
-## Scope intentionally deferred
+`docs/modules/Pharma/ANALYSIS.md` has been refreshed from the pre-refactor risk inventory to the accepted post-refactor architecture. Findings already resolved by MR-1 through MR-6 are no longer presented as current defects.
 
-- Creating a PriceList database entity/table.
-- Queue/background generation unless future benchmarking proves it necessary.
-- User upload/replacement of the source workbook.
-- Switching PriceList source data to Medicine database records.
-- Actual Muasamcong -> Pharma production synchronization/wiring.
-- Automated fuzzy Medicine matching.
-- Changing Medicine -> Supplier Tracking cascade-delete policy.
-- Production enablement.
+The final analysis now records:
 
-## Next approved Major Refactor sequence
+- accepted security and authorization boundaries;
+- Shared Import/Export hardening;
+- bounded Admin workspaces;
+- Drug Bid Award sync-ready source identity;
+- Supplier Tracking business-key integrity;
+- PriceList server-only/private pipeline;
+- final route/test/build evidence;
+- explicit future/deferred scope.
 
-After this MR-6 PR is reviewed and merged, continue only after explicit user confirmation with:
+## Intentional deferred scope / non-goals
 
-1. **MR-7 Final Acceptance + closeout**.
+The following remain outside the completed Major Refactor and are **not blockers** for closeout:
 
-MR-7 should validate the completed Pharma Major Refactor as a whole, confirm remaining intentional deferrals/non-goals, run the agreed focused acceptance gates, update final documentation and close the refactor program. It must not silently introduce the deferred Muasamcong production sync or production enablement.
+- actual Muasamcong -> Pharma production synchronization/wiring;
+- automated fuzzy Medicine matching;
+- production/runtime enablement of Pharma;
+- PriceList database entity/table;
+- PriceList queue/background generation unless future benchmarking proves it necessary;
+- user upload/replacement of the PriceList source workbook;
+- switching PriceList source data to Medicine database records;
+- changing Medicine -> Supplier Tracking cascade-delete policy;
+- unrelated project-wide refactoring/regression.
 
-Do not begin MR-7, production synchronization, production enablement or unrelated module cleanup until the MR-6 PR is merged and the user explicitly confirms continuation.
+The tracked Pharma manifest remains `enabled => false`.
+
+## Closeout decision
+
+**Recommendation: merge MR-7 and close the Pharma Major Refactor program.**
+
+After MR-7 is merged, there is no automatically authorized next implementation MR. Any future Pharma work must start from a concrete user objective and a new analysis/plan before code changes.
+
+Likely future initiatives, only if explicitly requested, include:
+
+- Muasamcong -> Pharma synchronization;
+- Pharma production enablement/readiness;
+- PriceList source/queue evolution;
+- new Pharma business features.
+
+Do not begin any of these from this handoff without explicit user approval.
