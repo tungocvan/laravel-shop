@@ -31,6 +31,18 @@ class AdminProductOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString("@livewire('product.products.product-form'", $edit);
     }
 
+    public function test_product_index_keeps_single_workspace_heading_and_indigo_pagination_scope(): void
+    {
+        $index = file_get_contents(base_path('Modules/Product/resources/views/pages/products/index.blade.php'));
+        $table = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringNotContainsString('<h1 class="text-2xl font-bold mb-6 text-gray-800">Danh sách sản phẩm</h1>', $index);
+        $this->assertStringContainsString('product-admin-workspace', $index);
+        $this->assertStringContainsString('nav[role="navigation"] [aria-current="page"] > span', $index);
+        $this->assertStringContainsString('rgb(79 70 229)', $index);
+        $this->assertSame(1, substr_count($table, '>Danh sách sản phẩm</h1>'));
+    }
+
     public function test_legacy_admin_product_runtime_remains_absent(): void
     {
         $legacyFiles = [
