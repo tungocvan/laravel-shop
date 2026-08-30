@@ -220,19 +220,56 @@ If a table is secondary to an editor/workflow, place it in its own workspace tab
 
 Potentially large admin datasets MUST use bounded pagination.
 
-Canonical expectations:
+Canonical behavior and visual contract:
 
 - Never offer an unbounded `All` page-size option for production-capable datasets.
 - Recommended page-size choices are `10`, `25`, `50`, `100` unless domain constraints justify a different bounded set.
 - Invalid/tampered page-size values must normalize to a safe default.
-- Pagination controls must match the admin visual language; active pages should use the repository accent/indigo treatment rather than a visually heavy black/dark block unless the active theme explicitly requires dark styling.
+- In the canonical light Admin workspace, inactive page buttons and enabled Previous/Next controls MUST use a white surface (`bg-white`) with a light gray border and readable gray text.
+- The current page MUST use the repository accent/indigo treatment, normally `#4f46e5` / `indigo-600`, with white text. A black/heavy active page block is not an accepted light-theme default.
+- Disabled Previous/Next controls should remain visually quiet, normally a white or very light gray surface with muted gray text; they must not look like active controls.
+- Hover/focus treatment should use the repository indigo family and preserve keyboard-visible focus.
 - Previous/next controls, disabled state and current page must remain clear and keyboard usable.
 - Pagination belongs below the dataset with stable spacing and should not visually dominate the table.
 - Changing search/filter/page-size must reset pagination when the current page may become invalid.
 - Selection semantics must be explicit: selecting the page is not the same as selecting the entire dataset.
 - Do not accidentally export only the current page when export scope is intended to be all or selected records.
 
-When a canonical/shared pagination view exists, reuse it rather than creating module-specific variants. A module-specific pagination view is acceptable only when no shared equivalent exists yet and it follows this standard closely enough to be extracted later.
+### Pagination View Contract
+
+Do not rely blindly on Laravel/Livewire's global default `{{ $paginator->links() }}` rendering when the Admin shell/theme can restyle pagination into a conflicting dark/black appearance.
+
+Preferred implementation order:
+
+1. Reuse an approved shared Admin pagination view if one exists and already satisfies this visual contract.
+2. Otherwise use an explicit module-scoped pagination view, for example:
+
+```blade
+{{ $orders->links('Order::vendor.pagination.admin-orders') }}
+```
+
+3. Keep the view inside the canonical owner module, typically:
+
+```text
+Modules/<Module>/resources/views/vendor/pagination/admin-<module>.blade.php
+```
+
+4. The module-scoped view MUST preserve Livewire pagination actions (`previousPage`, `nextPage`, `gotoPage`) and the paginator page name.
+5. Explicit button/span classes should own the white inactive surface and indigo active surface. Do not depend on a broad parent CSS override when global/theme selectors can still win at runtime.
+6. If a global/shared pagination implementation is later proven stable across modules, converge module-scoped variants into that shared implementation rather than allowing permanent copy drift.
+
+Reference visual states for light Admin pagination:
+
+```text
+Inactive page     -> bg-white, border-gray-300, text-gray-700
+Active page       -> bg-indigo-600 (#4f46e5), border-indigo-600, text-white
+Enabled Prev/Next -> bg-white, border-gray-300, text-gray-500/700
+Disabled          -> bg-white or bg-gray-50, border-gray-200, text-gray-400
+Hover             -> bg-indigo-50, border-indigo-200, text-indigo-700
+Focus             -> visible indigo focus ring
+```
+
+A CSS wrapper around the generic paginator is not sufficient evidence by itself. UI verification MUST confirm the rendered page controls are actually white/inactive and indigo/active after the Admin theme and compiled CSS are applied.
 
 ## Filters and Search Standard
 
