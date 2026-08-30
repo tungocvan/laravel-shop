@@ -64,7 +64,7 @@ A sidebar item may link to Product, Order, Post, System, Account, Role, Category
 | Coupon management | `KEEP management surface / domain aligned` | Website | Admin Coupon Livewire already consumes Website Coupon domain; no ownership migration required in the Flash Sale slice. |
 | Affiliate commission/rank/scheme | `UNKNOWN -> dedicated analysis` | unresolved | Behavior spans Website, Order, Product and shared User concerns; do not absorb into Website merely because historical duplicates exist there. |
 | Environment/system settings legacy | `UNKNOWN -> MOVE candidate` | System or dedicated configuration owner | Requires explicit operational boundary |
-| Database administration | `QUARANTINE` | future hardened System database-operation boundary | Must remain unreachable in Admin |
+| Database administration | `QUARANTINE / P0 CONTAINED` | System | Canonical `/admin/system/database*` runtime is System-owned. Legacy Admin DatabaseService/Livewire surfaces remain fail-closed compatibility debt pending complete caller proof. |
 | Historical scaffold/resource methods | `UNKNOWN -> DEAD candidate` | none | Remove only after caller proof |
 
 ## Cleaned / Moved Runtime Evidence
@@ -110,15 +110,30 @@ Flash Sale ownership cleanup proves another management-surface/domain split:
 - schema/migrations/data and P0 DatabaseService were not changed;
 - `tests/Feature/Admin/AdminFlashSaleOwnershipContractTest.php` protects this boundary.
 
+Database P0 containment proves the operational owner and closes the legacy Admin entry points:
+
+- active `/admin/system/database`, `/admin/system/database/backup-restore`, and `/admin/system/database/download/{filename}` routes are declared by `Modules/System` under `auth:admin` and dedicated database permissions;
+- System `DatabaseController` resolves `Modules\System\Services\DatabaseService`, not the historical Admin service;
+- Admin `TableList`, `BackupManager`, and `ImportDrawer` are fail-closed and do not expose an independent destructive database runtime;
+- `BackupManager` and `ImportDrawer` no longer resolve `Modules\Admin\Services\DatabaseService`;
+- repository/static searches found no canonical Admin route/static caller for the legacy Admin database family, but complete dynamic/external zero-caller proof is not claimed;
+- the Admin DatabaseService and legacy database Livewire/views remain `QUARANTINE` compatibility debt rather than being deleted without proof;
+- no System database redesign, schema, migration, or production-data change was made;
+- `tests/Feature/Admin/AdminDatabaseP0ContainmentContractTest.php` protects this boundary.
+
 ## Reachability Proof Required Before Future MOVE / DEPRECATE / DEAD
 
 A file or family may not be removed merely because it is absent from `Modules/Admin/routes/web.php`. Each future domain slice must check routes/providers, Livewire aliases, Blade callers, imports, jobs/events/commands, tests/seeders, navigation metadata, production table/migration state, and compatibility requirements as applicable.
 
 Deprecated Banner/Header and Flash Sale compatibility adapters must not be removed until repository/runtime caller proof is complete; their existence does not restore canonical Admin ownership.
 
+The quarantined Admin database family must not be deleted or reactivated merely from static search results. Dynamic/external caller proof or an explicitly approved replacement/removal contract is required.
+
 ## P0 Database Administration Quarantine
 
-`Modules/Admin/Services/DatabaseService.php` is a latent destructive capability and is not part of the canonical Admin shell. It must remain unreachable. Admin API routes remain empty and the Admin database Livewire surface remains fail closed.
+Canonical database administration is owned by `Modules/System`. Its `/admin/system/database*` routes are distinct from the historical Admin database family.
+
+`Modules/Admin/Services/DatabaseService.php` remains a latent destructive capability and is not part of the canonical Admin shell. It must stay unreachable. The legacy Admin `TableList`, `BackupManager`, and `ImportDrawer` surfaces are fail-closed. Their presence is compatibility debt, not an active operational owner.
 
 ## Guardrails
 
@@ -126,7 +141,8 @@ Deprecated Banner/Header and Flash Sale compatibility adapters must not be remov
 - Active Admin route controller imports remain limited to canonical shell controllers.
 - `/admin/menus` and `admin.menu.*` remain canonical sidebar/navigation configuration.
 - Admin API remains closed by default.
-- Admin database administration remains fail-closed and quarantined.
+- System owns canonical database administration under `/admin/system/database*` and dedicated database permissions.
+- Legacy Admin database administration remains fail-closed and P0 quarantined; it must not resolve the Admin DatabaseService from Livewire runtime.
 - Category business runtime remains owned by `Modules/Category`.
 - Chat business runtime remains owned by `Modules/Chat`.
 - Product business runtime remains owned by `Modules/Product`.
@@ -145,13 +161,13 @@ Deprecated Banner/Header and Flash Sale compatibility adapters must not be remov
 
 ## Schema / Migration Rule
 
-Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product, Order, Post, Customer/address, Role/Staff/Admin-identity, Website-presentation and Flash Sale ownership cleanup do not change schema/migration ownership.
+Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product, Order, Post, Customer/address, Role/Staff/Admin-identity, Website-presentation, Flash Sale and Database P0 containment do not change schema/migration ownership.
 
 ## Planned Refactor Sequence
 
 1. keep ownership/P0 containment guardrails green;
 2. keep all completed ownership cleanup guardrails green;
-3. choose one next legacy family with a verified canonical replacement;
+3. choose one next legacy family with a verified canonical replacement or explicit architecture decision;
 4. prove callers/reachability and compatibility;
 5. migrate/remove only the proven obsolete Admin runtime copy;
 6. reconcile schema/migration ownership only after runtime ownership is stable.
@@ -160,6 +176,7 @@ Runtime ownership cleanup does not authorize moving or renaming applied migratio
 
 - complete runtime reachability of remaining legacy Admin families;
 - external/dynamic callers of deprecated Admin Banner/Header/Flash Sale compatibility adapters;
+- external/dynamic callers of quarantined Admin database compatibility surfaces;
 - canonical ownership of Affiliate commission/rank/scheme behavior;
 - production usage of remaining legacy Admin tables;
 - production migration ledger for Admin migrations;
