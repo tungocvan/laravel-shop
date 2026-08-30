@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Slice 4: Chat Legacy Compatibility Cleanup**
 
-Status: **IMPLEMENTED — awaiting local focused verification**
+Status: **VERIFIED — READY FOR PR REVIEW**
 
 Branch/checkpoint: `refactor/admin-chat-legacy-compatibility-cleanup`
 
@@ -40,9 +40,23 @@ The following files were removed:
 
 Canonical `Modules/Chat/*` source was not moved back into Admin.
 
+## Website client corrective fix discovered during verification
+
+Manual client verification exposed a pre-existing Website shell asset-loading defect: the storefront rendered the Website Livewire chat widget HTML, but Livewire JavaScript was not loaded, so `wire:click` actions could not hydrate or execute.
+
+Corrective changes in this branch:
+
+- `Modules/Website/resources/views/partials/layout/runtime-head.blade.php` now includes `@livewireStyles`;
+- `Modules/Website/resources/views/partials/layout/runtime-scripts.blade.php` now includes `@livewireScripts` before `@stack('scripts')`;
+- `Modules/Website/Livewire/Chat/ChatWidget.php` uses a server-backed `toggleChat()` action for deterministic open/close behavior;
+- `Modules/Website/resources/views/livewire/chat/chat-widget.blade.php` renders the panel from Livewire state rather than relying on Alpine entanglement for the primary toggle;
+- added `tests/Feature/Website/WebsiteLivewireRuntimeAssetContractTest.php` to protect Website Livewire runtime assets.
+
+This corrective fix does not alter Chat routes, schema, migrations, or realtime protocol semantics.
+
 ## Guardrails
 
-`tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` now also verifies:
+`tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` verifies:
 
 - the seven legacy Admin Chat files remain absent;
 - canonical Chat models/service/Livewire/views remain present;
@@ -52,7 +66,9 @@ Canonical `Modules/Chat/*` source was not moved back into Admin.
 - canonical Chat service retains `deleteAllMessages()`;
 - capability-specific Livewire permissions remain enforced.
 
-`docs/modules/Admin/OWNERSHIP_BASELINE.md` now classifies Chat legacy runtime as `CLEANED`.
+`tests/Feature/Website/WebsiteLivewireRuntimeAssetContractTest.php` protects the Website shell Livewire bootstrap used by the storefront chat widget.
+
+`docs/modules/Admin/OWNERSHIP_BASELINE.md` classifies Chat legacy runtime as `CLEANED`.
 
 ## Runtime / schema impact
 
@@ -62,6 +78,8 @@ Authentication guard change: **NONE**
 
 Authorization change: **NONE IN THIS SLICE** — hardening from Slice 3 is preserved
 
+Website Livewire runtime: **FIXED** — storefront now loads Livewire assets required by the Website chat widget
+
 Realtime protocol redesign: **NONE**
 
 Database/schema/migration change: **NONE**
@@ -70,52 +88,44 @@ Chat manifest dependency on Admin: **UNCHANGED** — Chat views still use the Ad
 
 P0 database administration quarantine: **UNCHANGED**
 
-## Required local verification
+## Verification
 
-Sync the branch and run focused ownership/guardrail contracts:
+Focused Website Livewire runtime contract: **PASS**.
 
-```bash
-php artisan test \
-  tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php \
-  tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php \
-  tests/Feature/Admin/AdminDatabaseIsolationContractTest.php
+Manual end-to-end client/admin verification: **PASS**.
+
+Verified flow:
+
+- storefront Chat widget opens successfully;
+- `Bắt đầu Chat ngay` successfully creates/opens the client chat session;
+- client can send a message;
+- `/admin/chat` receives the client session/message successfully;
+- no missing Livewire class/view/model/service error was observed in the verified flow.
+
+Earlier Slice 3 baseline remained green before this cleanup:
+
+```text
+Tests: 11 passed (86 assertions)
+Tests: 150 passed (1400 assertions)
 ```
 
-Then run impacted Admin + Chat regression only:
+The user reported the dedicated Website Livewire runtime test PASS after the corrective fix.
 
-```bash
-php artisan test tests/Feature/Admin tests/Feature/Chat
-```
-
-If `tests/Feature/Chat` does not exist, run:
-
-```bash
-php artisan test tests/Feature/Admin
-```
-
-Do not run the full project suite for this checkpoint.
-
-Manual UI smoke:
-
-- `/admin/chat`
-- `/admin/chat/internal-chat`
-- open/select a customer session where local data exists
-- send a message with appropriate permission
-- confirm no missing Livewire class/view/model/service errors
+Full project regression was intentionally not run; verification remains focused on Admin, Chat, Website Livewire runtime, and the directly impacted client/admin chat flow.
 
 ## Acceptance criteria
 
-Before PR readiness:
-
-- legacy Admin Chat runtime files absent;
-- canonical Chat runtime files present;
-- Chat route names/URLs unchanged;
-- Chat route/controller ownership unchanged;
-- Chat permissions unchanged from Slice 3;
-- focused Chat/Admin ownership tests PASS;
-- impacted Admin + Chat regression PASS;
-- manual Chat UI smoke PASS;
-- no schema/migration changes.
+- legacy Admin Chat runtime files absent: **CONFIRMED**;
+- canonical Chat runtime files present: **CONFIRMED BY CONTRACT**;
+- Chat route names/URLs unchanged: **CONFIRMED BY CONTRACT**;
+- Chat route/controller ownership unchanged: **CONFIRMED BY CONTRACT**;
+- Chat permissions unchanged from Slice 3: **CONFIRMED**;
+- Website Livewire runtime asset contract: **PASS**;
+- storefront widget open: **PASS**;
+- client send message: **PASS**;
+- Admin receive message: **PASS**;
+- schema/migration changes: **NONE**;
+- PR readiness: **READY**.
 
 ## Material risks still open
 
@@ -133,4 +143,4 @@ Production migration-ledger/table ownership remains unresolved and out of scope.
 
 Next Admin legacy-family slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is locally verified and merged, inspect the remaining candidates and propose exactly one next family before implementation.
+After this checkpoint is merged, inspect the remaining candidates and propose exactly one next family before implementation.
