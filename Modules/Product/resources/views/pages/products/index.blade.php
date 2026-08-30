@@ -1,6 +1,31 @@
 @extends('Admin::layouts.master')
 
 @section('content')
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">Danh sách sản phẩm</h1>
-    @livewire('product.products.product-table')
+    <style>
+        .product-admin-workspace nav[role="navigation"] [aria-current="page"] > span {
+            background-color: rgb(79 70 229) !important;
+            border-color: rgb(79 70 229) !important;
+            color: white !important;
+        }
+
+        .product-admin-workspace nav[role="navigation"] a {
+            color: rgb(75 85 99) !important;
+            background-color: white !important;
+        }
+
+        .product-admin-workspace nav[role="navigation"] a:hover {
+            color: rgb(67 56 202) !important;
+            background-color: rgb(238 242 255) !important;
+            border-color: rgb(199 210 254) !important;
+        }
+
+        .product-admin-workspace nav[role="navigation"] span[aria-disabled="true"] > span {
+            color: rgb(156 163 175) !important;
+            background-color: rgb(249 250 251) !important;
+        }
+    </style>
+
+    <div class="product-admin-workspace">
+        @livewire('product.products.product-table')
+    </div>
 @endsection
