@@ -4,7 +4,8 @@
 
 @section('content')
     <div class="container-fluid">
-        {{-- Gọi Livewire Component hiển thị danh sách thuốc --}}
+        @include('Pharma::pages.partials.dashboard-back')
+
         @livewire('pharma.supplier-trackings.form', ['id' => $id])
     </div>
 @endsection

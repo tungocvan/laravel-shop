@@ -4,7 +4,8 @@
 
 @section('content')
     <div class="container-fluid">
-        {{-- Gọi Livewire Component hiển thị danh sách thuốc --}}
-        @livewire('pharma.supplier-trackings.index') 
+        @include('Pharma::pages.partials.dashboard-back')
+
+        @livewire('pharma.supplier-trackings.index')
     </div>
 @endsection

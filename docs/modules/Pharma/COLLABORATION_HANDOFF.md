@@ -4,78 +4,81 @@
 
 - Module: `Pharma`
 - Phase: Major Refactor
-- Branch: `feat/pharma-admin-dashboard`
-- Status: **PHARMA ADMIN DASHBOARD IMPLEMENTED — READY FOR PR REVIEW**
+- Branch: `refactor/pharma-medicine-workspace`
+- Status: **MEDICINE WORKSPACE IMPLEMENTED — READY FOR PR REVIEW**
 - Date: 2026-08-30
 - Application source modified: **YES**
 - Production/runtime enablement changed: **NO**
 
-## Foundation already merged
+## Already merged foundation
 
-MR-1 Security Foundation and MR-2 Shared Import/Export Hardening were merged to `main` through PR #88. The merged foundation includes capability-aware Pharma route/action boundaries, safe error handling, closure of the broken public Pharma API route, and Shared Import/Export hardening with private temporary exports and Pharma-safe import modes.
+- PR #88 merged MR-1 Security Foundation + MR-2 Shared Import/Export Hardening.
+- PR #89 merged the dedicated Pharma Admin Dashboard at `/admin/pharma`.
 
-## Completed scope — Pharma Admin Dashboard
+## Completed scope — Medicine Workspace
 
-A dedicated Pharma landing workspace is now implemented so administrators do not need to remember individual Pharma URLs.
+Medicine/HSSP is now the reference implementation for the remaining Pharma workspace refactors.
 
-### Route and authorization
+### Bounded pagination and selection
 
-- Added `GET /admin/pharma` named `admin.pharma.dashboard`.
-- Route is inside the existing `web` + `auth:admin` Pharma group.
-- Dashboard additionally requires `view_pharma`.
+- Removed the `All` / `999999` pagination behavior.
+- Allowed page sizes are now strictly `10`, `25`, `50`, `100`.
+- Selection is page-scoped only.
+- Changing search, filters, page size or current page clears selection deterministically.
+- Bulk-delete candidates are intersected with IDs from the currently rendered page before destructive execution.
 
-### Dashboard structure
+### Permission-aware operations
 
-- Uses the canonical `Admin::layouts.master` shell; no new/custom admin layout was introduced.
-- Provides four primary workspace cards:
-  - Medicine / HSSP;
-  - Drug Bid Awards;
-  - Supplier Tracking;
-  - PriceList / Excel price-list generation.
-- Each card navigates to the existing named Pharma route rather than duplicating feature behavior.
-- Provides permission-aware quick-create actions. Create actions are only rendered for accounts with `create_pharma`.
+- Create action is only rendered for `create_pharma`.
+- Edit controls and Medicine Shared Import/Export are only rendered for `edit_pharma`.
+- Delete checkbox, row delete and bulk delete are only rendered for `delete_pharma`.
+- Existing action-level authorization remains in the Livewire component, so hidden UI is not the only enforcement boundary.
 
-### Lightweight operational summary
+### Admin UI and UX
 
-- Displays Medicine/HSSP count.
-- Displays Drug Bid Award count.
-- Displays Supplier Tracking count.
-- Displays PriceList workbook readiness and only the configured workbook filename, without exposing an absolute filesystem path.
-- Dashboard does not load large data tables or unbounded record collections.
+- Reworked Medicine list into the canonical Admin workspace style.
+- Added explicit filter section, bounded page-size selector, result counts, responsive table overflow and loading feedback.
+- Added confirmation and loading-disabled states for destructive actions.
+- External profile links use safe new-tab attributes.
+- Added a clear `Quay về Dashboard Pharma` navigation affordance.
 
-### Implementation boundary
+### Pharma dashboard navigation consistency
 
-- Added a dedicated `PharmaDashboardController` rather than overloading the existing HSSP `PharmaController`.
-- Added `PharmaDashboardService` for lightweight summary/readiness data.
-- No CRUD semantics, import/export behavior, PriceList generation pipeline, or database schema was changed by this slice.
-- Pharma production/module enablement remains unchanged.
+During UI acceptance, the user requested the same Dashboard return affordance across the other Pharma pages. A reusable `Pharma::partials.dashboard-back-link` partial was added and attached to the existing page wrappers for:
+
+- Medicine/HSSP create and edit;
+- Drug Bid Award index, create and edit;
+- Supplier Tracking index, create, edit and show;
+- PriceList create.
+
+This is navigation-only consistency work; DrugBidAward, SupplierTracking and PriceList domain/workspace refactors remain deferred to their approved later slices.
 
 ## Verification completed
 
-- Focused dashboard test:
-  - `php artisan test tests/Feature/Pharma/PharmaAdminDashboardTest.php`
-  - **PASS — 4 tests, 18 assertions**.
-- Dashboard route gate:
-  - `php artisan route:list --name=admin.pharma.dashboard`
-  - **PASS — `GET|HEAD admin/pharma` resolves to `PharmaDashboardController`**.
+- Focused Medicine workspace test:
+  - `php artisan test tests/Feature/Pharma/PharmaMedicineWorkspaceTest.php`
+  - **PASS — 4 tests, 18 assertions** at the initial gate; navigation assertions were subsequently added and remained green during the final Pharma regression.
+- Changed PHP Pint gate:
+  - `./vendor/bin/pint --test Modules/Pharma/Livewire/Medicine/Index.php tests/Feature/Pharma/PharmaMedicineWorkspaceTest.php`
+  - **PASS — 2 files**.
 - Focused Pharma regression:
   - `php artisan test tests/Feature/Pharma Modules/Pharma/Tests`
-  - **PASS — 16 tests, 73 assertions**.
+  - **PASS — 21 tests, 105 assertions**.
 - Frontend build:
   - `npm run build`
-  - **PASS — Vite 7.3.6, 34 modules transformed, production build completed in 3.88s**.
+  - **PASS — Vite 7.3.6, 34 modules transformed, production build completed in 4.22s**.
+- Working tree:
+  - `git status --short`
+  - **PASS — clean**.
 - Manual UI smoke:
   - **PASS**.
-  - `/admin/pharma` renders the canonical admin shell, summary cards, four workspace cards, quick actions, and workbook readiness correctly.
-  - Runtime workbook was detected as ready (`BANG_GIA_TONG_HOP.xlsx`).
+  - Medicine/HSSP workspace passed UI review.
+  - Dashboard return navigation passed on Medicine/HSSP and the additional Pharma page wrappers requested during acceptance.
 
-No full-project regression was run; this follows the collaboration workflow preference for focused module and directly impacted regression only.
+No full-project regression was run; testing remains intentionally focused on Pharma and directly impacted behavior.
 
 ## Scope intentionally deferred
 
-The dashboard is navigation/operational overview only. The following Major Refactor findings remain intentionally deferred:
-
-- Medicine bounded pagination/page-scoped selection and Admin UI cleanup.
 - DrugBidAward bounded pagination and searchable Medicine selection.
 - SupplierTracking business-key integrity, duplicate audit and bounded selection.
 - PriceList public Livewire analysis state, repeated analysis and deeper pipeline hardening.
@@ -84,22 +87,22 @@ The dashboard is navigation/operational overview only. The following Major Refac
 
 ## Next approved Major Refactor sequence
 
-After this dashboard PR is reviewed and merged, continue with the previously approved sequence:
+After this Medicine Workspace PR is reviewed and merged, continue with:
 
-1. **Medicine Workspace refactor** — next implementation slice.
-2. Drug Bid Award Workspace refactor.
-3. Supplier Tracking integrity/workspace refactor.
-4. PriceList security/pipeline refactor.
-5. Final acceptance and closeout.
+1. **Drug Bid Award Workspace refactor** — next implementation slice.
+2. Supplier Tracking integrity/workspace refactor.
+3. PriceList security/pipeline refactor.
+4. Final acceptance and closeout.
 
-### Medicine Workspace target
+### Drug Bid Award Workspace target
 
-The next slice should use Medicine as the reference implementation for the remaining Pharma admin workspaces:
+The next slice should carry forward the Medicine reference patterns while addressing DrugBidAward-specific issues:
 
-- bounded pagination using the approved 10/25/50/100 options; no `All`/999999 behavior;
-- page-scoped selection and deterministic selection reset when filters/page change;
-- explicit permission-aware bulk delete;
-- canonical Admin controls, loading states, responsive behavior and accessible destructive confirmation;
-- preserve existing Medicine domain/CRUD behavior unless a separately approved defect requires correction.
+- bounded pagination using `10/25/50/100`; no `All`/999999 behavior;
+- page-scoped selection with deterministic reset on search/filter/page changes;
+- permission-aware create/edit/delete/bulk-delete controls and loading/confirmation states;
+- replace full Medicine collection loading in selectors with a bounded searchable Medicine picker;
+- preserve existing DrugBidAward domain/CRUD behavior unless a separately approved defect requires correction;
+- retain navigation back to the Pharma Dashboard.
 
-Do not start the Medicine Workspace implementation until the dashboard PR is merged and the user confirms continuation. Do not change SupplierTracking cascade semantics, enable Pharma in production, or expand into unrelated module cleanup without a separate approved decision.
+Do not begin the Drug Bid Award Workspace implementation until this PR is merged and the user confirms continuation. Do not change SupplierTracking cascade semantics, enable Pharma in production, or expand into unrelated module cleanup without a separate approved decision.
