@@ -8,10 +8,12 @@ use Modules\Order\Models\Order;
 class OrderDetail extends Component
 {
     public $orderId;
+
     public $order;
 
     // Biến tạm để cập nhật trạng thái
     public $newStatus;
+
     public $adminNote;
 
     public function mount($id)
@@ -33,20 +35,20 @@ class OrderDetail extends Component
             return;
         }
 
-        $this->order->status = $this->newStatus;
         $oldStatus = $this->order->status;
+        $this->order->status = $this->newStatus;
+
         // Nếu chuyển sang hoàn thành -> set luôn đã thanh toán (nếu muốn logic tự động)
         if ($this->newStatus === 'completed') {
             // Logic trừ kho có thể viết ở đây
         }
-
 
         $this->order->save();
 
         // --- LOGIC MỚI: GHI LOG ---
         $this->order->histories()->create([
             'user_id' => auth()->id(), // Admin đang đăng nhập
-            'action'  => 'Cập nhật trạng thái',
+            'action' => 'Cập nhật trạng thái',
             'description' => "Đổi từ {$oldStatus} sang {$this->newStatus}",
         ]);
 
@@ -57,13 +59,12 @@ class OrderDetail extends Component
         session()->flash('success', 'Đã cập nhật trạng thái đơn hàng.');
     }
 
-
-
     public function deleteOrder()
     {
         // 1. Kiểm tra điều kiện (Chỉ xóa đơn Pending/Cancelled)
-        if (!in_array($this->order->status, ['pending', 'cancelled'])) {
+        if (! in_array($this->order->status, ['pending', 'cancelled'])) {
             session()->flash('error', 'Không thể xóa đơn hàng đang xử lý/giao hàng.');
+
             return;
         }
 

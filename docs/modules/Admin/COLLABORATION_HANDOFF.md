@@ -2,79 +2,97 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Slice 5: Product Legacy Ownership Cleanup**
+Task: **Admin Major Refactor — Slice 6: Order Legacy Ownership Cleanup**
 
-Status: **VERIFIED — READY FOR PR REVIEW**
+Status: **VERIFIED — PR READY**
 
-Branch/checkpoint: `refactor/admin-product-legacy-ownership-cleanup`
+Branch/checkpoint: `refactor/admin-order-legacy-ownership-cleanup`
 
-This slice was explicitly approved after the Chat legacy compatibility cleanup was merged.
+Slice 6 was explicitly approved after Slice 5 Product cleanup was merged as PR #100.
 
 ## Ownership decision
 
-`Modules/Product` is the canonical owner of Product admin behavior.
+`Modules/Order` is the canonical owner of Order management behavior.
 
 Preserved contracts:
 
-- `/admin/products` and existing Product create/edit URLs remain unchanged;
-- `admin.products.index`, `admin.products.create`, `admin.products.edit` remain Product-owned;
-- `admin.products.commissions` remains owned by `Modules\Product\Http\Controllers\ProductCommissionController`;
-- Product pages mount canonical `product.products.*` Livewire components;
-- capability-specific create/edit/view/delete Product authorization remains enforced;
-- Product schema, migrations and table ownership are unchanged.
+- `/admin/orders`, `/admin/orders/{id}`, `/admin/orders/{id}/print`, and `/admin/orders/{id}/pdf` remain unchanged;
+- `admin.orders.index`, `admin.orders.show`, `admin.orders.print`, and `admin.orders.pdf` remain Order-owned;
+- the active controller remains `Modules\Order\Http\Controllers\OrderController`;
+- Order pages mount canonical `order.orders.*` Livewire components;
+- `auth:admin` remains required on the Order route group;
+- browser print and PDF invoice behavior remain Order-owned;
+- Order schema, migrations and table names are unchanged.
 
-## Removed legacy Admin Product runtime
+## Removed legacy Admin Order management runtime
 
 The following proven duplicate files were removed:
 
-- `Modules/Admin/Livewire/Products/ProductForm.php`
-- `Modules/Admin/Livewire/Products/ProductTable.php`
-- `Modules/Admin/resources/views/livewire/products/product-form.blade.php`
-- `Modules/Admin/resources/views/livewire/products/product-table.blade.php`
-- `Modules/Admin/Exports/ProductsExport.php`
-- `Modules/Admin/Imports/ProductsImport.php`
+- `Modules/Admin/Livewire/Orders/OrderTable.php`
+- `Modules/Admin/Livewire/Orders/OrderDetail.php`
+- `Modules/Admin/resources/views/livewire/orders/order-table.blade.php`
+- `Modules/Admin/resources/views/livewire/orders/order-detail.blade.php`
+- `Modules/Admin/resources/views/pages/orders/index.blade.php`
+- `Modules/Admin/resources/views/pages/orders/show.blade.php`
+- `Modules/Admin/resources/views/pages/orders/invoice.blade.php`
 
-Canonical Product runtime, imports and exports remain in `Modules/Product`.
+Canonical equivalents remain in `Modules/Order`.
 
-## Product UI refinements verified during Slice 5
+## Order status-history correction
 
-### Product list
+The canonical `Modules/Order/Livewire/Orders/OrderDetail.php` previously assigned the new status before capturing `$oldStatus`, so history descriptions could record the new status as both the old and new values.
 
-- removed the duplicate outer `Danh sách sản phẩm` heading;
-- Product workspace retains the canonical internal heading;
-- Product pagination now uses a dedicated Product-scoped pagination view;
-- inactive page controls and previous/next controls use a white surface;
-- the current page uses explicit indigo active state;
-- pagination changes do not alter other modules.
+Slice 6 now captures the previous status first, then mutates the model. This is a localized correctness fix and does not change the Order state model or schema.
 
-### Product Create/Edit category selection
+## Affiliate cross-domain boundary deliberately retained
 
-- category hierarchy is recursive;
-- child categories are collapsed by default on Create;
-- parents with children expose `+` / `−` expand-collapse controls;
-- checkbox selection is independent from expand-collapse state;
-- Edit automatically reveals ancestors needed to display already-selected child categories;
-- category assignment semantics and relationships are unchanged.
+The similarly named `OrderDetailModal` is not part of the canonical Order management page flow. The active Admin Affiliate commission workspace already contains its own inline reconciliation/detail modal and still depends on `Modules\Admin\Services\AdminAffiliateService`.
 
-## ProductCommission follow-up debt
+Therefore Slice 6 deliberately preserves:
 
-`admin.products.commissions` is already canonically Product-owned, but its current page still mounts the general Product form instead of a dedicated commission-management workspace.
+- `Modules/Admin/Livewire/Orders/OrderDetailModal.php`
+- `Modules/Admin/resources/views/livewire/orders/order-detail-modal.blade.php`
+- `Modules/Admin/Services/AdminAffiliateService.php`
 
-This was deliberately **NOT redesigned in Slice 5**. A dedicated ProductCommission UX requires separate scope/approval if prioritized later.
+These are classified as `DEPRECATE/MOVE candidate` for a future dedicated Affiliate ownership analysis rather than being deleted mechanically as Order duplicates.
+
+Affiliate rank/scheme ownership also remains outside Slice 6.
+
+## Authorization assessment
+
+The canonical Order routes retain their existing `web` + `auth:admin` middleware contract. Slice 6 does not invent new Order permission names or silently alter authorization semantics.
+
+Capability-specific Order authorization remains a follow-up security/ownership question if a canonical permission contract is later established. No authorization weakening was introduced by this cleanup.
+
+## Pagination UI closeout
+
+Manual UI verification found that the default/global pagination renderer could produce a visually heavy black active page inside the light Admin workspace. The final Order implementation now uses an explicit module-scoped pagination view so runtime theme/global styling cannot silently replace the approved light Admin treatment.
+
+Verified pagination presentation:
+
+- inactive page controls: white background with neutral text/border;
+- active page: indigo accent (`#4f46e5` / indigo-600) with white text;
+- Previous/Next: white background;
+- disabled controls: white/light-neutral and visibly disabled;
+- responsive desktop/tablet behavior remains usable.
+
+The reusable rule was promoted into `.codex/standards/ADMIN_UI_STANDARD.md` so future Admin-facing modules must follow the same pagination contract and explicitly select a scoped pagination view when global `links()` styling conflicts with the standard.
 
 ## Guardrails
 
-`tests/Feature/Admin/AdminProductOwnershipCleanupContractTest.php` protects:
+`tests/Feature/Admin/AdminOrderOwnershipCleanupContractTest.php` protects:
 
-- canonical Product route/controller ownership;
-- canonical Product Livewire page aliases;
-- absence of the six removed Admin Product files;
-- presence of canonical Product runtime/import/export files;
-- capability-specific Product authorization;
-- recursive/collapsed category selector behavior;
-- ProductCommission remaining canonical without silently redesigning its current page.
+- canonical Order route/controller ownership;
+- existing route names and URLs;
+- `auth:admin` route protection;
+- canonical Order Livewire page aliases;
+- absence of the seven removed Admin Order management files;
+- presence of canonical Order runtime and print/PDF view;
+- correct old-status capture ordering before status mutation;
+- preservation of Affiliate compatibility surfaces pending separate ownership proof;
+- continued P0 `DatabaseService.php` quarantine.
 
-`docs/modules/Admin/OWNERSHIP_BASELINE.md` now classifies Product legacy ownership as `CLEANED`.
+`docs/modules/Admin/OWNERSHIP_BASELINE.md` classifies Order management legacy ownership as `CLEANED`, while Affiliate cross-domain compatibility remains separately unresolved.
 
 ## Runtime / schema impact
 
@@ -82,58 +100,60 @@ Route URL/name change: **NONE**
 
 Authentication guard change: **NONE**
 
-Product authorization weakening: **NONE**
+Order authorization weakening: **NONE**
 
-Product schema/table/migration change: **NONE**
+Order schema/table/migration change: **NONE**
 
-Category relationship/business-rule change: **NONE**
+Order state-machine redesign: **NONE**
 
-ProductCommission redesign: **NONE — FOLLOW-UP DEBT RECORDED**
+Print/PDF compatibility change: **NONE**
+
+Affiliate refactor: **NONE — FOLLOW-UP OWNERSHIP DEBT RECORDED**
 
 P0 database administration quarantine: **UNCHANGED**
 
-## Verification
+## Verification completed
 
-Focused final automated verification reported by the user:
-
-```text
-Tests: 10 passed (54 assertions)
-Duration: 0.55s
-```
-
-Earlier Admin focused/regression verification in this slice:
+Focused automated verification completed successfully:
 
 ```text
-Tests: 158 passed (1477 assertions)
+Pint: PASS — 2 files
+AdminOrderOwnershipCleanupContractTest: 7 passed, 46 assertions
+OrderCheckoutServiceTest: 4 passed, 21 assertions
+admin.orders route list: PASS — 4 canonical OrderController routes
 ```
 
-Earlier Product route verification:
+No full project regression was required for this ownership slice.
 
-```text
-Tests: 2 passed (9 assertions)
-```
+## Manual UI verification completed
 
-Manual UI smoke: **PASS**.
+User-confirmed **UI PASS**, including the pagination correction.
 
-Verified UI outcomes:
+Verified smoke scope:
 
-- `/admin/products` renders successfully after legacy Admin Product removal;
-- Product category selection tree: **PASS**;
-- Product pagination white inactive surface: **PASS**;
-- Product pagination active indigo state: **PASS**.
+- `/admin/orders` renders successfully after legacy Admin removal;
+- search/status filtering and pagination remain usable;
+- Order detail/status-history workflow remains available;
+- delete-state behavior remains within the existing Order contract;
+- browser print/PDF compatibility remains preserved;
+- desktop/tablet workspace has no reported serious overflow regression;
+- final pagination uses white inactive/Previous/Next controls and indigo active state.
 
-Full project regression was intentionally not run; verification remains focused on Admin and Product according to the collaboration workflow.
+Affiliate compatibility surfaces were deliberately not refactored in this slice.
 
 ## Acceptance criteria
 
-- canonical Product ownership confirmed: **PASS**;
-- six proven Admin Product duplicates absent: **PASS**;
-- route names/URLs preserved: **PASS**;
-- capability authorization preserved: **PASS**;
-- Product category recursive/collapsed UX: **UI PASS**;
-- Product pagination white/indigo UX: **UI PASS**;
-- ProductCommission ownership preserved without redesign: **PASS**;
+- canonical Order management ownership confirmed: **VERIFIED**;
+- seven proven Admin Order management duplicates absent: **VERIFIED**;
+- route names/URLs preserved: **VERIFIED**;
+- auth guard preserved: **VERIFIED**;
+- order history old/new status correction: **VERIFIED**;
+- print/PDF preserved: **UI PASS**;
+- Order pagination Admin visual contract: **UI PASS**;
+- reusable pagination guidance: **PROMOTED TO ADMIN UI STANDARD**;
+- Affiliate compatibility preserved without redesign: **VERIFIED BY SCOPE/CONTRACT**;
 - schema/migration changes: **NONE**;
+- P0 database quarantine: **UNCHANGED**;
 - PR readiness: **READY**.
 
 ## Material risks still open
@@ -142,14 +162,16 @@ Full project regression was intentionally not run; verification remains focused 
 
 `Modules/Admin/Services/DatabaseService.php` remains quarantined and must stay unreachable.
 
+### Affiliate ownership debt
+
+Admin and Order still contain overlapping Affiliate-named models/services/runtime. That family requires its own caller, permission, schema and compatibility analysis before cleanup. Slice 6 does not authorize it.
+
 ### Remaining Admin legacy families
 
-Order, Post/content, customer/address, roles/staff, marketing/public-site and system/environment remain separate ownership/reachability candidates. Slice 5 does not authorize cleanup of any of those families.
+Post/content, customer/address, roles/staff, marketing/public-site and system/environment remain separate ownership/reachability candidates.
 
 Production migration-ledger/table ownership remains unresolved and out of scope.
 
 ## Next phase
 
-Next Admin legacy-family slice: **NOT AUTHORIZED YET**.
-
-After this checkpoint is merged, inspect remaining candidates and propose exactly one next family before implementation.
+Slice 6 is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
