@@ -4,8 +4,8 @@
 
 - Module: `Pharma`
 - Phase: Major Refactor
-- Branch: `refactor/pharma-supplier-tracking-integrity-workspace`
-- Status: **MR-5 SUPPLIER TRACKING INTEGRITY + WORKSPACE ACCEPTED — READY FOR PR REVIEW**
+- Branch: `refactor/pharma-price-list-secure-pipeline`
+- Status: **MR-6 PRICE LIST SECURITY + PIPELINE ACCEPTED — READY FOR PR REVIEW**
 - Date: 2026-08-30
 - Application source modified: **YES**
 - Production/runtime enablement changed: **NO**
@@ -16,177 +16,134 @@
 - PR #89 merged the dedicated Pharma Admin Dashboard at `/admin/pharma`.
 - PR #90 merged MR-3 Medicine/HSSP Workspace.
 - PR #91 merged MR-4 Drug Bid Award Workspace + Sync-Ready Foundation.
+- PR #92 merged MR-5 Supplier Tracking Integrity + Workspace (`68bf4f5fd022a1a329cdb85cfc976435a4d5c434`).
 
-## Completed scope — MR-5 Supplier Tracking Integrity + Workspace
+## Completed scope — MR-6 Price List Security + Pipeline
 
-### Canonical business-key integrity
+### Server-only workbook analysis state
 
-Supplier Tracking now uses the explicit business identity:
+- The PriceList Livewire component no longer exposes the full workbook analysis as public Livewire state.
+- Workbook metadata and product rows are resolved server-side for render/action work.
+- Only primitive UI state remains public: sheet, search, pagination, selection, column expression and recipient/signature values.
+- This removes the previous client round-trip of complete workbook analysis/product cell values.
 
-`medicine_id + normalized supplier_name + working_date`
+### Bounded PriceList workspace
 
-Rules:
+- Product list pagination is bounded to `10`, `25`, `50`, `100`; there is no `All` path.
+- The default page size is 10.
+- Opening/reloading the workbook no longer auto-selects every product.
+- Header selection is page-scoped only.
+- Search/per-page/page changes clear page-selection state deterministically.
+- Users can clear the complete current selection explicitly.
+- Search remains based on STT, product name, active ingredient and registration number.
 
-- supplier name is normalized with trim, whitespace squish and lowercase semantics;
-- duplicate rows are prohibited when `working_date` is non-null;
-- multiple rows with the same Medicine/supplier are allowed when `working_date` is null;
-- application-level duplicate detection provides a friendly domain error;
-- database unique index `supplier_trackings_business_key_unique` remains the final integrity boundary;
-- create/update and Shared Import/Export use the same normalized identity semantics;
-- the internal normalized supplier field is not exposed as an export column.
+### Canonical generation boundary
 
-The migration is retry-safe for the column-add/audit path and audits existing data before creating the unique constraint.
+- The Livewire component no longer performs a second independent column-validation pass before generation.
+- `PriceListService::generate()` is the canonical execution boundary for:
+  - workbook analysis;
+  - column-expression validation;
+  - selected-product-row validation;
+  - output allocation;
+  - workbook build.
+- The existing XLSX business output contract is preserved.
 
-### Existing-data duplicate audit
+### Private output-path hardening
 
-A read-only audit command is available:
+- Production generation no longer accepts arbitrary `output_path` input from request/component data.
+- Generated files are allocated only under:
 
-```bash
-php artisan audit:pharma-supplier-tracking-duplicates
-```
+  `storage/app/private/exports/price-lists`
 
-The audit:
+- Filenames remain timestamped and randomized.
+- Partial output is removed when workbook building fails.
+- Successful UI downloads continue to use `deleteFileAfterSend(true)`.
+- Tests can still exercise the generated workbook through the service's private export contract without opening a request-controlled filesystem path.
 
-- does not mutate data;
-- ignores null `working_date` according to the approved identity rule;
-- processes records in bounded chunks;
-- reports duplicate business keys and affected IDs;
-- returns a clear PASS when no conflicts exist.
+### PriceList UI polish
 
-The local dataset was audited before migration and passed with no duplicate business-key conflicts.
-
-### Supplier Tracking Admin workspace
-
-- Pagination is bounded to `10`, `25`, `50`, `100`; no `All` / unbounded path exists.
-- Selection is page-scoped only.
-- Changing search/filter/page/per-page state clears selection deterministically.
-- Bulk delete requires an explicit confirmation modal showing the selected count and current-page scope.
-- CRUD/import-export/destructive controls remain permission-aware and action-authorized.
-- Search covers supplier, representative/area and Medicine-related context.
-- Filters include status and working-date range.
-- Loading-disabled states, responsive table behavior and empty states follow the Pharma Admin workspace pattern.
-- `Quay về Dashboard Pharma` navigation remains available.
-- External contract links use safe new-tab attributes.
-
-### Final UI polish pass
-
-The initial functional workspace passed behavior testing but was not accepted visually because the import/export panel had too much visual weight and the 15-column financial table required excessive horizontal scrolling.
-
-The final corrective UI pass keeps all business behavior intact while improving information hierarchy:
-
-- Import/Export is now a secondary toolbar action and stays collapsed until requested.
-- The primary list was reduced from a dense 15-column layout to a compact 9-column decision-oriented table.
-- HSSP, supplier, commitment and contract information are grouped into coherent cells.
-- Primary price information is presented as import price -> selling price.
-- Secondary invoice/difference/fee/cost details move into an expandable per-row `Chi tiết giá` section instead of occupying permanent columns.
-- Profit, status and financial values use compact badges/tabular-number alignment for faster scanning.
-- Contract dates/links are kept readable without unnecessary wrapping.
-- The table minimum width was materially reduced, lowering horizontal-scroll pressure while retaining responsive overflow as a safety fallback.
-- Sticky table heading and compact workspace toolbar improve scanability for longer result sets.
-
-This polish pass did not change database schema, normalized business keys, financial formulas, import/export contracts or deletion policy.
-
-### Bounded Medicine/HSSP lookup
-
-Supplier Tracking forms no longer require an unbounded Medicine collection.
-
-- Server lookup is bounded to 25 candidates.
-- Search supports Medicine name, registration number and active ingredients.
-- The currently selected Medicine remains visible while editing even when it falls outside the current candidate search result.
-
-### Financial calculation contract preserved
-
-MR-5 intentionally preserves the existing financial formulas:
-
-- invoice difference amount = invoice price - import price;
-- invoice difference fee = invoice difference amount × fee percent / 100;
-- cost price = import price + invoice difference fee;
-- gross profit percent = `(selling price - cost price) / selling price × 100` when selling price > 0, otherwise 0.
-
-Regression coverage includes normal calculations, invoice price below import price and zero selling price.
-
-### Medicine delete behavior intentionally unchanged
-
-The existing Medicine -> Supplier Tracking `cascadeOnDelete()` behavior is retained in MR-5. This MR does not introduce a retention-policy change. Any future historical-retention requirement must be handled as an explicit data-policy decision rather than silently changing the foreign-key contract.
-
-## Local Supplier Tracking demo pack
-
-A repeatable local-only dataset is available:
-
-```bash
-php artisan reset:pharma-supplier-tracking-demo
-```
-
-Safety and coverage:
-
-- refuses to run outside `APP_ENV=local`;
-- deletes only records carrying dedicated `DEMO-PHARMA-SUPPLIER-` / `DEMO-PHARMA-SUP-HSSP-` identifiers;
-- does not truncate Pharma tables or run destructive database reset commands;
-- creates 8 identifiable demo Medicine/HSSP records;
-- creates 36 Supplier Tracking rows across 6 suppliers, 3 areas and 4 statuses;
-- produces four pages at the default 10 records/page;
-- records are created through the Supplier Tracking service so normalized identity and financial calculations are exercised.
-
-## Import/Export regression alignment
-
-During MR-5 regression, the older `PharmaImportExportTest` fixture was found to have drifted from canonical Pharma workbook/schema contracts established by earlier refactors. The fixture was corrected rather than weakening production behavior:
-
-- test setup now applies the current five Pharma migrations used by the tested models, including MR-4 Drug Bid Award source identity and MR-5 Supplier Tracking business identity;
-- Medicine workbook fixtures follow the current A-U positional mapping and required Medicine fields;
-- Drug Bid Award fixtures follow the current A-L positional mapping;
-- Drug Bid Award tests now correctly assert the MR-4 contract: deterministic Medicine matches populate nullable `medicine_id`, while unmatched awards remain valid canonical award snapshots with `medicine_id = null`; no fuzzy auto-match is introduced.
+- The workspace keeps the canonical Pharma/Admin shell and `Quay về Dashboard Pharma` navigation.
+- Workbook readiness/status is presented as a compact summary instead of exposing raw analysis data.
+- Recipient/signature settings and source-column selection remain explicit.
+- Product selection is presented as a bounded searchable workspace with page-size controls and page-scoped selection wording.
+- Selection count, filtered result count and page range are visible before generation.
+- Loading/disabled states cover workbook reload, selection changes and generation.
+- Error and unavailable-workbook states remain user-readable while exceptions are reported to system logs.
 
 ## Verification completed
 
-- Existing-data duplicate audit:
-  - `php artisan audit:pharma-supplier-tracking-duplicates`
-  - **PASS — no duplicate Supplier Tracking business key detected**.
-- MR-5 integrity migration:
-  - `2026_08_30_020000_add_business_key_to_supplier_trackings_table`
-  - **PASS — applied successfully**.
-- Focused Supplier Tracking workspace test:
-  - `php artisan test tests/Feature/Pharma/PharmaSupplierTrackingWorkspaceTest.php`
-  - **PASS — 6 tests, 39 assertions**.
-- Import/Export corrective regression:
-  - `php artisan test tests/Feature/Pharma/PharmaImportExportTest.php`
-  - **PASS — 6 tests, 27 assertions**.
-- Import/Export Pint gate:
-  - `./vendor/bin/pint --test tests/Feature/Pharma/PharmaImportExportTest.php`
-  - **PASS**.
-- MR-5 application/migration Pint gates:
-  - **PASS**.
-- Focused Pharma impacted regression:
-  - `php artisan test tests/Feature/Pharma Modules/Pharma/Tests`
-  - **PASS — 36 tests, 212 assertions**.
-- Local demo reset runtime:
-  - **PASS — 36 Supplier Tracking rows, 8 HSSP, 6 suppliers, 3 areas, 4 statuses, 4 pages at 10/page**.
-- Frontend production build after MR-5 application/UI changes:
-  - `npm run build`
-  - **PASS — Vite production build completed**.
-- Final manual Supplier Tracking UI smoke after the corrective UI polish:
-  - **PASS**.
-  - Accepted the compact workspace hierarchy, collapsed Import/Export flow, reduced table density/horizontal-scroll pressure, expandable financial detail, bounded pagination/filtering, selection/bulk confirmation, CRUD, Medicine lookup, contract behavior, responsive/loading states and Dashboard navigation.
+### Focused PriceList gate
 
-No full-project regression was run; testing remains intentionally focused on Pharma and directly impacted behavior.
+```bash
+./vendor/bin/pint --test \
+  Modules/Pharma/Livewire/PriceList/Create.php \
+  Modules/Pharma/Services/PriceListService.php \
+  Modules/Pharma/Tests/Unit/PriceListServiceTest.php \
+  tests/Feature/Pharma/PharmaPriceListPipelineTest.php
+
+php artisan test \
+  tests/Feature/Pharma/PharmaPriceListPipelineTest.php \
+  Modules/Pharma/Tests/Unit/PriceListServiceTest.php
+```
+
+Result:
+
+- Pint: **PASS — 4 files**.
+- Focused PriceList tests: **PASS — 8 tests, 42 assertions**.
+- Coverage includes server-only analysis-state contract, service-only validation boundary, private output-path confinement, bounded/page-scoped workspace behavior, workbook analysis/filtering and generated XLSX correctness.
+
+### Pharma impacted regression
+
+```bash
+php artisan test tests/Feature/Pharma Modules/Pharma/Tests
+```
+
+Result: **PASS — 41 tests, 240 assertions**.
+
+No full-project regression was run; verification remains intentionally focused on Pharma and directly impacted behavior.
+
+### Frontend build
+
+```bash
+npm run build
+```
+
+Result: **PASS — Vite production build completed, 34 modules transformed**.
+
+### Manual UI acceptance
+
+Final manual PriceList UI smoke: **PASS**.
+
+Accepted behavior includes:
+
+- compact PriceList workspace hierarchy;
+- no automatic all-workbook selection;
+- bounded `10/25/50/100` pagination;
+- page-scoped checkbox selection;
+- correct search/pagination interaction;
+- explicit clear-selection behavior;
+- recipient/column/signature workflow;
+- successful XLSX generation/download;
+- preserved generated workbook content/format;
+- loading/error states and Dashboard navigation.
 
 ## Scope intentionally deferred
 
+- Creating a PriceList database entity/table.
+- Queue/background generation unless future benchmarking proves it necessary.
+- User upload/replacement of the source workbook.
+- Switching PriceList source data to Medicine database records.
 - Actual Muasamcong -> Pharma production synchronization/wiring.
-- Final numeric/nullability/structured-name mapping policy for Muasamcong source data.
 - Automated fuzzy Medicine matching.
-- Local edit/delete lock policy for externally sourced Drug Bid Award rows unless separately approved.
-- Changing the existing Medicine -> Supplier Tracking cascade delete policy.
-- PriceList public Livewire analysis state, repeated analysis and deeper pipeline hardening.
-- Queue/performance work unless later benchmarking proves it necessary.
+- Changing Medicine -> Supplier Tracking cascade-delete policy.
 - Production enablement.
 
 ## Next approved Major Refactor sequence
 
-After this MR-5 PR is reviewed and merged, continue only after explicit user confirmation with:
+After this MR-6 PR is reviewed and merged, continue only after explicit user confirmation with:
 
-1. **MR-6 PriceList Security + Pipeline**.
-2. **MR-7 Final Acceptance + closeout**.
+1. **MR-7 Final Acceptance + closeout**.
 
-The actual Muasamcong -> Pharma Drug Bid Award integration remains a separate integration slice and must not be silently folded into MR-6. Before implementing it, explicitly approve the source normalization/mapping policies already documented during MR-4.
+MR-7 should validate the completed Pharma Major Refactor as a whole, confirm remaining intentional deferrals/non-goals, run the agreed focused acceptance gates, update final documentation and close the refactor program. It must not silently introduce the deferred Muasamcong production sync or production enablement.
 
-Do not begin MR-6, production sync, production enablement or unrelated module cleanup until this MR-5 PR is merged and the user confirms continuation.
+Do not begin MR-7, production synchronization, production enablement or unrelated module cleanup until the MR-6 PR is merged and the user explicitly confirms continuation.
