@@ -31,6 +31,10 @@ class Index extends Component
 
     public bool $showBulkDeleteModal = false;
 
+    public bool $showImportExport = false;
+
+    public ?int $expandedFinancialId = null;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => ''],
@@ -88,6 +92,7 @@ class Index extends Component
     public function gotoPage(mixed $page): void
     {
         $this->page = max(1, (int) $page);
+        $this->expandedFinancialId = null;
         $this->clearSelection();
     }
 
@@ -96,7 +101,19 @@ class Index extends Component
         $this->reset(['search', 'status', 'workingDateFrom', 'workingDateTo']);
         $this->perPage = 10;
         $this->page = 1;
+        $this->expandedFinancialId = null;
         $this->clearSelection();
+    }
+
+    public function toggleImportExport(): void
+    {
+        $this->authorizePharmaEdit();
+        $this->showImportExport = ! $this->showImportExport;
+    }
+
+    public function toggleFinancialDetails(int $id): void
+    {
+        $this->expandedFinancialId = $this->expandedFinancialId === $id ? null : $id;
     }
 
     public function confirmBulkDelete(): void
@@ -222,6 +239,7 @@ class Index extends Component
     private function resetWorkspacePage(): void
     {
         $this->page = 1;
+        $this->expandedFinancialId = null;
         $this->clearSelection();
     }
 
