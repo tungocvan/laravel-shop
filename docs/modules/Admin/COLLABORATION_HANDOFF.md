@@ -2,121 +2,114 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Flash Sale Ownership Cleanup**
+Task: **Admin Major Refactor — Database P0 Containment & Reachability Cleanup**
 
 Status: **VERIFIED — PR READY**
 
-Branch/checkpoint: `refactor/admin-flash-sale-ownership`
+Branch/checkpoint: `refactor/admin-database-p0-containment`
 
-This approved slice follows the Website Presentation ownership cleanup. It removes independent Admin ownership of Flash Sale domain behavior while preserving the authenticated Admin management surface and the existing Website-owned route. No schema, migration, production-data, Coupon, Affiliate, or P0 database-administration change is authorized by this slice.
+This approved slice contains the legacy Admin database-administration capability without redesigning or deleting database operations. Canonical database administration remains owned by `Modules/System`; the historical Admin database service and Livewire surfaces remain quarantined compatibility debt until stronger external/dynamic caller proof authorizes deletion.
 
 ## Ownership decision
 
 Responsibilities are intentionally split:
 
-- `Modules/Website` is the canonical owner of FlashSale/FlashSaleItem models and FlashSaleService behavior;
-- `Modules/Product` is the canonical owner of Product and the `wp_products` query boundary;
-- `Modules/Admin` retains the Flash Sale Livewire management composition only;
-- historical Admin Flash Sale model/service names remain deprecated compatibility adapters until complete external/dynamic caller proof authorizes deletion.
+- `Modules/System` is the canonical owner of database-administration routes, controller and operational service;
+- `Modules/Admin` remains the authenticated shell only and must not expose an independent destructive database runtime;
+- legacy Admin database Livewire surfaces are fail-closed;
+- `Modules/Admin/Services/DatabaseService.php` remains P0 quarantine and was not redesigned, moved or deleted.
 
-## Runtime changes
+## Runtime containment changes
 
-`Modules/Admin/Livewire/FlashSale/FlashSaleManager.php` now consumes:
+The legacy Admin database Livewire family is now consistently fail-closed:
 
-- `Modules/Website/Models/FlashSale`;
-- `Modules/Website/Services/FlashSaleService`;
-- `Modules/Product/Models/Product`.
+- `Modules/Admin/Livewire/Database/TableList.php` was already fail-closed and remains unchanged;
+- `Modules/Admin/Livewire/Database/BackupManager.php` no longer resolves `Modules\Admin\Services\DatabaseService`, does not enumerate operational backup data, and rejects restore/destructive actions with HTTP 403;
+- `Modules/Admin/Livewire/Database/ImportDrawer.php` no longer resolves the Admin DatabaseService or accepts/imports SQL and rejects the import action with HTTP 403.
 
-The product picker no longer performs raw `DB::table('wp_products')` access. Product discovery/addition now uses the canonical Product model and its active scope.
+No destructive capability was moved into another Admin component. The legacy Blade views remain compatibility surfaces and are not proof of canonical ownership.
 
-Edit loading uses Website `FlashSaleService::findWithProducts()` so Flash Sale item/product relations remain inside the canonical domain boundary.
+## Canonical System boundary verified
 
-Three historical Admin classes were reduced to deprecated compatibility adapters rather than deleted without complete caller proof:
-
-- `Modules/Admin/Models/FlashSale.php`
-- `Modules/Admin/Models/FlashSaleItem.php`
-- `Modules/Admin/Services/FlashSaleService.php`
-
-They no longer own independent table metadata, relationships, or Flash Sale CRUD behavior.
-
-## Route boundary retained
-
-The active management route remains unchanged and Website-owned:
+Runtime route verification confirms the active database-administration URLs are System-owned:
 
 ```text
-GET|HEAD admin/flash-sales  admin.flash-sales  Modules\Website\Http\Controllers\Admin\FlashSaleController@index
+GET|HEAD admin/system/database
+GET|HEAD admin/system/database/backup-restore
+GET|HEAD admin/system/database/download/{filename}
 ```
 
-Admin Livewire remains a management surface rendered from that boundary; route ownership was not moved into Admin.
+They are declared in `Modules/System/routes/web.php` under `web` + `auth:admin`, with dedicated `database.view` / `database.download` permission middleware. `Modules/System/Http/Controllers/DatabaseController.php` resolves `Modules\System\Services\DatabaseService`, not the quarantined Admin service.
+
+The other import/export/download routes returned by broad route grep belong to Admission, Muasamcong, Order, Request or ClientPortal and are unrelated to the legacy Admin database capability.
+
+## Reachability decision
+
+Repository caller searches found no canonical Admin route or ordinary static reference to the legacy Admin DatabaseService, BackupManager or ImportDrawer. This is strong containment evidence but not complete proof against dynamic/external Livewire callers.
+
+Therefore this slice deliberately does **not** delete:
+
+- `Modules/Admin/Services/DatabaseService.php`;
+- `Modules/Admin/Livewire/Database/TableList.php`;
+- `Modules/Admin/Livewire/Database/BackupManager.php`;
+- `Modules/Admin/Livewire/Database/ImportDrawer.php`;
+- their legacy database Blade views.
+
+They remain `QUARANTINE / FAIL-CLOSED` compatibility debt. Deletion requires a separately proven caller/removal slice.
 
 ## Explicitly out of scope
 
-- Coupon runtime/ownership changes;
+- redesign of System database administration;
+- schema, migration or production-data changes;
+- deletion or movement of the Admin DatabaseService;
 - Affiliate commission/rank/scheme ownership;
-- broader promotion architecture redesign;
-- schema or migration movement;
-- production data transformation;
-- deletion of compatibility adapters without caller proof;
-- environment/system ownership cleanup;
-- P0 database administration redesign.
-
-`Modules/Admin/Services/DatabaseService.php` remains quarantined and untouched.
+- environment/settings compatibility cleanup;
+- Banner/Header/Flash Sale compatibility-adapter deletion;
+- unrelated import/export features in other modules.
 
 ## Verification completed
 
 ```text
-AdminFlashSaleOwnershipContractTest + AdminOwnershipBoundaryContractTest: 8 passed, 55 assertions
-admin.flash-sales route: PASS — Website-owned /admin/flash-sales route preserved
-Manual Flash Sale management smoke including product picker: UI PASS
+AdminDatabaseP0ContainmentContractTest + AdminOwnershipBoundaryContractTest: 9 passed, 48 assertions
+Admin canonical database/destructive route exposure: PASS — no Admin-owned database operation route
+System database route ownership: PASS — /admin/system/database* remains System-owned
+Working tree after focused verification: clean
 ```
 
-The focused ownership contract protects:
-
-- Website ownership of Flash Sale model/service behavior;
-- Product ownership of product querying rather than raw Admin table access;
-- absence of independent persistence/business logic in retained Admin Flash Sale compatibility classes;
-- continued exclusion of Coupon/Affiliate from this slice;
-- continued P0 `DatabaseService` quarantine.
-
-No full-project regression was required for this ownership-only slice.
+The containment contract protects the legacy Admin database boundary from resolving the Admin DatabaseService or exposing destructive entry points. No full-project regression is required for this narrowly scoped containment slice.
 
 ## Acceptance criteria
 
-- canonical FlashSale/FlashSaleItem model owner: **Website — VERIFIED**;
-- canonical FlashSale service owner: **Website — VERIFIED**;
-- canonical product-query owner: **Product — VERIFIED**;
-- Admin management surface preserved: **VERIFIED**;
-- active `admin.flash-sales` route preserved: **VERIFIED**;
-- raw Admin `wp_products` query removed from FlashSaleManager: **VERIFIED**;
-- legacy Admin Flash Sale classes retain independent domain logic: **NO**;
-- compatibility adapters removed without complete caller proof: **NO**;
+- canonical database-administration owner: **System — VERIFIED**;
+- Admin independent database route ownership: **NONE — VERIFIED**;
+- legacy Admin TableList destructive actions: **FAIL-CLOSED**;
+- legacy Admin BackupManager operational/destructive actions: **FAIL-CLOSED**;
+- legacy Admin ImportDrawer import action: **FAIL-CLOSED**;
+- legacy Admin DatabaseService reachable from canonical Admin database runtime: **NO STATIC/CANONICAL CALLER FOUND**;
+- complete external/dynamic zero-caller proof: **NOT CLAIMED**;
+- legacy Admin database files deleted: **NO**;
+- System database runtime redesigned: **NO**;
 - schema/migration/data changes: **NONE**;
-- Coupon/Affiliate changes: **NONE**;
-- manual UI: **PASS**;
-- focused Admin ownership regression: **PASS — 8 tests / 55 assertions**;
-- P0 database quarantine: **UNCHANGED**;
+- focused Admin regression: **PASS — 9 tests / 48 assertions**;
+- P0 containment: **VERIFIED**;
 - PR readiness: **READY**.
 
 ## Material risks still open
 
-### P0
+### P0 compatibility debt
 
-`Modules/Admin/Services/DatabaseService.php` remains quarantined and must stay unreachable.
+`Modules/Admin/Services/DatabaseService.php` still contains destructive historical capability. Its safety contract is containment: it must stay unreachable from canonical Admin runtime. Do not reactivate or delete it without a separately approved caller-proof/redesign scope.
 
-### Compatibility debt
+### Dynamic/external callers
 
-The three deprecated Admin Flash Sale compatibility classes remain until repository/runtime caller proof is strong enough to authorize deletion. Their presence is compatibility debt, not canonical ownership.
-
-The five deprecated Admin Banner/Header compatibility classes from the prior slice remain under the same deletion guardrail.
+Repository/static searches are insufficient to prove every historical Livewire alias or external integration absent. This is why the fail-closed compatibility surfaces remain instead of being deleted in this slice.
 
 ### Remaining Admin legacy families
 
-Affiliate commission/rank/scheme ownership requires a dedicated architectural slice because current behavior spans Website, Order, Product and shared User concerns.
+Affiliate commission/rank/scheme ownership remains the next major architectural debt candidate because current behavior spans Website, Order, Product and shared User concerns.
 
-Coupon is currently aligned with Website domain ownership through the Admin management surface and does not require an ownership migration merely to group it with promotions.
-
-Environment/system remains a separate ownership/reachability candidate.
+Environment/System compatibility adapters and the deprecated Banner/Header/Flash Sale adapters remain separate caller-proof cleanup debt.
 
 ## Next phase
 
-Flash Sale ownership cleanup is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
+Database P0 containment is closed out and PR-ready. Do not implement Affiliate or another Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
