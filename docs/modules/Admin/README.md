@@ -6,7 +6,9 @@
 
 It is not the canonical owner of Product, Order, Post, Category, customer/account, Chat, affiliate/marketing, or production database administration domains.
 
-Current analysis recommendation: **Major Refactor** — preserve the working shell and migrate/remove legacy non-shell ownership incrementally.
+Current recommendation: **Major Refactor** — preserve the working shell and migrate/remove legacy non-shell ownership incrementally.
+
+The approved ownership/reachability baseline is documented in `OWNERSHIP_BASELINE.md`.
 
 ## Registration
 
@@ -17,17 +19,18 @@ Current analysis recommendation: **Major Refactor** — preserve the working she
 - View namespace: `Admin::`
 - Livewire prefix: `admin.`
 
-## Main Routes
+## Canonical Admin Shell
 
-All active Admin routes use `web`, `auth:admin`, `/admin`, and capability-specific permission middleware.
+The canonical shell includes:
 
-Main route groups:
-
-- `/admin` — dashboard
-- `/admin/menus/*` — Admin navigation management
-- `/admin/profile` — operator profile
-- `/admin/layout/*` — general/header/sidebar/footer/design/navigation shell configuration
+- `/admin` — dashboard entry/composition
+- `/admin/menus/*` — **sidebar/navigation configuration workspace**
+- `/admin/profile` — shell profile/preferences UI
+- `/admin/layout/*` — general/header/sidebar/footer/design/navigation configuration
 - `/admin/admin-header` — Admin header configuration
+- Admin shell presentation/layout/header/sidebar/footer/theme services
+
+`/admin/menus` is intentionally canonical Admin ownership. `AdminMenu`, `MenuService`, and `MenuImportExportService` manage Admin sidebar/navigation metadata. A menu link to Product, Order, System, or another module does not transfer ownership of that target domain to Admin.
 
 `Modules/Admin/routes/api.php` is intentionally empty.
 
@@ -50,7 +53,7 @@ Current shell architecture includes:
 
 - Admin layout and presentation services
 - configurable header/sidebar/footer/design surfaces
-- Admin menu management through `MenuService`
+- Admin sidebar/navigation management through `MenuService`
 - menu JSON import/export through `MenuImportExportService`
 - shell profile behavior
 - focused Admin contract tests
@@ -68,34 +71,25 @@ Expected dependencies:
 
 Business-domain dependencies should point toward the canonical domain owner rather than duplicating ownership in Admin.
 
-## Configuration
-
-Primary manifest:
-
-```text
-Modules/Admin/config/module.php
-```
-
-Shell layout/design/header/footer behavior is implemented through Admin shell services and persisted settings/configuration used by those services.
-
 ## Operational Notes
 
 `Modules/Admin/Services/DatabaseService.php` remains high-risk legacy code. The current Admin database Livewire surface is disabled and aborts database actions with HTTP 403; active Admin routes do not expose database administration.
 
 Do **not** re-enable this service without a separately approved hardened System/database-operation design covering permissions, audit, allowlists, secret handling, process execution, restore validation and recovery.
 
+The current refactor baseline adds tests to keep this dangerous capability isolated; those tests do not make the service production-safe.
+
 ## Developer Notes
 
 - Use `Admin::layouts.master` for Admin pages where applicable.
 - Keep page Blade files as shells and Livewire focused on UI state/actions.
+- Keep `/admin/menus` and sidebar/navigation management in Admin shell ownership.
 - Put reusable shell workflows in Admin services.
 - Preserve existing route names, permission names and Livewire aliases unless a compatibility plan explicitly changes them.
 - Do not add new business-domain models/services to Admin.
-- Before removing legacy code, check routes, Blade/Livewire aliases, service imports, jobs/events and tests.
-- For detailed current-state evidence see `ANALYSIS.md` and `INFORMATION.md`.
+- Before removing legacy code, check routes, Blade/Livewire aliases, service imports, jobs/events, tests, production schema usage and compatibility dependencies.
+- For current-state evidence see `ANALYSIS.md`, `INFORMATION.md`, and `OWNERSHIP_BASELINE.md`.
 
-## Future Improvements
+## Major Refactor Sequence
 
-Next implementation/refactor work is **NOT AUTHORIZED** by this analysis alone.
-
-When separately approved, the next planning step should build a reachability + canonical-ownership matrix for legacy Admin code, then migrate one domain family at a time while keeping the active Admin shell stable.
+The first approved implementation slice is the ownership/reachability baseline plus P0 database isolation and canonical shell guardrails. Later slices must migrate one verified legacy domain family at a time; bulk deletion and schema migration are not authorized by this baseline.
