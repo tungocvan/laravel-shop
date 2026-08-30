@@ -53,7 +53,7 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 | Layout/header/sidebar/footer/design/theme | `KEEP` | Admin | Admin shell presentation only |
 | Admin profile/preferences | `KEEP` | Admin UI + canonical identity/account contracts as applicable | Persistence ownership must be verified before moving models |
 | Categories legacy runtime | `CLEANED` | Category | Canonical routes/controller/Livewire/views are in `Modules/Category`; proven Admin runtime duplicates removed |
-| Chat legacy runtime | `BOUNDARY MOVED` | Chat | Chat routes/controller/Livewire/service now use Chat-owned runtime/models; legacy Admin copies remain pending final caller proof |
+| Chat legacy runtime | `CLEANED` | Chat | Canonical Chat runtime is active; proven legacy Admin controller/Livewire/models/service/views removed |
 | Product / ProductCommission legacy | `UNKNOWN -> MOVE candidate` | Product | Verify callers and replacement completeness |
 | Orders legacy | `UNKNOWN -> MOVE candidate` | Order | Verify callers and compatibility |
 | Posts/content legacy | `UNKNOWN -> MOVE candidate` | canonical content/Post owner | Verify current module contract before choosing owner |
@@ -71,30 +71,33 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 
 `tests/Feature/Admin/AdminCategoryOwnershipCleanupContractTest.php` prevents those runtime copies from returning.
 
-## Chat Canonical Boundary Evidence
+## Chat Cleanup Evidence
 
-The Chat slice establishes `Modules/Chat` as canonical owner of Chat behavior while preserving Admin as presentation shell.
+`Modules/Chat` is the canonical owner of Chat runtime behavior while Admin remains its authenticated presentation shell.
 
-Preserved route contracts:
+Preserved contracts:
 
 - `admin.chat.index` -> `/admin/chat/internal-chat`;
 - `admin.chat.cskh` -> `/admin/chat`;
-- both routes resolve to `Modules\Chat\Http\Controllers\ChatController`;
-- both routes remain under `auth:admin` and now require `permission:view_chat,admin`.
+- both routes resolve to `Modules\\Chat\\Http\\Controllers\\ChatController`;
+- both routes remain under `auth:admin` and require `permission:view_chat,admin`;
+- capability-specific Livewire permissions remain enforced;
+- canonical realtime channel/event behavior is unchanged;
+- Chat continues to depend on Admin presentation because Chat pages extend `Admin::layouts.master`.
 
-Canonical runtime changes:
+After the canonical boundary was verified, the following obsolete Admin runtime copies were removed in the dedicated compatibility cleanup slice:
 
-- `Modules/Chat/Services/ChatService.php` now uses `Modules\Chat\Models\ChatSession` and `ChatMessage`;
-- `Modules/Chat/Livewire/Chat/ChatManager.php` now uses Chat-owned models/service;
-- `Modules/Chat/Livewire/Chat/ChatWidget.php` now uses Chat-owned `ChatSession`;
-- admin Chat Livewire actions enforce `view_chat`, `create_chat`, `edit_chat`, and `delete_chat` according to operation;
-- internal Chat Livewire actions enforce `view_chat` and `create_chat`;
-- canonical `ChatService` retains `deleteAllMessages()` so moving away from the legacy Admin service does not silently drop that behavior;
-- realtime channel/payload contracts remain unchanged except for preserving the existing canonical Chat implementation.
+- `Modules/Admin/Http/Controllers/ChatController.php`;
+- `Modules/Admin/Livewire/Chat/ChatManager.php`;
+- `Modules/Admin/Models/ChatSession.php`;
+- `Modules/Admin/Models/ChatMessage.php`;
+- `Modules/Admin/Services/ChatService.php`;
+- `Modules/Admin/resources/views/pages/chat/index.blade.php`;
+- `Modules/Admin/resources/views/livewire/chat/chat-manager.blade.php`.
 
-Legacy Admin Chat controller/Livewire/model/service/view files are **not deleted in this boundary slice** because repository-wide caller proof is not yet complete. They are compatibility/deprecation candidates, not canonical ownership.
+`tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` now prevents those legacy copies from returning while protecting canonical Chat files, routes, authorization, and retained `deleteAllMessages()` compatibility behavior.
 
-The Chat manifest still depends on `Admin` because Chat pages render inside `Admin::layouts.master`. Removing that presentation dependency requires a separately proven shell contract and is not inferred by this slice.
+No Chat schema/table/migration ownership is changed by this runtime cleanup.
 
 ## Reachability Proof Required Before Future MOVE / DEPRECATE / DEAD
 
@@ -109,8 +112,6 @@ A file or family may not be removed merely because it is absent from `Modules/Ad
 7. menu/navigation records or config using historical URLs;
 8. production table usage and migration ledger when schema ownership is involved;
 9. external clients or compatibility requirements for historical URLs/aliases.
-
-Until those checks are complete, the family remains compatible/deprecated rather than deleted.
 
 ## P0 Database Administration Quarantine
 
@@ -133,7 +134,8 @@ The containment tests do not make `DatabaseService` production-safe.
 - Admin API remains closed by default.
 - Admin database administration remains fail-closed and quarantined.
 - Category business runtime remains owned by `Modules/Category`.
-- Chat canonical runtime must not import Admin Chat models/services.
+- Chat business runtime remains owned by `Modules/Chat`.
+- Legacy Admin Chat controller/Livewire/models/service/views must remain absent.
 - Admin Chat routes require `view_chat`; mutating Livewire actions require capability-specific permissions.
 
 ## Schema / Migration Rule
@@ -144,16 +146,17 @@ Runtime ownership cleanup does not authorize moving or renaming applied migratio
 
 1. keep ownership/P0 containment guardrails green;
 2. keep Category cleanup green;
-3. verify Chat canonical boundary and authorization changes;
-4. perform repository-wide caller proof for legacy Admin Chat copies before deletion;
-5. choose one next legacy family after the Chat checkpoint is merged;
-6. reconcile schema/migration ownership only after runtime ownership is stable.
+3. keep Chat canonical ownership and cleanup guardrails green;
+4. choose one next legacy family with a verified canonical replacement;
+5. prove callers/reachability and compatibility;
+6. migrate/remove only the proven obsolete Admin runtime copy;
+7. reconcile schema/migration ownership only after runtime ownership is stable.
 
 ## Outstanding Unknowns
 
-- repository-wide callers of legacy Admin Chat models/service/Livewire aliases outside the active Chat routes;
+- complete runtime reachability of remaining legacy Admin families;
 - production usage of legacy Admin tables;
 - production migration ledger for Admin migrations;
-- external dependencies on historical Admin URLs or Livewire aliases.
+- external dependencies on historical Admin URLs/aliases outside cleaned Category/Chat families.
 
-These unknowns are blockers against bulk deletion, not authorization to infer or guess ownership.
+These unknowns remain blockers against bulk deletion of unrelated families.
