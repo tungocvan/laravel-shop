@@ -44,12 +44,12 @@
                 <input id="award-search" type="search" wire:model.live.debounce.300ms="search" placeholder="Tên thuốc, mã mời thầu, số quyết định..." class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
             </div>
             <div>
-                <label class="text-sm font-medium text-gray-600 block">Chủ đầu tư</label>
-                <div class="mt-1"><x-select-search id="filter-investor-id" wire:model.live="filterInvestor" placeholder="Tất cả chủ đầu tư"><option value="">Tất cả chủ đầu tư</option>@foreach ($investors as $investor)<option value="{{ $investor }}">{{ $investor }}</option>@endforeach</x-select-search></div>
+                <label for="filter-investor" class="text-sm font-medium text-gray-600 block">Chủ đầu tư</label>
+                <input id="filter-investor" type="search" wire:model.live.debounce.300ms="filterInvestor" placeholder="Nhập một phần tên chủ đầu tư..." class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
             </div>
             <div>
-                <label class="text-sm font-medium text-gray-600 block">Nhà thầu</label>
-                <div class="mt-1"><x-select-search id="filter-company-id" wire:model.live="filterCompany" placeholder="Tất cả nhà thầu"><option value="">Tất cả nhà thầu</option>@foreach ($companies as $company)<option value="{{ $company }}">{{ $company }}</option>@endforeach</x-select-search></div>
+                <label for="filter-company" class="text-sm font-medium text-gray-600 block">Nhà thầu</label>
+                <input id="filter-company" type="search" wire:model.live.debounce.300ms="filterCompany" placeholder="Nhập một phần tên nhà thầu..." class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
             </div>
             <div>
                 <label for="filter-source" class="text-sm font-medium text-gray-600 block">Nguồn dữ liệu</label>
