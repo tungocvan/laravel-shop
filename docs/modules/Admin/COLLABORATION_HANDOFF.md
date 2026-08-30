@@ -2,73 +2,79 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Slice 4: Chat Legacy Compatibility Cleanup**
+Task: **Admin Major Refactor — Slice 5: Product Legacy Ownership Cleanup**
 
 Status: **VERIFIED — READY FOR PR REVIEW**
 
-Branch/checkpoint: `refactor/admin-chat-legacy-compatibility-cleanup`
+Branch/checkpoint: `refactor/admin-product-legacy-ownership-cleanup`
 
-This slice was explicitly approved after the Chat canonical ownership boundary PR was merged.
+This slice was explicitly approved after the Chat legacy compatibility cleanup was merged.
 
-## Cleanup decision
+## Ownership decision
 
-`Modules/Chat` remains the canonical owner of Chat runtime behavior.
-
-The dedicated cleanup removes only obsolete Admin Chat runtime copies after the canonical routes/controller/Livewire/service/models were already active and verified in the previous slice.
+`Modules/Product` is the canonical owner of Product admin behavior.
 
 Preserved contracts:
 
-- `admin.chat.index` -> `/admin/chat/internal-chat`
-- `admin.chat.cskh` -> `/admin/chat`
-- both routes resolve to `Modules\Chat\Http\Controllers\ChatController`
-- both routes remain under `auth:admin`
-- both routes require `permission:view_chat,admin`
-- capability-specific Chat Livewire authorization remains in place
-- canonical realtime behavior is unchanged
+- `/admin/products` and existing Product create/edit URLs remain unchanged;
+- `admin.products.index`, `admin.products.create`, `admin.products.edit` remain Product-owned;
+- `admin.products.commissions` remains owned by `Modules\Product\Http\Controllers\ProductCommissionController`;
+- Product pages mount canonical `product.products.*` Livewire components;
+- capability-specific create/edit/view/delete Product authorization remains enforced;
+- Product schema, migrations and table ownership are unchanged.
 
-## Removed legacy Admin Chat runtime
+## Removed legacy Admin Product runtime
 
-The following files were removed:
+The following proven duplicate files were removed:
 
-- `Modules/Admin/Http/Controllers/ChatController.php`
-- `Modules/Admin/Livewire/Chat/ChatManager.php`
-- `Modules/Admin/Models/ChatSession.php`
-- `Modules/Admin/Models/ChatMessage.php`
-- `Modules/Admin/Services/ChatService.php`
-- `Modules/Admin/resources/views/pages/chat/index.blade.php`
-- `Modules/Admin/resources/views/livewire/chat/chat-manager.blade.php`
+- `Modules/Admin/Livewire/Products/ProductForm.php`
+- `Modules/Admin/Livewire/Products/ProductTable.php`
+- `Modules/Admin/resources/views/livewire/products/product-form.blade.php`
+- `Modules/Admin/resources/views/livewire/products/product-table.blade.php`
+- `Modules/Admin/Exports/ProductsExport.php`
+- `Modules/Admin/Imports/ProductsImport.php`
 
-Canonical `Modules/Chat/*` source was not moved back into Admin.
+Canonical Product runtime, imports and exports remain in `Modules/Product`.
 
-## Website client corrective fix discovered during verification
+## Product UI refinements verified during Slice 5
 
-Manual client verification exposed a pre-existing Website shell asset-loading defect: the storefront rendered the Website Livewire chat widget HTML, but Livewire JavaScript was not loaded, so `wire:click` actions could not hydrate or execute.
+### Product list
 
-Corrective changes in this branch:
+- removed the duplicate outer `Danh sách sản phẩm` heading;
+- Product workspace retains the canonical internal heading;
+- Product pagination now uses a dedicated Product-scoped pagination view;
+- inactive page controls and previous/next controls use a white surface;
+- the current page uses explicit indigo active state;
+- pagination changes do not alter other modules.
 
-- `Modules/Website/resources/views/partials/layout/runtime-head.blade.php` now includes `@livewireStyles`;
-- `Modules/Website/resources/views/partials/layout/runtime-scripts.blade.php` now includes `@livewireScripts` before `@stack('scripts')`;
-- `Modules/Website/Livewire/Chat/ChatWidget.php` uses a server-backed `toggleChat()` action for deterministic open/close behavior;
-- `Modules/Website/resources/views/livewire/chat/chat-widget.blade.php` renders the panel from Livewire state rather than relying on Alpine entanglement for the primary toggle;
-- added `tests/Feature/Website/WebsiteLivewireRuntimeAssetContractTest.php` to protect Website Livewire runtime assets.
+### Product Create/Edit category selection
 
-This corrective fix does not alter Chat routes, schema, migrations, or realtime protocol semantics.
+- category hierarchy is recursive;
+- child categories are collapsed by default on Create;
+- parents with children expose `+` / `−` expand-collapse controls;
+- checkbox selection is independent from expand-collapse state;
+- Edit automatically reveals ancestors needed to display already-selected child categories;
+- category assignment semantics and relationships are unchanged.
+
+## ProductCommission follow-up debt
+
+`admin.products.commissions` is already canonically Product-owned, but its current page still mounts the general Product form instead of a dedicated commission-management workspace.
+
+This was deliberately **NOT redesigned in Slice 5**. A dedicated ProductCommission UX requires separate scope/approval if prioritized later.
 
 ## Guardrails
 
-`tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` verifies:
+`tests/Feature/Admin/AdminProductOwnershipCleanupContractTest.php` protects:
 
-- the seven legacy Admin Chat files remain absent;
-- canonical Chat models/service/Livewire/views remain present;
-- route URLs/names/controller ownership remain unchanged;
-- `view_chat` remains on both admin Chat routes;
-- canonical Chat runtime does not import Admin Chat models/service;
-- canonical Chat service retains `deleteAllMessages()`;
-- capability-specific Livewire permissions remain enforced.
+- canonical Product route/controller ownership;
+- canonical Product Livewire page aliases;
+- absence of the six removed Admin Product files;
+- presence of canonical Product runtime/import/export files;
+- capability-specific Product authorization;
+- recursive/collapsed category selector behavior;
+- ProductCommission remaining canonical without silently redesigning its current page.
 
-`tests/Feature/Website/WebsiteLivewireRuntimeAssetContractTest.php` protects the Website shell Livewire bootstrap used by the storefront chat widget.
-
-`docs/modules/Admin/OWNERSHIP_BASELINE.md` classifies Chat legacy runtime as `CLEANED`.
+`docs/modules/Admin/OWNERSHIP_BASELINE.md` now classifies Product legacy ownership as `CLEANED`.
 
 ## Runtime / schema impact
 
@@ -76,54 +82,57 @@ Route URL/name change: **NONE**
 
 Authentication guard change: **NONE**
 
-Authorization change: **NONE IN THIS SLICE** — hardening from Slice 3 is preserved
+Product authorization weakening: **NONE**
 
-Website Livewire runtime: **FIXED** — storefront now loads Livewire assets required by the Website chat widget
+Product schema/table/migration change: **NONE**
 
-Realtime protocol redesign: **NONE**
+Category relationship/business-rule change: **NONE**
 
-Database/schema/migration change: **NONE**
-
-Chat manifest dependency on Admin: **UNCHANGED** — Chat views still use the Admin presentation shell
+ProductCommission redesign: **NONE — FOLLOW-UP DEBT RECORDED**
 
 P0 database administration quarantine: **UNCHANGED**
 
 ## Verification
 
-Focused Website Livewire runtime contract: **PASS**.
-
-Manual end-to-end client/admin verification: **PASS**.
-
-Verified flow:
-
-- storefront Chat widget opens successfully;
-- `Bắt đầu Chat ngay` successfully creates/opens the client chat session;
-- client can send a message;
-- `/admin/chat` receives the client session/message successfully;
-- no missing Livewire class/view/model/service error was observed in the verified flow.
-
-Earlier Slice 3 baseline remained green before this cleanup:
+Focused final automated verification reported by the user:
 
 ```text
-Tests: 11 passed (86 assertions)
-Tests: 150 passed (1400 assertions)
+Tests: 10 passed (54 assertions)
+Duration: 0.55s
 ```
 
-The user reported the dedicated Website Livewire runtime test PASS after the corrective fix.
+Earlier Admin focused/regression verification in this slice:
 
-Full project regression was intentionally not run; verification remains focused on Admin, Chat, Website Livewire runtime, and the directly impacted client/admin chat flow.
+```text
+Tests: 158 passed (1477 assertions)
+```
+
+Earlier Product route verification:
+
+```text
+Tests: 2 passed (9 assertions)
+```
+
+Manual UI smoke: **PASS**.
+
+Verified UI outcomes:
+
+- `/admin/products` renders successfully after legacy Admin Product removal;
+- Product category selection tree: **PASS**;
+- Product pagination white inactive surface: **PASS**;
+- Product pagination active indigo state: **PASS**.
+
+Full project regression was intentionally not run; verification remains focused on Admin and Product according to the collaboration workflow.
 
 ## Acceptance criteria
 
-- legacy Admin Chat runtime files absent: **CONFIRMED**;
-- canonical Chat runtime files present: **CONFIRMED BY CONTRACT**;
-- Chat route names/URLs unchanged: **CONFIRMED BY CONTRACT**;
-- Chat route/controller ownership unchanged: **CONFIRMED BY CONTRACT**;
-- Chat permissions unchanged from Slice 3: **CONFIRMED**;
-- Website Livewire runtime asset contract: **PASS**;
-- storefront widget open: **PASS**;
-- client send message: **PASS**;
-- Admin receive message: **PASS**;
+- canonical Product ownership confirmed: **PASS**;
+- six proven Admin Product duplicates absent: **PASS**;
+- route names/URLs preserved: **PASS**;
+- capability authorization preserved: **PASS**;
+- Product category recursive/collapsed UX: **UI PASS**;
+- Product pagination white/indigo UX: **UI PASS**;
+- ProductCommission ownership preserved without redesign: **PASS**;
 - schema/migration changes: **NONE**;
 - PR readiness: **READY**.
 
@@ -135,7 +144,7 @@ Full project regression was intentionally not run; verification remains focused 
 
 ### Remaining Admin legacy families
 
-Product, Order, Post/content, customer/address, roles/staff, marketing/public-site and system/environment remain separate ownership/reachability candidates. This Chat cleanup does not authorize cleanup of any of those families.
+Order, Post/content, customer/address, roles/staff, marketing/public-site and system/environment remain separate ownership/reachability candidates. Slice 5 does not authorize cleanup of any of those families.
 
 Production migration-ledger/table ownership remains unresolved and out of scope.
 
@@ -143,4 +152,4 @@ Production migration-ledger/table ownership remains unresolved and out of scope.
 
 Next Admin legacy-family slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is merged, inspect the remaining candidates and propose exactly one next family before implementation.
+After this checkpoint is merged, inspect remaining candidates and propose exactly one next family before implementation.
