@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Slice 7: Post/content Legacy Ownership Cleanup**
 
-Status: **IMPLEMENTATION VERIFIED — FINAL REGRESSION PENDING**
+Status: **VERIFIED — PR READY**
 
 Branch/checkpoint: `refactor/admin-post-content-ownership`
 
@@ -143,6 +143,9 @@ Focused ownership/UI contract verification completed successfully:
 
 ```text
 AdminPostOwnershipCleanupContractTest: 7 passed, 58 assertions
+PostRouteConfigurationTest + AdminOwnershipBoundaryContractTest: 7 passed, 32 assertions
+admin.posts route list: PASS — 3 canonical Modules\\Post\\Http\\Controllers\\PostController routes
+Vite production build: PASS — 34 modules transformed, built in 4.72s
 Manual Post category-tree UI: PASS
 ```
 
@@ -157,33 +160,21 @@ The focused contract protects:
 - visible/resettable list filters;
 - recursive Post category tree using the shared Admin selector.
 
-## Final regression still required before PR
-
-Run only the directly impacted tests and build checks; do not use full-project regression for this ownership slice.
-
-Expected final gate:
-
-```bash
-php artisan test tests/Feature/Post/PostRouteConfigurationTest.php tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php
-php artisan route:list --name=admin.posts
-npm run build
-```
-
-If these pass, update this handoff to `VERIFIED — PR READY` before opening the pull request.
+No full-project regression was required for this ownership slice.
 
 ## Acceptance criteria
 
 - canonical Post ownership confirmed: **VERIFIED**;
 - eight proven Admin Post duplicates absent: **VERIFIED**;
-- route names/URLs preserved: **VERIFIED BY CONTRACT; FINAL ROUTE-LIST GATE PENDING**;
+- route names/URLs preserved: **VERIFIED — 3 canonical Post routes**;
 - capability authorization preserved: **VERIFIED**;
 - Post service/import-export boundary preserved: **VERIFIED**;
 - bounded scoped pagination: **VERIFIED BY CONTRACT**;
 - Post recursive category tree with default `+`: **UI PASS**;
 - schema/migration/data changes: **NONE**;
 - P0 database quarantine: **UNCHANGED**;
-- final impacted regression/build: **PENDING**;
-- PR readiness: **NOT YET — WAITING FINAL REGRESSION**.
+- final impacted regression/build: **PASS**;
+- PR readiness: **READY**.
 
 ## Material risks still open
 
@@ -199,4 +190,4 @@ Production migration-ledger/table ownership for unrelated Admin legacy families 
 
 ## Next phase
 
-Do not select or implement the next Admin legacy family until this Post/content slice passes the final regression/build gate, is PR-ready, merged, and the user explicitly authorizes the next scope.
+Slice 7 is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
