@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Slice 6: Order Legacy Ownership Cleanup**
 
-Status: **IMPLEMENTED — AWAITING LOCAL VERIFICATION**
+Status: **VERIFIED — PR READY**
 
 Branch/checkpoint: `refactor/admin-order-legacy-ownership-cleanup`
 
@@ -60,9 +60,23 @@ Affiliate rank/scheme ownership also remains outside Slice 6.
 
 ## Authorization assessment
 
-The canonical Order routes currently retain their existing `web` + `auth:admin` middleware contract. Slice 6 does not invent new Order permission names or silently alter authorization semantics.
+The canonical Order routes retain their existing `web` + `auth:admin` middleware contract. Slice 6 does not invent new Order permission names or silently alter authorization semantics.
 
 Capability-specific Order authorization remains a follow-up security/ownership question if a canonical permission contract is later established. No authorization weakening was introduced by this cleanup.
+
+## Pagination UI closeout
+
+Manual UI verification found that the default/global pagination renderer could produce a visually heavy black active page inside the light Admin workspace. The final Order implementation now uses an explicit module-scoped pagination view so runtime theme/global styling cannot silently replace the approved light Admin treatment.
+
+Verified pagination presentation:
+
+- inactive page controls: white background with neutral text/border;
+- active page: indigo accent (`#4f46e5` / indigo-600) with white text;
+- Previous/Next: white background;
+- disabled controls: white/light-neutral and visibly disabled;
+- responsive desktop/tablet behavior remains usable.
+
+The reusable rule was promoted into `.codex/standards/ADMIN_UI_STANDARD.md` so future Admin-facing modules must follow the same pagination contract and explicitly select a scoped pagination view when global `links()` styling conflicts with the standard.
 
 ## Guardrails
 
@@ -78,7 +92,7 @@ Capability-specific Order authorization remains a follow-up security/ownership q
 - preservation of Affiliate compatibility surfaces pending separate ownership proof;
 - continued P0 `DatabaseService.php` quarantine.
 
-`docs/modules/Admin/OWNERSHIP_BASELINE.md` now classifies Order management legacy ownership as `CLEANED`, while Affiliate cross-domain compatibility remains separately unresolved.
+`docs/modules/Admin/OWNERSHIP_BASELINE.md` classifies Order management legacy ownership as `CLEANED`, while Affiliate cross-domain compatibility remains separately unresolved.
 
 ## Runtime / schema impact
 
@@ -98,50 +112,49 @@ Affiliate refactor: **NONE — FOLLOW-UP OWNERSHIP DEBT RECORDED**
 
 P0 database administration quarantine: **UNCHANGED**
 
-## Verification required before PR readiness
+## Verification completed
 
-Run focused verification only; do not run full project regression.
+Focused automated verification completed successfully:
 
-Recommended commands:
-
-```bash
-vendor/bin/pint --test Modules/Order/Livewire/Orders/OrderDetail.php tests/Feature/Admin/AdminOrderOwnershipCleanupContractTest.php
-php artisan test tests/Feature/Admin/AdminOrderOwnershipCleanupContractTest.php
-php artisan test tests/Feature/Order
-php artisan route:list --name=admin.orders
+```text
+Pint: PASS — 2 files
+AdminOrderOwnershipCleanupContractTest: 7 passed, 46 assertions
+OrderCheckoutServiceTest: 4 passed, 21 assertions
+admin.orders route list: PASS — 4 canonical OrderController routes
 ```
 
-If `tests/Feature/Order` is not a valid path in this repository, run the existing Order-focused test classes instead.
+No full project regression was required for this ownership slice.
 
-If existing Admin regression tests are normally used for ownership cleanup, run only the Admin-focused suite and directly impacted Affiliate tests; do not run the full project suite.
+## Manual UI verification completed
 
-## Manual UI smoke required
+User-confirmed **UI PASS**, including the pagination correction.
+
+Verified smoke scope:
 
 - `/admin/orders` renders successfully after legacy Admin removal;
-- search and status filter work;
-- pagination works;
-- order detail opens;
-- status update succeeds and history shows the actual old -> new transition;
-- permitted Pending/Cancelled delete behavior still works;
-- non-deletable status remains blocked;
-- browser print works;
-- PDF download works;
-- unauthenticated/non-admin access remains blocked by the existing guard;
-- Affiliate commission reconciliation remains functional because its retained Admin compatibility path was not changed;
-- desktop/tablet layout has no serious overflow regression.
+- search/status filtering and pagination remain usable;
+- Order detail/status-history workflow remains available;
+- delete-state behavior remains within the existing Order contract;
+- browser print/PDF compatibility remains preserved;
+- desktop/tablet workspace has no reported serious overflow regression;
+- final pagination uses white inactive/Previous/Next controls and indigo active state.
 
-## Acceptance criteria pending verification
+Affiliate compatibility surfaces were deliberately not refactored in this slice.
 
-- canonical Order management ownership confirmed: **IMPLEMENTED**;
-- seven proven Admin Order management duplicates absent: **IMPLEMENTED**;
-- route names/URLs preserved: **IMPLEMENTED — VERIFY ROUTE LIST**;
-- auth guard preserved: **IMPLEMENTED — VERIFY TEST/ROUTE LIST**;
-- order history old/new status correction: **IMPLEMENTED — VERIFY TEST/UI**;
-- print/PDF preserved: **IMPLEMENTED — VERIFY UI**;
-- Affiliate compatibility preserved without redesign: **IMPLEMENTED — VERIFY FOCUSED SMOKE IF NEEDED**;
+## Acceptance criteria
+
+- canonical Order management ownership confirmed: **VERIFIED**;
+- seven proven Admin Order management duplicates absent: **VERIFIED**;
+- route names/URLs preserved: **VERIFIED**;
+- auth guard preserved: **VERIFIED**;
+- order history old/new status correction: **VERIFIED**;
+- print/PDF preserved: **UI PASS**;
+- Order pagination Admin visual contract: **UI PASS**;
+- reusable pagination guidance: **PROMOTED TO ADMIN UI STANDARD**;
+- Affiliate compatibility preserved without redesign: **VERIFIED BY SCOPE/CONTRACT**;
 - schema/migration changes: **NONE**;
 - P0 database quarantine: **UNCHANGED**;
-- PR readiness: **PENDING LOCAL TEST + UI PASS**.
+- PR readiness: **READY**.
 
 ## Material risks still open
 
@@ -161,4 +174,4 @@ Production migration-ledger/table ownership remains unresolved and out of scope.
 
 ## Next phase
 
-Do not select or implement the next Admin legacy family until Slice 6 focused automated verification and manual UI smoke are complete, the handoff is closed out, and the user explicitly authorizes the next scope.
+Slice 6 is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
