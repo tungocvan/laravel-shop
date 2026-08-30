@@ -4,38 +4,35 @@ namespace Modules\Admin\Livewire\Banner;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Admin\Services\BannerService;
+use Modules\Website\Services\BannerService;
 
 class BannerManager extends Component
 {
     use WithFileUploads;
 
-    // 2. LIVEWIRE_BANNER
     public $banners;
     public $isModalOpen = false;
     public $isEditMode = false;
 
-    // Form Fields
     public $bannerId;
     public $title;
     public $link;
     public $sub_title;
     public $btn_text;
-    public $position = 'hero'; // Default
+    public $position = 'hero';
     public $order = 0;
     public $is_active = true;
 
-    // Uploads
     public $newImageDesktop;
     public $newImageMobile;
-    public $currentImageDesktop; // Để hiển thị preview khi edit
+    public $currentImageDesktop;
     public $currentImageMobile;
 
     public function mount(BannerService $service)
     {
         $this->loadBanners($service);
     }
- 
+
     public function loadBanners(BannerService $service)
     {
         $this->banners = $service->getAll();
@@ -46,7 +43,6 @@ class BannerManager extends Component
         return view('Admin::livewire.banner.banner-manager');
     }
 
-    // Actions
     public function create()
     {
         $this->resetForm();
@@ -54,23 +50,21 @@ class BannerManager extends Component
         $this->isModalOpen = true;
     }
 
-    public function edit($id)
+    public function edit($id, BannerService $service)
     {
         $this->resetForm();
         $this->isEditMode = true;
 
-        // Find banner manually or via service
-        $banner = \Modules\Admin\Models\Banner::find($id);
+        $banner = $service->find((int) $id);
 
         $this->bannerId = $banner->id;
         $this->title = $banner->title;
-        $this->sub_title = $banner->sub_title; // Mới
-        $this->btn_text = $banner->btn_text;   // Mới
+        $this->sub_title = $banner->sub_title;
+        $this->btn_text = $banner->btn_text;
         $this->link = $banner->link;
         $this->position = $banner->position;
         $this->order = $banner->order;
         $this->is_active = $banner->is_active;
-
         $this->currentImageDesktop = $banner->image_desktop;
         $this->currentImageMobile = $banner->image_mobile;
 
@@ -85,25 +79,22 @@ class BannerManager extends Component
             'order' => 'integer',
         ];
 
-        // Nếu tạo mới bắt buộc phải có ảnh desktop
-        if (!$this->isEditMode) {
-            $rules['newImageDesktop'] = 'required|image|max:3072'; // 2MB
+        if (! $this->isEditMode) {
+            $rules['newImageDesktop'] = 'required|image|max:3072';
         }
 
         $this->validate($rules);
 
-        $data = [
+        $service->save([
             'id' => $this->bannerId,
             'title' => $this->title,
-            'sub_title' => $this->sub_title, // Mới
-            'btn_text' => $this->btn_text,   // Mới
+            'sub_title' => $this->sub_title,
+            'btn_text' => $this->btn_text,
             'link' => $this->link,
             'position' => $this->position,
             'order' => $this->order,
             'is_active' => $this->is_active,
-        ];
-
-        $service->save($data, $this->newImageDesktop, $this->newImageMobile);
+        ], $this->newImageDesktop, $this->newImageMobile);
 
         $this->isModalOpen = false;
         $this->loadBanners($service);
@@ -119,8 +110,19 @@ class BannerManager extends Component
 
     public function resetForm()
     {
-        // Reset thêm biến mới
-        $this->reset(['bannerId', 'title', 'sub_title', 'btn_text', 'link', 'position', 'order', 'is_active', 'newImageDesktop', 'newImageMobile', 'currentImageDesktop', 'currentImageMobile']);
+        $this->reset([
+            'bannerId',
+            'title',
+            'sub_title',
+            'btn_text',
+            'link',
+            'position',
+            'order',
+            'is_active',
+            'newImageDesktop',
+            'newImageMobile',
+            'currentImageDesktop',
+            'currentImageMobile',
+        ]);
     }
-    // End 2.
 }
