@@ -4,56 +4,42 @@ declare(strict_types=1);
 
 namespace Modules\Admin\Livewire\Database;
 
-use Livewire\Component;
 use Livewire\Attributes\On;
-use Modules\Admin\Services\DatabaseService;
-use Exception;
+use Livewire\Component;
 
+/**
+ * @deprecated Database administration is quarantined until a dedicated,
+ * hardened System-owned operations boundary is explicitly approved.
+ */
 class BackupManager extends Component
 {
-    /**
-     * Lắng nghe sự kiện để cập nhật danh sách khi có file mới được tạo
-     */
+    public bool $databaseActionsDisabled = true;
+
     #[On('backup-updated')]
     public function refresh(): void
     {
-        // Livewire tự động re-render khi state thay đổi hoặc có event
+        // Intentionally no-op while the P0 database surface is quarantined.
     }
 
-    /**
-     * Render danh sách file từ Service
-     */
-    public function render(DatabaseService $service)
+    public function restoreBackup(string $fileName): void
+    {
+        $this->denyDatabaseAction();
+    }
+
+    public function restore(string $fileName): void
+    {
+        $this->denyDatabaseAction();
+    }
+
+    public function render()
     {
         return view('Admin::livewire.database.backup-manager', [
-            'backups' => $service->getBackupFiles() // Gọi qua Service, không query trực tiếp
+            'backups' => [],
         ]);
     }
 
-    /**
-     * Xử lý khôi phục dữ liệu
-     */
-    public function restoreBackup(string $fileName, DatabaseService $service): void
+    private function denyDatabaseAction(): void
     {
-        try {
-            // Logic restore nằm trọn trong Service
-            $success = $service->restore($fileName);
-
-            if ($success) {
-                $this->dispatch('notify', ['type' => 'success', 'message' => 'Khôi phục dữ liệu thành công!']);
-            }
-        } catch (Exception $e) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
-        }
-    }
-    public function restore(string $fileName, DatabaseService $service): void
-    {
-        try {
-            $service->restore($fileName);
-            $this->dispatch('notify', ['type' => 'success', 'message' => 'Hệ thống đã được khôi phục thành công!']);
-            // Tùy chọn: Redirect hoặc Refresh trang để cập nhật cấu trúc mới
-        } catch (\Exception $e) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
-        }
+        abort(403, 'Database administration is disabled until P0 controls are implemented.');
     }
 }
