@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Slice 3: Chat Canonical Ownership & Authorization Boundary**
 
-Status: **IMPLEMENTED — awaiting local focused verification**
+Status: **VERIFIED — READY FOR PR REVIEW**
 
 Branch/checkpoint: `refactor/admin-chat-canonical-ownership-boundary`
 
@@ -96,40 +96,30 @@ Database/schema/migration change: **NONE**
 
 P0 database administration quarantine: **UNCHANGED**
 
-## Required local verification
+## Verification
 
-Sync the branch and run focused contracts:
+Focused Chat ownership / Admin guardrail verification reported:
 
-```bash
-php artisan test \
-  tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php \
-  tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php \
-  tests/Feature/Admin/AdminDatabaseIsolationContractTest.php
+```text
+Tests: 11 passed (86 assertions)
+Duration: 0.57s
 ```
 
-Then run impacted regressions only:
+Focused impacted Admin + Chat regression reported:
 
-```bash
-php artisan test tests/Feature/Admin tests/Feature/Chat
+```text
+Tests: 150 passed (1400 assertions)
+Duration: 4.55s
 ```
 
-If `tests/Feature/Chat` does not exist in the local tree, run:
+Manual UI verification: **PASS**.
 
-```bash
-php artisan test tests/Feature/Admin
-```
-
-Do not run the full project suite for this checkpoint.
-
-Manual UI smoke should verify with an admin account that has `view_chat`:
+Verified UI surfaces include:
 
 - `/admin/chat`
 - `/admin/chat/internal-chat`
-- opening/selecting a session still works where local data exists;
-- sending a message works only with the corresponding Chat capability;
-- no Livewire component-resolution or model-class errors appear.
 
-Also verify an admin without `view_chat` receives 403 for both routes if a suitable local account is available.
+No full-project regression was run; verification remained scoped to Admin + Chat and directly impacted behavior.
 
 ## Material risks still open
 
@@ -145,20 +135,20 @@ Production migration-ledger/table ownership remains unresolved and is intentiona
 
 ## Acceptance criteria
 
-Before PR readiness:
-
-- Chat ownership boundary contract: PASS;
-- existing Admin ownership/P0 guardrails: PASS;
-- focused Admin + Chat impacted regression: PASS;
-- `/admin/chat` UI smoke: PASS;
-- `/admin/chat/internal-chat` UI smoke: PASS;
-- route URLs/names unchanged;
-- `view_chat` route authorization confirmed;
-- canonical Chat runtime has no Admin Chat model/service imports;
-- no schema/migration changes.
+- Chat ownership boundary contract: **PASS**;
+- existing Admin ownership/P0 guardrails: **PASS**;
+- focused Admin + Chat impacted regression: **PASS — 150 tests / 1400 assertions**;
+- focused ownership/guardrail contracts: **PASS — 11 tests / 86 assertions**;
+- `/admin/chat` UI smoke: **PASS**;
+- `/admin/chat/internal-chat` UI smoke: **PASS**;
+- route URLs/names unchanged: **CONFIRMED BY CONTRACT**;
+- `view_chat` route authorization confirmed: **YES**;
+- canonical Chat runtime has no Admin Chat model/service imports: **CONFIRMED BY CONTRACT**;
+- schema/migration changes: **NONE**;
+- PR readiness: **READY**.
 
 ## Next phase
 
 Next Chat cleanup or another Admin legacy-family slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is verified and merged, first decide whether remaining legacy Admin Chat copies have sufficient repository-wide caller proof for deletion. Do not combine that decision with unrelated Product/Order/Post cleanup.
+After this checkpoint is merged, first decide whether remaining legacy Admin Chat copies have sufficient repository-wide caller proof for deletion. Do not combine that decision with unrelated Product/Order/Post cleanup.
