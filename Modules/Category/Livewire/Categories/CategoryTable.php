@@ -30,6 +30,9 @@ class CategoryTable extends Component
 
     public ?int $pendingDeleteId = null;
 
+    /** @var array<int> */
+    public array $expandedIds = [];
+
     protected CategoryService $categoryService;
 
     protected CategoryTypeService $categoryTypeService;
@@ -68,7 +71,25 @@ class CategoryTable extends Component
         }
 
         $this->type = $type;
+        $this->expandedIds = [];
         $this->resetPage();
+    }
+
+    public function toggleNode(int $id): void
+    {
+        $this->authorizePermission('view_category');
+
+        if (in_array($id, $this->expandedIds, true)) {
+            $this->expandedIds = array_values(array_filter(
+                $this->expandedIds,
+                fn (int $expandedId): bool => $expandedId !== $id
+            ));
+
+            return;
+        }
+
+        $this->expandedIds[] = $id;
+        $this->expandedIds = array_values(array_unique(array_map('intval', $this->expandedIds)));
     }
 
     public function updatedSearch(): void
@@ -78,6 +99,7 @@ class CategoryTable extends Component
 
     public function updatedType(): void
     {
+        $this->expandedIds = [];
         $this->resetPage();
     }
 
@@ -135,15 +157,24 @@ class CategoryTable extends Component
     {
         $this->authorizePermission('view_category');
 
+        $tree = $this->categoryService->treeForAdmin([
+            'search' => $this->search,
+            'type' => $this->type,
+            'status' => $this->status,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
+            'perPage' => $this->perPage,
+        ]);
+
+        $effectiveExpandedIds = array_values(array_unique(array_map(
+            'intval',
+            array_merge($this->expandedIds, $tree['autoExpandedIds'])
+        )));
+
         return view('Category::livewire.categories.category-table', [
-            'categories' => $this->categoryService->paginateForAdmin([
-                'search' => $this->search,
-                'type' => $this->type,
-                'status' => $this->status,
-                'sortBy' => $this->sortBy,
-                'sortDirection' => $this->sortDirection,
-                'perPage' => $this->perPage,
-            ]),
+            'categories' => $tree['categories'],
+            'expandedCategoryIds' => $effectiveExpandedIds,
+            'visibleCategoryIds' => $tree['visibleCategoryIds'],
         ]);
     }
 

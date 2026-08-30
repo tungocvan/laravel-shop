@@ -46,7 +46,7 @@
         <select wire:model.live="perPage"
             class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
             @foreach ($perPageOptions as $option)
-                <option value="{{ $option }}">{{ $option }} dòng/trang</option>
+                <option value="{{ $option }}">{{ $option }} danh mục gốc/trang</option>
             @endforeach
         </select>
     </div>
@@ -59,7 +59,7 @@
 
     <div class="relative overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-900/5">
         <div wire:loading.flex
-            wire:target="setType,search,status,perPage,confirmDelete,setActive"
+            wire:target="setType,search,status,perPage,toggleNode,confirmDelete,setActive"
             class="absolute inset-0 z-10 items-center justify-center bg-white/70">
             <span class="text-sm font-medium text-indigo-600">Đang xử lý...</span>
         </div>
@@ -77,62 +77,12 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
                     @forelse ($categories as $category)
-                        <tr wire:key="category-{{ $category->id }}" class="hover:bg-gray-50">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-4">
-                                    @if ($category->image)
-                                        <img class="h-10 w-10 rounded-lg border object-cover"
-                                            src="{{ asset('storage/'.$category->image) }}"
-                                            alt="{{ $category->name }}">
-                                    @else
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-lg border bg-gray-100 text-sm font-semibold text-gray-500">
-                                            {{ mb_strtoupper(mb_substr($category->name, 0, 1)) }}
-                                        </div>
-                                    @endif
-
-                                    <div>
-                                        <div class="font-semibold text-gray-900">{{ $category->name }}</div>
-                                        <div class="text-xs text-gray-500">/{{ $category->slug }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $category->parent?->name ?? 'Root' }}
-                            </td>
-                            <td class="px-6 py-4 text-center text-sm text-gray-600">
-                                {{ $category->sort_order }}
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                @if (auth('admin')->user()?->can('edit_category'))
-                                    <button type="button"
-                                        wire:click="setActive({{ $category->id }}, {{ $category->is_active ? 'false' : 'true' }})"
-                                        class="rounded-full px-3 py-1 text-xs font-semibold
-                                            {{ $category->is_active
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-gray-100 text-gray-600' }}">
-                                        {{ $category->is_active ? 'Hiện' : 'Ẩn' }}
-                                    </button>
-                                @else
-                                    <span class="text-xs font-semibold {{ $category->is_active ? 'text-green-600' : 'text-gray-400' }}">
-                                        {{ $category->is_active ? 'Hiện' : 'Ẩn' }}
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-right text-sm">
-                                @if (auth('admin')->user()?->can('edit_category'))
-                                    <a href="{{ route('admin.category.edit', $category->id) }}"
-                                        class="mr-3 text-indigo-600 hover:text-indigo-900">Sửa</a>
-                                @endif
-
-                                @if (auth('admin')->user()?->can('delete_category'))
-                                    <button type="button"
-                                        wire:click="requestDelete({{ $category->id }})"
-                                        class="text-red-600 hover:text-red-900">
-                                        Xóa
-                                    </button>
-                                @endif
-                            </td>
-                        </tr>
+                        @include('Category::livewire.categories.partials.category-row', [
+                            'category' => $category,
+                            'depth' => 0,
+                            'expandedCategoryIds' => $expandedCategoryIds,
+                            'visibleCategoryIds' => $visibleCategoryIds,
+                        ])
                     @empty
                         <tr>
                             <td colspan="5" class="py-10 text-center text-gray-500">

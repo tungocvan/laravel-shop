@@ -2,137 +2,158 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Ownership & Reachability Baseline + P0 Database Isolation + Canonical Shell Guardrails**
+Task: **Admin Major Refactor — Slice 2: Category Legacy Ownership Cleanup**
 
 Status: **VERIFIED — READY FOR PR REVIEW**
 
-Branch/checkpoint: `refactor/admin-ownership-reachability-baseline`
+Branch/checkpoint: `refactor/admin-category-legacy-ownership-cleanup`
 
-This slice was explicitly approved after `/analyze Admin` concluded **Major Refactor**.
+This slice was explicitly approved after the ownership/reachability baseline PR was merged.
 
-## Canonical Admin Shell
+## Canonical ownership decision
 
-Preserve these Admin-owned surfaces:
+`Modules/Category` is the canonical owner of the Category admin workspace.
 
-- dashboard entry/composition;
-- `/admin/menus`, `/admin/menus/create`, `/admin/menus/{id}/edit` as Admin sidebar/navigation configuration;
-- `AdminMenu`, `MenuService`, `MenuImportExportService` for Admin navigation metadata;
-- Admin sidebar rendering/navigation composition;
-- profile/preferences shell UI;
-- layout/header/sidebar/footer/design/theme/navigation workspaces and shell services.
+Preserved public/admin contracts:
 
-Important ownership rule: a sidebar menu item that links to Product, Order, System, Account, or another module is navigation metadata. The target module remains the canonical owner of its business routes, models, services, permissions, and workflows.
+- `admin.category.index`
+- `admin.category.create`
+- `admin.category.edit`
+- `/admin/category`
+- `/admin/category/create`
+- `/admin/category/{id}/edit`
+- `view_category`
+- `create_category`
+- `edit_category`
+- `delete_category`
 
-## Changes in this slice
+The workspace continues to render inside the Admin shell layout, but Category owns its controller, Livewire components, services, models, validation, authorization and business behavior.
 
-### Ownership baseline
+## Removed legacy Admin runtime copies
 
-Added `docs/modules/Admin/OWNERSHIP_BASELINE.md` defining:
+The canonical Category route/controller/view/Livewire replacement was already active, so this slice removes the obsolete Admin copies:
 
-- `KEEP`, `MOVE`, `DEPRECATE`, `DEAD`, `UNKNOWN`, and `QUARANTINE` states;
-- canonical Admin shell whitelist;
-- explicit canonical ownership of `/admin/menus` for sidebar/navigation setup;
-- legacy family ownership candidates without authorizing bulk moves/deletions;
-- caller/reachability evidence required before file removal or migration;
-- schema/migration unknowns that remain blockers.
+- `Modules/Admin/Http/Controllers/CategoryController.php`
+- `Modules/Admin/Livewire/Categories/CategoryForm.php`
+- `Modules/Admin/Livewire/Categories/CategoryTable.php`
+- `Modules/Admin/resources/views/pages/categories/index.blade.php`
+- `Modules/Admin/resources/views/pages/categories/create.blade.php`
+- `Modules/Admin/resources/views/pages/categories/edit.blade.php`
+- `Modules/Admin/resources/views/livewire/categories/category-form.blade.php`
+- `Modules/Admin/resources/views/livewire/categories/category-table.blade.php`
 
-Updated `docs/modules/Admin/README.md` to reference the baseline and make sidebar/menu ownership explicit.
+No canonical Category source was moved back into Admin.
 
-### Canonical shell guardrail tests
+## Category workspace UX refinements
 
-Added `tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php` to protect:
+This slice also completes the canonical Category admin workspace without changing its route or permission contracts:
 
-- Admin manifest type `shell`;
-- declared Auth/User/Role dependencies;
-- active route imports limited to `AdminController`, `DashboardController`, `MenuController`, and `ProfileController`;
-- `/admin/menus` route group and `admin.menu.*` capability contract;
-- intentionally closed Admin API route file.
+- create/edit form uses a wider, more balanced admin layout;
+- explicit `Quay về danh sách` actions return to `admin.category.index`;
+- category rows use a resilient default folder icon when no valid image file exists;
+- the category list is now hierarchical instead of flattening child categories as roots;
+- root categories are paginated; child rows expand inline with `+` / `−` controls;
+- search/status filtering preserves ancestor context and expands matching branches;
+- recursive child levels are supported and visually indented;
+- expand/collapse state is UI-only and does not alter `parent_id` data.
 
-### P0 database isolation tests
+## Guardrails added
 
-Added `tests/Feature/Admin/AdminDatabaseIsolationContractTest.php` to protect:
+Added/updated focused contracts to verify:
 
-- absence of database administration from active Admin web/API routes;
-- empty Admin API surface;
-- fail-closed `Modules/Admin/Livewire/Database/TableList.php` behavior;
-- all exposed legacy database actions delegating to the deny boundary;
-- HTTP 403 containment;
-- no `DatabaseService` reference from the legacy database Livewire component.
+- Category admin routes resolve to `Modules\Category\Http\Controllers\CategoryController`;
+- removed Admin runtime copies stay absent;
+- canonical Category controller/Livewire/page views stay present;
+- canonical Category pages continue using `category.categories.*` Livewire aliases;
+- create/edit workspace keeps explicit return navigation and balanced layout structure;
+- missing category images fall back to the default icon instead of broken images;
+- hierarchical admin tree remains root-paginated and expandable.
 
-No database operation was re-enabled. `Modules/Admin/Services/DatabaseService.php` remains quarantined and is not considered production-safe.
+Existing `tests/Feature/Category/CategoryRouteConfigurationTest.php` continues to protect route URLs, names and permission middleware.
 
-## Runtime / behavior impact
+## Documentation
 
-Application implementation behavior change: **NONE EXPECTED**
+Updated `docs/modules/Admin/OWNERSHIP_BASELINE.md`:
 
-Route name change: **NONE**
+- Category legacy runtime is now classified `CLEANED`;
+- canonical Category ownership evidence is recorded;
+- Category cleanup does not authorize schema/migration moves;
+- `/admin/menus` remains canonical Admin shell ownership and is unaffected.
 
-Permission name change: **NONE**
+## Runtime / schema impact
+
+Route URL/name change: **NONE**
+
+Permission change: **NONE**
+
+Category ownership: **MOVED OUT OF ADMIN LEGACY COPIES; CANONICAL OWNER REMAINS CATEGORY**
+
+Category UI behavior: **IMPROVED** — balanced create/edit layout, return navigation, resilient image fallback, hierarchical expandable tree
+
+Admin shell behavior change: **NONE OUTSIDE CATEGORY WORKSPACE**
 
 Database/schema/migration change: **NONE**
 
-Admin UI change: **NONE**
-
-Legacy domain migration/removal: **NONE**
-
-This slice adds documentation and architecture/security contract tests only.
+P0 database administration quarantine: **UNCHANGED**
 
 ## Verification
 
-Local focused verification reported PASS:
+Earlier impacted verification for the ownership cleanup reported:
 
 ```text
-Tests: 11 passed (71 assertions)
-Duration: 1.25s
+Tests: 12 passed (83 assertions)
+Duration: 0.92s
+
+Tests: 145 passed (1348 assertions)
+Duration: 6.79s
 ```
 
-Command scope:
-
-```bash
-php artisan test \
-  tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php \
-  tests/Feature/Admin/AdminDatabaseIsolationContractTest.php \
-  tests/Feature/Admin/AdminLayoutContractTest.php
-```
-
-Focused Admin regression also reported PASS:
+After the final hierarchical tree implementation, focused Category/Admin contracts were rerun and reported:
 
 ```text
-Tests: 140 passed (1313 assertions)
-Duration: 7.70s
+Tests: 8 passed (61 assertions)
+Duration: 1.08s
 ```
 
-Command scope:
+Manual UI verification: **PASS**.
 
-```bash
-php artisan test tests/Feature/Admin
-```
+Verified UX includes:
 
-Full project regression was intentionally not run for this checkpoint. Manual UI smoke is not required because no runtime/UI source changed.
+- `/admin/category` renders the canonical Category workspace;
+- category image fallback renders correctly when image files are missing;
+- root category rows remain collapsed by default;
+- child categories appear only after expanding the parent with `+`;
+- recursive expand/collapse works and uses `−` while expanded;
+- Category create/edit navigation and layout remain usable.
+
+Full project regression was intentionally not run; verification remained scoped to Admin + Category and directly impacted behavior.
 
 ## Material risks still open
 
 ### P0
 
-`Modules/Admin/Services/DatabaseService.php` is still dangerous if made reachable. It remains source-level legacy code and must stay quarantined until a separately approved hardened System/database-operation design exists.
+`Modules/Admin/Services/DatabaseService.php` remains quarantined and must stay unreachable.
 
 ### P1
 
-Admin still physically contains legacy domain/system code. This slice deliberately does not delete or move it because exact caller reachability and production schema usage are not fully proven.
+Other legacy Admin families remain physically present and are not authorized for bulk cleanup. Chat, Product, Order, Post/content, customer/address, roles/staff, marketing/public-site and system/environment families require separate ownership/reachability review.
 
-Production migration-ledger/table ownership state remains unresolved.
+Production migration-ledger/table ownership remains unresolved and is intentionally out of scope.
 
-## Acceptance criteria for this checkpoint
+## Acceptance criteria
 
-- ownership boundary tests: **PASS**;
-- database isolation tests: **PASS**;
-- Admin layout contract test: **PASS**;
-- focused Admin regression: **PASS**;
-- runtime route/permission/schema/UI behavior changes: **NONE**;
+- Category ownership cleanup contract: **PASS**;
+- existing Category route configuration contract: **PASS**;
+- Admin ownership/P0 guardrails in impacted regression: **PASS**;
+- focused Category + Admin regression: **PASS**;
+- final hierarchical tree focused contracts: **8 PASS / 61 assertions**;
+- manual Category UI smoke: **PASS**;
+- route names/URLs/permissions unchanged: **CONFIRMED BY CONTRACTS**;
+- schema/migration changes: **NONE**;
 - PR readiness: **READY**.
 
 ## Next phase
 
-Next domain migration/refactor slice: **NOT AUTHORIZED YET**.
+Next legacy-family migration/refactor slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is merged, inspect canonical module coverage and propose one legacy Admin family for migration. Do not bulk-delete legacy code and do not move schema/migrations without production-ledger verification.
+After this checkpoint is merged, inspect the remaining candidates and propose exactly one next family. Chat remains a likely candidate, but its current Admin dependency and authorization contract must be reviewed before implementation.
