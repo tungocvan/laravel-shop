@@ -5,34 +5,27 @@ declare(strict_types=1);
 namespace Modules\Admin\Livewire\Database;
 
 use Livewire\Component;
-use Livewire\WithFileUploads;
-use Modules\Admin\Services\DatabaseService;
 
+/**
+ * @deprecated Database administration is quarantined until a dedicated,
+ * hardened System-owned operations boundary is explicitly approved.
+ */
 class ImportDrawer extends Component
 {
-    use WithFileUploads;
+    public bool $databaseActionsDisabled = true;
 
-    public $sqlFile;
-
-    public function save(DatabaseService $service)
+    public function save(): void
     {
-        $this->validate([
-            'sqlFile' => 'required|file|mimetypes:text/plain,application/sql,text/x-sql|max:51200', // Max 50MB
-        ]);
-
-        try {
-            $path = $this->sqlFile->getRealPath();
-            $service->import($path);
-
-            $this->dispatch('notify', ['type' => 'success', 'message' => 'Import dữ liệu thành công!']);
-            $this->dispatch('backup-updated'); // Refresh lại danh sách table
-        } catch (\Exception $e) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
-        }
+        $this->denyDatabaseAction();
     }
 
     public function render()
     {
         return view('Admin::livewire.database.import-drawer');
+    }
+
+    private function denyDatabaseAction(): void
+    {
+        abort(403, 'Database administration is disabled until P0 controls are implemented.');
     }
 }
