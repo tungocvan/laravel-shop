@@ -93,14 +93,25 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
     {
         $routes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
         $layout = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/layout-section.blade.php'));
-        $websiteHeader = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
+        $websiteRoutes = file_get_contents(base_path('Modules/Website/routes/web.php'));
+        $websiteHeaderController = file_get_contents(base_path('Modules/Website/Http/Controllers/Admin/HeaderController.php'));
+        $websiteHeaderView = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/header/index.blade.php'));
+
+        $this->assertNotFalse($routes);
+        $this->assertNotFalse($layout);
+        $this->assertNotFalse($websiteRoutes);
+        $this->assertNotFalse($websiteHeaderController);
+        $this->assertNotFalse($websiteHeaderView);
 
         $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header')", $routes);
         $this->assertStringContainsString("Route::get('/footer', [AdminController::class, 'layoutFooter'])->name('footer')", $routes);
-        $this->assertStringContainsString("Route::get('/admin-header', [AdminController::class, 'adminHeader'])", $routes);
+        $this->assertStringNotContainsString("Route::get('/admin-header', [AdminController::class, 'adminHeader'])", $routes);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
         $this->assertStringContainsString("@livewire('admin.settings.admin-layout-config'", $layout);
-        $this->assertStringContainsString('Website presentation', $websiteHeader);
-        $this->assertStringContainsString("@livewire('admin.header.menu-manager')", $websiteHeader);
+
+        $this->assertStringContainsString('HeaderController', $websiteRoutes);
+        $this->assertStringContainsString('Website::pages.admin.header.index', $websiteHeaderController);
+        $this->assertStringContainsString("website.admin.header.header-settings-hub", $websiteHeaderView);
     }
 
     public function test_promotion_and_database_quarantine_remain_outside_this_slice(): void
