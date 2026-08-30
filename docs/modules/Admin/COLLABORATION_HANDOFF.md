@@ -2,178 +2,115 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Slice 7: Post/content Legacy Ownership Cleanup**
+Task: **Admin Major Refactor — Customer/address Legacy Ownership Cleanup**
 
 Status: **VERIFIED — PR READY**
 
-Branch/checkpoint: `refactor/admin-post-content-ownership`
+Branch/checkpoint: `refactor/admin-customer-address-ownership`
 
-Slice 7 was explicitly approved after the previous Admin ownership cleanup work had been merged. The user also supplied the active `/admin/posts` and `/admin/posts/create` UI as runtime evidence and approved a professional UI refactor while preserving capability behavior.
+This slice was explicitly approved after the Post/content ownership cleanup merged. The work focused on proving the legacy Admin Customer runtime unreachable, preserving the canonical Account/User boundaries, and avoiding schema or identity-lifecycle changes.
 
 ## Ownership decision
 
-`Modules/Post` is the canonical owner of Post/content behavior.
+The removed `Modules/Admin` Customer family was a dead/unreachable runtime copy and is now `CLEANED`.
 
-Preserved contracts:
+Canonical responsibilities remain split rather than moving the old Customer implementation wholesale into one module:
 
-- `/admin/posts`, `/admin/posts/create`, and `/admin/posts/{id}/edit` remain unchanged;
-- `admin.posts.index`, `admin.posts.create`, and `admin.posts.edit` remain Post-owned;
-- the active controller is `Modules\\Post\\Http\\Controllers\\PostController`;
-- canonical pages mount `post.posts.post-table` and `post.posts.post-form`;
-- `Modules/Post/Models/Post.php`, `Modules/Post/Models/Tag.php`, `PostService`, `ImportExport`, Post migrations and Post permissions remain canonical;
-- `wp_posts`, tag/pivot/category-post schema and existing production data remain unchanged;
-- Post remains enabled as a domain module with `User`, `Category`, and `Shared` dependencies.
+- `Modules/Account` owns the active admin account workspace at `/admin/accounts`, including account identity editing and `CustomerProfile` behavior through the Account runtime/service boundary;
+- `Modules/User` retains `UserAddress` and the existing `user_addresses` schema contract;
+- Order history/aggregate behavior remains outside the Account form/index and was not reimplemented during this cleanup;
+- Admin remains the authenticated shell and does not own customer identity/profile/address persistence.
 
-The earlier assumption that Post might not exist as a module was corrected by direct runtime/tree proof: `Modules/Post` is present and owns the active Post runtime. The `/admin/posts` UI supplied by the user is therefore Post-owned, while the similarly named Admin files were legacy duplicates.
+No `/admin/customers*` compatibility route was introduced because the legacy Admin Customer controller/routes were not part of the active Admin route boundary and no live repo caller was proven to require them.
 
-## Removed legacy Admin Post runtime
+## Removed legacy Admin Customer runtime
 
-The following proven duplicate files were removed:
+The following proven obsolete files were removed:
 
-- `Modules/Admin/Http/Controllers/PostController.php`
-- `Modules/Admin/Livewire/Posts/PostForm.php`
-- `Modules/Admin/Livewire/Posts/PostTable.php`
-- `Modules/Admin/resources/views/livewire/posts/post-form.blade.php`
-- `Modules/Admin/resources/views/livewire/posts/post-table.blade.php`
-- `Modules/Admin/resources/views/pages/posts/index.blade.php`
-- `Modules/Admin/resources/views/pages/posts/create.blade.php`
-- `Modules/Admin/resources/views/pages/posts/edit.blade.php`
+- `Modules/Admin/Http/Controllers/CustomerController.php`
+- `Modules/Admin/Livewire/Customers/CustomerCreate.php`
+- `Modules/Admin/Livewire/Customers/CustomerDetail.php`
+- `Modules/Admin/Livewire/Customers/CustomerTable.php`
+- `Modules/Admin/resources/views/livewire/customers/customer-create.blade.php`
+- `Modules/Admin/resources/views/livewire/customers/customer-detail.blade.php`
+- `Modules/Admin/resources/views/livewire/customers/customer-table.blade.php`
+- `Modules/Admin/resources/views/pages/customers/create.blade.php`
+- `Modules/Admin/resources/views/pages/customers/index.blade.php`
+- `Modules/Admin/resources/views/pages/customers/show.blade.php`
 
-Canonical equivalents remain in `Modules/Post`.
+The removed implementation directly mutated the historical application User model, mixed profile/password/status/address/order behavior in Admin Livewire, and included an unbounded `all`/`9999` pagination path. It was not revived or migrated as a unit.
 
-## Canonical Post architecture retained
+## Canonical runtime retained
 
-The canonical Post runtime already provides a substantially safer boundary than the removed Admin duplicate:
+The active Account routes remain:
 
-- `PostForm` authorizes `create_post` or `edit_post` and delegates persistence to `PostService`;
-- `PostTable` authorizes view/create/delete capabilities and delegates query, clone and delete behavior to `PostService`;
-- import/export uses `Modules\\Post\\Services\\ImportExport` and the shared import/export panel;
-- schema ownership remains in Post migrations;
-- category validation remains constrained to `type = post`;
-- tag persistence remains Post-owned.
+- `/admin/accounts` → `admin.accounts.index`
+- `/admin/accounts/create` → `admin.accounts.create`
+- `/admin/accounts/{id}/edit` → `admin.accounts.edit`
 
-No schema rewrite or destructive migration was introduced.
+All three resolve to `Modules\\Account\\Http\\Controllers\\AccountController` under `auth:admin`.
 
-## Post list UI refactor
+The Account form retains `account_type = customer`, customer-profile handling, and the `AccountService` boundary. `Modules/User/Models/UserAddress.php` and its existing migration remain untouched.
 
-The Post management list was retained as a desktop/tablet management workspace but aligned with `.codex/standards/ADMIN_UI_STANDARD.md`:
+## Authorization / schema assessment
 
-- explicit bordered search/filter controls instead of visually ambiguous transparent controls;
-- search covers title or slug;
-- category/status filters remain visible;
-- bounded `10/25/50/100` per-page options;
-- reset-filters action when filters are active;
-- mutation buttons expose Livewire loading/disabled states;
-- bulk selection remains scoped to the current page;
-- table remains horizontally safe on smaller widths;
-- Post-scoped pagination prevents global theme pagination from overriding the approved Admin treatment.
+This cleanup does not reuse the legacy `view_customer/create_customer/edit_customer/delete_customer` controller boundary and does not add new customer mutation endpoints.
 
-The Post pagination visual contract is:
+Authentication/authorization weakening: **NONE INTRODUCED**
 
-- inactive page controls: white background with neutral border/text;
-- active page: indigo-600 with white text;
-- Previous/Next: white background;
-- disabled controls visibly neutral/disabled;
-- no unbounded `all` option.
+Account route URL/name change: **NONE**
 
-## Post Create/Edit editor workspace
+Account/User model behavior change: **NONE**
 
-The existing editor-first layout was preserved rather than converted into a generic CRUD form. Duplicate wrapper headings in the Post page views were removed so the Livewire editor owns the page hierarchy.
+Customer/address schema or migration change: **NONE**
 
-The workspace retains:
+Production data mutation: **NONE**
 
-- title/slug;
-- summary/content editors;
-- SEO metadata;
-- publication status and featured flag;
-- category selection;
-- tags;
-- featured image upload;
-- capability authorization and save loading states.
-
-## Category tree UI improvement
-
-User feedback requested that Post `Chuyên mục` match Product `Phân loại`.
-
-The Post editor now reuses the shared Admin recursive category selector already used by Product:
-
-- only root `type = post` categories are loaded initially;
-- descendants are loaded through `childrenRecursive`;
-- parent categories are collapsed by default and show `+`;
-- clicking expands the branch and changes the control to `−`;
-- child levels are visually indented;
-- leaf categories do not display a fake expand control;
-- on Edit, a branch containing an already-selected descendant automatically opens so the current selection is visible;
-- scroll behavior remains bounded.
-
-The user manually confirmed this UI as **PASS**.
-
-## Authorization assessment
-
-Post capability vocabulary remains:
-
-- `view_post`
-- `create_post`
-- `edit_post`
-- `delete_post`
-
-The cleanup removes the weaker duplicate Admin implementation and preserves the canonical Post authorization checks. No authorization weakening was introduced.
-
-## Runtime / schema impact
-
-Route URL/name change: **NONE**
-
-Canonical owner change: **DOCUMENTED, not runtime-breaking — Post was already active owner**
-
-Authentication/authorization weakening: **NONE**
-
-Post schema/table/migration change: **NONE**
-
-Production Post data mutation: **NONE**
-
-Category/tag schema change: **NONE**
-
-Post import/export contract: **PRESERVED IN CANONICAL POST SERVICE**
+Order history behavior change: **NONE**
 
 P0 database administration quarantine: **UNCHANGED**
 
+Historical external bookmarks to an old `/admin/customers*` surface cannot be proven from repository source alone; no compatibility redirect is added without a verified contract.
+
+## UI / UX assessment
+
+The removed legacy Customer table's unbounded `all` pagination does not survive this cleanup. The canonical `/admin/accounts` workspace remains the active UI and the user manually verified it as **UI PASS** after the cleanup.
+
+No speculative Account UI redesign was added to this ownership slice because the canonical Account runtime was not changed.
+
 ## Verification completed
 
-Focused ownership/UI contract verification completed successfully:
-
 ```text
-AdminPostOwnershipCleanupContractTest: 7 passed, 58 assertions
-PostRouteConfigurationTest + AdminOwnershipBoundaryContractTest: 7 passed, 32 assertions
-admin.posts route list: PASS — 3 canonical Modules\\Post\\Http\\Controllers\\PostController routes
-Vite production build: PASS — 34 modules transformed, built in 4.72s
-Manual Post category-tree UI: PASS
+AdminCustomerOwnershipCleanupContractTest: 7 passed, 44 assertions
+AdminCustomerOwnershipCleanupContractTest + AdminOwnershipBoundaryContractTest: 11 passed, 65 assertions
+admin.accounts route list: PASS — 3 canonical Modules\\Account\\Http\\Controllers\\AccountController routes
+Manual /admin/accounts UI: PASS
 ```
 
-The focused contract protects:
+The focused Customer ownership contract protects:
 
-- canonical Post route/controller ownership;
-- canonical Post page Livewire aliases;
-- Post model/service/schema ownership;
-- absence of the eight legacy Admin Post runtime files;
-- capability authorization/service boundaries;
-- bounded Post pagination and scoped pagination view;
-- visible/resettable list filters;
-- recursive Post category tree using the shared Admin selector.
+- absence of legacy Customer registration from the Admin route source;
+- the three canonical Account routes/controller and `auth:admin` middleware;
+- absence of all ten removed Admin Customer runtime files;
+- Account ownership of account/customer-profile runtime through `AccountService`;
+- User ownership of `UserAddress` and the existing `user_addresses` schema contract;
+- non-reimplementation of Order history/aggregate behavior in Account form/index;
+- continued P0 `DatabaseService` quarantine.
 
-No full-project regression was required for this ownership slice.
+No full-project regression was required for this ownership-only slice.
 
 ## Acceptance criteria
 
-- canonical Post ownership confirmed: **VERIFIED**;
-- eight proven Admin Post duplicates absent: **VERIFIED**;
-- route names/URLs preserved: **VERIFIED — 3 canonical Post routes**;
-- capability authorization preserved: **VERIFIED**;
-- Post service/import-export boundary preserved: **VERIFIED**;
-- bounded scoped pagination: **VERIFIED BY CONTRACT**;
-- Post recursive category tree with default `+`: **UI PASS**;
+- legacy Admin Customer runtime reachability: **PROVEN OBSOLETE / CLEANED**;
+- ten legacy Admin Customer artifacts absent: **VERIFIED**;
+- canonical Account routes preserved: **VERIFIED — 3 routes**;
+- Account customer-profile service boundary preserved: **VERIFIED**;
+- UserAddress ownership/schema preserved: **VERIFIED**;
+- Order history not absorbed into Account: **VERIFIED**;
 - schema/migration/data changes: **NONE**;
+- Account UI after cleanup: **UI PASS**;
 - P0 database quarantine: **UNCHANGED**;
-- final impacted regression/build: **PASS**;
+- focused + Admin boundary regression: **PASS**;
 - PR readiness: **READY**.
 
 ## Material risks still open
@@ -184,10 +121,10 @@ No full-project regression was required for this ownership slice.
 
 ### Remaining Admin legacy families
 
-Customer/address, roles/staff, marketing/public-site, Affiliate/promotion and system/environment remain separate ownership/reachability candidates.
+Roles/staff, marketing/public-site, Affiliate/promotion and system/environment remain separate ownership/reachability candidates.
 
 Production migration-ledger/table ownership for unrelated Admin legacy families remains unresolved and out of scope.
 
 ## Next phase
 
-Slice 7 is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
+Customer/address ownership cleanup is closed out and PR-ready. Do not select or implement the next Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
