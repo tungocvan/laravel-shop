@@ -2,7 +2,9 @@
 
 namespace Modules\Pharma\Livewire\PriceList;
 
+use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Component;
+use Modules\Pharma\DTOs\WorkbookAnalysis;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\PriceListService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -12,13 +14,19 @@ class Create extends Component
 {
     use AuthorizesPharmaActions;
 
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
     public string $sheetName = 'TỔNG HỢP';
 
     public string $search = '';
 
     public array $selectedRows = [];
 
-    public bool $selectAllFiltered = false;
+    public bool $selectPage = false;
+
+    public int $perPage = 10;
+
+    public int $page = 1;
 
     public string $columns = 'A:X';
 
@@ -28,9 +36,13 @@ class Create extends Component
 
     public string $signatureTitle = 'GIÁM ĐỐC CÔNG TY';
 
-    public array $analysis = [];
-
     protected PriceListService $service;
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'perPage' => ['except' => 10],
+        'page' => ['except' => 1],
+    ];
 
     public function boot(PriceListService $service): void
     {
@@ -71,39 +83,56 @@ class Create extends Component
         $this->authorizePharmaCreate();
 
         try {
-            $this->analysis = $this->service->analyze($this->sheetName)->toArray();
-            $this->selectedRows = array_column($this->analysis['products'], 'row');
-            $this->columns = 'A:'.$this->analysis['last_header_column'];
+            $analysis = $this->service->analyze($this->sheetName);
+            $this->columns = 'A:'.$analysis->lastHeaderColumn;
+            $this->selectedRows = [];
+            $this->page = 1;
+            $this->selectPage = false;
         } catch (Throwable $exception) {
             report($exception);
-            $this->analysis = [];
             session()->flash('error', 'Không thể phân tích workbook. Vui lòng kiểm tra nguồn dữ liệu hoặc log hệ thống.');
         }
     }
 
     public function updatedSearch(): void
     {
-        $this->selectAllFiltered = false;
+        $this->page = 1;
+        $this->clearPageSelectionState();
     }
 
-    public function updatedSelectAllFiltered(bool $selected): void
+    public function updatedPerPage(mixed $value): void
     {
-        $filteredRows = array_column($this->filteredProducts(), 'row');
+        $this->perPage = $this->normalizePerPage($value);
+        $this->page = 1;
+        $this->clearPageSelectionState();
+    }
+
+    public function updatedSelectPage(bool $selected): void
+    {
+        $pageRows = $this->currentPageRows();
 
         $this->selectedRows = $selected
-            ? array_values(array_unique([...$this->selectedRows, ...$filteredRows]))
-            : array_values(array_diff($this->selectedRows, $filteredRows));
+            ? array_values(array_unique([...$this->selectedRows, ...$pageRows]))
+            : array_values(array_diff($this->selectedRows, $pageRows));
     }
 
-    public function selectAllProducts(): void
+    public function updatedSelectedRows(): void
     {
-        $this->selectedRows = array_column($this->analysis['products'] ?? [], 'row');
+        $pageRows = $this->currentPageRows();
+        $selectedOnPage = array_intersect(array_map('intval', $this->selectedRows), $pageRows);
+        $this->selectPage = $pageRows !== [] && count($selectedOnPage) === count($pageRows);
+    }
+
+    public function gotoPage(mixed $page): void
+    {
+        $this->page = max(1, (int) $page);
+        $this->clearPageSelectionState();
     }
 
     public function clearProducts(): void
     {
         $this->selectedRows = [];
-        $this->selectAllFiltered = false;
+        $this->selectPage = false;
     }
 
     public function useColumns(string $expression): void
@@ -118,9 +147,6 @@ class Create extends Component
         $validated = $this->validate();
 
         try {
-            $analysis = $this->service->analyze($validated['sheetName']);
-            $this->service->parseColumns($validated['columns'], $analysis);
-
             $path = $this->service->generate([
                 'sheet_name' => $validated['sheetName'],
                 'columns' => $validated['columns'],
@@ -141,20 +167,90 @@ class Create extends Component
 
     public function render()
     {
-        return view('Pharma::livewire.price-list.create', [
-            'products' => $this->filteredProducts(),
-            'columnsMetadata' => $this->analysis['columns'] ?? [],
-        ]);
+        $this->perPage = $this->normalizePerPage($this->perPage);
+
+        try {
+            $analysis = $this->service->analyze($this->sheetName);
+            $products = $this->service->filteredProducts($analysis, $this->search);
+            $paginator = $this->paginateProducts($products);
+
+            if ($paginator->lastPage() > 0 && $this->page > $paginator->lastPage()) {
+                $this->page = $paginator->lastPage();
+                $paginator = $this->paginateProducts($products);
+            }
+
+            return view('Pharma::livewire.price-list.create', [
+                'products' => $paginator,
+                'analysisSummary' => $this->analysisSummary($analysis),
+                'columnsMetadata' => $analysis->columns,
+                'perPageOptions' => self::PER_PAGE_OPTIONS,
+                'workbookReady' => true,
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return view('Pharma::livewire.price-list.create', [
+                'products' => $this->paginateProducts([]),
+                'analysisSummary' => [],
+                'columnsMetadata' => [],
+                'perPageOptions' => self::PER_PAGE_OPTIONS,
+                'workbookReady' => false,
+            ]);
+        }
     }
 
-    private function filteredProducts(): array
+    private function paginateProducts(array $products): LengthAwarePaginator
     {
-        if ($this->analysis === []) {
+        $total = count($products);
+        $lastPage = max(1, (int) ceil($total / $this->perPage));
+        $page = min(max(1, $this->page), $lastPage);
+        $items = array_slice($products, ($page - 1) * $this->perPage, $this->perPage);
+
+        return new LengthAwarePaginator(
+            $items,
+            $total,
+            $this->perPage,
+            $page,
+            ['path' => request()->url()]
+        );
+    }
+
+    private function currentPageRows(): array
+    {
+        try {
+            $analysis = $this->service->analyze($this->sheetName);
+            $products = $this->service->filteredProducts($analysis, $this->search);
+
+            return array_map(
+                static fn (array $product): int => (int) $product['row'],
+                $this->paginateProducts($products)->items()
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
             return [];
         }
+    }
 
-        $analysis = $this->service->analyze($this->sheetName);
+    private function analysisSummary(WorkbookAnalysis $analysis): array
+    {
+        return [
+            'sheet_name' => $analysis->sheetName,
+            'header_row' => $analysis->headerRow,
+            'last_header_column' => $analysis->lastHeaderColumn,
+            'product_count' => count($analysis->products),
+        ];
+    }
 
-        return $this->service->filteredProducts($analysis, $this->search);
+    private function clearPageSelectionState(): void
+    {
+        $this->selectPage = false;
+    }
+
+    private function normalizePerPage(mixed $value): int
+    {
+        $value = (int) $value;
+
+        return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : 10;
     }
 }
