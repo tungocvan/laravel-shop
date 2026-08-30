@@ -24,16 +24,19 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
     public function test_workspace_exposes_source_provenance_without_coupling_pharma_to_muasamcong_model(): void
     {
         $model = file_get_contents(base_path('Modules/Pharma/Models/DrugBidAward.php'));
+        $dto = file_get_contents(base_path('Modules/Pharma/Data/DrugBidAwardSourceData.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
 
         $this->assertStringContainsString("public const SOURCE_MANUAL = 'manual';", $model);
         $this->assertStringContainsString("public const SOURCE_MUASAMCONG = 'muasamcong';", $model);
         $this->assertStringContainsString('projectFromSource(DrugBidAwardSourceData $source)', $service);
-        $this->assertStringContainsString("'source_type' => \$source->sourceType", $service);
-        $this->assertStringContainsString("'source_id' => \$source->sourceId", $service);
+        $this->assertStringContainsString('$attributes = $source->toAwardAttributes();', $service);
+        $this->assertStringContainsString("'source_type' => \$this->sourceType", $dto);
+        $this->assertStringContainsString("'source_id' => \$this->sourceId", $dto);
         $this->assertStringContainsString('business-key record', $service);
         $this->assertStringNotContainsString('Modules\\Muasamcong', $service);
+        $this->assertStringNotContainsString('Modules\\Muasamcong', $dto);
         $this->assertStringContainsString('Nguồn dữ liệu', $view);
         $this->assertStringContainsString('Mua sắm công', $view);
     }
