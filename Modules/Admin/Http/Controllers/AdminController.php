@@ -12,11 +12,6 @@ class AdminController extends Controller
         return view('Admin::admin');
     }
 
-    public function adminHeader()
-    {
-        return view('Admin::pages.admin.header.index');
-    }
-
     public function themes()
     {
         return view('Admin::pages.admin.themes');
