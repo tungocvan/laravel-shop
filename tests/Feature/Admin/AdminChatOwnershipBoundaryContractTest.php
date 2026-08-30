@@ -54,6 +54,9 @@ class AdminChatOwnershipBoundaryContractTest extends TestCase
             'Modules/Chat/Livewire/Chat/ChatManager.php',
             'Modules/Chat/Livewire/Chat/InternalChatManager.php',
             'Modules/Chat/Livewire/Chat/ChatWidget.php',
+            'Modules/Chat/resources/views/pages/chat/index.blade.php',
+            'Modules/Chat/resources/views/chat.blade.php',
+            'Modules/Chat/resources/views/livewire/chat/chat-manager.blade.php',
         ] as $file) {
             $this->assertFileExists(base_path($file));
         }
@@ -62,6 +65,21 @@ class AdminChatOwnershipBoundaryContractTest extends TestCase
 
         $this->assertNotFalse($service);
         $this->assertStringContainsString('public function deleteAllMessages(int $sessionId): bool', $service);
+    }
+
+    public function test_legacy_admin_chat_runtime_copies_are_removed(): void
+    {
+        foreach ([
+            'Modules/Admin/Http/Controllers/ChatController.php',
+            'Modules/Admin/Livewire/Chat/ChatManager.php',
+            'Modules/Admin/Models/ChatSession.php',
+            'Modules/Admin/Models/ChatMessage.php',
+            'Modules/Admin/Services/ChatService.php',
+            'Modules/Admin/resources/views/pages/chat/index.blade.php',
+            'Modules/Admin/resources/views/livewire/chat/chat-manager.blade.php',
+        ] as $file) {
+            $this->assertFileDoesNotExist(base_path($file));
+        }
     }
 
     public function test_admin_chat_livewire_actions_enforce_capability_specific_permissions(): void
