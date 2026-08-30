@@ -79,6 +79,23 @@ class AdminPostOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString('public function resetFilters(): void', $table);
     }
 
+    public function test_post_category_selector_reuses_collapsed_recursive_product_pattern(): void
+    {
+        $form = file_get_contents(base_path('Modules/Post/Livewire/Posts/PostForm.php'));
+        $view = file_get_contents(base_path('Modules/Post/resources/views/livewire/posts/post-form.blade.php'));
+        $row = file_get_contents(base_path('Modules/Admin/resources/views/components/category-select-row.blade.php'));
+
+        $this->assertStringContainsString("where('type', 'post')", $form);
+        $this->assertStringContainsString("whereNull('parent_id')", $form);
+        $this->assertStringContainsString("with('childrenRecursive')", $form);
+        $this->assertStringContainsString('<x-admin::category-select', $view);
+        $this->assertStringContainsString('wire:model="selectedCategories"', $view);
+        $this->assertStringContainsString('x-data="{ open: false }"', $row);
+        $this->assertStringContainsString("open ? '−' : '+'", $row);
+        $this->assertStringContainsString('data-category-children', $row);
+        $this->assertStringContainsString('input[type=checkbox]:checked', $row);
+    }
+
     public function test_post_admin_list_uses_bounded_page_sizes_visible_filters_and_scoped_pagination(): void
     {
         $service = file_get_contents(base_path('Modules/Post/Services/PostService.php'));
