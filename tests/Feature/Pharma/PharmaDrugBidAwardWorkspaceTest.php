@@ -32,6 +32,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('projectFromSource(DrugBidAwardSourceData $source)', $service);
         $this->assertStringContainsString("'source_type' => \$source->sourceType", $service);
         $this->assertStringContainsString("'source_id' => \$source->sourceId", $service);
+        $this->assertStringContainsString('business-key record', $service);
         $this->assertStringNotContainsString('Modules\\Muasamcong', $service);
         $this->assertStringContainsString('Nguồn dữ liệu', $view);
         $this->assertStringContainsString('Mua sắm công', $view);
@@ -61,6 +62,22 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('wire:model.live.debounce.300ms="medicineSearch"', $view);
         $this->assertStringContainsString('Chưa liên kết HSSP', $view);
         $this->assertStringContainsString('snapshot', $view);
+    }
+
+    public function test_large_dimension_filters_do_not_load_distinct_option_collections(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
+
+        $this->assertStringNotContainsString('getUniqueInvestors', $component);
+        $this->assertStringNotContainsString('getUniqueCompanies', $component);
+        $this->assertStringNotContainsString('getUniqueInvestors', $service);
+        $this->assertStringNotContainsString('getUniqueCompanies', $service);
+        $this->assertStringContainsString('wire:model.live.debounce.300ms="filterInvestor"', $view);
+        $this->assertStringContainsString('wire:model.live.debounce.300ms="filterCompany"', $view);
+        $this->assertStringContainsString("where('investor_name', 'like'", $service);
+        $this->assertStringContainsString("where('winning_company_name', 'like'", $service);
     }
 
     public function test_destructive_and_import_export_controls_are_permission_aware(): void
