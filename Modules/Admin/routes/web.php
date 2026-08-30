@@ -45,8 +45,4 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         Route::get('/design', [AdminController::class, 'layoutDesign'])->name('design');
         Route::get('/navigation', [AdminController::class, 'layoutNavigation'])->name('navigation');
     });
-
-    Route::get('/admin-header', [AdminController::class, 'adminHeader'])
-        ->middleware('permission:admin.header.view,admin')
-        ->name('header');
 });
