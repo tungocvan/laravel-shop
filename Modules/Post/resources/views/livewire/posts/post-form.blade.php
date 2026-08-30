@@ -171,23 +171,11 @@
                         </a>
                     </div>
 
-                    <div class="max-h-60 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
-                        @forelse($categories as $cat)
-                            <div class="relative flex items-start py-1.5">
-                                <div class="min-w-0 flex-1 text-sm leading-6">
-                                    <label for="cat-{{ $cat->id }}" class="select-none font-medium text-gray-700 cursor-pointer hover:text-indigo-600 transition-colors">{{ $cat->name }}</label>
-                                </div>
-                                <div class="ml-3 flex h-6 items-center">
-                                    <input id="cat-{{ $cat->id }}" wire:model="selectedCategories" value="{{ $cat->id }}" type="checkbox"
-                                        class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer">
-                                </div>
-                            </div>
-                        @empty
-                            <div class="text-center py-4">
-                                <p class="text-sm text-gray-500 italic">Chưa có chuyên mục.</p>
-                            </div>
-                        @endforelse
-                    </div>
+                    <x-admin::category-select
+                        label="Chuyên mục bài viết"
+                        :categories="$categories"
+                        wire:model="selectedCategories"
+                    />
                 </div>
 
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -216,7 +204,6 @@
 
                             @elseif($thumbnail)
                                 @php
-                                    // Logic kiểm tra URL thông minh
                                     $isUrl = Str::startsWith($thumbnail, ['http://', 'https://']);
                                     $imageUrl = $isUrl ? $thumbnail : asset('storage/' . $thumbnail);
                                 @endphp

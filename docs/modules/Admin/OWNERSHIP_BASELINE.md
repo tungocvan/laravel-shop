@@ -18,7 +18,7 @@ The following surfaces are canonical Admin ownership and must be preserved unles
 - Admin shell-owned profile/preferences;
 - shell-specific presentation services and reusable Admin shell components.
 
-A sidebar item may link to Product, Order, System, Account, Category, Chat, or another module. That link is navigation metadata only. The target module remains the canonical owner of its business behavior.
+A sidebar item may link to Product, Order, Post, System, Account, Category, Chat, or another module. That link is navigation metadata only. The target module remains the canonical owner of its business behavior.
 
 ## Current Active Route Boundary
 
@@ -56,7 +56,7 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 | Chat legacy runtime | `CLEANED` | Chat | Canonical Chat runtime is active; proven legacy Admin controller/Livewire/models/service/views removed |
 | Product / ProductCommission legacy | `CLEANED` | Product | Product admin runtime/import/export ownership is canonical in `Modules/Product`; proven Admin duplicates removed. Dedicated ProductCommission UX remains follow-up debt. |
 | Order management legacy runtime | `CLEANED` | Order | Canonical `admin.orders.*` routes/controller/Livewire/views are Order-owned; proven Admin management duplicates removed. Affiliate commission compatibility is tracked separately. |
-| Posts/content legacy | `UNKNOWN -> MOVE candidate` | canonical content/Post owner | Verify current module contract before choosing owner |
+| Post/content legacy runtime | `CLEANED` | Post | Canonical routes/controller/Livewire/model/services/import-export/schema are in `Modules/Post`; proven Admin runtime duplicates removed; Post URLs/data/schema preserved |
 | Customer/address legacy | `UNKNOWN -> MOVE candidate` | Account/User/Identity according to current contract | Do not guess schema owner |
 | Roles/staff legacy | `UNKNOWN -> MOVE candidate` | Role/User/Account according to responsibility | Admin may present screens without owning identity/authorization domain |
 | Banner/public website header/footer/home settings | `UNKNOWN -> MOVE candidate` | Website/content owner | Distinguish public-site presentation from Admin shell header/footer |
@@ -102,7 +102,7 @@ No Product schema/table/migration ownership changed in this slice.
 
 ## Order Cleanup Evidence
 
-`Modules/Order` is the canonical owner of Order management runtime. The active `admin.orders.index`, `admin.orders.show`, `admin.orders.print`, and `admin.orders.pdf` routes resolve to `Modules\Order\Http\Controllers\OrderController`; canonical pages mount `order.orders.*` Livewire components while preserving the existing `/admin/orders...` URLs and `auth:admin` guard.
+`Modules/Order` is the canonical owner of Order management runtime. The active `admin.orders.index`, `admin.orders.show`, `admin.orders.print`, and `admin.orders.pdf` routes resolve to `Modules\\Order\\Http\\Controllers\\OrderController`; canonical pages mount `order.orders.*` Livewire components while preserving the existing `/admin/orders...` URLs and `auth:admin` guard.
 
 The following proven legacy Admin Order management copies were removed:
 
@@ -121,6 +121,37 @@ Canonical Order print/PDF behavior remains in `Modules/Order`. The canonical `Or
 Order schema, migrations and table names are unchanged. Migration-ledger reconciliation remains out of scope.
 
 `tests/Feature/Admin/AdminOrderOwnershipCleanupContractTest.php` protects route ownership/compatibility, canonical Order runtime presence, absence of the seven removed Admin management duplicates, correct status-history capture ordering, retained Affiliate compatibility surfaces and P0 database quarantine.
+
+## Post Cleanup Evidence
+
+`Modules/Post` is the canonical owner of Post/content behavior. Runtime proof confirms that the active `/admin/posts`, `/admin/posts/create`, and `/admin/posts/{id}/edit` routes resolve to `Modules\\Post\\Http\\Controllers\\PostController`; canonical pages mount `post.posts.post-table` and `post.posts.post-form`.
+
+Canonical Post ownership includes:
+
+- `Modules/Post/Models/Post.php` and `Modules/Post/Models/Tag.php`;
+- `Modules/Post/Services/PostService.php` and `Modules/Post/Services/ImportExport.php`;
+- Post Livewire table/form and Post-owned views;
+- `wp_posts`, `wp_tags`, `wp_post_tag`, and `category_post` migrations/contracts;
+- the existing Post capability permissions `view_post`, `create_post`, `edit_post`, `delete_post`.
+
+The following proven legacy Admin Post runtime copies were removed:
+
+- `Modules/Admin/Http/Controllers/PostController.php`;
+- `Modules/Admin/Livewire/Posts/PostForm.php`;
+- `Modules/Admin/Livewire/Posts/PostTable.php`;
+- `Modules/Admin/resources/views/livewire/posts/post-form.blade.php`;
+- `Modules/Admin/resources/views/livewire/posts/post-table.blade.php`;
+- `Modules/Admin/resources/views/pages/posts/index.blade.php`;
+- `Modules/Admin/resources/views/pages/posts/create.blade.php`;
+- `Modules/Admin/resources/views/pages/posts/edit.blade.php`.
+
+Post list UI now follows the Admin pagination contract with bounded page sizes `10/25/50/100` and a Post-scoped white/indigo pagination view rather than relying on the global renderer. Search/filter controls are explicit and resettable.
+
+Post Create/Edit remains an editor-first workspace. Its category selector now reuses the canonical Admin recursive category-tree component used by Product: parent nodes are collapsed by default with `+`, expand to `−`, and Edit automatically reveals ancestor branches required for already-selected child categories.
+
+`tests/Feature/Admin/AdminPostOwnershipCleanupContractTest.php` protects Post route/controller ownership, canonical runtime presence, absence of legacy Admin duplicates, capability authorization/service boundaries, bounded pagination and recursive category-tree UI.
+
+No Post URL/name, schema/table/migration or production data contract was changed by this cleanup.
 
 ## Reachability Proof Required Before Future MOVE / DEPRECATE / DEAD
 
@@ -141,18 +172,19 @@ A file or family may not be removed merely because it is absent from `Modules/Ad
 - Chat business runtime remains owned by `Modules/Chat`.
 - Product business runtime remains owned by `Modules/Product`.
 - Order management runtime remains owned by `Modules/Order`.
-- Proven legacy Admin Category, Chat, Product and Order management runtime copies must remain absent.
+- Post/content runtime remains owned by `Modules/Post`.
+- Proven legacy Admin Category, Chat, Product, Order and Post runtime copies must remain absent.
 - ProductCommission dedicated UX remains a separately scoped follow-up rather than being silently redesigned.
 - Affiliate commission ownership remains a separately scoped follow-up rather than being silently absorbed into Order cleanup.
 
 ## Schema / Migration Rule
 
-Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product and Order runtime cleanup does not change schema/migration ownership.
+Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product, Order and Post runtime cleanup does not change schema/migration ownership.
 
 ## Planned Refactor Sequence
 
 1. keep ownership/P0 containment guardrails green;
-2. keep Category, Chat, Product and Order cleanup guardrails green;
+2. keep Category, Chat, Product, Order and Post cleanup guardrails green;
 3. choose one next legacy family with a verified canonical replacement;
 4. prove callers/reachability and compatibility;
 5. migrate/remove only the proven obsolete Admin runtime copy;
@@ -162,8 +194,8 @@ Runtime ownership cleanup does not authorize moving or renaming applied migratio
 
 - complete runtime reachability of remaining legacy Admin families;
 - canonical ownership of Affiliate commission/rank/scheme behavior still duplicated across Admin/Order boundaries;
-- production usage of legacy Admin tables;
+- production usage of remaining legacy Admin tables;
 - production migration ledger for Admin migrations;
-- external dependencies on historical Admin URLs/aliases outside cleaned Category/Chat/Product/Order management families.
+- external dependencies on historical Admin URLs/aliases outside cleaned Category/Chat/Product/Order/Post families.
 
 These unknowns remain blockers against bulk deletion of unrelated families.
