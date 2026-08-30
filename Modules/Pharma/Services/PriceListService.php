@@ -9,15 +9,19 @@ use Modules\Pharma\Services\Spreadsheet\PriceListWorkbookBuilder;
 use Modules\Pharma\Services\Spreadsheet\WorkbookAnalyzer;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use RuntimeException;
+use Throwable;
 
 class PriceListService
 {
     public const DEFAULT_SOURCE = 'excel/BANG_GIA_TONG_HOP.xlsx';
 
+    public const DEFAULT_EXPORT_DIRECTORY = 'app/private/exports/price-lists';
+
     public function __construct(
         private readonly WorkbookAnalyzer $analyzer,
         private readonly PriceListWorkbookBuilder $builder,
         private readonly ?string $sourceFilePath = null,
+        private readonly ?string $exportDirectory = null,
     ) {}
 
     public function analyze(?string $sheetName = null): WorkbookAnalysis
@@ -99,12 +103,7 @@ class PriceListService
             throw new RuntimeException('Vui lòng chọn ít nhất một sản phẩm.');
         }
 
-        $outputPath = ! empty($input['output_path'])
-            ? (string) $input['output_path']
-            : storage_path(
-                'app/private/exports/price-lists/bang-gia-'.now()->format('Ymd-His').'-'.Str::lower(Str::random(6)).'.xlsx'
-            );
-
+        $outputPath = $this->makeOutputPath();
         $options = new PriceListOptions(
             productRows: $productRows,
             sourceColumns: $columns,
@@ -114,12 +113,25 @@ class PriceListService
             outputPath: $outputPath,
         );
 
-        return $this->builder->build(
-            $this->sourcePath(),
-            $analysis->sheetName,
-            $analysis->headerRow,
-            $options,
-        );
+        try {
+            return $this->builder->build(
+                $this->sourcePath(),
+                $analysis->sheetName,
+                $analysis->headerRow,
+                $options,
+            );
+        } catch (Throwable $exception) {
+            if (is_file($outputPath)) {
+                @unlink($outputPath);
+            }
+
+            throw $exception;
+        }
+    }
+
+    public function exportDirectoryPath(): string
+    {
+        return $this->exportDirectory ?? storage_path(self::DEFAULT_EXPORT_DIRECTORY);
     }
 
     private function resolveProductRows(WorkbookAnalysis $analysis, array $rows): array
@@ -133,6 +145,13 @@ class PriceListService
         }
 
         return array_values(array_filter($validRows, static fn (int $row): bool => in_array($row, $rows, true)));
+    }
+
+    private function makeOutputPath(): string
+    {
+        $directory = rtrim($this->exportDirectoryPath(), DIRECTORY_SEPARATOR);
+
+        return $directory.DIRECTORY_SEPARATOR.'bang-gia-'.now()->format('Ymd-His').'-'.Str::lower(Str::random(8)).'.xlsx';
     }
 
     private function sourcePath(): string
