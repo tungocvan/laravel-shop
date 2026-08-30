@@ -3,9 +3,8 @@
 namespace Modules\Admin\Livewire\Header;
 
 use Livewire\Component;
-use Modules\Admin\Models\HeaderMenu;
-use Modules\Admin\Models\HeaderMenuItem;
-use Modules\Admin\Services\HeaderMenuService;
+use Modules\Website\Models\HeaderMenuItem;
+use Modules\Website\Services\HeaderMenuService;
 
 class MenuManager extends Component
 {
@@ -39,15 +38,12 @@ class MenuManager extends Component
 
     public function render(HeaderMenuService $service)
     {
-        $currentMenu = HeaderMenu::firstOrCreate(
-            ['location' => $this->location],
-            ['name' => $this->menuLocations[$this->location]]
-        );
-
-        $menuTree = $service->getMenuTreeByLocation($this->location);
-
-        $flatItems = HeaderMenuItem::where('header_menu_id', $currentMenu->id)
+        $currentMenu = $service->ensureMenu($this->location);
+        $menuTree = $service->getMenuTreeForAdmin($this->location);
+        $flatItems = HeaderMenuItem::query()
+            ->where('header_menu_id', $currentMenu->id)
             ->whereNull('parent_id')
+            ->orderBy('sort_order')
             ->get();
 
         return view('Admin::livewire.header.menu-manager', [
@@ -63,7 +59,7 @@ class MenuManager extends Component
 
         if ($id) {
             $this->editingId = $id;
-            $item = HeaderMenuItem::find($id);
+            $item = HeaderMenuItem::findOrFail($id);
             $this->title = $item->title;
             $this->url = $item->url;
             $this->parent_id = $item->parent_id;
@@ -79,10 +75,9 @@ class MenuManager extends Component
         $this->authorizePermission('admin.header.update');
         $this->validate();
 
-        $menuId = HeaderMenu::where('location', $this->location)->value('id');
-
+        $menu = $service->ensureMenu($this->location);
         $data = [
-            'header_menu_id' => $menuId,
+            'header_menu_id' => $menu->id,
             'title' => $this->title,
             'url' => $this->url,
             'parent_id' => $this->parent_id ?: null,
