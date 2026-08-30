@@ -17,12 +17,15 @@ class PriceListServiceTest extends TestCase
 
     private string $fixtureImagePath;
 
+    private string $exportDirectory;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->fixturePath = sys_get_temp_dir().'/pharma-price-list-source-'.uniqid().'.xlsx';
         $this->fixtureImagePath = sys_get_temp_dir().'/pharma-price-list-logo-'.uniqid().'.png';
+        $this->exportDirectory = sys_get_temp_dir().'/pharma-price-list-exports-'.uniqid();
 
         $this->createWorkbookFixture();
     }
@@ -31,6 +34,13 @@ class PriceListServiceTest extends TestCase
     {
         @unlink($this->fixturePath);
         @unlink($this->fixtureImagePath);
+
+        if (is_dir($this->exportDirectory)) {
+            foreach (glob($this->exportDirectory.'/*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($this->exportDirectory);
+        }
 
         parent::tearDown();
     }
@@ -58,19 +68,18 @@ class PriceListServiceTest extends TestCase
 
     public function test_it_builds_non_contiguous_columns_and_repositions_signature(): void
     {
-        $path = sys_get_temp_dir().'/price-list-'.uniqid().'.xlsx';
         $service = $this->service();
-        $analysis = $service->analyze('TỔNG HỢP');
-
-        $service->generate([
+        $path = $service->generate([
             'sheet_name' => 'TỔNG HỢP',
             'columns' => 'A,B,E:V',
             'product_rows' => [10, 11, 12],
             'recipient' => 'BỆNH VIỆN KIỂM THỬ',
             'signature_date' => 'Tp.HCM, ngày 01 tháng 01 năm 2026',
             'signature_title' => 'GIÁM ĐỐC CÔNG TY',
-            'output_path' => $path,
         ]);
+
+        $this->assertStringStartsWith($this->exportDirectory.DIRECTORY_SEPARATOR, $path);
+        $this->assertFileExists($path);
 
         $sheet = IOFactory::load($path)->getActiveSheet();
 
@@ -80,8 +89,26 @@ class PriceListServiceTest extends TestCase
         $this->assertSame('Tp.HCM, ngày 01 tháng 01 năm 2026', $sheet->getCell('K14')->getValue());
         $this->assertSame('dd/mm/yyyy', $sheet->getStyle('T10')->getNumberFormat()->getFormatCode());
         $this->assertCount(1, $sheet->getDrawingCollection());
+    }
 
-        @unlink($path);
+    public function test_generate_ignores_arbitrary_output_path_input(): void
+    {
+        $outsidePath = sys_get_temp_dir().'/must-not-be-used-'.uniqid().'.xlsx';
+        $service = $this->service();
+
+        $path = $service->generate([
+            'sheet_name' => 'TỔNG HỢP',
+            'columns' => 'A:B',
+            'product_rows' => [10],
+            'recipient' => 'TEST',
+            'signature_date' => 'TEST',
+            'signature_title' => 'TEST',
+            'output_path' => $outsidePath,
+        ]);
+
+        $this->assertNotSame($outsidePath, $path);
+        $this->assertStringStartsWith($this->exportDirectory.DIRECTORY_SEPARATOR, $path);
+        $this->assertFileDoesNotExist($outsidePath);
     }
 
     private function service(): PriceListService
@@ -90,6 +117,7 @@ class PriceListServiceTest extends TestCase
             app(WorkbookAnalyzer::class),
             app(PriceListWorkbookBuilder::class),
             $this->fixturePath,
+            $this->exportDirectory,
         );
     }
 
