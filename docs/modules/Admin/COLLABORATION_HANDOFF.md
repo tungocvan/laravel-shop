@@ -2,114 +2,141 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Database P0 Containment & Reachability Cleanup**
+Task: **Admin Major Refactor — Affiliate Legacy Ownership Cleanup**
 
-Status: **VERIFIED — PR READY**
+Status: **IMPLEMENTED — FINAL VERIFICATION PENDING**
 
-Branch/checkpoint: `refactor/admin-database-p0-containment`
+Branch/checkpoint: `refactor/admin-affiliate-ownership-cleanup`
 
-This approved slice contains the legacy Admin database-administration capability without redesigning or deleting database operations. Canonical database administration remains owned by `Modules/System`; the historical Admin database service and Livewire surfaces remain quarantined compatibility debt until stronger external/dynamic caller proof authorizes deletion.
+This approved slice removes independent Affiliate business/persistence ownership from the historical Admin duplicates while preserving the currently reachable Website-owned management runtime. It does not create a new Affiliate module, move schema/migrations, or redesign commission business rules.
 
 ## Ownership decision
 
-Responsibilities are intentionally split:
+Affiliate remains a cross-module business capability with explicit boundaries:
 
-- `Modules/System` is the canonical owner of database-administration routes, controller and operational service;
-- `Modules/Admin` remains the authenticated shell only and must not expose an independent destructive database runtime;
-- legacy Admin database Livewire surfaces are fail-closed;
-- `Modules/Admin/Services/DatabaseService.php` remains P0 quarantine and was not redesigned, moved or deleted.
+- `Modules/Website` currently owns the canonical Affiliate admin route/controller, CommissionList/CommissionMatrix management components, AffiliateLevel/AffiliateScheme persistence models, commission orchestration service and rank orchestration service;
+- `Modules/Order` retains order and commission state;
+- `Modules/Product` retains product ownership/query behavior;
+- shared User identity retains affiliate identity/rank state;
+- `Modules/Admin` remains the authenticated shell and no longer contains an independent Affiliate implementation.
 
-## Runtime containment changes
+This is a pragmatic current ownership boundary, not a claim that Affiliate can never become a dedicated module later.
 
-The legacy Admin database Livewire family is now consistently fail-closed:
+## Canonical reachable runtime
 
-- `Modules/Admin/Livewire/Database/TableList.php` was already fail-closed and remains unchanged;
-- `Modules/Admin/Livewire/Database/BackupManager.php` no longer resolves `Modules\Admin\Services\DatabaseService`, does not enumerate operational backup data, and rejects restore/destructive actions with HTTP 403;
-- `Modules/Admin/Livewire/Database/ImportDrawer.php` no longer resolves the Admin DatabaseService or accepts/imports SQL and rejects the import action with HTTP 403.
-
-No destructive capability was moved into another Admin component. The legacy Blade views remain compatibility surfaces and are not proof of canonical ownership.
-
-## Canonical System boundary verified
-
-Runtime route verification confirms the active database-administration URLs are System-owned:
+The active route remains:
 
 ```text
-GET|HEAD admin/system/database
-GET|HEAD admin/system/database/backup-restore
-GET|HEAD admin/system/database/download/{filename}
+GET|HEAD admin/affiliate -> Modules\Website\Http\Controllers\Admin\AffiliateController@index
 ```
 
-They are declared in `Modules/System/routes/web.php` under `web` + `auth:admin`, with dedicated `database.view` / `database.download` permission middleware. `Modules/System/Http/Controllers/DatabaseController.php` resolves `Modules\System\Services\DatabaseService`, not the quarantined Admin service.
+The route is guarded by `auth:admin` and `permission:affiliate.view,admin`. Its view renders the Website-owned CommissionList.
 
-The other import/export/download routes returned by broad route grep belong to Admission, Muasamcong, Order, Request or ClientPortal and are unrelated to the legacy Admin database capability.
+Commission mutations continue to require `affiliate.manage` inside the canonical Website Livewire components. This authorization boundary must not be weakened by compatibility cleanup.
 
-## Reachability decision
+## Runtime changes
 
-Repository caller searches found no canonical Admin route or ordinary static reference to the legacy Admin DatabaseService, BackupManager or ImportDrawer. This is strong containment evidence but not complete proof against dynamic/external Livewire callers.
+### Canonical CommissionList
 
-Therefore this slice deliberately does **not** delete:
+The Website-owned CommissionList remains the reachable management list and now:
 
-- `Modules/Admin/Services/DatabaseService.php`;
-- `Modules/Admin/Livewire/Database/TableList.php`;
-- `Modules/Admin/Livewire/Database/BackupManager.php`;
-- `Modules/Admin/Livewire/Database/ImportDrawer.php`;
-- their legacy database Blade views.
+- applies the existing level filter through affiliate `affiliate_level_id` instead of silently ignoring it;
+- supports only bounded page sizes `10 / 25 / 50 / 100`;
+- resets pagination when status, level, search or page-size filters change;
+- exposes an explicit reset-filter action;
+- eager-loads order items required by the current table/modal presentation;
+- uses a dedicated bounded Admin pagination view with white inactive controls and indigo active state;
+- keeps approve/reject mutation authorization through `affiliate.manage`.
 
-They remain `QUARANTINE / FAIL-CLOSED` compatibility debt. Deletion requires a separately proven caller/removal slice.
+The UI was aligned with `.codex/standards/ADMIN_UI_STANDARD.md`: visible input/select borders, responsive table overflow, bounded pagination, clear filter controls, accessible button labels, and loading-disabled mutation actions.
 
-## Explicitly out of scope
+### Legacy Admin compatibility adapters
 
-- redesign of System database administration;
-- schema, migration or production-data changes;
-- deletion or movement of the Admin DatabaseService;
-- Affiliate commission/rank/scheme ownership;
-- environment/settings compatibility cleanup;
-- Banner/Header/Flash Sale compatibility-adapter deletion;
-- unrelated import/export features in other modules.
+The following historical Admin duplicates no longer contain independent Affiliate business or persistence logic:
 
-## Verification completed
+- `Modules/Admin/Livewire/Affiliate/CommissionList.php`;
+- `Modules/Admin/Livewire/Affiliate/CommissionMatrix.php`;
+- `Modules/Admin/Services/AdminAffiliateService.php`;
+- `Modules/Admin/Services/AffiliateRankService.php`;
+- `Modules/Admin/Models/AffiliateScheme.php`.
+
+They are deprecated compatibility adapters extending their Website canonical equivalents. The broken historical dependency on nonexistent `Modules\Admin\Models\AffiliateLevel` is no longer part of those implementations.
+
+They were deliberately not deleted because repository/static caller search cannot prove every dynamic/external Livewire/class caller absent.
+
+## CommissionMatrix decision
+
+Website CommissionMatrix remains `KEEP` as the canonical commission-scheme component, but direct static route/view reachability was not proven in this slice. It remains a complete Product × AffiliateLevel/User configuration component and all mutations are protected by `affiliate.manage`.
+
+The Admin duplicate is only a deprecated adapter.
+
+This slice does **not** redesign or paginate CommissionMatrix. Its schemes are scoped to one product and changing that UI without proven active reachability would increase regression surface without advancing the ownership objective. Any scalability/UI redesign is separate follow-up debt.
+
+## Schema and data decision
+
+No schema, migration, foreign-key or production-data change is authorized or included.
+
+Existing Affiliate schema/migrations remain where they are today. In particular, the Website-owned AffiliateLevel migration is not moved merely to make repository ownership visually cleaner. Runtime ownership cleanup does not authorize migration-history changes.
+
+Order commission state and User/Product ownership are also not moved into Website.
+
+## Verification completed so far
 
 ```text
-AdminDatabaseP0ContainmentContractTest + AdminOwnershipBoundaryContractTest: 9 passed, 48 assertions
-Admin canonical database/destructive route exposure: PASS — no Admin-owned database operation route
-System database route ownership: PASS — /admin/system/database* remains System-owned
-Working tree after focused verification: clean
+AdminAffiliateOwnershipContractTest + AdminOwnershipBoundaryContractTest: 9 passed, 51 assertions
+admin.affiliate route ownership: PASS — Website controller
+working tree after focused verification: clean
 ```
 
-The containment contract protects the legacy Admin database boundary from resolving the Admin DatabaseService or exposing destructive entry points. No full-project regression is required for this narrowly scoped containment slice.
+`tests/Feature/Admin/AdminAffiliateOwnershipContractTest.php` protects:
+
+- Website route ownership and `affiliate.view` route permission;
+- `affiliate.manage` mutation authorization;
+- Admin Affiliate compatibility-adapter boundaries;
+- bounded `10/25/50/100` pagination;
+- canonical level filtering;
+- no migration of AffiliateLevel schema into Admin.
 
 ## Acceptance criteria
 
-- canonical database-administration owner: **System — VERIFIED**;
-- Admin independent database route ownership: **NONE — VERIFIED**;
-- legacy Admin TableList destructive actions: **FAIL-CLOSED**;
-- legacy Admin BackupManager operational/destructive actions: **FAIL-CLOSED**;
-- legacy Admin ImportDrawer import action: **FAIL-CLOSED**;
-- legacy Admin DatabaseService reachable from canonical Admin database runtime: **NO STATIC/CANONICAL CALLER FOUND**;
-- complete external/dynamic zero-caller proof: **NOT CLAIMED**;
-- legacy Admin database files deleted: **NO**;
-- System database runtime redesigned: **NO**;
+- active `/admin/affiliate` route owner: **Website — VERIFIED**;
+- route view permission: **`affiliate.view` — PRESERVED**;
+- mutation permission: **`affiliate.manage` — PRESERVED**;
+- canonical CommissionList: **Website — VERIFIED**;
+- level filter: **FUNCTIONAL**;
+- pagination standard: **10 / 25 / 50 / 100 — IMPLEMENTED**;
+- Admin Affiliate independent business logic: **REMOVED**;
+- Admin Affiliate adapters deleted: **NO — compatibility retained pending caller proof**;
+- Website CommissionMatrix: **KEEP canonical / static reachability unproven**;
+- CommissionMatrix redesign: **OUT OF SCOPE**;
+- Affiliate module creation: **NO**;
+- commission approve/reject business-rule redesign: **NO**;
 - schema/migration/data changes: **NONE**;
-- focused Admin regression: **PASS — 9 tests / 48 assertions**;
-- P0 containment: **VERIFIED**;
-- PR readiness: **READY**.
+- focused ownership regression: **PASS — 9 tests / 51 assertions**;
+- final UI/build verification: **PENDING**.
 
-## Material risks still open
+## Material risks and follow-up debt
 
-### P0 compatibility debt
+### Financial/authz boundary
 
-`Modules/Admin/Services/DatabaseService.php` still contains destructive historical capability. Its safety contract is containment: it must stay unreachable from canonical Admin runtime. Do not reactivate or delete it without a separately approved caller-proof/redesign scope.
+Affiliate approve/reject mutates commission state on Order and approve triggers rank recalculation. Future service movement must preserve transactional behavior and `affiliate.manage` authorization. Do not treat these as presentation-only operations.
 
-### Dynamic/external callers
+### Compatibility adapters
 
-Repository/static searches are insufficient to prove every historical Livewire alias or external integration absent. This is why the fail-closed compatibility surfaces remain instead of being deleted in this slice.
+The five deprecated Admin Affiliate adapters remain until dynamic/external caller proof is strong enough for deletion. Their existence does not restore canonical Admin ownership.
 
-### Remaining Admin legacy families
+### CommissionMatrix reachability/scalability
 
-Affiliate commission/rank/scheme ownership remains the next major architectural debt candidate because current behavior spans Website, Order, Product and shared User concerns.
+No direct static caller was found for CommissionMatrix. Do not delete it from that evidence alone. If it becomes a confirmed active management surface and per-product schemes grow materially, assess pagination/search UX separately.
 
-Environment/System compatibility adapters and the deprecated Banner/Header/Flash Sale adapters remain separate caller-proof cleanup debt.
+### Future dedicated Affiliate module
+
+A dedicated Affiliate module may become appropriate if the domain grows. That would require a separate architecture decision covering Order commission state, User rank state, Product schemes, permissions, migrations and production migration ledger. It is explicitly not part of this cleanup.
+
+### Remaining Admin compatibility debt
+
+Environment/System settings compatibility adapters and previously deprecated Banner/Header/Flash Sale adapters remain separate caller-proof cleanup debt.
 
 ## Next phase
 
-Database P0 containment is closed out and PR-ready. Do not implement Affiliate or another Admin legacy family until this branch is merged and the user explicitly authorizes the next scope.
+Complete the final focused regression, route/build check and manual UI verification for `/admin/affiliate`. If all gates pass, update this checkpoint to PR-ready and open the PR. Do not begin another Admin legacy family until this branch is merged and the next scope is explicitly approved.
