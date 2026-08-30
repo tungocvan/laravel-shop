@@ -57,7 +57,8 @@ A sidebar item may link to Product, Order, Post, System, Account, Role, Category
 | Product / ProductCommission legacy | `CLEANED` | Product | Product admin runtime/import-export ownership is canonical in `Modules/Product`; proven Admin duplicates removed. Dedicated ProductCommission UX remains follow-up debt. |
 | Order management legacy runtime | `CLEANED` | Order | Canonical `admin.orders.*` routes/controller/Livewire/views are Order-owned; proven Admin management duplicates removed. Affiliate commission compatibility is tracked separately. |
 | Post/content legacy runtime | `CLEANED` | Post | Canonical routes/controller/Livewire/model/services/import-export/schema are in `Modules/Post`; proven Admin runtime duplicates removed; Post URLs/data/schema preserved |
-| Customer/address legacy runtime | `CLEANED` | Account + User split | Dead Admin Customer runtime removed; Account owns active account/customer-profile workspace, User retains UserAddress/schema; no schema move or legacy route revival |
+| Customer runtime | `CLEANED` | Account | Dead Admin Customer runtime removed; Account owns active account/customer-profile workspace |
+| Address legacy ownership | `BOUNDARY MOVED` | User | User owns canonical UserAddress model/service/schema; historical Admin UserAddress and AddressService are deprecated compatibility adapters with no independent persistence/business logic |
 | Role / Staff / Admin identity legacy | `CLEANED` | Role + Account/shared User split | Role owns RBAC runtime; Account owns EmployeeProfile/account runtime; `auth:admin` uses shared users provider; obsolete Admin model removed |
 | Banner/public website header/footer/home settings | `BOUNDARY MOVED` | Website + shared System settings | Banner and public HeaderMenu runtime are Website-owned; Admin may host management UI. Five deprecated Admin Banner/Header compatibility adapters remain pending complete caller proof. Footer columns/social links already use Website; footer/header text settings may use shared SettingsService. |
 | Flash Sale legacy runtime | `BOUNDARY MOVED` | Website + Product query boundary | Website owns FlashSale/FlashSaleItem/service behavior; Product owns product querying. Admin keeps management composition. Three deprecated Admin Flash Sale adapters remain pending complete caller proof. |
@@ -71,15 +72,24 @@ A sidebar item may link to Product, Order, Post, System, Account, Role, Category
 
 Category, Chat, Product, Order and Post have dedicated ownership cleanup contract tests and remain owned by their canonical modules. Their proven Admin runtime duplicates have been removed without schema/migration ownership changes.
 
-Customer/address cleanup proves a split canonical boundary:
+Customer cleanup proves the Account side of the customer/address split:
 
 - active `admin.accounts.index/create/edit` routes remain Account-owned under `auth:admin`;
 - Account owns account/customer-profile runtime through `AccountService` and `CustomerProfile`;
-- User retains `UserAddress` and the existing `user_addresses` migration/schema contract;
 - Order-history aggregation was not copied into Account;
 - ten unreachable Admin Customer controller/Livewire/view artifacts were removed;
 - no `/admin/customers*` route was revived without a proven compatibility caller;
 - `tests/Feature/Admin/AdminCustomerOwnershipCleanupContractTest.php` protects this boundary.
+
+Address ownership cleanup proves the User side of that split:
+
+- `Modules\User\Models\UserAddress` remains the canonical persistence model for `user_addresses`;
+- `Modules\User\Services\UserAddressService` owns address queries and create/update/delete/default-address mutations;
+- historical `Modules\Admin\Models\UserAddress` is a deprecated compatibility alias only;
+- historical `Modules\Admin\Services\AddressService` preserves its public API but delegates to the User service instead of owning duplicate mutation logic;
+- no schema, migration, route or production-data change was made;
+- compatibility classes remain because complete dynamic/external caller proof is not claimed;
+- `tests/Feature/Admin/AdminAddressOwnershipContractTest.php` protects this boundary.
 
 Role / Staff / Admin identity cleanup proves another split boundary:
 
@@ -137,7 +147,7 @@ Affiliate ownership cleanup proves a cross-module management/domain boundary:
 
 A file or family may not be removed merely because it is absent from `Modules/Admin/routes/web.php`. Each future domain slice must check routes/providers, Livewire aliases, Blade callers, imports, jobs/events/commands, tests/seeders, navigation metadata, production table/migration state, and compatibility requirements as applicable.
 
-Deprecated Banner/Header, Flash Sale and Affiliate compatibility adapters must not be removed until repository/runtime caller proof is complete; their existence does not restore canonical Admin ownership.
+Deprecated Address, Banner/Header, Flash Sale and Affiliate compatibility adapters must not be removed until repository/runtime caller proof is complete; their existence does not restore canonical Admin ownership.
 
 The quarantined Admin database family must not be deleted or reactivated merely from static search results. Dynamic/external caller proof or an explicitly approved replacement/removal contract is required.
 
@@ -160,7 +170,8 @@ Canonical database administration is owned by `Modules/System`. Its `/admin/syst
 - Product business runtime remains owned by `Modules/Product`.
 - Order management runtime remains owned by `Modules/Order`.
 - Post/content runtime remains owned by `Modules/Post`.
-- Account/customer-profile runtime remains owned by `Modules/Account`; UserAddress/schema remains owned by `Modules/User`.
+- Account/customer-profile runtime remains owned by `Modules/Account`.
+- UserAddress persistence and address mutation behavior remain owned by `Modules/User`; deprecated Admin Address adapters must not regain independent logic.
 - Role/RBAC runtime remains owned by `Modules/Role`; EmployeeProfile/account runtime remains owned by `Modules/Account`.
 - Website owns Banner and public HeaderMenu/HeaderMenuItem domain runtime; Admin may provide authenticated management composition only.
 - Website owns Flash Sale domain runtime; Product owns product queries; Admin may provide authenticated Flash Sale management composition only.
@@ -188,7 +199,7 @@ Runtime ownership cleanup does not authorize moving or renaming applied migratio
 ## Outstanding Unknowns
 
 - complete runtime reachability of remaining legacy Admin families;
-- external/dynamic callers of deprecated Admin Banner/Header/Flash Sale/Affiliate compatibility adapters;
+- external/dynamic callers of deprecated Admin Address/Banner/Header/Flash Sale/Affiliate compatibility adapters;
 - external/dynamic callers of quarantined Admin database compatibility surfaces;
 - direct runtime reachability and future scalability requirements of Website CommissionMatrix;
 - whether Affiliate should eventually become a dedicated module;

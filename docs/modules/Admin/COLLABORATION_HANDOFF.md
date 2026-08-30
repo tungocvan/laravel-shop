@@ -2,141 +2,101 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Affiliate Legacy Ownership Cleanup**
+Task: **Admin Major Refactor — Address Legacy Ownership Cleanup**
 
-Status: **IMPLEMENTED — FINAL VERIFICATION PENDING**
+Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / PR READY**
 
-Branch/checkpoint: `refactor/admin-affiliate-ownership-cleanup`
+Branch/checkpoint: `refactor/admin-address-ownership-cleanup`
 
-This approved slice removes independent Affiliate business/persistence ownership from the historical Admin duplicates while preserving the currently reachable Website-owned management runtime. It does not create a new Affiliate module, move schema/migrations, or redesign commission business rules.
+This approved slice removes independent UserAddress persistence/business ownership from Admin while preserving compatibility for historical class callers. It does not delete compatibility classes, change schema/migrations/data, or expand into historical controllers or other Admin legacy families.
 
 ## Ownership decision
 
-Affiliate remains a cross-module business capability with explicit boundaries:
+Address ownership remains split consistently with the established Customer/Account boundary:
 
-- `Modules/Website` currently owns the canonical Affiliate admin route/controller, CommissionList/CommissionMatrix management components, AffiliateLevel/AffiliateScheme persistence models, commission orchestration service and rank orchestration service;
-- `Modules/Order` retains order and commission state;
-- `Modules/Product` retains product ownership/query behavior;
-- shared User identity retains affiliate identity/rank state;
-- `Modules/Admin` remains the authenticated shell and no longer contains an independent Affiliate implementation.
-
-This is a pragmatic current ownership boundary, not a claim that Affiliate can never become a dedicated module later.
-
-## Canonical reachable runtime
-
-The active route remains:
-
-```text
-GET|HEAD admin/affiliate -> Modules\Website\Http\Controllers\Admin\AffiliateController@index
-```
-
-The route is guarded by `auth:admin` and `permission:affiliate.view,admin`. Its view renders the Website-owned CommissionList.
-
-Commission mutations continue to require `affiliate.manage` inside the canonical Website Livewire components. This authorization boundary must not be weakened by compatibility cleanup.
+- `Modules/User` owns canonical `UserAddress` persistence and address mutation behavior;
+- `Modules/Account` owns account/customer-profile workspace where applicable;
+- `Modules/Admin` remains the authenticated shell and must not independently implement address persistence/business rules.
 
 ## Runtime changes
 
-### Canonical CommissionList
+### Admin model compatibility
 
-The Website-owned CommissionList remains the reachable management list and now:
+`Modules/Admin/Models/UserAddress.php` is now a deprecated compatibility alias extending `Modules\User\Models\UserAddress`.
 
-- applies the existing level filter through affiliate `affiliate_level_id` instead of silently ignoring it;
-- supports only bounded page sizes `10 / 25 / 50 / 100`;
-- resets pagination when status, level, search or page-size filters change;
-- exposes an explicit reset-filter action;
-- eager-loads order items required by the current table/modal presentation;
-- uses a dedicated bounded Admin pagination view with white inactive controls and indigo active state;
-- keeps approve/reject mutation authorization through `affiliate.manage`.
+It no longer declares its own table, fillable fields, casts, relationships, or address helper implementation. Dynamic/external callers using the historical Admin namespace can continue resolving the class while persistence ownership remains in User.
 
-The UI was aligned with `.codex/standards/ADMIN_UI_STANDARD.md`: visible input/select borders, responsive table overflow, bounded pagination, clear filter controls, accessible button labels, and loading-disabled mutation actions.
+### Admin service compatibility
 
-### Legacy Admin compatibility adapters
+`Modules/Admin/Services/AddressService.php` is now a deprecated compatibility facade over `Modules\User\Services\UserAddressService`.
 
-The following historical Admin duplicates no longer contain independent Affiliate business or persistence logic:
+The historical public API is retained:
 
-- `Modules/Admin/Livewire/Affiliate/CommissionList.php`;
-- `Modules/Admin/Livewire/Affiliate/CommissionMatrix.php`;
-- `Modules/Admin/Services/AdminAffiliateService.php`;
-- `Modules/Admin/Services/AffiliateRankService.php`;
-- `Modules/Admin/Models/AffiliateScheme.php`.
+- `getUserAddresses($userId)`;
+- `create($userId, array $data)`;
+- `update($addressId, $userId, array $data)`;
+- `delete($addressId, $userId)`;
+- `setDefault($addressId, $userId)`.
 
-They are deprecated compatibility adapters extending their Website canonical equivalents. The broken historical dependency on nonexistent `Modules\Admin\Models\AffiliateLevel` is no longer part of those implementations.
+The facade delegates mutations and queries to the canonical User service instead of duplicating default-address mutation logic inside Admin.
 
-They were deliberately not deleted because repository/static caller search cannot prove every dynamic/external Livewire/class caller absent.
-
-## CommissionMatrix decision
-
-Website CommissionMatrix remains `KEEP` as the canonical commission-scheme component, but direct static route/view reachability was not proven in this slice. It remains a complete Product × AffiliateLevel/User configuration component and all mutations are protected by `affiliate.manage`.
-
-The Admin duplicate is only a deprecated adapter.
-
-This slice does **not** redesign or paginate CommissionMatrix. Its schemes are scoped to one product and changing that UI without proven active reachability would increase regression surface without advancing the ownership objective. Any scalability/UI redesign is separate follow-up debt.
+The historical `delete()` contract continues to return a boolean compatibility result after canonical deletion.
 
 ## Schema and data decision
 
 No schema, migration, foreign-key or production-data change is authorized or included.
 
-Existing Affiliate schema/migrations remain where they are today. In particular, the Website-owned AffiliateLevel migration is not moved merely to make repository ownership visually cleaner. Runtime ownership cleanup does not authorize migration-history changes.
+The existing `user_addresses` persistence contract remains User-owned. Runtime ownership cleanup does not authorize moving or renaming applied migrations or tables.
 
-Order commission state and User/Product ownership are also not moved into Website.
+## Verification
 
-## Verification completed so far
+Local focused verification reported:
 
 ```text
-AdminAffiliateOwnershipContractTest + AdminOwnershipBoundaryContractTest: 9 passed, 51 assertions
-admin.affiliate route ownership: PASS — Website controller
-working tree after focused verification: clean
+AdminAddressOwnershipContractTest: 4 passed, 28 assertions
+AdminOwnershipBoundaryContractTest: 4 passed, 21 assertions
+Total: 8 passed, 49 assertions
+Working tree: clean
 ```
 
-`tests/Feature/Admin/AdminAffiliateOwnershipContractTest.php` protects:
+`tests/Feature/Admin/AdminAddressOwnershipContractTest.php` protects:
 
-- Website route ownership and `affiliate.view` route permission;
-- `affiliate.manage` mutation authorization;
-- Admin Affiliate compatibility-adapter boundaries;
-- bounded `10/25/50/100` pagination;
-- canonical level filtering;
-- no migration of AffiliateLevel schema into Admin.
+- canonical User model ownership;
+- Admin model compatibility-only inheritance;
+- Admin AddressService delegation to UserAddressService;
+- preservation of the historical Admin service public API;
+- canonical User ownership of address mutations.
 
 ## Acceptance criteria
 
-- active `/admin/affiliate` route owner: **Website — VERIFIED**;
-- route view permission: **`affiliate.view` — PRESERVED**;
-- mutation permission: **`affiliate.manage` — PRESERVED**;
-- canonical CommissionList: **Website — VERIFIED**;
-- level filter: **FUNCTIONAL**;
-- pagination standard: **10 / 25 / 50 / 100 — IMPLEMENTED**;
-- Admin Affiliate independent business logic: **REMOVED**;
-- Admin Affiliate adapters deleted: **NO — compatibility retained pending caller proof**;
-- Website CommissionMatrix: **KEEP canonical / static reachability unproven**;
-- CommissionMatrix redesign: **OUT OF SCOPE**;
-- Affiliate module creation: **NO**;
-- commission approve/reject business-rule redesign: **NO**;
+- canonical UserAddress model owner: **User — VERIFIED**;
+- canonical address mutation owner: **User — VERIFIED**;
+- independent Admin address persistence/business logic: **REMOVED**;
+- historical Admin class compatibility: **PRESERVED**;
+- Admin Address compatibility classes deleted: **NO — caller proof remains incomplete**;
+- Account/customer-profile boundary: **UNCHANGED**;
 - schema/migration/data changes: **NONE**;
-- focused ownership regression: **PASS — 9 tests / 51 assertions**;
-- final UI/build verification: **PENDING**.
+- Admin shell ownership guardrail: **PASS**;
+- focused regression: **PASS — 8 tests / 49 assertions**;
+- manual UI smoke: **NOT REQUIRED by this compatibility-only slice unless a historical caller is later proven reachable**.
 
-## Material risks and follow-up debt
+## Remaining compatibility debt
 
-### Financial/authz boundary
+This slice does not claim zero callers for the deprecated Admin Address namespaces. Repository code-search indexing has previously proven unreliable, so the compatibility classes remain until stronger dynamic/external caller proof authorizes deletion.
 
-Affiliate approve/reject mutates commission state on Order and approve triggers rank recalculation. Future service movement must preserve transactional behavior and `affiliate.manage` authorization. Do not treat these as presentation-only operations.
+Other compatibility debt remains separately scoped:
 
-### Compatibility adapters
+- historical Admin controllers/scaffolds;
+- Banner/Header compatibility adapters;
+- Flash Sale compatibility adapters;
+- Affiliate compatibility adapters and OrderDetailModal residue;
+- Environment/System settings adapters;
+- quarantined Admin database family.
 
-The five deprecated Admin Affiliate adapters remain until dynamic/external caller proof is strong enough for deletion. Their existence does not restore canonical Admin ownership.
-
-### CommissionMatrix reachability/scalability
-
-No direct static caller was found for CommissionMatrix. Do not delete it from that evidence alone. If it becomes a confirmed active management surface and per-product schemes grow materially, assess pagination/search UX separately.
-
-### Future dedicated Affiliate module
-
-A dedicated Affiliate module may become appropriate if the domain grows. That would require a separate architecture decision covering Order commission state, User rank state, Product schemes, permissions, migrations and production migration ledger. It is explicitly not part of this cleanup.
-
-### Remaining Admin compatibility debt
-
-Environment/System settings compatibility adapters and previously deprecated Banner/Header/Flash Sale adapters remain separate caller-proof cleanup debt.
+Database P0 containment remains unchanged and must not be reopened as part of compatibility cleanup.
 
 ## Next phase
 
-Complete the final focused regression, route/build check and manual UI verification for `/admin/affiliate`. If all gates pass, update this checkpoint to PR-ready and open the PR. Do not begin another Admin legacy family until this branch is merged and the next scope is explicitly approved.
+Open and merge this Address ownership cleanup as a focused PR. Do not begin another Admin legacy family until this branch is merged and the next scope is explicitly approved.
+
+After merge, resume Compatibility Debt Audit from historical controllers / Order-Affiliate residue and choose exactly one coherent next implementation slice.
