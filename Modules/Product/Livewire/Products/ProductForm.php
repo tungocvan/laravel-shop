@@ -69,7 +69,13 @@ class ProductForm extends Component
 
     public function getCategoriesProperty()
     {
-        return $this->products->productCategoryTree();
+        return Category::query()
+            ->where('type', 'product')
+            ->whereNull('parent_id')
+            ->with('childrenRecursive')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     public function toggleCategoryNode(int $categoryId): void
