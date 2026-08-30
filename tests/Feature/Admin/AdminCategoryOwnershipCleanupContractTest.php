@@ -71,6 +71,6 @@ class AdminCategoryOwnershipCleanupContractTest extends TestCase
 
         $this->assertStringContainsString("@livewire('category.categories.category-table')", $index);
         $this->assertStringContainsString("@livewire('category.categories.category-form')", $create);
-        $this->assertStringContainsString("@livewire('category.categories.category-form', ['id' => $id])", $edit);
+        $this->assertStringContainsString("@livewire('category.categories.category-form', ['id' => \$id])", $edit);
     }
 }
