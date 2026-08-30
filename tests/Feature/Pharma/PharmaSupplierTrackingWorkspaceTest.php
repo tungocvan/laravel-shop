@@ -55,7 +55,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString("'supplier_name_normalized'", $service);
         $this->assertStringContainsString('guardBusinessKey(', $service);
         $this->assertStringContainsString('DuplicateSupplierTrackingException', $service);
-        $this->assertStringContainsString("protected array $uniqueBy = ['medicine_id', 'supplier_name_normalized', 'working_date'];", $importExport);
+        $this->assertStringContainsString('protected array $uniqueBy = [\'medicine_id\', \'supplier_name_normalized\', \'working_date\'];', $importExport);
         $this->assertStringContainsString('supplier_trackings_business_key_unique', $migration);
         $this->assertStringContainsString("->whereNotNull('working_date')", $migration);
         $this->assertStringContainsString('Resolve duplicate Medicine + Supplier + Working Date records', $migration);
@@ -94,7 +94,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
     {
         $command = file_get_contents(base_path('Modules/Pharma/Console/Commands/ResetSupplierTrackingDemoCommand.php'));
 
-        $this->assertStringContainsString("protected $signature = 'reset:pharma-supplier-tracking-demo';", $command);
+        $this->assertStringContainsString('protected $signature = \'reset:pharma-supplier-tracking-demo\';', $command);
         $this->assertStringContainsString("app()->environment('local')", $command);
         $this->assertStringContainsString('for ($i = 1; $i <= 36; $i++)', $command);
         $this->assertStringContainsString("where('supplier_name', 'like', self::SUPPLIER_PREFIX.'%')->delete()", $command);
