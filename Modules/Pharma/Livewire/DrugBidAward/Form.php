@@ -3,8 +3,10 @@
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
 use Exception;
+use Illuminate\Support\Collection;
 use Livewire\Component;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
+use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\DrugBidAwardService;
 
@@ -12,57 +14,66 @@ class Form extends Component
 {
     use AuthorizesPharmaActions;
 
+    private const MEDICINE_RESULT_LIMIT = 25;
+
     public ?int $awardId = null;
 
     public bool $isEditMode = false;
 
-    public $medicine_id = null;
+    public ?int $medicine_id = null;
 
-    public $medicine_name = '';
+    public string $medicineSearch = '';
 
-    public $packaging_specification = '';
+    public string $medicine_name = '';
 
-    public $quantity = '';
+    public string $packaging_specification = '';
 
-    public $unit_price = '';
+    public mixed $quantity = '';
 
-    public $bidding_notice_code = '';
+    public mixed $unit_price = '';
 
-    public $investor_name = '';
+    public string $bidding_notice_code = '';
 
-    public $decision_number = '';
+    public string $investor_name = '';
 
-    public $decision_date = '';
+    public string $decision_number = '';
 
-    public $contract_duration_months = '';
+    public string $decision_date = '';
 
-    public $winning_company_name = '';
+    public mixed $contract_duration_months = '';
 
-    public $decision_document_url = '';
+    public string $winning_company_name = '';
 
-    public function mount(?int $id = null)
+    public string $decision_document_url = '';
+
+    public string $sourceType = DrugBidAward::SOURCE_MANUAL;
+
+    public function mount(?int $id = null): void
     {
         $id ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
 
-        if ($id) {
-            $this->awardId = $id;
-            $this->isEditMode = true;
-            $service = app(DrugBidAwardService::class);
-            $award = $service->findOrFail($id);
-
-            $this->medicine_id = $award->medicine_id;
-            $this->medicine_name = $award->medicine_name;
-            $this->packaging_specification = $award->packaging_specification;
-            $this->quantity = $award->quantity;
-            $this->unit_price = $award->unit_price;
-            $this->bidding_notice_code = $award->bidding_notice_code;
-            $this->investor_name = $award->investor_name;
-            $this->decision_number = $award->decision_number;
-            $this->decision_date = $award->decision_date?->format('Y-m-d');
-            $this->contract_duration_months = $award->contract_duration_months;
-            $this->winning_company_name = $award->winning_company_name;
-            $this->decision_document_url = $award->decision_document_url;
+        if (! $id) {
+            return;
         }
+
+        $this->awardId = $id;
+        $this->isEditMode = true;
+        $award = app(DrugBidAwardService::class)->findOrFail($id);
+
+        $this->medicine_id = $award->medicine_id;
+        $this->medicine_name = $award->medicine_name;
+        $this->packaging_specification = $award->packaging_specification;
+        $this->quantity = $award->quantity;
+        $this->unit_price = $award->unit_price;
+        $this->bidding_notice_code = $award->bidding_notice_code;
+        $this->investor_name = $award->investor_name;
+        $this->decision_number = $award->decision_number;
+        $this->decision_date = $award->decision_date?->format('Y-m-d') ?? '';
+        $this->contract_duration_months = $award->contract_duration_months;
+        $this->winning_company_name = $award->winning_company_name;
+        $this->decision_document_url = $award->decision_document_url ?? '';
+        $this->sourceType = $award->source_type ?: DrugBidAward::SOURCE_MANUAL;
+        $this->medicineSearch = $award->medicine?->name ?? '';
     }
 
     protected function rules(): array
@@ -99,6 +110,38 @@ class Form extends Component
         ];
     }
 
+    public function updatedMedicineSearch(): void
+    {
+        if ($this->medicine_id && ! $this->selectedMedicineMatchesSearch()) {
+            $this->medicine_id = null;
+        }
+    }
+
+    public function updatedMedicineId(mixed $value): void
+    {
+        if (! $value) {
+            return;
+        }
+
+        $medicine = Medicine::query()->select(['id', 'name', 'packaging_specification'])->find((int) $value);
+
+        if (! $medicine) {
+            $this->medicine_id = null;
+
+            return;
+        }
+
+        $this->medicineSearch = $medicine->name;
+
+        if ($this->medicine_name === '') {
+            $this->medicine_name = $medicine->name;
+        }
+
+        if ($this->packaging_specification === '') {
+            $this->packaging_specification = $medicine->packaging_specification ?? '';
+        }
+    }
+
     public function save(DrugBidAwardService $service)
     {
         $this->isEditMode ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
@@ -114,8 +157,8 @@ class Form extends Component
             }
 
             return redirect()->route('admin.pharma.drug-bid-awards.index');
-        } catch (Exception $e) {
-            report($e);
+        } catch (Exception $exception) {
+            report($exception);
             session()->flash('error', 'Không thể lưu hồ sơ trúng thầu. Vui lòng thử lại hoặc kiểm tra log hệ thống.');
         }
     }
@@ -123,7 +166,80 @@ class Form extends Component
     public function render()
     {
         return view('Pharma::livewire.drug-bid-award.form', [
-            'medicines' => Medicine::query()->latest()->get(),
+            'medicines' => $this->medicineCandidates(),
+            'medicineResultLimit' => self::MEDICINE_RESULT_LIMIT,
         ]);
+    }
+
+    private function medicineCandidates(): Collection
+    {
+        $search = trim($this->medicineSearch);
+        $selectedId = $this->medicine_id;
+
+        if ($search === '' && ! $selectedId) {
+            return collect();
+        }
+
+        $query = Medicine::query()->select([
+            'id',
+            'name',
+            'registration_number',
+            'active_ingredients',
+            'concentration',
+            'packaging_specification',
+        ]);
+
+        if ($search !== '') {
+            $query->where(function ($nested) use ($search): void {
+                $like = "%{$search}%";
+                $nested->where('name', 'like', $like)
+                    ->orWhere('registration_number', 'like', $like)
+                    ->orWhere('active_ingredients', 'like', $like);
+            });
+        } else {
+            $query->whereKey($selectedId);
+        }
+
+        $candidates = $query->orderBy('name')->limit(self::MEDICINE_RESULT_LIMIT)->get();
+
+        if ($selectedId && ! $candidates->contains('id', $selectedId)) {
+            $selected = Medicine::query()->select([
+                'id',
+                'name',
+                'registration_number',
+                'active_ingredients',
+                'concentration',
+                'packaging_specification',
+            ])->find($selectedId);
+
+            if ($selected) {
+                $candidates->prepend($selected);
+            }
+        }
+
+        return $candidates->unique('id')->values();
+    }
+
+    private function selectedMedicineMatchesSearch(): bool
+    {
+        if (! $this->medicine_id) {
+            return false;
+        }
+
+        $search = trim($this->medicineSearch);
+
+        if ($search === '') {
+            return true;
+        }
+
+        return Medicine::query()
+            ->whereKey($this->medicine_id)
+            ->where(function ($query) use ($search): void {
+                $like = "%{$search}%";
+                $query->where('name', 'like', $like)
+                    ->orWhere('registration_number', 'like', $like)
+                    ->orWhere('active_ingredients', 'like', $like);
+            })
+            ->exists();
     }
 }
