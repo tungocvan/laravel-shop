@@ -11,9 +11,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('pharma_supplier_trackings', function (Blueprint $table) {
-            $table->string('supplier_name_normalized')->nullable()->after('supplier_name');
-        });
+        if (! Schema::hasColumn('pharma_supplier_trackings', 'supplier_name_normalized')) {
+            Schema::table('pharma_supplier_trackings', function (Blueprint $table) {
+                $table->string('supplier_name_normalized')->nullable()->after('supplier_name');
+            });
+        }
 
         DB::table('pharma_supplier_trackings')
             ->select('id', 'supplier_name')
@@ -52,6 +54,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! Schema::hasColumn('pharma_supplier_trackings', 'supplier_name_normalized')) {
+            return;
+        }
+
         Schema::table('pharma_supplier_trackings', function (Blueprint $table) {
             $table->dropUnique('supplier_trackings_business_key_unique');
             $table->dropColumn('supplier_name_normalized');
