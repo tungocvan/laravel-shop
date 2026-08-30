@@ -58,7 +58,7 @@ class AdminProductOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString('data-category-children', $row);
         $this->assertStringContainsString('input[type=checkbox]:checked', $row);
         $this->assertStringContainsString('x-show="open"', $row);
-        $this->assertStringContainsString("'depth' => $depth + 1", $row);
+        $this->assertStringContainsString("'depth' => \$depth + 1", $row);
     }
 
     public function test_legacy_admin_product_runtime_remains_absent(): void
