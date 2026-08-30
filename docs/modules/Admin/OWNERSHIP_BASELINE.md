@@ -54,7 +54,7 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 | Admin profile/preferences | `KEEP` | Admin UI + canonical identity/account contracts as applicable | Persistence ownership must be verified before moving models |
 | Categories legacy runtime | `CLEANED` | Category | Canonical routes/controller/Livewire/views are in `Modules/Category`; proven Admin runtime duplicates removed |
 | Chat legacy runtime | `CLEANED` | Chat | Canonical Chat runtime is active; proven legacy Admin controller/Livewire/models/service/views removed |
-| Product / ProductCommission legacy | `UNKNOWN -> MOVE candidate` | Product | Verify callers and replacement completeness |
+| Product / ProductCommission legacy | `CLEANED` | Product | Product admin runtime/import/export ownership is canonical in `Modules/Product`; proven Admin duplicates removed. Dedicated ProductCommission UX remains follow-up debt. |
 | Orders legacy | `UNKNOWN -> MOVE candidate` | Order | Verify callers and compatibility |
 | Posts/content legacy | `UNKNOWN -> MOVE candidate` | canonical content/Post owner | Verify current module contract before choosing owner |
 | Customer/address legacy | `UNKNOWN -> MOVE candidate` | Account/User/Identity according to current contract | Do not guess schema owner |
@@ -75,56 +75,38 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 
 `Modules/Chat` is the canonical owner of Chat runtime behavior while Admin remains its authenticated presentation shell.
 
-Preserved contracts:
+Preserved contracts include the existing admin Chat URLs/names, canonical Chat controllers, `auth:admin`, `permission:view_chat,admin`, capability-specific Livewire permissions and realtime behavior.
 
-- `admin.chat.index` -> `/admin/chat/internal-chat`;
-- `admin.chat.cskh` -> `/admin/chat`;
-- both routes resolve to `Modules\\Chat\\Http\\Controllers\\ChatController`;
-- both routes remain under `auth:admin` and require `permission:view_chat,admin`;
-- capability-specific Livewire permissions remain enforced;
-- canonical realtime channel/event behavior is unchanged;
-- Chat continues to depend on Admin presentation because Chat pages extend `Admin::layouts.master`.
+`tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` prevents the removed legacy Admin Chat runtime from returning. No Chat schema/table/migration ownership was changed by the runtime cleanup.
 
-After the canonical boundary was verified, the following obsolete Admin runtime copies were removed in the dedicated compatibility cleanup slice:
+## Product Cleanup Evidence
 
-- `Modules/Admin/Http/Controllers/ChatController.php`;
-- `Modules/Admin/Livewire/Chat/ChatManager.php`;
-- `Modules/Admin/Models/ChatSession.php`;
-- `Modules/Admin/Models/ChatMessage.php`;
-- `Modules/Admin/Services/ChatService.php`;
-- `Modules/Admin/resources/views/pages/chat/index.blade.php`;
-- `Modules/Admin/resources/views/livewire/chat/chat-manager.blade.php`.
+`Modules/Product` is the canonical owner of the Product admin runtime. Active `admin.products.*` routes resolve to Product-owned controllers and Product pages mount Product-owned Livewire components.
 
-`tests/Feature/Admin/AdminChatOwnershipBoundaryContractTest.php` now prevents those legacy copies from returning while protecting canonical Chat files, routes, authorization, and retained `deleteAllMessages()` compatibility behavior.
+The following proven legacy Admin Product copies were removed:
 
-No Chat schema/table/migration ownership is changed by this runtime cleanup.
+- `Modules/Admin/Livewire/Products/ProductForm.php`;
+- `Modules/Admin/Livewire/Products/ProductTable.php`;
+- `Modules/Admin/resources/views/livewire/products/product-form.blade.php`;
+- `Modules/Admin/resources/views/livewire/products/product-table.blade.php`;
+- `Modules/Admin/Exports/ProductsExport.php`;
+- `Modules/Admin/Imports/ProductsImport.php`.
+
+Canonical Product authorization remains capability-specific. Product Create/Edit category selection now presents the canonical Category hierarchy as a collapsed recursive tree, and Edit reveals ancestors needed for already-selected child categories. Product list pagination uses a Product-scoped white/indigo pagination view.
+
+`tests/Feature/Admin/AdminProductOwnershipCleanupContractTest.php` protects canonical Product route/runtime ownership, legacy-file absence, authorization and the approved UI contracts.
+
+`admin.products.commissions` remains canonically Product-owned. Its current page still reuses the Product form rather than a dedicated commission workspace; that UX is explicitly recorded as follow-up debt and was not redesigned in this cleanup.
+
+No Product schema/table/migration ownership changed in this slice.
 
 ## Reachability Proof Required Before Future MOVE / DEPRECATE / DEAD
 
-A file or family may not be removed merely because it is absent from `Modules/Admin/routes/web.php`. Each future domain slice must check, where applicable:
-
-1. web/API routes and route providers;
-2. Livewire aliases and class discovery/registration;
-3. Blade tags, includes and route links;
-4. controller/service/model imports across modules;
-5. jobs, events, listeners, commands and scheduled tasks;
-6. tests and factories/seeders;
-7. menu/navigation records or config using historical URLs;
-8. production table usage and migration ledger when schema ownership is involved;
-9. external clients or compatibility requirements for historical URLs/aliases.
+A file or family may not be removed merely because it is absent from `Modules/Admin/routes/web.php`. Each future domain slice must check routes/providers, Livewire aliases, Blade callers, imports, jobs/events/commands, tests/seeders, navigation metadata, production table/migration state, and compatibility requirements as applicable.
 
 ## P0 Database Administration Quarantine
 
-`Modules/Admin/Services/DatabaseService.php` is a latent destructive capability and is not part of the canonical Admin shell.
-
-Current containment contract:
-
-- no active Admin web route references database administration;
-- Admin API routes remain empty;
-- `Modules/Admin/Livewire/Database/TableList.php` remains fail closed;
-- the Livewire component does not instantiate or reference `DatabaseService`.
-
-The containment tests do not make `DatabaseService` production-safe.
+`Modules/Admin/Services/DatabaseService.php` is a latent destructive capability and is not part of the canonical Admin shell. It must remain unreachable. Admin API routes remain empty and the Admin database Livewire surface remains fail closed.
 
 ## Guardrails
 
@@ -135,28 +117,28 @@ The containment tests do not make `DatabaseService` production-safe.
 - Admin database administration remains fail-closed and quarantined.
 - Category business runtime remains owned by `Modules/Category`.
 - Chat business runtime remains owned by `Modules/Chat`.
-- Legacy Admin Chat controller/Livewire/models/service/views must remain absent.
-- Admin Chat routes require `view_chat`; mutating Livewire actions require capability-specific permissions.
+- Product business runtime remains owned by `Modules/Product`.
+- Proven legacy Admin Category, Chat and Product runtime copies must remain absent.
+- ProductCommission dedicated UX remains a separately scoped follow-up rather than being silently redesigned.
 
 ## Schema / Migration Rule
 
-Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Chat table/migration ownership is intentionally unchanged in this slice.
+Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat and Product runtime cleanup did not change schema/migration ownership.
 
 ## Planned Refactor Sequence
 
 1. keep ownership/P0 containment guardrails green;
-2. keep Category cleanup green;
-3. keep Chat canonical ownership and cleanup guardrails green;
-4. choose one next legacy family with a verified canonical replacement;
-5. prove callers/reachability and compatibility;
-6. migrate/remove only the proven obsolete Admin runtime copy;
-7. reconcile schema/migration ownership only after runtime ownership is stable.
+2. keep Category, Chat and Product cleanup guardrails green;
+3. choose one next legacy family with a verified canonical replacement;
+4. prove callers/reachability and compatibility;
+5. migrate/remove only the proven obsolete Admin runtime copy;
+6. reconcile schema/migration ownership only after runtime ownership is stable.
 
 ## Outstanding Unknowns
 
 - complete runtime reachability of remaining legacy Admin families;
 - production usage of legacy Admin tables;
 - production migration ledger for Admin migrations;
-- external dependencies on historical Admin URLs/aliases outside cleaned Category/Chat families.
+- external dependencies on historical Admin URLs/aliases outside cleaned Category/Chat/Product families.
 
 These unknowns remain blockers against bulk deletion of unrelated families.
