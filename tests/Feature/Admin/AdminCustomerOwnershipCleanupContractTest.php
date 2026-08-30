@@ -65,7 +65,7 @@ class AdminCustomerOwnershipCleanupContractTest extends TestCase
 
         $this->assertStringContainsString('use Modules\\Account\\Services\\AccountService;', $form);
         $this->assertStringContainsString('protected AccountService $accountService;', $form);
-        $this->assertStringContainsString("public string $account_type = 'customer';", $form);
+        $this->assertStringContainsString('public string $account_type = \'customer\';', $form);
         $this->assertStringContainsString('customerProfile', $form);
         $this->assertStringContainsString('CustomerProfile', $service);
     }
@@ -80,7 +80,7 @@ class AdminCustomerOwnershipCleanupContractTest extends TestCase
 
         $model = file_get_contents($modelPath);
 
-        $this->assertStringContainsString("protected $table = 'user_addresses';", $model);
+        $this->assertStringContainsString('protected $table = \'user_addresses\';', $model);
         $this->assertStringContainsString('Modules\\User\\Models', $model);
     }
 
