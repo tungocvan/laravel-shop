@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Livewire\SupplierTrackings;
 
 use Livewire\Component;
+use Modules\Pharma\Exceptions\DuplicateSupplierTrackingException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\SupplierTrackingService;
 
@@ -13,6 +14,8 @@ class Form extends Component
     public ?int $trackingId = null;
 
     public ?int $medicine_id = null;
+
+    public string $medicineSearch = '';
 
     public array $form = [
         'working_date' => '',
@@ -45,6 +48,7 @@ class Form extends Component
         if ($this->trackingId) {
             $tracking = $service->find($this->trackingId);
             $this->medicine_id = $tracking->medicine_id;
+            $this->medicineSearch = $tracking->medicine?->name ?? '';
             $this->form = array_merge($this->form, $tracking->only(array_keys($this->form)));
             $this->form['working_date'] = optional($tracking->working_date)->format('Y-m-d');
             $this->form['start_date'] = optional($tracking->start_date)->format('Y-m-d');
@@ -62,6 +66,7 @@ class Form extends Component
     public function recalculate(): void
     {
         $calculated = app(SupplierTrackingService::class)->previewCalculate($this->form);
+        $this->form['invoice_difference_amount'] = $calculated['invoice_difference_amount'];
         $this->form['invoice_difference_fee'] = $calculated['invoice_difference_fee'];
         $this->form['cost_price'] = $calculated['cost_price'];
         $this->form['gross_profit_percent'] = $calculated['gross_profit_percent'];
@@ -86,7 +91,7 @@ class Form extends Component
             'form.unit' => ['nullable', 'string', 'max:50'],
             'form.deposit_amount' => ['nullable', 'numeric', 'min:0'],
             'form.start_date' => ['nullable', 'date'],
-            'form.end_date' => ['nullable', 'date'],
+            'form.end_date' => ['nullable', 'date', 'after_or_equal:form.start_date'],
             'form.contract_url' => ['nullable', 'url'],
             'form.status' => ['required', 'in:active,completed,paused,cancelled'],
             'form.note' => ['nullable', 'string'],
@@ -102,6 +107,13 @@ class Form extends Component
             }
 
             return redirect()->route('admin.pharma.supplier-trackings.index');
+        } catch (DuplicateSupplierTrackingException) {
+            $this->addError(
+                'form.supplier_name',
+                'Đã tồn tại theo dõi cho cùng HSSP, nhà cung cấp và ngày làm việc.'
+            );
+
+            return null;
         } catch (\Throwable $e) {
             report($e);
             session()->flash('error', 'Không thể lưu dữ liệu theo dõi nhà cung cấp. Vui lòng thử lại hoặc kiểm tra log hệ thống.');
@@ -123,7 +135,7 @@ class Form extends Component
     public function render(SupplierTrackingService $service)
     {
         return view('Pharma::livewire.supplier-trackings.form', [
-            'medicines' => $service->medicinesForSelect(),
+            'medicines' => $service->medicineCandidates($this->medicineSearch, $this->medicine_id),
         ]);
     }
 }
