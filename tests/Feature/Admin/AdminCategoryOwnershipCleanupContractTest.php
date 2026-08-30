@@ -59,6 +59,7 @@ class AdminCategoryOwnershipCleanupContractTest extends TestCase
             'Modules/Category/resources/views/pages/categories/index.blade.php',
             'Modules/Category/resources/views/pages/categories/create.blade.php',
             'Modules/Category/resources/views/pages/categories/edit.blade.php',
+            'Modules/Category/resources/views/livewire/categories/partials/category-row.blade.php',
         ];
 
         foreach ($canonicalFiles as $file) {
@@ -91,13 +92,36 @@ class AdminCategoryOwnershipCleanupContractTest extends TestCase
 
     public function test_category_table_uses_default_icon_when_image_is_missing(): void
     {
-        $table = file_get_contents(
-            base_path('Modules/Category/resources/views/livewire/categories/category-table.blade.php')
+        $row = file_get_contents(
+            base_path('Modules/Category/resources/views/livewire/categories/partials/category-row.blade.php')
         );
 
+        $this->assertNotFalse($row);
+        $this->assertStringContainsString("Storage::disk('public')->exists", $row);
+        $this->assertStringContainsString('aria-label="Ảnh mặc định danh mục"', $row);
+        $this->assertStringContainsString('<svg viewBox="0 0 24 24"', $row);
+    }
+
+    public function test_category_table_renders_children_only_through_expandable_tree_rows(): void
+    {
+        $component = file_get_contents(base_path('Modules/Category/Livewire/Categories/CategoryTable.php'));
+        $service = file_get_contents(base_path('Modules/Category/Services/CategoryService.php'));
+        $table = file_get_contents(base_path('Modules/Category/resources/views/livewire/categories/category-table.blade.php'));
+        $row = file_get_contents(base_path('Modules/Category/resources/views/livewire/categories/partials/category-row.blade.php'));
+
+        $this->assertNotFalse($component);
+        $this->assertNotFalse($service);
         $this->assertNotFalse($table);
-        $this->assertStringContainsString("Storage::disk('public')->exists", $table);
-        $this->assertStringContainsString('aria-label="Ảnh mặc định danh mục"', $table);
-        $this->assertStringContainsString('<svg viewBox="0 0 24 24"', $table);
+        $this->assertNotFalse($row);
+
+        $this->assertStringContainsString('public array $expandedIds = [];', $component);
+        $this->assertStringContainsString('public function toggleNode(int $id): void', $component);
+        $this->assertStringContainsString("'childrenRecursive'", $service);
+        $this->assertStringContainsString("->whereNull('parent_id')", $service);
+        $this->assertStringContainsString('danh mục gốc/trang', $table);
+        $this->assertStringContainsString("Category::livewire.categories.partials.category-row", $table);
+        $this->assertStringContainsString('wire:click="toggleNode(', $row);
+        $this->assertStringContainsString("{{ \$isExpanded ? '−' : '+' }}", $row);
+        $this->assertStringContainsString("'depth' => \$depth + 1", $row);
     }
 }
