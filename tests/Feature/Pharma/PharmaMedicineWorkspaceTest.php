@@ -51,4 +51,32 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $page);
         $this->assertStringContainsString('Quay về Dashboard Pharma', $page);
     }
+
+    public function test_pharma_pages_share_a_dashboard_back_navigation(): void
+    {
+        $partial = file_get_contents(base_path('Modules/Pharma/resources/views/pages/partials/dashboard-back.blade.php'));
+        $pages = [
+            'Modules/Pharma/resources/views/pages/create.blade.php',
+            'Modules/Pharma/resources/views/pages/edit.blade.php',
+            'Modules/Pharma/resources/views/pages/drug-bid-award/index.blade.php',
+            'Modules/Pharma/resources/views/pages/drug-bid-award/create.blade.php',
+            'Modules/Pharma/resources/views/pages/drug-bid-award/edit.blade.php',
+            'Modules/Pharma/resources/views/pages/supplier-trackings/index.blade.php',
+            'Modules/Pharma/resources/views/pages/supplier-trackings/create.blade.php',
+            'Modules/Pharma/resources/views/pages/supplier-trackings/edit.blade.php',
+            'Modules/Pharma/resources/views/pages/supplier-trackings/show.blade.php',
+            'Modules/Pharma/resources/views/pages/price-list/create.blade.php',
+        ];
+
+        $this->assertStringContainsString("route('admin.pharma.dashboard')", $partial);
+        $this->assertStringContainsString('Quay về Dashboard Pharma', $partial);
+
+        foreach ($pages as $page) {
+            $this->assertStringContainsString(
+                "@include('Pharma::pages.partials.dashboard-back')",
+                file_get_contents(base_path($page)),
+                "Expected {$page} to expose Pharma dashboard navigation."
+            );
+        }
+    }
 }
