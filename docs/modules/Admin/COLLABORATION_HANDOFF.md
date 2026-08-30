@@ -2,98 +2,137 @@
 
 ## Current checkpoint
 
-Task: `/analyze Admin`
+Task: **Admin Major Refactor — Ownership & Reachability Baseline + P0 Database Isolation + Canonical Shell Guardrails**
 
-Status: **COMPLETED — documentation-only analysis**
+Status: **VERIFIED — READY FOR PR REVIEW**
 
-Branch/checkpoint: `docs/admin-module-analysis-refresh`
+Branch/checkpoint: `refactor/admin-ownership-reachability-baseline`
 
-Analysis deliverables updated:
+This slice was explicitly approved after `/analyze Admin` concluded **Major Refactor**.
 
-- `docs/modules/Admin/ANALYSIS.md`
-- `docs/modules/Admin/INFORMATION.md`
-- `docs/modules/Admin/README.md`
+## Canonical Admin Shell
 
-Workflow metadata:
+Preserve these Admin-owned surfaces:
 
-- `docs/modules/Admin/COLLABORATION_HANDOFF.md` created for this analysis checkpoint.
+- dashboard entry/composition;
+- `/admin/menus`, `/admin/menus/create`, `/admin/menus/{id}/edit` as Admin sidebar/navigation configuration;
+- `AdminMenu`, `MenuService`, `MenuImportExportService` for Admin navigation metadata;
+- Admin sidebar rendering/navigation composition;
+- profile/preferences shell UI;
+- layout/header/sidebar/footer/design/theme/navigation workspaces and shell services.
 
-## Final recommendation
+Important ownership rule: a sidebar menu item that links to Product, Order, System, Account, or another module is navigation metadata. The target module remains the canonical owner of its business routes, models, services, permissions, and workflows.
 
-**Major Refactor**
+## Changes in this slice
 
-Preserve the active Admin shell, current capability-specific route permissions, layout/header/sidebar/footer/design services, menu services, and Admin shell contract tests.
+### Ownership baseline
 
-Do not perform a full rebuild. The major refactor should be ownership-driven: classify reachability, migrate legacy domain/system code to canonical owners, and remove confirmed dead code incrementally.
+Added `docs/modules/Admin/OWNERSHIP_BASELINE.md` defining:
 
-## Material risks
+- `KEEP`, `MOVE`, `DEPRECATE`, `DEAD`, `UNKNOWN`, and `QUARANTINE` states;
+- canonical Admin shell whitelist;
+- explicit canonical ownership of `/admin/menus` for sidebar/navigation setup;
+- legacy family ownership candidates without authorizing bulk moves/deletions;
+- caller/reachability evidence required before file removal or migration;
+- schema/migration unknowns that remain blockers.
 
-### P0
+Updated `docs/modules/Admin/README.md` to reference the baseline and make sidebar/menu ownership explicit.
 
-`Modules/Admin/Services/DatabaseService.php` remains dangerous if made reachable. It contains database backup/restore/truncate/drop/full-restore behavior, process execution with database credentials, table/file identifier handling, and destructive database operations.
+### Canonical shell guardrail tests
 
-Current containment is effective at the Admin browser boundary:
+Added `tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php` to protect:
 
-- active Admin routes do not expose database administration;
-- `Modules/Admin/Livewire/Database/TableList.php` denies every database action with HTTP 403;
-- the Admin API route file is intentionally empty.
+- Admin manifest type `shell`;
+- declared Auth/User/Role dependencies;
+- active route imports limited to `AdminController`, `DashboardController`, `MenuController`, and `ProfileController`;
+- `/admin/menus` route group and `admin.menu.*` capability contract;
+- intentionally closed Admin API route file.
 
-The service must stay unreachable until a separately approved hardened System/database-operation design exists.
+### P0 database isolation tests
 
-### P1
+Added `tests/Feature/Admin/AdminDatabaseIsolationContractTest.php` to protect:
 
-Admin remains structurally mixed with legacy domain code in controllers, Livewire components, services, models, imports/exports, views and migrations for business areas that do not belong to a shell module.
+- absence of database administration from active Admin web/API routes;
+- empty Admin API surface;
+- fail-closed `Modules/Admin/Livewire/Database/TableList.php` behavior;
+- all exposed legacy database actions delegating to the deny boundary;
+- HTTP 403 containment;
+- no `DatabaseService` reference from the legacy database Livewire component.
 
-Reachability of every legacy component is not yet proven. Do not bulk-delete legacy code without caller/route/Livewire/job/event/test verification.
+No database operation was re-enabled. `Modules/Admin/Services/DatabaseService.php` remains quarantined and is not considered production-safe.
 
-Production migration-ledger and table-usage state for legacy Admin schema is not verified.
+## Runtime / behavior impact
 
-## Documentation drift resolved
+Application implementation behavior change: **NONE EXPECTED**
 
-The refreshed analysis corrects stale historical assumptions, including:
+Route name change: **NONE**
 
-- Admin API is no longer exposed;
-- active routes now use named permissions;
-- `/admin/themes` redirects to the layout-design workspace;
-- `/admin/layout/*` section routes are part of the current route surface;
-- menu workflows now use `MenuService` / `MenuImportExportService`;
-- browser database administration currently fails closed;
-- newer Admin shell services and contract tests are now reflected in current documentation.
+Permission name change: **NONE**
 
-Historical `REFACTOR_PLAN.md`, `REBUILD_SPEC.md`, `REBUILD_DECISION.md`, `PHASE_13_ANALYSIS.md`, and `OVERVIEW.md` were not changed by this task.
+Database/schema/migration change: **NONE**
+
+Admin UI change: **NONE**
+
+Legacy domain migration/removal: **NONE**
+
+This slice adds documentation and architecture/security contract tests only.
 
 ## Verification
 
-Application source modification status: **NONE**
+Local focused verification reported PASS:
 
-Runtime/config/schema modification status: **NONE**
+```text
+Tests: 11 passed (71 assertions)
+Duration: 1.25s
+```
 
-Focused application tests: **NOT APPLICABLE — documentation-only**
+Command scope:
 
-Admin regression: **NOT APPLICABLE — documentation-only**
+```bash
+php artisan test \
+  tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php \
+  tests/Feature/Admin/AdminDatabaseIsolationContractTest.php \
+  tests/Feature/Admin/AdminLayoutContractTest.php
+```
 
-Manual UI smoke: **NOT APPLICABLE — documentation-only**
+Focused Admin regression also reported PASS:
 
-Documentation verification:
+```text
+Tests: 140 passed (1313 assertions)
+Duration: 7.70s
+```
 
-- source was treated as current source of truth;
-- bootstrap, module standard, Admin UI standard, collaboration workflow and existing Admin docs were reviewed;
-- current route/API/security state was re-verified against source;
-- recommendation is exactly one of the `/analyze` outcomes: `Major Refactor`;
-- analysis scope contains only Admin documentation/workflow metadata;
-- no `REFACTOR_PLAN.md` or `REBUILD_SPEC.md` mutation was made;
-- no application source/config/schema/runtime behavior was changed.
+Command scope:
 
-## Unresolved unknowns
+```bash
+php artisan test tests/Feature/Admin
+```
 
-- exact runtime reachability of all legacy Admin components outside current `Modules/Admin/routes/web.php`;
-- production usage of legacy Admin-owned tables;
-- production migration-ledger state for Admin migrations;
-- completeness of replacement implementations in canonical domain modules;
-- any external dependency on legacy Admin Livewire aliases or historical URLs.
+Full project regression was intentionally not run for this checkpoint. Manual UI smoke is not required because no runtime/UI source changed.
 
-## Next step
+## Material risks still open
 
-Next implementation/refactor phase: **NOT AUTHORIZED**.
+### P0
 
-Before any refactor branch is created, propose a separate ownership/reachability plan based on this analysis and wait for explicit user approval.
+`Modules/Admin/Services/DatabaseService.php` is still dangerous if made reachable. It remains source-level legacy code and must stay quarantined until a separately approved hardened System/database-operation design exists.
+
+### P1
+
+Admin still physically contains legacy domain/system code. This slice deliberately does not delete or move it because exact caller reachability and production schema usage are not fully proven.
+
+Production migration-ledger/table ownership state remains unresolved.
+
+## Acceptance criteria for this checkpoint
+
+- ownership boundary tests: **PASS**;
+- database isolation tests: **PASS**;
+- Admin layout contract test: **PASS**;
+- focused Admin regression: **PASS**;
+- runtime route/permission/schema/UI behavior changes: **NONE**;
+- PR readiness: **READY**.
+
+## Next phase
+
+Next domain migration/refactor slice: **NOT AUTHORIZED YET**.
+
+After this checkpoint is merged, inspect canonical module coverage and propose one legacy Admin family for migration. Do not bulk-delete legacy code and do not move schema/migrations without production-ledger verification.
