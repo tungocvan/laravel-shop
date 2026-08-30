@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 use Modules\Pharma\Data\DrugBidAwardSourceData;
 use Modules\Pharma\Models\DrugBidAward;
 
@@ -24,8 +25,8 @@ class DrugBidAwardService
                 ->where('medicine_name', 'like', "%{$value}%")
                 ->orWhere('bidding_notice_code', 'like', "%{$value}%")
                 ->orWhere('decision_number', 'like', "%{$value}%")))
-            ->when($investor, fn ($query, $value) => $query->where('investor_name', $value))
-            ->when($company, fn ($query, $value) => $query->where('winning_company_name', $value))
+            ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
+            ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
             ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
             ->latest()
             ->paginate($perPage, ['*'], 'page', max(1, $page));
@@ -60,30 +61,42 @@ class DrugBidAwardService
             throw new \InvalidArgumentException('External projection cannot use the manual source type.');
         }
 
+        if (trim($source->sourceId) === '') {
+            throw new \InvalidArgumentException('External projection requires a source id.');
+        }
+
         return DB::transaction(function () use ($source): DrugBidAward {
-            return DrugBidAward::query()->updateOrCreate(
-                [
-                    'source_type' => $source->sourceType,
-                    'source_id' => $source->sourceId,
-                ],
-                $source->toAwardAttributes(),
-            )->refresh();
+            $existingSource = DrugBidAward::query()
+                ->where('source_type', $source->sourceType)
+                ->where('source_id', $source->sourceId)
+                ->first();
+
+            $businessConflict = DrugBidAward::query()
+                ->where('bidding_notice_code', $source->biddingNoticeCode)
+                ->where('medicine_name', $source->medicineName)
+                ->where('winning_company_name', $source->winningCompanyName)
+                ->when($existingSource, fn ($query) => $query->whereKeyNot($existingSource->getKey()))
+                ->first();
+
+            if ($businessConflict) {
+                throw new LogicException('Drug bid award source projection conflicts with an existing business-key record.');
+            }
+
+            $attributes = $source->toAwardAttributes();
+
+            if ($existingSource) {
+                $existingSource->update($attributes);
+
+                return $existingSource->refresh();
+            }
+
+            return DrugBidAward::query()->create($attributes)->refresh();
         });
     }
 
     public function delete(int $id): bool
     {
         return DB::transaction(fn () => (bool) $this->findOrFail($id)->delete());
-    }
-
-    public function getUniqueInvestors(): array
-    {
-        return DrugBidAward::query()->whereNotNull('investor_name')->distinct()->orderBy('investor_name')->pluck('investor_name')->all();
-    }
-
-    public function getUniqueCompanies(): array
-    {
-        return DrugBidAward::query()->whereNotNull('winning_company_name')->distinct()->orderBy('winning_company_name')->pluck('winning_company_name')->all();
     }
 
     public function importFromCsv(string $filePath): int
