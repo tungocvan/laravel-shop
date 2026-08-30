@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
@@ -16,12 +17,13 @@ class ImportExport extends BaseImportExportService
 
     protected bool $ignoreNullValuesOnUpdate = true;
 
-    protected array $uniqueBy = ['medicine_id', 'supplier_name', 'working_date'];
+    protected array $uniqueBy = ['medicine_id', 'supplier_name_normalized', 'working_date'];
 
     protected array $rules = [
         'medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
         'working_date' => ['required', 'date'],
         'supplier_name' => ['required', 'string', 'max:255'],
+        'supplier_name_normalized' => ['required', 'string', 'max:255'],
         'supplier_representative' => ['nullable', 'string', 'max:255'],
         'area' => ['nullable', 'string', 'max:255'],
         'import_price' => ['required', 'numeric', 'min:0'],
@@ -91,10 +93,16 @@ class ImportExport extends BaseImportExportService
             throw new \RuntimeException('Không tìm thấy thuốc theo số đăng ký hoặc tên thuốc.');
         }
 
+        $supplierName = Str::of((string) ($this->cleanString($row['supplier_name'] ?? null) ?? ''))
+            ->trim()
+            ->squish()
+            ->toString();
+
         $data = [
             'medicine_id' => $medicine->id,
             'working_date' => $this->cleanDate($row['working_date'] ?? null),
-            'supplier_name' => $this->cleanString($row['supplier_name'] ?? null),
+            'supplier_name' => $supplierName,
+            'supplier_name_normalized' => Str::of($supplierName)->lower()->toString(),
             'supplier_representative' => $this->cleanString($row['supplier_representative'] ?? null),
             'area' => $this->cleanString($row['area'] ?? null),
             'import_price' => $this->vietnameseNumber($row['import_price'] ?? null),
@@ -204,13 +212,13 @@ class ImportExport extends BaseImportExportService
 
     private function existingRecord(array $data): ?SupplierTracking
     {
-        if (! $data['medicine_id'] || ! $data['supplier_name'] || ! $data['working_date']) {
+        if (! $data['medicine_id'] || ! $data['supplier_name_normalized'] || ! $data['working_date']) {
             return null;
         }
 
         return SupplierTracking::query()->where([
             'medicine_id' => $data['medicine_id'],
-            'supplier_name' => $data['supplier_name'],
+            'supplier_name_normalized' => $data['supplier_name_normalized'],
             'working_date' => $data['working_date'],
         ])->first();
     }
