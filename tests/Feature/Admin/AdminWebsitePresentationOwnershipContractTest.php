@@ -6,14 +6,30 @@ use Tests\TestCase;
 
 class AdminWebsitePresentationOwnershipContractTest extends TestCase
 {
-    public function test_banner_management_surface_uses_website_domain_ownership(): void
+    public function test_banner_legacy_admin_runtime_tree_is_removed_and_website_is_canonical(): void
     {
-        $component = file_get_contents(base_path('Modules/Admin/Livewire/Banner/BannerManager.php'));
+        foreach ([
+            'Modules/Admin/Http/Controllers/BannerController.php',
+            'Modules/Admin/Livewire/Banner/BannerManager.php',
+            'Modules/Admin/resources/views/pages/banner/index.blade.php',
+            'Modules/Admin/resources/views/livewire/banner/banner-manager.blade.php',
+        ] as $path) {
+            $this->assertFileDoesNotExist(base_path($path));
+        }
 
-        $this->assertNotFalse($component);
-        $this->assertStringContainsString('use Modules\\Website\\Services\\BannerService;', $component);
-        $this->assertStringNotContainsString('Modules\\Admin\\Models\\Banner', $component);
-        $this->assertStringNotContainsString('Modules\\Admin\\Services\\BannerService', $component);
+        $adminRoutes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
+        $websiteRoutes = file_get_contents(base_path('Modules/Website/routes/web.php'));
+        $websiteController = file_get_contents(base_path('Modules/Website/Http/Controllers/Admin/BannerController.php'));
+        $websiteView = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/banner/index.blade.php'));
+
+        $this->assertNotFalse($adminRoutes);
+        $this->assertNotFalse($websiteRoutes);
+        $this->assertNotFalse($websiteController);
+        $this->assertNotFalse($websiteView);
+        $this->assertStringNotContainsString('BannerController', $adminRoutes);
+        $this->assertStringContainsString('BannerController', $websiteRoutes);
+        $this->assertStringContainsString("Website::pages.admin.banner.index", $websiteController);
+        $this->assertStringContainsString("website.admin.banner.banner-manager", $websiteView);
     }
 
     public function test_header_management_surfaces_use_website_menu_domain(): void
