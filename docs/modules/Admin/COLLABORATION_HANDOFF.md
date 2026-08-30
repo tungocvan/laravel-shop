@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Slice 2: Category Legacy Ownership Cleanup**
 
-Status: **IMPLEMENTED — awaiting local focused verification**
+Status: **VERIFIED — READY FOR PR REVIEW**
 
 Branch/checkpoint: `refactor/admin-category-legacy-ownership-cleanup`
 
@@ -44,14 +44,30 @@ The canonical Category route/controller/view/Livewire replacement was already ac
 
 No canonical Category source was moved back into Admin.
 
-## Guardrail added
+## Category workspace UX refinements
 
-Added `tests/Feature/Admin/AdminCategoryOwnershipCleanupContractTest.php` to verify:
+This slice also completes the canonical Category admin workspace without changing its route or permission contracts:
+
+- create/edit form uses a wider, more balanced admin layout;
+- explicit `Quay về danh sách` actions return to `admin.category.index`;
+- category rows use a resilient default folder icon when no valid image file exists;
+- the category list is now hierarchical instead of flattening child categories as roots;
+- root categories are paginated; child rows expand inline with `+` / `−` controls;
+- search/status filtering preserves ancestor context and expands matching branches;
+- recursive child levels are supported and visually indented;
+- expand/collapse state is UI-only and does not alter `parent_id` data.
+
+## Guardrails added
+
+Added/updated focused contracts to verify:
 
 - Category admin routes resolve to `Modules\Category\Http\Controllers\CategoryController`;
 - removed Admin runtime copies stay absent;
 - canonical Category controller/Livewire/page views stay present;
-- canonical Category pages continue using `category.categories.*` Livewire aliases.
+- canonical Category pages continue using `category.categories.*` Livewire aliases;
+- create/edit workspace keeps explicit return navigation and balanced layout structure;
+- missing category images fall back to the default icon instead of broken images;
+- hierarchical admin tree remains root-paginated and expandable.
 
 Existing `tests/Feature/Category/CategoryRouteConfigurationTest.php` continues to protect route URLs, names and permission middleware.
 
@@ -66,45 +82,51 @@ Updated `docs/modules/Admin/OWNERSHIP_BASELINE.md`:
 
 ## Runtime / schema impact
 
-Route URL/name change: **NONE EXPECTED**
+Route URL/name change: **NONE**
 
 Permission change: **NONE**
 
-Category business behavior replacement: **NONE — canonical Category implementation was already active**
+Category ownership: **MOVED OUT OF ADMIN LEGACY COPIES; CANONICAL OWNER REMAINS CATEGORY**
 
-Admin shell behavior change: **NONE EXPECTED**
+Category UI behavior: **IMPROVED** — balanced create/edit layout, return navigation, resilient image fallback, hierarchical expandable tree
+
+Admin shell behavior change: **NONE OUTSIDE CATEGORY WORKSPACE**
 
 Database/schema/migration change: **NONE**
 
 P0 database administration quarantine: **UNCHANGED**
 
-## Required local verification
+## Verification
 
-First sync the branch, then run the Category cleanup contracts:
+Earlier impacted verification for the ownership cleanup reported:
 
-```bash
-php artisan test \
-  tests/Feature/Admin/AdminCategoryOwnershipCleanupContractTest.php \
-  tests/Feature/Category/CategoryRouteConfigurationTest.php \
-  tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php \
-  tests/Feature/Admin/AdminDatabaseIsolationContractTest.php
+```text
+Tests: 12 passed (83 assertions)
+Duration: 0.92s
+
+Tests: 145 passed (1348 assertions)
+Duration: 6.79s
 ```
 
-If that passes, run focused impacted regressions only:
+After the final hierarchical tree implementation, focused Category/Admin contracts were rerun and reported:
 
-```bash
-php artisan test tests/Feature/Category tests/Feature/Admin
+```text
+Tests: 8 passed (61 assertions)
+Duration: 1.08s
 ```
 
-Do not run the full project test suite for this checkpoint.
+Manual UI verification: **PASS**.
 
-Manual UI smoke should verify:
+Verified UX includes:
 
-- `/admin/category`
-- `/admin/category/create`
-- one valid `/admin/category/{id}/edit` page when local data is available
+- `/admin/category` renders the canonical Category workspace;
+- category image fallback renders correctly when image files are missing;
+- root category rows remain collapsed by default;
+- child categories appear only after expanding the parent with `+`;
+- recursive expand/collapse works and uses `−` while expanded;
+- Category create/edit navigation and layout remain usable.
 
-Confirm the pages still render inside the Admin shell and no old `admin.categories.*` Livewire resolution error appears.
+Full project regression was intentionally not run; verification remained scoped to Admin + Category and directly impacted behavior.
 
 ## Material risks still open
 
@@ -120,19 +142,18 @@ Production migration-ledger/table ownership remains unresolved and is intentiona
 
 ## Acceptance criteria
 
-Before PR readiness:
-
-- new Category ownership cleanup contract: PASS;
-- existing Category route configuration contract: PASS;
-- Admin ownership/P0 guardrails: PASS;
-- focused Category + Admin regression: PASS;
-- manual Category UI smoke: PASS or explicitly reported not performed;
-- route names/URLs/permissions unchanged;
-- no schema/migration changes;
-- working tree clean after syncing remote branch.
+- Category ownership cleanup contract: **PASS**;
+- existing Category route configuration contract: **PASS**;
+- Admin ownership/P0 guardrails in impacted regression: **PASS**;
+- focused Category + Admin regression: **PASS**;
+- final hierarchical tree focused contracts: **8 PASS / 61 assertions**;
+- manual Category UI smoke: **PASS**;
+- route names/URLs/permissions unchanged: **CONFIRMED BY CONTRACTS**;
+- schema/migration changes: **NONE**;
+- PR readiness: **READY**.
 
 ## Next phase
 
 Next legacy-family migration/refactor slice: **NOT AUTHORIZED YET**.
 
-After this checkpoint is verified and merged, inspect the remaining candidates and propose exactly one next family. Chat remains a likely candidate, but its current Admin dependency and authorization contract must be reviewed before implementation.
+After this checkpoint is merged, inspect the remaining candidates and propose exactly one next family. Chat remains a likely candidate, but its current Admin dependency and authorization contract must be reviewed before implementation.
