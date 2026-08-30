@@ -73,4 +73,19 @@ class AdminCategoryOwnershipCleanupContractTest extends TestCase
         $this->assertStringContainsString("@livewire('category.categories.category-form')", $create);
         $this->assertStringContainsString("@livewire('category.categories.category-form', ['id' => \$id])", $edit);
     }
+
+    public function test_category_form_workspace_has_explicit_return_navigation(): void
+    {
+        $form = file_get_contents(
+            base_path('Modules/Category/resources/views/livewire/categories/category-form.blade.php')
+        );
+
+        $this->assertNotFalse($form);
+        $this->assertGreaterThanOrEqual(2, substr_count($form, "route('admin.category.index')"));
+        $this->assertStringContainsString('Quay về danh sách', $form);
+        $this->assertStringContainsString('max-w-7xl', $form);
+        $this->assertStringContainsString('xl:grid-cols-12', $form);
+        $this->assertStringContainsString('xl:col-span-8', $form);
+        $this->assertStringContainsString('xl:col-span-4', $form);
+    }
 }
