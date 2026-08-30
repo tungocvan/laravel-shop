@@ -266,13 +266,15 @@ class PharmaImportExportTest extends TestCase
             'name' => 'Trosicam 15mg',
             'registration_number' => 'VN-20104-16',
             'active_ingredients' => 'Meloxicam',
-            'strength' => '15mg',
+            'concentration' => '15mg',
             'dosage_form' => 'Viên nén',
             'route_of_administration' => 'Uống',
             'unit' => 'Viên',
             'packaging_specification' => 'Hộp 3 vỉ x 10 viên',
-            'manufacturer' => 'Demo Manufacturer',
-            'country_of_manufacture' => 'Việt Nam',
+            'shelf_life' => '36 tháng',
+            'registered_company' => 'Demo Registered Company',
+            'manufacturing_company' => 'Demo Manufacturer',
+            'manufacturing_country' => 'Việt Nam',
         ];
     }
 }
