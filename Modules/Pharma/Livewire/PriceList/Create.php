@@ -118,9 +118,7 @@ class Create extends Component
 
     public function updatedSelectedRows(): void
     {
-        $pageRows = $this->currentPageRows();
-        $selectedOnPage = array_intersect(array_map('intval', $this->selectedRows), $pageRows);
-        $this->selectPage = $pageRows !== [] && count($selectedOnPage) === count($pageRows);
+        $this->selectPage = false;
     }
 
     public function gotoPage(mixed $page): void
