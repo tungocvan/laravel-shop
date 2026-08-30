@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Modules\Category\Models\Category;
 use Modules\Post\Models\Post;
 use Modules\Post\Services\PostService;
 
@@ -117,10 +118,16 @@ class PostForm extends Component
 
     public function render()
     {
-        $posts = app(PostService::class);
+        $categories = Category::query()
+            ->where('type', 'post')
+            ->whereNull('parent_id')
+            ->with('childrenRecursive')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
         return view('Post::livewire.posts.post-form', [
-            'categories' => $posts->postCategoryOptions(),
+            'categories' => $categories,
         ]);
     }
 
