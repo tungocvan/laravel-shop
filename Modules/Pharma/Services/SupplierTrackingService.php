@@ -145,14 +145,16 @@ class SupplierTrackingService
             return;
         }
 
-        $exists = SupplierTracking::query()
+        $query = SupplierTracking::query()
             ->where('medicine_id', (int) $data['medicine_id'])
             ->where('supplier_name_normalized', $data['supplier_name_normalized'])
-            ->whereDate('working_date', $data['working_date'])
-            ->when($ignoreId !== null, fn (Builder $query) => $query->whereKeyNot($ignoreId))
-            ->exists();
+            ->whereDate('working_date', $data['working_date']);
 
-        if ($exists) {
+        if ($ignoreId !== null) {
+            $query->where((new SupplierTracking)->getKeyName(), '!=', $ignoreId);
+        }
+
+        if ($query->exists()) {
             throw new DuplicateSupplierTrackingException(
                 'A Supplier Tracking record already exists for this Medicine, Supplier and Working Date.'
             );
