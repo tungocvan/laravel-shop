@@ -37,6 +37,7 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 |---|---|---|
 | `KEEP` | Canonical Admin shell ownership | Preserve and improve in Admin |
 | `MOVE` | Reachable behavior whose canonical owner is another module | Migrate caller/contract first, then remove Admin copy |
+| `BOUNDARY MOVED` | Canonical runtime now uses the target module, but legacy Admin copies still require final reachability proof | Keep compatibility until dedicated cleanup is proven safe |
 | `CLEANED` | Canonical replacement is active and the proven Admin runtime duplicate was removed | Keep ownership guardrails green |
 | `DEPRECATE` | Replacement is proven but compatibility remains | Preserve compatibility until separately removed |
 | `DEAD` | No reachable route/caller/alias/job/event/test and no production dependency | Remove in a focused cleanup slice |
@@ -51,11 +52,11 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 | Sidebar/navigation/menu management | `KEEP` | Admin | Includes `/admin/menus`, `AdminMenu`, menu services and shell rendering |
 | Layout/header/sidebar/footer/design/theme | `KEEP` | Admin | Admin shell presentation only |
 | Admin profile/preferences | `KEEP` | Admin UI + canonical identity/account contracts as applicable | Persistence ownership must be verified before moving models |
-| Categories legacy runtime | `CLEANED` | Category | Canonical routes/controller/Livewire/views are in `Modules/Category`; proven Admin runtime duplicates removed in Category cleanup slice |
+| Categories legacy runtime | `CLEANED` | Category | Canonical routes/controller/Livewire/views are in `Modules/Category`; proven Admin runtime duplicates removed |
+| Chat legacy runtime | `BOUNDARY MOVED` | Chat | Chat routes/controller/Livewire/service now use Chat-owned runtime/models; legacy Admin copies remain pending final caller proof |
 | Product / ProductCommission legacy | `UNKNOWN -> MOVE candidate` | Product | Verify callers and replacement completeness |
 | Orders legacy | `UNKNOWN -> MOVE candidate` | Order | Verify callers and compatibility |
 | Posts/content legacy | `UNKNOWN -> MOVE candidate` | canonical content/Post owner | Verify current module contract before choosing owner |
-| Chat legacy | `UNKNOWN -> MOVE candidate` | Chat | Chat module exists; dependency and authorization contract still require review |
 | Customer/address legacy | `UNKNOWN -> MOVE candidate` | Account/User/Identity according to current contract | Do not guess schema owner |
 | Roles/staff legacy | `UNKNOWN -> MOVE candidate` | Role/User/Account according to responsibility | Admin may present screens without owning identity/authorization domain |
 | Banner/public website header/footer/home settings | `UNKNOWN -> MOVE candidate` | Website/content owner | Distinguish public-site presentation from Admin shell header/footer |
@@ -66,27 +67,34 @@ A sidebar item may link to Product, Order, System, Account, Category, Chat, or a
 
 ## Category Cleanup Evidence
 
-The first domain cleanup slice establishes `Modules/Category` as the canonical owner of the Category admin workspace.
+`Modules/Category` is the canonical owner of the Category admin workspace. The active `admin.category.*` routes, controller, Livewire components and views are Category-owned; proven Admin runtime duplicates were removed without schema/migration changes.
 
-Evidence and preserved contracts:
+`tests/Feature/Admin/AdminCategoryOwnershipCleanupContractTest.php` prevents those runtime copies from returning.
 
-- `admin.category.index`, `admin.category.create`, and `admin.category.edit` are registered by `Modules/Category/routes/web.php`;
-- those routes resolve to `Modules\Category\Http\Controllers\CategoryController`;
-- URLs remain `/admin/category`, `/admin/category/create`, and `/admin/category/{id}/edit`;
-- permissions remain `view_category`, `create_category`, `edit_category`, and `delete_category`;
-- Category page views use `category.categories.category-table` and `category.categories.category-form`;
-- the canonical Category Livewire implementation owns Category services, validation, authorization, persistence and redirect behavior;
-- no Category schema or migration ownership is changed by this cleanup.
+## Chat Canonical Boundary Evidence
 
-The following obsolete Admin runtime duplicates were removed after the canonical route/view/Livewire replacement was verified:
+The Chat slice establishes `Modules/Chat` as canonical owner of Chat behavior while preserving Admin as presentation shell.
 
-- `Modules/Admin/Http/Controllers/CategoryController.php`;
-- `Modules/Admin/Livewire/Categories/CategoryForm.php`;
-- `Modules/Admin/Livewire/Categories/CategoryTable.php`;
-- `Modules/Admin/resources/views/pages/categories/{index,create,edit}.blade.php`;
-- `Modules/Admin/resources/views/livewire/categories/{category-form,category-table}.blade.php`.
+Preserved route contracts:
 
-`tests/Feature/Admin/AdminCategoryOwnershipCleanupContractTest.php` prevents these runtime copies from returning and verifies the canonical Category workspace remains present.
+- `admin.chat.index` -> `/admin/chat/internal-chat`;
+- `admin.chat.cskh` -> `/admin/chat`;
+- both routes resolve to `Modules\Chat\Http\Controllers\ChatController`;
+- both routes remain under `auth:admin` and now require `permission:view_chat,admin`.
+
+Canonical runtime changes:
+
+- `Modules/Chat/Services/ChatService.php` now uses `Modules\Chat\Models\ChatSession` and `ChatMessage`;
+- `Modules/Chat/Livewire/Chat/ChatManager.php` now uses Chat-owned models/service;
+- `Modules/Chat/Livewire/Chat/ChatWidget.php` now uses Chat-owned `ChatSession`;
+- admin Chat Livewire actions enforce `view_chat`, `create_chat`, `edit_chat`, and `delete_chat` according to operation;
+- internal Chat Livewire actions enforce `view_chat` and `create_chat`;
+- canonical `ChatService` retains `deleteAllMessages()` so moving away from the legacy Admin service does not silently drop that behavior;
+- realtime channel/payload contracts remain unchanged except for preserving the existing canonical Chat implementation.
+
+Legacy Admin Chat controller/Livewire/model/service/view files are **not deleted in this boundary slice** because repository-wide caller proof is not yet complete. They are compatibility/deprecation candidates, not canonical ownership.
+
+The Chat manifest still depends on `Admin` because Chat pages render inside `Admin::layouts.master`. Removing that presentation dependency requires a separately proven shell contract and is not inferred by this slice.
 
 ## Reachability Proof Required Before Future MOVE / DEPRECATE / DEAD
 
@@ -102,7 +110,7 @@ A file or family may not be removed merely because it is absent from `Modules/Ad
 8. production table usage and migration ledger when schema ownership is involved;
 9. external clients or compatibility requirements for historical URLs/aliases.
 
-Until those checks are complete, the family remains `UNKNOWN`.
+Until those checks are complete, the family remains compatible/deprecated rather than deleted.
 
 ## P0 Database Administration Quarantine
 
@@ -112,11 +120,10 @@ Current containment contract:
 
 - no active Admin web route references database administration;
 - Admin API routes remain empty;
-- `Modules/Admin/Livewire/Database/TableList.php` returns an empty table set;
-- all exposed database mutation actions delegate to a deny method that aborts with HTTP 403;
+- `Modules/Admin/Livewire/Database/TableList.php` remains fail closed;
 - the Livewire component does not instantiate or reference `DatabaseService`.
 
-The containment tests do not make `DatabaseService` production-safe. A future System-owned design requires separate approval and must cover explicit permissions, audit, allowlists, safe process invocation, secret redaction, backup integrity, restore verification, bounded resources, and recovery/rollback.
+The containment tests do not make `DatabaseService` production-safe.
 
 ## Guardrails
 
@@ -125,28 +132,28 @@ The containment tests do not make `DatabaseService` production-safe. A future Sy
 - `/admin/menus` and `admin.menu.*` remain canonical sidebar/navigation configuration.
 - Admin API remains closed by default.
 - Admin database administration remains fail-closed and quarantined.
-- Category business runtime remains owned by `Modules/Category`, not reintroduced under `Modules/Admin`.
+- Category business runtime remains owned by `Modules/Category`.
+- Chat canonical runtime must not import Admin Chat models/services.
+- Admin Chat routes require `view_chat`; mutating Livewire actions require capability-specific permissions.
 
 ## Schema / Migration Rule
 
-Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Schema ownership must be reconciled only after production migration-ledger and table-usage evidence is available.
+Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Chat table/migration ownership is intentionally unchanged in this slice.
 
 ## Planned Refactor Sequence
 
 1. keep ownership/P0 containment guardrails green;
-2. complete Category cleanup and verify Admin + Category focused tests;
-3. choose one next legacy family with a verified canonical replacement;
-4. prove callers/reachability and compatibility;
-5. migrate/remove only the proven obsolete Admin runtime copy;
-6. repeat one family at a time;
-7. reconcile schema/migration ownership only after runtime ownership is stable.
+2. keep Category cleanup green;
+3. verify Chat canonical boundary and authorization changes;
+4. perform repository-wide caller proof for legacy Admin Chat copies before deletion;
+5. choose one next legacy family after the Chat checkpoint is merged;
+6. reconcile schema/migration ownership only after runtime ownership is stable.
 
 ## Outstanding Unknowns
 
-- complete runtime reachability of remaining legacy Admin components;
+- repository-wide callers of legacy Admin Chat models/service/Livewire aliases outside the active Chat routes;
 - production usage of legacy Admin tables;
 - production migration ledger for Admin migrations;
-- completeness of remaining canonical replacements;
 - external dependencies on historical Admin URLs or Livewire aliases.
 
 These unknowns are blockers against bulk deletion, not authorization to infer or guess ownership.
