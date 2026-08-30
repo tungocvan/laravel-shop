@@ -54,7 +54,7 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
         $headerMenuModel = file_get_contents(base_path('Modules/Admin/Models/HeaderMenu.php'));
         $headerMenuItemModel = file_get_contents(base_path('Modules/Admin/Models/HeaderMenuItem.php'));
 
-        $this->assertStringNotContainsString("protected $table", $bannerModel);
+        $this->assertStringNotContainsString('protected $table', $bannerModel);
         $this->assertStringNotContainsString('protected $fillable', $bannerModel);
         $this->assertStringNotContainsString('protected $fillable', $headerMenuModel);
         $this->assertStringNotContainsString('protected $fillable', $headerMenuItemModel);
@@ -81,7 +81,7 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
 
         $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header')", $routes);
         $this->assertStringContainsString("Route::get('/footer', [AdminController::class, 'layoutFooter'])->name('footer')", $routes);
-        $this->assertStringContainsString("Route::get('/admin-header', [AdminController::class, 'adminHeader')", $routes);
+        $this->assertStringContainsString("Route::get('/admin-header', [AdminController::class, 'adminHeader'])", $routes);
         $this->assertStringContainsString("@livewire('admin.settings.admin-layout-config'", $layout);
         $this->assertStringContainsString('Website presentation', $websiteHeader);
         $this->assertStringContainsString("@livewire('admin.header.menu-manager')", $websiteHeader);
@@ -91,8 +91,8 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
     {
         $this->assertFileExists(base_path('Modules/Admin/Livewire/Marketing/CouponForm.php'));
         $this->assertFileExists(base_path('Modules/Admin/Livewire/Marketing/CouponTable.php'));
-        $this->assertFileExists(base_path('Modules/Admin/Livewire/FlashSale'));
-        $this->assertFileExists(base_path('Modules/Admin/Livewire/Affiliate'));
+        $this->assertDirectoryExists(base_path('Modules/Admin/Livewire/FlashSale'));
+        $this->assertDirectoryExists(base_path('Modules/Admin/Livewire/Affiliate'));
         $this->assertFileExists(base_path('Modules/Admin/Services/DatabaseService.php'));
     }
 }
