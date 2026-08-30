@@ -1,56 +1,45 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\Admin\Services;
 
-use Modules\Admin\Models\UserAddress;
-// use Illuminate\Support\Facades\Auth;
+use Modules\User\Services\UserAddressService;
 
+/**
+ * @deprecated Canonical user-address behavior is owned by Modules\User.
+ * This compatibility facade preserves the historical Admin API while delegating all behavior.
+ */
 class AddressService
 {
+    public function __construct(private readonly UserAddressService $addresses)
+    {
+    }
+
     public function getUserAddresses($userId)
     {
-        return UserAddress::where('user_id', $userId)->orderBy('is_default', 'desc')->get();
+        return $this->addresses->forUser((int) $userId);
     }
 
     public function create($userId, array $data)
     {
-        // Nếu user chọn là mặc định, hoặc chưa có địa chỉ nào -> set các cái khác thành false
-        if (!empty($data['is_default']) || UserAddress::where('user_id', $userId)->doesntExist()) {
-            UserAddress::where('user_id', $userId)->update(['is_default' => false]);
-            $data['is_default'] = true;
-        }
-
-        return UserAddress::create(array_merge($data, ['user_id' => $userId]));
+        return $this->addresses->create((int) $userId, $data);
     }
 
     public function update($addressId, $userId, array $data)
     {
-        $address = UserAddress::where('user_id', $userId)->findOrFail($addressId);
-
-        if (!empty($data['is_default'])) {
-            UserAddress::where('user_id', $userId)->update(['is_default' => false]);
-        }
-
-        $address->update($data);
-        return $address;
+        return $this->addresses->update((int) $addressId, (int) $userId, $data);
     }
 
     public function delete($addressId, $userId)
     {
-        $address = UserAddress::where('user_id', $userId)->findOrFail($addressId);
+        $this->addresses->delete((int) $addressId, (int) $userId);
 
-        // Nếu xóa địa chỉ mặc định, hãy set cái mới nhất còn lại làm mặc định (Optional logic)
-        if ($address->is_default) {
-            $next = UserAddress::where('user_id', $userId)->where('id', '!=', $addressId)->latest()->first();
-            if ($next) $next->update(['is_default' => true]);
-        }
-
-        return $address->delete();
+        return true;
     }
 
     public function setDefault($addressId, $userId)
     {
-        UserAddress::where('user_id', $userId)->update(['is_default' => false]);
-        UserAddress::where('user_id', $userId)->where('id', $addressId)->update(['is_default' => true]);
+        return $this->addresses->setDefault((int) $addressId, (int) $userId);
     }
 }
