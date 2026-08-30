@@ -25,7 +25,9 @@ class PharmaPriceListPipelineTest extends TestCase
 
         $this->assertIsString($component);
         $this->assertIsString($service);
-        $this->assertStringNotContainsString("parseColumns($validated['columns']", $component);
+        $this->assertStringNotContainsString(<<<'PHP'
+parseColumns($validated['columns']
+PHP, $component);
         $this->assertStringContainsString('$analysis = $this->analyze(', $service);
         $this->assertStringContainsString('$columns = $this->parseColumns(', $service);
         $this->assertStringContainsString('$productRows = $this->resolveProductRows(', $service);
@@ -37,7 +39,9 @@ class PharmaPriceListPipelineTest extends TestCase
 
         $this->assertIsString($service);
         $this->assertStringContainsString("DEFAULT_EXPORT_DIRECTORY = 'app/private/exports/price-lists'", $service);
-        $this->assertStringNotContainsString("$input['output_path']", $service);
+        $this->assertStringNotContainsString(<<<'PHP'
+$input['output_path']
+PHP, $service);
         $this->assertStringContainsString('private function makeOutputPath(): string', $service);
         $this->assertStringContainsString('@unlink($outputPath)', $service);
     }
