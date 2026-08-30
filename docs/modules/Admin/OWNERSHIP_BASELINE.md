@@ -18,7 +18,7 @@ The following surfaces are canonical Admin ownership and must be preserved unles
 - Admin shell-owned profile/preferences;
 - shell-specific presentation services and reusable Admin shell components.
 
-A sidebar item may link to Product, Order, Post, System, Account, Category, Chat, or another module. That link is navigation metadata only. The target module remains the canonical owner of its business behavior.
+A sidebar item may link to Product, Order, Post, System, Account, Role, Category, Chat, or another module. That link is navigation metadata only. The target module remains the canonical owner of its business behavior.
 
 ## Current Active Route Boundary
 
@@ -38,7 +38,7 @@ A sidebar item may link to Product, Order, Post, System, Account, Category, Chat
 | `KEEP` | Canonical Admin shell ownership | Preserve and improve in Admin |
 | `MOVE` | Reachable behavior whose canonical owner is another module | Migrate caller/contract first, then remove Admin copy |
 | `BOUNDARY MOVED` | Canonical runtime now uses the target module, but legacy Admin copies still require final reachability proof | Keep compatibility until dedicated cleanup is proven safe |
-| `CLEANED` | Canonical replacement is active and the proven Admin runtime duplicate was removed | Keep ownership guardrails green |
+| `CLEANED` | Canonical replacement is active and the proven Admin runtime duplicate/residue was removed | Keep ownership guardrails green |
 | `DEPRECATE` | Replacement is proven but compatibility remains | Preserve compatibility until separately removed |
 | `DEAD` | No reachable route/caller/alias/job/event/test and no production dependency | Remove in a focused cleanup slice |
 | `UNKNOWN` | Reachability or production/schema state is not proven | Do not delete or move yet |
@@ -51,14 +51,14 @@ A sidebar item may link to Product, Order, Post, System, Account, Category, Chat
 | Dashboard shell | `KEEP` | Admin | Shell entry/composition |
 | Sidebar/navigation/menu management | `KEEP` | Admin | Includes `/admin/menus`, `AdminMenu`, menu services and shell rendering |
 | Layout/header/sidebar/footer/design/theme | `KEEP` | Admin | Admin shell presentation only |
-| Admin profile/preferences | `KEEP` | Admin UI + canonical identity/account contracts as applicable | Persistence ownership must be verified before moving models |
+| Admin profile/preferences | `KEEP` | Admin UI + shared User/account contracts as applicable | `auth:admin` uses the shared users provider; no separate Admin identity model is required |
 | Categories legacy runtime | `CLEANED` | Category | Canonical routes/controller/Livewire/views are in `Modules/Category`; proven Admin runtime duplicates removed |
 | Chat legacy runtime | `CLEANED` | Chat | Canonical Chat runtime is active; proven legacy Admin controller/Livewire/models/service/views removed |
 | Product / ProductCommission legacy | `CLEANED` | Product | Product admin runtime/import-export ownership is canonical in `Modules/Product`; proven Admin duplicates removed. Dedicated ProductCommission UX remains follow-up debt. |
 | Order management legacy runtime | `CLEANED` | Order | Canonical `admin.orders.*` routes/controller/Livewire/views are Order-owned; proven Admin management duplicates removed. Affiliate commission compatibility is tracked separately. |
 | Post/content legacy runtime | `CLEANED` | Post | Canonical routes/controller/Livewire/model/services/import-export/schema are in `Modules/Post`; proven Admin runtime duplicates removed; Post URLs/data/schema preserved |
 | Customer/address legacy runtime | `CLEANED` | Account + User split | Dead Admin Customer runtime removed; Account owns active account/customer-profile workspace, User retains UserAddress/schema; no schema move or legacy route revival |
-| Roles/staff legacy | `UNKNOWN -> MOVE candidate` | Role/User/Account according to responsibility | Admin may present screens without owning identity/authorization domain |
+| Role / Staff / Admin identity legacy | `CLEANED` | Role + Account/shared User split | Role owns RBAC runtime; Account owns EmployeeProfile/account runtime; `auth:admin` uses shared users provider; obsolete Admin model removed |
 | Banner/public website header/footer/home settings | `UNKNOWN -> MOVE candidate` | Website/content owner | Distinguish public-site presentation from Admin shell header/footer |
 | Affiliate/flash sale/coupon/marketing legacy | `UNKNOWN -> MOVE candidate` | canonical promotion/domain owner | Order-associated affiliate modal/service compatibility remains deliberately outside Order management cleanup |
 | Environment/system settings legacy | `UNKNOWN -> MOVE candidate` | System or dedicated configuration owner | Requires explicit operational boundary |
@@ -69,15 +69,24 @@ A sidebar item may link to Product, Order, Post, System, Account, Category, Chat
 
 Category, Chat, Product, Order and Post have dedicated ownership cleanup contract tests and remain owned by their canonical modules. Their proven Admin runtime duplicates have been removed without schema/migration ownership changes.
 
-Customer/address cleanup additionally proves a split canonical boundary rather than a one-module move:
+Customer/address cleanup proves a split canonical boundary:
 
-- the active `admin.accounts.index/create/edit` routes remain Account-owned under `auth:admin`;
+- active `admin.accounts.index/create/edit` routes remain Account-owned under `auth:admin`;
 - Account owns account/customer-profile runtime through `AccountService` and `CustomerProfile`;
 - User retains `UserAddress` and the existing `user_addresses` migration/schema contract;
 - Order-history aggregation was not copied into Account;
 - ten unreachable Admin Customer controller/Livewire/view artifacts were removed;
 - no `/admin/customers*` route was revived without a proven compatibility caller;
 - `tests/Feature/Admin/AdminCustomerOwnershipCleanupContractTest.php` protects this boundary.
+
+Role / Staff / Admin identity cleanup proves another split boundary:
+
+- `/admin/roles*` is Role-owned and retains `admin.role.*` names, RoleController, existing permission middleware, Role services/Livewire, and historical `/admin/role*` redirects;
+- `/admin/accounts*` remains Account-owned and `EmployeeProfile` remains in Account;
+- both `web` and `admin` guards use the shared `users` provider;
+- the nearly empty, unused `Modules/Admin/Models/Admin.php` legacy residue was removed;
+- no auth config, role/account runtime, permission, schema, migration, or production data was changed;
+- `tests/Feature/Admin/AdminRoleStaffIdentityOwnershipContractTest.php` protects this boundary.
 
 ## Reachability Proof Required Before Future MOVE / DEPRECATE / DEAD
 
@@ -100,13 +109,15 @@ A file or family may not be removed merely because it is absent from `Modules/Ad
 - Order management runtime remains owned by `Modules/Order`.
 - Post/content runtime remains owned by `Modules/Post`.
 - Account/customer-profile runtime remains owned by `Modules/Account`; UserAddress/schema remains owned by `Modules/User`.
-- Proven legacy Admin Category, Chat, Product, Order, Post and Customer runtime copies must remain absent.
+- Role/RBAC runtime remains owned by `Modules/Role`; EmployeeProfile/account runtime remains owned by `Modules/Account`.
+- `auth:admin` continues to use the shared users provider unless a separately approved authentication architecture change replaces it.
+- Proven legacy Admin Category, Chat, Product, Order, Post, Customer and Admin-identity residues must remain absent.
 - ProductCommission dedicated UX remains a separately scoped follow-up rather than being silently redesigned.
 - Affiliate commission ownership remains a separately scoped follow-up rather than being silently absorbed into Order cleanup.
 
 ## Schema / Migration Rule
 
-Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product, Order, Post and Customer/address runtime cleanup does not change schema/migration ownership.
+Runtime ownership cleanup does not authorize moving or renaming applied migrations or production tables. Category, Chat, Product, Order, Post, Customer/address and Role/Staff/Admin-identity cleanup do not change schema/migration ownership.
 
 ## Planned Refactor Sequence
 
@@ -123,6 +134,7 @@ Runtime ownership cleanup does not authorize moving or renaming applied migratio
 - canonical ownership of Affiliate commission/rank/scheme behavior still duplicated across Admin/Order boundaries;
 - production usage of remaining legacy Admin tables;
 - production migration ledger for Admin migrations;
-- external dependencies on historical Admin URLs/aliases outside the cleaned families.
+- external dependencies on historical Admin URLs/aliases outside the cleaned families;
+- whether Role route names should eventually be normalized from singular `admin.role.*` to plural naming without breaking external callers.
 
 These unknowns remain blockers against bulk deletion of unrelated families.
