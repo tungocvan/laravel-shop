@@ -64,7 +64,7 @@ class AdminCustomerOwnershipCleanupContractTest extends TestCase
         $form = file_get_contents(base_path('Modules/Account/Livewire/Accounts/Form.php'));
         $service = file_get_contents(base_path('Modules/Account/Services/AccountService.php'));
 
-        $this->assertStringContainsString("public string $account_type = 'customer';", $form);
+        $this->assertStringContainsString("public string \$account_type = 'customer';", $form);
         $this->assertStringContainsString('customerProfile', $form);
         $this->assertStringContainsString('AccountService::class', $form);
         $this->assertStringContainsString('CustomerProfile', $service);
@@ -80,7 +80,7 @@ class AdminCustomerOwnershipCleanupContractTest extends TestCase
 
         $model = file_get_contents($modelPath);
 
-        $this->assertStringContainsString("protected $table = 'user_addresses';", $model);
+        $this->assertStringContainsString("protected \$table = 'user_addresses';", $model);
         $this->assertStringContainsString('Modules\\User\\Models', $model);
     }
 
@@ -91,8 +91,8 @@ class AdminCustomerOwnershipCleanupContractTest extends TestCase
 
         $this->assertStringNotContainsString("withSum('orders'", $accountForm);
         $this->assertStringNotContainsString("withSum('orders'", $accountIndex);
-        $this->assertStringNotContainsString("->orders()", $accountForm);
-        $this->assertStringNotContainsString("->orders()", $accountIndex);
+        $this->assertStringNotContainsString('->orders()', $accountForm);
+        $this->assertStringNotContainsString('->orders()', $accountIndex);
     }
 
     public function test_p0_database_service_remains_quarantined_not_deleted_by_customer_cleanup(): void
