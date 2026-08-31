@@ -26,7 +26,7 @@ class WebsitePhase12FinalAuditConfigurationTest extends TestCase
         $this->assertStringContainsString('/website-pwa-version.json', $scripts);
         $this->assertStringContainsString("Route::get('/website-manifest.webmanifest'", $routes);
         $this->assertStringContainsString("Route::get('/website-pwa-version.json'", $routes);
-        $this->assertStringContainsString('website-storefront-shell-v3', $worker);
+        $this->assertStringContainsString('website-storefront-shell-v4', $worker);
         $this->assertStringContainsString('REFRESH_PWA_ASSETS', $worker);
         $this->assertStringContainsString('SKIP_WAITING', $worker);
         $this->assertStringNotContainsString("'/manifest.webmanifest'", $worker);
