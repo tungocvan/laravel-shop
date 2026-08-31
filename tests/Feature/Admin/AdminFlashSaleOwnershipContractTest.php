@@ -6,18 +6,15 @@ use Tests\TestCase;
 
 class AdminFlashSaleOwnershipContractTest extends TestCase
 {
-    public function test_flash_sale_management_surface_uses_website_domain_and_product_model(): void
+    public function test_flash_sale_management_surface_uses_website_domain_and_product_service(): void
     {
-        $source = file_get_contents(base_path('Modules/Admin/Livewire/FlashSale/FlashSaleManager.php'));
+        $source = file_get_contents(base_path('Modules/Website/Livewire/Admin/FlashSale/FlashSaleManager.php'));
 
-        $this->assertStringContainsString('use Modules\\Website\\Models\\FlashSale;', $source);
         $this->assertStringContainsString('use Modules\\Website\\Services\\FlashSaleService;', $source);
-        $this->assertStringContainsString('use Modules\\Product\\Models\\Product;', $source);
-        $this->assertStringNotContainsString('Modules\\Admin\\Models\\FlashSale', $source);
-        $this->assertStringNotContainsString('Modules\\Admin\\Services\\FlashSaleService', $source);
-        $this->assertStringNotContainsString("DB::table('wp_products')", $source);
-        $this->assertStringContainsString('Product::query()', $source);
+        $this->assertStringContainsString('use Modules\\Product\\Services\\ProductService;', $source);
+        $this->assertStringContainsString('ProductService $products', $source);
         $this->assertStringContainsString('$service->findWithProducts($id)', $source);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/FlashSale/FlashSaleManager.php'));
     }
 
     public function test_legacy_admin_flash_sale_classes_are_compatibility_only(): void
@@ -60,10 +57,13 @@ class AdminFlashSaleOwnershipContractTest extends TestCase
         $this->assertStringContainsString('function scopeActive', $product);
     }
 
-    public function test_coupon_affiliate_and_database_quarantine_remain_outside_this_slice(): void
+    public function test_coupon_and_affiliate_surfaces_use_canonical_website_ownership_while_database_stays_quarantined(): void
     {
-        $this->assertFileExists(base_path('Modules/Admin/Livewire/Marketing/CouponForm.php'));
-        $this->assertFileExists(base_path('Modules/Admin/Livewire/Marketing/CouponTable.php'));
+        $couponIndex = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/coupons/index.blade.php'));
+
+        $this->assertStringContainsString('<livewire:website.admin.coupon.coupon-table />', $couponIndex);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Marketing/CouponForm.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Marketing/CouponTable.php'));
         $this->assertFileExists(base_path('Modules/Admin/Livewire/Affiliate/CommissionList.php'));
         $this->assertFileExists(base_path('Modules/Admin/Livewire/Affiliate/CommissionMatrix.php'));
         $this->assertFileExists(base_path('Modules/Admin/Services/DatabaseService.php'));
