@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Admin Layout Hub Consolidation**
 
-Status: **IMPLEMENTED — AWAITING LOCAL VERIFICATION / UI SMOKE**
+Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / UI PASS / PR READY**
 
 Branch/checkpoint: `refactor/admin-layout-hub-consolidation`
 
@@ -28,7 +28,7 @@ The historical `Admin\Livewire\Header` components were deliberately preserved. T
 
 ## Guardrails
 
-`tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php` now asserts:
+`tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php` asserts:
 
 - canonical Admin controller imports remain limited to the shell controllers;
 - `/admin/layout/header` remains the Header entry;
@@ -37,19 +37,47 @@ The historical `Admin\Livewire\Header` components were deliberately preserved. T
 - the Sidebar layout workspace links to `admin.menus.index`;
 - Admin API remains closed by default.
 
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` now also protects the distinction between canonical Admin shell Header configuration and Website-owned public Header management without depending on the deleted Admin wrapper.
+
 ## Schema and data decision
 
 No schema, migration, foreign-key or production-data change is authorized or included.
 
-## Verification required
+## Verification
 
-Run focused Admin ownership tests and route checks, then manually verify:
+Local focused verification reported PASS:
 
-- `/admin/layout/header` loads and saves as before;
-- `/admin/layout/sidebar` loads and shows **Quản lý menu Sidebar**;
-- the button opens `/admin/menus`;
-- `/admin/menus` management remains operational;
-- `/admin/admin-header` is no longer an active Admin route.
+```text
+AdminOwnershipBoundaryContractTest: 5 passed, 31 assertions
+AdminWebsitePresentationOwnershipContractTest: 6 passed, 64 assertions
+Total: 11 passed, 95 assertions
+```
+
+Route verification reported:
+
+```text
+/admin/layout*: 7 canonical Admin layout routes
+/admin/menus*: 3 canonical MenuController routes
+/admin/admin-header: no matching route
+```
+
+Manual UI smoke: **PASS** for `/admin/layout/header`, `/admin/layout/sidebar`, the **Quản lý menu Sidebar** navigation to `/admin/menus`, and the existing menu-management workspace.
+
+Working tree after verification: **clean** at implementation checkpoint `651ca5e9` before this documentation closeout.
+
+## Acceptance criteria
+
+- canonical Admin Header entry `/admin/layout/header`: **PRESERVED**;
+- legacy `/admin/admin-header` entry/method/wrapper: **REMOVED**;
+- canonical Sidebar configuration `/admin/layout/sidebar`: **PRESERVED**;
+- Sidebar shortcut to `admin.menus.index`: **ADDED**;
+- `/admin/menus*` subsystem/controller/permissions: **PRESERVED AND SEPARATE**;
+- historical `Admin\Livewire\Header` components: **PRESERVED pending caller proof**;
+- Website public Header management: **UNCHANGED**;
+- schema/migration/data changes: **NONE**;
+- focused regression: **PASS — 11 tests / 95 assertions**;
+- route verification: **PASS**;
+- manual UI smoke: **PASS**.
 
 ## Remaining compatibility debt
 
@@ -57,4 +85,6 @@ The preserved `Admin\Livewire\Header` components and their Blade partials requir
 
 ## Next phase
 
-Do not start another compatibility-debt family until this branch passes focused verification/UI smoke and is merged. After merge, resume route -> controller -> view -> Livewire -> service/model caller proof for exactly one remaining legacy family.
+Open and merge this Admin Layout Hub consolidation as a focused PR. Do not start another compatibility-debt family until this branch is merged.
+
+After merge, resume route -> controller -> view -> Livewire -> service/model caller proof for exactly one remaining legacy family before proposing another implementation scope.
