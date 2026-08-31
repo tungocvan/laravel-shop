@@ -2,89 +2,103 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Admin Layout Hub Consolidation**
+Task: **Admin Major Refactor — Website Header/Footer Legacy Runtime Cleanup**
 
-Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / UI PASS / PR READY**
+Status: **IMPLEMENTED — AWAITING LOCAL VERIFICATION / UI SMOKE**
 
-Branch/checkpoint: `refactor/admin-layout-hub-consolidation`
+Branch/checkpoint: `refactor/admin-header-footer-legacy-runtime-cleanup`
 
-This approved slice consolidates the Admin shell presentation entry points around `/admin/layout/*` and makes the existing Admin menu manager discoverable from the Sidebar layout workspace without merging the two subsystems.
+This approved slice removes the historical Admin-owned Website Header/Footer presentation trees after caller-proof established the Website module as the active runtime owner. Canonical Admin shell Header/Footer configuration under `/admin/layout/header` and `/admin/layout/footer` remains unchanged.
 
 ## Ownership decision
 
 - `Modules/Admin` remains the authenticated shell.
-- `/admin/layout/header` is the canonical Admin shell Header configuration entry.
-- `/admin/layout/sidebar` remains the canonical Sidebar appearance/behavior configuration entry.
-- `/admin/menus*` remains a separate canonical Admin navigation/menu-management subsystem with its own controller and permissions.
-- Website public Header/Menu presentation remains separate and is not redesigned in this slice.
+- `/admin/layout/header` and `/admin/layout/footer` remain canonical Admin shell layout configuration.
+- Website owns public Website Header/Footer management through `/admin/header-settings` and `/admin/footer-settings`.
+- Website Header/Footer controllers, wrapper views, Livewire components, services/models and permissions remain canonical.
+- Deprecated Admin HeaderMenu/Banner compatibility model/service adapters remain outside this cleanup and are not claimed to be zero-caller.
 
-## Runtime changes
+## Runtime cleanup
 
-The obsolete `/admin/admin-header` route was removed together with `AdminController::adminHeader()` and its wrapper view `Modules/Admin/resources/views/pages/admin/header/index.blade.php`.
+Removed the historical Admin Header runtime tree:
 
-The historical `Admin\Livewire\Header` components were deliberately preserved. Their individual caller/compatibility lifecycle still requires dedicated proof; removing the legacy route is not by itself proof that every component has no dynamic/external caller.
+- `Modules/Admin/Http/Controllers/HeaderController.php`
+- `Modules/Admin/Livewire/Header/GeneralSettings.php`
+- `Modules/Admin/Livewire/Header/HeaderSettingsHub.php`
+- `Modules/Admin/Livewire/Header/MenuManager.php`
+- `Modules/Admin/resources/views/pages/header/index.blade.php`
+- `Modules/Admin/resources/views/livewire/header/general-settings.blade.php`
+- `Modules/Admin/resources/views/livewire/header/header-settings-hub.blade.php`
+- `Modules/Admin/resources/views/livewire/header/menu-manager.blade.php`
+- `Modules/Admin/resources/views/livewire/header/partials/menu-item-row.blade.php`
+- `Modules/Admin/resources/views/livewire/header/partials/menu-tree-manager.blade.php`
 
-`/admin/layout/sidebar` now exposes a **Quản lý menu Sidebar** action linking to the existing `admin.menus.index` route. The menu controller, route family, permissions and business behavior are unchanged.
+Removed the historical Admin Footer runtime tree:
+
+- `Modules/Admin/Http/Controllers/FooterController.php`
+- `Modules/Admin/Livewire/Footer/FooterInfo.php`
+- `Modules/Admin/Livewire/Footer/FooterColumns.php`
+- `Modules/Admin/Livewire/Footer/SocialLinks.php`
+- `Modules/Admin/resources/views/pages/footer/index.blade.php`
+- `Modules/Admin/resources/views/livewire/footer/footer-info.blade.php`
+- `Modules/Admin/resources/views/livewire/footer/footer-columns.blade.php`
+- `Modules/Admin/resources/views/livewire/footer/social-links.blade.php`
+
+## Canonical runtime evidence
+
+Header management remains:
+
+`Website route /admin/header-settings -> Modules\Website\Http\Controllers\Admin\HeaderController -> Website::pages.admin.header.index -> website.admin.header.header-settings-hub`.
+
+Footer management remains:
+
+`Website route /admin/footer-settings -> Modules\Website\Http\Controllers\Admin\FooterController -> Website::pages.admin.footer.index -> website.admin.footer.footer-info / footer-columns / social-links / footer-settings-hub`.
+
+The removed Admin Livewire components were already delegating Website presentation behavior to Website `HeaderMenuService`, `HeaderMenuItem`, `FooterService`, `FooterColumn`, `SocialLink` or shared System settings, which confirmed migration residue rather than canonical Admin business ownership.
 
 ## Guardrails
 
-`tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php` asserts:
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` now asserts:
 
-- canonical Admin controller imports remain limited to the shell controllers;
-- `/admin/layout/header` remains the Header entry;
-- `/admin/admin-header`, `adminHeader()` and the obsolete wrapper stay absent;
-- `/admin/menus*` remains canonical and permission-protected;
-- the Sidebar layout workspace links to `admin.menus.index`;
-- Admin API remains closed by default.
-
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` now also protects the distinction between canonical Admin shell Header configuration and Website-owned public Header management without depending on the deleted Admin wrapper.
+- the complete historical Admin Header/Footer runtime trees stay absent;
+- Website Header/Footer admin routes and permissions stay canonical;
+- Website controllers render Website wrapper views;
+- Website wrapper views mount Website Livewire components;
+- `/admin/layout/header` and `/admin/layout/footer` remain canonical Admin shell configuration;
+- deprecated Admin Banner/HeaderMenu compatibility classes remain compatibility-only;
+- promotion/database quarantine families remain outside this slice.
 
 ## Schema and data decision
 
 No schema, migration, foreign-key or production-data change is authorized or included.
 
-## Verification
+## Verification required
 
-Local focused verification reported PASS:
+Run focused ownership tests and route checks, then manually verify:
 
-```text
-AdminOwnershipBoundaryContractTest: 5 passed, 31 assertions
-AdminWebsitePresentationOwnershipContractTest: 6 passed, 64 assertions
-Total: 11 passed, 95 assertions
+- `/admin/layout/header` loads and saves as before;
+- `/admin/layout/footer` loads and saves as before;
+- `/admin/header-settings` loads and Website Header management remains operational;
+- `/admin/footer-settings` loads and Website Footer management remains operational;
+- no historical Admin Header/Footer runtime component is required by these pages.
+
+Recommended commands:
+
+```bash
+php artisan test tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php
+php artisan test tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php
+php artisan route:list --path=admin/layout/header
+php artisan route:list --path=admin/layout/footer
+php artisan route:list --path=admin/header-settings
+php artisan route:list --path=admin/footer-settings
+git status
+git log -1 --oneline
 ```
-
-Route verification reported:
-
-```text
-/admin/layout*: 7 canonical Admin layout routes
-/admin/menus*: 3 canonical MenuController routes
-/admin/admin-header: no matching route
-```
-
-Manual UI smoke: **PASS** for `/admin/layout/header`, `/admin/layout/sidebar`, the **Quản lý menu Sidebar** navigation to `/admin/menus`, and the existing menu-management workspace.
-
-Working tree after verification: **clean** at implementation checkpoint `651ca5e9` before this documentation closeout.
-
-## Acceptance criteria
-
-- canonical Admin Header entry `/admin/layout/header`: **PRESERVED**;
-- legacy `/admin/admin-header` entry/method/wrapper: **REMOVED**;
-- canonical Sidebar configuration `/admin/layout/sidebar`: **PRESERVED**;
-- Sidebar shortcut to `admin.menus.index`: **ADDED**;
-- `/admin/menus*` subsystem/controller/permissions: **PRESERVED AND SEPARATE**;
-- historical `Admin\Livewire\Header` components: **PRESERVED pending caller proof**;
-- Website public Header management: **UNCHANGED**;
-- schema/migration/data changes: **NONE**;
-- focused regression: **PASS — 11 tests / 95 assertions**;
-- route verification: **PASS**;
-- manual UI smoke: **PASS**.
 
 ## Remaining compatibility debt
 
-The preserved `Admin\Livewire\Header` components and their Blade partials require a later caller-proof decision. Public Website Header/Footer legacy runtime cleanup, Flash Sale, Coupon, Affiliate/Order residue, environment/System adapters and Database quarantine remain separate scopes.
+Deprecated Admin `HeaderMenu`, `HeaderMenuItem`, `HeaderMenuService` and Banner compatibility adapters remain intentionally. Home settings residue, Flash Sale/Coupon/Affiliate/Order residue, environment/System adapters and Database quarantine remain separate scopes.
 
 ## Next phase
 
-Open and merge this Admin Layout Hub consolidation as a focused PR. Do not start another compatibility-debt family until this branch is merged.
-
-After merge, resume route -> controller -> view -> Livewire -> service/model caller proof for exactly one remaining legacy family before proposing another implementation scope.
+Do not open a PR or start another compatibility-debt family until focused tests, route verification and UI smoke pass on this branch.
