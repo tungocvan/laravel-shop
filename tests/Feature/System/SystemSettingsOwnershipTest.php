@@ -3,7 +3,6 @@
 namespace Tests\Feature\System;
 
 use Illuminate\Support\Facades\Route;
-use Modules\Admin\Http\Controllers\EnvConfigController;
 use Modules\Admin\Http\Controllers\SettingController;
 use Modules\Admin\Livewire\Settings as AdminSettings;
 use Modules\Admin\Services\Database as AdminDatabaseServices;
@@ -57,17 +56,14 @@ class SystemSettingsOwnershipTest extends TestCase
         }
     }
 
-    public function test_legacy_admin_controllers_redirect_to_canonical_routes(): void
+    public function test_legacy_admin_controller_redirects_to_canonical_routes(): void
     {
         $settings = new SettingController;
 
         $this->assertSame(route('admin.system.settings.index'), $settings->index()->getTargetUrl());
         $this->assertSame(route('admin.profile'), $settings->profile()->getTargetUrl());
         $this->assertSame(route('admin.system.modules'), $settings->modules()->getTargetUrl());
-        $this->assertSame(
-            route('admin.system.settings.env'),
-            (new EnvConfigController)->index()->getTargetUrl(),
-        );
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Http/Controllers/EnvConfigController.php'));
     }
 
     public function test_legacy_settings_url_redirects_under_the_canonical_permission(): void
