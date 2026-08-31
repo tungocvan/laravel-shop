@@ -36,7 +36,7 @@ class AdminRouteConfigurationTest extends TestCase
             ['admin.profile', 'admin/profile', 'admin.profile.view'],
             ['admin.themes', 'admin/themes', 'admin.layout.view'],
             ['admin.layout', 'admin/layout', 'admin.layout.view'],
-            ['admin.header', 'admin/admin-header', 'admin.header.view'],
+            ['admin.layout.header', 'admin/layout/header', 'admin.layout.view'],
         ];
     }
 
