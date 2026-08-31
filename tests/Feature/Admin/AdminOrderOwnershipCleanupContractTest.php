@@ -40,6 +40,7 @@ class AdminOrderOwnershipCleanupContractTest extends TestCase
         $legacyFiles = [
             'Modules/Admin/Livewire/Orders/OrderTable.php',
             'Modules/Admin/Livewire/Orders/OrderDetail.php',
+            'Modules/Admin/Livewire/Orders/OrderDetailModal.php',
             'Modules/Admin/resources/views/livewire/orders/order-table.blade.php',
             'Modules/Admin/resources/views/livewire/orders/order-detail.blade.php',
             'Modules/Admin/resources/views/pages/orders/index.blade.php',
@@ -58,8 +59,10 @@ class AdminOrderOwnershipCleanupContractTest extends TestCase
             'Modules/Order/Http/Controllers/OrderController.php',
             'Modules/Order/Livewire/Orders/OrderTable.php',
             'Modules/Order/Livewire/Orders/OrderDetail.php',
+            'Modules/Order/Livewire/Orders/OrderDetailModal.php',
             'Modules/Order/resources/views/livewire/orders/order-table.blade.php',
             'Modules/Order/resources/views/livewire/orders/order-detail.blade.php',
+            'Modules/Order/resources/views/livewire/orders/order-detail-modal.blade.php',
             'Modules/Order/resources/views/pages/orders/index.blade.php',
             'Modules/Order/resources/views/pages/orders/show.blade.php',
             'Modules/Order/resources/views/pages/orders/invoice.blade.php',
@@ -80,15 +83,14 @@ class AdminOrderOwnershipCleanupContractTest extends TestCase
         $this->assertLessThan($mutation, $capture, 'Old Order status must be captured before mutating the model.');
     }
 
-    public function test_affiliate_cross_domain_runtime_is_not_silently_removed_by_order_cleanup(): void
+    public function test_order_affiliate_modal_is_order_owned_while_website_compatibility_debt_is_deferred(): void
     {
-        foreach ([
-            'Modules/Admin/Livewire/Orders/OrderDetailModal.php',
-            'Modules/Admin/resources/views/livewire/orders/order-detail-modal.blade.php',
-            'Modules/Admin/Services/AdminAffiliateService.php',
-        ] as $file) {
-            $this->assertFileExists(base_path($file), "Affiliate compatibility surface changed without dedicated migration proof: {$file}");
-        }
+        $modal = file_get_contents(base_path('Modules/Order/Livewire/Orders/OrderDetailModal.php'));
+
+        $this->assertStringContainsString('use Modules\\Order\\Services\\AdminAffiliateService;', $modal);
+        $this->assertStringContainsString("return view('Order::livewire.orders.order-detail-modal')", $modal);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Orders/OrderDetailModal.php'));
+        $this->assertFileExists(base_path('Modules/Admin/Services/AdminAffiliateService.php'));
     }
 
     public function test_p0_database_service_remains_quarantined_and_present(): void
