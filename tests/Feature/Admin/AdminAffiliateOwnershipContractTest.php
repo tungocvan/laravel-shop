@@ -12,7 +12,7 @@ class AdminAffiliateOwnershipContractTest extends TestCase
 
         $this->assertStringContainsString('Modules\\Website\\Http\\Controllers\\Admin\\AffiliateController', $routes);
         $this->assertStringContainsString("Route::get('/affiliate', [AffiliateController::class, 'index'])", $routes);
-        $this->assertStringContainsString("permission:affiliate.view,admin", $routes);
+        $this->assertStringContainsString('permission:affiliate.view,admin', $routes);
     }
 
     public function test_canonical_affiliate_mutations_keep_manage_authorization(): void
@@ -27,11 +27,19 @@ class AdminAffiliateOwnershipContractTest extends TestCase
         }
     }
 
-    public function test_admin_affiliate_duplicates_are_compatibility_adapters_only(): void
+    public function test_retired_admin_affiliate_livewire_duplicates_stay_absent(): void
+    {
+        foreach ([
+            'Modules/Admin/Livewire/Affiliate/CommissionList.php',
+            'Modules/Admin/Livewire/Affiliate/CommissionMatrix.php',
+        ] as $path) {
+            $this->assertFileDoesNotExist(base_path($path), $path);
+        }
+    }
+
+    public function test_remaining_admin_affiliate_compatibility_debt_is_deferred_to_website_refactor(): void
     {
         $expectations = [
-            'Modules/Admin/Livewire/Affiliate/CommissionList.php' => 'Modules\\Website\\Livewire\\Admin\\Affiliate\\CommissionList',
-            'Modules/Admin/Livewire/Affiliate/CommissionMatrix.php' => 'Modules\\Website\\Livewire\\Admin\\Affiliate\\CommissionMatrix',
             'Modules/Admin/Services/AdminAffiliateService.php' => 'Modules\\Website\\Services\\AdminAffiliateService',
             'Modules/Admin/Services/AffiliateRankService.php' => 'Modules\\Website\\Services\\AffiliateRankService',
             'Modules/Admin/Models/AffiliateScheme.php' => 'Modules\\Website\\Models\\AffiliateScheme',
