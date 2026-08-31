@@ -3,118 +3,78 @@
 namespace Tests\Feature\System;
 
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Admin\Livewire\Settings\SettingForm as AdminSettingForm;
 use Modules\System\Livewire\Settings\SettingForm as SystemSettingForm;
-use Modules\System\Services\LegacySettingsAuditService;
-use Modules\System\Services\LegacySettingsMigrationService;
+use Modules\System\Models\Setting;
 use Modules\System\Services\SettingsService;
 use Tests\TestCase;
 
 class CanonicalSettingsServiceTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->createSettingsTable('settings');
-        $this->createSettingsTable('wp_settings');
-        Cache::flush();
-    }
-
     protected function tearDown(): void
     {
-        Schema::dropIfExists('wp_settings');
         Schema::dropIfExists('settings');
+        Schema::dropIfExists('admin_settings');
+        Schema::dropIfExists('website_settings');
+
         parent::tearDown();
     }
 
-    public function test_canonical_value_wins_and_legacy_value_is_only_a_read_fallback(): void
+    public function test_system_settings_service_reads_and_writes_canonical_table(): void
     {
-        DB::table('wp_settings')->insert($this->row('site_name', 'Legacy'));
+        $this->createSettingsTable('settings');
+
         $service = app(SettingsService::class);
+        $service->set('site_name', 'FlexBiz', 'general');
 
-        $this->assertSame('Legacy', $service->get('site_name'));
-
-        $service->set('site_name', 'Canonical');
-
-        $this->assertSame('Canonical', $service->get('site_name'));
-        $this->assertDatabaseHas('settings', ['key' => 'site_name', 'value' => 'Canonical']);
-        $this->assertDatabaseHas('wp_settings', ['key' => 'site_name', 'value' => 'Legacy']);
-    }
-
-    public function test_arrays_are_normalized_and_bulk_update_is_atomic(): void
-    {
-        $service = app(SettingsService::class);
-        $service->updateMany([
-            'theme.palette' => ['primary' => '#123456'],
-            'site_email' => 'test@example.test',
-        ], 'general');
-
-        $this->assertSame(['primary' => '#123456'], $service->get('theme.palette'));
-        $this->assertSame('test@example.test', $service->get('site_email'));
-        $this->assertDatabaseHas('settings', ['key' => 'theme.palette', 'type' => 'json']);
-    }
-
-    public function test_homepage_keys_remain_on_legacy_table_until_structured_schema_is_ready(): void
-    {
-        $service = app(SettingsService::class);
-        $service->updateMany([
-            'home_featured_ids' => [4, 8],
-            'site_name' => 'Canonical site',
-        ], 'homepage');
-
-        $this->assertSame([4, 8], $service->get('home_featured_ids'));
-        $this->assertDatabaseHas('wp_settings', ['key' => 'home_featured_ids', 'type' => 'json']);
-        $this->assertDatabaseMissing('settings', ['key' => 'home_featured_ids']);
-        $this->assertDatabaseHas('settings', ['key' => 'site_name']);
-    }
-
-    public function test_audit_classifies_conflicts_without_changing_either_table(): void
-    {
-        DB::table('settings')->insert([
-            $this->row('site_name', 'Canonical'),
-            $this->row('same_key', 'same'),
+        $this->assertSame('FlexBiz', $service->get('site_name'));
+        $this->assertDatabaseHas('settings', [
+            'key' => 'site_name',
+            'value' => 'FlexBiz',
+            'group_name' => 'general',
         ]);
-        DB::table('wp_settings')->insert([
-            $this->row('site_name', 'Legacy'),
-            $this->row('same_key', 'same'),
-            $this->row('home_featured_ids', '[1,2]', 'homepage', 'json'),
+    }
+
+    public function test_legacy_rows_are_imported_into_canonical_table_once(): void
+    {
+        $this->createSettingsTable('settings');
+        $this->createSettingsTable('admin_settings');
+        $this->createSettingsTable('website_settings');
+
+        DB::table('admin_settings')->insert($this->row('site_name', 'Admin Legacy', 'general'));
+        DB::table('website_settings')->insert($this->row('site_name', 'Website Legacy', 'general'));
+        DB::table('website_settings')->insert($this->row('website.appearance', json_encode(['theme_color' => '#112233']), 'website'));
+
+        $service = app(SettingsService::class);
+        $service->importLegacyRows();
+
+        $this->assertSame('Admin Legacy', $service->get('site_name'));
+        $this->assertSame(['theme_color' => '#112233'], $service->get('website.appearance'));
+
+        DB::table('admin_settings')->where('key', 'site_name')->update(['value' => 'Changed Legacy']);
+        $service->importLegacyRows();
+
+        $this->assertSame('Admin Legacy', $service->get('site_name'));
+    }
+
+    public function test_setting_model_reads_canonical_settings_table(): void
+    {
+        $this->createSettingsTable('settings');
+
+        Setting::query()->create([
+            'key' => 'timezone',
+            'value' => 'Asia/Ho_Chi_Minh',
+            'group_name' => 'general',
+            'type' => 'text',
         ]);
 
-        $report = app(LegacySettingsAuditService::class)->audit();
-
-        $this->assertSame(1, $report['summary']['conflict']);
-        $this->assertSame(1, $report['summary']['identical']);
-        $this->assertSame(1, $report['summary']['legacy_only']);
-        $this->assertSame(1, $report['summary']['structured_homepage']);
-        $this->assertSame(2, DB::table('settings')->count());
-        $this->assertSame(3, DB::table('wp_settings')->count());
-    }
-
-    public function test_legacy_migration_is_dry_run_by_default_and_skips_homepage_keys(): void
-    {
-        DB::table('wp_settings')->insert([
-            $this->row('site_name', 'Website'),
-            $this->row('home_featured_ids', '[1,2]', 'homepage', 'json'),
+        $this->assertSame('settings', (new Setting)->getTable());
+        $this->assertDatabaseHas('settings', [
+            'key' => 'timezone',
+            'value' => 'Asia/Ho_Chi_Minh',
         ]);
-        $service = app(LegacySettingsMigrationService::class);
-
-        $dryRun = $service->migrate();
-        $this->assertSame(1, $dryRun['inserted']);
-        $this->assertSame(1, $dryRun['skipped_homepage']);
-        $this->assertSame(0, DB::table('settings')->count());
-
-        $applied = $service->migrate(true);
-        $this->assertTrue($applied['applied']);
-        $this->assertDatabaseHas('settings', ['key' => 'site_name', 'value' => 'Website']);
-        $this->assertDatabaseMissing('settings', ['key' => 'home_featured_ids']);
-
-        $repeated = $service->migrate(true);
-        $this->assertSame(0, $repeated['inserted']);
-        $this->assertSame(1, $repeated['identical']);
-        $this->assertSame(1, DB::table('settings')->count());
     }
 
     public function test_admin_and_website_use_system_owned_settings_contracts(): void
@@ -139,8 +99,9 @@ class CanonicalSettingsServiceTest extends TestCase
             SystemSettingForm::class,
         ));
 
-        $adminHome = file_get_contents(base_path('Modules/Admin/resources/views/pages/home/index.blade.php'));
-        $this->assertStringContainsString("@livewire('website.admin.home.home-settings')", $adminHome);
+        $websiteHome = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/home/index.blade.php'));
+        $this->assertStringContainsString("@livewire('website.admin.home.home-settings')", $websiteHome);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/pages/home/index.blade.php'));
     }
 
     private function createSettingsTable(string $name): void
@@ -160,13 +121,13 @@ class CanonicalSettingsServiceTest extends TestCase
         string $key,
         string $value,
         string $group = 'general',
-        string $type = 'text',
     ): array {
         return [
             'key' => $key,
             'value' => $value,
             'group_name' => $group,
-            'type' => $type,
+            'type' => 'text',
+            'label' => $key,
             'created_at' => now(),
             'updated_at' => now(),
         ];
