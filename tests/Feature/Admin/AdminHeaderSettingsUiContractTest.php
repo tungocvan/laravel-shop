@@ -101,7 +101,7 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         $this->assertStringContainsString("in_array(\$this->section, ['general', 'header', 'sidebar', 'footer'], true)", $component);
         $this->assertStringContainsString('Thiết lập Header đã được lưu và áp dụng.', $component);
         $this->assertStringContainsString('Header đã được khôi phục mặc định và áp dụng.', $component);
-        $this->assertStringContainsString('\$this->redirect(url()->previous(), navigate: false)', $component);
+        $this->assertStringContainsString('$this->redirect(url()->previous(), navigate: false)', $component);
     }
 
     public function test_header_settings_use_live_preview_bindings_for_visual_controls(): void
