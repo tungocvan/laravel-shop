@@ -9,21 +9,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
-use Modules\Admin\Services\AuthService;
+use Modules\Auth\Services\AuthService;
 
 class GoogleController extends Controller
 {
     protected $authService;
 
-    // Dependency Injection AuthService theo đúng kiến trúc Service Layer (Section 4)
     public function __construct(AuthService $authService)
     {
         $this->authService = $authService;
     }
 
-    /**
-     * Điều hướng người dùng sang Google
-     */
     public function redirectToGoogle(Request $request): RedirectResponse
     {
         if (! $this->hasGoogleConfiguration()) {
@@ -44,21 +40,13 @@ class GoogleController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    /**
-     * Nhận callback từ Google và ủy quyền xử lý cho Service
-     */
     public function handleGoogleCallback()
     {
         try {
-            // Lấy thông tin user từ Socialite
             $googleUser = Socialite::driver('google')->user();
-
-            // Gọi Service xử lý nghiệp vụ (Section 4: Controller không xử lý logic)
             $this->authService->handleGoogleUser($googleUser);
 
-            // Chuyển hướng về Dashboard sau khi login thành công
             return redirect()->route('admin.dashboard');
-
         } catch (InvalidStateException $e) {
             Log::warning('Google OAuth state mismatch.', [
                 'exception' => $e::class,
@@ -74,7 +62,6 @@ class GoogleController extends Controller
                 'email' => 'Phiên đăng nhập Google đã hết hạn hoặc cookie bị thay đổi. Vui lòng thử đăng nhập lại.',
             ]);
         } catch (Exception $e) {
-            // Log lỗi hệ thống (Section 12)
             Log::error('Google Login Error.', [
                 'exception' => $e::class,
                 'code' => $e->getCode(),
