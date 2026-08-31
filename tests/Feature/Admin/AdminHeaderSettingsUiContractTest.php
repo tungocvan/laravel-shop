@@ -12,7 +12,7 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-header-config.blade.php'));
 
         $this->assertStringContainsString("if (\$this->section === 'header')", $component);
-        $this->assertStringContainsString("Admin::livewire.settings.admin-header-config", $component);
+        $this->assertStringContainsString('Admin::livewire.settings.admin-header-config', $component);
         foreach (['Brand', 'Core components', 'Header Actions', 'UserMenu', 'Presentation & Responsive', 'Header preview'] as $heading) {
             $this->assertStringContainsString($heading, $view);
         }
@@ -30,21 +30,23 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         $this->assertStringContainsString("'config.header.user_menu' => ['UserMenu'", $view);
         $this->assertStringContainsString('wire:model.live="config.header.actions.notification.icon"', $view);
         $this->assertStringContainsString('wire:model.live="config.header.actions.notification.behavior"', $view);
-        $this->assertStringContainsString("config.header.actions.notification.icon", $component);
-        $this->assertStringContainsString("config.header.actions.notification.behavior", $component);
+        $this->assertStringContainsString('config.header.actions.notification.icon', $component);
+        $this->assertStringContainsString('config.header.actions.notification.behavior', $component);
     }
 
     public function test_current_database_menu_items_are_imported_into_user_menu_editor_when_config_is_empty(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
-        $menuService = file_get_contents(base_path('Modules/Admin/Services/HeaderMenuService.php'));
+        $websiteMenuService = file_get_contents(base_path('Modules/Website/Services/HeaderMenuService.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-header-config.blade.php'));
 
+        $this->assertStringContainsString('use Modules\\Website\\Services\\HeaderMenuService;', $component);
         $this->assertStringContainsString('HeaderMenuService $headerMenuService', $component);
-        $this->assertStringContainsString('exportAdminConfigItems()', $component);
+        $this->assertStringContainsString('exportWebsiteHeaderMenuItems($headerMenuService)', $component);
         $this->assertStringContainsString('public bool $importedHeaderMenuItems = false', $component);
-        $this->assertStringContainsString('exportAdminConfigItems(): array', $menuService);
-        $this->assertStringContainsString("getMenuTreeByLocation('admin')", $menuService);
+        $this->assertStringContainsString("getMenuTreeByLocation('admin')", $component);
+        $this->assertStringContainsString('function getMenuTreeByLocation', $websiteMenuService);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Services/HeaderMenuService.php'));
         $this->assertStringContainsString('Menu items hiện tại', $view);
         $this->assertStringContainsString('$importedHeaderMenuItems', $view);
         $this->assertStringContainsString('Lưu Header', $view);
@@ -64,8 +66,8 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         $this->assertStringContainsString('data-admin-user-menu-editor', $view);
         $this->assertStringContainsString('Thêm action', $view);
         $this->assertStringContainsString('Thêm menu item', $view);
-        $this->assertStringContainsString("config.header.actions.items.*.order", $component);
-        $this->assertStringContainsString("config.header.user_menu_config.items.*.permission", $component);
+        $this->assertStringContainsString('config.header.actions.items.*.order', $component);
+        $this->assertStringContainsString('config.header.user_menu_config.items.*.permission', $component);
         $this->assertStringContainsString('Logout luôn do hệ thống quản lý', $view);
     }
 
@@ -99,7 +101,7 @@ class AdminHeaderSettingsUiContractTest extends TestCase
         $this->assertStringContainsString("in_array(\$this->section, ['general', 'header', 'sidebar', 'footer'], true)", $component);
         $this->assertStringContainsString('Thiết lập Header đã được lưu và áp dụng.', $component);
         $this->assertStringContainsString('Header đã được khôi phục mặc định và áp dụng.', $component);
-        $this->assertStringContainsString("\$this->redirect(url()->previous(), navigate: false)", $component);
+        $this->assertStringContainsString('$this->redirect(url()->previous(), navigate: false)', $component);
     }
 
     public function test_header_settings_use_live_preview_bindings_for_visual_controls(): void

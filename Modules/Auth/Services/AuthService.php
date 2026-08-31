@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Admin\Services;
+namespace Modules\Auth\Services;
 
 use App\Models\User;
 use Exception;
@@ -12,10 +12,6 @@ use Spatie\Permission\Models\Role;
 
 class AuthService
 {
-    /**
-     * Xử lý logic sau khi nhận dữ liệu từ Google Socialite
-     * Tuân thủ: Check permission cấp nghiệp vụ (Section 4)
-     */
     public function handleGoogleUser($googleUser)
     {
         $email = mb_strtolower(trim((string) $googleUser->email));
@@ -71,15 +67,11 @@ class AuthService
             return $user;
         });
 
-        // 3. Kiểm tra trạng thái hoạt động (Section 4: Check permission nghiệp vụ)
         if (! $user->is_active) {
             throw new Exception('Tài khoản của bạn đã bị khóa.');
         }
 
-        // 4. Thực hiện đăng nhập vào guard admin
         Auth::guard('admin')->login($user);
-
-        // 5. Audit Log (Section 12)
         $user->update(['last_login_at' => now()]);
 
         return $user;
