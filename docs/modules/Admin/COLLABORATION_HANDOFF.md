@@ -2,89 +2,96 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Legacy Runtime Consolidation**
+Task: **Admin Major Refactor — Core Boundary Hardening + Legacy Diagnostic Retirement**
 
-Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / ROUTES PASS / BUILD PASS / UI PASS / PR READY**
+Status: **IMPLEMENTED — LOCAL VERIFICATION PENDING**
 
-Branch: `refactor/admin-home-settings-legacy-wrapper-cleanup`
+Branch: `refactor/admin-core-boundary-hardening`
 
-The approved batch consolidates historical Admin runtime residue after specialized modules became canonical owners. `Modules/Admin` remains the authenticated Admin shell; this change does not move business ownership back into Admin.
+Base: `a0e14679` (merged PR #113)
+
+This phase follows the Legacy Runtime Consolidation cleanup and narrows `Modules/Admin` further toward an authenticated Admin shell/integration boundary. It does not move business ownership back into Admin and does not broaden into Chat, Auth, Order, Website or database refactors.
 
 ## Canonical Admin boundary
 
-`Modules/Admin/routes/web.php` remains the primary runtime allow-list for Admin-owned presentation. Canonical Admin controllers remain `AdminController`, `DashboardController`, `MenuController`, and `ProfileController`, with Admin shell/layout, dashboard, menu management and profile behavior preserved.
+`Modules/Admin/routes/web.php` remains the runtime allow-list for Admin-owned presentation. Canonical Admin controllers remain `AdminController`, `DashboardController`, `MenuController`, and `ProfileController`, with dashboard, shell/layout, menu management and profile behavior preserved.
 
 `/admin/layout/header`, `/admin/layout/sidebar`, `/admin/layout/footer`, `/admin/layout/design` and related layout sections remain Admin shell configuration. `/admin/menus` remains a separate menu-management subsystem and is not merged into sidebar configuration.
 
-## Removed legacy runtime residue
+## Specialized ownership proven in this phase
 
-The batch removes historical Admin controllers for Affiliate, Coupon, Flash Sale, Home Settings, Env Config and the unused Admin API stub; legacy Admin Flash Sale/Coupon presentation components; historical Product/Role/Staff wrapper pages; and historical Admin Role/Staff Livewire components.
+Admin authentication is Auth-owned. `Modules/Auth/Http/Controllers/AuthController::adminLogin()` renders the canonical Auth login page with the `admin` guard, and that page mounts `auth.auth.login-form`.
 
-Website remains canonical for homepage/promotion/presentation management. Product, Role and Account retain their own route ownership. Env configuration remains System-owned.
+Chat is Chat-owned. `Modules/Chat` owns both the Admin-facing internal/customer-support chat routes and its Chat services/Livewire runtime. Admin is a consumer surface, not the owner of Chat broadcasting/domain behavior.
 
-## Preserved compatibility and quarantine
+Order routes remain Order-owned, but `Modules/Admin/Livewire/Orders/OrderDetailModal.php` is intentionally preserved because it is still a concrete compatibility caller of `AdminAffiliateService`.
 
-This cleanup intentionally preserves deprecated compatibility adapters where caller proof is incomplete or concrete callers remain, including Banner/HeaderMenu, Flash Sale and Affiliate compatibility boundaries. Affiliate compatibility Livewire aliases remain. Orders are not classified as dead by this batch.
+## Removed in this phase
 
-`Modules/Admin/Services/DatabaseService.php` and the existing Database containment boundary remain quarantined and are not reactivated, moved or deleted.
+The following legacy/diagnostic Admin artifacts are retired:
 
-Auth is also outside deletion scope unless its independent runtime chain is separately proven obsolete.
+- `Modules/Admin/Livewire/Auth/LoginForm.php`
+- `Modules/Admin/resources/views/livewire/auth/login-form.blade.php`
+- `Modules/Admin/Events/MessageSent.php`
+- `Modules/Admin/Jobs/TestQueueJob.php`
+
+The removed Auth pair duplicated the canonical Auth module login runtime. The removed `MessageSent` event placed Chat-domain broadcasting ownership in Admin while Chat already owns its realtime runtime. `TestQueueJob` was a diagnostic queue/cache probe rather than Admin product runtime.
+
+## Preserved compatibility, persistence and quarantine
+
+Deprecated compatibility adapters remain where caller proof is incomplete or concrete callers still exist, including Banner/HeaderMenu, Flash Sale, Affiliate and Address compatibility boundaries.
+
+`Modules/Admin/Livewire/Orders/OrderDetailModal.php` and `Modules/Admin/Services/AdminAffiliateService.php` remain preserved as a concrete compatibility chain.
+
+`Modules/Admin/Models/ModuleRouteTitle.php` and migration `2026_08_04_000002_create_module_route_titles_table.php` remain preserved. The `module_route_titles` table is an explicit persistence contract; this phase does not infer that persistence is disposable merely from weak/static caller evidence.
+
+`Modules/Admin/Services/DatabaseService.php` remains quarantined. No destructive database operation is reactivated, moved, beautified or deleted.
 
 ## Contract protection
 
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` locks the consolidated boundary:
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` now locks both the previous consolidation and this phase:
 
-- removed Admin runtime trees must stay absent;
-- Website presentation routes remain canonical, including grouped Coupon routes;
-- Product/Role/Account route ownership remains outside Admin;
-- Admin shell controllers/layout remain present;
-- compatibility adapters and Database quarantine remain preserved.
+- retired Admin runtime/diagnostic artifacts must stay absent;
+- Auth module remains canonical for Admin login;
+- Chat module remains canonical for Admin-facing Chat routes/runtime;
+- Website/Product/Role/Account specialized ownership remains protected;
+- Admin shell controllers/layout remain canonical;
+- Orders/Affiliate compatibility remains preserved;
+- `ModuleRouteTitle` persistence remains preserved;
+- Database quarantine remains preserved.
 
 ## Schema and data
 
-No schema, migration, foreign-key or production-data change is included.
+No schema, migration, foreign-key or production-data change is included. No table is dropped.
 
-## Verification
+## Verification plan
 
-Focused verification reported **PASS** after correcting the contract assertion for Website's grouped `Route::prefix('coupons')` declaration.
+Run one consolidated local verification after pulling the completed branch:
 
-The focused Admin ownership test set passed:
+1. `vendor/bin/pint --test Modules/Admin tests/Feature/Admin`
+2. `php artisan test tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php`
+3. `php artisan route:list --path=admin`
+4. `npm run build`
+5. Manual UI smoke: Admin login/logout, dashboard, `/admin/layout`, `/admin/menus`, profile, one Website-owned management surface, and Admin Chat routes if enabled/authorized in the local environment.
 
-- `tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php`
-- `tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php`
-
-Route verification reported **PASS**. The active route table confirms canonical ownership after cleanup, including:
-
-- Admin shell/layout/menu/profile -> `Modules\\Admin`
-- `/admin/login` and `/admin/logout` -> `Modules\\Auth`
-- `/admin/homepage-settings`, `/admin/coupons*`, `/admin/flash-sales`, `/admin/affiliate`, Banner/Header/Footer settings -> `Modules\\Website`
-- `/admin/products*` -> `Modules\\Product`
-- `/admin/posts*` -> `Modules\\Post`
-- `/admin/category*` -> `Modules\\Category`
-- `/admin/roles*` -> `Modules\\Role`
-- `/admin/accounts*` -> `Modules\\Account`
-- `/admin/system/settings/env` -> `Modules\\System`
-
-Frontend verification: `npm run build` **PASS** with Vite v7.3.6.
-
-Manual UI smoke reported **PASS** for the agreed Admin shell and canonical Website management surfaces, including layout/menu/profile, homepage settings, coupons, flash sales and affiliate management.
-
-No full-project regression suite was required for this ownership cleanup.
+A full-project regression suite is not required for this ownership-only cleanup unless focused verification exposes an impacted dependency.
 
 ## Acceptance criteria
 
-- Admin shell/layout/dashboard/menu/profile: **PRESERVED / PASS**
-- Website canonical presentation/promotion routes: **PRESERVED / PASS**
-- Product/Role/Account specialized ownership: **PRESERVED / PASS**
-- approved legacy Admin runtime residue: **REMOVED**
+- Admin shell/layout/dashboard/menu/profile: **PRESERVED**
+- canonical Auth admin login: **PRESERVED**
+- canonical Chat ownership: **PRESERVED**
+- Admin legacy Auth duplicate: **REMOVED**
+- Admin legacy Chat event: **REMOVED**
+- Admin diagnostic queue job: **REMOVED**
+- Orders/Affiliate concrete compatibility chain: **PRESERVED**
+- `ModuleRouteTitle` persistence: **PRESERVED**
 - compatibility adapters with unresolved/dynamic callers: **PRESERVED / DEPRECATED**
 - Database destructive boundary: **QUARANTINED / UNCHANGED**
 - schema/data changes: **NONE**
-- focused tests: **PASS**
-- route ownership verification: **PASS**
-- frontend build: **PASS**
-- manual UI smoke: **PASS**
+- focused verification: **PENDING USER LOCAL RUN**
+- UI smoke: **PENDING USER LOCAL RUN**
 
 ## Next checkpoint
 
-Open the Legacy Runtime Consolidation PR against `main` and review it before merge. After merge, sync `main` and treat any remaining compatibility adapters or quarantined families as separate, caller-proofed follow-up work rather than reopening this batch.
+Pull the completed branch and run the consolidated verification plan once. If it passes, update this handoff with the verification result and prepare one PR against `main`. Any deeper Chat duplication cleanup, compatibility-adapter retirement, `ModuleRouteTitle` lifecycle decision or Database work remains a separate caller-proofed phase.
