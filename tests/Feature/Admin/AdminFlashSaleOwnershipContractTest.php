@@ -64,8 +64,10 @@ class AdminFlashSaleOwnershipContractTest extends TestCase
         $this->assertStringContainsString('<livewire:website.admin.coupon.coupon-table />', $couponIndex);
         $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Marketing/CouponForm.php'));
         $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Marketing/CouponTable.php'));
-        $this->assertFileExists(base_path('Modules/Admin/Livewire/Affiliate/CommissionList.php'));
-        $this->assertFileExists(base_path('Modules/Admin/Livewire/Affiliate/CommissionMatrix.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Affiliate/CommissionList.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Affiliate/CommissionMatrix.php'));
+        $this->assertFileExists(base_path('Modules/Website/Livewire/Admin/Affiliate/CommissionList.php'));
+        $this->assertFileExists(base_path('Modules/Website/Livewire/Admin/Affiliate/CommissionMatrix.php'));
         $this->assertFileExists(base_path('Modules/Admin/Services/DatabaseService.php'));
     }
 }
