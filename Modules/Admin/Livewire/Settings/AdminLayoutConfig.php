@@ -10,8 +10,11 @@ use Modules\Website\Services\HeaderMenuService;
 class AdminLayoutConfig extends Component
 {
     public array $config = [];
+
     public array $themes = [];
+
     public string $section = 'general';
+
     public bool $importedHeaderMenuItems = false;
 
     public function mount(AdminLayoutManager $manager, ThemeManager $themeManager, HeaderMenuService $headerMenuService, string $section = 'general'): void
@@ -32,7 +35,9 @@ class AdminLayoutConfig extends Component
 
     public function updatedConfigLayoutPreset(mixed $value): void
     {
-        if ($this->section !== 'general') return;
+        if ($this->section !== 'general') {
+            return;
+        }
         $this->config['layout'] = array_replace_recursive($this->config['layout'] ?? [], $this->generalPreset((string) $value));
     }
 
@@ -81,6 +86,7 @@ class AdminLayoutConfig extends Component
             ];
             session()->flash('success', $messages[$this->section]);
             $this->redirect(url()->previous(), navigate: false);
+
             return;
         }
 
@@ -103,6 +109,7 @@ class AdminLayoutConfig extends Component
             ];
             session()->flash('warning', $messages[$this->section]);
             $this->redirect(url()->previous(), navigate: false);
+
             return;
         }
 
@@ -111,9 +118,16 @@ class AdminLayoutConfig extends Component
 
     public function render()
     {
-        if ($this->section === 'header') return view('Admin::livewire.settings.admin-header-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
-        if ($this->section === 'sidebar') return view('Admin::livewire.settings.admin-sidebar-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
-        if ($this->section === 'footer') return view('Admin::livewire.settings.admin-footer-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
+        if ($this->section === 'header') {
+            return view('Admin::livewire.settings.admin-header-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
+        }
+        if ($this->section === 'sidebar') {
+            return view('Admin::livewire.settings.admin-sidebar-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
+        }
+        if ($this->section === 'footer') {
+            return view('Admin::livewire.settings.admin-footer-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
+        }
+
         return view('Admin::livewire.settings.admin-layout-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
     }
 
@@ -184,13 +198,14 @@ class AdminLayoutConfig extends Component
                 'config.sidebar.search.enabled' => 'boolean', 'config.sidebar.presentation.background' => 'required|in:theme,system,white,dark',
             ],
             'footer' => [
-                'config.layout.show_footer' => 'boolean', 'config.footer.show_app_name' => 'boolean', 'config.footer.copyright.enabled' => 'boolean', 'config.footer.copyright.owner' => 'nullable|string|max:120', 'config.footer.copyright.url' => 'nullable|string|max:255', 'config.footer.copyright.start_year' => 'nullable|integer|min:1900|max:' . date('Y'),
+                'config.layout.show_footer' => 'boolean', 'config.footer.show_app_name' => 'boolean', 'config.footer.copyright.enabled' => 'boolean', 'config.footer.copyright.owner' => 'nullable|string|max:120', 'config.footer.copyright.url' => 'nullable|string|max:255', 'config.footer.copyright.start_year' => 'nullable|integer|min:1900|max:'.date('Y'),
                 'config.footer.datetime.show_date' => 'boolean', 'config.footer.datetime.show_time' => 'boolean', 'config.footer.datetime.date_format' => 'required|in:d/m/Y', 'config.footer.datetime.time_format' => 'required|in:H:i:s',
                 'config.footer.presentation.alignment' => 'required|in:split,center', 'config.footer.presentation.background' => 'required|in:system,transparent', 'config.footer.presentation.divider' => 'required|in:subtle,none', 'config.footer.presentation.compact' => 'boolean',
             ],
-            'design' => ['config.theme.default' => 'required|in:' . implode(',', $this->themes ?: ['corporate-blue']), 'config.theme.dark_mode' => 'required|in:class', 'config.theme.accent' => 'required|in:blue,indigo,emerald,rose,amber'],
+            'design' => ['config.theme.default' => 'required|in:'.implode(',', $this->themes ?: ['corporate-blue']), 'config.theme.dark_mode' => 'required|in:class', 'config.theme.accent' => 'required|in:blue,indigo,emerald,rose,amber'],
             'navigation' => ['config.navigation.cache_ttl' => 'required|integer|min:60|max:86400', 'config.navigation.active_strategy' => 'required|in:url-prefix', 'config.navigation.max_depth' => 'required|integer|min:1|max:3'],
         ];
+
         return $rules[$this->section];
     }
 
@@ -205,6 +220,7 @@ class AdminLayoutConfig extends Component
     private function generalPreset(string $preset): array
     {
         $base = ['preset' => $preset, 'surface' => ['page_background' => 'system', 'content_surface' => 'transparent', 'border' => 'system', 'radius' => 'lg'], 'behavior' => ['reduced_motion' => true]];
+
         return array_replace_recursive($base, match ($preset) {
             'data-heavy' => ['container' => 'full', 'density' => 'compact', 'spacing' => ['content_padding_x' => '5', 'content_padding_top' => '4', 'content_padding_bottom' => '5', 'section_gap' => '4', 'tablet_padding_x' => '4', 'mobile_padding_x' => '3']],
             'focus' => ['container' => 'narrow', 'density' => 'comfortable', 'spacing' => ['content_padding_x' => '6', 'content_padding_top' => '6', 'content_padding_bottom' => '8', 'section_gap' => '6', 'tablet_padding_x' => '5', 'mobile_padding_x' => '4']],
@@ -221,12 +237,16 @@ class AdminLayoutConfig extends Component
 
     private function sectionTitle(): string
     {
-        return match ($this->section) { 'general' => 'Cấu hình tổng thể', 'header' => 'Cấu hình Header', 'sidebar' => 'Cấu hình Sidebar', 'footer' => 'Cấu hình Footer', 'design' => 'Thiết kế & giao diện', 'navigation' => 'Điều hướng', default => 'Cấu hình Layout' };
+        return match ($this->section) {
+            'general' => 'Cấu hình tổng thể', 'header' => 'Cấu hình Header', 'sidebar' => 'Cấu hình Sidebar', 'footer' => 'Cấu hình Footer', 'design' => 'Thiết kế & giao diện', 'navigation' => 'Điều hướng', default => 'Cấu hình Layout'
+        };
     }
 
     private function sectionDescription(): string
     {
-        return match ($this->section) { 'general' => 'Điều chỉnh preset, mật độ, chiều rộng nội dung và khoảng cách toàn cục.', 'header' => 'Điều chỉnh thương hiệu, hành động nhanh, menu tài khoản và cách Header thích ứng theo thiết bị.', 'sidebar' => 'Điều chỉnh kích thước, hành vi thu gọn, tìm kiếm và trình bày Sidebar.', 'footer' => 'Điều chỉnh bản quyền, ngày giờ và cách Footer hiển thị trong Admin Shell.', 'design' => 'Chọn theme mặc định và màu nhấn dùng trong Admin Shell.', 'navigation' => 'Điều chỉnh cache và chiến lược xác định menu đang hoạt động.', default => 'Điều chỉnh Admin Shell.' };
+        return match ($this->section) {
+            'general' => 'Điều chỉnh preset, mật độ, chiều rộng nội dung và khoảng cách toàn cục.', 'header' => 'Điều chỉnh thương hiệu, hành động nhanh, menu tài khoản và cách Header thích ứng theo thiết bị.', 'sidebar' => 'Điều chỉnh kích thước, hành vi thu gọn, tìm kiếm và trình bày Sidebar.', 'footer' => 'Điều chỉnh bản quyền, ngày giờ và cách Footer hiển thị trong Admin Shell.', 'design' => 'Chọn theme mặc định và màu nhấn dùng trong Admin Shell.', 'navigation' => 'Điều chỉnh cache và chiến lược xác định menu đang hoạt động.', default => 'Điều chỉnh Admin Shell.'
+        };
     }
 
     private function sections(): array
