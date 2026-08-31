@@ -42,17 +42,35 @@ class AdminOwnershipBoundaryContractTest extends TestCase
         $this->assertStringContainsString("Route::middleware(['web', 'auth:admin'])", $routes);
     }
 
+    public function test_layout_header_is_canonical_and_legacy_admin_header_entry_is_removed(): void
+    {
+        $routes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Admin/Http/Controllers/AdminController.php'));
+
+        $this->assertNotFalse($routes);
+        $this->assertNotFalse($controller);
+        $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header')", $routes);
+        $this->assertStringNotContainsString("Route::get('/admin-header'", $routes);
+        $this->assertStringNotContainsString('function adminHeader(', $controller);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
+    }
+
     public function test_sidebar_menu_configuration_is_canonical_admin_shell_surface(): void
     {
         $routes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
+        $layoutSection = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/layout-section.blade.php'));
         $manifest = require base_path('Modules/Admin/config/module.php');
 
         $this->assertNotFalse($routes);
+        $this->assertNotFalse($layoutSection);
         $this->assertStringContainsString("Route::prefix('menus')->name('menus.')", $routes);
         $this->assertStringContainsString("[MenuController::class, 'index']", $routes);
         $this->assertStringContainsString('permission:admin.menu.view,admin', $routes);
         $this->assertStringContainsString('permission:admin.menu.create,admin', $routes);
         $this->assertStringContainsString('permission:admin.menu.update,admin', $routes);
+        $this->assertStringContainsString("\$section === 'sidebar'", $layoutSection);
+        $this->assertStringContainsString("route('admin.menus.index')", $layoutSection);
+        $this->assertStringContainsString('Quản lý menu Sidebar', $layoutSection);
 
         $permissions = $manifest['permissions'] ?? [];
         $this->assertContains('admin.menu.view', $permissions);
