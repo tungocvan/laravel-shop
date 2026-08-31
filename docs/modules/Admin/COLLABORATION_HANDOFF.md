@@ -2,117 +2,89 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Website Header/Footer Legacy Runtime Cleanup**
+Task: **Admin Major Refactor — Legacy Runtime Consolidation**
 
-Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / UI PASS / PR READY**
+Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / ROUTES PASS / BUILD PASS / UI PASS / PR READY**
 
-Branch/checkpoint: `refactor/admin-header-footer-legacy-runtime-cleanup`
+Branch: `refactor/admin-home-settings-legacy-wrapper-cleanup`
 
-This approved slice removes the historical Admin-owned Website Header/Footer presentation trees after caller-proof established the Website module as the active runtime owner. Canonical Admin shell Header/Footer configuration under `/admin/layout/header` and `/admin/layout/footer` remains unchanged.
+The approved batch consolidates historical Admin runtime residue after specialized modules became canonical owners. `Modules/Admin` remains the authenticated Admin shell; this change does not move business ownership back into Admin.
 
-## Ownership decision
+## Canonical Admin boundary
 
-- `Modules/Admin` remains the authenticated shell.
-- `/admin/layout/header` and `/admin/layout/footer` remain canonical Admin shell layout configuration.
-- Website owns public Website Header/Footer management through `/admin/header-settings` and `/admin/footer-settings`.
-- Website Header/Footer controllers, wrapper views, Livewire components, services/models and permissions remain canonical.
-- Deprecated Admin HeaderMenu/Banner compatibility model/service adapters remain outside this cleanup and are not claimed to be zero-caller.
+`Modules/Admin/routes/web.php` remains the primary runtime allow-list for Admin-owned presentation. Canonical Admin controllers remain `AdminController`, `DashboardController`, `MenuController`, and `ProfileController`, with Admin shell/layout, dashboard, menu management and profile behavior preserved.
 
-## Runtime cleanup
+`/admin/layout/header`, `/admin/layout/sidebar`, `/admin/layout/footer`, `/admin/layout/design` and related layout sections remain Admin shell configuration. `/admin/menus` remains a separate menu-management subsystem and is not merged into sidebar configuration.
 
-Removed the historical Admin Header runtime tree:
+## Removed legacy runtime residue
 
-- `Modules/Admin/Http/Controllers/HeaderController.php`
-- `Modules/Admin/Livewire/Header/GeneralSettings.php`
-- `Modules/Admin/Livewire/Header/HeaderSettingsHub.php`
-- `Modules/Admin/Livewire/Header/MenuManager.php`
-- `Modules/Admin/resources/views/pages/header/index.blade.php`
-- `Modules/Admin/resources/views/livewire/header/general-settings.blade.php`
-- `Modules/Admin/resources/views/livewire/header/header-settings-hub.blade.php`
-- `Modules/Admin/resources/views/livewire/header/menu-manager.blade.php`
-- `Modules/Admin/resources/views/livewire/header/partials/menu-item-row.blade.php`
-- `Modules/Admin/resources/views/livewire/header/partials/menu-tree-manager.blade.php`
+The batch removes historical Admin controllers for Affiliate, Coupon, Flash Sale, Home Settings, Env Config and the unused Admin API stub; legacy Admin Flash Sale/Coupon presentation components; historical Product/Role/Staff wrapper pages; and historical Admin Role/Staff Livewire components.
 
-Removed the historical Admin Footer runtime tree:
+Website remains canonical for homepage/promotion/presentation management. Product, Role and Account retain their own route ownership. Env configuration remains System-owned.
 
-- `Modules/Admin/Http/Controllers/FooterController.php`
-- `Modules/Admin/Livewire/Footer/FooterInfo.php`
-- `Modules/Admin/Livewire/Footer/FooterColumns.php`
-- `Modules/Admin/Livewire/Footer/SocialLinks.php`
-- `Modules/Admin/resources/views/pages/footer/index.blade.php`
-- `Modules/Admin/resources/views/livewire/footer/footer-info.blade.php`
-- `Modules/Admin/resources/views/livewire/footer/footer-columns.blade.php`
-- `Modules/Admin/resources/views/livewire/footer/social-links.blade.php`
+## Preserved compatibility and quarantine
 
-## Canonical runtime evidence
+This cleanup intentionally preserves deprecated compatibility adapters where caller proof is incomplete or concrete callers remain, including Banner/HeaderMenu, Flash Sale and Affiliate compatibility boundaries. Affiliate compatibility Livewire aliases remain. Orders are not classified as dead by this batch.
 
-Header management remains:
+`Modules/Admin/Services/DatabaseService.php` and the existing Database containment boundary remain quarantined and are not reactivated, moved or deleted.
 
-`Website route /admin/header-settings -> Modules\Website\Http\Controllers\Admin\HeaderController -> Website::pages.admin.header.index -> website.admin.header.header-settings-hub`.
+Auth is also outside deletion scope unless its independent runtime chain is separately proven obsolete.
 
-Footer management remains:
+## Contract protection
 
-`Website route /admin/footer-settings -> Modules\Website\Http\Controllers\Admin\FooterController -> Website::pages.admin.footer.index -> website.admin.footer.footer-info / footer-columns / social-links / footer-settings-hub`.
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` locks the consolidated boundary:
 
-The removed Admin Livewire components were already delegating Website presentation behavior to Website `HeaderMenuService`, `HeaderMenuItem`, `FooterService`, `FooterColumn`, `SocialLink` or shared System settings, which confirmed migration residue rather than canonical Admin business ownership.
+- removed Admin runtime trees must stay absent;
+- Website presentation routes remain canonical, including grouped Coupon routes;
+- Product/Role/Account route ownership remains outside Admin;
+- Admin shell controllers/layout remain present;
+- compatibility adapters and Database quarantine remain preserved.
 
-## Guardrails
+## Schema and data
 
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` asserts:
-
-- the complete historical Admin Header/Footer runtime trees stay absent;
-- Website Header/Footer admin routes and permissions stay canonical;
-- Website controllers render Website wrapper views;
-- Website wrapper views mount Website Livewire components;
-- `/admin/layout/header` and `/admin/layout/footer` remain canonical Admin shell configuration;
-- deprecated Admin Banner/HeaderMenu compatibility classes remain compatibility-only;
-- promotion/database quarantine families remain outside this slice.
-
-## Schema and data decision
-
-No schema, migration, foreign-key or production-data change is authorized or included.
+No schema, migration, foreign-key or production-data change is included.
 
 ## Verification
 
-Focused verification reported PASS:
+Focused verification reported **PASS** after correcting the contract assertion for Website's grouped `Route::prefix('coupons')` declaration.
 
-```text
-AdminWebsitePresentationOwnershipContractTest: 6 passed, 77 assertions
-AdminOwnershipBoundaryContractTest: 5 passed, 31 assertions
-Total: 11 passed, 108 assertions
-```
+The focused Admin ownership test set passed:
 
-Route verification reported PASS:
+- `tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php`
+- `tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php`
 
-```text
-/admin/layout/header -> Modules\Admin\Http\Controllers\AdminController@layoutHeader
-/admin/layout/footer -> Modules\Admin\Http\Controllers\AdminController@layoutFooter
-/admin/header-settings -> Modules\Website\Http\Controllers\Admin\HeaderController
-/admin/footer-settings -> Modules\Website\Http\Controllers\Admin\FooterController
-```
+Route verification reported **PASS**. The active route table confirms canonical ownership after cleanup, including:
 
-Manual UI smoke: **PASS** for `/admin/layout/header`, `/admin/layout/footer`, `/admin/header-settings`, and `/admin/footer-settings`.
+- Admin shell/layout/menu/profile -> `Modules\\Admin`
+- `/admin/login` and `/admin/logout` -> `Modules\\Auth`
+- `/admin/homepage-settings`, `/admin/coupons*`, `/admin/flash-sales`, `/admin/affiliate`, Banner/Header/Footer settings -> `Modules\\Website`
+- `/admin/products*` -> `Modules\\Product`
+- `/admin/posts*` -> `Modules\\Post`
+- `/admin/category*` -> `Modules\\Category`
+- `/admin/roles*` -> `Modules\\Role`
+- `/admin/accounts*` -> `Modules\\Account`
+- `/admin/system/settings/env` -> `Modules\\System`
 
-Working tree before documentation closeout: **clean** at implementation checkpoint `0fdb4ce7`.
+Frontend verification: `npm run build` **PASS** with Vite v7.3.6.
+
+Manual UI smoke reported **PASS** for the agreed Admin shell and canonical Website management surfaces, including layout/menu/profile, homepage settings, coupons, flash sales and affiliate management.
+
+No full-project regression suite was required for this ownership cleanup.
 
 ## Acceptance criteria
 
-- canonical Admin shell Header/Footer `/admin/layout/header|footer`: **PRESERVED**;
-- canonical Website Header/Footer management `/admin/header-settings|footer-settings`: **PRESERVED**;
-- historical Admin Header runtime tree: **REMOVED**;
-- historical Admin Footer runtime tree: **REMOVED**;
-- deprecated Admin HeaderMenu/Banner compatibility adapters: **PRESERVED**;
-- schema/migration/data changes: **NONE**;
-- focused regression: **PASS — 11 tests / 108 assertions**;
-- route ownership verification: **PASS**;
-- manual UI smoke: **PASS**.
+- Admin shell/layout/dashboard/menu/profile: **PRESERVED / PASS**
+- Website canonical presentation/promotion routes: **PRESERVED / PASS**
+- Product/Role/Account specialized ownership: **PRESERVED / PASS**
+- approved legacy Admin runtime residue: **REMOVED**
+- compatibility adapters with unresolved/dynamic callers: **PRESERVED / DEPRECATED**
+- Database destructive boundary: **QUARANTINED / UNCHANGED**
+- schema/data changes: **NONE**
+- focused tests: **PASS**
+- route ownership verification: **PASS**
+- frontend build: **PASS**
+- manual UI smoke: **PASS**
 
-## Remaining compatibility debt
+## Next checkpoint
 
-Deprecated Admin `HeaderMenu`, `HeaderMenuItem`, `HeaderMenuService` and Banner compatibility adapters remain intentionally. Home settings residue, Flash Sale/Coupon/Affiliate/Order residue, environment/System adapters and Database quarantine remain separate scopes.
-
-## Next phase
-
-Open and merge this Website Header/Footer Legacy Runtime Cleanup as a focused PR. Do not start another compatibility-debt family until this branch is merged.
-
-After merge, resume route -> controller -> view -> Livewire -> service/model caller proof for exactly one remaining legacy family before proposing another implementation scope.
+Open the Legacy Runtime Consolidation PR against `main` and review it before merge. After merge, sync `main` and treat any remaining compatibility adapters or quarantined families as separate, caller-proofed follow-up work rather than reopening this batch.
