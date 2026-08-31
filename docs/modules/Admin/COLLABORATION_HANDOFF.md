@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Final Core Boundary Closeout**
 
-Status: **IMPLEMENTED — FINAL AUTOMATED VERIFICATION PENDING / UI PASS**
+Status: **COMPLETE — FINAL REGRESSION PASS / ROUTES PASS / PINT PASS / BUILD PASS / UI PASS / PR READY**
 
 Branch: `refactor/admin-core-boundary-cleanup`
 
@@ -58,7 +58,7 @@ Admin-owned layout configuration components remain preserved:
 
 ### Website integration
 
-The deprecated Admin `HeaderMenuService` bridge is removed. `AdminLayoutConfig` now consumes the Website-owned `HeaderMenuService` directly only for the legacy one-way import into an empty Admin header user-menu configuration. `/admin/layout/header` remains Admin-owned; Website remains owner of HeaderMenu persistence and behavior.
+The deprecated Admin `HeaderMenuService` bridge is removed. Admin header configuration and runtime now consume the Website-owned `HeaderMenuService` directly where legacy menu data is still needed. `/admin/layout/header` remains Admin-owned; Website remains owner of HeaderMenu persistence and behavior.
 
 ## Deferred compatibility debt — Website refactor
 
@@ -88,7 +88,7 @@ Repository audit confirms:
 - Auth Google controller depends on Auth-owned `AuthService`;
 - specialized Order/Product/Role/Account routes remain outside Admin;
 - deprecated Admin System settings wrappers are retired;
-- deprecated Admin HeaderMenu service bridge is retired while Admin layout import behavior is preserved through the Website service;
+- deprecated Admin HeaderMenu service bridge is retired while Admin header/menu integration remains functional through the Website service;
 - Database and `ModuleRouteTitle` remain explicitly quarantined/preserved;
 - remaining Website compatibility aliases are documented as deferred Website-refactor debt rather than Admin runtime ownership.
 
@@ -96,57 +96,49 @@ Repository audit confirms:
 
 `tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php` protects the canonical shell route/controller boundary, layout hub, menu ownership and closed Admin API surface.
 
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` protects retired legacy runtime, Auth/Chat/specialized ownership, Admin layout integration and the explicit split between deferred Website compatibility debt versus Admin quarantine/persistence.
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php`, `AdminAffiliateOwnershipContractTest.php`, `AdminFlashSaleOwnershipContractTest.php`, `AdminHeaderSettingsUiContractTest.php` and `AdminOrderOwnershipCleanupContractTest.php` protect retired legacy runtime, specialized ownership, Admin layout/header integration, deferred Website compatibility debt and explicit quarantine boundaries.
 
-`tests/Feature/System/CanonicalSettingsServiceTest.php` protects System ownership after retirement of Admin settings adapters.
+`tests/Feature/System/CanonicalSettingsServiceTest.php` and `SystemSettingsOwnershipTest.php` protect System ownership after retirement of Admin settings adapters.
 
 ## Verification status
 
-Manual Admin UI smoke: **PASS** (user-confirmed).
+User-confirmed final verification: **PASS GREEN**.
 
-Final automated verification is required after pulling the latest branch commits. The closeout gate is:
+Verified gate:
 
-```bash
-php artisan optimize:clear
+- `tests/Feature/Admin`: **PASS**
+- `tests/Feature/Auth`: **PASS**
+- `tests/Feature/System`: **PASS**
+- `tests/Feature/Order`: **PASS**
+- `tests/Feature/Product`: **PASS**
+- `tests/Feature/Role`: **PASS**
+- Admin route ownership checks: **PASS**
+- focused Pint / formatted `AdminLayoutConfig`: **PASS**
+- Vite production build: **PASS**
+- manual Admin UI smoke: **PASS**
 
-php artisan test tests/Feature/Admin
-php artisan test tests/Feature/Auth
-php artisan test tests/Feature/System
-php artisan test tests/Feature/Order
-php artisan test tests/Feature/Product
-php artisan test tests/Feature/Role
-
-php artisan route:list --path=admin
-php artisan route:list --path=admin/layout
-php artisan route:list --path=admin/login
-php artisan route:list --path=admin/orders
-php artisan route:list --path=admin/products
-php artisan route:list --path=admin/roles
-
-./vendor/bin/pint --test tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php tests/Feature/System/CanonicalSettingsServiceTest.php Modules/Admin/Livewire/Settings/AdminLayoutConfig.php Modules/Auth/Http/Controllers/GoogleController.php Modules/Auth/Services/AuthService.php
-npm run build
-```
-
-Do not run a broad repository-wide refactor/format pass as part of this closeout.
+The transient failures discovered during the closeout were resolved before final acceptance: stale ownership contracts were aligned with retired adapters, and the remaining Admin header runtime dependency was moved from the deleted Admin `HeaderMenuService` to the canonical Website `HeaderMenuService`.
 
 ## Acceptance criteria
 
-- Admin shell/dashboard/menu/profile/layout boundary: **IMPLEMENTED**
-- `/admin/layout` canonical hub: **PRESERVED**
-- Auth ownership moved to `Modules/Auth`: **IMPLEMENTED**
-- legacy Admin Order/Product/Role/Staff controllers: **REMOVED**
-- duplicate Admin Order Livewire: **REMOVED**
-- deprecated Admin System settings adapters: **REMOVED**
-- Admin HeaderMenu service bridge: **REMOVED / INTEGRATION PRESERVED**
+- Admin shell/dashboard/menu/profile/layout boundary: **COMPLETE**
+- `/admin/layout` canonical hub: **PRESERVED / PASS**
+- Auth ownership moved to `Modules/Auth`: **COMPLETE / PASS**
+- legacy Admin Order/Product/Role/Staff controllers: **REMOVED / PASS**
+- duplicate Admin Order Livewire: **REMOVED / PASS**
+- deprecated Admin System settings adapters: **REMOVED / PASS**
+- Admin HeaderMenu service bridge: **REMOVED / INTEGRATION PASS**
 - Website compatibility adapter retirement: **DEFERRED TO WEBSITE REFACTOR BY DESIGN**
 - Database destructive boundary: **QUARANTINED / UNCHANGED**
 - `ModuleRouteTitle` persistence: **PRESERVED**
 - schema/data changes: **NONE**
+- final automated regression: **PASS**
+- Pint: **PASS**
+- build: **PASS**
 - manual Admin UI: **PASS**
-- final automated regression/build: **PENDING**
 
 ## Next checkpoint
 
-1. Pull the latest `refactor/admin-core-boundary-cleanup` branch and run the final verification gate above.
-2. If all gates pass, mark this Admin Major Refactor **COMPLETE / PR READY**, open the closeout PR against `main`, review and merge.
-3. Start the separate `Modules/Website` refactor. That phase owns the deferred Banner/FlashSale/Affiliate/HeaderMenu compatibility-debt cleanup and must not move those business domains back into Admin.
+Open and merge the final Admin Core Boundary Cleanup PR against `main`.
+
+After merge, the **Admin Major Refactor is COMPLETE**. The next separate phase is the `Modules/Website` refactor, which owns the deferred Banner/FlashSale/Affiliate/HeaderMenu compatibility-debt cleanup and must not move those business domains back into Admin.
