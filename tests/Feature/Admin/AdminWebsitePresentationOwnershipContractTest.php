@@ -25,6 +25,10 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
             'Modules/Admin/Livewire/System/RoleTable.php',
             'Modules/Admin/Livewire/System/StaffForm.php',
             'Modules/Admin/Livewire/System/StaffTable.php',
+            'Modules/Admin/Livewire/Auth/LoginForm.php',
+            'Modules/Admin/resources/views/livewire/auth/login-form.blade.php',
+            'Modules/Admin/Events/MessageSent.php',
+            'Modules/Admin/Jobs/TestQueueJob.php',
             'Modules/Admin/resources/views/pages/affiliate/index.blade.php',
             'Modules/Admin/resources/views/pages/flash-sale/index.blade.php',
             'Modules/Admin/resources/views/pages/home/index.blade.php',
@@ -45,6 +49,22 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
         foreach ($removed as $path) {
             $this->assertFileDoesNotExist(base_path($path), $path);
         }
+    }
+
+    public function test_auth_and_chat_specialized_runtime_remain_canonical(): void
+    {
+        $authController = file_get_contents(base_path('Modules/Auth/Http/Controllers/AuthController.php'));
+        $authLogin = file_get_contents(base_path('Modules/Auth/resources/views/pages/auth/login.blade.php'));
+        $chatRoutes = file_get_contents(base_path('Modules/Chat/routes/web.php'));
+
+        $this->assertNotFalse($authController);
+        $this->assertNotFalse($authLogin);
+        $this->assertNotFalse($chatRoutes);
+        $this->assertStringContainsString('function adminLogin', $authController);
+        $this->assertStringContainsString("'guard' => 'admin'", $authController);
+        $this->assertStringContainsString("@livewire('auth.auth.login-form'", $authLogin);
+        $this->assertStringContainsString("->prefix('admin')", $chatRoutes);
+        $this->assertStringContainsString('ChatController::class', $chatRoutes);
     }
 
     public function test_website_presentation_routes_remain_canonical(): void
@@ -93,7 +113,7 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
         $this->assertStringContainsString("@livewire('admin.settings.admin-layout-config'", $layout);
     }
 
-    public function test_compatibility_and_database_quarantine_are_preserved(): void
+    public function test_compatibility_persistence_and_database_quarantine_are_preserved(): void
     {
         foreach ([
             'Modules/Admin/Models/Banner.php',
@@ -106,6 +126,10 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
             'Modules/Admin/Services/FlashSaleService.php',
             'Modules/Admin/Livewire/Affiliate/CommissionList.php',
             'Modules/Admin/Livewire/Affiliate/CommissionMatrix.php',
+            'Modules/Admin/Livewire/Orders/OrderDetailModal.php',
+            'Modules/Admin/Services/AdminAffiliateService.php',
+            'Modules/Admin/Models/ModuleRouteTitle.php',
+            'Modules/Admin/database/migrations/2026_08_04_000002_create_module_route_titles_table.php',
             'Modules/Admin/Services/DatabaseService.php',
         ] as $path) {
             $this->assertFileExists(base_path($path), $path);
