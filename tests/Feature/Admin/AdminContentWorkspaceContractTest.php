@@ -57,22 +57,16 @@ class AdminContentWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('wire:submit="save"', $config);
     }
 
-    public function test_header_manager_uses_page_header_toolbar_and_links_to_canonical_design_page(): void
+    public function test_header_configuration_is_owned_by_canonical_layout_section(): void
     {
-        $view = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
+        $page = file_get_contents(base_path('Modules/Admin/resources/views/pages/admin/layout-section.blade.php'));
+        $config = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-layout-config.blade.php'));
+        $routes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
 
-        $this->assertStringContainsString('<x-admin::page-header', $view);
-        $this->assertStringContainsString('<x-slot:toolbar>', $view);
-        $this->assertStringContainsString('role="tablist"', $view);
-        $this->assertStringContainsString('role="tab"', $view);
-        $this->assertStringContainsString(':aria-selected=', $view);
-        $this->assertStringContainsString('<x-admin::content-section>', $view);
-        $this->assertStringNotContainsString('max-w-7xl mx-auto py-6', $view);
-        $this->assertStringNotContainsString('Homepage Header Manager', $view);
-        $this->assertStringContainsString("@livewire('admin.header.general-settings')", $view);
-        $this->assertStringContainsString("@livewire('admin.header.menu-manager')", $view);
-        $this->assertStringContainsString("route('admin.layout.design')", $view);
-        $this->assertStringNotContainsString("@livewire('admin.theme-switcher')", $view);
+        $this->assertStringContainsString("@livewire('admin.settings.admin-layout-config', ['section' => \$section])", $page);
+        $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header');", $routes);
+        $this->assertStringContainsString("'header'", $config);
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
     }
 
     public function test_legacy_themes_url_redirects_to_canonical_layout_design_route(): void

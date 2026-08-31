@@ -20,7 +20,7 @@ class WebsiteDynamicManifestConfigurationTest extends TestCase
         $this->assertStringContainsString("'short_name' => \$appearance['apple_title']", $controller);
         $this->assertStringContainsString("'theme_color' => \$appearance['theme_color']", $controller);
         $this->assertStringContainsString("'background_color' => \$appearance['background_color']", $controller);
-        $this->assertStringContainsString("'start_url' => '/'", $controller);
+        $this->assertStringContainsString("'start_url' => '/my-apps'", $controller);
         $this->assertStringContainsString("route('website.manifest')", $head);
         $this->assertStringNotContainsString('href="/manifest.webmanifest"', $head);
 

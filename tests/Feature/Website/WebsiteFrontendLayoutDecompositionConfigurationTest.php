@@ -50,9 +50,11 @@ class WebsiteFrontendLayoutDecompositionConfigurationTest extends TestCase
         $this->assertStringContainsString('@alert.window', $toast);
         $this->assertStringContainsString("setTimeout(() => open = false, 4000)", $toast);
 
-        $this->assertStringContainsString("'inject_assets' => true", $livewireConfig);
-        $this->assertStringNotContainsString('@livewireStyles', $runtimeHead);
-        $this->assertStringNotContainsString('@livewireScripts', $runtimeScripts);
+        $this->assertStringContainsString("'inject_assets' => false", $livewireConfig);
+        $this->assertStringContainsString('@livewireStyles', $runtimeHead);
+        $this->assertStringContainsString('@livewireScripts', $runtimeScripts);
+        $this->assertSame(1, substr_count($runtimeHead, '@livewireStyles'));
+        $this->assertSame(1, substr_count($runtimeScripts, '@livewireScripts'));
         $this->assertStringContainsString("navigator.serviceWorker.register('/service-worker.js')", $runtimeScripts);
     }
 }
