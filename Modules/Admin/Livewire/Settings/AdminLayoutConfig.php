@@ -3,9 +3,9 @@
 namespace Modules\Admin\Livewire\Settings;
 
 use Livewire\Component;
-use Modules\Admin\Services\HeaderMenuService;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
+use Modules\Website\Services\HeaderMenuService;
 
 class AdminLayoutConfig extends Component
 {
@@ -22,7 +22,7 @@ class AdminLayoutConfig extends Component
         $this->themes = $themeManager->all();
 
         if ($section === 'header' && count((array) data_get($this->config, 'header.user_menu_config.items', [])) === 0) {
-            $currentMenuItems = $headerMenuService->exportAdminConfigItems();
+            $currentMenuItems = $this->exportWebsiteHeaderMenuItems($headerMenuService);
             if ($currentMenuItems !== []) {
                 $this->config['header']['user_menu_config']['items'] = $currentMenuItems;
                 $this->importedHeaderMenuItems = true;
@@ -117,6 +117,45 @@ class AdminLayoutConfig extends Component
         return view('Admin::livewire.settings.admin-layout-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
     }
 
+    private function exportWebsiteHeaderMenuItems(HeaderMenuService $headerMenuService): array
+    {
+        return $headerMenuService->getMenuTreeByLocation('admin')
+            ->map(function ($item, int $index) {
+                $url = is_string($item->url) ? trim($item->url) : '';
+
+                if ($url === '' || ! str_starts_with($url, '/') || str_starts_with($url, '//')) {
+                    return null;
+                }
+
+                return [
+                    'enabled' => true,
+                    'label' => mb_substr((string) $item->title, 0, 80),
+                    'icon' => $this->headerMenuConfigIcon($item->icon),
+                    'url' => mb_substr($url, 0, 255),
+                    'target' => $item->target === '_blank' ? '_blank' : '_self',
+                    'permission' => null,
+                    'order' => (int) ($item->sort_order ?? $index),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function headerMenuConfigIcon(mixed $icon): string
+    {
+        $icon = is_string($icon) ? strtolower($icon) : '';
+
+        return match (true) {
+            str_contains($icon, 'user') => 'user',
+            str_contains($icon, 'gear'), str_contains($icon, 'cog') => 'gear',
+            str_contains($icon, 'lock') => 'lock',
+            str_contains($icon, 'key') => 'key',
+            str_contains($icon, 'shield') => 'shield',
+            default => 'link',
+        };
+    }
+
     private function rules(): array
     {
         $spacing = 'required|in:0,1,2,3,4,5,6,8,10,12';
@@ -169,18 +208,29 @@ class AdminLayoutConfig extends Component
         return array_replace_recursive($base, match ($preset) {
             'data-heavy' => ['container' => 'full', 'density' => 'compact', 'spacing' => ['content_padding_x' => '5', 'content_padding_top' => '4', 'content_padding_bottom' => '5', 'section_gap' => '4', 'tablet_padding_x' => '4', 'mobile_padding_x' => '3']],
             'focus' => ['container' => 'narrow', 'density' => 'comfortable', 'spacing' => ['content_padding_x' => '6', 'content_padding_top' => '6', 'content_padding_bottom' => '8', 'section_gap' => '6', 'tablet_padding_x' => '5', 'mobile_padding_x' => '4']],
-            'settings' => ['container' => '7xl', 'density' => 'comfortable', 'spacing' => ['content_padding_x' => '6', 'content_padding_top' => '5', 'content_padding_bottom' => '6', 'section_gap' => '5', 'tablet_padding_x' => '5', 'mobile_padding_x' => '4']],
-            default => ['preset' => 'default', 'container' => 'screen-2xl', 'density' => 'comfortable', 'spacing' => ['content_padding_x' => '6', 'content_padding_top' => '6', 'content_padding_bottom' => '8', 'section_gap' => '6', 'tablet_padding_x' => '5', 'mobile_padding_x' => '4']],
+            'settings' => ['container' => 'screen-2xl', 'density' => 'compact', 'spacing' => ['content_padding_x' => '6', 'content_padding_top' => '5', 'content_padding_bottom' => '6', 'section_gap' => '5', 'tablet_padding_x' => '4', 'mobile_padding_x' => '3']],
+            default => ['container' => '7xl', 'density' => 'comfortable', 'spacing' => ['content_padding_x' => '6', 'content_padding_top' => '5', 'content_padding_bottom' => '6', 'section_gap' => '5', 'tablet_padding_x' => '5', 'mobile_padding_x' => '4']],
         });
     }
 
-    private function sections(): array { return ['general', 'header', 'sidebar', 'footer', 'design', 'navigation']; }
-    private function sectionTitle(): string { return match ($this->section) { 'general' => 'Layout tổng thể', 'header' => 'Header', 'sidebar' => 'Sidebar', 'footer' => 'Footer', 'design' => 'Giao diện & Theme', 'navigation' => 'Navigation' }; }
-    private function sectionDescription(): string { return match ($this->section) { 'general' => 'Thiết lập workspace, container, mật độ, khoảng cách, surface và hành vi tổng thể.', 'header' => 'Quản lý nhận diện thương hiệu, thành phần, thao tác nhanh, UserMenu, presentation và responsive của Header Admin.', 'sidebar' => 'Quản lý Header Sidebar, kích thước, các nút điều khiển, tìm chức năng, Footer Sidebar và background.', 'footer' => 'Quản lý bản quyền, ngày giờ và cách trình bày Footer Admin.', 'design' => 'Quản lý theme và accent đang được Admin runtime sử dụng.', 'navigation' => 'Quản lý cache, active strategy và độ sâu navigation.' }; }
-
     private function authorizePermission(string $permission): void
     {
-        $user = auth('admin')->user() ?: auth()->user();
-        abort_unless($user?->can($permission), 403);
+        $user = auth('admin')->user();
+        abort_unless($user && method_exists($user, 'hasPermission') && $user->hasPermission($permission), 403);
+    }
+
+    private function sectionTitle(): string
+    {
+        return match ($this->section) { 'general' => 'Cấu hình tổng thể', 'header' => 'Cấu hình Header', 'sidebar' => 'Cấu hình Sidebar', 'footer' => 'Cấu hình Footer', 'design' => 'Thiết kế & giao diện', 'navigation' => 'Điều hướng', default => 'Cấu hình Layout' };
+    }
+
+    private function sectionDescription(): string
+    {
+        return match ($this->section) { 'general' => 'Điều chỉnh preset, mật độ, chiều rộng nội dung và khoảng cách toàn cục.', 'header' => 'Điều chỉnh thương hiệu, hành động nhanh, menu tài khoản và cách Header thích ứng theo thiết bị.', 'sidebar' => 'Điều chỉnh kích thước, hành vi thu gọn, tìm kiếm và trình bày Sidebar.', 'footer' => 'Điều chỉnh bản quyền, ngày giờ và cách Footer hiển thị trong Admin Shell.', 'design' => 'Chọn theme mặc định và màu nhấn dùng trong Admin Shell.', 'navigation' => 'Điều chỉnh cache và chiến lược xác định menu đang hoạt động.', default => 'Điều chỉnh Admin Shell.' };
+    }
+
+    private function sections(): array
+    {
+        return ['general', 'header', 'sidebar', 'footer', 'design', 'navigation'];
     }
 }
