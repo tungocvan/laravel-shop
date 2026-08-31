@@ -59,9 +59,12 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
             $this->assertStringNotContainsString($legacyController, $adminRoutes);
         }
 
-        foreach (['/homepage-settings', '/header-settings', '/footer-settings', '/banners', '/flash-sales', '/coupons', '/affiliate'] as $uri) {
+        foreach (['/homepage-settings', '/header-settings', '/footer-settings', '/banners', '/flash-sales', '/affiliate'] as $uri) {
             $this->assertStringContainsString($uri, $websiteRoutes);
         }
+
+        $this->assertStringContainsString("Route::prefix('coupons')", $websiteRoutes);
+        $this->assertStringContainsString('CouponController::class', $websiteRoutes);
     }
 
     public function test_specialized_modules_own_product_role_and_account_routes(): void
