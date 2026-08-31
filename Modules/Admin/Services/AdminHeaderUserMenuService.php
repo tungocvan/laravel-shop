@@ -5,6 +5,7 @@ namespace Modules\Admin\Services;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Modules\Admin\Support\AdminLayoutManager;
+use Modules\Website\Services\HeaderMenuService;
 
 class AdminHeaderUserMenuService
 {
@@ -132,6 +133,7 @@ class AdminHeaderUserMenuService
 
         if (method_exists($user, 'getRoleNames')) {
             $role = $user->getRoleNames()->first();
+
             return is_string($role) && $role !== '' ? $role : null;
         }
 
