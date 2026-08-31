@@ -12,14 +12,26 @@ Mục tiêu là để ChatGPT trực tiếp phân tích/sửa code trên GitHub,
 
 ### Major/Clean Module Refactor — entry point bắt buộc
 
-Khi người dùng gửi một yêu cầu tương đương:
+Prompt canonical khi bắt đầu ở chat mới là:
+
+```text
+Áp dụng docs/GITHUB_COLLABORATION_WORKFLOW.md
+Chế độ: Refactor Module
+Module: <Module>
+```
+
+`docs/GITHUB_COLLABORATION_WORKFLOW.md` là **bootstrap/entry point duy nhất** mà người dùng cần chỉ định. Sau khi đọc file này, AI phải tự điều hướng tới toàn bộ tài liệu Refactor Module bắt buộc; người dùng không phải nhớ hoặc liệt kê các file `.md` còn lại.
+
+Các dạng rút gọn sau vẫn là alias hợp lệ khi workflow/repository context đã rõ:
 
 ```text
 Áp dụng refactor Module
 Module: <Module>
 ```
 
-hoặc `Refactor Module: <Module>` / `Major Refactor Module <Module>`, phải kích hoạt **Clean Module Refactor workflow**.
+hoặc `Refactor Module: <Module>` / `Major Refactor Module <Module>`.
+
+Khi canonical prompt hoặc alias được nhận diện, phải kích hoạt **Clean Module Refactor workflow**.
 
 Trước khi đề xuất implementation, bắt buộc đọc và áp dụng đồng thời:
 
@@ -436,7 +448,7 @@ Nếu feature tạo runtime file/directory:
 
 Nếu local có thay đổi chưa commit:
 
-- dừng trước khi switch/merge/pull có rủi ro
+- dừng trước switch/merge/pull có rủi ro
 - xem `git diff`
 - xác định thay đổi cần giữ hay bỏ
 - không dùng `reset --hard`, `clean -fd`, `restore` bừa bãi
