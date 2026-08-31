@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Core Boundary Hardening + Legacy Diagnostic Retirement**
 
-Status: **IMPLEMENTED — LOCAL VERIFICATION PENDING**
+Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / ROUTES PASS / BUILD PASS / UI PASS / PR READY**
 
 Branch: `refactor/admin-core-boundary-hardening`
 
@@ -49,7 +49,7 @@ Deprecated compatibility adapters remain where caller proof is incomplete or con
 
 ## Contract protection
 
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` now locks both the previous consolidation and this phase:
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` locks both the previous consolidation and this phase:
 
 - retired Admin runtime/diagnostic artifacts must stay absent;
 - Auth module remains canonical for Admin login;
@@ -64,23 +64,28 @@ Deprecated compatibility adapters remain where caller proof is incomplete or con
 
 No schema, migration, foreign-key or production-data change is included. No table is dropped.
 
-## Verification plan
+## Verification
 
-Run one consolidated local verification after pulling the completed branch:
+Focused ownership verification: **PASS** after correcting the Chat route contract to match the chained `->prefix('admin')` declaration.
 
-1. `vendor/bin/pint --test Modules/Admin tests/Feature/Admin`
-2. `php artisan test tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php`
-3. `php artisan route:list --path=admin`
-4. `npm run build`
-5. Manual UI smoke: Admin login/logout, dashboard, `/admin/layout`, `/admin/menus`, profile, one Website-owned management surface, and Admin Chat routes if enabled/authorized in the local environment.
+Verified focused tests:
 
-A full-project regression suite is not required for this ownership-only cleanup unless focused verification exposes an impacted dependency.
+- `tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php`
+- `tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php`
+
+Route verification: **PASS**. The route table confirms `/admin/login` and `/admin/logout` are Auth-owned, `/admin/chat` and `/admin/chat/internal-chat` are Chat-owned, and Admin shell/layout/menu/profile routes remain Admin-owned.
+
+Frontend build: **PASS** with Vite v7.3.6.
+
+Manual UI smoke: **PASS**.
+
+The broad Pint audit reported pre-existing formatting debt across the Admin module/test tree; no broad auto-format was applied because it is outside this ownership cleanup scope. The changed ownership contract itself passed focused Pint verification.
 
 ## Acceptance criteria
 
-- Admin shell/layout/dashboard/menu/profile: **PRESERVED**
-- canonical Auth admin login: **PRESERVED**
-- canonical Chat ownership: **PRESERVED**
+- Admin shell/layout/dashboard/menu/profile: **PRESERVED / PASS**
+- canonical Auth admin login: **PRESERVED / PASS**
+- canonical Chat ownership: **PRESERVED / PASS**
 - Admin legacy Auth duplicate: **REMOVED**
 - Admin legacy Chat event: **REMOVED**
 - Admin diagnostic queue job: **REMOVED**
@@ -89,9 +94,11 @@ A full-project regression suite is not required for this ownership-only cleanup 
 - compatibility adapters with unresolved/dynamic callers: **PRESERVED / DEPRECATED**
 - Database destructive boundary: **QUARANTINED / UNCHANGED**
 - schema/data changes: **NONE**
-- focused verification: **PENDING USER LOCAL RUN**
-- UI smoke: **PENDING USER LOCAL RUN**
+- focused verification: **PASS**
+- route ownership verification: **PASS**
+- frontend build: **PASS**
+- manual UI smoke: **PASS**
 
 ## Next checkpoint
 
-Pull the completed branch and run the consolidated verification plan once. If it passes, update this handoff with the verification result and prepare one PR against `main`. Any deeper Chat duplication cleanup, compatibility-adapter retirement, `ModuleRouteTitle` lifecycle decision or Database work remains a separate caller-proofed phase.
+Open the Core Boundary Hardening PR against `main` and review it before merge. Any deeper Chat duplication cleanup, compatibility-adapter retirement, `ModuleRouteTitle` lifecycle decision, broad Admin Pint cleanup or Database work remains a separate caller-proofed phase.
