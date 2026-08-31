@@ -3,11 +3,8 @@
 namespace Tests\Feature\System;
 
 use Illuminate\Support\Facades\Route;
-use Modules\Admin\Http\Controllers\SettingController;
-use Modules\Admin\Livewire\Settings as AdminSettings;
 use Modules\Admin\Services\Database as AdminDatabaseServices;
 use Modules\Admin\Services\Env as AdminEnvServices;
-use Modules\System\Livewire\Settings as SystemSettings;
 use Modules\System\Services\Database as SystemDatabaseServices;
 use Modules\System\Services\Env as SystemEnvServices;
 use ReflectionClass;
@@ -15,27 +12,36 @@ use Tests\TestCase;
 
 class SystemSettingsOwnershipTest extends TestCase
 {
-    public function test_legacy_admin_livewire_names_delegate_to_system_components(): void
+    public function test_legacy_admin_livewire_settings_adapters_are_retired(): void
     {
-        $adapters = [
-            AdminSettings\AdvancedConfig::class => SystemSettings\AdvancedConfig::class,
-            AdminSettings\DatabaseConfig::class => SystemSettings\DatabaseConfig::class,
-            AdminSettings\EnvManager::class => SystemSettings\EnvManager::class,
-            AdminSettings\MailConfig::class => SystemSettings\MailConfig::class,
-            AdminSettings\ModulesForm::class => SystemSettings\ModulesForm::class,
-            AdminSettings\MomoConfig::class => SystemSettings\MomoConfig::class,
-            AdminSettings\SettingForm::class => SystemSettings\SettingForm::class,
-            AdminSettings\SocialConfig::class => SystemSettings\SocialConfig::class,
-            AdminSettings\StorageConfig::class => SystemSettings\StorageConfig::class,
-        ];
-
-        foreach ($adapters as $legacy => $canonical) {
-            $this->assertTrue(is_subclass_of($legacy, $canonical), "{$legacy} must delegate to {$canonical}.");
-            $source = file_get_contents((new ReflectionClass($legacy))->getFileName());
-            $this->assertStringNotContainsString('function ', $source, "{$legacy} must remain a thin adapter.");
+        foreach ([
+            'AdvancedConfig.php',
+            'DatabaseConfig.php',
+            'EnvManager.php',
+            'MailConfig.php',
+            'ModulesForm.php',
+            'MomoConfig.php',
+            'SettingForm.php',
+            'SocialConfig.php',
+            'StorageConfig.php',
+            'Placeholder.php',
+        ] as $file) {
+            $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Settings/'.$file));
         }
 
-        $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Settings/Placeholder.php'));
+        foreach ([
+            'AdvancedConfig.php',
+            'DatabaseConfig.php',
+            'EnvManager.php',
+            'MailConfig.php',
+            'ModulesForm.php',
+            'MomoConfig.php',
+            'SettingForm.php',
+            'SocialConfig.php',
+            'StorageConfig.php',
+        ] as $file) {
+            $this->assertFileExists(base_path('Modules/System/Livewire/Settings/'.$file));
+        }
     }
 
     public function test_legacy_admin_services_delegate_to_system_services(): void
@@ -56,13 +62,9 @@ class SystemSettingsOwnershipTest extends TestCase
         }
     }
 
-    public function test_legacy_admin_controller_redirects_to_canonical_routes(): void
+    public function test_legacy_admin_settings_controllers_are_retired(): void
     {
-        $settings = new SettingController;
-
-        $this->assertSame(route('admin.system.settings.index'), $settings->index()->getTargetUrl());
-        $this->assertSame(route('admin.profile'), $settings->profile()->getTargetUrl());
-        $this->assertSame(route('admin.system.modules'), $settings->modules()->getTargetUrl());
+        $this->assertFileDoesNotExist(base_path('Modules/Admin/Http/Controllers/SettingController.php'));
         $this->assertFileDoesNotExist(base_path('Modules/Admin/Http/Controllers/EnvConfigController.php'));
     }
 
