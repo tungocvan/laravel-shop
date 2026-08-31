@@ -63,7 +63,7 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
         $this->assertStringContainsString('function adminLogin', $authController);
         $this->assertStringContainsString("'guard' => 'admin'", $authController);
         $this->assertStringContainsString("@livewire('auth.auth.login-form'", $authLogin);
-        $this->assertStringContainsString("Route::prefix('admin')", $chatRoutes);
+        $this->assertStringContainsString("->prefix('admin')", $chatRoutes);
         $this->assertStringContainsString('ChatController::class', $chatRoutes);
     }
 
