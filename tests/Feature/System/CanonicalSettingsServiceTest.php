@@ -4,8 +4,6 @@ namespace Tests\Feature\System;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Modules\Admin\Livewire\Settings\SettingForm as AdminSettingForm;
-use Modules\System\Livewire\Settings\SettingForm as SystemSettingForm;
 use Modules\System\Models\Setting;
 use Modules\System\Services\SettingsService;
 use Tests\TestCase;
@@ -83,10 +81,24 @@ class CanonicalSettingsServiceTest extends TestCase
             $this->assertStringNotContainsString('Modules\\Admin\\Models\\Setting', $contents, $file);
         }
 
-        $this->assertTrue(is_subclass_of(
-            AdminSettingForm::class,
-            SystemSettingForm::class,
-        ));
+        foreach ([
+            'AdvancedConfig.php',
+            'DatabaseConfig.php',
+            'EnvManager.php',
+            'MailConfig.php',
+            'ModulesForm.php',
+            'MomoConfig.php',
+            'SettingForm.php',
+            'SocialConfig.php',
+            'StorageConfig.php',
+        ] as $adapter) {
+            $this->assertFileDoesNotExist(base_path('Modules/Admin/Livewire/Settings/'.$adapter));
+        }
+
+        $this->assertFileExists(base_path('Modules/System/Livewire/Settings/SettingForm.php'));
+        $this->assertFileExists(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $this->assertFileExists(base_path('Modules/Admin/Livewire/Settings/AdminLayoutDashboard.php'));
+        $this->assertFileExists(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
 
         $websiteHome = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/home/index.blade.php'));
         $this->assertStringContainsString("@livewire('website.admin.home.home-settings')", $websiteHome);
