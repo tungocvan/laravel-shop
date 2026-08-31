@@ -10,6 +10,38 @@ Repository chính:
 
 Mục tiêu là để ChatGPT trực tiếp phân tích/sửa code trên GitHub, còn người dùng chủ yếu `git pull`, chạy CLI/test/manual UI và gửi output để debug theo từng bước.
 
+### Major/Clean Module Refactor — entry point bắt buộc
+
+Khi người dùng gửi một yêu cầu tương đương:
+
+```text
+Áp dụng refactor Module
+Module: <Module>
+```
+
+hoặc `Refactor Module: <Module>` / `Major Refactor Module <Module>`, phải kích hoạt **Clean Module Refactor workflow**.
+
+Trước khi đề xuất implementation, bắt buộc đọc và áp dụng đồng thời:
+
+```text
+docs/GITHUB_COLLABORATION_WORKFLOW.md
+docs/GITHUB_COLLABORATION_WORKFLOW_REFACTOR_MODULE.md
+docs/MODULE_REFACTOR_WORKFLOW.md
+docs/modules/<Module>/MODULE.md
+```
+
+và `docs/modules/<Module>/COLLABORATION_HANDOFF.md` khi tồn tại, sau đó đối chiếu manifest, routes, source, persistence, tests và cross-module callers/dependencies thực tế.
+
+Trigger Refactor Module chỉ cấp quyền **bootstrap + audit chỉ đọc**. Nó không tự cấp quyền tạo branch, sửa source, xóa/rehome artifact, migration, thao tác destructive, tạo PR hoặc merge. Target architecture/manifest refactor phải được trình và người dùng phê duyệt trước implementation, trừ khi người dùng đã cấp quyền implementation rõ ràng.
+
+Nếu `docs/modules/<Module>/MODULE.md` chưa tồn tại, đây là **Missing MODULE.md Gate**: không bắt đầu implementation; phải audit runtime/ownership, dùng `docs/modules/MODULE_TEMPLATE.md` để đề xuất Module Contract, chờ người dùng phê duyệt và tạo/cập nhật contract trước khi triển khai Major Refactor.
+
+Nếu `MODULE.md` mâu thuẫn source/schema/config/routes/tests, phải đánh dấu **ARCHITECTURE DRIFT**, chứng minh runtime/callers, đề xuất target architecture và chờ phê duyệt; không mặc định tài liệu hoặc runtime là target đúng.
+
+Mọi architectural refactor PR làm thay đổi responsibility, ownership/non-ownership, dependency, canonical routes, integration boundary, persistence, compatibility/deprecation, quarantine hoặc refactor invariants phải cập nhật `docs/modules/<Module>/MODULE.md` trong cùng PR. `COLLABORATION_HANDOFF.md` vẫn bắt buộc theo các gate của tài liệu này.
+
+Chi tiết route-first audit, `KEEP / REHOME / DELETE / QUARANTINE / DEFER`, contract-test gate, regression, debt handoff và closeout nằm trong hai tài liệu Refactor Module nêu trên và là quy tắc bắt buộc khi trigger này được kích hoạt.
+
 ## 1. Vai trò
 
 ChatGPT chịu trách nhiệm:
