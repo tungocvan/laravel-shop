@@ -32,7 +32,9 @@ A sidebar item may link to another module. That link is navigation metadata only
 - `MenuController`
 - `ProfileController`
 
-The former `/admin/admin-header` entry is removed. `/admin/layout/header` is the canonical Admin shell Header configuration route.
+The former `/admin/admin-header` entry is removed. `/admin/layout/header` is the canonical Admin shell Header configuration route, and `/admin/layout/footer` is the canonical Admin shell Footer configuration route.
+
+Website-owned public presentation management remains separate under Website routes such as `/admin/header-settings` and `/admin/footer-settings`.
 
 `Modules/Admin/routes/api.php` is intentionally empty. Admin APIs require an explicit authentication/authorization contract and tests before introduction.
 
@@ -66,7 +68,8 @@ The former `/admin/admin-header` entry is removed. `/admin/layout/header` is the
 | Address legacy ownership | `BOUNDARY MOVED` | User | Admin UserAddress/AddressService remain deprecated compatibility adapters |
 | Role / Staff / Admin identity legacy | `CLEANED` | Role + Account/shared User split | Obsolete Admin identity model removed |
 | Banner legacy runtime tree | `CLEANED` | Website | Active Website route/controller/view/Livewire is canonical; obsolete Admin Banner controller/view/Livewire tree removed. Deprecated Admin Banner model/service adapters remain compatibility debt. |
-| Public website Header/Footer/Home settings residue | `BOUNDARY MOVED` | Website + shared System settings | Active Website management runtime is canonical; remaining Admin legacy trees require dedicated caller proof. Do not confuse these with canonical `/admin/layout/header|footer`. |
+| Public Website Header/Footer legacy runtime | `CLEANED` | Website + shared System settings | Website routes/controllers/views/Livewire are canonical; historical Admin Header/Footer controllers, wrappers, Livewire classes and Blade runtime trees removed. Deprecated Admin HeaderMenu adapters remain compatibility debt. |
+| Public Website Home settings residue | `BOUNDARY MOVED` | Website + shared System settings | Active Website management runtime is canonical; historical Admin Home residue still requires dedicated caller proof. |
 | Flash Sale legacy runtime | `BOUNDARY MOVED` | Website + Product query boundary | Website owns Flash Sale behavior; Admin legacy runtime/adapters require separate cleanup proof |
 | Coupon management residue | `BOUNDARY MOVED` | Website | Active Website route/controller/Livewire is canonical; historical Admin runtime requires dedicated cleanup proof |
 | Affiliate commission/rank/scheme | `BOUNDARY MOVED` | Website orchestration + Order/Product/User boundaries | Active Affiliate runtime is Website-owned; compatibility/Order residue remains |
@@ -88,11 +91,25 @@ The historical Admin Banner graph had no place in the canonical Admin route-cont
 
 ### Admin Layout Hub consolidation
 
-The canonical Admin presentation graph is now centered on `/admin/layout` and `/admin/layout/*`. The duplicate `/admin/admin-header -> AdminController::adminHeader -> Admin::pages.admin.header.index` entry was removed.
+The canonical Admin presentation graph is centered on `/admin/layout` and `/admin/layout/*`. The duplicate `/admin/admin-header -> AdminController::adminHeader -> Admin::pages.admin.header.index` entry was removed.
 
-The old wrapper mixed Admin-shell configuration with Website Header/Menu behavior. Its removal does not authorize bulk deletion of `Admin\Livewire\Header`; those components remain compatibility/reachability debt until individually proven unused.
+`/admin/layout/sidebar` provides a navigation action to `admin.menus.index`, while `/admin/menus*`, `MenuController`, menu Livewire components and `admin.menu.*` permissions remain independent canonical Admin ownership.
 
-`/admin/layout/sidebar` now provides a navigation action to `admin.menus.index`, while `/admin/menus*`, `MenuController`, menu Livewire components and `admin.menu.*` permissions remain independent canonical Admin ownership.
+### Website Header/Footer legacy runtime cleanup
+
+Caller proof established the active Header management graph as:
+
+`Website /admin/header-settings route -> Modules\Website\Http\Controllers\Admin\HeaderController -> Website::pages.admin.header.index -> website.admin.header.header-settings-hub`.
+
+Caller proof established the active Footer management graph as:
+
+`Website /admin/footer-settings route -> Modules\Website\Http\Controllers\Admin\FooterController -> Website::pages.admin.footer.index -> Website footer Livewire components`.
+
+The historical Admin `HeaderController`, `FooterController`, their wrapper views, three Header Livewire classes, three Footer Livewire classes and their Admin Blade trees were migration residue and have been removed. The removed Livewire implementations were already delegating Website presentation domain behavior to Website services/models or shared System settings.
+
+This cleanup is distinct from canonical Admin shell `/admin/layout/header` and `/admin/layout/footer`, which remain `KEEP`.
+
+Deprecated Admin `HeaderMenu`, `HeaderMenuItem`, and `HeaderMenuService` compatibility adapters remain intentionally until separate external/dynamic caller proof.
 
 ## Reachability Proof Required Before Future Cleanup
 
@@ -122,8 +139,8 @@ Canonical database administration is owned by `Modules/System`. Its `/admin/syst
 - `/admin/layout/sidebar` links to, but does not absorb, `/admin/menus`.
 - `/admin/menus` and `admin.menu.*` remain canonical sidebar/navigation structure management.
 - Admin API remains closed by default.
-- Website owns canonical Banner management/runtime; the deleted Admin Banner runtime tree must not return.
-- Deprecated Admin Banner model/service compatibility adapters must not regain independent persistence/business logic.
+- Website owns canonical Banner, public Header and public Footer management/runtime; deleted Admin runtime trees must not return.
+- Deprecated Admin Banner/HeaderMenu compatibility adapters must not regain independent persistence/business logic.
 - Admin shell `/admin/layout/header|footer` remains distinct from public Website presentation management.
 - System owns canonical database administration; legacy Admin database surfaces remain fail-closed and quarantined.
 - Existing canonical ownership boundaries for Category, Chat, Product, Order, Post, Account, User, Role, Website and Affiliate remain unchanged.
@@ -142,8 +159,8 @@ Canonical database administration is owned by `Modules/System`. Its `/admin/syst
 
 ## Outstanding Unknowns
 
-- complete runtime reachability of preserved `Admin\Livewire\Header` components and remaining public Header/Footer/Home legacy Admin trees;
 - external/dynamic callers of deprecated Admin Address/Banner/Header/Flash Sale/Affiliate compatibility adapters;
+- complete runtime reachability of remaining public Website Home settings Admin residue;
 - external/dynamic callers of quarantined Admin database compatibility surfaces;
 - direct runtime reachability and future scalability requirements of Website CommissionMatrix;
 - production usage/migration ledger of remaining legacy Admin persistence;
