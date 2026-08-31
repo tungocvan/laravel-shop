@@ -3,7 +3,6 @@
 namespace Tests\Feature\System;
 
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Admin\Livewire\Settings\SettingForm as AdminSettingForm;
 use Modules\System\Livewire\Settings\SettingForm as SystemSettingForm;
@@ -37,26 +36,16 @@ class CanonicalSettingsServiceTest extends TestCase
         ]);
     }
 
-    public function test_legacy_rows_are_imported_into_canonical_table_once(): void
+    public function test_legacy_settings_tables_are_not_runtime_import_contracts(): void
     {
         $this->createSettingsTable('settings');
         $this->createSettingsTable('admin_settings');
         $this->createSettingsTable('website_settings');
 
-        DB::table('admin_settings')->insert($this->row('site_name', 'Admin Legacy', 'general'));
-        DB::table('website_settings')->insert($this->row('site_name', 'Website Legacy', 'general'));
-        DB::table('website_settings')->insert($this->row('website.appearance', json_encode(['theme_color' => '#112233']), 'website'));
-
         $service = app(SettingsService::class);
-        $service->importLegacyRows();
 
-        $this->assertSame('Admin Legacy', $service->get('site_name'));
-        $this->assertSame(['theme_color' => '#112233'], $service->get('website.appearance'));
-
-        DB::table('admin_settings')->where('key', 'site_name')->update(['value' => 'Changed Legacy']);
-        $service->importLegacyRows();
-
-        $this->assertSame('Admin Legacy', $service->get('site_name'));
+        $this->assertFalse(method_exists($service, 'importLegacyRows'));
+        $this->assertSame('fallback', $service->get('legacy.only', 'fallback'));
     }
 
     public function test_setting_model_reads_canonical_settings_table(): void
@@ -115,21 +104,5 @@ class CanonicalSettingsServiceTest extends TestCase
             $table->string('label')->nullable();
             $table->timestamps();
         });
-    }
-
-    private function row(
-        string $key,
-        string $value,
-        string $group = 'general',
-    ): array {
-        return [
-            'key' => $key,
-            'value' => $value,
-            'group_name' => $group,
-            'type' => 'text',
-            'label' => $key,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
     }
 }
