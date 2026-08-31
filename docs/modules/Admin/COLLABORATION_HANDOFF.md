@@ -4,7 +4,7 @@
 
 Task: **Admin Major Refactor — Website Header/Footer Legacy Runtime Cleanup**
 
-Status: **IMPLEMENTED — AWAITING LOCAL VERIFICATION / UI SMOKE**
+Status: **IMPLEMENTED — FOCUSED VERIFICATION PASS / UI PASS / PR READY**
 
 Branch/checkpoint: `refactor/admin-header-footer-legacy-runtime-cleanup`
 
@@ -58,7 +58,7 @@ The removed Admin Livewire components were already delegating Website presentati
 
 ## Guardrails
 
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` now asserts:
+`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php` asserts:
 
 - the complete historical Admin Header/Footer runtime trees stay absent;
 - Website Header/Footer admin routes and permissions stay canonical;
@@ -72,28 +72,40 @@ The removed Admin Livewire components were already delegating Website presentati
 
 No schema, migration, foreign-key or production-data change is authorized or included.
 
-## Verification required
+## Verification
 
-Run focused ownership tests and route checks, then manually verify:
+Focused verification reported PASS:
 
-- `/admin/layout/header` loads and saves as before;
-- `/admin/layout/footer` loads and saves as before;
-- `/admin/header-settings` loads and Website Header management remains operational;
-- `/admin/footer-settings` loads and Website Footer management remains operational;
-- no historical Admin Header/Footer runtime component is required by these pages.
-
-Recommended commands:
-
-```bash
-php artisan test tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php
-php artisan test tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php
-php artisan route:list --path=admin/layout/header
-php artisan route:list --path=admin/layout/footer
-php artisan route:list --path=admin/header-settings
-php artisan route:list --path=admin/footer-settings
-git status
-git log -1 --oneline
+```text
+AdminWebsitePresentationOwnershipContractTest: 6 passed, 77 assertions
+AdminOwnershipBoundaryContractTest: 5 passed, 31 assertions
+Total: 11 passed, 108 assertions
 ```
+
+Route verification reported PASS:
+
+```text
+/admin/layout/header -> Modules\Admin\Http\Controllers\AdminController@layoutHeader
+/admin/layout/footer -> Modules\Admin\Http\Controllers\AdminController@layoutFooter
+/admin/header-settings -> Modules\Website\Http\Controllers\Admin\HeaderController
+/admin/footer-settings -> Modules\Website\Http\Controllers\Admin\FooterController
+```
+
+Manual UI smoke: **PASS** for `/admin/layout/header`, `/admin/layout/footer`, `/admin/header-settings`, and `/admin/footer-settings`.
+
+Working tree before documentation closeout: **clean** at implementation checkpoint `0fdb4ce7`.
+
+## Acceptance criteria
+
+- canonical Admin shell Header/Footer `/admin/layout/header|footer`: **PRESERVED**;
+- canonical Website Header/Footer management `/admin/header-settings|footer-settings`: **PRESERVED**;
+- historical Admin Header runtime tree: **REMOVED**;
+- historical Admin Footer runtime tree: **REMOVED**;
+- deprecated Admin HeaderMenu/Banner compatibility adapters: **PRESERVED**;
+- schema/migration/data changes: **NONE**;
+- focused regression: **PASS — 11 tests / 108 assertions**;
+- route ownership verification: **PASS**;
+- manual UI smoke: **PASS**.
 
 ## Remaining compatibility debt
 
@@ -101,4 +113,6 @@ Deprecated Admin `HeaderMenu`, `HeaderMenuItem`, `HeaderMenuService` and Banner 
 
 ## Next phase
 
-Do not open a PR or start another compatibility-debt family until focused tests, route verification and UI smoke pass on this branch.
+Open and merge this Website Header/Footer Legacy Runtime Cleanup as a focused PR. Do not start another compatibility-debt family until this branch is merged.
+
+After merge, resume route -> controller -> view -> Livewire -> service/model caller proof for exactly one remaining legacy family before proposing another implementation scope.
