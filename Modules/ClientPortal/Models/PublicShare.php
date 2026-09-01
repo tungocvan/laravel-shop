@@ -7,6 +7,4 @@ use Modules\ClientPortal\Applications\Muasamcong\Models\PublicShare as Muasamcon
 /**
  * @deprecated Use Modules\ClientPortal\Applications\Muasamcong\Models\PublicShare.
  */
-class PublicShare extends MuasamcongPublicShare
-{
-}
+class PublicShare extends MuasamcongPublicShare {}
