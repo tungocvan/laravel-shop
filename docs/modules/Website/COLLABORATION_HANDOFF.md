@@ -135,11 +135,23 @@ Local verification completed on the refactor branch:
 
 - focused ownership regression: PASS — `22 passed (224 assertions)`;
 - Website Feature regression: PASS — `147 passed (16249 assertions)`;
-- the attempted `Modules/Website/tests` path was invalid because this repository keeps Website tests under `tests/Feature/Website`; this was a command-path issue, not a test failure.
+- the attempted `Modules/Website/tests` path was invalid because this repository keeps Website tests under `tests/Feature/Website`; this was a command-path issue, not a test failure;
+- route sanity: PASS.
 
-The focused ownership run covered the Website presentation cleanup guard together with Product/Post ownership contracts. Website Feature regression then passed in full.
+Verified runtime route ownership includes:
 
-Remaining closeout checks are route sanity and optional manual smoke for storefront/Admin presentation surfaces. No full-project regression is required by default for this batch.
+- `admin.website.dashboard` -> `Modules\Website\Http\Controllers\Admin\WebsiteDashboardController`;
+- `admin.website.settings` -> `Modules\Website\Http\Controllers\Admin\WebsiteSettingsController`;
+- `admin.home.settings` -> Website `HomeSettingsController`;
+- `admin.header.settings` -> Website `HeaderController`;
+- `admin.footer.settings` -> Website `FooterController`;
+- `product.list` / `product.detail` -> Website storefront `ProductController@index/show`;
+- `blog.index` / `blog.detail` -> Website storefront `PostController@index/detail`;
+- Admin Product CRUD remains canonical in `Modules\Product\Http\Controllers\ProductController`.
+
+The route result confirms the cleanup did not re-home canonical Product Admin ownership back into Website and did not break Website storefront Product/Post presentation ownership.
+
+Manual smoke remains recommended for visual/runtime acceptance of the main touched surfaces. No full-project regression is required by default for this batch.
 
 ## Current status
 
@@ -152,11 +164,12 @@ Remaining closeout checks are route sanity and optional manual smoke for storefr
 - Batch 1 ownership regression guard: ADDED.
 - Focused ownership verification: PASS — 22 tests / 224 assertions.
 - Website regression: PASS — 147 tests / 16249 assertions.
+- Route sanity: PASS.
 - Persistence-sensitive and payment-sensitive families: QUARANTINED / DEFERRED.
 - `wp_settings` -> canonical `settings` migration objective: APPROVED AS SEPARATE PERSISTENCE FOLLOW-UP; NOT IMPLEMENTED IN BATCH 1.
 - Runtime source cleanup: BATCH 1 IMPLEMENTATION CHECKPOINT COMPLETE.
 - Local automated verification: PASS.
-- Route/manual smoke closeout: PENDING.
-- Draft PR `#118`: keep draft until route/manual smoke status is recorded.
+- Manual UI smoke: PENDING.
+- Draft PR `#118`: keep draft until manual smoke status is recorded.
 
-After route/manual smoke closeout, update this handoff once more before making PR `#118` ready for review.
+After manual smoke closeout, update this handoff once more before making PR `#118` ready for review.
