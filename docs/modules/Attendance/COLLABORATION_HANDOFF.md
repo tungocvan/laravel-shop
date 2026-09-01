@@ -10,7 +10,12 @@
 - MR-4 adjustment/audit/Admin config: merged through PR #132.
 - MR-5 Attendance Admin dashboard/records UI: explicitly approved by the user.
 - MR-5 branch: `feat/attendance-admin-dashboard-records`.
-- MR-5 implementation is complete on the branch and is awaiting local verification and manual Admin UI acceptance.
+- MR-5 implementation is complete on the branch.
+- Attendance migration recovery/orchestration corrective is verified at runtime: Attendance progressed from a consistent partial state to `RESUMABLE`, then migrated safely to `READY` with `5/5` owned tables and `5/5` canonical migration ledger entries; User and Account remained `READY`.
+- Attendance default seeder PSR-4 casing was corrected to `Modules/Attendance/Database/Seeders/AttendanceDefaultsSeeder.php`; Linux autoload is verified and the default shift seeded successfully.
+- Runtime module enable/disable behavior has been manually verified.
+- Manual Admin UI acceptance has been reported as `UI PASS`.
+- Vite production build has passed after the final corrective work.
 
 ## MR-5 — Admin dashboard / records workspace
 
@@ -30,6 +35,28 @@ Implemented scope:
 - filters/search/page size reset pagination where needed;
 - focused source/autoload contract tests cover routes, permissions, service/component autoload, bounded pagination, Admin form visuals and permission-guarded domain actions.
 
+## Corrective migration/runtime work completed inside MR-5
+
+MR-5 runtime verification exposed two pre-existing infrastructure/integration defects and both were corrected conservatively:
+
+- default `module:migrate` orchestration now uses canonical module lifecycle migration state rather than replaying dependency migrations from the legacy `module_migrations` ledger;
+- a consistent interrupted migration prefix can be classified as `RESUMABLE`, while inconsistent schema/ledger states remain blocked for recovery;
+- Attendance adjustment-request composite indexes now use explicit MySQL-safe names below the identifier length limit;
+- Attendance default seeder path now matches its `Modules\Attendance\Database\Seeders` namespace on case-sensitive Linux filesystems.
+
+Verified runtime results:
+
+- focused migration/regression pack: `15 passed (57 assertions)`;
+- Attendance migration status: `READY`, tables `5/5`, ledger `5/5`;
+- User migration status: `READY`, tables `4/4`, ledger `5/5`;
+- Account migration status: `READY`, tables `4/4`, ledger `5/5`;
+- Attendance persistence/seeder contract: `5 passed (22 assertions)`;
+- `class_exists('Modules\\Attendance\\Database\\Seeders\\AttendanceDefaultsSeeder') === true` on Linux;
+- default shift seeded as `DEFAULT`, `08:00–17:00`, late grace `5`, early-leave grace `5`, default/active true;
+- `git diff --check` passed and the working tree was clean after the PSR-4 corrective sync;
+- Vite production build passed;
+- runtime module toggle and Admin UI manually passed.
+
 ## Domain / UI rules preserved
 
 - Account employee identity remains canonical; Attendance does not duplicate employee records.
@@ -48,48 +75,57 @@ Implemented scope:
 - GPS retention cleanup/scheduler integration (MR-8);
 - background tracking or offline official check-in/out;
 - a second module registry/provider;
-- full shift/location CRUD pages. MR-4 domain config services remain canonical and may be surfaced in a later dedicated Admin configuration workspace if required.
+- full shift/location CRUD pages. MR-4 domain config services remain canonical and may be surfaced in a later dedicated Admin configuration workspace if required;
+- destructive legacy `module:fresh` / refresh/delete migration semantics refactor. Those paths remain separate follow-up debt and were not broadened into this corrective.
 
-## Verification gate
+## Final verification gate before PR
+
+Run the final branch-level focused verification after pulling the handoff closeout commit:
 
 ```bash
-vendor/bin/pint Modules/Attendance tests/Feature/Attendance
+vendor/bin/pint Modules/Attendance tests/Feature/Attendance \
+  app/Modules/ModuleMigrationDiagnosis.php \
+  app/Modules/ModuleLifecycleManager.php \
+  app/Console/Commands/DiagnoseModuleMigrations.php \
+  app/Console/Commands/Module/MigrateCommand.php \
+  app/Modules/Migration/Services/ModuleMigrator.php \
+  tests/Feature/System/ModuleLifecycleResumableMigrationTest.php \
+  tests/Feature/System/ModuleMigrationOrchestrationContractTest.php
+
+php artisan test tests/Feature/Attendance
 
 php artisan test \
-  tests/Feature/Attendance/AttendanceModuleBootstrapTest.php \
-  tests/Feature/Attendance/AttendancePersistenceContractTest.php \
-  tests/Feature/Attendance/AttendanceDomainCoreTest.php \
-  tests/Feature/Attendance/AttendanceAdjustmentAdminConfigTest.php \
-  tests/Feature/Attendance/AttendanceAdminUiContractTest.php
-
-php artisan test \
+  tests/Feature/System/ModuleLifecycleResumableMigrationTest.php \
+  tests/Feature/System/ModuleLifecycleMigrationRecoveryTest.php \
+  tests/Feature/System/ModuleMigrationOrchestrationContractTest.php \
+  tests/Feature/System/ModuleMigrationLedgerRepairerTest.php \
+  tests/Feature/System/AccountMigrationRecoveryContractTest.php \
   tests/Feature/System/ModuleCatalogRegistryTest.php \
   tests/Feature/System/ModuleStateResolverTest.php \
   tests/Feature/System/ModuleGraphValidatorTest.php \
   tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
 
 php artisan route:list --path=admin/attendance
-
+npm run build
 git diff --check
 git status
 ```
 
-If Pint changes tracked files, review and commit formatting before PR. Route visibility requires Attendance to be runtime-enabled with its Account dependency enabled; the source contract remains present while the module is disabled by design.
+The branch is ready for the MR-5 PR once this final post-closeout focused verification is green and the working tree is clean.
 
-## Manual UI acceptance required
+## Manual UI acceptance
 
-MR-5 introduces Admin business UI. Before PR merge, manually verify at minimum:
+`UI PASS` has been reported after runtime module enable/disable verification. The accepted surface includes:
 
-- `/admin/attendance/dashboard` on desktop and a narrow/mobile-width viewport;
-- `/admin/attendance/records` table horizontal behavior and filter controls;
-- page-size values `10 / 25 / 50 / 100` only, with no `All`;
-- actual paginator surfaces are white/inactive and indigo/active after compiled Admin CSS;
-- search/filter/reset behavior;
-- permission visibility for correction, void and adjustment review;
-- void confirmation and correction/review modals;
-- return navigation to Attendance Dashboard and Admin Dashboard.
-
-Report manual acceptance separately as `UI PASS` after verification.
+- `/admin/attendance/dashboard`;
+- `/admin/attendance/records`;
+- responsive Admin presentation;
+- bounded page-size behavior `10 / 25 / 50 / 100` with no `All`;
+- search/filter/reset and paginator behavior;
+- permission-aware correction, void and adjustment-review actions;
+- confirmation/review modal behavior;
+- return navigation;
+- no precise GPS exposure in the records table.
 
 ## Canonical sources
 
@@ -105,10 +141,12 @@ Report manual acceptance separately as `UI PASS` after verification.
 - `Modules/Attendance/resources/views/admin/records.blade.php`
 - `Modules/Attendance/resources/views/livewire/admin-records-table.blade.php`
 - `Modules/Attendance/resources/views/vendor/pagination/admin-attendance.blade.php`
+- `Modules/Attendance/Database/Seeders/AttendanceDefaultsSeeder.php`
 - `tests/Feature/Attendance/AttendanceAdminUiContractTest.php`
+- `tests/Feature/Attendance/AttendancePersistenceContractTest.php`
+- `tests/Feature/System/ModuleLifecycleResumableMigrationTest.php`
+- `tests/Feature/System/ModuleMigrationOrchestrationContractTest.php`
 
 ## Next gate
-
-Do not create the MR-5 PR until focused verification passes, the working tree is clean and manual Admin UI acceptance is reported.
 
 Do not start MR-6 export until MR-5 is reviewed/merged and the next phase is explicitly authorized.
