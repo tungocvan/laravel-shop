@@ -68,10 +68,30 @@
     </section>
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        @if ($admin?->can('attendance.export'))
+            <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-slate-800">Xuất dữ liệu chấm công</p>
+                    <p class="mt-1 text-xs text-slate-500">File XLSX dùng đúng bộ lọc hiện tại và không chứa tọa độ GPS chính xác.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button wire:click="exportSelected" wire:loading.attr="disabled" type="button" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-60">
+                        Xuất đã chọn ({{ count($selectedRecordIds) }})
+                    </button>
+                    <button wire:click="exportFiltered" wire:loading.attr="disabled" type="button" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+                        Xuất theo bộ lọc
+                    </button>
+                </div>
+            </div>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                     <tr>
+                        @if ($admin?->can('attendance.export'))
+                            <th class="w-12 px-4 py-3"><span class="sr-only">Chọn</span></th>
+                        @endif
                         <th class="px-4 py-3">Nhân viên</th>
                         <th class="px-4 py-3">Ngày / ca</th>
                         <th class="px-4 py-3">Giờ vào / ra</th>
@@ -87,6 +107,11 @@
                             $status = $record->status->value;
                         @endphp
                         <tr wire:key="attendance-record-{{ $record->id }}" class="align-top hover:bg-slate-50/70">
+                            @if ($admin?->can('attendance.export'))
+                                <td class="px-4 py-4">
+                                    <input wire:model.live="selectedRecordIds" value="{{ $record->id }}" type="checkbox" aria-label="Chọn bản ghi {{ $record->id }}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                </td>
+                            @endif
                             <td class="px-4 py-4">
                                 <p class="font-semibold text-slate-900">{{ $record->user?->name ?? '—' }}</p>
                                 <p class="mt-1 text-xs text-slate-500">{{ $record->employeeProfile?->employee_code ?? 'Chưa có mã NV' }}</p>
@@ -125,7 +150,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500">Không có bản ghi phù hợp bộ lọc.</td></tr>
+                        <tr><td colspan="{{ $admin?->can('attendance.export') ? 7 : 6 }}" class="px-6 py-12 text-center text-sm text-slate-500">Không có bản ghi phù hợp bộ lọc.</td></tr>
                     @endforelse
                 </tbody>
             </table>
