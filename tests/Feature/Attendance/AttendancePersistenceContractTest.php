@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Attendance;
 
+use Modules\Attendance\Database\Seeders\AttendanceDefaultsSeeder;
 use Modules\Attendance\Enums\AdjustmentStatus;
 use Modules\Attendance\Enums\AttendanceRecordStatus;
 use Modules\Attendance\Enums\VerificationResult;
@@ -60,10 +61,11 @@ class AttendancePersistenceContractTest extends TestCase
         $this->assertStringContainsString('voided_at', $source);
     }
 
-    public function test_default_seeder_contains_no_fake_location_seed(): void
+    public function test_default_seeder_is_psr4_autoloadable_and_contains_no_fake_location_seed(): void
     {
-        $source = file_get_contents(base_path('Modules/Attendance/database/seeders/AttendanceDefaultsSeeder.php'));
+        $source = file_get_contents(base_path('Modules/Attendance/Database/Seeders/AttendanceDefaultsSeeder.php'));
 
+        $this->assertTrue(class_exists(AttendanceDefaultsSeeder::class));
         $this->assertStringContainsString("['code' => 'DEFAULT']", $source);
         $this->assertStringNotContainsString('AttendanceLocation', $source);
         $this->assertStringNotContainsString('latitude', $source);
