@@ -8,7 +8,7 @@
 - MR-2 persistence/schema/models: merged through PR #130.
 - MR-3 Attendance domain core: explicitly approved by the user.
 - MR-3 branch: `feat/attendance-domain-core`.
-- MR-3 implementation is complete on the branch and is awaiting local verification.
+- MR-3 implementation and focused verification are complete; ready for PR review.
 
 ## MR-3 — Attendance domain core
 
@@ -47,29 +47,34 @@ Implemented scope:
 - GPS retention cleanup/scheduler integration;
 - background tracking or offline official check-in/out.
 
-## Verification gate
+## Verification results
 
-Run formatting and focused Attendance tests:
+Attendance focused tests:
 
-```bash
-vendor/bin/pint Modules/Attendance tests/Feature/Attendance
-
+```text
 php artisan test \
   tests/Feature/Attendance/AttendanceModuleBootstrapTest.php \
   tests/Feature/Attendance/AttendancePersistenceContractTest.php \
   tests/Feature/Attendance/AttendanceDomainCoreTest.php
+Tests: 18 passed (80 assertions)
+Duration: 1.05s
+```
 
+Directly impacted System/module-runtime tests:
+
+```text
 php artisan test \
   tests/Feature/System/ModuleCatalogRegistryTest.php \
   tests/Feature/System/ModuleStateResolverTest.php \
   tests/Feature/System/ModuleGraphValidatorTest.php \
   tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
-
-git diff --check
-git status
+Tests: 13 passed (52 assertions)
+Duration: 0.93s
 ```
 
-If Pint changes tracked files, review and commit formatting before PR. No full-project suite is required by default unless focused verification reveals a shared-runtime impact.
+- Working tree after focused verification: clean and up to date with `origin/feat/attendance-domain-core`.
+- A test-only string interpolation bug in `AttendanceDomainCoreTest` was corrected before the final PASS run; no domain behavior changed in that correction.
+- No full-project regression was run because MR-3 is scoped to Attendance domain services plus the existing module-runtime contracts.
 
 ## Manual acceptance
 
@@ -88,4 +93,6 @@ MR-3 has no Admin or PWA business UI, so no manual UI acceptance is required for
 
 ## Next gate
 
-Do not start MR-4 adjustment/audit/Admin configuration work until MR-3 verification passes, MR-3 is reviewed/merged, and the next phase is explicitly authorized.
+MR-3 is ready for pull-request review and merge.
+
+Do not start MR-4 adjustment/audit/Admin configuration work until MR-3 is reviewed/merged and the next phase is explicitly authorized.
