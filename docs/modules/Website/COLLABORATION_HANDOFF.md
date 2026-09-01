@@ -129,19 +129,17 @@ Any Admin UI touched by Batch 1 must comply with `.codex/standards/ADMIN_UI_STAN
 
 Batch 1 does not intentionally redesign a material Admin UI surface; manual UI smoke is therefore a regression check rather than a redesign acceptance pass.
 
-## Verification checkpoint
+## Verification results
 
-Batch 1 implementation is now coherent enough for one local verification cycle.
+Local verification completed on the refactor branch:
 
-Recommended verification scope:
+- focused ownership regression: PASS — `22 passed (224 assertions)`;
+- Website Feature regression: PASS — `147 passed (16249 assertions)`;
+- the attempted `Modules/Website/tests` path was invalid because this repository keeps Website tests under `tests/Feature/Website`; this was a command-path issue, not a test failure.
 
-1. focused Website ownership contract, including the new cleanup guard;
-2. Website Feature regression;
-3. impacted Admin Product/Post/Website ownership contracts only;
-4. route sanity for Website storefront and Website Admin presentation routes;
-5. manual smoke of storefront shop/product/blog and Website Admin dashboard/settings surfaces if automated tests pass.
+The focused ownership run covered the Website presentation cleanup guard together with Product/Post ownership contracts. Website Feature regression then passed in full.
 
-Full-project regression remains outside the default gate.
+Remaining closeout checks are route sanity and optional manual smoke for storefront/Admin presentation surfaces. No full-project regression is required by default for this batch.
 
 ## Current status
 
@@ -152,10 +150,13 @@ Full-project regression remains outside the default gate.
 - Dead/duplicate Product Admin and storefront artifacts: CLEANED.
 - Product/Post presentation ownership boundary: CONFIRMED / KEEP.
 - Batch 1 ownership regression guard: ADDED.
+- Focused ownership verification: PASS — 22 tests / 224 assertions.
+- Website regression: PASS — 147 tests / 16249 assertions.
 - Persistence-sensitive and payment-sensitive families: QUARANTINED / DEFERRED.
 - `wp_settings` -> canonical `settings` migration objective: APPROVED AS SEPARATE PERSISTENCE FOLLOW-UP; NOT IMPLEMENTED IN BATCH 1.
 - Runtime source cleanup: BATCH 1 IMPLEMENTATION CHECKPOINT COMPLETE.
-- Local verification: READY / PENDING USER RUN.
-- Draft PR `#118`: keep draft until verification results are recorded.
+- Local automated verification: PASS.
+- Route/manual smoke closeout: PENDING.
+- Draft PR `#118`: keep draft until route/manual smoke status is recorded.
 
-After verification passes, record exact test/route/UI results here before making PR `#118` ready for review.
+After route/manual smoke closeout, update this handoff once more before making PR `#118` ready for review.
