@@ -3,52 +3,92 @@
 ## Current status
 
 - `docs/modules/Attendance/REQUIREMENTS.md`: approved and merged through PR #127.
-- `docs/modules/Attendance/CREATE_PLAN.md`: explicitly approved by the user on 2026-09-01.
-- MR-0 scope is documentation only.
-- Attendance application code has not started.
-- No Attendance migration, route, model, service, Livewire component, ClientPortal adapter, or runtime-state mutation has been created.
+- `docs/modules/Attendance/CREATE_PLAN.md`: explicitly approved by the user on 2026-09-01 and merged through PR #128.
+- MR-0 documentation gate: complete.
+- MR-1 implementation authorization: approved by the user.
+- MR-1 branch: `feat/attendance-module-bootstrap`.
+- MR-1 implementation and focused verification: complete; ready for PR review.
 
-## Approved next phase
+## MR-1 — Module skeleton + manifest + bootstrap/runtime contract
 
-MR-1 — Module skeleton + manifest + bootstrap/runtime contract.
+Implemented MR-1 scope:
 
-Approved MR-1 scope from `CREATE_PLAN.md`:
+- created the minimal Attendance module skeleton required by repository bootstrap;
+- added `Modules/Attendance/config/module.php`;
+- added Release-1 configuration defaults in `Modules/Attendance/config/attendance.php`;
+- declared Attendance as a `domain` module;
+- kept source/default runtime state disabled;
+- declared direct dependency on canonical `Account`;
+- declared approved Admin/domain and web/ClientPortal capability names;
+- verified module discovery/default state/runtime override/dependency enforcement with focused tests;
+- relied exclusively on the root `Modules/ModuleServiceProvider.php` and canonical module catalog/state infrastructure.
 
-- create the Attendance folder skeleton required for bootstrap;
-- create `Modules/Attendance/config/module.php` and Attendance config required by the approved plan;
-- verify discovery through `Modules/ModuleServiceProvider.php`;
-- add bootstrap/runtime-state/default-state/dependency tests;
-- keep `default_enabled = false`;
-- declare canonical dependency on `Account`;
-- no database migrations or Attendance domain persistence yet;
-- no check-in/check-out business implementation yet;
-- no Admin business UI yet;
-- no ClientPortal Attendance adapter yet.
+Explicitly not in MR-1:
 
-## Branch gate
+- database migrations or Attendance persistence;
+- models/enums/domain services;
+- check-in/check-out implementation;
+- geofence calculation implementation;
+- adjustment/audit implementation;
+- Admin routes/UI/Livewire workspaces;
+- ClientPortal Attendance adapter;
+- Attendance export;
+- GPS retention job.
 
-MR-1 must start from current `main` only after this approved `CREATE_PLAN.md` is merged into `main`.
+## Bootstrap decisions
 
-Do not reuse `docs/attendance-create-plan` as the implementation branch.
+- No Attendance-specific service provider in MR-1.
+- No `module.json` or nwidart registry.
+- No API route file.
+- No web route file until an actual runtime surface exists.
+- No migration directory/files until MR-2.
+- No console command.
+- `tables` remains empty in the manifest until Attendance owns schema in MR-2.
+- Runtime state is resolved by `ModuleStateRepository` / `ModuleStateResolver`; the manifest is never mutated for runtime toggles.
 
-Suggested implementation branch after MR-0 merge:
+## Verification results
 
-`feat/attendance-module-bootstrap`
+Formatting / repository checks:
 
-## Verification direction for MR-1
+- Pint on changed Attendance PHP files: PASS; no resulting working-tree changes.
+- `git diff --check`: PASS.
+- working tree after verification: clean.
 
-Focused verification should cover:
+Attendance focused test:
 
-- Attendance module discovery;
-- manifest type = `domain`;
-- manifest default disabled state;
-- dependency = `Account`;
-- runtime override ON/OFF behavior;
-- effective dependency behavior;
-- runtime toggle does not mutate tracked Attendance manifest;
-- no accidental Attendance runtime surface while effectively disabled.
+```text
+php artisan test tests/Feature/Attendance/AttendanceModuleBootstrapTest.php
+Tests: 5 passed (34 assertions)
+Duration: 0.50s
+```
 
-Do not run unrelated full-project regression by default; use Attendance-focused and directly impacted System/module-runtime tests according to `docs/GITHUB_COLLABORATION_WORKFLOW.md`.
+Directly impacted System/module-runtime tests:
+
+```text
+php artisan test \
+  tests/Feature/System/ModuleCatalogRegistryTest.php \
+  tests/Feature/System/ModuleStateResolverTest.php \
+  tests/Feature/System/ModuleGraphValidatorTest.php \
+  tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
+Tests: 13 passed (52 assertions)
+Duration: 0.84s
+```
+
+No full-project regression was run because MR-1 is an isolated bootstrap/runtime slice and does not change shared runtime implementation.
+
+Verified contract:
+
+- Attendance manifest matches approved contract;
+- Attendance is discovered as `domain`;
+- Attendance is disabled by default;
+- runtime state may override the default;
+- enabled Attendance requires enabled Account;
+- approved configuration defaults are explicit;
+- no MR-2+ implementation is present in the branch.
+
+## Manual acceptance
+
+MR-1 has no Attendance business UI. Admin/PWA UI acceptance begins in later MRs.
 
 ## Canonical sources
 
@@ -58,9 +98,13 @@ Do not run unrelated full-project regression by default; use Attendance-focused 
 - `.codex/standards/MODULE_STANDARD.md`
 - `.codex/standards/ADMIN_UI_STANDARD.md`
 - `Modules/ModuleServiceProvider.php`
+- `app/Modules/ModuleCatalog.php`
 - `app/Modules/ModuleStateRepository.php`
 - `app/Modules/ModuleStateResolver.php`
+- `app/Modules/ModuleGraphValidator.php`
 
-## Next action
+## Next gate
 
-Merge MR-0 documentation into `main`, then create MR-1 implementation branch from refreshed `main` and implement only the approved bootstrap/runtime slice.
+MR-1 is ready for pull-request review and merge.
+
+Do not start MR-2 persistence work until MR-1 is merged and the next phase is explicitly authorized according to the collaboration workflow.
