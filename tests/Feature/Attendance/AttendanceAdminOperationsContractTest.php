@@ -62,4 +62,14 @@ class AttendanceAdminOperationsContractTest extends TestCase
         $this->assertStringContainsString('paginate(10)', $locations);
         $this->assertStringContainsString('paginate(10)', $shifts);
     }
+
+    public function test_dashboard_links_admin_operation_workspaces_and_hides_demo_outside_local_testing(): void
+    {
+        $dashboard = file_get_contents(base_path('Modules/Attendance/resources/views/admin/dashboard.blade.php'));
+
+        $this->assertStringContainsString("route('admin.attendance.locations.index')", $dashboard);
+        $this->assertStringContainsString("route('admin.attendance.shifts.index')", $dashboard);
+        $this->assertStringContainsString("route('admin.attendance.demo.index')", $dashboard);
+        $this->assertStringContainsString("environment(['local', 'testing'])", $dashboard);
+    }
 }
