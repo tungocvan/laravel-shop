@@ -18,7 +18,7 @@ class HomepageBackfillService
     public function backfill(bool $apply = false, ?array $sectionOrder = null): array
     {
         $this->assertSchema();
-        $settings = DB::table('wp_settings')
+        $settings = DB::table('settings')
             ->where('key', 'like', 'home%')
             ->get(['key', 'value', 'type'])
             ->mapWithKeys(fn (object $row): array => [$row->key => $this->decode($row)])
@@ -103,7 +103,7 @@ class HomepageBackfillService
 
     private function sectionConfig(string $key, array $settings, string $visibility): array
     {
-        $config = ['visibility' => $visibility, 'legacy_source' => 'wp_settings'];
+        $config = ['visibility' => $visibility, 'legacy_source' => 'settings'];
 
         return $config + match ($key) {
             'new_arrivals' => ['limit' => (int) ($settings['home_new_arrivals_count'] ?? 10)],
@@ -129,7 +129,7 @@ class HomepageBackfillService
 
     private function assertSchema(): void
     {
-        foreach (['wp_settings', 'website_pages', 'website_sections', 'website_section_items'] as $table) {
+        foreach (['settings', 'website_pages', 'website_sections', 'website_section_items'] as $table) {
             if (! Schema::hasTable($table)) {
                 throw new \RuntimeException("Thiếu bảng bắt buộc: {$table}");
             }
