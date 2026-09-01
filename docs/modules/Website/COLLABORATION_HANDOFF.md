@@ -61,7 +61,7 @@ Cross-domain Website-resident families require proof before movement/removal:
 
 See `docs/modules/Website/MODULE.md` for the canonical contract and classifications.
 
-## Batch 1 completed cleanup so far
+## Batch 1 completed cleanup
 
 Proof-backed safe removals completed on the refactor branch:
 
@@ -70,7 +70,8 @@ Proof-backed safe removals completed on the refactor branch:
 - removed unreachable `ProductController::detail()` action from Website storefront controller;
 - removed duplicate `Website::products.index` view because the storefront index uses `Website::pages.shop` and both mounted the same Website ProductList presentation component;
 - removed duplicate `Website::products.detail` view because it was byte-identical to canonical `Website::products.show` and had no route/caller proof;
-- removed dead legacy `Modules/Website/resources/views/admin.blade.php` landing view after caller search found no active use.
+- removed dead legacy `Modules/Website/resources/views/admin.blade.php` landing view after caller search found no active use;
+- extended `AdminWebsitePresentationOwnershipContractTest` so the cleaned Website runtime cannot silently return and the canonical storefront Product presentation remains explicit.
 
 ## Product/Post integration result
 
@@ -93,10 +94,26 @@ The following remain in place despite possible ownership smell because removing 
 - Coupon / FlashSale / Affiliate Website runtime and related models/services;
 - Cart / Checkout / MoMo runtime;
 - Customer/account-adjacent runtime;
-- Wishlist / Review / Newsletter / Tag persistence;
-- `Modules\Website\Models\Setting` and `wp_settings` persistence until caller/schema/production proof establishes a safe replacement or removal path.
+- Wishlist / Review / Newsletter / Tag persistence.
 
 Existing Admin ownership contract tests intentionally preserve Website as canonical runtime for several presentation/compatibility surfaces including coupon, flash sale and affiliate routes. Batch 1 must not reverse those contracts without a separately approved target owner.
+
+## Approved settings persistence follow-up
+
+The canonical persistence target for settings is the `settings` table.
+
+The user approved the architectural objective that runtime still using `wp_settings` must ultimately migrate to `settings`.
+
+This is deliberately NOT implemented in Batch 1. It requires a separate persistence-safe follow-up that must first prove:
+
+- the deployed schema of both `settings` and `wp_settings`;
+- migration-ledger state;
+- field/key/value compatibility and any required mapping;
+- all readers/writers and service/model callers;
+- production data migration/backfill behavior;
+- rollback/compatibility behavior until no runtime caller depends on `wp_settings`.
+
+Do not mechanically change `Modules\Website\Models\Setting::$table` from `wp_settings` to `settings`, and do not drop/rename `wp_settings`, until that proof and migration plan are complete.
 
 ## Safety boundaries
 
@@ -110,29 +127,35 @@ No runtime artifact is deleted/rehome solely because its filename or directory a
 
 Any Admin UI touched by Batch 1 must comply with `.codex/standards/ADMIN_UI_STANDARD.md`, including bounded pagination and shared-component reuse.
 
-## Verification strategy
+Batch 1 does not intentionally redesign a material Admin UI surface; manual UI smoke is therefore a regression check rather than a redesign acceptance pass.
 
-Minimize user pull/test requests.
+## Verification checkpoint
 
-Complete the coherent Batch 1 implementation first, then request one local update and verification cycle where feasible:
+Batch 1 implementation is now coherent enough for one local verification cycle.
 
-1. focused tests for changed Website boundaries;
-2. Website regression;
-3. only genuinely impacted Product/Post/Admin regression based on changed contracts;
-4. manual UI smoke for material UI changes.
+Recommended verification scope:
 
-Full-project regression is not the default gate.
+1. focused Website ownership contract, including the new cleanup guard;
+2. Website Feature regression;
+3. impacted Admin Product/Post/Website ownership contracts only;
+4. route sanity for Website storefront and Website Admin presentation routes;
+5. manual smoke of storefront shop/product/blog and Website Admin dashboard/settings surfaces if automated tests pass.
+
+Full-project regression remains outside the default gate.
 
 ## Current status
 
 - Target architecture: APPROVED.
 - Combined Batch 1 strategy: APPROVED.
-- Module Contract: CREATED on refactor branch.
-- Handoff baseline: CREATED and UPDATED with implementation evidence.
+- Module Contract: CREATED.
+- Handoff baseline: CREATED and UPDATED.
 - Dead/duplicate Product Admin and storefront artifacts: CLEANED.
 - Product/Post presentation ownership boundary: CONFIRMED / KEEP.
+- Batch 1 ownership regression guard: ADDED.
 - Persistence-sensitive and payment-sensitive families: QUARANTINED / DEFERRED.
-- Runtime source cleanup: nearing coherent Batch 1 checkpoint; local verification not yet requested.
-- Persistence/payment-sensitive extraction: NOT AUTHORIZED in Batch 1.
+- `wp_settings` -> canonical `settings` migration objective: APPROVED AS SEPARATE PERSISTENCE FOLLOW-UP; NOT IMPLEMENTED IN BATCH 1.
+- Runtime source cleanup: BATCH 1 IMPLEMENTATION CHECKPOINT COMPLETE.
+- Local verification: READY / PENDING USER RUN.
+- Draft PR `#118`: keep draft until verification results are recorded.
 
-Do not ask the user to pull/test until a coherent Batch 1 checkpoint is ready unless an unexpected high-risk blocker requires local evidence.
+After verification passes, record exact test/route/UI results here before making PR `#118` ready for review.
