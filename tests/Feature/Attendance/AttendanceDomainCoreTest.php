@@ -132,7 +132,7 @@ class AttendanceDomainCoreTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Attendance/Services/AttendanceAuditService.php'));
 
-        $this->assertStringContainsString("str_contains((string) $key, 'latitude')", $source);
-        $this->assertStringContainsString("str_contains((string) $key, 'longitude')", $source);
+        $this->assertStringContainsString('str_contains((string) $key, \'latitude\')', $source);
+        $this->assertStringContainsString('str_contains((string) $key, \'longitude\')', $source);
     }
 }
