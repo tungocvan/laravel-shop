@@ -12,7 +12,7 @@
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Attendance</p>
             <h1 class="mt-2 text-2xl font-bold text-slate-950">Địa điểm chấm công</h1>
-            <p class="mt-2 text-sm text-slate-600">Quản lý tọa độ, vùng geofence và ngưỡng độ chính xác GPS cho check-in/check-out.</p>
+            <p class="mt-2 text-sm text-slate-600">Quản lý địa chỉ, tọa độ, vùng geofence và ngưỡng độ chính xác GPS cho check-in/check-out.</p>
         </div>
         <a href="{{ route('admin.attendance.dashboard') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">Về Dashboard chấm công</a>
     </header>
@@ -23,14 +23,22 @@
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="border-b border-slate-100 pb-4">
             <h2 class="font-bold text-slate-950">Thêm địa điểm</h2>
-            <p class="mt-1 text-sm text-slate-500">Khai báo một địa điểm được phép chấm công. Tọa độ chỉ dùng để kiểm tra geofence.</p>
+            <p class="mt-1 text-sm text-slate-500">Có thể tìm tọa độ từ địa chỉ hoặc lấy vị trí hiện tại của thiết bị.</p>
         </div>
-        <form method="POST" action="{{ route('admin.attendance.locations.store') }}" class="mt-6 space-y-6">@csrf
+        <form method="POST" action="{{ route('admin.attendance.locations.store') }}" class="mt-6 space-y-6" data-location-form>@csrf
             <div>
                 <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Thông tin địa điểm</h3>
                 <div class="mt-4 grid gap-5 lg:grid-cols-2">
                     <label class="{{ $labelClass }}">Tên địa điểm<input name="name" value="{{ old('name') }}" required placeholder="Ví dụ: Văn phòng chính" class="{{ $inputClass }}"></label>
                     <label class="{{ $labelClass }}">Mã địa điểm<input name="code" value="{{ old('code') }}" required placeholder="Ví dụ: HQ" class="{{ $inputClass }}"></label>
+                </div>
+                <div class="mt-5">
+                    <label class="{{ $labelClass }}">Địa chỉ<input name="address" value="{{ old('address') }}" maxlength="500" placeholder="Ví dụ: 123 Nguyễn Huệ, Quận 1, TP.HCM" class="{{ $inputClass }}"></label>
+                    <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <button type="button" data-geocode-address class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-300 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Tìm tọa độ từ địa chỉ</button>
+                        <button type="button" data-current-location class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Lấy vị trí hiện tại</button>
+                    </div>
+                    <p data-location-feedback class="mt-2 hidden text-sm"></p>
                 </div>
             </div>
             <div class="border-t border-slate-100 pt-6">
@@ -57,7 +65,7 @@
     <section class="space-y-4">
         <div><h2 class="text-lg font-bold text-slate-950">Địa điểm hiện có</h2><p class="mt-1 text-sm text-slate-500">Chỉnh sửa cấu hình mà không làm thay đổi lịch sử chấm công đã lưu.</p></div>
         @forelse($locations as $location)
-        <form method="POST" action="{{ route('admin.attendance.locations.update', $location) }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">@csrf @method('PUT')
+        <form method="POST" action="{{ route('admin.attendance.locations.update', $location) }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" data-location-form>@csrf @method('PUT')
             <div class="flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div><h3 class="font-bold text-slate-950">{{ $location->name }}</h3><p class="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $location->code }}</p></div>
                 <span class="w-fit rounded-full px-3 py-1 text-xs font-semibold {{ $location->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">{{ $location->is_active ? 'Đang hoạt động' : 'Ngừng hoạt động' }}</span>
@@ -65,6 +73,11 @@
             <div class="mt-6 grid gap-5 lg:grid-cols-2">
                 <label class="{{ $labelClass }}">Tên địa điểm<input name="name" value="{{ $location->name }}" required class="{{ $inputClass }}"></label>
                 <label class="{{ $labelClass }}">Mã địa điểm<input name="code" value="{{ $location->code }}" required class="{{ $inputClass }}"></label>
+            </div>
+            <div class="mt-5">
+                <label class="{{ $labelClass }}">Địa chỉ<input name="address" value="{{ $location->address }}" maxlength="500" class="{{ $inputClass }}"></label>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row"><button type="button" data-geocode-address class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-300 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Tìm lại tọa độ từ địa chỉ</button><button type="button" data-current-location class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Lấy vị trí hiện tại</button></div>
+                <p data-location-feedback class="mt-2 hidden text-sm"></p>
             </div>
             <div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                 <label class="{{ $labelClass }}">Latitude<input name="latitude" type="number" step="any" min="-90" max="90" value="{{ $location->latitude }}" required class="{{ $inputClass }}"></label>
@@ -83,4 +96,60 @@
         {{ $locations->links() }}
     </section>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const endpoint = @json(route('admin.attendance.locations.geocode'));
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    const feedback = (form, message, ok = false) => {
+        const node = form.querySelector('[data-location-feedback]');
+        if (!node) return;
+        node.textContent = message;
+        node.className = `mt-2 text-sm ${ok ? 'text-emerald-700' : 'text-rose-700'}`;
+    };
+
+    document.querySelectorAll('[data-location-form]').forEach((form) => {
+        form.querySelector('[data-geocode-address]')?.addEventListener('click', async (event) => {
+            const button = event.currentTarget;
+            const address = form.querySelector('[name="address"]')?.value?.trim();
+            if (!address) return feedback(form, 'Vui lòng nhập địa chỉ trước khi tìm tọa độ.');
+            button.disabled = true;
+            feedback(form, 'Đang tìm tọa độ...');
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf},
+                    body: JSON.stringify({address}),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Không tìm được tọa độ.');
+                form.querySelector('[name="latitude"]').value = Number(data.latitude).toFixed(7);
+                form.querySelector('[name="longitude"]').value = Number(data.longitude).toFixed(7);
+                feedback(form, `Đã tìm thấy: ${data.display_name}`, true);
+            } catch (error) {
+                feedback(form, error.message || 'Không thể tìm tọa độ.');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        form.querySelector('[data-current-location]')?.addEventListener('click', (event) => {
+            if (!navigator.geolocation) return feedback(form, 'Trình duyệt không hỗ trợ lấy vị trí hiện tại.');
+            const button = event.currentTarget;
+            button.disabled = true;
+            feedback(form, 'Đang lấy vị trí hiện tại...');
+            navigator.geolocation.getCurrentPosition((position) => {
+                form.querySelector('[name="latitude"]').value = position.coords.latitude.toFixed(7);
+                form.querySelector('[name="longitude"]').value = position.coords.longitude.toFixed(7);
+                feedback(form, `Đã lấy vị trí hiện tại (độ chính xác khoảng ${Math.round(position.coords.accuracy)} m).`, true);
+                button.disabled = false;
+            }, (error) => {
+                feedback(form, error.message || 'Không thể lấy vị trí hiện tại.');
+                button.disabled = false;
+            }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 0});
+        });
+    });
+});
+</script>
 @endsection
