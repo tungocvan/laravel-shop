@@ -6,6 +6,7 @@ use Modules\Attendance\Http\Controllers\AttendanceDemoOperationsController;
 use Modules\Attendance\Http\Controllers\AttendanceLocationsController;
 use Modules\Attendance\Http\Controllers\AttendanceShiftsController;
 use Modules\Attendance\Services\AttendanceDemoDataService;
+use Modules\Attendance\Services\AttendanceGeocodingService;
 use Tests\TestCase;
 
 class AttendanceAdminOperationsContractTest extends TestCase
@@ -16,6 +17,7 @@ class AttendanceAdminOperationsContractTest extends TestCase
         $this->assertTrue(class_exists(AttendanceShiftsController::class));
         $this->assertTrue(class_exists(AttendanceDemoOperationsController::class));
         $this->assertTrue(class_exists(AttendanceDemoDataService::class));
+        $this->assertTrue(class_exists(AttendanceGeocodingService::class));
     }
 
     public function test_routes_location_and_shift_management_through_approved_permissions(): void
@@ -27,6 +29,7 @@ class AttendanceAdminOperationsContractTest extends TestCase
         $this->assertStringContainsString('attendance.shift.view', $routes);
         $this->assertStringContainsString('attendance.shift.manage', $routes);
         $this->assertStringContainsString("Route::get('/locations'", $routes);
+        $this->assertStringContainsString("Route::post('/locations/geocode'", $routes);
         $this->assertStringContainsString("Route::get('/shifts'", $routes);
     }
 
@@ -71,5 +74,22 @@ class AttendanceAdminOperationsContractTest extends TestCase
         $this->assertStringContainsString("route('admin.attendance.shifts.index')", $dashboard);
         $this->assertStringContainsString("route('admin.attendance.demo.index')", $dashboard);
         $this->assertStringContainsString("environment(['local', 'testing'])", $dashboard);
+    }
+
+    public function test_location_ui_supports_address_geocoding_and_on_demand_device_position(): void
+    {
+        $view = file_get_contents(base_path('Modules/Attendance/resources/views/admin/locations.blade.php'));
+        $model = file_get_contents(base_path('Modules/Attendance/Models/AttendanceLocation.php'));
+        $controller = file_get_contents(base_path('Modules/Attendance/Http/Controllers/AttendanceLocationsController.php'));
+        $geocoder = file_get_contents(base_path('Modules/Attendance/Services/AttendanceGeocodingService.php'));
+
+        $this->assertStringContainsString('name="address"', $view);
+        $this->assertStringContainsString('data-geocode-address', $view);
+        $this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $view);
+        $this->assertStringNotContainsString('watchPosition', $view);
+        $this->assertStringContainsString("'address',", $model);
+        $this->assertStringContainsString("'address' => ['nullable', 'string', 'max:500']", $controller);
+        $this->assertStringContainsString('nominatim.openstreetmap.org/search', $geocoder);
+        $this->assertStringContainsString('withUserAgent', $geocoder);
     }
 }
