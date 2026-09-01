@@ -6,14 +6,15 @@ use Carbon\CarbonImmutable;
 use DomainException;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Attendance\Enums\AdjustmentStatus;
-use Modules\Attendance\Enums\AttendanceRecordStatus;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Attendance\Exports\AttendanceRecordsExport;
 use Modules\Attendance\Models\AttendanceAdjustmentRequest;
 use Modules\Attendance\Models\AttendanceLocation;
 use Modules\Attendance\Models\AttendanceRecord;
 use Modules\Attendance\Models\AttendanceShift;
 use Modules\Attendance\Services\AttendanceAdjustmentService;
 use Modules\Attendance\Services\AttendanceRecordMaintenanceService;
+use Modules\Attendance\Services\AttendanceRecordQueryService;
 
 class AdminRecordsTable extends Component
 {
@@ -22,6 +23,8 @@ class AdminRecordsTable extends Component
     protected AttendanceAdjustmentService $adjustments;
 
     protected AttendanceRecordMaintenanceService $maintenance;
+
+    protected AttendanceRecordQueryService $recordsQuery;
 
     public string $search = '';
 
@@ -38,6 +41,8 @@ class AdminRecordsTable extends Component
     public int $perPage = 10;
 
     public array $perPageOptions = [10, 25, 50, 100];
+
+    public array $selectedRecordIds = [];
 
     public ?int $selectedRecordId = null;
 
@@ -61,10 +66,14 @@ class AdminRecordsTable extends Component
 
     protected $queryString = ['search', 'status', 'shift', 'location', 'fromDate', 'toDate', 'perPage'];
 
-    public function boot(AttendanceAdjustmentService $adjustments, AttendanceRecordMaintenanceService $maintenance): void
-    {
+    public function boot(
+        AttendanceAdjustmentService $adjustments,
+        AttendanceRecordMaintenanceService $maintenance,
+        AttendanceRecordQueryService $recordsQuery,
+    ): void {
         $this->adjustments = $adjustments;
         $this->maintenance = $maintenance;
+        $this->recordsQuery = $recordsQuery;
     }
 
     public function mount(): void
@@ -78,32 +87,32 @@ class AdminRecordsTable extends Component
 
     public function updatedSearch(): void
     {
-        $this->resetPage();
+        $this->recordsFilterChanged();
     }
 
     public function updatedStatus(): void
     {
-        $this->resetPage();
+        $this->recordsFilterChanged();
     }
 
     public function updatedShift(): void
     {
-        $this->resetPage();
+        $this->recordsFilterChanged();
     }
 
     public function updatedLocation(): void
     {
-        $this->resetPage();
+        $this->recordsFilterChanged();
     }
 
     public function updatedFromDate(): void
     {
-        $this->resetPage();
+        $this->recordsFilterChanged();
     }
 
     public function updatedToDate(): void
     {
-        $this->resetPage();
+        $this->recordsFilterChanged();
     }
 
     public function updatedPerPage(mixed $value): void
@@ -121,7 +130,37 @@ class AdminRecordsTable extends Component
         $this->fromDate = now()->startOfMonth()->toDateString();
         $this->toDate = now()->toDateString();
         $this->perPage = 10;
+        $this->selectedRecordIds = [];
         $this->resetPage();
+    }
+
+    public function exportFiltered()
+    {
+        $this->authorizePermission('attendance.export');
+        $this->clearMessages();
+
+        return Excel::download(
+            new AttendanceRecordsExport($this->recordsQuery->query($this->filters())),
+            $this->exportFilename('filtered'),
+        );
+    }
+
+    public function exportSelected()
+    {
+        $this->authorizePermission('attendance.export');
+        $this->clearMessages();
+
+        $selectedIds = $this->recordsQuery->normalizeSelectedIds($this->selectedRecordIds);
+        if ($selectedIds === []) {
+            $this->error = 'Vui lòng chọn ít nhất một bản ghi để xuất.';
+
+            return null;
+        }
+
+        return Excel::download(
+            new AttendanceRecordsExport($this->recordsQuery->query($this->filters(), $selectedIds)),
+            $this->exportFilename('selected'),
+        );
     }
 
     public function openVoid(int $recordId): void
@@ -212,43 +251,9 @@ class AdminRecordsTable extends Component
 
     public function render()
     {
-        $query = AttendanceRecord::query()
-            ->with(['employeeProfile', 'user', 'shift', 'checkInLocation', 'checkOutLocation'])
-            ->with(['adjustmentRequests' => fn ($query) => $query->where('status', AdjustmentStatus::Pending->value)->latest('submitted_at')]);
-
-        if (trim($this->search) !== '') {
-            $term = trim($this->search);
-            $query->where(function ($query) use ($term): void {
-                $query->whereHas('employeeProfile', fn ($profile) => $profile
-                    ->where('employee_code', 'like', "%{$term}%")
-                    ->orWhere('department', 'like', "%{$term}%")
-                    ->orWhere('position', 'like', "%{$term}%"))
-                    ->orWhereHas('user', fn ($user) => $user
-                        ->where('name', 'like', "%{$term}%")
-                        ->orWhere('email', 'like', "%{$term}%"));
-            });
-        }
-
-        if (in_array($this->status, array_column(AttendanceRecordStatus::cases(), 'value'), true)) {
-            $query->where('status', $this->status);
-        }
-        if ($this->shift !== 'all' && ctype_digit($this->shift)) {
-            $query->where('shift_id', (int) $this->shift);
-        }
-        if ($this->location !== 'all' && ctype_digit($this->location)) {
-            $locationId = (int) $this->location;
-            $query->where(fn ($query) => $query
-                ->where('check_in_location_id', $locationId)
-                ->orWhere('check_out_location_id', $locationId));
-        }
-        if ($this->fromDate !== '') {
-            $query->whereDate('work_date', '>=', $this->fromDate);
-        }
-        if ($this->toDate !== '') {
-            $query->whereDate('work_date', '<=', $this->toDate);
-        }
-
-        $records = $query->orderByDesc('work_date')->orderByDesc('checked_in_at')->paginate($this->perPage);
+        $records = $this->recordsQuery
+            ->query($this->filters())
+            ->paginate($this->perPage);
         $selectedAdjustment = $this->selectedAdjustmentId
             ? AttendanceAdjustmentRequest::query()->with(['employeeProfile', 'attendanceRecord'])->find($this->selectedAdjustmentId)
             : null;
@@ -278,6 +283,29 @@ class AdminRecordsTable extends Component
         } catch (DomainException $exception) {
             $this->error = $exception->getMessage();
         }
+    }
+
+    private function filters(): array
+    {
+        return [
+            'search' => $this->search,
+            'status' => $this->status,
+            'shift' => $this->shift,
+            'location' => $this->location,
+            'fromDate' => $this->fromDate,
+            'toDate' => $this->toDate,
+        ];
+    }
+
+    private function exportFilename(string $scope): string
+    {
+        return sprintf('attendance-records-%s-%s.xlsx', $scope, now()->format('Ymd-His'));
+    }
+
+    private function recordsFilterChanged(): void
+    {
+        $this->selectedRecordIds = [];
+        $this->resetPage();
     }
 
     private function openDialog(string $dialog): void
