@@ -94,7 +94,8 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $job);
         $this->assertStringContainsString("env('ENABLE_PDF_CONVERT', false)", $config);
         $this->assertStringContainsString("Schema::hasTable('job_batches')", $migration);
-        $this->assertStringContainsString("'Don_' . \$application->id", $documentService);
+        $this->assertStringContainsString('$application->id', $documentService);
+        $this->assertStringContainsString("Str::slug(\$data['HoVaTenHocSinh']", $documentService);
         $this->assertStringContainsString('AdmissionDocumentService', $job);
     }
 
