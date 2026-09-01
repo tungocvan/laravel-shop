@@ -7,6 +7,4 @@ use Modules\ClientPortal\Applications\Muasamcong\Models\SyncRequest as Muasamcon
 /**
  * @deprecated Use Modules\ClientPortal\Applications\Muasamcong\Models\SyncRequest.
  */
-class SyncRequest extends MuasamcongSyncRequest
-{
-}
+class SyncRequest extends MuasamcongSyncRequest {}
