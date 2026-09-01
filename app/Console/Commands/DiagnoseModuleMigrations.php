@@ -24,7 +24,12 @@ class DiagnoseModuleMigrations extends Command
         $diagnosis = $manager->migrationDiagnosis($module);
 
         $this->components->info("Migration status: {$module['name']}");
-        $this->line('Trạng thái: '.$this->status($diagnosis->isFresh(), $diagnosis->isReady(), $diagnosis->needsRecovery()));
+        $this->line('Trạng thái: '.$this->status(
+            $diagnosis->isFresh(),
+            $diagnosis->isReady(),
+            $diagnosis->isResumable(),
+            $diagnosis->needsRecovery(),
+        ));
         $this->line('Bảng: '.count($diagnosis->existingTables).'/'.count($diagnosis->expectedTables).' hiện có');
         $this->line('Ledger: '.count($diagnosis->recordedMigrations).'/'.count($diagnosis->migrationFiles).' migration đã ghi nhận');
 
@@ -42,6 +47,11 @@ class DiagnoseModuleMigrations extends Command
             foreach ($diagnosis->missingMigrationRecords as $migration) {
                 $this->line("  - {$migration}");
             }
+        }
+
+        if ($diagnosis->isResumable()) {
+            $this->newLine();
+            $this->info('RESUMABLE: Schema và migration ledger đang khớp theo thứ tự; có thể tiếp tục module:migrate an toàn.');
         }
 
         if ($diagnosis->needsRecovery()) {
@@ -81,11 +91,12 @@ class DiagnoseModuleMigrations extends Command
         ];
     }
 
-    private function status(bool $fresh, bool $ready, bool $needsRecovery): string
+    private function status(bool $fresh, bool $ready, bool $resumable, bool $needsRecovery): string
     {
         return match (true) {
             $needsRecovery => 'NEEDS_RECOVERY',
             $ready => 'READY',
+            $resumable => 'RESUMABLE',
             $fresh => 'FRESH',
             default => 'INCOMPLETE',
         };

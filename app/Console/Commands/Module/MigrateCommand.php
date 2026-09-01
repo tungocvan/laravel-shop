@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands\Module;
 
-use Illuminate\Console\Command;
 use App\Modules\Migration\Services\ModuleMigrator;
+use Illuminate\Console\Command;
 
 class MigrateCommand extends Command
 {
@@ -12,7 +12,7 @@ class MigrateCommand extends Command
         {module}
         {--refresh}
         {--fresh}
-         {--delete}
+        {--delete}
         {--force}
     ';
 
@@ -22,50 +22,56 @@ class MigrateCommand extends Command
     {
         $module = $this->argument('module');
 
-        // ❗ Nếu không truyền module → show guide
-        if (!$module) {
+        if (! $module) {
             $this->showUsage();
+
             return;
         }
 
-        // 🚫 Production safety
-        if (app()->environment('production') && !$this->option('force')) {
+        if (app()->environment('production') && ! $this->option('force')) {
             $this->error('❌ Use --force to run in production');
+
             return;
         }
 
-        // 🧨 DELETE
         if ($this->option('delete')) {
             $this->warn("🧨 Deleting all tables of module: {$module}");
             $migrator->delete($module);
             $this->info("🗑️ Deleted: {$module}");
+
             return;
         }
 
-        // 🔥 FRESH
         if ($this->option('fresh')) {
             $this->info("🔥 Fresh module: {$module}");
             $migrator->fresh($module);
+
             return;
         }
 
-        // 🔄 REFRESH
         if ($this->option('refresh')) {
             $this->info("🔄 Refresh module: {$module}");
             $migrator->refresh($module);
+
             return;
         }
 
-        // ✅ DEFAULT
-        if (!$migrator->hasPendingMigrations($module)) {
+        $results = $migrator->migrateCanonical((string) $module);
+        $migrated = collect($results)
+            ->filter(fn (array $result): bool => (bool) ($result['migrated'] ?? false))
+            ->keys()
+            ->values()
+            ->all();
+
+        if ($migrated === []) {
             $this->warn("⚠️ Nothing to migrate for {$module}");
+
             return;
         }
 
-        $migrator->migrate($module);
-
-        $this->info("✅ Migrated: {$module}");
+        $this->info('✅ Migrated: '.implode(', ', $migrated));
     }
+
     protected function showUsage()
     {
         $this->line('');

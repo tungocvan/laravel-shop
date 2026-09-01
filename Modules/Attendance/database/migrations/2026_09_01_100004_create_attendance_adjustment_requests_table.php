@@ -25,8 +25,14 @@ return new class extends Migration
             $table->text('review_note')->nullable();
             $table->timestamps();
 
-            $table->index(['employee_profile_id', 'requested_work_date']);
-            $table->index(['status', 'submitted_at']);
+            $table->index(
+                ['employee_profile_id', 'requested_work_date'],
+                'attendance_adj_employee_work_date_idx'
+            );
+            $table->index(
+                ['status', 'submitted_at'],
+                'attendance_adj_status_submitted_idx'
+            );
         });
     }
 
