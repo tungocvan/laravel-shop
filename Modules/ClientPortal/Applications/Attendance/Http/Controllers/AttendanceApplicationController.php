@@ -43,7 +43,7 @@ final class AttendanceApplicationController extends Controller
                     ->latest('checked_in_at')
                     ->first();
             } catch (DomainException $exception) {
-                $configurationError = $exception->getMessage();
+                $configurationError = $this->attendanceErrorMessage($exception);
             }
         }
 
@@ -168,7 +168,7 @@ final class AttendanceApplicationController extends Controller
                 $record,
             );
         } catch (DomainException $exception) {
-            return back()->withInput()->with('attendance_error', $exception->getMessage());
+            return back()->withInput()->with('attendance_error', $this->attendanceErrorMessage($exception));
         }
 
         return redirect()->route('client.attendance.adjustments')->with('attendance_success', 'Yêu cầu điều chỉnh đã được gửi.');
@@ -200,7 +200,7 @@ final class AttendanceApplicationController extends Controller
                 CarbonImmutable::parse($validated['captured_at']),
             );
         } catch (DomainException $exception) {
-            return back()->with('attendance_error', $exception->getMessage());
+            return back()->with('attendance_error', $this->attendanceErrorMessage($exception));
         }
 
         return redirect()->route('client.attendance.dashboard')->with(
@@ -227,5 +227,20 @@ final class AttendanceApplicationController extends Controller
     private function employeeForUser(int $userId): ?EmployeeProfile
     {
         return EmployeeProfile::query()->where('user_id', $userId)->first();
+    }
+
+    private function attendanceErrorMessage(DomainException $exception): string
+    {
+        $message = $exception->getMessage();
+
+        return match (true) {
+            str_contains($message, 'outside_area') => 'Bạn đang ở ngoài phạm vi chấm công cho phép.',
+            str_contains($message, 'poor_accuracy'), str_contains($message, 'accuracy') => 'Độ chính xác vị trí hiện tại chưa đạt yêu cầu. Vui lòng bật định vị chính xác và thử lại.',
+            str_contains($message, 'no_eligible_location'), str_contains($message, 'location') => 'Không tìm thấy địa điểm chấm công phù hợp với vị trí hiện tại.',
+            str_contains($message, 'already_checked_in') => 'Bạn đã chấm công vào cho ca làm việc này.',
+            str_contains($message, 'already_checked_out') => 'Bạn đã chấm công ra cho ca làm việc này.',
+            str_contains($message, 'not_checked_in'), str_contains($message, 'missing_check_in') => 'Bạn chưa chấm công vào nên chưa thể chấm công ra.',
+            default => 'Không thể hoàn tất thao tác chấm công. Vui lòng kiểm tra lại và thử lần nữa.',
+        };
     }
 }
