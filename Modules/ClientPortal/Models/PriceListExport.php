@@ -7,6 +7,4 @@ use Modules\ClientPortal\Applications\Muasamcong\Models\PriceListExport as Muasa
 /**
  * @deprecated Use Modules\ClientPortal\Applications\Muasamcong\Models\PriceListExport.
  */
-class PriceListExport extends MuasamcongPriceListExport
-{
-}
+class PriceListExport extends MuasamcongPriceListExport {}
