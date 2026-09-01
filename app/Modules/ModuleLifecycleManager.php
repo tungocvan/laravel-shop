@@ -38,13 +38,23 @@ class ModuleLifecycleManager
                 ->all();
         }
 
+        $missingMigrationRecords = array_values(array_diff($migrationFiles, $recordedMigrations));
+
         return new ModuleMigrationDiagnosis(
             expectedTables: $expectedTables,
             existingTables: $existingTables,
             missingTables: $missingTables,
             migrationFiles: $migrationFiles,
             recordedMigrations: $recordedMigrations,
-            missingMigrationRecords: array_values(array_diff($migrationFiles, $recordedMigrations)),
+            missingMigrationRecords: $missingMigrationRecords,
+            resumable: $this->isResumableState(
+                $module['path'],
+                $expectedTables,
+                $existingTables,
+                $migrationFiles,
+                $recordedMigrations,
+                $missingMigrationRecords,
+            ),
         );
     }
 
@@ -125,6 +135,65 @@ class ModuleLifecycleManager
             ->sort()
             ->values()
             ->all();
+    }
+
+    private function isResumableState(
+        string $modulePath,
+        array $expectedTables,
+        array $existingTables,
+        array $migrationFiles,
+        array $recordedMigrations,
+        array $missingMigrationRecords,
+    ): bool {
+        if ($recordedMigrations === [] || $missingMigrationRecords === []) {
+            return false;
+        }
+
+        if ($recordedMigrations !== array_slice($migrationFiles, 0, count($recordedMigrations))) {
+            return false;
+        }
+
+        $createdTablesByMigration = $this->createdTablesByMigration($modulePath);
+        $recordedTables = [];
+        $pendingTables = [];
+
+        foreach ($recordedMigrations as $migration) {
+            $recordedTables = array_merge($recordedTables, $createdTablesByMigration[$migration] ?? []);
+        }
+
+        foreach ($missingMigrationRecords as $migration) {
+            $pendingTables = array_merge($pendingTables, $createdTablesByMigration[$migration] ?? []);
+        }
+
+        $recordedExpectedTables = array_values(array_intersect($expectedTables, array_unique($recordedTables)));
+        $pendingExpectedTables = array_values(array_intersect($expectedTables, array_unique($pendingTables)));
+
+        sort($recordedExpectedTables);
+        sort($pendingExpectedTables);
+        sort($existingTables);
+        $missingTables = array_values(array_diff($expectedTables, $existingTables));
+        sort($missingTables);
+
+        return $existingTables === $recordedExpectedTables
+            && $missingTables === $pendingExpectedTables;
+    }
+
+    private function createdTablesByMigration(string $modulePath): array
+    {
+        $path = $this->migrationPath($modulePath);
+        if ($path === null) {
+            return [];
+        }
+
+        $ownership = [];
+
+        foreach (File::files($path) as $file) {
+            $migration = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+            preg_match_all("/Schema::create\\(\\s*['\"]([^'\"]+)['\"]/", File::get($file->getPathname()), $matches);
+            $ownership[$migration] = array_values(array_unique(array_map('strval', $matches[1] ?? [])));
+        }
+
+        return $ownership;
     }
 
     private function migrationPath(string $modulePath): ?string
