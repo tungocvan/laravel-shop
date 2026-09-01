@@ -9,7 +9,7 @@
 - MR-3 domain core: merged through PR #131.
 - MR-4 adjustment/audit/Admin config: explicitly approved by the user.
 - MR-4 branch: `feat/attendance-adjustment-admin-config`.
-- MR-4 implementation is complete on the branch and is awaiting local verification.
+- MR-4 implementation and focused verification are complete; ready for PR review.
 
 ## MR-4 — Adjustment / audit / Admin config foundation
 
@@ -45,28 +45,40 @@ Implemented scope:
 - GPS retention cleanup/scheduler integration;
 - background tracking or offline official check-in/out.
 
-## Verification gate
+## Verification results
 
-```bash
-vendor/bin/pint Modules/Attendance tests/Feature/Attendance
+Formatting / repository checks:
 
+- Pint on `Modules/Attendance` and `tests/Feature/Attendance`: PASS after one formatting-only normalization in `AttendanceAdjustmentAdminConfigTest.php`.
+- Formatting-only commit: `8427cd3b` (`style(attendance): normalize adjustment tests`).
+- `git diff --check`: PASS in the final local verification flow.
+- Working tree: clean and up to date with `origin/feat/attendance-adjustment-admin-config`.
+
+Attendance focused tests:
+
+```text
 php artisan test \
   tests/Feature/Attendance/AttendanceModuleBootstrapTest.php \
   tests/Feature/Attendance/AttendancePersistenceContractTest.php \
   tests/Feature/Attendance/AttendanceDomainCoreTest.php \
   tests/Feature/Attendance/AttendanceAdjustmentAdminConfigTest.php
+Tests: 23 passed (106 assertions)
+Duration: 2.08s
+```
 
+Directly impacted System/module-runtime tests:
+
+```text
 php artisan test \
   tests/Feature/System/ModuleCatalogRegistryTest.php \
   tests/Feature/System/ModuleStateResolverTest.php \
   tests/Feature/System/ModuleGraphValidatorTest.php \
   tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
-
-git diff --check
-git status
+Tests: 13 passed (52 assertions)
+Duration: 0.99s
 ```
 
-If Pint changes tracked files, review and commit formatting before PR. No full-project regression is required by default unless focused verification exposes a shared-runtime impact.
+No full-project regression was run because MR-4 is scoped to Attendance adjustment/maintenance/config services plus existing shared module-runtime contracts.
 
 ## Manual acceptance
 
@@ -84,4 +96,6 @@ MR-4 contains no full Admin business UI and no PWA UI, so no manual UI acceptanc
 
 ## Next gate
 
-Do not start MR-5 Admin dashboard/records UI until MR-4 verification passes, MR-4 is reviewed/merged, and the next phase is explicitly authorized.
+MR-4 is ready for pull-request review and merge.
+
+Do not start MR-5 Admin dashboard/records UI until MR-4 is reviewed/merged and the next phase is explicitly authorized.
