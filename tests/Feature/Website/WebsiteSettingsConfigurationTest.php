@@ -52,7 +52,8 @@ class WebsiteSettingsConfigurationTest extends TestCase
         $this->assertFalse(Cache::has('setting_site_name'));
         $this->assertSame('After', $service->get('site_name'));
         $this->assertSame([1, 2, 3], $service->get('home_items'));
-        $this->assertSame('json', DB::table('wp_settings')->where('key', 'home_items')->value('type'));
+        $this->assertSame('json', DB::table('settings')->where('key', 'home_items')->value('type'));
+        $this->assertNull(DB::table('wp_settings')->where('key', 'home_items')->value('type'));
         $this->assertSame('After', Setting::query()->where('key', 'site_name')->value('value'));
     }
 
