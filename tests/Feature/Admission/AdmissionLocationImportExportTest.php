@@ -39,7 +39,10 @@ class AdmissionLocationImportExportTest extends TestCase
             Storage::disk('public')->delete($path);
         }
 
-        $this->assertTrue($report['success']);
+        $this->assertTrue(
+            $report['success'],
+            'Import report: '.json_encode($report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        );
         $this->assertSame(1, $report['total_rows']);
         $this->assertSame(1, $report['success_rows']);
         $this->assertSame(0, $report['error_rows']);
