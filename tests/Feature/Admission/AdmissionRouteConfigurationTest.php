@@ -4,6 +4,7 @@ namespace Tests\Feature\Admission;
 
 use App\Modules\ModulePermissionManager;
 use Illuminate\Support\Facades\Route;
+use Modules\Admission\Http\Controllers\AdmissionController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -24,6 +25,27 @@ class AdmissionRouteConfigurationTest extends TestCase
 
         $this->assertNotNull($admissionDashboard);
         $this->assertSame('admin/admission/dashboard', $admissionDashboard->uri());
+    }
+
+    public function test_public_lookup_uses_clean_canonical_route_and_keeps_legacy_compatibility_route(): void
+    {
+        $search = Route::getRoutes()->getByName('admission.search');
+        $legacy = Route::getRoutes()->getByName('admission.search.legacy');
+
+        $this->assertNotNull($search);
+        $this->assertSame('admission/search', $search->uri());
+
+        $this->assertNotNull($legacy);
+        $this->assertSame('admission/search/{ma_dinh_danh}/{password}', $legacy->uri());
+    }
+
+    public function test_admission_export_route_targets_existing_controller_method(): void
+    {
+        $route = Route::getRoutes()->getByName('admin.admission.export');
+
+        $this->assertNotNull($route);
+        $this->assertStringContainsString('@export', $route->getActionName());
+        $this->assertTrue(method_exists(AdmissionController::class, 'export'));
     }
 
     public function test_admission_api_stub_returns_intentional_response(): void
