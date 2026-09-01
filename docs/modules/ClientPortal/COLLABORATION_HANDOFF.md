@@ -11,7 +11,7 @@
 - Corrective merge commit: `0439b7675e6af8b9bb49046c8d941e43ff135ac0`
 - Active delivery: **ClientPortal architecture boundaries refactor**
 - Active branch: `refactor/clientportal-architecture-boundaries`
-- Current status: **IMPLEMENTED — VERIFICATION PENDING**
+- Current status: **VERIFIED — PR READY**
 
 ## Active refactor — ClientPortal architecture boundaries
 
@@ -53,19 +53,20 @@ Safe-removal status:
 
 Architecture regression coverage is provided by `tests/Feature/ClientApps/ClientPortalArchitectureContractTest.php`, including the direct dependency contract, canonical model/table mapping, legacy compatibility aliases, and runtime adapter source checks preventing new `Modules\ClientPortal\Models\*` imports in the migrated Muasamcong paths.
 
-Verification checkpoint already completed before the second runtime-caller batch:
+Final verification after the runtime-caller batch and synchronization with current `main`:
 
 ```text
-ClientPortalArchitectureContractTest
-4 passed (11 assertions)
-Duration: 0.85s
-
-ClientApps regression
-115 passed (765 assertions)
-Duration: 7.86s
+Changed-PHP Pint gate: PASS
+ClientPortalArchitectureContractTest: PASS
+ClientApps regression: PASS
+Manual UI smoke: PASS
+Working tree: clean
+Branch synchronization: current main merged; no behind commits at PR-preparation checkpoint
 ```
 
-The runtime-caller ownership batch added after that checkpoint requires one final focused verification before PR readiness.
+During final UI verification, the Wishlist icon exposed that this refactor branch predated the Website hotfix which changed the service reference from the removed `Modules\Website\Services\WishlistService` to canonical `Modules\Product\Services\WishlistService`. The refactor branch was synchronized with current `main` (which already contains PR #123), rather than duplicating that Website/Product ownership fix inside ClientPortal. UI verification passed after synchronization.
+
+No additional refactor scope is authorized for this delivery after the final PASS gates.
 
 ## Stable architecture
 
@@ -89,7 +90,7 @@ MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
 MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — PR #67
 MR-8 — PWA Header Account Menu: MERGED / CLOSED — PR #68
 Corrective — Canonical web logout / route cache: MERGED / CLOSED — PR #86
-Active — ClientPortal architecture boundaries refactor: IMPLEMENTED / VERIFICATION PENDING
+Active — ClientPortal architecture boundaries refactor: VERIFIED / PR READY
 ```
 
 ## MR-7 authentication contract
@@ -190,4 +191,4 @@ The canonical logout corrective restores successful route caching during that op
 
 ## Next-step boundary
 
-The active ClientPortal architecture-boundaries refactor must complete its final focused verification before PR creation. Do not remove compatibility aliases or relocate the three legacy root export job class names in this delivery without explicit queue/caller proof.
+The ClientPortal architecture-boundaries refactor is verified and ready for pull-request review. Do not remove compatibility aliases or relocate the three legacy root export job class names in this delivery without explicit queue/caller proof. After merge, record the PR/merge checkpoint before starting any follow-up cleanup.
