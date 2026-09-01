@@ -6,8 +6,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Modules\Account\Models\EmployeeProfile;
 use Modules\Account\Models\User;
+use Modules\Attendance\Enums\AdjustmentStatus;
 use Modules\Attendance\Enums\AttendanceRecordStatus;
 use Modules\Attendance\Enums\VerificationResult;
+use Modules\Attendance\Models\AttendanceAdjustmentRequest;
 use Modules\Attendance\Models\AttendanceLocation;
 use Modules\Attendance\Models\AttendanceRecord;
 use Modules\Attendance\Models\AttendanceShift;
@@ -17,6 +19,10 @@ class AttendanceDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! app()->environment(['local', 'testing'])) {
+            throw new RuntimeException('Attendance demo seeder is available only in local/testing environments.');
+        }
+
         $shift = AttendanceShift::query()->where('code', 'DEFAULT')->first();
 
         if (! $shift) {
@@ -39,7 +45,7 @@ class AttendanceDemoSeeder extends Seeder
                     'joined_date' => CarbonImmutable::today()->subMonths(6 + $index)->toDateString(),
                     'work_email' => $user->email,
                     'status' => 'active',
-                    'note' => 'Hồ sơ demo phục vụ kiểm thử Attendance export.',
+                    'note' => 'Hồ sơ demo phục vụ kiểm thử Attendance.',
                 ],
             );
         }
@@ -56,7 +62,7 @@ class AttendanceDemoSeeder extends Seeder
             throw new RuntimeException('Unable to prepare Account employee profiles for Attendance demo data.');
         }
 
-        $location = AttendanceLocation::query()->updateOrCreate(
+        $location = AttendanceLocation::query()->firstOrCreate(
             ['code' => 'DEMO-HQ'],
             [
                 'name' => 'Văn phòng chính (Demo)',
@@ -80,20 +86,19 @@ class AttendanceDemoSeeder extends Seeder
             ['in' => '08:09', 'out' => '17:02', 'status' => AttendanceRecordStatus::Voided, 'late' => 4, 'early' => 0],
         ];
 
+        $records = collect();
+
         for ($i = 0; $i < 24; $i++) {
             /** @var EmployeeProfile $employee */
             $employee = $employees[$i % $employees->count()];
             $pattern = $patterns[$i % count($patterns)];
             $workDate = $today->subDays($i % 12);
             $checkedInAt = CarbonImmutable::parse($workDate->toDateString().' '.$pattern['in']);
-            $checkedOutAt = $pattern['out']
-                ? CarbonImmutable::parse($workDate->toDateString().' '.$pattern['out'])
-                : null;
-
+            $checkedOutAt = $pattern['out'] ? CarbonImmutable::parse($workDate->toDateString().' '.$pattern['out']) : null;
             $workedMinutes = $checkedOutAt ? $checkedInAt->diffInMinutes($checkedOutAt) : 0;
-            $sessionKey = sprintf('demo-export-%s-%d-%02d', $workDate->format('Ymd'), $employee->id, $i);
+            $sessionKey = sprintf('demo-attendance-%s-%d-%02d', $workDate->format('Ymd'), $employee->id, $i);
 
-            AttendanceRecord::query()->updateOrCreate(
+            $records->push(AttendanceRecord::query()->updateOrCreate(
                 ['session_key' => $sessionKey],
                 [
                     'employee_profile_id' => $employee->id,
@@ -109,16 +114,16 @@ class AttendanceDemoSeeder extends Seeder
                     'early_leave_grace_minutes_snapshot' => $shift->early_leave_grace_minutes,
                     'checked_in_at' => $checkedInAt,
                     'check_in_location_id' => $location->id,
-                    'check_in_latitude' => 10.7768890,
-                    'check_in_longitude' => 106.7008060,
+                    'check_in_latitude' => $location->latitude,
+                    'check_in_longitude' => $location->longitude,
                     'check_in_accuracy_meters' => 12,
                     'check_in_distance_meters' => 8,
                     'check_in_captured_at' => $checkedInAt,
                     'check_in_verification_result' => VerificationResult::Verified->value,
                     'checked_out_at' => $checkedOutAt,
                     'check_out_location_id' => $checkedOutAt ? $location->id : null,
-                    'check_out_latitude' => $checkedOutAt ? 10.7768890 : null,
-                    'check_out_longitude' => $checkedOutAt ? 106.7008060 : null,
+                    'check_out_latitude' => $checkedOutAt ? $location->latitude : null,
+                    'check_out_longitude' => $checkedOutAt ? $location->longitude : null,
                     'check_out_accuracy_meters' => $checkedOutAt ? 10 : null,
                     'check_out_distance_meters' => $checkedOutAt ? 6 : null,
                     'check_out_captured_at' => $checkedOutAt,
@@ -127,7 +132,29 @@ class AttendanceDemoSeeder extends Seeder
                     'late_minutes' => $pattern['late'],
                     'early_leave_minutes' => $pattern['early'],
                     'voided_at' => $pattern['status'] === AttendanceRecordStatus::Voided ? $checkedOutAt : null,
-                    'void_reason' => $pattern['status'] === AttendanceRecordStatus::Voided ? 'Dữ liệu demo cho kiểm thử export' : null,
+                    'void_reason' => $pattern['status'] === AttendanceRecordStatus::Voided ? 'Dữ liệu demo Attendance' : null,
+                ],
+            ));
+        }
+
+        $statuses = [AdjustmentStatus::Pending, AdjustmentStatus::Approved, AdjustmentStatus::Rejected];
+        foreach ($statuses as $index => $status) {
+            /** @var AttendanceRecord $record */
+            $record = $records[$index];
+            AttendanceAdjustmentRequest::query()->updateOrCreate(
+                ['reason' => '[DEMO] '.$status->value, 'attendance_record_id' => $record->id],
+                [
+                    'employee_profile_id' => $record->employee_profile_id,
+                    'user_id' => $record->user_id,
+                    'requested_work_date' => $record->work_date,
+                    'requested_check_in_at' => $record->checked_in_at?->addMinutes(2),
+                    'requested_check_out_at' => $record->checked_out_at,
+                    'note' => 'Dữ liệu demo cho workflow điều chỉnh Attendance.',
+                    'status' => $status->value,
+                    'submitted_at' => $record->checked_in_at?->addHours(10) ?? $today,
+                    'reviewed_at' => $status === AdjustmentStatus::Pending ? null : $record->checked_in_at?->addHours(11),
+                    'reviewed_by' => $status === AdjustmentStatus::Pending ? null : $users->first()?->id,
+                    'review_note' => $status === AdjustmentStatus::Pending ? null : 'Demo review',
                 ],
             );
         }
