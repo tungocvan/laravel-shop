@@ -4,10 +4,12 @@ namespace Modules\Website\Services;
 
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Modules\Order\Contracts\CheckoutContext;
 use Modules\Order\Data\AffiliateAttribution;
 use Modules\Order\Data\CheckoutCart;
 use Modules\Order\Data\CheckoutCartItem;
+use Modules\Order\Services\AffiliateService;
 use Modules\Website\Models\Cart;
 use Modules\Website\Models\Coupon;
 
@@ -70,7 +72,7 @@ class WebsiteCheckoutContext implements CheckoutContext
 
     public function affiliateAttribution(float $subtotal, ?int $userId): AffiliateAttribution
     {
-        $affiliateId = $this->affiliateService->getValidAffiliateId();
+        $affiliateId = $this->validAffiliateId();
 
         if ($affiliateId && $affiliateId !== $userId) {
             return new AffiliateAttribution(
@@ -92,5 +94,18 @@ class WebsiteCheckoutContext implements CheckoutContext
         $lockedCart = Cart::query()->whereKey($cart->id)->lockForUpdate()->firstOrFail();
         $lockedCart->items()->delete();
         $lockedCart->delete();
+    }
+
+    private function validAffiliateId(): ?int
+    {
+        $affiliateId = Cookie::get('affiliate_ref');
+
+        if (! $affiliateId) {
+            return null;
+        }
+
+        $affiliateId = (int) $affiliateId;
+
+        return Auth::check() && Auth::id() === $affiliateId ? null : $affiliateId;
     }
 }
