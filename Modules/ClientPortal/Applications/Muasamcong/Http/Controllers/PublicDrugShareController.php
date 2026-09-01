@@ -77,9 +77,9 @@ class PublicDrugShareController extends Controller
     private function publicPayload(array $item): array
     {
         $allowed = [
-            'id','tenThuoc','tenHoatChat','nongDo','nhomThuoc','groupMedicine','duongDung','dangBaoChe','donViTinh',
-            'quyCachDongGoi','hanDung','donGia','soLuong','winningName','winningCode','tenCdtBmt','maTbmt','soQuyetDinh',
-            'ngayBanHanhQuyetDinh','ngayDangTaiKqlcnt','tenCoSoSanXuat','nuocSanXuat','gdklh_GPNK',
+            'id', 'tenThuoc', 'tenHoatChat', 'nongDo', 'nhomThuoc', 'groupMedicine', 'duongDung', 'dangBaoChe', 'donViTinh',
+            'quyCachDongGoi', 'hanDung', 'donGia', 'soLuong', 'winningName', 'winningCode', 'tenCdtBmt', 'maTbmt', 'soQuyetDinh',
+            'ngayBanHanhQuyetDinh', 'ngayDangTaiKqlcnt', 'tenCoSoSanXuat', 'nuocSanXuat', 'gdklh_GPNK',
         ];
 
         return collect($item)->only($allowed)->all();
