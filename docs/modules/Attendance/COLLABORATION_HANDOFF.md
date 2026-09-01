@@ -3,72 +3,61 @@
 ## Current status
 
 - `docs/modules/Attendance/REQUIREMENTS.md`: approved and merged through PR #127.
-- `docs/modules/Attendance/CREATE_PLAN.md`: explicitly approved and merged through PR #128.
+- `docs/modules/Attendance/CREATE_PLAN.md`: approved and merged through PR #128.
 - MR-1 bootstrap/runtime contract: merged through PR #129.
-- MR-2 persistence/schema/models: explicitly approved by the user.
-- MR-2 branch: `feat/attendance-persistence-foundation`.
-- MR-2 implementation and focused verification: complete; ready for PR review.
+- MR-2 persistence/schema/models: merged through PR #130.
+- MR-3 Attendance domain core: explicitly approved by the user.
+- MR-3 branch: `feat/attendance-domain-core`.
+- MR-3 implementation and focused verification are complete; ready for PR review.
 
-## MR-2 — Persistence / schema / models
+## MR-3 — Attendance domain core
 
 Implemented scope:
 
-- added Attendance-owned migrations for:
-  - `attendance_locations`;
-  - `attendance_shifts`;
-  - `attendance_records`;
-  - `attendance_adjustment_requests`;
-  - `attendance_audit_events`;
-- added persistence enums:
-  - `AttendanceRecordStatus`;
-  - `AdjustmentStatus`;
-  - `VerificationResult`;
-- added Eloquent models and Account/User relationships;
-- preserved historical employee/user relationships through restrictive/null-on-delete FK choices and soft-deleted parent relations;
-- added an idempotent `AttendanceDefaultsSeeder` for the default 08:00–17:00 shift;
-- intentionally did not seed a fake attendance location or fake coordinates;
-- updated `config/module.php` with all five Attendance-owned tables;
-- added focused persistence contract tests.
+- `ShiftResolver` resolves exactly one active default shift and produces immutable shift snapshots;
+- overnight shifts use the shift-start business date for `work_date`;
+- `GeofenceService` validates coordinate ranges/accuracy, resolves eligible locations server-side, calculates Haversine distance, and returns canonical verification results;
+- `AttendanceCalculationService` calculates `worked_minutes`, `late_minutes`, and `early_leave_minutes` from server-authoritative timestamps and shift snapshots;
+- `AttendanceService` implements check-in/check-out orchestration around the canonical Account `EmployeeProfile`;
+- check-in/check-out use server time as the official event time while preserving device `captured_at` only as evidence;
+- deterministic SHA-256 `session_key` provides retry/double-submit idempotency without introducing a unique `(user_id, work_date)` constraint;
+- mutations run inside database transactions and use `lockForUpdate()` for existing attendance sessions;
+- a unique-key race during check-in reloads the canonical session instead of creating a duplicate;
+- check-out calculations are reconstructed from persisted shift snapshots rather than mutable current shift configuration;
+- `AttendanceAuditService` writes append-only attendance audit events and strips precise latitude/longitude from generic audit JSON payloads;
+- focused MR-3 tests cover day/overnight shift resolution, calculations, Haversine behavior, deterministic session identity, transaction/locking/audit contracts, and coordinate privacy guardrails.
 
-## Persistence decisions carried from CREATE_PLAN
+## Domain rules preserved
 
-- `attendance_records.session_key` is unique and is the canonical future-safe session identity.
-- No unique constraint exists on `(user_id, work_date)`.
-- `attendance_records` stores immutable shift snapshot fields needed for historical calculations.
-- Raw check-in/check-out coordinates and accuracy fields are nullable so the later retention cleanup can redact precise GPS without deleting business history.
-- Persistent lifecycle states remain `checked_in`, `completed`, and `voided`; derived states are not stored as the primary lifecycle status.
-- Adjustment states are `pending`, `approved`, and `rejected`.
-- Audit history has a dedicated Attendance-owned table and does not require update/delete UI paths.
-- Account `EmployeeProfile` remains canonical; Attendance creates no duplicate employee profile table.
+- Attendance depends on canonical Account employee identity; no duplicate employee table/profile exists.
+- Only persisted active employee profiles linked to a user are eligible for official attendance mutations.
+- Geofence verification must be `verified` before check-in/check-out can mutate canonical attendance state.
+- Client-provided location IDs, distance, verification result, and device clock are never authoritative inputs.
+- Persistent lifecycle remains `checked_in -> completed`; `voided` sessions cannot be reused.
+- Duplicate check-in and duplicate check-out are idempotent for the same canonical session.
+- Multiple future shifts on the same work date remain possible because session identity includes employee + work date + shift code rather than user/date uniqueness.
 
-## Explicitly not in MR-2
+## Explicitly not in MR-3
 
-- check-in/check-out orchestration;
-- geofence/Haversine calculation;
-- shift resolution service;
-- worked/late/early calculation service;
-- adjustment approval service/business transactions;
-- audit service writes;
-- Admin routes/UI/Livewire;
-- ClientPortal Attendance adapter;
+- adjustment submit/review/approval transactions;
+- record void/manual-correction workflows;
+- Admin routes/dashboard/records/config UI;
+- ClientPortal/PWA Attendance adapter;
 - export;
-- GPS retention job/scheduler integration.
+- GPS retention cleanup/scheduler integration;
+- background tracking or offline official check-in/out.
 
 ## Verification results
-
-Formatting / repository checks:
-
-- Pint on `Modules/Attendance` and `tests/Feature/Attendance`: PASS; one test file received formatting-only normalization and was committed to the branch.
-- `git diff --check`: PASS in the local verification flow before final branch sync.
 
 Attendance focused tests:
 
 ```text
 php artisan test \
   tests/Feature/Attendance/AttendanceModuleBootstrapTest.php \
-  tests/Feature/Attendance/AttendancePersistenceContractTest.php
-Tests: 10 passed (55 assertions)
-Duration: 0.73s
+  tests/Feature/Attendance/AttendancePersistenceContractTest.php \
+  tests/Feature/Attendance/AttendanceDomainCoreTest.php
+Tests: 18 passed (80 assertions)
+Duration: 1.05s
 ```
 
 Directly impacted System/module-runtime tests:
@@ -80,29 +69,30 @@ php artisan test \
   tests/Feature/System/ModuleGraphValidatorTest.php \
   tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
 Tests: 13 passed (52 assertions)
-Duration: 0.86s
+Duration: 0.93s
 ```
 
-The MR-1 bootstrap assertion for `tables=[]` was intentionally advanced in MR-2 to assert the five canonical Attendance-owned tables.
-
-No full-project regression was run because MR-2 is scoped to Attendance persistence plus existing module-runtime contracts.
+- Working tree after focused verification: clean and up to date with `origin/feat/attendance-domain-core`.
+- A test-only string interpolation bug in `AttendanceDomainCoreTest` was corrected before the final PASS run; no domain behavior changed in that correction.
+- No full-project regression was run because MR-3 is scoped to Attendance domain services plus the existing module-runtime contracts.
 
 ## Manual acceptance
 
-MR-2 has no business UI; no Admin/PWA manual UI acceptance is required for this phase.
+MR-3 has no Admin or PWA business UI, so no manual UI acceptance is required for this phase.
 
 ## Canonical sources
 
 - `docs/modules/Attendance/REQUIREMENTS.md`
 - `docs/modules/Attendance/CREATE_PLAN.md`
-- `Modules/Attendance/config/module.php`
-- `Modules/Attendance/config/attendance.php`
-- `Modules/Account/Models/EmployeeProfile.php`
-- `Modules/Account/Models/User.php`
-- `Modules/ModuleServiceProvider.php`
+- `Modules/Attendance/Models/*`
+- `Modules/Attendance/Services/ShiftResolver.php`
+- `Modules/Attendance/Services/GeofenceService.php`
+- `Modules/Attendance/Services/AttendanceCalculationService.php`
+- `Modules/Attendance/Services/AttendanceService.php`
+- `Modules/Attendance/Services/AttendanceAuditService.php`
 
 ## Next gate
 
-MR-2 is ready for pull-request review and merge.
+MR-3 is ready for pull-request review and merge.
 
-Do not start MR-3 Attendance domain-core implementation until MR-2 is merged and the next phase is explicitly authorized.
+Do not start MR-4 adjustment/audit/Admin configuration work until MR-3 is reviewed/merged and the next phase is explicitly authorized.
