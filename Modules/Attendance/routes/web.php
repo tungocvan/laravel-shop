@@ -33,9 +33,11 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/attendance')->name('admi
         Route::put('/shifts/{shift}', [AttendanceShiftsController::class, 'update'])->name('shifts.update');
     });
 
-    Route::middleware('permission:attendance.dashboard.view,admin')->group(function () {
-        Route::get('/demo-operations', [AttendanceDemoOperationsController::class, 'index'])->name('demo.index');
-        Route::post('/demo-operations/seed', [AttendanceDemoOperationsController::class, 'seed'])->name('demo.seed');
-        Route::delete('/demo-operations/reset', [AttendanceDemoOperationsController::class, 'reset'])->name('demo.reset');
-    });
+    if (app()->environment(['local', 'testing'])) {
+        Route::middleware('permission:attendance.dashboard.view,admin')->group(function () {
+            Route::get('/demo-operations', [AttendanceDemoOperationsController::class, 'index'])->name('demo.index');
+            Route::post('/demo-operations/seed', [AttendanceDemoOperationsController::class, 'seed'])->name('demo.seed');
+            Route::delete('/demo-operations/reset', [AttendanceDemoOperationsController::class, 'reset'])->name('demo.reset');
+        });
+    }
 });
