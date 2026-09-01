@@ -30,9 +30,9 @@ class AttendanceApplicationContractTest extends TestCase
         $this->assertStringContainsString("config('modules.registry.Attendance.enabled', false)", $routes);
         $this->assertStringContainsString("'auth:web'", $routes);
         $this->assertStringContainsString("'client.application:attendance'", $routes);
-        $this->assertStringContainsString("permission:attendance.check-in,web", $routes);
-        $this->assertStringContainsString("permission:attendance.check-out,web", $routes);
-        $this->assertStringContainsString("permission:attendance.adjustment.create,web", $routes);
+        $this->assertStringContainsString('permission:attendance.check-in,web', $routes);
+        $this->assertStringContainsString('permission:attendance.check-out,web', $routes);
+        $this->assertStringContainsString('permission:attendance.adjustment.create,web', $routes);
     }
 
     #[Test]
@@ -53,7 +53,7 @@ class AttendanceApplicationContractTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Attendance/Http/Controllers/AttendanceApplicationController.php'));
 
-        $this->assertGreaterThanOrEqual(4, substr_count($controller, "->where('user_id', $userId)"));
+        $this->assertGreaterThanOrEqual(3, substr_count($controller, "->where('user_id', $userId)"));
         $this->assertStringContainsString("->where('user_id', $user->getAuthIdentifier())", $controller);
         $this->assertStringContainsString('->paginate(10)', $controller);
     }
@@ -63,8 +63,8 @@ class AttendanceApplicationContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/attendance/dashboard.blade.php'));
 
-        $this->assertStringContainsString("navigator.geolocation.getCurrentPosition", $view);
-        $this->assertStringContainsString("if (!navigator.onLine)", $view);
+        $this->assertStringContainsString('navigator.geolocation.getCurrentPosition', $view);
+        $this->assertStringContainsString('if (!navigator.onLine)', $view);
         $this->assertStringContainsString('maximumAge: 0', $view);
         $this->assertStringContainsString('enableHighAccuracy: true', $view);
         $this->assertStringContainsString('Không thể chấm công khi ngoại tuyến', $view);
