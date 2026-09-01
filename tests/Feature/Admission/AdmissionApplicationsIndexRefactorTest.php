@@ -79,6 +79,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/Admission/Services/AdmissionApplicationAdminService.php'));
         $job = file_get_contents(base_path('Modules/Admission/Jobs/GenerateAdmissionPdfJob.php'));
+        $documentService = file_get_contents(base_path('Modules/Admission/Services/AdmissionDocumentService.php'));
         $config = file_get_contents(base_path('Modules/Admission/config/module.php'));
         $migration = file_get_contents(base_path('Modules/Admission/database/migrations/2026_08_13_000003_create_job_batches_table_if_missing.php'));
 
@@ -93,7 +94,8 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
         $this->assertStringContainsString("config('admission.module.enable_pdf_convert', false)", $job);
         $this->assertStringContainsString("env('ENABLE_PDF_CONVERT', false)", $config);
         $this->assertStringContainsString("Schema::hasTable('job_batches')", $migration);
-        $this->assertStringContainsString("'Don_' . \$this->id", $job);
+        $this->assertStringContainsString("'Don_' . \$application->id", $documentService);
+        $this->assertStringContainsString('AdmissionDocumentService', $job);
     }
 
     public function test_blade_uses_capability_specific_gates_and_bounded_page_sizes(): void
