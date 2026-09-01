@@ -612,12 +612,13 @@ Client-supplied `location_id`, distance or verification result is never trusted 
 
 ### Raw-GPS retention
 
-Approved baseline: 12 months.
+Approved baseline: 30 days by default, configurable for 7 / 30 / 90 days.
 
 Implementation approach:
 
-- retain coordinates/accuracy/captured-at for 12 months;
-- after retention, null precise coordinate/accuracy fields through a server-controlled cleanup process;
+- retain employee coordinates/accuracy/captured-at for 30 days by default;
+- allow deployment configuration for the approved 7 / 30 / 90-day retention choices;
+- after retention, null employee latitude, longitude, accuracy and captured-at through the server-controlled cleanup process;
 - preserve non-precise business facts needed for history: resolved location, distance when justified, verification result, official timestamps and attendance facts.
 
 Release 1 core does not require a custom scheduler/console command in the initial skeleton. The cleanup mechanism must reuse the repository's canonical scheduler/automatic-job infrastructure when implemented; it must not introduce a parallel scheduler. If retention cleanup cannot be wired safely in the initial Attendance implementation slice, it is a release gate before production enablement, not a reason to weaken retention requirements.
