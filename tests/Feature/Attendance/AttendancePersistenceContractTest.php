@@ -53,11 +53,11 @@ class AttendancePersistenceContractTest extends TestCase
         $this->assertStringContainsString("foreignId('employee_profile_id')->constrained('employee_profiles')->restrictOnDelete()", $source);
         $this->assertStringContainsString("string('session_key')->unique()", $source);
         $this->assertStringNotContainsString("unique(['user_id', 'work_date'])", $source);
-        $this->assertStringContainsString("shift_code_snapshot", $source);
-        $this->assertStringContainsString("shift_start_time_snapshot", $source);
-        $this->assertStringContainsString("check_in_latitude", $source);
-        $this->assertStringContainsString("check_out_latitude", $source);
-        $this->assertStringContainsString("voided_at", $source);
+        $this->assertStringContainsString('shift_code_snapshot', $source);
+        $this->assertStringContainsString('shift_start_time_snapshot', $source);
+        $this->assertStringContainsString('check_in_latitude', $source);
+        $this->assertStringContainsString('check_out_latitude', $source);
+        $this->assertStringContainsString('voided_at', $source);
     }
 
     public function test_default_seeder_contains_no_fake_location_seed(): void
