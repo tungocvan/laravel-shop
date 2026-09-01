@@ -2,163 +2,129 @@
 
 ## Current status
 
-- `docs/modules/Attendance/REQUIREMENTS.md`: approved and merged through PR #127.
-- `docs/modules/Attendance/CREATE_PLAN.md`: approved and merged through PR #128.
+- Requirements/specification: merged through PR #127.
+- Create plan: merged through PR #128.
 - MR-1 bootstrap/runtime contract: merged through PR #129.
 - MR-2 persistence/schema/models: merged through PR #130.
 - MR-3 domain core: merged through PR #131.
 - MR-4 adjustment/audit/Admin config: merged through PR #132.
 - MR-5 Admin dashboard/records workspace: merged through PR #133.
 - MR-6 Attendance Export: merged through PR #134.
-- MR-7 ClientPortal/PWA Attendance adapter: explicitly approved, implemented and manually accepted on branch `feat/clientportal-attendance-pwa`.
-- MR-7 introduces no schema/migration changes and no new third-party package.
-- Manual UI/PWA acceptance for MR-7 has been reported as `UI PASS`.
-- Do not start MR-8 or any follow-up Admin/demo operations MR until MR-7 is reviewed/merged and the next scope is explicitly authorized.
+- MR-7 ClientPortal/PWA Attendance adapter: merged through PR #135.
+- Current follow-up MR: `feat/attendance-local-demo-admin-ops` — implementation complete and manual UI acceptance reported as `UI PASS`; final automated closeout gate remains to be run locally before PR.
+- MR-8 privacy/release readiness is not started and is not authorized by this handoff.
 
-## MR-7 — ClientPortal/PWA Attendance adapter
+## Attendance local demo & Admin operations — implemented scope
 
-Implemented scope:
+### Admin location management
 
-- ClientPortal application added under `Modules/ClientPortal/Applications/Attendance/`;
-- app key is `attendance`, source module is canonical `Attendance`, and application visibility follows the existing ClientPortal application registry/module-enabled boundary;
-- route surface is `/apps/attendance` with authenticated ClientPortal middleware and feature/permission boundaries;
-- PWA/mobile-first attendance dashboard shows current work date, resolved shift snapshot, current attendance state, allowed attendance locations and check-in/check-out action;
-- browser geolocation is requested only when the user taps a check-in/check-out action;
-- no `watchPosition`, background tracking or continuous location collection is introduced;
-- official attendance actions are online-only; offline submission is blocked in the client instead of being queued as an official attendance event;
-- location evidence sent by the client is delegated to canonical `AttendanceService` geofence verification; ClientPortal does not duplicate attendance/geofence calculations;
-- server time remains authoritative for check-in/check-out timestamps;
-- users without a canonical Account `EmployeeProfile` are shown an explicit unavailable state; ClientPortal does not create employee identity automatically;
-- attendance history is scoped to the authenticated user, paginated, and does not expose precise latitude/longitude fields;
-- adjustment submission is scoped to the authenticated user's own Attendance records and delegates to canonical `AttendanceAdjustmentService`;
-- Attendance domain errors exposed to ClientPortal are mapped to user-friendly Vietnamese messages;
-- attendance record statuses are localized in the ClientPortal UI (`Đã vào ca`, `Hoàn thành`, `Đã hủy`);
-- attendance adjustment statuses are localized (`Chờ duyệt`, `Đã duyệt`, `Từ chối`).
+- `/admin/attendance/locations` exposes create/update location management behind `attendance.location.view` / `attendance.location.manage`.
+- Admin can configure name, code, address, latitude, longitude, geofence radius, maximum accepted GPS accuracy, active state and check-in/check-out availability.
+- Location forms follow the Admin UI field hierarchy with explicit labels, full-width bounded inputs, helper text and responsive grouping.
+- Existing locations are rendered as clearly identified edit cards rather than unlabeled coordinate/value grids.
+- Address is persisted as nullable metadata through a forward-only migration; existing Attendance location data is preserved.
+- Browser geolocation is available only on explicit Admin action through `navigator.geolocation.getCurrentPosition()` with high-accuracy preference; no `watchPosition()` or background tracking is introduced.
+- Address geocoding is available through a dedicated Admin endpoint and `AttendanceGeocodingService` boundary.
+- Current geocoding provider is OpenStreetMap Nominatim over Laravel HTTP client; provider URL is isolated in the service so Attendance UI/domain code does not depend directly on provider details.
+- Geocoding fills the form coordinates for Admin review and does not automatically persist a location.
 
-## MR-7 permissions and boundaries
+### Admin shift management
 
-The adapter uses the already-approved web permissions owned by Attendance:
+- `/admin/attendance/shifts` exposes create/update shift management behind `attendance.shift.view` / `attendance.shift.manage`.
+- Admin can configure name/code, start/end times, late grace, early-leave grace, active state and default state.
+- UI uses the same labeled/responsive field contract as Location management.
+- Existing historical attendance shift snapshots remain unchanged by editing current shift configuration.
 
-- `client.attendance.access`
-- `attendance.record.view-own`
-- `attendance.check-in`
-- `attendance.check-out`
-- `attendance.adjustment.create`
+### Local demo operations
 
-Architecture boundaries preserved:
+- `/admin/attendance/demo-operations` is available only in `local` / `testing` and remains behind authenticated Admin/Attendance permission boundaries.
+- Demo seeding covers representative completed, late, early-leave, missing-checkout and voided Attendance records plus pending/approved/rejected adjustment examples.
+- `DEMO-HQ` uses `firstOrCreate`; re-seeding does not overwrite an existing locally adjusted demo geofence configuration.
+- Demo reset is Attendance-scoped and targets demo Attendance records/adjustments/audit evidence only.
+- Demo reset does not delete Account users or `EmployeeProfile` rows and does not invoke destructive schema reset/migration flows.
+- Admin reset requires an explicit confirmation action in the UI.
 
-- `Attendance -> Account` remains the domain dependency for employee identity;
-- ClientPortal consumes Attendance services/models through the adapter;
-- no reverse dependency `Attendance -> ClientPortal` was introduced;
-- no public Attendance API was introduced;
-- no new persistence/schema ownership was introduced in ClientPortal;
-- precise GPS evidence remains an Attendance-domain concern and is not rendered in ClientPortal history.
+## Architecture and privacy boundaries preserved
 
-## MR-7 verification recorded
+- Attendance remains the canonical owner of attendance locations, shifts, records, adjustments, audit and geofence rules.
+- Direct domain dependency remains `Attendance -> Account`; no reverse `Attendance -> ClientPortal` dependency is introduced.
+- MR-7 ClientPortal check-in/check-out behavior is unchanged by this follow-up MR.
+- Server-side Attendance geofence validation remains authoritative; Admin helper geolocation/geocoding only assists location configuration.
+- No continuous/background GPS tracking is introduced.
+- Precise GPS evidence is not added to ordinary Admin list/report surfaces by this MR.
+- No new Composer/NPM package is introduced.
+- The only schema expansion in this follow-up is nullable `attendance_locations.address`, added through a new forward migration rather than editing the already-run base migration.
 
-Automated verification reported during implementation:
+## Manual acceptance
 
-- Pint: PASS for Attendance ClientPortal adapter/test files after the contract-test corrective;
-- `AttendanceApplicationContractTest`: `6 passed (36 assertions)`;
-- Attendance regression: `34 passed (169 assertions)`;
-- `/apps/attendance` route surface: 6 routes present when Attendance is enabled;
-- Vite production build: PASS;
-- `git diff --check`: PASS;
-- branch was clean and synchronized after the contract-test corrective.
+Manual UI acceptance has been reported as `UI PASS` for the Admin Attendance configuration work, including the revised Location/Shift layouts and the location coordinate helpers.
 
-After the later localization corrective commits, run the final focused gate below before opening the PR.
+The acceptance flow includes:
 
-## Manual UI/PWA acceptance
+- Location form renders with correct field hierarchy and responsive inputs;
+- Shift form renders with correct field hierarchy and responsive inputs;
+- address can be used to request coordinates through the geocoding action;
+- current browser position can populate latitude/longitude on explicit Admin request;
+- geofence radius/GPS accuracy/status controls remain editable;
+- no automatic save occurs merely from resolving coordinates.
 
-Manual acceptance on the local environment has been reported as `UI PASS`.
+## Final local closeout gate
 
-Verified end-to-end behavior includes:
-
-- Attendance app renders correctly in the ClientPortal/PWA shell on a mobile viewport;
-- user without `EmployeeProfile` is blocked with a clear message;
-- after linking the local test user to an active canonical Account `EmployeeProfile`, the default shift resolves correctly;
-- geofence rejection was observed before local demo location alignment, proving backend location verification remains authoritative;
-- local demo location was aligned to the tester's device location for acceptance without changing schema/business logic;
-- check-in succeeded and the UI transitioned to the checked-in state;
-- check-out succeeded and the attendance session transitioned to completed;
-- history displayed the authenticated user's completed record with check-in/check-out times and location names, without precise GPS coordinates;
-- adjustment request submission succeeded and appeared in the recent-request list in pending state;
-- localized status labels and localized ClientPortal-facing attendance errors were manually accepted.
-
-Local acceptance data changes were environment-only and are not repository schema/config changes.
-
-## Explicitly not in MR-7
-
-- offline official check-in/out queueing or later synchronization;
-- background/continuous location tracking;
-- public Attendance API endpoints;
-- new Attendance schema/migrations;
-- new third-party packages;
-- Admin location/shift management expansion;
-- local demo reset/delete tooling;
-- Admin destructive demo cleanup actions;
-- GPS evidence retention automation and MR-8 release/privacy readiness work.
-
-## Follow-up proposal after MR-7 merge
-
-A separate Attendance local/demo/Admin operations MR has been discussed and accepted in principle for local development/testing. It should remain separate from MR-7 and requires its own explicit implementation authorization after MR-7 is merged.
-
-Candidate scope for that later MR:
-
-- richer local demo data covering on-time, late, early leave, missing checkout, completed, voided and adjustment lifecycle cases;
-- repeatable local-only demo seed/reset commands;
-- Admin-facing location and shift configuration surfaces if current Admin exposure is incomplete;
-- local/testing-only demo cleanup guarded by environment and Admin authorization;
-- no deletion of Account users/employee profiles and no destructive schema reset.
-
-## Final verification gate before MR-7 PR
-
-After pulling this handoff closeout commit, run:
+Run this gate on `feat/attendance-local-demo-admin-ops` after pulling the latest handoff commit:
 
 ```bash
 vendor/bin/pint \
-  Modules/ClientPortal/Applications/Attendance \
-  tests/Feature/ClientPortal/AttendanceApplicationContractTest.php
+  Modules/Attendance/Http/Controllers/AttendanceLocationsController.php \
+  Modules/Attendance/Http/Controllers/AttendanceShiftsController.php \
+  Modules/Attendance/Http/Controllers/AttendanceDemoOperationsController.php \
+  Modules/Attendance/Models/AttendanceLocation.php \
+  Modules/Attendance/Services/AttendanceGeocodingService.php \
+  Modules/Attendance/Services/AttendanceDemoDataService.php \
+  Modules/Attendance/Database/Seeders/AttendanceDemoSeeder.php \
+  Modules/Attendance/database/migrations/2026_09_01_190001_add_address_to_attendance_locations_table.php \
+  tests/Feature/Attendance/AttendanceAdminOperationsContractTest.php
 
-php artisan test tests/Feature/ClientPortal/AttendanceApplicationContractTest.php
-php artisan test tests/Feature/ClientPortal
+php artisan test tests/Feature/Attendance/AttendanceAdminOperationsContractTest.php
 php artisan test tests/Feature/Attendance
+php artisan test tests/Feature/System
 
-php artisan route:list --path=apps/attendance
+php artisan route:list --path=admin/attendance
 npm run build
 git diff --check
 git status
 ```
 
-Expected gate:
+Expected closeout:
 
 - Pint PASS;
-- Attendance ClientPortal contract PASS;
-- ClientPortal focused regression PASS;
+- Attendance Admin operations contract PASS;
 - Attendance regression PASS;
-- 6 Attendance ClientPortal routes present when Attendance is enabled;
+- impacted System regression PASS;
+- Admin Attendance routes include dashboard, records, locations, location geocode, shifts and local demo operations;
 - Vite production build PASS;
 - `git diff --check` PASS;
-- working tree clean on `feat/clientportal-attendance-pwa`.
+- working tree clean and synchronized with `origin/feat/attendance-local-demo-admin-ops`.
 
-No destructive migration/reset command is required or authorized for MR-7.
+Do not run destructive migration/reset commands for this gate. The nullable address migration should already have been applied during the accepted local UI test.
 
-## Canonical MR-7 sources
+## Canonical sources for this follow-up MR
 
-- `Modules/ClientPortal/Applications/Attendance/manifest.php`
-- `Modules/ClientPortal/Applications/Attendance/routes.php`
-- `Modules/ClientPortal/Applications/Attendance/Http/Controllers/AttendanceApplicationController.php`
-- `Modules/ClientPortal/resources/views/applications/attendance/dashboard.blade.php`
-- `Modules/ClientPortal/resources/views/applications/attendance/history.blade.php`
-- `Modules/ClientPortal/resources/views/applications/attendance/adjustments.blade.php`
-- `tests/Feature/ClientPortal/AttendanceApplicationContractTest.php`
-- `Modules/Attendance/Services/AttendanceService.php`
-- `Modules/Attendance/Services/AttendanceAdjustmentService.php`
-- `docs/modules/Attendance/REQUIREMENTS.md`
-- `docs/modules/Attendance/CREATE_PLAN.md`
+- `Modules/Attendance/Http/Controllers/AttendanceLocationsController.php`
+- `Modules/Attendance/Http/Controllers/AttendanceShiftsController.php`
+- `Modules/Attendance/Http/Controllers/AttendanceDemoOperationsController.php`
+- `Modules/Attendance/Services/AttendanceGeocodingService.php`
+- `Modules/Attendance/Services/AttendanceDemoDataService.php`
+- `Modules/Attendance/Database/Seeders/AttendanceDemoSeeder.php`
+- `Modules/Attendance/Models/AttendanceLocation.php`
+- `Modules/Attendance/resources/views/admin/locations.blade.php`
+- `Modules/Attendance/resources/views/admin/shifts.blade.php`
+- `Modules/Attendance/resources/views/admin/demo-operations.blade.php`
+- `Modules/Attendance/resources/views/admin/dashboard.blade.php`
+- `Modules/Attendance/database/migrations/2026_09_01_190001_add_address_to_attendance_locations_table.php`
+- `tests/Feature/Attendance/AttendanceAdminOperationsContractTest.php`
 
 ## Next gate
 
-MR-7 may proceed to PR only after the final post-closeout focused verification above is green and the working tree is clean.
+This follow-up MR may proceed to PR after the final local closeout gate above is green and the working tree is clean.
 
-Do not start MR-8 or the separate Attendance local/demo/Admin operations MR until MR-7 is reviewed/merged and the user explicitly authorizes the next phase.
+After merge, stop and determine the next scope with the user. Do not start MR-8 privacy/release readiness automatically.
