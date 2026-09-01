@@ -4,173 +4,143 @@
 
 Major/Clean Module Refactor for `Website`.
 
-Approved strategy: minimize local pull/test cycles by grouping coherent low-risk work into a larger batch while keeping high-risk persistence/payment/domain-extraction work isolated.
+Website Batch 1 ownership cleanup was merged to `main`. The active follow-up is the approved persistence-safe consolidation of legacy `wp_settings` into canonical System-owned `settings`.
 
 ## Current branch
 
-`refactor/website-contract-ownership-baseline`
+`refactor/website-system-settings-consolidation`
 
-Base: `main`.
+Base: `main` at branch creation.
 
-PR: `#118` — ready for review after Batch 1 closeout.
+## Canonical settings decision
 
-## Approved Batch 1
+The canonical persistence owner is `Modules\System` and the canonical table is `settings`.
 
-Batch 1 combines:
+Approved runtime rule after this follow-up:
 
-1. Website Module Contract + ownership baseline.
-2. Canonical Website core cleanup.
-3. Product/Post presentation integration boundary cleanup.
+- `Modules\System\Models\Setting` is the canonical model;
+- `Modules\System\Services\SettingsService` reads/writes only `settings`;
+- Website does not own an independent settings persistence table;
+- `Modules\Website\Models\Setting` is retained only as a deprecated compatibility adapter extending the System model while callers transition;
+- production runtime must not read or write `wp_settings` after consolidation;
+- legacy cache aliases may still be invalidated temporarily to avoid stale values across deployments.
 
-The user approved this combined-batch strategy to reduce repeated pull/test cycles.
+## Database proof used for this follow-up
 
-## Runtime module-state rule
+The user supplied local database proof before implementation:
 
-The project uses the dynamic module-state mechanism documented in `docs/GITHUB_COLLABORATION_WORKFLOW.md`.
+- `settings` exists with columns `id`, `key`, `value`, `group_name`, `type`, `label`, timestamps and contained 55 rows;
+- `wp_settings` exists with the same column shape and contained 30 rows;
+- 12 keys existed in both tables;
+- 11 duplicate keys had matching values;
+- one real value conflict existed: `header.topbar.help_url`, where canonical `settings` contained `/` and legacy `wp_settings` contained `/help`;
+- migration ledger recorded both `-0001_11_30_000024_create_settings_table` and `-0001_11_30_000024_create_wp_settings_table` in batch 1.
 
-Do not treat `Modules/<Module>/config/module.php` or `Config/module.php` as runtime enable/disable state.
+Conflict policy approved: an existing canonical `settings` row wins. Legacy data may fill missing keys but must not overwrite canonical values.
 
-Do not modify manifest `enabled` merely to toggle a module. Runtime state is resolved by the canonical module-state infrastructure (`ModuleStateResolver` / repository runtime state). Legacy manifest `enabled` is compatibility fallback only when applicable.
+## Implementation completed on the branch
 
-Any older workflow/refactor guidance that instructs runtime toggling through `config/module.php` is stale for this project and must not be applied.
+### Canonical System runtime
 
-## Ownership baseline
+`Modules/System/Services/SettingsService.php` was simplified so runtime reads/writes only `settings`.
 
-Canonical Website responsibility is public website presentation/composition and its Admin presentation configuration surfaces.
+Removed runtime compatibility behavior includes:
 
-KEEP families include:
+- special `home_*` routing to `wp_settings`;
+- `homepage` group reads from `wp_settings`;
+- fallback reads from `settings` to `wp_settings`;
+- writes of homepage keys into `wp_settings`;
+- `isLegacyHomepageKey()`.
 
-- public website shell/layout;
-- header/menu/footer/social presentation;
-- homepage composition/builder;
-- website pages/sections;
-- design/appearance/theme/settings;
-- Website Admin dashboard/presentation settings;
-- sitemap/PWA/presentation composition;
-- Product/Post public presentation adapters where they do not own domain state.
+Legacy cache aliases `wp_opt_*` and `setting_*` are still invalidated during the transition; they are not persistence reads/writes.
 
-Cross-domain Website-resident families require proof before movement/removal:
+### Website compatibility model
 
-- cart/checkout/order-account surfaces;
-- payment/MoMo;
-- coupon/flash sale;
-- customer administration;
-- affiliate;
-- wishlist/review/newsletter/tag;
-- related persistence/migrations/seeders/permissions.
+`Modules/Website/Models/Setting.php` no longer declares `wp_settings` as its table and no longer implements a second settings persistence API. It is now a deprecated compatibility adapter extending `Modules\System\Models\Setting`.
 
-See `docs/modules/Website/MODULE.md` for the canonical contract and classifications.
+### Additive data consolidation
 
-## Batch 1 completed cleanup
+Added migration:
 
-Proof-backed safe removals completed on the refactor branch:
+`Modules/Website/database/migrations/2026_09_01_000001_consolidate_wp_settings_into_settings.php`
 
-- removed dead `Modules/Website/Http/Controllers/Admin/ProductController.php`; canonical Admin Product routes/runtime are owned by `Modules/Product`;
-- removed dead placeholder `Modules/Website/resources/views/admin/products/index.blade.php`;
-- removed unreachable `ProductController::detail()` action from Website storefront controller;
-- removed duplicate `Website::products.index` view because the storefront index uses `Website::pages.shop` and both mounted the same Website ProductList presentation component;
-- removed duplicate `Website::products.detail` view because it was byte-identical to canonical `Website::products.show` and had no route/caller proof;
-- removed dead legacy `Modules/Website/resources/views/admin.blade.php` landing view after caller search found no active use;
-- extended `AdminWebsitePresentationOwnershipContractTest` so the cleaned Website runtime cannot silently return and the canonical storefront Product presentation remains explicit.
+Behavior:
 
-## Product/Post integration result
+- exits safely if either table is unavailable;
+- iterates legacy rows in bounded chunks;
+- copies only keys missing from `settings`;
+- preserves value/group/type/label/timestamps for copied rows;
+- never overwrites an existing canonical key;
+- never drops, renames or truncates `wp_settings`;
+- `down()` is intentionally non-destructive because copied canonical rows may receive later production writes.
 
-Product and Post public presentation remain in Website as intentional presentation adapters.
+`wp_settings` remains a legacy safety copy after this PR. Dropping it is explicitly outside this follow-up and requires later production caller/data proof plus separate approval.
 
-KEEP:
+## Regression guards
 
-- Website storefront Product controller/views/Livewire presentation;
-- Website blog controller/views/Livewire presentation;
-- integration through canonical `Modules\Product\Services\ProductService` and `Modules\Post\Services\PostService`.
+Updated `tests/Feature/System/CanonicalSettingsServiceTest.php` to prove:
 
-No Product/Post domain model, schema, Admin CRUD ownership, or business-domain service ownership is moved into Website.
+- System reads/writes canonical `settings`;
+- a legacy `home_*` row in `wp_settings` is not a runtime fallback;
+- homepage group reads do not source `wp_settings`;
+- a new homepage write lands in `settings` while the legacy row remains unchanged;
+- Website's compatibility Setting model delegates to System ownership.
 
-The Website Product detail presentation currently also touches Cart and affiliate-ref session behavior. That path is intentionally left unchanged in Batch 1 because cart/affiliate extraction is outside the approved low-risk boundary.
+Added `tests/Feature/Website/WebsiteSettingsConsolidationContractTest.php` to prove:
 
-## Explicit quarantine / deferred debt
+- Website Setting delegates to the System model;
+- Website model contains no `wp_settings` persistence declaration;
+- System SettingsService contains no `DB::table('wp_settings')` and no `isLegacyHomepageKey` runtime routing;
+- the consolidation migration remains additive and non-destructive.
 
-The following remain in place despite possible ownership smell because removing or moving them is persistence-sensitive or conflicts with existing canonical ownership contracts:
+## Branch scope review
 
-- Coupon / FlashSale / Affiliate Website runtime and related models/services;
-- Cart / Checkout / MoMo runtime;
-- Customer/account-adjacent runtime;
-- Wishlist / Review / Newsletter / Tag persistence.
+Compared with `main`, this branch is intentionally limited to five runtime/test files before this handoff update:
 
-Existing Admin ownership contract tests intentionally preserve Website as canonical runtime for several presentation/compatibility surfaces including coupon, flash sale and affiliate routes. Batch 1 must not reverse those contracts without a separately approved target owner.
+1. `Modules/System/Services/SettingsService.php`
+2. `Modules/Website/Models/Setting.php`
+3. `Modules/Website/database/migrations/2026_09_01_000001_consolidate_wp_settings_into_settings.php`
+4. `tests/Feature/System/CanonicalSettingsServiceTest.php`
+5. `tests/Feature/Website/WebsiteSettingsConsolidationContractTest.php`
 
-## Approved settings persistence follow-up
-
-The canonical persistence target for settings is the `settings` table.
-
-The user approved the architectural objective that runtime still using `wp_settings` must ultimately migrate to `settings`.
-
-This is deliberately NOT implemented in Batch 1. It requires a separate persistence-safe follow-up that must first prove:
-
-- the deployed schema of both `settings` and `wp_settings`;
-- migration-ledger state;
-- field/key/value compatibility and any required mapping;
-- all readers/writers and service/model callers;
-- production data migration/backfill behavior;
-- rollback/compatibility behavior until no runtime caller depends on `wp_settings`.
-
-Do not mechanically change `Modules\Website\Models\Setting::$table` from `wp_settings` to `settings`, and do not drop/rename `wp_settings`, until that proof and migration plan are complete.
+No cart/checkout/payment/affiliate/promotion refactor is included.
 
 ## Safety boundaries
 
-Batch 1 performed no destructive schema/migration work.
+Do not in this follow-up:
 
-Payment/MoMo, broad cart/checkout extraction, affiliate extraction, promotion-domain creation and persistence-ledger cleanup remain outside Batch 1.
+- drop/rename/truncate `wp_settings`;
+- rewrite historical migration ledger entries;
+- recreate the already deployed `settings` table;
+- overwrite canonical conflicts from legacy values;
+- broaden into cart/checkout/payment/affiliate ownership cleanup.
 
-No runtime artifact was deleted/rehome solely because its filename or directory appeared misplaced. Caller/replacement proof was required.
+The source repository may continue to contain the string `wp_settings` in historical migrations, the consolidation migration, regression tests and documentation. Acceptance is that production runtime application code no longer reads/writes the legacy table.
 
-## UI standard
+## Verification gate
 
-Any Admin UI touched by Batch 1 must comply with `.codex/standards/ADMIN_UI_STANDARD.md`, including bounded pagination and shared-component reuse.
+Implementation is complete enough for the single grouped local verification cycle requested by the user.
 
-Batch 1 did not intentionally redesign a material Admin UI surface; manual UI smoke was used as regression acceptance.
+Run focused verification after switching/pulling this branch:
 
-## Verification results
+- canonical System settings regression;
+- Website settings consolidation contract;
+- Website Feature regression;
+- migration on the existing local database;
+- post-migration proof that canonical values win and legacy table remains intact.
 
-Local verification completed on the refactor branch:
+Do not run the full project test suite by default.
 
-- focused ownership regression: PASS — `22 passed (224 assertions)`;
-- Website Feature regression: PASS — `147 passed (16249 assertions)`;
-- the attempted `Modules/Website/tests` path was invalid because this repository keeps Website tests under `tests/Feature/Website`; this was a command-path issue, not a test failure;
-- route sanity: PASS;
-- manual UI smoke: PASS.
+## Current status
 
-Verified runtime route ownership includes:
-
-- `admin.website.dashboard` -> `Modules\Website\Http\Controllers\Admin\WebsiteDashboardController`;
-- `admin.website.settings` -> `Modules\Website\Http\Controllers\Admin\WebsiteSettingsController`;
-- `admin.home.settings` -> Website `HomeSettingsController`;
-- `admin.header.settings` -> Website `HeaderController`;
-- `admin.footer.settings` -> Website `FooterController`;
-- `product.list` / `product.detail` -> Website storefront `ProductController@index/show`;
-- `blog.index` / `blog.detail` -> Website storefront `PostController@index/detail`;
-- Admin Product CRUD remains canonical in `Modules\Product\Http\Controllers\ProductController`.
-
-Manual UI smoke passed for the main storefront Product/Blog and Website Admin dashboard/settings surfaces.
-
-No full-project regression is required by default for this batch.
-
-## Batch 1 closeout
-
-- Target architecture: APPROVED.
-- Combined Batch 1 strategy: APPROVED.
-- Module Contract: CREATED.
-- Handoff baseline: CREATED and UPDATED.
-- Dead/duplicate Product Admin and storefront artifacts: CLEANED.
-- Product/Post presentation ownership boundary: CONFIRMED / KEEP.
-- Batch 1 ownership regression guard: ADDED.
-- Focused ownership verification: PASS — 22 tests / 224 assertions.
-- Website regression: PASS — 147 tests / 16249 assertions.
-- Route sanity: PASS.
-- Manual UI smoke: PASS.
-- Persistence-sensitive and payment-sensitive families: QUARANTINED / DEFERRED.
-- `wp_settings` -> canonical `settings` migration objective: APPROVED AS SEPARATE PERSISTENCE FOLLOW-UP; NOT IMPLEMENTED IN BATCH 1.
-- Website Batch 1: READY FOR REVIEW.
-
-## Next approved architectural follow-up
-
-After Batch 1 is merged, prepare a separate persistence-safe Website settings follow-up for migration from legacy `wp_settings` usage to canonical `settings`. Do not begin destructive persistence changes without schema/data/migration-ledger proof.
+- Website Batch 1: MERGED.
+- Settings persistence architecture: APPROVED.
+- Database schema/data/ledger proof: COMPLETE.
+- Canonical conflict policy: APPROVED (`settings` wins).
+- System runtime consolidation: IMPLEMENTED.
+- Website compatibility adapter: IMPLEMENTED.
+- Additive legacy data migration: IMPLEMENTED.
+- Regression guards: IMPLEMENTED.
+- Destructive legacy-table removal: DEFERRED / NOT AUTHORIZED.
+- Local grouped verification: PENDING.
+- PR creation: PENDING verification.
