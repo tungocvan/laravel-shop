@@ -11,120 +11,117 @@
 - MR-5 Admin dashboard/records workspace: merged through PR #133.
 - MR-6 Attendance Export: merged through PR #134.
 - MR-7 ClientPortal/PWA Attendance adapter: merged through PR #135.
-- Current follow-up MR: `feat/attendance-local-demo-admin-ops` — implementation complete and manual UI acceptance reported as `UI PASS`; final automated closeout gate remains to be run locally before PR.
-- MR-8 privacy/release readiness is not started and is not authorized by this handoff.
+- Attendance local demo & Admin operations follow-up: merged through PR #136.
+- MR-8 privacy/release readiness branch: `feat/attendance-privacy-release-readiness`.
+- MR-8 implementation and automated release-readiness gate: COMPLETE / PASS locally on 2026-09-01.
+- MR-8 is ready for final diff review and PR preparation; do not start another Attendance scope automatically.
 
-## Attendance local demo & Admin operations — implemented scope
+## MR-8 — Privacy and release-readiness scope
 
-### Admin location management
+### Raw employee GPS retention
 
-- `/admin/attendance/locations` exposes create/update location management behind `attendance.location.view` / `attendance.location.manage`.
-- Admin can configure name, code, address, latitude, longitude, geofence radius, maximum accepted GPS accuracy, active state and check-in/check-out availability.
-- Location forms follow the Admin UI field hierarchy with explicit labels, full-width bounded inputs, helper text and responsive grouping.
-- Existing locations are rendered as clearly identified edit cards rather than unlabeled coordinate/value grids.
-- Address is persisted as nullable metadata through a forward-only migration; existing Attendance location data is preserved.
-- Browser geolocation is available only on explicit Admin action through `navigator.geolocation.getCurrentPosition()` with high-accuracy preference; no `watchPosition()` or background tracking is introduced.
-- Address geocoding is available through a dedicated Admin endpoint and `AttendanceGeocodingService` boundary.
-- Current geocoding provider is OpenStreetMap Nominatim over Laravel HTTP client; provider URL is isolated in the service so Attendance UI/domain code does not depend directly on provider details.
-- Geocoding fills the form coordinates for Admin review and does not automatically persist a location.
+Attendance uses precise employee GPS only as short-lived geofence verification evidence for explicit check-in/check-out actions.
 
-### Admin shift management
+Approved policy implemented by MR-8:
 
-- `/admin/attendance/shifts` exposes create/update shift management behind `attendance.shift.view` / `attendance.shift.manage`.
-- Admin can configure name/code, start/end times, late grace, early-leave grace, active state and default state.
-- UI uses the same labeled/responsive field contract as Location management.
-- Existing historical attendance shift snapshots remain unchanged by editing current shift configuration.
+- default raw employee GPS retention: **30 days**;
+- deployment override: `ATTENDANCE_RAW_GPS_RETENTION_DAYS`;
+- intended operational choices are 7 / 30 / 90 days, with 30 days as the privacy-minimized default;
+- cleanup nulls check-in/check-out latitude, longitude, accuracy and captured-at after retention expiry;
+- cleanup preserves canonical Attendance records, employee/session identity, resolved Attendance location, official check-in/out timestamps, geofence verification result, distance and calculated work/late/early facts;
+- office/location coordinates remain configuration because they describe company geofences rather than employee location history;
+- no continuous/background GPS tracking is introduced.
 
-### Local demo operations
+`AttendancePrivacyRetentionService` owns cleanup behavior and `attendance:privacy-purge` exposes the operation through the module console convention.
 
-- `/admin/attendance/demo-operations` is available only in `local` / `testing` and remains behind authenticated Admin/Attendance permission boundaries.
-- Demo seeding covers representative completed, late, early-leave, missing-checkout and voided Attendance records plus pending/approved/rejected adjustment examples.
-- `DEMO-HQ` uses `firstOrCreate`; re-seeding does not overwrite an existing locally adjusted demo geofence configuration.
-- Demo reset is Attendance-scoped and targets demo Attendance records/adjustments/audit evidence only.
-- Demo reset does not delete Account users or `EmployeeProfile` rows and does not invoke destructive schema reset/migration flows.
-- Admin reset requires an explicit confirmation action in the UI.
+The repository's canonical scheduler in `routes/console.php` runs the purge daily at 02:30 with `withoutOverlapping()` while Attendance is enabled. No parallel scheduler infrastructure is introduced.
 
-## Architecture and privacy boundaries preserved
+Behavioral retention tests prove expired raw GPS is removed, recent GPS is retained and repeated cleanup is idempotent.
 
-- Attendance remains the canonical owner of attendance locations, shifts, records, adjustments, audit and geofence rules.
-- Direct domain dependency remains `Attendance -> Account`; no reverse `Attendance -> ClientPortal` dependency is introduced.
-- MR-7 ClientPortal check-in/check-out behavior is unchanged by this follow-up MR.
-- Server-side Attendance geofence validation remains authoritative; Admin helper geolocation/geocoding only assists location configuration.
-- No continuous/background GPS tracking is introduced.
-- Precise GPS evidence is not added to ordinary Admin list/report surfaces by this MR.
-- No new Composer/NPM package is introduced.
-- The only schema expansion in this follow-up is nullable `attendance_locations.address`, added through a new forward migration rather than editing the already-run base migration.
+### Audit privacy hardening
 
-## Manual acceptance
+`AttendanceAuditService` recursively sanitizes generic audit payloads so precise/raw GPS fields are not copied into nested audit JSON.
 
-Manual UI acceptance has been reported as `UI PASS` for the Admin Attendance configuration work, including the revised Location/Shift layouts and the location coordinate helpers.
+The sanitizer excludes latitude, longitude, GPS accuracy and capture timestamps while preserving non-precise business/audit facts.
 
-The acceptance flow includes:
+### Production demo isolation
 
-- Location form renders with correct field hierarchy and responsive inputs;
-- Shift form renders with correct field hierarchy and responsive inputs;
-- address can be used to request coordinates through the geocoding action;
-- current browser position can populate latitude/longitude on explicit Admin request;
-- geofence radius/GPS accuracy/status controls remain editable;
-- no automatic save occurs merely from resolving coordinates.
+Attendance demo routes are registered only in `local` / `testing` environments.
 
-## Final local closeout gate
+The existing local/testing service/controller guards remain defense in depth. Production therefore does not expose the Attendance demo seed/reset route surface.
 
-Run this gate on `feat/attendance-local-demo-admin-ops` after pulling the latest handoff commit:
+### Optional geocoding hardening
 
-```bash
-vendor/bin/pint \
-  Modules/Attendance/Http/Controllers/AttendanceLocationsController.php \
-  Modules/Attendance/Http/Controllers/AttendanceShiftsController.php \
-  Modules/Attendance/Http/Controllers/AttendanceDemoOperationsController.php \
-  Modules/Attendance/Models/AttendanceLocation.php \
-  Modules/Attendance/Services/AttendanceGeocodingService.php \
-  Modules/Attendance/Services/AttendanceDemoDataService.php \
-  Modules/Attendance/Database/Seeders/AttendanceDemoSeeder.php \
-  Modules/Attendance/database/migrations/2026_09_01_190001_add_address_to_attendance_locations_table.php \
-  tests/Feature/Attendance/AttendanceAdminOperationsContractTest.php
+Admin location geocoding remains an optional configuration helper and is not part of employee check-in/check-out verification.
 
-php artisan test tests/Feature/Attendance/AttendanceAdminOperationsContractTest.php
-php artisan test tests/Feature/Attendance
-php artisan test tests/Feature/System
+MR-8 adds configuration for:
 
-php artisan route:list --path=admin/attendance
-npm run build
-git diff --check
-git status
+- enable/disable;
+- provider endpoint;
+- request timeout.
+
+Provider connection failures are converted to a controlled domain error. Provider response data is reduced to latitude, longitude and display name; arbitrary provider payload is not returned by the Attendance service.
+
+Admins retain manual latitude/longitude entry and explicit one-shot browser geolocation when geocoding is disabled or unavailable.
+
+## Privacy boundaries after MR-8
+
+- Attendance is not an employee tracking system.
+- GPS is requested only for explicit attendance actions or explicit Admin location-configuration helpers.
+- No `watchPosition()` or background location collection is introduced.
+- Precise employee GPS is not exposed in ordinary Attendance UI, export or generic audit payloads.
+- Raw employee GPS is short-lived evidence with a 30-day default retention policy.
+- Attendance business history remains available after raw GPS cleanup.
+- Attendance remains canonical owner of attendance rules/persistence; direct dependency remains `Attendance -> Account`.
+- ClientPortal remains a thin consumer; no `Attendance -> ClientPortal` dependency exists.
+
+## MR-8 automated acceptance
+
+Local gate reported on 2026-09-01:
+
+```text
+AttendanceReleaseReadinessTest : 5 passed / 15 assertions
+Attendance regression          : 49 passed / 251 assertions
+ClientPortal impacted           : 6 passed / 36 assertions
+System impacted                 : 184 passed / 1055 assertions
+Vite production build           : PASS
+Working tree                    : clean / synchronized with origin branch
 ```
 
-Expected closeout:
+Additional privacy behavioral gate:
 
-- Pint PASS;
-- Attendance Admin operations contract PASS;
-- Attendance regression PASS;
-- impacted System regression PASS;
-- Admin Attendance routes include dashboard, records, locations, location geocode, shifts and local demo operations;
-- Vite production build PASS;
-- `git diff --check` PASS;
-- working tree clean and synchronized with `origin/feat/attendance-local-demo-admin-ops`.
+```text
+AttendancePrivacyRetentionTest : 2 passed / 24 assertions
+Attendance regression          : 44 passed / 236 assertions (before release-readiness tests were added)
+```
 
-Do not run destructive migration/reset commands for this gate. The nullable address migration should already have been applied during the accepted local UI test.
+Scheduler verification also confirmed:
 
-## Canonical sources for this follow-up MR
+```text
+30 2 * * *  php artisan attendance:privacy-purge
+```
 
-- `Modules/Attendance/Http/Controllers/AttendanceLocationsController.php`
-- `Modules/Attendance/Http/Controllers/AttendanceShiftsController.php`
-- `Modules/Attendance/Http/Controllers/AttendanceDemoOperationsController.php`
+Manual `attendance:privacy-purge` execution completed successfully with zero expired records in the current local dataset.
+
+## Canonical MR-8 files
+
+- `Modules/Attendance/config/attendance.php`
+- `Modules/Attendance/Services/AttendancePrivacyRetentionService.php`
+- `Modules/Attendance/Console/PurgeExpiredRawGps.php`
+- `Modules/Attendance/Services/AttendanceAuditService.php`
 - `Modules/Attendance/Services/AttendanceGeocodingService.php`
-- `Modules/Attendance/Services/AttendanceDemoDataService.php`
-- `Modules/Attendance/Database/Seeders/AttendanceDemoSeeder.php`
-- `Modules/Attendance/Models/AttendanceLocation.php`
-- `Modules/Attendance/resources/views/admin/locations.blade.php`
-- `Modules/Attendance/resources/views/admin/shifts.blade.php`
-- `Modules/Attendance/resources/views/admin/demo-operations.blade.php`
-- `Modules/Attendance/resources/views/admin/dashboard.blade.php`
-- `Modules/Attendance/database/migrations/2026_09_01_190001_add_address_to_attendance_locations_table.php`
+- `Modules/Attendance/routes/web.php`
+- `routes/console.php`
+- `tests/Feature/Attendance/AttendancePrivacyRetentionTest.php`
+- `tests/Feature/Attendance/AttendanceReleaseReadinessTest.php`
 - `tests/Feature/Attendance/AttendanceAdminOperationsContractTest.php`
+- `tests/Feature/Attendance/AttendanceDomainCoreTest.php`
+- `tests/Feature/Attendance/AttendanceModuleBootstrapTest.php`
 
-## Next gate
+## Final MR-8 PR gate
 
-This follow-up MR may proceed to PR after the final local closeout gate above is green and the working tree is clean.
+Before creating the PR, review the branch diff against `main` and confirm that canonical Attendance documentation reflects the 30-day privacy policy rather than the superseded 12-month baseline.
 
-After merge, stop and determine the next scope with the user. Do not start MR-8 privacy/release readiness automatically.
+No destructive migration/reset command is required. MR-8 adds no Attendance schema migration for GPS retention because the raw GPS evidence columns are already nullable.
+
+After MR-8 merges, stop. Determine any next Attendance phase with the user and require a new explicit approval before implementation.
