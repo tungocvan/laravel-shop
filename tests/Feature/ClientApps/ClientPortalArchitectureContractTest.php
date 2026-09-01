@@ -36,6 +36,24 @@ class ClientPortalArchitectureContractTest extends TestCase
         $this->assertInstanceOf(MuasamcongSyncRequest::class, new LegacySyncRequest());
     }
 
+    public function test_muasamcong_adapter_runtime_uses_canonical_model_namespace(): void
+    {
+        $paths = [
+            'Modules/ClientPortal/Applications/Muasamcong/Http/Controllers/MuasamcongApplicationController.php',
+            'Modules/ClientPortal/Applications/Muasamcong/Http/Controllers/MuasamcongPriceListController.php',
+            'Modules/ClientPortal/Applications/Muasamcong/Http/Controllers/MuasamcongShareManagementController.php',
+            'Modules/ClientPortal/Applications/Muasamcong/Http/Controllers/PublicDrugShareController.php',
+            'Modules/ClientPortal/Applications/Muasamcong/Jobs/SyncPricingResultsJob.php',
+        ];
+
+        foreach ($paths as $path) {
+            $source = file_get_contents(base_path($path));
+
+            $this->assertIsString($source, $path);
+            $this->assertStringNotContainsString('Modules\\ClientPortal\\Models\\', $source, $path);
+        }
+    }
+
     public function test_module_architecture_contract_exists(): void
     {
         $this->assertFileExists(base_path('docs/modules/ClientPortal/MODULE.md'));
