@@ -10,12 +10,15 @@ class WebsiteSettingsConsolidationContractTest extends TestCase
     {
         $websiteSetting = file_get_contents(base_path('Modules/Website/Models/Setting.php'));
         $systemService = file_get_contents(base_path('Modules/System/Services/SettingsService.php'));
+        $homepageBackfill = file_get_contents(base_path('Modules/Website/Services/HomepageBackfillService.php'));
 
         $this->assertStringContainsString('extends \\Modules\\System\\Models\\Setting', $websiteSetting);
         $this->assertStringNotContainsString('wp_settings', $websiteSetting);
         $this->assertStringNotContainsString("DB::table('wp_settings')", $systemService);
         $this->assertStringNotContainsString('isLegacyHomepageKey', $systemService);
         $this->assertStringContainsString("Schema::hasTable('settings')", $systemService);
+        $this->assertStringNotContainsString("DB::table('wp_settings')", $homepageBackfill);
+        $this->assertStringContainsString("DB::table('settings')", $homepageBackfill);
     }
 
     public function test_consolidation_migration_is_additive_and_non_destructive(): void
@@ -26,9 +29,9 @@ class WebsiteSettingsConsolidationContractTest extends TestCase
         $this->assertStringContainsString("Schema::hasTable('wp_settings')", $migration);
         $this->assertStringContainsString("DB::table('wp_settings')", $migration);
         $this->assertStringContainsString("DB::table('settings')", $migration);
-        $this->assertStringContainsString("where('key', $legacy->key)->exists()", $migration);
+        $this->assertStringContainsString("where('key', \$legacy->key)->exists()", $migration);
         $this->assertStringNotContainsString("dropIfExists('wp_settings')", $migration);
         $this->assertStringNotContainsString("drop('wp_settings')", $migration);
-        $this->assertStringNotContainsString("truncate", $migration);
+        $this->assertStringNotContainsString('truncate', $migration);
     }
 }
