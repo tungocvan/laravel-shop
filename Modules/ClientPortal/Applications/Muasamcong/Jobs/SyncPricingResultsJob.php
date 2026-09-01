@@ -19,6 +19,7 @@ class SyncPricingResultsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 180;
 
     public function __construct(
@@ -44,7 +45,7 @@ class SyncPricingResultsJob implements ShouldQueue
             $result = $tbmtPaginationService->loadAll($this->keyword, $result);
         }
 
-        if (! ($result['success'] ?? false)) {
+        if (!($result['success'] ?? false)) {
             throw new RuntimeException((string) ($result['message'] ?? 'Không thể xác minh lại dữ liệu Mua sắm công.'));
         }
 
