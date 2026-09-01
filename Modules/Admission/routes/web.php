@@ -7,7 +7,9 @@ Route::middleware(['web'])
     ->prefix('/admission')
     ->name('admission.')
     ->group(function () {
-        Route::get('/search/{ma_dinh_danh?}/{password?}', [AdmissionController::class, 'search'])->name('search');
+        Route::get('/search', [AdmissionController::class, 'search'])->name('search');
+        Route::get('/search/{ma_dinh_danh}/{password}', [AdmissionController::class, 'legacySearch'])
+            ->name('search.legacy');
     });
 
 Route::middleware(['web', 'auth:admin'])
