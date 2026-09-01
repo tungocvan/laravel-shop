@@ -24,16 +24,16 @@ class ClientPortalArchitectureContractTest extends TestCase
 
     public function test_muasamcong_client_state_has_adapter_scoped_canonical_models(): void
     {
-        $this->assertSame('client_portal_price_list_exports', (new MuasamcongPriceListExport())->getTable());
-        $this->assertSame('client_portal_public_shares', (new MuasamcongPublicShare())->getTable());
-        $this->assertSame('client_portal_sync_requests', (new MuasamcongSyncRequest())->getTable());
+        $this->assertSame('client_portal_price_list_exports', (new MuasamcongPriceListExport)->getTable());
+        $this->assertSame('client_portal_public_shares', (new MuasamcongPublicShare)->getTable());
+        $this->assertSame('client_portal_sync_requests', (new MuasamcongSyncRequest)->getTable());
     }
 
     public function test_legacy_root_model_names_are_compatibility_aliases(): void
     {
-        $this->assertInstanceOf(MuasamcongPriceListExport::class, new LegacyPriceListExport());
-        $this->assertInstanceOf(MuasamcongPublicShare::class, new LegacyPublicShare());
-        $this->assertInstanceOf(MuasamcongSyncRequest::class, new LegacySyncRequest());
+        $this->assertInstanceOf(MuasamcongPriceListExport::class, new LegacyPriceListExport);
+        $this->assertInstanceOf(MuasamcongPublicShare::class, new LegacyPublicShare);
+        $this->assertInstanceOf(MuasamcongSyncRequest::class, new LegacySyncRequest);
     }
 
     public function test_muasamcong_adapter_runtime_uses_canonical_model_namespace(): void
