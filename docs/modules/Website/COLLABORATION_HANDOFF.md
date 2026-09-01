@@ -2,18 +2,56 @@
 
 ## Current status
 
-The approved Website Major/Clean Module Refactor is **CLOSED** for the currently authorized scope.
+The approved Website Major/Clean Module Refactor remains **CLOSED** for the previously authorized scope.
 
-Website Batch 1 ownership cleanup, System-owned settings consolidation, and the remaining-domain convergence are all merged to `main`.
+A production corrective hotfix is currently in review on branch `fix/website-wishlist-icon-service-reference` after a missed legacy Wishlist/Affiliate caller surfaced following PR `#121`.
 
-Latest completed PR:
+The hotfix does not reopen the Website refactor scope and does not authorize new domain cleanup beyond the concrete stale callers found by the existing ownership regression guard.
+
+Latest completed refactor PR:
 
 - PR `#121` — `refactor(website): converge remaining domain boundaries`;
 - merged to `main` on 2026-09-01;
 - merge commit: `06981d73619b6499ac82884facd2979ebc19abb3`;
 - implementation head: `04fc6fddc8127fa48766b4c56082064296daca7d`.
 
-No new Website implementation objective is currently authorized.
+## Production corrective hotfix — Wishlist canonical service reference
+
+### Trigger
+
+Production returned HTTP 500 on the Website homepage because `Modules\Website\Livewire\Wishlist\WishlistIcon` still imported the removed `Modules\Website\Services\WishlistService` after Wishlist ownership had moved to Product.
+
+### Corrective scope
+
+The hotfix keeps Product as the canonical Wishlist owner and Order as the canonical Affiliate business owner.
+
+Corrected Wishlist callers:
+
+- `Modules\Website\Livewire\Wishlist\WishlistIcon` now uses `Modules\Product\Services\WishlistService`;
+- `Modules\Website\Livewire\Products\WishlistBtn` now uses `Modules\Product\Services\WishlistService`;
+- existing Wishlist behavior (`count`, `toggle`, notifications and `wishlist-updated`) is preserved.
+
+A focused regression guard was added:
+
+- `tests/Feature/Website/WishlistIconOwnershipTest.php`.
+
+While rerunning the existing repository-wide ownership guard, additional stale Affiliate adapters/seeders were exposed and corrected to canonical Order ownership:
+
+- Website Affiliate seeders now use Order-owned `AffiliateLevel` / `AffiliateScheme` models;
+- `Modules\Admin\Models\AffiliateScheme` compatibility adapter now extends `Modules\Order\Models\AffiliateScheme`;
+- `Modules\Admin\Services\AffiliateRankService` compatibility adapter now extends `Modules\Order\Services\AffiliateRankService`;
+- `Modules\Admin\Services\AdminAffiliateService` compatibility adapter now extends `Modules\Order\Services\AdminAffiliateService`.
+
+No schema, migration-ledger, route, authorization or payment-contract changes are included.
+
+### Hotfix verification
+
+Automated verification on the hotfix branch:
+
+- focused ownership regression: **12 passed (26113 assertions)** in **0.93s**;
+- changed-file Pint gate: **PASS — 8 files**.
+
+UI smoke for the production symptom should cover `/` and `/account/wishlist` before merge/deploy closeout.
 
 ## Completed settings consolidation
 
@@ -102,7 +140,7 @@ Removed the unused Website route-prefix variable without changing public/admin r
 - Tag: `QUARANTINE` pending stronger caller/ownership proof.
 - legacy `wp_settings`: `QUARANTINE / DEFERRED`, physical removal not authorized.
 
-## Verification closeout
+## Verification closeout for PR #121
 
 PR #121 was verified before merge with:
 
@@ -122,6 +160,8 @@ No destructive schema changes or migration-ledger rewrites were included.
 - Product-owned Wishlist business logic;
 - absence of removed Website Affiliate/Wishlist duplicate namespaces;
 - Website presentation adapters depending on canonical owner services rather than recreating domain ownership.
+
+The production corrective hotfix additionally adds `tests/Feature/Website/WishlistIconOwnershipTest.php` to protect the exact WishlistIcon caller that caused the HTTP 500.
 
 ## Deferred debt and safety gates
 
@@ -143,6 +183,6 @@ Do not create speculative Cart/Promotion modules solely for architectural symmet
 
 ## Next objective
 
-`NOT DETERMINED`.
+`NOT DETERMINED` after this production corrective hotfix.
 
 A future Website change must begin from a newly stated objective and must not treat this handoff as authorization for additional destructive cleanup.
