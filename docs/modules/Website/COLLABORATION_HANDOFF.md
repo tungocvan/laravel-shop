@@ -171,10 +171,25 @@ Current remaining-domain branch:
 - destructive schema changes: NONE;
 - migration ledger rewrites: NONE;
 - public MoMo callback/IPN contract changes: NONE;
-- final targeted local regression checkpoint: PENDING;
-- UI smoke after regression: PENDING;
-- PR/merge: PENDING USER VERIFICATION.
+- targeted regression: PASS — `166 passed (16349 assertions)` in `12.85s` across Website, Order, Product and User feature suites;
+- Pint changed-files gate against current `origin/main`: PASS;
+- route sanity: PASS — checkout, MoMo callback/IPN, affiliate, wishlist and admin customer route contracts remain available;
+- UI smoke: PASS for `/checkout`, `/account/affiliate`, `/account/wishlist`, `/admin/affiliate` and `/admin/customers`;
+- branch state before final handoff: based on current `main`, no intentional unrelated style cleanup;
+- PR status: READY FOR PR;
+- merge status: NOT AUTHORIZED — user review required.
+
+## PR scope guard
+
+The PR must remain limited to remaining Website domain-boundary convergence. It must not include:
+
+- physical removal of `wp_settings`;
+- destructive cart/coupon/flash-sale/review/affiliate schema changes;
+- migration ledger rewrites;
+- breaking MoMo callback/IPN route or public-contract changes;
+- creation of speculative new Cart/Promotion/Wishlist modules solely for architectural symmetry;
+- unrelated legacy Pint/style cleanup outside files changed by this branch.
 
 ## Next checkpoint
 
-Run one consolidated targeted verification covering Website and directly impacted Order/Product/User/Account/Admin boundaries. Do not run the full project test suite. After targeted tests pass, verify route sanity and UI smoke before opening the PR.
+Open the PR from `refactor/website-remaining-domain-boundaries` to `main` for user review. Do not merge until the user explicitly approves the PR.
