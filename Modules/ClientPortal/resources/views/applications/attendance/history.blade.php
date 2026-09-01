@@ -6,6 +6,13 @@
 @section('app-dashboard-route', route('client.attendance.dashboard'))
 
 @section('content')
+    @php
+        $statusLabels = [
+            'checked_in' => 'Đã vào ca',
+            'completed' => 'Hoàn thành',
+            'voided' => 'Đã hủy',
+        ];
+    @endphp
     <div class="mx-auto max-w-5xl space-y-5">
         <div>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Lịch sử</p>
@@ -38,7 +45,7 @@
                                 <td class="px-5 py-4 text-slate-700">{{ $record->checked_in_at?->format('H:i') ?? '—' }}<div class="text-xs text-slate-500">{{ $record->checkInLocation?->name }}</div></td>
                                 <td class="px-5 py-4 text-slate-700">{{ $record->checked_out_at?->format('H:i') ?? '—' }}<div class="text-xs text-slate-500">{{ $record->checkOutLocation?->name }}</div></td>
                                 <td class="px-5 py-4 text-slate-700">{{ $record->worked_minutes ?? 0 }}</td>
-                                <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{{ $record->status?->value }}</span></td>
+                                <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{{ $statusLabels[$record->status?->value] ?? $record->status?->value ?? 'Không xác định' }}</span></td>
                             </tr>
                         @empty
                             <tr><td colspan="6" class="px-5 py-10 text-center text-slate-500">Chưa có dữ liệu chấm công.</td></tr>
@@ -53,7 +60,7 @@
                 <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div class="flex items-start justify-between gap-3">
                         <div><p class="font-bold text-slate-950">{{ $record->work_date?->format('d/m/Y') }}</p><p class="mt-1 text-sm text-slate-500">{{ $record->shift_name_snapshot }}</p></div>
-                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{{ $record->status?->value }}</span>
+                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{{ $statusLabels[$record->status?->value] ?? $record->status?->value ?? 'Không xác định' }}</span>
                     </div>
                     <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div class="rounded-2xl bg-slate-50 p-3"><p class="text-xs text-slate-500">Giờ vào</p><p class="mt-1 font-bold text-slate-900">{{ $record->checked_in_at?->format('H:i') ?? '—' }}</p><p class="mt-1 text-xs text-slate-500">{{ $record->checkInLocation?->name }}</p></div>
