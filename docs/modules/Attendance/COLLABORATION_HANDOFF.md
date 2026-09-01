@@ -9,82 +9,122 @@
 - MR-3 domain core: merged through PR #131.
 - MR-4 adjustment/audit/Admin config: merged through PR #132.
 - MR-5 Admin dashboard/records workspace: merged through PR #133.
-- MR-6 Attendance Export: explicitly approved and implemented on branch `feat/attendance-export`.
-- MR-6 manual Records/export acceptance has been reported as `UI PASS`.
-- MR-6 has no schema/migration change and introduces no new package dependency.
-- Do not start MR-7 ClientPortal/PWA adapter until MR-6 is reviewed/merged and the next phase is explicitly authorized.
+- MR-6 Attendance Export: merged through PR #134.
+- MR-7 ClientPortal/PWA Attendance adapter: explicitly approved, implemented and manually accepted on branch `feat/clientportal-attendance-pwa`.
+- MR-7 introduces no schema/migration changes and no new third-party package.
+- Manual UI/PWA acceptance for MR-7 has been reported as `UI PASS`.
+- Do not start MR-8 or any follow-up Admin/demo operations MR until MR-7 is reviewed/merged and the next scope is explicitly authorized.
 
-## MR-6 — Attendance Export
+## MR-7 — ClientPortal/PWA Attendance adapter
 
 Implemented scope:
 
-- XLSX export uses the repository's existing `maatwebsite/excel` dependency; no new export infrastructure/package is introduced;
-- `AttendanceRecordQueryService` is the shared canonical filter/query builder for both the Admin records workspace and export, preventing filter-semantic drift;
-- shared filter normalization covers employee search, persistent status, shift, location, date range and bounded page size;
-- `AdminRecordsTable` supports `exportFiltered()` for all records matching the active filter set;
-- `AdminRecordsTable` supports `exportSelected()` for explicitly selected record rows;
-- selected record IDs are normalized to positive unique stable IDs and are intersected with the current filtered query before export;
-- backend authorization requires `attendance.export`; hiding export controls in Blade is not treated as authorization;
-- the export UI is surfaced inside `/admin/attendance/records` and remains permission-aware;
-- export fields cover employee identity/code, work date, historical shift snapshot, check-in/out, worked/late/early minutes, status and check-in/out location names;
-- precise latitude, longitude, GPS accuracy and distance evidence are intentionally excluded from the XLSX contract;
-- `AttendanceDemoSeeder` provides local/manual export acceptance data, reuses existing Account users, creates missing demo employee profiles without creating new user credentials/roles, seeds a demo office and idempotent attendance sessions;
-- the demo seeder is test/local tooling and is not wired into production/default seeding.
+- ClientPortal application added under `Modules/ClientPortal/Applications/Attendance/`;
+- app key is `attendance`, source module is canonical `Attendance`, and application visibility follows the existing ClientPortal application registry/module-enabled boundary;
+- route surface is `/apps/attendance` with authenticated ClientPortal middleware and feature/permission boundaries;
+- PWA/mobile-first attendance dashboard shows current work date, resolved shift snapshot, current attendance state, allowed attendance locations and check-in/check-out action;
+- browser geolocation is requested only when the user taps a check-in/check-out action;
+- no `watchPosition`, background tracking or continuous location collection is introduced;
+- official attendance actions are online-only; offline submission is blocked in the client instead of being queued as an official attendance event;
+- location evidence sent by the client is delegated to canonical `AttendanceService` geofence verification; ClientPortal does not duplicate attendance/geofence calculations;
+- server time remains authoritative for check-in/check-out timestamps;
+- users without a canonical Account `EmployeeProfile` are shown an explicit unavailable state; ClientPortal does not create employee identity automatically;
+- attendance history is scoped to the authenticated user, paginated, and does not expose precise latitude/longitude fields;
+- adjustment submission is scoped to the authenticated user's own Attendance records and delegates to canonical `AttendanceAdjustmentService`;
+- Attendance domain errors exposed to ClientPortal are mapped to user-friendly Vietnamese messages;
+- attendance record statuses are localized in the ClientPortal UI (`Đã vào ca`, `Hoàn thành`, `Đã hủy`);
+- attendance adjustment statuses are localized (`Chờ duyệt`, `Đã duyệt`, `Từ chối`).
 
-## MR-6 verification recorded
+## MR-7 permissions and boundaries
 
-Automated verification reported before final closeout:
+The adapter uses the already-approved web permissions owned by Attendance:
 
-- Pint: PASS for the MR-6 export implementation files;
-- `AttendanceExportContractTest`: `6 passed (32 assertions)`;
-- complete Attendance feature pack: `34 passed (169 assertions)`;
+- `client.attendance.access`
+- `attendance.record.view-own`
+- `attendance.check-in`
+- `attendance.check-out`
+- `attendance.adjustment.create`
+
+Architecture boundaries preserved:
+
+- `Attendance -> Account` remains the domain dependency for employee identity;
+- ClientPortal consumes Attendance services/models through the adapter;
+- no reverse dependency `Attendance -> ClientPortal` was introduced;
+- no public Attendance API was introduced;
+- no new persistence/schema ownership was introduced in ClientPortal;
+- precise GPS evidence remains an Attendance-domain concern and is not rendered in ClientPortal history.
+
+## MR-7 verification recorded
+
+Automated verification reported during implementation:
+
+- Pint: PASS for Attendance ClientPortal adapter/test files after the contract-test corrective;
+- `AttendanceApplicationContractTest`: `6 passed (36 assertions)`;
+- Attendance regression: `34 passed (169 assertions)`;
+- `/apps/attendance` route surface: 6 routes present when Attendance is enabled;
+- Vite production build: PASS;
 - `git diff --check`: PASS;
-- branch working tree was clean and synchronized before the later demo-seeder closeout commits.
+- branch was clean and synchronized after the contract-test corrective.
 
-Manual runtime acceptance:
+After the later localization corrective commits, run the final focused gate below before opening the PR.
 
-- demo Account employee profiles and Attendance records were prepared successfully after adapting the demo seeder to the local database, which had users but no `employee_profiles`;
-- `/admin/attendance/records` was manually exercised with demo attendance data;
-- Attendance export UI/runtime acceptance was reported as `UI PASS`.
+## Manual UI/PWA acceptance
 
-Because `AttendanceDemoSeeder` was added/adjusted after the earlier automated gate, run the final focused gate below after pulling this handoff commit before opening the PR.
+Manual acceptance on the local environment has been reported as `UI PASS`.
 
-## Domain / privacy rules preserved
+Verified end-to-end behavior includes:
 
-- Account remains the canonical owner of employee identity; Attendance references `EmployeeProfile` rather than introducing a duplicate employee model/table.
-- Export uses Attendance historical shift snapshots so exported history is not rewritten by later shift configuration changes.
-- Precise geolocation evidence remains persisted for Attendance verification/audit but is not exposed by the standard Admin XLSX export.
-- No background location tracking is introduced.
-- No hard-delete path is introduced.
-- Existing MR-5 search/filter/pagination semantics remain canonical through the shared query service.
-- Export authorization is enforced server-side with `attendance.export`.
+- Attendance app renders correctly in the ClientPortal/PWA shell on a mobile viewport;
+- user without `EmployeeProfile` is blocked with a clear message;
+- after linking the local test user to an active canonical Account `EmployeeProfile`, the default shift resolves correctly;
+- geofence rejection was observed before local demo location alignment, proving backend location verification remains authoritative;
+- local demo location was aligned to the tester's device location for acceptance without changing schema/business logic;
+- check-in succeeded and the UI transitioned to the checked-in state;
+- check-out succeeded and the attendance session transitioned to completed;
+- history displayed the authenticated user's completed record with check-in/check-out times and location names, without precise GPS coordinates;
+- adjustment request submission succeeded and appeared in the recent-request list in pending state;
+- localized status labels and localized ClientPortal-facing attendance errors were manually accepted.
 
-## Explicitly not in MR-6
+Local acceptance data changes were environment-only and are not repository schema/config changes.
 
-- ClientPortal/PWA Attendance application or check-in/check-out UI (MR-7);
-- offline official check-in/out;
-- Attendance API endpoints;
-- GPS retention cleanup/scheduler integration (MR-8);
-- import of historical attendance data;
-- new schema/migrations;
-- new third-party export package;
-- production/default execution of `AttendanceDemoSeeder`.
+## Explicitly not in MR-7
 
-## Final verification gate before PR
+- offline official check-in/out queueing or later synchronization;
+- background/continuous location tracking;
+- public Attendance API endpoints;
+- new Attendance schema/migrations;
+- new third-party packages;
+- Admin location/shift management expansion;
+- local demo reset/delete tooling;
+- Admin destructive demo cleanup actions;
+- GPS evidence retention automation and MR-8 release/privacy readiness work.
 
-After pulling the handoff closeout commit, run:
+## Follow-up proposal after MR-7 merge
+
+A separate Attendance local/demo/Admin operations MR has been discussed and accepted in principle for local development/testing. It should remain separate from MR-7 and requires its own explicit implementation authorization after MR-7 is merged.
+
+Candidate scope for that later MR:
+
+- richer local demo data covering on-time, late, early leave, missing checkout, completed, voided and adjustment lifecycle cases;
+- repeatable local-only demo seed/reset commands;
+- Admin-facing location and shift configuration surfaces if current Admin exposure is incomplete;
+- local/testing-only demo cleanup guarded by environment and Admin authorization;
+- no deletion of Account users/employee profiles and no destructive schema reset.
+
+## Final verification gate before MR-7 PR
+
+After pulling this handoff closeout commit, run:
 
 ```bash
 vendor/bin/pint \
-  Modules/Attendance/Exports \
-  Modules/Attendance/Services/AttendanceRecordQueryService.php \
-  Modules/Attendance/Livewire/AdminRecordsTable.php \
-  Modules/Attendance/Database/Seeders/AttendanceDemoSeeder.php \
-  tests/Feature/Attendance/AttendanceExportContractTest.php
+  Modules/ClientPortal/Applications/Attendance \
+  tests/Feature/ClientPortal/AttendanceApplicationContractTest.php
 
-php artisan test tests/Feature/Attendance/AttendanceExportContractTest.php
+php artisan test tests/Feature/ClientPortal/AttendanceApplicationContractTest.php
+php artisan test tests/Feature/ClientPortal
 php artisan test tests/Feature/Attendance
 
+php artisan route:list --path=apps/attendance
 npm run build
 git diff --check
 git status
@@ -93,37 +133,32 @@ git status
 Expected gate:
 
 - Pint PASS;
-- export focused tests PASS;
+- Attendance ClientPortal contract PASS;
+- ClientPortal focused regression PASS;
 - Attendance regression PASS;
-- Vite production build PASS because the Records Blade UI changed;
+- 6 Attendance ClientPortal routes present when Attendance is enabled;
+- Vite production build PASS;
 - `git diff --check` PASS;
-- working tree clean on `feat/attendance-export`.
+- working tree clean on `feat/clientportal-attendance-pwa`.
 
-No destructive migration/reset command is required or authorized for MR-6.
+No destructive migration/reset command is required or authorized for MR-7.
 
-## Manual UI acceptance
+## Canonical MR-7 sources
 
-`UI PASS` has been reported for MR-6 after loading demo attendance data. Accepted surface includes:
-
-- `/admin/attendance/records` remains functional;
-- export controls are visible for an authorized Admin;
-- filtered/selected export workflow is usable with demo records;
-- existing Records UI remains operational after export integration.
-
-## Canonical MR-6 sources
-
-- `Modules/Attendance/Exports/AttendanceRecordsExport.php`
-- `Modules/Attendance/Services/AttendanceRecordQueryService.php`
-- `Modules/Attendance/Livewire/AdminRecordsTable.php`
-- `Modules/Attendance/resources/views/livewire/admin-records-table.blade.php`
-- `Modules/Attendance/Database/Seeders/AttendanceDemoSeeder.php`
-- `tests/Feature/Attendance/AttendanceExportContractTest.php`
+- `Modules/ClientPortal/Applications/Attendance/manifest.php`
+- `Modules/ClientPortal/Applications/Attendance/routes.php`
+- `Modules/ClientPortal/Applications/Attendance/Http/Controllers/AttendanceApplicationController.php`
+- `Modules/ClientPortal/resources/views/applications/attendance/dashboard.blade.php`
+- `Modules/ClientPortal/resources/views/applications/attendance/history.blade.php`
+- `Modules/ClientPortal/resources/views/applications/attendance/adjustments.blade.php`
+- `tests/Feature/ClientPortal/AttendanceApplicationContractTest.php`
+- `Modules/Attendance/Services/AttendanceService.php`
+- `Modules/Attendance/Services/AttendanceAdjustmentService.php`
 - `docs/modules/Attendance/REQUIREMENTS.md`
 - `docs/modules/Attendance/CREATE_PLAN.md`
-- `.codex/standards/ADMIN_UI_STANDARD.md`
 
 ## Next gate
 
-MR-6 may proceed to PR only after the final post-closeout focused verification above is green and the working tree is clean.
+MR-7 may proceed to PR only after the final post-closeout focused verification above is green and the working tree is clean.
 
-Do not start MR-7 ClientPortal/PWA Attendance adapter until MR-6 is reviewed/merged and the user explicitly authorizes the next phase.
+Do not start MR-8 or the separate Attendance local/demo/Admin operations MR until MR-7 is reviewed/merged and the user explicitly authorizes the next phase.
