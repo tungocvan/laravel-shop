@@ -65,11 +65,14 @@
 
             <aside class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 class="font-bold text-slate-950">Không gian quản trị</h2>
-                <p class="mt-2 text-sm leading-6 text-slate-500">MR-5 tập trung dashboard và records. Cấu hình ca/vị trí dùng domain service đã có và sẽ được nối thành màn hình riêng khi cần.</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">Quản lý bản ghi chấm công, địa điểm geofence và ca làm việc từ các workspace riêng của Attendance.</p>
                 <div class="mt-5 space-y-3">
-                    <a href="{{ route('admin.attendance.records') }}" class="block rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-800">Records, điều chỉnh và void</a>
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Export được dành cho MR-6.</div>
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">ClientPortal/PWA được dành cho MR-7.</div>
+                    <a href="{{ route('admin.attendance.records') }}" class="block rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-800 hover:border-indigo-300">Records, điều chỉnh và void</a>
+                    <a href="{{ route('admin.attendance.locations.index') }}" class="block rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-800 hover:border-indigo-300 hover:text-indigo-700">Địa điểm chấm công</a>
+                    <a href="{{ route('admin.attendance.shifts.index') }}" class="block rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-800 hover:border-indigo-300 hover:text-indigo-700">Ca làm việc</a>
+                    @if (app()->environment(['local', 'testing']))
+                        <a href="{{ route('admin.attendance.demo.index') }}" class="block rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800 hover:border-amber-300">Dữ liệu demo / reset local</a>
+                    @endif
                 </div>
             </aside>
         </div>
