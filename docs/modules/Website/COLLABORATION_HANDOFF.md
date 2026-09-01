@@ -46,12 +46,13 @@ No schema, migration-ledger, route, authorization or payment-contract changes ar
 
 ### Hotfix verification
 
-Automated verification on the hotfix branch:
+Verification on the hotfix branch:
 
 - focused ownership regression: **12 passed (26113 assertions)** in **0.93s**;
-- changed-file Pint gate: **PASS — 8 files**.
+- changed-file Pint gate: **PASS — 8 files**;
+- UI smoke: **PASS** for `/` and `/account/wishlist`.
 
-UI smoke for the production symptom should cover `/` and `/account/wishlist` before merge/deploy closeout.
+The corrective hotfix is therefore **READY FOR PR MERGE**, subject to manual user review/merge.
 
 ## Completed settings consolidation
 
