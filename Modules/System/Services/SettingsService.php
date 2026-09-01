@@ -18,22 +18,12 @@ class SettingsService
 
     public function get(string $key, mixed $default = null): mixed
     {
-        if (! Schema::hasTable('settings') && ! Schema::hasTable('wp_settings')) {
+        if (! Schema::hasTable('settings')) {
             return $default;
         }
 
         return Cache::rememberForever($this->cacheKey($key), function () use ($key, $default): mixed {
-            if ($this->isLegacyHomepageKey($key) && Schema::hasTable('wp_settings')) {
-                $setting = DB::table('wp_settings')->where('key', $key)->first();
-
-                return $setting ? $this->decode($setting->value, $setting->type) : $default;
-            }
-
-            $setting = Schema::hasTable('settings') ? Setting::query()->where('key', $key)->first() : null;
-
-            if (! $setting && Schema::hasTable('wp_settings')) {
-                $setting = DB::table('wp_settings')->where('key', $key)->first();
-            }
+            $setting = Setting::query()->where('key', $key)->first();
 
             return $setting ? $this->decode($setting->value, $setting->type) : $default;
         });
@@ -41,20 +31,11 @@ class SettingsService
 
     public function getGroup(string $group): array
     {
-        if (! Schema::hasTable('settings') && ! Schema::hasTable('wp_settings')) {
+        if (! Schema::hasTable('settings')) {
             return [];
         }
 
         return Cache::rememberForever($this->groupCacheKey($group), function () use ($group): array {
-            if ($group === 'homepage' && Schema::hasTable('wp_settings')) {
-                return DB::table('wp_settings')->where('group_name', $group)->orderBy('key')->get()
-                    ->mapWithKeys(fn (object $setting): array => [$setting->key => $this->decode($setting->value, $setting->type)])->all();
-            }
-
-            if (! Schema::hasTable('settings')) {
-                return [];
-            }
-
             return Setting::query()->where('group_name', $group)->orderBy('key')->get()
                 ->mapWithKeys(fn (Setting $setting): array => [$setting->key => $this->decode($setting->value, $setting->type)])->all();
         });
@@ -63,16 +44,6 @@ class SettingsService
     public function set(string $key, mixed $value, string $group = 'general', string $type = 'text'): void
     {
         [$storedValue, $storedType] = $this->normalize($value, $type);
-
-        if ($this->isLegacyHomepageKey($key)) {
-            DB::table('wp_settings')->updateOrInsert(['key' => $key], [
-                'value' => $storedValue, 'group_name' => $group, 'type' => $storedType,
-                'updated_at' => now(), 'created_at' => now(),
-            ]);
-            $this->forget($key);
-            Cache::forget($this->groupCacheKey($group));
-            return;
-        }
 
         Setting::query()->updateOrCreate(['key' => $key], ['value' => $storedValue, 'group_name' => $group, 'type' => $storedType]);
         $this->forget($key);
@@ -162,13 +133,6 @@ class SettingsService
 
     private function persist(string $key, mixed $value, string $type, string $group): void
     {
-        if ($this->isLegacyHomepageKey($key)) {
-            DB::table('wp_settings')->updateOrInsert(['key' => $key], [
-                'value' => $value, 'group_name' => $group, 'type' => $type,
-                'updated_at' => now(), 'created_at' => now(),
-            ]);
-            return;
-        }
         Setting::query()->updateOrCreate(['key' => $key], ['value' => $value, 'group_name' => $group, 'type' => $type]);
     }
 
@@ -188,7 +152,6 @@ class SettingsService
 
     private function cacheKey(string $key): string { return 'system.setting.'.$key; }
     private function groupCacheKey(string $group): string { return 'system.settings.group.'.$group; }
-    private function isLegacyHomepageKey(string $key): bool { return str_starts_with($key, 'home_'); }
 
     private function imageKey(string $type): string
     {
