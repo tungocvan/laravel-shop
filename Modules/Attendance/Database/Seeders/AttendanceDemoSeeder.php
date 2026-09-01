@@ -5,6 +5,7 @@ namespace Modules\Attendance\Database\Seeders;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Modules\Account\Models\EmployeeProfile;
+use Modules\Account\Models\User;
 use Modules\Attendance\Enums\AttendanceRecordStatus;
 use Modules\Attendance\Enums\VerificationResult;
 use Modules\Attendance\Models\AttendanceLocation;
@@ -22,17 +23,37 @@ class AttendanceDemoSeeder extends Seeder
             throw new RuntimeException('Attendance default shift is missing. Run AttendanceDefaultsSeeder first.');
         }
 
+        $users = User::query()->orderBy('id')->limit(8)->get();
+
+        if ($users->isEmpty()) {
+            throw new RuntimeException('No Account users are available for Attendance demo data.');
+        }
+
+        foreach ($users as $index => $user) {
+            EmployeeProfile::query()->firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'employee_code' => sprintf('DEMO-%03d', $index + 1),
+                    'department' => $index % 2 === 0 ? 'Vận hành' : 'Kinh doanh',
+                    'position' => $index % 3 === 0 ? 'Nhân viên' : 'Chuyên viên',
+                    'joined_date' => CarbonImmutable::today()->subMonths(6 + $index)->toDateString(),
+                    'work_email' => $user->email,
+                    'status' => 'active',
+                    'note' => 'Hồ sơ demo phục vụ kiểm thử Attendance export.',
+                ],
+            );
+        }
+
         $employees = EmployeeProfile::query()
-            ->whereNotNull('user_id')
+            ->whereIn('user_id', $users->pluck('id'))
             ->with('user')
             ->orderBy('id')
-            ->limit(8)
             ->get()
             ->filter(fn (EmployeeProfile $profile) => $profile->user !== null)
             ->values();
 
         if ($employees->isEmpty()) {
-            throw new RuntimeException('No Account employee profiles with users are available for Attendance demo data.');
+            throw new RuntimeException('Unable to prepare Account employee profiles for Attendance demo data.');
         }
 
         $location = AttendanceLocation::query()->updateOrCreate(
