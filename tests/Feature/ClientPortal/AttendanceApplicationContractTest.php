@@ -53,8 +53,8 @@ class AttendanceApplicationContractTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Attendance/Http/Controllers/AttendanceApplicationController.php'));
 
-        $this->assertGreaterThanOrEqual(3, substr_count($controller, "->where('user_id', $userId)"));
-        $this->assertStringContainsString("->where('user_id', $user->getAuthIdentifier())", $controller);
+        $this->assertGreaterThanOrEqual(3, substr_count($controller, '->where(\'user_id\', $userId)'));
+        $this->assertStringContainsString('->where(\'user_id\', $user->getAuthIdentifier())', $controller);
         $this->assertStringContainsString('->paginate(10)', $controller);
     }
 
