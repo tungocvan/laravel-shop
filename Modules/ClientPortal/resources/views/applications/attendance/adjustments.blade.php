@@ -6,6 +6,13 @@
 @section('app-dashboard-route', route('client.attendance.dashboard'))
 
 @section('content')
+    @php
+        $adjustmentStatusLabels = [
+            'pending' => 'Chờ duyệt',
+            'approved' => 'Đã duyệt',
+            'rejected' => 'Từ chối',
+        ];
+    @endphp
     <div class="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
             <div>
@@ -82,7 +89,7 @@
                                 <p class="font-bold text-slate-900">{{ $adjustment->requested_work_date?->format('d/m/Y') }}</p>
                                 <p class="mt-1 text-xs text-slate-500">Gửi {{ $adjustment->submitted_at?->format('d/m H:i') }}</p>
                             </div>
-                            <span class="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-sm">{{ $adjustment->status?->value }}</span>
+                            <span class="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-sm">{{ $adjustmentStatusLabels[$adjustment->status?->value] ?? $adjustment->status?->value ?? 'Không xác định' }}</span>
                         </div>
                         <p class="mt-3 text-sm text-slate-700">{{ $adjustment->reason }}</p>
                     </article>
