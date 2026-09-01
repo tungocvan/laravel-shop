@@ -33,12 +33,28 @@ class AttendanceAuditService
 
     private function sanitize(array $payload): array
     {
-        foreach (array_keys($payload) as $key) {
-            if (str_contains((string) $key, 'latitude') || str_contains((string) $key, 'longitude')) {
+        foreach ($payload as $key => $value) {
+            $normalizedKey = strtolower((string) $key);
+
+            if ($this->isRawGpsKey($normalizedKey)) {
                 unset($payload[$key]);
+
+                continue;
+            }
+
+            if (is_array($value)) {
+                $payload[$key] = $this->sanitize($value);
             }
         }
 
         return $payload;
+    }
+
+    private function isRawGpsKey(string $key): bool
+    {
+        return str_contains($key, 'latitude')
+            || str_contains($key, 'longitude')
+            || str_contains($key, 'accuracy_meters')
+            || str_contains($key, 'captured_at');
     }
 }

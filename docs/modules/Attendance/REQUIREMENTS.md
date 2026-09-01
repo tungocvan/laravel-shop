@@ -332,11 +332,12 @@ Release 1 must not:
 Approved raw GPS retention baseline:
 
 ```text
-Precise/raw GPS evidence: 12 months
+Precise/raw GPS evidence: 30 days by default
+Operational configuration: 7 / 30 / 90 days
 Attendance business record: retained according to company operational/record policy
 ```
 
-After the raw-GPS retention period, implementation may retain non-precise verification facts such as verification result, resolved location and distance when required for business history, subject to the final retention implementation plan.
+After the raw-GPS retention period, precise employee latitude, longitude, accuracy and captured-at evidence must be removed. Attendance retains non-precise business facts required for history, including resolved location, distance, verification result, official check-in/check-out timestamps and calculated attendance facts. Office/location coordinates remain configuration and are not employee GPS history.
 
 The implementation must avoid logging precise location data unnecessarily.
 

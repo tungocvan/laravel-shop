@@ -36,8 +36,10 @@ class AttendanceAdminOperationsContractTest extends TestCase
     public function test_keeps_demo_reset_local_or_testing_and_attendance_scoped(): void
     {
         $service = file_get_contents(base_path('Modules/Attendance/Services/AttendanceDemoDataService.php'));
+        $routes = file_get_contents(base_path('Modules/Attendance/routes/web.php'));
 
         $this->assertStringContainsString("environment(['local', 'testing'])", $service);
+        $this->assertStringContainsString("environment(['local', 'testing'])", $routes);
         $this->assertStringContainsString("where('session_key', 'like', 'demo-%')", $service);
         $this->assertStringContainsString('AttendanceAdjustmentRequest::query()', $service);
         $this->assertStringContainsString('AttendanceAuditEvent::query()', $service);
@@ -82,6 +84,7 @@ class AttendanceAdminOperationsContractTest extends TestCase
         $model = file_get_contents(base_path('Modules/Attendance/Models/AttendanceLocation.php'));
         $controller = file_get_contents(base_path('Modules/Attendance/Http/Controllers/AttendanceLocationsController.php'));
         $geocoder = file_get_contents(base_path('Modules/Attendance/Services/AttendanceGeocodingService.php'));
+        $config = file_get_contents(base_path('Modules/Attendance/config/attendance.php'));
 
         $this->assertStringContainsString('name="address"', $view);
         $this->assertStringContainsString('data-geocode-address', $view);
@@ -89,7 +92,8 @@ class AttendanceAdminOperationsContractTest extends TestCase
         $this->assertStringNotContainsString('watchPosition', $view);
         $this->assertStringContainsString("'address',", $model);
         $this->assertStringContainsString("'address' => ['nullable', 'string', 'max:500']", $controller);
-        $this->assertStringContainsString('nominatim.openstreetmap.org/search', $geocoder);
+        $this->assertStringContainsString("config('attendance.attendance.geocoding.endpoint')", $geocoder);
         $this->assertStringContainsString('withUserAgent', $geocoder);
+        $this->assertStringContainsString('nominatim.openstreetmap.org/search', $config);
     }
 }

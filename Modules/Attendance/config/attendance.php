@@ -12,6 +12,12 @@ return [
         'maximum_accuracy_meters' => 100,
     ],
     'privacy' => [
-        'raw_gps_retention_months' => 12,
+        // Raw employee GPS is short-lived verification evidence, not tracking history.
+        'raw_gps_retention_days' => (int) env('ATTENDANCE_RAW_GPS_RETENTION_DAYS', 30),
+    ],
+    'geocoding' => [
+        'enabled' => (bool) env('ATTENDANCE_GEOCODING_ENABLED', true),
+        'endpoint' => env('ATTENDANCE_GEOCODING_ENDPOINT', 'https://nominatim.openstreetmap.org/search'),
+        'timeout_seconds' => (int) env('ATTENDANCE_GEOCODING_TIMEOUT_SECONDS', 8),
     ],
 ];

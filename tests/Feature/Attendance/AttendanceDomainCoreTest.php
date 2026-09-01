@@ -128,11 +128,14 @@ class AttendanceDomainCoreTest extends TestCase
         $this->assertStringContainsString("hash('sha256'", $source);
     }
 
-    public function test_audit_service_does_not_copy_precise_coordinates_to_generic_payload(): void
+    public function test_audit_service_does_not_copy_raw_gps_to_generic_payload_recursively(): void
     {
         $source = file_get_contents(base_path('Modules/Attendance/Services/AttendanceAuditService.php'));
 
-        $this->assertStringContainsString('str_contains((string) $key, \'latitude\')', $source);
-        $this->assertStringContainsString('str_contains((string) $key, \'longitude\')', $source);
+        $this->assertStringContainsString("str_contains(\$key, 'latitude')", $source);
+        $this->assertStringContainsString("str_contains(\$key, 'longitude')", $source);
+        $this->assertStringContainsString("str_contains(\$key, 'accuracy_meters')", $source);
+        $this->assertStringContainsString("str_contains(\$key, 'captured_at')", $source);
+        $this->assertStringContainsString('$payload[$key] = $this->sanitize($value)', $source);
     }
 }

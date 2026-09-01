@@ -4,88 +4,82 @@ namespace Tests\Feature\Attendance;
 
 use App\Modules\ModuleCatalog;
 use App\Modules\ModuleGraphValidator;
-use App\Modules\ModuleStateRepository;
-use App\Modules\ModuleStateResolver;
 use LogicException;
-use Mockery;
 use Tests\TestCase;
 
 class AttendanceModuleBootstrapTest extends TestCase
 {
-    public function test_attendance_manifest_matches_the_approved_bootstrap_contract(): void
+    public function test_attendance_module_manifest_declares_release_one_contract(): void
     {
-        $manifest = require base_path('Modules/Attendance/config/module.php');
+        $config = require base_path('Modules/Attendance/config/module.php');
 
-        $this->assertSame('Attendance', $manifest['name']);
-        $this->assertSame('domain', $manifest['type']);
-        $this->assertFalse($manifest['enabled']);
-        $this->assertFalse($manifest['default_enabled']);
-        $this->assertSame(['Account'], $manifest['depends']);
-        $this->assertTrue($manifest['permissions_required']);
+        $this->assertSame('Attendance', $config['name']);
+        $this->assertSame('domain', $config['type']);
+        $this->assertFalse($config['default_enabled']);
+        $this->assertSame(['Account'], $config['depends']);
+        $this->assertTrue($config['permissions_required']);
         $this->assertSame([
             'attendance_locations',
             'attendance_shifts',
             'attendance_records',
             'attendance_adjustment_requests',
             'attendance_audit_events',
-        ], $manifest['tables']);
-        $this->assertContains('attendance.dashboard.view', $manifest['permissions']);
-        $this->assertContains('attendance.audit.view', $manifest['permissions']);
-        $this->assertContains('client.attendance.access', $manifest['permissions_by_guard']['web']);
-        $this->assertContains('attendance.check-in', $manifest['permissions_by_guard']['web']);
-        $this->assertContains('attendance.check-out', $manifest['permissions_by_guard']['web']);
+        ], $config['tables']);
     }
 
-    public function test_attendance_is_discovered_disabled_by_default(): void
+    public function test_attendance_permissions_are_explicitly_split_by_guard(): void
     {
-        $states = Mockery::mock(ModuleStateRepository::class);
-        $states->shouldReceive('get')->once()->with('Attendance')->andReturnNull();
+        $config = require base_path('Modules/Attendance/config/module.php');
 
-        $module = (new ModuleCatalog(new ModuleStateResolver($states)))
-            ->resolve(base_path('Modules/Attendance'));
+        $this->assertContains('attendance.dashboard.view', $config['permissions']);
+        $this->assertContains('attendance.record.adjust', $config['permissions']);
+        $this->assertContains('attendance.location.manage', $config['permissions']);
+        $this->assertContains('attendance.audit.view', $config['permissions']);
 
-        $this->assertSame('Attendance', $module['name']);
-        $this->assertSame('domain', $module['type']);
-        $this->assertFalse($module['enabled']);
-        $this->assertFalse($module['required']);
-        $this->assertSame(['Account'], $module['depends']);
-        $this->assertSame('manifest', $module['source']);
-        $this->assertTrue($module['manifest_exists']);
-        $this->assertFalse($module['default_enabled']);
+        $this->assertSame([
+            'client.attendance.access',
+            'attendance.record.view-own',
+            'attendance.check-in',
+            'attendance.check-out',
+            'attendance.adjustment.create',
+        ], $config['permissions_by_guard']['web']);
     }
 
-    public function test_runtime_state_can_enable_attendance_when_account_is_enabled(): void
+    public function test_catalog_discovers_attendance_without_an_attendance_specific_provider(): void
     {
-        $states = Mockery::mock(ModuleStateRepository::class);
-        $states->shouldReceive('get')->once()->with('Attendance')->andReturn(true);
+        $attendance = collect(app(ModuleCatalog::class)->discover())
+            ->firstWhere('name', 'Attendance');
 
-        $attendance = (new ModuleCatalog(new ModuleStateResolver($states)))
-            ->resolve(base_path('Modules/Attendance'));
-
-        $account = $attendance;
-        $account['name'] = 'Account';
-        $account['enabled'] = true;
-        $account['depends'] = [];
-        $account['source'] = 'runtime';
-
-        (new ModuleGraphValidator)->validate(collect([$account, $attendance]));
-
-        $this->assertTrue($attendance['enabled']);
-        $this->assertSame('runtime', $attendance['source']);
+        $this->assertNotNull($attendance);
+        $this->assertSame('Attendance', $attendance['name']);
+        $this->assertSame(['Account'], $attendance['depends']);
+        $this->assertFalse($attendance['default_enabled']);
+        $this->assertFileDoesNotExist(base_path('Modules/Attendance/Providers/AttendanceServiceProvider.php'));
     }
 
-    public function test_attendance_cannot_be_enabled_while_account_is_disabled(): void
+    public function test_root_module_provider_keeps_convention_based_attendance_bootstrap_available(): void
     {
-        $states = Mockery::mock(ModuleStateRepository::class);
-        $states->shouldReceive('get')->once()->with('Attendance')->andReturn(true);
+        $source = file_get_contents(base_path('Modules/ModuleServiceProvider.php'));
 
-        $attendance = (new ModuleCatalog(new ModuleStateResolver($states)))
-            ->resolve(base_path('Modules/Attendance'));
+        $this->assertStringContainsString('registerConfig($module)', $source);
+        $this->assertStringContainsString('registerRoutes($module)', $source);
+        $this->assertStringContainsString('registerResources($module)', $source);
+        $this->assertStringContainsString('registerMigrations($module)', $source);
+        $this->assertStringContainsString('registerLivewireComponents($module)', $source);
+        $this->assertStringContainsString('registerConsole($module)', $source);
+    }
 
-        $account = $attendance;
-        $account['name'] = 'Account';
+    public function test_graph_validator_rejects_attendance_when_account_is_disabled(): void
+    {
+        $catalog = collect(app(ModuleCatalog::class)->discover());
+        $account = $catalog->firstWhere('name', 'Account');
+        $attendance = $catalog->firstWhere('name', 'Attendance');
+
+        $this->assertNotNull($account);
+        $this->assertNotNull($attendance);
+
         $account['enabled'] = false;
-        $account['depends'] = [];
+        $attendance['enabled'] = true;
 
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage('Module [Attendance] requires disabled module [Account].');
@@ -103,6 +97,7 @@ class AttendanceModuleBootstrapTest extends TestCase
         $this->assertSame(5, $config['shift']['early_leave_grace_minutes']);
         $this->assertSame(150, $config['geofence']['default_radius_meters']);
         $this->assertSame(100, $config['geofence']['maximum_accuracy_meters']);
-        $this->assertSame(12, $config['privacy']['raw_gps_retention_months']);
+        $this->assertSame(30, $config['privacy']['raw_gps_retention_days']);
+        $this->assertTrue($config['geocoding']['enabled']);
     }
 }

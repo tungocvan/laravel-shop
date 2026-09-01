@@ -3,6 +3,7 @@
 namespace Modules\Attendance\Services;
 
 use DomainException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 class AttendanceGeocodingService
@@ -15,15 +16,23 @@ class AttendanceGeocodingService
             throw new DomainException('Vui lòng nhập địa chỉ cần tìm.');
         }
 
-        $response = Http::acceptJson()
-            ->withUserAgent(config('app.name', 'Laravel').' Attendance Admin Geocoder')
-            ->timeout(8)
-            ->get('https://nominatim.openstreetmap.org/search', [
-                'q' => $address,
-                'format' => 'jsonv2',
-                'limit' => 1,
-                'addressdetails' => 1,
-            ]);
+        if (! config('attendance.attendance.geocoding.enabled', true)) {
+            throw new DomainException('Tìm tọa độ từ địa chỉ hiện đang tắt. Bạn vẫn có thể nhập tọa độ hoặc lấy vị trí hiện tại.');
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->withUserAgent(config('app.name', 'Laravel').' Attendance Admin Geocoder')
+                ->timeout(max(1, (int) config('attendance.attendance.geocoding.timeout_seconds', 8)))
+                ->get((string) config('attendance.attendance.geocoding.endpoint'), [
+                    'q' => $address,
+                    'format' => 'jsonv2',
+                    'limit' => 1,
+                    'addressdetails' => 1,
+                ]);
+        } catch (ConnectionException) {
+            throw new DomainException('Không thể kết nối dịch vụ bản đồ. Bạn vẫn có thể nhập tọa độ hoặc lấy vị trí hiện tại.');
+        }
 
         if (! $response->successful()) {
             throw new DomainException('Không thể kết nối dịch vụ bản đồ. Vui lòng thử lại sau.');
