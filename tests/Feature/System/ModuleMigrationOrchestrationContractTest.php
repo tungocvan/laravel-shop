@@ -23,7 +23,7 @@ class ModuleMigrationOrchestrationContractTest extends TestCase
         $this->assertStringContainsString('ModuleLifecycleManager', $migrator);
         $this->assertStringContainsString('$this->resolver->resolve($module)', $migrator);
         $this->assertStringContainsString('$this->lifecycle->migrateIfNeeded', $migrator);
-        $this->assertStringContainsString("base_path(\"Modules/{\$module}\")", $migrator);
+        $this->assertStringContainsString('base_path("Modules/{$module}")', $migrator);
     }
 
     public function test_legacy_destructive_flows_remain_separate_from_safe_default_path(): void
