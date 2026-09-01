@@ -3,6 +3,7 @@
 namespace Tests\Feature\System;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\System\Models\Setting;
 use Modules\System\Services\SettingsService;
@@ -13,6 +14,7 @@ class CanonicalSettingsServiceTest extends TestCase
     protected function tearDown(): void
     {
         Schema::dropIfExists('settings');
+        Schema::dropIfExists('wp_settings');
         Schema::dropIfExists('admin_settings');
         Schema::dropIfExists('website_settings');
 
@@ -31,6 +33,38 @@ class CanonicalSettingsServiceTest extends TestCase
             'key' => 'site_name',
             'value' => 'FlexBiz',
             'group_name' => 'general',
+        ]);
+    }
+
+    public function test_wp_settings_is_not_a_runtime_read_or_write_fallback(): void
+    {
+        $this->createSettingsTable('settings');
+        $this->createSettingsTable('wp_settings');
+
+        DB::table('wp_settings')->insert([
+            'key' => 'home_hero_title',
+            'value' => 'Legacy hero',
+            'group_name' => 'homepage',
+            'type' => 'text',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $service = app(SettingsService::class);
+
+        $this->assertSame('fallback', $service->get('home_hero_title', 'fallback'));
+        $this->assertSame([], $service->getGroup('homepage'));
+
+        $service->set('home_hero_title', 'Canonical hero', 'homepage');
+
+        $this->assertDatabaseHas('settings', [
+            'key' => 'home_hero_title',
+            'value' => 'Canonical hero',
+            'group_name' => 'homepage',
+        ]);
+        $this->assertDatabaseHas('wp_settings', [
+            'key' => 'home_hero_title',
+            'value' => 'Legacy hero',
         ]);
     }
 
@@ -70,6 +104,10 @@ class CanonicalSettingsServiceTest extends TestCase
         $this->assertFileDoesNotExist(base_path('Modules/Admin/Services/SettingsService.php'));
         $this->assertFileDoesNotExist(base_path('Modules/Admin/Services/HomeSettingService.php'));
         $this->assertFileDoesNotExist(base_path('Modules/Website/Services/SettingsService.php'));
+
+        $websiteSetting = file_get_contents(base_path('Modules/Website/Models/Setting.php'));
+        $this->assertStringContainsString('extends \\Modules\\System\\Models\\Setting', $websiteSetting);
+        $this->assertStringNotContainsString("protected $table = 'wp_settings'", $websiteSetting);
 
         foreach ([
             'Modules/Admin/Support/ThemeManager.php',
