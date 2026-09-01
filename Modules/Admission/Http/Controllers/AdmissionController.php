@@ -7,18 +7,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Modules\Admission\Models\AdmissionApplication;
 use Modules\Admission\Models\AdmissionImportRun;
+use Modules\Admission\Services\AdmissionApplicationAdminService;
+use Modules\Admission\Services\AdmissionDocumentService;
 use Modules\Admission\Services\AdmissionImportService;
 use Modules\Admission\Services\AdmissionService;
-use Symfony\Component\Process\Process;
 use Throwable;
 
 class AdmissionController extends Controller
 {
-    protected $admissionService;
-
-    public function __construct(AdmissionService $admissionService)
-    {
-        $this->admissionService = $admissionService;
+    public function __construct(
+        protected AdmissionService $admissionService,
+    ) {
     }
 
     public function index()
@@ -51,12 +50,16 @@ class AdmissionController extends Controller
         return view('Admission::pages.admin.dvhc');
     }
 
-    public function search($ma_dinh_danh = '', $password = '')
+    public function search()
     {
-        return view('Admission::pages.public.search', [
-            'ma_dinh_danh' => $ma_dinh_danh ?? '',
-            'password' => $password ?? '',
-        ]);
+        return view('Admission::pages.public.search');
+    }
+
+    public function legacySearch()
+    {
+        return redirect()
+            ->route('admission.search')
+            ->with('warning', 'Vì lý do bảo mật, vui lòng nhập lại Mã định danh và ngày sinh để tra cứu.');
     }
 
     public function adminEdit($id)
@@ -64,84 +67,45 @@ class AdmissionController extends Controller
         return view('Admission::pages.admin.create', compact('id'));
     }
 
-    public function downloadPdf($id, AdmissionService $service)
+    public function export(Request $request, AdmissionApplicationAdminService $service)
+    {
+        return $service->downloadExport([
+            'search' => $request->string('search')->toString(),
+            'status' => $request->string('status')->toString(),
+            'class' => $request->string('class')->toString(),
+        ]);
+    }
+
+    public function downloadPdf($id, AdmissionDocumentService $documents)
     {
         try {
-            $data = $service->getDataForTemplate($id);
-            $fileNameBase = 'Don_Dang_Ky_' . str_replace(' ', '_', $data['HoVaTenHocSinh']);
+            $result = $documents->generate((int) $id, false, true);
 
-            $tempDir = storage_path('app/admission/');
-            if (! file_exists($tempDir)) {
-                mkdir($tempDir, 0777, true);
-            }
-
-            $wordPath = $tempDir . $fileNameBase . '.docx';
-            $pdfPath = $tempDir . $fileNameBase . '.pdf';
-
-            if (file_exists($pdfPath)) {
-                return response()->download($pdfPath);
-            }
-
-            if (! file_exists($wordPath)) {
-                $templatePath = storage_path('app/templates/application.docx');
-                if (! file_exists($templatePath)) {
-                    throw new \Exception('Không tìm thấy file mẫu tại: ' . $templatePath);
-                }
-
-                $templateProcessorClass = 'PhpOffice\\PhpWord\\TemplateProcessor';
-                $templateProcessor = new $templateProcessorClass($templatePath);
-
-                foreach ($data as $key => $value) {
-                    $templateProcessor->setValue($key, $value);
-                }
-
-                $templateProcessor->saveAs($wordPath);
-            }
-
-            $process = new Process([
-                'libreoffice',
-                '--headless',
-                '--convert-to',
-                'pdf',
-                '--outdir',
-                $tempDir,
-                $wordPath,
-            ]);
-
-            $process->setEnv(['HOME' => $tempDir]);
-            $process->run();
-
-            if (! $process->isSuccessful()) {
-                throw new \Exception('Lỗi chuyển đổi PDF: ' . $process->getErrorOutput());
-            }
-
-            if (! file_exists($pdfPath)) {
-                throw new \Exception('LibreOffice không tạo được file PDF.');
-            }
-
-            return response()->download($pdfPath);
-        } catch (\Exception $e) {
-            \Log::error('Lỗi xuất PDF: ' . $e->getMessage());
+            return response()->download(
+                $result['pdf_path'],
+                $result['download_name'] . '.pdf',
+            );
+        } catch (Throwable $e) {
+            report($e);
 
             return back()->with('error', 'Lỗi khi xuất PDF: ' . $e->getMessage());
         }
     }
 
-    public function downloadDocx($id, AdmissionService $service)
+    public function downloadDocx($id, AdmissionDocumentService $documents)
     {
-        $data = $service->getDataForTemplate($id);
-        $templateProcessorClass = 'PhpOffice\\PhpWord\\TemplateProcessor';
-        $templateProcessor = new $templateProcessorClass(storage_path('app/templates/application.docx'));
+        try {
+            $result = $documents->generate((int) $id, true, false);
 
-        foreach ($data as $key => $value) {
-            $templateProcessor->setValue($key, $value);
+            return response()->download(
+                $result['word_path'],
+                $result['download_name'] . '.docx',
+            );
+        } catch (Throwable $e) {
+            report($e);
+
+            return back()->with('error', 'Lỗi khi xuất Word: ' . $e->getMessage());
         }
-
-        $fileName = 'Don_Dang_Ky_' . $data['HoVaTenHocSinh'] . '.docx';
-        $tempFile = tempnam(sys_get_temp_dir(), 'word');
-        $templateProcessor->saveAs($tempFile);
-
-        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
     public function import(Request $request, AdmissionImportService $service)
@@ -181,6 +145,8 @@ class AdmissionController extends Controller
                 ))
                 ->with('import_summary', $summary);
         } catch (Throwable $e) {
+            report($e);
+
             return back()->with('error', 'Không thể đọc hoặc xử lý file Import. Vui lòng kiểm tra file và thử lại.');
         }
     }
