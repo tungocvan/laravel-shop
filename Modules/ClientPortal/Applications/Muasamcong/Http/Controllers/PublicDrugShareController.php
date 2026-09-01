@@ -7,8 +7,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Modules\ClientPortal\Applications\Muasamcong\Models\PublicShare;
 use Modules\ClientPortal\Applications\Muasamcong\Services\ClientPricingSearchService;
-use Modules\ClientPortal\Models\PublicShare;
 
 class PublicDrugShareController extends Controller
 {
@@ -77,9 +77,9 @@ class PublicDrugShareController extends Controller
     private function publicPayload(array $item): array
     {
         $allowed = [
-            'id','tenThuoc','tenHoatChat','nongDo','nhomThuoc','groupMedicine','duongDung','dangBaoChe','donViTinh',
-            'quyCachDongGoi','hanDung','donGia','soLuong','winningName','winningCode','tenCdtBmt','maTbmt','soQuyetDinh',
-            'ngayBanHanhQuyetDinh','ngayDangTaiKqlcnt','tenCoSoSanXuat','nuocSanXuat','gdklh_GPNK',
+            'id', 'tenThuoc', 'tenHoatChat', 'nongDo', 'nhomThuoc', 'groupMedicine', 'duongDung', 'dangBaoChe', 'donViTinh',
+            'quyCachDongGoi', 'hanDung', 'donGia', 'soLuong', 'winningName', 'winningCode', 'tenCdtBmt', 'maTbmt', 'soQuyetDinh',
+            'ngayBanHanhQuyetDinh', 'ngayDangTaiKqlcnt', 'tenCoSoSanXuat', 'nuocSanXuat', 'gdklh_GPNK',
         ];
 
         return collect($item)->only($allowed)->all();
