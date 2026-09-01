@@ -7,20 +7,21 @@
 - MR-0 documentation gate: complete.
 - MR-1 implementation authorization: approved by the user.
 - MR-1 branch: `feat/attendance-module-bootstrap`.
+- MR-1 implementation and focused verification: complete; ready for PR review.
 
 ## MR-1 — Module skeleton + manifest + bootstrap/runtime contract
 
-Current MR-1 implementation scope:
+Implemented MR-1 scope:
 
-- create the minimal Attendance module skeleton required by repository bootstrap;
-- add `Modules/Attendance/config/module.php`;
-- add Release-1 configuration defaults in `Modules/Attendance/config/attendance.php`;
-- declare Attendance as a `domain` module;
-- keep source/default runtime state disabled;
-- declare direct dependency on canonical `Account`;
-- declare approved Admin/domain and web/ClientPortal capability names;
-- verify module discovery/default state/runtime override/dependency enforcement with focused tests;
-- rely exclusively on the root `Modules/ModuleServiceProvider.php` and canonical module catalog/state infrastructure.
+- created the minimal Attendance module skeleton required by repository bootstrap;
+- added `Modules/Attendance/config/module.php`;
+- added Release-1 configuration defaults in `Modules/Attendance/config/attendance.php`;
+- declared Attendance as a `domain` module;
+- kept source/default runtime state disabled;
+- declared direct dependency on canonical `Account`;
+- declared approved Admin/domain and web/ClientPortal capability names;
+- verified module discovery/default state/runtime override/dependency enforcement with focused tests;
+- relied exclusively on the root `Modules/ModuleServiceProvider.php` and canonical module catalog/state infrastructure.
 
 Explicitly not in MR-1:
 
@@ -45,18 +46,37 @@ Explicitly not in MR-1:
 - `tables` remains empty in the manifest until Attendance owns schema in MR-2.
 - Runtime state is resolved by `ModuleStateRepository` / `ModuleStateResolver`; the manifest is never mutated for runtime toggles.
 
-## Verification gate
+## Verification results
 
-Focused verification for MR-1:
+Formatting / repository checks:
 
-```bash
+- Pint on changed Attendance PHP files: PASS; no resulting working-tree changes.
+- `git diff --check`: PASS.
+- working tree after verification: clean.
+
+Attendance focused test:
+
+```text
 php artisan test tests/Feature/Attendance/AttendanceModuleBootstrapTest.php
-php artisan test tests/Feature/System/ModuleCatalogRegistryTest.php tests/Feature/System/ModuleStateResolverTest.php tests/Feature/System/ModuleGraphValidatorTest.php tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
+Tests: 5 passed (34 assertions)
+Duration: 0.50s
 ```
 
-Also run Pint on changed PHP files before PR. No full-project regression is required by default for this isolated bootstrap slice.
+Directly impacted System/module-runtime tests:
 
-Expected assertions include:
+```text
+php artisan test \
+  tests/Feature/System/ModuleCatalogRegistryTest.php \
+  tests/Feature/System/ModuleStateResolverTest.php \
+  tests/Feature/System/ModuleGraphValidatorTest.php \
+  tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
+Tests: 13 passed (52 assertions)
+Duration: 0.84s
+```
+
+No full-project regression was run because MR-1 is an isolated bootstrap/runtime slice and does not change shared runtime implementation.
+
+Verified contract:
 
 - Attendance manifest matches approved contract;
 - Attendance is discovered as `domain`;
@@ -64,11 +84,11 @@ Expected assertions include:
 - runtime state may override the default;
 - enabled Attendance requires enabled Account;
 - approved configuration defaults are explicit;
-- no MR-2+ implementation leaks into this branch.
+- no MR-2+ implementation is present in the branch.
 
 ## Manual acceptance
 
-MR-1 has no Attendance business UI. Manual verification is limited to module/runtime administration if needed; Admin/PWA UI acceptance begins in later MRs.
+MR-1 has no Attendance business UI. Admin/PWA UI acceptance begins in later MRs.
 
 ## Canonical sources
 
@@ -85,4 +105,6 @@ MR-1 has no Attendance business UI. Manual verification is limited to module/run
 
 ## Next gate
 
-Do not start MR-2 persistence work until MR-1 tests/verification pass, MR-1 is reviewed and merged, and the next phase is explicitly authorized according to the collaboration workflow.
+MR-1 is ready for pull-request review and merge.
+
+Do not start MR-2 persistence work until MR-1 is merged and the next phase is explicitly authorized according to the collaboration workflow.
