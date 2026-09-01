@@ -22,16 +22,20 @@ use Throwable;
 class MuasamcongApplicationController extends Controller
 {
     private const SYNC_PERMISSION = 'client.muasamcong.drug-pricing.sync';
+
     private const WISHLIST_PERMISSION = 'client.muasamcong.wishlist.view';
+
     private const PER_PAGE = 20;
 
     public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
     {
         $application = $registry->find('muasamcong');
         abort_if($application === null, 404);
+
         $user = $request->user('web');
         $authorizedFeatures = collect($application['features'] ?? [])->filter(function (array $feature) use ($registry, $user): bool {
             $permission = $feature['permission'] ?? null;
+
             return $permission === null || ($user !== null && $registry->userCan($user, $permission));
         })->values();
         $features = $settings->presentFeatures($application['key'], $authorizedFeatures);
@@ -79,17 +83,34 @@ class MuasamcongApplicationController extends Controller
             $dataSource = $searchResult['source'];
 
             if ($result['success'] ?? false) {
-                $allItems = collect($result['data']['items'] ?? [])->filter(fn (mixed $item): bool => is_array($item))->values();
+                $allItems = collect($result['data']['items'] ?? [])
+                    ->filter(fn (mixed $item): bool => is_array($item))
+                    ->values();
                 $filtered = $this->filterPricingItems($allItems, $filters);
                 $summary = $this->priceSummary($filtered, (int) ($result['data']['total'] ?? $allItems->count()));
                 $page = max(1, (int) ($validated['page'] ?? 1));
                 $pageItems = $filtered->forPage($page, self::PER_PAGE)->values();
-                $items = new LengthAwarePaginator($pageItems, $filtered->count(), self::PER_PAGE, $page, ['path' => $request->url(), 'query' => $request->except('refresh')]);
+                $items = new LengthAwarePaginator(
+                    $pageItems,
+                    $filtered->count(),
+                    self::PER_PAGE,
+                    $page,
+                    ['path' => $request->url(), 'query' => $request->except('refresh')]
+                );
 
-                try { $syncedSourceIds = $syncService->existingSourceIds($allItems->all()); } catch (Throwable) { $syncedSourceIds = []; }
+                try {
+                    $syncedSourceIds = $syncService->existingSourceIds($allItems->all());
+                } catch (Throwable) {
+                    $syncedSourceIds = [];
+                }
 
                 if ($canWishlist) {
-                    $pageSourceIds = $pageItems->pluck('id')->filter()->map(fn ($id): string => (string) $id)->values()->all();
+                    $pageSourceIds = $pageItems->pluck('id')
+                        ->filter()
+                        ->map(fn ($id): string => (string) $id)
+                        ->values()
+                        ->all();
+
                     if ($pageSourceIds !== []) {
                         try {
                             $wishlistSourceIds = PricingWishlist::query()
@@ -107,8 +128,16 @@ class MuasamcongApplicationController extends Controller
         }
 
         return view('ClientPortal::applications.muasamcong.drug-pricing', compact(
-            'keyword', 'filters', 'result', 'items', 'summary', 'syncedSourceIds',
-            'wishlistSourceIds', 'canSync', 'canWishlist', 'dataSource'
+            'keyword',
+            'filters',
+            'result',
+            'items',
+            'summary',
+            'syncedSourceIds',
+            'wishlistSourceIds',
+            'canSync',
+            'canWishlist',
+            'dataSource'
         ));
     }
 
@@ -121,27 +150,46 @@ class MuasamcongApplicationController extends Controller
         $result = $searchResult['result'];
         abort_unless($result['success'] ?? false, 404);
 
-        $item = collect($result['data']['items'] ?? [])->first(fn (mixed $row): bool => is_array($row) && (string) ($row['id'] ?? '') === $sourceId);
+        $item = collect($result['data']['items'] ?? [])->first(
+            fn (mixed $row): bool => is_array($row) && (string) ($row['id'] ?? '') === $sourceId
+        );
         abort_unless(is_array($item), 404);
 
         $synced = false;
-        try { $synced = in_array($sourceId, $syncService->existingSourceIds([$item]), true); } catch (Throwable) {}
+        try {
+            $synced = in_array($sourceId, $syncService->existingSourceIds([$item]), true);
+        } catch (Throwable) {
+        }
+
         $canSync = $user !== null && $registry->userCan($user, self::SYNC_PERMISSION);
         $canWishlist = $user !== null && $registry->userCan($user, self::WISHLIST_PERMISSION);
         $wishlisted = false;
+
         if ($canWishlist) {
             try {
-                $wishlisted = PricingWishlist::query()->where('user_id', $user->getKey())->where('source_id', $sourceId)->exists();
-            } catch (Throwable) {}
+                $wishlisted = PricingWishlist::query()
+                    ->where('user_id', $user->getKey())
+                    ->where('source_id', $sourceId)
+                    ->exists();
+            } catch (Throwable) {
+            }
         }
 
-        return view('ClientPortal::applications.muasamcong.drug-pricing-detail', compact('keyword', 'item', 'synced', 'canSync', 'canWishlist', 'wishlisted'));
+        return view('ClientPortal::applications.muasamcong.drug-pricing-detail', compact(
+            'keyword',
+            'item',
+            'synced',
+            'canSync',
+            'canWishlist',
+            'wishlisted'
+        ));
     }
 
     public function queueDrugPricingSync(Request $request): RedirectResponse
     {
         $user = $request->user('web');
-        abort_if($user === null || ! $user->can(self::SYNC_PERMISSION), 403);
+        abort_if($user === null || !$user->can(self::SYNC_PERMISSION), 403);
+
         $validated = $request->validate([
             'keyword' => ['required', 'string', 'min:2', 'max:200'],
             'selected_ids' => ['required', 'array', 'min:1', 'max:100'],
@@ -202,25 +250,54 @@ class MuasamcongApplicationController extends Controller
                 && $this->matches($item['nhomThuoc'] ?? $item['groupMedicine'] ?? null, $filters['medicine_group'])
                 && $this->matches(implode('; ', array_map('strval', (array) ($item['winningName'] ?? []))), $filters['winning_company']);
         })->values();
-        if ($filters['sort_price'] === 'asc') return $filtered->sortBy(fn (array $item): float => is_numeric($item['donGia'] ?? null) ? (float) $item['donGia'] : PHP_FLOAT_MAX)->values();
-        if ($filters['sort_price'] === 'desc') return $filtered->sortByDesc(fn (array $item): float => is_numeric($item['donGia'] ?? null) ? (float) $item['donGia'] : -1)->values();
+
+        if ($filters['sort_price'] === 'asc') {
+            return $filtered->sortBy(
+                fn (array $item): float => is_numeric($item['donGia'] ?? null) ? (float) $item['donGia'] : PHP_FLOAT_MAX
+            )->values();
+        }
+
+        if ($filters['sort_price'] === 'desc') {
+            return $filtered->sortByDesc(
+                fn (array $item): float => is_numeric($item['donGia'] ?? null) ? (float) $item['donGia'] : -1
+            )->values();
+        }
+
         return $filtered;
     }
 
     private function matches(mixed $value, string $needle): bool
     {
-        if ($needle === '') return true;
+        if ($needle === '') {
+            return true;
+        }
+
         return is_scalar($value) && mb_stripos((string) $value, $needle) !== false;
     }
 
     private function priceSummary(Collection $items, int $sourceTotal): array
     {
-        $prices = $items->pluck('donGia')->filter(fn (mixed $price): bool => is_numeric($price))->map(fn (mixed $price): float => (float) $price);
-        return ['total' => $items->count(), 'source_total' => $sourceTotal, 'lowest_price' => $prices->isEmpty() ? null : $prices->min(), 'average_price' => $prices->isEmpty() ? null : $prices->avg(), 'highest_price' => $prices->isEmpty() ? null : $prices->max()];
+        $prices = $items->pluck('donGia')
+            ->filter(fn (mixed $price): bool => is_numeric($price))
+            ->map(fn (mixed $price): float => (float) $price);
+
+        return [
+            'total' => $items->count(),
+            'source_total' => $sourceTotal,
+            'lowest_price' => $prices->isEmpty() ? null : $prices->min(),
+            'average_price' => $prices->isEmpty() ? null : $prices->avg(),
+            'highest_price' => $prices->isEmpty() ? null : $prices->max(),
+        ];
     }
 
     private function emptySummary(): array
     {
-        return ['total' => 0, 'source_total' => 0, 'lowest_price' => null, 'average_price' => null, 'highest_price' => null];
+        return [
+            'total' => 0,
+            'source_total' => 0,
+            'lowest_price' => null,
+            'average_price' => null,
+            'highest_price' => null,
+        ];
     }
 }
