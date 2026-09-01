@@ -3,63 +3,72 @@
 ## Current status
 
 - `docs/modules/Attendance/REQUIREMENTS.md`: approved and merged through PR #127.
-- `docs/modules/Attendance/CREATE_PLAN.md`: explicitly approved by the user on 2026-09-01 and merged through PR #128.
-- MR-0 documentation gate: complete.
-- MR-1 implementation authorization: approved by the user.
-- MR-1 branch: `feat/attendance-module-bootstrap`.
-- MR-1 implementation and focused verification: complete; ready for PR review.
+- `docs/modules/Attendance/CREATE_PLAN.md`: explicitly approved and merged through PR #128.
+- MR-1 bootstrap/runtime contract: merged through PR #129.
+- MR-2 persistence/schema/models: explicitly approved by the user.
+- MR-2 branch: `feat/attendance-persistence-foundation`.
+- MR-2 implementation and focused verification: complete; ready for PR review.
 
-## MR-1 — Module skeleton + manifest + bootstrap/runtime contract
+## MR-2 — Persistence / schema / models
 
-Implemented MR-1 scope:
+Implemented scope:
 
-- created the minimal Attendance module skeleton required by repository bootstrap;
-- added `Modules/Attendance/config/module.php`;
-- added Release-1 configuration defaults in `Modules/Attendance/config/attendance.php`;
-- declared Attendance as a `domain` module;
-- kept source/default runtime state disabled;
-- declared direct dependency on canonical `Account`;
-- declared approved Admin/domain and web/ClientPortal capability names;
-- verified module discovery/default state/runtime override/dependency enforcement with focused tests;
-- relied exclusively on the root `Modules/ModuleServiceProvider.php` and canonical module catalog/state infrastructure.
+- added Attendance-owned migrations for:
+  - `attendance_locations`;
+  - `attendance_shifts`;
+  - `attendance_records`;
+  - `attendance_adjustment_requests`;
+  - `attendance_audit_events`;
+- added persistence enums:
+  - `AttendanceRecordStatus`;
+  - `AdjustmentStatus`;
+  - `VerificationResult`;
+- added Eloquent models and Account/User relationships;
+- preserved historical employee/user relationships through restrictive/null-on-delete FK choices and soft-deleted parent relations;
+- added an idempotent `AttendanceDefaultsSeeder` for the default 08:00–17:00 shift;
+- intentionally did not seed a fake attendance location or fake coordinates;
+- updated `config/module.php` with all five Attendance-owned tables;
+- added focused persistence contract tests.
 
-Explicitly not in MR-1:
+## Persistence decisions carried from CREATE_PLAN
 
-- database migrations or Attendance persistence;
-- models/enums/domain services;
-- check-in/check-out implementation;
-- geofence calculation implementation;
-- adjustment/audit implementation;
-- Admin routes/UI/Livewire workspaces;
+- `attendance_records.session_key` is unique and is the canonical future-safe session identity.
+- No unique constraint exists on `(user_id, work_date)`.
+- `attendance_records` stores immutable shift snapshot fields needed for historical calculations.
+- Raw check-in/check-out coordinates and accuracy fields are nullable so the later retention cleanup can redact precise GPS without deleting business history.
+- Persistent lifecycle states remain `checked_in`, `completed`, and `voided`; derived states are not stored as the primary lifecycle status.
+- Adjustment states are `pending`, `approved`, and `rejected`.
+- Audit history has a dedicated Attendance-owned table and does not require update/delete UI paths.
+- Account `EmployeeProfile` remains canonical; Attendance creates no duplicate employee profile table.
+
+## Explicitly not in MR-2
+
+- check-in/check-out orchestration;
+- geofence/Haversine calculation;
+- shift resolution service;
+- worked/late/early calculation service;
+- adjustment approval service/business transactions;
+- audit service writes;
+- Admin routes/UI/Livewire;
 - ClientPortal Attendance adapter;
-- Attendance export;
-- GPS retention job.
-
-## Bootstrap decisions
-
-- No Attendance-specific service provider in MR-1.
-- No `module.json` or nwidart registry.
-- No API route file.
-- No web route file until an actual runtime surface exists.
-- No migration directory/files until MR-2.
-- No console command.
-- `tables` remains empty in the manifest until Attendance owns schema in MR-2.
-- Runtime state is resolved by `ModuleStateRepository` / `ModuleStateResolver`; the manifest is never mutated for runtime toggles.
+- export;
+- GPS retention job/scheduler integration.
 
 ## Verification results
 
 Formatting / repository checks:
 
-- Pint on changed Attendance PHP files: PASS; no resulting working-tree changes.
-- `git diff --check`: PASS.
-- working tree after verification: clean.
+- Pint on `Modules/Attendance` and `tests/Feature/Attendance`: PASS; one test file received formatting-only normalization and was committed to the branch.
+- `git diff --check`: PASS in the local verification flow before final branch sync.
 
-Attendance focused test:
+Attendance focused tests:
 
 ```text
-php artisan test tests/Feature/Attendance/AttendanceModuleBootstrapTest.php
-Tests: 5 passed (34 assertions)
-Duration: 0.50s
+php artisan test \
+  tests/Feature/Attendance/AttendanceModuleBootstrapTest.php \
+  tests/Feature/Attendance/AttendancePersistenceContractTest.php
+Tests: 10 passed (55 assertions)
+Duration: 0.73s
 ```
 
 Directly impacted System/module-runtime tests:
@@ -71,40 +80,29 @@ php artisan test \
   tests/Feature/System/ModuleGraphValidatorTest.php \
   tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
 Tests: 13 passed (52 assertions)
-Duration: 0.84s
+Duration: 0.86s
 ```
 
-No full-project regression was run because MR-1 is an isolated bootstrap/runtime slice and does not change shared runtime implementation.
+The MR-1 bootstrap assertion for `tables=[]` was intentionally advanced in MR-2 to assert the five canonical Attendance-owned tables.
 
-Verified contract:
-
-- Attendance manifest matches approved contract;
-- Attendance is discovered as `domain`;
-- Attendance is disabled by default;
-- runtime state may override the default;
-- enabled Attendance requires enabled Account;
-- approved configuration defaults are explicit;
-- no MR-2+ implementation is present in the branch.
+No full-project regression was run because MR-2 is scoped to Attendance persistence plus existing module-runtime contracts.
 
 ## Manual acceptance
 
-MR-1 has no Attendance business UI. Admin/PWA UI acceptance begins in later MRs.
+MR-2 has no business UI; no Admin/PWA manual UI acceptance is required for this phase.
 
 ## Canonical sources
 
 - `docs/modules/Attendance/REQUIREMENTS.md`
 - `docs/modules/Attendance/CREATE_PLAN.md`
-- `.codex/tasks/create-module.md`
-- `.codex/standards/MODULE_STANDARD.md`
-- `.codex/standards/ADMIN_UI_STANDARD.md`
+- `Modules/Attendance/config/module.php`
+- `Modules/Attendance/config/attendance.php`
+- `Modules/Account/Models/EmployeeProfile.php`
+- `Modules/Account/Models/User.php`
 - `Modules/ModuleServiceProvider.php`
-- `app/Modules/ModuleCatalog.php`
-- `app/Modules/ModuleStateRepository.php`
-- `app/Modules/ModuleStateResolver.php`
-- `app/Modules/ModuleGraphValidator.php`
 
 ## Next gate
 
-MR-1 is ready for pull-request review and merge.
+MR-2 is ready for pull-request review and merge.
 
-Do not start MR-2 persistence work until MR-1 is merged and the next phase is explicitly authorized according to the collaboration workflow.
+Do not start MR-3 Attendance domain-core implementation until MR-2 is merged and the next phase is explicitly authorized.

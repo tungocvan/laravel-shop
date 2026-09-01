@@ -30,5 +30,11 @@ return [
             'attendance.adjustment.create',
         ],
     ],
-    'tables' => [],
+    'tables' => [
+        'attendance_locations',
+        'attendance_shifts',
+        'attendance_records',
+        'attendance_adjustment_requests',
+        'attendance_audit_events',
+    ],
 ];

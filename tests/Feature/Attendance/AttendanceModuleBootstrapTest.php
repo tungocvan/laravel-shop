@@ -22,7 +22,13 @@ class AttendanceModuleBootstrapTest extends TestCase
         $this->assertFalse($manifest['default_enabled']);
         $this->assertSame(['Account'], $manifest['depends']);
         $this->assertTrue($manifest['permissions_required']);
-        $this->assertSame([], $manifest['tables']);
+        $this->assertSame([
+            'attendance_locations',
+            'attendance_shifts',
+            'attendance_records',
+            'attendance_adjustment_requests',
+            'attendance_audit_events',
+        ], $manifest['tables']);
         $this->assertContains('attendance.dashboard.view', $manifest['permissions']);
         $this->assertContains('attendance.audit.view', $manifest['permissions']);
         $this->assertContains('client.attendance.access', $manifest['permissions_by_guard']['web']);
