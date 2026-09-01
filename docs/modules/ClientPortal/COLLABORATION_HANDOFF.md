@@ -9,24 +9,24 @@
 - MR-8 status: **MERGED / CLOSED**
 - Completed corrective: **Canonical web logout / route cache — PR #86 MERGED / CLOSED**
 - Corrective merge commit: `0439b7675e6af8b9bb49046c8d941e43ff135ac0`
-- Active delivery: **ClientPortal architecture boundaries refactor**
-- Active branch: `refactor/clientportal-architecture-boundaries`
-- Current status: **VERIFIED — PR READY**
+- Completed refactor: **ClientPortal architecture boundaries — PR #124 MERGED / CLOSED**
+- Refactor merge commit: `d3396567312a2d04834956148ef48697b41f3330`
+- Current status: **MERGED / CLOSED — NO ACTIVE DELIVERY**
 
-## Active refactor — ClientPortal architecture boundaries
+## Completed refactor — ClientPortal architecture boundaries
 
-The approved refactor consolidates the prior architecture-contract, portal-boundary and Muasamcong adapter ownership phases into one bounded delivery to reduce repeated pull/test cycles.
+The approved refactor consolidated the architecture-contract, portal-boundary and Muasamcong adapter ownership phases into one bounded delivery to reduce repeated pull/test cycles.
 
-Canonical ownership established in this branch:
+Canonical ownership now established on `main`:
 
-- `docs/modules/ClientPortal/MODULE.md` is now the architecture contract for the module;
+- `docs/modules/ClientPortal/MODULE.md` is the architecture contract for the module;
 - ClientPortal remains a `support` module with `Auth` as its only direct module dependency;
 - Request and Muasamcong are adapter/source integrations rather than direct module dependencies;
 - ClientPortal core owns launcher/PWA shell, client permission/presentation infrastructure and adapter discovery;
-- Auth continues to own authentication/session/logout implementation;
-- Muasamcong-specific client state now has canonical models under `Modules/ClientPortal/Applications/Muasamcong/Models`;
+- Auth owns authentication/session/logout implementation;
+- Muasamcong-specific client state has canonical models under `Modules/ClientPortal/Applications/Muasamcong/Models`;
 - legacy root `Modules/ClientPortal/Models/{PriceListExport,PublicShare,SyncRequest}` classes remain compatibility aliases only;
-- existing `client_portal_*` tables and migrations remain unchanged, so this refactor introduces no destructive schema/data migration.
+- existing `client_portal_*` tables and migrations remain unchanged, so the refactor introduced no destructive schema/data migration.
 
 Runtime callers moved to canonical adapter models:
 
@@ -38,22 +38,22 @@ MuasamcongShareManagementController -> Applications/Muasamcong/Models/PublicShar
 PublicDrugShareController       -> Applications/Muasamcong/Models/PublicShare
 ```
 
-Queue compatibility boundary:
+Queue compatibility boundary retained after merge:
 
-- root jobs `GeneratePriceListExport`, `GeneratePriceListPdf`, and `SendPriceListExportEmail` remain in their existing class names for this delivery;
-- they are Muasamcong-specific architecture debt, but moving/removing their serialized job class names may break already queued payloads;
-- therefore they are classified `QUARANTINE / DEFER`, not safe-removal candidates in this branch.
+- root jobs `GeneratePriceListExport`, `GeneratePriceListPdf`, and `SendPriceListExportEmail` remain in their existing class names;
+- they are Muasamcong-specific architecture debt, but moving/removing serialized job class names may break already queued payloads;
+- therefore they remain classified `QUARANTINE / DEFER` until explicit queue/caller proof exists.
 
-Safe-removal status:
+Safe-removal boundary retained after merge:
 
 - no table or migration removal;
-- no root model deletion in this delivery;
+- no root model deletion;
 - no root queued-job deletion or rename;
 - compatibility aliases may only be removed in a future caller/queue-proof cleanup.
 
 Architecture regression coverage is provided by `tests/Feature/ClientApps/ClientPortalArchitectureContractTest.php`, including the direct dependency contract, canonical model/table mapping, legacy compatibility aliases, and runtime adapter source checks preventing new `Modules\ClientPortal\Models\*` imports in the migrated Muasamcong paths.
 
-Final verification after the runtime-caller batch and synchronization with current `main`:
+Final acceptance evidence before merge:
 
 ```text
 Changed-PHP Pint gate: PASS
@@ -61,12 +61,23 @@ ClientPortalArchitectureContractTest: PASS
 ClientApps regression: PASS
 Manual UI smoke: PASS
 Working tree: clean
-Branch synchronization: current main merged; no behind commits at PR-preparation checkpoint
+Branch synchronization: current main merged before PR creation
 ```
 
-During final UI verification, the Wishlist icon exposed that this refactor branch predated the Website hotfix which changed the service reference from the removed `Modules\Website\Services\WishlistService` to canonical `Modules\Product\Services\WishlistService`. The refactor branch was synchronized with current `main` (which already contains PR #123), rather than duplicating that Website/Product ownership fix inside ClientPortal. UI verification passed after synchronization.
+During final UI verification, the Wishlist icon exposed that the refactor branch predated the Website hotfix which changed the service reference from the removed `Modules\Website\Services\WishlistService` to canonical `Modules\Product\Services\WishlistService`. The refactor branch was synchronized with `main` containing PR #123 rather than duplicating that Website/Product ownership fix inside ClientPortal. UI verification passed after synchronization.
 
-No additional refactor scope is authorized for this delivery after the final PASS gates.
+Merge checkpoint:
+
+```text
+PR: #124
+PR state: CLOSED
+Merged: true
+Base: main
+Source branch: refactor/clientportal-architecture-boundaries
+Source head: 1bbf14fb0090483e2ef0103bdf9e282ab0ca491f
+Merge commit: d3396567312a2d04834956148ef48697b41f3330
+Refactor: MERGED / CLOSED
+```
 
 ## Stable architecture
 
@@ -90,7 +101,8 @@ MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
 MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — PR #67
 MR-8 — PWA Header Account Menu: MERGED / CLOSED — PR #68
 Corrective — Canonical web logout / route cache: MERGED / CLOSED — PR #86
-Active — ClientPortal architecture boundaries refactor: VERIFIED / PR READY
+Refactor — ClientPortal architecture boundaries: MERGED / CLOSED — PR #124
+Next delivery: NOT DETERMINED
 ```
 
 ## MR-7 authentication contract
@@ -191,4 +203,10 @@ The canonical logout corrective restores successful route caching during that op
 
 ## Next-step boundary
 
-The ClientPortal architecture-boundaries refactor is verified and ready for pull-request review. Do not remove compatibility aliases or relocate the three legacy root export job class names in this delivery without explicit queue/caller proof. After merge, record the PR/merge checkpoint before starting any follow-up cleanup.
+ClientPortal architecture-boundaries refactor is merged and closed. No new implementation is authorized by this handoff alone. The next delivery is `NOT DETERMINED` and requires a new explicit objective before any branch or code change.
+
+Deferred debt remains intentionally quarantined:
+
+- relocate/remove legacy root Muasamcong export jobs only with explicit queued-payload proof;
+- remove root model aliases only after caller proof;
+- avoid speculative consolidation of small ClientPortal resolver/presenter services without concrete duplication or caller evidence.
