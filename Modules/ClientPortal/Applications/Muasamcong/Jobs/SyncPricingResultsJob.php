@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Modules\ClientPortal\Models\SyncRequest;
+use Modules\ClientPortal\Applications\Muasamcong\Models\SyncRequest;
 use Modules\Muasamcong\Services\MuaSamCongService;
 use Modules\Muasamcong\Services\PricingResultSyncService;
 use Modules\Muasamcong\Services\PricingTbmtPaginationService;
