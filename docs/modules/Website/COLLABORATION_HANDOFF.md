@@ -12,7 +12,7 @@ Approved strategy: minimize local pull/test cycles by grouping coherent low-risk
 
 Base: `main`.
 
-Draft PR: `#118`.
+PR: `#118` — ready for review after Batch 1 closeout.
 
 ## Approved Batch 1
 
@@ -117,17 +117,17 @@ Do not mechanically change `Modules\Website\Models\Setting::$table` from `wp_set
 
 ## Safety boundaries
 
-Batch 1 must not perform destructive schema/migration work.
+Batch 1 performed no destructive schema/migration work.
 
 Payment/MoMo, broad cart/checkout extraction, affiliate extraction, promotion-domain creation and persistence-ledger cleanup remain outside Batch 1.
 
-No runtime artifact is deleted/rehome solely because its filename or directory appears misplaced. Caller/replacement proof is required.
+No runtime artifact was deleted/rehome solely because its filename or directory appeared misplaced. Caller/replacement proof was required.
 
 ## UI standard
 
 Any Admin UI touched by Batch 1 must comply with `.codex/standards/ADMIN_UI_STANDARD.md`, including bounded pagination and shared-component reuse.
 
-Batch 1 does not intentionally redesign a material Admin UI surface; manual UI smoke is therefore a regression check rather than a redesign acceptance pass.
+Batch 1 did not intentionally redesign a material Admin UI surface; manual UI smoke was used as regression acceptance.
 
 ## Verification results
 
@@ -136,7 +136,8 @@ Local verification completed on the refactor branch:
 - focused ownership regression: PASS — `22 passed (224 assertions)`;
 - Website Feature regression: PASS — `147 passed (16249 assertions)`;
 - the attempted `Modules/Website/tests` path was invalid because this repository keeps Website tests under `tests/Feature/Website`; this was a command-path issue, not a test failure;
-- route sanity: PASS.
+- route sanity: PASS;
+- manual UI smoke: PASS.
 
 Verified runtime route ownership includes:
 
@@ -149,11 +150,11 @@ Verified runtime route ownership includes:
 - `blog.index` / `blog.detail` -> Website storefront `PostController@index/detail`;
 - Admin Product CRUD remains canonical in `Modules\Product\Http\Controllers\ProductController`.
 
-The route result confirms the cleanup did not re-home canonical Product Admin ownership back into Website and did not break Website storefront Product/Post presentation ownership.
+Manual UI smoke passed for the main storefront Product/Blog and Website Admin dashboard/settings surfaces.
 
-Manual smoke remains recommended for visual/runtime acceptance of the main touched surfaces. No full-project regression is required by default for this batch.
+No full-project regression is required by default for this batch.
 
-## Current status
+## Batch 1 closeout
 
 - Target architecture: APPROVED.
 - Combined Batch 1 strategy: APPROVED.
@@ -165,11 +166,11 @@ Manual smoke remains recommended for visual/runtime acceptance of the main touch
 - Focused ownership verification: PASS — 22 tests / 224 assertions.
 - Website regression: PASS — 147 tests / 16249 assertions.
 - Route sanity: PASS.
+- Manual UI smoke: PASS.
 - Persistence-sensitive and payment-sensitive families: QUARANTINED / DEFERRED.
 - `wp_settings` -> canonical `settings` migration objective: APPROVED AS SEPARATE PERSISTENCE FOLLOW-UP; NOT IMPLEMENTED IN BATCH 1.
-- Runtime source cleanup: BATCH 1 IMPLEMENTATION CHECKPOINT COMPLETE.
-- Local automated verification: PASS.
-- Manual UI smoke: PENDING.
-- Draft PR `#118`: keep draft until manual smoke status is recorded.
+- Website Batch 1: READY FOR REVIEW.
 
-After manual smoke closeout, update this handoff once more before making PR `#118` ready for review.
+## Next approved architectural follow-up
+
+After Batch 1 is merged, prepare a separate persistence-safe Website settings follow-up for migration from legacy `wp_settings` usage to canonical `settings`. Do not begin destructive persistence changes without schema/data/migration-ledger proof.
