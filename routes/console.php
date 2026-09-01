@@ -25,6 +25,12 @@ if (config('modules.registry.Request.enabled', false)) {
         ->withoutOverlapping();
 }
 
+if (config('modules.registry.Attendance.enabled', false)) {
+    Schedule::command('attendance:privacy-purge')
+        ->dailyAt('02:30')
+        ->withoutOverlapping();
+}
+
 Schedule::command('system:cloud-backup')
     ->everyMinute()
     ->withoutOverlapping();
