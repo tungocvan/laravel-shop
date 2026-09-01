@@ -32,11 +32,11 @@ class AdmissionLocationImportExportTest extends TestCase
 
         try {
             $report = app(ImportExport::class)->import(
-                storage_path('app/public/'.$path),
+                $service->exportAbsolutePath($path),
                 ['dry_run' => true]
             );
         } finally {
-            Storage::disk('public')->delete($path);
+            Storage::disk($service->exportDiskName())->delete($path);
         }
 
         $this->assertTrue(
