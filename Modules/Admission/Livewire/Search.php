@@ -8,75 +8,61 @@ use Modules\Admission\Services\SchoolSettingService;
 
 class Search extends Component
 {
-    public $MaDinhDanh = '';
-    public $password = '';
-    public $app = [];
+    public string $MaDinhDanh = '';
+    public string $password = '';
+    public array $app = [];
+    public bool $showModal = false;
+    public ?string $message = null;
 
-    public $showModal = false;
-    public $message = null;
-
-    public function mount($ma_dinh_danh = null, $password = null)
+    public function login(): void
     {
-        // 👉 nếu không có param => rỗng luôn, không lỗi
-        $this->MaDinhDanh = $ma_dinh_danh ?? '';
-        $this->password = $password ?? '';
-        if (empty($this->ma_dinh_danh) || empty($this->password)) {
-            return;
-        }
+        $this->reset('message', 'showModal', 'app');
 
-
-        // 👉 chỉ auto check nếu có đủ dữ liệu
-        if (!empty($this->MaDinhDanh) && !empty($this->password)) {
-            $this->login();
-        }
-    }
-
-    public function login()
-    {
-        $this->reset('message', 'showModal');
-
-        // Validate mã định danh 12 số
-        if (!preg_match('/^\d{12}$/', $this->MaDinhDanh)) {
+        if (! preg_match('/^\d{12}$/', $this->MaDinhDanh)) {
             $this->message = 'Mã định danh phải đúng 12 chữ số.';
             return;
         }
 
-        // Validate password 8 số
-        if (!preg_match('/^\d{8}$/', $this->password)) {
-            $this->message = 'Mật khẩu phải đúng 6 chữ số (ddmmyy). Ví dụ: 01012019';
+        if (! preg_match('/^\d{8}$/', $this->password)) {
+            $this->message = 'Ngày sinh phải đúng 8 chữ số theo định dạng ddmmyyyy. Ví dụ: 01012019.';
             return;
         }
 
-        $this->app = AdmissionApplication::where('ma_dinh_danh', $this->MaDinhDanh)
-            ->firstOrFail()
-            ->toArray();
-        // $application = AdmissionApplication::where('ma_dinh_danh', $this->MaDinhDanh)->first();
+        $application = AdmissionApplication::query()
+            ->where('ma_dinh_danh', $this->MaDinhDanh)
+            ->first();
 
-        if (!$this->app) {
+        if (! $application) {
             $this->message = 'Không tìm thấy hồ sơ.';
             return;
-        } 
-      // dd($this->app);
-        $birthPassword = $this->app['ngay_sinh']
-            ? \Carbon\Carbon::parse($this->app['ngay_sinh'])->format('dmY')
+        }
+
+        $this->app = $application->toArray();
+
+        $birthPassword = $application->ngay_sinh
+            ? \Carbon\Carbon::parse($application->ngay_sinh)->format('dmY')
             : null;
-       //dd($birthPassword, $this->password);
-        if ($this->password !== $birthPassword) {
-            $this->message = 'Sai mật khẩu. Vui lòng nhập theo ddmmyy.';
+
+        if (! hash_equals((string) $birthPassword, $this->password)) {
+            $this->app = [];
+            $this->message = 'Thông tin tra cứu không chính xác.';
             return;
         }
 
-        if ($this->app['status'] === 'approved') {
-            $this->showModal = true;
-        } else {
+        if ($application->status !== 'approved') {
+            $this->app = [];
             $this->message = 'Hồ sơ chưa được tiếp nhận hoặc chưa duyệt.';
+            return;
         }
+
+        $this->showModal = true;
     }
 
-    public function closeModal()
+    public function closeModal(): void
     {
         $this->showModal = false;
     }
+
     public function render()
     {
         return view('Admission::livewire.search', [
