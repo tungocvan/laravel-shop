@@ -107,7 +107,7 @@ class CanonicalSettingsServiceTest extends TestCase
 
         $websiteSetting = file_get_contents(base_path('Modules/Website/Models/Setting.php'));
         $this->assertStringContainsString('extends \\Modules\\System\\Models\\Setting', $websiteSetting);
-        $this->assertStringNotContainsString("protected $table = 'wp_settings'", $websiteSetting);
+        $this->assertStringNotContainsString("protected \$table = 'wp_settings'", $websiteSetting);
 
         foreach ([
             'Modules/Admin/Support/ThemeManager.php',
