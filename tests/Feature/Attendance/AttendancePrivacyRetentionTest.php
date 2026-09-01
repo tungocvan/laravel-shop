@@ -4,6 +4,8 @@ namespace Tests\Feature\Attendance;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Account\Models\EmployeeProfile;
+use Modules\Account\Models\User;
 use Modules\Attendance\Enums\AttendanceRecordStatus;
 use Modules\Attendance\Enums\VerificationResult;
 use Modules\Attendance\Models\AttendanceLocation;
@@ -20,6 +22,7 @@ class AttendancePrivacyRetentionTest extends TestCase
     {
         config()->set('attendance.attendance.privacy.raw_gps_retention_days', 30);
 
+        [$user, $employee] = $this->createEmployee('expired');
         $location = AttendanceLocation::query()->create([
             'name' => 'Văn phòng chính',
             'code' => 'HQ-PRIVACY',
@@ -43,8 +46,8 @@ class AttendancePrivacyRetentionTest extends TestCase
         ]);
 
         $record = AttendanceRecord::query()->create([
-            'employee_profile_id' => null,
-            'user_id' => null,
+            'employee_profile_id' => $employee->id,
+            'user_id' => $user->id,
             'work_date' => '2026-07-01',
             'shift_id' => $shift->id,
             'session_key' => hash('sha256', 'privacy-retention-expired'),
@@ -108,7 +111,10 @@ class AttendancePrivacyRetentionTest extends TestCase
     {
         config()->set('attendance.attendance.privacy.raw_gps_retention_days', 30);
 
+        [$user, $employee] = $this->createEmployee('recent');
         $record = AttendanceRecord::query()->create([
+            'employee_profile_id' => $employee->id,
+            'user_id' => $user->id,
             'work_date' => '2026-08-20',
             'session_key' => hash('sha256', 'privacy-retention-recent'),
             'status' => AttendanceRecordStatus::CheckedIn,
@@ -138,5 +144,23 @@ class AttendancePrivacyRetentionTest extends TestCase
 
         $this->assertSame(1, $service->purgeExpiredRawGps($now));
         $this->assertSame(0, $service->purgeExpiredRawGps($now));
+    }
+
+    private function createEmployee(string $suffix): array
+    {
+        $user = User::query()->create([
+            'name' => 'Privacy '.$suffix,
+            'email' => "attendance-privacy-{$suffix}@example.test",
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+
+        $employee = EmployeeProfile::query()->create([
+            'user_id' => $user->id,
+            'employee_code' => 'PRIVACY-'.strtoupper($suffix),
+            'status' => 'active',
+        ]);
+
+        return [$user, $employee];
     }
 }
