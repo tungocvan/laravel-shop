@@ -6,75 +6,98 @@ Compact major refactor of `Modules/Admission`, keeping the module intentionally 
 
 Branch: `refactor/admission-major-cleanup`
 
+Status: implementation complete and ready for PR review.
+
 ## Approved scope
 
 The user approved combining the originally proposed phases into one implementation branch to reduce repeated pull/test cycles.
 
-Target work in this branch:
+Completed work in this branch:
 
-- establish `MODULE.md` architecture contract;
-- repair route/controller drift, especially export wiring;
-- consolidate duplicated admission document-generation logic;
-- improve public lookup security without abrupt compatibility breakage;
-- preserve and document persistence-sensitive/shared queue boundaries;
-- remove only caller-proven dead/placeholder runtime artifacts;
-- align touched admin UI/pagination with the current Admin UI standard;
-- finish with one focused regression cycle and manual UI acceptance.
+- established `MODULE.md` architecture and ownership contract;
+- repaired route/controller drift, including the missing Admission export action;
+- consolidated duplicated DOCX/PDF generation behind `AdmissionDocumentService`;
+- made `/admission/search` the canonical clean lookup route and retained the credential-path route only as a compatibility redirect;
+- stopped reflecting identifier/date credentials into the public lookup component/view;
+- hardened public lookup validation and failure handling;
+- preserved persistence-sensitive/shared queue boundaries without destructive schema edits;
+- aligned affected Admission tests with the new service and storage contracts;
+- normalized Admission PHP formatting with Pint.
 
-## Runtime baseline
+## Canonical runtime after refactor
 
-Canonical module responsibilities:
+Admission owns:
 
 - grade-1 admission registration;
 - public admission lookup;
 - application administration/review;
 - Admission settings/catalogs/location data;
 - import/export;
-- application documents/receipts.
+- application-specific documents/receipts.
 
-Existing useful boundaries to preserve:
+Key canonical boundaries:
 
-- `AdmissionRegistrationService`;
-- `AdmissionApplicationAdminService`;
-- Admission admin route family `/admin/admission/*`;
-- explicit Admission permission middleware;
-- queued document generation via `GenerateAdmissionPdfJob`.
+- `AdmissionRegistrationService` owns registration orchestration;
+- `AdmissionApplicationAdminService` owns admin application workflows/export/batch dispatch;
+- `AdmissionDocumentService` owns Admission document naming/generation/path persistence;
+- shared `DocumentConverterService` remains the generic DOCX/PDF conversion engine;
+- `GenerateAdmissionPdfJob` is queue orchestration only;
+- Admin shell, auth/permissions and shared queue infrastructure remain outside Admission ownership.
 
-## Confirmed architecture drift / debt
+## Compatibility / quarantined debt
 
-1. `/admin/admission/export` is registered against `AdmissionController@export`, but the controller currently has no `export()` method.
-2. `AdmissionController` duplicates DOCX/PDF generation and LibreOffice process handling even though queue generation already uses shared `DocumentConverterService`.
-3. Public lookup historically supports credentials in route path parameters; this is deprecated because URL-carried credentials can be exposed through browser/history/log/referrer surfaces.
-4. Admission contains a historical migration that conditionally creates shared `job_batches`; the table is shared infrastructure and must not be destructively modified during this refactor.
-5. Admission API currently exposes only a `501 Not Implemented` placeholder; removal requires caller proof.
-6. Location/DVHC ownership remains Admission-owned pending cross-module caller proof.
+The following are intentionally not destructively removed in this branch:
+
+1. The historical credential-path lookup route remains as `admission.search.legacy`, but redirects to the clean search form and no longer auto-populates credentials.
+2. The Admission API remains a `501 Not Implemented` placeholder pending caller/contract proof before removal.
+3. The historical Admission migration that conditionally creates shared `job_batches` remains quarantined; shared queue infrastructure must not be removed without migration-ledger/runtime proof.
+4. Location/DVHC ownership remains Admission-owned pending future cross-module caller proof.
 
 ## Safety decisions
 
-- No destructive schema cleanup in this compact refactor.
-- `job_batches` ownership remains quarantined/documented unless migration-ledger proof makes a safe correction possible.
-- Placeholder API and legacy credential URL compatibility are not removed blindly.
-- Registration/application data and review metadata must be preserved.
-- Explicit admin permission boundaries must remain unchanged or stronger.
+- No destructive schema cleanup was performed.
+- Registration/application data and review metadata were preserved.
+- Existing Admission permission middleware boundaries were preserved.
+- Shared document conversion and queue infrastructure were reused rather than duplicated or moved into Admission.
 
-## Test/acceptance strategy
+## Final verification
 
-Run once near closeout rather than after every small commit:
+Automated regression:
 
-- `tests/Feature/Admission`;
-- only directly impacted Admin tests when navigation/routes are touched;
-- route checks for Admission;
-- Pint on touched PHP files;
-- build only if frontend/template changes require it;
-- manual UI: registration, lookup, admin application list/review, export/document actions.
+- `php artisan test tests/Feature/Admission`
+- result: **50 passed (263 assertions)**
+- duration reported locally: **1.76s**
 
-User will report UI acceptance separately.
+Formatting:
+
+- Pint executed over `Modules/Admission` and `tests/Feature/Admission`;
+- 45 files checked, 23 style issues normalized;
+- formatting changes committed as `style(admission): normalize refactor formatting`.
+
+Route verification:
+
+- `php artisan route:list --name=admission`
+- result: **20 Admission routes registered**;
+- canonical public lookup: `/admission/search` (`admission.search`);
+- compatibility lookup: `/admission/search/{ma_dinh_danh}/{password}` (`admission.search.legacy`);
+- admin export route resolves to `AdmissionController@export`.
+
+Manual UI acceptance:
+
+- user reported **UI PASS** on 2026-09-02;
+- branch working tree was clean at acceptance;
+- accepted branch head before this handoff closeout: `00a75c40`.
 
 ## Merge gate
 
-Before PR/merge:
+Ready for PR review:
 
-- focused automated checks pass;
-- user reports UI PASS;
-- this handoff is updated with final changed-file/test summary;
-- no unresolved persistence/authz blocker remains.
+- focused Admission regression PASS;
+- route contract PASS;
+- Pint completed;
+- UI PASS;
+- no destructive persistence change;
+- no unresolved authz blocker;
+- remaining shared-infrastructure/API/legacy-route items are explicitly documented as compatibility or quarantined debt.
+
+After merge, synchronize `main` and treat this compact Admission major refactor as complete unless a separate follow-up is explicitly approved.
