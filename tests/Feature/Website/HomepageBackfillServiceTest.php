@@ -30,7 +30,7 @@ class HomepageBackfillServiceTest extends TestCase
 
     public function test_dry_run_reports_orphans_without_writing_structured_tables(): void
     {
-        $this->seedLegacySettings();
+        $this->seedSettings();
 
         $report = app(HomepageBackfillService::class)->backfill();
 
@@ -41,11 +41,11 @@ class HomepageBackfillServiceTest extends TestCase
         $this->assertSame(0, WebsitePage::query()->count());
     }
 
-    public function test_apply_is_idempotent_and_preserves_legacy_settings(): void
+    public function test_apply_is_idempotent_and_preserves_canonical_settings(): void
     {
-        $this->seedLegacySettings();
+        $this->seedSettings();
         $service = app(HomepageBackfillService::class);
-        $legacyCount = DB::table('wp_settings')->count();
+        $settingsCount = DB::table('settings')->count();
 
         $service->backfill(true);
         $service->backfill(true);
@@ -57,13 +57,13 @@ class HomepageBackfillServiceTest extends TestCase
         $this->assertSame(2, $page->sections->firstWhere('key', 'trust_badges')->items->count());
         $this->assertFalse($page->sections->firstWhere('key', 'flash_sale')->is_enabled);
         $this->assertSame(12, $page->sections->firstWhere('key', 'new_arrivals')->config['limit']);
-        $this->assertSame($legacyCount, DB::table('wp_settings')->count());
+        $this->assertSame($settingsCount, DB::table('settings')->count());
         $this->assertSame(1, WebsitePage::query()->count());
     }
 
-    public function test_structured_reads_match_legacy_values_and_fallback_before_backfill(): void
+    public function test_structured_reads_match_settings_values_and_fallback_before_backfill(): void
     {
-        $this->seedLegacySettings();
+        $this->seedSettings();
         $content = app(HomepageContentService::class);
 
         $this->assertSame([2, 88], $content->referenceIds('featured', 'product', 'home_featured_ids'));
@@ -80,13 +80,13 @@ class HomepageBackfillServiceTest extends TestCase
 
     public function test_repeated_backfill_can_enable_a_section_that_was_previously_hidden(): void
     {
-        $this->seedLegacySettings();
+        $this->seedSettings();
         $backfill = app(HomepageBackfillService::class);
         $content = app(HomepageContentService::class);
         $backfill->backfill(true);
         $this->assertSame('hidden', $content->visibility()['show_flash_sale']);
 
-        DB::table('wp_settings')->where('key', 'home_show_flash_sale')->update(['value' => 'all']);
+        DB::table('settings')->where('key', 'home_show_flash_sale')->update(['value' => 'all']);
         $backfill->backfill(true);
 
         $this->assertSame('all', $content->visibility()['show_flash_sale']);
@@ -95,9 +95,9 @@ class HomepageBackfillServiceTest extends TestCase
         );
     }
 
-    public function test_admin_write_updates_legacy_and_structured_data_in_one_workflow(): void
+    public function test_admin_write_updates_canonical_and_structured_data_in_one_workflow(): void
     {
-        $this->seedLegacySettings();
+        $this->seedSettings();
         app(HomepageBackfillService::class)->backfill(true);
 
         app(HomepageContentWriteService::class)->save([
@@ -114,14 +114,14 @@ class HomepageBackfillServiceTest extends TestCase
         $this->assertSame('all', $content->visibility()['show_flash_sale']);
         $this->assertSame(16, $content->limit('new_arrivals', 'home_new_arrivals_count', 10));
         $this->assertSame(['title' => 'Updated promo'], $content->config('promo_banner', 'home_promo_banner'));
-        $this->assertDatabaseHas('wp_settings', ['key' => 'home_show_flash_sale', 'value' => 'all']);
+        $this->assertDatabaseHas('settings', ['key' => 'home_show_flash_sale', 'value' => 'all']);
         $this->assertSame('newsletter', $content->order()[0]);
         $this->assertSame('hero', $content->order()[9]);
     }
 
     public function test_duplicated_section_survives_compatibility_write_and_can_be_deleted(): void
     {
-        $this->seedLegacySettings();
+        $this->seedSettings();
         app(HomepageBackfillService::class)->backfill(true);
         $manager = app(HomepageSectionManagerService::class);
         $copy = $manager->duplicate('featured');
@@ -138,7 +138,7 @@ class HomepageBackfillServiceTest extends TestCase
         $this->assertDatabaseMissing('website_sections', ['key' => 'featured_copy_1']);
     }
 
-    private function seedLegacySettings(): void
+    private function seedSettings(): void
     {
         $settings = [
             ['home_category_ids', [1, 99]],
@@ -150,7 +150,7 @@ class HomepageBackfillServiceTest extends TestCase
         ];
 
         foreach ($settings as [$key, $value]) {
-            DB::table('wp_settings')->insert([
+            DB::table('settings')->insert([
                 'key' => $key,
                 'value' => is_array($value) ? json_encode($value) : $value,
                 'type' => is_array($value) ? 'json' : 'text',
@@ -161,7 +161,7 @@ class HomepageBackfillServiceTest extends TestCase
 
     private function createSources(): void
     {
-        Schema::create('wp_settings', function (Blueprint $table): void {
+        Schema::create('settings', function (Blueprint $table): void {
             $table->id();
             $table->string('key')->unique();
             $table->text('value')->nullable();
@@ -187,7 +187,7 @@ class HomepageBackfillServiceTest extends TestCase
     private function dropTables(): void
     {
         Schema::disableForeignKeyConstraints();
-        foreach (['website_section_items', 'website_sections', 'website_pages', 'wp_settings', 'categories', 'wp_products'] as $table) {
+        foreach (['website_section_items', 'website_sections', 'website_pages', 'settings', 'wp_settings', 'categories', 'wp_products'] as $table) {
             Schema::dropIfExists($table);
         }
         Schema::enableForeignKeyConstraints();
