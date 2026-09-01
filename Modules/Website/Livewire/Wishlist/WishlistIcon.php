@@ -2,11 +2,11 @@
 
 namespace Modules\Website\Livewire\Wishlist;
 
-use Livewire\Component;
-use Livewire\Attributes\On; // Dùng để lắng nghe sự kiện
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\App;
-use Modules\Website\Services\WishlistService;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
+use Livewire\Component;
+use Modules\Product\Services\WishlistService;
 
 class WishlistIcon extends Component
 {
@@ -17,7 +17,7 @@ class WishlistIcon extends Component
         $this->updateCount();
     }
 
-    #[On('wishlist-updated')] // Lắng nghe sự kiện từ Product Card
+    #[On('wishlist-updated')]
     public function updateCount()
     {
         if (Auth::check()) {
