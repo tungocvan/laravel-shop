@@ -181,7 +181,7 @@ class AdmissionApplicationAdminService
         }
 
         return Bus::batch($jobs)
-            ->name('Admission documents ' . now()->format('Y-m-d H:i:s'))
+            ->name('Admission documents '.now()->format('Y-m-d H:i:s'))
             ->allowFailures()
             ->onConnection(config('queue.default'))
             ->onQueue('admission-documents')
@@ -192,7 +192,7 @@ class AdmissionApplicationAdminService
     {
         if ($docx) {
             $wordExists = $application->word_path
-                && file_exists(storage_path('app/' . $application->word_path));
+                && file_exists(storage_path('app/'.$application->word_path));
 
             if (! $wordExists) {
                 return true;
@@ -201,7 +201,7 @@ class AdmissionApplicationAdminService
 
         if ($pdf) {
             $pdfExists = $application->pdf_path
-                && file_exists(storage_path('app/' . $application->pdf_path));
+                && file_exists(storage_path('app/'.$application->pdf_path));
 
             if (! $pdfExists) {
                 return true;
@@ -217,6 +217,7 @@ class AdmissionApplicationAdminService
 
         if ($driver === 'mysql' || $driver === 'mariadb') {
             DB::statement('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1');
+
             return;
         }
 

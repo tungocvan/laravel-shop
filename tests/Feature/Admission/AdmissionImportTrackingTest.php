@@ -10,8 +10,8 @@ class AdmissionImportTrackingTest extends TestCase
 {
     public function test_import_run_and_error_models_expose_expected_contracts(): void
     {
-        $run = new AdmissionImportRun();
-        $error = new AdmissionImportError();
+        $run = new AdmissionImportRun;
+        $error = new AdmissionImportError;
 
         foreach ([
             'original_filename', 'status', 'total_rows', 'success_rows', 'failed_rows',

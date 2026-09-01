@@ -2,7 +2,6 @@
 
 namespace Modules\Admission\Jobs;
 
-use App\Services\DocumentConverterService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,13 +9,14 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Modules\Admission\Models\AdmissionApplication;
-use Modules\Admission\Services\AdmissionService;
+use Modules\Admission\Services\AdmissionDocumentService;
 
 class GenerateAdmissionPdfJob implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 180;
+
     public $tries = 3;
 
     public function __construct(
@@ -27,10 +27,8 @@ class GenerateAdmissionPdfJob implements ShouldQueue
         $this->onQueue('admission-documents');
     }
 
-    public function handle(
-        AdmissionService $service,
-        DocumentConverterService $converter,
-    ): void {
+    public function handle(AdmissionDocumentService $documents): void
+    {
         if ($this->batch()?->cancelled()) {
             return;
         }
@@ -38,15 +36,17 @@ class GenerateAdmissionPdfJob implements ShouldQueue
         $app = AdmissionApplication::find($this->id);
 
         if (! $app) {
-            \Log::warning('JOB SKIP: not found', ['id' => $this->id]);
+            \Log::warning('Admission document job skipped: application not found.', ['id' => $this->id]);
+
             return;
         }
 
         if ($app->status !== 'approved') {
-            \Log::warning('JOB SKIP: status changed', [
+            \Log::warning('Admission document job skipped: application status changed.', [
                 'id' => $this->id,
                 'status' => $app->status,
             ]);
+
             return;
         }
 
@@ -57,58 +57,7 @@ class GenerateAdmissionPdfJob implements ShouldQueue
         }
 
         try {
-            $data = $service->getDataForTemplate($this->id);
-            $name = 'Don_' . $this->id . '_' . \Str::slug($data['HoVaTenHocSinh'] ?? 'unknown', '_');
-
-            $relativeDir = 'admission/';
-            $fullDir = storage_path('app/' . $relativeDir);
-
-            if (! is_dir($fullDir)) {
-                mkdir($fullDir, 0775, true);
-            }
-
-            $wordRelative = $relativeDir . $name . '.docx';
-            $pdfRelative = $relativeDir . $name . '.pdf';
-            $wordFull = $fullDir . $name . '.docx';
-            $pdfFull = $fullDir . $name . '.pdf';
-            $wordExistedBefore = file_exists($wordFull);
-
-            // PDF conversion needs a DOCX source, so create it when either output requires it.
-            if (($this->generateDocx || $pdfEnabled) && ! $wordExistedBefore) {
-                $template = storage_path('app/templates/application.docx');
-                $converter->generate($template, $data, $wordFull);
-
-                if (! file_exists($wordFull)) {
-                    throw new \RuntimeException('DOCX không được tạo');
-                }
-            }
-
-            if ($pdfEnabled && ! file_exists($pdfFull)) {
-                $convertedPdf = $converter->toPdf($wordFull, $fullDir);
-
-                if (! $convertedPdf || ! file_exists($convertedPdf)) {
-                    throw new \RuntimeException('Convert xong nhưng không thấy PDF');
-                }
-            }
-
-            $updates = [];
-
-            if ($this->generateDocx && file_exists($wordFull)) {
-                $updates['word_path'] = $wordRelative;
-            }
-
-            if ($pdfEnabled && file_exists($pdfFull)) {
-                $updates['pdf_path'] = $pdfRelative;
-            }
-
-            if ($updates !== []) {
-                $app->updateQuietly($updates);
-            }
-
-            // A PDF-only request may need a temporary DOCX source. Remove it if this job created it.
-            if (! $this->generateDocx && ! $wordExistedBefore && file_exists($wordFull)) {
-                @unlink($wordFull);
-            }
+            $documents->generate($app, $this->generateDocx, $pdfEnabled);
 
             \Log::info('Admission document job done.', [
                 'id' => $this->id,
@@ -117,7 +66,7 @@ class GenerateAdmissionPdfJob implements ShouldQueue
                 'batch_id' => $this->batchId,
             ]);
         } catch (\Throwable $e) {
-            \Log::error('Generate Admission document lỗi', [
+            \Log::error('Generate Admission document failed.', [
                 'id' => $this->id,
                 'batch_id' => $this->batchId,
                 'error' => $e->getMessage(),

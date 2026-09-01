@@ -11,19 +11,33 @@ use Modules\Admission\Services\AdmissionRegistrationService;
 class RegistrationForm extends Component
 {
     public $currentStep = 1;
+
     public $totalSteps = 5;
+
     public $provinces = [];
+
     public $tt_wards = [];
+
     public $ht_wards = [];
+
     public $noi_sinh_wards = [];
+
     public $que_quan_wards = [];
+
     public $noi_dang_ky_khai_sinh_wards = [];
+
     public $ethnicities = [];
+
     public $religions = [];
+
     public array $registrationClasses = [];
+
     public $copyNoiSinhToQueQuan = false;
+
     public $sameAddress = false;
+
     public $applicationId = null;
+
     public $isEdit = false;
 
     // Keep PascalCase keys for the existing Blade/service contract.

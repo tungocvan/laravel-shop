@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up()
     {
         Schema::create('admission_applications', function (Blueprint $table) {
@@ -26,7 +27,7 @@ return new class extends Migration {
             $table->string('noi_sinh_tt')->nullable();
             $table->string('noi_sinh_chi_tiet')->nullable();
             $table->string('noi_dang_ky_khai_sinh_px')->nullable();
-            $table->string('noi_dang_ky_khai_sinh_tt')->nullable();            
+            $table->string('noi_dang_ky_khai_sinh_tt')->nullable();
             $table->string('que_quan')->nullable();
             $table->string('que_quan_px')->nullable();
             $table->string('que_quan_tt')->nullable();
@@ -56,15 +57,23 @@ return new class extends Migration {
             $table->text('suc_khoe_can_luu_y')->nullable();
 
             // BƯỚC 4: Cha - Mẹ - Giám hộ
-            $table->string('ho_ten_cha')->nullable(); $table->string('nam_sinh_cha')->nullable();
-            $table->string('tdvh_cha')->nullable(); $table->string('tdcm_cha')->nullable();
-            $table->string('nghe_nghiep_cha')->nullable(); $table->string('chuc_vu_cha')->nullable();
-            $table->string('dien_thoai_cha')->nullable(); $table->string('cccd_cha')->nullable();
+            $table->string('ho_ten_cha')->nullable();
+            $table->string('nam_sinh_cha')->nullable();
+            $table->string('tdvh_cha')->nullable();
+            $table->string('tdcm_cha')->nullable();
+            $table->string('nghe_nghiep_cha')->nullable();
+            $table->string('chuc_vu_cha')->nullable();
+            $table->string('dien_thoai_cha')->nullable();
+            $table->string('cccd_cha')->nullable();
 
-            $table->string('ho_ten_me')->nullable(); $table->string('nam_sinh_me')->nullable();
-            $table->string('tdvh_me')->nullable(); $table->string('tdcm_me')->nullable();
-            $table->string('nghe_nghiep_me')->nullable(); $table->string('chuc_vu_me')->nullable();
-            $table->string('dien_thoai_me')->nullable(); $table->string('cccd_me')->nullable();
+            $table->string('ho_ten_me')->nullable();
+            $table->string('nam_sinh_me')->nullable();
+            $table->string('tdvh_me')->nullable();
+            $table->string('tdcm_me')->nullable();
+            $table->string('nghe_nghiep_me')->nullable();
+            $table->string('chuc_vu_me')->nullable();
+            $table->string('dien_thoai_me')->nullable();
+            $table->string('cccd_me')->nullable();
 
             $table->string('ho_ten_nguoi_giam_ho')->nullable();
             $table->string('quan_he_giam_ho')->nullable();
@@ -83,7 +92,7 @@ return new class extends Migration {
             $table->string('ngay_lam_don')->nullable();
             $table->string('nguoi_lam_don')->nullable();
 
-            //Phần sắp xếp lớp
+            // Phần sắp xếp lớp
             $table->string('lop')->nullable();
             $table->string('gvcn')->nullable();
             $table->string('bao_mau')->nullable();
@@ -95,5 +104,8 @@ return new class extends Migration {
         });
     }
 
-    public function down() { Schema::dropIfExists('admission_applications'); }
+    public function down()
+    {
+        Schema::dropIfExists('admission_applications');
+    }
 };

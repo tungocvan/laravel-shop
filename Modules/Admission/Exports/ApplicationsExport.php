@@ -36,9 +36,9 @@ class ApplicationsExport implements FromQuery, WithHeadings, WithMapping
         return AdmissionApplication::query()
             ->when($this->search, function (Builder $query) {
                 $query->where(function (Builder $nested) {
-                    $nested->where('ho_va_ten_hoc_sinh', 'like', '%' . $this->search . '%')
-                        ->orWhere('ma_dinh_danh', 'like', '%' . $this->search . '%')
-                        ->orWhere('sdt_enetviet', 'like', '%' . $this->search . '%');
+                    $nested->where('ho_va_ten_hoc_sinh', 'like', '%'.$this->search.'%')
+                        ->orWhere('ma_dinh_danh', 'like', '%'.$this->search.'%')
+                        ->orWhere('sdt_enetviet', 'like', '%'.$this->search.'%');
                 });
             })
             ->when($this->status, fn (Builder $query) => $query->where('status', $this->status))
@@ -78,7 +78,7 @@ class ApplicationsExport implements FromQuery, WithHeadings, WithMapping
 
     protected function getTableColumns(): array
     {
-        $model = new AdmissionApplication();
+        $model = new AdmissionApplication;
 
         return collect(Schema::getColumnListing($model->getTable()))
             ->reject(fn ($column) => in_array($column, $this->exceptFields, true))

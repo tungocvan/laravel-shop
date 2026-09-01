@@ -3,6 +3,7 @@
 namespace Modules\Admission\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Admission\Jobs\GenerateAdmissionPdfJob;
 
 class AdmissionApplication extends Model
 {
@@ -136,6 +137,7 @@ class AdmissionApplication extends Model
                     \Log::info('SKIP DISPATCH: PDF đã tồn tại', [
                         'id' => $model->id,
                     ]);
+
                     return;
                 }
 
@@ -143,7 +145,7 @@ class AdmissionApplication extends Model
                     'id' => $model->id,
                 ]);
 
-                \Modules\Admission\Jobs\GenerateAdmissionPdfJob::dispatch($model->id)
+                GenerateAdmissionPdfJob::dispatch($model->id)
                     ->afterCommit();
             }
         });
@@ -159,12 +161,13 @@ class AdmissionApplication extends Model
                     continue;
                 }
 
-                $fullPath = storage_path('app/' . $path);
+                $fullPath = storage_path('app/'.$path);
 
                 if (! file_exists($fullPath)) {
                     \Log::warning('FILE NOT FOUND WHEN DELETING', [
                         'path' => $fullPath,
                     ]);
+
                     continue;
                 }
 

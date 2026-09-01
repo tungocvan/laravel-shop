@@ -32,7 +32,7 @@ return [
                         'type' => 'date',
                     ],
 
-                ]
+                ],
             ],
 
             2 => [
@@ -53,11 +53,11 @@ return [
                         'source' => 'provinces',
                     ],
 
-                ]
+                ],
             ],
 
-        ]
+        ],
 
-    ]
+    ],
 
 ];

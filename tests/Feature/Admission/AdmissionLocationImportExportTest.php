@@ -32,14 +32,17 @@ class AdmissionLocationImportExportTest extends TestCase
 
         try {
             $report = app(ImportExport::class)->import(
-                storage_path('app/public/'.$path),
+                $service->exportAbsolutePath($path),
                 ['dry_run' => true]
             );
         } finally {
-            Storage::disk('public')->delete($path);
+            Storage::disk($service->exportDiskName())->delete($path);
         }
 
-        $this->assertTrue($report['success']);
+        $this->assertTrue(
+            $report['success'],
+            'Import report: '.json_encode($report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        );
         $this->assertSame(1, $report['total_rows']);
         $this->assertSame(1, $report['success_rows']);
         $this->assertSame(0, $report['error_rows']);

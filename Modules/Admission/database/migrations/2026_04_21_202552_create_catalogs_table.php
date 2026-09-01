@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('sort_order')->default(0); // Để sắp xếp thứ tự hiển thị
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->index(['type', 'is_active']); // Tối ưu truy vấn khi lọc theo loại
         });
     }
