@@ -25,7 +25,7 @@ class WebsiteDomainOwnershipConfigurationTest extends TestCase
             'Modules/Website/Livewire/Admin/Home/HomeSettings.php',
             'Modules/Website/Livewire/Dashboard/StatsOverview.php',
             'Modules/Website/Livewire/Admin/Affiliate/CommissionMatrix.php',
-            'Modules/Website/Services/WishlistService.php',
+            'Modules/Product/Services/WishlistService.php',
         ];
 
         foreach ($files as $file) {
@@ -181,6 +181,12 @@ class WebsiteDomainOwnershipConfigurationTest extends TestCase
             'Modules/Post/Models/Wishlist.php',
             'Modules/Order/Models/Product.php',
             'Modules/Website/Services/Account/AddressService.php',
+            'Modules/Website/Services/AffiliateService.php',
+            'Modules/Website/Services/AdminAffiliateService.php',
+            'Modules/Website/Services/AffiliateRankService.php',
+            'Modules/Website/Services/WishlistService.php',
+            'Modules/Website/Models/AffiliateLevel.php',
+            'Modules/Website/Models/AffiliateScheme.php',
         ];
 
         foreach ($removed as $file) {
@@ -196,6 +202,12 @@ class WebsiteDomainOwnershipConfigurationTest extends TestCase
             'Modules\\Website\\Models\\UserAddress',
             'Modules\\Website\\Models\\Review',
             'Modules\\Website\\Models\\Wishlist',
+            'Modules\\Website\\Models\\AffiliateLevel',
+            'Modules\\Website\\Models\\AffiliateScheme',
+            'Modules\\Website\\Services\\AffiliateService',
+            'Modules\\Website\\Services\\AdminAffiliateService',
+            'Modules\\Website\\Services\\AffiliateRankService',
+            'Modules\\Website\\Services\\WishlistService',
             'Modules\\Website\\Services\\Services',
         ];
 
@@ -258,5 +270,47 @@ class WebsiteDomainOwnershipConfigurationTest extends TestCase
 
         $provider = file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php'));
         $this->assertStringContainsString('CheckoutContext::class, WebsiteCheckoutContext::class', $provider);
+    }
+
+    public function test_slice_2h_order_owns_affiliate_business_logic_and_website_keeps_attribution_adapter(): void
+    {
+        $this->assertFileExists(base_path('Modules/Order/Services/AffiliateService.php'));
+        $this->assertFileExists(base_path('Modules/Order/Services/AdminAffiliateService.php'));
+        $this->assertFileExists(base_path('Modules/Order/Services/AffiliateRankService.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Website/Services/AffiliateService.php'));
+
+        foreach ([
+            'Modules/Website/Livewire/Account/Affiliate/AffiliateDashboard.php',
+            'Modules/Website/Services/WebsiteCheckoutContext.php',
+        ] as $file) {
+            $contents = file_get_contents(base_path($file));
+            $this->assertStringContainsString('Modules\\Order\\Services\\AffiliateService', $contents, $file);
+            $this->assertStringNotContainsString('Modules\\Website\\Services\\AffiliateService', $contents, $file);
+        }
+
+        $context = file_get_contents(base_path('Modules/Website/Services/WebsiteCheckoutContext.php'));
+        $this->assertStringContainsString("Cookie::get('affiliate_ref')", $context);
+        $this->assertStringContainsString('Auth::id()', $context);
+
+        $affiliate = file_get_contents(base_path('Modules/Order/Services/AffiliateService.php'));
+        $this->assertStringNotContainsString('Modules\\Website', $affiliate);
+        $this->assertStringNotContainsString('Modules\\Admin\\Models\\AffiliateScheme', $affiliate);
+        $this->assertStringContainsString('Modules\\Order\\Models\\AffiliateScheme', $affiliate);
+    }
+
+    public function test_slice_2i_product_owns_wishlist_domain_and_website_keeps_presentation_only(): void
+    {
+        $this->assertFileExists(base_path('Modules/Product/Models/Wishlist.php'));
+        $this->assertFileExists(base_path('Modules/Product/Services/WishlistService.php'));
+        $this->assertFileDoesNotExist(base_path('Modules/Website/Services/WishlistService.php'));
+
+        foreach ([
+            'Modules/Website/Livewire/Account/WishlistPage.php',
+            'Modules/Website/Http/Middleware/ShareWishlistData.php',
+        ] as $file) {
+            $contents = file_get_contents(base_path($file));
+            $this->assertStringContainsString('Modules\\Product\\Services\\WishlistService', $contents, $file);
+            $this->assertStringNotContainsString('Modules\\Website\\Services\\WishlistService', $contents, $file);
+        }
     }
 }
