@@ -20,26 +20,43 @@ class AdminRecordsTable extends Component
     use WithPagination;
 
     protected AttendanceAdjustmentService $adjustments;
+
     protected AttendanceRecordMaintenanceService $maintenance;
 
     public string $search = '';
+
     public string $status = 'all';
+
     public string $shift = 'all';
+
     public string $location = 'all';
+
     public string $fromDate = '';
+
     public string $toDate = '';
+
     public int $perPage = 10;
+
     public array $perPageOptions = [10, 25, 50, 100];
 
     public ?int $selectedRecordId = null;
+
     public ?int $selectedAdjustmentId = null;
+
     public string $dialog = '';
+
     public string $voidReason = '';
+
     public string $correctionCheckIn = '';
+
     public string $correctionCheckOut = '';
+
     public string $correctionReason = '';
+
     public string $reviewNote = '';
+
     public ?string $notice = null;
+
     public ?string $error = null;
 
     protected $queryString = ['search', 'status', 'shift', 'location', 'fromDate', 'toDate', 'perPage'];
@@ -59,12 +76,35 @@ class AdminRecordsTable extends Component
         }
     }
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedStatus(): void { $this->resetPage(); }
-    public function updatedShift(): void { $this->resetPage(); }
-    public function updatedLocation(): void { $this->resetPage(); }
-    public function updatedFromDate(): void { $this->resetPage(); }
-    public function updatedToDate(): void { $this->resetPage(); }
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedShift(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedLocation(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFromDate(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedToDate(): void
+    {
+        $this->resetPage();
+    }
 
     public function updatedPerPage(mixed $value): void
     {
