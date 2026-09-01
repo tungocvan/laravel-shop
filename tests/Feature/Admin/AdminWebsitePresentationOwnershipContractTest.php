@@ -113,6 +113,26 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
         $this->assertStringContainsString('CouponController::class', $websiteRoutes);
     }
 
+    public function test_website_batch_one_dead_and_duplicate_runtime_stays_removed(): void
+    {
+        foreach ([
+            'Modules/Website/Http/Controllers/Admin/ProductController.php',
+            'Modules/Website/resources/views/admin/products/index.blade.php',
+            'Modules/Website/resources/views/admin.blade.php',
+            'Modules/Website/resources/views/products/index.blade.php',
+            'Modules/Website/resources/views/products/detail.blade.php',
+        ] as $path) {
+            $this->assertFileDoesNotExist(base_path($path), $path);
+        }
+
+        $storefrontProductController = file_get_contents(base_path('Modules/Website/Http/Controllers/ProductController.php'));
+
+        $this->assertNotFalse($storefrontProductController);
+        $this->assertStringContainsString("view('Website::pages.shop')", $storefrontProductController);
+        $this->assertStringContainsString("view('Website::products.show'", $storefrontProductController);
+        $this->assertStringNotContainsString('function detail(', $storefrontProductController);
+    }
+
     public function test_specialized_modules_own_product_role_order_and_account_routes(): void
     {
         foreach ([
