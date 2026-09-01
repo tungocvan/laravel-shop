@@ -20,6 +20,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/attendance')->name('admi
         Route::get('/locations', [AttendanceLocationsController::class, 'index'])->name('locations.index');
     });
     Route::middleware('permission:attendance.location.manage,admin')->group(function () {
+        Route::post('/locations/geocode', [AttendanceLocationsController::class, 'geocode'])->name('locations.geocode');
         Route::post('/locations', [AttendanceLocationsController::class, 'store'])->name('locations.store');
         Route::put('/locations/{location}', [AttendanceLocationsController::class, 'update'])->name('locations.update');
     });
