@@ -4,10 +4,10 @@ namespace Modules\Website\Livewire\Admin\Affiliate;
 
 use App\Models\User;
 use Livewire\Component;
+use Modules\Order\Models\AffiliateLevel;
+use Modules\Order\Models\AffiliateScheme;
 use Modules\Product\Models\Product;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\AffiliateLevel;
-use Modules\Website\Models\AffiliateScheme;
 
 class CommissionMatrix extends Component
 {
