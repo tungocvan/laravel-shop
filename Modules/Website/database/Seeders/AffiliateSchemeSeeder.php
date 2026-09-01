@@ -4,9 +4,9 @@ namespace Modules\Website\database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Modules\Order\Models\AffiliateLevel;
+use Modules\Order\Models\AffiliateScheme;
 use Modules\Product\Models\Product;
-use Modules\Website\Models\AffiliateLevel;
-use Modules\Website\Models\AffiliateScheme;
 
 // php artisan db:seed --class="Modules\Website\database\Seeders\AffiliateSchemeSeeder"
 class AffiliateSchemeSeeder extends Seeder
