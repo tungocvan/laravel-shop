@@ -23,7 +23,7 @@ class MuasamcongPriceListController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user('web');
-        abort_if(!$user, 401);
+        abort_if(! $user, 401);
 
         $source = in_array($request->query('source'), ['synced', 'wishlist'], true)
             ? $request->query('source')
@@ -234,7 +234,7 @@ class MuasamcongPriceListController extends Controller
 
         abort_unless($this->fileAvailable($record), 409, 'File Excel chưa sẵn sàng.');
 
-        if (!$this->pdfAvailable($record) && $record->pdf_status !== 'processing') {
+        if (! $this->pdfAvailable($record) && $record->pdf_status !== 'processing') {
             $record->update([
                 'pdf_status' => 'queued',
                 'pdf_error_message' => null,
@@ -277,7 +277,7 @@ class MuasamcongPriceListController extends Controller
             'recipient' => 'nullable|string|max:200',
         ]);
 
-        if (!$record->share_token) {
+        if (! $record->share_token) {
             $record->update(['share_token' => Str::random(64)]);
         }
 
@@ -331,8 +331,8 @@ class MuasamcongPriceListController extends Controller
         $excel = $request->boolean('attach_excel');
         $pdf = $request->boolean('attach_pdf');
 
-        abort_if(!$excel && !$pdf, 422, 'Vui lòng chọn ít nhất Excel hoặc PDF.');
-        abort_if($pdf && !$this->pdfAvailable($record), 422, 'PDF chưa sẵn sàng. Hãy chuyển PDF trước khi gửi.');
+        abort_if(! $excel && ! $pdf, 422, 'Vui lòng chọn ít nhất Excel hoặc PDF.');
+        abort_if($pdf && ! $this->pdfAvailable($record), 422, 'PDF chưa sẵn sàng. Hãy chuyển PDF trước khi gửi.');
 
         SendPriceListExportEmail::dispatch(
             $record->id,
@@ -399,13 +399,13 @@ class MuasamcongPriceListController extends Controller
     private function owner(Request $request, PriceListExport $export): void
     {
         $user = $request->user('web');
-        abort_if(!$user || (int) $export->user_id !== (int) $user->getKey(), 403);
+        abort_if(! $user || (int) $export->user_id !== (int) $user->getKey(), 403);
     }
 
     private function exportUser(Request $request)
     {
         $user = $request->user('web');
-        abort_if(!$user, 401);
+        abort_if(! $user, 401);
         abort_unless($user->can('client.muasamcong.price-list.export'), 403);
 
         return $user;

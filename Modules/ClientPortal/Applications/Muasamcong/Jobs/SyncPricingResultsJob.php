@@ -45,7 +45,7 @@ class SyncPricingResultsJob implements ShouldQueue
             $result = $tbmtPaginationService->loadAll($this->keyword, $result);
         }
 
-        if (!($result['success'] ?? false)) {
+        if (! ($result['success'] ?? false)) {
             throw new RuntimeException((string) ($result['message'] ?? 'Không thể xác minh lại dữ liệu Mua sắm công.'));
         }
 
