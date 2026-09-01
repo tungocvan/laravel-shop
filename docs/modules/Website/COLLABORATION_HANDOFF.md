@@ -4,147 +4,103 @@
 
 Major/Clean Module Refactor for `Website`.
 
-Website Batch 1 ownership cleanup was merged to `main`. This follow-up consolidates legacy `wp_settings` into canonical System-owned `settings` without destructive legacy-table removal.
+Website Batch 1 ownership cleanup and the persistence-safe consolidation of legacy `wp_settings` into canonical System-owned `settings` are both merged to `main`.
 
-## Current branch
+## Completed persistence consolidation
 
-`refactor/website-system-settings-consolidation`
+PR `#119` — `refactor(settings): consolidate Website settings into System persistence` — was merged to `main`.
 
-Base: `main` at branch creation.
+Merge commit: `a95aa215634262d06dc71144469ca9e16b00492b`.
 
-## Canonical settings decision
-
-The canonical persistence owner is `Modules\System` and the canonical table is `settings`.
-
-Runtime rule after this follow-up:
+Canonical ownership is now:
 
 - `Modules\System\Models\Setting` is the canonical model;
 - `Modules\System\Services\SettingsService` reads/writes only `settings`;
 - Website does not own an independent settings persistence table;
-- `Modules\Website\Models\Setting` is retained only as a deprecated compatibility adapter extending the System model while callers transition;
-- production runtime must not read or write `wp_settings` after consolidation;
+- `Modules\Website\Models\Setting` remains only as a deprecated compatibility adapter extending the System model;
+- production runtime no longer reads or writes `wp_settings` through the known System/Website settings paths;
 - legacy cache aliases may still be invalidated temporarily to avoid stale values across deployments.
 
-## Database proof used for this follow-up
+## Database and migration proof
 
-The user supplied local database proof before implementation:
+Before implementation, the user supplied database proof showing:
 
-- `settings` existed with columns `id`, `key`, `value`, `group_name`, `type`, `label`, timestamps and contained 55 rows;
-- `wp_settings` existed with the same column shape and contained 30 rows;
-- 12 keys existed in both tables;
-- 11 duplicate keys had matching values;
-- one real value conflict existed: `header.topbar.help_url`, where canonical `settings` contained `/` and legacy `wp_settings` contained `/help`;
-- migration ledger recorded both `-0001_11_30_000024_create_settings_table` and `-0001_11_30_000024_create_wp_settings_table` in batch 1.
+- canonical `settings`: 55 rows;
+- legacy `wp_settings`: 30 rows;
+- 12 duplicate keys;
+- 11 duplicate values matched;
+- one real conflict existed at `header.topbar.help_url` (`settings=/`, `wp_settings=/help`).
 
-Conflict policy: an existing canonical `settings` row wins. Legacy data may fill missing keys but must not overwrite canonical values.
+The approved conflict rule was: canonical `settings` wins and legacy rows may only fill missing keys.
 
-## Implementation completed
+Migration `2026_09_01_000001_consolidate_wp_settings_into_settings` completed successfully and verified:
 
-### Canonical System runtime
-
-`Modules/System/Services/SettingsService.php` now reads/writes only `settings`.
-
-Removed runtime compatibility behavior includes:
-
-- special `home_*` routing to `wp_settings`;
-- `homepage` group reads from `wp_settings`;
-- fallback reads from `settings` to `wp_settings`;
-- writes of homepage keys into `wp_settings`;
-- `isLegacyHomepageKey()`.
-
-Legacy cache aliases `wp_opt_*` and `setting_*` are still invalidated during the transition; they are not persistence reads/writes.
-
-### Website compatibility model
-
-`Modules/Website/Models/Setting.php` no longer declares `wp_settings` as its table and no longer implements a second settings persistence API. It is a deprecated compatibility adapter extending `Modules\System\Models\Setting`.
-
-### Homepage legacy caller cleanup
-
-Focused regression exposed one remaining production caller: `Modules/Website/Services/HomepageBackfillService.php` still read `wp_settings` directly.
-
-That service now reads canonical `settings`, and its test fixtures were updated to exercise the canonical table. This closes the known Website homepage runtime dependency on `wp_settings`.
-
-### Additive data consolidation
-
-Added migration:
-
-`Modules/Website/database/migrations/2026_09_01_000001_consolidate_wp_settings_into_settings.php`
-
-Behavior:
-
-- exits safely if either table is unavailable;
-- iterates legacy rows in bounded chunks;
-- copies only keys missing from `settings`;
-- preserves value/group/type/label/timestamps for copied rows;
-- never overwrites an existing canonical key;
-- never drops, renames or truncates `wp_settings`;
-- `down()` is intentionally non-destructive because copied canonical rows may receive later production writes.
-
-`wp_settings` remains a legacy safety copy after this PR. Dropping it is outside this follow-up and requires later production caller/data proof plus separate approval.
-
-## Regression guards
-
-Updated `tests/Feature/System/CanonicalSettingsServiceTest.php` to prove:
-
-- System reads/writes canonical `settings`;
-- a legacy `home_*` row in `wp_settings` is not a runtime fallback;
-- homepage group reads do not source `wp_settings`;
-- a new homepage write lands in `settings` while the legacy row remains unchanged;
-- Website's compatibility Setting model delegates to System ownership.
-
-Added `tests/Feature/Website/WebsiteSettingsConsolidationContractTest.php` to prove:
-
-- Website Setting delegates to the System model;
-- Website model contains no `wp_settings` persistence declaration;
-- System SettingsService contains no `DB::table('wp_settings')` and no `isLegacyHomepageKey` runtime routing;
-- HomepageBackfillService does not read `wp_settings`;
-- the consolidation migration remains additive and non-destructive.
-
-Updated Website homepage/settings tests so canonical `settings` is the expected persistence contract and new writes do not target `wp_settings`.
-
-## Safety boundaries
-
-This follow-up does not:
-
-- drop/rename/truncate `wp_settings`;
-- rewrite historical migration ledger entries;
-- recreate the already deployed `settings` table;
-- overwrite canonical conflicts from legacy values;
-- broaden into cart/checkout/payment/affiliate/promotion ownership cleanup.
-
-The source repository may continue to contain the string `wp_settings` in historical migrations, the consolidation migration, regression tests and documentation. Acceptance is that production runtime application code no longer reads/writes the legacy table.
-
-## Verification results
-
-Focused grouped regression completed successfully:
-
-- `154 passed (16325 assertions)`;
-- duration: `5.39s`;
-- no full-project regression was run or required for this focused persistence boundary.
-
-The consolidation migration was then executed successfully on the user's existing local database:
-
-- `2026_09_01_000001_consolidate_wp_settings_into_settings`: DONE;
-- canonical `settings`: `73` rows after migration;
+- canonical `settings`: `73` rows;
 - legacy `wp_settings`: remains `30` rows;
 - canonical `header.topbar.help_url`: `/`;
 - legacy `header.topbar.help_url`: `/help`;
-- legacy keys still missing from canonical settings: `0`.
+- legacy keys missing from canonical settings: `0`.
 
-This proves all 18 previously legacy-only rows were copied, canonical duplicate/conflict values were preserved, and the legacy safety table remained intact.
+The migration is additive and non-destructive. It does not drop, rename or truncate `wp_settings`, does not rewrite migration history, and its `down()` is intentionally non-destructive.
+
+## Runtime cleanup completed
+
+The merged implementation removed:
+
+- special `home_*` write routing to `wp_settings`;
+- homepage-group reads from `wp_settings`;
+- runtime fallback from `settings` to `wp_settings`;
+- `isLegacyHomepageKey()`;
+- the Website model's direct `wp_settings` table ownership.
+
+Focused regression also exposed one remaining runtime caller, `Modules/Website/Services/HomepageBackfillService.php`; it was migrated to canonical `settings` and covered by regression tests before merge.
+
+## Verification closeout
+
+Focused regression before merge:
+
+- `154 passed (16325 assertions)`;
+- duration: `5.39s`.
+
+Post-migration verification passed on the user's existing local database. No full-project regression was required for this focused persistence boundary.
+
+## Legacy `wp_settings` retirement debt
+
+The legacy table remains intentionally present as a safety copy. Its physical removal is a separate future task and is **not currently authorized**.
+
+Before any drop migration is proposed, require all of the following proof:
+
+1. Repository-wide caller proof that production runtime application code no longer reads/writes `wp_settings` outside historical/consolidation migrations, tests and documentation.
+2. Production data proof that every required legacy key exists in canonical `settings` and no new legacy-only writes have appeared after deployment.
+3. Deployment/observation period sufficient to rule out hidden scheduled jobs, queues, scripts or rarely reached admin flows using the legacy table.
+4. Confirmation that no rollback procedure still depends on `wp_settings` as a safety copy.
+5. Explicit user approval for a separate destructive removal branch/PR.
+
+Until those conditions are met, classify `wp_settings` as `QUARANTINE / DEFERRED`, not `DEAD` and not safe to drop.
+
+## Remaining Website refactor boundaries
+
+The settings persistence follow-up must not be treated as authorization to broaden ownership cleanup into unrelated domains.
+
+Still separate/deferred unless a new objective is explicitly approved:
+
+- Cart / Checkout / payment / MoMo boundaries;
+- Affiliate ownership;
+- Coupon / FlashSale / promotion ownership;
+- customer/account identity boundaries;
+- Wishlist / Review / Newsletter / Tag ownership;
+- any destructive schema cleanup requiring new caller/schema/authz proof.
 
 ## Current status
 
 - Website Batch 1: MERGED.
-- Settings persistence architecture: APPROVED.
-- Database schema/data/ledger proof: COMPLETE.
-- Canonical conflict policy: VERIFIED (`settings` wins).
-- System runtime consolidation: IMPLEMENTED.
-- Website compatibility adapter: IMPLEMENTED.
+- Settings persistence consolidation PR #119: MERGED.
+- Canonical settings owner: `System` / `settings`.
+- System runtime consolidation: COMPLETE.
+- Website compatibility adapter: COMPLETE.
 - Homepage direct legacy caller: CLEANED.
-- Additive legacy data migration: IMPLEMENTED AND VERIFIED.
-- Regression guards: IMPLEMENTED AND PASSING.
-- Focused local regression: PASS — 154 tests / 16325 assertions.
+- Additive legacy data migration: COMPLETE AND VERIFIED.
+- Focused regression: PASS — 154 tests / 16325 assertions.
 - Post-migration data proof: PASS — `settings=73`, `wp_settings=30`, missing legacy keys `0`.
-- Destructive legacy-table removal: DEFERRED / NOT AUTHORIZED.
-- Persistence follow-up: READY FOR PR REVIEW.
+- `wp_settings` physical removal: DEFERRED / NOT AUTHORIZED.
+- Next Website refactor objective: NOT DETERMINED.
