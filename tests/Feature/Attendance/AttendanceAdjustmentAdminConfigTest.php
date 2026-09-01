@@ -16,9 +16,9 @@ class AttendanceAdjustmentAdminConfigTest extends TestCase
         $this->assertStringContainsString('DB::transaction', $source);
         $this->assertStringContainsString('lockForUpdate()', $source);
         $this->assertStringContainsString('Self-approval is not allowed', $source);
-        $this->assertStringContainsString("AdjustmentStatus::Pending", $source);
-        $this->assertStringContainsString("AdjustmentStatus::Approved", $source);
-        $this->assertStringContainsString("AdjustmentStatus::Rejected", $source);
+        $this->assertStringContainsString('AdjustmentStatus::Pending', $source);
+        $this->assertStringContainsString('AdjustmentStatus::Approved', $source);
+        $this->assertStringContainsString('AdjustmentStatus::Rejected', $source);
     }
 
     public function test_adjustment_approval_recalculates_from_shift_snapshot_and_audits(): void
@@ -37,7 +37,7 @@ class AttendanceAdjustmentAdminConfigTest extends TestCase
         $source = file_get_contents(base_path('Modules/Attendance/Services/AttendanceRecordMaintenanceService.php'));
 
         $this->assertStringContainsString('Void reason is required.', $source);
-        $this->assertStringContainsString("AttendanceRecordStatus::Voided", $source);
+        $this->assertStringContainsString('AttendanceRecordStatus::Voided', $source);
         $this->assertStringContainsString("'attendance.record.void'", $source);
         $this->assertStringContainsString("'attendance.record.manual_correct'", $source);
         $this->assertStringNotContainsString('->delete()', $source);
