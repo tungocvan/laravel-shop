@@ -4,7 +4,9 @@
 
 Major/Clean Module Refactor for `Website`.
 
-Website Batch 1 ownership cleanup and the persistence-safe consolidation of legacy `wp_settings` into canonical System-owned `settings` are both merged to `main`.
+Website Batch 1 ownership cleanup and the persistence-safe consolidation of legacy `wp_settings` into canonical System-owned `settings` are merged to `main`.
+
+The current implementation branch is `refactor/website-remaining-domain-boundaries`. It performs the approved remaining-domain convergence without destructive schema work.
 
 ## Completed persistence consolidation
 
@@ -43,26 +45,104 @@ Migration `2026_09_01_000001_consolidate_wp_settings_into_settings` completed su
 
 The migration is additive and non-destructive. It does not drop, rename or truncate `wp_settings`, does not rewrite migration history, and its `down()` is intentionally non-destructive.
 
-## Runtime cleanup completed
+## Remaining-domain convergence implemented on current branch
 
-The merged implementation removed:
+### Checkout / Order — CLEANED boundary
 
-- special `home_*` write routing to `wp_settings`;
-- homepage-group reads from `wp_settings`;
-- runtime fallback from `settings` to `wp_settings`;
-- `isLegacyHomepageKey()`;
-- the Website model's direct `wp_settings` table ownership.
+- Order remains the canonical checkout/order workflow owner through `Modules\Order\Services\CheckoutService` and Order-owned contracts.
+- Website keeps the storefront `CheckoutController`, checkout Livewire presentation and `WebsiteCheckoutContext` adapter.
+- Website does not own a duplicate CheckoutService.
+- Existing MoMo callback/IPN route contracts are preserved.
+- Payment/MoMo integration is not mechanically moved while config/public callback compatibility remains schema/config sensitive.
 
-Focused regression also exposed one remaining runtime caller, `Modules/Website/Services/HomepageBackfillService.php`; it was migrated to canonical `settings` and covered by regression tests before merge.
+### Affiliate — CLEANED runtime ownership
 
-## Verification closeout
+Canonical affiliate business ownership is now Order:
 
-Focused regression before merge:
+- `Modules\Order\Services\AffiliateService` owns commission calculation, affiliate order statistics/history/detail and hybrid commission behavior;
+- `Modules\Order\Services\AdminAffiliateService` owns admin affiliate query/business behavior;
+- `Modules\Order\Services\AffiliateRankService` owns affiliate rank calculation;
+- Order-owned `AffiliateLevel` and `AffiliateScheme` models are canonical.
 
-- `154 passed (16325 assertions)`;
-- duration: `5.39s`.
+Removed Website duplicates:
 
-Post-migration verification passed on the user's existing local database. No full-project regression was required for this focused persistence boundary.
+- `Modules/Website/Services/AffiliateService.php`;
+- `Modules/Website/Services/AdminAffiliateService.php`;
+- `Modules/Website/Services/AffiliateRankService.php`;
+- `Modules/Website/Models/AffiliateLevel.php`;
+- `Modules/Website/Models/AffiliateScheme.php`.
+
+Website retains presentation and storefront attribution concerns:
+
+- affiliate account/admin Livewire UI remains Website presentation;
+- `TrackAffiliate` remains Website HTTP middleware because it captures `?ref=` and stores the storefront referral cookie;
+- `WebsiteCheckoutContext` reads the referral cookie and prevents self-referral, then delegates commission business logic to Order.
+
+### Wishlist — CLEANED runtime ownership
+
+Product is the canonical Wishlist owner:
+
+- canonical model: `Modules\Product\Models\Wishlist`;
+- canonical service: `Modules\Product\Services\WishlistService`.
+
+Removed:
+
+- `Modules/Website/Services/WishlistService.php`.
+
+Website keeps account Wishlist presentation and `ShareWishlistData` middleware, both of which now depend on Product's canonical WishlistService.
+
+No wishlist schema/migration was moved or rewritten.
+
+### Review — CLEANED runtime ownership / historical schema KEEP
+
+- runtime Review model is Product-owned;
+- Website has no duplicate Review runtime model;
+- the historical Website migration that created the reviews table remains untouched because migration ledger history must not be rewritten.
+
+### Customer / Account — CLEANED boundary
+
+Caller proof established that current customer CRUD/address runtime ownership is User, not Website:
+
+- `Modules\User\Services\CustomerService` is canonical for customer CRUD/query behavior;
+- `Modules\User\Services\UserAddressService` is canonical for address behavior;
+- `Modules\User\Services\UserProfileService` owns profile update behavior;
+- Website retains storefront/admin customer presentation adapters.
+
+Customer table pagination is bounded to `10 / 25 / 50 / 100`; legacy backend `all => 9999` behavior was removed in accordance with `ADMIN_UI_STANDARD.md`.
+
+Stale controller constructor permissions (`view_customer`, `create_customer`, `edit_customer`, `delete_customer`) were removed. Admin customer routes retain canonical permission middleware such as `customer.view` and `customer.create`, while mutating Livewire components retain their own canonical authorization checks.
+
+### Website route cleanup — CLEANED
+
+The unused `$websitePrefix = config('website.route_prefix', 'website')` route variable was removed because it did not participate in route construction. Existing public/admin route URLs and route names remain unchanged.
+
+## Remaining classifications after convergence
+
+- Website shell / Home / Header / Footer / appearance / theme: `KEEP` — canonical Website presentation ownership.
+- Banner: `KEEP` — Website presentation/content placement.
+- Product/Post storefront rendering: `KEEP` — Website presentation over Product/Post canonical domain models/services.
+- Settings: `CLEANED` — System canonical persistence; legacy `wp_settings` remains deferred safety copy.
+- Checkout workflow: `CLEANED` — Order canonical business owner; Website storefront adapter retained.
+- MoMo/payment integration: `QUARANTINE` — active and public-contract/config sensitive; no mechanical rehome in this batch.
+- Affiliate: `CLEANED` — Order canonical business owner; Website presentation/referral adapter retained.
+- Customer/profile/address: `CLEANED` — User canonical runtime owner; Website presentation retained. Account remains identity/profile-enrichment/import context and is not forced to own User customer CRUD.
+- Wishlist: `CLEANED` — Product canonical owner; Website presentation retained.
+- Review: `CLEANED` runtime ownership / historical migration `KEEP`.
+- Cart: `QUARANTINE` — active Website storefront infrastructure; no independent canonical Cart module proven and no new module created for architectural aesthetics.
+- Coupon / FlashSale: `QUARANTINE` — active promotion behavior without a proven canonical Promotion module; no schema move.
+- Newsletter: `KEEP / DEFER` — Website lead-capture persistence remains valid until another canonical marketing owner exists.
+- Tag: `QUARANTINE` — caller/ownership proof insufficient for destructive cleanup.
+
+## Ownership regression guards
+
+`tests/Feature/Website/WebsiteDomainOwnershipConfigurationTest.php` now prevents regression toward Website-owned duplicates. It guards, among other boundaries:
+
+- Product/Category/Post/Order/User canonical models and services;
+- Order-owned checkout workflow;
+- Order-owned Affiliate services/models;
+- Product-owned Wishlist service/model;
+- absence of removed Website Affiliate/Wishlist duplicate namespaces;
+- Website adapters depending on canonical owner services rather than recreating domain ownership.
 
 ## Legacy `wp_settings` retirement debt
 
@@ -78,29 +158,23 @@ Before any drop migration is proposed, require all of the following proof:
 
 Until those conditions are met, classify `wp_settings` as `QUARANTINE / DEFERRED`, not `DEAD` and not safe to drop.
 
-## Remaining Website refactor boundaries
+## Verification status
 
-The settings persistence follow-up must not be treated as authorization to broaden ownership cleanup into unrelated domains.
+Previous settings consolidation verification:
 
-Still separate/deferred unless a new objective is explicitly approved:
+- `154 passed (16325 assertions)`;
+- post-migration proof: `settings=73`, `wp_settings=30`, missing legacy keys `0`.
 
-- Cart / Checkout / payment / MoMo boundaries;
-- Affiliate ownership;
-- Coupon / FlashSale / promotion ownership;
-- customer/account identity boundaries;
-- Wishlist / Review / Newsletter / Tag ownership;
-- any destructive schema cleanup requiring new caller/schema/authz proof.
+Current remaining-domain branch:
 
-## Current status
+- implementation and ownership guards: COMPLETE;
+- destructive schema changes: NONE;
+- migration ledger rewrites: NONE;
+- public MoMo callback/IPN contract changes: NONE;
+- final targeted local regression checkpoint: PENDING;
+- UI smoke after regression: PENDING;
+- PR/merge: PENDING USER VERIFICATION.
 
-- Website Batch 1: MERGED.
-- Settings persistence consolidation PR #119: MERGED.
-- Canonical settings owner: `System` / `settings`.
-- System runtime consolidation: COMPLETE.
-- Website compatibility adapter: COMPLETE.
-- Homepage direct legacy caller: CLEANED.
-- Additive legacy data migration: COMPLETE AND VERIFIED.
-- Focused regression: PASS — 154 tests / 16325 assertions.
-- Post-migration data proof: PASS — `settings=73`, `wp_settings=30`, missing legacy keys `0`.
-- `wp_settings` physical removal: DEFERRED / NOT AUTHORIZED.
-- Next Website refactor objective: NOT DETERMINED.
+## Next checkpoint
+
+Run one consolidated targeted verification covering Website and directly impacted Order/Product/User/Account/Admin boundaries. Do not run the full project test suite. After targeted tests pass, verify route sanity and UI smoke before opening the PR.
