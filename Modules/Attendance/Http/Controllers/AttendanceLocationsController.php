@@ -5,11 +5,13 @@ namespace Modules\Attendance\Http\Controllers;
 use App\Http\Controllers\Controller;
 use DomainException;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Modules\Attendance\Models\AttendanceLocation;
 use Modules\Attendance\Services\AttendanceAdminConfigService;
+use Modules\Attendance\Services\AttendanceGeocodingService;
 
 class AttendanceLocationsController extends Controller
 {
@@ -18,6 +20,19 @@ class AttendanceLocationsController extends Controller
         return view('Attendance::admin.locations', [
             'locations' => AttendanceLocation::query()->orderBy('name')->paginate(10),
         ]);
+    }
+
+    public function geocode(Request $request, AttendanceGeocodingService $service): JsonResponse
+    {
+        $validated = $request->validate([
+            'address' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            return response()->json($service->geocode($validated['address']));
+        } catch (DomainException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
     }
 
     public function store(Request $request, AttendanceAdminConfigService $service): RedirectResponse
@@ -51,6 +66,7 @@ class AttendanceLocationsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'code' => ['required', 'string', 'max:50', Rule::unique('attendance_locations', 'code')->ignore($location?->id)],
+            'address' => ['nullable', 'string', 'max:500'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'radius_meters' => ['required', 'integer', 'between:1,10000'],
