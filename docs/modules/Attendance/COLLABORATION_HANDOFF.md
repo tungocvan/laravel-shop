@@ -7,7 +7,7 @@
 - MR-1 bootstrap/runtime contract: merged through PR #129.
 - MR-2 persistence/schema/models: explicitly approved by the user.
 - MR-2 branch: `feat/attendance-persistence-foundation`.
-- MR-2 implementation is complete on the branch and is awaiting local verification.
+- MR-2 implementation and focused verification: complete; ready for PR review.
 
 ## MR-2 — Persistence / schema / models
 
@@ -54,28 +54,38 @@ Implemented scope:
 - export;
 - GPS retention job/scheduler integration.
 
-## Verification gate
+## Verification results
 
-Run Pint on Attendance PHP changes, then focused tests:
+Formatting / repository checks:
 
-```bash
-vendor/bin/pint Modules/Attendance tests/Feature/Attendance
+- Pint on `Modules/Attendance` and `tests/Feature/Attendance`: PASS; one test file received formatting-only normalization and was committed to the branch.
+- `git diff --check`: PASS in the local verification flow before final branch sync.
 
+Attendance focused tests:
+
+```text
 php artisan test \
   tests/Feature/Attendance/AttendanceModuleBootstrapTest.php \
   tests/Feature/Attendance/AttendancePersistenceContractTest.php
+Tests: 10 passed (55 assertions)
+Duration: 0.73s
+```
 
+Directly impacted System/module-runtime tests:
+
+```text
 php artisan test \
   tests/Feature/System/ModuleCatalogRegistryTest.php \
   tests/Feature/System/ModuleStateResolverTest.php \
   tests/Feature/System/ModuleGraphValidatorTest.php \
   tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
-
-git diff --check
-git status
+Tests: 13 passed (52 assertions)
+Duration: 0.86s
 ```
 
-If Pint changes tracked files, review and commit those changes before the MR-2 PR. No full-project suite is required by default unless verification reveals a shared-runtime impact.
+The MR-1 bootstrap assertion for `tables=[]` was intentionally advanced in MR-2 to assert the five canonical Attendance-owned tables.
+
+No full-project regression was run because MR-2 is scoped to Attendance persistence plus existing module-runtime contracts.
 
 ## Manual acceptance
 
@@ -93,4 +103,6 @@ MR-2 has no business UI; no Admin/PWA manual UI acceptance is required for this 
 
 ## Next gate
 
-Do not start MR-3 Attendance domain-core implementation until MR-2 verification passes, MR-2 is reviewed/merged, and the next phase is explicitly authorized.
+MR-2 is ready for pull-request review and merge.
+
+Do not start MR-3 Attendance domain-core implementation until MR-2 is merged and the next phase is explicitly authorized.
