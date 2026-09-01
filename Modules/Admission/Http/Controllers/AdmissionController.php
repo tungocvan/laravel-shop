@@ -17,8 +17,7 @@ class AdmissionController extends Controller
 {
     public function __construct(
         protected AdmissionService $admissionService,
-    ) {
-    }
+    ) {}
 
     public function index()
     {
@@ -83,12 +82,12 @@ class AdmissionController extends Controller
 
             return response()->download(
                 $result['pdf_path'],
-                $result['download_name'] . '.pdf',
+                $result['download_name'].'.pdf',
             );
         } catch (Throwable $e) {
             report($e);
 
-            return back()->with('error', 'Lỗi khi xuất PDF: ' . $e->getMessage());
+            return back()->with('error', 'Lỗi khi xuất PDF: '.$e->getMessage());
         }
     }
 
@@ -99,12 +98,12 @@ class AdmissionController extends Controller
 
             return response()->download(
                 $result['word_path'],
-                $result['download_name'] . '.docx',
+                $result['download_name'].'.docx',
             );
         } catch (Throwable $e) {
             report($e);
 
-            return back()->with('error', 'Lỗi khi xuất Word: ' . $e->getMessage());
+            return back()->with('error', 'Lỗi khi xuất Word: '.$e->getMessage());
         }
     }
 
@@ -189,7 +188,7 @@ class AdmissionController extends Controller
             abort(404, 'File không tồn tại');
         }
 
-        return response()->download(storage_path('app/' . $path));
+        return response()->download(storage_path('app/'.$path));
     }
 
     public function receipt($id, AdmissionService $service)

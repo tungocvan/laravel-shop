@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Admission\Models;
 
 use Illuminate\Database\Eloquent\Model;

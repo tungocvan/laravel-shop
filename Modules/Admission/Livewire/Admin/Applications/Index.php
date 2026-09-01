@@ -15,13 +15,21 @@ class Index extends Component
     private const PER_PAGE_OPTIONS = [5, 10, 20, 50];
 
     public $search = '';
+
     public $filterStatus = '';
+
     public $filterClass = '';
+
     public $perPage = 10;
+
     public $selected = [];
+
     public $selectAll = false;
+
     public bool $generateDocx = true;
+
     public bool $generatePdf = false;
+
     public ?string $documentBatchId = null;
 
     protected $queryString = [
@@ -60,6 +68,7 @@ class Index extends Component
     {
         if (! $this->adminCan('delete_admission') && ! $this->adminCan('download_admission_documents')) {
             $this->resetSelection();
+
             return;
         }
 
@@ -141,6 +150,7 @@ class Index extends Component
 
         if ($this->filterStatus !== 'approved') {
             $this->addError('documents', 'Hãy chọn trạng thái Đã duyệt trước khi tạo file hàng loạt.');
+
             return;
         }
 
@@ -182,6 +192,7 @@ class Index extends Component
 
         if (! $this->generateDocx && ! $this->generatePdf) {
             $this->addError('documents', 'Chọn ít nhất một định dạng: DOCX hoặc PDF.');
+
             return false;
         }
 

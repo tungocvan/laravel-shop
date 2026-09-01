@@ -16,6 +16,7 @@ class GenerateAdmissionPdfJob implements ShouldQueue
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 180;
+
     public $tries = 3;
 
     public function __construct(
@@ -36,6 +37,7 @@ class GenerateAdmissionPdfJob implements ShouldQueue
 
         if (! $app) {
             \Log::warning('Admission document job skipped: application not found.', ['id' => $this->id]);
+
             return;
         }
 
@@ -44,6 +46,7 @@ class GenerateAdmissionPdfJob implements ShouldQueue
                 'id' => $this->id,
                 'status' => $app->status,
             ]);
+
             return;
         }
 

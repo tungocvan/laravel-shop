@@ -13,8 +13,7 @@ class AdmissionRegistrationService
     public function __construct(
         private readonly AdmissionService $admissionService,
         private readonly SchoolSettingService $schoolSettingService,
-    ) {
-    }
+    ) {}
 
     public function options(): array
     {

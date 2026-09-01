@@ -12,8 +12,7 @@ class AdmissionDocumentService
     public function __construct(
         private readonly AdmissionService $admissionService,
         private readonly DocumentConverterService $converter,
-    ) {
-    }
+    ) {}
 
     public function generate(
         int|AdmissionApplication $application,
@@ -29,19 +28,19 @@ class AdmissionDocumentService
             : AdmissionApplication::findOrFail($application);
 
         $data = $this->admissionService->getDataForTemplate($application->id);
-        $name = 'Don_' . $application->id . '_' . Str::slug($data['HoVaTenHocSinh'] ?? 'unknown', '_');
+        $name = 'Don_'.$application->id.'_'.Str::slug($data['HoVaTenHocSinh'] ?? 'unknown', '_');
 
         $relativeDir = 'admission/';
-        $fullDir = storage_path('app/' . $relativeDir);
+        $fullDir = storage_path('app/'.$relativeDir);
 
         if (! is_dir($fullDir) && ! mkdir($fullDir, 0775, true) && ! is_dir($fullDir)) {
             throw new RuntimeException('Không thể tạo thư mục tài liệu tuyển sinh.');
         }
 
-        $wordRelative = $relativeDir . $name . '.docx';
-        $pdfRelative = $relativeDir . $name . '.pdf';
-        $wordFull = $fullDir . $name . '.docx';
-        $pdfFull = $fullDir . $name . '.pdf';
+        $wordRelative = $relativeDir.$name.'.docx';
+        $pdfRelative = $relativeDir.$name.'.pdf';
+        $wordFull = $fullDir.$name.'.docx';
+        $pdfFull = $fullDir.$name.'.pdf';
         $wordExistedBefore = file_exists($wordFull);
 
         if (($generateDocx || $generatePdf) && ! $wordExistedBefore) {

@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Admission\database\seeders;
 
 use Illuminate\Database\Seeder;
@@ -6,12 +7,13 @@ use Modules\Admission\Models\AdmissionLocation;
 
 class AdmissionLocationSeeder extends Seeder
 {
-// Chạy lệnh: php artisan db:seed --class="Modules\Admission\database\seeders\AdmissionLocationSeeder"    
-public function run()
+    // Chạy lệnh: php artisan db:seed --class="Modules\Admission\database\seeders\AdmissionLocationSeeder"
+    public function run()
     {
         $filePath = base_path('storage/app/import/admission/dvhc.csv'); // Đường dẫn tới file CSV của bạn
         if (! file_exists($filePath)) {
             $this->command?->warn("Bỏ qua Admission locations vì thiếu file: {$filePath}");
+
             return;
         }
 
@@ -26,16 +28,16 @@ public function run()
                 continue;
             }
 
-            // Mapping theo cấu trúc file: 
-            // Cột 2 (index 1): Mã tỉnh, Cột 3 (index 2): Tên tỉnh, 
+            // Mapping theo cấu trúc file:
+            // Cột 2 (index 1): Mã tỉnh, Cột 3 (index 2): Tên tỉnh,
             // Cột 6 (index 5): Mã phường, Cột 7 (index 6): Tên phường
             $data[] = [
                 'province_code' => $row[1],
                 'province_name' => $row[2],
-                'ward_code'     => $row[5],
-                'ward_name'     => $row[6],
-                'created_at'    => now(),
-                'updated_at'    => now(),
+                'ward_code' => $row[5],
+                'ward_name' => $row[6],
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
 
             if (count($data) >= $batchSize) {

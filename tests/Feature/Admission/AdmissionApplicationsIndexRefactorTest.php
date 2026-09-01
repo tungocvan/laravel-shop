@@ -12,7 +12,7 @@ class AdmissionApplicationsIndexRefactorTest extends TestCase
 {
     public function test_review_metadata_is_mass_assignable_and_timestamp_casted(): void
     {
-        $model = new AdmissionApplication();
+        $model = new AdmissionApplication;
 
         foreach (['approved_at', 'approved_by', 'rejected_at', 'rejected_by'] as $field) {
             $this->assertContains($field, $model->getFillable());

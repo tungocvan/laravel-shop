@@ -17,14 +17,18 @@ use Modules\Admission\Models\AdmissionImportRun;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Throwable;
 
-class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
+class ApplicationsImport implements SkipsEmptyRows, ToCollection, WithHeadingRow
 {
     private const RESTORABLE_STATUSES = ['pending', 'approved', 'rejected', 'import'];
 
     private int $totalRows = 0;
+
     private int $successRows = 0;
+
     private int $failedRows = 0;
+
     private int $createdRows = 0;
+
     private int $updatedRows = 0;
 
     private DataTransformer $transformer;
@@ -92,7 +96,7 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         $row['ma_dinh_danh'] = $maDinhDanh;
         $row['mhs'] = $mhs;
 
-        $model = new AdmissionApplication();
+        $model = new AdmissionApplication;
         $allowed = array_flip($model->getFillable());
         $data = array_intersect_key($row, $allowed);
 
@@ -259,11 +263,30 @@ class ApplicationsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         ]);
     }
 
-    public function totalRows(): int { return $this->totalRows; }
-    public function successRows(): int { return $this->successRows; }
-    public function failedRows(): int { return $this->failedRows; }
-    public function createdRows(): int { return $this->createdRows; }
-    public function updatedRows(): int { return $this->updatedRows; }
+    public function totalRows(): int
+    {
+        return $this->totalRows;
+    }
+
+    public function successRows(): int
+    {
+        return $this->successRows;
+    }
+
+    public function failedRows(): int
+    {
+        return $this->failedRows;
+    }
+
+    public function createdRows(): int
+    {
+        return $this->createdRows;
+    }
+
+    public function updatedRows(): int
+    {
+        return $this->updatedRows;
+    }
 }
 
 class AdmissionImportRowException extends \RuntimeException

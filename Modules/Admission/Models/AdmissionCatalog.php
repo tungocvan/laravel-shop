@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Admission\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -6,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class AdmissionCatalog extends Model
 {
     protected $table = 'admission_catalogs';
+
     protected $fillable = ['type', 'code', 'value', 'sort_order', 'is_active'];
 
     // Helper lấy nhanh danh mục theo loại
