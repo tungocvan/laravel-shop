@@ -13,6 +13,7 @@ class AttendanceLocation extends Model
     protected $fillable = [
         'name',
         'code',
+        'address',
         'latitude',
         'longitude',
         'radius_meters',
