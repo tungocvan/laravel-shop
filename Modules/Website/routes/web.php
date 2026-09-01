@@ -21,13 +21,11 @@ use Modules\Website\Http\Controllers\ProductController;
 use Modules\Website\Http\Controllers\SitemapController;
 use Modules\Website\Http\Controllers\WebsiteController;
 
-$websitePrefix = config('website.route_prefix', 'website');
-
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/website-manifest.webmanifest', [WebsiteController::class, 'manifest'])->name('website.manifest');
 Route::get('/website-pwa-version.json', [WebsiteController::class, 'pwaVersion'])->name('website.pwa.version');
 
-Route::middleware('web')->group(function () use ($websitePrefix) {
+Route::middleware('web')->group(function () {
     Route::controller(AuthController::class)->group(function () {
         Route::get('/login', 'login')->name('login');
         Route::get('/register', 'register')->name('register');

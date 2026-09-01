@@ -5,9 +5,9 @@ namespace Modules\Website\Livewire\Admin\Affiliate;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Order\Models\AffiliateLevel;
+use Modules\Order\Services\AdminAffiliateService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
-use Modules\Website\Models\AffiliateLevel;
-use Modules\Website\Services\AdminAffiliateService;
 
 class CommissionList extends Component
 {

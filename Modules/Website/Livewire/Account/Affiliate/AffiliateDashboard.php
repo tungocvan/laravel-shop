@@ -2,25 +2,25 @@
 
 namespace Modules\Website\Livewire\Account\Affiliate;
 
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Livewire\Attributes\Url; // Để lưu filter lên URL
-use Illuminate\Support\Facades\Auth;
-use Modules\Website\Services\AffiliateService;
+use Modules\Order\Services\AffiliateService;
 
 class AffiliateDashboard extends Component
 {
     use WithPagination;
 
     public $referralCode;
+
     public $referralLink;
 
-    // Filter
     #[Url]
     public $statusFilter = 'all';
 
-    // Modal State
     public $isModalOpen = false;
+
     public $selectedOrder = null;
 
     public function mount()
@@ -30,13 +30,11 @@ class AffiliateDashboard extends Component
         $this->referralLink = route('home', ['ref' => $this->referralCode]);
     }
 
-    // Reset phân trang khi đổi filter
     public function updatedStatusFilter()
     {
         $this->resetPage();
     }
 
-    // Mở Modal
     public function openOrderModal($orderId, AffiliateService $service)
     {
         try {
@@ -47,7 +45,6 @@ class AffiliateDashboard extends Component
         }
     }
 
-    // Đóng Modal
     public function closeModal()
     {
         $this->isModalOpen = false;
@@ -58,13 +55,11 @@ class AffiliateDashboard extends Component
     {
         $userId = Auth::id();
         $stats = $service->getStats($userId);
-
-        // Truyền filter vào service
         $commissions = $service->getCommissionHistory($userId, $this->statusFilter);
 
         return view('Website::livewire.account.affiliate.affiliate-dashboard', [
             'stats' => $stats,
-            'commissions' => $commissions
+            'commissions' => $commissions,
         ]);
     }
 }

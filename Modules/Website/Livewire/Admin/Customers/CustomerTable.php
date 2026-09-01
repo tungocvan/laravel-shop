@@ -12,6 +12,8 @@ class CustomerTable extends Component
 {
     use AuthorizesAdminPermissions, WithPagination;
 
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
     public $search = '';
 
     public $perPage = 10;
@@ -30,6 +32,13 @@ class CustomerTable extends Component
 
     public function updatedFilterStatus()
     {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedPerPage($value)
+    {
+        $this->perPage = in_array((int) $value, self::PER_PAGE_OPTIONS, true) ? (int) $value : 10;
         $this->resetPage();
         $this->resetSelection();
     }
@@ -86,7 +95,8 @@ class CustomerTable extends Component
 
     public function render()
     {
-        $users = $this->getQuery()->paginate($this->perPage === 'all' ? 9999 : $this->perPage);
+        $perPage = in_array((int) $this->perPage, self::PER_PAGE_OPTIONS, true) ? (int) $this->perPage : 10;
+        $users = $this->getQuery()->paginate($perPage);
 
         return view('Website::livewire.admin.customers.customer-table', [
             'users' => $users,
