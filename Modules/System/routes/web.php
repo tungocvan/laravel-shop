@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\System\Http\Controllers\DatabaseController;
 use Modules\System\Http\Controllers\EnvConfigController;
 use Modules\System\Http\Controllers\GoogleDriveOAuthController;
+use Modules\System\Http\Controllers\LoginThemeAssetController;
 use Modules\System\Http\Controllers\SettingController;
 use Modules\System\Http\Controllers\SystemController;
 use Modules\System\Http\Controllers\SystemDashboardController;
@@ -32,6 +33,15 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         Route::get('/settings', [SettingController::class, 'index'])
             ->middleware('permission:system.settings.view,admin')
             ->name('settings.index');
+        Route::get('/settings/login-theme', [SettingController::class, 'loginTheme'])
+            ->middleware('permission:system.settings.view,admin')
+            ->name('settings.login-theme');
+        Route::post('/settings/login-theme/assets/{type}', [LoginThemeAssetController::class, 'store'])
+            ->middleware('permission:system.settings.update,admin')
+            ->name('settings.login-theme.assets.store');
+        Route::delete('/settings/login-theme/assets/{type}', [LoginThemeAssetController::class, 'destroy'])
+            ->middleware('permission:system.settings.update,admin')
+            ->name('settings.login-theme.assets.destroy');
         Route::get('/settings/env', [EnvConfigController::class, 'index'])
             ->middleware('permission:system.env.view,admin')
             ->name('settings.env');

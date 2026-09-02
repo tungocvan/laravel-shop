@@ -11,6 +11,11 @@ class SettingController extends Controller
         return view('System::pages.settings.index');
     }
 
+    public function loginTheme()
+    {
+        return view('System::pages.settings.login-theme');
+    }
+
     public function profile()
     {
         return view('System::pages.settings.profile');

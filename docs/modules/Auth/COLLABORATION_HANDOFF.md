@@ -2,86 +2,104 @@
 
 ## Current objective
 
-Follow-up feature after the merged Auth architecture/security refactor: **Auth Login Theme & Branding Manager V1**.
+**Login Theme Manager UI V1.1** — UI/UX refinement of the already merged Auth Login Theme & Branding Manager V1.
 
 Current branch:
 
-`feat/auth-login-theme-branding-manager`
+`refactor/auth-login-theme-admin-ui-v1-1`
 
-The previous Auth architecture/security MR was merged after `188 passed (1075 assertions)`, route verification, Vite build PASS and UI PASS.
+V1 was merged after focused regression, production build, Pint and user UI acceptance.
 
-## Approved scope
+## V1.1 approved scope
 
-The approved follow-up keeps authentication security behavior unchanged while adding configurable presentation for login surfaces.
+Refine the System administration experience for login presentation settings while preserving Auth ownership and security boundaries:
 
-V1 scope:
-
-- System settings manages login appearance configuration;
-- Auth owns presentation semantics and rendering through a canonical presentation service;
-- four presets: `classic-card`, `split-brand`, `hero-overlay`, `minimal`;
-- independent Admin and Client/PWA settings;
-- configurable login logo, background image, title lines, description, primary color, overlay opacity, Google-button visibility and footer text;
-- live preview in System settings;
-- presentation engine designed for `/admin/login` and reusable by `/login`;
-- normalize the legacy logo contract so the Auth view consumes a resolved URL instead of treating it as a storage-relative path;
-- no changes to guards, credentials, authorization, OAuth identity resolution, callback policy or session security.
+- align controls with `.codex/standards/ADMIN_UI_STANDARD.md`;
+- use a professional two-region configuration + Live Preview workspace;
+- support Desktop / Mobile preview modes;
+- improve theme, branding, color, overlay and Google visibility controls;
+- isolate image upload from Livewire's file-upload lifecycle;
+- preserve existing settings keys, Auth presentation contract and authentication/security behavior.
 
 ## Ownership boundary
 
-Auth owns:
+Unchanged from V1:
 
-- `LoginPresentationService`;
-- supported login theme vocabulary;
-- presentation normalization/defaults;
-- login rendering contract.
+- Auth owns `LoginPresentationService`, supported theme vocabulary, presentation normalization/defaults and login rendering contract.
+- System owns the administration UI, generic settings persistence/permission enforcement and managed login-branding asset lifecycle.
 
-System owns:
+V1.1 does not move ownership between modules.
 
-- the administration UI for configuration;
-- generic settings persistence and permission enforcement;
-- managed upload lifecycle for login branding assets.
+## Delivered implementation
 
-The System settings UI consumes Auth's presentation contract but does not own authentication behavior.
+System now exposes Login Theme as a dedicated top-level settings workspace rather than a nested dynamic Livewire settings tab. The workspace provides:
 
-## Implementation status
+- professional sections: Mẫu giao diện, Nội dung thương hiệu, Màu sắc & hiệu ứng, Hình ảnh, Tùy chọn đăng nhập;
+- Admin / Client-PWA target selector;
+- four theme cards with selected state;
+- canonical Admin text controls, color + HEX input and overlay slider;
+- sticky save action;
+- larger sticky Live Preview with Desktop / Mobile modes;
+- responsive single-column fallback;
+- robust missing/broken image fallback.
 
-Implemented on the branch:
+### Image upload corrective architecture
 
-- `Modules/Auth/Services/LoginPresentationService.php` as canonical presentation normalization boundary;
-- independent Admin and Client/PWA presentation keys;
-- System `Giao diện đăng nhập` settings tab;
-- four theme choices with live preview;
-- editable title lines, description, primary color, overlay opacity, footer and Google-button visibility;
-- dedicated login logo/background uploads with replacement cleanup limited to `login-branding/` managed paths;
-- default Auth login view rendered from presentation config;
-- guard-aware Google route selection in the shared default login view;
-- existing Admission/site branding retained as fallback when dedicated login branding has not been configured;
-- focused presentation regression test added at `tests/Feature/Auth/LoginThemePresentationTest.php`;
-- `docs/modules/Auth/MODULE.md` updated with presentation ownership and security invariants.
+During V1.1 UI verification, Livewire file selection could blank the administration UI, including the cancel-file-picker path. The image lifecycle was therefore isolated from Livewire:
 
-## Safety notes
+- `LoginTheme` no longer uses `WithFileUploads` for logo/background assets;
+- logo/background uploads use standard Laravel multipart HTTP POST endpoints;
+- asset removal uses the dedicated HTTP asset endpoint;
+- upload validation, `system.settings.update` authorization, settings persistence and managed old-file deletion remain enforced by System;
+- newly stored files are cleaned up if persistence fails;
+- the native file picker is launched outside the Livewire-managed DOM so both file selection and Cancel leave the Livewire workspace stable;
+- the previous hard-coded `/storage/img/logo.png` fallback was removed so an unavailable fallback asset does not generate a broken 403 image request.
 
-- Theme settings are presentation-only and must not mutate auth policy.
-- Uploaded replacement assets are written first; old managed assets are removed only after settings persistence succeeds.
-- On persistence failure, newly uploaded files are removed.
-- Asset deletion is restricted to paths under `login-branding/`; fallback/global site assets are never deleted by the login-theme manager.
-- Invalid theme/color/opacity values are normalized to safe presentation defaults at read time.
+This correction changes only presentation/settings asset transport. It does not change login credentials, guards, sessions, OAuth behavior or database schema.
 
-## Validation checkpoint
+## Safety / unchanged behavior
 
-User-executed checkpoint results:
+- No database/schema changes.
+- No settings-key changes.
+- No Auth guard, credential, authorization, OAuth, callback or session-security changes.
+- Auth remains the canonical login presentation owner.
+- System remains the canonical administration/settings owner.
+- Live Preview uses unsaved Livewire settings state and persists only through the explicit save action.
 
-- Auth/System impacted regression: `188 passed (1075 assertions)` in `12.74s`;
-- Vite production build: PASS, `34 modules transformed`, completed in `3.99s`;
-- initial Pint checkpoint found two formatting-only issues in `LoginForm.php` and `LoginTheme.php`;
-- those Pint issues were corrected on the branch with formatting-only commits;
-- UI smoke for Login Theme & Branding Manager V1: **PASS**.
+## Final validation checkpoint
 
-The user confirmed the configurable login UI works after the implementation and formatting correction.
+User UI acceptance: **PASS**.
 
-## Deferred / unchanged boundaries
+Verified UI flows include the Login Theme workspace, Admin / Client-PWA configuration, Desktop / Mobile preview, image selection/upload, and cancelling the native image picker without leaving the UI blank.
 
-From the earlier Auth refactor, the following remain unchanged:
+Focused Auth regression:
+
+```text
+PASS  Tests\Feature\Auth\LoginThemePresentationTest
+3 passed (17 assertions)
+```
+
+Route inspection:
+
+```text
+GET|HEAD  admin/system/settings/login-theme
+POST      admin/system/settings/login-theme/assets/{type}
+DELETE    admin/system/settings/login-theme/assets/{type}
+```
+
+Vite production build:
+
+```text
+PASS — 34 modules transformed
+```
+
+### Pint status
+
+The repository-wide command `vendor/bin/pint --test` reports **435 pre-existing style issues across 1658 files**. The failures span many unrelated modules and legacy application/test files, so repository-wide Pint is not a valid V1.1 acceptance gate and must not be auto-fixed as part of this focused Auth/System change.
+
+No repository-wide formatting cleanup is included in V1.1.
+
+## Deferred / unchanged Auth refactor boundaries
 
 - `GoogleWebAuthService`: deprecated compatibility adapter / `QUARANTINE`;
 - API Auth stub: `QUARANTINE`;
@@ -90,14 +108,12 @@ From the earlier Auth refactor, the following remain unchanged:
 
 ## Current status
 
-- Previous Auth security refactor: MERGED.
-- Follow-up branch creation: COMPLETE.
-- Presentation contract: COMPLETE.
-- System settings manager: COMPLETE.
-- Four-theme live preview: COMPLETE.
-- Auth login rendering integration: COMPLETE.
-- Focused regression coverage: PASS (`188 passed`, `1075 assertions`).
-- Vite production build: PASS.
-- Pint formatting issues: FIXED; final re-run should be confirmed before PR if desired.
-- UI smoke checkpoint: PASS.
-- Follow-up MR readiness: READY FOR FINAL PR REVIEW after final Pint confirmation.
+- V1: **MERGED**.
+- V1.1 implementation: **COMPLETE**.
+- V1.1 UI smoke: **PASS**.
+- Focused Auth test: **PASS — 3 tests, 17 assertions**.
+- Login Theme route contract: **PASS — 3 routes**.
+- Production asset build: **PASS**.
+- Repository-wide Pint: **BLOCKED BY PRE-EXISTING REPOSITORY STYLE DEBT — 435 issues**; no unrelated cleanup authorized.
+- Architecture/security scope: **PRESERVED**.
+- Next step: final branch diff/review and PR preparation; do not merge automatically.
