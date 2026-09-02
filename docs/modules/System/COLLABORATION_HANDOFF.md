@@ -1,152 +1,150 @@
 # System Collaboration Handoff
 
-## Current Status
+## Current Status — Architecture Boundaries Refactor
 
 - Module: `System`
-- Feature: Module Catalog & Runtime Boundaries — Phase A
+- Mode: Refactor Module
+- Branch: `refactor/system-architecture-boundaries`
+- Architecture contract: `docs/modules/System/MODULE.md`
+- Status: **IMPLEMENTATION COMPLETE — READY FOR PR REVIEW**
+- UI smoke: **PASS** on 2026-09-02
+
+This refactor establishes the System ownership contract, removes Admin menu ownership from System settings, hardens Admin post-login landing behavior, and removes runtime dependence on Website for Admin/root fallback and ClientPortal PWA manifest delivery.
+
+## Delivered Scope
+
+- Added and finalized `docs/modules/System/MODULE.md` as the canonical System architecture contract.
+- Removed the `Quản lý Menu` tab and `admin.header.menu-manager` integration from `/admin/system/settings`; Admin remains the canonical menu owner.
+- Retained the `Đăng nhập & Điều hướng` settings tab.
+- Set the default Admin post-login landing to `admin.dashboard` (`/admin`).
+- Keep public root `/` optional: it is selectable only while a named parameterless GET root route is actually registered.
+- When the selected landing disappears, becomes invalid, or Website is disabled, Admin login falls back to `/admin`.
+- Added application-level root fallback so `/` redirects to `/admin` when no module owns the root route.
+- Hardened 404 rendering so disabling Website does not cause `No hint path defined for [Website]`.
+- Updated Auth admin-login entry to honor the configured System landing contract.
+- Removed ClientPortal's hard dependency on `website.manifest`; ClientPortal now owns `/my-apps/manifest.webmanifest` through `client.apps.manifest`.
+- Clarified that `Setting` + `SettingsService` are System's canonical runtime access boundary for `settings`, while physical migration/schema provenance remains unproven and must not be overclaimed.
+
+## Boundary Decisions
+
+| Concern | Decision |
+|---|---|
+| Global Admin menu | Admin owns it; System no longer embeds menu management |
+| Admin login landing | System owns the preference/validation service |
+| Default landing | `admin.dashboard` / `/admin` |
+| Public root `/` | Optional integration target; not owned by System |
+| Website dependency | Optional only; Admin login/root safety must not require Website |
+| `/login`, `/admin/login` | Canonical Auth-owned login routes |
+| ClientPortal PWA manifest | ClientPortal owns `client.apps.manifest`; no Website route dependency |
+| `settings` schema provenance | Runtime access owned by System; physical migration provenance deferred pending proof |
+
+## Verification Completed
+
+Historical System regression before the final corrective landing patches:
+
+```text
+System Feature regression    PASS — 184 tests, 1062 assertions
+```
+
+This result predates the final Website-off/Auth/ClientPortal corrective changes and is retained only as historical evidence.
+
+Focused corrective integration gate after runtime fixes:
+
+```text
+AdminLoginRedirectSettingTest      PASS
+AdminLandingBoundaryTest           PASS
+SystemSettingFormTest              PASS
+AuthGuardSeparationTest            PASS
+ClientPortalPwaBoundaryTest        PASS
+
+17 passed, 1 skipped, 102 assertions
+```
+
+The single skip is expected when Website is disabled and the optional root `home` route is not registered.
+
+Additional cross-module regression completed before the final formatter/test-only corrections:
+
+```text
+AuthGuardSeparationTest + ClientPortalPwaBoundaryTest
+PASS — 7 tests, 47 assertions
+```
+
+Route inspection completed:
+
+```text
+/admin/system/*                    PASS — 12 routes present
+/my-apps/*                         PASS — 10 routes present
+client.apps.manifest               PASS — /my-apps/manifest.webmanifest
+```
+
+Frontend production build completed:
+
+```text
+Vite 7.3.6                         PASS — 34 modules transformed, 3.47s
+```
+
+Final formatter gate on the corrective slice: **PASS**.
+
+Final System Feature regression after all runtime, formatter and test-contract corrections:
+
+```text
+System Feature regression          PASS — 187 passed, 1 skipped, 1072 assertions
+Duration                           10.13s
+```
+
+Final Git worktree: **CLEAN** and branch up to date with `origin/refactor/system-architecture-boundaries`.
+
+Manual UI smoke with Website OFF: **PASS**.
+
+Verified behavior:
+
+- `/` safely falls back to `/admin` when Website/root is unavailable;
+- unauthenticated `/admin` proceeds to `/admin/login`;
+- Admin login defaults/falls back to `/admin`;
+- `/my-apps` renders without `website.manifest`;
+- `/my-apps/manifest.webmanifest` is ClientPortal-owned;
+- `/admin/system/settings` exposes `Đăng nhập & Điều hướng`;
+- `/admin/system/settings` no longer exposes `Quản lý Menu`;
+- no Website view-hint failure is required for the Admin/root fallback path.
+
+A full-project regression remains outside the approved scope.
+
+## Quarantine / Deferred Debt
+
+- `DatabaseService` remains quarantined until method-level caller proof and backup/restore regression support removal.
+- `LegacySettingsAuditService` / `LegacySettingsMigrationService` remain quarantined pending historical-data proof.
+- Overlapping settings/env service naming remains deferred until caller imports are completely mapped.
+- Dependency-topological module boot ordering remains deferred to root module runtime work.
+- Distributed locking for concurrent module transitions remains deferred.
+- Physical migration ownership/provenance of the `settings` table remains to be proven before schema cleanup.
+
+## PR Gate
+
+1. **COMPLETE** — architecture audit and ownership plan approved.
+2. **COMPLETE** — `MODULE.md` architecture contract established.
+3. **COMPLETE** — settings tab ownership cleanup implemented.
+4. **COMPLETE** — Admin-first login landing and optional root target implemented.
+5. **COMPLETE** — Website-off root/404/Auth corrective boundary implemented.
+6. **COMPLETE** — ClientPortal manifest ownership corrected.
+7. **COMPLETE** — focused corrective tests passed: 17 passed, 1 skipped, 102 assertions.
+8. **COMPLETE** — route inspection, frontend build and impacted Auth/ClientPortal regression passed.
+9. **COMPLETE** — manual UI smoke passed.
+10. **COMPLETE** — final Pint corrective-slice gate passed.
+11. **COMPLETE** — final System regression passed: 187 passed, 1 skipped, 1072 assertions.
+12. **COMPLETE** — final worktree clean and synchronized.
+13. **READY** — open PR to `main` for manual user review/merge.
+
+---
+
+## Previous Closeout — Module Catalog & Runtime Boundaries
+
 - Delivery branch: `refactor/system-module-catalog-runtime-boundaries`
 - Closeout branch: `docs/system-module-catalog-runtime-boundaries-closeout`
-- Base/source checkpoint: `main@62eb2e76126f92842a906ffb58fa0deb076c26d5`
 - Main merge checkpoint: `f2dd9ca6565d12b2931b9aa0a844742e0fec23b4`
-- Implementation status: **COMPLETE — MERGED TO MAIN**
-- Pull request: [#82 — refactor(system): separate module runtime boundaries](https://github.com/tungocvan/laravel-shop/pull/82) — **MERGED**
-- Merged at: **2026-08-29 09:35:51 UTC**
+- Pull request: #82 — merged
 
-This phase separates filesystem catalog discovery, graph validation and current-request registry projection without changing the established `config('modules.registry')` consumer contract. Module runtime state remains an atomic file-backed override, manifests remain immutable at runtime, and the root provider keeps its existing registration behavior and boot order. The user manually merged PR #82 after every approved gate passed; this closeout changes documentation only.
+That phase separated filesystem catalog discovery, graph validation and current-request registry projection while preserving the existing `config('modules.registry')` consumer contract. It also retired browser-driven module source archival and kept runtime module state file-backed and atomic.
 
-## Approved Scope
+### Corrective Closeout — Account Migration Recovery
 
-- introduce one read-only `ModuleCatalog` for filesystem discovery, manifest normalization and runtime-state resolution;
-- introduce one pure `ModuleGraphValidator` for boot and runtime transition rules;
-- introduce `ModuleRegistry` as the compatible current-request projection boundary;
-- reduce the root `ModuleServiceProvider` to catalog/validation/projection orchestration plus enabled-module registration;
-- make `ModulePermissionManager` consume canonical catalog descriptors instead of independently scanning module directories;
-- make System module control preflight against a fresh catalog and publish through `ModuleRegistry` after persistence;
-- extract module overview rows and realtime mutation into dedicated System services;
-- retire browser-driven module source archival and its `Gỡ` action;
-- migrate directly affected Request, Ebook, System and module-runtime tests from private provider discovery/graph methods to public contracts.
-
-## Runtime Ownership Contract
-
-| Concern | Canonical owner | Contract |
-|---|---|---|
-| Filesystem discovery and manifest normalization | `App\Modules\ModuleCatalog` | Read-only descriptors; directory name remains the canonical module name |
-| Runtime enabled-state resolution | `ModuleCatalog` + `ModuleStateResolver` | Runtime override wins over manifest default; shell modules remain enabled |
-| Dependency rules | `App\Modules\ModuleGraphValidator` | Required, missing, disabled, self and circular dependency rules share one implementation |
-| Current-request registry | `App\Modules\ModuleRegistry` | Publishes the existing seven-field `config('modules.registry')` shape |
-| Boot registration | `Modules\ModuleServiceProvider` | Registers only enabled modules in the existing type/name order |
-| Runtime mutation | `Modules\System\Services\SystemModuleControlService` | Fresh preflight, migration/permission sync, atomic state persistence, then registry refresh |
-| System module overview | `SystemModuleOverviewService` | Builds dependency and database-health rows for the existing Livewire screen |
-| Realtime mutation | `SystemRealtimeControlService` | No longer coupled to module lifecycle control |
-
-## Preserved Boundaries
-
-- no migration, schema, setting-key, permission-name or stored-data change;
-- no module manifest mutation;
-- no change to `storage/app/system/module-state.json` schema or locking behavior;
-- no change to the public registry keys: `name`, `type`, `enabled`, `required`, `depends`, `path`, `source`;
-- no change to module type fallback, required-shell behavior, existing type/name boot order, provider/config/route/resource registration or Super Admin gate;
-- no route-name or URL change for `/admin/system/modules` and the historical settings component alias;
-- no package addition.
-
-## Retired Boundary
-
-The browser no longer moves `Modules/<Module>` into `storage/app/module-trash`. The Livewire `deleteModule` action, the control/lifecycle `archive` methods and the `Gỡ` button were removed. Adding or removing tracked module source must use a reviewed deployment workflow rather than a browser permission that dirties the production Git worktree.
-
-## Files
-
-### Added
-
-```text
-app/Modules/ModuleCatalog.php
-app/Modules/ModuleGraphValidator.php
-app/Modules/ModuleRegistry.php
-Modules/System/Services/SystemModuleOverviewService.php
-Modules/System/Services/SystemRealtimeControlService.php
-tests/Feature/System/ModuleCatalogRegistryTest.php
-tests/Feature/System/ModuleGraphValidatorTest.php
-```
-
-### Updated
-
-```text
-Modules/ModuleServiceProvider.php
-app/Modules/ModuleLifecycleManager.php
-app/Modules/ModulePermissionManager.php
-Modules/System/Livewire/Settings/ModulesForm.php
-Modules/System/Services/SystemModuleControlService.php
-Modules/System/resources/views/livewire/settings/modules-form.blade.php
-tests/Feature/Ebook/EbookBootstrapTest.php
-tests/Feature/Modules/ModuleRuntimeStateToggleTest.php
-tests/Feature/Request/Architecture/RequestBootstrapTest.php
-tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
-tests/Feature/System/SystemModuleRuntimeControlTest.php
-tests/Feature/System/SystemModuleRuntimeGitCleanTest.php
-tests/Feature/System/SystemModuleRuntimeLifecycleTest.php
-tests/Feature/System/SystemModuleRuntimeUiTest.php
-tests/Feature/System/SystemModulesControlTest.php
-```
-
-## Verification Gate
-
-Completed locally:
-
-```text
-PHP syntax parse for changed/new PHP files    PASS
-Pint 1.30.5 changed/new PHP files             PASS
-git diff --check                              PASS
-```
-
-Operator verification completed:
-
-```text
-Focused catalog/graph/registry/state/control   PASS (46 tests, 208 assertions)
-System Feature regression                      PASS (178 tests, 1030 assertions)
-Role Feature regression                        PASS (10 tests, 27 assertions)
-Request architecture/auth/module state         PASS (44 tests, 5316 assertions)
-Ebook bootstrap + Admission permission         PASS (24 tests, 102 assertions)
-ClientApps registry consumers                  PASS (29 tests, 222 assertions)
-Admin Feature regression                       PASS (133 tests, 1265 assertions)
-System module route inspection                 PASS
-Frontend production build                      PASS (Vite 7.3.6, 34 modules, 3.69s)
-Desktop/mobile System Modules UI               PASS
-Realtime and module toggle round-trip          PASS
-Manifest and Git worktree after toggle         PASS (clean)
-```
-
-A full-project regression is outside the approved gate.
-
-## Deferred Work
-
-- Dependency-topological boot ordering. Phase A intentionally preserves the established type/name order across all modules.
-- Splitting the existing module screen into separate Livewire child components. This is a Phase B decision after Phase A stabilizes.
-- Cross-module/distributed locking for concurrent dependency transitions.
-- Consolidating other permission-domain filesystem scans that are not part of root module discovery.
-- Scheduler idempotency, distributed locks and persisted health heartbeat improvements.
-
-## PR and Merge Gate
-
-1. **COMPLETE** — Scope approved and branch created from `main@62eb2e76126f92842a906ffb58fa0deb076c26d5`.
-2. **COMPLETE** — Catalog, validator, registry, System adapters, archive retirement and directly affected tests implemented.
-3. **COMPLETE** — Local syntax, Pint and whitespace gates passed.
-4. **COMPLETE** — Operator ran the approved focused/regression/build/UI gates; all passed.
-5. **COMPLETE** — PR [#82](https://github.com/tungocvan/laravel-shop/pull/82) was opened for manual user review.
-6. **COMPLETE** — User manually merged PR #82; main checkpoint `f2dd9ca6565d12b2931b9aa0a844742e0fec23b4` was verified.
-7. This docs-only closeout records the final merged state; no source behavior is changed.
-
-## Corrective Closeout — Account Migration Recovery
-
-After Phase A was merged, enabling `Account` exposed an existing schema/migration-ledger mismatch. All five Account schema artifacts already existed, while the corresponding migration ledger rows were absent. The lifecycle safety gate correctly blocked migration replay until ownership could be verified.
-
-- Corrective implementation: `fix/account-migration-recovery-ownership`
-- Corrective PR: [#84 — fix(account): add safe migration recovery ownership](https://github.com/tungocvan/laravel-shop/pull/84) — **MERGED into the refactor branch**
-- Main transfer branch: `fix/account-migration-recovery-main`
-- Ownership coverage: `users.account_type`, `employee_profiles`, `customer_profiles`, `user_metas`, `user_identity_profiles`
-- Recovery apply: **PASS** — exactly five verified migration ledger records restored; migrations were not replayed
-- Post-recovery dry-run: **READY**
-- Account runtime toggle: **PASS** — module enabled successfully
-- Permission synchronization: **PASS** — 4 permissions
-- `AccountMigrationRecoveryContractTest`: **PASS** — 2 tests, 6 assertions
-- Ownership verifier + recovery assessor: **PASS** — 9 tests, 22 assertions
-
-Safety invariant: never manually insert Account migration ledger rows. Recovery remains ownership-verified and operator-confirmed through `module:migration-recover`.
+After that phase, enabling `Account` exposed an existing schema/migration-ledger mismatch. Recovery was handled through ownership-verified `module:migration-recover`, restoring exactly five verified migration ledger records without replaying migrations. The Account runtime toggle and permission synchronization subsequently passed. Manual ledger insertion remains prohibited.

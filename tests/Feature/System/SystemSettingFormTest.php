@@ -7,20 +7,21 @@ use Tests\TestCase;
 
 class SystemSettingFormTest extends TestCase
 {
-    public function test_setting_form_uses_fixed_tab_component_contract(): void
+    public function test_setting_form_uses_fixed_system_owned_tab_component_contract(): void
     {
-        $component = new SettingForm();
+        $component = new SettingForm;
 
         $expected = [
             'theme' => 'admin.theme-switcher',
             'general' => 'system.settings.partials.general',
-            'menu' => 'admin.header.menu-manager',
+            'login_redirect' => 'system.settings.partials.login-redirect',
             'images' => 'system.settings.partials.images',
             'seo' => 'system.settings.partials.seo',
             'custom' => 'system.settings.partials.custom',
         ];
 
         $this->assertSame('theme', $component->activeTab);
+        $this->assertArrayNotHasKey('menu', $component->tabs);
 
         foreach ($expected as $tab => $alias) {
             $component->setTab($tab);
@@ -29,13 +30,16 @@ class SystemSettingFormTest extends TestCase
         }
     }
 
-    public function test_invalid_tab_falls_back_to_theme_instead_of_arbitrary_component(): void
+    public function test_invalid_or_retired_menu_tab_falls_back_to_theme(): void
     {
-        $component = new SettingForm();
-        $component->setTab('evil.component');
+        $component = new SettingForm;
 
-        $this->assertSame('theme', $component->activeTab);
-        $this->assertSame('admin.theme-switcher', $component->getTabComponent());
+        foreach (['menu', 'evil.component'] as $tab) {
+            $component->setTab($tab);
+
+            $this->assertSame('theme', $component->activeTab);
+            $this->assertSame('admin.theme-switcher', $component->getTabComponent());
+        }
     }
 
     public function test_setting_form_view_has_no_external_editor_dependencies_and_exposes_tab_semantics(): void
@@ -51,7 +55,8 @@ class SystemSettingFormTest extends TestCase
         $this->assertStringContainsString('role="tabpanel"', $view);
         $this->assertStringContainsString('wire:key="tab-{{ $activeTab }}"', $view);
         $this->assertStringContainsString('admin.theme-switcher', $source);
-        $this->assertStringContainsString('admin.header.menu-manager', $source);
+        $this->assertStringContainsString('system.settings.partials.login-redirect', $source);
+        $this->assertStringNotContainsString('admin.header.menu-manager', $source);
         $this->assertStringNotContainsString('Setting::', $source);
         $this->assertStringNotContainsString('DB::', $source);
     }

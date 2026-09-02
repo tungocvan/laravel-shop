@@ -7,9 +7,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\View;
+use Modules\System\Services\AdminLoginRedirectService;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly AdminLoginRedirectService $adminLoginRedirect) {}
+
     public function clientLogin(): View|RedirectResponse
     {
         if (Auth::guard('web')->check()) {
@@ -26,7 +29,7 @@ class AuthController extends Controller
     public function adminLogin(): View|RedirectResponse
     {
         if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route($this->adminLoginRedirect->configuredRoute());
         }
 
         return view('Auth::pages.auth.login', [

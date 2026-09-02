@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="{{ $pwaGeneral['apple_title'] }}">
-    <link rel="manifest" href="{{ route('website.manifest') }}">
+    <link rel="manifest" href="{{ route('client.apps.manifest') }}">
     <link rel="icon" href="/pwa/icon.svg" type="image/svg+xml">
     <title>{{ $launcher['browser_title'] }}</title>
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])

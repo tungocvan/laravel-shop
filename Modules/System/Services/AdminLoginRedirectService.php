@@ -8,17 +8,18 @@ use Illuminate\Support\Facades\Route;
 class AdminLoginRedirectService
 {
     public const SETTING_KEY = 'admin_login_redirect_route';
+
     public const DEFAULT_ROUTE = 'admin.dashboard';
 
-    public function __construct(private readonly SettingsService $settings)
-    {
-    }
+    public const FALLBACK_ADMIN_ROUTE = 'admin.dashboard';
+
+    public function __construct(private readonly SettingsService $settings) {}
 
     public function configuredRoute(): string
     {
         $route = trim((string) $this->settings->get(self::SETTING_KEY, self::DEFAULT_ROUTE));
 
-        return $this->isAllowedRoute($route) ? $route : self::DEFAULT_ROUTE;
+        return $this->isAllowedRoute($route) ? $route : $this->fallbackRoute();
     }
 
     public function availableRoutes(): array
@@ -28,10 +29,13 @@ class AdminLoginRedirectService
             ->mapWithKeys(function (RouteObject $route): array {
                 $name = (string) $route->getName();
                 $uri = '/'.ltrim($route->uri(), '/');
+                $label = $uri === '/'
+                    ? 'Trang gốc — /'
+                    : $name.' — '.$uri;
 
-                return [$name => $name.' — '.$uri];
+                return [$name => $label];
             })
-            ->sortKeys()
+            ->sortBy(fn (string $label, string $name): int => $name === self::DEFAULT_ROUTE ? 0 : 1)
             ->all();
     }
 
@@ -46,12 +50,25 @@ class AdminLoginRedirectService
         return $route instanceof RouteObject && $this->isSelectableRoute($route);
     }
 
+    public function fallbackRoute(): string
+    {
+        if ($this->isAllowedRoute(self::FALLBACK_ADMIN_ROUTE)) {
+            return self::FALLBACK_ADMIN_ROUTE;
+        }
+
+        $first = array_key_first($this->availableRoutes());
+
+        return is_string($first) ? $first : self::FALLBACK_ADMIN_ROUTE;
+    }
+
     private function isSelectableRoute(RouteObject $route): bool
     {
         $name = (string) $route->getName();
 
-        return str_starts_with($name, 'admin.')
-            && in_array('GET', $route->methods(), true)
-            && ! str_contains($route->uri(), '{');
+        if ($name === '' || ! in_array('GET', $route->methods(), true) || str_contains($route->uri(), '{')) {
+            return false;
+        }
+
+        return str_starts_with($name, 'admin.') || $route->uri() === '/';
     }
 }

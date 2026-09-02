@@ -3,6 +3,7 @@
 namespace Modules\ClientPortal\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -11,6 +12,32 @@ use Modules\ClientPortal\Services\PortalContextResolver;
 
 class PortalController extends Controller
 {
+    public function manifest(ClientPortalSettingsService $settings): JsonResponse
+    {
+        $general = $settings->pwaGeneral();
+
+        return response()->json([
+            'name' => $general['application_name'],
+            'short_name' => $general['short_name'],
+            'start_url' => $general['start_url'] ?? '/my-apps',
+            'scope' => '/my-apps',
+            'display' => $general['display'] ?? 'standalone',
+            'theme_color' => $general['theme_color'],
+            'background_color' => $general['background_color'],
+            'icons' => [
+                [
+                    'src' => '/pwa/icon.svg',
+                    'sizes' => 'any',
+                    'type' => 'image/svg+xml',
+                    'purpose' => 'any maskable',
+                ],
+            ],
+        ], 200, [
+            'Content-Type' => 'application/manifest+json',
+            'Cache-Control' => 'no-cache, private',
+        ]);
+    }
+
     public function login(Request $request, ClientPortalSettingsService $settings): View|RedirectResponse
     {
         if ($request->user('web')) {

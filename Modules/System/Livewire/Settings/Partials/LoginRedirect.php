@@ -13,7 +13,9 @@ class LoginRedirect extends Component
     use AuthorizesSystemActions;
 
     public string $routeName = AdminLoginRedirectService::DEFAULT_ROUTE;
+
     public array $routeOptions = [];
+
     public bool $canUpdate = false;
 
     public function mount(AdminLoginRedirectService $redirect): void
@@ -28,7 +30,8 @@ class LoginRedirect extends Component
         $this->authorizePermission('system.settings.update');
 
         if (! $redirect->isAllowedRoute($this->routeName)) {
-            $this->addError('routeName', 'Route dashboard không hợp lệ hoặc không còn khả dụng.');
+            $this->addError('routeName', 'Route điều hướng không hợp lệ hoặc không còn khả dụng.');
+
             return;
         }
 
