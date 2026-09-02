@@ -3,178 +3,188 @@
 ## Current Status
 
 - Module: `Invoices`
-- Feature: read-only Admin Dashboard
-- Delivery branch: `feat/invoices-admin-dashboard`
-- Closeout branch: `docs/invoices-admin-dashboard-closeout`
-- Base checkpoint: `main@e491aa44701c2303cef100207e632d199bbf0fa6`
-- Verified source checkpoint: `7bae2084f912398fdbcbb2d22477d6d9cfd0ca53`
-- Feature branch head: `30c594fe181aa190d4cc29fa1ee714b20856918a`
-- Main merge checkpoint: `ab7b7bfebebd97a5a7ec9e8abedf77c90f47685f`
-- Implementation status: **COMPLETE — MERGED TO MAIN**
-- Pull request: [#74 — feat(invoices): add read-only admin dashboard](https://github.com/tungocvan/laravel-shop/pull/74) — **MERGED**
-- Merged at: **2026-08-29 02:20:50 UTC**
-- Merge status: **MERGED**
+- Mode: **Major / Clean Module Refactor**
+- Current branch: `refactor/invoices-runtime-cleanup`
+- Base checkpoint: `main@71cae9dc8b3ed99395ad15a7178c98436b1f95a5`
+- Contract bootstrap PR: `#156` — **MERGED**
+- Runtime cleanup status: **IMPLEMENTED — PENDING LOCAL VALIDATION / UI ACCEPTANCE**
+- Merge status: **NOT YET MERGED**
 
-The user confirmed all scoped automated gates and desktop/mobile UI acceptance as PASS on 2026-08-29. PR #74 was manually merged into `main`; this docs-only closeout records the stable merge checkpoint.
+PR #156 established `docs/modules/Invoices/MODULE.md` and aligned the module manifest with the three canonical persistence tables. The current branch continues the approved runtime cleanup without schema changes, route renames or ClientPortal/PWA presentation changes.
 
-## Approved Scope
+## Canonical Ownership Contract
 
-Add a permission-aware read-only Dashboard at:
+Invoices remains the canonical domain owner for:
 
-```text
-GET /admin/invoices/dashboard
-admin.invoices.dashboard
-web, auth:admin, permission:invoices-list
-```
+- electronic invoice ingestion and local persistence;
+- GDT authentication/data synchronization boundaries;
+- invoice filtering/listing/reporting;
+- Excel import/export;
+- invoice PDF retrieval and file metadata;
+- invoice backup execution metadata.
 
-The existing `admin.invoices.index` redirect to `admin.invoices.hoadon-list` remains unchanged.
-
-The Dashboard may navigate to existing workspaces but must not directly perform delete, issue, cancel, synchronize, backup, export, download or any other mutation.
-
-## Architecture
+Canonical persistence ownership:
 
 ```text
-InvoicesDashboardController
-    -> InvoiceDashboardService
-        -> InvoiceDashboardData (bounded safe DTO)
-            -> Invoices::pages.invoices.dashboard
+invoices
+invoice_files
+invoice_backup_runs
 ```
 
-The Dashboard service:
+Invoices does **not** own Admin authentication/shell or ClientPortal authentication/navigation/PWA presentation.
 
-- checks all three owned tables before querying;
-- uses aggregate queries and explicit field selection;
-- limits recent invoices and backup runs to five rows each;
-- does not call GDT or MeInvoice over HTTP;
-- does not enumerate per-job cache keys;
-- returns generic unavailable states instead of raw exceptions;
-- logs only section context and exception class;
-- does not reuse `InvoiceService::dashboard()` because that method includes financial totals and partner-derived data.
+## Runtime Cleanup Implemented
 
-## Permission Contract
+### Dead placeholder removal
 
-| Capability | Dashboard behavior |
-|---|---|
-| `invoices-list` | Required to open the Dashboard; list/report navigation and safe count metrics |
-| `invoices-create` | Shows the sync workspace link |
-| `invoices-export` | Shows an export capability badge; no export action on Dashboard |
-| `invoices-download` | Shows PDF counts and sanitized backup history |
-| `invoices-configure` | Shows the GDT workspace and boolean configuration/session status |
-
-No new permission, migration, seeder, menu entry or config key is introduced.
-
-## Data Safety Contract
-
-Allowed Dashboard data:
-
-- record counts;
-- sold/purchase direction;
-- PDF available/missing/error counts;
-- allowlisted backup mode/status and counts;
-- timestamps;
-- boolean configuration/session state.
-
-The DTO and HTML must not contain:
-
-- invoice number, lookup code or symbol;
-- partner name, tax code, address, email or phone;
-- VAT, amount before VAT or total amount;
-- GDT/MeInvoice credentials or tokens;
-- backup recipient;
-- filename, path, fingerprint or raw file list;
-- raw external payload, exception or persisted error message.
-
-## Workspace Navigation
-
-The following Admin pages include the shared permission-aware `Quay về Dashboard` partial:
-
-- GDT authentication;
-- GDT synchronization;
-- invoice list;
-- partner report.
-
-The new Dashboard follows `ADMIN_UI_STANDARD.md`: Admin shell-owned width, responsive grids, semantic sections, keyboard focus states, readable empty/unavailable/error states and no direct mutation controls.
-
-## ClientPortal / PWA Compatibility Boundary
-
-Invoices is expected to be integrated into `Modules/ClientPortal` later for PWA use. This PR deliberately does not change ClientPortal.
-
-Future integration must:
-
-- register Invoices through the ClientPortal manifest/application registry;
-- use ClientPortal authentication, permissions and adaptive navigation;
-- use a client-specific route and presentation instead of embedding Admin Blade or `auth:admin` routes;
-- reuse only safe domain read data where appropriate;
-- keep route URLs and Admin presentation out of the reusable DTO contract;
-- define a separate authorized external-file handoff if the PWA needs PDF download/open behavior;
-- run focused ClientApps tests and the impacted Invoices tests for that future change.
-
-## Files
-
-### Added
+Caller/reachability review found no canonical routes, pages, service-provider registration or test callers for these empty Livewire placeholders. They were removed:
 
 ```text
-Modules/Invoices/Http/Controllers/InvoicesDashboardController.php
-Modules/Invoices/Data/InvoiceDashboardData.php
-Modules/Invoices/Services/InvoiceDashboardService.php
-Modules/Invoices/resources/views/pages/invoices/dashboard.blade.php
-Modules/Invoices/resources/views/partials/dashboard-return-link.blade.php
-tests/Feature/InvoicesDashboardTest.php
-docs/modules/Invoices/COLLABORATION_HANDOFF.md
+Modules/Invoices/Livewire/InvoiceList.php
+Modules/Invoices/Livewire/InvoiceManager.php
+Modules/Invoices/resources/views/livewire/invoice-list.blade.php
+Modules/Invoices/resources/views/livewire/invoice-manager.blade.php
 ```
 
-### Updated
+No canonical or compatibility route was removed.
+
+### Invoice list workspace boundary
+
+`HoadonList` remains the Livewire presentation/controller boundary and keeps its existing public state/actions used by Blade.
+
+A cohesive `InvoiceWorkspaceService` now owns list-workspace read/orchestration concerns including:
+
+- paginator/view data assembly;
+- current-page invoice IDs;
+- all IDs in the current filtered scope;
+- selected-vs-filtered export record resolution.
+
+This reduces direct query/orchestration responsibility in `HoadonList` without introducing multiple tiny services.
+
+### Export contract
+
+The required export behavior is preserved and regression-covered:
+
+- when checkbox selection is non-empty, export exactly the selected invoice IDs;
+- when selection is empty, export the complete current approved filtered scope;
+- empty selection must never silently export only the current paginator page.
+
+### PDF status/filter contract
+
+Canonical filter semantics now use `invoice_files.status` consistently:
+
+- `available` -> metadata status `available`;
+- `error` -> metadata status `error`;
+- `missing` -> metadata status `missing` or no `invoice_files` metadata row.
+
+This fixes the reported UI case where selecting **Chưa có PDF** could still show rows represented as **Đã có PDF** by a different status interpretation.
+
+Physical storage reconciliation remains the responsibility of the existing metadata scan/reconcile action.
+
+### PDF failure boundary
+
+Provider exceptions from GDT/MeInvoice are retained server-side for diagnostics but are no longer propagated verbatim through the list UI/batch result contract. User-facing failures are generic/sanitized while provider fallback behavior is preserved.
+
+### Admin UI normalization
+
+The invoice list filter workspace was normalized to the Admin UI contract:
+
+- explicit visible borders on ordinary controls;
+- consistent `h-11` control height;
+- consistent white background, gray border and indigo focus state;
+- explicit labels for invoice type, partner, tax code, PDF status, year, month, tax rate, sort and date range;
+- responsive 4-column desktop / 2-column tablet / stacked mobile grid;
+- bounded `10 / 25 / 50 / 100` page-size options;
+- explicit module pagination partial retained;
+- header checkbox remains current-page selection only;
+- separate action remains available for selecting the complete filtered scope;
+- destructive PDF deletion remains confirmation-gated.
+
+No aesthetic-only dashboard redesign was introduced.
+
+## Compatibility / Non-Goals
+
+This runtime cleanup deliberately does not:
+
+- rename or merge migrations;
+- rename persistence tables;
+- add a database unique constraint;
+- remove legacy `/invoices/*` compatibility aliases;
+- change canonical `/admin/invoices/*` route names;
+- change permission names;
+- integrate Invoices into ClientPortal/PWA;
+- expose protected invoice PDFs through public URLs.
+
+ClientPortal/PWA integration remains **DEFERRED** and must use ClientPortal-owned routes/auth/navigation/presentation plus the approved authenticated external-file handoff pattern.
+
+## Tests Added / Strengthened
+
+Source coverage added for:
+
+- selected IDs taking precedence over filtered export scope;
+- empty selection exporting the complete filtered scope;
+- all-filtered selection not being limited to the current page;
+- canonical PDF `available / missing / error` filtering;
+- missing PDF including invoices with explicit `missing` metadata and invoices without metadata;
+- available/error invoices being excluded from the missing filter.
+
+## Validation Gate
+
+The source changes and tests are committed, but no GitHub CI workflow is attached to the current head and local runtime validation has not yet been reported by the user.
+
+Current gate:
 
 ```text
-Modules/Invoices/routes/web.php
-Modules/Invoices/resources/views/pages/invoices/authenticate.blade.php
-Modules/Invoices/resources/views/pages/invoices/sync.blade.php
-Modules/Invoices/resources/views/pages/invoices/index.blade.php
-Modules/Invoices/resources/views/pages/invoices/partner-report.blade.php
-docs/modules/Invoices/README.md
-docs/modules/Invoices/INFORMATION.md
-Modules/Invoices/README.md
+Pint changed PHP files                         PENDING
+Focused Invoices tests                         PENDING
+Directly impacted Admin regression             PENDING
+Route inspection                               PENDING
+Frontend production build                      PENDING
+Desktop UI acceptance                          PENDING
+Mobile/responsive UI acceptance                PENDING
+PDF "Chưa có PDF" functional UI check          PENDING
+Working tree clean                             PENDING
 ```
 
-## Verification Gate
+Do not mark this refactor complete or merge the runtime cleanup PR until the relevant validation and UI acceptance are reported PASS.
 
-User-confirmed results on 2026-08-29:
+Recommended local validation scope remains limited to Invoices and directly impacted Admin behavior; full-project regression is not required unless scope expands.
 
-```text
-Pint changed PHP files                         PASS
-Focused InvoicesDashboardTest                 PASS
-Invoices module regression                    PASS
-Admin Feature regression                      PASS
-Route inspection                              PASS
-Frontend production build                     PASS
-Desktop UI acceptance                         PASS
-Mobile UI acceptance                          PASS
-Working tree clean                            PASS
-```
+## Manual UI Acceptance Focus
 
-Verification scope remained limited to Invoices and directly impacted Admin tests. No full-project regression was run or required.
+On `/admin/invoices/hoadon-list`, verify at minimum:
 
-Full-project regression is not required unless the implementation scope expands beyond Invoices and its direct dependencies.
+1. all filter/select/date controls have consistent visible borders and focus states;
+2. desktop/tablet/mobile filter layout remains readable and does not overflow;
+3. selecting **Chưa có PDF** shows no row labeled **Đã có PDF**;
+4. selecting **Đã có PDF** shows only available PDF rows;
+5. selecting **Lỗi tải PDF** shows only error rows;
+6. page-size options remain bounded to `10 / 25 / 50 / 100`;
+7. header checkbox selects the current page only;
+8. explicit all-filtered selection still works;
+9. export with selection exports selected invoices;
+10. export without selection exports the complete current filtered scope;
+11. destructive PDF deletion still requires confirmation.
 
 ## Deferred Existing Debt
 
-The Dashboard does not expand or silently fix these existing concerns:
+Still deferred unless separately approved:
 
 - runtime GDT `.env` mutation;
-- broad/mixed capabilities inside the synchronization workspace;
-- unbounded import/export, ZIP, filter option and backup fingerprint paths;
-- potential per-row PDF status queries in the existing list;
+- broad/mixed synchronization workspace responsibilities;
+- unbounded or high-volume import/export/ZIP/backup paths requiring separate performance work;
 - public export storage for financial spreadsheets;
 - public-link Google Drive flow;
 - lack of a persisted global GDT job registry;
-- missing database unique constraint for invoice business identity;
-- incomplete module table/dependency manifest and historical documentation drift.
+- database uniqueness for invoice business identity pending duplicate/business-key proof;
+- ClientPortal/PWA presentation and protected PDF handoff implementation.
 
-## PR and Merge Gate
+## Merge Gate
 
-1. Focused Invoices, directly impacted Admin tests and UI acceptance: **COMPLETE**.
-2. Verification results and source checkpoint recorded in this handoff: **COMPLETE**.
-3. PR #74 opened for manual user review: **COMPLETE**.
-4. User manually merged PR #74: **COMPLETE**.
-5. Main merge checkpoint `ab7b7bfebebd97a5a7ec9e8abedf77c90f47685f` verified: **COMPLETE**.
-6. This docs-only closeout records the final merged state; no source changes are included.
+1. Contract bootstrap PR #156: **COMPLETE / MERGED**.
+2. Runtime cleanup implementation: **COMPLETE, awaiting validation**.
+3. Focused automated validation: **PENDING USER/LOCAL RESULT**.
+4. Desktop/mobile UI acceptance: **PENDING USER RESULT**.
+5. Runtime cleanup PR review: **PENDING**.
+6. Manual merge to `main`: **PENDING**.
+7. Post-merge handoff closeout / clean-main verification: **PENDING**.
