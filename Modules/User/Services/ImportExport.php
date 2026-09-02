@@ -21,10 +21,7 @@ class ImportExport extends BaseImportExportService
 
     protected string $defaultSheetName = 'users';
 
-    protected array $requiredHeaders = [
-        'name',
-        'email',
-    ];
+    protected array $requiredHeaders = ['name', 'email'];
 
     protected array $rules = [
         'name' => ['required', 'string', 'max:255'],
@@ -72,13 +69,10 @@ class ImportExport extends BaseImportExportService
 
         try {
             $this->validateImportFile($filePath);
-
             $rows = (new FastExcel)->import($filePath);
 
             $this->addDebug('sheets', [$this->defaultSheetName]);
-            $this->addDebug('sheet_counts', [
-                $this->defaultSheetName => $rows->count(),
-            ]);
+            $this->addDebug('sheet_counts', [$this->defaultSheetName => $rows->count()]);
 
             if (! $dryRun) {
                 DB::beginTransaction();
@@ -87,12 +81,10 @@ class ImportExport extends BaseImportExportService
             foreach ($rows as $index => $rawRow) {
                 $rowNumber = $index + 2;
                 $this->totalRows++;
-
                 $row = $this->normalizeRowHeaders((array) $rawRow);
 
                 if (! $this->hasRequiredHeaders($row)) {
                     $this->addError($this->defaultSheetName, $rowNumber, null, 'File thiếu cột bắt buộc.');
-
                     continue;
                 }
 
@@ -105,7 +97,6 @@ class ImportExport extends BaseImportExportService
                             $this->addError($this->defaultSheetName, $rowNumber, $column, $message, $row[$column] ?? null);
                         }
                     }
-
                     continue;
                 }
 
@@ -115,7 +106,6 @@ class ImportExport extends BaseImportExportService
 
                 if ($dryRun) {
                     $this->successRows++;
-
                     continue;
                 }
 
@@ -178,6 +168,12 @@ class ImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
+        $selectedIds = collect($filters['selected_ids'] ?? [])
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+
         return User::query()
             ->select('id', 'name', 'email', 'phone', 'is_active', 'created_at')
             ->with('roles:id,name,guard_name')
@@ -190,6 +186,7 @@ class ImportExport extends BaseImportExportService
                 });
             })
             ->when($filters['role'] ?? null, fn ($query, string $role) => $query->whereHas('roles', fn ($roles) => $roles->whereKey($role)))
+            ->when($selectedIds->isNotEmpty(), fn ($query) => $query->whereKey($selectedIds->all()))
             ->latest('id')
             ->get();
     }
@@ -226,19 +223,16 @@ class ImportExport extends BaseImportExportService
 
         if ($mode === 'skip_duplicate' && $existing) {
             $this->skippedRows++;
-
             return;
         }
 
         if ($mode === 'create_only' && $existing) {
             $this->addError($this->defaultSheetName, $rowNumber, 'email', 'Email đã tồn tại.', $row['email']);
-
             return;
         }
 
         if ($existing && $this->isSuperAdmin($existing) && ! $this->actorIsSuperAdmin()) {
             $this->addError($this->defaultSheetName, $rowNumber, 'email', 'Bạn không có quyền cập nhật tài khoản Super Admin.', $row['email']);
-
             return;
         }
 
@@ -262,7 +256,6 @@ class ImportExport extends BaseImportExportService
 
         $user->save();
         $this->syncAdminRoles($user, $row['roles']);
-
         $this->successRows++;
     }
 
@@ -272,7 +265,6 @@ class ImportExport extends BaseImportExportService
 
         if (! $this->actorIsSuperAdmin() && in_array(self::ROLE_SUPER_ADMIN, $roles, true)) {
             $this->addError($this->defaultSheetName, $rowNumber, 'roles', 'Bạn không có quyền import/gán vai trò Super Admin.', implode(', ', $roles));
-
             return false;
         }
 
@@ -281,11 +273,7 @@ class ImportExport extends BaseImportExportService
 
     private function normalizeRoles(mixed $value): array
     {
-        if (is_array($value)) {
-            $roles = $value;
-        } else {
-            $roles = preg_split('/[,;|]+/', (string) $value) ?: [];
-        }
+        $roles = is_array($value) ? $value : (preg_split('/[,;|]+/', (string) $value) ?: []);
 
         $roles = collect($roles)
             ->map(fn (mixed $role): ?string => $this->cleanString($role))
