@@ -19,11 +19,12 @@ class RequestDemoSeeder extends Seeder
             $this->bootstrapLocalTemplateUsers();
         }
 
-        $this->command?->info('RequestDemoSeeder enabled: seeding Request starter templates.');
+        $this->command?->info('RequestDemoSeeder enabled: seeding Request starter templates and local workflow fixtures.');
 
         $this->call([
             RequestStarterTemplateSeeder::class,
             RequestOffboardingHandoverSeeder::class,
+            RequestWorkflowDemoSeeder::class,
         ]);
     }
 
