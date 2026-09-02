@@ -9,7 +9,7 @@ class SystemSettingFormTest extends TestCase
 {
     public function test_setting_form_uses_fixed_system_owned_tab_component_contract(): void
     {
-        $component = new SettingForm();
+        $component = new SettingForm;
 
         $expected = [
             'theme' => 'admin.theme-switcher',
@@ -32,7 +32,7 @@ class SystemSettingFormTest extends TestCase
 
     public function test_invalid_or_retired_menu_tab_falls_back_to_theme(): void
     {
-        $component = new SettingForm();
+        $component = new SettingForm;
 
         foreach (['menu', 'evil.component'] as $tab) {
             $component->setTab($tab);
