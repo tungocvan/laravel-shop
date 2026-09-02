@@ -10,6 +10,7 @@ use Modules\Invoices\Exports\InvoicesSelectedExport;
 use Modules\Invoices\Services\InvoiceFileManagerService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
+use Modules\Invoices\Services\InvoiceWorkspaceService;
 
 class HoadonList extends Component
 {
@@ -18,6 +19,7 @@ class HoadonList extends Component
     protected InvoiceService $invoiceService;
     protected InvoicePdfService $pdfService;
     protected InvoiceFileManagerService $fileManager;
+    protected InvoiceWorkspaceService $workspace;
 
     public ?string $downloadStatus = null;
     public ?string $pdfNotice = null;
@@ -44,7 +46,7 @@ class HoadonList extends Component
 
     protected $queryString = ['type','name','tax_code','from_date','to_date','taxRateFilter','pdfStatusFilter','year','month','sort','perPage'];
 
-    public function boot(InvoiceService $invoiceService, InvoicePdfService $pdfService, InvoiceFileManagerService $fileManager): void { $this->invoiceService=$invoiceService; $this->pdfService=$pdfService; $this->fileManager=$fileManager; }
+    public function boot(InvoiceService $invoiceService, InvoicePdfService $pdfService, InvoiceFileManagerService $fileManager, InvoiceWorkspaceService $workspace): void { $this->invoiceService=$invoiceService; $this->pdfService=$pdfService; $this->fileManager=$fileManager; $this->workspace=$workspace; }
     public function mount(): void { $this->perPage=$this->normalizedPerPage($this->perPage); $this->yearOptions=$this->invoiceService->years(); if($this->year!==''){$this->applyPeriodSelection(false);} elseif($this->from_date===''&&$this->to_date===''){ $this->year=(string)now()->year; $this->from_date=Carbon::now()->startOfYear()->format('Y-m-d'); $this->to_date=Carbon::now()->format('Y-m-d'); } $this->refreshOptions(); }
 
     public function updatedType(): void { $this->resetListState(true); } public function updatedName(): void { $this->resetListState(true); } public function updatedTaxCode(): void { $this->resetListState(true); } public function updatedTaxRateFilter(): void { $this->resetListState(); } public function updatedPdfStatusFilter(): void { $this->resetListState(); } public function updatedSort(): void { $this->resetListState(); }
@@ -56,18 +58,18 @@ class HoadonList extends Component
 
     public function togglePageSelection(): void
     {
-        $ids = $this->invoiceService->paginate($this->filters(), $this->perPage)->getCollection()->pluck('id')->map(fn($id)=>(int)$id)->all();
+        $ids = $this->workspace->pageIds($this->filters(), $this->perPage);
         if ($this->selectPage) $this->selected = collect($this->selected)->merge($ids)->map(fn($id)=>(int)$id)->unique()->values()->all();
         else $this->selected = array_values(array_diff(array_map('intval',$this->selected), $ids));
         $this->selectAllFiltered=false;
     }
 
-    public function selectAllFilteredResults(): void { $this->selected=$this->invoiceService->filteredBuilder($this->filters())->pluck('id')->map(fn($id)=>(int)$id)->all(); $this->selectPage=true; $this->selectAllFiltered=true; }
+    public function selectAllFilteredResults(): void { $this->selected=$this->workspace->allFilteredIds($this->filters()); $this->selectPage=true; $this->selectAllFiltered=true; }
     public function clearSelection(): void { $this->selected=[];$this->selectPage=false;$this->selectAllFiltered=false; }
 
     public function resetFilters(): void { $this->type=null;$this->name='';$this->tax_code='';$this->year=(string)now()->year;$this->month='';$this->from_date=Carbon::now()->startOfYear()->format('Y-m-d');$this->to_date=Carbon::now()->format('Y-m-d');$this->taxRateFilter='all';$this->pdfStatusFilter='all';$this->sort='date_desc';$this->clearSelection();$this->pdfNotice=null;$this->pdfError=null;$this->refreshOptions();$this->resetPage();$this->dispatch('filters-reset'); }
 
-    public function exportSelected(){ $this->authorizePermission('invoices-export'); $records=$this->selected===[]?$this->invoiceService->filter($this->filters()):$this->invoiceService->selected($this->selected); return Excel::download(new InvoicesSelectedExport($records),'hoadon_'.($this->selected===[]?'loc':'chon').'_'.now()->format('Ymd_His').'.xlsx'); }
+    public function exportSelected(){ $this->authorizePermission('invoices-export'); $records=$this->workspace->exportRecords($this->filters(),$this->selected); return Excel::download(new InvoicesSelectedExport($records),'hoadon_'.($this->selected===[]?'loc':'chon').'_'.now()->format('Ymd_His').'.xlsx'); }
     public function downloadSelected(): void { $this->authorizePermission('invoices-download');$this->clearPdfMessages();if($this->selected===[]){$this->pdfError='Vui lòng chọn hóa đơn trước khi tải PDF.';return;}$this->downloadStatus='processing';$result=$this->pdfService->downloadSelected($this->selected);$this->downloadStatus=$result['failed']>0?'error':'success';$this->setBatchMessage($result,'PDF mới'); }
     public function downloadPdf(int $invoiceId,bool $force=false): void { $this->authorizePermission('invoices-download');$this->clearPdfMessages();$this->pdfProcessingId=$invoiceId;try{$path=$this->pdfService->downloadInvoice($invoiceId,$force);$this->pdfNotice=($force?'Đã tải lại PDF hóa đơn: ':'Đã tải PDF hóa đơn: ').basename($path);}catch(\Throwable $e){$this->pdfError=$e->getMessage();}finally{$this->pdfProcessingId=null;} }
     public function reconcilePdfMetadata(): void { $this->authorizePermission('invoices-download');$this->clearPdfMessages();try{$r=$this->fileManager->reconcile($this->filters());$this->pdfNotice="Đã quét {$r['scanned']} hóa đơn · Có PDF: {$r['available']} · Chưa có: {$r['missing']}.";}catch(\Throwable $e){$this->pdfError=$e->getMessage();} }
@@ -76,7 +78,7 @@ class HoadonList extends Component
     public function deleteSelectedPdfs(): void { $this->authorizePermission('invoices-download');$this->clearPdfMessages();if($this->selected===[]){$this->pdfError='Vui lòng checkbox chọn hóa đơn cần xóa PDF.';return;}try{$r=$this->fileManager->deleteFilesByIds($this->selected);$this->clearSelection();$this->pdfNotice="Đã xóa {$r['deleted']} PDF đã chọn".($r['skipped']?" · {$r['skipped']} hóa đơn không có PDF":'').($r['failed']?" · {$r['failed']} file không xóa được.":'.');}catch(\Throwable $e){$this->pdfError=$e->getMessage();} }
     public function downloadPdfZip(){ $this->authorizePermission('invoices-download');$this->clearPdfMessages();try{$this->fileManager->reconcile($this->filters());$a=$this->fileManager->createZip($this->filters());$this->pdfNotice="Đã đóng gói {$a['count']} PDF.";return response()->download($a['path'],$a['filename']);}catch(\Throwable $e){$this->pdfError=$e->getMessage();return null;} }
 
-    public function render(){ $filters=$this->filters();$dashboard=$this->invoiceService->dashboard();$filterStats=$this->invoiceService->statistics($filters);$fileSummary=$this->fileManager->summary($filters);$invoices=$this->invoiceService->paginate($filters,$this->perPage);$pageIds=collect($invoices->items())->pluck('id')->map(fn($id)=>(int)$id)->all();$selectedIds=array_map('intval',$this->selected);$this->selectPage=$pageIds!==[]&&count(array_intersect($pageIds,$selectedIds))===count($pageIds);$pdfStatuses=collect($invoices->items())->mapWithKeys(fn($invoice)=>[$invoice->id=>$this->pdfService->statusForInvoice($invoice)])->all(); return view('Invoices::livewire.hoadon-list',['invoices'=>$invoices,'pdfStatuses'=>$pdfStatuses,'filterStats'=>$filterStats,'fileSummary'=>$fileSummary,'pdfErrors'=>$this->fileManager->errorDetails($filters),'storageBreakdown'=>$this->fileManager->storageBreakdown($filters),'totalSoldAmount'=>$dashboard['sold_amount'],'totalPurchaseAmount'=>$dashboard['purchase_amount'],'totalSoldCustomers'=>$dashboard['sold_customers'],'totalPurchaseCustomers'=>$dashboard['purchase_customers'],'yearlyRevenue'=>$dashboard['yearly']]); }
+    public function render(){ $data=$this->workspace->viewData($this->filters(),$this->perPage,$this->selected);$this->selectPage=$data['pageSelected'];unset($data['pageSelected']);return view('Invoices::livewire.hoadon-list',$data); }
 
     private function applyPeriodSelection(bool $reset=true): void { $year=(int)$this->year;if($year<2000||$year>2100){$this->year='';$this->month='';return;}if($this->month!==''&&((int)$this->month<1||(int)$this->month>12))$this->month='';if($this->month===''){$start=Carbon::create($year,1,1)->startOfDay();$end=Carbon::create($year,12,31)->endOfDay();}else{$start=Carbon::create($year,(int)$this->month,1)->startOfMonth();$end=$start->copy()->endOfMonth();}$this->from_date=$start->format('Y-m-d');$this->to_date=$end->format('Y-m-d');if($reset)$this->resetListState(true); }
     private function clearPeriodPreset(): void { $this->year='';$this->month=''; }
