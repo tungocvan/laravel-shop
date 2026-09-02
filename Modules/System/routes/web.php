@@ -32,6 +32,9 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         Route::get('/settings', [SettingController::class, 'index'])
             ->middleware('permission:system.settings.view,admin')
             ->name('settings.index');
+        Route::get('/settings/login-theme', [SettingController::class, 'loginTheme'])
+            ->middleware('permission:system.settings.view,admin')
+            ->name('settings.login-theme');
         Route::get('/settings/env', [EnvConfigController::class, 'index'])
             ->middleware('permission:system.env.view,admin')
             ->name('settings.env');
