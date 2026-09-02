@@ -24,12 +24,13 @@ The Module exposes two distinct runtime surfaces that must remain separate:
 |---|---|---|
 | Administrative procedure definitions | Administrative | `administrative.public.*`, `admin.administrative.procedures.*`, `ProcedureController`, `ProcedureService` |
 | Public submission intake | Administrative | `administrative.public.submit`, `SubmissionForm`, `SubmissionService` |
-| Administrative submission lifecycle | Administrative | `admin.administrative.submissions.*`, submission Livewire components, `SubmissionService` |
+| Administrative submission reads/query | Administrative | submission Livewire components, `SubmissionQueryService` |
+| Administrative submission lifecycle/writes | Administrative | `admin.administrative.submissions.*`, submission Livewire components, `SubmissionService` |
 | Submission files and controlled downloads | Administrative | `AdministrativeFileService`, public/admin file download routes |
 | Submission status history | Administrative | `AdministrativeStatusHistory` and submission processing runtime |
 | Public receipt generation/delivery | Administrative | `ReceiptService`, `administrative.public.success`, `administrative.public.receipt.download` |
 | Token-based public lookup/result access | Administrative | `LookupService`, `administrative.lookup.*` |
-| Administrative import/export behavior | Administrative | Administrative import/export runtime, subject to refactor toward shared infrastructure where applicable |
+| Administrative import/export behavior | Administrative | `ImportExport` domain adapter on Shared Import/Export infrastructure |
 
 ## 4. Explicit Non-Ownership
 
@@ -37,8 +38,8 @@ The Module exposes two distinct runtime surfaces that must remain separate:
 |---|---|---|
 | Admin shell/layout/navigation framework | Admin | Administrative consumes the canonical Admin shell for authenticated back-office UI |
 | Authentication accounts and global authorization infrastructure | Account/Admin/System as defined by repository contracts | Administrative consumes guards/permissions; it does not own global identity infrastructure |
-| Global/shared Import/Export infrastructure | Shared | Administrative may consume shared Import/Export infrastructure while retaining ownership of Administrative data mapping and domain rules |
-| Global branding/site settings | Website/System as defined by runtime | Administrative may consume branding data through an adapter; it must not duplicate global branding ownership |
+| Global/shared Import/Export infrastructure | Shared | Administrative consumes shared Import/Export infrastructure while retaining ownership of Administrative data mapping and domain rules |
+| Global branding/site settings | Website/System as defined by runtime | Administrative consumes branding data through a thin adapter; it does not own global branding |
 
 ## 5. Dependencies
 
@@ -49,8 +50,8 @@ The current `Modules/Administrative/config/module.php` declares no hard Module d
 ### Integration dependencies
 
 - Admin shell and authorization middleware for authenticated Administrative routes.
-- Shared Import/Export infrastructure when the repository-standard implementation is applicable.
-- Global branding/settings through an integration boundary only; Administrative remains consumer, not owner.
+- Shared Import/Export infrastructure through `BaseImportExportService`.
+- Global System settings through `PublicBrandingService`, with optional Admission runtime overlay only when Admission is enabled and its service exists.
 
 ## 6. Consumers
 
@@ -83,7 +84,7 @@ The canonical ownership audit is:
 - `ProcedureController`: authenticated procedure management shell/routes.
 - `SubmissionController`: authenticated submission dashboard/detail/file entry points.
 
-Controllers should remain transport/orchestration boundaries and must not become alternate owners of domain rules already owned by services.
+Controllers remain transport/orchestration boundaries and must not become alternate owners of domain rules already owned by services.
 
 ### Livewire / UI Components
 
@@ -96,12 +97,13 @@ Admin-facing UI must reuse the canonical Admin layout/shared components and comp
 ### Services
 
 - `ProcedureService`: canonical procedure-domain operations.
-- `SubmissionService`: canonical submission lifecycle operations; may be decomposed internally when responsibility boundaries are proven.
+- `SubmissionQueryService`: canonical Administrative submission read/query boundary for Admin list, stats, procedure options and detail reads.
+- `SubmissionService`: canonical submission write/lifecycle boundary for public intake, processing, supplementation and archival operations.
 - `AdministrativeFileService`: canonical Administrative file handling boundary.
-- `LookupService`: token-based lookup/query boundary.
-- `ReceiptService`: receipt generation boundary.
-- `PublicBrandingService`: integration adapter only; it must not become canonical global branding owner.
-- `ImportExport`: existing Administrative import/export implementation; audit for convergence on Shared infrastructure without moving Administrative domain mapping/rules out of this Module.
+- `LookupService`: token/session based public lookup and result access boundary.
+- `ReceiptService`: receipt generation and status-notification delivery boundary.
+- `PublicBrandingService`: thin integration adapter over canonical settings; not a global branding owner.
+- `ImportExport`: Administrative mapping/validation/audit adapter on Shared Import/Export infrastructure.
 
 ### Models
 
@@ -134,13 +136,14 @@ Persistence ownership must not be rehomed or deleted without explicit data compa
 
 ### Shared Import/Export
 
-- Business owner: Administrative owns its exported/imported domain data, validation and mapping rules.
-- Infrastructure owner: Shared owns generic import/export machinery when applicable.
-- Direction: Administrative may consume Shared infrastructure; generic infrastructure must not absorb Administrative business rules.
+- Business owner: Administrative owns its exported/imported domain data, validation, mapping, token-security and audit rules.
+- Infrastructure owner: Shared owns generic import/export machinery.
+- Direction: Administrative `ImportExport` extends the Shared base service; generic infrastructure must not absorb Administrative business rules.
 
 ### Global branding/settings
 
-- Administrative may read canonical global branding/settings through a thin adapter.
+- `PublicBrandingService` is an intentional thin integration adapter.
+- It reads canonical System settings and may overlay Admission school settings when that Module is enabled and its service exists.
 - Branding configuration must not be duplicated or forked inside Administrative.
 
 ## 11. Compatibility / Deprecated Boundaries
@@ -156,7 +159,9 @@ Until caller/dependency proof is complete:
 - persistence schema and migrations are quarantined from destructive cleanup;
 - public access-token and receipt contracts are quarantined from incompatible changes;
 - file storage/access mechanics are quarantined from visibility/security weakening;
-- cross-module branding and Import/Export overlap is quarantined from deletion/rehome based on naming similarity alone.
+- unproven legacy/duplicate artifacts remain quarantined from deletion/rehome based on naming similarity alone.
+
+The branding and Import/Export overlaps were audited in the 2026-09-02 refactor and are classified as intentional integration adapters rather than duplicate ownership.
 
 ## 13. Refactor Invariants
 
@@ -208,9 +213,13 @@ Source and this contract must not merge while architecturally inconsistent.
 
 | Debt | Owner/target module | Reason | Exit condition |
 |---|---|---|---|
-| Determine whether `PublicBrandingService` is only an adapter or contains duplicated global-branding logic | Administrative + canonical branding owner | Requires caller/runtime comparison | Canonical branding owner proven and Administrative adapter reduced without behavior regression |
-| Evaluate convergence of Administrative `ImportExport` onto Shared Import/Export infrastructure | Administrative + Shared | Domain mapping must remain owned by Administrative and caller proof is required | Shared capability fit proven; Administrative mapping/validation retained; focused + impacted regression PASS |
-| Decompose `SubmissionService` if audit proves unrelated responsibilities | Administrative | Large service size alone is not sufficient proof | Stable lifecycle boundaries and tests prove safe internal split |
+| Unproven legacy/duplicate artifacts discovered in future work | Administrative | Deletion requires concrete caller/reachability proof | Characterization/contract tests plus caller proof demonstrate safe removal |
+
+Resolved in the 2026-09-02 architecture refactor:
+
+- `SubmissionService` responsibility concentration: Admin read/query operations were extracted to `SubmissionQueryService`; lifecycle/write behavior remains in `SubmissionService`.
+- Administrative `ImportExport` convergence: already correctly implemented as an Administrative domain adapter over Shared `BaseImportExportService`; no rehome required.
+- `PublicBrandingService` ownership: confirmed as a thin cross-module settings adapter; no duplicated branding ownership was found in Administrative.
 
 ## 18. Architecture Decisions
 
@@ -221,3 +230,11 @@ Source and this contract must not merge while architecturally inconsistent.
 **Reason:** Runtime routes, manifest permissions/tables, models and service boundaries identify Administrative as the active domain owner. URL prefixes or similarly named shared capabilities are not sufficient rehome/delete proof.
 
 **Impact:** Major refactor may simplify internal services/UI and converge on shared infrastructure, but must preserve public/admin security boundaries, persistence ownership and compatibility contracts unless separately approved.
+
+### 2026-09-02 — Separate Administrative submission reads from lifecycle writes
+
+**Decision:** Use `SubmissionQueryService` for Admin-facing submission list/stats/options/detail reads and keep `SubmissionService` focused on intake and lifecycle writes.
+
+**Reason:** Caller and service audit proved that the prior service combined independently evolving query concerns with transactional workflow behavior. The split preserves route, permission, persistence and public-security contracts while creating an explicit internal boundary.
+
+**Impact:** Livewire submission list/detail components read through `SubmissionQueryService`; processing/archive/public intake operations remain in `SubmissionService`. Contract tests protect this separation.
