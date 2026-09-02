@@ -21,9 +21,21 @@ class RoleTable extends Component
 
     public bool $selectAll = false;
 
+    public bool $showPermissionModal = false;
+
     public bool $showSyncModal = false;
 
     public array $syncPreview = [];
+
+    public string $newModuleName = '';
+
+    public array $newModuleActions = [
+        'view' => true,
+        'create' => true,
+        'edit' => true,
+        'delete' => true,
+        'export' => false,
+    ];
 
     public function mount(): void
     {
@@ -52,6 +64,53 @@ class RoleTable extends Component
         );
     }
 
+    public function openPermissionModal(): void
+    {
+        $this->authorizeSuperAdmin();
+        $this->reset(['newModuleName']);
+        $this->newModuleActions = [
+            'view' => true,
+            'create' => true,
+            'edit' => true,
+            'delete' => true,
+            'export' => false,
+        ];
+        $this->showPermissionModal = true;
+    }
+
+    public function createModulePermissions(RolePermissionCatalogService $catalog): void
+    {
+        $this->authorizeSuperAdmin();
+        $this->validate([
+            'newModuleName' => ['required', 'alpha_dash', 'min:2'],
+            'newModuleActions' => ['array'],
+            'newModuleActions.*' => ['boolean'],
+        ]);
+
+        $result = $catalog->createDeclaredPermissions($this->newModuleName, $this->newModuleActions);
+
+        if (! $result['ok']) {
+            $field = $result['reason'] === 'module_not_found' ? 'newModuleName' : 'newModuleActions';
+            $message = $result['reason'] === 'module_not_found'
+                ? 'Module này không tồn tại trong catalog module đang hoạt động.'
+                : 'Một hoặc nhiều quyền được chọn không được module khai báo trong catalog.';
+            $this->addError($field, $message);
+
+            return;
+        }
+
+        $this->showPermissionModal = false;
+        $created = (int) $result['created'];
+        $module = (string) $result['module'];
+        $this->dispatch(
+            'notify',
+            content: $created > 0
+                ? "Đã đồng bộ {$created} quyền được module '{$module}' khai báo."
+                : "Các quyền được module '{$module}' khai báo đã tồn tại.",
+            type: $created > 0 ? 'success' : 'warning'
+        );
+    }
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -75,7 +134,6 @@ class RoleTable extends Component
 
         $this->selected = app(RoleService::class)
             ->queryRoles($this->search)
-            ->where('name', '!=', RoleService::PROTECTED_ROLE)
             ->paginate($this->normalizedPerPage($this->perPage))
             ->pluck('id')
             ->map(fn (int $id): string => (string) $id)
