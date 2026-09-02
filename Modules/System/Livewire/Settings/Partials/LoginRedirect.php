@@ -13,7 +13,9 @@ class LoginRedirect extends Component
     use AuthorizesSystemActions;
 
     public string $routeName = AdminLoginRedirectService::DEFAULT_ROUTE;
+
     public array $routeOptions = [];
+
     public bool $canUpdate = false;
 
     public function mount(AdminLoginRedirectService $redirect): void
