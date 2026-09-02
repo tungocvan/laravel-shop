@@ -17,12 +17,12 @@ class InvoicePdfService
 
     public function statusForInvoice(Invoices $invoice): string
     {
-        if (! $this->canResolveGdtIdentity($invoice)) {
-            return 'unsupported';
-        }
-
         if ($this->fileService->existsForInvoice($invoice)) {
             return 'available';
+        }
+
+        if (! $this->canResolveGdtIdentity($invoice)) {
+            return 'unsupported';
         }
 
         return $invoice->file()->value('status') === 'error' ? 'error' : 'missing';
@@ -81,19 +81,27 @@ class InvoicePdfService
             ->unique()
             ->values();
 
-        $result = ['downloaded' => 0, 'existing' => 0, 'failed' => 0, 'errors' => []];
+        $result = [
+            'downloaded' => 0,
+            'existing' => 0,
+            'failed' => 0,
+            'errors' => [],
+        ];
 
         foreach ($ids as $id) {
             try {
                 $invoice = Invoices::query()->find($id);
+
                 if (! $invoice || ! $this->canResolveGdtIdentity($invoice)) {
                     $result['failed']++;
                     $result['errors'][] = "ID {$id}: thiếu thông tin định danh PDF.";
+
                     continue;
                 }
 
                 $exists = $this->fileService->existsForInvoice($invoice);
                 $this->downloadInvoice($id, $force);
+
                 if ($exists && ! $force) {
                     $result['existing']++;
                 } else {
@@ -111,6 +119,7 @@ class InvoicePdfService
     private function recordProviderFailure(Invoices $invoice, string $provider, \Throwable $exception): void
     {
         $this->fileManager->recordFailure($invoice, $provider, $exception->getMessage());
+
         Log::warning('Invoice PDF provider failure.', [
             'invoice_id' => $invoice->getKey(),
             'provider' => $provider,
