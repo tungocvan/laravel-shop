@@ -95,7 +95,7 @@ The cache, cache-lock, jobs, job-batches, failed-jobs, and generic sessions migr
 ## Legacy and compatibility boundaries
 
 - Legacy Google/admin `AuthService` has been retired from the approved runtime because it restored soft-deleted identities and provisioned authorization roles during authentication.
-- `GoogleWebAuthService` is a superseded compatibility candidate after introduction of canonical `GoogleIdentityService`; remove it only with complete caller proof. Until then it is `QUARANTINE` and must not be used for new code.
+- `GoogleWebAuthService` is retained only as a deprecated compatibility adapter that delegates to `GoogleIdentityService`. It is `QUARANTINE`, must not contain independent identity policy, and must not receive new callers. Remove it only when complete caller proof is available.
 - The current API Auth stub is `QUARANTINE` pending route/caller proof.
 - Generic module permissions (`view_auth`, `create_auth`, `edit_auth`, `delete_auth`) are `DEFER/REVIEW` pending caller and authorization-contract proof.
 
@@ -110,7 +110,7 @@ The cache, cache-lock, jobs, job-batches, failed-jobs, and generic sessions migr
 - `ClientGoogleController`: KEEP as client/PWA adapter.
 - `GoogleController`: KEEP as admin adapter.
 - legacy `AuthService`: CLEANED from runtime/source after replacement proof in this refactor branch.
-- `GoogleWebAuthService`: QUARANTINE pending final caller proof; no new callers allowed.
+- `GoogleWebAuthService`: QUARANTINE compatibility adapter; delegates only to `GoogleIdentityService`.
 - `UserEmailVerification` and its migrations: KEEP.
 - cache/cache-lock migrations: QUARANTINE → REHOME candidate.
 - jobs/job-batches/failed-jobs migrations: QUARANTINE → REHOME candidate.
