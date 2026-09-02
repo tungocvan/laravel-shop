@@ -85,6 +85,7 @@ class ImportExport extends BaseImportExportService
 
                 if (! $this->hasRequiredHeaders($row)) {
                     $this->addError($this->defaultSheetName, $rowNumber, null, 'File thiếu cột bắt buộc.');
+
                     continue;
                 }
 
@@ -97,6 +98,7 @@ class ImportExport extends BaseImportExportService
                             $this->addError($this->defaultSheetName, $rowNumber, $column, $message, $row[$column] ?? null);
                         }
                     }
+
                     continue;
                 }
 
@@ -106,6 +108,7 @@ class ImportExport extends BaseImportExportService
 
                 if ($dryRun) {
                     $this->successRows++;
+
                     continue;
                 }
 
@@ -203,16 +206,19 @@ class ImportExport extends BaseImportExportService
 
         if ($mode === 'skip_duplicate' && $existing) {
             $this->skippedRows++;
+
             return;
         }
 
         if ($mode === 'create_only' && $existing) {
             $this->addError($this->defaultSheetName, $rowNumber, 'email', 'Email đã tồn tại.', $row['email']);
+
             return;
         }
 
         if ($existing && $this->isSuperAdmin($existing) && ! $this->actorIsSuperAdmin()) {
             $this->addError($this->defaultSheetName, $rowNumber, 'email', 'Bạn không có quyền cập nhật tài khoản Super Admin.', $row['email']);
+
             return;
         }
 
@@ -245,6 +251,7 @@ class ImportExport extends BaseImportExportService
 
         if (! $this->actorIsSuperAdmin() && in_array(self::ROLE_SUPER_ADMIN, $roles, true)) {
             $this->addError($this->defaultSheetName, $rowNumber, 'roles', 'Bạn không có quyền import/gán vai trò Super Admin.', implode(', ', $roles));
+
             return false;
         }
 
@@ -254,6 +261,7 @@ class ImportExport extends BaseImportExportService
 
         if ($unknownRoles->isNotEmpty()) {
             $this->addError($this->defaultSheetName, $rowNumber, 'roles', 'Vai trò không tồn tại trong Role catalog: '.$unknownRoles->implode(', '), implode(', ', $roles));
+
             return false;
         }
 

@@ -5,6 +5,7 @@ namespace Tests\Feature\User;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Modules\Shared\Services\ImportExport\BaseImportExportService;
 use Modules\User\Services\ImportExport;
 use Modules\User\Services\UserService;
 use Spatie\Permission\Models\Permission;
@@ -77,7 +78,7 @@ class UserRefactorContractTest extends TestCase
         $this->assertStringNotContainsString('firstOrCreate([', $source);
         $this->assertStringContainsString('Vai trò không tồn tại trong Role catalog', $source);
         $this->assertStringContainsString('$user->syncRoles($roles)', $source);
-        $this->assertTrue(is_subclass_of(ImportExport::class, \Modules\Shared\Services\ImportExport\BaseImportExportService::class));
+        $this->assertTrue(is_subclass_of(ImportExport::class, BaseImportExportService::class));
     }
 
     private function adminActor(array $permissions): User
