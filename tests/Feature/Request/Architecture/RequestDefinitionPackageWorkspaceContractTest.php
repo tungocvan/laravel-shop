@@ -29,13 +29,13 @@ class RequestDefinitionPackageWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("Gate::authorize('exportDefinition', \$type)", $controller);
         $this->assertStringContainsString("Gate::authorize('importDefinition', \$type)", $controller);
         $this->assertStringContainsString("'package' => ['required', 'file', 'max:256']", $controller);
-        $this->assertStringContainsString("preview_checksum", $controller);
-        $this->assertStringContainsString("hash_equals", $controller);
-        $this->assertStringContainsString("preview_checksum.", $controller);
-        $this->assertStringContainsString("active_draft_exists", $dryRun);
-        $this->assertStringContainsString("published_source_required", $dryRun);
-        $this->assertStringContainsString("changed_sections", $dryRun);
-        $this->assertStringContainsString("required_mappings", $dryRun);
+        $this->assertStringContainsString('preview_checksum', $controller);
+        $this->assertStringContainsString('hash_equals', $controller);
+        $this->assertStringContainsString('preview_checksum.', $controller);
+        $this->assertStringContainsString('active_draft_exists', $dryRun);
+        $this->assertStringContainsString('published_source_required', $dryRun);
+        $this->assertStringContainsString('changed_sections', $dryRun);
+        $this->assertStringContainsString('required_mappings', $dryRun);
         $this->assertStringNotContainsString('wire:click', $view);
         $this->assertStringNotContainsString('App\\Models\\User', $controller.$dryRun.$view);
     }

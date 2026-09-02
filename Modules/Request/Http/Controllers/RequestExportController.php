@@ -22,6 +22,7 @@ final class RequestExportController extends Controller
         $user = auth('admin')->user();
         abort_unless($user, 403);
 
+        $maxSelection = max(1, (int) config('request.settings.max_page_size', 100));
         $validated = $request->validate([
             'format' => ['required', 'in:csv,xlsx'],
             'status' => ['nullable', 'string', Rule::in(array_column(RequestStatus::cases(), 'value'))],
@@ -29,19 +30,32 @@ final class RequestExportController extends Controller
             'group_public_id' => ['nullable', 'ulid'],
             'created_from' => ['nullable', 'date_format:Y-m-d'],
             'created_to' => ['nullable', 'date_format:Y-m-d', Rule::when($request->filled('created_from'), 'after_or_equal:created_from')],
+            'selected_request_public_ids' => ['nullable', 'array', 'max:'.$maxSelection],
+            'selected_request_public_ids.*' => ['required', 'ulid', 'distinct'],
             'confirmed' => ['required', 'accepted'],
             'idempotency_key' => ['required', 'string', 'max:191'],
         ]);
 
-        $filters = collect($validated)
+        $baseFilters = collect($validated)
             ->only(['status', 'type_public_id', 'group_public_id', 'created_from', 'created_to'])
             ->filter(fn (mixed $value): bool => filled($value))
             ->all();
-        $plan = $planner->plan($user, $filters);
+        $selectedRequestPublicIds = collect($validated['selected_request_public_ids'] ?? [])
+            ->filter(fn (mixed $value): bool => is_string($value) && filled($value))
+            ->unique()
+            ->values()
+            ->all();
+        $exportFilters = $baseFilters;
+
+        if ($selectedRequestPublicIds !== []) {
+            $exportFilters['request_public_ids'] = $selectedRequestPublicIds;
+        }
+
+        $plan = $planner->plan($user, $exportFilters);
         $export = $starter->handle($user, $plan, $validated['format'], $validated['idempotency_key']);
 
         return redirect()
-            ->route('request.admin.reports', $filters)
+            ->route('request.admin.reports', $baseFilters)
             ->with('request_export_message', $export->status === ExportStatus::Ready
                 ? __('Request::exports.ready_message')
                 : __('Request::exports.queued_message'));

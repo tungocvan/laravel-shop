@@ -2,13 +2,13 @@
 
 namespace Modules\Request\Http\Controllers;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Modules\Request\Application\Services\RequestExportQuery;
 use Modules\Request\Application\Services\DeleteCompletedRequest;
+use Modules\Request\Application\Services\RequestExportQuery;
 use Modules\Request\Domain\Enums\RequestStatus;
 use Modules\Request\Models\RequestExportJob;
 use Modules\Request\Models\RequestGroup;
@@ -22,20 +22,32 @@ final class RequestReportController extends Controller
         abort_unless($user, 403);
 
         $allowedStatuses = array_column(RequestStatus::cases(), 'value');
+        $pageSizes = collect(config('request.settings.page_sizes', [10, 25, 50, 100]))
+            ->map(fn (mixed $size): int => (int) $size)
+            ->filter(fn (int $size): bool => $size > 0 && $size <= (int) config('request.settings.max_page_size', 100))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+        $defaultPageSize = (int) config('request.settings.default_page_size', 25);
+        if (! in_array($defaultPageSize, $pageSizes, true)) {
+            $defaultPageSize = $pageSizes[0] ?? 25;
+        }
+
         $validated = $httpRequest->validate([
             'status' => ['nullable', 'string', Rule::in($allowedStatuses)],
             'type_public_id' => ['nullable', 'ulid'],
             'group_public_id' => ['nullable', 'ulid'],
             'created_from' => ['nullable', 'date_format:Y-m-d'],
             'created_to' => ['nullable', 'date_format:Y-m-d', Rule::when($httpRequest->filled('created_from'), 'after_or_equal:created_from')],
-            'per_page' => ['nullable', 'integer', Rule::in([10, 25, 50, 100])],
+            'per_page' => ['nullable', 'integer', Rule::in($pageSizes)],
         ]);
         $filters = collect($validated)
             ->only(['status', 'type_public_id', 'group_public_id', 'created_from', 'created_to'])
             ->filter(fn (mixed $value): bool => filled($value))
             ->all();
         $filtersWithoutStatus = collect($filters)->except('status')->all();
-        $perPage = (int) ($validated['per_page'] ?? 25);
+        $perPage = (int) ($validated['per_page'] ?? $defaultPageSize);
 
         $requests = $query->queryFor($user, $filters)->paginate($perPage)->withQueryString();
         $statusCounts = [];
@@ -75,6 +87,7 @@ final class RequestReportController extends Controller
             'statuses' => RequestStatus::cases(),
             'types' => $types,
             'groups' => $groups,
+            'pageSizes' => $pageSizes,
             'perPage' => $perPage,
             'filteredCount' => $requests->total(),
             'totalCount' => array_sum($statusCounts),
@@ -96,6 +109,7 @@ final class RequestReportController extends Controller
         $user = auth('admin')->user();
         abort_unless($user && $this->hasPermission($user, 'request.instance.delete'), 403);
         $delete->handle($requestPublicId, (int) $user->getAuthIdentifier());
+
         return redirect()->route('request.admin.reports')->with('request_success', 'Đã xóa đề nghị đã kết thúc; dấu vết quản trị vẫn được lưu trong audit.');
     }
 

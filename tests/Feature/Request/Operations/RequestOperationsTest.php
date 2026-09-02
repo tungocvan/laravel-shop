@@ -8,21 +8,21 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
-use Modules\Request\Application\Services\RequestOperationsQuery;
-use Modules\Request\Application\Services\DeleteRequestOperationFailure;
 use Modules\Request\Application\Services\DeleteCompletedRequest;
+use Modules\Request\Application\Services\DeleteRequestOperationFailure;
+use Modules\Request\Application\Services\RequestOperationsQuery;
 use Modules\Request\Application\Services\RetryRequestOperation;
 use Modules\Request\Application\Services\ValidateTypeDraft;
 use Modules\Request\Database\Seeders\RequestStarterTemplateSeeder;
 use Modules\Request\Domain\Enums\ExportStatus;
+use Modules\Request\Domain\Enums\RequestStatus;
 use Modules\Request\Domain\Forms\FormPayloadValidator;
 use Modules\Request\Jobs\GenerateRequestExport;
+use Modules\Request\Models\InternalRequest;
+use Modules\Request\Models\RequestAuditEvent;
 use Modules\Request\Models\RequestExportJob;
 use Modules\Request\Models\RequestGroup;
 use Modules\Request\Models\RequestType;
-use Modules\Request\Models\InternalRequest;
-use Modules\Request\Models\RequestAuditEvent;
-use Modules\Request\Domain\Enums\RequestStatus;
 use Tests\TestCase;
 
 class RequestOperationsTest extends TestCase

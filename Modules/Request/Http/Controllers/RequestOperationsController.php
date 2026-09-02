@@ -7,9 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Modules\Request\Application\Services\DeleteRequestOperationFailure;
 use Modules\Request\Application\Services\RequestOperationsQuery;
 use Modules\Request\Application\Services\RetryRequestOperation;
-use Modules\Request\Application\Services\DeleteRequestOperationFailure;
 use Modules\Request\Policies\RequestOperationPolicy;
 
 final class RequestOperationsController extends Controller
@@ -46,11 +46,14 @@ final class RequestOperationsController extends Controller
     public function destroy(Request $request, DeleteRequestOperationFailure $delete, RequestOperationPolicy $policy): RedirectResponse
     {
         abort_unless($policy->delete($request->user('admin')), 403);
+
         $validated = $request->validate([
             'kind' => ['required', Rule::in(['outbox_dispatch', 'export_generation'])],
             'public_id' => ['required', 'string', 'size:26'],
         ]);
+
         $delete->handle($validated['kind'], $validated['public_id'], (int) $request->user('admin')->getAuthIdentifier());
+
         return redirect()->route('request.admin.operations')->with('request_success', 'Đã xóa bản ghi vận hành thất bại.');
     }
 }

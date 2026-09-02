@@ -1,148 +1,181 @@
 # Request Module — Collaboration Handoff
 
-- Last updated: 2026-08-28
+- Last updated: 2026-09-02
 - Repository: `tungocvan/laravel-shop`
 - Base branch: `main`
-- Active corrective branch: `fix/request-readiness-permission-count`
-- Pull request: `#59 test(request): align readiness permission count`
-- Branch status: **PRE-MERGE READY**
-- Latest integrated Request source checkpoint: `2bf622c33702a4c644f7d86b7adbf654fb500f0c`
-- Latest integrated Request pull request: `#56 feat(request): improve type designer workspace and approval UX`
-- Next Request application MR/phase: **NOT DETERMINED**
+- Active refactor branch: `refactor/request-contract-ui-export-demo-alignment`
+- Delivery mode: **Refactor Module / consolidated batch**
+- Branch status: **VERIFIED / READY FOR REVIEW**
+- Pull request: **#152 — `refactor(request): align module contract UI export and demo data`**
+- Durable contract: `docs/modules/Request/MODULE.md`
 
-## Checkpoint status
+## Current objective
 
-- Request ClientPortal MR-3 through MR-5: **COMPLETED**
-- Docker production-readiness preparation through PR #48: **COMPLETED / MERGED**
-- Production E2E demo-seeder opt-in through PR #53 and closeout PR #54: **COMPLETED / MERGED**
-- Cached-configuration correction through PR #55: **COMPLETED / MERGED**
-- Request Type Designer / Approval & SLA UX update through PR #56: **COMPLETED / MERGED**
-- Production E2E demo-data execution after PR #55: **COMPLETED / OWNER CONFIRMED ON PRODUCTION**
-- Production runtime enable/disable after Docker rebuild: **COMPLETED / OWNER VERIFIED**
-- Current Request production effective state: **ON / OWNER CONFIRMED**
-- Post-merge handoff through PR #56 and production-status closeout through PR #58: **COMPLETED**
-- Stale Request readiness permission-count contract: **CORRECTED ON PR #59 / TESTED**
+Refactor `Modules/Request` as one consolidated delivery while preserving the mature Request domain architecture and tightening the specific gaps approved on 2026-09-02:
 
-## Integrated delivery checkpoints
+1. establish the missing durable `MODULE.md` contract;
+2. align Admin inputs/focus/error presentation with `ADMIN_UI_STANDARD.md`;
+3. align bounded pagination with Request module settings;
+4. make report export semantics explicit and functional: selected rows when checkboxes are selected, otherwise the complete authorized current filter scope;
+5. add deterministic local/testing demo requests sufficient to exercise pagination, status reporting and export behavior;
+6. update stale contract tests to protect the approved target architecture.
 
-| Delivery | Pull request | Result | Merge commit |
-|---|---|---|---|
-| Docker production-readiness preparation | `#48` | Merged | `18993d5505666b580d79ed1a90d72c7f3f77d04a` |
-| Production E2E demo-seeder explicit opt-in | `#53` | Merged | `9d4bd2869f5604ffa1a0760528cd297af370a3bb` |
-| Stable post-merge closeout for PR #53 | `#54` | Merged | `62afb2e31b9fcf68656768885fee8ffcf3a5ca5b` |
-| Cached-config correction for production E2E gate | `#55` | Merged | `5250738e54d6c571ffd8de0950340d873856b348` |
-| Type Designer workspace and Approval/SLA UX | `#56` | Merged | `2bf622c33702a4c644f7d86b7adbf654fb500f0c` |
-| Production ON-state documentation closeout | `#58` | Merged | `91ca30051fd34c7a1cd479d99565e22490e7ae5f` |
+## Approved architecture boundary
 
-## Current source truth
+### KEEP
 
-### Request Module state
+- Request domain/application architecture and existing use-case services.
+- Request route ownership in `Modules/Request/routes/web.php`.
+- Existing permission and authorization semantics.
+- Existing 18-table persistence ownership and production data.
+- Request audit/outbox/idempotency contracts.
+- Private export storage, expiry and download re-authorization.
+- Existing requester/approver lifecycle behavior and definition-version compatibility.
+- Thin Blade route shells and current ClientPortal integration boundaries.
 
-`Modules/Request/config/module.php` currently retains:
+### REHOME
 
-```text
-default_enabled=false
-35 admin-guard Request permissions
-18 Request tables
-```
+None approved.
 
-`Modules/Request/config/module.php` remains the Request manifest for Module metadata, dependencies, default state, permissions and expected tables. Runtime enable/disable remains owned by the canonical Module-state mechanism and its persistent runtime state under:
+### DELETE
 
-```text
-storage/app/system/module-state.json
-```
+None approved.
 
-The source default remains `default_enabled=false`, while the owner confirms that the current effective production state is `ON`. Do not edit the runtime-state JSON or the Module manifest manually merely to enable/disable Request.
+### QUARANTINE
 
-### Readiness permission-count corrective batch
+- schema/migration and production data boundaries;
+- permission names/guard semantics;
+- runtime Module-state persistence owned outside Request;
+- export authorization snapshots/private storage/expiry;
+- audit/outbox/idempotency history.
 
-PR #59 corrects only the stale assertion in:
+### DEFER
 
-```text
-tests/Feature/System/RequestReleaseReadinessContractTest.php
-```
+- cross-module shared paginator convergence;
+- unrelated ClientPortal/PWA presentation cleanup.
 
-from:
+## Implementation checkpoint
 
-```php
-$this->assertCount(31, $manifest['permissions']);
-```
+### Durable module contract
 
-to:
+Created `docs/modules/Request/MODULE.md` documenting canonical Request ownership/non-ownership, direct dependencies, routes/controllers/Livewire/service boundaries, 18 Request-owned persistence tables, export security semantics, compatibility/quarantine rules, refactor invariants and regression requirements.
 
-```php
-$this->assertCount(35, $manifest['permissions']);
-```
+### Admin definition UI and pagination
 
-Implementation commit:
+Updated `Modules/Request/Livewire/Admin/DefinitionIndex.php` and `Modules/Request/resources/views/livewire/admin/definition-index.blade.php`:
 
-```text
-276f131fd97a56f132bca4666ae547aa1bc60525
-```
+- removed hard-coded `paginate(25)`;
+- page sizes derive from `request.settings.page_sizes`, bounded by `max_page_size`;
+- default derives from `request.settings.default_page_size`;
+- changing page size resets pagination;
+- added `Số dòng/trang` control;
+- aligned visible borders, focus rings and form error presentation;
+- pagination renders only when multiple pages exist.
 
-No Request permission was added, removed or renamed by this corrective batch. No runtime state, production configuration, schema, seeder or application feature code was changed.
+### Reports pagination and UI
 
-## Verification and acceptance evidence
+Updated `Modules/Request/Http/Controllers/RequestReportController.php` and `Modules/Request/resources/views/admin/reports.blade.php`:
 
-### Corrective branch / PR #59
+- report `per_page` validation derives from Request settings instead of a duplicated literal list;
+- filter inputs/selects/date controls retain visible borders and explicit focus treatment;
+- report register remains responsive with mobile cards + desktop table;
+- pagination remains query-string aware and bounded.
 
-Owner-executed verification:
+### Selected/all export alignment
 
-```text
-git pull --ff-only origin fix/request-readiness-permission-count: PASS
-php artisan test tests/Feature/System/RequestReleaseReadinessContractTest.php: PASS
-php artisan test tests/Feature/Request: PASS
-php artisan test tests/Feature/System/ModuleStateRepositoryTest.php tests/Feature/System/ModuleStateResolverTest.php tests/Feature/System/ModuleBootstrapRuntimeStateTest.php: PASS
-git diff --check main...HEAD: PASS
-git status --short: PASS / no output
-```
+Updated `RequestExportQuery`, `PlanRequestExport`, `RequestExportController` and Reports UI.
 
-The focused stale contract is aligned with the 35 admin-guard permissions in the current manifest. Request feature regression and related Module/System runtime-state regressions pass.
-
-Manual UI smoke: **NOT APPLICABLE** — no UI or application behavior changed.
-
-Full project regression: **NOT REQUIRED FOR THIS NARROW CORRECTIVE SCOPE**. Validation is intentionally limited to the directly affected Request test suite plus related Module/System contracts.
-
-Git-clean verification: **PASS**.
-
-## Owner-confirmed production state
+Canonical behavior:
 
 ```text
-Docker rebuild: COMPLETED
-Runtime enable/disable operation: COMPLETED / VERIFIED
-Current Request effective state: ON
-Production E2E demo seeding: COMPLETED
+selected_request_public_ids is non-empty
+    -> normalize/deduplicate/bound IDs
+    -> apply current authorization scope
+    -> export only the selected authorized records
+
+no selected_request_public_ids
+    -> preserve existing behavior
+    -> export all records in the authorized current filter scope
 ```
 
-This corrective PR does not rebuild Docker, toggle the Module, run seeders or mutate production.
+Security invariants retained:
 
-## Known blocker and deferred work
+- selected IDs are ULID-validated and bounded to the maximum visible page size;
+- client-supplied IDs do not bypass `RequestExportQuery` authorization scope;
+- unauthorized selected IDs are excluded by the authorization intersection;
+- max-row planning still applies;
+- private file storage, expiry, owner check, permission check and current-scope re-authorization at download remain unchanged.
 
-The stale `31` versus `35` readiness assertion is no longer a known code blocker on PR #59.
+The UI deliberately does not claim a global select-all. Checkboxes represent visible report rows; no selection means export the complete current filter scope.
 
-No additional test gate remains for this corrective scope beyond PR review/merge readiness checks.
+### Local/testing demo data
 
-Any new Request application feature remains separate and is not authorized by this corrective batch.
+Added `Modules/Request/Database/Seeders/RequestWorkflowDemoSeeder.php` and integrated it through `RequestDemoSeeder`:
 
-## Production safety boundary
+- hard local/testing guard;
+- deterministic `REQ-DEMO-0001` ... `REQ-DEMO-0042` request instances;
+- cycles all six Request statuses;
+- uses existing Request type versions and local demo actor;
+- uses `firstOrNew` for stable repeated seeding;
+- 42 records intentionally exceed the default 25-row page size.
 
-This PR does not:
+No migration or production seeding behavior was added.
 
-- enable or disable Request;
-- change production runtime Module state;
-- migrate or reset the production database;
-- seed, delete or alter production data;
-- change permissions or role assignments;
-- clear/rebuild production caches;
-- deploy containers or change the active Compose stack;
-- authorize a new Request feature phase.
+## Tests added / aligned
 
-Request production effective state remains **ON / OWNER CONFIRMED**. Any future ON/OFF mutation remains a separate explicit operation.
+Updated stale target-architecture contracts and added:
 
-## Next authorized step
+- `tests/Feature/Request/Architecture/RequestRefactorModuleContractTest.php`
+- `tests/Feature/Request/Exports/RequestSelectedExportScopeTest.php`
 
-1. Review PR #59 merge readiness.
-2. If merge gates are satisfied, merge PR #59 into `main`.
-3. After merge, refresh the stable handoff with the actual merge checkpoint if required by workflow.
-4. Do not name or begin another Request application MR/phase until a source/documented requirement and explicit authorization exist.
-5. Until then, the next Request application MR/phase remains **NOT DETERMINED**.
+Coverage protects module ownership/refactor invariants, config-driven pagination, selected-export wiring and authorization intersection, no-selection export-all behavior, bounded selection size, and deterministic local/testing demo seeding.
+
+## Scope/risk result
+
+No approved risk gate was crossed:
+
+- schema/database migration change: **NONE**;
+- authorization permission/guard contract change: **NONE**;
+- production data deletion/change: **NONE**;
+- feature deletion: **NONE**;
+- significant cross-module source change: **NONE**;
+- route rehome: **NONE**.
+
+## Verification evidence — PASS
+
+Recorded from local verification on 2026-09-02:
+
+- `./vendor/bin/pint --test Modules/Request tests/Feature/Request` — **PASS, 264 files**;
+- selected-export + architecture focused tests — **PASS** after correcting a stale case-sensitive UI-copy assertion;
+- `php artisan test tests/Feature/Request` — **147 passed, 6250 assertions, 9.99s**;
+- `php artisan route:list --name=request` — **PASS**;
+- `npm run build` — **PASS**;
+- `git diff --check main...HEAD` — **PASS**;
+- manual UI smoke — **PASS**.
+
+Full-project regression was intentionally not required for this Request-scoped refactor under the agreed targeted-test policy.
+
+## Manual UI acceptance — PASS
+
+Verified locally:
+
+1. `/admin/requests/admin/types`
+   - input/select borders and focus/error states;
+   - page-size options and pagination behavior;
+   - responsive usability.
+2. `/admin/requests/admin/reports`
+   - filters and page-size selector;
+   - pagination preserving filters;
+   - selected-row CSV/XLSX export behavior;
+   - no-selection export of the complete current authorized filter scope;
+   - responsive card/table layouts.
+
+## PR/merge status
+
+PR **#152** contains the complete consolidated Request refactor. Automated local gates and manual UI acceptance are complete. The PR is ready for manual review and merge; do not split this implementation into additional PRs.
+
+## Next step
+
+1. Review PR #152.
+2. Merge manually when satisfied.
+3. After merge, refresh this handoff with the actual `main` merge checkpoint per `docs/GITHUB_COLLABORATION_WORKFLOW.md`.

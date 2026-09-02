@@ -22,26 +22,35 @@ class RequestReportsExportWorkspaceContractTest extends TestCase
             $this->assertStringContainsString($filterControl, $view);
         }
 
-        foreach (['name="confirmed"', 'Tôi xác nhận xuất đúng phạm vi', 'quyền tải xuống sẽ được kiểm tra lại', 'Tạo tệp xuất an toàn'] as $exportSafety) {
+        foreach (['name="confirmed"', 'selected_request_public_ids[]', 'nếu không chọn dòng nào', 'Quyền tải xuống sẽ được kiểm tra lại', 'Tạo tệp xuất an toàn'] as $exportSafety) {
             $this->assertStringContainsString($exportSafety, $view);
         }
 
+        $this->assertStringContainsString('id="request-export-form"', $view);
+        $this->assertStringContainsString('form="request-export-form"', $view);
+        $this->assertStringContainsString('Checkbox chỉ chọn các dòng của trang đang hiển thị', $view);
         $this->assertStringContainsString('md:hidden', $view);
         $this->assertStringContainsString('hidden overflow-x-auto md:block', $view);
         $this->assertStringContainsString("timezone(config('app.timezone'))", $view);
         $this->assertStringContainsString('role="status"', $view);
+        $this->assertStringContainsString('focus:ring-2', $view);
         $this->assertStringContainsString('min-h-11', $view);
 
-        $this->assertStringContainsString("Rule::in([10, 25, 50, 100])", $reportController);
+        $this->assertStringContainsString("config('request.settings.page_sizes'", $reportController);
+        $this->assertStringContainsString('Rule::in($pageSizes)', $reportController);
         $this->assertStringContainsString("Rule::when(\$httpRequest->filled('created_from'), 'after_or_equal:created_from')", $reportController);
         $this->assertStringContainsString("->only(['status', 'type_public_id', 'group_public_id', 'created_from', 'created_to'])", $reportController);
+        $this->assertStringContainsString("'selected_request_public_ids' => ['nullable', 'array'", $exportController);
+        $this->assertStringContainsString("'selected_request_public_ids.*' => ['required', 'ulid', 'distinct']", $exportController);
         $this->assertStringContainsString("'confirmed' => ['required', 'accepted']", $exportController);
         $this->assertStringContainsString("Rule::when(\$request->filled('created_from'), 'after_or_equal:created_from')", $exportController);
-        $this->assertStringContainsString("->only(['status', 'type_public_id', 'group_public_id', 'created_from', 'created_to'])", $exportController);
+        $this->assertStringContainsString("\$exportFilters['request_public_ids'] = \$selectedRequestPublicIds", $exportController);
         $this->assertStringContainsString("whereHas('type.group'", $query);
+        $this->assertStringContainsString("whereIn('request_instances.public_id', \$filters['request_public_ids'])", $query);
         $this->assertStringContainsString('localDayBoundary', $query);
         $this->assertStringContainsString("config('app.timezone', 'UTC')", $query);
         $this->assertStringContainsString("['type_public_id', 'group_public_id', 'request_public_id']", $planner);
+        $this->assertStringContainsString("array_key_exists('request_public_ids', \$filters)", $planner);
         $this->assertStringContainsString('invalidFilters', $planner);
         $this->assertStringNotContainsString('payload_json', $view);
         $this->assertStringNotContainsString('App\\Models\\User', $reportController.$exportController.$query.$planner.$view);
