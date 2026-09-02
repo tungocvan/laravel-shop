@@ -13,9 +13,58 @@ class GoogleIdentityService
 {
     public function resolve(object $googleUser): User
     {
+        return $this->resolveIdentity($googleUser, true);
+    }
+
+    public function resolveExisting(object $googleUser): User
+    {
+        return $this->resolveIdentity($googleUser, false);
+    }
+
+    public function link(User $user, object $googleUser): User
+    {
         [$googleId, $email] = $this->verifiedIdentity($googleUser);
 
-        return DB::transaction(function () use ($googleUser, $googleId, $email): User {
+        return DB::transaction(function () use ($user, $googleId, $email): User {
+            $current = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            if (! $current->is_active || mb_strtolower(trim((string) $current->email)) !== $email) {
+                throw ValidationException::withMessages([
+                    'email' => 'Email Google phải trùng với email của tài khoản đang đăng nhập.',
+                ]);
+            }
+
+            $googleOwner = User::withTrashed()
+                ->where('google_id', $googleId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($googleOwner && ! $googleOwner->is($current)) {
+                throw ValidationException::withMessages([
+                    'email' => 'Tài khoản Google này đã được liên kết với người dùng khác.',
+                ]);
+            }
+
+            if ($current->google_id && $current->google_id !== $googleId) {
+                throw ValidationException::withMessages([
+                    'email' => 'Tài khoản này đã liên kết với một tài khoản Google khác.',
+                ]);
+            }
+
+            $current->forceFill([
+                'google_id' => $googleId,
+                'email_verified_at' => $current->email_verified_at ?: now(),
+            ])->save();
+
+            return $current->refresh();
+        });
+    }
+
+    private function resolveIdentity(object $googleUser, bool $allowCreate): User
+    {
+        [$googleId, $email] = $this->verifiedIdentity($googleUser);
+
+        return DB::transaction(function () use ($googleUser, $googleId, $email, $allowCreate): User {
             $linked = User::withTrashed()
                 ->where('google_id', $googleId)
                 ->lockForUpdate()
@@ -78,6 +127,12 @@ class GoogleIdentityService
                 return $emailOwner->refresh();
             }
 
+            if (! $allowCreate) {
+                throw ValidationException::withMessages([
+                    'email' => 'Tài khoản quản trị phải được tạo và cấp quyền trước khi đăng nhập bằng Google.',
+                ]);
+            }
+
             $user = User::query()->create([
                 'name' => trim((string) $googleUser->getName()) ?: $email,
                 'email' => $email,
@@ -90,45 +145,6 @@ class GoogleIdentityService
             $user->forceFill(['email_verified_at' => now()])->save();
 
             return $user->refresh();
-        });
-    }
-
-    public function link(User $user, object $googleUser): User
-    {
-        [$googleId, $email] = $this->verifiedIdentity($googleUser);
-
-        return DB::transaction(function () use ($user, $googleId, $email): User {
-            $current = User::query()->lockForUpdate()->findOrFail($user->getKey());
-
-            if (! $current->is_active || mb_strtolower(trim((string) $current->email)) !== $email) {
-                throw ValidationException::withMessages([
-                    'email' => 'Email Google phải trùng với email của tài khoản đang đăng nhập.',
-                ]);
-            }
-
-            $googleOwner = User::withTrashed()
-                ->where('google_id', $googleId)
-                ->lockForUpdate()
-                ->first();
-
-            if ($googleOwner && ! $googleOwner->is($current)) {
-                throw ValidationException::withMessages([
-                    'email' => 'Tài khoản Google này đã được liên kết với người dùng khác.',
-                ]);
-            }
-
-            if ($current->google_id && $current->google_id !== $googleId) {
-                throw ValidationException::withMessages([
-                    'email' => 'Tài khoản này đã liên kết với một tài khoản Google khác.',
-                ]);
-            }
-
-            $current->forceFill([
-                'google_id' => $googleId,
-                'email_verified_at' => $current->email_verified_at ?: now(),
-            ])->save();
-
-            return $current->refresh();
         });
     }
 
