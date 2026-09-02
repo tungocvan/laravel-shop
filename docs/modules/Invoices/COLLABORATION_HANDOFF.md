@@ -7,10 +7,11 @@
 - Current branch: `refactor/invoices-runtime-cleanup`
 - Base checkpoint: `main@71cae9dc8b3ed99395ad15a7178c98436b1f95a5`
 - Contract bootstrap PR: `#156` — **MERGED**
-- Runtime cleanup status: **IMPLEMENTED — PENDING LOCAL VALIDATION / UI ACCEPTANCE**
+- Runtime cleanup PR: `#157`
+- Runtime cleanup status: **VALIDATED — READY FOR REVIEW / MANUAL MERGE**
 - Merge status: **NOT YET MERGED**
 
-PR #156 established `docs/modules/Invoices/MODULE.md` and aligned the module manifest with the three canonical persistence tables. The current branch continues the approved runtime cleanup without schema changes, route renames or ClientPortal/PWA presentation changes.
+PR #156 established `docs/modules/Invoices/MODULE.md` and aligned the module manifest with the three canonical persistence tables. PR #157 completes the approved runtime cleanup without schema changes, route renames or ClientPortal/PWA presentation changes.
 
 ## Canonical Ownership Contract
 
@@ -71,15 +72,15 @@ The required export behavior is preserved and regression-covered:
 
 ### PDF status/filter contract
 
-Canonical filter semantics now use `invoice_files.status` consistently:
+Canonical query semantics use `invoice_files.status`:
 
 - `available` -> metadata status `available`;
 - `error` -> metadata status `error`;
 - `missing` -> metadata status `missing` or no `invoice_files` metadata row.
 
-This fixes the reported UI case where selecting **Chưa có PDF** could still show rows represented as **Đã có PDF** by a different status interpretation.
+The UI additionally reconciles active PDF filters against physical storage before rendering/filtering so legacy or stale metadata cannot leave a physically available PDF inside **Chưa có PDF** results. `statusForInvoice()` treats a physically existing readable PDF as `available` before evaluating provider-resolution capability.
 
-Physical storage reconciliation remains the responsibility of the existing metadata scan/reconcile action.
+The user re-tested the previously failing **Chưa có PDF** case after this correction and reported **UI PASS**.
 
 ### PDF failure boundary
 
@@ -100,7 +101,7 @@ The invoice list filter workspace was normalized to the Admin UI contract:
 - separate action remains available for selecting the complete filtered scope;
 - destructive PDF deletion remains confirmation-gated.
 
-No aesthetic-only dashboard redesign was introduced.
+User acceptance for the corrected runtime UI: **PASS**.
 
 ## Compatibility / Non-Goals
 
@@ -128,43 +129,35 @@ Source coverage added for:
 - missing PDF including invoices with explicit `missing` metadata and invoices without metadata;
 - available/error invoices being excluded from the missing filter.
 
-## Validation Gate
+## Validation Result
 
-The source changes and tests are committed, but no GitHub CI workflow is attached to the current head and local runtime validation has not yet been reported by the user.
-
-Current gate:
+User-reported local validation for PR #157:
 
 ```text
-Pint changed PHP files                         PENDING
-Focused Invoices tests                         PENDING
-Directly impacted Admin regression             PENDING
-Route inspection                               PENDING
-Frontend production build                      PENDING
-Desktop UI acceptance                          PENDING
-Mobile/responsive UI acceptance                PENDING
-PDF "Chưa có PDF" functional UI check          PENDING
-Working tree clean                             PENDING
+Pint changed PHP files                         PASS
+InvoicesFilterSortTest                         PASS — 4 tests, 11 assertions
+InvoicesWorkspaceServiceTest                   PASS — 3 tests, 4 assertions
+Admin Invoices route inspection                PASS — 8 routes
+Frontend production build                      PASS
+Invoice filter/input UI acceptance             PASS
+PDF "Chưa có PDF" functional UI check          PASS
+Working tree before final fix pull             CLEAN
 ```
 
-Do not mark this refactor complete or merge the runtime cleanup PR until the relevant validation and UI acceptance are reported PASS.
+No full-project regression was run or required. No additional Admin module runtime source was changed by this refactor, so validation remained scoped to Invoices plus route/build/UI behavior.
 
-Recommended local validation scope remains limited to Invoices and directly impacted Admin behavior; full-project regression is not required unless scope expands.
+## Manual UI Acceptance Covered
 
-## Manual UI Acceptance Focus
+On `/admin/invoices/hoadon-list`, acceptance covered the corrected filter/input layout and the reported PDF status defect. The critical requirement is now satisfied: selecting **Chưa có PDF** no longer leaves physically available PDF rows displayed as **Đã có PDF** inside that result set.
 
-On `/admin/invoices/hoadon-list`, verify at minimum:
+The existing contracts remain unchanged:
 
-1. all filter/select/date controls have consistent visible borders and focus states;
-2. desktop/tablet/mobile filter layout remains readable and does not overflow;
-3. selecting **Chưa có PDF** shows no row labeled **Đã có PDF**;
-4. selecting **Đã có PDF** shows only available PDF rows;
-5. selecting **Lỗi tải PDF** shows only error rows;
-6. page-size options remain bounded to `10 / 25 / 50 / 100`;
-7. header checkbox selects the current page only;
-8. explicit all-filtered selection still works;
-9. export with selection exports selected invoices;
-10. export without selection exports the complete current filtered scope;
-11. destructive PDF deletion still requires confirmation.
+1. page-size options are bounded to `10 / 25 / 50 / 100`;
+2. header checkbox means current page only;
+3. explicit all-filtered selection remains separate;
+4. export with selection exports selected invoices;
+5. export without selection exports the complete filtered scope;
+6. destructive PDF deletion remains confirmation-gated.
 
 ## Deferred Existing Debt
 
@@ -182,9 +175,10 @@ Still deferred unless separately approved:
 ## Merge Gate
 
 1. Contract bootstrap PR #156: **COMPLETE / MERGED**.
-2. Runtime cleanup implementation: **COMPLETE, awaiting validation**.
-3. Focused automated validation: **PENDING USER/LOCAL RESULT**.
-4. Desktop/mobile UI acceptance: **PENDING USER RESULT**.
-5. Runtime cleanup PR review: **PENDING**.
-6. Manual merge to `main`: **PENDING**.
-7. Post-merge handoff closeout / clean-main verification: **PENDING**.
+2. Runtime cleanup implementation: **COMPLETE**.
+3. Focused automated validation: **PASS**.
+4. Route/build validation: **PASS**.
+5. UI/PDF-filter acceptance: **PASS**.
+6. PR #157 manual review: **READY**.
+7. Manual merge to `main`: **PENDING USER ACTION**.
+8. Post-merge handoff closeout / clean-main verification: **PENDING**.
