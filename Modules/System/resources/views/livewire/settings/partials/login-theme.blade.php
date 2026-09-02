@@ -6,8 +6,8 @@
         </div>
 
         <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1" role="group" aria-label="Cổng đăng nhập">
-            <button type="button" wire:click="$set('target', 'admin')" class="rounded-lg px-4 py-2 text-sm font-semibold {{ $target === 'admin' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500' }}">Admin</button>
-            <button type="button" wire:click="$set('target', 'client')" class="rounded-lg px-4 py-2 text-sm font-semibold {{ $target === 'client' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500' }}">Client / PWA</button>
+            <button type="button" wire:click="setTarget('admin')" class="rounded-lg px-4 py-2 text-sm font-semibold {{ $target === 'admin' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500' }}">Admin</button>
+            <button type="button" wire:click="setTarget('client')" class="rounded-lg px-4 py-2 text-sm font-semibold {{ $target === 'client' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500' }}">Client / PWA</button>
         </div>
     </div>
 
