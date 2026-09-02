@@ -2,86 +2,81 @@
 
 ## Current objective
 
-Follow-up feature after the merged Auth architecture/security refactor: **Auth Login Theme & Branding Manager V1**.
+**Login Theme Manager UI V1.1** — UI/UX refinement of the already merged Auth Login Theme & Branding Manager V1.
 
 Current branch:
 
-`feat/auth-login-theme-branding-manager`
+`refactor/auth-login-theme-admin-ui-v1-1`
 
-The previous Auth architecture/security MR was merged after `188 passed (1075 assertions)`, route verification, Vite build PASS and UI PASS.
+V1 was merged after focused regression, production build, Pint and user UI acceptance.
 
-## Approved scope
+## V1.1 approved scope
 
-The approved follow-up keeps authentication security behavior unchanged while adding configurable presentation for login surfaces.
+Refine only the System administration experience for login presentation settings:
 
-V1 scope:
-
-- System settings manages login appearance configuration;
-- Auth owns presentation semantics and rendering through a canonical presentation service;
-- four presets: `classic-card`, `split-brand`, `hero-overlay`, `minimal`;
-- independent Admin and Client/PWA settings;
-- configurable login logo, background image, title lines, description, primary color, overlay opacity, Google-button visibility and footer text;
-- live preview in System settings;
-- presentation engine designed for `/admin/login` and reusable by `/login`;
-- normalize the legacy logo contract so the Auth view consumes a resolved URL instead of treating it as a storage-relative path;
-- no changes to guards, credentials, authorization, OAuth identity resolution, callback policy or session security.
+- align ordinary inputs/textareas with `.codex/standards/ADMIN_UI_STANDARD.md`;
+- improve workspace hierarchy and responsive layout;
+- group configuration into clear task sections;
+- replace browser-native visible file controls with managed upload cards;
+- improve theme selection, color/overlay controls and Google visibility switch;
+- keep Live Preview prominent and sticky on sufficiently wide screens;
+- keep the primary save action visible through a sticky action area;
+- preserve existing settings keys, Auth presentation contract, persistence behavior and security behavior.
 
 ## Ownership boundary
 
-Auth owns:
+Unchanged from V1:
 
-- `LoginPresentationService`;
-- supported login theme vocabulary;
-- presentation normalization/defaults;
-- login rendering contract.
+- Auth owns `LoginPresentationService`, supported theme vocabulary, presentation normalization/defaults and login rendering contract.
+- System owns the administration UI, generic settings persistence/permission enforcement and managed login-branding upload lifecycle.
 
-System owns:
-
-- the administration UI for configuration;
-- generic settings persistence and permission enforcement;
-- managed upload lifecycle for login branding assets.
-
-The System settings UI consumes Auth's presentation contract but does not own authentication behavior.
+V1.1 does not move ownership between modules.
 
 ## Implementation status
 
-Implemented on the branch:
+Implemented on this branch in `Modules/System/resources/views/livewire/settings/partials/login-theme.blade.php`:
 
-- `Modules/Auth/Services/LoginPresentationService.php` as canonical presentation normalization boundary;
-- independent Admin and Client/PWA presentation keys;
-- System `Giao diện đăng nhập` settings tab;
-- four theme choices with live preview;
-- editable title lines, description, primary color, overlay opacity, footer and Google-button visibility;
-- dedicated login logo/background uploads with replacement cleanup limited to `login-branding/` managed paths;
-- default Auth login view rendered from presentation config;
-- guard-aware Google route selection in the shared default login view;
-- existing Admission/site branding retained as fallback when dedicated login branding has not been configured;
-- focused presentation regression test added at `tests/Feature/Auth/LoginThemePresentationTest.php`;
-- `docs/modules/Auth/MODULE.md` updated with presentation ownership and security invariants.
+- professional sectioned workspace: Mẫu giao diện, Nội dung thương hiệu, Màu sắc & hiệu ứng, Hình ảnh, Tùy chọn đăng nhập;
+- canonical visible-border Admin text controls with consistent padding, radius and indigo focus state;
+- validation messages located next to editable fields;
+- improved Admin / Client-PWA segmented target selector;
+- richer theme cards with selected state;
+- combined color swatch + HEX control;
+- overlay slider with explicit percentage and light/dark context;
+- managed logo/background upload cards with thumbnails and `Thay ảnh` / `Xóa` actions instead of exposed native file chrome;
+- switch-style Google Workspace visibility control;
+- sticky save action area with active target context;
+- larger bordered Live Preview surface, sticky on wide desktop layouts;
+- responsive single-column fallback before the wide workspace breakpoint.
 
-## Safety notes
+## Safety / unchanged behavior
 
-- Theme settings are presentation-only and must not mutate auth policy.
-- Uploaded replacement assets are written first; old managed assets are removed only after settings persistence succeeds.
-- On persistence failure, newly uploaded files are removed.
-- Asset deletion is restricted to paths under `login-branding/`; fallback/global site assets are never deleted by the login-theme manager.
-- Invalid theme/color/opacity values are normalized to safe presentation defaults at read time.
+- No database/schema changes.
+- No settings-key changes.
+- No Auth guard, credential, authorization, OAuth, callback or session-security changes.
+- No changes to `LoginPresentationService` behavior.
+- No changes to upload persistence/deletion logic; this MR changes only its administration presentation.
+- Live Preview continues to use unsaved Livewire state and does not persist until the explicit save action.
 
 ## Validation checkpoint
 
-User-executed checkpoint results:
+V1 baseline before this refinement:
 
-- Auth/System impacted regression: `188 passed (1075 assertions)` in `12.74s`;
-- Vite production build: PASS, `34 modules transformed`, completed in `3.99s`;
-- initial Pint checkpoint found two formatting-only issues in `LoginForm.php` and `LoginTheme.php`;
-- those Pint issues were corrected on the branch with formatting-only commits;
-- UI smoke for Login Theme & Branding Manager V1: **PASS**.
+- focused impacted regression: `188 passed (1075 assertions)`;
+- Vite production build: PASS (`34 modules transformed`);
+- Pint: PASS;
+- V1 UI smoke: PASS.
 
-The user confirmed the configurable login UI works after the implementation and formatting correction.
+V1.1 final checkpoint requested from the user:
 
-## Deferred / unchanged boundaries
+- Pint for the affected System Livewire/view surface as applicable;
+- focused Auth regression to prove presentation/security behavior remains stable;
+- focused System regression for settings;
+- Vite production build;
+- UI smoke at System → Settings → Giao diện đăng nhập on desktop and a narrow/mobile viewport;
+- verify all four theme cards, Admin/Client-PWA target switch, inputs, color/slider, upload cards, Google switch, sticky save action and Live Preview.
 
-From the earlier Auth refactor, the following remain unchanged:
+## Deferred / unchanged Auth refactor boundaries
 
 - `GoogleWebAuthService`: deprecated compatibility adapter / `QUARANTINE`;
 - API Auth stub: `QUARANTINE`;
@@ -90,14 +85,9 @@ From the earlier Auth refactor, the following remain unchanged:
 
 ## Current status
 
-- Previous Auth security refactor: MERGED.
-- Follow-up branch creation: COMPLETE.
-- Presentation contract: COMPLETE.
-- System settings manager: COMPLETE.
-- Four-theme live preview: COMPLETE.
-- Auth login rendering integration: COMPLETE.
-- Focused regression coverage: PASS (`188 passed`, `1075 assertions`).
-- Vite production build: PASS.
-- Pint formatting issues: FIXED; final re-run should be confirmed before PR if desired.
-- UI smoke checkpoint: PASS.
-- Follow-up MR readiness: READY FOR FINAL PR REVIEW after final Pint confirmation.
+- V1: MERGED.
+- V1.1 branch: ACTIVE.
+- V1.1 UI implementation: COMPLETE.
+- Architecture/security scope: UNCHANGED.
+- Final focused test/build/UI checkpoint: NEXT.
+- PR: NOT YET CREATED; wait for final UI acceptance.
