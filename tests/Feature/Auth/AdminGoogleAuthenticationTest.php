@@ -14,11 +14,20 @@ class AdminGoogleAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_google_callback_uses_admin_guard_without_provisioning_roles(): void
+    public function test_admin_google_callback_uses_existing_account_without_provisioning_roles(): void
     {
-        $googleUser = $this->googleUser('admin-google-100', 'admin-google@example.com');
+        $existing = User::query()->create([
+            'name' => 'Existing Admin Google User',
+            'email' => 'admin-google@example.com',
+            'password' => Hash::make('Password123!'),
+            'google_id' => 'admin-google-100',
+            'is_active' => true,
+        ]);
+
         $provider = Mockery::mock();
-        $provider->shouldReceive('user')->once()->andReturn($googleUser);
+        $provider->shouldReceive('user')->once()->andReturn(
+            $this->googleUser('admin-google-100', 'admin-google@example.com'),
+        );
         Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
 
         $this->get(route('google.callback'))
@@ -26,10 +35,27 @@ class AdminGoogleAuthenticationTest extends TestCase
 
         $user = User::query()->where('google_id', 'admin-google-100')->sole();
 
+        $this->assertTrue($user->is($existing));
         $this->assertAuthenticatedAs($user, 'admin');
         $this->assertGuest('web');
         $this->assertNotNull($user->last_login_at);
         $this->assertCount(0, $user->roles);
+    }
+
+    public function test_admin_google_callback_does_not_create_unknown_account(): void
+    {
+        $provider = Mockery::mock();
+        $provider->shouldReceive('user')->once()->andReturn(
+            $this->googleUser('admin-google-new', 'new-admin@example.com'),
+        );
+        Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
+
+        $this->get(route('google.callback'))
+            ->assertRedirect(route('admin.login'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest('admin');
+        $this->assertDatabaseMissing('users', ['email' => 'new-admin@example.com']);
     }
 
     public function test_admin_google_callback_does_not_restore_soft_deleted_account(): void
