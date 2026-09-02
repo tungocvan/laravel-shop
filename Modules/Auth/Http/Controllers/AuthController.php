@@ -11,9 +11,7 @@ use Modules\System\Services\AdminLoginRedirectService;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AdminLoginRedirectService $adminLoginRedirect)
-    {
-    }
+    public function __construct(private readonly AdminLoginRedirectService $adminLoginRedirect) {}
 
     public function clientLogin(): View|RedirectResponse
     {
