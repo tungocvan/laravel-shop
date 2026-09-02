@@ -6,19 +6,18 @@ use App\Http\Controllers\Controller;
 use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
-use Modules\Auth\Services\AuthService;
+use Modules\Auth\Services\GoogleWebAuthService;
 
 class GoogleController extends Controller
 {
-    protected $authService;
-
-    public function __construct(AuthService $authService)
-    {
-        $this->authService = $authService;
-    }
+    public function __construct(
+        private readonly GoogleWebAuthService $googleAuthService,
+    ) {}
 
     public function redirectToGoogle(Request $request): RedirectResponse
     {
@@ -40,13 +39,20 @@ class GoogleController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function handleGoogleCallback()
+    public function handleGoogleCallback(): RedirectResponse
     {
         try {
             $googleUser = Socialite::driver('google')->user();
-            $this->authService->handleGoogleUser($googleUser);
+            $user = $this->googleAuthService->resolve($googleUser);
+
+            Auth::guard('admin')->login($user);
+            request()->session()->regenerate();
+
+            $user->forceFill(['last_login_at' => now()])->save();
 
             return redirect()->route('admin.dashboard');
+        } catch (ValidationException $e) {
+            return redirect()->route('admin.login')->withErrors($e->errors());
         } catch (InvalidStateException $e) {
             Log::warning('Google OAuth state mismatch.', [
                 'exception' => $e::class,
