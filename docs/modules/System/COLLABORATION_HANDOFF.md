@@ -6,7 +6,7 @@
 - Mode: Refactor Module
 - Branch: `refactor/system-architecture-boundaries`
 - Architecture contract: `docs/modules/System/MODULE.md`
-- Status: **IMPLEMENTATION COMPLETE — FINAL GATE PENDING**
+- Status: **IMPLEMENTATION COMPLETE — READY FOR PR REVIEW**
 - UI smoke: **PASS** on 2026-09-02
 
 This refactor establishes the System ownership contract, removes Admin menu ownership from System settings, hardens Admin post-login landing behavior, and removes runtime dependence on Website for Admin/root fallback and ClientPortal PWA manifest delivery.
@@ -40,15 +40,15 @@ This refactor establishes the System ownership contract, removes Admin menu owne
 
 ## Verification Completed
 
-Earlier System regression before the final corrective landing patches:
+Historical System regression before the final corrective landing patches:
 
 ```text
 System Feature regression    PASS — 184 tests, 1062 assertions
 ```
 
-This result predates the final Website-off/Auth/ClientPortal corrective changes and is retained only as historical evidence, not as the final regression gate.
+This result predates the final Website-off/Auth/ClientPortal corrective changes and is retained only as historical evidence.
 
-Latest focused corrective gate after all runtime fixes:
+Focused corrective integration gate after runtime fixes:
 
 ```text
 AdminLoginRedirectSettingTest      PASS
@@ -62,6 +62,38 @@ ClientPortalPwaBoundaryTest        PASS
 
 The single skip is expected when Website is disabled and the optional root `home` route is not registered.
 
+Additional cross-module regression completed before the final formatter/test-only corrections:
+
+```text
+AuthGuardSeparationTest + ClientPortalPwaBoundaryTest
+PASS — 7 tests, 47 assertions
+```
+
+Route inspection completed:
+
+```text
+/admin/system/*                    PASS — 12 routes present
+/my-apps/*                         PASS — 10 routes present
+client.apps.manifest               PASS — /my-apps/manifest.webmanifest
+```
+
+Frontend production build completed:
+
+```text
+Vite 7.3.6                         PASS — 34 modules transformed, 3.47s
+```
+
+Final formatter gate on the corrective slice: **PASS**.
+
+Final System Feature regression after all runtime, formatter and test-contract corrections:
+
+```text
+System Feature regression          PASS — 187 passed, 1 skipped, 1072 assertions
+Duration                           10.13s
+```
+
+Final Git worktree: **CLEAN** and branch up to date with `origin/refactor/system-architecture-boundaries`.
+
 Manual UI smoke with Website OFF: **PASS**.
 
 Verified behavior:
@@ -74,19 +106,6 @@ Verified behavior:
 - `/admin/system/settings` exposes `Đăng nhập & Điều hướng`;
 - `/admin/system/settings` no longer exposes `Quản lý Menu`;
 - no Website view-hint failure is required for the Admin/root fallback path.
-
-## Final Gate Still Required
-
-Run once after pulling the documentation commits:
-
-```text
-Pint on changed PHP files
-System Feature regression
-Focused Auth/ClientPortal boundary regression as applicable
-System route inspection
-Frontend production build
-Git diff/worktree cleanliness
-```
 
 A full-project regression remains outside the approved scope.
 
@@ -108,9 +127,12 @@ A full-project regression remains outside the approved scope.
 5. **COMPLETE** — Website-off root/404/Auth corrective boundary implemented.
 6. **COMPLETE** — ClientPortal manifest ownership corrected.
 7. **COMPLETE** — focused corrective tests passed: 17 passed, 1 skipped, 102 assertions.
-8. **COMPLETE** — manual UI smoke passed.
-9. **PENDING** — one consolidated final Pint/System regression/routes/build/worktree gate.
-10. **PENDING** — open PR to `main` for manual user review/merge.
+8. **COMPLETE** — route inspection, frontend build and impacted Auth/ClientPortal regression passed.
+9. **COMPLETE** — manual UI smoke passed.
+10. **COMPLETE** — final Pint corrective-slice gate passed.
+11. **COMPLETE** — final System regression passed: 187 passed, 1 skipped, 1072 assertions.
+12. **COMPLETE** — final worktree clean and synchronized.
+13. **READY** — open PR to `main` for manual user review/merge.
 
 ---
 
