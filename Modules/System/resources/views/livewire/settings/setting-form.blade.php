@@ -27,9 +27,13 @@
         aria-labelledby="settings-tab-{{ $activeTab }}"
         class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
     >
-        <livewire:is
-            :component="$this->getTabComponent()"
-            wire:key="tab-{{ $activeTab }}"
-        />
+        @if ($activeTab === 'login_theme')
+            <livewire:system.settings.partials.login-theme wire:key="settings-login-theme" />
+        @else
+            <livewire:is
+                :component="$this->getTabComponent()"
+                wire:key="tab-{{ $activeTab }}"
+            />
+        @endif
     </div>
 </div>
