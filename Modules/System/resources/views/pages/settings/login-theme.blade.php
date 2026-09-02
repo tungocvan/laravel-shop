@@ -17,4 +17,88 @@
 
         @livewire('system.settings.partials.login-theme')
     </div>
+
+    <script>
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('label[for="login-logo-file"], label[for="login-background-file"]');
+
+            if (! trigger) {
+                return;
+            }
+
+            const originalInput = document.getElementById(trigger.getAttribute('for'));
+
+            if (! originalInput || originalInput.disabled) {
+                event.preventDefault();
+                return;
+            }
+
+            const sourceForm = originalInput.form;
+
+            if (! sourceForm) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const pickerForm = document.createElement('form');
+            pickerForm.method = 'POST';
+            pickerForm.action = sourceForm.action;
+            pickerForm.enctype = 'multipart/form-data';
+            pickerForm.style.display = 'none';
+
+            const token = sourceForm.querySelector('input[name="_token"]');
+            const target = sourceForm.querySelector('input[name="target"]');
+
+            if (token) {
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '_token';
+                tokenInput.value = token.value;
+                pickerForm.appendChild(tokenInput);
+            }
+
+            if (target) {
+                const targetInput = document.createElement('input');
+                targetInput.type = 'hidden';
+                targetInput.name = 'target';
+                targetInput.value = target.value;
+                pickerForm.appendChild(targetInput);
+            }
+
+            const picker = document.createElement('input');
+            picker.type = 'file';
+            picker.name = 'asset';
+            picker.accept = originalInput.accept;
+            pickerForm.appendChild(picker);
+            document.body.appendChild(pickerForm);
+
+            let submitted = false;
+            const cleanup = () => {
+                if (! submitted && pickerForm.isConnected) {
+                    pickerForm.remove();
+                }
+            };
+
+            picker.addEventListener('change', () => {
+                if (! picker.files || picker.files.length === 0) {
+                    cleanup();
+                    return;
+                }
+
+                submitted = true;
+                pickerForm.submit();
+            }, { once: true });
+
+            window.addEventListener('focus', () => {
+                window.setTimeout(() => {
+                    if (! submitted && (! picker.files || picker.files.length === 0)) {
+                        cleanup();
+                    }
+                }, 250);
+            }, { once: true });
+
+            picker.click();
+        });
+    </script>
 @endsection
