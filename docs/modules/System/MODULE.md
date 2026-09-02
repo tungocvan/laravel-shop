@@ -54,7 +54,7 @@ These dependencies must remain synchronized with `Modules/System/config/module.p
 
 ### Integration dependencies
 
-- Website: optional root `/` route (`home`) may be offered as the preferred post-login landing target when the route is currently registered.
+- Website: optional root `/` route (`home`) may be offered as a selectable post-login landing target when the route is currently registered. It is never the default dependency for Admin login.
 - Root module runtime infrastructure: `ModuleCatalog`, `ModuleGraphValidator`, `ModuleRegistry`, lifecycle/state/permission services are consumed by System runtime administration without transferring canonical ownership into System.
 
 ## 6. Consumers
@@ -84,7 +84,7 @@ System owns the authenticated Admin route group under `/admin/system/*`, includi
 
 `/admin/settings` remains a compatibility redirect to `/admin/system/settings` until caller proof supports removal.
 
-The public root `/` route is not owned by System. When it exists as a named, parameterless GET route, System may expose it as a post-login landing option.
+The public root `/` route is not owned by System. When it exists as a named, parameterless GET route, System may expose it as a post-login landing option. The default Admin login landing is `/admin` (`admin.dashboard`).
 
 ## 8. Canonical Runtime Components
 
@@ -101,7 +101,6 @@ The public root `/` route is not owned by System. When it exists as a named, par
 
 - `Settings/SettingForm` — System settings tab/workspace selector.
 - `Settings/Partials/*` — System-owned settings sections.
-- `Settings/ModulesForm` — module runtime management surface.
 - `Database/*` — database management surfaces.
 
 System settings must not embed `admin.header.menu-manager`; Admin owns menu management.
@@ -111,7 +110,7 @@ System settings must not embed `admin.header.menu-manager`; Admin owns menu mana
 Canonical families:
 
 - `SettingsService` — DB-backed system setting persistence/access.
-- `AdminLoginRedirectService` — validated post-login landing selection with compatibility fallback.
+- `AdminLoginRedirectService` — validated post-login landing selection with Admin-first fallback.
 - `Services/Env/*` — environment/infrastructure configuration and diagnostics.
 - `Services/Database/*` — extracted database administration responsibilities.
 - `Services/Cloud/*` — Google Drive/cloud integration responsibilities.
@@ -154,7 +153,7 @@ Module runtime state storage such as `storage/app/system/module-state.json` is p
 - Owner: Website.
 - Consumer: System login-landing setting.
 - Direction: optional integration only.
-- System may select the registered parameterless GET root `/` route. If unavailable, System must fall back to an allowed Admin route without creating or taking ownership of `/`.
+- System may select the registered parameterless GET root `/` route when an administrator explicitly chooses it. The default and safety fallback remain `admin.dashboard`, so disabling Website or removing `/` must not break Admin login navigation.
 
 ### Root module runtime
 
@@ -197,7 +196,7 @@ Every System refactor must preserve:
 9. Admin UI standard, responsive behavior and bounded pagination where datasets apply;
 10. Admin-owned global menu/navigation ownership;
 11. optional Website root-route integration without making Website a hard dependency;
-12. safe fallback when a configured post-login route disappears or becomes invalid.
+12. safe Admin-first fallback when a configured post-login route disappears or becomes invalid.
 
 ## 14. Required Refactor Audit
 
@@ -246,10 +245,10 @@ Update this file in the same PR whenever changing System responsibility, ownersh
 
 **Impact:** Refactors must converge on the service families above and keep uncertain legacy in quarantine/defer until caller proof exists.
 
-### 2026-09-02 — Root route may be a post-login landing target
+### 2026-09-02 — Admin-first post-login landing with optional root target
 
-**Decision:** The currently registered root `/` parameterless GET route may be selected as the preferred post-login landing destination even though it is not an `admin.*` route. Existing valid Admin route-name values remain compatible. If the selected route disappears, resolve to a safe available fallback.
+**Decision:** The default post-login landing is `admin.dashboard` (`/admin`). A currently registered root `/` parameterless GET route may still be selected explicitly, but it is optional. If the selected route disappears, becomes invalid, or the owning Website module is disabled, System resolves back to the Admin dashboard.
 
-**Reason:** Operators may prefer entering the application at `/`; System configures the preference but does not own or create the Website route.
+**Reason:** Admin authentication must not depend on Website availability. Operators can still opt into `/` while it exists without transferring root-route ownership into System.
 
-**Impact:** `AdminLoginRedirectService` must validate both Admin routes and the root route and must never create a hard Website dependency.
+**Impact:** `AdminLoginRedirectService` validates both Admin routes and the optional root route, defaults and falls back to `admin.dashboard`, and never creates a hard Website dependency.
