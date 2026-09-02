@@ -16,11 +16,25 @@ class UserService
 
     public function paginateStaff(array $filters, User $actor): LengthAwarePaginator
     {
-        $perPage = min(max((int) ($filters['per_page'] ?? 10), 1), 100);
+        $perPage = $this->normalizePerPage($filters['per_page'] ?? 10);
 
         return $this->staffQuery($filters, $actor)
             ->latest()
             ->paginate($perPage);
+    }
+
+    public function exportStaff(array $filters, User $actor): Collection
+    {
+        $selectedIds = collect($filters['selected_ids'] ?? [])
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+
+        return $this->staffQuery($filters, $actor)
+            ->when($selectedIds->isNotEmpty(), fn (Builder $query) => $query->whereKey($selectedIds->all()))
+            ->latest('id')
+            ->get();
     }
 
     public function availableRoles(User $actor): Collection
@@ -102,7 +116,7 @@ class UserService
 
     public function selectedPageIds(array $filters, User $actor): array
     {
-        $perPage = min(max((int) ($filters['per_page'] ?? 10), 1), 100);
+        $perPage = $this->normalizePerPage($filters['per_page'] ?? 10);
 
         return $this->staffQuery($filters, $actor)
             ->paginate($perPage)
@@ -128,6 +142,13 @@ class UserService
                 });
             })
             ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $roles) => $roles->whereKey($role)));
+    }
+
+    private function normalizePerPage(mixed $perPage): int
+    {
+        $perPage = (int) $perPage;
+
+        return in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 10;
     }
 
     private function allowedRoleNames(array $roleNames, User $actor, array $existingRoles): array
