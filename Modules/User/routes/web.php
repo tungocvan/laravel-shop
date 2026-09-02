@@ -18,4 +18,4 @@ Route::middleware(['web', 'auth:admin', 'permission:view_user,admin'])
                 ->whereNumber('id')
                 ->name('edit');
         });
-});
+    });

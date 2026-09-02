@@ -21,10 +21,7 @@ class ImportExport extends BaseImportExportService
 
     protected string $defaultSheetName = 'users';
 
-    protected array $requiredHeaders = [
-        'name',
-        'email',
-    ];
+    protected array $requiredHeaders = ['name', 'email'];
 
     protected array $rules = [
         'name' => ['required', 'string', 'max:255'],
@@ -72,13 +69,10 @@ class ImportExport extends BaseImportExportService
 
         try {
             $this->validateImportFile($filePath);
-
             $rows = (new FastExcel)->import($filePath);
 
             $this->addDebug('sheets', [$this->defaultSheetName]);
-            $this->addDebug('sheet_counts', [
-                $this->defaultSheetName => $rows->count(),
-            ]);
+            $this->addDebug('sheet_counts', [$this->defaultSheetName => $rows->count()]);
 
             if (! $dryRun) {
                 DB::beginTransaction();
@@ -87,7 +81,6 @@ class ImportExport extends BaseImportExportService
             foreach ($rows as $index => $rawRow) {
                 $rowNumber = $index + 2;
                 $this->totalRows++;
-
                 $row = $this->normalizeRowHeaders((array) $rawRow);
 
                 if (! $this->hasRequiredHeaders($row)) {
@@ -178,20 +171,7 @@ class ImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
-        return User::query()
-            ->select('id', 'name', 'email', 'phone', 'is_active', 'created_at')
-            ->with('roles:id,name,guard_name')
-            ->whereHas('roles')
-            ->when($filters['search'] ?? null, function ($query, string $search): void {
-                $query->where(function ($subQuery) use ($search): void {
-                    $subQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
-                });
-            })
-            ->when($filters['role'] ?? null, fn ($query, string $role) => $query->whereHas('roles', fn ($roles) => $roles->whereKey($role)))
-            ->latest('id')
-            ->get();
+        return app(UserService::class)->exportStaff($filters, $this->actor());
     }
 
     protected function mapExportRow(Model $model): array
@@ -262,7 +242,6 @@ class ImportExport extends BaseImportExportService
 
         $user->save();
         $this->syncAdminRoles($user, $row['roles']);
-
         $this->successRows++;
     }
 
@@ -276,16 +255,22 @@ class ImportExport extends BaseImportExportService
             return false;
         }
 
+        $unknownRoles = collect($roles)
+            ->diff(Role::query()->where('guard_name', 'admin')->whereIn('name', $roles)->pluck('name'))
+            ->values();
+
+        if ($unknownRoles->isNotEmpty()) {
+            $this->addError($this->defaultSheetName, $rowNumber, 'roles', 'Vai trò không tồn tại trong Role catalog: '.$unknownRoles->implode(', '), implode(', ', $roles));
+
+            return false;
+        }
+
         return true;
     }
 
     private function normalizeRoles(mixed $value): array
     {
-        if (is_array($value)) {
-            $roles = $value;
-        } else {
-            $roles = preg_split('/[,;|]+/', (string) $value) ?: [];
-        }
+        $roles = is_array($value) ? $value : (preg_split('/[,;|]+/', (string) $value) ?: []);
 
         $roles = collect($roles)
             ->map(fn (mixed $role): ?string => $this->cleanString($role))
@@ -299,41 +284,22 @@ class ImportExport extends BaseImportExportService
 
     private function syncAdminRoles(User $user, array $roles): void
     {
-        $roleIds = $this->adminRoleIds($roles);
-
-        DB::table(config('permission.table_names.model_has_roles', 'model_has_roles'))
-            ->where('model_type', $user->getMorphClass())
-            ->where('model_id', $user->getKey())
-            ->delete();
-
-        foreach ($roleIds as $roleId) {
-            DB::table(config('permission.table_names.model_has_roles', 'model_has_roles'))->insert([
-                'role_id' => $roleId,
-                'model_type' => $user->getMorphClass(),
-                'model_id' => $user->getKey(),
-            ]);
-        }
-
+        $user->syncRoles($roles);
         $user->unsetRelation('roles');
-    }
-
-    private function adminRoleIds(array $roles): array
-    {
-        return collect($roles)
-            ->map(function (string $role): int {
-                return Role::query()->firstOrCreate([
-                    'name' => $role,
-                    'guard_name' => 'admin',
-                ])->id;
-            })
-            ->all();
     }
 
     private function actorIsSuperAdmin(): bool
     {
+        return $this->isSuperAdmin($this->actor());
+    }
+
+    private function actor(): User
+    {
         $actor = auth('admin')->user();
 
-        return $actor instanceof User && $this->isSuperAdmin($actor);
+        abort_unless($actor instanceof User, 403);
+
+        return $actor;
     }
 
     private function isSuperAdmin(User $user): bool
