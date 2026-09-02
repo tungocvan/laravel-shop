@@ -168,27 +168,7 @@ class ImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
-        $selectedIds = collect($filters['selected_ids'] ?? [])
-            ->map(fn (mixed $id): int => (int) $id)
-            ->filter(fn (int $id): bool => $id > 0)
-            ->unique()
-            ->values();
-
-        return User::query()
-            ->select('id', 'name', 'email', 'phone', 'is_active', 'created_at')
-            ->with('roles:id,name,guard_name')
-            ->whereHas('roles')
-            ->when($filters['search'] ?? null, function ($query, string $search): void {
-                $query->where(function ($subQuery) use ($search): void {
-                    $subQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
-                });
-            })
-            ->when($filters['role'] ?? null, fn ($query, string $role) => $query->whereHas('roles', fn ($roles) => $roles->whereKey($role)))
-            ->when($selectedIds->isNotEmpty(), fn ($query) => $query->whereKey($selectedIds->all()))
-            ->latest('id')
-            ->get();
+        return app(UserService::class)->exportStaff($filters, $this->actor());
     }
 
     protected function mapExportRow(Model $model): array
@@ -268,6 +248,15 @@ class ImportExport extends BaseImportExportService
             return false;
         }
 
+        $unknownRoles = collect($roles)
+            ->diff(Role::query()->where('guard_name', 'admin')->whereIn('name', $roles)->pluck('name'))
+            ->values();
+
+        if ($unknownRoles->isNotEmpty()) {
+            $this->addError($this->defaultSheetName, $rowNumber, 'roles', 'Vai trò không tồn tại trong Role catalog: '.$unknownRoles->implode(', '), implode(', ', $roles));
+            return false;
+        }
+
         return true;
     }
 
@@ -287,41 +276,22 @@ class ImportExport extends BaseImportExportService
 
     private function syncAdminRoles(User $user, array $roles): void
     {
-        $roleIds = $this->adminRoleIds($roles);
-
-        DB::table(config('permission.table_names.model_has_roles', 'model_has_roles'))
-            ->where('model_type', $user->getMorphClass())
-            ->where('model_id', $user->getKey())
-            ->delete();
-
-        foreach ($roleIds as $roleId) {
-            DB::table(config('permission.table_names.model_has_roles', 'model_has_roles'))->insert([
-                'role_id' => $roleId,
-                'model_type' => $user->getMorphClass(),
-                'model_id' => $user->getKey(),
-            ]);
-        }
-
+        $user->syncRoles($roles);
         $user->unsetRelation('roles');
-    }
-
-    private function adminRoleIds(array $roles): array
-    {
-        return collect($roles)
-            ->map(function (string $role): int {
-                return Role::query()->firstOrCreate([
-                    'name' => $role,
-                    'guard_name' => 'admin',
-                ])->id;
-            })
-            ->all();
     }
 
     private function actorIsSuperAdmin(): bool
     {
+        return $this->isSuperAdmin($this->actor());
+    }
+
+    private function actor(): User
+    {
         $actor = auth('admin')->user();
 
-        return $actor instanceof User && $this->isSuperAdmin($actor);
+        abort_unless($actor instanceof User, 403);
+
+        return $actor;
     }
 
     private function isSuperAdmin(User $user): bool
