@@ -16,7 +16,10 @@ Auth owns:
 - email verification and OTP verification workflows;
 - Google OAuth authentication and explicit account linking;
 - authentication-session security behavior such as session regeneration and invalidation;
-- Auth-specific identity-verification persistence.
+- Auth-specific identity-verification persistence;
+- rendering and presentation contracts for Auth login surfaces.
+
+System may own the administration of configurable login presentation values, but those settings must be consumed through an Auth presentation boundary and must not acquire ownership of authentication behavior.
 
 ## Explicit non-ownership
 
@@ -28,7 +31,8 @@ Auth does not own:
 - generic cache or cache-lock persistence;
 - queue, job, job-batch, or failed-job persistence;
 - generic session schema;
-- admin dashboard, menu, module catalog, or module-management behavior.
+- admin dashboard, menu, module catalog, or module-management behavior;
+- the generic System settings administration surface.
 
 Integration with those boundaries must remain explicit and must not silently transfer ownership into Auth.
 
@@ -45,6 +49,7 @@ Integration with those boundaries must remain explicit and must not silently tra
 9. Login/link callbacks must preserve OAuth state validation and regenerate the session after authentication transitions.
 10. Logout must invalidate the authenticated session and regenerate the CSRF token.
 11. Authentication failures exposed to users must not leak provider tokens, secrets, or sensitive exception details.
+12. Login theme/branding settings may alter presentation only; they must not change guards, credentials, authorization, OAuth identity policy, callback behavior, or session security.
 
 ## Runtime boundaries
 
@@ -57,6 +62,24 @@ HTTP or Livewire adapter
 → Laravel guard/session runtime
 
 Guard-specific redirects and UX may differ between `web` and `admin`; identity/security policy must remain consistent.
+
+### Login presentation
+
+System settings administration
+→ persisted presentation values
+→ `LoginPresentationService`
+→ `LoginForm` / Auth login view
+
+`LoginPresentationService` is the canonical presentation-normalization boundary for configurable login themes. Admin and client login surfaces may use independent presentation settings while sharing the same supported theme vocabulary and safe normalization rules.
+
+Initial supported presets are:
+
+- `classic-card`;
+- `split-brand`;
+- `hero-overlay`;
+- `minimal`.
+
+Presentation settings may include logo, background image, title lines, description, primary color, overlay opacity, Google-button visibility and footer text. Asset paths must be converted to renderable URLs before entering the view contract; views must not reinterpret a resolved URL as a storage-relative path.
 
 ### Google OAuth
 
@@ -81,6 +104,7 @@ Known application integrations include:
 
 - canonical `App\Models\User` identity persistence;
 - System's administrator-login redirect service;
+- System settings as the administration/persistence integration for configurable login presentation;
 - ClientPortal route destinations;
 - mail/notification infrastructure used by verification flows.
 
@@ -89,6 +113,8 @@ Role/permission provisioning is an external authorization/account-provisioning r
 ## Persistence ownership
 
 Auth owns the user-email-verification persistence required by its verification flows.
+
+Login presentation settings are configuration records managed through System's generic settings infrastructure; Auth owns their presentation semantics, not the generic settings persistence implementation.
 
 The cache, cache-lock, jobs, job-batches, failed-jobs, and generic sessions migrations currently located under `Modules/Auth/database/migrations` are ownership drift. They are classified `QUARANTINE` until migration-ledger, fresh-install, existing-schema, rollback, and canonical-owner proof is complete. Their physical relocation or deletion is not authorized merely by this contract.
 
@@ -102,14 +128,15 @@ The cache, cache-lock, jobs, job-batches, failed-jobs, and generic sessions migr
 ## Refactor classification baseline
 
 - `AuthController`: KEEP.
-- `LoginForm`: KEEP.
+- `LoginForm`: KEEP; consumes canonical presentation config.
+- `LoginPresentationService`: KEEP / CANONICAL for login presentation normalization.
 - `RegistrationForm`: KEEP.
 - `VerifyEmailOtpForm`: KEEP.
 - `RegistrationService`: KEEP / REFACTOR.
 - `GoogleIdentityService`: KEEP / CANONICAL.
 - `ClientGoogleController`: KEEP as client/PWA adapter.
 - `GoogleController`: KEEP as admin adapter.
-- legacy `AuthService`: CLEANED from runtime/source after replacement proof in this refactor branch.
+- legacy `AuthService`: CLEANED from runtime/source after replacement proof in the architecture/security refactor.
 - `GoogleWebAuthService`: QUARANTINE compatibility adapter; delegates only to `GoogleIdentityService`.
 - `UserEmailVerification` and its migrations: KEEP.
 - cache/cache-lock migrations: QUARANTINE → REHOME candidate.
@@ -121,6 +148,8 @@ The cache, cache-lock, jobs, job-batches, failed-jobs, and generic sessions migr
 ## Refactor delivery policy
 
 The approved refactor should consolidate coherent authentication architecture/security changes into one primary MR where safe. Persistence relocation is separated only when schema/migration-ledger proof shows that an independent migration-safe change is required.
+
+Login presentation features must remain independently testable from authentication/security policy. Theme or branding changes must not be used as a reason to bypass Auth regression coverage.
 
 Deletion or rehoming requires caller/ownership proof; similarity or apparent duplication alone is not sufficient evidence.
 
