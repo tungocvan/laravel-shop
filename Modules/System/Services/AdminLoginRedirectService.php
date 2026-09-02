@@ -8,12 +8,12 @@ use Illuminate\Support\Facades\Route;
 class AdminLoginRedirectService
 {
     public const SETTING_KEY = 'admin_login_redirect_route';
+
     public const DEFAULT_ROUTE = 'admin.dashboard';
+
     public const FALLBACK_ADMIN_ROUTE = 'admin.dashboard';
 
-    public function __construct(private readonly SettingsService $settings)
-    {
-    }
+    public function __construct(private readonly SettingsService $settings) {}
 
     public function configuredRoute(): string
     {
