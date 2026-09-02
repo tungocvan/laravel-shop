@@ -21,7 +21,6 @@ The primary MR covers, where caller and compatibility proof permits:
 - review/quarantine legacy API and generic CRUD permission surfaces;
 - preserve and strengthen registration/email-verification/OTP behavior;
 - retain guard-specific redirects while making identity policy consistent;
-- perform Auth UI/UX consistency/accessibility cleanup where required;
 - add focused Auth and directly impacted integration regression coverage;
 - close out documentation and ownership classifications.
 
@@ -29,17 +28,9 @@ The primary MR covers, where caller and compatibility proof permits:
 
 Infrastructure migrations currently under Auth for cache, cache locks, jobs, job batches, failed jobs, and generic sessions are classified `QUARANTINE` pending migration-ledger/schema ownership proof.
 
-They remain in place in the primary MR unless safe relocation/deletion is proven. A second MR is created only if persistence ownership cleanup requires an independently migration-safe change. This avoids unnecessary pull/test cycles without coupling risky schema work to authentication behavior.
+They remain in place in the primary MR unless safe relocation/deletion is proven. A second MR is created only if persistence ownership cleanup requires an independently migration-safe change.
 
-## Baseline findings
-
-- `AuthController` is the canonical web/admin password-session adapter and remains in place.
-- Auth owns `UserEmailVerification` persistence.
-- Generic cache/jobs/session schema is not Auth business ownership.
-- The active API `/auth` surface is a compatibility stub and remains quarantined until stronger caller proof exists.
-- Generic `view_auth/create_auth/edit_auth/delete_auth` module permissions remain deferred pending caller proof.
-
-## Runtime refactor completed on branch
+## Runtime refactor completed
 
 Google OAuth identity resolution now converges on `GoogleIdentityService` for both admin and client/PWA entry points.
 
@@ -49,28 +40,14 @@ The canonical service preserves verified-email, identity-conflict, inactive/dele
 
 The legacy admin Google `AuthService` has been removed from the branch after its runtime replacement. Its previous behaviors that restored soft-deleted users and provisioned an admin role during login are no longer part of the approved Google authentication path.
 
-The superseded `GoogleWebAuthService` is retained as a deprecated compatibility adapter only. It now contains no independent identity policy and delegates `resolve`, `resolveExisting`, and `link` to `GoogleIdentityService`. This preserves compatibility while preventing duplicated security rules from drifting again.
-
-Focused regression coverage on the branch includes explicit admin cases for:
-
-- existing Google-linked account login;
-- no role provisioning during authentication;
-- unknown Google identity not creating an administrator account;
-- soft-deleted identity not being restored.
-
-Client Google coverage exercises verified identity creation, OTP-proven linking, rejection without OTP provenance, unverified email rejection, identity conflicts, callback login, guard separation, and non-persistence of provider access/refresh tokens.
+The superseded `GoogleWebAuthService` is retained as a deprecated compatibility adapter only. It contains no independent identity policy and delegates `resolve`, `resolveExisting`, and `link` to `GoogleIdentityService`.
 
 ## Deferred / quarantined boundaries
 
-`GoogleWebAuthService` remains `QUARANTINE` as a compatibility adapter until final caller proof permits removal. No new code should depend on it.
-
-The API Auth stub and generic Auth CRUD permissions remain unchanged while caller evidence is insufficient for safe deletion.
-
-Infrastructure persistence migrations remain unchanged and quarantined. No migration relocation is included in the primary MR without ledger/schema proof.
-
-## Security invariants
-
-Authentication must not silently reactivate deleted accounts or silently acquire ownership of role/permission provisioning. Inactive/deleted identities and Google identity conflicts must be handled consistently across entry points. OAuth state validation and session-regeneration protections must be preserved.
+- `GoogleWebAuthService`: compatibility adapter, `QUARANTINE` pending complete caller proof.
+- API Auth stub: `QUARANTINE` pending stronger caller proof.
+- Generic Auth CRUD permissions: `DEFER/REVIEW` pending authorization-contract proof.
+- Cache/jobs/session infrastructure migrations: `QUARANTINE` pending schema/migration-ledger and canonical-owner proof.
 
 ## Validation checkpoint
 
@@ -78,29 +55,35 @@ User-executed final regression checkpoint on the approved branch passed:
 
 - focused/impacted test run: `188 passed (1075 assertions)` in `12.93s`;
 - canonical Auth routes verified for admin login/logout, client logout, admin Google OAuth, client/PWA Google OAuth callback, and explicit Google linking;
-- Vite production build passed: `34 modules transformed`, build completed in `3.81s`.
+- Vite production build passed: `34 modules transformed`, build completed in `3.81s`;
+- UI smoke acceptance: **PASS**.
 
-UI smoke remains a separate acceptance signal and should be recorded explicitly before merge if performed.
+## Follow-up approved after this MR
 
-## Delivery checkpoints
+A separate follow-up feature is approved for the administrator login presentation rather than being mixed into this security refactor: **Auth Login Theme & Branding Manager V1**.
 
-No intermediate user pull/UI test was required for internal implementation batches. The consolidated automated regression and build checkpoint is COMPLETE.
+Planned direction:
 
-If a database/security blocker requires a product or ownership decision that cannot be proven from the repository, stop and request that decision rather than guessing.
+- configuration managed from System settings;
+- Auth remains owner of login rendering/authentication presentation;
+- four initial login-theme presets (`classic-card`, `split-brand`, `hero-overlay`, `minimal`);
+- configurable logo, background, text/branding, colors and presentation options;
+- live preview in administration;
+- presentation changes must not modify authentication guards, credentials, OAuth, session, or identity-security policy;
+- normalize the current logo value/view contract while implementing the presentation boundary;
+- design the theme engine for later reuse by client `/login`, while applying V1 first to `/admin/login`.
+
+This follow-up must start from merged `main` on its own branch after the present MR is merged.
 
 ## Current status
 
 - Read-only module audit: COMPLETE.
-- User approval for consolidated implementation: COMPLETE.
-- Primary branch creation: COMPLETE.
-- `docs/modules/Auth/MODULE.md`: CREATED and aligned with runtime target.
-- Canonical Google identity service: IMPLEMENTED.
-- Admin/client Google adapters: MIGRATED to canonical identity service.
-- Legacy role-provisioning Google `AuthService`: CLEANED from branch.
-- Superseded `GoogleWebAuthService`: REDUCED to deprecated compatibility adapter.
-- Google security regression coverage: ADDED/UPDATED.
-- API/config compatibility surfaces: QUARANTINE / DEFER pending proof.
-- Persistence relocation: NOT AUTHORIZED without schema/ledger proof.
+- Module contract: COMPLETE.
+- Canonical Google identity service: COMPLETE.
+- Admin/client Google adapters migration: COMPLETE.
+- Legacy role-provisioning Google `AuthService`: CLEANED.
+- Focused security regression coverage: COMPLETE.
 - Automated regression/routes/build checkpoint: PASS.
-- UI smoke checkpoint: PENDING USER CONFIRMATION.
-- Primary MR readiness: BLOCKED ONLY ON UI ACCEPTANCE / FINAL REVIEW.
+- UI smoke checkpoint: PASS.
+- Persistence ownership relocation: DEFERRED / NOT INCLUDED.
+- Primary MR: READY FOR PR REVIEW/MERGE.
