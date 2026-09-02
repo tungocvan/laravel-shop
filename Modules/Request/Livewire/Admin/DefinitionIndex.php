@@ -21,6 +21,8 @@ class DefinitionIndex extends Component
 
     public string $status = '';
 
+    public int $perPage = 25;
+
     public string $groupCode = '';
 
     public string $groupName = '';
@@ -37,6 +39,11 @@ class DefinitionIndex extends Component
     public string $duplicateName = '';
     public bool $duplicateAudience = true;
 
+    public function mount(): void
+    {
+        $this->perPage = $this->defaultPageSize();
+    }
+
     public function updatedSearch(): void
     {
         $this->search = mb_substr(trim($this->search), 0, 100);
@@ -47,6 +54,14 @@ class DefinitionIndex extends Component
     {
         $allowed = array_map(fn (RequestTypeStatus $status): string => $status->value, RequestTypeStatus::cases());
         $this->status = in_array($this->status, $allowed, true) ? $this->status : '';
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->perPage = in_array($this->perPage, $this->pageSizes(), true)
+            ? $this->perPage
+            : $this->defaultPageSize();
         $this->resetPage();
     }
 
@@ -145,6 +160,7 @@ class DefinitionIndex extends Component
                 ->orderBy('sort_order')
                 ->limit(100)
                 ->get(['id', 'code', 'name']),
+            'pageSizes' => $this->pageSizes(),
             'types' => RequestType::query()
                 ->with(['group:id,name', 'activeDraft:id,version_number', 'currentPublishedVersion:id,version_number'])
                 ->when(trim($this->search) !== '', fn ($query) => $query->where(fn ($nested) => $nested
@@ -153,7 +169,25 @@ class DefinitionIndex extends Component
                 ->when($this->status !== '', fn ($query) => $query->where('status', $this->status))
                 ->orderBy('sort_order')
                 ->orderBy('id')
-                ->paginate(25),
+                ->paginate($this->perPage),
         ]);
+    }
+
+    private function pageSizes(): array
+    {
+        return collect(config('request.settings.page_sizes', [10, 25, 50, 100]))
+            ->map(fn (mixed $size): int => (int) $size)
+            ->filter(fn (int $size): bool => $size > 0 && $size <= (int) config('request.settings.max_page_size', 100))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    private function defaultPageSize(): int
+    {
+        $default = (int) config('request.settings.default_page_size', 25);
+
+        return in_array($default, $this->pageSizes(), true) ? $default : ($this->pageSizes()[0] ?? 25);
     }
 }
