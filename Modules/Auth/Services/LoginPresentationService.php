@@ -10,7 +10,7 @@ class LoginPresentationService
 
     public function __construct(private readonly SettingsService $settings) {}
 
-    public function forGuard(string $guard): array
+    public function forGuard(string $guard, array $fallback = []): array
     {
         $prefix = $guard === 'admin' ? 'auth_login_admin_' : 'auth_login_client_';
         $theme = (string) $this->settings->get($prefix.'theme', 'classic-card');
@@ -19,16 +19,17 @@ class LoginPresentationService
             $theme = 'classic-card';
         }
 
-        $logoPath = $this->settings->get($prefix.'logo') ?: $this->settings->get('site_logo');
+        $fallbackLogo = $fallback['logo_url'] ?? asset('storage/img/logo.png');
+        $logoPath = $this->settings->get($prefix.'logo');
         $backgroundPath = $this->settings->get($prefix.'background');
 
         return [
             'theme' => $theme,
-            'logo_url' => $this->assetUrl($logoPath, asset('storage/img/logo.png')),
+            'logo_url' => $logoPath ? $this->assetUrl($logoPath) : $fallbackLogo,
             'background_url' => $this->assetUrl($backgroundPath),
-            'title_line_1' => (string) $this->settings->get($prefix.'title_line_1', $this->settings->get('site_name_line_1', '')),
-            'title_line_2' => (string) $this->settings->get($prefix.'title_line_2', $this->settings->get('site_name_line_2', 'CÔNG TY TNHH INAFO VIỆT NAM')),
-            'description' => (string) $this->settings->get($prefix.'description', $this->settings->get('login_description', 'Hệ thống quản trị')),
+            'title_line_1' => (string) $this->settings->get($prefix.'title_line_1', $fallback['title_line_1'] ?? $this->settings->get('site_name_line_1', '')),
+            'title_line_2' => (string) $this->settings->get($prefix.'title_line_2', $fallback['title_line_2'] ?? $this->settings->get('site_name_line_2', 'CÔNG TY TNHH INAFO VIỆT NAM')),
+            'description' => (string) $this->settings->get($prefix.'description', $fallback['description'] ?? $this->settings->get('login_description', 'Hệ thống quản trị')),
             'primary_color' => $this->normalizeColor((string) $this->settings->get($prefix.'primary_color', '#0f172a')),
             'overlay_opacity' => $this->normalizeOpacity($this->settings->get($prefix.'overlay_opacity', 55)),
             'show_google' => (bool) $this->settings->get($prefix.'show_google', true),
@@ -36,12 +37,12 @@ class LoginPresentationService
         ];
     }
 
-    private function assetUrl(mixed $path, ?string $fallback = null): ?string
+    private function assetUrl(mixed $path): ?string
     {
         $path = trim((string) $path);
 
         if ($path === '') {
-            return $fallback;
+            return null;
         }
 
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) {
