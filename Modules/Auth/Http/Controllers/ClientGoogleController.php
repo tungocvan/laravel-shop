@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
-use Modules\Auth\Services\GoogleWebAuthService;
+use Modules\Auth\Services\GoogleIdentityService;
 
 class ClientGoogleController extends Controller
 {
@@ -26,7 +26,7 @@ class ClientGoogleController extends Controller
         return $this->redirectToGoogle($request, true);
     }
 
-    public function callback(Request $request, GoogleWebAuthService $accounts): RedirectResponse
+    public function callback(Request $request, GoogleIdentityService $identities): RedirectResponse
     {
         try {
             $this->useClientCallback();
@@ -42,14 +42,14 @@ class ClientGoogleController extends Controller
                     ]);
                 }
 
-                $accounts->link($current, $googleUser);
+                $identities->link($current, $googleUser);
                 $request->session()->regenerate();
 
                 return redirect()->route('client.apps.index')
                     ->with('status', 'Đã liên kết tài khoản Google thành công.');
             }
 
-            $user = $accounts->resolve($googleUser);
+            $user = $identities->resolve($googleUser);
 
             Auth::guard('web')->login($user);
             $request->session()->regenerate();

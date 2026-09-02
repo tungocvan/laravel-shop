@@ -10,7 +10,7 @@ use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
 use Modules\Auth\Models\UserEmailVerification;
-use Modules\Auth\Services\GoogleWebAuthService;
+use Modules\Auth\Services\GoogleIdentityService;
 use Tests\TestCase;
 
 class ClientGoogleAuthenticationTest extends TestCase
@@ -19,7 +19,7 @@ class ClientGoogleAuthenticationTest extends TestCase
 
     public function test_verified_google_user_can_create_active_web_account_without_storing_tokens(): void
     {
-        $user = app(GoogleWebAuthService::class)->resolve(
+        $user = app(GoogleIdentityService::class)->resolve(
             $this->googleUser('google-100', 'new@example.com', true),
         );
 
@@ -41,7 +41,7 @@ class ClientGoogleAuthenticationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $resolved = app(GoogleWebAuthService::class)->resolve(
+        $resolved = app(GoogleIdentityService::class)->resolve(
             $this->googleUser('google-200', 'changed@example.com', true),
         );
 
@@ -61,7 +61,7 @@ class ClientGoogleAuthenticationTest extends TestCase
         $existing->forceFill(['email_verified_at' => $verifiedAt])->save();
         $this->createOtpProof($existing, $verifiedAt);
 
-        $resolved = app(GoogleWebAuthService::class)->resolve(
+        $resolved = app(GoogleIdentityService::class)->resolve(
             $this->googleUser('google-300', 'existing@example.com', true),
         );
 
@@ -82,7 +82,7 @@ class ClientGoogleAuthenticationTest extends TestCase
         $existing->forceFill(['email_verified_at' => now()])->save();
 
         try {
-            app(GoogleWebAuthService::class)->resolve(
+            app(GoogleIdentityService::class)->resolve(
                 $this->googleUser('google-302', 'legacy@example.com', true),
             );
             $this->fail('Expected legacy verified account auto-linking to be rejected without OTP provenance.');
@@ -103,7 +103,7 @@ class ClientGoogleAuthenticationTest extends TestCase
         ]);
 
         try {
-            app(GoogleWebAuthService::class)->resolve(
+            app(GoogleIdentityService::class)->resolve(
                 $this->googleUser('google-301', 'pending@example.com', true),
             );
             $this->fail('Expected unverified local account auto-linking to be rejected.');
@@ -132,7 +132,7 @@ class ClientGoogleAuthenticationTest extends TestCase
 
         $this->expectException(ValidationException::class);
 
-        app(GoogleWebAuthService::class)->resolve(
+        app(GoogleIdentityService::class)->resolve(
             $this->googleUser('google-conflict', 'incoming@example.com', true),
         );
     }
@@ -141,7 +141,7 @@ class ClientGoogleAuthenticationTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        app(GoogleWebAuthService::class)->resolve(
+        app(GoogleIdentityService::class)->resolve(
             $this->googleUser('google-400', 'unverified@example.com', false),
         );
     }
