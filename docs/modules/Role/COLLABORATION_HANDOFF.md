@@ -34,22 +34,18 @@ Implemented in the consolidated batch:
 - Shared ImportExport panel nested under RoleTable so reactive filters follow Role selection/search state.
 - Admin input, table overflow, loading state and module-scoped pagination UI normalization.
 
-## Required validation before PR
+## Final validation evidence
 
-1. Pint changed PHP files.
-2. Focused Role tests, including export scope and bounded pagination/selection behavior.
-3. Full `tests/Feature/Role` regression.
-4. Route verification for canonical and compatibility routes.
-5. `npm run build` because Admin Blade/UI changed.
-6. Manual UI smoke desktop + mobile:
-   - visible search/name input borders and focus;
-   - page size 10/25/50/100 and indigo/white pagination states;
-   - responsive table overflow;
-   - create/edit permissions;
-   - select rows then export selected only;
-   - clear selection then export all matching search scope;
-   - bulk delete and Super Admin protections.
+Validation completed on 2026-09-02:
+
+- Pint changed-files gate: PASS — 4 files checked, 0 style issues.
+- Role regression: PASS — 14 tests, 36 assertions.
+- Export contract: PASS — selected IDs export selected roles only; no selection exports all roles matching current filter scope, not only the current page.
+- Bounded pagination contract: PASS — unbounded/tampered page size is normalized.
+- Canonical route verification: PASS — `admin.role.index`, `admin.role.create`, `admin.role.edit` are present under `/admin/roles*`.
+- Frontend build: PASS — Vite production build completed successfully.
+- Manual UI acceptance: PASS — user verified Role UI after refactor, including the Admin list/form experience, pagination/export flow, and protected-role behavior.
 
 ## Merge gate
 
-Do not create/merge PR until automated validation and required manual UI smoke are reported PASS. Refresh this handoff with final test/UI evidence before PR/merge.
+PASS. Automated validation and required manual UI smoke are complete. The branch is ready for pull request review and manual merge.
