@@ -72,9 +72,19 @@ Infrastructure persistence migrations remain unchanged and quarantined. No migra
 
 Authentication must not silently reactivate deleted accounts or silently acquire ownership of role/permission provisioning. Inactive/deleted identities and Google identity conflicts must be handled consistently across entry points. OAuth state validation and session-regeneration protections must be preserved.
 
+## Validation checkpoint
+
+User-executed final regression checkpoint on the approved branch passed:
+
+- focused/impacted test run: `188 passed (1075 assertions)` in `12.93s`;
+- canonical Auth routes verified for admin login/logout, client logout, admin Google OAuth, client/PWA Google OAuth callback, and explicit Google linking;
+- Vite production build passed: `34 modules transformed`, build completed in `3.81s`.
+
+UI smoke remains a separate acceptance signal and should be recorded explicitly before merge if performed.
+
 ## Delivery checkpoints
 
-No intermediate user pull/UI test is required for internal implementation batches. The intended user checkpoint is once at the end of the primary MR after focused regression has been prepared.
+No intermediate user pull/UI test was required for internal implementation batches. The consolidated automated regression and build checkpoint is COMPLETE.
 
 If a database/security blocker requires a product or ownership decision that cannot be proven from the repository, stop and request that decision rather than guessing.
 
@@ -91,4 +101,6 @@ If a database/security blocker requires a product or ownership decision that can
 - Google security regression coverage: ADDED/UPDATED.
 - API/config compatibility surfaces: QUARANTINE / DEFER pending proof.
 - Persistence relocation: NOT AUTHORIZED without schema/ledger proof.
-- Final focused test/UI checkpoint: READY FOR USER EXECUTION.
+- Automated regression/routes/build checkpoint: PASS.
+- UI smoke checkpoint: PENDING USER CONFIRMATION.
+- Primary MR readiness: BLOCKED ONLY ON UI ACCEPTANCE / FINAL REVIEW.
