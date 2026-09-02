@@ -117,6 +117,10 @@ final class RequestExportQuery
             $query->where('request_instances.public_id', $filters['request_public_id']);
         }
 
+        if (! empty($filters['request_public_ids']) && is_array($filters['request_public_ids'])) {
+            $query->whereIn('request_instances.public_id', $filters['request_public_ids']);
+        }
+
         if (! empty($filters['created_from'])) {
             $query->where('request_instances.created_at', '>=', $this->localDayBoundary($filters['created_from'], false));
         }
