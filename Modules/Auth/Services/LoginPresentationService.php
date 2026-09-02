@@ -19,7 +19,7 @@ class LoginPresentationService
             $theme = 'classic-card';
         }
 
-        $fallbackLogo = $fallback['logo_url'] ?? asset('storage/img/logo.png');
+        $fallbackLogo = $fallback['logo_url'] ?? null;
         $logoPath = $this->settings->get($prefix.'logo');
         $backgroundPath = $this->settings->get($prefix.'background');
 
