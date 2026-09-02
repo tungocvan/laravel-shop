@@ -10,9 +10,7 @@ use Modules\Request\Models\RequestType;
 
 final class DeleteUnpublishedRequestType
 {
-    public function __construct(private readonly RequestAuditAppender $audit)
-    {
-    }
+    public function __construct(private readonly RequestAuditAppender $audit) {}
 
     public function handle(RequestType $type, int $actorId): void
     {

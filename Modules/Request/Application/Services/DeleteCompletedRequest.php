@@ -11,9 +11,7 @@ use Modules\Request\Models\InternalRequest;
 
 final class DeleteCompletedRequest
 {
-    public function __construct(private readonly RequestAuditAppender $audit)
-    {
-    }
+    public function __construct(private readonly RequestAuditAppender $audit) {}
 
     public function handle(string $publicId, int $actorId): void
     {

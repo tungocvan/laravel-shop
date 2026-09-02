@@ -37,7 +37,7 @@ class RequestReportsExportWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('min-h-11', $view);
 
         $this->assertStringContainsString("config('request.settings.page_sizes'", $reportController);
-        $this->assertStringContainsString("Rule::in(\$pageSizes)", $reportController);
+        $this->assertStringContainsString('Rule::in($pageSizes)', $reportController);
         $this->assertStringContainsString("Rule::when(\$httpRequest->filled('created_from'), 'after_or_equal:created_from')", $reportController);
         $this->assertStringContainsString("->only(['status', 'type_public_id', 'group_public_id', 'created_from', 'created_to'])", $reportController);
         $this->assertStringContainsString("'selected_request_public_ids' => ['nullable', 'array'", $exportController);

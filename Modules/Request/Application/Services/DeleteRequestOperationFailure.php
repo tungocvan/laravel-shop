@@ -13,9 +13,7 @@ use Modules\Request\Models\RequestOutboxMessage;
 
 final class DeleteRequestOperationFailure
 {
-    public function __construct(private readonly RequestAuditAppender $audit)
-    {
-    }
+    public function __construct(private readonly RequestAuditAppender $audit) {}
 
     public function handle(string $kind, string $publicId, int $actorId): void
     {

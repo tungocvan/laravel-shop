@@ -26,7 +26,7 @@ class RequestAdminGroupsWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("withCount('types')", $controller);
         $this->assertStringContainsString("orderBy('sort_order')", $controller);
         $this->assertStringContainsString("orderBy('name')", $controller);
-        $this->assertStringContainsString("paginate(25)", $controller);
+        $this->assertStringContainsString('paginate(25)', $controller);
         $this->assertStringContainsString("Gate::authorize('viewAny', RequestGroup::class)", $controller);
 
         foreach (['sort_order', 'is_active', 'archived_at'] as $capability) {
