@@ -67,24 +67,17 @@ Implemented on the branch:
 - Asset deletion is restricted to paths under `login-branding/`; fallback/global site assets are never deleted by the login-theme manager.
 - Invalid theme/color/opacity values are normalized to safe presentation defaults at read time.
 
-## Validation plan
+## Validation checkpoint
 
-Final user checkpoint should remain consolidated into one pull/test cycle.
+User-executed checkpoint results:
 
-Recommended focused validation:
+- Auth/System impacted regression: `188 passed (1075 assertions)` in `12.74s`;
+- Vite production build: PASS, `34 modules transformed`, completed in `3.99s`;
+- initial Pint checkpoint found two formatting-only issues in `LoginForm.php` and `LoginTheme.php`;
+- those Pint issues were corrected on the branch with formatting-only commits;
+- UI smoke for Login Theme & Branding Manager V1: **PASS**.
 
-- Pint on changed PHP files;
-- `php artisan test tests/Feature/Auth`;
-- focused System settings tests or directly impacted System regression;
-- route verification for `/admin/login`, `/login`, Google routes and logout routes;
-- Vite production build;
-- UI smoke of System → Settings → Giao diện đăng nhập;
-- preview each of the four themes;
-- save/reload Admin settings;
-- `/admin/login` renders saved branding;
-- Client/PWA target can hold independent settings;
-- image upload/remove behavior;
-- mobile/tablet/desktop responsive check.
+The user confirmed the configurable login UI works after the implementation and formatting correction.
 
 ## Deferred / unchanged boundaries
 
@@ -99,9 +92,12 @@ From the earlier Auth refactor, the following remain unchanged:
 
 - Previous Auth security refactor: MERGED.
 - Follow-up branch creation: COMPLETE.
-- Presentation contract: IMPLEMENTED.
-- System settings manager: IMPLEMENTED.
-- Four-theme live preview: IMPLEMENTED.
-- Auth login rendering integration: IMPLEMENTED.
-- Focused regression coverage: ADDED, NOT YET USER-EXECUTED.
-- Final consolidated test/build/UI checkpoint: NEXT.
+- Presentation contract: COMPLETE.
+- System settings manager: COMPLETE.
+- Four-theme live preview: COMPLETE.
+- Auth login rendering integration: COMPLETE.
+- Focused regression coverage: PASS (`188 passed`, `1075 assertions`).
+- Vite production build: PASS.
+- Pint formatting issues: FIXED; final re-run should be confirmed before PR if desired.
+- UI smoke checkpoint: PASS.
+- Follow-up MR readiness: READY FOR FINAL PR REVIEW after final Pint confirmation.
