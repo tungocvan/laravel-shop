@@ -30,15 +30,29 @@
         @endif
 
         <form method="GET" class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div class="flex flex-col gap-3 sm:flex-row">
-                <input type="search" name="q" value="{{ $keyword }}" placeholder="Tên thuốc, hoạt chất, nhóm hoặc mã TBMT..." class="min-h-11 flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-100">
-                <button class="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Tìm trong Wishlist</button>
-                @if ($keyword !== '')<a href="{{ route('muasamcong.wishlist') }}" class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-center text-sm font-semibold text-gray-700">Xóa lọc</a>@endif
+            <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] lg:items-end">
+                <div>
+                    <label for="wishlist-search" class="mb-1 block text-xs font-semibold text-gray-600">Tìm trong Wishlist</label>
+                    <input id="wishlist-search" type="search" name="q" value="{{ $keyword }}" placeholder="Tên thuốc, hoạt chất, nhóm hoặc mã TBMT..." class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                </div>
+                <div>
+                    <label for="wishlist-per-page" class="mb-1 block text-xs font-semibold text-gray-600">Số dòng / trang</label>
+                    <select id="wishlist-per-page" name="per_page" class="min-h-11 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                        @foreach ([10, 25, 50, 100] as $size)
+                            <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button class="min-h-11 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Áp dụng</button>
+                @if ($keyword !== '' || $perPage !== 25)
+                    <a href="{{ route('muasamcong.wishlist') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50">Xóa bộ lọc</a>
+                @endif
             </div>
         </form>
 
         <form method="POST" action="{{ route('muasamcong.wishlist.export-selected') }}" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             @csrf
+            <input type="hidden" name="q" value="{{ $keyword }}">
 
             <div class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="text-sm text-gray-600">
@@ -46,11 +60,12 @@
                     <span class="ml-2 text-rose-700" x-show="selected.length > 0">· Đã chọn <strong x-text="selected.length"></strong></span>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button type="button" @click="toggleAll()" @disabled(empty($pageIds)) class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-40">
-                        <span x-text="selected.length === pageIds.length && pageIds.length > 0 ? 'Bỏ chọn trang này' : 'Chọn tất cả trang này'"></span>
+                    <button type="button" @click="toggleAll()" @disabled(empty($pageIds)) class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40">
+                        <span x-text="selected.length === pageIds.length && pageIds.length > 0 ? 'Bỏ chọn trang này' : 'Chọn trang hiện tại'"></span>
                     </button>
-                    <button type="submit" :disabled="selected.length === 0" class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">
-                        Xuất Excel (<span x-text="selected.length"></span>)
+                    <button type="submit" class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700">
+                        <span x-show="selected.length === 0">Xuất Excel — tất cả phù hợp</span>
+                        <span x-show="selected.length > 0">Xuất Excel (<span x-text="selected.length"></span> đã chọn)</span>
                     </button>
                     <button type="submit"
                             name="_method" value="DELETE"
@@ -73,7 +88,7 @@
                                        :checked="pageIds.length > 0 && selected.length === pageIds.length"
                                        @disabled(empty($pageIds))
                                        class="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
-                                       title="Chọn tất cả trang hiện tại">
+                                       title="Chọn trang hiện tại">
                             </th>
                             <th class="px-4 py-3">STT</th>
                             <th class="px-4 py-3">Thuốc</th>
@@ -120,7 +135,9 @@
                     </tbody>
                 </table>
             </div>
-            @if ($items->hasPages())<div class="border-t border-gray-200 px-4 py-4">{{ $items->links() }}</div>@endif
+            @if ($items->hasPages())
+                <div class="border-t border-gray-200 px-4 py-4">{{ $items->links('Muasamcong::vendor.pagination.admin-muasamcong') }}</div>
+            @endif
         </form>
     </div>
 @endsection
