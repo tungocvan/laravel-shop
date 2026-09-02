@@ -40,9 +40,11 @@ Integration with those boundaries must remain explicit and must not silently tra
 4. Google identity resolution must reject conflicting Google IDs and conflicting account ownership.
 5. Automatic Google account linking requires a verified identity and must follow the same canonical identity policy for admin and client entry points.
 6. Explicit Google linking must require an authenticated active account and a matching account email.
-7. Login/link callbacks must preserve OAuth state validation and regenerate the session after authentication transitions.
-8. Logout must invalidate the authenticated session and regenerate the CSRF token.
-9. Authentication failures exposed to users must not leak provider tokens, secrets, or sensitive exception details.
+7. Administrator Google login is an existing-account flow; it must not create a new account or grant roles during authentication.
+8. Client/PWA Google login may create a new active account when the verified Google identity has no conflicting local owner.
+9. Login/link callbacks must preserve OAuth state validation and regenerate the session after authentication transitions.
+10. Logout must invalidate the authenticated session and regenerate the CSRF token.
+11. Authentication failures exposed to users must not leak provider tokens, secrets, or sensitive exception details.
 
 ## Runtime boundaries
 
@@ -58,9 +60,9 @@ Guard-specific redirects and UX may differ between `web` and `admin`; identity/s
 
 ### Google OAuth
 
-`GoogleController` (admin) and `ClientGoogleController` (client/PWA) are transport/guard adapters.
+`GoogleController` (admin) and `ClientGoogleController` (client/PWA) are transport/guard adapters. `GoogleIdentityService` is the canonical Google identity policy boundary.
 
-Both must converge on one canonical Google identity policy/service for:
+Both adapters converge on `GoogleIdentityService` for:
 
 - verified-email requirements;
 - active/deleted account policy;
@@ -69,7 +71,7 @@ Both must converge on one canonical Google identity policy/service for:
 - automatic linking eligibility;
 - explicit linking eligibility.
 
-The adapters may retain different guards, callback routes, redirects, and user-facing messages.
+The adapters retain different guards, callback routes, redirects, and account-creation policy: admin uses the existing-account-only resolver, while client/PWA may use the create-capable resolver.
 
 ## Dependency contract
 
@@ -92,7 +94,8 @@ The cache, cache-lock, jobs, job-batches, failed-jobs, and generic sessions migr
 
 ## Legacy and compatibility boundaries
 
-- The legacy Google/admin `AuthService` is a refactor candidate because its identity policy differs from the canonical client Google flow, including soft-delete restoration and role provisioning. It may only be removed after caller and replacement proof.
+- Legacy Google/admin `AuthService` has been retired from the approved runtime because it restored soft-deleted identities and provisioned authorization roles during authentication.
+- `GoogleWebAuthService` is a superseded compatibility candidate after introduction of canonical `GoogleIdentityService`; remove it only with complete caller proof. Until then it is `QUARANTINE` and must not be used for new code.
 - The current API Auth stub is `QUARANTINE` pending route/caller proof.
 - Generic module permissions (`view_auth`, `create_auth`, `edit_auth`, `delete_auth`) are `DEFER/REVIEW` pending caller and authorization-contract proof.
 
@@ -103,10 +106,11 @@ The cache, cache-lock, jobs, job-batches, failed-jobs, and generic sessions migr
 - `RegistrationForm`: KEEP.
 - `VerifyEmailOtpForm`: KEEP.
 - `RegistrationService`: KEEP / REFACTOR.
-- `GoogleWebAuthService`: KEEP / PROMOTE toward canonical Google identity service.
+- `GoogleIdentityService`: KEEP / CANONICAL.
 - `ClientGoogleController`: KEEP as client/PWA adapter.
-- `GoogleController`: KEEP / REFACTOR as admin adapter.
-- legacy `AuthService`: REHOME / DELETE only after replacement and caller proof.
+- `GoogleController`: KEEP as admin adapter.
+- legacy `AuthService`: CLEANED from runtime/source after replacement proof in this refactor branch.
+- `GoogleWebAuthService`: QUARANTINE pending final caller proof; no new callers allowed.
 - `UserEmailVerification` and its migrations: KEEP.
 - cache/cache-lock migrations: QUARANTINE → REHOME candidate.
 - jobs/job-batches/failed-jobs migrations: QUARANTINE → REHOME candidate.
