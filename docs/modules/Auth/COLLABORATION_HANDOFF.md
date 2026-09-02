@@ -12,69 +12,92 @@ V1 was merged after focused regression, production build, Pint and user UI accep
 
 ## V1.1 approved scope
 
-Refine only the System administration experience for login presentation settings:
+Refine the System administration experience for login presentation settings while preserving Auth ownership and security boundaries:
 
-- align ordinary inputs/textareas with `.codex/standards/ADMIN_UI_STANDARD.md`;
-- improve workspace hierarchy and responsive layout;
-- group configuration into clear task sections;
-- replace browser-native visible file controls with managed upload cards;
-- improve theme selection, color/overlay controls and Google visibility switch;
-- keep Live Preview prominent and sticky on sufficiently wide screens;
-- keep the primary save action visible through a sticky action area;
-- preserve existing settings keys, Auth presentation contract, persistence behavior and security behavior.
+- align controls with `.codex/standards/ADMIN_UI_STANDARD.md`;
+- use a professional two-region configuration + Live Preview workspace;
+- support Desktop / Mobile preview modes;
+- improve theme, branding, color, overlay and Google visibility controls;
+- isolate image upload from Livewire's file-upload lifecycle;
+- preserve existing settings keys, Auth presentation contract and authentication/security behavior.
 
 ## Ownership boundary
 
 Unchanged from V1:
 
 - Auth owns `LoginPresentationService`, supported theme vocabulary, presentation normalization/defaults and login rendering contract.
-- System owns the administration UI, generic settings persistence/permission enforcement and managed login-branding upload lifecycle.
+- System owns the administration UI, generic settings persistence/permission enforcement and managed login-branding asset lifecycle.
 
 V1.1 does not move ownership between modules.
 
-## Implementation status
+## Delivered implementation
 
-Implemented on this branch in `Modules/System/resources/views/livewire/settings/partials/login-theme.blade.php`:
+System now exposes Login Theme as a dedicated top-level settings workspace rather than a nested dynamic Livewire settings tab. The workspace provides:
 
-- professional sectioned workspace: Mẫu giao diện, Nội dung thương hiệu, Màu sắc & hiệu ứng, Hình ảnh, Tùy chọn đăng nhập;
-- canonical visible-border Admin text controls with consistent padding, radius and indigo focus state;
-- validation messages located next to editable fields;
-- improved Admin / Client-PWA segmented target selector;
-- richer theme cards with selected state;
-- combined color swatch + HEX control;
-- overlay slider with explicit percentage and light/dark context;
-- managed logo/background upload cards with thumbnails and `Thay ảnh` / `Xóa` actions instead of exposed native file chrome;
-- switch-style Google Workspace visibility control;
-- sticky save action area with active target context;
-- larger bordered Live Preview surface, sticky on wide desktop layouts;
-- responsive single-column fallback before the wide workspace breakpoint.
+- professional sections: Mẫu giao diện, Nội dung thương hiệu, Màu sắc & hiệu ứng, Hình ảnh, Tùy chọn đăng nhập;
+- Admin / Client-PWA target selector;
+- four theme cards with selected state;
+- canonical Admin text controls, color + HEX input and overlay slider;
+- sticky save action;
+- larger sticky Live Preview with Desktop / Mobile modes;
+- responsive single-column fallback;
+- robust missing/broken image fallback.
+
+### Image upload corrective architecture
+
+During V1.1 UI verification, Livewire file selection could blank the administration UI, including the cancel-file-picker path. The image lifecycle was therefore isolated from Livewire:
+
+- `LoginTheme` no longer uses `WithFileUploads` for logo/background assets;
+- logo/background uploads use standard Laravel multipart HTTP POST endpoints;
+- asset removal uses the dedicated HTTP asset endpoint;
+- upload validation, `system.settings.update` authorization, settings persistence and managed old-file deletion remain enforced by System;
+- newly stored files are cleaned up if persistence fails;
+- the native file picker is launched outside the Livewire-managed DOM so both file selection and Cancel leave the Livewire workspace stable;
+- the previous hard-coded `/storage/img/logo.png` fallback was removed so an unavailable fallback asset does not generate a broken 403 image request.
+
+This correction changes only presentation/settings asset transport. It does not change login credentials, guards, sessions, OAuth behavior or database schema.
 
 ## Safety / unchanged behavior
 
 - No database/schema changes.
 - No settings-key changes.
 - No Auth guard, credential, authorization, OAuth, callback or session-security changes.
-- No changes to `LoginPresentationService` behavior.
-- No changes to upload persistence/deletion logic; this MR changes only its administration presentation.
-- Live Preview continues to use unsaved Livewire state and does not persist until the explicit save action.
+- Auth remains the canonical login presentation owner.
+- System remains the canonical administration/settings owner.
+- Live Preview uses unsaved Livewire settings state and persists only through the explicit save action.
 
-## Validation checkpoint
+## Final validation checkpoint
 
-V1 baseline before this refinement:
+User UI acceptance: **PASS**.
 
-- focused impacted regression: `188 passed (1075 assertions)`;
-- Vite production build: PASS (`34 modules transformed`);
-- Pint: PASS;
-- V1 UI smoke: PASS.
+Verified UI flows include the Login Theme workspace, Admin / Client-PWA configuration, Desktop / Mobile preview, image selection/upload, and cancelling the native image picker without leaving the UI blank.
 
-V1.1 final checkpoint requested from the user:
+Focused Auth regression:
 
-- Pint for the affected System Livewire/view surface as applicable;
-- focused Auth regression to prove presentation/security behavior remains stable;
-- focused System regression for settings;
-- Vite production build;
-- UI smoke at System → Settings → Giao diện đăng nhập on desktop and a narrow/mobile viewport;
-- verify all four theme cards, Admin/Client-PWA target switch, inputs, color/slider, upload cards, Google switch, sticky save action and Live Preview.
+```text
+PASS  Tests\Feature\Auth\LoginThemePresentationTest
+3 passed (17 assertions)
+```
+
+Route inspection:
+
+```text
+GET|HEAD  admin/system/settings/login-theme
+POST      admin/system/settings/login-theme/assets/{type}
+DELETE    admin/system/settings/login-theme/assets/{type}
+```
+
+Vite production build:
+
+```text
+PASS — 34 modules transformed
+```
+
+### Pint status
+
+The repository-wide command `vendor/bin/pint --test` reports **435 pre-existing style issues across 1658 files**. The failures span many unrelated modules and legacy application/test files, so repository-wide Pint is not a valid V1.1 acceptance gate and must not be auto-fixed as part of this focused Auth/System change.
+
+No repository-wide formatting cleanup is included in V1.1.
 
 ## Deferred / unchanged Auth refactor boundaries
 
@@ -85,9 +108,12 @@ V1.1 final checkpoint requested from the user:
 
 ## Current status
 
-- V1: MERGED.
-- V1.1 branch: ACTIVE.
-- V1.1 UI implementation: COMPLETE.
-- Architecture/security scope: UNCHANGED.
-- Final focused test/build/UI checkpoint: NEXT.
-- PR: NOT YET CREATED; wait for final UI acceptance.
+- V1: **MERGED**.
+- V1.1 implementation: **COMPLETE**.
+- V1.1 UI smoke: **PASS**.
+- Focused Auth test: **PASS — 3 tests, 17 assertions**.
+- Login Theme route contract: **PASS — 3 routes**.
+- Production asset build: **PASS**.
+- Repository-wide Pint: **BLOCKED BY PRE-EXISTING REPOSITORY STYLE DEBT — 435 issues**; no unrelated cleanup authorized.
+- Architecture/security scope: **PRESERVED**.
+- Next step: final branch diff/review and PR preparation; do not merge automatically.
