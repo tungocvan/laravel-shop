@@ -140,6 +140,16 @@ class ImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
+        $selectedIds = $this->selectedIds($filters);
+
+        if ($selectedIds !== []) {
+            return SupplierTracking::query()
+                ->with('medicine')
+                ->whereKey($selectedIds)
+                ->latest('id')
+                ->get();
+        }
+
         return SupplierTracking::query()
             ->with('medicine')
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($nested) => $nested
@@ -150,6 +160,8 @@ class ImportExport extends BaseImportExportService
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('registration_number', 'like', "%{$search}%"))))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['working_date_from'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '>=', $date))
+            ->when($filters['working_date_to'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '<=', $date))
             ->latest('id')
             ->get();
     }
@@ -276,6 +288,16 @@ class ImportExport extends BaseImportExportService
         );
 
         return $data;
+    }
+
+    private function selectedIds(array $filters): array
+    {
+        return collect($filters['selected_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function vietnameseNumber(mixed $value): ?float
