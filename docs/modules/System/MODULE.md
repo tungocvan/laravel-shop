@@ -23,7 +23,7 @@ System is a shell/operations module. It must not absorb business-domain configur
 | System operations workspace | System | `admin.system.index` / `SystemController` |
 | Runtime module administration | System | `admin.system.modules` / `SystemModuleControlService` |
 | System settings workspace | System | `admin.system.settings.index` / `SettingForm` |
-| System setting persistence | System | `Setting` + `SettingsService` |
+| System setting persistence API | System | `Setting` + `SettingsService` |
 | Environment configuration | System | `admin.system.settings.env` and `Services/Env/*` |
 | Database administration | System | `admin.system.database.*` |
 | Restricted Artisan/script operations | System | `admin.system.artisan`, `admin.system.scripts` |
@@ -121,13 +121,13 @@ Legacy/overlapping facades are not deleted solely because a newer specialized se
 
 ### Models
 
-- `Setting` — canonical model for the `settings` table; value interpretation belongs in `SettingsService`.
+- `Setting` — canonical System access model for the `settings` persistence boundary; value interpretation belongs in `SettingsService`.
 
 ## 9. Persistence Ownership
 
-| Table / storage | Owner | Migration/source | Notes |
+| Table / storage | Runtime owner/access boundary | Migration/source provenance | Notes |
 |---|---|---|---|
-| `settings` | System | existing settings schema | Canonical system setting key/value metadata store |
+| `settings` | System runtime persistence API | legacy/shared provenance not yet fully proven | `Setting` + `SettingsService` are the canonical System access boundaries; physical migration ownership remains to be verified before schema cleanup |
 | `Modules/System/data/system_tabs.json` | System | file-backed override | System tab override only; not business-domain configuration |
 
 Module runtime state storage such as `storage/app/system/module-state.json` is part of the root module-runtime contract consumed by System control surfaces; its schema must not be changed casually by System UI refactors.
