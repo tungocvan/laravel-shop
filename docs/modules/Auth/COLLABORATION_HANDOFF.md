@@ -2,88 +2,106 @@
 
 ## Current objective
 
-Refactor `Modules/Auth` under `docs/GITHUB_COLLABORATION_WORKFLOW.md` in **Refactor Module** mode.
+Follow-up feature after the merged Auth architecture/security refactor: **Auth Login Theme & Branding Manager V1**.
 
-Primary delivery branch:
+Current branch:
 
-`refactor/auth-architecture-security-boundaries`
+`feat/auth-login-theme-branding-manager`
 
-The user approved consolidation of coherent work into one primary MR to minimize repeated pull/test cycles.
+The previous Auth architecture/security MR was merged after `188 passed (1075 assertions)`, route verification, Vite build PASS and UI PASS.
 
-## Approved primary MR scope
+## Approved scope
 
-The primary MR covers, where caller and compatibility proof permits:
+The approved follow-up keeps authentication security behavior unchanged while adding configurable presentation for login surfaces.
 
-- establish the missing Auth module contract;
-- normalize authentication ownership and security boundaries;
-- consolidate Google identity policy shared by admin and client/PWA adapters;
-- remove Auth ownership of authorization-role provisioning from authentication behavior;
-- review/quarantine legacy API and generic CRUD permission surfaces;
-- preserve and strengthen registration/email-verification/OTP behavior;
-- retain guard-specific redirects while making identity policy consistent;
-- add focused Auth and directly impacted integration regression coverage;
-- close out documentation and ownership classifications.
+V1 scope:
 
-## Persistence exception
+- System settings manages login appearance configuration;
+- Auth owns presentation semantics and rendering through a canonical presentation service;
+- four presets: `classic-card`, `split-brand`, `hero-overlay`, `minimal`;
+- independent Admin and Client/PWA settings;
+- configurable login logo, background image, title lines, description, primary color, overlay opacity, Google-button visibility and footer text;
+- live preview in System settings;
+- presentation engine designed for `/admin/login` and reusable by `/login`;
+- normalize the legacy logo contract so the Auth view consumes a resolved URL instead of treating it as a storage-relative path;
+- no changes to guards, credentials, authorization, OAuth identity resolution, callback policy or session security.
 
-Infrastructure migrations currently under Auth for cache, cache locks, jobs, job batches, failed jobs, and generic sessions are classified `QUARANTINE` pending migration-ledger/schema ownership proof.
+## Ownership boundary
 
-They remain in place in the primary MR unless safe relocation/deletion is proven. A second MR is created only if persistence ownership cleanup requires an independently migration-safe change.
+Auth owns:
 
-## Runtime refactor completed
+- `LoginPresentationService`;
+- supported login theme vocabulary;
+- presentation normalization/defaults;
+- login rendering contract.
 
-Google OAuth identity resolution now converges on `GoogleIdentityService` for both admin and client/PWA entry points.
+System owns:
 
-The canonical service preserves verified-email, identity-conflict, inactive/deleted-account, OTP-proven auto-link, and explicit-link checks. Client/PWA may create a new account for a verified non-conflicting identity, while administrator Google login uses `resolveExisting()` and therefore cannot create a new administrator account as a login side effect.
+- the administration UI for configuration;
+- generic settings persistence and permission enforcement;
+- managed upload lifecycle for login branding assets.
 
-`GoogleController` remains the admin guard/transport adapter and retains the System `AdminLoginRedirectService` integration. `ClientGoogleController` remains the web/client adapter.
+The System settings UI consumes Auth's presentation contract but does not own authentication behavior.
 
-The legacy admin Google `AuthService` has been removed from the branch after its runtime replacement. Its previous behaviors that restored soft-deleted users and provisioned an admin role during login are no longer part of the approved Google authentication path.
+## Implementation status
 
-The superseded `GoogleWebAuthService` is retained as a deprecated compatibility adapter only. It contains no independent identity policy and delegates `resolve`, `resolveExisting`, and `link` to `GoogleIdentityService`.
+Implemented on the branch:
 
-## Deferred / quarantined boundaries
+- `Modules/Auth/Services/LoginPresentationService.php` as canonical presentation normalization boundary;
+- independent Admin and Client/PWA presentation keys;
+- System `Giao diện đăng nhập` settings tab;
+- four theme choices with live preview;
+- editable title lines, description, primary color, overlay opacity, footer and Google-button visibility;
+- dedicated login logo/background uploads with replacement cleanup limited to `login-branding/` managed paths;
+- default Auth login view rendered from presentation config;
+- guard-aware Google route selection in the shared default login view;
+- existing Admission/site branding retained as fallback when dedicated login branding has not been configured;
+- focused presentation regression test added at `tests/Feature/Auth/LoginThemePresentationTest.php`;
+- `docs/modules/Auth/MODULE.md` updated with presentation ownership and security invariants.
 
-- `GoogleWebAuthService`: compatibility adapter, `QUARANTINE` pending complete caller proof.
-- API Auth stub: `QUARANTINE` pending stronger caller proof.
-- Generic Auth CRUD permissions: `DEFER/REVIEW` pending authorization-contract proof.
-- Cache/jobs/session infrastructure migrations: `QUARANTINE` pending schema/migration-ledger and canonical-owner proof.
+## Safety notes
 
-## Validation checkpoint
+- Theme settings are presentation-only and must not mutate auth policy.
+- Uploaded replacement assets are written first; old managed assets are removed only after settings persistence succeeds.
+- On persistence failure, newly uploaded files are removed.
+- Asset deletion is restricted to paths under `login-branding/`; fallback/global site assets are never deleted by the login-theme manager.
+- Invalid theme/color/opacity values are normalized to safe presentation defaults at read time.
 
-User-executed final regression checkpoint on the approved branch passed:
+## Validation plan
 
-- focused/impacted test run: `188 passed (1075 assertions)` in `12.93s`;
-- canonical Auth routes verified for admin login/logout, client logout, admin Google OAuth, client/PWA Google OAuth callback, and explicit Google linking;
-- Vite production build passed: `34 modules transformed`, build completed in `3.81s`;
-- UI smoke acceptance: **PASS**.
+Final user checkpoint should remain consolidated into one pull/test cycle.
 
-## Follow-up approved after this MR
+Recommended focused validation:
 
-A separate follow-up feature is approved for the administrator login presentation rather than being mixed into this security refactor: **Auth Login Theme & Branding Manager V1**.
+- Pint on changed PHP files;
+- `php artisan test tests/Feature/Auth`;
+- focused System settings tests or directly impacted System regression;
+- route verification for `/admin/login`, `/login`, Google routes and logout routes;
+- Vite production build;
+- UI smoke of System → Settings → Giao diện đăng nhập;
+- preview each of the four themes;
+- save/reload Admin settings;
+- `/admin/login` renders saved branding;
+- Client/PWA target can hold independent settings;
+- image upload/remove behavior;
+- mobile/tablet/desktop responsive check.
 
-Planned direction:
+## Deferred / unchanged boundaries
 
-- configuration managed from System settings;
-- Auth remains owner of login rendering/authentication presentation;
-- four initial login-theme presets (`classic-card`, `split-brand`, `hero-overlay`, `minimal`);
-- configurable logo, background, text/branding, colors and presentation options;
-- live preview in administration;
-- presentation changes must not modify authentication guards, credentials, OAuth, session, or identity-security policy;
-- normalize the current logo value/view contract while implementing the presentation boundary;
-- design the theme engine for later reuse by client `/login`, while applying V1 first to `/admin/login`.
+From the earlier Auth refactor, the following remain unchanged:
 
-This follow-up must start from merged `main` on its own branch after the present MR is merged.
+- `GoogleWebAuthService`: deprecated compatibility adapter / `QUARANTINE`;
+- API Auth stub: `QUARANTINE`;
+- generic Auth CRUD permissions: `DEFER/REVIEW`;
+- cache/jobs/session infrastructure migrations: `QUARANTINE` pending persistence ownership proof.
 
 ## Current status
 
-- Read-only module audit: COMPLETE.
-- Module contract: COMPLETE.
-- Canonical Google identity service: COMPLETE.
-- Admin/client Google adapters migration: COMPLETE.
-- Legacy role-provisioning Google `AuthService`: CLEANED.
-- Focused security regression coverage: COMPLETE.
-- Automated regression/routes/build checkpoint: PASS.
-- UI smoke checkpoint: PASS.
-- Persistence ownership relocation: DEFERRED / NOT INCLUDED.
-- Primary MR: READY FOR PR REVIEW/MERGE.
+- Previous Auth security refactor: MERGED.
+- Follow-up branch creation: COMPLETE.
+- Presentation contract: IMPLEMENTED.
+- System settings manager: IMPLEMENTED.
+- Four-theme live preview: IMPLEMENTED.
+- Auth login rendering integration: IMPLEMENTED.
+- Focused regression coverage: ADDED, NOT YET USER-EXECUTED.
+- Final consolidated test/build/UI checkpoint: NEXT.
