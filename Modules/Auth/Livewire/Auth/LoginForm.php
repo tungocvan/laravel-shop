@@ -12,14 +12,23 @@ use Modules\System\Services\SettingsService;
 class LoginForm extends Component
 {
     public $email = '';
+
     public $password = '';
+
     public $remember = false;
+
     public string $guard = 'web';
+
     public string $variant = 'default';
+
     public $logo = '';
+
     public $login_name_line_1 = '';
+
     public $login_name_line_2 = '';
+
     public $login_description = '';
+
     public array $presentation = [];
 
     protected $rules = [
