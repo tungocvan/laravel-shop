@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\View;
 use Modules\ClientPortal\Http\Middleware\EnsureApplicationAccess;
 use Modules\ClientPortal\Http\Middleware\EnsureFeatureAccess;
 use Spatie\Permission\Middleware\PermissionMiddleware;
@@ -53,9 +54,14 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (NotFoundHttpException $e, $request) {
-            if ($request->routeIs('admin.*')) {
+            if ($request->routeIs('admin.*') && View::exists('Admin::errors.404')) {
                 return response()->view('Admin::errors.404', [], 404);
             }
-            return response()->view('Website::errors.404', [], 404);
+
+            if (View::exists('Website::errors.404')) {
+                return response()->view('Website::errors.404', [], 404);
+            }
+
+            return response('Not Found', 404);
         });
     })->create();
