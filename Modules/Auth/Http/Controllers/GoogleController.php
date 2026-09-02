@@ -12,11 +12,13 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use Modules\Auth\Services\GoogleIdentityService;
+use Modules\System\Services\AdminLoginRedirectService;
 
 class GoogleController extends Controller
 {
     public function __construct(
         private readonly GoogleIdentityService $googleIdentityService,
+        private readonly AdminLoginRedirectService $adminLoginRedirect,
     ) {}
 
     public function redirectToGoogle(Request $request): RedirectResponse
@@ -43,14 +45,14 @@ class GoogleController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->user();
-            $user = $this->googleIdentityService->resolve($googleUser);
+            $user = $this->googleIdentityService->resolveExisting($googleUser);
 
             Auth::guard('admin')->login($user);
             request()->session()->regenerate();
 
             $user->forceFill(['last_login_at' => now()])->save();
 
-            return redirect()->route('admin.dashboard');
+            return redirect()->route($this->adminLoginRedirect->configuredRoute());
         } catch (ValidationException $e) {
             return redirect()->route('admin.login')->withErrors($e->errors());
         } catch (InvalidStateException $e) {
