@@ -2,9 +2,7 @@
 
 namespace Modules\System\Livewire\Settings\Partials;
 
-use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 use Modules\Auth\Services\LoginPresentationService;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\SettingsService;
@@ -13,28 +11,24 @@ use Throwable;
 class LoginTheme extends Component
 {
     use AuthorizesSystemActions;
-    use WithFileUploads;
 
     public string $target = 'admin';
 
     public array $settings = [];
-
-    public $newLogo;
-
-    public $newBackground;
 
     public bool $canUpdate = false;
 
     public function mount(SettingsService $service): void
     {
         $this->canUpdate = (bool) (auth('admin')->user() ?: auth()->user())?->can('system.settings.update');
+        $requestedTarget = request()->query('target');
+        $this->target = in_array($requestedTarget, ['admin', 'client'], true) ? $requestedTarget : 'admin';
         $this->loadSettings($service);
     }
 
     public function setTarget(string $target, SettingsService $service): void
     {
         $this->target = in_array($target, ['admin', 'client'], true) ? $target : 'admin';
-        $this->reset(['newLogo', 'newBackground']);
         $this->loadSettings($service);
     }
 
@@ -49,8 +43,6 @@ class LoginTheme extends Component
             'settings.overlay_opacity' => ['required', 'integer', 'min:0', 'max:90'],
             'settings.show_google' => ['boolean'],
             'settings.footer' => ['nullable', 'string', 'max:200'],
-            'newLogo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:3072'],
-            'newBackground' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:6144'],
         ];
     }
 
@@ -58,8 +50,6 @@ class LoginTheme extends Component
     {
         $this->authorizePermission('system.settings.update');
         $validated = $this->validate();
-        $newPaths = [];
-        $oldPaths = [];
 
         try {
             $prefix = $this->prefix();
@@ -67,55 +57,13 @@ class LoginTheme extends Component
                 ->mapWithKeys(fn ($value, $key): array => [$prefix.$key => is_string($value) ? trim($value) : $value])
                 ->all();
 
-            if ($this->newLogo) {
-                $oldPaths[] = (string) $service->get($prefix.'logo', '');
-                $newPaths[] = $values[$prefix.'logo'] = $this->newLogo->store('login-branding/logos', 'public');
-            }
-
-            if ($this->newBackground) {
-                $oldPaths[] = (string) $service->get($prefix.'background', '');
-                $newPaths[] = $values[$prefix.'background'] = $this->newBackground->store('login-branding/backgrounds', 'public');
-            }
-
             $service->updateMany($values, 'auth_login');
-
-            foreach ($oldPaths as $oldPath) {
-                if ($this->isManagedPath($oldPath) && ! in_array($oldPath, $newPaths, true)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
-            }
-
-            $this->reset(['newLogo', 'newBackground']);
             $this->loadSettings($service);
             $this->dispatch('notify', type: 'success', message: 'Đã lưu giao diện đăng nhập');
         } catch (Throwable $e) {
-            foreach ($newPaths as $newPath) {
-                Storage::disk('public')->delete($newPath);
-            }
-
             report($e);
             $this->dispatch('notify', type: 'error', message: 'Không thể lưu giao diện đăng nhập. Vui lòng kiểm tra log hệ thống.');
         }
-    }
-
-    public function removeAsset(string $type, SettingsService $service): void
-    {
-        $this->authorizePermission('system.settings.update');
-
-        if (! in_array($type, ['logo', 'background'], true)) {
-            return;
-        }
-
-        $key = $this->prefix().$type;
-        $path = (string) $service->get($key, '');
-        $service->set($key, null, 'auth_login');
-
-        if ($this->isManagedPath($path)) {
-            Storage::disk('public')->delete($path);
-        }
-
-        $this->loadSettings($service);
-        $this->dispatch('notify', type: 'success', message: 'Đã xóa hình ảnh đăng nhập');
     }
 
     public function render()
@@ -150,10 +98,5 @@ class LoginTheme extends Component
     private function prefix(): string
     {
         return $this->target === 'admin' ? 'auth_login_admin_' : 'auth_login_client_';
-    }
-
-    private function isManagedPath(string $path): bool
-    {
-        return $path !== '' && str_starts_with($path, 'login-branding/');
     }
 }
