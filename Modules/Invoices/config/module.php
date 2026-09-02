@@ -7,6 +7,8 @@ return [
     'depends' => [],
     'tables' => [
         'invoices',
+        'invoice_files',
+        'invoice_backup_runs',
     ],
     'permissions' => [
         'invoices-list',
