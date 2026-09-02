@@ -81,6 +81,30 @@ final readonly class PlanRequestExport
             $normalized[$key] = $value;
         }
 
+        if (array_key_exists('request_public_ids', $filters)) {
+            if (! is_array($filters['request_public_ids'])) {
+                $this->invalidFilters();
+            }
+
+            $requestPublicIds = collect($filters['request_public_ids'])
+                ->map(fn (mixed $value): string => is_string($value) ? trim($value) : '')
+                ->filter(fn (string $value): bool => $value !== '')
+                ->unique()
+                ->sort()
+                ->values();
+
+            if ($requestPublicIds->isEmpty() || $requestPublicIds->contains(fn (string $value): bool => ! Str::isUlid($value))) {
+                $this->invalidFilters();
+            }
+
+            $maxSelection = max(1, (int) config('request.settings.max_page_size', 100));
+            if ($requestPublicIds->count() > $maxSelection) {
+                $this->invalidFilters();
+            }
+
+            $normalized['request_public_ids'] = $requestPublicIds->all();
+        }
+
         foreach (['created_from', 'created_to'] as $key) {
             if (! isset($filters[$key]) || $filters[$key] === '') {
                 continue;
