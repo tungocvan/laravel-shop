@@ -2,143 +2,147 @@
 
 ## Current checkpoint
 
-Task: **Admin Major Refactor — Final Core Boundary Closeout**
+Task: **Admin Menu Management Workspace — UI/UX Refactor & Menu Taxonomy Cleanup**
 
-Status: **COMPLETE — FINAL REGRESSION PASS / ROUTES PASS / PINT PASS / BUILD PASS / UI PASS / PR READY**
+Status: **PR READY — UI PASS / IMPORT PASS / FOCUSED GATE PASS**
 
-Branch: `refactor/admin-core-boundary-cleanup`
+Branch: `refactor/admin-menu-management-workspace`
 
-Base: `cae7051d` (merged PR #115)
+This checkpoint improves the canonical Admin-owned `/admin/menus` management surface without moving menu persistence or business-domain ownership out of `Modules/Admin`.
 
-This checkpoint closes the Admin major-refactor boundary. `Modules/Admin` is treated as the authenticated Admin shell, navigation and layout-integration module. Business-domain ownership remains in specialized modules.
+## Scope completed
 
-## Final canonical Admin boundary
+### Menu management workspace
 
-`Modules/Admin/routes/web.php` is the runtime allow-list for Admin-owned presentation.
+The menu management page was reorganized into a workspace-oriented Admin UI:
 
-Canonical Admin route controllers are:
+- primary actions emphasize route scanning and menu creation;
+- import/export/template/restore/layout-design actions are grouped as secondary tools;
+- menu statistics are presented compactly;
+- search and status filtering are integrated with the tree workspace;
+- expand/collapse controls support large menu trees;
+- hierarchical rows expose name, URL, permission and status more clearly;
+- section rows have stronger visual hierarchy;
+- row secondary actions are consolidated while status remains directly actionable;
+- selected-menu bulk actions remain available in a sticky toolbar;
+- drag/drop hierarchy and ordering remain supported.
 
-- `Modules\Admin\Http\Controllers\AdminController`
-- `Modules\Admin\Http\Controllers\DashboardController`
-- `Modules\Admin\Http\Controllers\MenuController`
-- `Modules\Admin\Http\Controllers\ProfileController`
+Existing menu-management contracts are preserved, including authorization, route scanning, import/export, restore snapshot, bulk delete/status/permission operations, selection behavior and drag/drop ordering.
 
-Canonical Admin surfaces are dashboard, menu management, profile and the `/admin/layout` hub with `general`, `header`, `sidebar`, `footer`, `design` and `navigation` sections.
+Export semantics remain unchanged: when menu rows are selected, export uses the selected set; otherwise export follows the current menu filters.
 
-`/admin/layout/sidebar` remains shell/sidebar configuration and links to `/admin/menus`; menu management is not merged into layout configuration.
+### Menu form
 
-`DatabaseController` is not part of the normal canonical route allow-list and remains a quarantined legacy/database boundary.
+The create/edit menu form was reorganized for clearer desktop and responsive usage:
 
-## Ownership moved out of Admin in this checkpoint
+- main information and display/settings are separated into clearer regions;
+- Link versus Section/Group intent is explicit;
+- icon selection provides practical presets while retaining manual icon input;
+- icon/sidebar preview is available while editing;
+- save/cancel actions are easier to reach.
 
-### Auth
+Business persistence remains delegated through the existing Menu service boundary.
 
-Admin login/logout/Google authentication is Auth-owned.
+## Menu taxonomy/import acceptance
 
-- legacy Admin `AuthController` removed;
-- legacy Admin `Auth/GoogleController` removed;
-- `AuthService` moved from `Modules/Admin/Services` to `Modules/Auth/Services`;
-- canonical `Modules/Auth/Http/Controllers/GoogleController` now resolves `Modules\Auth\Services\AuthService`.
+The exported menu catalog was reviewed for inconsistent titles, generic icons and duplicate top-level module sections.
 
-### Order / Product / Role / Staff
+The optimized import keeps stable menu keys, URLs, permissions and active state while improving display names, supported semantic icons, hierarchy and ordering.
 
-Legacy Admin controllers for Order, Product, Product Commission, Role and Staff are removed. Canonical runtime stays in their specialized modules.
+Canonical consolidation targets are:
 
-The duplicate Admin `Livewire/Orders/OrderDetailModal` is removed; canonical Order Livewire/runtime remains owned by `Modules/Order`.
+- `muasamcong.dashboard` under `mua-sam-cong`;
+- `admin.invoices.dashboard` under `hoa-don-dien-tu`;
+- `admin.system.dashboard` under `cong-cu-he-thong`;
+- `admin.pharma.dashboard` under `duoc-pham`.
 
-### System settings
+The redundant generated top-level sections associated with those four domains remain data cleanup candidates only after their dashboards are confirmed under the canonical parents. Spreadsheet `update_or_create` intentionally does not delete omitted records.
 
-Deprecated Admin Livewire adapters for Advanced, Database, ENV, Mail, Modules, Momo, Setting, Social and Storage settings are removed. Canonical implementations remain in `Modules/System`.
+The import-ready workbook uses the exact flat import contract:
 
-Admin-owned layout configuration components remain preserved:
+`key, parent_key, name, url, icon, can, is_active, sort_order`
 
-- `AdminLayoutConfig`
-- `AdminLayoutDashboard`
-- `AdminThemeEditor`
+User-confirmed acceptance:
 
-### Website integration
+- `/admin/menus` refactored UI: **PASS**
+- menu create/edit UI: **PASS**
+- optimized Excel menu import: **PASS**
 
-The deprecated Admin `HeaderMenuService` bridge is removed. Admin header configuration and runtime now consume the Website-owned `HeaderMenuService` directly where legacy menu data is still needed. `/admin/layout/header` remains Admin-owned; Website remains owner of HeaderMenu persistence and behavior.
+## Icon compatibility finding
 
-## Deferred compatibility debt — Website refactor
+The current Admin `x-icon` component supports a limited explicit icon vocabulary. Menu taxonomy optimization therefore uses icons known to render through the existing component instead of introducing unsupported icon names that would silently fall back to the default icon.
 
-Final retirement of remaining Website-owned compatibility adapters inside `Modules/Admin` is **intentionally deferred to the upcoming `Modules/Website` refactor**. This is not a blocker for closing the Admin major refactor because canonical Website runtime already owns these domains.
+A broader semantic icon library remains a separate enhancement and is not required for this checkpoint.
 
-Examples intentionally deferred include Banner, Flash Sale, Affiliate and HeaderMenu model/service compatibility aliases that still remain in Admin.
+## Safety / cleanup rule
 
-The Website refactor must perform caller-proofed retirement/update of those adapters and update this boundary if any external compatibility contract is still required.
+Do not delete a duplicate module section merely because an optimized spreadsheet omits it when using `update_or_create`.
 
-## Explicit quarantine / preserved persistence
+Before removing any legacy duplicate section, confirm:
 
-The following are outside this closeout and remain intentionally preserved:
+1. its canonical dashboard child now points to the intended canonical parent;
+2. the legacy section has no remaining required children;
+3. sidebar navigation remains reachable and authorized;
+4. deletion does not remove a still-required subtree.
 
-- `Modules/Admin/Http/Controllers/DatabaseController.php`
-- `Modules/Admin/Services/DatabaseService.php`
-- `Modules/Admin/Models/ModuleRouteTitle.php`
-- `Modules/Admin/database/migrations/2026_08_04_000002_create_module_route_titles_table.php`
+Historical duplicate section keys to verify separately:
 
-No destructive database operation is reactivated, moved, beautified or deleted in this phase. No schema/table removal is included.
+- `module-muasamcong`
+- `module-invoices`
+- `module-system`
+- `module-pharma`
 
-## Final architectural audit
+Their physical data deletion is not required for this UI refactor PR and should not expand this branch beyond proven-safe menu-management changes.
 
-Repository audit confirms:
+## Verification closeout
 
-- Admin routes import only `AdminController`, `DashboardController`, `MenuController` and `ProfileController`;
-- `/admin/layout` and all six layout sections remain Admin-owned;
-- Auth Google controller depends on Auth-owned `AuthService`;
-- specialized Order/Product/Role/Account routes remain outside Admin;
-- deprecated Admin System settings wrappers are retired;
-- deprecated Admin HeaderMenu service bridge is retired while Admin header/menu integration remains functional through the Website service;
-- Database and `ModuleRouteTitle` remain explicitly quarantined/preserved;
-- remaining Website compatibility aliases are documented as deferred Website-refactor debt rather than Admin runtime ownership.
+### Focused Menu gate — PASS
 
-## Contract protection
+`php artisan test tests/Feature/Admin/MenuLivewireRefactorContractTest.php`
 
-`tests/Feature/Admin/AdminOwnershipBoundaryContractTest.php` protects the canonical shell route/controller boundary, layout hub, menu ownership and closed Admin API surface.
+- **8 passed**
+- **56 assertions**
 
-`tests/Feature/Admin/AdminWebsitePresentationOwnershipContractTest.php`, `AdminAffiliateOwnershipContractTest.php`, `AdminFlashSaleOwnershipContractTest.php`, `AdminHeaderSettingsUiContractTest.php` and `AdminOrderOwnershipCleanupContractTest.php` protect retired legacy runtime, specialized ownership, Admin layout/header integration, deferred Website compatibility debt and explicit quarantine boundaries.
+Pint on the changed Menu contract test: **PASS**.
 
-`tests/Feature/System/CanonicalSettingsServiceTest.php` and `SystemSettingsOwnershipTest.php` protect System ownership after retirement of Admin settings adapters.
+Vite production build: **PASS**.
 
-## Verification status
+Working tree after focused verification: **clean**.
 
-User-confirmed final verification: **PASS GREEN**.
+### Admin regression
 
-Verified gate:
+`php artisan test tests/Feature/Admin`
 
-- `tests/Feature/Admin`: **PASS**
-- `tests/Feature/Auth`: **PASS**
-- `tests/Feature/System`: **PASS**
-- `tests/Feature/Order`: **PASS**
-- `tests/Feature/Product`: **PASS**
-- `tests/Feature/Role`: **PASS**
-- Admin route ownership checks: **PASS**
-- focused Pint / formatted `AdminLayoutConfig`: **PASS**
-- Vite production build: **PASS**
-- manual Admin UI smoke: **PASS**
+Result:
 
-The transient failures discovered during the closeout were resolved before final acceptance: stale ownership contracts were aligned with retired adapters, and the remaining Admin header runtime dependency was moved from the deleted Admin `HeaderMenuService` to the canonical Website `HeaderMenuService`.
+- **213 passed**
+- **3 failed**
+- **1868 assertions**
+
+The remaining three failures are pre-existing/out-of-scope ownership-contract drift and do not exercise the Menu workspace refactor:
+
+1. `AdminAffiliateOwnershipContractTest` expects a deprecated Admin affiliate compatibility service to extend `Modules\Website\Services\AdminAffiliateService`, while that canonical Website service is currently absent.
+2. `AdminAffiliateOwnershipContractTest` directly reads the same absent `Modules/Website/Services/AdminAffiliateService.php` during commission-list contract verification.
+3. `AdminWebsitePresentationOwnershipContractTest` expects the Auth Google controller source to reference `Modules\Auth\Services\AuthService`; the current Auth/Google ownership contract no longer matches that assertion.
+
+These failures belong to Website/Auth ownership cleanup and must not be corrected opportunistically in the Menu UI branch.
+
+No Admin regression failure remains attributable to `MenuLivewireRefactorContractTest` or the changed Menu views.
 
 ## Acceptance criteria
 
-- Admin shell/dashboard/menu/profile/layout boundary: **COMPLETE**
-- `/admin/layout` canonical hub: **PRESERVED / PASS**
-- Auth ownership moved to `Modules/Auth`: **COMPLETE / PASS**
-- legacy Admin Order/Product/Role/Staff controllers: **REMOVED / PASS**
-- duplicate Admin Order Livewire: **REMOVED / PASS**
-- deprecated Admin System settings adapters: **REMOVED / PASS**
-- Admin HeaderMenu service bridge: **REMOVED / INTEGRATION PASS**
-- Website compatibility adapter retirement: **DEFERRED TO WEBSITE REFACTOR BY DESIGN**
-- Database destructive boundary: **QUARANTINED / UNCHANGED**
-- `ModuleRouteTitle` persistence: **PRESERVED**
-- schema/data changes: **NONE**
-- final automated regression: **PASS**
-- Pint: **PASS**
-- build: **PASS**
-- manual Admin UI: **PASS**
+- Admin menu UI hierarchy/progressive disclosure: **COMPLETE / UI PASS**
+- menu create/edit form UX: **COMPLETE / UI PASS**
+- drag/drop and hierarchy behavior preserved: **UI PASS**
+- selected-versus-filtered export semantics preserved: **PRESERVED**
+- import-ready optimized menu taxonomy: **IMPORT PASS**
+- focused Menu contract test: **PASS — 8 tests / 56 assertions**
+- Pint focused gate: **PASS**
+- Vite build: **PASS**
+- Admin regression attributable to Menu scope: **PASS**
+- unrelated Website/Auth ownership baseline: **3 known failures / OUT OF SCOPE**
+- branch working tree after verification: **CLEAN**
 
 ## Next checkpoint
 
-Open and merge the final Admin Core Boundary Cleanup PR against `main`.
-
-After merge, the **Admin Major Refactor is COMPLETE**. The next separate phase is the `Modules/Website` refactor, which owns the deferred Banner/FlashSale/Affiliate/HeaderMenu compatibility-debt cleanup and must not move those business domains back into Admin.
+Open one consolidated pull request from `refactor/admin-menu-management-workspace` to `main`. The PR must explicitly disclose the three unrelated Website/Auth ownership baseline failures above. After merge, any physical deletion of the four duplicate menu-section records should be treated as a separate data cleanup only after tree/caller proof.
