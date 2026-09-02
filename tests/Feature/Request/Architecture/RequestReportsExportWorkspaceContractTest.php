@@ -22,7 +22,7 @@ class RequestReportsExportWorkspaceContractTest extends TestCase
             $this->assertStringContainsString($filterControl, $view);
         }
 
-        foreach (['name="confirmed"', 'selected_request_public_ids[]', 'nếu không chọn dòng nào', 'quyền tải xuống sẽ được kiểm tra lại', 'Tạo tệp xuất an toàn'] as $exportSafety) {
+        foreach (['name="confirmed"', 'selected_request_public_ids[]', 'nếu không chọn dòng nào', 'Quyền tải xuống sẽ được kiểm tra lại', 'Tạo tệp xuất an toàn'] as $exportSafety) {
             $this->assertStringContainsString($exportSafety, $view);
         }
 
