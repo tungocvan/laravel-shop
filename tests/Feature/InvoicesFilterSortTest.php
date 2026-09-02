@@ -64,8 +64,34 @@ class InvoicesFilterSortTest extends TestCase
         });
     }
 
+    public function test_pdf_status_filters_use_canonical_invoice_file_metadata(): void
+    {
+        $this->withInvoicesAndFilesTables(function () {
+            DB::table('invoices')->insert([
+                $this->invoiceRow('available', 'purchase', 'PDF-001', '2026-08-10', 'Available', '100.00'),
+                $this->invoiceRow('missing', 'purchase', 'PDF-002', '2026-08-11', 'Missing', '200.00'),
+                $this->invoiceRow('error', 'purchase', 'PDF-003', '2026-08-12', 'Error', '300.00'),
+                $this->invoiceRow('no-metadata', 'purchase', 'PDF-004', '2026-08-13', 'No metadata', '400.00'),
+            ]);
+
+            $ids = DB::table('invoices')->pluck('id', 'invoice_number');
+            DB::table('invoice_files')->insert([
+                $this->invoiceFileRow((int) $ids['PDF-001'], 'available'),
+                $this->invoiceFileRow((int) $ids['PDF-002'], 'missing'),
+                $this->invoiceFileRow((int) $ids['PDF-003'], 'error'),
+            ]);
+
+            $service = app(InvoiceService::class);
+
+            $this->assertSame(['PDF-001'], $service->filter(['pdf_status' => 'available'])->pluck('invoice_number')->all());
+            $this->assertSame(['PDF-004', 'PDF-002'], $service->filter(['pdf_status' => 'missing'])->pluck('invoice_number')->all());
+            $this->assertSame(['PDF-003'], $service->filter(['pdf_status' => 'error'])->pluck('invoice_number')->all());
+        });
+    }
+
     private function withInvoicesTable(callable $callback): void
     {
+        Schema::dropIfExists('invoice_files');
         Schema::dropIfExists('invoices');
         $migration = require base_path('Modules/Invoices/database/migrations/2025_11_21_045614_invoices.php');
         $migration->up();
@@ -73,8 +99,39 @@ class InvoicesFilterSortTest extends TestCase
         try {
             $callback();
         } finally {
+            Schema::dropIfExists('invoice_files');
             Schema::dropIfExists('invoices');
         }
+    }
+
+    private function withInvoicesAndFilesTables(callable $callback): void
+    {
+        Schema::dropIfExists('invoice_files');
+        Schema::dropIfExists('invoices');
+        (require base_path('Modules/Invoices/database/migrations/2025_11_21_045614_invoices.php'))->up();
+        (require base_path('Modules/Invoices/database/migrations/2026_08_15_120000_create_invoice_files_table.php'))->up();
+
+        try {
+            $callback();
+        } finally {
+            Schema::dropIfExists('invoice_files');
+            Schema::dropIfExists('invoices');
+        }
+    }
+
+    private function invoiceFileRow(int $invoiceId, string $status): array
+    {
+        return [
+            'invoice_id' => $invoiceId,
+            'provider' => 'test',
+            'status' => $status,
+            'path' => $status === 'available' ? 'invoices/pdf/test.pdf' : null,
+            'size' => $status === 'available' ? 100 : null,
+            'last_error' => $status === 'error' ? 'provider failure' : null,
+            'downloaded_at' => $status === 'available' ? now() : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
     }
 
     private function invoiceRow(
