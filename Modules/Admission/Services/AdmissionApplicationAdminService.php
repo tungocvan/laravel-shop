@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdmissionApplicationAdminService
 {
-    private const PER_PAGE_OPTIONS = [5, 10, 20, 50];
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public function query(array $filters = []): Builder
     {
@@ -90,8 +90,8 @@ class AdmissionApplicationAdminService
     public function deleteMany(array $ids): int
     {
         $ids = collect($ids)
-            ->filter(fn ($id) => is_numeric($id) && (int) $id > 0)
             ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
             ->unique()
             ->values();
 
@@ -103,10 +103,11 @@ class AdmissionApplicationAdminService
 
         AdmissionApplication::query()
             ->whereIn('id', $ids)
-            ->orderBy('id')
+            ->get()
             ->each(function (AdmissionApplication $application) use (&$deleted) {
-                $application->delete();
-                $deleted++;
+                if ($application->delete()) {
+                    $deleted++;
+                }
             });
 
         return $deleted;
@@ -114,29 +115,33 @@ class AdmissionApplicationAdminService
 
     public function deleteAllAndResetIncrement(): int
     {
-        $deleted = 0;
+        return DB::transaction(function () {
+            $applications = AdmissionApplication::query()->get();
+            $deleted = 0;
 
-        AdmissionApplication::query()
-            ->orderBy('id')
-            ->each(function (AdmissionApplication $application) use (&$deleted) {
-                $application->delete();
-                $deleted++;
-            });
+            foreach ($applications as $application) {
+                if ($application->delete()) {
+                    $deleted++;
+                }
+            }
 
-        if (AdmissionApplication::query()->exists()) {
-            throw new RuntimeException('Không thể reset ID vì bảng admission_applications chưa rỗng hoàn toàn.');
-        }
+            $driver = DB::connection()->getDriverName();
 
-        $this->resetAutoIncrement();
+            if ($driver === 'mysql' || $driver === 'mariadb') {
+                DB::statement('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1');
+            } elseif ($driver === 'sqlite') {
+                DB::table('sqlite_sequence')->where('name', 'admission_applications')->delete();
+            }
 
-        return $deleted;
+            return $deleted;
+        });
     }
 
     public function queueDocumentsForIds(array $ids, bool $docx = true, bool $pdf = false): ?Batch
     {
         $ids = collect($ids)
-            ->filter(fn ($id) => is_numeric($id) && (int) $id > 0)
             ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
             ->unique()
             ->values();
 
@@ -147,7 +152,7 @@ class AdmissionApplicationAdminService
         return $this->queueDocumentQuery(
             AdmissionApplication::query()->whereIn('id', $ids),
             $docx,
-            $pdf,
+            $pdf
         );
     }
 
@@ -156,87 +161,38 @@ class AdmissionApplicationAdminService
         return $this->queueDocumentQuery($this->query($filters), $docx, $pdf);
     }
 
+    public function downloadExport(array $filters): BinaryFileResponse
+    {
+        return Excel::download(
+            new ApplicationsExport($this->query($filters)),
+            'admission-applications-'.now()->format('Ymd-His').'.xlsx'
+        );
+    }
+
     private function queueDocumentQuery(Builder $query, bool $docx, bool $pdf): ?Batch
     {
         if (! $docx && ! $pdf) {
             throw new RuntimeException('Phải chọn ít nhất một định dạng tài liệu.');
         }
 
-        $jobs = [];
-
-        $query->where('status', 'approved')
-            ->reorder('id')
-            ->chunkById(100, function ($applications) use (&$jobs, $docx, $pdf) {
-                foreach ($applications as $application) {
-                    if (! $this->documentMissing($application, $docx, $pdf)) {
-                        continue;
-                    }
-
-                    $jobs[] = new GenerateAdmissionPdfJob($application->id, $docx, $pdf);
-                }
-            });
+        $jobs = $query
+            ->where('status', 'approved')
+            ->when($docx && ! $pdf, fn (Builder $query) => $query->whereNull('word_path'))
+            ->when($pdf && ! $docx, fn (Builder $query) => $query->whereNull('pdf_path'))
+            ->when($docx && $pdf, fn (Builder $query) => $query->where(function (Builder $nested) {
+                $nested->whereNull('word_path')->orWhereNull('pdf_path');
+            }))
+            ->pluck('id')
+            ->map(fn ($id) => new GenerateAdmissionPdfJob((int) $id, $docx, $pdf))
+            ->all();
 
         if ($jobs === []) {
             return null;
         }
 
         return Bus::batch($jobs)
-            ->name('Admission documents '.now()->format('Y-m-d H:i:s'))
-            ->allowFailures()
-            ->onConnection(config('queue.default'))
+            ->name('Admission document generation')
             ->onQueue('admission-documents')
             ->dispatch();
-    }
-
-    private function documentMissing(AdmissionApplication $application, bool $docx, bool $pdf): bool
-    {
-        if ($docx) {
-            $wordExists = $application->word_path
-                && file_exists(storage_path('app/'.$application->word_path));
-
-            if (! $wordExists) {
-                return true;
-            }
-        }
-
-        if ($pdf) {
-            $pdfExists = $application->pdf_path
-                && file_exists(storage_path('app/'.$application->pdf_path));
-
-            if (! $pdfExists) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function resetAutoIncrement(): void
-    {
-        $driver = DB::connection()->getDriverName();
-
-        if ($driver === 'mysql' || $driver === 'mariadb') {
-            DB::statement('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1');
-
-            return;
-        }
-
-        if ($driver === 'sqlite') {
-            DB::table('sqlite_sequence')
-                ->where('name', 'admission_applications')
-                ->delete();
-        }
-    }
-
-    public function downloadExport(array $filters): BinaryFileResponse
-    {
-        return Excel::download(
-            new ApplicationsExport(
-                $filters['search'] ?? null,
-                $filters['status'] ?? null,
-                $filters['class'] ?? null,
-            ),
-            'applications.xlsx'
-        );
     }
 }
