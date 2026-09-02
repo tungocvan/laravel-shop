@@ -4,9 +4,12 @@
 
 - Module: `System`
 - Mode: Refactor Module
-- Branch: `refactor/system-architecture-boundaries`
+- Delivery branch: `refactor/system-architecture-boundaries`
+- Closeout branch: `docs/system-architecture-boundaries-closeout`
 - Architecture contract: `docs/modules/System/MODULE.md`
-- Status: **IMPLEMENTATION COMPLETE — READY FOR PR REVIEW**
+- Pull request: #141 — **MERGED**
+- Main merge checkpoint: `124f640f1bd5d6efba25da4fa1160e4728f7cc77`
+- Status: **COMPLETE — MERGED TO MAIN**
 - UI smoke: **PASS** on 2026-09-02
 
 This refactor establishes the System ownership contract, removes Admin menu ownership from System settings, hardens Admin post-login landing behavior, and removes runtime dependence on Website for Admin/root fallback and ClientPortal PWA manifest delivery.
@@ -92,7 +95,7 @@ System Feature regression          PASS — 187 passed, 1 skipped, 1072 assertio
 Duration                           10.13s
 ```
 
-Final Git worktree: **CLEAN** and branch up to date with `origin/refactor/system-architecture-boundaries`.
+Final Git worktree before PR merge: **CLEAN** and branch synchronized with `origin/refactor/system-architecture-boundaries`.
 
 Manual UI smoke with Website OFF: **PASS**.
 
@@ -132,7 +135,8 @@ A full-project regression remains outside the approved scope.
 10. **COMPLETE** — final Pint corrective-slice gate passed.
 11. **COMPLETE** — final System regression passed: 187 passed, 1 skipped, 1072 assertions.
 12. **COMPLETE** — final worktree clean and synchronized.
-13. **READY** — open PR to `main` for manual user review/merge.
+13. **COMPLETE** — PR #141 merged to `main`; merge checkpoint `124f640f1bd5d6efba25da4fa1160e4728f7cc77`.
+14. **COMPLETE** — architecture-boundaries phase closed; remaining items stay explicitly deferred/quarantined for later work.
 
 ---
 
