@@ -12,7 +12,7 @@ class Index extends Component
 {
     use WithPagination;
 
-    private const PER_PAGE_OPTIONS = [5, 10, 20, 50];
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public $search = '';
 
@@ -56,6 +56,15 @@ class Index extends Component
             $this->resetPage();
             $this->resetSelection();
         }
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterStatus = '';
+        $this->filterClass = '';
+        $this->resetPage();
+        $this->resetSelection();
     }
 
     protected function resetSelection(): void
