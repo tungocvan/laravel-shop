@@ -15,23 +15,23 @@
             <form wire:submit="createGroup" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <h3 class="font-semibold text-slate-900">Tạo nhóm đề nghị</h3>
                 <p class="mt-1 text-xs text-slate-500">Nhóm dùng để tổ chức các loại đề nghị theo nghiệp vụ.</p>
-                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.code') }}<input wire:model="groupCode" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.code') }}<input wire:model="groupCode" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 @error('groupCode') border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 @enderror"></label>
                 @error('groupCode')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.name') }}<input wire:model="groupName" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.name') }}<input wire:model="groupName" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 @error('groupName') border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 @enderror"></label>
                 @error('groupName')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                <button class="mt-4 min-h-11 rounded-xl border border-indigo-300 bg-white px-4 py-2 font-semibold text-indigo-700" wire:loading.attr="disabled">Tạo nhóm đề nghị</button>
+                <button class="mt-4 min-h-11 rounded-xl border border-indigo-300 bg-white px-4 py-2 font-semibold text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60" wire:loading.attr="disabled">Tạo nhóm đề nghị</button>
             </form>
 
             <form wire:submit="createType" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <h3 class="font-semibold text-slate-900">Tạo loại đề nghị</h3>
                 <p class="mt-1 text-xs text-slate-500">Loại mới bắt đầu ở trạng thái bản nháp và được hoàn thiện trong Designer.</p>
-                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.groups.title') }}<select wire:model="requestGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">— Chọn nhóm —</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.groups.title') }}<select wire:model="requestGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 @error('requestGroupId') border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 @enderror"><option value="">— Chọn nhóm —</option>@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
                 @error('requestGroupId')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.code') }}<input wire:model="typeCode" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.code') }}<input wire:model="typeCode" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 @error('typeCode') border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 @enderror"></label>
                 @error('typeCode')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.name') }}<input wire:model="typeName" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                <label class="mt-4 block text-sm font-medium text-slate-700">{{ __('Request::request.name') }}<input wire:model="typeName" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 @error('typeName') border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 @enderror"></label>
                 @error('typeName')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                <button class="mt-4 min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white" wire:loading.attr="disabled">Tạo loại đề nghị</button>
+                <button class="mt-4 min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60" wire:loading.attr="disabled">Tạo loại đề nghị</button>
             </form>
         </div>
     </section>
@@ -41,32 +41,33 @@
             <section role="dialog" aria-modal="true" aria-labelledby="duplicate-type-heading" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-indigo-200 bg-white p-5 shadow-2xl sm:p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div><h2 id="duplicate-type-heading" class="text-lg font-bold text-slate-900">Nhân bản thành loại đề nghị mới</h2><p class="mt-1 text-sm text-slate-600">Bản sao luôn bắt đầu ở v1 bản nháp và không tự phát hành.</p></div>
-                    <button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-600" aria-label="Đóng cửa sổ nhân bản">Đóng</button>
+                    <button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Đóng cửa sổ nhân bản">Đóng</button>
                 </div>
                 @if($errors->hasAny(['duplicateGroupId', 'duplicateCode', 'duplicateName', 'duplicateAudience', 'duplicateType']))
                     <div class="mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert">Không thể tạo bản sao. Vui lòng kiểm tra các trường được đánh dấu bên dưới.</div>
                 @endif
                 <form wire:submit="duplicateType" class="mt-4 grid gap-3 md:grid-cols-2">
-                    <label class="text-sm font-medium">Nhóm<select wire:model="duplicateGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select>@error('duplicateGroupId')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
-                    <label class="text-sm font-medium">Mã mới<input wire:model="duplicateCode" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@error('duplicateCode')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
-                    <label class="text-sm font-medium md:col-span-2">Tên mới<input wire:model="duplicateName" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">@error('duplicateName')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
-                    @if(auth('admin')->user()?->can('request.type.audience.manage'))<label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" wire:model="duplicateAudience" class="rounded border-slate-300"> Sao chép đối tượng được phép tạo đề nghị</label>@endif
-                    <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end md:col-span-2"><button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold">Hủy</button><button type="submit" wire:loading.attr="disabled" wire:target="duplicateType" class="min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:opacity-60"><span wire:loading.remove wire:target="duplicateType">Tạo bản sao</span><span wire:loading wire:target="duplicateType">Đang tạo…</span></button></div>
+                    <label class="text-sm font-medium">Nhóm<select wire:model="duplicateGroupId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">@foreach($groups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select>@error('duplicateGroupId')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
+                    <label class="text-sm font-medium">Mã mới<input wire:model="duplicateCode" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">@error('duplicateCode')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
+                    <label class="text-sm font-medium md:col-span-2">Tên mới<input wire:model="duplicateName" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">@error('duplicateName')<span class="mt-1 block text-sm text-rose-700">{{ $message }}</span>@enderror</label>
+                    @if(auth('admin')->user()?->can('request.type.audience.manage'))<label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" wire:model="duplicateAudience" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"> Sao chép đối tượng được phép tạo đề nghị</label>@endif
+                    <div class="flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end md:col-span-2"><button type="button" wire:click="$set('duplicateSourcePublicId', null)" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">Hủy</button><button type="submit" wire:loading.attr="disabled" wire:target="duplicateType" class="min-h-11 rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"><span wire:loading.remove wire:target="duplicateType">Tạo bản sao</span><span wire:loading wire:target="duplicateType">Đang tạo…</span></button></div>
                 </form>
             </section>
         </div>
     @endif
 
     <section aria-labelledby="definition-filter-heading" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 id="definition-filter-heading" class="text-lg font-bold text-slate-900">Tìm kiếm & lọc</h2><p class="text-sm text-slate-600">Tìm theo mã hoặc tên và thu hẹp theo trạng thái vận hành.</p></div><button type="button" wire:click="resetFilters" class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Đặt lại</button></div>
-        <div class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-            <label class="text-sm font-medium text-slate-700">{{ __('Request::request.search') }}<input wire:model.live.debounce.300ms="search" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" placeholder="Mã hoặc tên loại đề nghị"></label>
-            <label class="text-sm font-medium text-slate-700">Trạng thái<select wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">Tất cả trạng thái</option><option value="draft">Bản nháp</option><option value="published">Đang phát hành</option><option value="retired">Ngừng sử dụng</option></select></label>
+        <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 id="definition-filter-heading" class="text-lg font-bold text-slate-900">Tìm kiếm & lọc</h2><p class="text-sm text-slate-600">Tìm theo mã hoặc tên và thu hẹp theo trạng thái vận hành.</p></div><button type="button" wire:click="resetFilters" class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Đặt lại</button></div>
+        <div class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem_10rem]">
+            <label class="text-sm font-medium text-slate-700">{{ __('Request::request.search') }}<input wire:model.live.debounce.300ms="search" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" placeholder="Mã hoặc tên loại đề nghị"></label>
+            <label class="text-sm font-medium text-slate-700">Trạng thái<select wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"><option value="">Tất cả trạng thái</option><option value="draft">Bản nháp</option><option value="published">Đang phát hành</option><option value="retired">Ngừng sử dụng</option></select></label>
+            <label class="text-sm font-medium text-slate-700">Số dòng/trang<select wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">@foreach($pageSizes as $size)<option value="{{ $size }}">{{ $size }}</option>@endforeach</select></label>
         </div>
     </section>
 
     <section aria-labelledby="definition-list-heading" class="space-y-3">
-        <div><h2 id="definition-list-heading" class="text-lg font-bold text-slate-900">Danh sách loại đề nghị</h2><p class="text-sm text-slate-600">Mỗi loại hiển thị trạng thái và phiên bản để bạn chọn đúng hành động quản trị.</p></div>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><h2 id="definition-list-heading" class="text-lg font-bold text-slate-900">Danh sách loại đề nghị</h2><p class="text-sm text-slate-600">Mỗi loại hiển thị trạng thái và phiên bản để bạn chọn đúng hành động quản trị.</p></div><div class="text-sm font-semibold text-slate-600">{{ number_format($types->total()) }} kết quả</div></div>
         <div class="grid gap-3">
             @forelse($types as $type)
                 @php($statusValue = $type->status->value)
@@ -83,10 +84,10 @@
                             </dl>
                         </div>
                         <div class="flex flex-col gap-2 sm:flex-row lg:flex-col lg:min-w-44">
-                            <a class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" href="{{ route('request.admin.types.designer', $type->public_id) }}">Mở Designer</a>
-                            <a class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" href="{{ route('request.admin.types.versions', $type->public_id) }}">Lịch sử phiên bản</a>
-                            @can('create', Modules\Request\Models\RequestType::class)<button type="button" wire:click="prepareDuplicate('{{ $type->public_id }}')" class="min-h-11 rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700">Nhân bản</button>@endcan
-                            @can('delete', $type)<button type="button" wire:click="deleteType('{{ $type->public_id }}')" wire:confirm="Xóa vĩnh viễn loại đề nghị chưa phát hành này?" class="min-h-11 rounded-xl border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700">Xóa loại</button>@endcan
+                            <a class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" href="{{ route('request.admin.types.designer', $type->public_id) }}">Mở Designer</a>
+                            <a class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" href="{{ route('request.admin.types.versions', $type->public_id) }}">Lịch sử phiên bản</a>
+                            @can('create', Modules\Request\Models\RequestType::class)<button type="button" wire:click="prepareDuplicate('{{ $type->public_id }}')" class="min-h-11 rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Nhân bản</button>@endcan
+                            @can('delete', $type)<button type="button" wire:click="deleteType('{{ $type->public_id }}')" wire:confirm="Xóa vĩnh viễn loại đề nghị chưa phát hành này?" class="min-h-11 rounded-xl border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500">Xóa loại</button>@endcan
                         </div>
                     </div>
                 </article>
@@ -94,6 +95,6 @@
                 <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><div class="font-semibold text-slate-800">Không có loại đề nghị phù hợp.</div><p class="mt-1 text-sm text-slate-500">Thử thay đổi từ khóa hoặc trạng thái lọc.</p></div>
             @endforelse
         </div>
-        <div>{{ $types->links() }}</div>
+        @if($types->hasPages())<div>{{ $types->links() }}</div>@endif
     </section>
 </div>
