@@ -172,7 +172,12 @@
                         @canany(['delete_admission', 'download_admission_documents'])
                             <th class="w-12 px-4 py-3 text-center"><label class="sr-only" for="admission-select-all">Chọn tất cả hồ sơ trên trang</label><input id="admission-select-all" type="checkbox" wire:model.live="selectAll" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></th>
                         @endcanany
-                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Học sinh</th><th class="px-4 py-3 text-left font-semibold text-gray-600">Lớp</th><th class="px-4 py-3 text-left font-semibold text-gray-600">Loại lớp</th><th class="px-4 py-3 text-left font-semibold text-gray-600">Ngày sinh</th><th class="px-4 py-3 text-left font-semibold text-gray-600">Trạng thái</th><th class="px-4 py-3 text-right font-semibold text-gray-600">Thao tác</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Học sinh</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Lớp</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Loại lớp</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Ngày sinh</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-600">Trạng thái</th>
+                        <th class="px-4 py-3 text-right font-semibold text-gray-600">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -203,7 +208,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-6 py-14 text-center text-gray-500"><div class="font-medium text-gray-700">Không có hồ sơ phù hợp</div><div class="mt-1 text-sm">Hãy thử thay đổi hoặc đặt lại bộ lọc.</div></td></tr>
+                        <tr><td colspan="7" class="px-6 py-14 text-center text-gray-500"><div class="font-medium text-gray-700">Không có hồ sơ phù hợp với bộ lọc hiện tại.</div><div class="mt-1 text-sm">Hãy thử thay đổi hoặc đặt lại bộ lọc.</div></td></tr>
                     @endforelse
                 </tbody>
             </table>
