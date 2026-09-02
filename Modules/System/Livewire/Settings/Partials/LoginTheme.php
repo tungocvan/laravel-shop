@@ -27,9 +27,9 @@ class LoginTheme extends Component
         $this->loadSettings($service);
     }
 
-    public function updatedTarget(SettingsService $service): void
+    public function setTarget(string $target, SettingsService $service): void
     {
-        $this->target = in_array($this->target, ['admin', 'client'], true) ? $this->target : 'admin';
+        $this->target = in_array($target, ['admin', 'client'], true) ? $target : 'admin';
         $this->reset(['newLogo', 'newBackground']);
         $this->loadSettings($service);
     }
@@ -54,6 +54,8 @@ class LoginTheme extends Component
     {
         $this->authorizePermission('system.settings.update');
         $validated = $this->validate();
+        $newPaths = [];
+        $oldPaths = [];
 
         try {
             $prefix = $this->prefix();
@@ -62,18 +64,31 @@ class LoginTheme extends Component
                 ->all();
 
             if ($this->newLogo) {
-                $values[$prefix.'logo'] = $this->storeReplacement($service, $prefix.'logo', $this->newLogo, 'login-branding/logos');
+                $oldPaths[] = (string) $service->get($prefix.'logo', '');
+                $newPaths[] = $values[$prefix.'logo'] = $this->newLogo->store('login-branding/logos', 'public');
             }
 
             if ($this->newBackground) {
-                $values[$prefix.'background'] = $this->storeReplacement($service, $prefix.'background', $this->newBackground, 'login-branding/backgrounds');
+                $oldPaths[] = (string) $service->get($prefix.'background', '');
+                $newPaths[] = $values[$prefix.'background'] = $this->newBackground->store('login-branding/backgrounds', 'public');
             }
 
             $service->updateMany($values, 'auth_login');
+
+            foreach ($oldPaths as $oldPath) {
+                if ($this->isManagedPath($oldPath) && ! in_array($oldPath, $newPaths, true)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+
             $this->reset(['newLogo', 'newBackground']);
             $this->loadSettings($service);
             $this->dispatch('notify', type: 'success', message: 'Đã lưu giao diện đăng nhập');
         } catch (Throwable $e) {
+            foreach ($newPaths as $newPath) {
+                Storage::disk('public')->delete($newPath);
+            }
+
             report($e);
             $this->dispatch('notify', type: 'error', message: 'Không thể lưu giao diện đăng nhập. Vui lòng kiểm tra log hệ thống.');
         }
@@ -91,7 +106,7 @@ class LoginTheme extends Component
         $path = (string) $service->get($key, '');
         $service->set($key, null, 'auth_login');
 
-        if ($path !== '' && ! str_starts_with($path, 'http') && ! str_starts_with($path, '/')) {
+        if ($this->isManagedPath($path)) {
             Storage::disk('public')->delete($path);
         }
 
@@ -133,15 +148,8 @@ class LoginTheme extends Component
         return $this->target === 'admin' ? 'auth_login_admin_' : 'auth_login_client_';
     }
 
-    private function storeReplacement(SettingsService $service, string $key, $upload, string $directory): string
+    private function isManagedPath(string $path): bool
     {
-        $oldPath = (string) $service->get($key, '');
-        $newPath = $upload->store($directory, 'public');
-
-        if ($oldPath !== '' && ! str_starts_with($oldPath, 'http') && ! str_starts_with($oldPath, '/')) {
-            Storage::disk('public')->delete($oldPath);
-        }
-
-        return $newPath;
+        return $path !== '' && str_starts_with($path, 'login-branding/');
     }
 }
