@@ -14,6 +14,8 @@ class LoginTheme extends Component
 
     public string $target = 'admin';
 
+    public string $previewDevice = 'desktop';
+
     public array $settings = [];
 
     public bool $canUpdate = false;
@@ -30,6 +32,11 @@ class LoginTheme extends Component
     {
         $this->target = in_array($target, ['admin', 'client'], true) ? $target : 'admin';
         $this->loadSettings($service);
+    }
+
+    public function setPreviewDevice(string $device): void
+    {
+        $this->previewDevice = in_array($device, ['desktop', 'mobile'], true) ? $device : 'desktop';
     }
 
     protected function rules(): array
