@@ -84,10 +84,19 @@ class InvoiceService
         if ($includeTaxRate && filled($filters['tax_rate']??null) && $filters['tax_rate']!=='all') {
             $filters['tax_rate']==='other' ? $query->whereNotNull('tax_rate')->whereNotIn('tax_rate',[5,8,10]) : $query->where('tax_rate',$filters['tax_rate']);
         }
+
         $pdfStatus = $filters['pdf_status'] ?? 'all';
-        if ($pdfStatus === 'available') $query->whereHas('file', fn($q)=>$q->where('status','available'));
-        elseif ($pdfStatus === 'error') $query->whereHas('file', fn($q)=>$q->where('status','error'));
-        elseif ($pdfStatus === 'missing') $query->whereDoesntHave('file', fn($q)=>$q->whereIn('status',['available','error']));
+        if ($pdfStatus === 'available') {
+            $query->whereHas('file', fn ($q) => $q->where('status', 'available'));
+        } elseif ($pdfStatus === 'error') {
+            $query->whereHas('file', fn ($q) => $q->where('status', 'error'));
+        } elseif ($pdfStatus === 'missing') {
+            $query->where(function (Builder $q) {
+                $q->whereDoesntHave('file')
+                    ->orWhereHas('file', fn ($file) => $file->where('status', 'missing'));
+            });
+        }
+
         return $query;
     }
 
