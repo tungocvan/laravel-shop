@@ -24,14 +24,20 @@ class RequestDefinitionManagementWorkspaceContractTest extends TestCase
         }
 
         $this->assertStringContainsString("public string \$status = ''", $component);
+        $this->assertStringContainsString('public int $perPage = 25', $component);
         $this->assertStringContainsString('updatedStatus', $component);
+        $this->assertStringContainsString('updatedPerPage', $component);
+        $this->assertStringContainsString("config('request.settings.page_sizes'", $component);
         $this->assertStringContainsString("with(['group:id,name', 'activeDraft:id,version_number', 'currentPublishedVersion:id,version_number'])", $component);
         $this->assertStringContainsString("when(\$this->status !== ''", $component);
-        $this->assertStringContainsString('paginate(25)', $component);
+        $this->assertStringContainsString('paginate($this->perPage)', $component);
         $this->assertStringContainsString("Gate::authorize('viewAny', RequestType::class)", $component);
         $this->assertStringContainsString("Gate::authorize('create', RequestGroup::class)", $component);
         $this->assertStringContainsString("Gate::authorize('create', RequestType::class)", $component);
         $this->assertStringContainsString('wire:model.live="status"', $view);
+        $this->assertStringContainsString('wire:model.live="perPage"', $view);
+        $this->assertStringContainsString('Số dòng/trang', $view);
+        $this->assertStringContainsString('focus:ring-2', $view);
         $this->assertStringContainsString('min-h-11', $view);
         $this->assertStringNotContainsString('App\\Models\\User', $component.$view);
     }
