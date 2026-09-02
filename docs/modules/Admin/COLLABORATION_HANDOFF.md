@@ -4,7 +4,7 @@
 
 Task: **Admin Menu Management Workspace — UI/UX Refactor & Menu Taxonomy Cleanup**
 
-Status: **IMPLEMENTED — UI PASS / IMPORT PASS / FINAL AUTOMATED VERIFICATION PENDING**
+Status: **PR READY — UI PASS / IMPORT PASS / FOCUSED GATE PASS**
 
 Branch: `refactor/admin-menu-management-workspace`
 
@@ -56,28 +56,27 @@ Canonical consolidation targets are:
 - `admin.system.dashboard` under `cong-cu-he-thong`;
 - `admin.pharma.dashboard` under `duoc-pham`.
 
-The redundant generated top-level sections associated with those four domains are cleanup candidates only after their dashboards are confirmed under the canonical parents.
+The redundant generated top-level sections associated with those four domains remain data cleanup candidates only after their dashboards are confirmed under the canonical parents. Spreadsheet `update_or_create` intentionally does not delete omitted records.
 
 The import-ready workbook uses the exact flat import contract:
 
 `key, parent_key, name, url, icon, can, is_active, sort_order`
 
-The earlier review workbook was intentionally not retained as an import artifact because the menu importer consumes the spreadsheet's menu rows directly; the clean import workbook contains only the import surface.
-
 User-confirmed acceptance:
 
 - `/admin/menus` refactored UI: **PASS**
+- menu create/edit UI: **PASS**
 - optimized Excel menu import: **PASS**
 
 ## Icon compatibility finding
 
-The current Admin `x-icon` component supports a limited explicit icon vocabulary. Menu taxonomy optimization therefore uses icons known to render through the existing component instead of introducing unsupported Heroicon names that would silently fall back to the default icon.
+The current Admin `x-icon` component supports a limited explicit icon vocabulary. Menu taxonomy optimization therefore uses icons known to render through the existing component instead of introducing unsupported icon names that would silently fall back to the default icon.
 
 A broader semantic icon library remains a separate enhancement and is not required for this checkpoint.
 
 ## Safety / cleanup rule
 
-Do not delete a duplicate module section merely because an optimized spreadsheet omits it when using `update_or_create`; that import mode does not imply deletion.
+Do not delete a duplicate module section merely because an optimized spreadsheet omits it when using `update_or_create`.
 
 Before removing any legacy duplicate section, confirm:
 
@@ -86,28 +85,49 @@ Before removing any legacy duplicate section, confirm:
 3. sidebar navigation remains reachable and authorized;
 4. deletion does not remove a still-required subtree.
 
-The four historical duplicate section keys to verify are:
+Historical duplicate section keys to verify separately:
 
 - `module-muasamcong`
 - `module-invoices`
 - `module-system`
 - `module-pharma`
 
-## Verification status
+Their physical data deletion is not required for this UI refactor PR and should not expand this branch beyond proven-safe menu-management changes.
 
-Manual verification already confirmed by the user:
+## Verification closeout
 
-- Admin menu workspace UI: **PASS**
-- optimized menu import: **PASS**
+### Focused Menu gate — PASS
 
-Automated closeout still required before PR-ready status:
+`php artisan test tests/Feature/Admin/MenuLivewireRefactorContractTest.php`
 
-- focused Admin menu tests;
-- relevant Admin regression tests;
-- route check for Admin menu management;
-- Pint for changed PHP scope if applicable;
-- Vite production build;
-- final `git status` / branch comparison.
+- **8 passed**
+- **56 assertions**
+
+Pint on the changed Menu contract test: **PASS**.
+
+Vite production build: **PASS**.
+
+Working tree after focused verification: **clean**.
+
+### Admin regression
+
+`php artisan test tests/Feature/Admin`
+
+Result:
+
+- **213 passed**
+- **3 failed**
+- **1868 assertions**
+
+The remaining three failures are pre-existing/out-of-scope ownership-contract drift and do not exercise the Menu workspace refactor:
+
+1. `AdminAffiliateOwnershipContractTest` expects a deprecated Admin affiliate compatibility service to extend `Modules\Website\Services\AdminAffiliateService`, while that canonical Website service is currently absent.
+2. `AdminAffiliateOwnershipContractTest` directly reads the same absent `Modules/Website/Services/AdminAffiliateService.php` during commission-list contract verification.
+3. `AdminWebsitePresentationOwnershipContractTest` expects the Auth Google controller source to reference `Modules\Auth\Services\AuthService`; the current Auth/Google ownership contract no longer matches that assertion.
+
+These failures belong to Website/Auth ownership cleanup and must not be corrected opportunistically in the Menu UI branch.
+
+No Admin regression failure remains attributable to `MenuLivewireRefactorContractTest` or the changed Menu views.
 
 ## Acceptance criteria
 
@@ -116,10 +136,13 @@ Automated closeout still required before PR-ready status:
 - drag/drop and hierarchy behavior preserved: **UI PASS**
 - selected-versus-filtered export semantics preserved: **PRESERVED**
 - import-ready optimized menu taxonomy: **IMPORT PASS**
-- canonical dashboard-parent consolidation: **IMPORTED; FINAL CLEANUP VERIFICATION REQUIRED**
-- duplicate section removal: **PENDING CALLER/TREE PROOF**
-- automated regression/build gate: **PENDING**
+- focused Menu contract test: **PASS — 8 tests / 56 assertions**
+- Pint focused gate: **PASS**
+- Vite build: **PASS**
+- Admin regression attributable to Menu scope: **PASS**
+- unrelated Website/Auth ownership baseline: **3 known failures / OUT OF SCOPE**
+- branch working tree after verification: **CLEAN**
 
 ## Next checkpoint
 
-Run the focused automated verification and inspect the four duplicate legacy sections after the successful optimized import. Remove only sections proven empty/redundant, re-run the focused gate, then open one consolidated PR against `main` for the Admin Menu Management Workspace refactor.
+Open one consolidated pull request from `refactor/admin-menu-management-workspace` to `main`. The PR must explicitly disclose the three unrelated Website/Auth ownership baseline failures above. After merge, any physical deletion of the four duplicate menu-section records should be treated as a separate data cleanup only after tree/caller proof.
