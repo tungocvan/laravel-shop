@@ -6,6 +6,7 @@ use Modules\Muasamcong\Http\Controllers\MuasamcongDashboardController;
 use Modules\Muasamcong\Http\Controllers\PricingExportController;
 use Modules\Muasamcong\Http\Controllers\PricingSearchHistoryController;
 use Modules\Muasamcong\Http\Controllers\PricingWishlistBulkController;
+use Modules\Muasamcong\Http\Controllers\PricingWishlistController;
 use Modules\Muasamcong\Http\Controllers\PricingWishlistExportController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingBbgExportController;
 use Modules\Muasamcong\Http\Controllers\SyncedPricingScopedExportController;
@@ -26,7 +27,7 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
         Route::post('/synced/export-selected', SyncedPricingScopedExportController::class)->name('synced.export-selected');
         Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)->name('synced.export-bbg');
-        Route::get('/wishlist', [MuasamcongController::class, 'wishlist'])->name('wishlist');
+        Route::get('/wishlist', PricingWishlistController::class)->name('wishlist');
         Route::post('/wishlist/export-selected', PricingWishlistExportController::class)->name('wishlist.export-selected');
         Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])
             ->middleware('permission:muasamcong.pricing.wishlist,admin')
