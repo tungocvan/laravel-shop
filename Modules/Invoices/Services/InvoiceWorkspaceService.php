@@ -2,8 +2,6 @@
 
 namespace Modules\Invoices\Services;
 
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-
 class InvoiceWorkspaceService
 {
     public function __construct(
@@ -16,8 +14,13 @@ class InvoiceWorkspaceService
     {
         $dashboard = $this->invoiceService->dashboard();
         $invoices = $this->invoiceService->paginate($filters, $perPage);
-        $pageIds = collect($invoices->items())->pluck('id')->map(fn ($id) => (int) $id)->all();
-        $selectedIds = collect($selected)->map(fn ($id) => (int) $id)->all();
+        $pageIds = collect($invoices->items())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $selectedIds = collect($selected)
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
         return [
             'invoices' => $invoices,
