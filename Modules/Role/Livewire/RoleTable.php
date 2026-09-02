@@ -15,7 +15,7 @@ class RoleTable extends Component
 
     public string $search = '';
 
-    public int $perPage = 10;
+    public $perPage = 10;
 
     public array $selected = [];
 
