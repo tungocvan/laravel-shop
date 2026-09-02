@@ -2,40 +2,15 @@
 
 ## Current objective
 
-Compact major refactor of `Modules/Admission`, keeping the module intentionally small and centered on grade-1 registration, public lookup, and focused admin handling.
+Admission admin list UI/pagination refinement following the completed compact major refactor.
 
-Branch: `refactor/admission-major-cleanup`
+Branch: `refactor/admission-admin-list-ui`
 
-Status: implementation complete and ready for PR review.
+Status: implementation and manual UI acceptance complete; ready for PR review.
 
-## Approved scope
+## Completed major-refactor baseline
 
-The user approved combining the originally proposed phases into one implementation branch to reduce repeated pull/test cycles.
-
-Completed work in this branch:
-
-- established `MODULE.md` architecture and ownership contract;
-- repaired route/controller drift, including the missing Admission export action;
-- consolidated duplicated DOCX/PDF generation behind `AdmissionDocumentService`;
-- made `/admission/search` the canonical clean lookup route and retained the credential-path route only as a compatibility redirect;
-- stopped reflecting identifier/date credentials into the public lookup component/view;
-- hardened public lookup validation and failure handling;
-- preserved persistence-sensitive/shared queue boundaries without destructive schema edits;
-- aligned affected Admission tests with the new service and storage contracts;
-- normalized Admission PHP formatting with Pint.
-
-## Canonical runtime after refactor
-
-Admission owns:
-
-- grade-1 admission registration;
-- public admission lookup;
-- application administration/review;
-- Admission settings/catalogs/location data;
-- import/export;
-- application-specific documents/receipts.
-
-Key canonical boundaries:
+The compact major refactor established the canonical Admission boundaries and remains the architecture baseline:
 
 - `AdmissionRegistrationService` owns registration orchestration;
 - `AdmissionApplicationAdminService` owns admin application workflows/export/batch dispatch;
@@ -44,60 +19,59 @@ Key canonical boundaries:
 - `GenerateAdmissionPdfJob` is queue orchestration only;
 - Admin shell, auth/permissions and shared queue infrastructure remain outside Admission ownership.
 
-## Compatibility / quarantined debt
+Major-refactor verification before this UI follow-up was **50 passed (263 assertions)** with UI PASS.
 
-The following are intentionally not destructively removed in this branch:
+## Admin list UI follow-up
 
-1. The historical credential-path lookup route remains as `admission.search.legacy`, but redirects to the clean search form and no longer auto-populates credentials.
-2. The Admission API remains a `501 Not Implemented` placeholder pending caller/contract proof before removal.
-3. The historical Admission migration that conditionally creates shared `job_batches` remains quarantined; shared queue infrastructure must not be removed without migration-ledger/runtime proof.
-4. Location/DVHC ownership remains Admission-owned pending future cross-module caller proof.
+The user requested a more professional layout and pagination for `/admin/admission` after reviewing the merged major refactor UI.
 
-## Safety decisions
+Implemented in this branch:
 
-- No destructive schema cleanup was performed.
-- Registration/application data and review metadata were preserved.
-- Existing Admission permission middleware boundaries were preserved.
-- Shared document conversion and queue infrastructure were reused rather than duplicated or moved into Admission.
+- widened the Admission application workspace to use available admin content width instead of a narrow centered container;
+- reorganized the page into clearer search/filter, import/export, bulk/document action, and application-table sections;
+- made the application table the primary workspace with improved spacing, hierarchy, status badges and action presentation;
+- added a visible filtered-result range/total summary;
+- added a reset-filter action;
+- aligned page-size choices to the Admin UI standard: `10 / 25 / 50 / 100`;
+- aligned both Livewire validation and `AdmissionApplicationAdminService` pagination normalization to the same page-size contract;
+- added an Admission-specific pagination view with white page controls and indigo active state;
+- preserved permission gates, import/export behavior, document generation, approve/reject, delete and bulk-selection behavior;
+- preserved the existing empty-state text contract required by focused regression tests.
 
-## Final verification
+## Persistence and authorization safety
 
-Automated regression:
+- No schema or migration changes.
+- No controller route changes.
+- No permission names or authorization gates changed.
+- No Admission business workflow changed.
+- Existing compatibility/quarantined debt from the major refactor remains unchanged.
 
-- `php artisan test tests/Feature/Admission`
-- result: **50 passed (263 assertions)**
-- duration reported locally: **1.76s**
+## Verification for this UI follow-up
 
-Formatting:
+Focused regression:
 
-- Pint executed over `Modules/Admission` and `tests/Feature/Admission`;
-- 45 files checked, 23 style issues normalized;
-- formatting changes committed as `style(admission): normalize refactor formatting`.
-
-Route verification:
-
-- `php artisan route:list --name=admission`
-- result: **20 Admission routes registered**;
-- canonical public lookup: `/admission/search` (`admission.search`);
-- compatibility lookup: `/admission/search/{ma_dinh_danh}/{password}` (`admission.search.legacy`);
-- admin export route resolves to `AdmissionController@export`.
+- `php artisan test tests/Feature/Admission/AdmissionApplicationsIndexRefactorTest.php`
+- result: **14 passed (80 assertions)**
+- duration reported locally: **0.84s**
 
 Manual UI acceptance:
 
-- user reported **UI PASS** on 2026-09-02;
-- branch working tree was clean at acceptance;
-- accepted branch head before this handoff closeout: `00a75c40`.
+- user reported **UI PASS** on 2026-09-02 for the redesigned Admission admin list and pagination.
+
+Formatting:
+
+- focused Pint was requested for the touched Admission Livewire/service files during the implementation cycle;
+- no additional application-wide regression is required for this UI-only follow-up.
 
 ## Merge gate
 
 Ready for PR review:
 
-- focused Admission regression PASS;
-- route contract PASS;
-- Pint completed;
+- focused Admission list regression PASS;
 - UI PASS;
-- no destructive persistence change;
-- no unresolved authz blocker;
-- remaining shared-infrastructure/API/legacy-route items are explicitly documented as compatibility or quarantined debt.
+- pagination contract aligned to Admin UI standard;
+- no schema/persistence changes;
+- no authz changes;
+- no business-logic expansion.
 
-After merge, synchronize `main` and treat this compact Admission major refactor as complete unless a separate follow-up is explicitly approved.
+After merge, synchronize `main`. The remaining API placeholder, shared `job_batches` migration ownership, legacy credential lookup compatibility route and DVHC ownership questions remain separately documented debt and are outside this UI follow-up.
