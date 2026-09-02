@@ -9,6 +9,7 @@ use Livewire\Component;
 use Modules\Administrative\Enums\SubmissionStatus;
 use Modules\Administrative\Models\AdministrativeSubmission;
 use Modules\Administrative\Services\ReceiptService;
+use Modules\Administrative\Services\SubmissionQueryService;
 use Modules\Administrative\Services\SubmissionService;
 
 class SubmissionDetail extends Component
@@ -33,10 +34,10 @@ class SubmissionDetail extends Component
 
     public string $supplement_reason = '';
 
-    public function mount(int $id, SubmissionService $service): void
+    public function mount(int $id, SubmissionQueryService $queries): void
     {
         $this->authorizePermission('administrative.submission.view');
-        $submission = $service->findForAdmin($id);
+        $submission = $queries->findForAdmin($id);
         $this->submissionId = $submission->id;
         $this->version = $submission->version;
         $this->response = $submission->response ?? '';
@@ -82,12 +83,12 @@ class SubmissionDetail extends Component
         $this->dispatch('notify', content: 'Đã yêu cầu phụ huynh bổ sung hồ sơ.', type: 'success');
     }
 
-    public function render(SubmissionService $service)
+    public function render(SubmissionQueryService $queries)
     {
         $this->authorizePermission('administrative.submission.view');
 
         return view('Administrative::livewire.submissions.submission-detail', [
-            'submission' => $service->findForAdmin($this->submissionId),
+            'submission' => $queries->findForAdmin($this->submissionId),
             'pendingStatus' => SubmissionStatus::Pending,
         ]);
     }

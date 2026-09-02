@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Administrative\Services\SubmissionQueryService;
 use Modules\Administrative\Services\SubmissionService;
 
 class SubmissionTable extends Component
@@ -110,7 +111,7 @@ class SubmissionTable extends Component
         $this->dispatch('notify', content: "Đã lưu trữ toàn bộ {$count} hồ sơ.", type: 'success');
     }
 
-    public function render(SubmissionService $service)
+    public function render(SubmissionQueryService $queries)
     {
         $this->authorizePermission('administrative.submission.view');
         $filters = [
@@ -122,9 +123,9 @@ class SubmissionTable extends Component
         ];
 
         return view('Administrative::livewire.submissions.submission-table', [
-            'submissions' => $service->listForAdmin($filters, $this->perPage),
-            'stats' => $service->adminStats(),
-            'procedures' => $service->procedureOptions(),
+            'submissions' => $queries->listForAdmin($filters, $this->perPage),
+            'stats' => $queries->adminStats(),
+            'procedures' => $queries->procedureOptions(),
         ]);
     }
 

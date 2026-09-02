@@ -7,8 +7,7 @@ use Modules\Administrative\Enums\SubmissionAction;
 use Modules\Administrative\Livewire\Procedures\ProcedureTable;
 use Modules\Administrative\Livewire\Submissions\SubmissionTable;
 use Modules\Administrative\Services\ProcedureService;
-use Modules\Administrative\Services\SubmissionService;
-use ReflectionClass;
+use Modules\Administrative\Services\SubmissionQueryService;
 use Tests\TestCase;
 
 class AdministrativeRefactorContractTest extends TestCase
@@ -32,18 +31,37 @@ class AdministrativeRefactorContractTest extends TestCase
 
     public function test_admin_list_services_always_return_paginators_and_normalize_page_size(): void
     {
-        $procedureMethod = (new ReflectionClass(ProcedureService::class))->getMethod('listForAdmin');
-        $submissionMethod = (new ReflectionClass(SubmissionService::class))->getMethod('listForAdmin');
+        $procedureMethod = (new \ReflectionClass(ProcedureService::class))->getMethod('listForAdmin');
+        $submissionMethod = (new \ReflectionClass(SubmissionQueryService::class))->getMethod('listForAdmin');
         $this->assertSame(LengthAwarePaginator::class, (string) $procedureMethod->getReturnType());
         $this->assertSame(LengthAwarePaginator::class, (string) $submissionMethod->getReturnType());
 
         $procedureSource = file_get_contents(base_path('Modules/Administrative/Services/ProcedureService.php'));
-        $submissionSource = file_get_contents(base_path('Modules/Administrative/Services/SubmissionService.php'));
+        $submissionSource = file_get_contents(base_path('Modules/Administrative/Services/SubmissionQueryService.php'));
         $allBranch = '$perPage'." === 'All'";
         $this->assertStringNotContainsString($allBranch, $procedureSource);
         $this->assertStringNotContainsString($allBranch, $submissionSource);
         $this->assertStringContainsString('normalizeAdminPageSize($perPage)', $procedureSource);
         $this->assertStringContainsString('normalizeAdminPageSize($perPage)', $submissionSource);
+    }
+
+    public function test_submission_reads_are_separated_from_write_workflow(): void
+    {
+        $queryService = file_get_contents(base_path('Modules/Administrative/Services/SubmissionQueryService.php'));
+        $workflowService = file_get_contents(base_path('Modules/Administrative/Services/SubmissionService.php'));
+        $table = file_get_contents(base_path('Modules/Administrative/Livewire/Submissions/SubmissionTable.php'));
+        $detail = file_get_contents(base_path('Modules/Administrative/Livewire/Submissions/SubmissionDetail.php'));
+
+        $this->assertStringContainsString('class SubmissionQueryService', $queryService);
+        $this->assertStringContainsString('public function listForAdmin(', $queryService);
+        $this->assertStringContainsString('public function adminStats()', $queryService);
+        $this->assertStringContainsString('public function procedureOptions()', $queryService);
+        $this->assertStringContainsString('public function findForAdmin(', $queryService);
+        $this->assertStringNotContainsString('public function approve(', $queryService);
+        $this->assertStringNotContainsString('public function listForAdmin(', $workflowService);
+        $this->assertStringNotContainsString('public function adminStats()', $workflowService);
+        $this->assertStringContainsString('SubmissionQueryService $queries', $table);
+        $this->assertStringContainsString('SubmissionQueryService $queries', $detail);
     }
 
     public function test_archive_action_is_part_of_the_history_contract(): void
