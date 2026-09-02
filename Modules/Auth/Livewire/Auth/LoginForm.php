@@ -5,6 +5,7 @@ namespace Modules\Auth\Livewire\Auth;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Livewire\Component;
+use Modules\Auth\Services\LoginPresentationService;
 use Modules\System\Services\AdminLoginRedirectService;
 use Modules\System\Services\SettingsService;
 
@@ -19,14 +20,19 @@ class LoginForm extends Component
     public $login_name_line_1 = '';
     public $login_name_line_2 = '';
     public $login_description = '';
+    public array $presentation = [];
 
     protected $rules = [
         'email' => 'required|email',
         'password' => 'required',
     ];
 
-    public function mount(SettingsService $settings, string $guard = 'web', string $variant = 'default'): void
-    {
+    public function mount(
+        SettingsService $settings,
+        LoginPresentationService $presentation,
+        string $guard = 'web',
+        string $variant = 'default',
+    ): void {
         $this->guard = in_array($guard, ['web', 'admin'], true) ? $guard : 'web';
         $this->variant = in_array($variant, ['default', 'pwa'], true) ? $variant : 'default';
 
@@ -38,6 +44,18 @@ class LoginForm extends Component
         $this->login_name_line_2 = $settings->get('site_name_line_2') ?? 'CÔNG TY TNHH INAFO VIỆT NAM';
         $this->login_description = $settings->get('login_description') ?? config('app.school_login_description', 'Hệ thống quản trị');
         $this->loadSchoolSettings();
+
+        $this->presentation = $presentation->forGuard($this->guard, [
+            'logo_url' => $this->logo,
+            'title_line_1' => $this->login_name_line_1,
+            'title_line_2' => $this->login_name_line_2,
+            'description' => $this->login_description,
+        ]);
+
+        $this->logo = $this->presentation['logo_url'];
+        $this->login_name_line_1 = $this->presentation['title_line_1'];
+        $this->login_name_line_2 = $this->presentation['title_line_2'];
+        $this->login_description = $this->presentation['description'];
     }
 
     public function login(AdminLoginRedirectService $redirect)
