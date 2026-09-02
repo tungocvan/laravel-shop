@@ -14,7 +14,7 @@ class UserTable extends Component
 {
     use WithPagination;
 
-    protected $paginationTheme = 'tailwind';
+    private const ALLOWED_PAGE_SIZES = [10, 25, 50, 100];
 
     public string $search = '';
 
@@ -47,7 +47,27 @@ class UserTable extends Component
 
     public function updatedPerPage(): void
     {
-        $this->perPage = min(max((int) $this->perPage, 1), 100);
+        $this->perPage = in_array((int) $this->perPage, self::ALLOWED_PAGE_SIZES, true)
+            ? (int) $this->perPage
+            : 10;
+
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedSelected(): void
+    {
+        $pageIds = $this->users->selectedPageIds($this->filters(), $this->actor());
+        $selected = array_map('strval', $this->selected);
+
+        $this->selectAll = $pageIds !== [] && array_diff($pageIds, $selected) === [];
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterRole = '';
+        $this->perPage = 10;
         $this->resetPage();
         $this->resetSelection();
     }
@@ -103,6 +123,7 @@ class UserTable extends Component
         return view('User::livewire.user-table', [
             'users' => $this->users->paginateStaff($this->filters(), $this->actor()),
             'roles' => $this->users->availableRoles($this->actor()),
+            'exportFilters' => $this->exportFilters(),
         ]);
     }
 
@@ -112,6 +133,15 @@ class UserTable extends Component
             'search' => $this->search,
             'role' => $this->filterRole,
             'per_page' => $this->perPage,
+        ];
+    }
+
+    private function exportFilters(): array
+    {
+        return [
+            'search' => $this->search,
+            'role' => $this->filterRole,
+            'selected_ids' => array_values(array_unique(array_map('intval', $this->selected))),
         ];
     }
 
