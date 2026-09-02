@@ -90,9 +90,8 @@ Administrative does not own the global Admin shell, global identity/authorizatio
 - [x] Focused test PASS — `10 passed (57 assertions)` on 2026-09-02.
 - [x] Administrative regression PASS — `17 passed (151 assertions)` on 2026-09-02.
 - [x] Impacted regression: NOT APPLICABLE for current source scope; Shared/Admin infrastructure was not changed.
-- [x] Route source/contract audit PASS; runtime `route:list` verification remains in final local gate.
-- [ ] Pint PASS.
-- [ ] Runtime route verification PASS.
+- [x] Pint PASS — 5 changed PHP files checked on 2026-09-02.
+- [x] Runtime route verification PASS — 17 `administrative*` routes and 8 `admin.administrative*` routes listed on 2026-09-02.
 - [x] Build: NOT APPLICABLE for current source scope; no Blade/asset UI change was made in this batch.
 - [ ] Manual UI acceptance PASS.
 - [ ] PR ready/created.
@@ -116,13 +115,13 @@ Default scope is module-scoped, not full-project:
 - Administrative Feature regression — PASS;
 - Admin regression — NOT APPLICABLE because Admin shell/authz infrastructure was not changed;
 - Shared/import-export regression — NOT APPLICABLE because Shared infrastructure was not changed;
-- runtime route verification — final local gate;
-- Pint changed PHP files — final local gate;
+- runtime route verification — PASS;
+- Pint changed PHP files — PASS;
 - frontend build — NOT APPLICABLE because no UI/assets changed;
-- manual UI smoke — final acceptance gate for Administrative list/detail/public lookup flows.
+- manual UI smoke — remaining final acceptance gate for Administrative list/detail/public lookup flows.
 
 Full-project regression: `NOT APPLICABLE` for the current architecture batch because shared/core infrastructure has not been modified.
 
 ## Next action
 
-Run one final local technical gate after pulling this documentation closeout: Pint for the changed PHP files and runtime route verification for Administrative route names. If both pass, perform one manual UI smoke of the affected Administrative submission list/detail plus one public lookup/procedure surface. Then the consolidated architecture PR can be prepared without opening a speculative second cleanup MR.
+A consolidated draft PR may be opened now because all automated/local technical gates are green. Before marking the PR ready for merge, perform one manual UI smoke of the affected Administrative submission list/detail plus one public lookup/procedure surface and record `UI PASS`.
