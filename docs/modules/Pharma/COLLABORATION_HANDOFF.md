@@ -6,7 +6,7 @@
 - Mode: **Refactor Module — corrective contract/UI/export alignment**
 - Branch: `refactor/pharma-contract-ui-export-alignment`
 - Base: `main@a3fd01330c9662e26a0998feb7c04a40fe58eb6d`
-- Status: **IMPLEMENTATION COMPLETE — LOCAL VERIFICATION + UI ACCEPTANCE PENDING**
+- Status: **FOCUSED VERIFICATION PASSED — MANUAL UI ACCEPTANCE PENDING**
 - Date: 2026-09-02
 - Consolidation rule: **single branch / single PR**
 - Schema/database migration change: **NO**
@@ -67,9 +67,54 @@ Added `docs/modules/Pharma/MODULE.md` before source implementation. It records c
 
 No Shared source file was changed; the existing Shared panel already supports reactive filter payloads and selected-ID messaging.
 
+## Verification evidence
+
+Local verification was executed after pulling `origin/refactor/pharma-contract-ui-export-alignment`.
+
+```bash
+vendor/bin/pint --dirty
+```
+
+Result: **PASS — 0 dirty PHP files required formatting changes**.
+
+```bash
+php artisan test tests/Feature/Pharma Modules/Pharma/Tests
+```
+
+Result: **PASS — 44 tests, 245 assertions** in 2.11s.
+
+The focused regression includes Admin Dashboard, Medicine/HSSP, Drug Bid Awards, Supplier Tracking, import/export, security foundation and PriceList pipeline/unit coverage.
+
+```bash
+php artisan route:list --path=admin/pharma
+```
+
+Result: **PASS — 11 Pharma Admin routes**. No route surface changed.
+
+```bash
+npm run build
+```
+
+Result: **PASS — Vite production build, 34 modules transformed** in 1.60s.
+
+No full-project test suite was run; verification remains intentionally scoped to Pharma and directly impacted behavior.
+
+## Manual UI acceptance gate
+
+Manual Admin UI acceptance remains required for Medicine, Drug Bid Award and Supplier Tracking on desktop and a narrow/mobile viewport, with special attention to:
+
+- clearly visible input borders/focus state;
+- numbered pagination, previous/next disabled states and page navigation;
+- edit/export user without delete permission can still select rows;
+- selected rows -> export only selected rows;
+- no selected rows -> export all rows matching the current filters across pages;
+- delete remains page-scoped and permission-gated.
+
+Do not create the final PR until manual UI acceptance has passed or any resulting defects have been corrected on this same branch.
+
 ## Current diff against main
 
-Current branch is ahead of `main` by the corrective commits and changes only Pharma source/tests/docs:
+The corrective branch changes only Pharma source/tests/docs:
 
 - `Modules/Pharma/Services/MedicineImportExport.php`
 - `Modules/Pharma/Services/DrugBidAwardImportExport.php`
@@ -80,28 +125,6 @@ Current branch is ahead of `main` by the corrective commits and changes only Pha
 - `tests/Feature/Pharma/PharmaImportExportTest.php`
 - `docs/modules/Pharma/MODULE.md`
 - `docs/modules/Pharma/COLLABORATION_HANDOFF.md`
-
-## Verification gate before PR
-
-Run only the approved focused scope; do not run the full project suite.
-
-```bash
-vendor/bin/pint --dirty
-php artisan test tests/Feature/Pharma Modules/Pharma/Tests
-php artisan route:list --path=admin/pharma
-npm run build
-```
-
-Manual Admin UI acceptance must cover Medicine, Drug Bid Award and Supplier Tracking on desktop and a narrow/mobile viewport, with special attention to:
-
-- clearly visible input borders/focus state;
-- numbered pagination, previous/next disabled states and page navigation;
-- edit/export user without delete permission can still select rows;
-- selected rows -> export only selected rows;
-- no selected rows -> export all rows matching the current filters across pages;
-- delete remains page-scoped and permission-gated.
-
-Do not create the final PR until focused tests/build and manual UI acceptance have passed or any resulting defects have been corrected on this same branch.
 
 ## Accepted architecture retained
 
