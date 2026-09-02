@@ -28,7 +28,7 @@ class MenuLivewireRefactorContractTest extends TestCase
 
         $this->assertStringContainsString('<x-admin::form.input', $view);
         $this->assertStringContainsString('<x-admin::form.select', $view);
-        $this->assertStringNotContainsString('max-w-5xl', $view);
+        $this->assertStringContainsString('<div class="px-4 sm:px-6 md:px-8"', $view);
     }
 
     public function test_menu_form_delegates_persistence_to_service_and_uses_shared_controls(): void
@@ -61,7 +61,7 @@ class MenuLivewireRefactorContractTest extends TestCase
         $this->assertStringContainsString('wire:click="toggleMenuSelection(', $item);
         $this->assertStringContainsString('openRouteScannerModal', $component);
         $this->assertStringContainsString('MenuRouteScannerService', $component);
-        $this->assertStringContainsString('Quét Module chưa có trong Menu', $view);
+        $this->assertStringContainsString('Quét GET routes chưa có trong Menu', $view);
         $this->assertStringContainsString('@if ($showRouteScannerModal)', $view);
     }
 
@@ -103,7 +103,8 @@ class MenuLivewireRefactorContractTest extends TestCase
         $this->assertStringContainsString('x-model="moduleFilter"', $view);
         $this->assertStringContainsString('Tất cả Module', $view);
         $this->assertStringContainsString("moduleFilter === 'all'", $view);
-        $this->assertStringContainsString('x-data="{ expanded: false }"', $item);
+        $this->assertStringContainsString('expanded: false', $item);
+        $this->assertStringContainsString('actionsOpen: false', $item);
     }
 
     public function test_scanned_menu_creation_reuses_soft_deleted_slugs_and_handles_failures_in_livewire(): void
