@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class AdminLoginRedirectSettingTest extends TestCase
 {
-    public function test_default_route_prefers_registered_root_route_when_setting_is_missing(): void
+    public function test_default_route_is_admin_dashboard_when_setting_is_missing(): void
     {
         $settings = $this->mock(SettingsService::class);
         $settings->shouldReceive('get')
@@ -19,13 +19,28 @@ class AdminLoginRedirectSettingTest extends TestCase
 
         $redirect = app(AdminLoginRedirectService::class);
 
-        $this->assertSame('home', $redirect->configuredRoute());
+        $this->assertSame('admin.dashboard', $redirect->configuredRoute());
+        $this->assertTrue($redirect->isAllowedRoute('admin.dashboard'));
+        $this->assertArrayHasKey('admin.dashboard', $redirect->availableRoutes());
+    }
+
+    public function test_registered_root_route_remains_an_optional_selectable_target(): void
+    {
+        $settings = $this->mock(SettingsService::class);
+        $settings->shouldReceive('get')->never();
+
+        $redirect = app(AdminLoginRedirectService::class);
+
+        if (! Route::has('home')) {
+            $this->markTestSkipped('The Website root route is not registered in this test runtime.');
+        }
+
         $this->assertTrue($redirect->isAllowedRoute('home'));
         $this->assertArrayHasKey('home', $redirect->availableRoutes());
         $this->assertSame('Trang gốc — /', $redirect->availableRoutes()['home']);
     }
 
-    public function test_valid_named_admin_get_route_remains_selectable_for_backward_compatibility(): void
+    public function test_valid_named_admin_get_route_remains_selectable(): void
     {
         Route::middleware('web')->get('/admin/test-login-target', fn () => 'ok')->name('admin.test-login-target');
         Route::getRoutes()->refreshNameLookups();
@@ -40,7 +55,7 @@ class AdminLoginRedirectSettingTest extends TestCase
         $this->assertArrayHasKey('admin.test-login-target', $redirect->availableRoutes());
     }
 
-    public function test_invalid_non_root_public_route_falls_back_to_root_route(): void
+    public function test_invalid_or_removed_route_falls_back_to_admin_dashboard(): void
     {
         Route::middleware('web')->get('/public-test-login-target', fn () => 'ok')->name('public.test-login-target');
         Route::getRoutes()->refreshNameLookups();
@@ -51,7 +66,7 @@ class AdminLoginRedirectSettingTest extends TestCase
         $redirect = app(AdminLoginRedirectService::class);
 
         $this->assertFalse($redirect->isAllowedRoute('public.test-login-target'));
-        $this->assertSame('home', $redirect->configuredRoute());
+        $this->assertSame('admin.dashboard', $redirect->configuredRoute());
     }
 
     public function test_parameterized_admin_route_is_not_selectable(): void
