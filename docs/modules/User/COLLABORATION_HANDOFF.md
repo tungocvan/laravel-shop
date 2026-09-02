@@ -26,33 +26,63 @@ Approved by user on 2026-09-02 as one coherent delivery/PR to minimize repeated 
 
 ## Current state
 
-- Read-only bootstrap/audit completed.
-- Missing `MODULE.md` gate identified and approved target architecture presented.
-- User explicitly approved the target plan.
-- Implementation branch created.
-- `MODULE.md` created on the implementation branch.
-- No destructive migration/model ownership change is approved.
+Implementation is complete enough for the local validation/UI gate. No destructive migration/model ownership change was introduced.
 
-## Runtime evidence already confirmed
+Implemented on `refactor/user-module-contract-ui-export`:
 
-- `Modules/User/config/module.php`: shell module, enabled, direct dependency `Shared`; User CRUD/import/export permissions.
-- Admin routes: `admin.user.index/create/edit` under `auth:admin` and User permissions.
-- `UserTable`: search, role filter, bounded server normalization, visible-page selection and bulk delete.
-- `UserService`: staff query/mutation boundary, current-account delete guard, Super Admin visibility/assignment safeguards.
-- `ImportExport`: User-specific import/export service already reuses Shared base infrastructure but selected-ID export integration still needs implementation/verification.
-- User list currently uses generic paginator links and form/list controls require Admin UI standard review.
+- durable `MODULE.md` contract and this handoff;
+- User list canonical search/select inputs with visible borders/background/focus states;
+- bounded page sizes `10/25/50/100` with invalid values normalized to `10`;
+- module-scoped Admin pagination view with white inactive controls and indigo active page;
+- explicit reset-filter action and visible-page checkbox semantics;
+- checkbox availability for `delete_user` OR `export_user`;
+- selected count and clearer bulk-delete copy;
+- Shared Import/Export panel moved into the reactive User table boundary so filters and selected IDs are supplied together;
+- export contract: non-empty `selected_ids` restricts export, empty `selected_ids` exports all records in current approved filter scope;
+- list/export visibility now share `UserService` staff scope, including non-Super-Admin exclusion of Super Admin accounts;
+- User import no longer creates arbitrary Role catalog entries; unknown admin roles are rejected and role assignment uses existing Role catalog;
+- User form inputs normalized to current Admin input/error/focus standard and duplicate Blade Super Admin filtering removed;
+- focused `UserRefactorContractTest` added for contract/UI/export/role-ownership behavior.
 
-## Implementation batch
+## Files in the delivery boundary
 
-1. Complete caller/runtime audit for User controllers/services/contracts/persistence and cross-module Auth/Role/Admin consumers.
-2. Implement list/form UI normalization and explicit Admin pagination.
-3. Integrate canonical Shared import/export UI where applicable.
-4. Implement selected/all export semantics server-side and UI-side.
-5. Add/update focused contract tests for selection, export, permissions, pagination and account safeguards.
-6. Run Pint + focused User tests + User regression + impacted Auth/Role/Admin regression + routes + build.
-7. Obtain manual UI PASS for inputs, pagination, responsive layout, checkbox/bulk/export behavior.
-8. Update this handoff with exact files/tests/results before PR.
-9. Create one consolidated PR after gates pass.
+- `Modules/User/Livewire/UserTable.php`
+- `Modules/User/Services/UserService.php`
+- `Modules/User/Services/ImportExport.php`
+- `Modules/User/resources/views/livewire/user-table.blade.php`
+- `Modules/User/resources/views/livewire/user-form.blade.php`
+- `Modules/User/resources/views/pages/staff/index.blade.php`
+- `Modules/User/resources/views/vendor/pagination/admin-users.blade.php`
+- `tests/Feature/User/UserRefactorContractTest.php`
+- `docs/modules/User/MODULE.md`
+- `docs/modules/User/COLLABORATION_HANDOFF.md`
+
+## Local validation gate — pending user execution
+
+Run once after pulling this branch:
+
+1. `./vendor/bin/pint --test Modules/User tests/Feature/User`
+2. `php artisan test tests/Feature/User`
+3. Run directly impacted Auth/Role/Admin tests available in the local checkout.
+4. `php artisan route:list --name=admin.user`
+5. `npm run build`
+6. Manual Admin UI check for `/admin/user`, create/edit form, pagination, filters, checkbox selection, selected export and no-selection export.
+
+Do not run full-project `php artisan test` by default; the agreed gate is User + directly impacted regressions.
+
+## UI acceptance checklist
+
+- Empty search/select/form controls have visible borders and white background.
+- Error inputs visibly use red border/focus state.
+- `10/25/50/100` page-size choices work and filter/page-size changes reset page/selection.
+- Pagination inactive controls are white/light-border; active page is indigo with white text.
+- Header checkbox selects only the visible page, not all matching records.
+- Selected count is accurate; bulk delete says exactly how many selected accounts will be deleted.
+- A user with export permission can use row checkboxes even without delete permission.
+- With selected rows, export contains only selected rows that remain inside the approved filter/visibility scope.
+- With no selected rows, export contains all records in the approved filter scope, not only the visible page.
+- Non-Super-Admin cannot list/export/assign Super Admin accounts/role.
+- Responsive layout remains usable on desktop/tablet/mobile widths.
 
 ## Explicitly deferred/quarantined
 
@@ -63,11 +93,11 @@ Approved by user on 2026-09-02 as one coherent delivery/PR to minimize repeated 
 
 ## Merge gate
 
-Do not merge until:
+Do not create/merge the consolidated PR until:
 
-- approved source/contract changes are coherent;
-- required focused/impacted tests pass;
-- route/build/Pint gates pass where applicable;
+- local Pint + User + impacted regression gates pass;
+- route/build gates pass;
 - user reports Admin UI PASS;
-- `MODULE.md` and this handoff reflect final runtime;
-- PR is reviewed by the user according to the collaboration workflow.
+- any test/UI defect is corrected on this same branch;
+- this handoff is updated with exact final PASS results;
+- the user reviews the single consolidated PR link and merges manually.
