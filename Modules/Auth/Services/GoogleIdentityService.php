@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Auth\Models\UserEmailVerification;
 
-class GoogleWebAuthService
+class GoogleIdentityService
 {
     public function resolve(object $googleUser): User
     {

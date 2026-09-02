@@ -11,12 +11,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
-use Modules\Auth\Services\GoogleWebAuthService;
+use Modules\Auth\Services\GoogleIdentityService;
 
 class GoogleController extends Controller
 {
     public function __construct(
-        private readonly GoogleWebAuthService $googleAuthService,
+        private readonly GoogleIdentityService $googleIdentityService,
     ) {}
 
     public function redirectToGoogle(Request $request): RedirectResponse
@@ -43,7 +43,7 @@ class GoogleController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->user();
-            $user = $this->googleAuthService->resolve($googleUser);
+            $user = $this->googleIdentityService->resolve($googleUser);
 
             Auth::guard('admin')->login($user);
             request()->session()->regenerate();
