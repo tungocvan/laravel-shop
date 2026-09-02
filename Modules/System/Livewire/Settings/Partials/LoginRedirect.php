@@ -28,7 +28,8 @@ class LoginRedirect extends Component
         $this->authorizePermission('system.settings.update');
 
         if (! $redirect->isAllowedRoute($this->routeName)) {
-            $this->addError('routeName', 'Route dashboard không hợp lệ hoặc không còn khả dụng.');
+            $this->addError('routeName', 'Route điều hướng không hợp lệ hoặc không còn khả dụng.');
+
             return;
         }
 
