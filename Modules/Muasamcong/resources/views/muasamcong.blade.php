@@ -12,6 +12,12 @@
 
             <div class="flex flex-wrap gap-2">
                 @include('Muasamcong::partials.dashboard-return-link')
+                @can('muasamcong.pricing.sync')
+                    <button type="button" onclick="exportSmartPricingScope()"
+                            class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        Xuất Excel
+                    </button>
+                @endcan
                 <a href="{{ route('muasamcong.synced') }}"
                    class="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm hover:border-emerald-300 hover:bg-emerald-100">
                     Danh sách đã đồng bộ
@@ -35,4 +41,46 @@
             @livewire('muasamcong.tracuu-thuoctrungthau')
         </section>
     </div>
+
+    @can('muasamcong.pricing.sync')
+        <script>
+            function exportSmartPricingScope() {
+                if (typeof Livewire === 'undefined') {
+                    alert('Không tìm thấy Livewire.');
+                    return;
+                }
+
+                const checkbox = document.querySelector('input[wire\\:model\\.live="selectedSourceIds"]');
+                const root = checkbox ? checkbox.closest('[wire\\:id]') : document.querySelector('[wire\\:id]');
+                const component = root ? Livewire.find(root.getAttribute('wire:id')) : null;
+                const keyword = component ? String(component.get('keyword') || '').trim() : '';
+                const ids = component ? (component.get('selectedSourceIds') || []) : [];
+
+                if (!keyword) {
+                    alert('Hãy tra cứu dữ liệu trước khi xuất Excel.');
+                    return;
+                }
+
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = @js(route('muasamcong.pricing.export-selected'));
+                form.innerHTML = '<input type="hidden" name="_token" value="' + @js(csrf_token()) + '">' +
+                    '<input type="hidden" name="keyword" value="">';
+                form.querySelector('input[name="keyword"]').value = keyword;
+
+                if (Array.isArray(ids)) {
+                    ids.forEach(id => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'selected_ids[]';
+                        input.value = id;
+                        form.appendChild(input);
+                    });
+                }
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        </script>
+    @endcan
 @endsection
