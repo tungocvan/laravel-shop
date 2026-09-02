@@ -13,12 +13,7 @@ Major/Clean Refactor of `Modules/Administrative` under:
 
 User approved the Administrative Module Contract and the refactor architecture on 2026-09-02.
 
-Delivery strategy is intentionally consolidated to reduce repeated pull/test cycles:
-
-1. **Primary architecture MR** — contract + Procedure + Submission lifecycle + file/receipt/lookup + Import/Export/internal service boundaries when caller proof permits.
-2. **UI/cleanup MR** — Admin UI normalization, bounded pagination, proven dead/duplicate cleanup, final regression and closeout.
-
-Additional MR split is allowed only when schema/authz/cross-module risk makes consolidation unsafe.
+Delivery strategy is intentionally consolidated to reduce repeated pull/test cycles. The primary architecture work and safe cleanup assessment are being kept on one branch/PR unless a later change introduces schema/authz/cross-module risk.
 
 ## Branch
 
@@ -28,9 +23,7 @@ Base: `main`
 
 ## Contract gate
 
-`docs/modules/Administrative/MODULE.md` was missing at refactor bootstrap. Runtime/ownership audit was performed first, target architecture was approved, and the durable contract has now been created on this branch.
-
-Implementation may proceed only within that approved contract.
+`docs/modules/Administrative/MODULE.md` was missing at refactor bootstrap. Runtime/ownership audit was performed first, target architecture was approved, and the durable contract has now been created and synchronized with the implemented boundary.
 
 ## Canonical ownership baseline
 
@@ -38,7 +31,7 @@ Administrative owns:
 
 - administrative procedure definitions;
 - public submission intake;
-- submission lifecycle and processing;
+- submission reads plus lifecycle/processing;
 - Administrative files and controlled downloads;
 - status history;
 - receipt generation/delivery;
@@ -59,27 +52,29 @@ Administrative does not own the global Admin shell, global identity/authorizatio
 
 ## Audit conclusions
 
-- `SubmissionService` mixed read/query concerns with write/workflow responsibilities. The read side is now separated into `SubmissionQueryService`; write/lifecycle operations remain in `SubmissionService`.
-- Administrative `ImportExport` already consumes `Modules\Shared\Services\ImportExport\BaseImportExportService`; Administrative-specific mapping, validation and audit behavior remain correctly domain-owned. No rehome is required.
-- `PublicBrandingService` is a thin integration adapter over canonical System settings with optional Admission settings fallback; it remains `KEEP` as an adapter and must not become a branding owner.
+- `SubmissionService` mixed read/query concerns with write/workflow responsibilities. Admin read/query behavior is now separated into `SubmissionQueryService`; lifecycle/write operations remain in `SubmissionService`.
+- Administrative `ImportExport` already consumes `Modules\Shared\Services\ImportExport\BaseImportExportService`; Administrative-specific mapping, validation, token security and audit behavior remain correctly domain-owned. No rehome is required.
+- `PublicBrandingService` is a thin integration adapter over canonical System settings with optional Admission overlay only when Admission is enabled and its service exists. It remains `KEEP adapter` and is not a branding owner.
 - `LookupService`, `ReceiptService` and `AdministrativeFileService` implement sensitive access/delivery boundaries and remain `KEEP` without security-semantic changes.
-- Existing Administrative admin tables already use bounded page-size options `[10, 25, 50, 100]` and a module-scoped indigo pagination view consistent with the current Admin UI contract.
-- No schema/persistence rehome or destructive cleanup has been approved or required in this batch.
+- Existing Administrative Admin tables already use bounded page-size options `[10, 25, 50, 100]` and a module-scoped indigo pagination view consistent with the current Admin UI contract.
+- Route-source verification confirms the canonical public lookup, public procedure and authenticated Admin route groups retain their existing prefixes, names, middleware, permission checks, token regexes, throttle and private/no-store protections.
+- No schema/persistence rehome or destructive cleanup is justified in this batch.
+- No proven duplicate/dead artifact currently meets the workflow threshold for DELETE/REHOME; unproven legacy remains DEFER rather than speculative cleanup.
 
 ## Artifact classification
 
 | Artifact/family | Classification | Decision |
 |---|---|---|
-| `SubmissionQueryService` | KEEP | Canonical read/query boundary extracted during refactor |
-| `SubmissionService` | KEEP / REFACTOR | Canonical write/workflow boundary after read-side extraction |
+| `SubmissionQueryService` | KEEP | Canonical Admin submission read/query boundary extracted during refactor |
+| `SubmissionService` | KEEP / REFACTOR | Canonical intake/write/workflow boundary after read-side extraction |
 | `ProcedureService` | KEEP | Cohesive procedure domain/query/file-template boundary |
 | `AdministrativeFileService` | KEEP | Controlled Administrative file validation/storage/download boundary |
 | `LookupService` | KEEP | Public token/session access boundary |
 | `ReceiptService` | KEEP | Receipt/status notification delivery boundary |
-| `ImportExport` | KEEP | Administrative mapping on Shared Import/Export foundation |
-| `PublicBrandingService` | KEEP adapter | Cross-module branding adapter only; not canonical branding owner |
+| `ImportExport` | KEEP | Administrative mapping adapter on Shared Import/Export foundation |
+| `PublicBrandingService` | KEEP adapter | Cross-module settings/branding adapter only; not canonical branding owner |
 | Existing routes/permissions/tables | KEEP / QUARANTINE from incompatible changes | Compatibility/security/persistence contracts |
-| Unproven duplicates/legacy | DEFER | No deletion without caller proof |
+| Unproven duplicates/legacy | DEFER | No deletion without caller/reachability proof |
 
 ## Current implementation status
 
@@ -88,44 +83,46 @@ Administrative does not own the global Admin shell, global identity/authorizatio
 - [x] Missing `MODULE.md` gate identified and resolved.
 - [x] Module Contract proposed and user-approved.
 - [x] Feature branch created.
-- [x] `docs/modules/Administrative/MODULE.md` created.
+- [x] `docs/modules/Administrative/MODULE.md` created and synchronized with final architecture decisions.
 - [x] Service/test audit completed for Submission, Procedure, ImportExport, file, lookup, receipt and branding boundaries.
 - [x] Submission read/write boundary implemented.
 - [x] Administrative refactor contract test updated to protect the new boundary.
-- [ ] Focused tests PASS.
-- [ ] Administrative regression PASS.
-- [ ] Impacted regression PASS where applicable.
-- [ ] Route verification PASS.
+- [x] Focused test PASS — `10 passed (57 assertions)` on 2026-09-02.
+- [x] Administrative regression PASS — `17 passed (151 assertions)` on 2026-09-02.
+- [x] Impacted regression: NOT APPLICABLE for current source scope; Shared/Admin infrastructure was not changed.
+- [x] Route source/contract audit PASS; runtime `route:list` verification remains in final local gate.
 - [ ] Pint PASS.
-- [ ] Build PASS when UI changes are present.
+- [ ] Runtime route verification PASS.
+- [x] Build: NOT APPLICABLE for current source scope; no Blade/asset UI change was made in this batch.
 - [ ] Manual UI acceptance PASS.
 - [ ] PR ready/created.
 
 ## Current changed source scope
 
 - `Modules/Administrative/Services/SubmissionQueryService.php` — new read/query boundary.
-- `Modules/Administrative/Services/SubmissionService.php` — read methods removed; lifecycle/write behavior preserved.
+- `Modules/Administrative/Services/SubmissionService.php` — Admin query methods removed; lifecycle/write behavior preserved.
 - `Modules/Administrative/Livewire/Submissions/SubmissionTable.php` — query dependency switched to `SubmissionQueryService`.
 - `Modules/Administrative/Livewire/Submissions/SubmissionDetail.php` — detail read dependency switched to `SubmissionQueryService`.
 - `tests/Feature/Administrative/AdministrativeRefactorContractTest.php` — architecture contract updated for read/write separation.
+- `docs/modules/Administrative/MODULE.md` — durable ownership/integration decisions synchronized with implementation.
 
-No routes, migrations, database tables, permission IDs, public token/receipt contracts or storage visibility rules were changed.
+No routes, migrations, database tables, permission IDs, public token/receipt contracts, Blade UI/assets or storage visibility rules were changed.
 
 ## Regression strategy
 
 Default scope is module-scoped, not full-project:
 
-- focused Administrative refactor contract test;
-- Administrative Feature regression;
-- Admin regression only if a later Admin shell/UI integration change is introduced;
-- Shared/import-export regression only if Shared infrastructure itself changes;
-- route verification;
-- Pint changed PHP files;
-- frontend build only if UI/assets change;
-- manual UI smoke for affected canonical surfaces.
+- focused Administrative refactor contract test — PASS;
+- Administrative Feature regression — PASS;
+- Admin regression — NOT APPLICABLE because Admin shell/authz infrastructure was not changed;
+- Shared/import-export regression — NOT APPLICABLE because Shared infrastructure was not changed;
+- runtime route verification — final local gate;
+- Pint changed PHP files — final local gate;
+- frontend build — NOT APPLICABLE because no UI/assets changed;
+- manual UI smoke — final acceptance gate for Administrative list/detail/public lookup flows.
 
 Full-project regression: `NOT APPLICABLE` for the current architecture batch because shared/core infrastructure has not been modified.
 
 ## Next action
 
-Run the consolidated architecture checkpoint locally: pull the branch, run the focused refactor contract test first, then the full Administrative Feature regression. If both pass, continue with route/Pint checks and only then decide whether a separate UI/cleanup MR is actually necessary.
+Run one final local technical gate after pulling this documentation closeout: Pint for the changed PHP files and runtime route verification for Administrative route names. If both pass, perform one manual UI smoke of the affected Administrative submission list/detail plus one public lookup/procedure surface. Then the consolidated architecture PR can be prepared without opening a speculative second cleanup MR.
