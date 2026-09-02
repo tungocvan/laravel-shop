@@ -34,9 +34,13 @@ class DefinitionIndex extends Component
     public string $typeName = '';
 
     public ?string $duplicateSourcePublicId = null;
+
     public ?int $duplicateGroupId = null;
+
     public string $duplicateCode = '';
+
     public string $duplicateName = '';
+
     public bool $duplicateAudience = true;
 
     public function mount(): void
