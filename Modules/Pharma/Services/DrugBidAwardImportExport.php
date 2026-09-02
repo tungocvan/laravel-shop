@@ -85,13 +85,24 @@ class DrugBidAwardImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
+        $selectedIds = $this->selectedIds($filters);
+
+        if ($selectedIds !== []) {
+            return DrugBidAward::query()
+                ->with('medicine')
+                ->whereKey($selectedIds)
+                ->latest('id')
+                ->get();
+        }
+
         return DrugBidAward::query()->with('medicine')
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($nested) => $nested
                 ->where('medicine_name', 'like', "%{$search}%")
                 ->orWhere('bidding_notice_code', 'like', "%{$search}%")
                 ->orWhere('decision_number', 'like', "%{$search}%")))
-            ->when($filters['investor'] ?? null, fn ($query, $investor) => $query->where('investor_name', $investor))
-            ->when($filters['company'] ?? null, fn ($query, $company) => $query->where('winning_company_name', $company))
+            ->when($filters['investor'] ?? null, fn ($query, $investor) => $query->where('investor_name', 'like', "%{$investor}%"))
+            ->when($filters['company'] ?? null, fn ($query, $company) => $query->where('winning_company_name', 'like', "%{$company}%"))
+            ->when($filters['source'] ?? null, fn ($query, $source) => $query->where('source_type', $source))
             ->latest('id')->get();
     }
 
@@ -143,6 +154,16 @@ class DrugBidAwardImportExport extends BaseImportExportService
         return Medicine::query()->where('name', $data['medicine_name'])
             ->when($data['packaging_specification'], fn ($query, $packaging) => $query->where('packaging_specification', $packaging))
             ->value('id');
+    }
+
+    private function selectedIds(array $filters): array
+    {
+        return collect($filters['selected_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function vietnameseNumber(mixed $value): ?float
