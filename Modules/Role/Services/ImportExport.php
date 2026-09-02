@@ -55,6 +55,7 @@ class ImportExport extends BaseImportExportService
 
         if ($mode === 'replace') {
             $this->addError($this->defaultSheetName, null, 'mode', 'Module Role không hỗ trợ replace để tránh mất phân quyền.');
+
             return $this->report(false);
         }
 
@@ -97,11 +98,7 @@ class ImportExport extends BaseImportExportService
                     continue;
                 }
 
-                if (! $this->validatePermissionCatalog($row, $rowNumber)) {
-                    continue;
-                }
-
-                if (! $this->validateProtectedRole($row, $rowNumber)) {
+                if (! $this->validatePermissionCatalog($row, $rowNumber) || ! $this->validateProtectedRole($row, $rowNumber)) {
                     continue;
                 }
 
@@ -140,12 +137,14 @@ class ImportExport extends BaseImportExportService
     public function export(array $filters = []): string
     {
         $this->authorizeAny(['export_role', 'view_role']);
+
         return parent::export($filters);
     }
 
     public function exportTemplate(): string
     {
         $this->authorizeAny(['import_role', 'create_role']);
+
         return parent::exportTemplate();
     }
 
@@ -165,11 +164,19 @@ class ImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
+        $selectedIds = collect($filters['selected_ids'] ?? [])
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+        $search = trim((string) ($filters['search'] ?? ''));
+
         return Role::query()
             ->select('id', 'name', 'guard_name', 'created_at', 'updated_at')
             ->with('permissions:id,name,guard_name')
             ->where('guard_name', RoleService::ADMIN_GUARD)
-            ->when($filters['search'] ?? null, function ($query, string $search): void {
+            ->when($selectedIds->isNotEmpty(), fn ($query) => $query->whereIn('id', $selectedIds))
+            ->when($selectedIds->isEmpty() && $search !== '', function ($query) use ($search): void {
                 $query->where('name', 'like', "%{$search}%");
             })
             ->orderBy('name')
@@ -202,11 +209,13 @@ class ImportExport extends BaseImportExportService
 
         if ($mode === 'skip_duplicate' && $existing) {
             $this->skippedRows++;
+
             return;
         }
 
         if ($mode === 'create_only' && $existing) {
             $this->addError($this->defaultSheetName, $rowNumber, 'name', 'Vai trò đã tồn tại cho guard này.', $row['name']);
+
             return;
         }
 
@@ -225,13 +234,8 @@ class ImportExport extends BaseImportExportService
         $unknown = collect($row['permissions'])->diff($approved);
 
         if ($unknown->isNotEmpty()) {
-            $this->addError(
-                $this->defaultSheetName,
-                $rowNumber,
-                'permissions',
-                'File chứa quyền không thuộc catalog module đang hoạt động.',
-                $unknown->implode(', ')
-            );
+            $this->addError($this->defaultSheetName, $rowNumber, 'permissions', 'File chứa quyền không thuộc catalog module đang hoạt động.', $unknown->implode(', '));
+
             return false;
         }
 
@@ -243,13 +247,8 @@ class ImportExport extends BaseImportExportService
         $missing = collect($row['permissions'])->diff($existing);
 
         if ($missing->isNotEmpty()) {
-            $this->addError(
-                $this->defaultSheetName,
-                $rowNumber,
-                'permissions',
-                'Quyền hợp lệ nhưng chưa được đồng bộ vào bảng permissions.',
-                $missing->implode(', ')
-            );
+            $this->addError($this->defaultSheetName, $rowNumber, 'permissions', 'Quyền hợp lệ nhưng chưa được đồng bộ vào bảng permissions.', $missing->implode(', '));
+
             return false;
         }
 
@@ -263,14 +262,13 @@ class ImportExport extends BaseImportExportService
         }
 
         $this->addError($this->defaultSheetName, $rowNumber, 'name', 'Bạn không có quyền import/cập nhật vai trò Super Admin.', $row['name']);
+
         return false;
     }
 
     private function normalizePermissions(mixed $value): array
     {
-        $permissions = is_array($value)
-            ? $value
-            : (preg_split('/[,;|]+/', (string) $value) ?: []);
+        $permissions = is_array($value) ? $value : (preg_split('/[,;|]+/', (string) $value) ?: []);
 
         return collect($permissions)
             ->map(fn (mixed $permission): ?string => $this->cleanString($permission))
@@ -292,6 +290,7 @@ class ImportExport extends BaseImportExportService
     private function actorIsSuperAdmin(): bool
     {
         $actor = auth('admin')->user();
+
         return $actor instanceof User && $actor->hasRole(self::ROLE_SUPER_ADMIN);
     }
 

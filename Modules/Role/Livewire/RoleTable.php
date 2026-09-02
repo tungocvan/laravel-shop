@@ -2,52 +2,47 @@
 
 namespace Modules\Role\Livewire;
 
-use App\Modules\ModulePermissionManager;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Role\Services\RolePermissionCatalogService;
 use Modules\Role\Services\RoleService;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\PermissionRegistrar;
 
 class RoleTable extends Component
 {
     use WithPagination;
 
-    public $search = '';
-    public $perPage = 10;
-    public $selected = [];
-    public $selectAll = false;
-    public $showPermissionModal = false;
-    public $showSyncModal = false;
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+    public string $search = '';
+
+    public int $perPage = 10;
+
+    public array $selected = [];
+
+    public bool $selectAll = false;
+
+    public bool $showSyncModal = false;
+
     public array $syncPreview = [];
-    public $newModuleName = '';
-    public $newModuleActions = [
-        'view' => true,
-        'create' => true,
-        'edit' => true,
-        'delete' => true,
-        'export' => false,
-    ];
 
     public function mount(): void
     {
         $this->authorizeCapability('view_role');
+        $this->perPage = $this->normalizedPerPage($this->perPage);
     }
 
-    public function previewPermissionSync(ModulePermissionManager $modulePermissions): void
+    public function previewPermissionSync(RolePermissionCatalogService $catalog): void
     {
         $this->authorizeSuperAdmin();
-        $this->syncPreview = $modulePermissions->previewActiveSync();
+        $this->syncPreview = $catalog->previewActiveSync();
         $this->showSyncModal = true;
     }
 
-    public function syncModulePermissions(ModulePermissionManager $modulePermissions): void
+    public function syncModulePermissions(RolePermissionCatalogService $catalog): void
     {
         $this->authorizeSuperAdmin();
-        $result = $modulePermissions->syncAllActiveToSuperAdmin();
-        $this->syncPreview = $modulePermissions->previewActiveSync();
+        $result = $catalog->syncAllActiveToSuperAdmin();
+        $this->syncPreview = $catalog->previewActiveSync();
         $this->showSyncModal = false;
 
         $this->dispatch(
@@ -57,67 +52,53 @@ class RoleTable extends Component
         );
     }
 
-    public function openPermissionModal(): void
+    public function updatedSearch(): void
     {
-        $this->authorizeSuperAdmin();
-        $this->reset(['newModuleName']);
-        $this->newModuleActions = [
-            'view' => true, 'create' => true, 'edit' => true, 'delete' => true, 'export' => false,
-        ];
-        $this->showPermissionModal = true;
+        $this->resetPage();
+        $this->resetSelection();
     }
 
-    public function createModulePermissions(ModulePermissionManager $modulePermissions): void
+    public function updatedPerPage(mixed $value): void
     {
-        $this->authorizeSuperAdmin();
-        $this->validate([
-            'newModuleName' => ['required', 'alpha_dash', 'min:2'],
-            'newModuleActions' => ['array'],
-            'newModuleActions.*' => ['boolean'],
-        ]);
-
-        $module = Str::lower((string) $this->newModuleName);
-        $groups = collect($modulePermissions->activeGroups());
-        $group = $groups->first(fn (array $permissions, string $moduleName): bool => Str::lower($moduleName) === $module);
-
-        if (! is_array($group)) {
-            $this->addError('newModuleName', 'Module này không tồn tại trong catalog module đang hoạt động.');
-            return;
-        }
-
-        $requested = collect($this->newModuleActions)->filter()->keys()->map(fn (string $action): string => $action.'_'.$module)->values();
-        $approved = $requested->intersect($group)->values();
-
-        if ($approved->count() !== $requested->count()) {
-            $this->addError('newModuleActions', 'Một hoặc nhiều quyền được chọn không được module khai báo trong catalog.');
-            return;
-        }
-
-        $createdCount = 0;
-        DB::transaction(function () use ($approved, &$createdCount): void {
-            foreach ($approved as $permissionName) {
-                $permission = Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => RoleService::ADMIN_GUARD]);
-                if ($permission->wasRecentlyCreated) {
-                    $createdCount++;
-                }
-            }
-        });
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $this->showPermissionModal = false;
-        $this->dispatch('notify', content: $createdCount > 0 ? "Đã đồng bộ {$createdCount} quyền được module '{$module}' khai báo." : "Các quyền được module '{$module}' khai báo đã tồn tại.", type: $createdCount > 0 ? 'success' : 'warning');
+        $this->perPage = $this->normalizedPerPage($value);
+        $this->resetPage();
+        $this->resetSelection();
     }
-
-    public function updatedSearch(): void { $this->resetPage(); $this->resetSelection(); }
-    public function updatedPerPage(): void { $this->resetPage(); $this->resetSelection(); }
 
     public function updatedSelectAll(bool $value): void
     {
-        $roles = app(RoleService::class);
-        $this->selected = $value ? $roles->queryRoles((string) $this->search)->where('name', '!=', RoleService::PROTECTED_ROLE)->paginate((int) $this->perPage)->pluck('id')->map(fn (int $id): string => (string) $id)->all() : [];
+        if (! $value) {
+            $this->resetSelection();
+
+            return;
+        }
+
+        $this->selected = app(RoleService::class)
+            ->queryRoles($this->search)
+            ->where('name', '!=', RoleService::PROTECTED_ROLE)
+            ->paginate($this->normalizedPerPage($this->perPage))
+            ->pluck('id')
+            ->map(fn (int $id): string => (string) $id)
+            ->all();
     }
 
-    public function resetSelection(): void { $this->selected = []; $this->selectAll = false; }
+    public function updatedSelected(): void
+    {
+        $this->selected = collect($this->selected)
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->map(fn (int $id): string => (string) $id)
+            ->values()
+            ->all();
+        $this->selectAll = false;
+    }
+
+    public function resetSelection(): void
+    {
+        $this->selected = [];
+        $this->selectAll = false;
+    }
 
     public function deleteSelected(RoleService $roles): void
     {
@@ -125,23 +106,51 @@ class RoleTable extends Component
         $result = $roles->deleteMany(array_map('intval', $this->selected));
         $this->resetSelection();
         $type = $result['deleted'] > 0 ? ($result['blocked'] > 0 ? 'warning' : 'success') : 'error';
-        $content = $result['deleted'] > 0 ? "Đã xóa {$result['deleted']} vai trò.".($result['blocked'] > 0 ? " {$result['blocked']} vai trò bị chặn." : '') : 'Không thể xóa vai trò đang có tài khoản sử dụng hoặc vai trò Super Admin.';
+        $content = $result['deleted'] > 0
+            ? "Đã xóa {$result['deleted']} vai trò.".($result['blocked'] > 0 ? " {$result['blocked']} vai trò bị chặn." : '')
+            : 'Không thể xóa vai trò đang có tài khoản sử dụng hoặc vai trò Super Admin.';
         $this->dispatch('notify', content: $content, type: $type);
     }
 
-    public function delete($id, RoleService $roles): void
+    public function delete(int $id, RoleService $roles): void
     {
         $this->authorizeCapability('delete_role');
-        $result = $roles->delete((int) $id);
-        if ($result === 'protected') { $this->dispatch('notify', content: 'Không thể xóa Super Admin!', type: 'error'); return; }
-        if ($result === 'in_use') { $this->dispatch('notify', content: 'Không thể xóa vai trò vì đang có tài khoản sử dụng.', type: 'error'); return; }
+        $result = $roles->delete($id);
+
+        if ($result === 'protected') {
+            $this->dispatch('notify', content: 'Không thể xóa Super Admin!', type: 'error');
+
+            return;
+        }
+
+        if ($result === 'in_use') {
+            $this->dispatch('notify', content: 'Không thể xóa vai trò vì đang có tài khoản sử dụng.', type: 'error');
+
+            return;
+        }
+
         $this->dispatch('notify', content: 'Đã xóa vai trò.', type: 'success');
     }
 
     public function render(RoleService $roles)
     {
         $this->authorizeCapability('view_role');
-        return view('Role::livewire.role-table', ['roles' => $roles->queryRoles((string) $this->search)->paginate((int) $this->perPage)]);
+        $this->perPage = $this->normalizedPerPage($this->perPage);
+
+        return view('Role::livewire.role-table', [
+            'roles' => $roles->queryRoles($this->search)->paginate($this->perPage),
+            'exportFilters' => [
+                'search' => $this->search,
+                'selected_ids' => array_map('intval', $this->selected),
+            ],
+        ]);
+    }
+
+    private function normalizedPerPage(mixed $value): int
+    {
+        $perPage = (int) $value;
+
+        return in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
     }
 
     private function authorizeCapability(string $permission): void
