@@ -33,7 +33,7 @@ class SystemEnvSnapshotTest extends TestCase
         $this->assertStringContainsString('RETENTION_PER_TYPE = 5', $source);
         $this->assertStringContainsString('@chmod($directory, 0700)', $source);
         $this->assertStringContainsString('@chmod($path, 0600)', $source);
-        $this->assertStringContainsString("'env-' . \$operation . '-*.env'", $source);
+        $this->assertMatchesRegularExpression("/'env-'\\s*\\.\\s*\\$operation\\s*\\.\\s*'-\\*\\.env'/", $source);
         $this->assertStringNotContainsString('base_path(".env.{$operation}")', $source);
     }
 
