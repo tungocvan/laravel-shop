@@ -16,7 +16,7 @@ class LoginThemeAssetController extends Controller
     {
         abort_unless(in_array($type, ['logo', 'background'], true), 404);
 
-        $validated = $request->validate([
+        $validated = $request->validateWithBag($type === 'logo' ? 'logoUpload' : 'backgroundUpload', [
             'target' => ['required', Rule::in(['admin', 'client'])],
             'asset' => [
                 'required',
