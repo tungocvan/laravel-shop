@@ -8,6 +8,7 @@ use Modules\ClientPortal\Http\Controllers\AccountController;
 use Modules\ClientPortal\Http\Controllers\PortalController;
 
 Route::middleware(['web'])->group(function () {
+    Route::get('/my-apps/manifest.webmanifest', [PortalController::class, 'manifest'])->name('client.apps.manifest');
     Route::get('/my-apps/login', [PortalController::class, 'login'])->name('client.apps.login');
     Route::get('/my-apps/register', [PortalController::class, 'register'])->name('client.apps.register');
     Route::get('/my-apps/verify-email', [PortalController::class, 'verifyEmail'])->name('client.apps.verify-email');
