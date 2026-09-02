@@ -16,9 +16,13 @@ class LoginTheme extends Component
     use WithFileUploads;
 
     public string $target = 'admin';
+
     public array $settings = [];
+
     public $newLogo;
+
     public $newBackground;
+
     public bool $canUpdate = false;
 
     public function mount(SettingsService $service): void
