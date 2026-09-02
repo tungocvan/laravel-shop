@@ -4,60 +4,65 @@
 
 - Module: `Pharma`
 - Mode: **Refactor Module — corrective contract/UI/export alignment**
-- Branch: `refactor/pharma-contract-ui-export-alignment`
-- Base: `main@a3fd01330c9662e26a0998feb7c04a40fe58eb6d`
-- Status: **FOCUSED VERIFICATION PASSED — MANUAL UI ACCEPTANCE PENDING**
+- Status: **COMPLETE — MERGED TO MAIN**
 - Date: 2026-09-02
-- Consolidation rule: **single branch / single PR**
+- Delivery PR: **#150 — Refactor Pharma contract, UI, and export alignment**
+- Merge commit: `7c7691c671a73ede6725418e8e15d648a4ff3f90`
+- Consolidation rule: **single branch / single PR — satisfied**
 - Schema/database migration change: **NO**
 - Route change: **NO**
 - Authorization contract change: **NO**
 - Cross-module source change: **NO**
 
-## Objective
+## Outcome
 
-Correct post-refactor drift without reopening the accepted Pharma architecture. The approved corrective scope is limited to durable module contract, Admin UI consistency, selection/export semantics, focused regression coverage and closeout documentation.
+The corrective Pharma refactor is complete and merged into `main`.
 
-The explicit export rule is now:
+The accepted architecture from the prior Pharma Major Refactor was preserved. This corrective pass addressed contract drift, Admin UI consistency, pagination, selection permissions and export semantics without reopening schema, routing or authorization boundaries.
+
+The explicit export rule now enforced across Medicine/HSSP, Drug Bid Awards and Supplier Tracking is:
 
 - selected checkboxes non-empty -> export exactly the selected records;
 - no selection -> export the complete current filtered dataset, not only the visible page;
 - selected IDs take precedence over ordinary list filters for determining the exported record set;
-- export selection is available to edit/export-capable users and is no longer coupled to delete permission.
+- export selection is available to edit/export-capable users and is no longer coupled to delete permission;
+- destructive selection remains page-scoped and delete-permission-gated.
 
-## Implemented changes
+## Delivered changes
 
 ### Durable module contract
 
-Added `docs/modules/Pharma/MODULE.md` before source implementation. It records canonical ownership, dependency on `Shared`, persistence/auth boundaries, bounded pagination, Admin input conventions, page-scoped destructive selection and the selected/all export contract.
+`docs/modules/Pharma/MODULE.md` is now the durable Pharma module contract. It records canonical ownership, dependency on `Shared`, persistence/auth boundaries, bounded pagination, Admin input conventions, page-scoped destructive selection and selected/all export semantics.
 
 ### Medicine / HSSP
 
-- `MedicineImportExport` honors normalized `selected_ids` and otherwise exports the full filtered Medicine dataset.
-- Medicine workspace passes `selected_ids` to Shared Import/Export.
-- Selection checkboxes are visible when the user can edit/export or delete; destructive actions remain delete-only.
-- Search/select controls were normalized to the current Admin input treatment.
-- Previous/current/next-only pagination was replaced with bounded numbered pagination plus previous/next controls and `aria-current`.
+- `MedicineImportExport` honors normalized `selected_ids`.
+- No-selection export returns the complete filtered dataset.
+- Workspace passes selected IDs to Shared Import/Export.
+- Selection checkboxes are available to edit/export-capable users as well as delete-capable users.
+- Destructive actions remain delete-only.
+- Input/select treatment is aligned with the Admin UI standard.
+- Pagination is numbered with previous/next controls and `aria-current`.
 
 ### Drug Bid Awards
 
 - `DrugBidAwardImportExport` honors selected IDs.
-- No-selection export now mirrors workspace semantics for partial investor/company filters and includes `source_type` filtering.
+- No-selection export mirrors workspace semantics for search, partial investor/company filters and source filtering.
 - Workspace passes search, investor, company, source and selected IDs to Shared Import/Export.
-- Selection permission was decoupled from delete permission.
-- Inputs and pagination were normalized to the Admin standard.
+- Selection permission is decoupled from delete permission.
+- Inputs and pagination are aligned with the Admin UI standard.
 
 ### Supplier Tracking
 
 - Supplier export honors selected IDs.
-- No-selection export now includes the workspace working-date range filters in addition to search/status.
+- No-selection export includes search, status and working-date range filters.
 - Workspace passes search, status, working-date range and selected IDs to Shared Import/Export.
-- Selection permission was decoupled from delete permission while delete controls remain delete-only.
-- Input boundaries/focus treatment, table colspans and numbered pagination were normalized.
+- Selection permission is decoupled from delete permission while delete remains separately protected.
+- Input boundaries/focus treatment, table colspans and numbered pagination are normalized.
 
 ### Focused regression coverage
 
-`tests/Feature/Pharma/PharmaImportExportTest.php` now covers:
+`tests/Feature/Pharma/PharmaImportExportTest.php` covers:
 
 - Medicine selected IDs overriding ordinary filters;
 - Drug Bid Award partial investor/company + source filter parity;
@@ -65,11 +70,11 @@ Added `docs/modules/Pharma/MODULE.md` before source implementation. It records c
 - Supplier Tracking working-date/status filtering;
 - Supplier Tracking selected export precedence.
 
-No Shared source file was changed; the existing Shared panel already supports reactive filter payloads and selected-ID messaging.
+No Shared source file was changed; the existing Shared import/export panel already supported reactive filter payloads and selected-ID messaging.
 
-## Verification evidence
+## Final verification evidence
 
-Local verification was executed after pulling `origin/refactor/pharma-contract-ui-export-alignment`.
+Verification was executed on the corrective branch immediately before PR creation and merge.
 
 ```bash
 vendor/bin/pint --dirty
@@ -83,8 +88,6 @@ php artisan test tests/Feature/Pharma Modules/Pharma/Tests
 
 Result: **PASS — 44 tests, 245 assertions** in 2.11s.
 
-The focused regression includes Admin Dashboard, Medicine/HSSP, Drug Bid Awards, Supplier Tracking, import/export, security foundation and PriceList pipeline/unit coverage.
-
 ```bash
 php artisan route:list --path=admin/pharma
 ```
@@ -97,38 +100,13 @@ npm run build
 
 Result: **PASS — Vite production build, 34 modules transformed** in 1.60s.
 
-No full-project test suite was run; verification remains intentionally scoped to Pharma and directly impacted behavior.
+Manual UI acceptance: **PASS** for Medicine/HSSP, Drug Bid Awards and Supplier Tracking, including input visibility/focus, numbered pagination and selected/all export behavior.
 
-## Manual UI acceptance gate
-
-Manual Admin UI acceptance remains required for Medicine, Drug Bid Award and Supplier Tracking on desktop and a narrow/mobile viewport, with special attention to:
-
-- clearly visible input borders/focus state;
-- numbered pagination, previous/next disabled states and page navigation;
-- edit/export user without delete permission can still select rows;
-- selected rows -> export only selected rows;
-- no selected rows -> export all rows matching the current filters across pages;
-- delete remains page-scoped and permission-gated.
-
-Do not create the final PR until manual UI acceptance has passed or any resulting defects have been corrected on this same branch.
-
-## Current diff against main
-
-The corrective branch changes only Pharma source/tests/docs:
-
-- `Modules/Pharma/Services/MedicineImportExport.php`
-- `Modules/Pharma/Services/DrugBidAwardImportExport.php`
-- `Modules/Pharma/Services/ImportExport.php`
-- `Modules/Pharma/resources/views/livewire/medicine/index.blade.php`
-- `Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php`
-- `Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php`
-- `tests/Feature/Pharma/PharmaImportExportTest.php`
-- `docs/modules/Pharma/MODULE.md`
-- `docs/modules/Pharma/COLLABORATION_HANDOFF.md`
+No full-project suite was run; verification remained intentionally scoped to Pharma and directly impacted behavior.
 
 ## Accepted architecture retained
 
-The previous Pharma Major Refactor remains the architecture baseline:
+The earlier Pharma Major Refactor remains the architecture baseline:
 
 - PR #88 — Security Foundation + Shared Import/Export Hardening;
 - PR #89 — Pharma Admin Dashboard;
@@ -137,11 +115,11 @@ The previous Pharma Major Refactor remains the architecture baseline:
 - PR #92 — Supplier Tracking integrity/workspace;
 - PR #93 — PriceList security/pipeline.
 
-Pharma Admin routes remain behind `web` + `auth:admin`; capability checks remain `view_pharma`, `create_pharma`, `edit_pharma`, `delete_pharma`. Pharma exposes no public API contract. Production list workspaces retain bounded `10/25/50/100` pagination. PriceList and previously accepted domain boundaries are unchanged.
+Pharma Admin routes remain behind `web` + `auth:admin`; capabilities remain `view_pharma`, `create_pharma`, `edit_pharma`, `delete_pharma`. Pharma exposes no public API contract. Production list workspaces retain bounded `10/25/50/100` pagination. PriceList and previously accepted domain boundaries are unchanged.
 
 ## Intentional deferred scope / non-goals
 
-Still outside this corrective refactor:
+The following remain outside this completed corrective refactor and are not blockers:
 
 - Muasamcong -> Pharma production synchronization;
 - automated fuzzy Medicine matching;
@@ -151,4 +129,10 @@ Still outside this corrective refactor:
 - changing Medicine -> Supplier Tracking cascade-delete behavior;
 - unrelated project-wide refactoring or full regression.
 
-The tracked Pharma manifest remains disabled. Any future work outside the approved corrective scope requires a new objective and risk review.
+The tracked Pharma manifest remains disabled.
+
+## Closeout decision
+
+**Pharma corrective Refactor Module work is complete.**
+
+No automatically authorized implementation work remains from this handoff. Any future Pharma change should begin from a new concrete objective and scope review.
