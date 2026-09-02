@@ -4,6 +4,11 @@
         $canCreate = $admin?->can('create_pharma') ?? false;
         $canEdit = $admin?->can('edit_pharma') ?? false;
         $canDelete = $admin?->can('delete_pharma') ?? false;
+        $canSelect = $canEdit || $canDelete;
+        $currentPage = $medicines->currentPage();
+        $lastPage = $medicines->lastPage();
+        $startPage = max(1, $currentPage - 2);
+        $endPage = min($lastPage, $currentPage + 2);
     @endphp
 
     <header class="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -39,6 +44,7 @@
                 'search' => $search,
                 'circular_group' => $filterCircularGroup,
                 'is_special_control' => $filterSpecialControl === '' ? null : $filterSpecialControl === 'yes',
+                'selected_ids' => $selectedIds,
             ],
         ], key('medicine-import-export-' . md5(json_encode([$search, $filterCircularGroup, $filterSpecialControl]))))
     @endif
@@ -55,13 +61,13 @@
                     <label for="medicine-search" class="block text-sm font-medium text-slate-700">Tìm kiếm</label>
                     <input id="medicine-search" type="search" wire:model.live.debounce.300ms="search"
                            placeholder="Tên thuốc hoặc hoạt chất..."
-                           class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                           class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                 </div>
 
                 <div class="lg:col-span-3">
                     <label for="medicine-group" class="block text-sm font-medium text-slate-700">Nhóm Thông tư</label>
                     <select id="medicine-group" wire:model.live="filterCircularGroup"
-                            class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         <option value="">Tất cả nhóm</option>
                         @foreach ($circularGroups as $group)
                             <option value="{{ $group }}">{{ $group }}</option>
@@ -72,7 +78,7 @@
                 <div class="lg:col-span-2">
                     <label for="medicine-special" class="block text-sm font-medium text-slate-700">Kiểm soát</label>
                     <select id="medicine-special" wire:model.live="filterSpecialControl"
-                            class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         <option value="">Tất cả</option>
                         <option value="yes">KSĐB</option>
                         <option value="no">Thuốc thường</option>
@@ -82,7 +88,7 @@
                 <div class="lg:col-span-2">
                     <label for="medicine-per-page" class="block text-sm font-medium text-slate-700">Mỗi trang</label>
                     <select id="medicine-per-page" wire:model.live="perPage"
-                            class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         @foreach ($perPageOptions as $option)
                             <option value="{{ $option }}">{{ $option }} bản ghi</option>
                         @endforeach
@@ -118,7 +124,7 @@
         <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
                 <h2 id="medicine-table-heading" class="font-semibold text-slate-950">Danh sách hồ sơ thuốc</h2>
-                <p class="mt-1 text-xs text-slate-500">{{ number_format($medicines->total()) }} bản ghi · Trang {{ $medicines->currentPage() }}/{{ max(1, $medicines->lastPage()) }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ number_format($medicines->total()) }} bản ghi · Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</p>
             </div>
             <div wire:loading wire:target="search,filterCircularGroup,filterSpecialControl,perPage,gotoPage" class="text-sm font-medium text-indigo-600">Đang tải dữ liệu...</div>
         </div>
@@ -127,7 +133,7 @@
             <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                     <tr>
-                        @if ($canDelete)
+                        @if ($canSelect)
                             <th scope="col" class="w-12 px-4 py-3 text-center">
                                 <input type="checkbox" wire:model.live="selectPage" aria-label="Chọn tất cả bản ghi trên trang hiện tại"
                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
@@ -147,13 +153,13 @@
                 <tbody class="divide-y divide-slate-100 text-slate-700">
                     @forelse ($medicines as $index => $medicine)
                         <tr wire:key="medicine-{{ $medicine->id }}" class="transition hover:bg-slate-50 {{ in_array((string) $medicine->id, $selectedIds, true) ? 'bg-indigo-50/60' : '' }}">
-                            @if ($canDelete)
+                            @if ($canSelect)
                                 <td class="px-4 py-4 text-center align-top">
                                     <input type="checkbox" wire:model.live="selectedIds" value="{{ $medicine->id }}" aria-label="Chọn {{ $medicine->name }}"
                                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                 </td>
                             @endif
-                            <td class="px-4 py-4 text-center align-top font-medium text-slate-500">{{ ($medicines->currentPage() - 1) * $medicines->perPage() + $index + 1 }}</td>
+                            <td class="px-4 py-4 text-center align-top font-medium text-slate-500">{{ ($currentPage - 1) * $medicines->perPage() + $index + 1 }}</td>
                             <td class="min-w-64 px-4 py-4 align-top">
                                 <div class="font-semibold text-slate-950">{{ $medicine->name }}</div>
                                 <div class="mt-1 text-xs leading-5 text-slate-500">{{ $medicine->dosage_form ?: '—' }} · {{ $medicine->packaging_specification ?: '—' }}</div>
@@ -198,22 +204,44 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ 6 + ($canDelete ? 1 : 0) + (($canEdit || $canDelete) ? 1 : 0) }}" class="px-6 py-12 text-center text-sm text-slate-500">Không có hồ sơ thuốc phù hợp với bộ lọc hiện tại.</td>
+                            <td colspan="{{ 6 + ($canSelect ? 1 : 0) + (($canEdit || $canDelete) ? 1 : 0) }}" class="px-6 py-12 text-center text-sm text-slate-500">Không có hồ sơ thuốc phù hợp với bộ lọc hiện tại.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        @if ($medicines->lastPage() > 1)
+        @if ($lastPage > 1)
             <nav class="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5" aria-label="Phân trang hồ sơ thuốc">
                 <p class="text-sm text-slate-500">Hiển thị {{ $medicines->firstItem() }}–{{ $medicines->lastItem() }} / {{ $medicines->total() }}</p>
-                <div class="flex items-center gap-2">
-                    <button type="button" wire:click="gotoPage({{ max(1, $medicines->currentPage() - 1) }})" @disabled($medicines->onFirstPage())
-                            class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Trước</button>
-                    <span class="min-w-24 text-center text-sm font-medium text-slate-700">{{ $medicines->currentPage() }} / {{ $medicines->lastPage() }}</span>
-                    <button type="button" wire:click="gotoPage({{ min($medicines->lastPage(), $medicines->currentPage() + 1) }})" @disabled(! $medicines->hasMorePages())
-                            class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Sau</button>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <button type="button" wire:click="gotoPage({{ max(1, $currentPage - 1) }})" @disabled($medicines->onFirstPage())
+                            class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Trước</button>
+
+                    @if ($startPage > 1)
+                        <button type="button" wire:click="gotoPage(1)" class="min-h-10 min-w-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">1</button>
+                        @if ($startPage > 2)
+                            <span class="px-1 text-sm text-slate-400" aria-hidden="true">…</span>
+                        @endif
+                    @endif
+
+                    @for ($page = $startPage; $page <= $endPage; $page++)
+                        <button type="button" wire:click="gotoPage({{ $page }})"
+                                @if ($page === $currentPage) aria-current="page" @endif
+                                class="min-h-10 min-w-10 rounded-xl border px-3 py-2 text-sm font-semibold transition {{ $page === $currentPage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
+                            {{ $page }}
+                        </button>
+                    @endfor
+
+                    @if ($endPage < $lastPage)
+                        @if ($endPage < $lastPage - 1)
+                            <span class="px-1 text-sm text-slate-400" aria-hidden="true">…</span>
+                        @endif
+                        <button type="button" wire:click="gotoPage({{ $lastPage }})" class="min-h-10 min-w-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $lastPage }}</button>
+                    @endif
+
+                    <button type="button" wire:click="gotoPage({{ min($lastPage, $currentPage + 1) }})" @disabled(! $medicines->hasMorePages())
+                            class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Sau</button>
                 </div>
             </nav>
         @endif

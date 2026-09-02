@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\Pharma;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\DrugBidAwardImportExport;
 use Modules\Pharma\Services\ImportExport as SupplierTrackingImportExport;
 use Modules\Pharma\Services\MedicineImportExport;
 use Rap2hpoutre\FastExcel\FastExcel;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class PharmaImportExportTest extends TestCase
@@ -67,6 +70,22 @@ class PharmaImportExportTest extends TestCase
         $this->assertSame(1, $report['total_rows']);
         $this->assertSame(0, $report['success_rows']);
         $this->assertGreaterThanOrEqual(1, $report['error_rows']);
+    }
+
+    public function test_medicine_export_selected_ids_take_precedence_over_filters(): void
+    {
+        $matchingFilter = Medicine::query()->create($this->medicineData());
+        $selected = Medicine::query()->create($this->medicineData([
+            'name' => 'Selected medicine',
+            'registration_number' => 'VN-SELECTED-26',
+        ]));
+
+        $rows = $this->exportRows(app(MedicineImportExport::class), [
+            'search' => $matchingFilter->name,
+            'selected_ids' => [$selected->id],
+        ]);
+
+        $this->assertSame([$selected->id], $rows->pluck('id')->all());
     }
 
     public function test_drug_bid_award_import_links_matching_medicine(): void
@@ -141,6 +160,35 @@ class PharmaImportExportTest extends TestCase
         ]);
     }
 
+    public function test_drug_bid_award_export_matches_workspace_filters_and_selected_contract(): void
+    {
+        $manual = DrugBidAward::query()->create($this->drugBidAwardData([
+            'bidding_notice_code' => 'IB-MANUAL',
+            'investor_name' => 'Bệnh viện Trung tâm A',
+            'winning_company_name' => 'Dược Alpha',
+            'source_type' => DrugBidAward::SOURCE_MANUAL,
+        ]));
+        $external = DrugBidAward::query()->create($this->drugBidAwardData([
+            'bidding_notice_code' => 'IB-EXTERNAL',
+            'investor_name' => 'Bệnh viện Trung tâm B',
+            'winning_company_name' => 'Dược Beta',
+            'source_type' => DrugBidAward::SOURCE_MUASAMCONG,
+        ]));
+
+        $filtered = $this->exportRows(app(DrugBidAwardImportExport::class), [
+            'investor' => 'Trung tâm',
+            'company' => 'Beta',
+            'source' => DrugBidAward::SOURCE_MUASAMCONG,
+        ]);
+        $selected = $this->exportRows(app(DrugBidAwardImportExport::class), [
+            'company' => 'Beta',
+            'selected_ids' => [$manual->id],
+        ]);
+
+        $this->assertSame([$external->id], $filtered->pluck('id')->all());
+        $this->assertSame([$manual->id], $selected->pluck('id')->all());
+    }
+
     public function test_supplier_tracking_import_uses_a_to_v_and_recalculates_derived_fields(): void
     {
         Medicine::query()->create($this->medicineData());
@@ -183,6 +231,44 @@ class PharmaImportExportTest extends TestCase
         $this->assertSame('325.00', $tracking->invoice_difference_fee);
         $this->assertSame('4075.00', $tracking->cost_price);
         $this->assertSame('47.70', $tracking->gross_profit_percent);
+    }
+
+    public function test_supplier_tracking_export_respects_date_filters_and_selected_contract(): void
+    {
+        $medicine = Medicine::query()->create($this->medicineData());
+        $older = SupplierTracking::query()->create($this->supplierTrackingData($medicine->id, [
+            'working_date' => '2026-04-01',
+            'supplier_name' => 'Nhà cung cấp cũ',
+            'supplier_name_normalized' => 'nhà cung cấp cũ',
+            'status' => 'paused',
+        ]));
+        $current = SupplierTracking::query()->create($this->supplierTrackingData($medicine->id, [
+            'working_date' => '2026-05-15',
+            'supplier_name' => 'Nhà cung cấp hiện tại',
+            'supplier_name_normalized' => 'nhà cung cấp hiện tại',
+            'status' => 'active',
+        ]));
+
+        $filtered = $this->exportRows(app(SupplierTrackingImportExport::class), [
+            'status' => 'active',
+            'working_date_from' => '2026-05-01',
+            'working_date_to' => '2026-05-31',
+        ]);
+        $selected = $this->exportRows(app(SupplierTrackingImportExport::class), [
+            'status' => 'active',
+            'selected_ids' => [$older->id],
+        ]);
+
+        $this->assertSame([$current->id], $filtered->pluck('id')->all());
+        $this->assertSame([$older->id], $selected->pluck('id')->all());
+    }
+
+    private function exportRows(object $service, array $filters): Collection
+    {
+        $method = new ReflectionMethod($service, 'exportRows');
+        $method->setAccessible(true);
+
+        return $method->invoke($service, $filters);
     }
 
     private function createMedicineFixture(): string
@@ -250,9 +336,9 @@ class PharmaImportExportTest extends TestCase
         return $path;
     }
 
-    private function medicineData(): array
+    private function medicineData(array $overrides = []): array
     {
-        return [
+        return array_replace([
             'name' => 'Trosicam 15mg',
             'registration_number' => 'VN-20104-16',
             'active_ingredients' => 'Meloxicam',
@@ -265,6 +351,47 @@ class PharmaImportExportTest extends TestCase
             'registered_company' => 'Demo Registered Company',
             'manufacturing_company' => 'Demo Manufacturer',
             'manufacturing_country' => 'Việt Nam',
-        ];
+        ], $overrides);
+    }
+
+    private function drugBidAwardData(array $overrides = []): array
+    {
+        return array_replace([
+            'medicine_name' => 'Trosicam 15mg',
+            'packaging_specification' => 'Hộp 3 vỉ x 10 viên',
+            'quantity' => 1000,
+            'unit_price' => 5000,
+            'bidding_notice_code' => 'IB-DEFAULT',
+            'investor_name' => 'Bệnh viện A',
+            'decision_number' => 'QD-001',
+            'decision_date' => '2026-05-01',
+            'contract_duration_months' => 12,
+            'winning_company_name' => 'Công ty Dược A',
+            'source_type' => DrugBidAward::SOURCE_MANUAL,
+        ], $overrides);
+    }
+
+    private function supplierTrackingData(int $medicineId, array $overrides = []): array
+    {
+        return array_replace([
+            'medicine_id' => $medicineId,
+            'working_date' => '2026-05-01',
+            'supplier_name' => 'Nhà cung cấp A',
+            'supplier_name_normalized' => 'nhà cung cấp a',
+            'supplier_representative' => 'Đại diện A',
+            'area' => 'Miền Nam',
+            'import_price' => 100,
+            'selling_price' => 150,
+            'invoice_price' => 120,
+            'invoice_difference_amount' => 20,
+            'invoice_difference_percent' => 10,
+            'invoice_difference_fee' => 2,
+            'cost_price' => 102,
+            'gross_profit_percent' => 32,
+            'committed_quantity' => 1000,
+            'unit' => 'Viên',
+            'deposit_amount' => 0,
+            'status' => 'active',
+        ], $overrides);
     }
 }

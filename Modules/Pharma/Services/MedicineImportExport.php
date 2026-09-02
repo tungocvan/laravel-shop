@@ -116,7 +116,14 @@ class MedicineImportExport extends BaseImportExportService
 
     protected function exportRows(array $filters = []): Collection
     {
-        return Medicine::query()
+        $selectedIds = $this->selectedIds($filters);
+        $query = Medicine::query();
+
+        if ($selectedIds !== []) {
+            return $query->whereKey($selectedIds)->latest('id')->get();
+        }
+
+        return $query
             ->when($filters['search'] ?? null, fn ($query, $search) => $query
                 ->where(fn ($nested) => $nested
                     ->where('name', 'like', "%{$search}%")
@@ -163,6 +170,16 @@ class MedicineImportExport extends BaseImportExportService
             'registered_company' => 'Alpex Pharma SA, Thụy Sĩ', 'manufacturing_company' => 'Alpex Pharma SA',
             'manufacturing_country' => 'Thụy Sĩ', 'declared_price' => 8500, 'is_special_control' => false,
         ]));
+    }
+
+    private function selectedIds(array $filters): array
+    {
+        return collect($filters['selected_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function existingRecord(array $data): ?Medicine

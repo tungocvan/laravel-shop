@@ -3,147 +3,152 @@
 ## Current checkpoint
 
 - Module: `Pharma`
-- Phase: Major Refactor — Final Acceptance + Closeout
-- Branch: `docs/pharma-major-refactor-final-acceptance-closeout`
-- Base checkpoint: `main@c5d6e4b341c5f99f2bf73d8104fba0975ddd5375`
-- Status: **MR-7 FINAL ACCEPTANCE PASSED — READY FOR PR REVIEW**
-- Date: 2026-08-30
-- Application source modified in MR-7: **NO**
-- Documentation modified in MR-7: **YES**
-- Production/runtime enablement changed: **NO**
+- Mode: **Refactor Module — corrective contract/UI/export alignment**
+- Branch: `refactor/pharma-contract-ui-export-alignment`
+- Base: `main@a3fd01330c9662e26a0998feb7c04a40fe58eb6d`
+- Status: **FOCUSED VERIFICATION PASSED — MANUAL UI ACCEPTANCE PENDING**
+- Date: 2026-09-02
+- Consolidation rule: **single branch / single PR**
+- Schema/database migration change: **NO**
+- Route change: **NO**
+- Authorization contract change: **NO**
+- Cross-module source change: **NO**
 
-## Major Refactor delivery status
+## Objective
 
-The planned Pharma Major Refactor implementation is complete through MR-6 and has passed the MR-7 final acceptance gate.
+Correct post-refactor drift without reopening the accepted Pharma architecture. The approved corrective scope is limited to durable module contract, Admin UI consistency, selection/export semantics, focused regression coverage and closeout documentation.
 
-Merged delivery record:
+The explicit export rule is now:
 
-- PR #88 — MR-1 Security Foundation + MR-2 Shared Import/Export Hardening.
-- PR #89 — dedicated Pharma Admin Dashboard at `/admin/pharma`.
-- PR #90 — MR-3 Medicine/HSSP Workspace.
-- PR #91 — MR-4 Drug Bid Award Workspace + Sync-Ready Foundation.
-- PR #92 — MR-5 Supplier Tracking Integrity + Workspace.
-- PR #93 — MR-6 Price List Security + Pipeline, merged as `c5d6e4b341c5f99f2bf73d8104fba0975ddd5375`.
+- selected checkboxes non-empty -> export exactly the selected records;
+- no selection -> export the complete current filtered dataset, not only the visible page;
+- selected IDs take precedence over ordinary list filters for determining the exported record set;
+- export selection is available to edit/export-capable users and is no longer coupled to delete permission.
 
-MR-7 intentionally introduces no new application feature. It validates the merged result and closes the refactor documentation.
+## Implemented changes
 
-## Final accepted architecture
+### Durable module contract
 
-### Security boundary
+Added `docs/modules/Pharma/MODULE.md` before source implementation. It records canonical ownership, dependency on `Shared`, persistence/auth boundaries, bounded pagination, Admin input conventions, page-scoped destructive selection and the selected/all export contract.
 
-- Pharma Admin routes are behind `web` + `auth:admin`.
-- Dashboard/index/create/edit routes enforce the appropriate Pharma capabilities.
-- Sensitive Livewire mutations use server-side capability checks.
-- Pharma exposes no public API contract; `routes/api.php` is intentionally empty of routes.
+### Medicine / HSSP
 
-### Admin workspaces
+- `MedicineImportExport` honors normalized `selected_ids` and otherwise exports the full filtered Medicine dataset.
+- Medicine workspace passes `selected_ids` to Shared Import/Export.
+- Selection checkboxes are visible when the user can edit/export or delete; destructive actions remain delete-only.
+- Search/select controls were normalized to the current Admin input treatment.
+- Previous/current/next-only pagination was replaced with bounded numbered pagination plus previous/next controls and `aria-current`.
 
-- Dashboard provides the canonical Pharma entry point.
-- Medicine/HSSP, Drug Bid Award, Supplier Tracking and PriceList use the Admin shell and Dashboard return navigation.
-- Production-facing list workspaces use bounded `10/25/50/100` pagination rather than `All`.
-- Bulk selection is page-scoped and destructive operations use explicit confirmation/permission boundaries.
-- Large Medicine selectors were replaced with bounded lookup behavior where refactored.
+### Drug Bid Awards
 
-### Import/export and generated files
+- `DrugBidAwardImportExport` honors selected IDs.
+- No-selection export now mirrors workspace semantics for partial investor/company filters and includes `source_type` filtering.
+- Workspace passes search, investor, company, source and selected IDs to Shared Import/Export.
+- Selection permission was decoupled from delete permission.
+- Inputs and pagination were normalized to the Admin standard.
 
-- Pharma reuses the Shared Import/Export infrastructure.
-- Shared service resolution is hardened against mutable client-side service substitution.
-- Generated Shared exports are private and use authorized download behavior.
-- PriceList generation uses a private service-controlled output directory and does not trust a request-controlled output path.
+### Supplier Tracking
 
-### Domain integrity
+- Supplier export honors selected IDs.
+- No-selection export now includes the workspace working-date range filters in addition to search/status.
+- Workspace passes search, status, working-date range and selected IDs to Shared Import/Export.
+- Selection permission was decoupled from delete permission while delete controls remain delete-only.
+- Input boundaries/focus treatment, table colspans and numbered pagination were normalized.
 
-- Drug Bid Awards include stable source metadata and idempotent source projection for future synchronization.
-- Supplier Tracking enforces the accepted normalized supplier business key when working date is non-null.
-- Medicine -> Supplier Tracking cascade-delete behavior remains intentionally unchanged.
-- PriceList workbook analysis remains server-side rather than public Livewire state.
+### Focused regression coverage
 
-## MR-7 final acceptance evidence
+`tests/Feature/Pharma/PharmaImportExportTest.php` now covers:
 
-Executed on the dedicated closeout branch based on merged `main@c5d6e4b341c5f99f2bf73d8104fba0975ddd5375`.
+- Medicine selected IDs overriding ordinary filters;
+- Drug Bid Award partial investor/company + source filter parity;
+- Drug Bid Award selected export precedence;
+- Supplier Tracking working-date/status filtering;
+- Supplier Tracking selected export precedence.
 
-### Route inventory
+No Shared source file was changed; the existing Shared panel already supports reactive filter payloads and selected-ID messaging.
+
+## Verification evidence
+
+Local verification was executed after pulling `origin/refactor/pharma-contract-ui-export-alignment`.
 
 ```bash
-php artisan route:list --path=admin/pharma
+vendor/bin/pint --dirty
 ```
 
-Result: **PASS — 11 Pharma Admin routes**.
-
-Accepted route surface:
-
-- Pharma Dashboard;
-- Medicine/HSSP index/create/edit;
-- Drug Bid Award index/create/edit;
-- Supplier Tracking index/create/edit;
-- Price List create.
-
-### Focused Pharma regression
+Result: **PASS — 0 dirty PHP files required formatting changes**.
 
 ```bash
 php artisan test tests/Feature/Pharma Modules/Pharma/Tests
 ```
 
-Result: **PASS — 41 tests, 240 assertions** in 2.93s.
+Result: **PASS — 44 tests, 245 assertions** in 2.11s.
 
-No full-project suite was run; verification remains intentionally scoped to Pharma and directly impacted behavior.
+The focused regression includes Admin Dashboard, Medicine/HSSP, Drug Bid Awards, Supplier Tracking, import/export, security foundation and PriceList pipeline/unit coverage.
 
-### Frontend production build
+```bash
+php artisan route:list --path=admin/pharma
+```
+
+Result: **PASS — 11 Pharma Admin routes**. No route surface changed.
 
 ```bash
 npm run build
 ```
 
-Result: **PASS — Vite production build, 34 modules transformed** in 1.90s.
+Result: **PASS — Vite production build, 34 modules transformed** in 1.60s.
 
-### UI acceptance lineage
+No full-project test suite was run; verification remains intentionally scoped to Pharma and directly impacted behavior.
 
-MR-6 PriceList final manual UI smoke was **PASS** immediately before PR #93 merge. Earlier Medicine, Drug Bid Award, Supplier Tracking and Dashboard delivery phases were likewise manually accepted before their respective merges.
+## Manual UI acceptance gate
 
-No new application UI was introduced by MR-7, so no additional MR-7 UI change requires acceptance.
+Manual Admin UI acceptance remains required for Medicine, Drug Bid Award and Supplier Tracking on desktop and a narrow/mobile viewport, with special attention to:
 
-## Documentation closeout
+- clearly visible input borders/focus state;
+- numbered pagination, previous/next disabled states and page navigation;
+- edit/export user without delete permission can still select rows;
+- selected rows -> export only selected rows;
+- no selected rows -> export all rows matching the current filters across pages;
+- delete remains page-scoped and permission-gated.
 
-`docs/modules/Pharma/ANALYSIS.md` has been refreshed from the pre-refactor risk inventory to the accepted post-refactor architecture. Findings already resolved by MR-1 through MR-6 are no longer presented as current defects.
+Do not create the final PR until manual UI acceptance has passed or any resulting defects have been corrected on this same branch.
 
-The final analysis now records:
+## Current diff against main
 
-- accepted security and authorization boundaries;
-- Shared Import/Export hardening;
-- bounded Admin workspaces;
-- Drug Bid Award sync-ready source identity;
-- Supplier Tracking business-key integrity;
-- PriceList server-only/private pipeline;
-- final route/test/build evidence;
-- explicit future/deferred scope.
+The corrective branch changes only Pharma source/tests/docs:
+
+- `Modules/Pharma/Services/MedicineImportExport.php`
+- `Modules/Pharma/Services/DrugBidAwardImportExport.php`
+- `Modules/Pharma/Services/ImportExport.php`
+- `Modules/Pharma/resources/views/livewire/medicine/index.blade.php`
+- `Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php`
+- `Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php`
+- `tests/Feature/Pharma/PharmaImportExportTest.php`
+- `docs/modules/Pharma/MODULE.md`
+- `docs/modules/Pharma/COLLABORATION_HANDOFF.md`
+
+## Accepted architecture retained
+
+The previous Pharma Major Refactor remains the architecture baseline:
+
+- PR #88 — Security Foundation + Shared Import/Export Hardening;
+- PR #89 — Pharma Admin Dashboard;
+- PR #90 — Medicine/HSSP Workspace;
+- PR #91 — Drug Bid Award Workspace + sync-ready source identity;
+- PR #92 — Supplier Tracking integrity/workspace;
+- PR #93 — PriceList security/pipeline.
+
+Pharma Admin routes remain behind `web` + `auth:admin`; capability checks remain `view_pharma`, `create_pharma`, `edit_pharma`, `delete_pharma`. Pharma exposes no public API contract. Production list workspaces retain bounded `10/25/50/100` pagination. PriceList and previously accepted domain boundaries are unchanged.
 
 ## Intentional deferred scope / non-goals
 
-The following remain outside the completed Major Refactor and are **not blockers** for closeout:
+Still outside this corrective refactor:
 
-- actual Muasamcong -> Pharma production synchronization/wiring;
+- Muasamcong -> Pharma production synchronization;
 - automated fuzzy Medicine matching;
 - production/runtime enablement of Pharma;
-- PriceList database entity/table;
-- PriceList queue/background generation unless future benchmarking proves it necessary;
-- user upload/replacement of the PriceList source workbook;
-- switching PriceList source data to Medicine database records;
-- changing Medicine -> Supplier Tracking cascade-delete policy;
-- unrelated project-wide refactoring/regression.
+- PriceList database entity/table or queue redesign;
+- user replacement/upload of the PriceList source workbook;
+- changing Medicine -> Supplier Tracking cascade-delete behavior;
+- unrelated project-wide refactoring or full regression.
 
-The tracked Pharma manifest remains `enabled => false`.
-
-## Closeout decision
-
-**Recommendation: merge MR-7 and close the Pharma Major Refactor program.**
-
-After MR-7 is merged, there is no automatically authorized next implementation MR. Any future Pharma work must start from a concrete user objective and a new analysis/plan before code changes.
-
-Likely future initiatives, only if explicitly requested, include:
-
-- Muasamcong -> Pharma synchronization;
-- Pharma production enablement/readiness;
-- PriceList source/queue evolution;
-- new Pharma business features.
-
-Do not begin any of these from this handoff without explicit user approval.
+The tracked Pharma manifest remains disabled. Any future work outside the approved corrective scope requires a new objective and risk review.
