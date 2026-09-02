@@ -49,6 +49,8 @@ The canonical service preserves verified-email, identity-conflict, inactive/dele
 
 The legacy admin Google `AuthService` has been removed from the branch after its runtime replacement. Its previous behaviors that restored soft-deleted users and provisioned an admin role during login are no longer part of the approved Google authentication path.
 
+The superseded `GoogleWebAuthService` is retained as a deprecated compatibility adapter only. It now contains no independent identity policy and delegates `resolve`, `resolveExisting`, and `link` to `GoogleIdentityService`. This preserves compatibility while preventing duplicated security rules from drifting again.
+
 Focused regression coverage on the branch includes explicit admin cases for:
 
 - existing Google-linked account login;
@@ -60,7 +62,7 @@ Client Google coverage exercises verified identity creation, OTP-proven linking,
 
 ## Deferred / quarantined boundaries
 
-`GoogleWebAuthService` is now superseded by `GoogleIdentityService`, but remains `QUARANTINE` until final caller proof is complete. No new code should depend on it.
+`GoogleWebAuthService` remains `QUARANTINE` as a compatibility adapter until final caller proof permits removal. No new code should depend on it.
 
 The API Auth stub and generic Auth CRUD permissions remain unchanged while caller evidence is insufficient for safe deletion.
 
@@ -84,9 +86,9 @@ If a database/security blocker requires a product or ownership decision that can
 - `docs/modules/Auth/MODULE.md`: CREATED and aligned with runtime target.
 - Canonical Google identity service: IMPLEMENTED.
 - Admin/client Google adapters: MIGRATED to canonical identity service.
-- Legacy role-provisioning Google AuthService: CLEANED from branch.
+- Legacy role-provisioning Google `AuthService`: CLEANED from branch.
+- Superseded `GoogleWebAuthService`: REDUCED to deprecated compatibility adapter.
 - Google security regression coverage: ADDED/UPDATED.
-- Superseded `GoogleWebAuthService`: QUARANTINE pending final caller proof.
 - API/config compatibility surfaces: QUARANTINE / DEFER pending proof.
 - Persistence relocation: NOT AUTHORIZED without schema/ledger proof.
-- Final focused test/UI checkpoint: PENDING.
+- Final focused test/UI checkpoint: READY FOR USER EXECUTION.
