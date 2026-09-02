@@ -12,8 +12,7 @@ class RolePermissionCatalogService
 {
     public function __construct(
         private readonly ModulePermissionManager $modulePermissions,
-    ) {
-    }
+    ) {}
 
     public function activeGroups(): array
     {

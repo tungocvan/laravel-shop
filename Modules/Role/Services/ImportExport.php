@@ -78,6 +78,7 @@ class ImportExport extends BaseImportExportService
 
                 if (! $this->hasRequiredHeaders($row)) {
                     $this->addError($this->defaultSheetName, $rowNumber, null, 'File thiếu cột bắt buộc.');
+
                     continue;
                 }
 
@@ -90,11 +91,13 @@ class ImportExport extends BaseImportExportService
                             $this->addError($this->defaultSheetName, $rowNumber, $column, $message, $row[$column] ?? null);
                         }
                     }
+
                     continue;
                 }
 
                 if ($row['guard_name'] !== RoleService::ADMIN_GUARD) {
                     $this->addError($this->defaultSheetName, $rowNumber, 'guard_name', 'Module Role chỉ hỗ trợ guard admin.', $row['guard_name']);
+
                     continue;
                 }
 
@@ -104,6 +107,7 @@ class ImportExport extends BaseImportExportService
 
                 if ($dryRun) {
                     $this->successRows++;
+
                     continue;
                 }
 
