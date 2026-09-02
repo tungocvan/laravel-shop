@@ -1,212 +1,166 @@
 # Muasamcong Module — Collaboration Handoff
 
-- Last updated: 2026-08-29
+- Last updated: 2026-09-02
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Stable `main` checkpoint after Dashboard merge: `ddc050704a4d8eee6e28c338ae24e7a1564476da`
-- Completed delivery: **Muasamcong Admin Dashboard**
-- Pull request: **#72 — MERGED / CLOSED**
-- Source head: `6517c42be0d5a83005dd08ad31397e7d12ef695e`
-- Merge commit: `ddc050704a4d8eee6e28c338ae24e7a1564476da`
-- Delivery status: **MERGED / CLOSED — implementation and acceptance complete**
-- Active delivery: **NONE**
+- Previous stable delivery: **Muasamcong Admin Dashboard — PR #72 MERGED / CLOSED**
+- Active delivery: **Major/Clean Module Refactor**
+- Active branch: `refactor/muasamcong-architecture-ui-export-alignment`
+- Delivery status: **IMPLEMENTED BATCH / LOCAL TEST + UI PENDING**
 - Production enablement/deployment: **NOT AUTHORIZED / NOT CHANGED**
-- Next MR/phase: **NOT DETERMINED**
 
-## Current checkpoint
+## Approved target
 
-PR #72 was merged into `main` on 2026-08-29. The stable Admin management entry point is:
+The approved refactor target keeps Muasamcong as the canonical procurement-domain owner and preserves the dependency direction `ClientPortal -> Muasamcong`.
 
-```text
-GET /admin/muasamcong/dashboard
-name: muasamcong.dashboard
-middleware: web, auth:admin, permission:view_muasamcong,admin
-```
+Approved priorities:
 
-The existing `GET /admin/muasamcong` route remains the Smart Pricing workspace. No existing Admin/API/ClientPortal URI, route name, database schema, storage contract, export format, or production setting was migrated.
+1. capability-specific mutation authorization;
+2. checkbox export semantics: selected rows when selected, otherwise full approved export scope;
+3. Admin input/pagination alignment;
+4. bounded responsibility extraction without speculative deletion or schema migration.
 
-The user synchronized local `main` from `5479bb49` to merge checkpoint `ddc05070`, then confirmed a clean working tree before the stable handoff closeout.
+No database schema, migration, model ownership, API URI, Admin URI, route name or production setting is authorized for destructive change in this delivery.
 
-## Completed Dashboard capability
+## Architectural contract
 
-### Dashboard foundation
+`docs/modules/Muasamcong/MODULE.md` was missing at refactor bootstrap and has now been added on the active branch.
 
-- `MuasamcongDashboardController` is a thin invokable page controller.
-- `MuasamcongDashboardService` owns bounded Dashboard queries and safe DTO construction.
-- `resources/views/dashboard.blade.php` uses `Admin::layouts.master` and responsive repository Admin patterns.
-- `muasamcong.dashboard` is additive; `muasamcong.index` remains unchanged.
+The contract records:
 
-### Management overview
+- Muasamcong is an active `domain` module;
+- Admin and ClientPortal are presentation/consumer boundaries, not replacement domain owners;
+- Muasamcong persistence is protected;
+- Personal Session/raw snapshot/schema boundaries are quarantined from destructive cleanup;
+- checkbox export semantics are a refactor invariant;
+- full-project regression is not a default gate.
 
-The Dashboard provides read-only summaries and navigation for:
+## Implemented batch
 
-- Smart Pricing and pricing-search history;
-- synced pricing data;
-- per-user Wishlist when authorized;
-- HSMT;
-- contractor lookup, queue state, recent jobs, archives, and manual-lot workflows;
-- configuration and Personal Session health when authorized.
+### Export scope adapters
 
-The Dashboard intentionally does not perform sync, retry, delete, export, session mutation, or other state-changing actions. Those operations remain in their existing specialized workspaces.
+Canonical URIs and route names are preserved while export endpoints now route through thin scope/authorization adapters:
 
-### Return navigation
+- `PricingExportController` -> existing Smart Pricing export implementation;
+- `SyncedPricingScopedExportController` -> existing Synced Pricing exporter;
+- `PricingWishlistExportController` -> existing Wishlist exporter.
 
-A shared permission-aware `Quay về Dashboard` link is present in the eight Muasamcong Admin page shells:
-
-- Smart Pricing;
-- synced pricing;
-- Wishlist;
-- HSMT;
-- contractor lookup;
-- contractor archives;
-- manual contractor lots;
-- configuration.
-
-The link is omitted when the Admin does not have `view_muasamcong`, preserving the separate configuration-only permission boundary.
-
-## Architecture and data boundaries
-
-The implemented flow is:
+Behavior:
 
 ```text
-Route -> thin Controller -> MuasamcongDashboardService -> bounded DTO -> Blade
+selected_ids non-empty -> export selected
+selected_ids empty     -> resolve full approved scope, then delegate
 ```
 
-Safety properties:
+The existing Excel mapping/formatting implementations remain behind the adapters to minimize format-regression risk.
 
-- Blade performs no Eloquent query.
-- Recent pricing searches and contractor jobs are capped at five rows each.
-- Queries select explicit safe fields.
-- `result_payload`, `raw_payload`, `error_message`, cookies, tokens, and encrypted session values are not selected or rendered.
-- Wishlist metrics are scoped to the authenticated Admin.
-- Missing-table/config/session failures degrade to safe unavailable states.
-- No domain logic moved into ClientPortal.
-- Dependency direction remains `ClientPortal -> Muasamcong`.
+Current compatibility caps inherited from the legacy exporters are intentionally explicit rather than silently truncating data:
 
-## Authorization decisions
+- Smart Pricing: 2,000 rows;
+- Wishlist: 2,000 rows;
+- Synced Pricing: 5,000 rows.
+
+If a full scope exceeds the inherited limit, the endpoint returns a validation/business error asking the operator to narrow scope/select rows. Removing these exporter capacity limits is deferred to a dedicated streaming/chunked-export slice; silent partial export is not allowed.
+
+### Authorization
+
+- Smart Pricing export enforces `muasamcong.pricing.sync` server-side.
+- Synced Pricing export enforces `muasamcong.pricing.sync` server-side.
+- Wishlist export enforces `muasamcong.pricing.wishlist` server-side.
+- Wishlist bulk delete now has explicit route middleware `permission:muasamcong.pricing.wishlist,admin` in addition to the existing Admin/view boundary.
 
 No new permission was introduced.
 
-| Capability | Dashboard behavior |
-|---|---|
-| `view_muasamcong` | Required to access the Dashboard |
-| `muasamcong.pricing.wishlist` | Controls Wishlist card/count/workspace visibility |
-| `muasamcong.config.manage` | Controls configuration/session health and tool links |
-| `muasamcong.pricing.sync` | Displayed only as a capability badge; no mutation is performed |
+### Wishlist extraction and UI alignment
 
-The baseline P1 mutation-authorization findings remain open. UI visibility is not treated as a substitute for server-side authorization.
+Wishlist page query ownership was extracted from the oversized `MuasamcongController` into:
 
-## Compatibility boundary
+- `PricingWishlistController` — thin page controller;
+- `PricingWishlistQueryService` — reusable user/filter query scope.
 
-Preserved:
-
-- `/admin/muasamcong` and `muasamcong.index` remain Smart Pricing;
-- all existing Admin route names and mutation behavior;
-- all Muasamcong API routes;
-- all ClientPortal Muasamcong routes and application behavior;
-- database tables, migrations, models, storage paths, queue behavior, export profiles, and generated files;
-- source/manual-enrichment separation;
-- the no-heuristic contractor-to-lot/medicine invariant.
-
-Changed by PR #72:
-
-- one new Admin GET route;
-- one Dashboard controller, service, and view;
-- permission-aware return navigation in existing Admin page shells;
-- route tests now validate semantic Admin/API uniqueness rather than a brittle fixed total.
-
-## Corrective history
-
-### Route test count
-
-The former route test counted every URI containing `muasamcong`, including ClientPortal routes, and asserted a fixed total. The final test filters canonical Admin/API route roots, verifies unique `METHOD URI` signatures, and keeps explicit URI/middleware contracts.
-
-### Blade / Livewire ExtendBlade parsing
-
-Initial Dashboard rendering produced an unmatched `endif` in the compiled view. Clearing compiled views confirmed a source-compilation issue. The final view preserves the Admin layout and responsive patterns while using semantic HTML wrappers and block-form `@php ... @endphp`, avoiding the problematic anonymous-component/inline-directive combination.
-
-### Formatting boundary
-
-Module-wide Pint exposed four pre-existing style issues in unrelated legacy Muasamcong files. They were not reformatted by this delivery. All changed PHP files passed scoped Pint checks.
-
-## Verification evidence
-
-| Gate | Status | Evidence |
-|---|---|---|
-| Focused Dashboard + route authorization | PASS | 6 tests, 159 assertions |
-| Final Muasamcong module regression | PASS | 48 tests, 383 assertions, 2.94s |
-| Changed-file Pint | PASS | Five changed PHP files passed; final Dashboard test spacing recheck passed |
-| Route registration | PASS | `GET|HEAD admin/muasamcong/dashboard` -> `muasamcong.dashboard` |
-| Dashboard UI smoke | PASS | User confirmed desktop/mobile UI and linked functions |
-| Return-link UI smoke | PASS | User confirmed `Quay về Dashboard` navigation |
-| Admin UI standard | PASS within approved scope | Canonical Admin layout, responsive workspaces, safe states, accessible links |
-| ClientPortal impacted regression | NOT APPLICABLE | No ClientPortal source/contract changed |
-| Full project regression | NOT APPLICABLE | Approved module-scoped strategy; no shared/core behavior changed |
-| Runtime/upstream verification | NOT RUN | Outside approved local Dashboard scope |
-| Pre-merge whitespace/Git clean | PASS | `git diff --check` produced no output; user branch was clean |
-| PR review/merge | PASS | PR #72 merged as `ddc05070` |
-| Post-merge main synchronization | PASS | User fast-forwarded local `main` to `ddc05070` with no local paths reported |
-
-No runtime tests were rerun after merge because GitHub `main` exactly matched the reviewed PR merge checkpoint and the subsequent handoff closeout is documentation-only.
-
-## Database, storage, configuration, and operations
+Wishlist now uses bounded page-size choices:
 
 ```text
-Migrations: none
-Seeders: none
-Database writes introduced by Dashboard: none
-Storage changes: none
-Environment changes: none
-Queue/job changes: none
-Operational commands: none
-Production changes: none
+10 / 25 / 50 / 100
+Default: 25
 ```
 
-## Deferred work
+The Wishlist export adapter reuses the same search filter `q` when no rows are selected, so `no selection` exports all matching Wishlist rows rather than only the visible page.
 
-The accepted baseline still defers:
+The Wishlist UI now provides:
 
-1. capability-specific authorization and denial tests for existing mutation surfaces;
-2. atomic Personal Session import-token claim;
-3. contractor job/sync idempotency;
-4. ClientPortal search completeness beyond 500 candidates;
-5. snapshot/raw-payload/file retention and capacity thresholds;
-6. incremental extraction of oversized controller/Livewire/export orchestration;
-7. four pre-existing module-wide Pint findings in unrelated legacy files.
+- visible bordered search/select controls;
+- explicit `Chọn trang hiện tại` semantics;
+- selected count;
+- `Xuất Excel — tất cả phù hợp` when no checkbox is selected;
+- selected-only destructive delete;
+- module-scoped Admin pagination with white inactive controls and indigo active page.
 
-These items are not automatically authorized as the next delivery.
+### Smart Pricing and Synced Pricing canonical export actions
 
-## Production boundary
+The page headers expose canonical `Xuất Excel` actions that inspect the owning Livewire component:
 
-PR #72 and this handoff do not:
+- when rows are selected, selected IDs are submitted;
+- when no rows are selected, no IDs are submitted and the scope adapter resolves the full approved scope.
 
-- deploy source;
-- enable or disable Muasamcong;
-- change secrets, endpoint configuration, queue workers, database state, storage, or permissions;
-- authorize production verification or rollout.
+`Xuất BBG` remains selected-only because it is a separate specialized operation and its semantics were not changed by this refactor slice.
 
-Production state remains unchanged and was not verified by this delivery.
+## Compatibility preserved
 
-## Documentation state
+- `GET /admin/muasamcong/dashboard` remains the Admin dashboard.
+- `GET /admin/muasamcong` remains Smart Pricing.
+- Existing Admin route names and URIs are preserved.
+- Muasamcong API routes are unchanged.
+- ClientPortal source/contracts are unchanged in this batch.
+- Existing Excel formatting implementations remain the compatibility implementation behind the new adapters.
+- No schema/migration/model/storage-path changes were introduced.
 
-Canonical reading order:
+## Tests added
 
-1. `COLLABORATION_HANDOFF.md` — stable continuation checkpoint.
-2. `README.md` — developer entry point and operational boundaries.
-3. `INFORMATION.md` — factual route/component/service/model/table inventory.
-4. `ANALYSIS.md` — baseline findings plus Dashboard implementation update.
-5. `ROUTES.md`, `SYNCED.md`, `ENV_DOCTOR.md` — supporting references; verify against source.
-6. `AI_HANDOFF.md` — legacy investigation context, not the canonical handoff.
+`tests/Feature/Muasamcong/MuasamcongRefactorArchitectureContractTest.php` covers:
 
-## Remaining work / next authorized step
+- canonical route URI preservation and new controller ownership;
+- Wishlist delete capability middleware;
+- nullable selection contract for export adapters;
+- server-side capability permissions;
+- Wishlist bounded page sizes;
+- filter-aware all-scope export UI contract;
+- explicit Admin pagination view contract;
+- existence/invariants of `docs/modules/Muasamcong/MODULE.md`.
 
-No active delivery remains.
+## Verification state
 
-To continue Muasamcong work:
+| Gate | Status |
+|---|---|
+| GitHub implementation batch | COMPLETE |
+| Focused refactor contract test | PENDING USER LOCAL RUN |
+| Muasamcong module regression | PENDING USER LOCAL RUN |
+| Changed-file Pint | PENDING after tests |
+| Route verification | PENDING after tests |
+| Frontend build | PENDING after tests |
+| Wishlist desktop/mobile UI | PENDING USER UI |
+| Smart Pricing selected/all export UI | PENDING USER UI |
+| Synced Pricing selected/all export UI | PENDING USER UI |
+| Full project regression | NOT APPLICABLE — module-scoped strategy |
+| PR | NOT CREATED |
+| Merge | NOT AUTHORIZED |
 
-1. start from latest clean `main`;
-2. state the next concrete objective;
-3. inspect the relevant source/current handoff;
-4. propose a focused plan and wait for explicit approval before creating a feature/fix branch or changing source.
+## Deferred / next internal refactor debt
 
-Do not infer a next refactor MR, production action, deployment, or permission change from the deferred list.
+The current batch deliberately does not rewrite the largest Livewire/export implementations in one step.
+
+Still deferred inside Muasamcong:
+
+1. bounded page-size extraction for oversized `SyncedPricingList` and Smart Pricing result pagination beyond the current fixed paging behavior;
+2. deeper decomposition of `SyncedPricingList`, `ContractorHistory` and `TracuuThuoctrungthau` after behavioral tests prove safe extraction boundaries;
+3. chunked/streaming export strategy to remove the inherited 2,000/5,000 row compatibility caps without memory regressions;
+4. atomic Personal Session import-token claim;
+5. contractor job/sync idempotency;
+6. snapshot/raw-payload/file retention thresholds;
+7. unrelated historical Pint cleanup.
+
+These are not grounds for speculative deletion. Any DELETE/REHOME still requires caller proof and an approved coherent slice.
+
+## Next gate
+
+Pull the active branch and run the focused refactor contract test first. If it passes, run the complete Muasamcong feature regression. Do not create a PR until automated regression, Pint/routes/build as applicable and manual UI/export acceptance are complete.
