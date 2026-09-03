@@ -13,11 +13,11 @@
     </div>
 
     <div class="relative rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div wire:loading.flex wire:target="search, filterRole, perPage, deleteSelected, resetFilters" class="absolute inset-0 z-20 items-center justify-center rounded-xl bg-white/60 backdrop-blur-[1px]">
+        <div wire:loading.flex wire:target="search, filterRole, filterStatus, perPage, deleteSelected, resetFilters" class="absolute inset-0 z-20 items-center justify-center rounded-xl bg-white/60 backdrop-blur-[1px]">
             <span class="text-sm font-medium text-indigo-600">Đang tải...</span>
         </div>
 
-        <div class="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_200px_140px_auto]">
+        <div class="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_200px_180px_140px_auto]">
             <div>
                 <label for="user-search" class="sr-only">Tìm kiếm nhân sự</label>
                 <input
@@ -36,6 +36,15 @@
                     @foreach($roles as $role)
                         <option value="{{ $role->id }}">{{ $role->name }}</option>
                     @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="user-status-filter" class="sr-only">Lọc theo trạng thái</label>
+                <select id="user-status-filter" wire:model.live="filterStatus" class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Ngừng hoạt động</option>
                 </select>
             </div>
 
