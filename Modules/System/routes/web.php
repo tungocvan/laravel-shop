@@ -36,6 +36,9 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         Route::get('/settings/login-theme', [SettingController::class, 'loginTheme'])
             ->middleware('permission:system.settings.view,admin')
             ->name('settings.login-theme');
+        Route::get('/settings/login-redirect', [SettingController::class, 'loginRedirect'])
+            ->middleware('permission:system.settings.view,admin')
+            ->name('settings.login-redirect');
         Route::post('/settings/login-theme/assets/{type}', [LoginThemeAssetController::class, 'store'])
             ->middleware('permission:system.settings.update,admin')
             ->name('settings.login-theme.assets.store');
