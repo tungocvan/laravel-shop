@@ -45,6 +45,41 @@
                 </div>
             </div>
 
+            @if($isEdit)
+                <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <div class="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+                        <h3 class="text-base font-bold text-gray-900">Liên kết Google</h3>
+                        <p class="mt-1 text-sm text-gray-500">Kiểm soát việc ghép tài khoản Google có email trùng với tài khoản này.</p>
+                    </div>
+
+                    <div class="space-y-4 p-6">
+                        <div class="flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between {{ $googleLinked ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50' }}">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Trạng thái</p>
+                                <p class="mt-1 text-sm {{ $googleLinked ? 'text-green-700' : 'text-gray-600' }}">
+                                    {{ $googleLinked ? '✓ Đã liên kết Google' : 'Chưa liên kết Google' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        @if(! $googleLinked)
+                            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                <input type="checkbox" wire:change="setGoogleAutoLinkApproval($event.target.checked)" @checked($googleAutoLinkEnabled) class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span>
+                                    <span class="block text-sm font-bold text-amber-900">Cho phép Google tự động liên kết ở lần đăng nhập tiếp theo</span>
+                                    <span class="mt-1 block text-xs leading-5 text-amber-800">Thay đổi này được lưu ngay. Chỉ áp dụng một lần. Google vẫn phải xác minh email, email phải trùng chính xác tài khoản này, tài khoản phải đang hoạt động và Google ID không được thuộc người dùng khác. Sau khi liên kết thành công, quyền này tự tắt.</span>
+                                </span>
+                            </label>
+                            @error('googleAutoLinkEnabled')
+                                <p class="rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-600">{{ $message }}</p>
+                            @enderror
+                        @else
+                            <p class="rounded-xl border border-green-100 bg-green-50 p-4 text-sm text-green-800">Tài khoản đã có Google ID nên không cần bật liên kết tự động.</p>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             <div class="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div class="pr-6">
                     <h3 class="text-base font-bold text-gray-900">Trạng thái hoạt động</h3>

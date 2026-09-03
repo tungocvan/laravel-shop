@@ -19,7 +19,8 @@ class UserService
         $perPage = $this->normalizePerPage($filters['per_page'] ?? 10);
 
         return $this->staffQuery($filters, $actor)
-            ->latest()
+            ->orderByDesc('is_active')
+            ->latest('id')
             ->paginate($perPage);
     }
 
@@ -36,6 +37,7 @@ class UserService
         return $this->staffQuery($filters, $actor)
             ->when($includePasswordHash, fn (Builder $query) => $query->addSelect('password'))
             ->when($selectedIds->isNotEmpty(), fn (Builder $query) => $query->whereKey($selectedIds->all()))
+            ->orderByDesc('is_active')
             ->latest('id')
             ->get();
     }
@@ -55,14 +57,39 @@ class UserService
         return $this->staffQuery([], $actor)->findOrFail($id);
     }
 
+    public function setGoogleAutoLinkApproval(int $id, bool $enabled, User $actor): User
+    {
+        return DB::transaction(function () use ($id, $enabled, $actor): User {
+            $user = $this->findStaff($id, $actor);
+
+            if ($user->google_id) {
+                if ($enabled) {
+                    throw new \RuntimeException('Tài khoản này đã liên kết Google.');
+                }
+
+                $enabled = false;
+            }
+
+            if ($enabled && ! $user->is_active) {
+                throw new \RuntimeException('Chỉ có thể cho phép liên kết Google với tài khoản đang hoạt động.');
+            }
+
+            $user->forceFill(['google_auto_link_enabled' => $enabled])->save();
+
+            return $user->refresh();
+        });
+    }
+
     public function saveStaff(array $data, ?int $id, User $actor): User
     {
         return DB::transaction(function () use ($data, $id, $actor): User {
             $existingRoles = [];
+            $originalEmail = null;
 
             if ($id) {
                 $user = $this->findStaff($id, $actor);
                 $existingRoles = $user->roles->pluck('name')->all();
+                $originalEmail = mb_strtolower(trim((string) $user->email));
             } else {
                 $user = new User;
             }
@@ -75,12 +102,19 @@ class UserService
                 'is_active' => (bool) ($data['is_active'] ?? true),
             ]);
 
+            $emailChanged = $id
+                && $originalEmail !== mb_strtolower(trim((string) $user->email));
+
+            if (! $id || $user->google_id || $emailChanged || ! $user->is_active) {
+                $user->google_auto_link_enabled = false;
+            }
+
             if (! empty($data['password'])) {
                 $user->password = Hash::make($data['password']);
             }
 
             $user->save();
-            $user->syncRoles($roles);
+            $this->syncAdminRoles($user, $roles);
 
             return $user->load('roles');
         });
@@ -122,6 +156,8 @@ class UserService
         $perPage = $this->normalizePerPage($filters['per_page'] ?? 10);
 
         return $this->staffQuery($filters, $actor)
+            ->orderByDesc('is_active')
+            ->latest('id')
             ->paginate($perPage)
             ->pluck('id')
             ->map(fn (int $id): string => (string) $id)
@@ -131,7 +167,7 @@ class UserService
     private function staffQuery(array $filters, User $actor): Builder
     {
         return User::query()
-            ->select('id', 'name', 'email', 'phone', 'is_active', 'created_at')
+            ->select('id', 'name', 'email', 'phone', 'is_active', 'google_id', 'google_auto_link_enabled', 'created_at')
             ->with('roles:id,name,guard_name')
             ->whereHas('roles')
             ->when(! $this->isSuperAdmin($actor), function (Builder $query): void {
@@ -144,7 +180,9 @@ class UserService
                         ->orWhere('phone', 'like', "%{$search}%");
                 });
             })
-            ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $roles) => $roles->whereKey($role)));
+            ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $roles) => $roles->whereKey($role)))
+            ->when(($filters['status'] ?? '') === 'active', fn (Builder $query) => $query->where('is_active', true))
+            ->when(($filters['status'] ?? '') === 'inactive', fn (Builder $query) => $query->where('is_active', false));
     }
 
     private function normalizePerPage(mixed $perPage): int
@@ -171,6 +209,16 @@ class UserService
             ->whereIn('name', $roleNames)
             ->pluck('name')
             ->all();
+    }
+
+    private function syncAdminRoles(User $user, array $roleNames): void
+    {
+        $roles = Role::query()
+            ->where('guard_name', 'admin')
+            ->whereIn('name', $roleNames)
+            ->get();
+
+        $user->syncRoles($roles);
     }
 
     private function isSuperAdmin(User $user): bool

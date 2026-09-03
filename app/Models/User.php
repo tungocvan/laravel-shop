@@ -13,12 +13,12 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasRoles, Notifiable,SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     // protected $guard_name = 'auth:admin';
     protected $fillable = [
         'name', 'email', 'password',
-        'google_id', 'google_token', 'google_refresh_token',
+        'google_id', 'google_token', 'google_refresh_token', 'google_auto_link_enabled',
         'phone', 'avatar', 'is_active', 'last_login_at',
     ];
 
@@ -28,6 +28,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'google_auto_link_enabled' => 'boolean',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
     ];

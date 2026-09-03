@@ -53,6 +53,7 @@ class GoogleIdentityService
 
             $current->forceFill([
                 'google_id' => $googleId,
+                'google_auto_link_enabled' => false,
                 'email_verified_at' => $current->email_verified_at ?: now(),
             ])->save();
 
@@ -97,7 +98,7 @@ class GoogleIdentityService
                 ->first();
 
             if ($emailOwner) {
-                if ($emailOwner->trashed() || ! $emailOwner->is_active || ! $emailOwner->email_verified_at) {
+                if ($emailOwner->trashed() || ! $emailOwner->is_active) {
                     throw ValidationException::withMessages([
                         'email' => 'Email này đã có tài khoản nhưng chưa đủ điều kiện liên kết Google tự động.',
                     ]);
@@ -109,20 +110,32 @@ class GoogleIdentityService
                     ]);
                 }
 
-                $otpVerified = UserEmailVerification::query()
-                    ->where('user_id', $emailOwner->getKey())
-                    ->whereRaw('LOWER(email) = ?', [$email])
-                    ->where('verified_at', $emailOwner->email_verified_at)
-                    ->whereNull('invalidated_at')
-                    ->exists();
+                if (! $emailOwner->google_auto_link_enabled) {
+                    if (! $emailOwner->email_verified_at) {
+                        throw ValidationException::withMessages([
+                            'email' => 'Email này đã có tài khoản nhưng chưa đủ điều kiện liên kết Google tự động.',
+                        ]);
+                    }
 
-                if (! $otpVerified) {
-                    throw ValidationException::withMessages([
-                        'email' => 'Hãy đăng nhập bằng mật khẩu trước khi liên kết Google với tài khoản hiện có.',
-                    ]);
+                    $otpVerified = UserEmailVerification::query()
+                        ->where('user_id', $emailOwner->getKey())
+                        ->whereRaw('LOWER(email) = ?', [$email])
+                        ->where('verified_at', $emailOwner->email_verified_at)
+                        ->whereNull('invalidated_at')
+                        ->exists();
+
+                    if (! $otpVerified) {
+                        throw ValidationException::withMessages([
+                            'email' => 'Hãy đăng nhập bằng mật khẩu trước khi liên kết Google với tài khoản hiện có.',
+                        ]);
+                    }
                 }
 
-                $emailOwner->forceFill(['google_id' => $googleId])->save();
+                $emailOwner->forceFill([
+                    'google_id' => $googleId,
+                    'google_auto_link_enabled' => false,
+                    'email_verified_at' => $emailOwner->email_verified_at ?: now(),
+                ])->save();
 
                 return $emailOwner->refresh();
             }

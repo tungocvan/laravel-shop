@@ -36,11 +36,17 @@ class UserRefactorContractTest extends TestCase
 
         $this->assertStringContainsString('border border-gray-300 bg-white', $table);
         $this->assertStringContainsString('<option value="100">100 dòng</option>', $table);
+        $this->assertStringContainsString('wire:model.live="filterStatus"', $table);
+        $this->assertStringContainsString('Tất cả trạng thái', $table);
+        $this->assertStringContainsString('Đang hoạt động', $table);
+        $this->assertStringContainsString('Ngừng hoạt động', $table);
         $this->assertStringContainsString("links('User::vendor.pagination.admin-users')", $table);
         $this->assertStringContainsString('export chỉ các nhân sự đã chọn', mb_strtolower($table));
         $this->assertStringContainsString('không chọn dòng nào: export tất cả nhân sự theo bộ lọc hiện tại', mb_strtolower($table));
         $this->assertStringContainsString('backup đầy đủ credential bằng password_hash', mb_strtolower($table));
         $this->assertStringContainsString('border bg-white px-4 py-3', $form);
+        $this->assertStringContainsString('wire:change="setGoogleAutoLinkApproval($event.target.checked)"', $form);
+        $this->assertStringContainsString('thay đổi này được lưu ngay', mb_strtolower($form));
         $this->assertStringContainsString('bg-indigo-600', $pagination);
         $this->assertStringContainsString('bg-white', $pagination);
     }
@@ -66,6 +72,43 @@ class UserRefactorContractTest extends TestCase
         $this->assertSame([$bob->id], $selected->pluck('id')->all());
     }
 
+    public function test_staff_status_filter_and_active_first_ordering_are_applied_to_list_and_export(): void
+    {
+        $actor = $this->adminActor(['view_user', 'export_user']);
+        $role = Role::findByName('staff', 'admin');
+
+        $inactiveNewest = User::factory()->create(['name' => 'Inactive Newest', 'is_active' => false]);
+        $activeOlder = User::factory()->create(['name' => 'Active Older', 'is_active' => true]);
+        $activeNewest = User::factory()->create(['name' => 'Active Newest', 'is_active' => true]);
+
+        foreach ([$inactiveNewest, $activeOlder, $activeNewest] as $user) {
+            $user->assignRole($role);
+        }
+
+        $service = app(UserService::class);
+        $page = $service->paginateStaff(['per_page' => 10], $actor);
+        $ordered = $page->getCollection();
+
+        $firstInactiveIndex = $ordered->search(fn (User $user): bool => ! $user->is_active);
+        $lastActiveIndex = $ordered->keys()->filter(fn (int $index): bool => (bool) $ordered[$index]->is_active)->max();
+
+        $this->assertNotFalse($firstInactiveIndex);
+        $this->assertLessThan($firstInactiveIndex, $lastActiveIndex);
+        $this->assertLessThan(
+            $ordered->search(fn (User $user): bool => $user->id === $activeOlder->id),
+            $ordered->search(fn (User $user): bool => $user->id === $activeNewest->id),
+        );
+
+        $active = $service->exportStaff(['status' => 'active'], $actor);
+        $inactive = $service->exportStaff(['status' => 'inactive'], $actor);
+
+        $this->assertTrue($active->every(fn (User $user): bool => (bool) $user->is_active));
+        $this->assertTrue($inactive->every(fn (User $user): bool => ! $user->is_active));
+        $this->assertTrue($active->contains('id', $activeOlder->id));
+        $this->assertTrue($active->contains('id', $activeNewest->id));
+        $this->assertTrue($inactive->contains('id', $inactiveNewest->id));
+    }
+
     public function test_non_super_admin_export_scope_never_exposes_super_admin(): void
     {
         $actor = $this->adminActor(['export_user']);
@@ -86,6 +129,60 @@ class UserRefactorContractTest extends TestCase
         $this->assertStringContainsString('Vai trò không tồn tại trong Role catalog', $source);
         $this->assertStringContainsString('$user->syncRoles($adminRoles)', $source);
         $this->assertTrue(is_subclass_of(ImportExport::class, BaseImportExportService::class));
+    }
+
+    public function test_google_auto_link_approval_persists_independently_from_staff_save(): void
+    {
+        $actor = $this->adminActor(['edit_user']);
+        $role = Role::findByName('staff', 'admin');
+        $target = User::factory()->create([
+            'google_id' => null,
+            'google_auto_link_enabled' => false,
+            'is_active' => true,
+        ]);
+        $target->assignRole($role);
+
+        $service = app(UserService::class);
+        $approved = $service->setGoogleAutoLinkApproval($target->id, true, $actor);
+
+        $this->assertTrue((bool) $approved->google_auto_link_enabled);
+        $this->assertDatabaseHas('users', [
+            'id' => $target->id,
+            'google_auto_link_enabled' => 1,
+        ]);
+
+        $service->saveStaff([
+            'name' => $target->name,
+            'email' => $target->email,
+            'password' => null,
+            'is_active' => true,
+            'roles' => [$role->name],
+        ], $target->id, $actor);
+
+        $this->assertTrue((bool) $target->fresh()->google_auto_link_enabled);
+    }
+
+    public function test_google_auto_link_approval_is_cleared_when_email_changes(): void
+    {
+        $actor = $this->adminActor(['edit_user']);
+        $role = Role::findByName('staff', 'admin');
+        $target = User::factory()->create([
+            'email' => 'before-google-link@example.test',
+            'google_id' => null,
+            'google_auto_link_enabled' => true,
+            'is_active' => true,
+        ]);
+        $target->assignRole($role);
+
+        app(UserService::class)->saveStaff([
+            'name' => $target->name,
+            'email' => 'after-google-link@example.test',
+            'password' => null,
+            'is_active' => true,
+            'roles' => [$role->name],
+        ], $target->id, $actor);
+
+        $this->assertFalse((bool) $target->fresh()->google_auto_link_enabled);
     }
 
     public function test_super_admin_backup_export_preserves_locked_state_and_password_hash(): void
