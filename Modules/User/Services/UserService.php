@@ -19,7 +19,8 @@ class UserService
         $perPage = $this->normalizePerPage($filters['per_page'] ?? 10);
 
         return $this->staffQuery($filters, $actor)
-            ->latest()
+            ->orderByDesc('is_active')
+            ->latest('id')
             ->paginate($perPage);
     }
 
@@ -36,6 +37,7 @@ class UserService
         return $this->staffQuery($filters, $actor)
             ->when($includePasswordHash, fn (Builder $query) => $query->addSelect('password'))
             ->when($selectedIds->isNotEmpty(), fn (Builder $query) => $query->whereKey($selectedIds->all()))
+            ->orderByDesc('is_active')
             ->latest('id')
             ->get();
     }
@@ -154,6 +156,8 @@ class UserService
         $perPage = $this->normalizePerPage($filters['per_page'] ?? 10);
 
         return $this->staffQuery($filters, $actor)
+            ->orderByDesc('is_active')
+            ->latest('id')
             ->paginate($perPage)
             ->pluck('id')
             ->map(fn (int $id): string => (string) $id)
@@ -176,7 +180,9 @@ class UserService
                         ->orWhere('phone', 'like', "%{$search}%");
                 });
             })
-            ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $roles) => $roles->whereKey($role)));
+            ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->whereHas('roles', fn (Builder $roles) => $roles->whereKey($role)))
+            ->when(($filters['status'] ?? '') === 'active', fn (Builder $query) => $query->where('is_active', true))
+            ->when(($filters['status'] ?? '') === 'inactive', fn (Builder $query) => $query->where('is_active', false));
     }
 
     private function normalizePerPage(mixed $perPage): int
