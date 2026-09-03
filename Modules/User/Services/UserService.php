@@ -55,14 +55,39 @@ class UserService
         return $this->staffQuery([], $actor)->findOrFail($id);
     }
 
+    public function setGoogleAutoLinkApproval(int $id, bool $enabled, User $actor): User
+    {
+        return DB::transaction(function () use ($id, $enabled, $actor): User {
+            $user = $this->findStaff($id, $actor);
+
+            if ($user->google_id) {
+                if ($enabled) {
+                    throw new \RuntimeException('Tài khoản này đã liên kết Google.');
+                }
+
+                $enabled = false;
+            }
+
+            if ($enabled && ! $user->is_active) {
+                throw new \RuntimeException('Chỉ có thể cho phép liên kết Google với tài khoản đang hoạt động.');
+            }
+
+            $user->forceFill(['google_auto_link_enabled' => $enabled])->save();
+
+            return $user->refresh();
+        });
+    }
+
     public function saveStaff(array $data, ?int $id, User $actor): User
     {
         return DB::transaction(function () use ($data, $id, $actor): User {
             $existingRoles = [];
+            $originalEmail = null;
 
             if ($id) {
                 $user = $this->findStaff($id, $actor);
                 $existingRoles = $user->roles->pluck('name')->all();
+                $originalEmail = mb_strtolower(trim((string) $user->email));
             } else {
                 $user = new User;
             }
@@ -75,9 +100,10 @@ class UserService
                 'is_active' => (bool) ($data['is_active'] ?? true),
             ]);
 
-            if ($id && ! $user->google_id) {
-                $user->google_auto_link_enabled = (bool) ($data['google_auto_link_enabled'] ?? false);
-            } else {
+            $emailChanged = $id
+                && $originalEmail !== mb_strtolower(trim((string) $user->email));
+
+            if (! $id || $user->google_id || $emailChanged || ! $user->is_active) {
                 $user->google_auto_link_enabled = false;
             }
 
