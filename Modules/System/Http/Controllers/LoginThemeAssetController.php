@@ -16,15 +16,26 @@ class LoginThemeAssetController extends Controller
     {
         abort_unless(in_array($type, ['logo', 'background'], true), 404);
 
-        $validated = $request->validateWithBag($type === 'logo' ? 'logoUpload' : 'backgroundUpload', [
-            'target' => ['required', Rule::in(['admin', 'client'])],
-            'asset' => [
-                'required',
-                'image',
-                'mimes:png,jpg,jpeg,webp',
-                'max:'.($type === 'logo' ? 3072 : 6144),
+        $validated = $request->validateWithBag(
+            $type === 'logo' ? 'logoUpload' : 'backgroundUpload',
+            [
+                'target' => ['required', Rule::in(['admin', 'client'])],
+                'asset' => [
+                    'required',
+                    'image',
+                    'mimes:png,jpg,jpeg,webp',
+                    'max:'.($type === 'logo' ? 3072 : 6144),
+                ],
             ],
-        ]);
+            [
+                'asset.required' => 'Vui lòng chọn hình ảnh cần tải lên.',
+                'asset.image' => 'Tệp được chọn phải là hình ảnh hợp lệ.',
+                'asset.mimes' => 'Chỉ chấp nhận ảnh PNG, JPG, JPEG hoặc WebP.',
+                'asset.max' => $type === 'logo'
+                    ? 'Logo không được vượt quá 3 MB.'
+                    : 'Ảnh nền không được vượt quá 6 MB.',
+            ],
+        );
 
         $target = $validated['target'];
         $prefix = $target === 'admin' ? 'auth_login_admin_' : 'auth_login_client_';
