@@ -75,6 +75,12 @@ class UserService
                 'is_active' => (bool) ($data['is_active'] ?? true),
             ]);
 
+            if ($id && ! $user->google_id) {
+                $user->google_auto_link_enabled = (bool) ($data['google_auto_link_enabled'] ?? false);
+            } else {
+                $user->google_auto_link_enabled = false;
+            }
+
             if (! empty($data['password'])) {
                 $user->password = Hash::make($data['password']);
             }
@@ -131,7 +137,7 @@ class UserService
     private function staffQuery(array $filters, User $actor): Builder
     {
         return User::query()
-            ->select('id', 'name', 'email', 'phone', 'is_active', 'created_at')
+            ->select('id', 'name', 'email', 'phone', 'is_active', 'google_id', 'google_auto_link_enabled', 'created_at')
             ->with('roles:id,name,guard_name')
             ->whereHas('roles')
             ->when(! $this->isSuperAdmin($actor), function (Builder $query): void {
