@@ -64,15 +64,14 @@ class KqlcntHistoricalRecoveryTest extends TestCase
         $duplicate = $service->preview($this->batch($search->id, 'IB001'), $this->mapping());
         $this->assertSame(1, $duplicate->duplicate_rows);
 
-        $conflictBatch = $this->batch($search->id, 'IB001', 450);
-        $conflict = $service->preview($conflictBatch, $this->mapping());
+        $conflict = $service->preview($this->batch($search->id, 'IB001', 450), $this->mapping());
         $this->assertSame(1, $conflict->conflict_rows);
 
         $service->confirm($conflict, false);
         $this->assertSame('385.0000', KqlcntAwardItem::query()->firstOrFail()->winning_price);
 
-        $conflict = $service->preview($conflictBatch->fresh(), $this->mapping());
-        $service->confirm($conflict, true);
+        $overwrite = $service->preview($this->batch($search->id, 'IB001', 450), $this->mapping());
+        $service->confirm($overwrite, true);
         $this->assertSame('450.0000', KqlcntAwardItem::query()->firstOrFail()->winning_price);
     }
 
