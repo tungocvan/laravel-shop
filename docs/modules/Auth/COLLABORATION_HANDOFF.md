@@ -2,15 +2,13 @@
 
 ## Current objective
 
-**Login Theme Manager V1.1 corrective closeout** — image-upload validation/stability plus canonical Admin entrypoint/redirect behavior.
+**Login Theme Manager V1.1 corrective closeout** remains the merged Auth baseline. The current User branch additionally contains a narrow cross-module Google identity contract change for one-time existing-account auto-link approval.
 
-Current branch:
+Current cross-module branch:
 
-`fix/auth-login-theme-upload-validation-preview`
+`feat/user-google-auto-link-approval`
 
-V1 and V1.1 are already merged. This branch contains only corrective follow-up discovered during UI verification.
-
-## Corrective scope delivered
+## Existing corrective baseline
 
 ### Login branding assets
 
@@ -22,62 +20,48 @@ V1 and V1.1 are already merged. This branch contains only corrective follow-up d
 
 ### Admin entrypoint and redirect
 
-The intended contract is now explicit:
-
 - `/admin` is the dynamic Admin entrypoint (`admin.entry`).
 - `/admin/dashboard` is the canonical built-in Admin dashboard (`admin.dashboard`).
 - The configured Admin destination is stored under `admin_login_redirect_route`.
 - `/admin` resolves through `AdminLoginRedirectService` and redirects to the configured valid Admin route.
 - Successful Admin authentication uses the same resolver.
-- If the configured route is missing/invalid, fallback is the canonical `/admin/dashboard` route.
-- `admin.dashboard` is excluded as a selectable redirect target when needed to avoid entrypoint recursion semantics.
-- The System settings screen uses a dedicated top-level Laravel form/POST persistence flow for this setting instead of a nested dynamic Livewire save path.
+- Invalid/missing configured routes fall back to `/admin/dashboard`.
 
-Example accepted flow:
+## Cross-module Google identity note
 
-`/admin` → configured `admin.admission.dashboard` → `/admin/admission/dashboard`.
+`feat/user-google-auto-link-approval` changes `Modules/Auth/Services/GoogleIdentityService.php` only at the identity-link boundary:
+
+- User administration owns the one-time account approval flag `google_auto_link_enabled`.
+- Auth remains the sole owner allowed to persist `google_id`.
+- Google must provide a verified email and that normalized email must exactly match the existing account.
+- Existing active/non-deleted and Google-ID collision safeguards remain enforced.
+- When an existing email owner has explicit one-time approval, Auth may bypass only the previous local OTP prerequisite.
+- Without approval, the existing OTP/password-linking safeguards remain unchanged.
+- Successful approved linking sets `google_id`, ensures `email_verified_at`, and consumes the approval by setting `google_auto_link_enabled = false`.
+- No fake OTP verification record is created.
 
 ## Ownership boundary
 
-- Auth continues to own authentication/login presentation behavior.
-- System owns persisted settings, Admin configuration UI, redirect resolver and managed branding assets.
-- Admin owns the canonical Admin entrypoint/dashboard routes and delegates dynamic entry resolution to the System resolver.
-- Admission remains independent; only its existing named dashboard route can be selected as a destination.
-
-## Safety / unchanged behavior
-
-- No database/schema changes.
-- No credential, guard, OAuth identity, callback security or session-security changes.
-- No Admission implementation/ownership changes.
-- No repository-wide formatting cleanup.
+- Auth owns authentication, OAuth identity verification, Google collision rules and final identity linking.
+- User owns shared account administration and the explicit one-time approval state/UI.
+- Role owns role/permission catalog data.
+- System/Admin ownership from the Login Theme/entrypoint work is unchanged.
 
 ## Validation checkpoint
 
-User UI acceptance: **PASS**.
+User-reported acceptance on the current cross-module branch:
 
-Verified manually in the accepted flow:
+- Google auto-link approval UI: **PASS**.
+- Focused User contract suite after final User list addition: **11 passed (44 assertions)**.
+- Vite production build: **PASS — 34 modules transformed**.
+- Earlier focused Auth/User validation on this branch covered approved Google auto-link, approval consumption, unapproved existing-email blocking, unknown-account behavior and soft-deleted-account safeguards.
 
-- Login Theme corrective UI/upload behavior;
-- Admin redirect configuration;
-- `/admin` redirects to the configured `/admin/admission/dashboard` destination.
-
-Earlier V1.1 focused validation remains recorded as:
-
-```text
-PASS  Tests\Feature\Auth\LoginThemePresentationTest
-3 passed (17 assertions)
-
-Vite production build: PASS — 34 modules transformed
-```
-
-Repository-wide Pint remains blocked by pre-existing repository style debt and is not part of this corrective scope.
+Repository-wide Pint style debt outside the changed scope remains unrelated.
 
 ## Current status
 
-- V1: **MERGED**.
-- V1.1: **MERGED**.
-- Corrective implementation: **COMPLETE**.
-- Corrective UI smoke / Admin entrypoint flow: **PASS (user accepted)**.
-- Branch vs `main`: corrective branch is ahead with no behind commits at PR-preparation checkpoint.
-- Architecture/security boundaries: **PRESERVED**.
-- Next step: open corrective PR to `main` for user review and manual merge.
+- Login Theme V1/V1.1 corrective baseline: **MERGED/COMPLETE**.
+- One-time Google auto-link Auth boundary: **IMPLEMENTED**.
+- User UI acceptance: **PASS**.
+- Architecture/security boundary: **PRESERVED**.
+- Next step: include this narrow Auth change in the single PR from `feat/user-google-auto-link-approval` to `main`.
