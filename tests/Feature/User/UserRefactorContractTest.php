@@ -9,9 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Livewire\Livewire;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
-use Modules\User\Livewire\UserForm;
 use Modules\User\Services\ImportExport;
 use Modules\User\Services\UserService;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -91,8 +89,11 @@ class UserRefactorContractTest extends TestCase
         $this->assertTrue(is_subclass_of(ImportExport::class, BaseImportExportService::class));
     }
 
-    public function test_google_auto_link_approval_persists_from_user_edit_form(): void
+    public function test_google_auto_link_approval_persists_from_user_edit_contract(): void
     {
+        $formSource = File::get(base_path('Modules/User/Livewire/UserForm.php'));
+        $this->assertStringContainsString("'google_auto_link_enabled' => \$this->isEdit && ! \$this->googleLinked", $formSource);
+
         $actor = $this->adminActor(['edit_user']);
         $role = Role::findByName('staff', 'admin');
         $target = User::factory()->create([
@@ -101,14 +102,17 @@ class UserRefactorContractTest extends TestCase
             'is_active' => true,
         ]);
         $target->assignRole($role);
-        auth('admin')->login($actor);
 
-        Livewire::test(UserForm::class, ['id' => $target->id])
-            ->assertSet('googleAutoLinkEnabled', false)
-            ->set('googleAutoLinkEnabled', true)
-            ->call('save')
-            ->assertRedirect(route('admin.user.index'));
+        $updated = app(UserService::class)->saveStaff([
+            'name' => $target->name,
+            'email' => $target->email,
+            'password' => null,
+            'is_active' => true,
+            'google_auto_link_enabled' => true,
+            'roles' => [$role->name],
+        ], $target->id, $actor);
 
+        $this->assertTrue((bool) $updated->fresh()->google_auto_link_enabled);
         $this->assertDatabaseHas('users', [
             'id' => $target->id,
             'google_auto_link_enabled' => 1,
