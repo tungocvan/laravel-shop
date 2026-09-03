@@ -46,20 +46,14 @@
         const loginThemeUploadError = document.getElementById('login-theme-client-upload-error');
 
         const showLoginThemeUploadError = (message) => {
-            if (! loginThemeUploadError) {
-                return;
-            }
-
+            if (! loginThemeUploadError) return;
             loginThemeUploadError.textContent = message;
             loginThemeUploadError.classList.remove('hidden');
             loginThemeUploadError.scrollIntoView({ behavior: 'smooth', block: 'center' });
         };
 
         const clearLoginThemeUploadError = () => {
-            if (! loginThemeUploadError) {
-                return;
-            }
-
+            if (! loginThemeUploadError) return;
             loginThemeUploadError.textContent = '';
             loginThemeUploadError.classList.add('hidden');
         };
@@ -83,25 +77,18 @@
 
         document.addEventListener('click', (event) => {
             const trigger = event.target.closest('label[for="login-logo-file"], label[for="login-background-file"]');
-
-            if (! trigger) {
-                return;
-            }
+            if (! trigger) return;
 
             clearLoginThemeUploadError();
 
             const originalInput = document.getElementById(trigger.getAttribute('for'));
-
             if (! originalInput || originalInput.disabled) {
                 event.preventDefault();
                 return;
             }
 
             const sourceForm = originalInput.form;
-
-            if (! sourceForm) {
-                return;
-            }
+            if (! sourceForm) return;
 
             event.preventDefault();
 
@@ -119,21 +106,14 @@
             const token = sourceForm.querySelector('input[name="_token"]');
             const target = sourceForm.querySelector('input[name="target"]');
 
-            if (token) {
-                const tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = '_token';
-                tokenInput.value = token.value;
-                pickerForm.appendChild(tokenInput);
-            }
-
-            if (target) {
-                const targetInput = document.createElement('input');
-                targetInput.type = 'hidden';
-                targetInput.name = 'target';
-                targetInput.value = target.value;
-                pickerForm.appendChild(targetInput);
-            }
+            [token, target].forEach((source) => {
+                if (! source) return;
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = source.name;
+                input.value = source.value;
+                pickerForm.appendChild(input);
+            });
 
             const picker = document.createElement('input');
             picker.type = 'file';
@@ -142,35 +122,38 @@
             pickerForm.appendChild(picker);
             document.body.appendChild(pickerForm);
 
-            let submitted = false;
+            let completed = false;
             const cleanup = () => {
-                if (! submitted && pickerForm.isConnected) {
-                    pickerForm.remove();
-                }
+                if (pickerForm.isConnected) pickerForm.remove();
             };
 
             picker.addEventListener('change', () => {
+                completed = true;
+
                 if (! picker.files || picker.files.length === 0) {
                     cleanup();
                     return;
                 }
 
                 const file = picker.files[0];
-
                 if (file.size > maxBytes) {
                     showLoginThemeUploadError(`${assetLabel} không được vượt quá ${maxLabel}. Vui lòng chọn tệp nhỏ hơn trước khi tải lên.`);
                     cleanup();
                     return;
                 }
 
-                submitted = true;
                 pickerForm.submit();
             }, { once: true });
 
             window.addEventListener('focus', () => {
                 window.setTimeout(() => {
-                    if (! submitted && (! picker.files || picker.files.length === 0)) {
-                        cleanup();
+                    // Do not remove the temporary input immediately on focus. On some
+                    // browsers Windows restores focus before dispatching the file input's
+                    // change event, which previously removed the selected file silently.
+                    if (! completed && pickerForm.isConnected) {
+                        window.setTimeout(() => {
+                            if (! completed) cleanup();
+                        }, 1000);
                     }
                 }, 250);
             }, { once: true });
