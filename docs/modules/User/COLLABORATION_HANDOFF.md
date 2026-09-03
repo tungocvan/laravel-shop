@@ -2,108 +2,107 @@
 
 ## Current objective
 
-Follow-up hardening for `Modules/User` import/export after the major User refactor was merged in PR #148.
-
-The follow-up establishes a trusted backup/restore contract that preserves account status and password hashes without exposing plaintext passwords or double-hashing restored credentials.
+Add an explicit one-time Google auto-link approval to the User edit flow so an existing account may be linked to a verified Google identity with the same email without requiring a prior password/OTP verification path.
 
 ## Branch
 
-`fix/user-import-export-roundtrip`
+`feat/user-google-auto-link-approval`
 
 ## Merged baseline
 
-PR #148 (`refactor/user-module-contract-ui-export`) is merged into `main` and remains the canonical User refactor baseline.
+- PR #148 completed the major User refactor.
+- PR #160 completed trusted User import/export credential round-trip support.
+- User remains the shared account-directory shell.
+- Auth remains the canonical owner of Google authentication/linking behavior.
+- Role remains the canonical role/permission catalog owner.
 
-Baseline invariants remain unchanged:
+## Approved contract
 
-- User is the shared account-directory shell.
-- Role owns the role/permission catalog.
-- Auth owns authentication flows.
-- Shared owns generic import/export infrastructure.
-- Selected IDs present → export selected approved rows only.
-- No selected IDs → export all rows in the approved/filter scope, never current page only.
-- User list pagination remains bounded to `10/25/50/100`.
-- Non-Super-Admin visibility and Super Admin safeguards remain enforced.
+- `/admin/user/{id}/edit` exposes Google-link status.
+- An unlinked existing account may be granted **one-time** Google auto-link approval.
+- The approval is account-level state owned by User administration.
+- `Modules/Auth` is the only boundary allowed to consume the approval and persist `google_id`.
+- Google must still report a verified email.
+- Google email must exactly match the existing User email after normalization.
+- The User must be active and not soft-deleted.
+- The Google ID must not already belong to another User.
+- A User already linked to a different Google ID remains blocked.
+- Without explicit approval, the previous OTP/password-linking safeguards remain unchanged.
+- On successful approved auto-link, Auth sets `google_id`, ensures `email_verified_at`, and automatically clears the approval flag.
+- No fake OTP record is created and User administration never writes `google_id` directly.
 
-## Approved follow-up contract
+## Implementation checkpoint
 
-- Normal User export does **not** expose plaintext passwords.
-- `is_active` is exported as explicit `1/0` so locked accounts are unambiguous and round-trip safely.
-- A Super Admin with `export_user` may opt into credential backup; only then does export add `password_hash`.
-- A non-Super-Admin cannot enable credential-hash export by tampering with the payload.
-- Plaintext `password` import is hashed exactly once.
-- `password_hash` import is Super-Admin-only and restores the trusted hash unchanged.
-- `password` and `password_hash` cannot be supplied together.
-- Supported backup hashes are restricted to bcrypt/Argon-style hashes.
-- If neither credential field is supplied, existing import behavior remains unchanged.
-- User import never creates missing roles. Role remains the canonical role/permission catalog owner.
-- Role synchronization resolves existing roles from the `admin` guard before assigning them to imported users.
+Implemented on `feat/user-google-auto-link-approval`:
 
-## Implementation closeout
+- `Modules/User/database/migrations/2026_09_03_113500_add_google_auto_link_enabled_to_users_table.php`
+  - adds `users.google_auto_link_enabled` boolean, default `false`.
+- `app/Models/User.php`
+  - exposes/casts the approval state as boolean.
+- `Modules/User/Services/UserService.php`
+  - loads Google link state for the edit form;
+  - persists approval only for existing, currently unlinked users;
+  - forces approval off when the account is already linked or is newly created.
+- `Modules/User/Livewire/UserForm.php`
+  - hydrates `googleLinked` and `googleAutoLinkEnabled`;
+  - saves the one-time approval through `UserService`.
+- `Modules/User/resources/views/livewire/user-form.blade.php`
+  - adds a canonical Admin UI section named **Liên kết Google**;
+  - shows `Đã liên kết Google` / `Chưa liên kết Google`;
+  - provides the checkbox **Cho phép Google tự động liên kết ở lần đăng nhập tiếp theo** only when the account is not linked;
+  - explains the one-time and safety semantics.
+- `Modules/Auth/Services/GoogleIdentityService.php`
+  - preserves all existing collision, active-account, deleted-account and verified-Google-email checks;
+  - permits an existing matching email to bypass the prior OTP requirement only when `google_auto_link_enabled = true`;
+  - clears the flag after successful link;
+  - ensures `email_verified_at` on successful approved link;
+  - preserves the previous OTP/password linking path when approval is false.
+- `tests/Feature/Auth/AdminGoogleAuthenticationTest.php`
+  - covers successful approved auto-link;
+  - confirms the flag is consumed/cleared;
+  - confirms an unapproved existing email remains blocked;
+  - retains existing unknown-account and soft-delete safeguards.
 
-Implemented on `fix/user-import-export-roundtrip`:
+## Validation gate — pending local execution
 
-- `Modules/User/Services/ImportExport.php`
-  - adds `password_hash` import alias/rule;
-  - exports `is_active` as `1` or `0`;
-  - adds Super-Admin-only `include_password_hash` export mode;
-  - only hydrates the password column for trusted credential-backup export;
-  - exports the raw stored credential hash only in trusted mode;
-  - imports trusted `password_hash` without double hashing;
-  - rejects simultaneous plaintext password + password hash;
-  - rejects credential-hash import/export for non-Super-Admin actors;
-  - validates supported bcrypt/Argon hash prefixes;
-  - synchronizes imported roles using existing `admin`-guard Role models rather than resolving role names through the model's default `web` guard.
-- `Modules/User/Livewire/UserTable.php`
-  - adds reactive `includePasswordHash` backup option;
-  - passes the backup flag through the existing export filter contract;
-  - resets the option with filters;
-  - exposes the option only for a Super Admin with `export_user`, while service-side authorization remains canonical.
-- `Modules/User/resources/views/livewire/user-table.blade.php`
-  - adds a warning-styled Super-Admin-only checkbox explaining that credential backup contains sensitive password hashes and must not be shared.
-- `tests/Feature/User/UserRefactorContractTest.php`
-  - covers locked-state + password-hash backup export;
-  - covers password-hash restore without double hashing;
-  - covers non-Super-Admin denial;
-  - covers the canonical admin-guard role synchronization contract;
-  - retains existing User refactor/export ownership contracts.
+Run after pulling this branch locally:
 
-## Validation closeout
+1. `php artisan migrate`
+2. `./vendor/bin/pint --test Modules/User Modules/Auth tests/Feature/User tests/Feature/Auth`
+3. `php artisan test tests/Feature/User tests/Feature/Auth`
+4. `php artisan route:list --name=admin.user`
+5. `npm run build`
+6. `git diff --check`
+7. Manual UI flow:
+   - open `/admin/user/{id}/edit` for an existing account with no `google_id`;
+   - confirm Google section and status are visible;
+   - enable one-time auto-link and save;
+   - login with Google using the exact same verified email;
+   - confirm login succeeds, `google_id` is linked, and returning to User edit shows `Đã liên kết Google`;
+   - confirm the approval checkbox no longer applies after successful link;
+   - verify an inactive account remains blocked;
+   - verify a mismatched Google email remains blocked.
 
-Local validation reported during this follow-up:
-
-- User focused tests: **19 passed, 72 assertions** after the credential export and admin-guard role fixes.
-- User routes remain present:
-  - `GET admin/user` → `admin.user.index`
-  - `GET admin/user/create` → `admin.user.create`
-  - `GET admin/user/{id}/edit` → `admin.user.edit`
-- Vite production build: **PASS**.
-- Manual Excel round-trip: **PASS** after importing the User template in the correct User import panel.
-- Manual UI acceptance: **UI PASS**.
-- The earlier `storage/app/exports` write failure was an environment filesystem-permission issue, not a User import/export contract defect.
-- A later “File thiếu cột bắt buộc” report was confirmed to come from importing the User workbook in the wrong module/import location; no cross-module state defect was reproduced.
-
-Focused Pint initially reported formatting-only issues in `UserRefactorContractTest.php`; the branch contains the follow-up formatting correction. Final merge review should confirm focused Pint remains clean after pulling the latest branch head.
-
-Do not run full-project `php artisan test` by default. This follow-up changes only the User import/export boundary and its Admin UI integration.
+Do not open a PR until focused tests, migration, build and UI acceptance PASS.
 
 ## Security notes
 
-- `password_hash` is sensitive credential material even though it is not plaintext.
-- Backup export is intentionally opt-in and Super-Admin-only.
-- The normal export path remains credential-free.
-- Service-side authorization is mandatory; UI visibility is only an additional usability guard.
-- Missing roles are rejected instead of being created from spreadsheet input.
+- The approval is one-time and consumed after successful linking.
+- It does not weaken Google email verification.
+- It does not allow cross-email linking.
+- It does not allow takeover of a Google ID already owned by another User.
+- It does not reactivate deleted or inactive accounts.
+- It does not manufacture OTP verification history.
 
 ## Explicitly out of scope
 
-- Plaintext password export.
-- Re-homing `App\Models\User`.
-- Destructive schema/migration changes.
-- Changing Role/Auth/Shared ownership boundaries.
-- Broad Admin import/export framework changes.
-- Unrelated Website/Auth/Admin ownership-contract debt previously identified during PR #148 validation.
+- Automatic linking for every matching email globally.
+- Permanent always-on Google auto-link permission.
+- User module directly writing or replacing `google_id`.
+- Unlinking/replacing an existing Google identity.
+- Broad Auth architecture changes.
+- Role or permission catalog changes.
 
 ## Merge gate
 
-Implementation and UI acceptance are complete. Before merge, confirm the latest branch head with focused Pint/User tests if needed, review the PR diff, and merge manually after approval.
+Pending local focused validation and explicit UI PASS from the user. After that, update this handoff with exact results and open one PR for review/manual merge.
