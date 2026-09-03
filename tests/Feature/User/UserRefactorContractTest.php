@@ -41,7 +41,8 @@ class UserRefactorContractTest extends TestCase
         $this->assertStringContainsString('không chọn dòng nào: export tất cả nhân sự theo bộ lọc hiện tại', mb_strtolower($table));
         $this->assertStringContainsString('backup đầy đủ credential bằng password_hash', mb_strtolower($table));
         $this->assertStringContainsString('border bg-white px-4 py-3', $form);
-        $this->assertStringContainsString('wire:model.live="googleAutoLinkEnabled"', $form);
+        $this->assertStringContainsString('wire:change="setGoogleAutoLinkApproval($event.target.checked)"', $form);
+        $this->assertStringContainsString('thay đổi này được lưu ngay', mb_strtolower($form));
         $this->assertStringContainsString('bg-indigo-600', $pagination);
         $this->assertStringContainsString('bg-white', $pagination);
     }
@@ -89,11 +90,8 @@ class UserRefactorContractTest extends TestCase
         $this->assertTrue(is_subclass_of(ImportExport::class, BaseImportExportService::class));
     }
 
-    public function test_google_auto_link_approval_persists_from_user_edit_contract(): void
+    public function test_google_auto_link_approval_persists_independently_from_staff_save(): void
     {
-        $formSource = File::get(base_path('Modules/User/Livewire/UserForm.php'));
-        $this->assertStringContainsString("'google_auto_link_enabled' => \$this->isEdit && ! \$this->googleLinked", $formSource);
-
         $actor = $this->adminActor(['edit_user']);
         $role = Role::findByName('staff', 'admin');
         $target = User::factory()->create([
@@ -103,20 +101,47 @@ class UserRefactorContractTest extends TestCase
         ]);
         $target->assignRole($role);
 
-        $updated = app(UserService::class)->saveStaff([
-            'name' => $target->name,
-            'email' => $target->email,
-            'password' => null,
-            'is_active' => true,
-            'google_auto_link_enabled' => true,
-            'roles' => [$role->name],
-        ], $target->id, $actor);
+        $service = app(UserService::class);
+        $approved = $service->setGoogleAutoLinkApproval($target->id, true, $actor);
 
-        $this->assertTrue((bool) $updated->fresh()->google_auto_link_enabled);
+        $this->assertTrue((bool) $approved->google_auto_link_enabled);
         $this->assertDatabaseHas('users', [
             'id' => $target->id,
             'google_auto_link_enabled' => 1,
         ]);
+
+        $service->saveStaff([
+            'name' => $target->name,
+            'email' => $target->email,
+            'password' => null,
+            'is_active' => true,
+            'roles' => [$role->name],
+        ], $target->id, $actor);
+
+        $this->assertTrue((bool) $target->fresh()->google_auto_link_enabled);
+    }
+
+    public function test_google_auto_link_approval_is_cleared_when_email_changes(): void
+    {
+        $actor = $this->adminActor(['edit_user']);
+        $role = Role::findByName('staff', 'admin');
+        $target = User::factory()->create([
+            'email' => 'before-google-link@example.test',
+            'google_id' => null,
+            'google_auto_link_enabled' => true,
+            'is_active' => true,
+        ]);
+        $target->assignRole($role);
+
+        app(UserService::class)->saveStaff([
+            'name' => $target->name,
+            'email' => 'after-google-link@example.test',
+            'password' => null,
+            'is_active' => true,
+            'roles' => [$role->name],
+        ], $target->id, $actor);
+
+        $this->assertFalse((bool) $target->fresh()->google_auto_link_enabled);
     }
 
     public function test_super_admin_backup_export_preserves_locked_state_and_password_hash(): void
