@@ -1,0 +1,144 @@
+@extends('Admin::layouts.master')
+
+@section('title', 'Phục hồi & Export KQLCNT')
+
+@section('content')
+<div class="space-y-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Mua sắm công</p>
+            <h1 class="mt-1 text-2xl font-bold tracking-tight text-gray-900">Phục hồi & Export KQLCNT</h1>
+            <p class="mt-1 text-sm text-gray-500">{{ $contractorSearch->contractor_name ?: $contractorSearch->contractor_code }} · {{ $contractorSearch->contractor_code }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('muasamcong.contractors.history.show', $contractorSearch) }}" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">← Về lịch sử nhà thầu</a>
+            @include('Muasamcong::partials.dashboard-return-link')
+        </div>
+    </div>
+
+    @if (session('status'))
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ session('status') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <ul class="list-disc pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        </div>
+    @endif
+
+    <div class="grid gap-6 xl:grid-cols-3">
+        <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm xl:col-span-2">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Export KQLCNT đã lưu</h2>
+                    <p class="text-sm text-gray-500">Có chọn checkbox: export phần chọn. Không chọn: export toàn bộ lịch sử.</p>
+                </div>
+            </div>
+            <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.export', $contractorSearch) }}" class="mt-4">
+                @csrf
+                <div class="max-h-[520px] overflow-auto rounded-xl border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <tr><th class="px-4 py-3"></th><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Tên gói</th><th class="px-4 py-3">Nguồn</th><th class="px-4 py-3">KQLCNT</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                        @forelse ($items as $item)
+                            @php($record = $records->get($item->notify_no))
+                            <tr>
+                                <td class="px-4 py-3"><input type="checkbox" name="notify_nos[]" value="{{ $item->notify_no }}" class="rounded border-gray-300"></td>
+                                <td class="whitespace-nowrap px-4 py-3 font-semibold text-indigo-700">{{ $item->notify_no }}</td>
+                                <td class="max-w-xl px-4 py-3 text-gray-800">{{ $item->bid_name ?: data_get($item->raw_payload, 'bidName', '—') }}</td>
+                                <td class="px-4 py-3">
+                                    @if ($record)
+                                        <span class="rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">{{ strtoupper($record->data_source ?: 'API') }}</span>
+                                    @else
+                                        <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">THIẾU KQLCNT</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-xs text-gray-500">{{ $record?->imported_at?->format('d/m/Y H:i') ?? $record?->synced_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">Chưa có dữ liệu lịch sử.</td></tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <button class="mt-4 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">Xuất Excel KQLCNT</button>
+            </form>
+        </section>
+
+        <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="text-lg font-bold text-gray-900">Import phục hồi</h2>
+            <p class="mt-1 text-sm text-gray-500">Nhận XLSX/XLS/CSV, tối đa 10 MB và 5.000 dòng mỗi lần.</p>
+            <form method="POST" enctype="multipart/form-data" action="{{ route('muasamcong.contractors.kqlcnt-recovery.upload', $contractorSearch) }}" class="mt-4 space-y-3">
+                @csrf
+                <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                <button class="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Tải file & tạo preview</button>
+            </form>
+            <div class="mt-4 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Ưu tiên sheet <strong>Danh_muc_trung_thau</strong>. Nếu không có, hệ thống đọc sheet đang active. File chỉ được ghi dữ liệu sau bước Preview + Xác nhận.</div>
+        </section>
+    </div>
+
+    @if ($batch)
+        <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Batch #{{ $batch->id }} · {{ $batch->original_name }}</h2>
+                    <p class="text-sm text-gray-500">Trạng thái: {{ strtoupper($batch->status) }} · {{ number_format($batch->total_rows) }} dòng</p>
+                </div>
+                @if ($batch->status === 'previewed')
+                    <div class="flex flex-wrap gap-2 text-xs font-semibold">
+                        <span class="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">Mới {{ $batch->valid_rows }}</span>
+                        <span class="rounded-full bg-gray-100 px-2 py-1 text-gray-700">Trùng {{ $batch->duplicate_rows }}</span>
+                        <span class="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Conflict {{ $batch->conflict_rows }}</span>
+                        <span class="rounded-full bg-red-50 px-2 py-1 text-red-700">Lỗi {{ $batch->error_rows }}</span>
+                    </div>
+                @endif
+            </div>
+
+            @if ($batch->status !== 'confirmed')
+                <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.preview', [$contractorSearch, $batch]) }}" class="mt-5 space-y-4">
+                    @csrf
+                    <div>
+                        <label class="mb-1 block text-sm font-semibold text-gray-700">Nếu toàn file chỉ thuộc một TBMT, có thể chọn cố định tại đây</label>
+                        <select name="target_notify_no" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                            <option value="">— Dùng Mã TBMT từ từng dòng —</option>
+                            @foreach ($items as $item)<option value="{{ $item->notify_no }}">{{ $item->notify_no }} · {{ $item->bid_name }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        @foreach ($fieldLabels as $field => $label)
+                            <label class="block text-sm"><span class="mb-1 block font-medium text-gray-700">{{ $label }}</span>
+                                <select name="mapping[{{ $field }}]" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm">
+                                    <option value="">— Không map —</option>
+                                    @foreach ((array) $batch->headers as $header)
+                                        <option value="{{ $header }}" @selected(($batch->mapping[$field] ?? null) === $header)>{{ $header }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @endforeach
+                    </div>
+                    <button class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Cập nhật Preview</button>
+                </form>
+            @endif
+
+            @if ($batch->status === 'previewed')
+                <div class="mt-5 max-h-[420px] overflow-auto rounded-xl border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200 text-xs">
+                        <thead class="sticky top-0 bg-gray-50"><tr><th class="px-3 py-2 text-left">Dòng</th><th class="px-3 py-2 text-left">Trạng thái</th><th class="px-3 py-2 text-left">Mã TBMT</th><th class="px-3 py-2 text-left">Thuốc/Lô</th><th class="px-3 py-2 text-left">Giá trúng</th><th class="px-3 py-2 text-left">Lỗi</th></tr></thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach ((array) $batch->preview_rows as $preview)
+                                <tr><td class="px-3 py-2">{{ $preview['row'] }}</td><td class="px-3 py-2 font-semibold">{{ strtoupper($preview['status']) }}</td><td class="px-3 py-2">{{ data_get($preview, 'data.notify_no') }}</td><td class="px-3 py-2">{{ data_get($preview, 'data.medicine_name') ?: data_get($preview, 'data.lot_name') }}</td><td class="px-3 py-2">{{ is_numeric(data_get($preview, 'data.winning_price')) ? number_format((float) data_get($preview, 'data.winning_price')) : '—' }}</td><td class="px-3 py-2 text-red-600">{{ implode('; ', $preview['errors'] ?? []) }}</td></tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.confirm', [$contractorSearch, $batch]) }}" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    @csrf
+                    <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" name="overwrite_conflicts" value="1" class="rounded border-gray-300"> Cho phép Import ghi đè các dòng Conflict đã preview</label>
+                    <button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">Xác nhận Import</button>
+                </form>
+            @endif
+        </section>
+    @endif
+</div>
+@endsection
