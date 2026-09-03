@@ -86,7 +86,7 @@ class UserService
             }
 
             $user->save();
-            $user->syncRoles($roles);
+            $this->syncAdminRoles($user, $roles);
 
             return $user->load('roles');
         });
@@ -177,6 +177,16 @@ class UserService
             ->whereIn('name', $roleNames)
             ->pluck('name')
             ->all();
+    }
+
+    private function syncAdminRoles(User $user, array $roleNames): void
+    {
+        $roles = Role::query()
+            ->where('guard_name', 'admin')
+            ->whereIn('name', $roleNames)
+            ->get();
+
+        $user->syncRoles($roles);
     }
 
     private function isSuperAdmin(User $user): bool
