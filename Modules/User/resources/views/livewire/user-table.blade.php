@@ -82,6 +82,23 @@
 
     @canany(['import_user', 'export_user'])
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            @if($canBackupCredentials)
+                <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <label for="user-backup-password-hash" class="flex cursor-pointer items-start gap-3">
+                        <input
+                            id="user-backup-password-hash"
+                            type="checkbox"
+                            wire:model.live="includePasswordHash"
+                            class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                        >
+                        <span>
+                            <span class="block text-sm font-semibold text-amber-900">Backup đầy đủ credential bằng password_hash</span>
+                            <span class="mt-1 block text-xs leading-5 text-amber-800">Chỉ Super Admin sử dụng. File export sẽ chứa hash đăng nhập để có thể restore tài khoản mà không đổi mật khẩu. Không chia sẻ file backup này.</span>
+                        </span>
+                    </label>
+                </div>
+            @endif
+
             @livewire('shared.import-export.panel', [
                 'serviceClass' => \Modules\User\Services\ImportExport::class,
                 'title' => 'Import / Export Nhân sự',
