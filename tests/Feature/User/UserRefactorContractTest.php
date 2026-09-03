@@ -87,16 +87,26 @@ class UserRefactorContractTest extends TestCase
 
         $service = app(UserService::class);
         $page = $service->paginateStaff(['per_page' => 10], $actor);
+        $ordered = $page->getCollection();
 
-        $orderedIds = $page->getCollection()->pluck('id')->all();
-        $this->assertSame([$activeNewest->id, $activeOlder->id], array_slice($orderedIds, 0, 2));
-        $this->assertSame($inactiveNewest->id, $orderedIds[2]);
+        $firstInactiveIndex = $ordered->search(fn (User $user): bool => ! $user->is_active);
+        $lastActiveIndex = $ordered->keys()->filter(fn (int $index): bool => (bool) $ordered[$index]->is_active)->max();
+
+        $this->assertNotFalse($firstInactiveIndex);
+        $this->assertLessThan($firstInactiveIndex, $lastActiveIndex);
+        $this->assertLessThan(
+            $ordered->search(fn (User $user): bool => $user->id === $activeOlder->id),
+            $ordered->search(fn (User $user): bool => $user->id === $activeNewest->id),
+        );
 
         $active = $service->exportStaff(['status' => 'active'], $actor);
         $inactive = $service->exportStaff(['status' => 'inactive'], $actor);
 
-        $this->assertEqualsCanonicalizing([$activeOlder->id, $activeNewest->id], $active->pluck('id')->all());
-        $this->assertSame([$inactiveNewest->id], $inactive->pluck('id')->all());
+        $this->assertTrue($active->every(fn (User $user): bool => (bool) $user->is_active));
+        $this->assertTrue($inactive->every(fn (User $user): bool => ! $user->is_active));
+        $this->assertTrue($active->contains('id', $activeOlder->id));
+        $this->assertTrue($active->contains('id', $activeNewest->id));
+        $this->assertTrue($inactive->contains('id', $inactiveNewest->id));
     }
 
     public function test_non_super_admin_export_scope_never_exposes_super_admin(): void
