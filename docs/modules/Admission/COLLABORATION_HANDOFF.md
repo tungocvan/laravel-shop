@@ -2,76 +2,56 @@
 
 ## Current objective
 
-Admission admin list UI/pagination refinement following the completed compact major refactor.
+Admission public branding/logo alignment for the registration and search pages.
 
-Branch: `refactor/admission-admin-list-ui`
+Branch: `fix/admission-public-branding-logo`
 
-Status: implementation and manual UI acceptance complete; ready for PR review.
+Status: implementation complete and manually accepted; ready for PR review.
 
-## Completed major-refactor baseline
+## Completed baseline
 
-The compact major refactor established the canonical Admission boundaries and remains the architecture baseline:
+The compact Admission major refactor and the subsequent admin-list UI/pagination refinement are already complete. Their architecture, persistence, authorization and pagination contracts remain unchanged by this follow-up.
 
-- `AdmissionRegistrationService` owns registration orchestration;
-- `AdmissionApplicationAdminService` owns admin application workflows/export/batch dispatch;
-- `AdmissionDocumentService` owns Admission document naming/generation/path persistence;
-- shared `DocumentConverterService` remains the generic DOCX/PDF conversion engine;
-- `GenerateAdmissionPdfJob` is queue orchestration only;
-- Admin shell, auth/permissions and shared queue infrastructure remain outside Admission ownership.
+## Public branding follow-up
 
-Major-refactor verification before this UI follow-up was **50 passed (263 assertions)** with UI PASS.
-
-## Admin list UI follow-up
-
-The user requested a more professional layout and pagination for `/admin/admission` after reviewing the merged major refactor UI.
+The public routes `/admission/register` and `/admission/search` previously duplicated a hard-coded Admission logo path.
 
 Implemented in this branch:
 
-- widened the Admission application workspace to use available admin content width instead of a narrow centered container;
-- reorganized the page into clearer search/filter, import/export, bulk/document action, and application-table sections;
-- made the application table the primary workspace with improved spacing, hierarchy, status badges and action presentation;
-- added a visible filtered-result range/total summary;
-- added a reset-filter action;
-- aligned page-size choices to the Admin UI standard: `10 / 25 / 50 / 100`;
-- aligned both Livewire validation and `AdmissionApplicationAdminService` pagination normalization to the same page-size contract;
-- added an Admission-specific pagination view with white page controls and indigo active state;
-- preserved permission gates, import/export behavior, document generation, approve/reject, delete and bulk-selection behavior;
-- preserved the existing empty-state text contract required by focused regression tests.
+- added a shared Admission public branding-header partial used by both public pages;
+- removed duplicated hard-coded logo markup from register and search;
+- aligned both pages to the existing Website logo file contract at `storage/app/public/logo.png`;
+- added a compatibility fallback to the existing Admission asset at `storage/app/public/admission/img/logo.png` when the Website logo file is absent;
+- resolved the logo through the configured `public` filesystem disk before generating the `/storage/...` URL;
+- preserved the registration form, search workflow, school-year heading and legacy-search warning behavior.
 
-## Persistence and authorization safety
+During manual verification, the initial assumption that `site_logo` was the canonical persisted setting was disproved by the runtime environment: `site_logo` was `null`, while the active Website logo existed at `storage/app/public/logo.png`. The branch was corrected to follow that existing file contract rather than introducing a new settings dependency.
+
+## Safety
 
 - No schema or migration changes.
-- No controller route changes.
-- No permission names or authorization gates changed.
-- No Admission business workflow changed.
-- Existing compatibility/quarantined debt from the major refactor remains unchanged.
+- No route changes.
+- No permission or authorization changes.
+- No Admission registration/search business logic changes.
+- No upload/storage migration or destructive file operation.
+- Existing Admission compatibility/quarantined debt remains unchanged.
 
-## Verification for this UI follow-up
-
-Focused regression:
-
-- `php artisan test tests/Feature/Admission/AdmissionApplicationsIndexRefactorTest.php`
-- result: **14 passed (80 assertions)**
-- duration reported locally: **0.84s**
+## Verification
 
 Manual UI acceptance:
 
-- user reported **UI PASS** on 2026-09-02 for the redesigned Admission admin list and pagination.
+- user reported **UI PASS** on 2026-09-03 for both `/admission/register` and `/admission/search` after the corrected Website-logo resolution was applied.
 
-Formatting:
-
-- focused Pint was requested for the touched Admission Livewire/service files during the implementation cycle;
-- no additional application-wide regression is required for this UI-only follow-up.
+This is a focused Blade/public-branding fix. No application-wide regression was requested or required for this follow-up, and no automated-test/Pint result is claimed here.
 
 ## Merge gate
 
 Ready for PR review:
 
-- focused Admission list regression PASS;
+- both public Admission pages share one branding header;
+- Website logo contract verified against the runtime filesystem;
+- fallback uses the existing Admission logo asset;
 - UI PASS;
-- pagination contract aligned to Admin UI standard;
-- no schema/persistence changes;
-- no authz changes;
-- no business-logic expansion.
+- no schema, route, authz or business-workflow changes.
 
-After merge, synchronize `main`. The remaining API placeholder, shared `job_batches` migration ownership, legacy credential lookup compatibility route and DVHC ownership questions remain separately documented debt and are outside this UI follow-up.
+After merge, synchronize `main`. The API placeholder, shared `job_batches` migration ownership, legacy credential lookup compatibility route and DVHC ownership questions remain separately documented Admission debt and are outside this branding fix.
