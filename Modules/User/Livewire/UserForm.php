@@ -24,6 +24,10 @@ class UserForm extends Component
 
     public bool $is_active = true;
 
+    public bool $googleAutoLinkEnabled = false;
+
+    public bool $googleLinked = false;
+
     public array $selectedRoles = [];
 
     private UserService $users;
@@ -45,6 +49,8 @@ class UserForm extends Component
             $this->name = (string) $user->name;
             $this->email = (string) $user->email;
             $this->is_active = (bool) $user->is_active;
+            $this->googleAutoLinkEnabled = (bool) $user->google_auto_link_enabled;
+            $this->googleLinked = filled($user->google_id);
             $this->selectedRoles = $user->roles->pluck('name')->all();
 
             return;
@@ -64,6 +70,9 @@ class UserForm extends Component
                 'email' => $data['email'],
                 'password' => $data['password'] ?? null,
                 'is_active' => $data['is_active'],
+                'google_auto_link_enabled' => $this->isEdit && ! $this->googleLinked
+                    ? $data['googleAutoLinkEnabled']
+                    : false,
                 'roles' => $data['selectedRoles'],
             ], $this->userId, $this->actor());
         } catch (\RuntimeException $exception) {
@@ -98,6 +107,7 @@ class UserForm extends Component
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->userId)],
             'password' => [$this->isEdit ? 'nullable' : 'required', 'string', 'min:8'],
             'is_active' => ['boolean'],
+            'googleAutoLinkEnabled' => ['boolean'],
             'selectedRoles' => ['required', 'array', 'min:1'],
             'selectedRoles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'admin')],
         ];
