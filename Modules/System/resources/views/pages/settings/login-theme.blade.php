@@ -1,6 +1,15 @@
 @extends('Admin::layouts.master')
 @section('title', 'Giao diện đăng nhập')
 @section('content')
+    <style>
+        .login-theme-logo-contrast {
+            background-color: #e5e7eb !important;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 0.25rem;
+        }
+    </style>
+
     <div class="space-y-6">
         @include('System::partials.dashboard-return-link')
 
@@ -15,16 +24,71 @@
             </a>
         </div>
 
+        @php
+            $logoUploadError = $errors->getBag('logoUpload')->first('asset');
+            $backgroundUploadError = $errors->getBag('backgroundUpload')->first('asset');
+        @endphp
+
+        @if($logoUploadError || $backgroundUploadError)
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {{ $logoUploadError ?: $backgroundUploadError }}
+            </div>
+        @endif
+
+        <div id="login-theme-client-upload-error"
+             class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+             role="alert"></div>
+
         @livewire('system.settings.partials.login-theme')
     </div>
 
     <script>
+        const loginThemeUploadError = document.getElementById('login-theme-client-upload-error');
+
+        const showLoginThemeUploadError = (message) => {
+            if (! loginThemeUploadError) {
+                return;
+            }
+
+            loginThemeUploadError.textContent = message;
+            loginThemeUploadError.classList.remove('hidden');
+            loginThemeUploadError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        const clearLoginThemeUploadError = () => {
+            if (! loginThemeUploadError) {
+                return;
+            }
+
+            loginThemeUploadError.textContent = '';
+            loginThemeUploadError.classList.add('hidden');
+        };
+
+        const applyLoginThemeLogoContrast = () => {
+            document.querySelectorAll('img[alt="Logo đăng nhập"], img[alt="Logo preview"]').forEach((image) => {
+                image.classList.add('login-theme-logo-contrast');
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', applyLoginThemeLogoContrast);
+        document.addEventListener('livewire:navigated', applyLoginThemeLogoContrast);
+
+        if (window.Livewire) {
+            window.Livewire.hook('morph.updated', () => applyLoginThemeLogoContrast());
+        } else {
+            document.addEventListener('livewire:init', () => {
+                window.Livewire.hook('morph.updated', () => applyLoginThemeLogoContrast());
+            }, { once: true });
+        }
+
         document.addEventListener('click', (event) => {
             const trigger = event.target.closest('label[for="login-logo-file"], label[for="login-background-file"]');
 
             if (! trigger) {
                 return;
             }
+
+            clearLoginThemeUploadError();
 
             const originalInput = document.getElementById(trigger.getAttribute('for'));
 
@@ -40,6 +104,11 @@
             }
 
             event.preventDefault();
+
+            const isLogo = originalInput.id === 'login-logo-file';
+            const maxBytes = (isLogo ? 3 : 6) * 1024 * 1024;
+            const maxLabel = isLogo ? '3 MB' : '6 MB';
+            const assetLabel = isLogo ? 'Logo' : 'Ảnh nền';
 
             const pickerForm = document.createElement('form');
             pickerForm.method = 'POST';
@@ -82,6 +151,14 @@
 
             picker.addEventListener('change', () => {
                 if (! picker.files || picker.files.length === 0) {
+                    cleanup();
+                    return;
+                }
+
+                const file = picker.files[0];
+
+                if (file.size > maxBytes) {
+                    showLoginThemeUploadError(`${assetLabel} không được vượt quá ${maxLabel}. Vui lòng chọn tệp nhỏ hơn trước khi tải lên.`);
                     cleanup();
                     return;
                 }
