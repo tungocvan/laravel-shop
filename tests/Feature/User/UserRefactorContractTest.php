@@ -81,7 +81,7 @@ class UserRefactorContractTest extends TestCase
 
         $this->assertStringNotContainsString('firstOrCreate([', $source);
         $this->assertStringContainsString('Vai trò không tồn tại trong Role catalog', $source);
-        $this->assertStringContainsString('$user->syncRoles($roles)', $source);
+        $this->assertStringContainsString('$user->syncRoles($adminRoles)', $source);
         $this->assertTrue(is_subclass_of(ImportExport::class, BaseImportExportService::class));
     }
 
@@ -138,7 +138,10 @@ class UserRefactorContractTest extends TestCase
         try {
             $report = app(ImportExport::class)->import($path, ['mode' => 'update_or_create']);
 
-            $this->assertTrue($report['success'], json_encode($report, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            $this->assertTrue(
+                $report['success'],
+                json_encode($report, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+            );
 
             $restored = User::where('email', 'restored-user@example.test')->firstOrFail();
 
