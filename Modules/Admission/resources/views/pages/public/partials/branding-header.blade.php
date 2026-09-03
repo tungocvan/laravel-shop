@@ -1,8 +1,10 @@
 @php
-    $siteLogo = \Modules\System\Models\Setting::getValue('site_logo');
-    $logoUrl = filled($siteLogo)
-        ? asset('storage/'.ltrim((string) $siteLogo, '/'))
-        : asset('storage/img/logo.png');
+    $websiteLogo = 'logo.png';
+    $admissionFallbackLogo = 'admission/img/logo.png';
+    $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->exists($websiteLogo)
+        ? $websiteLogo
+        : $admissionFallbackLogo;
+    $logoUrl = asset('storage/'.$logoPath);
 @endphp
 
 <div class="flex items-center gap-4 mb-8 border-b pb-6">
