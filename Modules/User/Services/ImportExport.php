@@ -336,7 +336,12 @@ class ImportExport extends BaseImportExportService
 
     private function syncAdminRoles(User $user, array $roles): void
     {
-        $user->syncRoles($roles);
+        $adminRoles = Role::query()
+            ->where('guard_name', 'admin')
+            ->whereIn('name', $roles)
+            ->get();
+
+        $user->syncRoles($adminRoles);
         $user->unsetRelation('roles');
     }
 
