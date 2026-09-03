@@ -59,6 +59,22 @@ class UserForm extends Component
         $this->authorizePermission('create_user');
     }
 
+    public function setGoogleAutoLinkApproval(bool $enabled): void
+    {
+        $this->authorizePermission('edit_user');
+        abort_unless($this->isEdit && $this->userId, 404);
+
+        try {
+            $user = $this->users->setGoogleAutoLinkApproval($this->userId, $enabled, $this->actor());
+            $this->googleAutoLinkEnabled = (bool) $user->google_auto_link_enabled;
+            $this->googleLinked = filled($user->google_id);
+            $this->resetErrorBag('googleAutoLinkEnabled');
+        } catch (\RuntimeException $exception) {
+            $this->googleAutoLinkEnabled = false;
+            $this->addError('googleAutoLinkEnabled', $exception->getMessage());
+        }
+    }
+
     public function save()
     {
         $this->authorizePermission($this->isEdit ? 'edit_user' : 'create_user');
@@ -70,9 +86,6 @@ class UserForm extends Component
                 'email' => $data['email'],
                 'password' => $data['password'] ?? null,
                 'is_active' => $data['is_active'],
-                'google_auto_link_enabled' => $this->isEdit && ! $this->googleLinked
-                    ? $data['googleAutoLinkEnabled']
-                    : false,
                 'roles' => $data['selectedRoles'],
             ], $this->userId, $this->actor());
         } catch (\RuntimeException $exception) {
