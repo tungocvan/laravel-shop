@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Muasamcong\Http\Controllers\ContractorKqlcntRecoveryController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongDashboardController;
 use Modules\Muasamcong\Http\Controllers\PricingExportController;
@@ -21,6 +22,8 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
         Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
         Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery', [ContractorKqlcntRecoveryController::class, 'index'])->name('contractors.kqlcnt-recovery');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/export', [ContractorKqlcntRecoveryController::class, 'export'])->name('contractors.kqlcnt-recovery.export');
         Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', [MuasamcongController::class, 'manualContractorLots'])->name('contractors.manual-lots.show');
         Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', [MuasamcongController::class, 'downloadManualContractorLots'])->name('contractors.manual-lots.download');
         Route::get('/hsmt', [MuasamcongController::class, 'hsmt'])->name('hsmt');
@@ -33,6 +36,14 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
             ->middleware('permission:muasamcong.pricing.wishlist,admin')
             ->name('wishlist.destroy-selected');
     });
+
+    Route::middleware('permission:muasamcong.pricing.sync,admin')->group(function () {
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/upload', [ContractorKqlcntRecoveryController::class, 'upload'])->name('contractors.kqlcnt-recovery.upload');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery/{batch}', [ContractorKqlcntRecoveryController::class, 'batch'])->name('contractors.kqlcnt-recovery.batch');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{batch}/preview', [ContractorKqlcntRecoveryController::class, 'preview'])->name('contractors.kqlcnt-recovery.preview');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{batch}/confirm', [ContractorKqlcntRecoveryController::class, 'confirm'])->name('contractors.kqlcnt-recovery.confirm');
+    });
+
     Route::middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))->group(function () {
         Route::get('/config', [MuasamcongController::class, 'config'])->name('config');
         Route::get('/session-tool/windows', [MuasamcongController::class, 'downloadWindowsSessionTool'])->name('session-tool.windows');
