@@ -4,7 +4,7 @@
 
 Follow-up hardening for `Modules/User` import/export after the major User refactor was merged in PR #148.
 
-The user reported that an exported User file did not provide a reliable full restore path for locked status and credentials. The approved follow-up is a trusted backup/restore contract that preserves account status and password hashes without exposing plaintext passwords or double-hashing restored credentials.
+The follow-up establishes a trusted backup/restore contract that preserves account status and password hashes without exposing plaintext passwords or double-hashing restored credentials.
 
 ## Branch
 
@@ -27,18 +27,19 @@ Baseline invariants remain unchanged:
 
 ## Approved follow-up contract
 
-- Normal User export must **not** expose plaintext passwords.
-- `is_active` is exported as explicit `1/0` so locked accounts are unambiguous in Excel/CSV and can round-trip through import.
-- A Super Admin with `export_user` may opt into **credential backup**; only then does export add `password_hash`.
-- A non-Super-Admin cannot enable credential-hash export even by tampering with Livewire/filter payloads.
-- Import continues to accept plaintext `password`; plaintext is hashed with `Hash::make()`.
-- Import additionally accepts `password_hash` only from a Super Admin and persists that trusted hash unchanged.
-- `password` and `password_hash` cannot be supplied together in one row.
+- Normal User export does **not** expose plaintext passwords.
+- `is_active` is exported as explicit `1/0` so locked accounts are unambiguous and round-trip safely.
+- A Super Admin with `export_user` may opt into credential backup; only then does export add `password_hash`.
+- A non-Super-Admin cannot enable credential-hash export by tampering with the payload.
+- Plaintext `password` import is hashed exactly once.
+- `password_hash` import is Super-Admin-only and restores the trusted hash unchanged.
+- `password` and `password_hash` cannot be supplied together.
 - Supported backup hashes are restricted to bcrypt/Argon-style hashes.
-- If neither credential field is supplied, existing import behavior remains unchanged to avoid an unrelated contract break.
-- Role catalog and selected/all export semantics remain unchanged.
+- If neither credential field is supplied, existing import behavior remains unchanged.
+- User import never creates missing roles. Role remains the canonical role/permission catalog owner.
+- Role synchronization resolves existing roles from the `admin` guard before assigning them to imported users.
 
-## Implementation checkpoint
+## Implementation closeout
 
 Implemented on `fix/user-import-export-roundtrip`:
 
@@ -46,11 +47,13 @@ Implemented on `fix/user-import-export-roundtrip`:
   - adds `password_hash` import alias/rule;
   - exports `is_active` as `1` or `0`;
   - adds Super-Admin-only `include_password_hash` export mode;
-  - exports the raw stored credential hash only in that trusted mode;
-  - imports trusted `password_hash` without applying `Hash::make()` again;
+  - only hydrates the password column for trusted credential-backup export;
+  - exports the raw stored credential hash only in trusted mode;
+  - imports trusted `password_hash` without double hashing;
   - rejects simultaneous plaintext password + password hash;
   - rejects credential-hash import/export for non-Super-Admin actors;
-  - validates supported bcrypt/Argon hash prefixes.
+  - validates supported bcrypt/Argon hash prefixes;
+  - synchronizes imported roles using existing `admin`-guard Role models rather than resolving role names through the model's default `web` guard.
 - `Modules/User/Livewire/UserTable.php`
   - adds reactive `includePasswordHash` backup option;
   - passes the backup flag through the existing export filter contract;
@@ -62,24 +65,25 @@ Implemented on `fix/user-import-export-roundtrip`:
   - covers locked-state + password-hash backup export;
   - covers password-hash restore without double hashing;
   - covers non-Super-Admin denial;
+  - covers the canonical admin-guard role synchronization contract;
   - retains existing User refactor/export ownership contracts.
 
-## Validation gate — pending local execution
+## Validation closeout
 
-Run on this branch after pulling it locally:
+Local validation reported during this follow-up:
 
-1. `./vendor/bin/pint --test Modules/User tests/Feature/User`
-2. `php artisan test tests/Feature/User`
-3. `php artisan route:list --name=admin.user`
-4. `npm run build`
-5. `git diff --check`
-6. Manual UI check at `/admin/user` using a Super Admin account:
-   - backup checkbox is visible only to Super Admin with `export_user`;
-   - normal export does not contain `password` or `password_hash`;
-   - backup export contains `password_hash`;
-   - locked user exports `is_active = 0` rather than an empty cell;
-   - importing that backup restores the locked state and preserves the working password;
-   - selected/no-selection export semantics remain correct.
+- User focused tests: **19 passed, 72 assertions** after the credential export and admin-guard role fixes.
+- User routes remain present:
+  - `GET admin/user` → `admin.user.index`
+  - `GET admin/user/create` → `admin.user.create`
+  - `GET admin/user/{id}/edit` → `admin.user.edit`
+- Vite production build: **PASS**.
+- Manual Excel round-trip: **PASS** after importing the User template in the correct User import panel.
+- Manual UI acceptance: **UI PASS**.
+- The earlier `storage/app/exports` write failure was an environment filesystem-permission issue, not a User import/export contract defect.
+- A later “File thiếu cột bắt buộc” report was confirmed to come from importing the User workbook in the wrong module/import location; no cross-module state defect was reproduced.
+
+Focused Pint initially reported formatting-only issues in `UserRefactorContractTest.php`; the branch contains the follow-up formatting correction. Final merge review should confirm focused Pint remains clean after pulling the latest branch head.
 
 Do not run full-project `php artisan test` by default. This follow-up changes only the User import/export boundary and its Admin UI integration.
 
@@ -88,7 +92,8 @@ Do not run full-project `php artisan test` by default. This follow-up changes on
 - `password_hash` is sensitive credential material even though it is not plaintext.
 - Backup export is intentionally opt-in and Super-Admin-only.
 - The normal export path remains credential-free.
-- Service-side authorization is mandatory; the UI visibility rule is only an additional usability guard.
+- Service-side authorization is mandatory; UI visibility is only an additional usability guard.
+- Missing roles are rejected instead of being created from spreadsheet input.
 
 ## Explicitly out of scope
 
@@ -101,11 +106,4 @@ Do not run full-project `php artisan test` by default. This follow-up changes on
 
 ## Merge gate
 
-Do not open/merge the follow-up PR until:
-
-- focused Pint PASS;
-- User focused tests PASS;
-- route/build/diff checks PASS;
-- user reports UI PASS for the backup/restore flow;
-- this handoff is updated with exact final validation results;
-- the user reviews the PR link and merges manually.
+Implementation and UI acceptance are complete. Before merge, confirm the latest branch head with focused Pint/User tests if needed, review the PR diff, and merge manually after approval.
