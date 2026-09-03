@@ -16,6 +16,11 @@ class SettingController extends Controller
         return view('System::pages.settings.login-theme');
     }
 
+    public function loginRedirect()
+    {
+        return view('System::pages.settings.login-redirect');
+    }
+
     public function profile()
     {
         return view('System::pages.settings.profile');
