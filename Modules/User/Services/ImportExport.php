@@ -28,6 +28,7 @@ class ImportExport extends BaseImportExportService
         'email' => ['required', 'email', 'max:255'],
         'phone' => ['nullable', 'string', 'max:50'],
         'password' => ['nullable', 'string', 'min:8'],
+        'password_hash' => ['nullable', 'string', 'max:255'],
         'is_active' => ['nullable', 'boolean'],
         'roles' => ['nullable', 'array'],
         'roles.*' => ['string'],
@@ -40,12 +41,15 @@ class ImportExport extends BaseImportExportService
         'email' => ['email', 'email_dang_nhap', 'email_đăng_nhập'],
         'phone' => ['phone', 'so_dien_thoai', 'số_điện_thoại', 'sdt'],
         'password' => ['password', 'mat_khau', 'mật_khẩu'],
+        'password_hash' => ['password_hash', 'mat_khau_hash', 'mật_khẩu_hash'],
         'is_active' => ['is_active', 'trang_thai', 'trạng_thái', 'active'],
         'roles' => ['roles', 'role', 'vai_tro', 'vai_trò'],
         'created_at' => ['created_at', 'ngay_tao', 'ngày_tạo'],
     ];
 
     protected string $mode = 'update_or_create';
+
+    private bool $includePasswordHash = false;
 
     public function import(string $filePath, array $options = []): array
     {
@@ -102,7 +106,7 @@ class ImportExport extends BaseImportExportService
                     continue;
                 }
 
-                if (! $this->validateRoles($row, $rowNumber)) {
+                if (! $this->validateCredentialPayload($row, $rowNumber) || ! $this->validateRoles($row, $rowNumber)) {
                     continue;
                 }
 
@@ -142,7 +146,18 @@ class ImportExport extends BaseImportExportService
     {
         $this->authorizeAdmin('export_user');
 
-        return parent::export($filters);
+        $includePasswordHash = (bool) ($filters['include_password_hash'] ?? false);
+        if ($includePasswordHash) {
+            abort_unless($this->actorIsSuperAdmin(), 403, 'Chỉ Super Admin được export password_hash để backup.');
+        }
+
+        $this->includePasswordHash = $includePasswordHash;
+
+        try {
+            return parent::export($filters);
+        } finally {
+            $this->includePasswordHash = false;
+        }
     }
 
     public function exportTemplate(): string
@@ -164,6 +179,7 @@ class ImportExport extends BaseImportExportService
             'email' => mb_strtolower((string) $this->cleanString($row['email'] ?? null)),
             'phone' => $this->cleanString($row['phone'] ?? null),
             'password' => $this->cleanString($row['password'] ?? null),
+            'password_hash' => $this->cleanString($row['password_hash'] ?? null),
             'is_active' => $this->cleanBoolean($row['is_active'] ?? true) ?? true,
             'roles' => $this->normalizeRoles($row['roles'] ?? null),
         ];
@@ -177,14 +193,20 @@ class ImportExport extends BaseImportExportService
     protected function mapExportRow(Model $model): array
     {
         /** @var User $model */
-        return [
+        $row = [
             'name' => $model->name,
             'email' => $model->email,
             'phone' => $model->phone,
-            'is_active' => (bool) $model->is_active,
+            'is_active' => $model->is_active ? 1 : 0,
             'roles' => $model->roles->pluck('name')->implode(', '),
             'created_at' => optional($model->created_at)->format('Y-m-d H:i:s'),
         ];
+
+        if ($this->includePasswordHash) {
+            $row['password_hash'] = $model->getRawOriginal('password');
+        }
+
+        return $row;
     }
 
     protected function templateSampleRow(): array
@@ -194,7 +216,8 @@ class ImportExport extends BaseImportExportService
             'email' => 'nguyenvana@example.test',
             'phone' => '0900000000',
             'password' => 'password123',
-            'is_active' => true,
+            'password_hash' => null,
+            'is_active' => 1,
             'roles' => self::DEFAULT_ROLE,
             'created_at' => 'Chỉ export, không import',
         ];
@@ -231,6 +254,8 @@ class ImportExport extends BaseImportExportService
 
         if (! empty($row['password'])) {
             $payload['password'] = Hash::make($row['password']);
+        } elseif (! empty($row['password_hash'])) {
+            $payload['password'] = $row['password_hash'];
         }
 
         $user = $existing ?: new User;
@@ -243,6 +268,33 @@ class ImportExport extends BaseImportExportService
         $user->save();
         $this->syncAdminRoles($user, $row['roles']);
         $this->successRows++;
+    }
+
+    private function validateCredentialPayload(array $row, int $rowNumber): bool
+    {
+        if (! empty($row['password']) && ! empty($row['password_hash'])) {
+            $this->addError($this->defaultSheetName, $rowNumber, 'password', 'Chỉ được cung cấp password hoặc password_hash, không dùng đồng thời cả hai.');
+
+            return false;
+        }
+
+        if (empty($row['password_hash'])) {
+            return true;
+        }
+
+        if (! $this->actorIsSuperAdmin()) {
+            $this->addError($this->defaultSheetName, $rowNumber, 'password_hash', 'Chỉ Super Admin được import password_hash từ file backup.');
+
+            return false;
+        }
+
+        if (! $this->looksLikePasswordHash($row['password_hash'])) {
+            $this->addError($this->defaultSheetName, $rowNumber, 'password_hash', 'password_hash không đúng định dạng hash được hỗ trợ.');
+
+            return false;
+        }
+
+        return true;
     }
 
     private function validateRoles(array $row, int $rowNumber): bool
@@ -305,6 +357,15 @@ class ImportExport extends BaseImportExportService
     private function isSuperAdmin(User $user): bool
     {
         return $user->hasRole(self::ROLE_SUPER_ADMIN);
+    }
+
+    private function looksLikePasswordHash(string $value): bool
+    {
+        return str_starts_with($value, '$2y$')
+            || str_starts_with($value, '$2a$')
+            || str_starts_with($value, '$2b$')
+            || str_starts_with($value, '$argon2i$')
+            || str_starts_with($value, '$argon2id$');
     }
 
     private function authorizeAdmin(string $permission): void
