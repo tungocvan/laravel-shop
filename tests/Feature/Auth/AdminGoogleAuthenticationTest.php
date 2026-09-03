@@ -42,6 +42,60 @@ class AdminGoogleAuthenticationTest extends TestCase
         $this->assertCount(0, $user->roles);
     }
 
+    public function test_admin_google_callback_uses_one_time_auto_link_approval_for_existing_email(): void
+    {
+        $existing = User::query()->create([
+            'name' => 'Approved Google Link User',
+            'email' => 'approved-link@example.com',
+            'password' => Hash::make('Password123!'),
+            'google_auto_link_enabled' => true,
+            'is_active' => true,
+        ]);
+
+        $provider = Mockery::mock();
+        $provider->shouldReceive('user')->once()->andReturn(
+            $this->googleUser('admin-google-approved', 'approved-link@example.com'),
+        );
+        Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
+
+        $this->get(route('google.callback'))
+            ->assertRedirect(route('admin.dashboard'));
+
+        $existing->refresh();
+
+        $this->assertSame('admin-google-approved', $existing->google_id);
+        $this->assertFalse($existing->google_auto_link_enabled);
+        $this->assertNotNull($existing->email_verified_at);
+        $this->assertAuthenticatedAs($existing, 'admin');
+    }
+
+    public function test_admin_google_callback_still_blocks_unapproved_existing_email(): void
+    {
+        $existing = User::query()->create([
+            'name' => 'Unapproved Google Link User',
+            'email' => 'unapproved-link@example.com',
+            'password' => Hash::make('Password123!'),
+            'google_auto_link_enabled' => false,
+            'is_active' => true,
+        ]);
+
+        $provider = Mockery::mock();
+        $provider->shouldReceive('user')->once()->andReturn(
+            $this->googleUser('admin-google-unapproved', 'unapproved-link@example.com'),
+        );
+        Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
+
+        $this->get(route('google.callback'))
+            ->assertRedirect(route('admin.login'))
+            ->assertSessionHasErrors('email');
+
+        $existing->refresh();
+
+        $this->assertNull($existing->google_id);
+        $this->assertFalse($existing->google_auto_link_enabled);
+        $this->assertGuest('admin');
+    }
+
     public function test_admin_google_callback_does_not_create_unknown_account(): void
     {
         $provider = Mockery::mock();
