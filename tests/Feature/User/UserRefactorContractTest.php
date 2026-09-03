@@ -1,15 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\User;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
 use Modules\User\Services\ImportExport;
 use Modules\User\Services\UserService;
+use Rap2hpoutre\FastExcel\FastExcel;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class UserRefactorContractTest extends TestCase
@@ -33,6 +39,7 @@ class UserRefactorContractTest extends TestCase
         $this->assertStringContainsString("links('User::vendor.pagination.admin-users')", $table);
         $this->assertStringContainsString('export chỉ các nhân sự đã chọn', mb_strtolower($table));
         $this->assertStringContainsString('không chọn dòng nào: export tất cả nhân sự theo bộ lọc hiện tại', mb_strtolower($table));
+        $this->assertStringContainsString('backup đầy đủ credential bằng password_hash', mb_strtolower($table));
         $this->assertStringContainsString('border bg-white px-4 py-3', $form);
         $this->assertStringContainsString('bg-indigo-600', $pagination);
         $this->assertStringContainsString('bg-white', $pagination);
@@ -77,13 +84,105 @@ class UserRefactorContractTest extends TestCase
 
         $this->assertStringNotContainsString('firstOrCreate([', $source);
         $this->assertStringContainsString('Vai trò không tồn tại trong Role catalog', $source);
-        $this->assertStringContainsString('$user->syncRoles($roles)', $source);
+        $this->assertStringContainsString('$user->syncRoles($adminRoles)', $source);
         $this->assertTrue(is_subclass_of(ImportExport::class, BaseImportExportService::class));
+    }
+
+    public function test_super_admin_backup_export_preserves_locked_state_and_password_hash(): void
+    {
+        $actor = $this->superAdminActor(['export_user']);
+        $staffRole = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'admin']);
+        $passwordHash = Hash::make('roundtrip-secret');
+        $user = User::factory()->create([
+            'name' => 'Locked Backup User',
+            'password' => $passwordHash,
+            'is_active' => false,
+        ]);
+        $user->assignRole($staffRole);
+        auth('admin')->login($actor);
+
+        $service = app(ImportExport::class);
+        $relativePath = $service->export([
+            'selected_ids' => [$user->id],
+            'include_password_hash' => true,
+        ]);
+        $absolutePath = $service->exportAbsolutePath($relativePath);
+
+        try {
+            $row = (new FastExcel)->import($absolutePath)->first();
+
+            $this->assertSame(0, (int) $row['is_active']);
+            $this->assertSame($passwordHash, $row['password_hash']);
+            $this->assertArrayNotHasKey('password', $row);
+        } finally {
+            @unlink($absolutePath);
+        }
+    }
+
+    public function test_super_admin_can_restore_password_hash_without_double_hashing(): void
+    {
+        $actor = $this->superAdminActor(['import_user']);
+        $staffRole = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'admin']);
+        $passwordHash = Hash::make('restore-secret');
+        auth('admin')->login($actor);
+
+        $path = storage_path('framework/testing/user-roundtrip-'.Str::uuid().'.xlsx');
+        File::ensureDirectoryExists(dirname($path));
+
+        (new FastExcel(collect([[
+            'name' => 'Restored User',
+            'email' => 'restored-user@example.test',
+            'phone' => '0900000001',
+            'password_hash' => $passwordHash,
+            'is_active' => 0,
+            'roles' => $staffRole->name,
+        ]])))->export($path);
+
+        try {
+            $report = app(ImportExport::class)->import($path, ['mode' => 'update_or_create']);
+
+            $this->assertTrue(
+                $report['success'],
+                json_encode($report, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+            );
+
+            $restored = User::where('email', 'restored-user@example.test')->firstOrFail();
+
+            $this->assertFalse((bool) $restored->is_active);
+            $this->assertSame($passwordHash, $restored->getRawOriginal('password'));
+            $this->assertTrue(Hash::check('restore-secret', $restored->password));
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function test_non_super_admin_cannot_export_password_hash_backup(): void
+    {
+        $actor = $this->adminActor(['export_user']);
+        auth('admin')->login($actor);
+
+        $this->expectException(HttpException::class);
+
+        app(ImportExport::class)->export(['include_password_hash' => true]);
     }
 
     private function adminActor(array $permissions): User
     {
         $role = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'admin']);
+        $actor = User::factory()->create();
+        $actor->assignRole($role);
+
+        foreach ($permissions as $permissionName) {
+            $permission = Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'admin']);
+            $role->givePermissionTo($permission);
+        }
+
+        return $actor->fresh();
+    }
+
+    private function superAdminActor(array $permissions): User
+    {
+        $role = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'admin']);
         $actor = User::factory()->create();
         $actor->assignRole($role);
 

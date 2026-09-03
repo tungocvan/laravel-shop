@@ -30,8 +30,11 @@ class UserService
             ->filter(fn (int $id): bool => $id > 0)
             ->unique()
             ->values();
+        $includePasswordHash = (bool) ($filters['include_password_hash'] ?? false)
+            && $this->isSuperAdmin($actor);
 
         return $this->staffQuery($filters, $actor)
+            ->when($includePasswordHash, fn (Builder $query) => $query->addSelect('password'))
             ->when($selectedIds->isNotEmpty(), fn (Builder $query) => $query->whereKey($selectedIds->all()))
             ->latest('id')
             ->get();
