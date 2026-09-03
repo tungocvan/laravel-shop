@@ -137,9 +137,11 @@ class UserRefactorContractTest extends TestCase
 
         try {
             $report = app(ImportExport::class)->import($path, ['mode' => 'update_or_create']);
+
+            $this->assertTrue($report['success'], json_encode($report, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
             $restored = User::where('email', 'restored-user@example.test')->firstOrFail();
 
-            $this->assertTrue($report['success']);
             $this->assertFalse((bool) $restored->is_active);
             $this->assertSame($passwordHash, $restored->getRawOriginal('password'));
             $this->assertTrue(Hash::check('restore-secret', $restored->password));
