@@ -9,6 +9,8 @@ class AdminLoginRedirectService
 {
     public const SETTING_KEY = 'admin_login_redirect_route';
 
+    public const ENTRY_ROUTE = 'admin.entry';
+
     public const DEFAULT_ROUTE = 'admin.dashboard';
 
     public const FALLBACK_ADMIN_ROUTE = 'admin.dashboard';
@@ -41,7 +43,7 @@ class AdminLoginRedirectService
 
     public function isAllowedRoute(string $name): bool
     {
-        if ($name === '' || ! Route::has($name)) {
+        if ($name === '' || $name === self::ENTRY_ROUTE || ! Route::has($name)) {
             return false;
         }
 
@@ -65,7 +67,7 @@ class AdminLoginRedirectService
     {
         $name = (string) $route->getName();
 
-        if ($name === '' || ! in_array('GET', $route->methods(), true) || str_contains($route->uri(), '{')) {
+        if ($name === '' || $name === self::ENTRY_ROUTE || ! in_array('GET', $route->methods(), true) || str_contains($route->uri(), '{')) {
             return false;
         }
 

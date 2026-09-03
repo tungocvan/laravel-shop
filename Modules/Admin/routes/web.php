@@ -7,7 +7,10 @@ use Modules\Admin\Http\Controllers\MenuController;
 use Modules\Admin\Http\Controllers\ProfileController;
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])
+    Route::get('/', [DashboardController::class, 'entry'])
+        ->name('entry');
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:admin.dashboard.view,admin')
         ->name('dashboard');
 

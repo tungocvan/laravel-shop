@@ -16,6 +16,15 @@
                         class="pb-3 text-sm font-medium border-b-2 border-transparent text-gray-500 transition-all hover:border-gray-300 hover:text-gray-700">
                         {{ $label }}
                     </a>
+                @elseif ($key === 'login_redirect')
+                    <a
+                        href="{{ route('admin.system.settings.login-redirect') }}"
+                        role="tab"
+                        id="settings-tab-{{ $key }}"
+                        aria-selected="false"
+                        class="pb-3 text-sm font-medium border-b-2 border-transparent text-gray-500 transition-all hover:border-gray-300 hover:text-gray-700">
+                        {{ $label }}
+                    </a>
                 @else
                     <button
                         type="button"
