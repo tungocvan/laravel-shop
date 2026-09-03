@@ -9,7 +9,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
+use Modules\User\Livewire\UserForm;
 use Modules\User\Services\ImportExport;
 use Modules\User\Services\UserService;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -41,6 +43,7 @@ class UserRefactorContractTest extends TestCase
         $this->assertStringContainsString('không chọn dòng nào: export tất cả nhân sự theo bộ lọc hiện tại', mb_strtolower($table));
         $this->assertStringContainsString('backup đầy đủ credential bằng password_hash', mb_strtolower($table));
         $this->assertStringContainsString('border bg-white px-4 py-3', $form);
+        $this->assertStringContainsString('wire:model.live="googleAutoLinkEnabled"', $form);
         $this->assertStringContainsString('bg-indigo-600', $pagination);
         $this->assertStringContainsString('bg-white', $pagination);
     }
@@ -86,6 +89,30 @@ class UserRefactorContractTest extends TestCase
         $this->assertStringContainsString('Vai trò không tồn tại trong Role catalog', $source);
         $this->assertStringContainsString('$user->syncRoles($adminRoles)', $source);
         $this->assertTrue(is_subclass_of(ImportExport::class, BaseImportExportService::class));
+    }
+
+    public function test_google_auto_link_approval_persists_from_user_edit_form(): void
+    {
+        $actor = $this->adminActor(['edit_user']);
+        $role = Role::findByName('staff', 'admin');
+        $target = User::factory()->create([
+            'google_id' => null,
+            'google_auto_link_enabled' => false,
+            'is_active' => true,
+        ]);
+        $target->assignRole($role);
+        auth('admin')->login($actor);
+
+        Livewire::test(UserForm::class, ['id' => $target->id])
+            ->assertSet('googleAutoLinkEnabled', false)
+            ->set('googleAutoLinkEnabled', true)
+            ->call('save')
+            ->assertRedirect(route('admin.user.index'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $target->id,
+            'google_auto_link_enabled' => 1,
+        ]);
     }
 
     public function test_super_admin_backup_export_preserves_locked_state_and_password_hash(): void
