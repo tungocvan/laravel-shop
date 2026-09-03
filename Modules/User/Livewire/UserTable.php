@@ -26,6 +26,8 @@ class UserTable extends Component
 
     public bool $selectAll = false;
 
+    public bool $includePasswordHash = false;
+
     private UserService $users;
 
     public function boot(UserService $users): void
@@ -63,11 +65,19 @@ class UserTable extends Component
         $this->selectAll = $pageIds !== [] && array_diff($pageIds, $selected) === [];
     }
 
+    public function updatedIncludePasswordHash(bool $value): void
+    {
+        if ($value && ! $this->actor()->hasRole('Super Admin')) {
+            $this->includePasswordHash = false;
+        }
+    }
+
     public function resetFilters(): void
     {
         $this->search = '';
         $this->filterRole = '';
         $this->perPage = 10;
+        $this->includePasswordHash = false;
         $this->resetPage();
         $this->resetSelection();
     }
@@ -119,11 +129,13 @@ class UserTable extends Component
     public function render(): View
     {
         $this->authorizePermission('view_user');
+        $actor = $this->actor();
 
         return view('User::livewire.user-table', [
-            'users' => $this->users->paginateStaff($this->filters(), $this->actor()),
-            'roles' => $this->users->availableRoles($this->actor()),
+            'users' => $this->users->paginateStaff($this->filters(), $actor),
+            'roles' => $this->users->availableRoles($actor),
             'exportFilters' => $this->exportFilters(),
+            'canBackupCredentials' => $actor->hasRole('Super Admin') && $actor->can('export_user'),
         ]);
     }
 
@@ -142,6 +154,7 @@ class UserTable extends Component
             'search' => $this->search,
             'role' => $this->filterRole,
             'selected_ids' => array_values(array_unique(array_map('intval', $this->selected))),
+            'include_password_hash' => $this->includePasswordHash,
         ];
     }
 
