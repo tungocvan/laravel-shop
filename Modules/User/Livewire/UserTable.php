@@ -22,6 +22,8 @@ class UserTable extends Component
 
     public string $filterRole = '';
 
+    public string $filterStatus = '';
+
     public array $selected = [];
 
     public bool $selectAll = false;
@@ -43,6 +45,16 @@ class UserTable extends Component
 
     public function updatedFilterRole(): void
     {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedFilterStatus(): void
+    {
+        if (! in_array($this->filterStatus, ['', 'active', 'inactive'], true)) {
+            $this->filterStatus = '';
+        }
+
         $this->resetPage();
         $this->resetSelection();
     }
@@ -76,6 +88,7 @@ class UserTable extends Component
     {
         $this->search = '';
         $this->filterRole = '';
+        $this->filterStatus = '';
         $this->perPage = 10;
         $this->includePasswordHash = false;
         $this->resetPage();
@@ -144,6 +157,7 @@ class UserTable extends Component
         return [
             'search' => $this->search,
             'role' => $this->filterRole,
+            'status' => $this->filterStatus,
             'per_page' => $this->perPage,
         ];
     }
@@ -153,6 +167,7 @@ class UserTable extends Component
         return [
             'search' => $this->search,
             'role' => $this->filterRole,
+            'status' => $this->filterStatus,
             'selected_ids' => array_values(array_unique(array_map('intval', $this->selected))),
             'include_password_hash' => $this->includePasswordHash,
         ];
