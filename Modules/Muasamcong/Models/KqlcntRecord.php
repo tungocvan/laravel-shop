@@ -20,5 +20,6 @@ class KqlcntRecord extends Model
         'contracts_raw' => 'array',
         'synced_at' => 'datetime',
         'hsmt_synced_at' => 'datetime',
+        'imported_at' => 'datetime',
     ];
 }
