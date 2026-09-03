@@ -36,6 +36,10 @@ class UserRefactorContractTest extends TestCase
 
         $this->assertStringContainsString('border border-gray-300 bg-white', $table);
         $this->assertStringContainsString('<option value="100">100 dòng</option>', $table);
+        $this->assertStringContainsString('wire:model.live="filterStatus"', $table);
+        $this->assertStringContainsString('Tất cả trạng thái', $table);
+        $this->assertStringContainsString('Đang hoạt động', $table);
+        $this->assertStringContainsString('Ngừng hoạt động', $table);
         $this->assertStringContainsString("links('User::vendor.pagination.admin-users')", $table);
         $this->assertStringContainsString('export chỉ các nhân sự đã chọn', mb_strtolower($table));
         $this->assertStringContainsString('không chọn dòng nào: export tất cả nhân sự theo bộ lọc hiện tại', mb_strtolower($table));
@@ -66,6 +70,33 @@ class UserRefactorContractTest extends TestCase
 
         $this->assertEqualsCanonicalizing([$alice->id, $bob->id], $all->pluck('id')->all());
         $this->assertSame([$bob->id], $selected->pluck('id')->all());
+    }
+
+    public function test_staff_status_filter_and_active_first_ordering_are_applied_to_list_and_export(): void
+    {
+        $actor = $this->adminActor(['view_user', 'export_user']);
+        $role = Role::findByName('staff', 'admin');
+
+        $inactiveNewest = User::factory()->create(['name' => 'Inactive Newest', 'is_active' => false]);
+        $activeOlder = User::factory()->create(['name' => 'Active Older', 'is_active' => true]);
+        $activeNewest = User::factory()->create(['name' => 'Active Newest', 'is_active' => true]);
+
+        foreach ([$inactiveNewest, $activeOlder, $activeNewest] as $user) {
+            $user->assignRole($role);
+        }
+
+        $service = app(UserService::class);
+        $page = $service->paginateStaff(['per_page' => 10], $actor);
+
+        $orderedIds = $page->getCollection()->pluck('id')->all();
+        $this->assertSame([$activeNewest->id, $activeOlder->id], array_slice($orderedIds, 0, 2));
+        $this->assertSame($inactiveNewest->id, $orderedIds[2]);
+
+        $active = $service->exportStaff(['status' => 'active'], $actor);
+        $inactive = $service->exportStaff(['status' => 'inactive'], $actor);
+
+        $this->assertEqualsCanonicalizing([$activeOlder->id, $activeNewest->id], $active->pluck('id')->all());
+        $this->assertSame([$inactiveNewest->id], $inactive->pluck('id')->all());
     }
 
     public function test_non_super_admin_export_scope_never_exposes_super_admin(): void
