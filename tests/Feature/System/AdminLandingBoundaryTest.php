@@ -3,11 +3,13 @@
 namespace Tests\Feature\System;
 
 use App\Models\User;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\System\Services\AdminLoginRedirectService;
 use Modules\System\Services\ApplicationRootRedirectService;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
 class AdminLandingBoundaryTest extends TestCase
@@ -29,7 +31,7 @@ class AdminLandingBoundaryTest extends TestCase
         $this->assertNotNull($fallback);
 
         $uses = $fallback->getAction('uses');
-        $this->assertInstanceOf(\Closure::class, $uses);
+        $this->assertInstanceOf(Closure::class, $uses);
 
         $response = $uses(Request::create('/', 'GET'));
 
@@ -45,9 +47,9 @@ class AdminLandingBoundaryTest extends TestCase
         $this->assertNotNull($fallback);
 
         $uses = $fallback->getAction('uses');
-        $this->assertInstanceOf(\Closure::class, $uses);
+        $this->assertInstanceOf(Closure::class, $uses);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class);
+        $this->expectException(NotFoundHttpException::class);
 
         $uses(Request::create('/missing-page', 'GET'));
     }
