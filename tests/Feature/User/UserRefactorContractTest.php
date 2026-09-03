@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\User;
 
 use App\Models\User;
@@ -13,6 +15,7 @@ use Modules\User\Services\UserService;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class UserRefactorContractTest extends TestCase
@@ -158,7 +161,7 @@ class UserRefactorContractTest extends TestCase
         $actor = $this->adminActor(['export_user']);
         auth('admin')->login($actor);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
 
         app(ImportExport::class)->export(['include_password_hash' => true]);
     }
