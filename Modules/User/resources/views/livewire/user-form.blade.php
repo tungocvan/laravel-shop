@@ -64,7 +64,7 @@
 
                         @if(! $googleLinked)
                             <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                                <input type="checkbox" wire:model="googleAutoLinkEnabled" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <input type="checkbox" wire:model.live="googleAutoLinkEnabled" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                                 <span>
                                     <span class="block text-sm font-bold text-amber-900">Cho phép Google tự động liên kết ở lần đăng nhập tiếp theo</span>
                                     <span class="mt-1 block text-xs leading-5 text-amber-800">Chỉ áp dụng một lần. Google vẫn phải xác minh email, email phải trùng chính xác tài khoản này, tài khoản phải đang hoạt động và Google ID không được thuộc người dùng khác. Sau khi liên kết thành công, quyền này tự tắt.</span>
