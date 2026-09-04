@@ -12,18 +12,19 @@ class KqlcntHistoricalRecoveryRouteTest extends TestCase
         $view = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery');
         $template = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.template');
         $export = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.export');
+        $enrich = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.enrich');
         $upload = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.upload');
         $batch = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.batch');
         $preview = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.preview');
         $confirm = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.confirm');
 
-        foreach ([$view, $template, $export, $upload, $batch, $preview, $confirm] as $route) {
+        foreach ([$view, $template, $export, $enrich, $upload, $batch, $preview, $confirm] as $route) {
             $this->assertNotNull($route);
             $this->assertContains('auth:admin', $route->gatherMiddleware());
             $this->assertContains('permission:view_muasamcong,admin', $route->gatherMiddleware());
         }
 
-        foreach ([$upload, $batch, $preview, $confirm] as $route) {
+        foreach ([$enrich, $upload, $batch, $preview, $confirm] as $route) {
             $this->assertContains('permission:muasamcong.pricing.sync,admin', $route->gatherMiddleware());
         }
 
@@ -35,6 +36,7 @@ class KqlcntHistoricalRecoveryRouteTest extends TestCase
         $this->assertSame(['GET', 'HEAD'], $view->methods());
         $this->assertSame(['GET', 'HEAD'], $template->methods());
         $this->assertSame(['POST'], $export->methods());
+        $this->assertSame(['POST'], $enrich->methods());
         $this->assertSame(['POST'], $upload->methods());
         $this->assertSame(['GET', 'HEAD'], $batch->methods());
         $this->assertSame(['POST'], $preview->methods());
