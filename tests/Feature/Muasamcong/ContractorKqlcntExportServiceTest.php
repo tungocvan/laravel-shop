@@ -3,6 +3,7 @@
 namespace Tests\Feature\Muasamcong;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Muasamcong\Exports\ContractorKqlcntWorkbookExport;
 use Modules\Muasamcong\Models\KqlcntRecord;
@@ -16,6 +17,7 @@ class ContractorKqlcntExportServiceTest extends TestCase
 
     public function test_workbook_exports_execution_period_in_overview_and_effect_period_in_contract_sheet(): void
     {
+        Carbon::setTestNow('2026-09-04 16:30:00');
         Excel::fake();
         $search = app(ContractorSearchArchiveService::class)->store(
             'vn0314492345',
@@ -57,7 +59,8 @@ class ContractorKqlcntExportServiceTest extends TestCase
 
         app(ContractorKqlcntExportService::class)->download($search, ['IB2500317380']);
 
-        Excel::assertDownloaded(function (string $fileName, ContractorKqlcntWorkbookExport $export): bool {
+        $fileName = 'KQLCNT-vn0314492345-search-'.$search->id.'-20260904-163000.xlsx';
+        Excel::assertDownloaded($fileName, function (ContractorKqlcntWorkbookExport $export): bool {
             $sheets = $export->sheets();
             $overview = $sheets[0];
             $contracts = $sheets[2];
@@ -74,7 +77,7 @@ class ContractorKqlcntExportServiceTest extends TestCase
             $this->assertContains('Thời hạn hiệu lực', $contracts->headings());
             $this->assertSame('Kể từ ngày ký đến hết 06/02/2028', $contracts->array()[0][8]);
 
-            return str_starts_with($fileName, 'KQLCNT-vn0314492345-search-');
+            return true;
         });
     }
 }
