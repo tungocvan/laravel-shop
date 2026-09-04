@@ -98,6 +98,7 @@ class SmartPricingAwardService
         return hash('sha256', json_encode([
             'notify_no' => $notifyNo,
             'contractor_code' => $contractorCode,
+            'medicine_code' => $this->medicineCode($item),
             'medicine_name' => $this->scalar($item['tenThuoc'] ?? null),
             'active_ingredient' => $this->scalar($item['tenHoatChat'] ?? null),
             'concentration' => $this->scalar($item['nongDo'] ?? null),
@@ -132,6 +133,7 @@ class SmartPricingAwardService
             'notify_no' => trim((string) ($item['maTbmt'] ?? '')),
             'contractor_code' => $contractorCode,
             'contractor_name' => $winnerName,
+            'medicine_code' => $this->medicineCode($item),
             'medicine_name' => $this->scalar($item['tenThuoc'] ?? null),
             'active_ingredient' => $this->scalar($item['tenHoatChat'] ?? null),
             'concentration' => $this->scalar($item['nongDo'] ?? null),
@@ -148,6 +150,18 @@ class SmartPricingAwardService
             'country' => $this->scalar($item['nuocSanXuat'] ?? null),
             'raw_payload' => $item,
         ];
+    }
+
+    private function medicineCode(array $item): ?string
+    {
+        foreach (['medicineCode', 'medicine_code', 'maThuoc', 'ma_thuoc', 'drugCode', 'code'] as $key) {
+            $value = $this->scalar($item[$key] ?? null);
+            if ($value !== null) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     private function request(): PendingRequest
