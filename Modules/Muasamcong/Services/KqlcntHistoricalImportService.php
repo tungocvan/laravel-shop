@@ -22,9 +22,10 @@ class KqlcntHistoricalImportService
         return [
             'notify_no' => 'Mã TBMT', 'contractor_code' => 'Mã nhà thầu', 'contractor_name' => 'Tên nhà thầu', 'lot_no' => 'Mã lô', 'lot_name' => 'Tên lô',
             'medicine_code' => 'Mã thuốc', 'medicine_name' => 'Tên thuốc', 'drug_group' => 'Nhóm thuốc', 'active_ingredient' => 'Hoạt chất', 'concentration' => 'Nồng độ / Hàm lượng',
-            'route' => 'Đường dùng', 'dosage_form' => 'Dạng bào chế', 'unit' => 'Đơn vị tính', 'quantity' => 'Số lượng', 'price_plan' => 'Giá kế hoạch',
-            'winning_price' => 'Giá trúng thầu', 'amount' => 'Thành tiền', 'manufacturer' => 'Cơ sở sản xuất', 'country' => 'Nước sản xuất', 'decision_no' => 'Số quyết định',
-            'decision_date' => 'Ngày quyết định', 'published_at' => 'Ngày đăng KQLCNT', 'investor_code' => 'Mã chủ đầu tư', 'investor_name' => 'Chủ đầu tư / Bên mời thầu', 'contract_no' => 'Số hợp đồng',
+            'route' => 'Đường dùng', 'dosage_form' => 'Dạng bào chế', 'packaging_spec' => 'Quy cách', 'shelf_life_months' => 'Hạn dùng (tháng)', 'registration_or_import_license' => 'GĐKLH hoặc GPNK',
+            'unit' => 'Đơn vị tính', 'quantity' => 'Số lượng', 'price_plan' => 'Giá kế hoạch', 'winning_price' => 'Giá trúng thầu', 'amount' => 'Thành tiền',
+            'manufacturer' => 'Cơ sở sản xuất', 'country' => 'Nước sản xuất', 'decision_no' => 'Số quyết định', 'decision_date' => 'Ngày quyết định',
+            'published_at' => 'Ngày đăng KQLCNT', 'investor_code' => 'Mã chủ đầu tư', 'investor_name' => 'Chủ đầu tư / Bên mời thầu', 'contract_no' => 'Số hợp đồng',
         ];
     }
 
@@ -159,6 +160,9 @@ class KqlcntHistoricalImportService
             'concentration' => ['nồng độ / hàm lượng', 'nồng độ', 'hàm lượng', 'ham luong'],
             'route' => ['đường dùng', 'duong dung'],
             'dosage_form' => ['dạng bào chế', 'dang bao che'],
+            'packaging_spec' => ['quy cách', 'quy cach', 'quy cách đóng gói', 'quy cach dong goi', 'đóng gói', 'dong goi'],
+            'shelf_life_months' => ['hạn dùng (tháng)', 'han dung (thang)', 'hạn dùng', 'han dung', 'tuổi thọ (tháng)', 'shelf life months'],
+            'registration_or_import_license' => ['gđklh hoặc gpnk', 'gđklh/gpnk', 'gđklh', 'gpnk', 'số gđklh hoặc gpnk', 'registration or import license'],
             'unit' => ['đơn vị tính', 'don vi tinh', 'đvt', 'dvt'],
             'quantity' => ['số lượng', 'so luong', 'sl'],
             'price_plan' => ['giá kế hoạch', 'gia ke hoach'],
@@ -200,6 +204,7 @@ class KqlcntHistoricalImportService
         foreach (['quantity', 'price_plan', 'winning_price', 'amount'] as $field) {
             $data[$field] = $this->numeric($data[$field]);
         }
+        $data['shelf_life_months'] = $this->integer($data['shelf_life_months']);
         if ($data['amount'] === null && $data['quantity'] !== null && $data['winning_price'] !== null) {
             $data['amount'] = $data['quantity'] * $data['winning_price'];
         }
@@ -257,6 +262,13 @@ class KqlcntHistoricalImportService
         $candidate = ($negative ? '-' : '').$unsigned;
 
         return is_numeric($candidate) ? (float) $candidate : null;
+    }
+
+    private function integer(mixed $value): ?int
+    {
+        $number = $this->numeric($value);
+
+        return $number === null ? null : max(0, (int) round($number));
     }
 
     private function normalizeSingleSeparatorNumber(string $value, string $separator): string
