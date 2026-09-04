@@ -16,6 +16,7 @@ class KqlcntAwardItem extends Model
         'winning_price' => 'decimal:4',
         'amount' => 'decimal:4',
         'shelf_life_months' => 'integer',
+        'contract_period' => 'integer',
         'decision_date' => 'date',
         'published_at' => 'datetime',
         'synced_from_catalog_at' => 'datetime',
