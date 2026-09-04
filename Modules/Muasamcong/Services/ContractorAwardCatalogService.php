@@ -82,22 +82,64 @@ class ContractorAwardCatalogService
 
     private function bestSmartMatch(ContractorManualLot $manual, Collection $smart, array $used): ?int
     {
-        $bestIndex = null;
-        $bestScore = 0;
+        $candidates = $smart->reject(fn ($candidate, $index): bool => isset($used[$index]));
+        if ($candidates->isEmpty()) {
+            return null;
+        }
 
-        foreach ($smart as $index => $candidate) {
-            if (isset($used[$index])) {
-                continue;
+        $manualRaw = $this->payload($manual);
+        $manualCode = $this->medicineCode($manualRaw);
+        if ($manualCode !== null) {
+            $exactCode = $candidates->filter(function (ContractorManualLot $candidate) use ($manualCode): bool {
+                $candidateCode = $this->medicineCode($this->payload($candidate));
+
+                return $candidateCode !== null && mb_strtoupper($candidateCode) === mb_strtoupper($manualCode);
+            });
+
+            if ($exactCode->count() === 1) {
+                return (int) $exactCode->keys()->first();
             }
 
-            $score = $this->matchScore($manual, $candidate);
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $bestIndex = $index;
+            if ($exactCode->count() > 1) {
+                return $this->uniqueHighestScore($manual, $exactCode);
             }
         }
 
-        return $bestScore >= 4 ? $bestIndex : null;
+        $manualName = $this->text($manual->medicine_name ?? $manualRaw['medicine_name'] ?? $manualRaw['tenThuoc'] ?? null);
+        if ($manualName !== null) {
+            $exactName = $candidates->filter(function (ContractorManualLot $candidate) use ($manualName): bool {
+                $raw = $this->payload($candidate);
+                $candidateName = $this->text($candidate->medicine_name ?? $raw['medicine_name'] ?? $raw['tenThuoc'] ?? null);
+
+                return $candidateName !== null && mb_strtoupper($candidateName) === mb_strtoupper($manualName);
+            });
+
+            if ($exactName->count() === 1) {
+                return (int) $exactName->keys()->first();
+            }
+
+            if ($exactName->count() > 1) {
+                return $this->uniqueHighestScore($manual, $exactName);
+            }
+        }
+
+        return $this->uniqueHighestScore($manual, $candidates);
+    }
+
+    private function uniqueHighestScore(ContractorManualLot $manual, Collection $candidates): ?int
+    {
+        $scores = $candidates->mapWithKeys(fn (ContractorManualLot $candidate, $index): array => [
+            $index => $this->matchScore($manual, $candidate),
+        ]);
+        $bestScore = (int) ($scores->max() ?? 0);
+
+        if ($bestScore < 4) {
+            return null;
+        }
+
+        $best = $scores->filter(fn (int $score): bool => $score === $bestScore);
+
+        return $best->count() === 1 ? (int) $best->keys()->first() : null;
     }
 
     private function matchScore(ContractorManualLot $manual, ContractorManualLot $smart): int
@@ -118,16 +160,16 @@ class ContractorAwardCatalogService
             $score += 3;
         }
 
-        $manualMedicineCode = $this->text($manualRaw['medicine_code'] ?? $manualRaw['medicineCode'] ?? null);
-        $smartMedicineCode = $this->text($smartRaw['medicine_code'] ?? $smartRaw['medicineCode'] ?? null);
-        if ($manualMedicineCode !== null && $smartMedicineCode !== null && $manualMedicineCode === $smartMedicineCode) {
-            $score += 6;
+        $manualMedicineCode = $this->medicineCode($manualRaw);
+        $smartMedicineCode = $this->medicineCode($smartRaw);
+        if ($manualMedicineCode !== null && $smartMedicineCode !== null && mb_strtoupper($manualMedicineCode) === mb_strtoupper($smartMedicineCode)) {
+            $score += 12;
         }
 
         $manualName = $this->text($manual->medicine_name ?? $manualRaw['medicine_name'] ?? $manualRaw['tenThuoc'] ?? null);
         $smartName = $this->text($smart->medicine_name ?? $smartRaw['medicine_name'] ?? $smartRaw['tenThuoc'] ?? null);
         if ($manualName !== null && $smartName !== null && mb_strtoupper($manualName) === mb_strtoupper($smartName)) {
-            $score += 4;
+            $score += 6;
         }
 
         $manualIngredient = $this->text($manual->active_ingredient ?? $manualRaw['active_ingredient'] ?? $manualRaw['tenHoatChat'] ?? null);
@@ -166,7 +208,7 @@ class ContractorAwardCatalogService
             'contractor_name' => $raw['contractor_name'] ?? $raw['contractorName'] ?? null,
             'lot_no' => $primary?->lot_no ?? $smart?->lot_no,
             'lot_name' => $primary?->lot_name ?? $smart?->lot_name,
-            'medicine_code' => $raw['medicine_code'] ?? $raw['medicineCode'] ?? null,
+            'medicine_code' => $this->medicineCode($raw),
             'medicine_name' => $smart?->medicine_name ?? $primary?->medicine_name ?? $raw['medicine_name'] ?? $raw['tenThuoc'] ?? null,
             'drug_group' => $raw['medicine_group'] ?? $raw['medicineGroup'] ?? $raw['nhomThuoc'] ?? null,
             'active_ingredient' => $smart?->active_ingredient ?? $primary?->active_ingredient ?? $raw['active_ingredient'] ?? $raw['tenHoatChat'] ?? null,
@@ -219,6 +261,18 @@ class ContractorAwardCatalogService
         $nested = is_array($raw['raw_payload'] ?? null) ? $raw['raw_payload'] : [];
 
         return array_replace($nested, $raw);
+    }
+
+    private function medicineCode(array $payload): ?string
+    {
+        foreach (['medicine_code', 'medicineCode', 'maThuoc', 'ma_thuoc', 'drugCode', 'code'] as $key) {
+            $value = $this->text($payload[$key] ?? null);
+            if ($value !== null) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     private function number(mixed $value): ?float
