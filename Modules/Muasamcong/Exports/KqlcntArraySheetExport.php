@@ -9,11 +9,17 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 
 class KqlcntArraySheetExport implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
 {
-    public function __construct(
-        private readonly string $title,
-        private readonly array $headings,
-        private readonly array $rows,
-    ) {
+    private readonly string $title;
+
+    private readonly array $headings;
+
+    private readonly array $rows;
+
+    public function __construct(string $title, array $headings, array $rows)
+    {
+        $this->title = $title;
+        $this->headings = $headings;
+        $this->rows = $rows;
     }
 
     public function array(): array
