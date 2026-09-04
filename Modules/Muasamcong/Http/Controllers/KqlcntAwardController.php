@@ -20,10 +20,10 @@ class KqlcntAwardController extends Controller
         $items = $this->query($filters)->orderByDesc('synced_from_catalog_at')->orderByDesc('id')->paginate(25)->withQueryString();
         $base = KqlcntAwardItem::query()->whereNotNull('synced_from_catalog_at');
         $notifyOptions = (clone $base)->whereNotNull('notify_no')->distinct()->orderBy('notify_no')->pluck('notify_no');
-        $contractorOptions = (clone $base)->whereNotNull('contractor_code')->select('contractor_code', 'contractor_name')->distinct()->orderBy('contractor_name')->get();
+        $investorOptions = (clone $base)->whereNotNull('investor_code')->select('investor_code', 'investor_name')->distinct()->orderBy('investor_name')->get();
         $medicineOptions = (clone $base)->whereNotNull('medicine_name')->distinct()->orderBy('medicine_name')->pluck('medicine_name');
 
-        return view('Muasamcong::kqlcnt-awards.index', compact('items', 'filters', 'notifyOptions', 'contractorOptions', 'medicineOptions'));
+        return view('Muasamcong::kqlcnt-awards.index', compact('items', 'filters', 'notifyOptions', 'investorOptions', 'medicineOptions'));
     }
 
     public function edit(KqlcntAwardItem $awardItem): View
@@ -74,7 +74,7 @@ class KqlcntAwardController extends Controller
     {
         return KqlcntAwardItem::query()->whereNotNull('synced_from_catalog_at')
             ->when($filters['notify_no'], fn (Builder $q, string $v) => $q->where('notify_no', $v))
-            ->when($filters['contractor_code'], fn (Builder $q, string $v) => $q->where('contractor_code', $v))
+            ->when($filters['investor_code'], fn (Builder $q, string $v) => $q->where('investor_code', $v))
             ->when($filters['medicine_name'], fn (Builder $q, string $v) => $q->where('medicine_name', $v))
             ->when($filters['active_ingredient'], fn (Builder $q, string $v) => $q->where('active_ingredient', 'like', '%'.$v.'%'))
             ->when($filters['source'], fn (Builder $q, string $v) => $q->where('source', 'like', '%'.$v.'%'))
@@ -85,9 +85,9 @@ class KqlcntAwardController extends Controller
 
     private function filters(Request $request): array
     {
-        $v = $request->validate(['notify_no' => ['nullable', 'string', 'max:255'], 'contractor_code' => ['nullable', 'string', 'max:255'], 'medicine_name' => ['nullable', 'string', 'max:500'], 'active_ingredient' => ['nullable', 'string', 'max:500'], 'source' => ['nullable', 'string', 'max:100'], 'active' => ['nullable', 'in:0,1'], 'published_from' => ['nullable', 'date'], 'published_to' => ['nullable', 'date'], 'synced_from' => ['nullable', 'date'], 'synced_to' => ['nullable', 'date']]);
+        $v = $request->validate(['notify_no' => ['nullable', 'string', 'max:255'], 'investor_code' => ['nullable', 'string', 'max:255'], 'medicine_name' => ['nullable', 'string', 'max:500'], 'active_ingredient' => ['nullable', 'string', 'max:500'], 'source' => ['nullable', 'string', 'max:100'], 'active' => ['nullable', 'in:0,1'], 'published_from' => ['nullable', 'date'], 'published_to' => ['nullable', 'date'], 'synced_from' => ['nullable', 'date'], 'synced_to' => ['nullable', 'date']]);
 
-        return collect(['notify_no', 'contractor_code', 'medicine_name', 'active_ingredient', 'source', 'active', 'published_from', 'published_to', 'synced_from', 'synced_to'])->mapWithKeys(fn ($key) => [$key => trim((string) ($v[$key] ?? ''))])->all();
+        return collect(['notify_no', 'investor_code', 'medicine_name', 'active_ingredient', 'source', 'active', 'published_from', 'published_to', 'synced_from', 'synced_to'])->mapWithKeys(fn ($key) => [$key => trim((string) ($v[$key] ?? ''))])->all();
     }
 
     private function headings(): array
