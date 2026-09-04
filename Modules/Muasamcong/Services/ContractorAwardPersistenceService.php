@@ -137,6 +137,7 @@ class ContractorAwardPersistenceService
         $tokens = collect(preg_split('/[+|,]/', mb_strtoupper(trim($source))) ?: [])->map(fn ($value) => trim((string) $value))->filter()->values()->all();
         if (! isset($logical[$key])) {
             $logical[$key] = ['row' => $row, 'sources' => $tokens];
+
             return;
         }
         $base = $logical[$key]['row'];
@@ -213,6 +214,7 @@ class ContractorAwardPersistenceService
         if ($period === null) {
             return null;
         }
+
         return match (mb_strtoupper((string) $unit)) {
             'D' => $period.' ngày',
             'M' => $period.' tháng',
@@ -226,10 +228,12 @@ class ContractorAwardPersistenceService
         if (! $record || ! is_array($record->verified_lots)) {
             return [];
         }
+
         return collect($record->verified_lots)->map(function ($lot): array {
             $lot = is_array($lot) ? $lot : [];
             $raw = is_array($lot['raw_payload'] ?? null) ? $lot['raw_payload'] : [];
             $data = array_replace($raw, $lot);
+
             return [
                 'lot_no' => $data['lot_no'] ?? $data['lotNo'] ?? null,
                 'lot_name' => $data['lot_name'] ?? $data['lotName'] ?? null,
@@ -268,12 +272,14 @@ class ContractorAwardPersistenceService
             }
         }
         $parts = collect(['medicine_name', 'active_ingredient', 'concentration'])->map(fn ($field) => Str::lower(trim((string) ($row[$field] ?? ''))))->filter();
+
         return $parts->isEmpty() ? null : 'medicine:'.hash('sha256', $parts->implode('|'));
     }
 
     private function identityKey(string $notifyNo, string $contractorCode, array $row): string
     {
         $identity = $row['lot_no'] ?: ($row['medicine_code'] ?: implode('|', [Str::lower((string) $row['medicine_name']), Str::lower((string) $row['active_ingredient']), Str::lower((string) $row['concentration'])]));
+
         return hash('sha256', $notifyNo.'|'.$contractorCode.'|'.$identity);
     }
 

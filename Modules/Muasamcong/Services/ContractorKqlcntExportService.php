@@ -103,11 +103,21 @@ class ContractorKqlcntExportService
         $unkeyed = [];
         foreach ($rows as $row) {
             $lotNo = trim((string) ($row[3] ?? ''));
-            if ($lotNo === '') { $unkeyed[] = $row; continue; }
+            if ($lotNo === '') {
+                $unkeyed[] = $row;
+
+                continue;
+            }
             $key = $this->lotKey($row[0] ?? null, $lotNo);
-            if (! isset($merged[$key])) { $merged[$key] = $row; continue; }
+            if (! isset($merged[$key])) {
+                $merged[$key] = $row;
+
+                continue;
+            }
             foreach ($row as $index => $value) {
-                if ($this->blank($merged[$key][$index] ?? null) && ! $this->blank($value)) { $merged[$key][$index] = $value; }
+                if ($this->blank($merged[$key][$index] ?? null) && ! $this->blank($value)) {
+                    $merged[$key][$index] = $value;
+                }
             }
             $sources = collect([$merged[$key][27] ?? null, $row[27] ?? null])->filter()->flatMap(fn ($value) => preg_split('/\+/', (string) $value) ?: [])->map(fn ($value) => trim((string) $value))->filter()->unique()->values();
             $merged[$key][27] = $sources->implode('+');
@@ -119,11 +129,17 @@ class ContractorKqlcntExportService
     private function enrichDetailRow(array $row, Collection $records): array
     {
         $record = $records->get((string) ($row[0] ?? ''));
-        if (! $record) { return $row; }
-        if ($this->blank($row[22] ?? null)) { $row[22] = $record->investor_name; }
+        if (! $record) {
+            return $row;
+        }
+        if ($this->blank($row[22] ?? null)) {
+            $row[22] = $record->investor_name;
+        }
         if ($this->blank($row[23] ?? null)) {
             $contracts = collect((array) $record->contracts)->pluck('contractNo')->map(fn ($value) => trim((string) $value))->filter()->unique()->values();
-            if ($contracts->count() === 1) { $row[23] = $contracts->first(); }
+            if ($contracts->count() === 1) {
+                $row[23] = $contracts->first();
+            }
         }
 
         return $row;
@@ -134,11 +150,15 @@ class ContractorKqlcntExportService
         return $records->flatMap(function (KqlcntRecord $record) use ($search, $knownKeys): array {
             $rows = [];
             foreach ((array) $record->verified_lots as $lot) {
-                if (! is_array($lot)) { continue; }
+                if (! is_array($lot)) {
+                    continue;
+                }
                 $raw = is_array($lot['raw_payload'] ?? null) ? $lot['raw_payload'] : [];
                 $lot = array_replace($raw, $lot);
                 $lotNo = trim((string) ($lot['lotNo'] ?? $lot['lotCode'] ?? $lot['id'] ?? $lot['lot_no'] ?? ''));
-                if ($lotNo === '' || isset($knownKeys[$this->lotKey($record->notify_no, $lotNo)])) { continue; }
+                if ($lotNo === '' || isset($knownKeys[$this->lotKey($record->notify_no, $lotNo)])) {
+                    continue;
+                }
                 $quantity = $this->number($lot['quantity'] ?? $lot['qty'] ?? null);
                 $pricePlan = $this->number($lot['pricePlan'] ?? $lot['price_plan'] ?? $lot['unitPrice'] ?? null);
                 $winningPrice = $this->number($lot['lotPrice'] ?? $lot['bidWinningPrice'] ?? $lot['winningPrice'] ?? $lot['winning_price'] ?? null);
@@ -166,10 +186,16 @@ class ContractorKqlcntExportService
     private function withCalculatedAmount(array $row): array
     {
         $amount = $this->number($row[16] ?? null);
-        if ($amount !== null) { $row[16] = $amount; return $row; }
+        if ($amount !== null) {
+            $row[16] = $amount;
+
+            return $row;
+        }
         $quantity = $this->number($row[13] ?? null);
         $winningPrice = $this->number($row[15] ?? null);
-        if ($quantity !== null && $winningPrice !== null) { $row[16] = $quantity * $winningPrice; }
+        if ($quantity !== null && $winningPrice !== null) {
+            $row[16] = $quantity * $winningPrice;
+        }
 
         return $row;
     }
@@ -181,8 +207,23 @@ class ContractorKqlcntExportService
         return $amounts->isEmpty() ? null : (float) $amounts->sum();
     }
 
-    private function blank(mixed $value): bool { return $value === null || (is_string($value) && trim($value) === ''); }
-    private function lotKey(mixed $notifyNo, mixed $lotNo): string { return trim((string) $notifyNo).'|'.trim((string) $lotNo); }
-    private function number(mixed $value): ?float { return is_numeric($value) ? (float) $value : null; }
-    private function wholeNumber(mixed $value): ?int { return is_numeric($value) ? (int) round((float) $value) : null; }
+    private function blank(mixed $value): bool
+    {
+        return $value === null || (is_string($value) && trim($value) === '');
+    }
+
+    private function lotKey(mixed $notifyNo, mixed $lotNo): string
+    {
+        return trim((string) $notifyNo).'|'.trim((string) $lotNo);
+    }
+
+    private function number(mixed $value): ?float
+    {
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function wholeNumber(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) round((float) $value) : null;
+    }
 }
