@@ -36,18 +36,14 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)->name('synced.export-bbg');
         Route::get('/kqlcnt-awards', [KqlcntAwardController::class, 'index'])->name('kqlcnt-awards.index');
         Route::post('/kqlcnt-awards/export', [KqlcntAwardController::class, 'export'])->name('kqlcnt-awards.export');
-        Route::get('/kqlcnt-awards/{awardItem}', [KqlcntAwardController::class, 'show'])->whereNumber('awardItem')->name('kqlcnt-awards.show');
+        Route::get('/kqlcnt-awards/{awardItem}/edit', [KqlcntAwardController::class, 'edit'])->whereNumber('awardItem')->name('kqlcnt-awards.edit');
+        Route::put('/kqlcnt-awards/{awardItem}', [KqlcntAwardController::class, 'update'])->whereNumber('awardItem')->middleware('permission:muasamcong.pricing.sync,admin')->name('kqlcnt-awards.update');
         Route::get('/wishlist', PricingWishlistController::class)->name('wishlist');
         Route::post('/wishlist/export-selected', PricingWishlistExportController::class)->name('wishlist.export-selected');
-        Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])
-            ->middleware('permission:muasamcong.pricing.wishlist,admin')
-            ->name('wishlist.destroy-selected');
+        Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])->middleware('permission:muasamcong.pricing.wishlist,admin')->name('wishlist.destroy-selected');
     });
 
-    Route::middleware([
-        'permission:view_muasamcong,admin',
-        'permission:muasamcong.pricing.sync,admin',
-    ])->group(function () {
+    Route::middleware(['permission:view_muasamcong,admin', 'permission:muasamcong.pricing.sync,admin'])->group(function () {
         Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/enrich', [ContractorKqlcntRecoveryController::class, 'enrich'])->name('contractors.kqlcnt-recovery.enrich');
         Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{notifyNo}/persist', [ContractorKqlcntRecoveryController::class, 'persist'])->name('contractors.kqlcnt-recovery.persist');
         Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/upload', [ContractorKqlcntRecoveryController::class, 'upload'])->name('contractors.kqlcnt-recovery.upload');
