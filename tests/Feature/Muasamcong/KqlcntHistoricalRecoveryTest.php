@@ -54,6 +54,54 @@ class KqlcntHistoricalRecoveryTest extends TestCase
         ]);
     }
 
+    public function test_import_maps_packaging_shelf_life_and_registration_or_import_license(): void
+    {
+        $search = $this->storedSearch();
+        $headers = ['Mã TBMT', 'Mã lô', 'Tên thuốc', 'Quy cách đóng gói', 'Hạn dùng (tháng)', 'GĐKLH hoặc GPNK'];
+        $batch = KqlcntImportBatch::create([
+            'contractor_search_id' => $search->id,
+            'original_name' => 'award-extra-fields.xlsx',
+            'checksum' => str_repeat('c', 64),
+            'status' => 'staged',
+            'headers' => $headers,
+            'raw_rows' => [[
+                'Mã TBMT' => 'IB001',
+                'Mã lô' => 'LOT-EXTRA',
+                'Tên thuốc' => 'Thuốc có quy cách',
+                'Quy cách đóng gói' => 'Hộp 3 vỉ x 10 viên',
+                'Hạn dùng (tháng)' => '36',
+                'GĐKLH hoặc GPNK' => 'VD-12345-26',
+            ]],
+            'mapping' => [
+                'notify_no' => 'Mã TBMT',
+                'lot_no' => 'Mã lô',
+                'medicine_name' => 'Tên thuốc',
+                'packaging_spec' => 'Quy cách đóng gói',
+                'shelf_life_months' => 'Hạn dùng (tháng)',
+                'registration_or_import_license' => 'GĐKLH hoặc GPNK',
+            ],
+            'total_rows' => 1,
+        ]);
+
+        $service = app(KqlcntHistoricalImportService::class);
+        $preview = $service->preview($batch, $batch->mapping);
+        $data = $preview->preview_rows[0]['data'];
+
+        $this->assertSame('Hộp 3 vỉ x 10 viên', $data['packaging_spec']);
+        $this->assertSame(36, $data['shelf_life_months']);
+        $this->assertSame('VD-12345-26', $data['registration_or_import_license']);
+
+        $service->confirm($preview);
+
+        $this->assertDatabaseHas('muasamcong_kqlcnt_award_items', [
+            'notify_no' => 'IB001',
+            'lot_no' => 'LOT-EXTRA',
+            'packaging_spec' => 'Hộp 3 vỉ x 10 viên',
+            'shelf_life_months' => 36,
+            'registration_or_import_license' => 'VD-12345-26',
+        ]);
+    }
+
     public function test_localized_thousands_separators_are_not_imported_as_decimals(): void
     {
         $search = $this->storedSearch();
