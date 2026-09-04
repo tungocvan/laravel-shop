@@ -124,12 +124,14 @@ class ContractorKqlcntExportService
             $lotNo = trim((string) ($row[3] ?? ''));
             if ($lotNo === '') {
                 $unkeyed[] = $row;
+
                 continue;
             }
 
             $key = $this->lotKey($row[0] ?? null, $lotNo);
             if (! isset($merged[$key])) {
                 $merged[$key] = $row;
+
                 continue;
             }
 
@@ -254,8 +256,6 @@ class ContractorKqlcntExportService
 
     private function wholeNumber(mixed $value): ?int
     {
-        $number = $this->number($value);
-
-        return $number === null ? null : max(0, (int) round($number));
+        return is_numeric($value) ? (int) round((float) $value) : null;
     }
 }
