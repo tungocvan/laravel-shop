@@ -15,8 +15,10 @@ use Modules\Muasamcong\Models\KqlcntImportBatch;
 use Modules\Muasamcong\Models\KqlcntRecord;
 use Modules\Muasamcong\Services\ContractorAwardCatalogService;
 use Modules\Muasamcong\Services\ContractorAwardEnrichmentService;
+use Modules\Muasamcong\Services\ContractorAwardPersistenceService;
 use Modules\Muasamcong\Services\ContractorKqlcntExportService;
 use Modules\Muasamcong\Services\KqlcntHistoricalImportService;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
 
@@ -143,6 +145,23 @@ class ContractorKqlcntRecoveryController extends Controller
         return redirect()->route('muasamcong.contractors.kqlcnt-recovery', $contractorSearch)->with('status', $message);
     }
 
+    public function persist(ContractorSearch $contractorSearch, string $notifyNo, ContractorAwardPersistenceService $persistence): RedirectResponse
+    {
+        $this->assertNotifyScope($contractorSearch, $notifyNo);
+
+        try {
+            $result = $persistence->persist($contractorSearch, $notifyNo);
+        } catch (RuntimeException $e) {
+            return redirect()->route('muasamcong.contractors.kqlcnt-recovery', $contractorSearch)
+                ->withErrors(['award_persistence' => $e->getMessage()]);
+        }
+
+        $message = 'Đã đồng bộ '.number_format($result['count']).' dòng trúng thầu của '.$notifyNo.' vào CSDL quản trị.';
+        $message .= ' Mới '.number_format($result['created']).', cập nhật '.number_format($result['updated']).', không đổi '.number_format($result['unchanged']).'.';
+
+        return redirect()->route('muasamcong.contractors.kqlcnt-recovery', $contractorSearch)->with('status', $message);
+    }
+
     public function export(Request $request, ContractorSearch $contractorSearch, ContractorKqlcntExportService $exporter): BinaryFileResponse
     {
         $validated = $request->validate(['notify_nos' => ['nullable', 'array', 'max:5000'], 'notify_nos.*' => ['required', 'string', 'max:64']]);
@@ -159,6 +178,16 @@ class ContractorKqlcntRecoveryController extends Controller
             ->where('contractor_code', $search->contractor_code)
             ->whereIn('notify_no', $notifyNos)
             ->get(['notify_no', 'lot_no', 'medicine_code', 'medicine_name', 'active_ingredient', 'quantity', 'winning_price']);
+        $warehouseRows = KqlcntAwardItem::query()
+            ->where('contractor_code', $search->contractor_code)
+            ->whereIn('notify_no', $notifyNos)
+            ->where('is_active', true)
+            ->whereNotNull('synced_from_catalog_at')
+            ->get(['notify_no', 'synced_from_catalog_at']);
+        $warehouseCounts = $warehouseRows->groupBy('notify_no')->map(fn (Collection $rows): int => $rows->count());
+        $warehouseSyncedAt = $warehouseRows->groupBy('notify_no')->map(
+            fn (Collection $rows) => $rows->sortByDesc('synced_from_catalog_at')->first()?->synced_from_catalog_at
+        );
         $catalogRows = $catalog->rows($search->contractor_code, $notifyNos);
 
         $detailCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importRows, $catalogRows): array {
@@ -181,8 +210,15 @@ class ContractorKqlcntRecoveryController extends Controller
         });
 
         return view('Muasamcong::contractor-kqlcnt-recovery', [
-            'contractorSearch' => $search, 'items' => $items, 'records' => $records, 'detailCounts' => $detailCounts,
-            'enrichedCounts' => $enrichedCounts, 'batch' => $batch, 'fieldLabels' => $importer->fieldLabels(),
+            'contractorSearch' => $search,
+            'items' => $items,
+            'records' => $records,
+            'detailCounts' => $detailCounts,
+            'enrichedCounts' => $enrichedCounts,
+            'warehouseCounts' => $warehouseCounts,
+            'warehouseSyncedAt' => $warehouseSyncedAt,
+            'batch' => $batch,
+            'fieldLabels' => $importer->fieldLabels(),
         ]);
     }
 
