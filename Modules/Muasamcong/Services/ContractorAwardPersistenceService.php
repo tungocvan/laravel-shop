@@ -14,9 +14,10 @@ class ContractorAwardPersistenceService
 {
     private const FIELDS = [
         'contractor_name', 'lot_no', 'lot_name', 'medicine_code', 'medicine_name', 'drug_group',
-        'active_ingredient', 'concentration', 'route', 'dosage_form', 'unit', 'quantity', 'price_plan',
-        'winning_price', 'amount', 'manufacturer', 'country', 'decision_no', 'decision_date', 'published_at',
-        'investor_code', 'investor_name', 'contract_no',
+        'active_ingredient', 'concentration', 'route', 'dosage_form', 'packaging_spec', 'shelf_life_months',
+        'registration_or_import_license', 'unit', 'quantity', 'price_plan', 'winning_price', 'amount',
+        'manufacturer', 'country', 'decision_no', 'decision_date', 'published_at', 'investor_code',
+        'investor_name', 'contract_no',
     ];
 
     public function __construct(private readonly ContractorAwardCatalogService $catalog) {}
@@ -204,6 +205,9 @@ class ContractorAwardPersistenceService
         $normalized['investor_code'] = $normalized['investor_code'] ?: $record?->investor_code;
         $normalized['investor_name'] = $normalized['investor_name'] ?: $record?->investor_name;
         $normalized['contract_no'] = $normalized['contract_no'] ?: $singleContractNo;
+        $normalized['shelf_life_months'] = is_numeric($normalized['shelf_life_months'])
+            ? max(0, (int) round((float) $normalized['shelf_life_months']))
+            : null;
 
         if (! $this->filled($normalized['amount']) && is_numeric($normalized['quantity']) && is_numeric($normalized['winning_price'])) {
             $normalized['amount'] = (float) $normalized['quantity'] * (float) $normalized['winning_price'];
@@ -232,7 +236,10 @@ class ContractorAwardPersistenceService
                 'active_ingredient' => $data['active_ingredient'] ?? $data['tenHoatChat'] ?? null,
                 'concentration' => $data['concentration'] ?? $data['nongDo'] ?? null,
                 'route' => $data['route'] ?? $data['duongDung'] ?? null,
-                'dosage_form' => $data['dosage_form'] ?? $data['dangBaoChe'] ?? null,
+                'dosage_form' => $data['dosage_form'] ?? $data['dosageForm'] ?? $data['dangBaoChe'] ?? null,
+                'packaging_spec' => $data['packaging_spec'] ?? $data['packagingSpec'] ?? $data['packing'] ?? $data['quyCach'] ?? $data['quyCachDongGoi'] ?? null,
+                'shelf_life_months' => $data['shelf_life_months'] ?? $data['shelfLifeMonths'] ?? $data['hanDungThang'] ?? $data['hanDung'] ?? null,
+                'registration_or_import_license' => $data['registration_or_import_license'] ?? $data['registrationNo'] ?? $data['registrationNumber'] ?? $data['gdkLH'] ?? $data['gpnk'] ?? $data['soDangKy'] ?? null,
                 'unit' => $data['unit'] ?? $data['uom'] ?? $data['donViTinh'] ?? null,
                 'quantity' => $data['quantity'] ?? null,
                 'price_plan' => $data['price_plan'] ?? $data['pricePlan'] ?? null,
