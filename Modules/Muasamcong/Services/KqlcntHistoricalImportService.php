@@ -20,31 +20,11 @@ class KqlcntHistoricalImportService
     public function fieldLabels(): array
     {
         return [
-            'notify_no' => 'Mã TBMT',
-            'contractor_code' => 'Mã nhà thầu',
-            'contractor_name' => 'Tên nhà thầu',
-            'lot_no' => 'Mã lô',
-            'lot_name' => 'Tên lô',
-            'medicine_code' => 'Mã thuốc',
-            'medicine_name' => 'Tên thuốc',
-            'drug_group' => 'Nhóm thuốc',
-            'active_ingredient' => 'Hoạt chất',
-            'concentration' => 'Nồng độ / Hàm lượng',
-            'route' => 'Đường dùng',
-            'dosage_form' => 'Dạng bào chế',
-            'unit' => 'Đơn vị tính',
-            'quantity' => 'Số lượng',
-            'price_plan' => 'Giá kế hoạch',
-            'winning_price' => 'Giá trúng thầu',
-            'amount' => 'Thành tiền',
-            'manufacturer' => 'Cơ sở sản xuất',
-            'country' => 'Nước sản xuất',
-            'decision_no' => 'Số quyết định',
-            'decision_date' => 'Ngày quyết định',
-            'published_at' => 'Ngày đăng KQLCNT',
-            'investor_code' => 'Mã chủ đầu tư',
-            'investor_name' => 'Chủ đầu tư / Bên mời thầu',
-            'contract_no' => 'Số hợp đồng',
+            'notify_no' => 'Mã TBMT', 'contractor_code' => 'Mã nhà thầu', 'contractor_name' => 'Tên nhà thầu', 'lot_no' => 'Mã lô', 'lot_name' => 'Tên lô',
+            'medicine_code' => 'Mã thuốc', 'medicine_name' => 'Tên thuốc', 'drug_group' => 'Nhóm thuốc', 'active_ingredient' => 'Hoạt chất', 'concentration' => 'Nồng độ / Hàm lượng',
+            'route' => 'Đường dùng', 'dosage_form' => 'Dạng bào chế', 'unit' => 'Đơn vị tính', 'quantity' => 'Số lượng', 'price_plan' => 'Giá kế hoạch',
+            'winning_price' => 'Giá trúng thầu', 'amount' => 'Thành tiền', 'manufacturer' => 'Cơ sở sản xuất', 'country' => 'Nước sản xuất', 'decision_no' => 'Số quyết định',
+            'decision_date' => 'Ngày quyết định', 'published_at' => 'Ngày đăng KQLCNT', 'investor_code' => 'Mã chủ đầu tư', 'investor_name' => 'Chủ đầu tư / Bên mời thầu', 'contract_no' => 'Số hợp đồng',
         ];
     }
 
@@ -54,16 +34,13 @@ class KqlcntHistoricalImportService
         $sheet = $spreadsheet->getSheetByName('Danh_muc_trung_thau') ?? $spreadsheet->getActiveSheet();
         $rows = $sheet->toArray(null, true, true, false);
         $rows = array_values(array_filter($rows, fn (array $row): bool => collect($row)->filter(fn ($value) => $value !== null && trim((string) $value) !== '')->isNotEmpty()));
-
         if (count($rows) < 2) {
             throw new RuntimeException('File không có đủ tiêu đề và dữ liệu để import.');
         }
-
         $headers = array_map(fn ($value): string => trim((string) $value), array_shift($rows));
         if (count($rows) > self::MAX_ROWS) {
             throw new RuntimeException('File vượt quá giới hạn '.self::MAX_ROWS.' dòng cho một lần import.');
         }
-
         $normalizedRows = [];
         foreach ($rows as $row) {
             $item = [];
@@ -92,7 +69,6 @@ class KqlcntHistoricalImportService
         $allowedNotifyNos = $search->items()->pluck('notify_no')->map(fn ($value) => trim((string) $value))->filter()->flip();
         $rows = [];
         $counts = ['valid' => 0, 'duplicate' => 0, 'conflict' => 0, 'error' => 0];
-
         foreach ((array) $batch->raw_rows as $index => $raw) {
             $normalized = $this->mapRow((array) $raw, $mapping, $search, $targetNotifyNo);
             $errors = [];
@@ -104,7 +80,6 @@ class KqlcntHistoricalImportService
             if ($normalized['medicine_name'] === '' && $normalized['lot_no'] === '' && $normalized['medicine_code'] === '') {
                 $errors[] = 'Thiếu thông tin nhận dạng thuốc/lô';
             }
-
             $status = 'new';
             if ($errors !== []) {
                 $status = 'error';
@@ -112,12 +87,7 @@ class KqlcntHistoricalImportService
             } else {
                 $normalized['identity_key'] = $this->identityKey($normalized);
                 $normalized['fingerprint'] = $this->fingerprint($normalized);
-                $existing = KqlcntAwardItem::query()
-                    ->where('notify_no', $normalized['notify_no'])
-                    ->where('contractor_code', $normalized['contractor_code'])
-                    ->where('identity_key', $normalized['identity_key'])
-                    ->first();
-
+                $existing = KqlcntAwardItem::query()->where('notify_no', $normalized['notify_no'])->where('contractor_code', $normalized['contractor_code'])->where('identity_key', $normalized['identity_key'])->first();
                 if ($existing) {
                     $status = hash_equals($existing->fingerprint, $normalized['fingerprint']) ? 'duplicate' : 'conflict';
                     $counts[$status]++;
@@ -125,23 +95,11 @@ class KqlcntHistoricalImportService
                     $counts['valid']++;
                 }
             }
-
-            $rows[] = [
-                'row' => $index + 2,
-                'status' => $status,
-                'errors' => $errors,
-                'data' => $normalized,
-            ];
+            $rows[] = ['row' => $index + 2, 'status' => $status, 'errors' => $errors, 'data' => $normalized];
         }
-
         $batch->update([
-            'status' => 'previewed',
-            'mapping' => $mapping,
-            'preview_rows' => $rows,
-            'valid_rows' => $counts['valid'],
-            'duplicate_rows' => $counts['duplicate'],
-            'conflict_rows' => $counts['conflict'],
-            'error_rows' => $counts['error'],
+            'status' => 'previewed', 'mapping' => $mapping, 'preview_rows' => $rows,
+            'valid_rows' => $counts['valid'], 'duplicate_rows' => $counts['duplicate'], 'conflict_rows' => $counts['conflict'], 'error_rows' => $counts['error'],
         ]);
 
         return $batch->fresh();
@@ -152,13 +110,11 @@ class KqlcntHistoricalImportService
         if ($batch->status !== 'previewed') {
             throw new RuntimeException('Batch import chưa được preview.');
         }
-
         foreach ((array) $batch->preview_rows as $preview) {
             $status = $preview['status'] ?? 'error';
             if (in_array($status, ['error', 'duplicate'], true) || ($status === 'conflict' && ! $overwriteConflicts)) {
                 continue;
             }
-
             $data = (array) ($preview['data'] ?? []);
             $payload = collect($data)->only(array_keys($this->fieldLabels()))->all();
             $payload['identity_key'] = $data['identity_key'];
@@ -166,23 +122,15 @@ class KqlcntHistoricalImportService
             $payload['source'] = 'import';
             $payload['import_batch_id'] = $batch->id;
             $payload['raw_payload'] = $data['raw_payload'] ?? [];
-
             KqlcntAwardItem::query()->updateOrCreate([
-                'notify_no' => $data['notify_no'],
-                'contractor_code' => $data['contractor_code'],
-                'identity_key' => $data['identity_key'],
+                'notify_no' => $data['notify_no'], 'contractor_code' => $data['contractor_code'], 'identity_key' => $data['identity_key'],
             ], $payload);
-
             $record = KqlcntRecord::query()->firstOrCreate([
-                'contractor_code' => $data['contractor_code'],
-                'notify_no' => $data['notify_no'],
+                'contractor_code' => $data['contractor_code'], 'notify_no' => $data['notify_no'],
             ], [
                 'contractor_name' => $data['contractor_name'] ?: $batch->search?->contractor_name,
-                'published' => false,
-                'current_contractor_won' => true,
-                'data_source' => 'import',
+                'published' => false, 'current_contractor_won' => true, 'data_source' => 'import',
             ]);
-
             $record->data_source = $record->data_source === 'api' ? 'mixed' : ($record->data_source ?: 'import');
             $record->last_import_batch_id = $batch->id;
             $record->imported_at = now();
@@ -191,12 +139,7 @@ class KqlcntHistoricalImportService
             }
             $record->save();
         }
-
-        $batch->update([
-            'status' => 'confirmed',
-            'confirmed_at' => now(),
-            'raw_rows' => null,
-        ]);
+        $batch->update(['status' => 'confirmed', 'confirmed_at' => now(), 'raw_rows' => null]);
 
         return $batch->fresh();
     }
@@ -222,7 +165,7 @@ class KqlcntHistoricalImportService
             'winning_price' => ['giá trúng thầu', 'gia trung thau', 'giá trúng'],
             'amount' => ['thành tiền', 'thanh tien'],
             'manufacturer' => ['cơ sở sản xuất', 'nhà sản xuất', 'nha sx'],
-            'country' => ['nước sản xuất', 'nuoc san xuat'],
+            'country' => ['nước sản xuất', 'nuoc san xuat', 'nước sx', 'nuoc sx'],
             'decision_no' => ['số quyết định', 'so quyet dinh'],
             'decision_date' => ['ngày quyết định', 'ngay quyet dinh'],
             'published_at' => ['ngày đăng kqlcnt', 'ngay dang kqlcnt'],
@@ -230,7 +173,6 @@ class KqlcntHistoricalImportService
             'investor_name' => ['chủ đầu tư / bên mời thầu', 'chủ đầu tư', 'ben moi thau'],
             'contract_no' => ['số hợp đồng', 'so hop dong'],
         ];
-
         $mapping = [];
         foreach ($headers as $header) {
             $needle = mb_strtolower(trim((string) $header));
@@ -252,7 +194,6 @@ class KqlcntHistoricalImportService
             $header = $mapping[$field] ?? null;
             $data[$field] = $header ? trim((string) ($raw[$header] ?? '')) : '';
         }
-
         $data['notify_no'] = trim((string) ($targetNotifyNo ?: $data['notify_no']));
         $data['contractor_code'] = mb_strtolower(trim($data['contractor_code'] ?: (string) $search->contractor_code));
         $data['contractor_name'] = $data['contractor_name'] ?: (string) $search->contractor_name;
@@ -271,11 +212,7 @@ class KqlcntHistoricalImportService
 
     private function identityKey(array $data): string
     {
-        $identity = $data['lot_no'] ?: ($data['medicine_code'] ?: implode('|', [
-            Str::lower($data['medicine_name']),
-            Str::lower($data['active_ingredient']),
-            Str::lower($data['concentration']),
-        ]));
+        $identity = $data['lot_no'] ?: ($data['medicine_code'] ?: implode('|', [Str::lower($data['medicine_name']), Str::lower($data['active_ingredient']), Str::lower($data['concentration'])]));
 
         return hash('sha256', $data['notify_no'].'|'.$data['contractor_code'].'|'.$identity);
     }
