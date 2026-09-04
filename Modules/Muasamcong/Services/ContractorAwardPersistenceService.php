@@ -19,9 +19,7 @@ class ContractorAwardPersistenceService
         'investor_code', 'investor_name', 'contract_no',
     ];
 
-    public function __construct(private readonly ContractorAwardCatalogService $catalog)
-    {
-    }
+    public function __construct(private readonly ContractorAwardCatalogService $catalog) {}
 
     /**
      * Persist the current logical award state into the canonical award warehouse.
