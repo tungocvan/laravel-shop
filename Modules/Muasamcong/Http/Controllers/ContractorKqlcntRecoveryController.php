@@ -224,37 +224,47 @@ class ContractorKqlcntRecoveryController extends Controller
 
     private function logicalKeys(Collection $rows): Collection
     {
-        return $rows->values()->map(function ($row, int $index): string {
-            $get = fn (string $key) => is_array($row) ? ($row[$key] ?? null) : $row->{$key};
-            $lotNo = trim((string) $get('lot_no'));
-            if ($lotNo !== '') {
-                return 'lot:'.mb_strtoupper($lotNo);
-            }
-            $medicineCode = trim((string) $get('medicine_code'));
-            if ($medicineCode !== '') {
-                return 'medicine:'.mb_strtoupper($medicineCode);
-            }
-            $parts = [trim((string) $get('medicine_name')), trim((string) $get('active_ingredient')), (string) $get('quantity'), (string) $get('winning_price')];
-
-            return 'fallback:'.hash('sha256', implode('|', $parts)).':'.$index;
-        });
+        return $rows->values()->map(fn ($row) => $this->logicalKey([
+            'lot_no' => is_array($row) ? ($row['lot_no'] ?? null) : $row->lot_no,
+            'medicine_code' => is_array($row) ? ($row['medicine_code'] ?? null) : $row->medicine_code,
+            'medicine_name' => is_array($row) ? ($row['medicine_name'] ?? null) : $row->medicine_name,
+            'active_ingredient' => is_array($row) ? ($row['active_ingredient'] ?? null) : $row->active_ingredient,
+            'concentration' => is_array($row) ? ($row['concentration'] ?? null) : ($row->concentration ?? null),
+        ]));
     }
 
     private function snapshotKeys(array $rows): Collection
     {
-        return collect($rows)->values()->map(function ($row, int $index): string {
+        return collect($rows)->values()->map(function ($row): ?string {
             $row = is_array($row) ? $row : [];
-            $lotNo = trim((string) ($row['lot_no'] ?? $row['lotNo'] ?? ''));
-            if ($lotNo !== '') {
-                return 'lot:'.mb_strtoupper($lotNo);
-            }
-            $medicineCode = trim((string) ($row['medicine_code'] ?? $row['medicineCode'] ?? $row['maThuoc'] ?? ''));
-            if ($medicineCode !== '') {
-                return 'medicine:'.mb_strtoupper($medicineCode);
-            }
 
-            return 'snapshot:'.$index;
+            return $this->logicalKey([
+                'lot_no' => $row['lot_no'] ?? $row['lotNo'] ?? null,
+                'medicine_code' => $row['medicine_code'] ?? $row['medicineCode'] ?? $row['maThuoc'] ?? null,
+                'medicine_name' => $row['medicine_name'] ?? $row['medicineName'] ?? $row['tenThuoc'] ?? null,
+                'active_ingredient' => $row['active_ingredient'] ?? $row['tenHoatChat'] ?? null,
+                'concentration' => $row['concentration'] ?? $row['nongDo'] ?? null,
+            ]);
         });
+    }
+
+    private function logicalKey(array $row): ?string
+    {
+        $lotNo = trim((string) ($row['lot_no'] ?? ''));
+        if ($lotNo !== '') {
+            return 'lot:'.mb_strtoupper($lotNo);
+        }
+
+        $medicineCode = trim((string) ($row['medicine_code'] ?? ''));
+        if ($medicineCode !== '') {
+            return 'medicine:'.mb_strtoupper($medicineCode);
+        }
+
+        $parts = collect(['medicine_name', 'active_ingredient', 'concentration'])
+            ->map(fn (string $field): string => mb_strtolower(trim((string) ($row[$field] ?? ''))))
+            ->filter();
+
+        return $parts->isEmpty() ? null : 'medicine:'.hash('sha256', $parts->implode('|'));
     }
 
     private function supplementRows(ContractorSearch $search, string $notifyNo, ContractorAwardCatalogService $catalog, ?KqlcntRecord $record): array
