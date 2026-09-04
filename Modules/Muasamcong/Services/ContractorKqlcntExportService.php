@@ -33,155 +33,77 @@ class ContractorKqlcntExportService
 
         $savedCatalog = $this->catalog->rows($search->contractor_code, $notifyNos);
 
-        $normalizedKeys = $awardItems
-            ->filter(fn ($item) => trim((string) $item->lot_no) !== '')
-            ->map(fn ($item) => $this->lotKey($item->notify_no, $item->lot_no))
-            ->flip();
-
-        $savedCatalog = $savedCatalog
-            ->reject(fn (array $row) => trim((string) ($row['lot_no'] ?? '')) !== ''
-                && isset($normalizedKeys[$this->lotKey($row['notify_no'] ?? null, $row['lot_no'] ?? null)]))
-            ->values();
-
-        $savedKeys = $savedCatalog
-            ->filter(fn (array $row) => trim((string) ($row['lot_no'] ?? '')) !== '')
-            ->map(fn (array $row) => $this->lotKey($row['notify_no'] ?? null, $row['lot_no'] ?? null))
-            ->flip();
-
-        $snapshotRows = $this->snapshotApiRows($records, $search, $normalizedKeys, $savedKeys);
-
-        $savedRows = $savedCatalog->map(fn (array $row): array => [
-            $row['notify_no'] ?? null,
-            $row['contractor_code'] ?? $search->contractor_code,
-            $row['contractor_name'] ?? $search->contractor_name,
-            $row['lot_no'] ?? null,
-            $row['lot_name'] ?? null,
-            $row['medicine_code'] ?? null,
-            $row['medicine_name'] ?? null,
-            $row['drug_group'] ?? null,
-            $row['active_ingredient'] ?? null,
-            $row['concentration'] ?? null,
-            $row['route'] ?? null,
-            $row['dosage_form'] ?? null,
-            $row['unit'] ?? null,
-            $row['quantity'] ?? null,
-            $row['price_plan'] ?? null,
-            $row['winning_price'] ?? null,
-            $row['amount'] ?? null,
-            $row['manufacturer'] ?? null,
-            $row['country'] ?? null,
-            $row['decision_no'] ?? null,
-            $row['decision_date'] ?? null,
-            $row['published_at'] ?? null,
-            $row['investor_name'] ?? null,
-            $row['contract_no'] ?? null,
-            $row['source'] ?? 'SAVED',
-            $row['updated_at'] ?? null,
-        ]);
-
+        // Keep both normalized/import rows and the saved canonical catalog. They may
+        // describe the same logical award while carrying complementary fields.
         $importRows = $awardItems->map(fn ($item): array => [
-            $item->notify_no,
-            $item->contractor_code,
-            $item->contractor_name,
-            $item->lot_no,
-            $item->lot_name,
-            $item->medicine_code,
-            $item->medicine_name,
-            $item->drug_group,
-            $item->active_ingredient,
-            $item->concentration,
-            $item->route,
-            $item->dosage_form,
-            $item->unit,
+            $item->notify_no, $item->contractor_code, $item->contractor_name,
+            $item->lot_no, $item->lot_name, $item->medicine_code, $item->medicine_name,
+            $item->drug_group, $item->active_ingredient, $item->concentration, $item->route,
+            $item->dosage_form, $item->unit,
             $item->quantity !== null ? (float) $item->quantity : null,
             $item->price_plan !== null ? (float) $item->price_plan : null,
             $item->winning_price !== null ? (float) $item->winning_price : null,
             $item->amount !== null ? (float) $item->amount : null,
-            $item->manufacturer,
-            $item->country,
-            $item->decision_no,
-            $item->decision_date?->format('Y-m-d'),
-            $item->published_at?->format('Y-m-d H:i:s'),
-            $item->investor_name,
-            $item->contract_no,
-            strtoupper($item->source),
+            $item->manufacturer, $item->country, $item->decision_no,
+            $item->decision_date?->format('Y-m-d'), $item->published_at?->format('Y-m-d H:i:s'),
+            $item->investor_name, $item->contract_no, strtoupper($item->source),
             $item->updated_at?->format('Y-m-d H:i:s'),
         ]);
 
-        $detailRows = $importRows
-            ->concat($savedRows)
-            ->concat($snapshotRows)
-            ->map(fn (array $row): array => $this->withCalculatedAmount($row))
+        $savedRows = $savedCatalog->map(fn (array $row): array => [
+            $row['notify_no'] ?? null, $row['contractor_code'] ?? $search->contractor_code,
+            $row['contractor_name'] ?? $search->contractor_name, $row['lot_no'] ?? null,
+            $row['lot_name'] ?? null, $row['medicine_code'] ?? null, $row['medicine_name'] ?? null,
+            $row['drug_group'] ?? null, $row['active_ingredient'] ?? null, $row['concentration'] ?? null,
+            $row['route'] ?? null, $row['dosage_form'] ?? null, $row['unit'] ?? null,
+            $row['quantity'] ?? null, $row['price_plan'] ?? null, $row['winning_price'] ?? null,
+            $row['amount'] ?? null, $row['manufacturer'] ?? null, $row['country'] ?? null,
+            $row['decision_no'] ?? null, $row['decision_date'] ?? null, $row['published_at'] ?? null,
+            $row['investor_name'] ?? null, $row['contract_no'] ?? null, $row['source'] ?? 'SAVED',
+            $row['updated_at'] ?? null,
+        ]);
+
+        $knownKeys = $importRows->concat($savedRows)
+            ->filter(fn (array $row) => trim((string) ($row[3] ?? '')) !== '')
+            ->map(fn (array $row) => $this->lotKey($row[0] ?? null, $row[3] ?? null))->flip();
+        $snapshotRows = $this->snapshotApiRows($records, $search, $knownKeys);
+
+        $detailRows = $this->mergeLogicalAwardRows($importRows->concat($savedRows)->concat($snapshotRows))
+            ->map(fn (array $row): array => $this->enrichDetailRow($this->withCalculatedAmount($row), $records))
             ->values();
 
         $overview = collect($notifyNos)->map(function (string $notifyNo) use ($records, $search, $detailRows): array {
             $record = $records->get($notifyNo);
-            $count = $detailRows->filter(fn (array $row) => ($row[0] ?? null) === $notifyNo)->count();
+            $count = $detailRows->where(0, $notifyNo)->count();
 
-            return [
-                $notifyNo,
-                $search->contractor_code,
-                $search->contractor_name,
-                $record?->bid_name,
-                $record?->investor_name,
-                $record?->status,
-                $record?->published ? 'Có' : 'Không',
-                $record?->current_contractor_won ? 'Có' : 'Không',
-                is_array($record?->contracts) ? count($record->contracts) : 0,
-                $count,
-                strtoupper((string) ($record?->data_source ?: 'unknown')),
-                $record?->synced_at?->format('Y-m-d H:i:s'),
-                $record?->imported_at?->format('Y-m-d H:i:s'),
-            ];
+            return [$notifyNo, $search->contractor_code, $search->contractor_name, $record?->bid_name,
+                $record?->investor_name, $record?->status, $record?->published ? 'Có' : 'Không',
+                $record?->current_contractor_won ? 'Có' : 'Không', is_array($record?->contracts) ? count($record->contracts) : 0,
+                $count, strtoupper((string) ($record?->data_source ?: 'unknown')),
+                $record?->synced_at?->format('Y-m-d H:i:s'), $record?->imported_at?->format('Y-m-d H:i:s')];
         })->all();
 
         $contracts = $records->flatMap(function ($record) use ($detailRows) {
             $recordContracts = collect((array) $record->contracts)->values();
-            $recordDetails = $detailRows->filter(fn (array $row): bool => ($row[0] ?? null) === $record->notify_no)->values();
+            $recordDetails = $detailRows->where(0, $record->notify_no)->values();
             $contractCount = $recordContracts->count();
 
             return $recordContracts->map(function ($contract) use ($record, $recordDetails, $contractCount): array {
                 $contractNo = trim((string) ($contract['contractNo'] ?? ''));
-                $matchedDetails = $contractNo !== ''
-                    ? $recordDetails->filter(fn (array $row): bool => trim((string) ($row[23] ?? '')) === $contractNo)
-                    : collect();
+                $matched = $contractNo !== '' ? $recordDetails->filter(fn (array $row) => trim((string) ($row[23] ?? '')) === $contractNo) : collect();
+                $amount = $matched->isNotEmpty() ? $this->sumAmounts($matched) : ($contractCount === 1 ? $this->sumAmounts($recordDetails) : null);
 
-                if ($matchedDetails->isNotEmpty()) {
-                    $contractAmount = $this->sumAmounts($matchedDetails);
-                } elseif ($contractCount === 1) {
-                    // When this TBMT has exactly one matched contract, all awarded
-                    // lines for the contractor belong to that contract even if the
-                    // detail source did not persist contract_no on each medicine.
-                    $contractAmount = $this->sumAmounts($recordDetails);
-                } else {
-                    // Multiple contracts without line-level contract_no are ambiguous;
-                    // do not duplicate the TBMT total across every contract.
-                    $contractAmount = null;
-                }
-
-                return [
-                    $record->notify_no,
-                    $contract['contractNo'] ?? null,
-                    $record->contractor_code,
-                    $contract['contractorName'] ?? $contract['newContractorName'] ?? null,
-                    $record->investor_name,
-                    $contractAmount,
-                    $contract['contractEffectiveDate'] ?? $contract['startDate'] ?? null,
-                    $contract['endDate'] ?? null,
-                    strtoupper((string) ($record->data_source ?: 'api')),
-                ];
+                return [$record->notify_no, $contract['contractNo'] ?? null, $record->contractor_code,
+                    $contract['contractorName'] ?? $contract['newContractorName'] ?? null, $record->investor_name,
+                    $amount, $contract['contractEffectiveDate'] ?? $contract['startDate'] ?? null,
+                    $contract['endDate'] ?? null, strtoupper((string) ($record->data_source ?: 'api'))];
             });
         })->values()->all();
 
-        $winners = $records->flatMap(function ($record) {
-            return collect((array) $record->all_winners)->map(fn ($winner) => [
-                $record->notify_no,
-                $winner['contractorCode'] ?? null,
-                $winner['contractorName'] ?? null,
-                $winner['contractorAddress'] ?? null,
-                implode('; ', (array) ($winner['contracts'] ?? [])),
-            ]);
-        })->values()->all();
+        $winners = $records->flatMap(fn ($record) => collect((array) $record->all_winners)->map(fn ($winner) => [
+            $record->notify_no, $winner['contractorCode'] ?? null, $winner['contractorName'] ?? null,
+            $winner['contractorAddress'] ?? null, implode('; ', (array) ($winner['contracts'] ?? [])),
+        ]))->values()->all();
 
         $sheets = [
             ['title' => 'Tong_quan_KQLCNT', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Tên gói thầu', 'Chủ đầu tư / BMT', 'Trạng thái', 'Đã công bố', 'Nhà thầu trúng?', 'Số hợp đồng', 'Số lô/thuốc', 'Nguồn dữ liệu', 'Đồng bộ API lúc', 'Import lúc'], 'rows' => $overview],
@@ -190,45 +112,87 @@ class ContractorKqlcntExportService
             ['title' => 'Nha_thau_trung', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Địa chỉ', 'Hợp đồng liên quan'], 'rows' => $winners],
         ];
 
-        $filename = 'KQLCNT-'.$search->contractor_code.'-search-'.$search->id.'-'.now()->format('Ymd-His').'.xlsx';
-
-        return Excel::download(new ContractorKqlcntWorkbookExport($sheets), $filename);
+        return Excel::download(new ContractorKqlcntWorkbookExport($sheets), 'KQLCNT-'.$search->contractor_code.'-search-'.$search->id.'-'.now()->format('Ymd-His').'.xlsx');
     }
 
-    private function snapshotApiRows(Collection $records, ContractorSearch $search, Collection $normalizedKeys, Collection $savedKeys): Collection
+    private function mergeLogicalAwardRows(Collection $rows): Collection
     {
-        return $records->flatMap(function (KqlcntRecord $record) use ($search, $normalizedKeys, $savedKeys): array {
-            $rows = [];
+        $merged = [];
+        $unkeyed = [];
 
+        foreach ($rows as $row) {
+            $lotNo = trim((string) ($row[3] ?? ''));
+            if ($lotNo === '') {
+                $unkeyed[] = $row;
+                continue;
+            }
+
+            $key = $this->lotKey($row[0] ?? null, $lotNo);
+            if (! isset($merged[$key])) {
+                $merged[$key] = $row;
+                continue;
+            }
+
+            // Preserve an existing value, but fill every blank field from the
+            // complementary source. This prevents a sparse import row from hiding
+            // medicine/manufacturer/decision metadata already saved by Smart Pricing.
+            foreach ($row as $index => $value) {
+                if ($this->blank($merged[$key][$index] ?? null) && ! $this->blank($value)) {
+                    $merged[$key][$index] = $value;
+                }
+            }
+
+            $sources = collect([$merged[$key][24] ?? null, $row[24] ?? null])
+                ->filter()->flatMap(fn ($value) => preg_split('/\+/', (string) $value) ?: [])
+                ->map(fn ($value) => trim((string) $value))->filter()->unique()->values();
+            $merged[$key][24] = $sources->implode('+');
+        }
+
+        return collect(array_values($merged))->concat($unkeyed);
+    }
+
+    private function enrichDetailRow(array $row, Collection $records): array
+    {
+        $record = $records->get((string) ($row[0] ?? ''));
+        if (! $record) {
+            return $row;
+        }
+
+        if ($this->blank($row[22] ?? null)) {
+            $row[22] = $record->investor_name;
+        }
+
+        if ($this->blank($row[23] ?? null)) {
+            $contracts = collect((array) $record->contracts)
+                ->pluck('contractNo')->map(fn ($value) => trim((string) $value))->filter()->unique()->values();
+            // A line can only inherit a contract number safely when the TBMT has one
+            // matched contract. Multiple contracts require line-level evidence.
+            if ($contracts->count() === 1) {
+                $row[23] = $contracts->first();
+            }
+        }
+
+        return $row;
+    }
+
+    private function snapshotApiRows(Collection $records, ContractorSearch $search, Collection $knownKeys): Collection
+    {
+        return $records->flatMap(function (KqlcntRecord $record) use ($search, $knownKeys): array {
+            $rows = [];
             foreach ((array) $record->verified_lots as $lot) {
                 if (! is_array($lot)) {
                     continue;
                 }
-
                 $lotNo = trim((string) ($lot['lotNo'] ?? $lot['lotCode'] ?? $lot['id'] ?? ''));
-                if ($lotNo === '') {
+                if ($lotNo === '' || isset($knownKeys[$this->lotKey($record->notify_no, $lotNo)])) {
                     continue;
                 }
-
-                $key = $this->lotKey($record->notify_no, $lotNo);
-                if (isset($normalizedKeys[$key]) || isset($savedKeys[$key])) {
-                    continue;
-                }
-
                 $quantity = $this->number($lot['quantity'] ?? $lot['qty'] ?? null);
                 $pricePlan = $this->number($lot['pricePlan'] ?? $lot['price_plan'] ?? $lot['unitPrice'] ?? null);
                 $winningPrice = $this->number($lot['lotPrice'] ?? $lot['bidWinningPrice'] ?? $lot['winningPrice'] ?? null);
-                $amount = $this->number($lot['amount'] ?? $lot['totalAmount'] ?? null);
-
-                if ($amount === null && $quantity !== null && $winningPrice !== null) {
-                    $amount = $quantity * $winningPrice;
-                }
-
-                $rows[] = [
-                    $record->notify_no,
-                    $lot['contractorCode'] ?? $lot['winningCode'] ?? $record->contractor_code,
-                    $lot['contractorName'] ?? $lot['winningName'] ?? $search->contractor_name,
-                    $lotNo,
+                $amount = $this->number($lot['amount'] ?? $lot['totalAmount'] ?? null) ?? (($quantity !== null && $winningPrice !== null) ? $quantity * $winningPrice : null);
+                $rows[] = [$record->notify_no, $lot['contractorCode'] ?? $lot['winningCode'] ?? $record->contractor_code,
+                    $lot['contractorName'] ?? $lot['winningName'] ?? $search->contractor_name, $lotNo,
                     $lot['lotName'] ?? $lot['medicineName'] ?? $lot['tenThuoc'] ?? null,
                     $lot['medicineCode'] ?? $lot['medicine_code'] ?? $lot['drugCode'] ?? null,
                     $lot['medicineName'] ?? $lot['tenThuoc'] ?? $lot['lotName'] ?? null,
@@ -237,23 +201,13 @@ class ContractorKqlcntExportService
                     $lot['concentration'] ?? $lot['strength'] ?? $lot['hamLuong'] ?? null,
                     $lot['route'] ?? $lot['routeName'] ?? $lot['duongDung'] ?? null,
                     $lot['dosageForm'] ?? $lot['dosage_form'] ?? $lot['dangBaoChe'] ?? null,
-                    $lot['uom'] ?? $lot['unit'] ?? $lot['donViTinh'] ?? null,
-                    $quantity,
-                    $pricePlan,
-                    $winningPrice,
-                    $amount,
+                    $lot['uom'] ?? $lot['unit'] ?? $lot['donViTinh'] ?? null, $quantity, $pricePlan, $winningPrice, $amount,
                     $lot['manufacturer'] ?? $lot['manufacturerName'] ?? $lot['producerName'] ?? null,
-                    $lot['country'] ?? $lot['countryName'] ?? null,
-                    $lot['decisionNo'] ?? $lot['decision_no'] ?? null,
-                    $lot['decisionDate'] ?? $lot['decision_date'] ?? null,
-                    $lot['publishedAt'] ?? $lot['published_at'] ?? null,
-                    $lot['investorName'] ?? $record->investor_name,
-                    $lot['contractNo'] ?? $lot['contract_no'] ?? null,
-                    'API',
-                    $record->synced_at?->format('Y-m-d H:i:s'),
-                ];
+                    $lot['country'] ?? $lot['countryName'] ?? null, $lot['decisionNo'] ?? $lot['decision_no'] ?? null,
+                    $lot['decisionDate'] ?? $lot['decision_date'] ?? null, $lot['publishedAt'] ?? $lot['published_at'] ?? null,
+                    $lot['investorName'] ?? $record->investor_name, $lot['contractNo'] ?? $lot['contract_no'] ?? null,
+                    'API', $record->synced_at?->format('Y-m-d H:i:s')];
             }
-
             return $rows;
         })->values();
     }
@@ -263,26 +217,25 @@ class ContractorKqlcntExportService
         $amount = $this->number($row[16] ?? null);
         if ($amount !== null) {
             $row[16] = $amount;
-
             return $row;
         }
-
         $quantity = $this->number($row[13] ?? null);
         $winningPrice = $this->number($row[15] ?? null);
         if ($quantity !== null && $winningPrice !== null) {
             $row[16] = $quantity * $winningPrice;
         }
-
         return $row;
     }
 
     private function sumAmounts(Collection $rows): ?float
     {
-        $amounts = $rows
-            ->map(fn (array $row): ?float => $this->number($row[16] ?? null))
-            ->filter(fn (?float $amount): bool => $amount !== null);
-
+        $amounts = $rows->map(fn (array $row): ?float => $this->number($row[16] ?? null))->filter(fn (?float $amount): bool => $amount !== null);
         return $amounts->isEmpty() ? null : (float) $amounts->sum();
+    }
+
+    private function blank(mixed $value): bool
+    {
+        return $value === null || (is_string($value) && trim($value) === '');
     }
 
     private function lotKey(mixed $notifyNo, mixed $lotNo): string
