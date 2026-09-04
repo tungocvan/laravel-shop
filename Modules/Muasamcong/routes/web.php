@@ -45,6 +45,7 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         'permission:muasamcong.pricing.sync,admin',
     ])->group(function () {
         Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/enrich', [ContractorKqlcntRecoveryController::class, 'enrich'])->name('contractors.kqlcnt-recovery.enrich');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{notifyNo}/persist', [ContractorKqlcntRecoveryController::class, 'persist'])->name('contractors.kqlcnt-recovery.persist');
         Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/upload', [ContractorKqlcntRecoveryController::class, 'upload'])->name('contractors.kqlcnt-recovery.upload');
         Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{notifyNo}/supplement/upload', [ContractorKqlcntRecoveryController::class, 'supplementUpload'])->name('contractors.kqlcnt-recovery.supplement.upload');
         Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery/{batch}', [ContractorKqlcntRecoveryController::class, 'batch'])->whereNumber('batch')->name('contractors.kqlcnt-recovery.batch');
