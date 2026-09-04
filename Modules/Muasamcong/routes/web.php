@@ -23,6 +23,7 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
         Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
         Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery', [ContractorKqlcntRecoveryController::class, 'index'])->name('contractors.kqlcnt-recovery');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery/template', [ContractorKqlcntRecoveryController::class, 'template'])->name('contractors.kqlcnt-recovery.template');
         Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/export', [ContractorKqlcntRecoveryController::class, 'export'])->name('contractors.kqlcnt-recovery.export');
         Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', [MuasamcongController::class, 'manualContractorLots'])->name('contractors.manual-lots.show');
         Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', [MuasamcongController::class, 'downloadManualContractorLots'])->name('contractors.manual-lots.download');
