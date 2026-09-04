@@ -7,13 +7,14 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
 
-class KqlcntArraySheetExport implements FromArray, WithHeadings, WithTitle, ShouldAutoSize
+class KqlcntArraySheetExport implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
 {
     public function __construct(
         private readonly string $title,
         private readonly array $headings,
         private readonly array $rows,
-    ) {}
+    ) {
+    }
 
     public function array(): array
     {
