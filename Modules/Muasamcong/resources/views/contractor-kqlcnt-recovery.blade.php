@@ -30,7 +30,7 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-bold text-gray-900">Export KQLCNT đã lưu</h2>
-                    <p class="text-sm text-gray-500">Có chọn checkbox: export phần chọn. Không chọn: export toàn bộ lịch sử.</p>
+                    <p class="text-sm text-gray-500">Có chọn checkbox: export phần chọn. Không chọn: export toàn bộ lịch sử. Đồng bộ chi tiết yêu cầu chọn tối thiểu một TBMT.</p>
                 </div>
             </div>
             <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.export', $contractorSearch) }}" class="mt-4">
@@ -53,6 +53,7 @@
                             @php($record = $records->get($item->notify_no))
                             @php($investorName = $record?->investor_name ?: data_get($item->raw_payload, 'investorName') ?: data_get($item->raw_payload, 'procuringEntityName'))
                             @php($detailCount = (int) ($detailCounts[$item->notify_no] ?? 0))
+                            @php($enrichedCount = (int) ($enrichedCounts[$item->notify_no] ?? 0))
                             @php($source = strtolower((string) ($record?->data_source ?: '')))
                             <tr>
                                 <td class="px-4 py-3"><input type="checkbox" name="notify_nos[]" value="{{ $item->notify_no }}" class="rounded border-gray-300"></td>
@@ -69,12 +70,17 @@
                                         <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">THIẾU KQLCNT</span>
                                     @elseif ($source === 'api' && $detailCount === 0)
                                         <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">API · THIẾU DANH MỤC</span>
+                                    @elseif ($source === 'api' && $enrichedCount < $detailCount)
+                                        <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">API · CÓ DANH MỤC · THIẾU CHI TIẾT</span>
                                     @elseif ($source === 'api')
                                         <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">API · CÓ DANH MỤC</span>
                                     @elseif ($source === 'mixed')
                                         <span class="rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">MIXED</span>
                                     @else
                                         <span class="rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">{{ strtoupper($source ?: 'IMPORT') }}</span>
+                                    @endif
+                                    @if ($detailCount > 0)
+                                        <div class="mt-1 text-xs text-gray-400">Chi tiết đầy đủ: {{ number_format($enrichedCount) }}/{{ number_format($detailCount) }}</div>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right font-semibold {{ $detailCount > 0 ? 'text-emerald-700' : 'text-amber-700' }}">{{ number_format($detailCount) }}</td>
@@ -86,7 +92,14 @@
                         </tbody>
                     </table>
                 </div>
-                <button class="mt-4 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">Xuất Excel KQLCNT</button>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">Xuất Excel KQLCNT</button>
+                    <button type="submit"
+                            formaction="{{ route('muasamcong.contractors.kqlcnt-recovery.enrich', $contractorSearch) }}"
+                            class="rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                        Đồng bộ chi tiết KQLCNT đã chọn
+                    </button>
+                </div>
             </form>
         </section>
 
@@ -107,7 +120,7 @@
                 <p><strong>Cách dùng:</strong> tải mẫu → điền danh mục trúng thầu → chọn file → kiểm tra mapping cột → Preview → Xác nhận Import.</p>
                 <p>Ưu tiên sheet <strong>Danh_muc_trung_thau</strong>. Nếu file chỉ có dữ liệu của một TBMT, ở bước mapping có thể chọn cố định Mã TBMT.</p>
                 <p>Import chỉ bổ sung/phục hồi dữ liệu đã lưu; không gọi lại API và không tự xóa snapshot API hiện có. File tối đa 10 MB / 5.000 dòng.</p>
-                <p>TBMT có badge <strong>API · THIẾU DANH MỤC</strong> là trường hợp phù hợp để phục hồi bằng Import.</p>
+                <p>TBMT có badge <strong>API · THIẾU DANH MỤC</strong> hoặc <strong>THIẾU CHI TIẾT</strong> có thể thử đồng bộ chi tiết trước; chỉ Import khi nguồn không còn dữ liệu.</p>
             </div>
         </section>
     </div>
