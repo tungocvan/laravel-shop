@@ -23,6 +23,34 @@
         <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><ul class="list-disc pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     @endif
 
+    @if ($batch?->status === 'previewed')
+        <section id="batch-preview" class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-5 shadow-sm">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Chưa ghi vào cơ sở dữ liệu</p>
+                    <h2 class="mt-1 text-lg font-bold text-gray-900">Batch #{{ $batch->id }} đã Preview xong</h2>
+                    <p class="mt-1 text-sm text-gray-700">
+                        Có <strong>{{ number_format($batch->valid_rows) }} dòng hợp lệ</strong>,
+                        {{ number_format($batch->conflict_rows) }} conflict và {{ number_format($batch->error_rows) }} lỗi.
+                        Dữ liệu chỉ được cập nhật sau khi bấm nút xác nhận bên cạnh.
+                    </p>
+                </div>
+                <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.confirm', [$contractorSearch, $batch]) }}" class="shrink-0">
+                    @csrf
+                    @if ($batch->conflict_rows > 0)
+                        <label class="mb-2 flex items-center gap-2 text-xs text-gray-700">
+                            <input type="checkbox" name="overwrite_conflicts" value="1" class="rounded border-gray-300">
+                            Cho phép ghi đè {{ number_format($batch->conflict_rows) }} conflict
+                        </label>
+                    @endif
+                    <button class="w-full rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-700">
+                        Xác nhận & lưu {{ number_format($batch->valid_rows + $batch->conflict_rows) }} dòng
+                    </button>
+                </form>
+            </div>
+        </section>
+    @endif
+
     <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -102,17 +130,32 @@
                 <div><h2 class="text-lg font-bold text-gray-900">Batch #{{ $batch->id }} · {{ $batch->original_name }}</h2><p class="text-sm text-gray-500">Trạng thái: {{ strtoupper($batch->status) }} · {{ number_format($batch->total_rows) }} dòng</p></div>
                 @if ($batch->status === 'previewed')<div class="flex flex-wrap gap-2 text-xs font-semibold"><span class="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">Mới {{ $batch->valid_rows }}</span><span class="rounded-full bg-gray-100 px-2 py-1 text-gray-700">Trùng {{ $batch->duplicate_rows }}</span><span class="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Conflict {{ $batch->conflict_rows }}</span><span class="rounded-full bg-red-50 px-2 py-1 text-red-700">Lỗi {{ $batch->error_rows }}</span></div>@endif
             </div>
-            @if ($batch->status !== 'confirmed')
+
+            @if ($batch->status === 'staged')
                 <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.preview', [$contractorSearch, $batch]) }}" class="mt-5 space-y-4">
                     @csrf
                     <div><label class="mb-1 block text-sm font-semibold text-gray-700">TBMT cố định (chỉ dùng khi cần khóa toàn file)</label><select name="target_notify_no" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"><option value="">— Dùng Mã TBMT từ từng dòng —</option>@foreach ($items as $item)<option value="{{ $item->notify_no }}">{{ $item->notify_no }} · {{ $item->bid_name }}</option>@endforeach</select></div>
                     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">@foreach ($fieldLabels as $field => $label)<label class="block text-sm"><span class="mb-1 block font-medium text-gray-700">{{ $label }}</span><select name="mapping[{{ $field }}]" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm"><option value="">— Không map —</option>@foreach ((array) $batch->headers as $header)<option value="{{ $header }}" @selected(($batch->mapping[$field] ?? null) === $header)>{{ $header }}</option>@endforeach</select></label>@endforeach</div>
-                    <button class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Cập nhật Preview</button>
+                    <button class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Tạo Preview</button>
                 </form>
             @endif
+
             @if ($batch->status === 'previewed')
-                <div class="mt-5 max-h-[420px] overflow-auto rounded-xl border border-gray-200"><table class="min-w-full divide-y divide-gray-200 text-xs"><thead class="sticky top-0 bg-gray-50"><tr><th class="px-3 py-2 text-left">Dòng</th><th class="px-3 py-2 text-left">Trạng thái</th><th class="px-3 py-2 text-left">Mã TBMT</th><th class="px-3 py-2 text-left">Thuốc/Lô</th><th class="px-3 py-2 text-left">Giá trúng</th><th class="px-3 py-2 text-left">Lỗi</th></tr></thead><tbody class="divide-y divide-gray-100">@foreach ((array) $batch->preview_rows as $preview)<tr><td class="px-3 py-2">{{ $preview['row'] }}</td><td class="px-3 py-2 font-semibold">{{ strtoupper($preview['status']) }}</td><td class="px-3 py-2">{{ data_get($preview, 'data.notify_no') }}</td><td class="px-3 py-2">{{ data_get($preview, 'data.medicine_name') ?: data_get($preview, 'data.lot_name') }}</td><td class="px-3 py-2">{{ is_numeric(data_get($preview, 'data.winning_price')) ? number_format((float) data_get($preview, 'data.winning_price')) : '—' }}</td><td class="px-3 py-2 text-red-600">{{ implode('; ', $preview['errors'] ?? []) }}</td></tr>@endforeach</tbody></table></div>
-                <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.confirm', [$contractorSearch, $batch]) }}" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">@csrf<label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" name="overwrite_conflicts" value="1" class="rounded border-gray-300"> Cho phép Import ghi đè các dòng Conflict đã preview</label><button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">Xác nhận Import</button></form>
+                <div class="mt-5 max-h-[420px] overflow-auto rounded-xl border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200 text-xs">
+                        <thead class="sticky top-0 bg-gray-50"><tr><th class="px-3 py-2 text-left">Dòng</th><th class="px-3 py-2 text-left">Trạng thái</th><th class="px-3 py-2 text-left">Mã TBMT</th><th class="px-3 py-2 text-left">Thuốc/Lô</th><th class="px-3 py-2 text-left">Giá trúng</th><th class="px-3 py-2 text-left">Lỗi</th></tr></thead>
+                        <tbody class="divide-y divide-gray-100">@foreach ((array) $batch->preview_rows as $preview)<tr><td class="px-3 py-2">{{ $preview['row'] }}</td><td class="px-3 py-2 font-semibold">{{ strtoupper($preview['status']) }}</td><td class="px-3 py-2">{{ data_get($preview, 'data.notify_no') }}</td><td class="px-3 py-2">{{ data_get($preview, 'data.medicine_name') ?: data_get($preview, 'data.lot_name') }}</td><td class="px-3 py-2">{{ is_numeric(data_get($preview, 'data.winning_price')) ? number_format((float) data_get($preview, 'data.winning_price')) : '—' }}</td><td class="px-3 py-2 text-red-600">{{ implode('; ', $preview['errors'] ?? []) }}</td></tr>@endforeach</tbody>
+                    </table>
+                </div>
+                <details class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <summary class="cursor-pointer text-sm font-semibold text-gray-700">Chỉnh mapping và tạo lại Preview</summary>
+                    <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.preview', [$contractorSearch, $batch]) }}" class="mt-4 space-y-4">
+                        @csrf
+                        <div><label class="mb-1 block text-sm font-semibold text-gray-700">TBMT cố định</label><select name="target_notify_no" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"><option value="">— Dùng Mã TBMT từ từng dòng —</option>@foreach ($items as $item)<option value="{{ $item->notify_no }}">{{ $item->notify_no }} · {{ $item->bid_name }}</option>@endforeach</select></div>
+                        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">@foreach ($fieldLabels as $field => $label)<label class="block text-sm"><span class="mb-1 block font-medium text-gray-700">{{ $label }}</span><select name="mapping[{{ $field }}]" class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm"><option value="">— Không map —</option>@foreach ((array) $batch->headers as $header)<option value="{{ $header }}" @selected(($batch->mapping[$field] ?? null) === $header)>{{ $header }}</option>@endforeach</select></label>@endforeach</div>
+                        <button class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Cập nhật Preview</button>
+                    </form>
+                </details>
             @endif
         </section>
     @endif
