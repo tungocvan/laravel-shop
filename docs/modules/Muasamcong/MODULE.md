@@ -61,6 +61,8 @@ Admin page controllers remain thin. Mutation/export endpoints validate scope and
 
 ## 8. Persistence Ownership
 
+Persistence is a protected boundary.
+
 Muasamcong owns all `muasamcong_*` tables and module-specific stored assets, including pricing results/wishlists, contractor bids/searches/items/jobs/manual lots, KQLCNT records, KQLCNT import batches, normalized KQLCNT award items, pricing search snapshots, Personal Sessions, session-import tokens and export preferences.
 
 Historical recovery uses additive persistence:
