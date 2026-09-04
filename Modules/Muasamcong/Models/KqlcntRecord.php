@@ -13,6 +13,7 @@ class KqlcntRecord extends Model
     protected $casts = [
         'published' => 'boolean',
         'current_contractor_won' => 'boolean',
+        'contract_period' => 'integer',
         'contracts' => 'array',
         'all_winners' => 'array',
         'verified_lots' => 'array',
