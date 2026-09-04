@@ -15,19 +15,20 @@ class KqlcntHistoricalRecoveryRouteTest extends TestCase
         $supplementDownload = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.supplement.download');
         $export = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.export');
         $enrich = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.enrich');
+        $persist = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.persist');
         $upload = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.upload');
         $supplementUpload = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.supplement.upload');
         $batch = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.batch');
         $preview = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.preview');
         $confirm = Route::getRoutes()->getByName('muasamcong.contractors.kqlcnt-recovery.confirm');
 
-        foreach ([$view, $template, $supplement, $supplementDownload, $export, $enrich, $upload, $supplementUpload, $batch, $preview, $confirm] as $route) {
+        foreach ([$view, $template, $supplement, $supplementDownload, $export, $enrich, $persist, $upload, $supplementUpload, $batch, $preview, $confirm] as $route) {
             $this->assertNotNull($route);
             $this->assertContains('auth:admin', $route->gatherMiddleware());
             $this->assertContains('permission:view_muasamcong,admin', $route->gatherMiddleware());
         }
 
-        foreach ([$enrich, $upload, $supplementUpload, $batch, $preview, $confirm] as $route) {
+        foreach ([$enrich, $persist, $upload, $supplementUpload, $batch, $preview, $confirm] as $route) {
             $this->assertContains('permission:muasamcong.pricing.sync,admin', $route->gatherMiddleware());
         }
 
@@ -41,6 +42,7 @@ class KqlcntHistoricalRecoveryRouteTest extends TestCase
         $this->assertSame(['POST'], $supplementUpload->methods());
         $this->assertSame(['POST'], $export->methods());
         $this->assertSame(['POST'], $enrich->methods());
+        $this->assertSame(['POST'], $persist->methods());
         $this->assertSame(['POST'], $upload->methods());
         $this->assertSame(['GET', 'HEAD'], $batch->methods());
         $this->assertSame(['POST'], $preview->methods());
