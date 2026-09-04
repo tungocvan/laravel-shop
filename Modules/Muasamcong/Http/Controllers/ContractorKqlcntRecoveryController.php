@@ -8,20 +8,23 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Muasamcong\Exports\KqlcntArraySheetExport;
-use Modules\Muasamcong\Models\ContractorManualLot;
 use Modules\Muasamcong\Models\ContractorSearch;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
 use Modules\Muasamcong\Models\KqlcntImportBatch;
 use Modules\Muasamcong\Models\KqlcntRecord;
+use Modules\Muasamcong\Services\ContractorAwardCatalogService;
 use Modules\Muasamcong\Services\ContractorKqlcntExportService;
 use Modules\Muasamcong\Services\KqlcntHistoricalImportService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContractorKqlcntRecoveryController extends Controller
 {
-    public function index(ContractorSearch $contractorSearch, KqlcntHistoricalImportService $importer): View
-    {
-        return $this->view($contractorSearch, null, $importer);
+    public function index(
+        ContractorSearch $contractorSearch,
+        KqlcntHistoricalImportService $importer,
+        ContractorAwardCatalogService $catalog
+    ): View {
+        return $this->view($contractorSearch, null, $importer, $catalog);
     }
 
     public function template(): BinaryFileResponse
@@ -73,11 +76,15 @@ class ContractorKqlcntRecoveryController extends Controller
             ->with('status', 'Đã tải file lên. Kiểm tra mapping trước khi preview dữ liệu.');
     }
 
-    public function batch(ContractorSearch $contractorSearch, KqlcntImportBatch $batch, KqlcntHistoricalImportService $importer): View
-    {
+    public function batch(
+        ContractorSearch $contractorSearch,
+        KqlcntImportBatch $batch,
+        KqlcntHistoricalImportService $importer,
+        ContractorAwardCatalogService $catalog
+    ): View {
         $this->assertBatchScope($contractorSearch, $batch);
 
-        return $this->view($contractorSearch, $batch, $importer);
+        return $this->view($contractorSearch, $batch, $importer, $catalog);
     }
 
     public function preview(Request $request, ContractorSearch $contractorSearch, KqlcntImportBatch $batch, KqlcntHistoricalImportService $importer): RedirectResponse
@@ -125,8 +132,12 @@ class ContractorKqlcntRecoveryController extends Controller
         return $exporter->download($contractorSearch, $validated['notify_nos'] ?? []);
     }
 
-    private function view(ContractorSearch $search, ?KqlcntImportBatch $batch, KqlcntHistoricalImportService $importer): View
-    {
+    private function view(
+        ContractorSearch $search,
+        ?KqlcntImportBatch $batch,
+        KqlcntHistoricalImportService $importer,
+        ContractorAwardCatalogService $catalog
+    ): View {
         $items = $search->items()->orderByDesc('created_date')->get();
         $notifyNos = $items->pluck('notify_no')->filter()->values();
         $records = KqlcntRecord::query()
@@ -141,21 +152,17 @@ class ContractorKqlcntRecoveryController extends Controller
             ->groupBy('notify_no')
             ->pluck('aggregate', 'notify_no');
 
-        $apiCounts = ContractorManualLot::query()
-            ->where('contractor_code', $search->contractor_code)
-            ->whereIn('notify_no', $notifyNos)
-            ->where('source', 'kqlcnt_verified')
-            ->selectRaw('notify_no, COUNT(*) as aggregate')
+        $savedCounts = $catalog->rows($search->contractor_code, $notifyNos)
             ->groupBy('notify_no')
-            ->pluck('aggregate', 'notify_no');
+            ->map(fn ($rows) => $rows->count());
 
-        $detailCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importCounts, $apiCounts): array {
+        $detailCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importCounts, $savedCounts): array {
             $record = $records->get($notifyNo);
-            $persistedApiCount = (int) ($apiCounts[$notifyNo] ?? 0);
             $snapshotApiCount = is_array($record?->verified_lots) ? count($record->verified_lots) : 0;
+            $savedCount = (int) ($savedCounts[$notifyNo] ?? 0);
             $importCount = (int) ($importCounts[$notifyNo] ?? 0);
 
-            return [$notifyNo => $importCount + max($persistedApiCount, $snapshotApiCount)];
+            return [$notifyNo => $importCount + max($savedCount, $snapshotApiCount)];
         });
 
         return view('Muasamcong::contractor-kqlcnt-recovery', [
