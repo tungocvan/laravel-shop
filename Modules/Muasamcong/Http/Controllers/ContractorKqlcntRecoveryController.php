@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Muasamcong\Exports\KqlcntArraySheetExport;
 use Modules\Muasamcong\Models\ContractorSearch;
@@ -57,10 +58,17 @@ class ContractorKqlcntRecoveryController extends Controller
         $this->assertNotifyScope($contractorSearch, $notifyNo);
         $validated = $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240']]);
         $batch = $importer->stage($contractorSearch, $validated['file']);
-        $importer->preview($batch, (array) $batch->mapping, $notifyNo);
+        $batch = $importer->preview($batch, (array) $batch->mapping, $notifyNo);
+
+        if ($batch->valid_rows > 0 && $batch->conflict_rows === 0 && $batch->error_rows === 0) {
+            $importer->confirm($batch, false);
+
+            return redirect()->route('muasamcong.contractors.kqlcnt-recovery', $contractorSearch)
+                ->with('status', 'Đã bổ sung và lưu '.number_format($batch->valid_rows).' dòng KQLCNT cho '.$notifyNo.'.');
+        }
 
         return redirect()->route('muasamcong.contractors.kqlcnt-recovery.batch', [$contractorSearch, $batch])
-            ->with('status', 'Đã đọc file bổ sung cho '.$notifyNo.'. TBMT đã được khóa; kiểm tra Preview trước khi xác nhận Import.');
+            ->with('status', 'File bổ sung đã được Preview nhưng chưa lưu vì có conflict hoặc lỗi. Kiểm tra trước khi xác nhận Import.');
     }
 
     public function upload(Request $request, ContractorSearch $contractorSearch, KqlcntHistoricalImportService $importer): RedirectResponse
@@ -147,27 +155,70 @@ class ContractorKqlcntRecoveryController extends Controller
         $items = $search->items()->orderByDesc('created_date')->get();
         $notifyNos = $items->pluck('notify_no')->filter()->values();
         $records = KqlcntRecord::query()->where('contractor_code', $search->contractor_code)->whereIn('notify_no', $notifyNos)->get()->keyBy('notify_no');
-        $importCounts = KqlcntAwardItem::query()->where('contractor_code', $search->contractor_code)->whereIn('notify_no', $notifyNos)->selectRaw('notify_no, COUNT(*) as aggregate')->groupBy('notify_no')->pluck('aggregate', 'notify_no');
+        $importRows = KqlcntAwardItem::query()
+            ->where('contractor_code', $search->contractor_code)
+            ->whereIn('notify_no', $notifyNos)
+            ->get(['notify_no', 'lot_no', 'medicine_code', 'medicine_name', 'active_ingredient', 'quantity', 'winning_price']);
         $catalogRows = $catalog->rows($search->contractor_code, $notifyNos);
-        $savedCounts = $catalogRows->groupBy('notify_no')->map(fn ($rows) => $rows->count());
-        $enrichedSavedCounts = $catalogRows->filter(fn (array $row): bool => str_contains((string) ($row['source'] ?? ''), 'SMART_PRICING') || str_contains((string) ($row['source'] ?? ''), 'KQLCNT'))->groupBy('notify_no')->map(fn ($rows) => $rows->count());
-        $detailCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importCounts, $savedCounts): array {
-            $record = $records->get($notifyNo);
-            $snapshotApiCount = is_array($record?->verified_lots) ? count($record->verified_lots) : 0;
 
-            return [$notifyNo => (int) ($importCounts[$notifyNo] ?? 0) + max((int) ($savedCounts[$notifyNo] ?? 0), $snapshotApiCount)];
+        $detailCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importRows, $catalogRows): array {
+            $keys = $this->logicalKeys($catalogRows->where('notify_no', $notifyNo));
+            $keys = $keys->merge($this->logicalKeys($importRows->where('notify_no', $notifyNo)));
+            $record = $records->get($notifyNo);
+            $keys = $keys->merge($this->snapshotKeys((array) $record?->verified_lots));
+
+            return [$notifyNo => $keys->filter()->unique()->count()];
         });
-        $enrichedCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importCounts, $enrichedSavedCounts): array {
-            $record = $records->get($notifyNo);
-            $snapshotApiCount = is_array($record?->verified_lots) ? count($record->verified_lots) : 0;
 
-            return [$notifyNo => (int) ($importCounts[$notifyNo] ?? 0) + max((int) ($enrichedSavedCounts[$notifyNo] ?? 0), $snapshotApiCount)];
+        $enrichedCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importRows, $catalogRows): array {
+            $enrichedCatalog = $catalogRows->where('notify_no', $notifyNo)->filter(fn (array $row): bool => str_contains((string) ($row['source'] ?? ''), 'SMART_PRICING') || str_contains((string) ($row['source'] ?? ''), 'KQLCNT'));
+            $keys = $this->logicalKeys($enrichedCatalog);
+            $keys = $keys->merge($this->logicalKeys($importRows->where('notify_no', $notifyNo)));
+            $record = $records->get($notifyNo);
+            $keys = $keys->merge($this->snapshotKeys((array) $record?->verified_lots));
+
+            return [$notifyNo => $keys->filter()->unique()->count()];
         });
 
         return view('Muasamcong::contractor-kqlcnt-recovery', [
             'contractorSearch' => $search, 'items' => $items, 'records' => $records, 'detailCounts' => $detailCounts,
             'enrichedCounts' => $enrichedCounts, 'batch' => $batch, 'fieldLabels' => $importer->fieldLabels(),
         ]);
+    }
+
+    private function logicalKeys(Collection $rows): Collection
+    {
+        return $rows->values()->map(function ($row, int $index): string {
+            $get = fn (string $key) => is_array($row) ? ($row[$key] ?? null) : $row->{$key};
+            $lotNo = trim((string) $get('lot_no'));
+            if ($lotNo !== '') {
+                return 'lot:'.mb_strtoupper($lotNo);
+            }
+            $medicineCode = trim((string) $get('medicine_code'));
+            if ($medicineCode !== '') {
+                return 'medicine:'.mb_strtoupper($medicineCode);
+            }
+            $parts = [trim((string) $get('medicine_name')), trim((string) $get('active_ingredient')), (string) $get('quantity'), (string) $get('winning_price')];
+
+            return 'fallback:'.hash('sha256', implode('|', $parts)).':'.$index;
+        });
+    }
+
+    private function snapshotKeys(array $rows): Collection
+    {
+        return collect($rows)->values()->map(function ($row, int $index): string {
+            $row = is_array($row) ? $row : [];
+            $lotNo = trim((string) ($row['lot_no'] ?? $row['lotNo'] ?? ''));
+            if ($lotNo !== '') {
+                return 'lot:'.mb_strtoupper($lotNo);
+            }
+            $medicineCode = trim((string) ($row['medicine_code'] ?? $row['medicineCode'] ?? $row['maThuoc'] ?? ''));
+            if ($medicineCode !== '') {
+                return 'medicine:'.mb_strtoupper($medicineCode);
+            }
+
+            return 'snapshot:'.$index;
+        });
     }
 
     private function supplementRows(ContractorSearch $search, string $notifyNo, ContractorAwardCatalogService $catalog, ?KqlcntRecord $record): array
