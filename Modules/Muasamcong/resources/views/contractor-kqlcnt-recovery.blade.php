@@ -55,7 +55,7 @@
             @csrf
             <div class="max-h-[620px] overflow-auto rounded-xl border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead class="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"><tr><th class="px-4 py-3"></th><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Tên gói</th><th class="px-4 py-3">Chủ đầu tư / BMT</th><th class="px-4 py-3">Nguồn / Chi tiết</th><th class="px-4 py-3 text-right">Số dòng trúng thầu</th><th class="px-4 py-3">KQLCNT</th><th class="px-4 py-3">Thao tác</th></tr></thead>
+                    <thead class="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"><tr><th class="px-4 py-3"></th><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Tên gói</th><th class="px-4 py-3">Chủ đầu tư / BMT</th><th class="px-4 py-3">Thực hiện / hiệu lực</th><th class="px-4 py-3">Nguồn / Chi tiết</th><th class="px-4 py-3 text-right">Số dòng trúng thầu</th><th class="px-4 py-3">KQLCNT</th><th class="px-4 py-3">Thao tác</th></tr></thead>
                     <tbody class="divide-y divide-gray-100 bg-white">
                     @forelse ($items as $item)
                         @php($record = $records->get($item->notify_no))
@@ -72,6 +72,10 @@
                             <td class="whitespace-nowrap px-4 py-3 font-semibold text-indigo-700">{{ $item->notify_no }}</td>
                             <td class="max-w-xl px-4 py-3 text-gray-800">{{ $item->bid_name ?: data_get($item->raw_payload, 'bidName', '—') }}</td>
                             <td class="min-w-64 px-4 py-3 text-gray-700"><div>{{ $investorName ?: '—' }}</div>@if ($record?->investor_code)<div class="mt-1 text-xs text-gray-400">{{ $record->investor_code }}</div>@endif</td>
+                            <td class="min-w-56 px-4 py-3 text-gray-700">
+                                <div class="font-medium text-gray-900">{{ $record?->contract_period_text ?: '—' }}</div>
+                                @if ($record?->effect_frame_period)<div class="mt-1 text-xs leading-5 text-gray-500">{{ $record->effect_frame_period }}</div>@endif
+                            </td>
                             <td class="px-4 py-3">
                                 @if (! $record)<span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">THIẾU KQLCNT</span>
                                 @elseif ($source === 'api' && $detailCount === 0)<span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">API · THIẾU DANH MỤC</span>
@@ -104,7 +108,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="px-4 py-10 text-center text-gray-500">Chưa có dữ liệu lịch sử.</td></tr>
+                        <tr><td colspan="9" class="px-4 py-10 text-center text-gray-500">Chưa có dữ liệu lịch sử.</td></tr>
                     @endforelse
                     </tbody>
                 </table>
