@@ -13,9 +13,11 @@ use Modules\Muasamcong\Models\KqlcntAwardItem;
 use Modules\Muasamcong\Models\KqlcntImportBatch;
 use Modules\Muasamcong\Models\KqlcntRecord;
 use Modules\Muasamcong\Services\ContractorAwardCatalogService;
+use Modules\Muasamcong\Services\ContractorAwardEnrichmentService;
 use Modules\Muasamcong\Services\ContractorKqlcntExportService;
 use Modules\Muasamcong\Services\KqlcntHistoricalImportService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class ContractorKqlcntRecoveryController extends Controller
 {
@@ -122,6 +124,57 @@ class ContractorKqlcntRecoveryController extends Controller
             ->with('status', 'Import KQLCNT đã được xác nhận và lưu vào cơ sở dữ liệu.');
     }
 
+    public function enrich(
+        Request $request,
+        ContractorSearch $contractorSearch,
+        ContractorAwardEnrichmentService $enrichment
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'notify_nos' => ['required', 'array', 'min:1', 'max:50'],
+            'notify_nos.*' => ['required', 'string', 'max:64'],
+        ]);
+
+        $scope = $contractorSearch->items()
+            ->pluck('notify_no')
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->unique();
+        $notifyNos = collect($validated['notify_nos'])
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->values();
+
+        abort_if($notifyNos->diff($scope)->isNotEmpty(), 422, 'Có Mã TBMT không thuộc lịch sử nhà thầu này.');
+
+        $synced = 0;
+        $failed = [];
+        $truncated = false;
+
+        foreach ($notifyNos as $notifyNo) {
+            try {
+                $result = $enrichment->sync($notifyNo, $contractorSearch->contractor_code);
+                $synced += (int) ($result['count'] ?? 0);
+                $truncated = $truncated || (bool) ($result['truncated'] ?? false);
+            } catch (Throwable $e) {
+                report($e);
+                $failed[] = $notifyNo;
+            }
+        }
+
+        $message = 'Đã đồng bộ chi tiết KQLCNT/Smart Pricing: '.number_format($synced).' dòng thuốc.';
+        if ($truncated) {
+            $message .= ' Có TBMT vượt giới hạn số trang cấu hình.';
+        }
+        if ($failed !== []) {
+            $message .= ' Không đồng bộ được: '.implode(', ', $failed).'.';
+        }
+
+        return redirect()
+            ->route('muasamcong.contractors.kqlcnt-recovery', $contractorSearch)
+            ->with('status', $message);
+    }
+
     public function export(Request $request, ContractorSearch $contractorSearch, ContractorKqlcntExportService $exporter): BinaryFileResponse
     {
         $validated = $request->validate([
@@ -152,7 +205,13 @@ class ContractorKqlcntRecoveryController extends Controller
             ->groupBy('notify_no')
             ->pluck('aggregate', 'notify_no');
 
-        $savedCounts = $catalog->rows($search->contractor_code, $notifyNos)
+        $catalogRows = $catalog->rows($search->contractor_code, $notifyNos);
+        $savedCounts = $catalogRows
+            ->groupBy('notify_no')
+            ->map(fn ($rows) => $rows->count());
+        $enrichedSavedCounts = $catalogRows
+            ->filter(fn (array $row): bool => str_contains((string) ($row['source'] ?? ''), 'SMART_PRICING')
+                || str_contains((string) ($row['source'] ?? ''), 'KQLCNT'))
             ->groupBy('notify_no')
             ->map(fn ($rows) => $rows->count());
 
@@ -165,11 +224,20 @@ class ContractorKqlcntRecoveryController extends Controller
             return [$notifyNo => $importCount + max($savedCount, $snapshotApiCount)];
         });
 
+        $enrichedCounts = $notifyNos->mapWithKeys(function (string $notifyNo) use ($records, $importCounts, $enrichedSavedCounts): array {
+            $record = $records->get($notifyNo);
+            $snapshotApiCount = is_array($record?->verified_lots) ? count($record->verified_lots) : 0;
+
+            return [$notifyNo => (int) ($importCounts[$notifyNo] ?? 0)
+                + max((int) ($enrichedSavedCounts[$notifyNo] ?? 0), $snapshotApiCount)];
+        });
+
         return view('Muasamcong::contractor-kqlcnt-recovery', [
             'contractorSearch' => $search,
             'items' => $items,
             'records' => $records,
             'detailCounts' => $detailCounts,
+            'enrichedCounts' => $enrichedCounts,
             'batch' => $batch,
             'fieldLabels' => $importer->fieldLabels(),
         ]);
