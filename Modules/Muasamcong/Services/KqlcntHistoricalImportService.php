@@ -227,20 +227,60 @@ class KqlcntHistoricalImportService
         if ($value === null || $value === '') {
             return null;
         }
-        if (is_numeric($value)) {
+        if (is_int($value) || is_float($value)) {
             return (float) $value;
         }
-        $normalized = preg_replace('/[^0-9,.-]/', '', (string) $value);
-        if ($normalized === null || $normalized === '') {
+
+        $normalized = preg_replace('/[^0-9,.-]/u', '', trim((string) $value));
+        if ($normalized === null || $normalized === '' || $normalized === '-') {
             return null;
         }
-        if (str_contains($normalized, ',') && ! str_contains($normalized, '.')) {
-            $normalized = str_replace(',', '.', $normalized);
-        } else {
-            $normalized = str_replace(',', '', $normalized);
+
+        $negative = str_starts_with($normalized, '-');
+        $unsigned = ltrim($normalized, '-');
+        $commaCount = substr_count($unsigned, ',');
+        $dotCount = substr_count($unsigned, '.');
+
+        if ($commaCount > 0 && $dotCount > 0) {
+            $lastComma = strrpos($unsigned, ',');
+            $lastDot = strrpos($unsigned, '.');
+            $decimalSeparator = $lastComma > $lastDot ? ',' : '.';
+            $thousandsSeparator = $decimalSeparator === ',' ? '.' : ',';
+            $unsigned = str_replace($thousandsSeparator, '', $unsigned);
+            $unsigned = str_replace($decimalSeparator, '.', $unsigned);
+        } elseif ($commaCount > 0) {
+            $unsigned = $this->normalizeSingleSeparatorNumber($unsigned, ',');
+        } elseif ($dotCount > 0) {
+            $unsigned = $this->normalizeSingleSeparatorNumber($unsigned, '.');
         }
 
-        return is_numeric($normalized) ? (float) $normalized : null;
+        $candidate = ($negative ? '-' : '').$unsigned;
+
+        return is_numeric($candidate) ? (float) $candidate : null;
+    }
+
+    private function normalizeSingleSeparatorNumber(string $value, string $separator): string
+    {
+        $parts = explode($separator, $value);
+        if (count($parts) === 1) {
+            return $value;
+        }
+
+        $fraction = end($parts);
+        $integer = $parts[0] ?? '';
+        $allThousandsGroups = count($parts) > 2
+            ? collect(array_slice($parts, 1))->every(fn (string $group): bool => strlen($group) === 3)
+            : strlen((string) $fraction) === 3 && $integer !== '0';
+
+        if ($allThousandsGroups) {
+            return implode('', $parts);
+        }
+
+        if (count($parts) === 2) {
+            return $integer.'.'.$fraction;
+        }
+
+        return implode('', array_slice($parts, 0, -1)).'.'.$fraction;
     }
 
     private function date(mixed $value): ?string
