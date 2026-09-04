@@ -38,6 +38,7 @@ class ContractorKqlcntExportService
         $normalizedKeys = $awardItems->map(fn ($item) => $item->notify_no.'|'.$item->lot_no)->flip();
         $apiRows = $manualLots->reject(fn ($lot) => isset($normalizedKeys[$lot->notify_no.'|'.$lot->lot_no]))->map(function ($lot): array {
             $raw = is_array($lot->raw_payload) ? $lot->raw_payload : [];
+
             return [
                 $lot->notify_no, $raw['contractor_code'] ?? $lot->contractor_code, $raw['contractor_name'] ?? null,
                 $lot->lot_no, $lot->lot_name, $raw['medicine_code'] ?? null, $lot->medicine_name,
@@ -69,10 +70,13 @@ class ContractorKqlcntExportService
         $overview = collect($notifyNos)->map(function (string $notifyNo) use ($records, $search, $awardItems, $manualLots): array {
             $record = $records->get($notifyNo);
             $count = $awardItems->where('notify_no', $notifyNo)->count() + $manualLots->where('notify_no', $notifyNo)->count();
-            return [$notifyNo, $search->contractor_code, $search->contractor_name, $record?->bid_name, $record?->investor_name,
+
+            return [
+                $notifyNo, $search->contractor_code, $search->contractor_name, $record?->bid_name, $record?->investor_name,
                 $record?->status, $record?->published ? 'Có' : 'Không', $record?->current_contractor_won ? 'Có' : 'Không',
                 is_array($record?->contracts) ? count($record->contracts) : 0, $count, strtoupper((string) ($record?->data_source ?: 'unknown')),
-                $record?->synced_at?->format('Y-m-d H:i:s'), $record?->imported_at?->format('Y-m-d H:i:s')];
+                $record?->synced_at?->format('Y-m-d H:i:s'), $record?->imported_at?->format('Y-m-d H:i:s'),
+            ];
         })->all();
 
         $contracts = $records->flatMap(function ($record) {
@@ -91,13 +95,14 @@ class ContractorKqlcntExportService
         })->values()->all();
 
         $sheets = [
-            ['title' => 'Tong_quan_KQLCNT', 'headings' => ['Mã TBMT','Mã nhà thầu','Tên nhà thầu','Tên gói thầu','Chủ đầu tư / BMT','Trạng thái','Đã công bố','Nhà thầu trúng?','Số hợp đồng','Số lô/thuốc','Nguồn dữ liệu','Đồng bộ API lúc','Import lúc'], 'rows' => $overview],
-            ['title' => 'Danh_muc_trung_thau', 'headings' => ['Mã TBMT','Mã nhà thầu','Tên nhà thầu','Mã lô','Tên lô','Mã thuốc','Tên thuốc','Nhóm thuốc','Hoạt chất','Nồng độ / Hàm lượng','Đường dùng','Dạng bào chế','Đơn vị tính','Số lượng','Giá kế hoạch','Giá trúng thầu','Thành tiền','Cơ sở sản xuất','Nước sản xuất','Số quyết định','Ngày quyết định','Ngày đăng KQLCNT','Chủ đầu tư / BMT','Số hợp đồng','Nguồn dữ liệu','Cập nhật lúc'], 'rows' => $importRows->concat($apiRows)->values()->all()],
-            ['title' => 'Hop_dong', 'headings' => ['Mã TBMT','Số hợp đồng','Mã nhà thầu','Tên nhà thầu','Chủ đầu tư / BMT','Giá trị hợp đồng','Ngày hiệu lực','Ngày kết thúc','Nguồn dữ liệu'], 'rows' => $contracts],
-            ['title' => 'Nha_thau_trung', 'headings' => ['Mã TBMT','Mã nhà thầu','Tên nhà thầu','Địa chỉ','Hợp đồng liên quan'], 'rows' => $winners],
+            ['title' => 'Tong_quan_KQLCNT', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Tên gói thầu', 'Chủ đầu tư / BMT', 'Trạng thái', 'Đã công bố', 'Nhà thầu trúng?', 'Số hợp đồng', 'Số lô/thuốc', 'Nguồn dữ liệu', 'Đồng bộ API lúc', 'Import lúc'], 'rows' => $overview],
+            ['title' => 'Danh_muc_trung_thau', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Nồng độ / Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'Đơn vị tính', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Cơ sở sản xuất', 'Nước sản xuất', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Chủ đầu tư / BMT', 'Số hợp đồng', 'Nguồn dữ liệu', 'Cập nhật lúc'], 'rows' => $importRows->concat($apiRows)->values()->all()],
+            ['title' => 'Hop_dong', 'headings' => ['Mã TBMT', 'Số hợp đồng', 'Mã nhà thầu', 'Tên nhà thầu', 'Chủ đầu tư / BMT', 'Giá trị hợp đồng', 'Ngày hiệu lực', 'Ngày kết thúc', 'Nguồn dữ liệu'], 'rows' => $contracts],
+            ['title' => 'Nha_thau_trung', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Địa chỉ', 'Hợp đồng liên quan'], 'rows' => $winners],
         ];
 
         $filename = 'KQLCNT-'.$search->contractor_code.'-search-'.$search->id.'-'.now()->format('Ymd-His').'.xlsx';
+
         return Excel::download(new ContractorKqlcntWorkbookExport($sheets), $filename);
     }
 }
