@@ -177,7 +177,7 @@ class ContractorKqlcntRecoveryController extends Controller
         $importRows = KqlcntAwardItem::query()
             ->where('contractor_code', $search->contractor_code)
             ->whereIn('notify_no', $notifyNos)
-            ->get(['notify_no', 'lot_no', 'medicine_code', 'medicine_name', 'active_ingredient', 'quantity', 'winning_price']);
+            ->get(['notify_no', 'lot_no', 'medicine_code', 'medicine_name', 'active_ingredient', 'concentration', 'quantity', 'winning_price']);
         $warehouseRows = KqlcntAwardItem::query()
             ->where('contractor_code', $search->contractor_code)
             ->whereIn('notify_no', $notifyNos)
