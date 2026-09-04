@@ -162,6 +162,13 @@
                         <h3 class="mt-2 text-lg font-bold text-slate-950">Nhà thầu đã tra cứu</h3>
                         <p class="mt-2 text-sm leading-6 text-slate-600">Xem các nhà thầu và gói thầu đã được lưu trên server, không gọi lại upstream.</p>
                     </a>
+
+                    <a href="{{ route('muasamcong.kqlcnt-awards.index') }}"
+                       class="rounded-2xl border border-violet-200 bg-violet-50/60 p-5 transition hover:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-violet-700">Kho KQLCNT chuẩn hóa</p>
+                        <h3 class="mt-2 text-lg font-bold text-slate-950">KQLCNT đã chuẩn hóa</h3>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">Quản lý dữ liệu trúng thầu canonical đã lưu để chỉnh sửa, export và phục vụ thống kê.</p>
+                    </a>
                 </div>
             </section>
 
