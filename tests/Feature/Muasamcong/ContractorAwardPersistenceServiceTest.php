@@ -5,6 +5,7 @@ namespace Tests\Feature\Muasamcong;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Muasamcong\Models\ContractorManualLot;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
+use Modules\Muasamcong\Models\KqlcntRecord;
 use Modules\Muasamcong\Services\ContractorAwardPersistenceService;
 use Modules\Muasamcong\Services\ContractorSearchArchiveService;
 use Tests\TestCase;
@@ -40,6 +41,39 @@ class ContractorAwardPersistenceServiceTest extends TestCase
         $this->assertSame(0, $second['updated']);
         $this->assertSame(3, $second['unchanged']);
         $this->assertDatabaseCount('muasamcong_kqlcnt_award_items', 3);
+    }
+
+    public function test_package_period_metadata_is_copied_to_awards_and_resync_is_idempotent(): void
+    {
+        $search = $this->storedSearch();
+        KqlcntRecord::create([
+            'notify_no' => 'IB2500539527',
+            'contractor_code' => 'vn0314492345',
+            'contract_period' => 730,
+            'contract_period_unit' => 'D',
+            'contract_period_text' => '730 ngày',
+            'effect_frame_period' => 'Kể từ ngày ký đến hết 06/02/2028',
+            'contracts' => [],
+            'contracts_raw' => [],
+            'tbmt_raw' => [],
+        ]);
+        $this->seedThreeLogicalAwards();
+        $service = app(ContractorAwardPersistenceService::class);
+
+        $first = $service->persist($search, 'IB2500539527');
+        $stored = KqlcntAwardItem::query()->where('is_active', true)->get();
+
+        $this->assertSame(3, $first['created']);
+        $this->assertTrue($stored->every(fn (KqlcntAwardItem $row): bool => $row->contract_period === 730));
+        $this->assertTrue($stored->every(fn (KqlcntAwardItem $row): bool => $row->contract_period_unit === 'D'));
+        $this->assertTrue($stored->every(fn (KqlcntAwardItem $row): bool => $row->contract_period_text === '730 ngày'));
+        $this->assertTrue($stored->every(fn (KqlcntAwardItem $row): bool => $row->effect_frame_period === 'Kể từ ngày ký đến hết 06/02/2028'));
+
+        $second = $service->persist($search, 'IB2500539527');
+
+        $this->assertSame(0, $second['created']);
+        $this->assertSame(0, $second['updated']);
+        $this->assertSame(3, $second['unchanged']);
     }
 
     public function test_resync_updates_changed_catalog_fingerprint_without_creating_duplicate(): void
