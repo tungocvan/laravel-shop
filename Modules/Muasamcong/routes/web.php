@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Muasamcong\Http\Controllers\ContractorKqlcntRecoveryController;
+use Modules\Muasamcong\Http\Controllers\KqlcntAwardController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongDashboardController;
 use Modules\Muasamcong\Http\Controllers\PricingExportController;
@@ -33,6 +34,9 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
         Route::post('/synced/export-selected', SyncedPricingScopedExportController::class)->name('synced.export-selected');
         Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)->name('synced.export-bbg');
+        Route::get('/kqlcnt-awards', [KqlcntAwardController::class, 'index'])->name('kqlcnt-awards.index');
+        Route::post('/kqlcnt-awards/export', [KqlcntAwardController::class, 'export'])->name('kqlcnt-awards.export');
+        Route::get('/kqlcnt-awards/{awardItem}', [KqlcntAwardController::class, 'show'])->whereNumber('awardItem')->name('kqlcnt-awards.show');
         Route::get('/wishlist', PricingWishlistController::class)->name('wishlist');
         Route::post('/wishlist/export-selected', PricingWishlistExportController::class)->name('wishlist.export-selected');
         Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])
