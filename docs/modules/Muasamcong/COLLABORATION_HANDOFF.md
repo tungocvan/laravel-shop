@@ -1,143 +1,156 @@
 # Muasamcong Module — Collaboration Handoff
 
-- Last updated: 2026-09-02
+- Last updated: 2026-09-04
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Previous stable delivery: **Muasamcong Admin Dashboard — PR #72 MERGED / CLOSED**
-- Latest delivery: **Major/Clean Module Refactor — PR #154 MERGED / CLOSED**
-- Refactor branch: `refactor/muasamcong-architecture-ui-export-alignment`
-- Merge commit: `f440217ee96ec2929b1a67495ddf2c0144031ecd`
-- Delivery status: **COMPLETE / MERGED**
+- Previous stable delivery: **Major/Clean Module Refactor — PR #154 MERGED / CLOSED**
+- Current branch: `feat/muasamcong-kqlcnt-historical-recovery-export`
+- Current delivery: **KQLCNT Historical Recovery, Canonical Award Warehouse, Four-Sheet Export & KQLCNT Operations Dashboard**
+- Delivery status: **IMPLEMENTED / LOCAL ACCEPTANCE PASSED / READY FOR PR REVIEW**
 - Production enablement/deployment: **NOT AUTHORIZED / NOT CHANGED**
 
-## Delivered scope
+## Objective
 
-The merged refactor keeps Muasamcong as the canonical procurement-domain owner and preserves dependency direction `ClientPortal -> Muasamcong`.
+Provide durable historical KQLCNT recovery when the upstream procurement source no longer exposes a TBMT/KQLCNT award list, preserve API-origin snapshots, normalize package/contract metadata for reporting, maintain one canonical award warehouse, enable complete contractor-history export, and make canonical KQLCNT the primary operational focus of the Muasamcong admin dashboard.
 
-Completed priorities:
+## Implemented scope
 
-1. capability-specific server-side authorization;
-2. checkbox export semantics: selected rows when selected, otherwise all rows in the approved matching scope;
-3. Admin input/pagination alignment;
-4. bounded responsibility extraction without speculative deletion or schema migration.
+1. Additive recovery persistence:
+   - `muasamcong_kqlcnt_import_batches` for import audit, mapping, preview and confirmation lineage;
+   - `muasamcong_kqlcnt_award_items` as the canonical normalized medicine/lot award warehouse;
+   - recovery metadata on `muasamcong_kqlcnt_records` for `api / import / mixed` provenance and last import reference.
+2. Historical Excel import using PhpSpreadsheet through the existing `maatwebsite/excel` dependency.
+3. Automatic header mapping plus editable mapping UI.
+4. Mandatory Preview before Confirm.
+5. ContractorSearch/TBMT scope validation: imported TBMT must belong to the selected stored contractor history.
+6. Deduplication/conflict classification using stable identity/fingerprint keys.
+7. Explicit conflict overwrite only when the operator opts in.
+8. API snapshots/contracts/verified lots remain intact when imported recovery data is added.
+9. Canonical award persistence merges API/KQLCNT, Smart Pricing, manual verification and imported recovery without creating a second reporting table.
+10. Canonical admin workspace at `/admin/muasamcong/kqlcnt-awards` with searchable TBMT, **Chủ đầu tư**, medicine and ingredient filters; selected/all export semantics; and record editing.
+11. Medicine metadata normalized in the canonical warehouse, including packaging specification, shelf life and registration/import-license identifier.
+12. Package/contract metadata normalized on both KQLCNT snapshots and canonical award rows:
+   - `contract_period`;
+   - `contract_period_unit`;
+   - `contract_period_text`;
+   - `effect_frame_period`.
+13. KQLCNT API resolution exposes package execution metadata immediately; stored snapshots backfill normalized values from `tbmt_raw` / `contracts_raw` when normalized columns are absent.
+14. `KqlcntRecord` persistence normalizes the four package/contract fields during save so all record-writing paths converge on the same snapshot contract.
+15. Canonical persistence propagates package metadata to `KqlcntAwardItem` idempotently.
+16. Four-sheet Excel export:
+   - `Tong_quan_KQLCNT` includes execution period and effectiveness metadata;
+   - `Danh_muc_trung_thau` contains normalized award/medicine details;
+   - `Hop_dong` includes contract effectiveness period;
+   - `Nha_thau_trung` contains winner aggregation.
+17. Export scope invariant:
+   - non-empty TBMT selection => selected TBMT only;
+   - empty selection => all TBMT in the stored ContractorSearch scope.
+18. Recovery workspace linked from contractor-history detail.
+19. Recovery write/read-batch endpoints require both `view_muasamcong` and `muasamcong.pricing.sync`; recovery view/export remain under the normal view permission.
+20. Recovery award-count deduplication now uses the same logical identity strategy as canonical persistence (`lot_no` → `medicine_code` → normalized medicine/ingredient/concentration) so one logical award is not double-counted across API, Smart Pricing, import or stored snapshots.
+21. Muasamcong admin dashboard refactored into a **KQLCNT Operations Dashboard**:
+   - primary KPIs come from active canonical KQLCNT rows only;
+   - metrics include TBMT count, canonical award rows, contractors, investors, total award value, rolling 30-day value and latest canonical sync;
+   - operational attention shows missing KQLCNT detail, snapshot-not-canonical, import/mixed follow-up and failed contractor jobs;
+   - recent canonical KQLCNT rows are surfaced without raw payloads;
+   - workflow navigation prioritizes Contractor Search → History/TBMT → Recovery → Canonical KQLCNT;
+   - Smart Pricing, synced pricing, HSMT and Wishlist are secondary tools;
+   - queue/session/configuration are reduced to compact operational status.
+22. Dashboard and canonical metrics read persisted DB state only; dashboard loading does not call upstream procurement APIs.
 
-No database schema, migration, model ownership, API URI, Admin URI, route name, storage contract or production setting was destructively changed.
+## Canonical architecture
 
-## Architectural contract
+`docs/modules/Muasamcong/MODULE.md` has been updated in this branch because persistence ownership and the KQLCNT recovery/reporting boundary changed.
 
-`docs/modules/Muasamcong/MODULE.md` is now the canonical module contract on `main`.
-
-The contract records that:
-
-- Muasamcong is an active `domain` module;
-- Admin and ClientPortal are presentation/consumer boundaries, not replacement domain owners;
-- Muasamcong persistence is protected;
-- Personal Session/raw snapshot/schema boundaries are quarantined from destructive cleanup;
-- checkbox export semantics are a module invariant;
-- full-project regression is not a default gate for module-scoped refactors.
-
-## Implemented refactor
-
-### Export scope adapters
-
-Canonical route names and URIs are preserved while export endpoints pass through thin scope/authorization adapters:
-
-- `PricingExportController` -> existing Smart Pricing export implementation;
-- `SyncedPricingScopedExportController` -> existing Synced Pricing exporter;
-- `PricingWishlistExportController` -> existing Wishlist exporter.
-
-Canonical behavior:
-
-```text
-selected_ids non-empty -> export selected
-selected_ids empty     -> export all rows in the approved matching scope
-```
-
-The legacy Excel mapping/formatting implementations remain behind the adapters to minimize format-regression risk.
-
-Compatibility caps remain explicit rather than silently truncating data:
-
-- Smart Pricing: 2,000 rows;
-- Wishlist: 2,000 rows;
-- Synced Pricing: 5,000 rows.
-
-If a full scope exceeds the inherited limit, the endpoint rejects the request instead of silently exporting a partial dataset. Removing these caps is deferred to a dedicated streaming/chunked-export slice.
-
-### Authorization
-
-- Smart Pricing export enforces `muasamcong.pricing.sync` server-side.
-- Synced Pricing export enforces `muasamcong.pricing.sync` server-side.
-- Wishlist export enforces `muasamcong.pricing.wishlist` server-side.
-- Wishlist bulk delete has explicit `permission:muasamcong.pricing.wishlist,admin` route middleware in addition to the existing Admin/view boundary.
-- No new permission was introduced.
-
-### Wishlist extraction and UI alignment
-
-Wishlist query ownership was extracted from the oversized `MuasamcongController` into:
-
-- `PricingWishlistController` — thin page controller;
-- `PricingWishlistQueryService` — reusable user/filter query scope.
-
-Wishlist uses bounded page-size choices:
+Canonical flow:
 
 ```text
-10 / 25 / 50 / 100
-Default: 25
+KQLCNT API -----------┐
+Smart Pricing --------┤
+Manual verification --┼--> Normalize / merge --> Canonical Award Warehouse --> Admin / Dashboard / Reporting / Export
+Historical Excel -----┘              |
+                                      v
+                              KQLCNT snapshot metadata
 ```
 
-When no Wishlist rows are selected, export reuses the same `q` filter as the list so the action exports all matching rows rather than only the visible page.
+Key invariants:
 
-The Wishlist UI provides visible bordered search/select controls, explicit current-page selection semantics, selected count, selected-or-all export semantics, selected-only destructive delete, and module-scoped Admin pagination.
+- Import never bypasses Preview.
+- Import is limited to TBMTs belonging to the selected ContractorSearch.
+- API sync must not remove imported recovery rows.
+- Conflict does not silently overwrite existing normalized award data.
+- Canonical sync is idempotent and does not call the upstream API.
+- Curated/imported non-empty values are preserved over automatic/catalog values where the merge contract requires it.
+- `contractPeriod` + `contractPeriodUnit` represent execution duration; `effectFramePeriod` is a separate effectiveness/frame period.
+- `D / M / Y` display normalization is `ngày / tháng / năm`.
+- Export reads persisted data; it does not call the upstream KQLCNT API.
+- Selected/all checkbox semantics remain the module standard.
+- Dashboard KQLCNT KPIs count only active canonical rows with `synced_from_catalog_at`; physical source rows are not summed independently.
+- Recovery award counts and canonical persistence use compatible logical award identity rules to avoid multi-source double counting.
 
-### Smart Pricing and Synced Pricing export actions
+## Files/boundaries added or changed
 
-Canonical `Xuất Excel` actions submit selected IDs when rows are selected. With no selection, the scope adapter resolves the full approved matching dataset.
+- migrations for recovery metadata, import batches, canonical award items, medicine fields and package-period fields;
+- `KqlcntImportBatch`, `KqlcntAwardItem`, `KqlcntRecord` casts/normalization;
+- `KqlcntService` API/stored package metadata normalization;
+- `KqlcntHistoricalImportService`;
+- `ContractorAwardCatalogService`, `ContractorAwardPersistenceService`, `ContractorAwardEnrichmentService`;
+- `ContractorKqlcntExportService` and multi-sheet export classes;
+- `ContractorKqlcntRecoveryController`, `KqlcntAwardController`;
+- `MuasamcongDashboardService` KQLCNT-centric metrics/attention summaries;
+- recovery, canonical admin and dashboard views;
+- contractor-history navigation;
+- Muasamcong web routes;
+- focused service/recovery/persistence/export/route/dashboard tests;
+- module contract and this handoff.
 
-`Xuất BBG` remains selected-only because it is a separate specialized operation outside this semantic change.
-
-## Compatibility preserved
-
-- `GET /admin/muasamcong/dashboard` remains the Admin dashboard.
-- `GET /admin/muasamcong` remains Smart Pricing.
-- Existing Admin route names and URIs are preserved.
-- Muasamcong API routes are unchanged.
-- ClientPortal source/contracts are unchanged in this delivery.
-- Existing Excel formatting implementations remain compatibility implementations behind the new adapters.
-- No schema/migration/model/storage-path changes were introduced.
-
-## Final verification and acceptance
+## Local verification reported by user
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Muasamcong feature regression | PASS | 38 tests, 370 assertions, 2.05s |
-| Refactor contract coverage | PASS within module regression | Contract test included under `tests/Feature/Muasamcong` |
-| Changed-file Pint | PASS | 7 changed PHP files |
-| Module-wide Pint | KNOWN LEGACY DEBT | 4 pre-existing style issues outside PR #154 diff; not reformatted |
-| Route registration | PASS | 47 `muasamcong`-named routes listed |
-| Frontend build | PASS | Vite 7.3.6, 34 modules transformed, 1.71s |
-| Smart Pricing UI | PASS | User confirmed |
-| Synced Pricing UI | PASS | User confirmed |
-| Wishlist UI | PASS | User confirmed |
-| Export selected/all acceptance | PASS | User confirmed |
-| Full project regression | NOT APPLICABLE | Approved module-scoped strategy |
-| PR #154 | MERGED / CLOSED | 13 files changed |
-| Merge commit | COMPLETE | `f440217ee96ec2929b1a67495ddf2c0144031ecd` |
-| Local `main` sync | PASS | `main` up to date with `origin/main`; working tree clean |
+| Recovery migrations | PASS | Recovery migrations applied successfully |
+| Historical recovery / canonical focused validation | PASS | Latest broad module validation: **55 tests, 533 assertions** |
+| Dashboard focused test | PASS | **4 tests PASS** after immutable rolling-window fixture fix |
+| Changed-file Pint for dashboard scope | PASS | `MuasamcongDashboardService.php` + `MuasamcongDashboardTest.php` |
+| KQLCNT service/persistence/export focused tests | PASS | Included in latest accepted module validation |
+| Recovery route authorization | PASS | Included in latest accepted module validation |
+| Route verification | PASS | Canonical award routes and module routes verified |
+| Frontend build | PASS | Vite production build completed successfully |
+| Dashboard UI smoke | PASS | User accepted redesigned `/admin/muasamcong/dashboard` |
+| Recovery UI smoke | PASS | Recovery workflow and package-period display accepted during implementation |
+| Canonical KQLCNT UI smoke | PASS | Canonical list/filter/edit workflow accepted during implementation |
+| Recovery award-count regression | PASS by user UI verification cycle | Multi-source logical award count fix delivered before dashboard closeout |
+| Full project regression | NOT APPLICABLE | Module-scoped change; no shared/core contract changed |
 
-## Deferred work
+Notes:
 
-Deferred debt remains for separately approved coherent slices:
+- A broad Muasamcong Pint run can still surface unrelated pre-existing style debt outside the files changed by this delivery. That debt is intentionally not folded into this feature branch.
+- No GitHub Actions workflow is currently attached to this branch; acceptance evidence above is from the user's local environment.
 
-1. deeper decomposition of `SyncedPricingList`, `ContractorHistory` and `TracuuThuoctrungthau` after behavioral tests prove safe extraction boundaries;
-2. broader page-size extraction for remaining fixed-page Smart Pricing/Synced surfaces where not covered by this slice;
-3. chunked/streaming export to remove inherited 2,000/5,000 row compatibility caps;
-4. atomic Personal Session import-token claim;
-5. contractor job/sync idempotency;
-6. snapshot/raw-payload/file retention thresholds;
-7. unrelated historical Pint cleanup.
+## Final manual acceptance highlights
 
-These are not grounds for speculative deletion. Any future DELETE/REHOME still requires caller proof and a separately approved coherent slice.
+Accepted behaviors include:
 
-## Closeout
+1. `/admin/muasamcong/contractors/history/{id}/kqlcnt-recovery` exposes stored KQLCNT source/status and normalized execution/effectiveness metadata.
+2. Historical Excel recovery supports mapping, Preview, Confirm and conflict handling within the selected ContractorSearch/TBMT scope.
+3. Recovery award counts deduplicate one logical award represented by multiple physical sources.
+4. `/admin/muasamcong/kqlcnt-awards` filters by TBMT, **Chủ đầu tư**, medicine and other canonical fields; edit/export remain available.
+5. Canonical export keeps both contractor and investor data even though the primary admin filter is investor-oriented.
+6. `/admin/muasamcong/dashboard` now makes KQLCNT canonical data the primary operational workspace and provides direct access to Contractor Search, History/Recovery and Canonical KQLCNT.
+7. Dashboard KPI queries do not double-count source tables and do not load raw payload data.
 
-Muasamcong Major/Clean Module Refactor is complete and merged into `main` via PR #154. The local `main` checkout was synchronized after merge and confirmed clean. No additional code changes, production enablement, deployment, schema operation or data migration are part of this closeout.
+## Deferred debt
+
+- generic import-template download and richer saved mapping profiles;
+- retention policy for confirmed/stale import batches and raw preview payloads;
+- streaming/chunked workbook export for very large historical datasets;
+- server-side/autocomplete scaling when canonical distinct filter option counts become large;
+- richer KQLCNT analytics (time-series value, top contractor, top investor, medicine/ingredient statistics and price history) once data volume is sufficient;
+- broader decomposition of legacy contractor Livewire/controller boundaries;
+- unrelated historical Pint debt.
+
+## Merge status
+
+**READY FOR PR REVIEW.**
+
+The branch is ready to open against `main`. User has accepted the latest focused tests and Dashboard UI. Production enablement/deployment remains outside this delivery and must not be changed by the PR.

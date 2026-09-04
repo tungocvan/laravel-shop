@@ -3,10 +3,9 @@
 namespace Modules\Muasamcong\Livewire;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Modules\Muasamcong\Models\ContractorManualLot;
-use Modules\Muasamcong\Services\SmartPricingAwardService;
+use Modules\Muasamcong\Services\ContractorAwardEnrichmentService;
 use Throwable;
 
 class SmartPricingVerifiedLots extends Component
@@ -30,7 +29,7 @@ class SmartPricingVerifiedLots extends Component
         $this->contractorName = trim($contractorName);
     }
 
-    public function syncIfNeeded(SmartPricingAwardService $service): void
+    public function syncIfNeeded(ContractorAwardEnrichmentService $service): void
     {
         if ($this->checked) {
             return;
@@ -45,7 +44,7 @@ class SmartPricingVerifiedLots extends Component
         $this->sync($service);
     }
 
-    public function sync(SmartPricingAwardService $service): void
+    public function sync(ContractorAwardEnrichmentService $service): void
     {
         $this->notice = null;
         $this->error = null;
@@ -57,55 +56,8 @@ class SmartPricingVerifiedLots extends Component
         }
 
         try {
-            $result = $service->forContractor($this->notifyNo, $this->contractorCode);
-            $items = is_array($result['items'] ?? null) ? $result['items'] : [];
-            $keys = [];
-
-            DB::transaction(function () use ($items, &$keys): void {
-                foreach ($items as $item) {
-                    if (! is_array($item)) {
-                        continue;
-                    }
-
-                    $sourceKey = trim((string) ($item['source_key'] ?? ''));
-                    if ($sourceKey === '') {
-                        continue;
-                    }
-
-                    $lotKey = 'smart:'.$sourceKey;
-                    $keys[] = $lotKey;
-                    $quantity = $this->numeric($item['quantity'] ?? null);
-                    $unitPrice = $this->numeric($item['winning_unit_price'] ?? null);
-
-                    ContractorManualLot::query()->updateOrCreate([
-                        'contractor_code' => $this->contractorCode,
-                        'notify_no' => $this->notifyNo,
-                        'lot_key' => $lotKey,
-                    ], [
-                        'lot_no' => null,
-                        'lot_name' => $item['medicine_name'] ?? $item['active_ingredient'] ?? null,
-                        'medicine_name' => $item['medicine_name'] ?? null,
-                        'active_ingredient' => $item['active_ingredient'] ?? null,
-                        'quantity' => $quantity,
-                        'price_plan' => null,
-                        'lot_price' => $unitPrice,
-                        'plan_amount' => $quantity !== null && $unitPrice !== null ? $quantity * $unitPrice : null,
-                        'source' => 'smart_pricing_verified',
-                        'confirmed_by' => null,
-                        'confirmed_at' => now(),
-                        'raw_payload' => $item,
-                    ]);
-                }
-
-                $stale = $this->savedQuery();
-                if ($keys === []) {
-                    $stale->delete();
-                } else {
-                    $stale->whereNotIn('lot_key', $keys)->delete();
-                }
-            });
-
-            $count = count($keys);
+            $result = $service->sync($this->notifyNo, $this->contractorCode);
+            $count = (int) ($result['count'] ?? 0);
             $this->notice = $count > 0
                 ? 'Smart Pricing đã xác minh tự động '.$count.' thuốc cho nhà thầu này.'
                 : 'Smart Pricing chưa tìm thấy thuốc có winningCode khớp nhà thầu này.';
@@ -138,10 +90,5 @@ class SmartPricingVerifiedLots extends Component
             ->where('notify_no', $this->notifyNo)
             ->where('contractor_code', $this->contractorCode)
             ->where('source', 'smart_pricing_verified');
-    }
-
-    private function numeric(mixed $value): ?float
-    {
-        return is_numeric($value) ? (float) $value : null;
     }
 }

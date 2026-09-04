@@ -3,10 +3,14 @@
 namespace Modules\Muasamcong\Services;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Modules\Muasamcong\Models\ContractorSearch;
+use Modules\Muasamcong\Models\ContractorSearchItem;
 use Modules\Muasamcong\Models\ContractorSearchJob;
+use Modules\Muasamcong\Models\KqlcntAwardItem;
+use Modules\Muasamcong\Models\KqlcntRecord;
 use Modules\Muasamcong\Models\PricingResult;
 use Modules\Muasamcong\Models\PricingSearchSnapshot;
 use Modules\Muasamcong\Models\PricingWishlist;
@@ -31,9 +35,6 @@ final class MuasamcongDashboardService
             'manage_wishlist' => $this->hasPermission($user, 'muasamcong.pricing.wishlist'),
         ];
         $tables = $this->tableAvailability();
-        $recentSearches = $tables['pricing_search_snapshots']
-            ? $this->recentPricingSearches()
-            : [];
         $queue = $tables['contractor_search_jobs']
             ? $this->contractorQueue()
             : $this->emptyQueue(false);
@@ -42,6 +43,7 @@ final class MuasamcongDashboardService
             'generated_at' => now()->toIso8601String(),
             'capabilities' => $capabilities,
             'metrics' => [
+                'kqlcnt' => $this->kqlcntMetrics($tables),
                 'pricing_results' => [
                     'available' => $tables['pricing_results'],
                     'count' => $tables['pricing_results'] ? PricingResult::query()->count() : 0,
@@ -52,7 +54,9 @@ final class MuasamcongDashboardService
                 'pricing_searches' => [
                     'available' => $tables['pricing_search_snapshots'],
                     'count' => $tables['pricing_search_snapshots'] ? PricingSearchSnapshot::query()->count() : 0,
-                    'latest_at' => $recentSearches[0]['searched_at'] ?? null,
+                    'latest_at' => $tables['pricing_search_snapshots']
+                        ? $this->iso(PricingSearchSnapshot::query()->orderByDesc('searched_at')->value('searched_at'))
+                        : null,
                 ],
                 'contractor_searches' => [
                     'available' => $tables['contractor_searches'],
@@ -69,7 +73,8 @@ final class MuasamcongDashboardService
                         : null,
                 ],
             ],
-            'recent_pricing_searches' => $recentSearches,
+            'attention' => $this->attention($tables, $queue),
+            'recent_kqlcnt' => $this->recentKqlcnt($tables),
             'queue' => $queue,
             'health' => [
                 'tables_ready' => ! in_array(false, $tables, true),
@@ -77,6 +82,129 @@ final class MuasamcongDashboardService
                 'configuration' => $capabilities['manage_config'] ? $this->configurationStatus() : null,
             ],
         ];
+    }
+
+    /**
+     * @param  array<string, bool>  $tables
+     * @return array<string, mixed>
+     */
+    private function kqlcntMetrics(array $tables): array
+    {
+        if (! $tables['kqlcnt_award_items']) {
+            return [
+                'available' => false,
+                'notifications' => 0,
+                'award_items' => 0,
+                'contractors' => 0,
+                'investors' => 0,
+                'total_amount' => 0.0,
+                'last_30_days_amount' => 0.0,
+                'latest_synced_at' => null,
+            ];
+        }
+
+        $canonical = KqlcntAwardItem::query()
+            ->where('is_active', true)
+            ->whereNotNull('synced_from_catalog_at');
+
+        return [
+            'available' => true,
+            'notifications' => (clone $canonical)->whereNotNull('notify_no')->distinct()->count('notify_no'),
+            'award_items' => (clone $canonical)->count(),
+            'contractors' => (clone $canonical)->whereNotNull('contractor_code')->distinct()->count('contractor_code'),
+            'investors' => (clone $canonical)->whereNotNull('investor_code')->distinct()->count('investor_code'),
+            'total_amount' => (float) ((clone $canonical)->sum('amount') ?? 0),
+            'last_30_days_amount' => (float) ((clone $canonical)->where('published_at', '>=', now()->subDays(30))->sum('amount') ?? 0),
+            'latest_synced_at' => $this->iso((clone $canonical)->max('synced_from_catalog_at')),
+        ];
+    }
+
+    /**
+     * @param  array<string, bool>  $tables
+     * @param  array<string, mixed>  $queue
+     * @return array<string, int>
+     */
+    private function attention(array $tables, array $queue): array
+    {
+        $missingDetail = 0;
+        if ($tables['contractor_search_items'] && $tables['kqlcnt_records']) {
+            $missingDetail = ContractorSearchItem::query()
+                ->whereNotNull('notify_no')
+                ->where('notify_no', '!=', '')
+                ->whereNotExists(function (QueryBuilder $query): void {
+                    $query->selectRaw('1')
+                        ->from('muasamcong_kqlcnt_records as kqlcnt_records')
+                        ->whereColumn('kqlcnt_records.notify_no', 'muasamcong_contractor_search_items.notify_no');
+                })
+                ->distinct()
+                ->count('notify_no');
+        }
+
+        $notPersisted = 0;
+        $importedOrMixed = 0;
+        if ($tables['kqlcnt_records']) {
+            $records = KqlcntRecord::query()->whereNotNull('notify_no')->where('notify_no', '!=', '');
+            $importedOrMixed = (clone $records)
+                ->whereIn('data_source', ['IMPORT', 'MIXED', 'import', 'mixed'])
+                ->distinct()
+                ->count('notify_no');
+
+            if ($tables['kqlcnt_award_items']) {
+                $notPersisted = (clone $records)
+                    ->whereNotExists(function (QueryBuilder $query): void {
+                        $query->selectRaw('1')
+                            ->from('muasamcong_kqlcnt_award_items as award_items')
+                            ->whereColumn('award_items.notify_no', 'muasamcong_kqlcnt_records.notify_no')
+                            ->where('award_items.is_active', true)
+                            ->whereNotNull('award_items.synced_from_catalog_at');
+                    })
+                    ->distinct()
+                    ->count('notify_no');
+            }
+        }
+
+        return [
+            'missing_detail' => $missingDetail,
+            'not_persisted' => $notPersisted,
+            'imported_or_mixed' => $importedOrMixed,
+            'failed_jobs' => (int) ($queue['counts']['failed'] ?? 0),
+        ];
+    }
+
+    /**
+     * @param  array<string, bool>  $tables
+     * @return array<int, array<string, mixed>>
+     */
+    private function recentKqlcnt(array $tables): array
+    {
+        if (! $tables['kqlcnt_award_items']) {
+            return [];
+        }
+
+        return KqlcntAwardItem::query()
+            ->where('is_active', true)
+            ->whereNotNull('synced_from_catalog_at')
+            ->select([
+                'notify_no',
+                'contractor_name',
+                'investor_name',
+                'medicine_name',
+                'amount',
+                'synced_from_catalog_at',
+            ])
+            ->orderByDesc('synced_from_catalog_at')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get()
+            ->map(fn (KqlcntAwardItem $item): array => [
+                'notify_no' => (string) $item->notify_no,
+                'contractor_name' => filled($item->contractor_name) ? (string) $item->contractor_name : null,
+                'investor_name' => filled($item->investor_name) ? (string) $item->investor_name : null,
+                'medicine_name' => filled($item->medicine_name) ? (string) $item->medicine_name : null,
+                'amount' => (float) ($item->amount ?? 0),
+                'synced_at' => $this->iso($item->synced_from_catalog_at),
+            ])
+            ->all();
     }
 
     /**
@@ -88,37 +216,12 @@ final class MuasamcongDashboardService
             'pricing_results' => Schema::hasTable('muasamcong_pricing_results'),
             'pricing_search_snapshots' => Schema::hasTable('muasamcong_pricing_search_snapshots'),
             'contractor_searches' => Schema::hasTable('muasamcong_contractor_searches'),
+            'contractor_search_items' => Schema::hasTable('muasamcong_contractor_search_items'),
             'contractor_search_jobs' => Schema::hasTable('muasamcong_contractor_search_jobs'),
             'pricing_wishlists' => Schema::hasTable('muasamcong_pricing_wishlists'),
+            'kqlcnt_records' => Schema::hasTable('muasamcong_kqlcnt_records'),
+            'kqlcnt_award_items' => Schema::hasTable('muasamcong_kqlcnt_award_items'),
         ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function recentPricingSearches(): array
-    {
-        return PricingSearchSnapshot::query()
-            ->select([
-                'id',
-                'keyword',
-                'loaded_total',
-                'source_total',
-                'source_partial',
-                'searched_at',
-            ])
-            ->orderByDesc('searched_at')
-            ->orderByDesc('id')
-            ->limit(5)
-            ->get()
-            ->map(fn (PricingSearchSnapshot $snapshot): array => [
-                'keyword' => (string) $snapshot->keyword,
-                'loaded_total' => (int) $snapshot->loaded_total,
-                'source_total' => (int) $snapshot->source_total,
-                'source_partial' => (bool) $snapshot->source_partial,
-                'searched_at' => $this->iso($snapshot->searched_at),
-            ])
-            ->all();
     }
 
     /**
@@ -138,47 +241,12 @@ final class MuasamcongDashboardService
                 $counts[$status] = (int) $count;
             });
 
-        $recent = ContractorSearchJob::query()
-            ->select([
-                'id',
-                'contractor_code',
-                'contractor_name',
-                'status',
-                'progress',
-                'contractor_search_id',
-                'started_at',
-                'finished_at',
-                'created_at',
-            ])
-            ->latest('created_at')
-            ->latest('id')
-            ->limit(5)
-            ->get()
-            ->map(function (ContractorSearchJob $job) use ($statuses): array {
-                $status = in_array($job->status, [...$statuses, 'completed'], true)
-                    ? (string) $job->status
-                    : 'unknown';
-
-                return [
-                    'contractor_code' => (string) $job->contractor_code,
-                    'contractor_name' => filled($job->contractor_name) ? (string) $job->contractor_name : null,
-                    'status' => $status,
-                    'progress' => max(0, min(100, (int) $job->progress)),
-                    'contractor_search_id' => $job->contractor_search_id ? (int) $job->contractor_search_id : null,
-                    'started_at' => $this->iso($job->started_at),
-                    'finished_at' => $this->iso($job->finished_at),
-                    'created_at' => $this->iso($job->created_at),
-                ];
-            })
-            ->all();
-
         return [
             'available' => true,
             'counts' => [
                 ...$counts,
                 'in_progress' => $counts['queued'] + $counts['running'] + $counts['saving'],
             ],
-            'recent' => $recent,
         ];
     }
 
@@ -196,7 +264,6 @@ final class MuasamcongDashboardService
                 'failed' => 0,
                 'in_progress' => 0,
             ],
-            'recent' => [],
         ];
     }
 

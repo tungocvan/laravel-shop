@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Muasamcong\Http\Controllers\ContractorKqlcntRecoveryController;
+use Modules\Muasamcong\Http\Controllers\KqlcntAwardController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongController;
 use Modules\Muasamcong\Http\Controllers\MuasamcongDashboardController;
 use Modules\Muasamcong\Http\Controllers\PricingExportController;
@@ -21,18 +23,36 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::get('/contractors', [MuasamcongController::class, 'contractors'])->name('contractors');
         Route::get('/contractors/history', [MuasamcongController::class, 'contractorSearches'])->name('contractors.history');
         Route::get('/contractors/history/{contractorSearch}', [MuasamcongController::class, 'contractorSearchDetail'])->name('contractors.history.show');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery', [ContractorKqlcntRecoveryController::class, 'index'])->name('contractors.kqlcnt-recovery');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery/template', [ContractorKqlcntRecoveryController::class, 'template'])->name('contractors.kqlcnt-recovery.template');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery/{notifyNo}/supplement', [ContractorKqlcntRecoveryController::class, 'supplement'])->name('contractors.kqlcnt-recovery.supplement');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery/{notifyNo}/supplement/download', [ContractorKqlcntRecoveryController::class, 'supplementDownload'])->name('contractors.kqlcnt-recovery.supplement.download');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/export', [ContractorKqlcntRecoveryController::class, 'export'])->name('contractors.kqlcnt-recovery.export');
         Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots', [MuasamcongController::class, 'manualContractorLots'])->name('contractors.manual-lots.show');
         Route::get('/contractors/{contractorCode}/kqlcnt/{notifyNo}/manual-lots/download', [MuasamcongController::class, 'downloadManualContractorLots'])->name('contractors.manual-lots.download');
         Route::get('/hsmt', [MuasamcongController::class, 'hsmt'])->name('hsmt');
         Route::get('/synced', [MuasamcongController::class, 'synced'])->name('synced');
         Route::post('/synced/export-selected', SyncedPricingScopedExportController::class)->name('synced.export-selected');
         Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)->name('synced.export-bbg');
+        Route::get('/kqlcnt-awards', [KqlcntAwardController::class, 'index'])->name('kqlcnt-awards.index');
+        Route::post('/kqlcnt-awards/export', [KqlcntAwardController::class, 'export'])->name('kqlcnt-awards.export');
+        Route::get('/kqlcnt-awards/{awardItem}/edit', [KqlcntAwardController::class, 'edit'])->whereNumber('awardItem')->name('kqlcnt-awards.edit');
+        Route::put('/kqlcnt-awards/{awardItem}', [KqlcntAwardController::class, 'update'])->whereNumber('awardItem')->middleware('permission:muasamcong.pricing.sync,admin')->name('kqlcnt-awards.update');
         Route::get('/wishlist', PricingWishlistController::class)->name('wishlist');
         Route::post('/wishlist/export-selected', PricingWishlistExportController::class)->name('wishlist.export-selected');
-        Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])
-            ->middleware('permission:muasamcong.pricing.wishlist,admin')
-            ->name('wishlist.destroy-selected');
+        Route::delete('/wishlist/selected', [PricingWishlistBulkController::class, 'destroy'])->middleware('permission:muasamcong.pricing.wishlist,admin')->name('wishlist.destroy-selected');
     });
+
+    Route::middleware(['permission:view_muasamcong,admin', 'permission:muasamcong.pricing.sync,admin'])->group(function () {
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/enrich', [ContractorKqlcntRecoveryController::class, 'enrich'])->name('contractors.kqlcnt-recovery.enrich');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{notifyNo}/persist', [ContractorKqlcntRecoveryController::class, 'persist'])->name('contractors.kqlcnt-recovery.persist');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/upload', [ContractorKqlcntRecoveryController::class, 'upload'])->name('contractors.kqlcnt-recovery.upload');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{notifyNo}/supplement/upload', [ContractorKqlcntRecoveryController::class, 'supplementUpload'])->name('contractors.kqlcnt-recovery.supplement.upload');
+        Route::get('/contractors/history/{contractorSearch}/kqlcnt-recovery/{batch}', [ContractorKqlcntRecoveryController::class, 'batch'])->whereNumber('batch')->name('contractors.kqlcnt-recovery.batch');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{batch}/preview', [ContractorKqlcntRecoveryController::class, 'preview'])->whereNumber('batch')->name('contractors.kqlcnt-recovery.preview');
+        Route::post('/contractors/history/{contractorSearch}/kqlcnt-recovery/{batch}/confirm', [ContractorKqlcntRecoveryController::class, 'confirm'])->whereNumber('batch')->name('contractors.kqlcnt-recovery.confirm');
+    });
+
     Route::middleware(config('muasamcong.config_middleware', ['permission:muasamcong.config.manage,admin']))->group(function () {
         Route::get('/config', [MuasamcongController::class, 'config'])->name('config');
         Route::get('/session-tool/windows', [MuasamcongController::class, 'downloadWindowsSessionTool'])->name('session-tool.windows');

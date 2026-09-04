@@ -130,6 +130,7 @@ class KqlcntService
             }
         }
 
+        $packageMetadata = $this->packageMetadata($tbmt, $contracts);
         $resolved = [
             'notify_no' => $notifyNo,
             'notify_id' => $notifyId,
@@ -152,6 +153,10 @@ class KqlcntService
             'contracts' => $matchedContracts,
             'all_winners' => array_values($allWinners),
             'verified_lots' => array_values($verifiedLots),
+            'contract_period' => $packageMetadata['contract_period'],
+            'contract_period_unit' => $packageMetadata['contract_period_unit'],
+            'contract_period_text' => $packageMetadata['contract_period_text'],
+            'effect_frame_period' => $packageMetadata['effect_frame_period'],
             'tbmt_raw' => $tbmt,
             'contracts_raw' => $contracts,
         ];
@@ -165,6 +170,23 @@ class KqlcntService
     public function normalizeStored(array $record): array
     {
         $contractsRaw = is_array($record['contracts_raw'] ?? null) ? $record['contracts_raw'] : [];
+        $tbmtRaw = is_array($record['tbmt_raw'] ?? null) ? $record['tbmt_raw'] : [];
+        $metadata = $this->packageMetadata($tbmtRaw, $contractsRaw);
+        $period = is_numeric($record['contract_period'] ?? null)
+            ? max(0, (int) $record['contract_period'])
+            : $metadata['contract_period'];
+        $unit = trim((string) ($record['contract_period_unit'] ?? ''));
+        if ($unit === '') {
+            $unit = (string) ($metadata['contract_period_unit'] ?? '');
+        }
+        $periodText = trim((string) ($record['contract_period_text'] ?? ''));
+        if ($periodText === '' && $period !== null) {
+            $periodText = $this->contractPeriodText($period, $unit);
+        }
+        $effectFramePeriod = trim((string) ($record['effect_frame_period'] ?? ''));
+        if ($effectFramePeriod === '') {
+            $effectFramePeriod = (string) ($metadata['effect_frame_period'] ?? '');
+        }
         $allWinners = is_array($record['all_winners'] ?? null) ? $record['all_winners'] : [];
 
         if ($allWinners === [] && $contractsRaw !== []) {
@@ -211,11 +233,57 @@ class KqlcntService
             'contracts' => is_array($record['contracts'] ?? null) ? $record['contracts'] : [],
             'all_winners' => $allWinners,
             'verified_lots' => is_array($record['verified_lots'] ?? null) ? $record['verified_lots'] : [],
-            'tbmt_raw' => is_array($record['tbmt_raw'] ?? null) ? $record['tbmt_raw'] : [],
+            'contract_period' => $period,
+            'contract_period_unit' => $unit !== '' ? $unit : null,
+            'contract_period_text' => $periodText !== '' ? $periodText : null,
+            'effect_frame_period' => $effectFramePeriod !== '' ? $effectFramePeriod : null,
+            'tbmt_raw' => $tbmtRaw,
             'contracts_raw' => $contractsRaw,
             'source' => 'server',
             'synced_at' => $record['synced_at'] ?? null,
         ];
+    }
+
+    private function packageMetadata(array $tbmt, array $contracts): array
+    {
+        $period = data_get($tbmt, 'bidoNotifyContractorM.contractPeriod')
+            ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.contractPeriod');
+        $period = is_numeric($period) ? max(0, (int) $period) : null;
+        $unit = trim((string) (data_get($tbmt, 'bidoNotifyContractorM.contractPeriodUnit')
+            ?? data_get($tbmt, 'bidNoContractorResponse.bidNotification.contractPeriodUnit')
+            ?? ''));
+        $effectFramePeriod = null;
+
+        foreach ($contracts as $contract) {
+            if (! is_array($contract)) {
+                continue;
+            }
+
+            $candidate = trim((string) ($contract['effectFramePeriod'] ?? ''));
+            if ($candidate !== '') {
+                $effectFramePeriod = $candidate;
+                break;
+            }
+        }
+
+        return [
+            'contract_period' => $period,
+            'contract_period_unit' => $unit !== '' ? $unit : null,
+            'contract_period_text' => $period !== null ? $this->contractPeriodText($period, $unit) : null,
+            'effect_frame_period' => $effectFramePeriod,
+        ];
+    }
+
+    private function contractPeriodText(int $period, string $unit): string
+    {
+        $label = match (strtoupper(trim($unit))) {
+            'D' => 'ngày',
+            'M' => 'tháng',
+            'Y' => 'năm',
+            default => trim($unit),
+        };
+
+        return trim($period.' '.$label);
     }
 
     private function persistInvestorToHistory(array $resolved): void

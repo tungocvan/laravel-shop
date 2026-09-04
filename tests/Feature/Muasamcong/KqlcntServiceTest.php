@@ -47,6 +47,8 @@ class KqlcntServiceTest extends TestCase
                         'bidId' => 'bid-1',
                         'investorCode' => 'vn2000269822',
                         'investorName' => 'Sở Y tế Cà Mau',
+                        'contractPeriod' => 730,
+                        'contractPeriodUnit' => 'D',
                     ],
                     'bidoBidStatus' => [
                         'status' => 'PUB_KQLCNT',
@@ -62,6 +64,7 @@ class KqlcntServiceTest extends TestCase
             return Http::response([
                 [
                     'contractNo' => '73/2026/SYT-CM',
+                    'effectFramePeriod' => 'Kể từ ngày ký đến hết 06/02/2028',
                     'contractorPassList' => json_encode([[
                         'contractorCode' => 'vn4401112861',
                         'contractorName' => 'CÔNG TY FP',
@@ -89,12 +92,67 @@ class KqlcntServiceTest extends TestCase
         $this->assertTrue($result['published']);
         $this->assertSame('vn2000269822', $result['investor_code']);
         $this->assertSame('Sở Y tế Cà Mau', $result['investor_name']);
+        $this->assertSame(730, $result['contract_period']);
+        $this->assertSame('D', $result['contract_period_unit']);
+        $this->assertSame('730 ngày', $result['contract_period_text']);
+        $this->assertSame('Kể từ ngày ký đến hết 06/02/2028', $result['effect_frame_period']);
         $this->assertCount(1, $result['contracts']);
         $this->assertCount(2, $result['all_winners']);
         $this->assertSame('73/2026/SYT-CM', $result['contracts'][0]['contractNo']);
         $this->assertSame('CÔNG TY FP', $result['contracts'][0]['contractorPassListParsed'][0]['contractorName']);
         $this->assertSame([], $result['verified_lots']);
         Http::assertSentCount(3);
+    }
+
+    public function test_normalize_stored_backfills_package_period_metadata_from_raw_snapshot(): void
+    {
+        $result = app(KqlcntService::class)->normalizeStored([
+            'notify_no' => 'IB2500317380',
+            'contractor_code' => 'vn-test',
+            'tbmt_raw' => [
+                'bidNoContractorResponse' => [
+                    'bidNotification' => [
+                        'contractPeriod' => '18',
+                        'contractPeriodUnit' => 'M',
+                    ],
+                ],
+            ],
+            'contracts_raw' => [[
+                'contractNo' => 'HD-01',
+                'effectFramePeriod' => 'Kể từ ngày ký đến hết 31/12/2027',
+            ]],
+        ]);
+
+        $this->assertSame(18, $result['contract_period']);
+        $this->assertSame('M', $result['contract_period_unit']);
+        $this->assertSame('18 tháng', $result['contract_period_text']);
+        $this->assertSame('Kể từ ngày ký đến hết 31/12/2027', $result['effect_frame_period']);
+    }
+
+    public function test_normalize_stored_preserves_curated_package_period_text_and_effect_frame_period(): void
+    {
+        $result = app(KqlcntService::class)->normalizeStored([
+            'notify_no' => 'IB2500317380',
+            'contractor_code' => 'vn-test',
+            'contract_period' => 730,
+            'contract_period_unit' => 'D',
+            'contract_period_text' => '730 ngày theo hồ sơ đã xác minh',
+            'effect_frame_period' => 'Hiệu lực đã được quản trị xác nhận',
+            'tbmt_raw' => [
+                'bidoNotifyContractorM' => [
+                    'contractPeriod' => 365,
+                    'contractPeriodUnit' => 'D',
+                ],
+            ],
+            'contracts_raw' => [[
+                'effectFramePeriod' => 'Giá trị API không được ghi đè',
+            ]],
+        ]);
+
+        $this->assertSame(730, $result['contract_period']);
+        $this->assertSame('D', $result['contract_period_unit']);
+        $this->assertSame('730 ngày theo hồ sơ đã xác minh', $result['contract_period_text']);
+        $this->assertSame('Hiệu lực đã được quản trị xác nhận', $result['effect_frame_period']);
     }
 
     public function test_kqlcnt_only_exposes_lot_when_source_links_lot_to_contractor(): void

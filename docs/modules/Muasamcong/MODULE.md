@@ -7,194 +7,153 @@
 - Status: `active`
 - Manifest: `Modules/Muasamcong/config/module.php`
 - Routes: `Modules/Muasamcong/routes/web.php`, `Modules/Muasamcong/routes/api.php`
-- Last architecture review: `2026-09-02`
+- Last architecture review: `2026-09-04`
 
 ## 2. Purpose
 
-Muasamcong owns the procurement-domain capabilities used to search, snapshot, verify, synchronize, curate and export public-procurement pricing and contractor information. It also owns the module-specific Personal Session boundary required to integrate with the upstream procurement source.
+Muasamcong owns procurement-domain capabilities used to search, snapshot, verify, synchronize, recover, curate and export public-procurement pricing, contractor and KQLCNT information. It also owns the module-specific Personal Session boundary required to integrate with the upstream procurement source.
 
-The module is a domain owner. Admin and ClientPortal may expose Muasamcong capabilities, but they do not own or duplicate Muasamcong domain logic or persistence.
+Admin and ClientPortal are presentation/consumer boundaries; they do not own or duplicate Muasamcong domain logic or persistence.
 
 ## 3. Canonical Ownership
 
 | Capability | Canonical owner | Runtime entry |
 |---|---|---|
 | Admin Muasamcong dashboard | Muasamcong | `muasamcong.dashboard` |
-| Smart Pricing search and saved search snapshots | Muasamcong | `muasamcong.index`, `TracuuThuoctrungthau`, `PricingSearchSnapshotService` |
-| Synced pricing dataset and export profiles | Muasamcong | `muasamcong.synced`, `SyncedPricingList` |
-| Pricing Wishlist | Muasamcong | `muasamcong.wishlist`, `PricingWishlistService` |
-| HSMT / KQLCNT lookup and snapshots | Muasamcong | `muasamcong.hsmt`, HSMT/KQLCNT services |
-| Contractor lookup, history, jobs, archives and manually verified lots | Muasamcong | contractor Admin routes and services |
-| Personal Session and session-import tokens | Muasamcong | config/session tool and API import boundary |
-| Muasamcong-specific Excel/export formatting | Muasamcong | Muasamcong export controllers/services |
+| Smart Pricing search and snapshots | Muasamcong | `muasamcong.index`, pricing services |
+| Synced pricing and export profiles | Muasamcong | `muasamcong.synced` |
+| Pricing Wishlist | Muasamcong | `muasamcong.wishlist` |
+| HSMT / KQLCNT lookup and snapshots | Muasamcong | HSMT/KQLCNT services |
+| Contractor lookup/history/jobs/archive/manual lots | Muasamcong | contractor Admin routes/services |
+| Historical KQLCNT recovery, mapping, preview, import lineage and four-sheet export | Muasamcong | `muasamcong.contractors.kqlcnt-recovery*`, `KqlcntHistoricalImportService`, `ContractorKqlcntExportService` |
+| Personal Session and session-import tokens | Muasamcong | config/session tool and API boundary |
+| Muasamcong-specific Excel/export formatting | Muasamcong | module exporters/controllers |
 
 ## 4. Explicit Non-Ownership
 
 | Capability | Canonical owner | Relationship |
 |---|---|---|
-| Admin shell/layout/navigation | Admin | Muasamcong renders inside the Admin shell |
-| PWA/application shell and adaptive navigation | ClientPortal | ClientPortal consumes Muasamcong capabilities |
-| Authentication identities and global permission framework | Auth/Role/System owners | Muasamcong declares and enforces capability permissions |
-| Generic shared Import/Export primitives | Shared | Muasamcong may consume shared infrastructure when compatible |
+| Admin shell/layout/navigation | Admin | Muasamcong renders inside Admin shell |
+| PWA/application shell/adaptive navigation | ClientPortal | ClientPortal consumes Muasamcong capabilities |
+| Authentication identities/global permission framework | Auth/Role/System | Muasamcong declares/enforces capability permissions |
+| Generic shared Import/Export primitives | Shared | Muasamcong may consume compatible shared infrastructure |
 
-## 5. Dependencies
+## 5. Dependencies and Consumers
 
-### Direct dependencies
+`Modules/Muasamcong/config/module.php` keeps `depends => []` unless runtime evidence proves a hard module dependency. Admin operators consume all Admin capabilities. ClientPortal may consume Muasamcong domain boundaries. Authenticated API clients consume the Muasamcong API.
 
-`Modules/Muasamcong/config/module.php` currently declares no direct module dependency. Keep `depends => []` unless runtime evidence proves that another module is required for Muasamcong to boot and operate.
+## 6. Canonical Routes
 
-Admin and ClientPortal are integration/consumer surfaces, not hard dependencies merely because they display Muasamcong capabilities.
-
-### Integration dependencies
-
-- Admin provides the canonical Admin shell used by Muasamcong Admin pages.
-- ClientPortal may consume Muasamcong application/domain boundaries without taking ownership of domain logic or persistence.
-- Shared infrastructure may be used for generic UI/import/export primitives when the shared contract is compatible.
-
-## 6. Consumers
-
-| Consumer | Capability |
-|---|---|
-| Admin operators | Dashboard, Smart Pricing, synced pricing, Wishlist, HSMT, contractor and config workspaces |
-| ClientPortal application | Muasamcong PWA/client workflows |
-| Authenticated API clients | Muasamcong pricing/search API |
-
-## 7. Canonical Routes
-
-Canonical route groups are owned by `Modules/Muasamcong/routes/web.php` and `Modules/Muasamcong/routes/api.php`.
-
-Preserve these route families during refactor:
+Canonical route families remain:
 
 - `/admin/muasamcong/*`
-- `/api/muasamcong/*` as registered by the module API provider
+- `/api/muasamcong/*`
 
-Route ownership must be traced as:
+Historical KQLCNT recovery is additive under `/admin/muasamcong/contractors/history/{contractorSearch}/kqlcnt-recovery*`.
+
+Route ownership must be traceable as:
 
 `Route → Controller → View/Livewire → Service → Model/Persistence → Callers → Cross-module dependencies`.
 
-## 8. Canonical Runtime Components
+## 7. Runtime Boundaries
 
-### Controllers
+Admin page controllers remain thin. Mutation/export endpoints validate scope and authorization then delegate to services/exporters. Livewire owns interaction state, not persistence rules. Services own upstream integration, snapshots, recovery/import normalization, deduplication/conflict classification and export scope. Models under `Modules/Muasamcong/Models` represent Muasamcong-owned persistence.
 
-Admin page controllers should remain thin. Mutation/export endpoints may validate scope and authorization but should delegate domain/query/export work to services or bounded exporter objects.
+## 8. Persistence Ownership
 
-### Livewire / UI Components
+Persistence is a protected boundary.
 
-Livewire owns interaction state such as search/filter/pagination/selection/modal state. Core procurement rules, persistence orchestration and export mapping do not belong in Blade and should progressively move out of oversized Livewire components.
+Muasamcong owns all `muasamcong_*` tables and module-specific stored assets, including pricing results/wishlists, contractor bids/searches/items/jobs/manual lots, KQLCNT records, KQLCNT import batches, normalized KQLCNT award items, pricing search snapshots, Personal Sessions, session-import tokens and export preferences.
 
-### Services
+Historical recovery uses additive persistence:
 
-Services are the canonical location for upstream procurement integration, snapshots, synchronization, contractor/HSMT/KQLCNT orchestration, configuration, Personal Session behavior and reusable export/query scope logic.
+- `muasamcong_kqlcnt_records` remains the package/contractor snapshot and records `api`, `import` or `mixed` provenance;
+- `muasamcong_kqlcnt_import_batches` stores import audit/preview lineage;
+- `muasamcong_kqlcnt_award_items` stores normalized medicine/lot award rows used for recovery and export.
 
-### Models
+Existing API snapshots, raw payloads and verified lots are preserved. Import data must never be silently deleted by a later API synchronization.
 
-Models under `Modules/Muasamcong/Models` represent Muasamcong-owned persistence. They are not candidates for rehome merely because another module consumes their data through an integration boundary.
-
-## 9. Persistence Ownership
-
-Muasamcong owns its `muasamcong_*` tables and module-specific stored export-profile assets, including pricing results, pricing wishlists, contractor bids/searches/items/jobs/manual lots, KQLCNT records, pricing search snapshots, Personal Sessions, session-import tokens and synced export preferences.
-
-Persistence is a protected boundary. No table/model/migration/storage path may be deleted or rehomed without ownership proof, compatibility/data migration planning and explicit approval.
-
-## 10. Integration Boundaries
+## 9. Integration Boundaries
 
 ### ClientPortal → Muasamcong
 
-- Business owner: Muasamcong.
-- Consumer: ClientPortal.
-- Allowed direction: `ClientPortal → Muasamcong`.
-- ClientPortal owns shell/navigation/PWA presentation; Muasamcong owns procurement-domain behavior and data.
-- Do not duplicate procurement search/sync/export business rules inside ClientPortal.
+Allowed direction remains `ClientPortal → Muasamcong`. ClientPortal owns shell/navigation/PWA presentation; Muasamcong owns procurement business behavior and persistence.
 
 ### Admin shell → Muasamcong
 
-Admin provides layout/navigation infrastructure. Muasamcong owns the feature workspace rendered inside that shell.
+Admin provides layout/navigation infrastructure. Muasamcong owns its feature workspace.
 
-## 11. Compatibility / Deprecated Boundaries
+### Upstream KQLCNT API + Historical Import → canonical persistence
 
-| Artifact | Canonical replacement | Status | Removal condition |
-|---|---|---|---|
-| Large multi-purpose controller/export methods retained during extraction | Bounded controller/service/export boundary | transitional | caller proof + replacement tests + route compatibility |
-| Oversized Livewire orchestration retained during incremental extraction | focused component/service boundaries | transitional | behavioral parity + focused regression |
+API data is preferred when available. Historical Excel import is an explicit recovery/supplement source when upstream data is incomplete or no longer retrievable. Both sources normalize into Muasamcong persistence with provenance retained. Conflict resolution is explicit; import does not silently overwrite API values.
 
-Deprecated/transitional does not mean dead code.
+## 10. Quarantine
 
-## 12. Quarantine
+The following remain quarantined from destructive cleanup unless separately approved:
 
-The following boundaries are quarantined from destructive cleanup unless separately approved:
-
-- Personal Session secrets and session-import token lifecycle;
-- raw/snapshot procurement payloads and persisted lineage;
-- contractor/manual-lot provenance and verification history;
+- Personal Session secrets/session-import token lifecycle;
+- raw/snapshot procurement payloads and lineage;
+- contractor/manual-lot/KQLCNT recovery provenance;
 - database migrations and existing table ownership;
-- production storage paths and generated export-profile assets.
+- production storage paths/generated export assets.
 
-## 13. Refactor Invariants
+## 11. Refactor Invariants
 
-Every Muasamcong refactor must preserve:
+Every Muasamcong change must preserve:
 
-1. canonical Admin/API route URIs and route names unless explicitly approved;
+1. canonical Admin/API routes unless explicitly approved;
 2. server-side authentication and capability authorization;
-3. Muasamcong persistence ownership and existing data compatibility;
+3. Muasamcong persistence ownership/data compatibility;
 4. ClientPortal → Muasamcong dependency direction;
-5. upstream-source versus manually enriched data provenance;
-6. no heuristic contractor-to-lot/medicine association where user/source verification is required;
-7. export compatibility unless a format change is explicitly approved;
-8. checkbox export semantics: selected rows when selection is non-empty, otherwise the full approved export scope;
-9. page checkbox semantics mean the visible page unless the UI explicitly states otherwise;
-10. quarantined secrets/raw payload/schema boundaries.
+5. upstream versus manually/import-enriched provenance;
+6. no heuristic contractor-to-lot association without source/user verification;
+7. export compatibility unless explicitly approved;
+8. checkbox export semantics: selected rows when selection is non-empty, otherwise full approved scope;
+9. visible-page checkbox semantics unless UI explicitly states otherwise;
+10. quarantined secrets/raw/schema boundaries;
+11. historical import requires preview before persistence;
+12. recovery imports are scope-bound to the selected ContractorSearch/TBMT history;
+13. API synchronization must not delete or silently overwrite imported recovery rows;
+14. conflicts require explicit confirmation before overwrite.
 
-## 14. Required Refactor Audit
+## 12. Required Regression Scope
 
-Before architectural implementation:
+Minimum gates:
 
-`Route → Controller → View/Livewire → Service → Model/Persistence → Callers → Cross-module dependencies`
-
-Classify affected artifacts as `KEEP`, `REHOME`, `DELETE`, `QUARANTINE` or `DEFER`. Zero code-search results alone are not deletion proof.
-
-## 15. Required Regression Scope
-
-Minimum applicable gates:
-
-- focused authorization/export/pagination/selection tests for the changed slice;
-- `tests/Feature/Muasamcong` module regression;
-- impacted ClientPortal tests only when a ClientPortal/public integration contract changes;
+- focused authorization/import/preview/conflict/export tests;
+- `tests/Feature/Muasamcong` regression;
+- impacted ClientPortal tests only when its integration contract changes;
 - Muasamcong route verification;
 - Pint for changed PHP files;
 - frontend build when Blade/assets change;
-- manual Admin desktop/mobile UI smoke for changed workspaces;
-- export smoke proving `no selection => all approved scope` and `selection => selected only`.
+- manual Admin UI smoke for changed workspaces;
+- export smoke proving selected/all semantics.
 
 Full-project regression is not a default gate.
 
-## 16. Architectural Change Rules
+## 13. Deferred Debt
 
-Update this contract in the same PR whenever responsibility, ownership/non-ownership, direct dependencies, canonical routes, integration boundaries, persistence ownership, compatibility/deprecation, quarantine or refactor invariants change.
+- atomic session-import token claim;
+- contractor job/sync idempotency;
+- snapshot/raw payload/import-batch retention thresholds;
+- chunked/streaming export beyond current bounded scopes;
+- deeper oversized controller/Livewire extraction;
+- unrelated historical Pint cleanup.
 
-## 17. Deferred Debt
+## 14. Architecture Decisions
 
-| Debt | Owner/target module | Reason | Exit condition |
-|---|---|---|---|
-| Atomic session-import token claim | Muasamcong | security-sensitive boundary | dedicated concurrency/security slice and tests |
-| Contractor job/sync idempotency | Muasamcong | operational behavior | explicit idempotency contract and regression |
-| Snapshot/raw payload/file retention thresholds | Muasamcong | persistence/capacity concern | retention policy plus operational evidence |
-| Oversized controller/Livewire extraction beyond current coherent slice | Muasamcong | avoid risky rewrite | bounded service/component replacement with parity tests |
-| Legacy/Pint cleanup unrelated to changed boundaries | Muasamcong | non-blocking historical debt | separately approved cleanup slice |
+### 2026-09-02 — Keep Muasamcong as procurement domain owner
 
-## 18. Architecture Decisions
-
-### 2026-09-02 — Keep Muasamcong as the procurement domain owner
-
-**Decision:** Muasamcong remains the canonical owner of procurement search, snapshots, synchronization, Wishlist, contractor/HSMT/KQLCNT data, Personal Session integration and Muasamcong-specific export behavior.
-
-**Reason:** Runtime routes, services, models and migrations form one procurement-domain boundary; Admin and ClientPortal are presentation/consumer surfaces rather than replacement domain owners.
-
-**Impact:** Refactor should extract responsibilities inside Muasamcong instead of rehoming domain logic to ClientPortal/Admin. Persistence remains protected.
+Muasamcong remains canonical owner of procurement search, snapshots, synchronization, Wishlist, contractor/HSMT/KQLCNT data, Personal Session integration and module-specific export behavior.
 
 ### 2026-09-02 — Standardize checkbox export scope
 
-**Decision:** On checkbox-enabled export surfaces, a non-empty selection exports selected records; an empty selection exports the full approved scope rather than only the visible page.
+Non-empty selection exports selected records; empty selection exports the full approved scope rather than only the visible page.
 
-**Reason:** This matches the repository Admin UI contract and avoids page-selection ambiguity.
+### 2026-09-04 — Historical KQLCNT recovery is additive canonical persistence
 
-**Impact:** Export endpoints must explicitly resolve scope and enforce server-side capability authorization.
+**Decision:** Introduce previewed Excel recovery for KQLCNT data that the upstream system no longer exposes. Imported award rows are normalized, scope-validated, deduplicated and persisted with explicit lineage. Existing API snapshots remain intact; package provenance becomes `api`, `import` or `mixed`.
+
+**Reason:** Historical TBMT/KQLCNT data can disappear upstream, but reporting/export requires durable internal history.
+
+**Impact:** Recovery persistence and four-sheet KQLCNT export are canonical Muasamcong responsibilities. Conflicts require explicit confirmation and API synchronization may not delete imported recovery data.
