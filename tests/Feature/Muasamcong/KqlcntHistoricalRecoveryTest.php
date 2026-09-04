@@ -19,9 +19,7 @@ class KqlcntHistoricalRecoveryTest extends TestCase
     {
         $search = $this->storedSearch();
         $batch = $this->batch($search->id, 'IB-OUTSIDE');
-
         $preview = app(KqlcntHistoricalImportService::class)->preview($batch, $this->mapping());
-
         $this->assertSame(1, $preview->error_rows);
         $this->assertSame('error', $preview->preview_rows[0]['status']);
         $this->assertStringContainsString('không thuộc lịch sử nhà thầu', implode(' ', $preview->preview_rows[0]['errors']));
@@ -33,13 +31,10 @@ class KqlcntHistoricalRecoveryTest extends TestCase
         $search = $this->storedSearch();
         $batch = $this->batch($search->id, 'IB001');
         $service = app(KqlcntHistoricalImportService::class);
-
         $preview = $service->preview($batch, $this->mapping());
         $this->assertSame(1, $preview->valid_rows);
         $this->assertSame(0, $preview->error_rows);
-
         $service->confirm($preview);
-
         Http::assertNothingSent();
         $this->assertDatabaseHas('muasamcong_kqlcnt_award_items', [
             'notify_no' => 'IB001',
@@ -54,22 +49,58 @@ class KqlcntHistoricalRecoveryTest extends TestCase
         ]);
     }
 
+    public function test_localized_thousands_separators_are_not_imported_as_decimals(): void
+    {
+        $search = $this->storedSearch();
+        $headers = ['Mã TBMT', 'Mã lô', 'Tên thuốc', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền'];
+        $batch = KqlcntImportBatch::create([
+            'contractor_search_id' => $search->id,
+            'original_name' => 'localized.xlsx',
+            'checksum' => str_repeat('b', 64),
+            'status' => 'staged',
+            'headers' => $headers,
+            'raw_rows' => [[
+                'Mã TBMT' => 'IB001',
+                'Mã lô' => 'LOT-LOCALIZED',
+                'Tên thuốc' => 'Thuốc thử',
+                'Số lượng' => '20.800',
+                'Giá kế hoạch' => '6.800',
+                'Giá trúng thầu' => '6.800',
+                'Thành tiền' => '141.440.000',
+            ]],
+            'mapping' => [
+                'notify_no' => 'Mã TBMT',
+                'lot_no' => 'Mã lô',
+                'medicine_name' => 'Tên thuốc',
+                'quantity' => 'Số lượng',
+                'price_plan' => 'Giá kế hoạch',
+                'winning_price' => 'Giá trúng thầu',
+                'amount' => 'Thành tiền',
+            ],
+            'total_rows' => 1,
+        ]);
+
+        $preview = app(KqlcntHistoricalImportService::class)->preview($batch, $batch->mapping);
+        $data = $preview->preview_rows[0]['data'];
+
+        $this->assertSame(20800.0, $data['quantity']);
+        $this->assertSame(6800.0, $data['price_plan']);
+        $this->assertSame(6800.0, $data['winning_price']);
+        $this->assertSame(141440000.0, $data['amount']);
+    }
+
     public function test_duplicate_and_conflict_are_previewed_before_confirmation(): void
     {
         $search = $this->storedSearch();
         $service = app(KqlcntHistoricalImportService::class);
         $first = $service->preview($this->batch($search->id, 'IB001'), $this->mapping());
         $service->confirm($first);
-
         $duplicate = $service->preview($this->batch($search->id, 'IB001'), $this->mapping());
         $this->assertSame(1, $duplicate->duplicate_rows);
-
         $conflict = $service->preview($this->batch($search->id, 'IB001', 450), $this->mapping());
         $this->assertSame(1, $conflict->conflict_rows);
-
         $service->confirm($conflict, false);
         $this->assertSame('385.0000', KqlcntAwardItem::query()->firstOrFail()->winning_price);
-
         $overwrite = $service->preview($this->batch($search->id, 'IB001', 450), $this->mapping());
         $service->confirm($overwrite, true);
         $this->assertSame('450.0000', KqlcntAwardItem::query()->firstOrFail()->winning_price);
@@ -88,11 +119,9 @@ class KqlcntHistoricalRecoveryTest extends TestCase
             'data_source' => 'api',
             'synced_at' => now(),
         ]);
-
         $service = app(KqlcntHistoricalImportService::class);
         $batch = $service->preview($this->batch($search->id, 'IB001'), $this->mapping());
         $service->confirm($batch);
-
         $record = KqlcntRecord::query()->firstOrFail();
         $this->assertSame('mixed', $record->data_source);
         $this->assertSame('HD-API-01', $record->contracts[0]['contractNo']);
