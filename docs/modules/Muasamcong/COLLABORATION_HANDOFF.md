@@ -1,143 +1,123 @@
 # Muasamcong Module — Collaboration Handoff
 
-- Last updated: 2026-09-02
+- Last updated: 2026-09-04
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
-- Previous stable delivery: **Muasamcong Admin Dashboard — PR #72 MERGED / CLOSED**
-- Latest delivery: **Major/Clean Module Refactor — PR #154 MERGED / CLOSED**
-- Refactor branch: `refactor/muasamcong-architecture-ui-export-alignment`
-- Merge commit: `f440217ee96ec2929b1a67495ddf2c0144031ecd`
-- Delivery status: **COMPLETE / MERGED**
+- Previous stable delivery: **Major/Clean Module Refactor — PR #154 MERGED / CLOSED**
+- Current branch: `feat/muasamcong-kqlcnt-historical-recovery-export`
+- Current delivery: **KQLCNT Historical Recovery & Four-Sheet Export**
+- Delivery status: **IMPLEMENTED / LOCAL ACCEPTANCE IN PROGRESS**
 - Production enablement/deployment: **NOT AUTHORIZED / NOT CHANGED**
 
-## Delivered scope
+## Objective
 
-The merged refactor keeps Muasamcong as the canonical procurement-domain owner and preserves dependency direction `ClientPortal -> Muasamcong`.
+Provide durable historical KQLCNT recovery when the upstream procurement source no longer exposes a TBMT/KQLCNT award list, while preserving API-origin snapshots and enabling complete contractor-history export.
 
-Completed priorities:
+## Implemented scope
 
-1. capability-specific server-side authorization;
-2. checkbox export semantics: selected rows when selected, otherwise all rows in the approved matching scope;
-3. Admin input/pagination alignment;
-4. bounded responsibility extraction without speculative deletion or schema migration.
+1. Additive recovery persistence:
+   - `muasamcong_kqlcnt_import_batches` for import audit, mapping, preview and confirmation lineage;
+   - `muasamcong_kqlcnt_award_items` for normalized medicine/lot award rows;
+   - recovery metadata on `muasamcong_kqlcnt_records` for `api / import / mixed` provenance and last import reference.
+2. Historical Excel import using PhpSpreadsheet through the existing `maatwebsite/excel` dependency.
+3. Automatic header mapping plus editable mapping UI.
+4. Mandatory Preview before Confirm.
+5. ContractorSearch/TBMT scope validation: imported TBMT must belong to the selected stored contractor history.
+6. Deduplication/conflict classification using stable identity/fingerprint keys.
+7. Explicit conflict overwrite only when the operator opts in.
+8. API snapshots/contracts/verified lots remain intact when imported recovery data is added.
+9. Four-sheet Excel export:
+   - `Tong_quan_KQLCNT`
+   - `Danh_muc_trung_thau`
+   - `Hop_dong`
+   - `Nha_thau_trung`
+10. Export scope invariant:
+   - non-empty TBMT selection => selected TBMT only;
+   - empty selection => all TBMT in the stored ContractorSearch scope.
+11. New recovery workspace linked from contractor-history detail.
+12. Recovery write/read-batch endpoints require both `view_muasamcong` and `muasamcong.pricing.sync`; recovery view/export remain under the normal view permission.
 
-No database schema, migration, model ownership, API URI, Admin URI, route name, storage contract or production setting was destructively changed.
+## Canonical architecture
 
-## Architectural contract
+`docs/modules/Muasamcong/MODULE.md` has been updated in this branch because persistence ownership and the KQLCNT recovery boundary changed.
 
-`docs/modules/Muasamcong/MODULE.md` is now the canonical module contract on `main`.
-
-The contract records that:
-
-- Muasamcong is an active `domain` module;
-- Admin and ClientPortal are presentation/consumer boundaries, not replacement domain owners;
-- Muasamcong persistence is protected;
-- Personal Session/raw snapshot/schema boundaries are quarantined from destructive cleanup;
-- checkbox export semantics are a module invariant;
-- full-project regression is not a default gate for module-scoped refactors.
-
-## Implemented refactor
-
-### Export scope adapters
-
-Canonical route names and URIs are preserved while export endpoints pass through thin scope/authorization adapters:
-
-- `PricingExportController` -> existing Smart Pricing export implementation;
-- `SyncedPricingScopedExportController` -> existing Synced Pricing exporter;
-- `PricingWishlistExportController` -> existing Wishlist exporter.
-
-Canonical behavior:
+Canonical flow:
 
 ```text
-selected_ids non-empty -> export selected
-selected_ids empty     -> export all rows in the approved matching scope
+KQLCNT API ----------------------┐
+                                v
+                    Muasamcong KQLCNT persistence
+                                ^
+Historical Excel -> Map -> Preview -> Confirm
+                                |
+                                v
+                    Four-sheet contractor export
 ```
 
-The legacy Excel mapping/formatting implementations remain behind the adapters to minimize format-regression risk.
+Key invariants:
 
-Compatibility caps remain explicit rather than silently truncating data:
+- Import never bypasses Preview.
+- Import is limited to TBMTs belonging to the selected ContractorSearch.
+- API sync must not remove imported recovery rows.
+- Conflict does not silently overwrite existing normalized award data.
+- Export reads persisted data; it does not call the upstream KQLCNT API.
+- Selected/all checkbox semantics remain the module standard.
 
-- Smart Pricing: 2,000 rows;
-- Wishlist: 2,000 rows;
-- Synced Pricing: 5,000 rows.
+## Files/boundaries added or changed
 
-If a full scope exceeds the inherited limit, the endpoint rejects the request instead of silently exporting a partial dataset. Removing these caps is deferred to a dedicated streaming/chunked-export slice.
+- migrations for recovery metadata, import batches and award items;
+- `KqlcntImportBatch`, `KqlcntAwardItem`, `KqlcntRecord` casts;
+- `KqlcntHistoricalImportService`;
+- `ContractorKqlcntExportService` and multi-sheet export classes;
+- `ContractorKqlcntRecoveryController`;
+- `contractor-kqlcnt-recovery.blade.php`;
+- contractor-history navigation;
+- Muasamcong web routes;
+- focused recovery and route authorization tests;
+- module contract and this handoff.
 
-### Authorization
-
-- Smart Pricing export enforces `muasamcong.pricing.sync` server-side.
-- Synced Pricing export enforces `muasamcong.pricing.sync` server-side.
-- Wishlist export enforces `muasamcong.pricing.wishlist` server-side.
-- Wishlist bulk delete has explicit `permission:muasamcong.pricing.wishlist,admin` route middleware in addition to the existing Admin/view boundary.
-- No new permission was introduced.
-
-### Wishlist extraction and UI alignment
-
-Wishlist query ownership was extracted from the oversized `MuasamcongController` into:
-
-- `PricingWishlistController` — thin page controller;
-- `PricingWishlistQueryService` — reusable user/filter query scope.
-
-Wishlist uses bounded page-size choices:
-
-```text
-10 / 25 / 50 / 100
-Default: 25
-```
-
-When no Wishlist rows are selected, export reuses the same `q` filter as the list so the action exports all matching rows rather than only the visible page.
-
-The Wishlist UI provides visible bordered search/select controls, explicit current-page selection semantics, selected count, selected-or-all export semantics, selected-only destructive delete, and module-scoped Admin pagination.
-
-### Smart Pricing and Synced Pricing export actions
-
-Canonical `Xuất Excel` actions submit selected IDs when rows are selected. With no selection, the scope adapter resolves the full approved matching dataset.
-
-`Xuất BBG` remains selected-only because it is a separate specialized operation outside this semantic change.
-
-## Compatibility preserved
-
-- `GET /admin/muasamcong/dashboard` remains the Admin dashboard.
-- `GET /admin/muasamcong` remains Smart Pricing.
-- Existing Admin route names and URIs are preserved.
-- Muasamcong API routes are unchanged.
-- ClientPortal source/contracts are unchanged in this delivery.
-- Existing Excel formatting implementations remain compatibility implementations behind the new adapters.
-- No schema/migration/model/storage-path changes were introduced.
-
-## Final verification and acceptance
+## Local verification reported by user
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Muasamcong feature regression | PASS | 38 tests, 370 assertions, 2.05s |
-| Refactor contract coverage | PASS within module regression | Contract test included under `tests/Feature/Muasamcong` |
-| Changed-file Pint | PASS | 7 changed PHP files |
-| Module-wide Pint | KNOWN LEGACY DEBT | 4 pre-existing style issues outside PR #154 diff; not reformatted |
-| Route registration | PASS | 47 `muasamcong`-named routes listed |
-| Frontend build | PASS | Vite 7.3.6, 34 modules transformed, 1.71s |
-| Smart Pricing UI | PASS | User confirmed |
-| Synced Pricing UI | PASS | User confirmed |
-| Wishlist UI | PASS | User confirmed |
-| Export selected/all acceptance | PASS | User confirmed |
-| Full project regression | NOT APPLICABLE | Approved module-scoped strategy |
-| PR #154 | MERGED / CLOSED | 13 files changed |
-| Merge commit | COMPLETE | `f440217ee96ec2929b1a67495ddf2c0144031ecd` |
-| Local `main` sync | PASS | `main` up to date with `origin/main`; working tree clean |
+| Recovery migrations | PASS | 3 migrations applied successfully |
+| Focused historical recovery test | PASS | 4 tests, 15 assertions, 4.05s |
+| Muasamcong regression | PASS | 42 tests, 385 assertions, 13.59s |
+| Recovery route authorization test | PENDING after latest authorization hardening | Run after pull |
+| Changed-file Pint | PENDING | Run after pull |
+| Route verification | PENDING | Run after pull |
+| Frontend build | PENDING | Run after pull |
+| Recovery UI smoke | PENDING | User manual acceptance |
+| Export workbook smoke | PENDING | User manual acceptance |
+| Full project regression | NOT APPLICABLE | Module-scoped change; no shared/core contract changed |
 
-## Deferred work
+## Manual UI acceptance checklist
 
-Deferred debt remains for separately approved coherent slices:
+On `/admin/muasamcong/contractors/history/{id}`:
 
-1. deeper decomposition of `SyncedPricingList`, `ContractorHistory` and `TracuuThuoctrungthau` after behavioral tests prove safe extraction boundaries;
-2. broader page-size extraction for remaining fixed-page Smart Pricing/Synced surfaces where not covered by this slice;
-3. chunked/streaming export to remove inherited 2,000/5,000 row compatibility caps;
-4. atomic Personal Session import-token claim;
-5. contractor job/sync idempotency;
-6. snapshot/raw-payload/file retention thresholds;
-7. unrelated historical Pint cleanup.
+1. open **Phục hồi / Export KQLCNT**;
+2. confirm stored TBMT list and source badges render;
+3. upload an `.xlsx` file;
+4. inspect/adjust mapping;
+5. Preview and verify valid/duplicate/conflict/error counts;
+6. Confirm import without overwrite, then verify persisted values;
+7. test conflict overwrite only with explicit checkbox/action;
+8. export with selected TBMT(s) and verify only selected scope;
+9. export with no selection and verify all stored history scope;
+10. open Excel and verify all four sheet names and representative values/numeric columns.
 
-These are not grounds for speculative deletion. Any future DELETE/REHOME still requires caller proof and a separately approved coherent slice.
+## Remaining gate before PR
 
-## Closeout
+After pulling the latest branch, run the focused recovery + route authorization tests, Muasamcong regression, changed-file Pint, route listing and frontend build. Then perform manual UI/export smoke. If all pass, refresh this handoff with final evidence before PR creation.
 
-Muasamcong Major/Clean Module Refactor is complete and merged into `main` via PR #154. The local `main` checkout was synchronized after merge and confirmed clean. No additional code changes, production enablement, deployment, schema operation or data migration are part of this closeout.
+## Deferred debt
+
+- generic import-template download and richer saved mapping profiles;
+- retention policy for confirmed/stale import batches and raw preview payloads;
+- streaming/chunked workbook export for very large historical datasets;
+- broader decomposition of legacy contractor Livewire/controller boundaries;
+- unrelated historical Pint debt.
+
+## Merge status
+
+Not ready to merge until the latest authorization hardening and UI/export smoke are accepted. No PR has been created yet.
