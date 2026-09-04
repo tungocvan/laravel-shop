@@ -38,15 +38,29 @@
                 <div class="max-h-[520px] overflow-auto rounded-xl border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200 text-sm">
                         <thead class="sticky top-0 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            <tr><th class="px-4 py-3"></th><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Tên gói</th><th class="px-4 py-3">Nguồn</th><th class="px-4 py-3">KQLCNT</th></tr>
+                            <tr>
+                                <th class="px-4 py-3"></th>
+                                <th class="px-4 py-3">Mã TBMT</th>
+                                <th class="px-4 py-3">Tên gói</th>
+                                <th class="px-4 py-3">Chủ đầu tư / BMT</th>
+                                <th class="px-4 py-3">Nguồn</th>
+                                <th class="px-4 py-3">KQLCNT</th>
+                            </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 bg-white">
                         @forelse ($items as $item)
                             @php($record = $records->get($item->notify_no))
+                            @php($investorName = $record?->investor_name ?: data_get($item->raw_payload, 'investorName') ?: data_get($item->raw_payload, 'procuringEntityName'))
                             <tr>
                                 <td class="px-4 py-3"><input type="checkbox" name="notify_nos[]" value="{{ $item->notify_no }}" class="rounded border-gray-300"></td>
                                 <td class="whitespace-nowrap px-4 py-3 font-semibold text-indigo-700">{{ $item->notify_no }}</td>
                                 <td class="max-w-xl px-4 py-3 text-gray-800">{{ $item->bid_name ?: data_get($item->raw_payload, 'bidName', '—') }}</td>
+                                <td class="min-w-64 px-4 py-3 text-gray-700">
+                                    <div>{{ $investorName ?: '—' }}</div>
+                                    @if ($record?->investor_code)
+                                        <div class="mt-1 text-xs text-gray-400">{{ $record->investor_code }}</div>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3">
                                     @if ($record)
                                         <span class="rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">{{ strtoupper($record->data_source ?: 'API') }}</span>
@@ -57,7 +71,7 @@
                                 <td class="px-4 py-3 text-xs text-gray-500">{{ $record?->imported_at?->format('d/m/Y H:i') ?? $record?->synced_at?->format('d/m/Y H:i') ?? '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">Chưa có dữ liệu lịch sử.</td></tr>
+                            <tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">Chưa có dữ liệu lịch sử.</td></tr>
                         @endforelse
                         </tbody>
                     </table>
@@ -68,13 +82,17 @@
 
         <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 class="text-lg font-bold text-gray-900">Import phục hồi</h2>
-            <p class="mt-1 text-sm text-gray-500">Nhận XLSX/XLS/CSV, tối đa 10 MB và 5.000 dòng mỗi lần.</p>
+            <p class="mt-1 text-sm text-gray-500">Dùng khi TBMT bị mất KQLCNT trên nguồn hoặc snapshot API đang thiếu chi tiết thuốc/lô trúng thầu.</p>
             <form method="POST" enctype="multipart/form-data" action="{{ route('muasamcong.contractors.kqlcnt-recovery.upload', $contractorSearch) }}" class="mt-4 space-y-3">
                 @csrf
                 <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
                 <button class="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Tải file & tạo preview</button>
             </form>
-            <div class="mt-4 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">Ưu tiên sheet <strong>Danh_muc_trung_thau</strong>. Nếu không có, hệ thống đọc sheet đang active. File chỉ được ghi dữ liệu sau bước Preview + Xác nhận.</div>
+            <div class="mt-4 space-y-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
+                <p><strong>Cách dùng:</strong> chọn file Excel → hệ thống đọc sheet <strong>Danh_muc_trung_thau</strong> (hoặc sheet đang active) → kiểm tra mapping cột → Preview → Xác nhận Import.</p>
+                <p>Nếu file chỉ có dữ liệu của một TBMT, ở bước mapping có thể chọn cố định Mã TBMT thay vì bắt buộc file phải có cột Mã TBMT.</p>
+                <p>Import chỉ bổ sung/phục hồi dữ liệu đã lưu; không gọi lại API và không tự xóa snapshot API hiện có. File tối đa 10 MB / 5.000 dòng.</p>
+            </div>
         </section>
     </div>
 
