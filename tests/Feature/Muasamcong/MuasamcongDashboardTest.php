@@ -81,7 +81,7 @@ class MuasamcongDashboardTest extends TestCase
             'muasamcong.pricing.wishlist',
         ]);
         $other = User::factory()->create();
-        $now = now();
+        $now = now()->toImmutable();
 
         $contractor = ContractorSearch::query()->create([
             'contractor_code' => 'vn000000001',
