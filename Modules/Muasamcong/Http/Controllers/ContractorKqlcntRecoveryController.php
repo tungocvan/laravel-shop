@@ -268,7 +268,8 @@ class ContractorKqlcntRecoveryController extends Controller
         if ($rows->isEmpty()) {
             return [[
                 $notifyNo, $item->bid_name ?: data_get($item->raw_payload, 'bidName'), $search->contractor_code, $search->contractor_name,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, $investor, $contractNo,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                $investor, $contractNo,
             ]];
         }
 
@@ -280,7 +281,8 @@ class ContractorKqlcntRecoveryController extends Controller
                 $row['contractor_name'] ?: $search->contractor_name,
                 $row['medicine_name'], $row['drug_group'], $row['active_ingredient'], $row['concentration'], $row['route'], $row['dosage_form'], $row['unit'],
                 $row['medicine_code'], $row['lot_no'], $row['lot_name'], $row['quantity'], $row['price_plan'], $row['winning_price'], $row['amount'],
-                $row['manufacturer'], $row['country'], $row['decision_no'], $row['decision_date'], $row['published_at'], $row['investor_name'] ?: $investor,
+                $row['manufacturer'], $row['country'], $row['packaging_spec'] ?? null, $row['shelf_life_months'] ?? null, $row['registration_or_import_license'] ?? null,
+                $row['decision_no'], $row['decision_date'], $row['published_at'], $row['investor_name'] ?: $investor,
                 $row['contract_no'] ?: $contractNo,
             ];
         })->all();
@@ -288,7 +290,7 @@ class ContractorKqlcntRecoveryController extends Controller
 
     private function importHeadings(): array
     {
-        return ['Mã TBMT', 'Tên gói thầu', 'Mã nhà thầu', 'Tên nhà thầu', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'ĐVT', 'Mã thuốc', 'Mã lô', 'Tên lô', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Nhà sản xuất', 'Nước SX', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Chủ đầu tư', 'Số hợp đồng'];
+        return ['Mã TBMT', 'Tên gói thầu', 'Mã nhà thầu', 'Tên nhà thầu', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'ĐVT', 'Mã thuốc', 'Mã lô', 'Tên lô', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Nhà sản xuất', 'Nước SX', 'Quy cách', 'Hạn dùng (tháng)', 'GĐKLH hoặc GPNK', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Chủ đầu tư', 'Số hợp đồng'];
     }
 
     private function assertNotifyScope(ContractorSearch $search, string $notifyNo)
