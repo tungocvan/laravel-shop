@@ -108,7 +108,11 @@ class ContractorKqlcntExportService
             $item->updated_at?->format('Y-m-d H:i:s'),
         ]);
 
-        $detailRows = $importRows->concat($savedRows)->concat($snapshotRows)->values();
+        $detailRows = $importRows
+            ->concat($savedRows)
+            ->concat($snapshotRows)
+            ->map(fn (array $row): array => $this->withCalculatedAmount($row))
+            ->values();
 
         $overview = collect($notifyNos)->map(function (string $notifyNo) use ($records, $search, $detailRows): array {
             $record = $records->get($notifyNo);
@@ -131,18 +135,42 @@ class ContractorKqlcntExportService
             ];
         })->all();
 
-        $contracts = $records->flatMap(function ($record) {
-            return collect((array) $record->contracts)->map(fn ($contract) => [
-                $record->notify_no,
-                $contract['contractNo'] ?? null,
-                $record->contractor_code,
-                $contract['contractorName'] ?? $contract['newContractorName'] ?? null,
-                $record->investor_name,
-                $contract['contractValue'] ?? $contract['priceAfter'] ?? null,
-                $contract['contractEffectiveDate'] ?? $contract['startDate'] ?? null,
-                $contract['endDate'] ?? null,
-                strtoupper((string) ($record->data_source ?: 'api')),
-            ]);
+        $contracts = $records->flatMap(function ($record) use ($detailRows) {
+            $recordContracts = collect((array) $record->contracts)->values();
+            $recordDetails = $detailRows->filter(fn (array $row): bool => ($row[0] ?? null) === $record->notify_no)->values();
+            $contractCount = $recordContracts->count();
+
+            return $recordContracts->map(function ($contract) use ($record, $recordDetails, $contractCount): array {
+                $contractNo = trim((string) ($contract['contractNo'] ?? ''));
+                $matchedDetails = $contractNo !== ''
+                    ? $recordDetails->filter(fn (array $row): bool => trim((string) ($row[23] ?? '')) === $contractNo)
+                    : collect();
+
+                if ($matchedDetails->isNotEmpty()) {
+                    $contractAmount = $this->sumAmounts($matchedDetails);
+                } elseif ($contractCount === 1) {
+                    // When this TBMT has exactly one matched contract, all awarded
+                    // lines for the contractor belong to that contract even if the
+                    // detail source did not persist contract_no on each medicine.
+                    $contractAmount = $this->sumAmounts($recordDetails);
+                } else {
+                    // Multiple contracts without line-level contract_no are ambiguous;
+                    // do not duplicate the TBMT total across every contract.
+                    $contractAmount = null;
+                }
+
+                return [
+                    $record->notify_no,
+                    $contract['contractNo'] ?? null,
+                    $record->contractor_code,
+                    $contract['contractorName'] ?? $contract['newContractorName'] ?? null,
+                    $record->investor_name,
+                    $contractAmount,
+                    $contract['contractEffectiveDate'] ?? $contract['startDate'] ?? null,
+                    $contract['endDate'] ?? null,
+                    strtoupper((string) ($record->data_source ?: 'api')),
+                ];
+            });
         })->values()->all();
 
         $winners = $records->flatMap(function ($record) {
@@ -228,6 +256,33 @@ class ContractorKqlcntExportService
 
             return $rows;
         })->values();
+    }
+
+    private function withCalculatedAmount(array $row): array
+    {
+        $amount = $this->number($row[16] ?? null);
+        if ($amount !== null) {
+            $row[16] = $amount;
+
+            return $row;
+        }
+
+        $quantity = $this->number($row[13] ?? null);
+        $winningPrice = $this->number($row[15] ?? null);
+        if ($quantity !== null && $winningPrice !== null) {
+            $row[16] = $quantity * $winningPrice;
+        }
+
+        return $row;
+    }
+
+    private function sumAmounts(Collection $rows): ?float
+    {
+        $amounts = $rows
+            ->map(fn (array $row): ?float => $this->number($row[16] ?? null))
+            ->filter(fn (?float $amount): bool => $amount !== null);
+
+        return $amounts->isEmpty() ? null : (float) $amounts->sum();
     }
 
     private function lotKey(mixed $notifyNo, mixed $lotNo): string
