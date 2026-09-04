@@ -33,8 +33,6 @@ class ContractorKqlcntExportService
 
         $savedCatalog = $this->catalog->rows($search->contractor_code, $notifyNos);
 
-        // Keep both normalized/import rows and the saved canonical catalog. They may
-        // describe the same logical award while carrying complementary fields.
         $importRows = $awardItems->map(fn ($item): array => [
             $item->notify_no, $item->contractor_code, $item->contractor_name,
             $item->lot_no, $item->lot_name, $item->medicine_code, $item->medicine_name,
@@ -46,8 +44,9 @@ class ContractorKqlcntExportService
             $item->amount !== null ? (float) $item->amount : null,
             $item->manufacturer, $item->country, $item->decision_no,
             $item->decision_date?->format('Y-m-d'), $item->published_at?->format('Y-m-d H:i:s'),
-            $item->investor_name, $item->contract_no, strtoupper($item->source),
-            $item->updated_at?->format('Y-m-d H:i:s'),
+            $item->investor_name, $item->contract_no,
+            $item->packaging_spec, $item->shelf_life_months, $item->registration_or_import_license,
+            strtoupper($item->source), $item->updated_at?->format('Y-m-d H:i:s'),
         ]);
 
         $savedRows = $savedCatalog->map(fn (array $row): array => [
@@ -59,8 +58,9 @@ class ContractorKqlcntExportService
             $row['quantity'] ?? null, $row['price_plan'] ?? null, $row['winning_price'] ?? null,
             $row['amount'] ?? null, $row['manufacturer'] ?? null, $row['country'] ?? null,
             $row['decision_no'] ?? null, $row['decision_date'] ?? null, $row['published_at'] ?? null,
-            $row['investor_name'] ?? null, $row['contract_no'] ?? null, $row['source'] ?? 'SAVED',
-            $row['updated_at'] ?? null,
+            $row['investor_name'] ?? null, $row['contract_no'] ?? null,
+            $row['packaging_spec'] ?? null, $row['shelf_life_months'] ?? null, $row['registration_or_import_license'] ?? null,
+            $row['source'] ?? 'SAVED', $row['updated_at'] ?? null,
         ]);
 
         $knownKeys = $importRows->concat($savedRows)
@@ -107,7 +107,7 @@ class ContractorKqlcntExportService
 
         $sheets = [
             ['title' => 'Tong_quan_KQLCNT', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Tên gói thầu', 'Chủ đầu tư / BMT', 'Trạng thái', 'Đã công bố', 'Nhà thầu trúng?', 'Số hợp đồng', 'Số lô/thuốc', 'Nguồn dữ liệu', 'Đồng bộ API lúc', 'Import lúc'], 'rows' => $overview],
-            ['title' => 'Danh_muc_trung_thau', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Nồng độ / Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'Đơn vị tính', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Cơ sở sản xuất', 'Nước sản xuất', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Chủ đầu tư / BMT', 'Số hợp đồng', 'Nguồn dữ liệu', 'Cập nhật lúc'], 'rows' => $detailRows->all()],
+            ['title' => 'Danh_muc_trung_thau', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Nồng độ / Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'Đơn vị tính', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Cơ sở sản xuất', 'Nước sản xuất', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Chủ đầu tư / BMT', 'Số hợp đồng', 'Quy cách', 'Hạn dùng (tháng)', 'GĐKLH hoặc GPNK', 'Nguồn dữ liệu', 'Cập nhật lúc'], 'rows' => $detailRows->all()],
             ['title' => 'Hop_dong', 'headings' => ['Mã TBMT', 'Số hợp đồng', 'Mã nhà thầu', 'Tên nhà thầu', 'Chủ đầu tư / BMT', 'Giá trị hợp đồng', 'Ngày hiệu lực', 'Ngày kết thúc', 'Nguồn dữ liệu'], 'rows' => $contracts],
             ['title' => 'Nha_thau_trung', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Địa chỉ', 'Hợp đồng liên quan'], 'rows' => $winners],
         ];
@@ -133,19 +133,16 @@ class ContractorKqlcntExportService
                 continue;
             }
 
-            // Preserve an existing value, but fill every blank field from the
-            // complementary source. This prevents a sparse import row from hiding
-            // medicine/manufacturer/decision metadata already saved by Smart Pricing.
             foreach ($row as $index => $value) {
                 if ($this->blank($merged[$key][$index] ?? null) && ! $this->blank($value)) {
                     $merged[$key][$index] = $value;
                 }
             }
 
-            $sources = collect([$merged[$key][24] ?? null, $row[24] ?? null])
+            $sources = collect([$merged[$key][27] ?? null, $row[27] ?? null])
                 ->filter()->flatMap(fn ($value) => preg_split('/\+/', (string) $value) ?: [])
                 ->map(fn ($value) => trim((string) $value))->filter()->unique()->values();
-            $merged[$key][24] = $sources->implode('+');
+            $merged[$key][27] = $sources->implode('+');
         }
 
         return collect(array_values($merged))->concat($unkeyed);
@@ -165,8 +162,6 @@ class ContractorKqlcntExportService
         if ($this->blank($row[23] ?? null)) {
             $contracts = collect((array) $record->contracts)
                 ->pluck('contractNo')->map(fn ($value) => trim((string) $value))->filter()->unique()->values();
-            // A line can only inherit a contract number safely when the TBMT has one
-            // matched contract. Multiple contracts require line-level evidence.
             if ($contracts->count() === 1) {
                 $row[23] = $contracts->first();
             }
@@ -183,13 +178,15 @@ class ContractorKqlcntExportService
                 if (! is_array($lot)) {
                     continue;
                 }
-                $lotNo = trim((string) ($lot['lotNo'] ?? $lot['lotCode'] ?? $lot['id'] ?? ''));
+                $raw = is_array($lot['raw_payload'] ?? null) ? $lot['raw_payload'] : [];
+                $lot = array_replace($raw, $lot);
+                $lotNo = trim((string) ($lot['lotNo'] ?? $lot['lotCode'] ?? $lot['id'] ?? $lot['lot_no'] ?? ''));
                 if ($lotNo === '' || isset($knownKeys[$this->lotKey($record->notify_no, $lotNo)])) {
                     continue;
                 }
                 $quantity = $this->number($lot['quantity'] ?? $lot['qty'] ?? null);
                 $pricePlan = $this->number($lot['pricePlan'] ?? $lot['price_plan'] ?? $lot['unitPrice'] ?? null);
-                $winningPrice = $this->number($lot['lotPrice'] ?? $lot['bidWinningPrice'] ?? $lot['winningPrice'] ?? null);
+                $winningPrice = $this->number($lot['lotPrice'] ?? $lot['bidWinningPrice'] ?? $lot['winningPrice'] ?? $lot['winning_price'] ?? null);
                 $amount = $this->number($lot['amount'] ?? $lot['totalAmount'] ?? null) ?? (($quantity !== null && $winningPrice !== null) ? $quantity * $winningPrice : null);
                 $rows[] = [$record->notify_no, $lot['contractorCode'] ?? $lot['winningCode'] ?? $record->contractor_code,
                     $lot['contractorName'] ?? $lot['winningName'] ?? $search->contractor_name, $lotNo,
@@ -203,11 +200,15 @@ class ContractorKqlcntExportService
                     $lot['dosageForm'] ?? $lot['dosage_form'] ?? $lot['dangBaoChe'] ?? null,
                     $lot['uom'] ?? $lot['unit'] ?? $lot['donViTinh'] ?? null, $quantity, $pricePlan, $winningPrice, $amount,
                     $lot['manufacturer'] ?? $lot['manufacturerName'] ?? $lot['producerName'] ?? null,
-                    $lot['country'] ?? $lot['countryName'] ?? null, $lot['decisionNo'] ?? $lot['decision_no'] ?? null,
+                    $lot['country'] ?? $lot['countryName'] ?? $lot['nuocSanXuat'] ?? null, $lot['decisionNo'] ?? $lot['decision_no'] ?? null,
                     $lot['decisionDate'] ?? $lot['decision_date'] ?? null, $lot['publishedAt'] ?? $lot['published_at'] ?? null,
                     $lot['investorName'] ?? $record->investor_name, $lot['contractNo'] ?? $lot['contract_no'] ?? null,
+                    $lot['packaging_spec'] ?? $lot['packagingSpec'] ?? $lot['packing'] ?? $lot['quyCach'] ?? $lot['quyCachDongGoi'] ?? null,
+                    $this->wholeNumber($lot['shelf_life_months'] ?? $lot['shelfLifeMonths'] ?? $lot['hanDungThang'] ?? $lot['hanDung'] ?? null),
+                    $lot['registration_or_import_license'] ?? $lot['registrationNo'] ?? $lot['registrationNumber'] ?? $lot['gdkLH'] ?? $lot['gpnk'] ?? $lot['soDangKy'] ?? null,
                     'API', $record->synced_at?->format('Y-m-d H:i:s')];
             }
+
             return $rows;
         })->values();
     }
@@ -217,6 +218,7 @@ class ContractorKqlcntExportService
         $amount = $this->number($row[16] ?? null);
         if ($amount !== null) {
             $row[16] = $amount;
+
             return $row;
         }
         $quantity = $this->number($row[13] ?? null);
@@ -224,12 +226,14 @@ class ContractorKqlcntExportService
         if ($quantity !== null && $winningPrice !== null) {
             $row[16] = $quantity * $winningPrice;
         }
+
         return $row;
     }
 
     private function sumAmounts(Collection $rows): ?float
     {
         $amounts = $rows->map(fn (array $row): ?float => $this->number($row[16] ?? null))->filter(fn (?float $amount): bool => $amount !== null);
+
         return $amounts->isEmpty() ? null : (float) $amounts->sum();
     }
 
@@ -246,5 +250,12 @@ class ContractorKqlcntExportService
     private function number(mixed $value): ?float
     {
         return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function wholeNumber(mixed $value): ?int
+    {
+        $number = $this->number($value);
+
+        return $number === null ? null : max(0, (int) round($number));
     }
 }
