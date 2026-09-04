@@ -48,7 +48,7 @@
                 <h2 class="text-lg font-bold text-gray-900">Export KQLCNT đã lưu</h2>
                 <p class="text-sm text-gray-500">Có chọn checkbox: export phần chọn. Không chọn: export toàn bộ lịch sử.</p>
             </div>
-            <div class="max-w-xl rounded-lg bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-600">Ưu tiên <strong>Đồng bộ lại</strong> từ nguồn. TBMT thiếu dữ liệu dùng <strong>Bổ sung KQLCNT</strong>. Dữ liệu MIXED/IMPORT đã đủ vẫn có thể <strong>Cập nhật bằng Excel</strong> khi cần hiệu chỉnh.</div>
+            <div class="max-w-xl rounded-lg bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-600">Ưu tiên <strong>Đồng bộ lại</strong> từ nguồn. TBMT thiếu dữ liệu dùng <strong>Bổ sung KQLCNT</strong>. Khi đã đủ chi tiết, dùng <strong>Đồng bộ vào CSDL</strong> để lưu snapshot chuẩn hóa phục vụ quản trị và thống kê. Dữ liệu MIXED/IMPORT vẫn có thể <strong>Cập nhật bằng Excel</strong>.</div>
         </div>
 
         <form method="POST" action="{{ route('muasamcong.contractors.kqlcnt-recovery.export', $contractorSearch) }}" class="mt-4">
@@ -62,6 +62,8 @@
                         @php($investorName = $record?->investor_name ?: data_get($item->raw_payload, 'investorName') ?: data_get($item->raw_payload, 'procuringEntityName'))
                         @php($detailCount = (int) ($detailCounts[$item->notify_no] ?? 0))
                         @php($enrichedCount = (int) ($enrichedCounts[$item->notify_no] ?? 0))
+                        @php($warehouseCount = (int) ($warehouseCounts[$item->notify_no] ?? 0))
+                        @php($warehouseAt = $warehouseSyncedAt[$item->notify_no] ?? null)
                         @php($source = strtolower((string) ($record?->data_source ?: '')))
                         @php($needsSupplement = ! $record || $detailCount === 0 || $enrichedCount < $detailCount)
                         @php($canRefreshImport = ! $needsSupplement && in_array($source, ['mixed', 'import'], true))
@@ -78,15 +80,22 @@
                                 @elseif ($source === 'mixed')<span class="rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">MIXED</span>
                                 @else<span class="rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">{{ strtoupper($source ?: 'IMPORT') }}</span>@endif
                                 @if ($detailCount > 0)<div class="mt-1 text-xs text-gray-400">Chi tiết đầy đủ: {{ number_format($enrichedCount) }}/{{ number_format($detailCount) }}</div>@endif
+                                @if ($warehouseCount > 0)
+                                    <div class="mt-1 text-xs font-medium text-sky-700">Đã lưu CSDL: {{ number_format($warehouseCount) }} dòng</div>
+                                    @if ($warehouseAt)<div class="mt-0.5 text-[11px] text-gray-400">{{ $warehouseAt->format('d/m/Y H:i') }}</div>@endif
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-right font-semibold {{ $detailCount > 0 ? 'text-emerald-700' : 'text-amber-700' }}">{{ number_format($detailCount) }}</td>
                             <td class="px-4 py-3 text-xs text-gray-500">{{ $record?->imported_at?->format('d/m/Y H:i') ?? $record?->synced_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                            <td class="min-w-44 px-4 py-3">
+                            <td class="min-w-52 px-4 py-3">
                                 @if ($needsSupplement)
                                     <a href="{{ route('muasamcong.contractors.kqlcnt-recovery.supplement', [$contractorSearch, $item->notify_no]) }}" class="inline-flex rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Bổ sung KQLCNT</a>
                                 @else
                                     <div class="flex flex-col items-start gap-2">
                                         <span class="text-xs font-medium text-emerald-600">Đã đủ chi tiết</span>
+                                        <button type="submit" formaction="{{ route('muasamcong.contractors.kqlcnt-recovery.persist', [$contractorSearch, $item->notify_no]) }}" formmethod="POST" class="inline-flex rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100">
+                                            {{ $warehouseCount > 0 ? 'Đồng bộ lại CSDL' : 'Đồng bộ vào CSDL' }}
+                                        </button>
                                         @if ($canRefreshImport)
                                             <a href="{{ route('muasamcong.contractors.kqlcnt-recovery.supplement', [$contractorSearch, $item->notify_no]) }}" class="inline-flex rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">Cập nhật bằng Excel</a>
                                         @endif
