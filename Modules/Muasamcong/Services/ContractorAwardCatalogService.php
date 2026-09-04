@@ -214,7 +214,10 @@ class ContractorAwardCatalogService
             'active_ingredient' => $smart?->active_ingredient ?? $primary?->active_ingredient ?? $raw['active_ingredient'] ?? $raw['tenHoatChat'] ?? null,
             'concentration' => $raw['concentration'] ?? $raw['nongDo'] ?? null,
             'route' => $raw['route'] ?? $raw['duongDung'] ?? null,
-            'dosage_form' => $raw['dosage_form'] ?? $raw['dangBaoChe'] ?? null,
+            'dosage_form' => $raw['dosage_form'] ?? $raw['dosageForm'] ?? $raw['dangBaoChe'] ?? null,
+            'packaging_spec' => $raw['packaging_spec'] ?? $raw['packagingSpec'] ?? $raw['packing'] ?? $raw['quyCach'] ?? $raw['quyCachDongGoi'] ?? null,
+            'shelf_life_months' => $this->wholeNumber($raw['shelf_life_months'] ?? $raw['shelfLifeMonths'] ?? $raw['hanDungThang'] ?? $raw['hanDung'] ?? null),
+            'registration_or_import_license' => $raw['registration_or_import_license'] ?? $raw['registrationNo'] ?? $raw['registrationNumber'] ?? $raw['gdkLH'] ?? $raw['gpnk'] ?? $raw['soDangKy'] ?? null,
             'unit' => $raw['uom'] ?? $raw['unit'] ?? $raw['donViTinh'] ?? null,
             'quantity' => $quantity,
             'price_plan' => $pricePlan,
@@ -278,6 +281,13 @@ class ContractorAwardCatalogService
     private function number(mixed $value): ?float
     {
         return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function wholeNumber(mixed $value): ?int
+    {
+        $number = $this->number($value);
+
+        return $number === null ? null : max(0, (int) round($number));
     }
 
     private function text(mixed $value): ?string
