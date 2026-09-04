@@ -17,6 +17,9 @@ class KqlcntAwardItem extends Model
         'amount' => 'decimal:4',
         'decision_date' => 'date',
         'published_at' => 'datetime',
+        'synced_from_catalog_at' => 'datetime',
+        'last_verified_at' => 'datetime',
+        'is_active' => 'boolean',
         'raw_payload' => 'array',
     ];
 }
