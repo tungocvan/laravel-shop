@@ -5,7 +5,6 @@ namespace Modules\Muasamcong\Services;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Muasamcong\Exports\ContractorKqlcntWorkbookExport;
-use Modules\Muasamcong\Models\ContractorManualLot;
 use Modules\Muasamcong\Models\ContractorSearch;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
 use Modules\Muasamcong\Models\KqlcntRecord;
@@ -13,6 +12,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ContractorKqlcntExportService
 {
+    public function __construct(private readonly ContractorAwardCatalogService $catalog) {}
+
     public function download(ContractorSearch $search, array $notifyNos = []): BinaryFileResponse
     {
         $scope = $search->items()->pluck('notify_no')->map(fn ($value) => trim((string) $value))->filter()->unique();
@@ -30,57 +31,53 @@ class ContractorKqlcntExportService
             ->whereIn('notify_no', $notifyNos)
             ->orderBy('notify_no')->orderBy('lot_no')->get();
 
-        $manualLots = ContractorManualLot::query()
-            ->where('contractor_code', $search->contractor_code)
-            ->whereIn('notify_no', $notifyNos)
-            ->where('source', 'kqlcnt_verified')
-            ->orderBy('notify_no')->orderBy('lot_no')->get();
+        $savedCatalog = $this->catalog->rows($search->contractor_code, $notifyNos);
 
         $normalizedKeys = $awardItems
+            ->filter(fn ($item) => trim((string) $item->lot_no) !== '')
             ->map(fn ($item) => $this->lotKey($item->notify_no, $item->lot_no))
             ->flip();
 
-        $manualApiRows = $manualLots
-            ->reject(fn ($lot) => isset($normalizedKeys[$this->lotKey($lot->notify_no, $lot->lot_no)]))
-            ->map(function ($lot) use ($search): array {
-                $raw = is_array($lot->raw_payload) ? $lot->raw_payload : [];
+        $savedCatalog = $savedCatalog
+            ->reject(fn (array $row) => trim((string) ($row['lot_no'] ?? '')) !== ''
+                && isset($normalizedKeys[$this->lotKey($row['notify_no'] ?? null, $row['lot_no'] ?? null)]))
+            ->values();
 
-                return [
-                    $lot->notify_no,
-                    $raw['contractorCode'] ?? $raw['contractor_code'] ?? $lot->contractor_code,
-                    $raw['contractorName'] ?? $raw['contractor_name'] ?? $search->contractor_name,
-                    $lot->lot_no,
-                    $lot->lot_name,
-                    $raw['medicineCode'] ?? $raw['medicine_code'] ?? null,
-                    $lot->medicine_name,
-                    $raw['medicineGroup'] ?? $raw['medicine_group'] ?? $raw['groupName'] ?? null,
-                    $lot->active_ingredient,
-                    $raw['concentration'] ?? $raw['strength'] ?? null,
-                    $raw['route'] ?? $raw['routeName'] ?? null,
-                    $raw['dosageForm'] ?? $raw['dosage_form'] ?? null,
-                    $raw['uom'] ?? $raw['unit'] ?? null,
-                    $lot->quantity !== null ? (float) $lot->quantity : null,
-                    $lot->price_plan !== null ? (float) $lot->price_plan : null,
-                    $lot->lot_price !== null ? (float) $lot->lot_price : null,
-                    $lot->quantity !== null && $lot->lot_price !== null ? (float) $lot->quantity * (float) $lot->lot_price : null,
-                    $raw['manufacturer'] ?? $raw['manufacturerName'] ?? $raw['producerName'] ?? null,
-                    $raw['country'] ?? $raw['countryName'] ?? null,
-                    $raw['decisionNo'] ?? $raw['decision_no'] ?? null,
-                    $raw['decisionDate'] ?? $raw['decision_date'] ?? null,
-                    $raw['publishedAt'] ?? $raw['published_at'] ?? null,
-                    $raw['investorName'] ?? $raw['investor_name'] ?? null,
-                    $raw['contractNo'] ?? $raw['contract_no'] ?? null,
-                    'API',
-                    $lot->confirmed_at?->format('Y-m-d H:i:s'),
-                ];
-            });
-
-        $manualKeys = $manualLots
-            ->map(fn ($lot) => $this->lotKey($lot->notify_no, $lot->lot_no))
+        $savedKeys = $savedCatalog
+            ->filter(fn (array $row) => trim((string) ($row['lot_no'] ?? '')) !== '')
+            ->map(fn (array $row) => $this->lotKey($row['notify_no'] ?? null, $row['lot_no'] ?? null))
             ->flip();
 
-        $snapshotApiRows = $this->snapshotApiRows($records, $search, $normalizedKeys, $manualKeys);
-        $apiRows = $manualApiRows->concat($snapshotApiRows)->values();
+        $snapshotRows = $this->snapshotApiRows($records, $search, $normalizedKeys, $savedKeys);
+
+        $savedRows = $savedCatalog->map(fn (array $row): array => [
+            $row['notify_no'] ?? null,
+            $row['contractor_code'] ?? $search->contractor_code,
+            $row['contractor_name'] ?? $search->contractor_name,
+            $row['lot_no'] ?? null,
+            $row['lot_name'] ?? null,
+            $row['medicine_code'] ?? null,
+            $row['medicine_name'] ?? null,
+            $row['drug_group'] ?? null,
+            $row['active_ingredient'] ?? null,
+            $row['concentration'] ?? null,
+            $row['route'] ?? null,
+            $row['dosage_form'] ?? null,
+            $row['unit'] ?? null,
+            $row['quantity'] ?? null,
+            $row['price_plan'] ?? null,
+            $row['winning_price'] ?? null,
+            $row['amount'] ?? null,
+            $row['manufacturer'] ?? null,
+            $row['country'] ?? null,
+            $row['decision_no'] ?? null,
+            $row['decision_date'] ?? null,
+            $row['published_at'] ?? null,
+            $row['investor_name'] ?? null,
+            $row['contract_no'] ?? null,
+            $row['source'] ?? 'SAVED',
+            $row['updated_at'] ?? null,
+        ]);
 
         $importRows = $awardItems->map(fn ($item): array => [
             $item->notify_no,
@@ -111,10 +108,11 @@ class ContractorKqlcntExportService
             $item->updated_at?->format('Y-m-d H:i:s'),
         ]);
 
-        $overview = collect($notifyNos)->map(function (string $notifyNo) use ($records, $search, $awardItems, $apiRows): array {
+        $detailRows = $importRows->concat($savedRows)->concat($snapshotRows)->values();
+
+        $overview = collect($notifyNos)->map(function (string $notifyNo) use ($records, $search, $detailRows): array {
             $record = $records->get($notifyNo);
-            $apiCount = $apiRows->filter(fn (array $row) => ($row[0] ?? null) === $notifyNo)->count();
-            $count = $awardItems->where('notify_no', $notifyNo)->count() + $apiCount;
+            $count = $detailRows->filter(fn (array $row) => ($row[0] ?? null) === $notifyNo)->count();
 
             return [
                 $notifyNo,
@@ -140,8 +138,8 @@ class ContractorKqlcntExportService
                 $record->contractor_code,
                 $contract['contractorName'] ?? $contract['newContractorName'] ?? null,
                 $record->investor_name,
-                $contract['contractValue'] ?? null,
-                $contract['startDate'] ?? null,
+                $contract['contractValue'] ?? $contract['priceAfter'] ?? null,
+                $contract['contractEffectiveDate'] ?? $contract['startDate'] ?? null,
                 $contract['endDate'] ?? null,
                 strtoupper((string) ($record->data_source ?: 'api')),
             ]);
@@ -159,7 +157,7 @@ class ContractorKqlcntExportService
 
         $sheets = [
             ['title' => 'Tong_quan_KQLCNT', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Tên gói thầu', 'Chủ đầu tư / BMT', 'Trạng thái', 'Đã công bố', 'Nhà thầu trúng?', 'Số hợp đồng', 'Số lô/thuốc', 'Nguồn dữ liệu', 'Đồng bộ API lúc', 'Import lúc'], 'rows' => $overview],
-            ['title' => 'Danh_muc_trung_thau', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Nồng độ / Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'Đơn vị tính', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Cơ sở sản xuất', 'Nước sản xuất', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Chủ đầu tư / BMT', 'Số hợp đồng', 'Nguồn dữ liệu', 'Cập nhật lúc'], 'rows' => $importRows->concat($apiRows)->values()->all()],
+            ['title' => 'Danh_muc_trung_thau', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Nồng độ / Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'Đơn vị tính', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Cơ sở sản xuất', 'Nước sản xuất', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Chủ đầu tư / BMT', 'Số hợp đồng', 'Nguồn dữ liệu', 'Cập nhật lúc'], 'rows' => $detailRows->all()],
             ['title' => 'Hop_dong', 'headings' => ['Mã TBMT', 'Số hợp đồng', 'Mã nhà thầu', 'Tên nhà thầu', 'Chủ đầu tư / BMT', 'Giá trị hợp đồng', 'Ngày hiệu lực', 'Ngày kết thúc', 'Nguồn dữ liệu'], 'rows' => $contracts],
             ['title' => 'Nha_thau_trung', 'headings' => ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Địa chỉ', 'Hợp đồng liên quan'], 'rows' => $winners],
         ];
@@ -169,9 +167,9 @@ class ContractorKqlcntExportService
         return Excel::download(new ContractorKqlcntWorkbookExport($sheets), $filename);
     }
 
-    private function snapshotApiRows(Collection $records, ContractorSearch $search, Collection $normalizedKeys, Collection $manualKeys): Collection
+    private function snapshotApiRows(Collection $records, ContractorSearch $search, Collection $normalizedKeys, Collection $savedKeys): Collection
     {
-        return $records->flatMap(function (KqlcntRecord $record) use ($search, $normalizedKeys, $manualKeys): array {
+        return $records->flatMap(function (KqlcntRecord $record) use ($search, $normalizedKeys, $savedKeys): array {
             $rows = [];
 
             foreach ((array) $record->verified_lots as $lot) {
@@ -185,7 +183,7 @@ class ContractorKqlcntExportService
                 }
 
                 $key = $this->lotKey($record->notify_no, $lotNo);
-                if (isset($normalizedKeys[$key]) || isset($manualKeys[$key])) {
+                if (isset($normalizedKeys[$key]) || isset($savedKeys[$key])) {
                     continue;
                 }
 
