@@ -43,7 +43,8 @@
                                 <th class="px-4 py-3">Mã TBMT</th>
                                 <th class="px-4 py-3">Tên gói</th>
                                 <th class="px-4 py-3">Chủ đầu tư / BMT</th>
-                                <th class="px-4 py-3">Nguồn</th>
+                                <th class="px-4 py-3">Nguồn / Chi tiết</th>
+                                <th class="px-4 py-3 text-right">Số dòng trúng thầu</th>
                                 <th class="px-4 py-3">KQLCNT</th>
                             </tr>
                         </thead>
@@ -51,6 +52,8 @@
                         @forelse ($items as $item)
                             @php($record = $records->get($item->notify_no))
                             @php($investorName = $record?->investor_name ?: data_get($item->raw_payload, 'investorName') ?: data_get($item->raw_payload, 'procuringEntityName'))
+                            @php($detailCount = (int) ($detailCounts[$item->notify_no] ?? 0))
+                            @php($source = strtolower((string) ($record?->data_source ?: '')))
                             <tr>
                                 <td class="px-4 py-3"><input type="checkbox" name="notify_nos[]" value="{{ $item->notify_no }}" class="rounded border-gray-300"></td>
                                 <td class="whitespace-nowrap px-4 py-3 font-semibold text-indigo-700">{{ $item->notify_no }}</td>
@@ -62,16 +65,23 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3">
-                                    @if ($record)
-                                        <span class="rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">{{ strtoupper($record->data_source ?: 'API') }}</span>
-                                    @else
+                                    @if (! $record)
                                         <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">THIẾU KQLCNT</span>
+                                    @elseif ($source === 'api' && $detailCount === 0)
+                                        <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">API · THIẾU DANH MỤC</span>
+                                    @elseif ($source === 'api')
+                                        <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">API · CÓ DANH MỤC</span>
+                                    @elseif ($source === 'mixed')
+                                        <span class="rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">MIXED</span>
+                                    @else
+                                        <span class="rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">{{ strtoupper($source ?: 'IMPORT') }}</span>
                                     @endif
                                 </td>
+                                <td class="px-4 py-3 text-right font-semibold {{ $detailCount > 0 ? 'text-emerald-700' : 'text-amber-700' }}">{{ number_format($detailCount) }}</td>
                                 <td class="px-4 py-3 text-xs text-gray-500">{{ $record?->imported_at?->format('d/m/Y H:i') ?? $record?->synced_at?->format('d/m/Y H:i') ?? '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">Chưa có dữ liệu lịch sử.</td></tr>
+                            <tr><td colspan="7" class="px-4 py-10 text-center text-gray-500">Chưa có dữ liệu lịch sử.</td></tr>
                         @endforelse
                         </tbody>
                     </table>
@@ -81,17 +91,23 @@
         </section>
 
         <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="text-lg font-bold text-gray-900">Import phục hồi</h2>
-            <p class="mt-1 text-sm text-gray-500">Dùng khi TBMT bị mất KQLCNT trên nguồn hoặc snapshot API đang thiếu chi tiết thuốc/lô trúng thầu.</p>
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Import phục hồi</h2>
+                    <p class="mt-1 text-sm text-gray-500">Dùng khi TBMT bị mất KQLCNT trên nguồn hoặc snapshot API đang thiếu chi tiết thuốc/lô trúng thầu.</p>
+                </div>
+                <a href="{{ route('muasamcong.contractors.kqlcnt-recovery.template', $contractorSearch) }}" class="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">Tải mẫu Import</a>
+            </div>
             <form method="POST" enctype="multipart/form-data" action="{{ route('muasamcong.contractors.kqlcnt-recovery.upload', $contractorSearch) }}" class="mt-4 space-y-3">
                 @csrf
                 <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
                 <button class="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Tải file & tạo preview</button>
             </form>
             <div class="mt-4 space-y-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
-                <p><strong>Cách dùng:</strong> chọn file Excel → hệ thống đọc sheet <strong>Danh_muc_trung_thau</strong> (hoặc sheet đang active) → kiểm tra mapping cột → Preview → Xác nhận Import.</p>
-                <p>Nếu file chỉ có dữ liệu của một TBMT, ở bước mapping có thể chọn cố định Mã TBMT thay vì bắt buộc file phải có cột Mã TBMT.</p>
+                <p><strong>Cách dùng:</strong> tải mẫu → điền danh mục trúng thầu → chọn file → kiểm tra mapping cột → Preview → Xác nhận Import.</p>
+                <p>Ưu tiên sheet <strong>Danh_muc_trung_thau</strong>. Nếu file chỉ có dữ liệu của một TBMT, ở bước mapping có thể chọn cố định Mã TBMT.</p>
                 <p>Import chỉ bổ sung/phục hồi dữ liệu đã lưu; không gọi lại API và không tự xóa snapshot API hiện có. File tối đa 10 MB / 5.000 dòng.</p>
+                <p>TBMT có badge <strong>API · THIẾU DANH MỤC</strong> là trường hợp phù hợp để phục hồi bằng Import.</p>
             </div>
         </section>
     </div>
