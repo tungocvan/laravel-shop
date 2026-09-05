@@ -27,7 +27,7 @@ class Form extends Component
     public string $status = 'active';
     public ?string $note = null;
 
-    public function mount(PartnerService $partnerService, ?int $partnerId = null): void
+    public function mount(PartnerService $partnerService, ?int $partnerId = null, ?string $legal_type = null): void
     {
         $this->partnerId = $partnerId;
 
@@ -47,6 +47,12 @@ class Form extends Component
                 'status' => $this->partner->status,
                 'note' => $this->partner->note,
             ]);
+
+            return;
+        }
+
+        if ($legal_type !== null && array_key_exists($legal_type, Partner::LEGAL_TYPES)) {
+            $this->legal_type = $legal_type;
         }
     }
 
