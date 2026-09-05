@@ -17,8 +17,7 @@ class MedicineIdentityResolver
 
         if ($registration !== null) {
             $query = Medicine::query()->whereNotNull('registration_number');
-            $matches = $query->get()->filter(fn (Medicine $medicine) =>
-                $this->normalize($medicine->registration_number) === $registration
+            $matches = $query->get()->filter(fn (Medicine $medicine) => $this->normalize($medicine->registration_number) === $registration
                 && ($packaging === null || $this->normalize($medicine->packaging_specification) === $packaging)
             )->values();
 
@@ -38,9 +37,7 @@ class MedicineIdentityResolver
 
         $identity = $this->compositeIdentity($source);
         if ($identity !== null) {
-            $matches = Medicine::query()->get()->filter(fn (Medicine $medicine) =>
-                $this->medicineCompositeIdentity($medicine) === $identity
-            )->values();
+            $matches = Medicine::query()->get()->filter(fn (Medicine $medicine) => $this->medicineCompositeIdentity($medicine) === $identity)->values();
 
             if ($matches->count() === 1) {
                 return new MedicineResolution(
