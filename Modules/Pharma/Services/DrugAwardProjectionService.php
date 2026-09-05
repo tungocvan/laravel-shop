@@ -106,7 +106,7 @@ class DrugAwardProjectionService
         ];
         $attributes['canonical_identity_key'] = $this->medicineResolver->canonicalMedicineIdentity($attributes);
 
-        if (! $attributes['canonical_identity_key']) {
+        if (!$attributes['canonical_identity_key']) {
             return null;
         }
 
@@ -121,8 +121,7 @@ class DrugAwardProjectionService
         DrugAwardProjectionData $source,
         ?string $matchMethod,
         int $confidence,
-    ): void
-    {
+    ): void {
         MedicineSource::query()->updateOrCreate([
             'source_system' => $source->sourceSystem,
             'source_record_type' => $source->sourceRecordType.'.medicine',
@@ -146,8 +145,7 @@ class DrugAwardProjectionService
         ?int $medicineId,
         string $matchStatus,
         string $canonicalIdentity,
-    ): array
-    {
+    ): array {
         $winningPrice = $source->winningPrice;
         $amount = $source->amount;
 
