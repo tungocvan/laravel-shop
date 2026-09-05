@@ -17,6 +17,8 @@ class Index extends Component
 
     public string $search = '';
 
+    public string $filterTbmt = '';
+
     public string $filterInvestor = '';
 
     public string $filterCompany = '';
@@ -41,6 +43,7 @@ class Index extends Component
 
     protected $queryString = [
         'search' => ['except' => ''],
+        'filterTbmt' => ['except' => ''],
         'filterInvestor' => ['except' => ''],
         'filterCompany' => ['except' => ''],
         'filterSource' => ['except' => ''],
@@ -56,6 +59,11 @@ class Index extends Component
     }
 
     public function updatedSearch(): void
+    {
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedFilterTbmt(): void
     {
         $this->resetWorkspacePage();
     }
@@ -110,7 +118,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterInvestor', 'filterCompany', 'filterSource', 'filterMatchStatus']);
+        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterCompany', 'filterSource', 'filterMatchStatus']);
         $this->page = 1;
         $this->clearSelection();
     }
@@ -238,6 +246,7 @@ class Index extends Component
             $this->page,
             $this->filterSource ?: null,
             $this->filterMatchStatus ?: null,
+            $this->filterTbmt,
         );
     }
 
