@@ -29,15 +29,53 @@
     @endif
 
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div class="grid gap-4 lg:grid-cols-12">
-            <div class="lg:col-span-3"><label class="block text-sm font-medium text-slate-700">Thuốc / HSSP</label><x-search wire:model.live.debounce.300ms="search" placeholder="Thuốc, hoạt chất, mã thuốc..." class="mt-1" /></div>
-            <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">TBMT</label><x-search wire:model.live.debounce.300ms="filterTbmt" placeholder="Mã TBMT..." class="mt-1" /></div>
-            <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Chủ đầu tư TBMT</label><x-search wire:model.live.debounce.300ms="filterInvestor" placeholder="Tên chủ đầu tư..." class="mt-1" /></div>
-            <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Nhà thầu</label><input type="search" wire:model.live.debounce.300ms="filterCompany" placeholder="Tên nhà thầu..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"></div>
-            <div class="lg:col-span-1"><label class="block text-sm font-medium text-slate-700">Nguồn</label><select wire:model.live="filterSource" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option>@foreach ($sourceOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
-            <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Đối soát HSSP</label><select wire:model.live="filterMatchStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option>@foreach ($matchStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
+        <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-sm font-bold text-slate-900">Bộ lọc dữ liệu</h2>
+                <p class="mt-1 text-xs text-slate-500">Chọn TBMT, chủ đầu tư, thuốc hoặc nhà thầu để lọc nhanh như workspace KQLCNT.</p>
+            </div>
+            @if ($search !== '' || $filterTbmt !== '' || $filterInvestor !== '' || $filterCompany !== '' || $filterSource !== '' || $filterMatchStatus !== '')
+                <button type="button" wire:click="resetFilters" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xóa bộ lọc</button>
+            @endif
         </div>
-        <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"><select wire:model.live="perPage" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} bản ghi / trang</option>@endforeach</select><button type="button" wire:click="resetFilters" class="min-h-11 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold">Xóa bộ lọc</button></div>
+
+        <div class="mt-5 grid gap-4 lg:grid-cols-4">
+            <label class="block text-xs font-semibold text-slate-700">
+                Mã TBMT
+                <x-select-search id="drug-award-filter-tbmt" wire:model="filterTbmt" placeholder="Tất cả Mã TBMT" class="mt-1.5">
+                    <option value="">Tất cả Mã TBMT</option>
+                    @foreach ($tbmtOptions as $value)<option value="{{ $value }}" @selected($filterTbmt === $value)>{{ $value }}</option>@endforeach
+                </x-select-search>
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">
+                Chủ đầu tư TBMT
+                <x-select-search id="drug-award-filter-investor" wire:model="filterInvestor" placeholder="Tất cả chủ đầu tư" class="mt-1.5">
+                    <option value="">Tất cả chủ đầu tư</option>
+                    @foreach ($investorOptions as $value)<option value="{{ $value }}" @selected($filterInvestor === $value)>{{ $value }}</option>@endforeach
+                </x-select-search>
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">
+                Tên thuốc / HSSP
+                <x-select-search id="drug-award-filter-medicine" wire:model="search" placeholder="Tất cả thuốc" class="mt-1.5">
+                    <option value="">Tất cả thuốc</option>
+                    @foreach ($medicineOptions as $value)<option value="{{ $value }}" @selected($search === $value)>{{ $value }}</option>@endforeach
+                </x-select-search>
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">
+                Nhà thầu
+                <x-select-search id="drug-award-filter-company" wire:model="filterCompany" placeholder="Tất cả nhà thầu" class="mt-1.5">
+                    <option value="">Tất cả nhà thầu</option>
+                    @foreach ($companyOptions as $value)<option value="{{ $value }}" @selected($filterCompany === $value)>{{ $value }}</option>@endforeach
+                </x-select-search>
+            </label>
+        </div>
+
+        <div class="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <label class="block text-xs font-semibold text-slate-700">Nguồn<select wire:model.live="filterSource" class="mt-1.5 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Tất cả nguồn</option>@foreach ($sourceOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
+            <label class="block text-xs font-semibold text-slate-700">Đối soát HSSP<select wire:model.live="filterMatchStatus" class="mt-1.5 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Tất cả trạng thái</option>@foreach ($matchStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
+            <label class="block text-xs font-semibold text-slate-700">Hiển thị<select wire:model.live="perPage" class="mt-1.5 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} bản ghi / trang</option>@endforeach</select></label>
+            <div class="flex items-end justify-end"><button type="button" wire:click="resetFilters" class="min-h-11 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Xóa bộ lọc</button></div>
+        </div>
     </section>
 
     @if ($canDelete && $selectedIds !== [])<section class="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3"><p class="text-sm font-medium text-rose-900">Đã chọn {{ count($selectedIds) }} hồ sơ trên trang hiện tại.</p><button type="button" wire:click="confirmBulkDelete" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xóa mục đã chọn</button></section>@endif
