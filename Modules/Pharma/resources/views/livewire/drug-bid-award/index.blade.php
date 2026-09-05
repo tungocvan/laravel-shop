@@ -10,145 +10,117 @@
     $endPage = min($lastPage, $currentPage + 2);
 @endphp
 
-<div class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kết quả trúng thầu</h1>
-            <p class="mt-1 text-sm text-gray-500">Workspace Pharma cho kết quả trúng thầu thủ công và dữ liệu nguồn Mua sắm công trong tương lai.</p>
+<div class="space-y-6">
+    <header class="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pharma · Procurement Intelligence</p>
+            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Kết quả trúng thầu thuốc</h1>
+            <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Catalog nghiệp vụ đa nguồn của Pharma. Giá, số lượng, nhà thầu và quyết định luôn giữ theo nguồn lịch sử; thông tin hồ sơ thuốc chỉ được bổ sung từ HSSP khi bản ghi nguồn đang thiếu.</p>
         </div>
-        @if ($canCreate)
-            <a href="{{ route('admin.pharma.drug-bid-awards.create') }}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Thêm hồ sơ mới</a>
-        @endif
-    </div>
+        <div class="flex flex-wrap gap-2">
+            @if ($canEdit)
+                <button type="button" wire:click="syncMuasamcong" wire:loading.attr="disabled" wire:target="syncMuasamcong"
+                        class="inline-flex min-h-11 items-center justify-center rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-wait disabled:opacity-60">
+                    <span wire:loading.remove wire:target="syncMuasamcong">{{ $syncAfterId ? 'Đồng bộ tiếp KQLCNT' : 'Đồng bộ KQLCNT' }}</span>
+                    <span wire:loading wire:target="syncMuasamcong">Đang đồng bộ...</span>
+                </button>
+                @if ($syncAfterId)
+                    <button type="button" wire:click="restartMuasamcongSync" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Bắt đầu lại sync</button>
+                @endif
+            @endif
+            @if ($canCreate)
+                <a href="{{ route('admin.pharma.drug-bid-awards.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Thêm hồ sơ mới</a>
+            @endif
+        </div>
+    </header>
 
     @if (session()->has('success'))
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="status">{{ session('success') }}</div>
+        <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
     @endif
     @if (session()->has('error'))
-        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert">{{ session('error') }}</div>
+        <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>
     @endif
 
     @if ($canEdit)
         @livewire('shared.import-export.panel', [
             'serviceClass' => \Modules\Pharma\Services\DrugBidAwardImportExport::class,
             'title' => 'Import / Export kết quả trúng thầu',
-            'description' => 'Dùng file chuẩn của Pharma; dữ liệu rỗng không ghi đè giá trị hiện có.',
+            'description' => 'Nếu có chọn checkbox: export phần đã chọn. Nếu không chọn: export toàn bộ kết quả theo bộ lọc hiện tại.',
             'permission' => 'edit_pharma',
             'filters' => [
                 'search' => $search,
                 'investor' => $filterInvestor,
                 'company' => $filterCompany,
                 'source' => $filterSource,
+                'medicine_match_status' => $filterMatchStatus,
                 'selected_ids' => $selectedIds,
             ],
-        ], key('drug-bid-award-import-export-' . md5(json_encode([$search, $filterInvestor, $filterCompany, $filterSource]))))
+        ], key('drug-bid-award-import-export-' . md5(json_encode([$search, $filterInvestor, $filterCompany, $filterSource, $filterMatchStatus, $selectedIds]))))
     @endif
 
-    <div class="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-        <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div>
-                <label for="award-search" class="block text-sm font-medium text-gray-700">Tìm kiếm</label>
-                <input id="award-search" type="search" wire:model.live.debounce.300ms="search" placeholder="Tên thuốc, mã mời thầu, số quyết định..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-            </div>
-            <div>
-                <label for="filter-investor" class="block text-sm font-medium text-gray-700">Chủ đầu tư</label>
-                <input id="filter-investor" type="search" wire:model.live.debounce.300ms="filterInvestor" placeholder="Nhập một phần tên chủ đầu tư..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-            </div>
-            <div>
-                <label for="filter-company" class="block text-sm font-medium text-gray-700">Nhà thầu</label>
-                <input id="filter-company" type="search" wire:model.live.debounce.300ms="filterCompany" placeholder="Nhập một phần tên nhà thầu..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-            </div>
-            <div>
-                <label for="filter-source" class="block text-sm font-medium text-gray-700">Nguồn dữ liệu</label>
-                <select id="filter-source" wire:model.live="filterSource" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                    <option value="">Tất cả nguồn</option>
-                    @foreach ($sourceOptions as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="award-filters-heading">
+        <div class="mb-4">
+            <h2 id="award-filters-heading" class="text-base font-semibold text-slate-900">Bộ lọc intelligence</h2>
+            <p class="mt-1 text-sm text-slate-500">Tìm theo thuốc, hoạt chất, mã thuốc, TBMT hoặc quyết định; lọc theo nguồn và trạng thái đối soát HSSP.</p>
         </div>
-        <div class="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="w-full sm:w-56">
-                <label for="award-per-page" class="sr-only">Số bản ghi mỗi trang</label>
-                <select id="award-per-page" wire:model.live="perPage" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                    @foreach ($perPageOptions as $option)
-                        <option value="{{ $option }}">{{ $option }} bản ghi / trang</option>
-                    @endforeach
-                </select>
+        <div class="grid gap-4 lg:grid-cols-12">
+            <div class="lg:col-span-4">
+                <label for="award-search" class="block text-sm font-medium text-slate-700">Tìm kiếm</label>
+                <input id="award-search" type="search" wire:model.live.debounce.300ms="search" placeholder="Thuốc, hoạt chất, mã thuốc, TBMT..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
             </div>
-            <button type="button" wire:click="resetFilters" wire:loading.attr="disabled" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60">Xóa bộ lọc</button>
+            <div class="lg:col-span-2"><label for="filter-investor" class="block text-sm font-medium text-slate-700">Chủ đầu tư</label><input id="filter-investor" type="search" wire:model.live.debounce.300ms="filterInvestor" placeholder="Tên chủ đầu tư..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"></div>
+            <div class="lg:col-span-2"><label for="filter-company" class="block text-sm font-medium text-slate-700">Nhà thầu</label><input id="filter-company" type="search" wire:model.live.debounce.300ms="filterCompany" placeholder="Tên nhà thầu..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"></div>
+            <div class="lg:col-span-2"><label for="filter-source" class="block text-sm font-medium text-slate-700">Nguồn</label><select id="filter-source" wire:model.live="filterSource" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"><option value="">Tất cả nguồn</option>@foreach ($sourceOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
+            <div class="lg:col-span-2"><label for="filter-match" class="block text-sm font-medium text-slate-700">Đối soát HSSP</label><select id="filter-match" wire:model.live="filterMatchStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"><option value="">Tất cả trạng thái</option>@foreach ($matchStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
         </div>
-    </div>
+        <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <select wire:model.live="perPage" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm sm:w-56">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} bản ghi / trang</option>@endforeach</select>
+            <button type="button" wire:click="resetFilters" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Xóa bộ lọc</button>
+        </div>
+    </section>
 
     @if ($canDelete && $selectedIds !== [])
-        <div class="flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div class="text-sm font-medium text-indigo-900">Đã chọn <strong>{{ count($selectedIds) }}</strong> hồ sơ trên trang hiện tại.</div>
-            <button type="button" wire:click="confirmBulkDelete" class="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100">Xóa mục đã chọn</button>
-        </div>
+        <section class="flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm font-medium text-rose-900">Đã chọn <strong>{{ count($selectedIds) }}</strong> hồ sơ trên trang hiện tại.</p><button type="button" wire:click="confirmBulkDelete" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Xóa mục đã chọn</button></section>
     @endif
 
-    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" wire:loading.class="opacity-60" wire:target="search,filterInvestor,filterCompany,filterSource,perPage,gotoPage,deleteAward,deleteSelected">
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"><div><h2 class="font-semibold text-slate-950">Drug Award Business Catalog</h2><p class="mt-1 text-xs text-slate-500">{{ number_format($awards->total()) }} bản ghi · Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</p></div><div wire:loading wire:target="search,filterInvestor,filterCompany,filterSource,filterMatchStatus,perPage,gotoPage,syncMuasamcong" class="text-sm font-medium text-indigo-600">Đang tải dữ liệu...</div></div>
         <div class="overflow-x-auto">
-            <table class="min-w-[1100px] w-full border-collapse whitespace-nowrap text-left text-sm">
-                <thead>
-                    <tr class="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-600">
-                        @if ($canSelect)
-                            <th class="w-12 px-4 py-4 text-center"><input type="checkbox" wire:model.live="selectPage" aria-label="Chọn tất cả hồ sơ trên trang hiện tại" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></th>
-                        @endif
-                        <th class="px-4 py-4">Thuốc trúng thầu</th><th class="px-4 py-4">Khối lượng & giá</th><th class="px-4 py-4">Chủ đầu tư</th><th class="px-4 py-4">Pháp lý</th><th class="px-4 py-4">Nhà thầu</th><th class="px-4 py-4">Nguồn</th>
-                        @if ($canEdit || $canDelete)<th class="px-4 py-4 text-right">Hành động</th>@endif
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 text-gray-700">
+            <table class="min-w-[1450px] w-full divide-y divide-slate-200 text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600"><tr>@if ($canSelect)<th class="w-12 px-4 py-3 text-center"><input type="checkbox" wire:model.live="selectPage" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></th>@endif<th class="px-4 py-3">Thuốc / HSSP</th><th class="px-4 py-3">TBMT / Lô</th><th class="px-4 py-3">Giá & số lượng</th><th class="px-4 py-3">Chủ đầu tư</th><th class="px-4 py-3">Nhà thầu</th><th class="px-4 py-3">Quyết định / Hợp đồng</th><th class="px-4 py-3">Nguồn</th>@if ($canEdit || $canDelete)<th class="px-4 py-3 text-right">Thao tác</th>@endif</tr></thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
                     @forelse ($awards as $award)
-                        <tr class="hover:bg-gray-50/60 {{ in_array((string) $award->id, array_map('strval', $selectedIds), true) ? 'bg-indigo-50/40' : '' }}">
-                            @if ($canSelect)<td class="px-4 py-4 text-center"><input type="checkbox" wire:model.live="selectedIds" value="{{ $award->id }}" aria-label="Chọn {{ $award->medicine_name }}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></td>@endif
-                            <td class="px-4 py-4"><div class="font-semibold text-gray-900">{{ $award->medicine_name }}</div><div class="mt-1 text-xs text-gray-500">{{ $award->packaging_specification }}</div>@if ($award->medicine_id)<div class="mt-1 text-xs text-emerald-700">Đã liên kết HSSP #{{ $award->medicine_id }}</div>@else<div class="mt-1 text-xs text-amber-700">Chưa đối soát HSSP</div>@endif</td>
-                            <td class="px-4 py-4"><div class="font-medium">{{ number_format($award->quantity) }} đơn vị</div><div class="mt-1 text-xs text-indigo-700">{{ number_format((float) $award->unit_price, 0, ',', '.') }} VNĐ</div></td>
-                            <td class="px-4 py-4"><div class="max-w-xs truncate font-medium" title="{{ $award->investor_name }}">{{ $award->investor_name }}</div><div class="mt-1 font-mono text-xs text-gray-500">{{ $award->bidding_notice_code }}</div></td>
-                            <td class="px-4 py-4"><div class="font-medium">QĐ: {{ $award->decision_number }}</div><div class="mt-1 text-xs text-gray-500">{{ $award->decision_date?->format('d/m/Y') }} · {{ $award->contract_duration_months }} tháng</div></td>
-                            <td class="px-4 py-4"><div class="max-w-xs truncate font-medium" title="{{ $award->winning_company_name }}">{{ $award->winning_company_name }}</div>@if ($award->decision_document_url)<a href="{{ $award->decision_document_url }}" target="_blank" rel="noopener noreferrer" class="mt-1 inline-block text-xs text-indigo-600 hover:underline">Mở văn bản</a>@endif</td>
-                            <td class="px-4 py-4">@if ($award->source_type === \Modules\Pharma\Models\DrugBidAward::SOURCE_MUASAMCONG)<span class="inline-flex rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">Mua sắm công</span>@else<span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 ring-1 ring-gray-200">Thủ công</span>@endif</td>
-                            @if ($canEdit || $canDelete)<td class="px-4 py-4 text-right"><div class="inline-flex items-center gap-2">@if ($canEdit)<a href="{{ route('admin.pharma.drug-bid-awards.edit', $award->id) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Sửa</a>@endif @if ($canDelete)<button type="button" wire:click="deleteAward({{ $award->id }})" wire:confirm="Xóa vĩnh viễn hồ sơ trúng thầu này?" wire:loading.attr="disabled" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60">Xóa</button>@endif</div></td>@endif
+                        @php
+                            $name = $award->effectiveMedicineAttribute('medicine_name');
+                            $ingredient = $award->effectiveMedicineAttribute('active_ingredient');
+                            $strength = $award->effectiveMedicineAttribute('concentration');
+                            $route = $award->effectiveMedicineAttribute('route');
+                            $dosage = $award->effectiveMedicineAttribute('dosage_form');
+                            $price = $award->winning_price ?? $award->unit_price;
+                        @endphp
+                        <tr class="align-top transition hover:bg-slate-50 {{ in_array((string) $award->id, array_map('strval', $selectedIds), true) ? 'bg-indigo-50/50' : '' }}">
+                            @if ($canSelect)<td class="px-4 py-4 text-center"><input type="checkbox" wire:model.live="selectedIds" value="{{ $award->id }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></td>@endif
+                            <td class="min-w-72 px-4 py-4"><div class="font-semibold text-slate-950">{{ $name['value'] ?: '—' }}</div><div class="mt-1 text-xs leading-5 text-slate-500">{{ $ingredient['value'] ?: '—' }} · {{ $strength['value'] ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $dosage['value'] ?: '—' }} · {{ $route['value'] ?: '—' }}</div>@if (in_array('hssp', [$name['origin'], $ingredient['origin'], $strength['origin'], $route['origin'], $dosage['origin']], true))<span class="mt-2 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">Bổ sung từ HSSP</span>@endif <span class="mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 {{ $award->medicine_match_status === 'verified' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : ($award->medicine_match_status === 'provisional' ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-slate-100 text-slate-700 ring-slate-200') }}">{{ $matchStatusOptions[$award->medicine_match_status] ?? $award->medicine_match_status }}</span></td>
+                            <td class="min-w-56 px-4 py-4"><div class="font-mono text-xs font-semibold text-slate-800">{{ $award->bidding_notice_code ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">Lô {{ $award->lot_no ?: '—' }} · {{ $award->lot_name ?: '—' }}</div></td>
+                            <td class="min-w-52 px-4 py-4"><div class="font-semibold text-indigo-700">{{ $price !== null ? number_format((float) $price, 0, ',', '.') . ' VNĐ' : '—' }}</div><div class="mt-1 text-xs text-slate-500">SL: {{ $award->quantity !== null ? rtrim(rtrim(number_format((float) $award->quantity, 4, '.', ','), '0'), '.') : '—' }} {{ $award->unit ?: '' }}</div><div class="mt-1 text-xs text-slate-500">Giá KH: {{ $award->price_plan !== null ? number_format((float) $award->price_plan, 0, ',', '.') : '—' }}</div></td>
+                            <td class="min-w-64 px-4 py-4"><div class="font-medium text-slate-800">{{ $award->investor_name ?: '—' }}</div><div class="mt-1 font-mono text-xs text-slate-500">{{ $award->investor_code ?: '—' }}</div></td>
+                            <td class="min-w-64 px-4 py-4"><div class="font-medium text-slate-800">{{ $award->winning_company_name ?: '—' }}</div><div class="mt-1 font-mono text-xs text-slate-500">{{ $award->contractor_code ?: '—' }}</div></td>
+                            <td class="min-w-60 px-4 py-4"><div class="font-medium">QĐ: {{ $award->decision_number ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $award->decision_date?->format('d/m/Y') ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">HĐ: {{ $award->contract_no ?: '—' }} · {{ $award->contract_period_text ?: ($award->contract_duration_months ? $award->contract_duration_months . ' tháng' : '—') }}</div></td>
+                            <td class="min-w-44 px-4 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $award->source_type === \Modules\Pharma\Models\DrugBidAward::SOURCE_MUASAMCONG ? 'bg-sky-50 text-sky-700 ring-sky-200' : 'bg-slate-100 text-slate-700 ring-slate-200' }}">{{ $award->source_type === \Modules\Pharma\Models\DrugBidAward::SOURCE_MUASAMCONG ? 'Mua sắm công' : 'Pharma' }}</span><div class="mt-2 text-xs text-slate-500">{{ $award->sources->count() }} lineage</div></td>
+                            @if ($canEdit || $canDelete)<td class="px-4 py-4 text-right"><div class="inline-flex gap-2">@if ($canEdit)<a href="{{ route('admin.pharma.drug-bid-awards.edit', $award->id) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa</a>@endif @if ($canDelete)<button type="button" wire:click="deleteAward({{ $award->id }})" wire:confirm="Xóa vĩnh viễn hồ sơ trúng thầu này?" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa</button>@endif</div></td>@endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ 6 + ($canSelect ? 1 : 0) + (($canEdit || $canDelete) ? 1 : 0) }}" class="px-6 py-12 text-center text-gray-500">Không có kết quả phù hợp.</td></tr>
+                        <tr><td colspan="{{ 8 + ($canSelect ? 1 : 0) + (($canEdit || $canDelete) ? 1 : 0) }}" class="px-6 py-12 text-center text-sm text-slate-500">Không có kết quả phù hợp.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
-        <div class="flex flex-col gap-3 border-t border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div class="text-xs font-medium text-gray-500">@if ($awards->total())Hiển thị {{ $awards->firstItem() }}–{{ $awards->lastItem() }} / {{ $awards->total() }} bản ghi@else 0 bản ghi @endif</div>
-            @if ($awards->hasPages())
-                <nav class="flex flex-wrap items-center justify-end gap-2" aria-label="Phân trang kết quả trúng thầu">
-                    <button type="button" wire:click="gotoPage({{ max(1, $currentPage - 1) }})" wire:loading.attr="disabled" @disabled($awards->onFirstPage()) class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Trước</button>
-                    @if ($startPage > 1)
-                        <button type="button" wire:click="gotoPage(1)" class="min-h-10 min-w-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">1</button>
-                        @if ($startPage > 2)<span class="px-1 text-sm text-slate-400" aria-hidden="true">…</span>@endif
-                    @endif
-                    @for ($page = $startPage; $page <= $endPage; $page++)
-                        <button type="button" wire:click="gotoPage({{ $page }})" @if ($page === $currentPage) aria-current="page" @endif class="min-h-10 min-w-10 rounded-xl border px-3 py-2 text-sm font-semibold transition {{ $page === $currentPage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">{{ $page }}</button>
-                    @endfor
-                    @if ($endPage < $lastPage)
-                        @if ($endPage < $lastPage - 1)<span class="px-1 text-sm text-slate-400" aria-hidden="true">…</span>@endif
-                        <button type="button" wire:click="gotoPage({{ $lastPage }})" class="min-h-10 min-w-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{{ $lastPage }}</button>
-                    @endif
-                    <button type="button" wire:click="gotoPage({{ min($lastPage, $currentPage + 1) }})" wire:loading.attr="disabled" @disabled(! $awards->hasMorePages()) class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Tiếp</button>
-                </nav>
-            @endif
-        </div>
-    </div>
+        @if ($lastPage > 1)
+            <nav class="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5" aria-label="Phân trang kết quả trúng thầu"><p class="text-sm text-slate-500">Hiển thị {{ $awards->firstItem() }}–{{ $awards->lastItem() }} / {{ $awards->total() }}</p><div class="flex flex-wrap items-center justify-end gap-2"><button type="button" wire:click="gotoPage({{ max(1, $currentPage - 1) }})" @disabled($awards->onFirstPage()) class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40">Trước</button>@if ($startPage > 1)<button type="button" wire:click="gotoPage(1)" class="min-h-10 min-w-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">1</button>@if ($startPage > 2)<span class="text-slate-400">…</span>@endif @endif @for ($pageNumber = $startPage; $pageNumber <= $endPage; $pageNumber++)<button type="button" wire:click="gotoPage({{ $pageNumber }})" class="min-h-10 min-w-10 rounded-xl border px-3 py-2 text-sm font-semibold {{ $pageNumber === $currentPage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">{{ $pageNumber }}</button>@endfor @if ($endPage < $lastPage) @if ($endPage < $lastPage - 1)<span class="text-slate-400">…</span>@endif <button type="button" wire:click="gotoPage({{ $lastPage }})" class="min-h-10 min-w-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">{{ $lastPage }}</button>@endif <button type="button" wire:click="gotoPage({{ min($lastPage, $currentPage + 1) }})" @disabled(!$awards->hasMorePages()) class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40">Sau</button></div></nav>
+        @endif
+    </section>
 
     @if ($showBulkDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-delete-title">
-            <button type="button" wire:click="cancelBulkDelete" class="absolute inset-0 bg-gray-900/50" aria-label="Đóng hộp thoại xác nhận"></button>
-            <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-                <h2 id="bulk-delete-title" class="text-lg font-bold text-gray-900">Xóa {{ count($selectedIds) }} hồ sơ?</h2>
-                <p class="mt-2 text-sm text-gray-600">Chỉ các hồ sơ đang được chọn trên <strong>trang hiện tại</strong> sẽ bị xóa. Hành động này không thể hoàn tác.</p>
-                <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" wire:click="cancelBulkDelete" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Hủy</button><button type="button" wire:click="deleteSelected" wire:loading.attr="disabled" wire:target="deleteSelected" class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"><span wire:loading.remove wire:target="deleteSelected">Xóa {{ count($selectedIds) }} hồ sơ</span><span wire:loading wire:target="deleteSelected">Đang xóa...</span></button></div>
-            </div>
-        </div>
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"><div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"><h2 class="text-lg font-semibold text-slate-950">Xóa các hồ sơ đã chọn?</h2><p class="mt-2 text-sm text-slate-600">Thao tác này xóa {{ count($selectedIds) }} bản ghi trên trang hiện tại.</p><div class="mt-5 flex justify-end gap-2"><button type="button" wire:click="cancelBulkDelete" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button><button type="button" wire:click="deleteSelected" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xóa</button></div></div></div>
     @endif
 </div>
