@@ -6,6 +6,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Pharma\Data\DrugAwardProjectionData;
+use Modules\Pharma\Data\MedicineResolution;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardSource;
 use Modules\Pharma\Models\Medicine;
@@ -22,7 +23,7 @@ class DrugAwardProjectionService
             $medicine = $resolution->medicine ?? $this->createProvisionalMedicineWhenSafe($source);
 
             if ($medicine && $resolution->medicine === null) {
-                $resolution = new \Modules\Pharma\Data\MedicineResolution(
+                $resolution = new MedicineResolution(
                     $medicine,
                     DrugBidAward::MATCH_PROVISIONAL,
                     'provisional_source_profile',
@@ -40,7 +41,7 @@ class DrugAwardProjectionService
             $award = $sourceLink?->award()
                 ->first()
                 ?? DrugBidAward::query()->where('canonical_identity_key', $canonicalIdentity)->first()
-                ?? new DrugBidAward;
+                ?? new DrugBidAward();
 
             $attributes = $this->awardAttributes($source, $medicine?->id, $resolution->status, $canonicalIdentity);
             $award->fill($this->withoutNullOverwrites($award, $attributes));
