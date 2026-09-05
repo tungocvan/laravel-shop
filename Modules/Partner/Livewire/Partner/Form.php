@@ -14,20 +14,28 @@ class Form extends Component
     public ?Partner $partner = null;
 
     public ?string $tax_code = null;
+
     public string $name = '';
+
     public string $legal_type = 'company';
+
     public array $partner_types = [];
 
     public ?string $phone = null;
+
     public ?string $email = null;
+
     public ?string $contact_person = null;
+
     public ?string $address = null;
 
     public string $source = 'manual';
+
     public string $status = 'active';
+
     public ?string $note = null;
 
-    public function mount(PartnerService $partnerService, ?int $partnerId = null): void
+    public function mount(PartnerService $partnerService, ?int $partnerId = null, ?string $legal_type = null): void
     {
         $this->partnerId = $partnerId;
 
@@ -47,6 +55,12 @@ class Form extends Component
                 'status' => $this->partner->status,
                 'note' => $this->partner->note,
             ]);
+
+            return;
+        }
+
+        if ($legal_type !== null && array_key_exists($legal_type, Partner::LEGAL_TYPES)) {
+            $this->legal_type = $legal_type;
         }
     }
 

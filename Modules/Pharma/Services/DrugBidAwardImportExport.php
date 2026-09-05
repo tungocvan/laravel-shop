@@ -102,8 +102,9 @@ class DrugBidAwardImportExport extends BaseImportExportService
                 ->where('medicine_name', 'like', "%{$search}%")
                 ->orWhere('active_ingredient', 'like', "%{$search}%")
                 ->orWhere('medicine_code', 'like', "%{$search}%")
-                ->orWhere('bidding_notice_code', 'like', "%{$search}%")
+                ->orWhere('lot_name', 'like', "%{$search}%")
                 ->orWhere('decision_number', 'like', "%{$search}%")))
+            ->when($filters['tbmt'] ?? null, fn ($query, $tbmt) => $query->where('bidding_notice_code', 'like', "%{$tbmt}%"))
             ->when($filters['investor'] ?? null, fn ($query, $investor) => $query->where('investor_name', 'like', "%{$investor}%"))
             ->when($filters['company'] ?? null, fn ($query, $company) => $query->where('winning_company_name', 'like', "%{$company}%"))
             ->when($filters['source'] ?? null, function ($query, $source) use ($lineageAvailable): void {

@@ -3,166 +3,135 @@
 ## Current checkpoint
 
 - Module: `Pharma`
-- Objective: **Drug Bid Awards — Major Analysis & Synchronization with Muasamcong Canonical KQLCNT + HSSP Medicine Master standardization**
-- Branch: `feat/pharma-multi-source-drug-intelligence`
-- Status: **PR READY — PHP/UI/build acceptance PASS**
+- Objective: **Drug Award Allocation & Hospital Contract Management**
+- Branch: `feat/pharma-drug-award-allocation-contracts`
+- PR: `#165`
+- Status: **PR READY — executable checks and UI acceptance PASS**
 - Date: 2026-09-05
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
-- Consolidation: **single implementation branch / single PR planned**
+- Consolidation: **one implementation branch / one PR**
 
-## Accepted architecture
+## Canonical ownership
 
-The approved design is **Option B+ — Pharma Multi-source Medicine Intelligence Architecture**.
+The merged Multi-source Drug Intelligence architecture remains unchanged:
 
-Canonical ownership is separated into three layers:
+1. `Muasamcong` owns procurement canonical data.
+2. Pharma `DrugBidAward` owns the Drug Award business canonical projection/snapshot.
+3. `Partner` is reused as the organization master for receiving hospitals; phase 1 selects active partners with `legal_type = hospital`.
+4. Pharma owns allocation and hospital-contract data below the award.
 
-1. **Procurement Canonical — Muasamcong owner**: `muasamcong_kqlcnt_award_items` and external acquisition/recovery state.
-2. **Medicine Master Canonical — Pharma/HSSP owner**: `pharma_medicines` + `pharma_medicine_sources`.
-3. **Drug Award Business Canonical — Pharma owner**: `pharma_drug_bid_awards` + `pharma_drug_bid_award_sources`.
+A receiving hospital is **never** inferred to be the TBMT investor. Allocation/contract mutations do not write procurement source snapshots or Muasamcong data.
 
-HSSP describes the product. Drug Award describes the procurement result. They link by `medicine_id` but remain separate business entities.
+## Implemented domain foundation
 
-## Core invariant
+### Allocation
 
-**VALID RECORD != COMPLETE RECORD.**
+`pharma_drug_bid_award_allocations` links one Drug Award to one canonical Partner hospital and stores allocated quantity, effective dates, lifecycle state, notes and audit/cancellation metadata.
 
-Pharma Drug Award tolerates partial source data. Missing medicine attributes may be enriched from a deterministically linked HSSP Medicine profile for read/export purposes, but enrichment never overwrites a non-empty historical source value or misrepresents HSSP-derived data as procurement-origin data.
+- `(drug_bid_award_id, partner_id)` is unique.
+- cancelled allocations can be reactivated/reused as the same canonical row.
+- active allocation total cannot exceed `DrugBidAward.quantity` on user mutation.
+- allocation cannot be reduced below committed contract quantity.
+- no hard-delete workflow is exposed.
 
-Procurement-only facts such as winning price, plan price, quantity, investor, contractor, decision and contract are never HSSP-enriched.
+### Contract
 
-## Implemented schema
+`pharma_drug_bid_award_contracts` is separate from allocation and supports many contracts per allocation.
 
-The following migrations are implemented and were successfully applied locally:
+- `contract_quantity` is independent from `allocated_quantity`.
+- committed statuses are `signed`, `in_progress`, `completed`.
+- committed contract total cannot exceed allocation quantity.
+- completed contracts cannot be directly cancelled in phase 1.
 
-- `2026_09_05_010000_add_intelligence_fields_to_medicines_table.php`
-- `2026_09_05_011000_create_medicine_sources_table.php`
-- `2026_09_05_012000_add_intelligence_fields_to_drug_bid_awards_table.php`
-- `2026_09_05_013000_create_drug_bid_award_sources_table.php`
-- `2026_09_05_014000_relax_legacy_drug_award_constraints.php`
+### Quantity state
 
-Migration result reported: **all five DONE**.
+Award quantity is normalized to `decimal(20,4)` to match model/business precision.
 
-Key changes include Medicine/profile identity state, source-lineage tables, richer KQLCNT award fields, decimal quantity/pricing support, contract metadata, source provenance and relaxation of legacy constraints that blocked partial-source records.
+Derived allocation state:
 
-## Implemented domain/services
+- `UNALLOCATED`
+- `PARTIALLY_ALLOCATED`
+- `FULLY_ALLOCATED`
+- `OVER_ALLOCATED` diagnostic only
 
-### Medicine Master
+`remaining_quantity = award.quantity - total_active_allocated_quantity`; negative remaining is intentionally preserved for inconsistency detection.
 
-- `Medicine` exposes identity/profile status, source lineage and award relations.
-- `MedicineSource` records source-system lineage.
-- `MedicineIdentityResolver` performs deterministic identity resolution; fuzzy auto-merge is not enabled.
-- `MedicineService` supports expanded product search, quality filtering and source/award counts.
-- Manual HSSP persistence supports incomplete records without fake placeholders.
-- Existing Excel Medicine import validation remains source-specific and intentionally strict.
+## Concurrency / integrity
 
-### Drug Award Business Catalog
+Allocation writes use a database transaction and `lockForUpdate()` on the parent `DrugBidAward`, then recalculate active allocation SUM before writing.
 
-- `DrugBidAward` carries procurement, medicine snapshot, pricing, party, contract, match-state and provenance fields.
-- `DrugBidAwardSource` records many-source-to-one-business-record lineage.
-- `DrugAwardProjectionData` is the source-neutral projection DTO.
-- `DrugAwardProjectionService` provides idempotent multi-source projection, null-safe source updates and provisional Medicine creation when deterministic signals are strong enough.
-- `effectiveMedicineAttribute()` exposes `award`, `hssp`, or `missing` provenance.
-- Source `registration_or_import_license` remains on the award and is not blindly copied to HSSP `registration_number`.
+Contract writes use a database transaction and `lockForUpdate()` on the parent allocation, then recalculate committed contract SUM before writing.
 
-### Muasamcong integration
+This makes Livewire validation advisory rather than the only integrity barrier.
 
-Pharma owns the explicit adapter boundary:
+## Authorization boundary
 
-- `Integrations/Muasamcong/MuasamcongKqlcntAwardAdapter.php`
-- `Integrations/Muasamcong/MuasamcongDrugAwardSyncService.php`
+The implementation introduces independent permissions:
 
-The adapter consumes `KqlcntAwardItem` without any dependency on Muasamcong UI/controller.
+- `view_pharma_allocations`
+- `manage_pharma_allocations`
+- `cancel_pharma_allocations`
+- `view_pharma_contracts`
+- `manage_pharma_contracts`
+- `cancel_pharma_contracts`
 
-The web-triggered sync is intentionally bounded:
+`edit_pharma` alone does not grant allocation/contract mutation rights. Permission records are created but are not automatically granted to every existing role.
 
-- default batch: **250** source rows;
-- hard service cap: **1000**;
-- continuation cursor: last Muasamcong source ID;
-- action permission: `edit_pharma`;
-- unavailable Muasamcong canonical table -> sync fails gracefully while existing Pharma data remains usable.
+## UI / export foundation
 
-## Implemented workspaces
+- Drug Award rows expose **Phân bổ** only to users with allocation view permission.
+- Workspace route: `/admin/pharma/drug-bid-awards/{id}/allocations`.
+- Workspace keeps procurement context read-only and labels the original party explicitly as **Chủ đầu tư TBMT**.
+- KPI: winning, allocated, remaining, hospital count and derived allocation state.
+- bounded pagination: `10/25/50/100`; no unbounded `All`.
+- checkbox selection is page-scoped.
+- allocation and contract CSV exports follow: selected rows when selection exists; otherwise all rows matching active filters.
+- controlled pause/cancel actions preserve the domain audit boundary.
+- Drug Award filter workspace follows the established `admin/muasamcong/kqlcnt-awards` interaction pattern: searchable dropdowns for TBMT, investor, medicine/HSSP and contractor, with bounded option lists and shared `<x-select-search>`/TomSelect behavior.
 
-### `/admin/pharma/hssp`
+The existing Drug Award HSSP enrichment/provenance indicators (`Bổ sung từ HSSP`, source lineage) are retained.
 
-The HSSP workspace is standardized as **Medicine Master / Product Profile / Data Quality**:
+## Canonical hospital management UX
 
-- search: name, ingredient, registration, concentration, manufacturer, country;
-- filters: profile quality, circular group, special-control state;
-- standard bounded pagination `10/25/50/100`;
-- table exposes registration/identity, ingredient/strength, dosage/route, manufacturer/country, profile quality, source count and award count;
-- selected/all export payload carries `profile_status` and selected IDs.
+Hospital master data remains owned by `Partner`; Pharma does not introduce a duplicate Hospital model/table.
 
-### `/admin/pharma/drug-bid-awards`
+- **Quản lý bệnh viện** opens the canonical Partner list scoped to `legal_type = hospital`.
+- **+ Thêm bệnh viện** opens the canonical Partner create form prefilled with `legal_type = hospital`.
+- Partner import accepts `name` + `legal_type` as the minimum hospital identity, keeps optional profile fields, avoids null-tax-code collisions, and retains bounded pagination/export semantics.
+- Pharma allocations reference the canonical Partner through `partner_id`.
+- Procurement investor remains separate from receiving-hospital allocation.
 
-The Drug Award workspace is standardized as **Multi-source Procurement Award Intelligence**:
+## Final verification evidence
 
-- expanded search: medicine, ingredient, medicine code, TBMT, lot, decision;
-- filters: investor, contractor, source system, HSSP match status;
-- source lineage displayed when available;
-- effective medicine values can display **Bổ sung từ HSSP** while historical award snapshots remain untouched;
-- match state shown as verified/provisional/ambiguous/unresolved;
-- bounded KQLCNT sync action exposed to `edit_pharma` users;
-- selected/all export contract preserved.
+Current closeout evidence:
 
-## Legacy-schema compatibility
+- full `tests/Feature/Pharma` regression: **57 tests / 324 assertions PASS**;
+- focused Pint on changed Pharma/Partner implementation and regression files: **10 files PASS**;
+- frontend build: **PASS**, Vite **34 modules transformed**; subsequent commits were PHP/test/document formatting only and did not modify frontend assets;
+- manual UI acceptance: **PASS**, including allocation/contract workspace, canonical hospital entry points, Partner hospital UX and KQLCNT-style Drug Award searchable filters;
+- branch comparison against `main`: branch is ahead with no base drift at closeout;
+- GitHub reported no commit status checks/workflow runs for this PR head during closeout, so no CI PASS is claimed.
 
-List/export behavior checks whether `pharma_drug_bid_award_sources` exists before eager-loading/filtering source lineage.
+Whole-module Pint still reports legacy style debt in unrelated pre-existing Pharma files. Those files are outside this objective and were intentionally not reformatted to avoid scope creep.
 
-This allows focused SQLite tests and older schemas to continue using legacy `source_type`, while migrated runtime schemas use the full lineage model.
+## Deferred scope
 
-## Export behavior
+Not implemented in this objective:
 
-`DrugBidAwardImportExport` now:
+- delivery / goods receipt;
+- inventory;
+- invoice reconciliation;
+- automatic consumption;
+- allocation Excel import;
+- AI/fuzzy hospital matching;
+- contract amendment engine.
 
-- exports selected IDs when selection is non-empty;
-- otherwise exports all records matching search/investor/company/source/match-status filters;
-- uses source lineage for source filtering when the lineage table exists;
-- exports effective medicine values with provenance plus richer procurement/business fields;
-- does **not** include raw Muasamcong recovery payloads.
+Schema/domain boundaries intentionally leave room for future delivery and amendment entities.
 
-The old Excel import mapping remains intentionally strict/source-specific for compatibility.
+## Merge handoff
 
-## Final acceptance evidence
+PR #165 is ready for manual merge once GitHub reports a mergeable state. No additional application changes are required from the accepted implementation unless GitHub exposes a repository-level merge gate.
 
-Final local verification reported by the user:
+## Prior checkpoint
 
-```text
-Migrations: PASS — all five intelligence migrations DONE
-Focused Pint gate: PASS
-PharmaDrugBidAwardWorkspaceTest: PASS — 7 tests, 56 assertions
-Full tests/Feature/Pharma: PASS — 47 tests, 265 assertions
-Manual HSSP + Drug Bid Award UI smoke: UI PASS
-Frontend production build: PASS — Vite 7.3.6, 34 modules transformed, built in 2.74s
-```
-
-Manual UI acceptance covered the HSSP Medicine Master and Drug Award Intelligence workspaces according to the agreed checklist, including search/filter behavior, bounded pagination, data-quality/provenance presentation, selected/all export behavior and KQLCNT synchronization smoke.
-
-No full-project regression was run; this follows the agreed module-focused verification policy.
-
-## PR readiness
-
-All required gates for this objective are complete:
-
-- schema migrations: **PASS**;
-- focused Pint: **PASS**;
-- focused Pharma regression: **PASS**;
-- HSSP / Drug Award UI acceptance: **PASS**;
-- frontend production build: **PASS**;
-- architecture/analysis/information/handoff documentation: **UPDATED**.
-
-The branch is therefore **PR READY** for one consolidated pull request.
-
-## Deferred scope / future follow-up
-
-The following remain intentional future work rather than blockers:
-
-- fuzzy/AI Medicine matching;
-- background/queued continuous Muasamcong synchronization;
-- additional source adapters beyond current Muasamcong/manual/Excel pathways;
-- further per-field provenance visualization/export if audit requirements demand it;
-- production/runtime enablement decisions outside this implementation objective.
-
-## Prior completed checkpoint
-
-The 2026-09-02 corrective Pharma refactor was previously merged as PR #150. Its Admin UI, pagination and selected/all export standards remain the baseline and are extended rather than discarded by this objective.
+The Multi-source Drug Intelligence objective was merged to `main` via PR #164 before this branch began. Its canonical ownership, HSSP enrichment and source-provenance behavior remain baseline contracts for this implementation.
