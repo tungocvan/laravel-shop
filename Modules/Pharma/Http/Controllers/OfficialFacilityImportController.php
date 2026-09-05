@@ -86,7 +86,7 @@ class OfficialFacilityImportController extends Controller
         }
         $summary->refresh($batch);
 
-        return back()->with('success', 'Đã lưu lựa chọn của trang hiện tại. Lựa chọn ở các trang khác được giữ nguyên.');
+        return back()->with('success', 'Đã lưu lựa chọn của trang hiện tại.');
     }
 
     public function resolve(Request $request, OfficialFacilityImportRow $row, OfficialFacilityConflictResolver $resolver): RedirectResponse
@@ -106,11 +106,53 @@ class OfficialFacilityImportController extends Controller
         return back()->with('success', 'Đã xử lý dòng xung đột.');
     }
 
-    public function importSelected(OfficialFacilityImportBatch $batch, OfficialFacilityPartnerImporter $importer, OfficialFacilityImportSummary $summary): RedirectResponse
+    public function importSelected(Request $request, OfficialFacilityImportBatch $batch, OfficialFacilityPartnerImporter $importer, OfficialFacilityImportSummary $summary): RedirectResponse
     {
-        $batch->update(['status' => 'IMPORTING', 'started_at' => $batch->started_at ?? now(), 'completed_at' => null]);
+        $validated = $request->validate([
+            'visible' => ['required', 'array', 'min:1'],
+            'visible.*' => ['integer'],
+            'selected' => ['required', 'array', 'min:1'],
+            'selected.*' => ['integer'],
+        ], [
+            'selected.required' => 'Hãy chọn ít nhất một dòng để import.',
+            'selected.min' => 'Hãy chọn ít nhất một dòng để import.',
+        ]);
 
-        $rows = $batch->rows()->where('is_selected', true)->whereNull('imported_at')->whereNull('import_status')->orderBy('id')->get();
+        $visible = collect($validated['visible'])->map(fn ($id) => (int) $id)->unique();
+        $selected = collect($validated['selected'])->map(fn ($id) => (int) $id)->intersect($visible)->unique()->values();
+
+        if ($selected->isEmpty()) {
+            return back()->withErrors(['selected' => 'Không có dòng hợp lệ nào được chọn trên trang hiện tại.']);
+        }
+
+        // Page-scoped semantics: the current submit is the complete selection for this import action.
+        $batch->rows()->whereNull('imported_at')->update(['is_selected' => false]);
+        $batch->rows()
+            ->whereIn('id', $selected->all())
+            ->where('classification', '!=', 'INVALID')
+            ->whereNull('import_status')
+            ->update(['is_selected' => true]);
+
+        $summary->refresh($batch);
+
+        $rows = $batch->rows()
+            ->whereIn('id', $selected->all())
+            ->where('is_selected', true)
+            ->whereNull('imported_at')
+            ->whereNull('import_status')
+            ->orderBy('id')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return back()->withErrors(['selected' => 'Các dòng đã chọn không còn đủ điều kiện import. Hãy tải lại preview và chọn lại.']);
+        }
+
+        $batch->update([
+            'status' => 'IMPORTING',
+            'started_at' => $batch->started_at ?? now(),
+            'completed_at' => null,
+        ]);
+
         foreach ($rows as $row) {
             try {
                 $importer->import($row);
@@ -126,7 +168,13 @@ class OfficialFacilityImportController extends Controller
             'completed_at' => now(),
         ]);
 
-        return back()->with('success', 'Đã xử lý các dòng được chọn. Kiểm tra thống kê CREATED/LINKED/FAILED trên batch.');
+        return back()->with('success', sprintf(
+            'Đã xử lý %d dòng được chọn: %d CREATED, %d LINKED, %d FAILED.',
+            $rows->count(),
+            $batch->created_count,
+            $batch->linked_count,
+            $batch->failed_count,
+        ));
     }
 
     private function perPage(Request $request): int
