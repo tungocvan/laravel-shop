@@ -21,6 +21,7 @@ class DrugBidAwardService
         int $page = 1,
         ?string $sourceType = null,
         ?string $matchStatus = null,
+        ?string $tbmt = null,
     ): LengthAwarePaginator {
         $lineageAvailable = Schema::hasTable('pharma_drug_bid_award_sources');
         $query = DrugBidAward::query()->with('medicine');
@@ -34,9 +35,9 @@ class DrugBidAwardService
                 ->where('medicine_name', 'like', "%{$value}%")
                 ->orWhere('active_ingredient', 'like', "%{$value}%")
                 ->orWhere('medicine_code', 'like', "%{$value}%")
-                ->orWhere('bidding_notice_code', 'like', "%{$value}%")
                 ->orWhere('lot_name', 'like', "%{$value}%")
                 ->orWhere('decision_number', 'like', "%{$value}%")))
+            ->when($tbmt, fn ($query, $value) => $query->where('bidding_notice_code', 'like', "%{$value}%"))
             ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
             ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
             ->when($sourceType, function ($query, $value) use ($lineageAvailable): void {
