@@ -77,6 +77,20 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringNotContainsString('Hiển thị tất cả', $component);
     }
 
+    public function test_pharma_uses_partner_routes_for_hospital_master_management(): void
+    {
+        $allocationPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/drug-bid-award/allocations.blade.php'));
+        $partnerIndex = file_get_contents(base_path('Modules/Partner/resources/views/pages/index.blade.php'));
+        $partnerCreate = file_get_contents(base_path('Modules/Partner/resources/views/pages/create.blade.php'));
+        $partnerForm = file_get_contents(base_path('Modules/Partner/Livewire/Partner/Form.php'));
+
+        $this->assertStringContainsString("route('admin.partner.partners.index', ['legalType' => 'hospital'])", $allocationPage);
+        $this->assertStringContainsString("route('admin.partner.partners.create', ['legal_type' => 'hospital'])", $allocationPage);
+        $this->assertStringContainsString("request()->query('legalType', '')", $partnerIndex);
+        $this->assertStringContainsString("request()->query('legal_type', 'company')", $partnerCreate);
+        $this->assertStringContainsString("array_key_exists(\$legal_type, Partner::LEGAL_TYPES)", $partnerForm);
+    }
+
     public function test_export_contract_is_selected_when_selected_and_filtered_all_otherwise(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
