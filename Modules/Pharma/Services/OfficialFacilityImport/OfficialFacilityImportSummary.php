@@ -8,14 +8,10 @@ class OfficialFacilityImportSummary
 {
     public function refresh(OfficialFacilityImportBatch $batch): OfficialFacilityImportBatch
     {
-        $counts = $batch->rows()
-            ->selectRaw('classification, import_status, is_selected, count(*) as aggregate')
-            ->groupBy('classification', 'import_status', 'is_selected')
-            ->get();
-
         $total = $batch->rows()->count();
         $invalid = $batch->rows()->where('classification', 'INVALID')->count();
         $conflicts = $batch->rows()->whereIn('classification', ['LIKELY_MATCH', 'CONFLICT'])->count();
+        $existingSummary = $batch->summary ?? [];
 
         $batch->update([
             'total_count' => $total,
@@ -27,10 +23,10 @@ class OfficialFacilityImportSummary
             'conflict_count' => $conflicts,
             'skipped_count' => $batch->rows()->where('import_status', 'like', 'SKIPPED%')->count(),
             'failed_count' => $batch->rows()->where('import_status', 'FAILED')->count(),
-            'summary' => [
+            'summary' => array_merge($existingSummary, [
                 'classifications' => $batch->rows()->selectRaw('classification, count(*) as aggregate')->groupBy('classification')->pluck('aggregate', 'classification')->all(),
                 'outcomes' => $batch->rows()->whereNotNull('import_status')->selectRaw('import_status, count(*) as aggregate')->groupBy('import_status')->pluck('aggregate', 'import_status')->all(),
-            ],
+            ]),
         ]);
 
         return $batch->refresh();
