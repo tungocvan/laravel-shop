@@ -121,6 +121,7 @@ class Index extends Component
         $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterCompany', 'filterSource', 'filterMatchStatus']);
         $this->page = 1;
         $this->clearSelection();
+        $this->dispatch('filters-reset');
     }
 
     public function syncMuasamcong(MuasamcongDrugAwardSyncService $syncService): void
@@ -223,6 +224,10 @@ class Index extends Component
         return view('Pharma::livewire.drug-bid-award.index', [
             'awards' => $awards,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'tbmtOptions' => $this->distinctOptions('bidding_notice_code'),
+            'investorOptions' => $this->distinctOptions('investor_name'),
+            'companyOptions' => $this->distinctOptions('winning_company_name'),
+            'medicineOptions' => $this->distinctOptions('medicine_name'),
             'sourceOptions' => [
                 DrugBidAward::SOURCE_MANUAL => 'Nhập thủ công',
                 DrugBidAward::SOURCE_MUASAMCONG => 'Mua sắm công',
@@ -255,6 +260,19 @@ class Index extends Component
         return collect($this->paginated(app(DrugBidAwardService::class))->items())
             ->map(fn (DrugBidAward $award): string => (string) $award->id)
             ->values()
+            ->all();
+    }
+
+    private function distinctOptions(string $column): array
+    {
+        return DrugBidAward::query()
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->select($column)
+            ->distinct()
+            ->orderBy($column)
+            ->limit(500)
+            ->pluck($column)
             ->all();
     }
 
