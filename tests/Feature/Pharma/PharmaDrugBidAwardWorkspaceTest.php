@@ -31,7 +31,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("public const SOURCE_MUASAMCONG = 'muasamcong';", $model);
         $this->assertStringContainsString('effectiveMedicineAttribute', $model);
         $this->assertStringContainsString("'origin' => 'hssp'", $model);
-        $this->assertStringContainsString("with(['medicine', 'sources'])", $service);
+        $this->assertStringContainsString("Schema::hasTable('pharma_drug_bid_award_sources')", $service);
+        $this->assertStringContainsString("->with('medicine')", $service);
+        $this->assertStringContainsString("->with('sources')", $service);
         $this->assertStringContainsString("orWhereHas('sources'", $service);
         $this->assertStringContainsString('Bổ sung từ HSSP', $view);
         $this->assertStringContainsString('lineage', $view);
