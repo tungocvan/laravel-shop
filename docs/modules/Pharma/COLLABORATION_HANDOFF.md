@@ -5,7 +5,7 @@
 - Module: `Pharma`
 - Objective: **Drug Bid Awards — Major Analysis & Synchronization with Muasamcong Canonical KQLCNT + HSSP Medicine Master standardization**
 - Branch: `feat/pharma-multi-source-drug-intelligence`
-- Status: **PHP GATE PASS — UI/build acceptance pending**
+- Status: **PR READY — PHP/UI/build acceptance PASS**
 - Date: 2026-09-05
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - Consolidation: **single implementation branch / single PR planned**
@@ -123,64 +123,45 @@ This allows focused SQLite tests and older schemas to continue using legacy `sou
 
 The old Excel import mapping remains intentionally strict/source-specific for compatibility.
 
-## Verification evidence
+## Final acceptance evidence
 
-Latest local verification reported by the user:
+Final local verification reported by the user:
 
 ```text
-Pint gate for latest affected files: PASS
-PharmaDrugBidAwardWorkspaceTest: 7 passed, 56 assertions
-Full tests/Feature/Pharma: 47 passed, 265 assertions
+Migrations: PASS — all five intelligence migrations DONE
+Focused Pint gate: PASS
+PharmaDrugBidAwardWorkspaceTest: PASS — 7 tests, 56 assertions
+Full tests/Feature/Pharma: PASS — 47 tests, 265 assertions
+Manual HSSP + Drug Bid Award UI smoke: UI PASS
+Frontend production build: PASS — Vite 7.3.6, 34 modules transformed, built in 2.74s
 ```
 
-Earlier intelligence verification also included successful migration execution and focused projection coverage.
+Manual UI acceptance covered the HSSP Medicine Master and Drug Award Intelligence workspaces according to the agreed checklist, including search/filter behavior, bounded pagination, data-quality/provenance presentation, selected/all export behavior and KQLCNT synchronization smoke.
 
-The PHP gate is therefore **PASS**.
+No full-project regression was run; this follows the agreed module-focused verification policy.
 
-## Remaining acceptance gates before PR
+## PR readiness
 
-Run after pulling the latest documentation commits:
+All required gates for this objective are complete:
 
-```bash
-git pull --ff-only origin feat/pharma-multi-source-drug-intelligence
-npm run build
-```
+- schema migrations: **PASS**;
+- focused Pint: **PASS**;
+- focused Pharma regression: **PASS**;
+- HSSP / Drug Award UI acceptance: **PASS**;
+- frontend production build: **PASS**;
+- architecture/analysis/information/handoff documentation: **UPDATED**.
 
-Then manually smoke:
+The branch is therefore **PR READY** for one consolidated pull request.
 
-1. `/admin/pharma/hssp`
-2. `/admin/pharma/drug-bid-awards`
-3. KQLCNT sync button as an `edit_pharma` admin
-4. selected-row export
-5. no-selection filtered export
-6. pagination `10/25/50/100`
+## Deferred scope / future follow-up
 
-### HSSP acceptance
+The following remain intentional future work rather than blockers:
 
-- input/select borders visible;
-- profile-quality filter works;
-- incomplete/needs-review badges are understandable;
-- source and award counts render;
-- pagination works and selection resets on context change;
-- edit/create navigation remains intact.
-
-### Drug Award acceptance
-
-- sync button does not block ordinary browsing;
-- sync reports processed/projected/failed and exposes continuation when more data exists;
-- HSSP-enriched values are visibly marked and do not replace award source fields in persistence;
-- match-status/source filters work;
-- decimal quantity and nullable legacy fields display safely;
-- selected/all export semantics remain correct;
-- pagination is bounded and responsive.
-
-## PR readiness rule
-
-Do not open/merge the consolidated PR until:
-
-- `npm run build` PASS;
-- user reports **UI PASS** for HSSP and Drug Award workspaces, including sync/export smoke;
-- final evidence is appended to this handoff.
+- fuzzy/AI Medicine matching;
+- background/queued continuous Muasamcong synchronization;
+- additional source adapters beyond current Muasamcong/manual/Excel pathways;
+- further per-field provenance visualization/export if audit requirements demand it;
+- production/runtime enablement decisions outside this implementation objective.
 
 ## Prior completed checkpoint
 
