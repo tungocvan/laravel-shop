@@ -4,6 +4,7 @@ namespace Modules\Pharma\Livewire\DrugBidAward;
 
 use Exception;
 use Livewire\Component;
+use Modules\Pharma\Integrations\Muasamcong\MuasamcongDrugAwardSyncService;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Services\DrugBidAwardService;
@@ -24,6 +25,8 @@ class Index extends Component
     public array $selectedIds = [];
     public bool $selectPage = false;
     public bool $showBulkDeleteModal = false;
+    public ?int $syncAfterId = null;
+    public bool $syncHasMore = false;
 
     protected $queryString = [
         'search' => ['except' => ''], 'filterInvestor' => ['except' => ''],
@@ -79,6 +82,36 @@ class Index extends Component
         $this->reset(['search', 'filterInvestor', 'filterCompany', 'filterSource', 'filterMatchStatus']);
         $this->page = 1;
         $this->clearSelection();
+    }
+
+    public function syncMuasamcong(MuasamcongDrugAwardSyncService $syncService): void
+    {
+        $this->authorizePharmaEdit();
+
+        try {
+            $result = $syncService->sync($this->syncAfterId, 250);
+            $this->syncAfterId = $result['last_id'];
+            $this->syncHasMore = $result['has_more'];
+            $this->page = 1;
+            $this->clearSelection();
+
+            $message = "Đồng bộ KQLCNT: {$result['projected']}/{$result['processed']} bản ghi thành công";
+            if ($result['failed'] > 0) {
+                $message .= ", {$result['failed']} lỗi";
+            }
+            $message .= $result['has_more'] ? '. Còn dữ liệu, có thể đồng bộ tiếp.' : '. Đã hết batch hiện tại.';
+            session()->flash($result['failed'] > 0 ? 'error' : 'success', $message);
+        } catch (\Throwable $exception) {
+            report($exception);
+            session()->flash('error', 'Không thể đồng bộ KQLCNT lúc này. Dữ liệu Pharma hiện có vẫn sử dụng bình thường.');
+        }
+    }
+
+    public function restartMuasamcongSync(): void
+    {
+        $this->authorizePharmaEdit();
+        $this->syncAfterId = null;
+        $this->syncHasMore = false;
     }
 
     public function confirmBulkDelete(): void
