@@ -5,10 +5,11 @@
 - Module: `Pharma`
 - Objective: **Drug Award Allocation & Hospital Contract Management**
 - Branch: `feat/pharma-drug-award-allocation-contracts`
-- Status: **IMPLEMENTATION IN PROGRESS — awaiting executable test/UI acceptance**
+- PR: `#165`
+- Status: **IMPLEMENTED — UI ACCEPTED; final executable closeout checks pending**
 - Date: 2026-09-05
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
-- Consolidation: **one implementation branch / one PR preferred**
+- Consolidation: **one implementation branch / one PR**
 
 ## Canonical ownership
 
@@ -86,8 +87,30 @@ The implementation introduces independent permissions:
 - checkbox selection is page-scoped.
 - allocation and contract CSV exports follow: selected rows when selection exists; otherwise all rows matching active filters.
 - dangerous cancellation requires a reason and confirmation.
+- Drug Award filter workspace follows the established `admin/muasamcong/kqlcnt-awards` interaction pattern: searchable dropdowns for TBMT, investor, medicine/HSSP and contractor, with bounded option lists and Livewire filter reset synchronization.
 
 The existing Drug Award HSSP enrichment/provenance indicators (`Bổ sung từ HSSP`, source lineage) are retained.
+
+## Canonical hospital management UX
+
+Hospital master data remains owned by `Partner`; Pharma does not introduce a duplicate Hospital model/table.
+
+- **Quản lý bệnh viện** opens `/admin/partner/partners` scoped to `legal_type = hospital`.
+- **+ Thêm bệnh viện** opens the canonical Partner create form prefilled with `legal_type = hospital`.
+- Pharma allocations reference the canonical Partner through `partner_id`.
+- Procurement investor remains separate from receiving-hospital allocation.
+
+## Verification evidence
+
+Recorded executable/manual evidence for this branch:
+
+- focused allocation/contract feature test previously PASS: **8 tests / 40 assertions** before the later hospital-entry/filter UI additions;
+- full `tests/Feature/Pharma` regression after hospital-management additions: **56 tests / 310 assertions PASS**;
+- frontend build previously PASS: Vite **34 modules transformed** before the latest Partner/filter UI additions;
+- relevant allocation route was verified earlier;
+- manual UI acceptance: **PASS** on 2026-09-05, including the latest Drug Award searchable-filter UX aligned with `admin/muasamcong/kqlcnt-awards`.
+
+Because Partner/filter files changed after some executable evidence was collected, the final PR closeout should rerun the focused impacted checks and frontend build rather than treating the earlier build/focused counts as current-head evidence.
 
 ## Deferred scope
 
@@ -103,18 +126,18 @@ Not implemented in this objective:
 
 Schema/domain boundaries intentionally leave room for future delivery and amendment entities.
 
-## Verification still required before PR-ready closeout
+## Final closeout remaining
 
-Do not mark this checkpoint PASS until executable evidence is available for:
+Before manual merge of PR #165:
 
-- migrations;
-- focused Pint;
-- new allocation/contract focused test;
-- full `tests/Feature/Pharma` regression;
-- directly impacted authorization/Partner tests if needed;
-- route list;
-- frontend build;
-- manual UI acceptance for Drug Award list + allocation workspace + contract/cancel/export behavior.
+- confirm migration ledger/schema recovery for `2026_09_05_022000_create_drug_bid_award_contracts_table` if not already completed locally;
+- run focused tests for the current head, including the hospital-management entry-point test;
+- run directly impacted Partner regression if available/relevant;
+- run focused Pint for changed implementation files;
+- rerun frontend build after the latest UI changes;
+- recheck PR #165 mergeability and GitHub workflow/status state.
+
+No additional UI redesign is required unless a closeout check exposes a regression.
 
 ## Prior checkpoint
 
