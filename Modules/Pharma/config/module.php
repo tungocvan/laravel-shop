@@ -1,24 +1,36 @@
 <?php
 
-return array (
-  'name' => 'Pharma',
-  'type' => 'domain',
-  'enabled' => false,
-  'depends' => 
-  array (
-    0 => 'Shared',
-  ),
-  'permissions' => 
-  array (
-    0 => 'view_pharma',
-    1 => 'create_pharma',
-    2 => 'edit_pharma',
-    3 => 'delete_pharma',
-  ),
-  'tables' => 
-  array (
-    0 => 'pharma_medicines',
-    1 => 'pharma_drug_bid_awards',
-    2 => 'pharma_supplier_trackings',
-  ),
-);
+return [
+    'name' => 'Pharma',
+    'type' => 'domain',
+    'enabled' => false,
+    'depends' => [
+        'Shared',
+        'Partner',
+    ],
+    'permissions' => [
+        'view_pharma',
+        'create_pharma',
+        'edit_pharma',
+        'delete_pharma',
+        'view_pharma_allocations',
+        'manage_pharma_allocations',
+        'view_pharma_contracts',
+        'manage_pharma_contracts',
+        'view_pharma_official_facilities',
+        'import_pharma_official_facilities',
+        'resolve_pharma_official_facility_conflicts',
+    ],
+    'tables' => [
+        'pharma_medicines',
+        'pharma_drug_bid_awards',
+        'pharma_supplier_trackings',
+        'pharma_medicine_sources',
+        'pharma_drug_bid_award_sources',
+        'pharma_drug_bid_award_allocations',
+        'pharma_hospital_contracts',
+        'pharma_hospital_contract_lines',
+        'pharma_official_import_batches',
+        'pharma_official_import_rows',
+    ],
+];
