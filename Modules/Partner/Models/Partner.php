@@ -3,6 +3,7 @@
 namespace Modules\Partner\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Partner extends Model
 {
@@ -17,6 +18,7 @@ class Partner extends Model
         'email',
         'contact_person',
         'address',
+        'province_code',
         'source',
         'status',
         'note',
@@ -50,6 +52,11 @@ class Partner extends Model
         'inactive' => 'Ngưng hoạt động',
         'pending' => 'Chờ xử lý',
     ];
+
+    public function sourceReferences(): HasMany
+    {
+        return $this->hasMany(PartnerSourceReference::class);
+    }
 
     public function getLegalTypeLabelAttribute(): string
     {
