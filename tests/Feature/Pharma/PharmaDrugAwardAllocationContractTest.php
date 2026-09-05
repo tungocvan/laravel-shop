@@ -91,6 +91,22 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("array_key_exists(\$legal_type, Partner::LEGAL_TYPES)", $partnerForm);
     }
 
+    public function test_partner_hospital_import_requires_only_name_and_legal_type_and_keeps_ui_bounded(): void
+    {
+        $component = file_get_contents(base_path('Modules/Partner/Livewire/Partner/Index.php'));
+        $view = file_get_contents(base_path('Modules/Partner/resources/views/livewire/partner/index.blade.php'));
+
+        $this->assertStringContainsString('name và legal_type là hai trường bắt buộc.', $component);
+        $this->assertStringContainsString("['name' => \$name, 'legal_type' => \$legalType]", $component);
+        $this->assertStringContainsString("\$legalType === 'hospital' ? 'customer' : 'supplier'", $component);
+        $this->assertStringContainsString('downloadTemplate', $component);
+        $this->assertStringContainsString('private const PER_PAGE_OPTIONS = [10, 25, 50, 100];', $component);
+        $this->assertStringContainsString("'legal_type' => 'hospital'", $view);
+        $this->assertStringContainsString('Tải file mẫu', $view);
+        $this->assertStringContainsString('Export đã chọn', $view);
+        $this->assertStringNotContainsString('<option value="All">', $view);
+    }
+
     public function test_export_contract_is_selected_when_selected_and_filtered_all_otherwise(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
