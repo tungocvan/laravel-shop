@@ -41,7 +41,7 @@ class DrugAwardProjectionService
             $award = $sourceLink?->award()
                 ->first()
                 ?? DrugBidAward::query()->where('canonical_identity_key', $canonicalIdentity)->first()
-                ?? new DrugBidAward();
+                ?? new DrugBidAward;
 
             $attributes = $this->awardAttributes($source, $medicine?->id, $resolution->status, $canonicalIdentity);
             $award->fill($this->withoutNullOverwrites($award, $attributes));
@@ -121,7 +121,8 @@ class DrugAwardProjectionService
         DrugAwardProjectionData $source,
         ?string $matchMethod,
         int $confidence,
-    ): void {
+    ): void
+    {
         MedicineSource::query()->updateOrCreate([
             'source_system' => $source->sourceSystem,
             'source_record_type' => $source->sourceRecordType.'.medicine',
@@ -145,7 +146,8 @@ class DrugAwardProjectionService
         ?int $medicineId,
         string $matchStatus,
         string $canonicalIdentity,
-    ): array {
+    ): array
+    {
         $winningPrice = $source->winningPrice;
         $amount = $source->amount;
 
