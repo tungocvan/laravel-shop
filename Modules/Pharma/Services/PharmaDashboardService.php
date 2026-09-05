@@ -19,6 +19,7 @@ final class PharmaDashboardService
                 'create' => $this->can($user, 'create_pharma'),
                 'edit' => $this->can($user, 'edit_pharma'),
                 'delete' => $this->can($user, 'delete_pharma'),
+                'official_facilities' => $this->can($user, 'view_pharma_official_facilities'),
             ],
             'metrics' => [
                 'medicines' => $this->count(Medicine::class, 'medicines'),
