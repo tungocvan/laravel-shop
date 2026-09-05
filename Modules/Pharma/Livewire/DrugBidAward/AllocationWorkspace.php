@@ -17,31 +17,53 @@ class AllocationWorkspace extends Component
     private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public int $awardId;
+
     public string $search = '';
+
     public string $filterStatus = '';
+
     public int $perPage = 10;
+
     public int $page = 1;
+
     public array $selectedIds = [];
+
     public bool $selectPage = false;
 
     public ?int $editingAllocationId = null;
+
     public string $partnerId = '';
+
     public string $allocatedQuantity = '';
+
     public string $effectiveFrom = '';
+
     public string $effectiveUntil = '';
+
     public string $notes = '';
+
     public string $allocationCancelReason = '';
 
     public ?int $contractAllocationId = null;
+
     public ?int $editingContractId = null;
+
     public string $contractNumber = '';
+
     public string $contractDate = '';
+
     public string $contractQuantity = '';
+
     public string $contractValue = '';
+
     public string $contractStartDate = '';
+
     public string $contractEndDate = '';
+
     public string $contractStatus = DrugBidAwardContract::STATUS_DRAFT;
+
     public string $contractNotes = '';
+
     public string $contractCancelReason = '';
 
     protected $queryString = [
@@ -59,10 +81,27 @@ class AllocationWorkspace extends Component
         $this->perPage = $this->normalizePerPage($this->perPage);
     }
 
-    public function updatedSearch(): void { $this->resetPageState(); }
-    public function updatedFilterStatus(): void { $this->resetPageState(); }
-    public function updatedPerPage(mixed $value): void { $this->perPage = $this->normalizePerPage($value); $this->resetPageState(); }
-    public function gotoPage(int $page): void { $this->page = max(1, $page); $this->clearSelection(); }
+    public function updatedSearch(): void
+    {
+        $this->resetPageState();
+    }
+
+    public function updatedFilterStatus(): void
+    {
+        $this->resetPageState();
+    }
+
+    public function updatedPerPage(mixed $value): void
+    {
+        $this->perPage = $this->normalizePerPage($value);
+        $this->resetPageState();
+    }
+
+    public function gotoPage(int $page): void
+    {
+        $this->page = max(1, $page);
+        $this->clearSelection();
+    }
 
     public function updatedSelectPage(bool $value): void
     {
@@ -187,6 +226,7 @@ class AllocationWorkspace extends Component
     {
         $this->authorizePermission('view_pharma_allocations');
         $rows = $this->exportAllocationQuery()->with('partner')->get();
+
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['TBMT', 'Lo', 'Thuoc', 'Chu dau tu TBMT', 'Benh vien', 'So luong phan bo', 'Trang thai', 'Tu ngay', 'Den ngay']);
@@ -202,7 +242,12 @@ class AllocationWorkspace extends Component
     {
         $this->authorizePermission('view_pharma_contracts');
         $allocationIds = $this->exportAllocationQuery()->pluck('id');
-        $rows = DrugBidAwardContract::query()->with('allocation.partner')->whereIn('drug_bid_award_allocation_id', $allocationIds)->orderBy('id')->get();
+        $rows = DrugBidAwardContract::query()
+            ->with('allocation.partner')
+            ->whereIn('drug_bid_award_allocation_id', $allocationIds)
+            ->orderBy('id')
+            ->get();
+
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['Benh vien', 'So hop dong', 'Ngay hop dong', 'So luong', 'Gia tri', 'Tu ngay', 'Den ngay', 'Trang thai']);
@@ -216,14 +261,21 @@ class AllocationWorkspace extends Component
     public function render(DrugBidAwardAllocationSummaryService $summaryService)
     {
         $award = DrugBidAward::query()->findOrFail($this->awardId);
-        $allocations = $this->filteredQuery()->with(['partner', 'contracts'])->paginate($this->perPage, ['*'], 'page', $this->page);
+        $allocations = $this->filteredQuery()
+            ->with(['partner', 'contracts'])
+            ->paginate($this->perPage, ['*'], 'page', $this->page);
         $summary = $summaryService->forAward($award);
 
         return view('Pharma::livewire.drug-bid-award.allocation-workspace', [
             'award' => $award,
             'allocations' => $allocations,
             'summary' => $summary,
-            'partners' => Partner::query()->where('legal_type', 'hospital')->where('status', 'active')->orderBy('name')->limit(500)->get(['id', 'name', 'tax_code']),
+            'partners' => Partner::query()
+                ->where('legal_type', 'hospital')
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->limit(500)
+                ->get(['id', 'name', 'tax_code']),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
         ]);
     }
@@ -233,7 +285,15 @@ class AllocationWorkspace extends Component
         return DrugBidAwardAllocation::query()
             ->where('drug_bid_award_id', $this->awardId)
             ->when($this->filterStatus !== '', fn ($query) => $query->where('status', $this->filterStatus))
-            ->when($this->search !== '', fn ($query) => $query->whereHas('partner', fn ($partnerQuery) => $partnerQuery->where('name', 'like', '%' . trim($this->search) . '%')->orWhere('tax_code', 'like', '%' . trim($this->search) . '%')))
+            ->when(
+                $this->search !== '',
+                fn ($query) => $query->whereHas(
+                    'partner',
+                    fn ($partnerQuery) => $partnerQuery
+                        ->where('name', 'like', '%'.trim($this->search).'%')
+                        ->orWhere('tax_code', 'like', '%'.trim($this->search).'%')
+                )
+            )
             ->orderByDesc('id');
     }
 
@@ -244,12 +304,18 @@ class AllocationWorkspace extends Component
         if ($this->selectedIds !== []) {
             $query->whereIn('id', array_map('intval', $this->selectedIds));
         }
+
         return $query;
     }
 
     private function currentPageIds(): array
     {
-        return $this->filteredQuery()->paginate($this->perPage, ['id'], 'page', $this->page)->getCollection()->pluck('id')->map(fn ($id) => (string) $id)->all();
+        return $this->filteredQuery()
+            ->paginate($this->perPage, ['id'], 'page', $this->page)
+            ->getCollection()
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
     }
 
     private function resetAllocationForm(): void
@@ -265,9 +331,24 @@ class AllocationWorkspace extends Component
         $this->resetValidation();
     }
 
-    private function resetPageState(): void { $this->page = 1; $this->clearSelection(); }
-    private function clearSelection(): void { $this->selectedIds = []; $this->selectPage = false; }
-    private function normalizePerPage(mixed $value): int { $value = (int) $value; return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : 10; }
+    private function resetPageState(): void
+    {
+        $this->page = 1;
+        $this->clearSelection();
+    }
+
+    private function clearSelection(): void
+    {
+        $this->selectedIds = [];
+        $this->selectPage = false;
+    }
+
+    private function normalizePerPage(mixed $value): int
+    {
+        $value = (int) $value;
+
+        return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : 10;
+    }
 
     private function authorizePermission(string $permission): void
     {
