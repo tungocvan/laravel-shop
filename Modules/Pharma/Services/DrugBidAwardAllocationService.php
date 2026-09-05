@@ -15,29 +15,45 @@ class DrugBidAwardAllocationService
     {
         return DB::transaction(function () use ($awardId, $allocationId, $data, $adminId) {
             $award = DrugBidAward::query()->lockForUpdate()->findOrFail($awardId);
-            $partner = Partner::query()->findOrFail((int) $data['partner_id']);
+            $partnerId = (int) $data['partner_id'];
+            $partner = Partner::query()->findOrFail($partnerId);
 
             if ($partner->legal_type !== 'hospital' || $partner->status !== 'active') {
-                throw ValidationException::withMessages(['partner_id' => 'Chỉ được phân bổ cho bệnh viện đang hoạt động trong Partner Master.']);
+                throw ValidationException::withMessages([
+                    'partner_id' => 'Chỉ được phân bổ cho bệnh viện đang hoạt động trong Partner Master.',
+                ]);
             }
 
             $allocation = $allocationId
                 ? DrugBidAwardAllocation::query()->where('drug_bid_award_id', $award->id)->findOrFail($allocationId)
-                : new DrugBidAwardAllocation(['drug_bid_award_id' => $award->id]);
+                : DrugBidAwardAllocation::query()
+                    ->where('drug_bid_award_id', $award->id)
+                    ->where('partner_id', $partnerId)
+                    ->first() ?? new DrugBidAwardAllocation(['drug_bid_award_id' => $award->id]);
+
+            if ($allocation->exists && $allocation->partner_id !== $partnerId) {
+                throw ValidationException::withMessages([
+                    'partner_id' => 'Không thể đổi bệnh viện của một phân bổ đã tồn tại.',
+                ]);
+            }
 
             $quantity = round((float) $data['allocated_quantity'], 4);
             if ($quantity <= 0) {
-                throw ValidationException::withMessages(['allocated_quantity' => 'Số lượng phân bổ phải lớn hơn 0.']);
+                throw ValidationException::withMessages([
+                    'allocated_quantity' => 'Số lượng phân bổ phải lớn hơn 0.',
+                ]);
             }
 
             $otherAllocated = (float) DrugBidAwardAllocation::query()
                 ->where('drug_bid_award_id', $award->id)
                 ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
-                ->when($allocation->exists, fn ($query) => $query->whereKeyNot($allocation->id))
+                ->when($allocation->exists, fn ($query) => $query->where('id', '!=', $allocation->id))
                 ->sum('allocated_quantity');
 
             if (($otherAllocated + $quantity) > ((float) $award->quantity + 0.00005)) {
-                throw ValidationException::withMessages(['allocated_quantity' => 'Tổng phân bổ không được vượt số lượng trúng thầu còn lại.']);
+                throw ValidationException::withMessages([
+                    'allocated_quantity' => 'Tổng phân bổ không được vượt số lượng trúng thầu còn lại.',
+                ]);
             }
 
             $committed = $allocation->exists
@@ -48,11 +64,13 @@ class DrugBidAwardAllocationService
                 : 0.0;
 
             if ($quantity + 0.00005 < $committed) {
-                throw ValidationException::withMessages(['allocated_quantity' => 'Không thể giảm phân bổ thấp hơn số lượng hợp đồng đã cam kết.']);
+                throw ValidationException::withMessages([
+                    'allocated_quantity' => 'Không thể giảm phân bổ thấp hơn số lượng hợp đồng đã cam kết.',
+                ]);
             }
 
             $allocation->fill([
-                'partner_id' => (int) $data['partner_id'],
+                'partner_id' => $partnerId,
                 'allocated_quantity' => $quantity,
                 'status' => DrugBidAwardAllocation::STATUS_ACTIVE,
                 'effective_from' => $data['effective_from'] ?? null,
@@ -78,11 +96,18 @@ class DrugBidAwardAllocationService
     {
         DB::transaction(function () use ($awardId, $allocationId, $reason, $adminId) {
             DrugBidAward::query()->lockForUpdate()->findOrFail($awardId);
-            $allocation = DrugBidAwardAllocation::query()->where('drug_bid_award_id', $awardId)->findOrFail($allocationId);
+            $allocation = DrugBidAwardAllocation::query()
+                ->where('drug_bid_award_id', $awardId)
+                ->findOrFail($allocationId);
 
-            $committed = (float) $allocation->contracts()->whereIn('status', DrugBidAwardContract::COMMITTED_STATUSES)->sum('contract_quantity');
+            $committed = (float) $allocation->contracts()
+                ->whereIn('status', DrugBidAwardContract::COMMITTED_STATUSES)
+                ->sum('contract_quantity');
+
             if ($committed > 0.00005) {
-                throw ValidationException::withMessages(['allocation' => 'Không thể hủy phân bổ đang có hợp đồng hiệu lực/cam kết.']);
+                throw ValidationException::withMessages([
+                    'allocation' => 'Không thể hủy phân bổ đang có hợp đồng hiệu lực/cam kết.',
+                ]);
             }
 
             $allocation->update([
