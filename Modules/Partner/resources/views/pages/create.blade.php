@@ -4,7 +4,8 @@
 
 @section('content')
     <div class="container-fluid">
-        {{-- Gọi Livewire Component hiển thị danh sách thuốc --}}
-        @livewire('partner.partner.form')
+        @livewire('partner.partner.form', [
+            'legal_type' => request()->query('legal_type', 'company'),
+        ])
     </div>
 @endsection
