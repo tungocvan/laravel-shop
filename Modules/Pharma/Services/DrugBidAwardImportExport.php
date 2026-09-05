@@ -89,36 +89,64 @@ class DrugBidAwardImportExport extends BaseImportExportService
 
         if ($selectedIds !== []) {
             return DrugBidAward::query()
-                ->with('medicine')
+                ->with(['medicine', 'sources'])
                 ->whereKey($selectedIds)
                 ->latest('id')
                 ->get();
         }
 
-        return DrugBidAward::query()->with('medicine')
+        return DrugBidAward::query()->with(['medicine', 'sources'])
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($nested) => $nested
                 ->where('medicine_name', 'like', "%{$search}%")
+                ->orWhere('active_ingredient', 'like', "%{$search}%")
+                ->orWhere('medicine_code', 'like', "%{$search}%")
                 ->orWhere('bidding_notice_code', 'like', "%{$search}%")
                 ->orWhere('decision_number', 'like', "%{$search}%")))
             ->when($filters['investor'] ?? null, fn ($query, $investor) => $query->where('investor_name', 'like', "%{$investor}%"))
             ->when($filters['company'] ?? null, fn ($query, $company) => $query->where('winning_company_name', 'like', "%{$company}%"))
-            ->when($filters['source'] ?? null, fn ($query, $source) => $query->where('source_type', $source))
-            ->latest('id')->get();
+            ->when($filters['source'] ?? null, fn ($query, $source) => $query->where(fn ($sourceQuery) => $sourceQuery
+                ->where('source_type', $source)
+                ->orWhereHas('sources', fn ($lineageQuery) => $lineageQuery->where('source_system', $source))))
+            ->when($filters['medicine_match_status'] ?? null, fn ($query, $status) => $query->where('medicine_match_status', $status))
+            ->latest('id')
+            ->get();
     }
 
     protected function mapExportRow(Model $model): array
     {
+        $name = $model->effectiveMedicineAttribute('medicine_name');
+        $ingredient = $model->effectiveMedicineAttribute('active_ingredient');
+        $strength = $model->effectiveMedicineAttribute('concentration');
+        $route = $model->effectiveMedicineAttribute('route');
+        $dosage = $model->effectiveMedicineAttribute('dosage_form');
+
         return [
-            'Tên thuốc' => $model->medicine_name,
+            'Tên thuốc' => $name['value'],
+            'Nguồn tên thuốc hiệu lực' => $name['origin'],
+            'Hoạt chất' => $ingredient['value'],
+            'Hàm lượng / nồng độ' => $strength['value'],
+            'Dạng bào chế' => $dosage['value'],
+            'Đường dùng' => $route['value'],
             'Quy cách đóng gói' => $model->packaging_specification,
             'Số lượng' => $model->quantity,
-            'Đơn giá trúng thầu' => $model->unit_price,
+            'Đơn vị' => $model->unit,
+            'Giá kế hoạch' => $model->price_plan,
+            'Đơn giá trúng thầu' => $model->winning_price ?? $model->unit_price,
+            'Thành tiền' => $model->amount,
             'Mã thông báo mời thầu' => $model->bidding_notice_code,
+            'Số lô' => $model->lot_no,
+            'Tên lô' => $model->lot_name,
+            'Mã Chủ đầu tư' => $model->investor_code,
             'Tên Chủ đầu tư' => $model->investor_name,
+            'Mã nhà thầu' => $model->contractor_code,
+            'Công ty trúng thầu' => $model->winning_company_name,
             'Số quyết định' => $model->decision_number,
             'Ngày ban hành quyết định' => $model->decision_date?->format('d/m/Y'),
-            'Thời hạn hiệu lực' => $model->contract_duration_months.' tháng',
-            'Công ty trúng thầu' => $model->winning_company_name,
+            'Số hợp đồng' => $model->contract_no,
+            'Thời hạn hợp đồng' => $model->contract_period_text ?: ($model->contract_duration_months ? $model->contract_duration_months.' tháng' : null),
+            'Nguồn dữ liệu' => $model->source_type,
+            'Trạng thái đối soát HSSP' => $model->medicine_match_status,
+            'Số nguồn lineage' => $model->sources->count(),
             'Link quyết định trúng thầu' => $model->decision_document_url,
         ];
     }
