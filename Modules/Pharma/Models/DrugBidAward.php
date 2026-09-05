@@ -98,4 +98,40 @@ class DrugBidAward extends Model
     {
         return $this->source_type !== self::SOURCE_MANUAL || $this->sources()->exists();
     }
+
+    /**
+     * Return the effective drug-profile value while preserving provenance.
+     * Award snapshots always win. HSSP only fills missing attributes.
+     *
+     * @return array{value:mixed,origin:string}
+     */
+    public function effectiveMedicineAttribute(string $attribute): array
+    {
+        $hsspMap = [
+            'medicine_name' => 'name',
+            'active_ingredient' => 'active_ingredients',
+            'concentration' => 'concentration',
+            'route' => 'route_of_administration',
+            'dosage_form' => 'dosage_form',
+            'unit' => 'unit',
+            'packaging_specification' => 'packaging_specification',
+            'shelf_life_months' => 'shelf_life_months',
+            'manufacturer' => 'manufacturing_company',
+            'country' => 'manufacturing_country',
+        ];
+
+        $awardValue = $this->getAttribute($attribute);
+        if ($awardValue !== null && $awardValue !== '') {
+            return ['value' => $awardValue, 'origin' => 'award'];
+        }
+
+        $medicineAttribute = $hsspMap[$attribute] ?? null;
+        $medicineValue = $medicineAttribute ? $this->medicine?->getAttribute($medicineAttribute) : null;
+
+        if ($medicineValue !== null && $medicineValue !== '') {
+            return ['value' => $medicineValue, 'origin' => 'hssp'];
+        }
+
+        return ['value' => null, 'origin' => 'missing'];
+    }
 }
