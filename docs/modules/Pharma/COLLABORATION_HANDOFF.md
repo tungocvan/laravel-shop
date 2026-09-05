@@ -3,135 +3,147 @@
 ## Current checkpoint
 
 - Module: `Pharma`
-- Objective: **Drug Award Allocation & Hospital Contract Management**
-- Branch: `feat/pharma-drug-award-allocation-contracts`
-- PR: `#165`
-- Status: **PR READY — executable checks and UI acceptance PASS**
+- Objective: **Official Facility Import — XLSX/CSV to canonical Partner master**
+- Branch: `feat/pharma-official-facility-import`
+- Base: `main` at `1f77f1575050648c143d45339d0ec8535e9dba6e`
+- Status: **IMPLEMENTATION COMPLETE — awaiting local focused/regression/UI verification**
 - Date: 2026-09-05
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - Consolidation: **one implementation branch / one PR**
 
-## Canonical ownership
+## Approved architecture
 
-The merged Multi-source Drug Intelligence architecture remains unchanged:
+`Partner` remains the sole canonical organization master for hospitals/healthcare facilities. Pharma does not create a Hospital/Facility master.
 
-1. `Muasamcong` owns procurement canonical data.
-2. Pharma `DrugBidAward` owns the Drug Award business canonical projection/snapshot.
-3. `Partner` is reused as the organization master for receiving hospitals; phase 1 selects active partners with `legal_type = hospital`.
-4. Pharma owns allocation and hospital-contract data below the award.
+Pipeline:
 
-A receiving hospital is **never** inferred to be the TBMT investor. Allocation/contract mutations do not write procurement source snapshots or Muasamcong data.
+`Official XLSX/CSV -> Upload -> Pharma staging -> Validate/Normalize -> Match/Dedupe -> Preview -> Checkbox selection -> Import selected only -> Partner + PartnerSourceReference`.
 
-## Implemented domain foundation
+Upload/staging does not write Partner.
 
-### Allocation
+## Persistence / ownership changes
 
-`pharma_drug_bid_award_allocations` links one Drug Award to one canonical Partner hospital and stores allocated quantity, effective dates, lifecycle state, notes and audit/cancellation metadata.
+Partner-owned canonical changes:
 
-- `(drug_bid_award_id, partner_id)` is unique.
-- cancelled allocations can be reactivated/reused as the same canonical row.
-- active allocation total cannot exceed `DrugBidAward.quantity` on user mutation.
-- allocation cannot be reduced below committed contract quantity.
-- no hard-delete workflow is exposed.
+- nullable `partners.province_code` added as a generic, source-independent province attribute;
+- companies/suppliers are not required to populate it and existing rows remain `NULL`;
+- new `partner_source_references` stores generic `(source, external_id)` official identities, source province/date, first/last observation and metadata;
+- `(source, external_id)` is unique.
 
-### Contract
+Pharma-owned staging/audit tables:
 
-`pharma_drug_bid_award_contracts` is separate from allocation and supports many contracts per allocation.
+- `pharma_official_import_batches`;
+- `pharma_official_import_rows`.
 
-- `contract_quantity` is independent from `allocated_quantity`.
-- committed statuses are `signed`, `in_progress`, `completed`.
-- committed contract total cannot exceed allocation quantity.
-- completed contracts cannot be directly cancelled in phase 1.
+Source-specific fields such as `bhxh_id`, `moh_id` or BHXH province code are not added to `partners`.
 
-### Quantity state
+## Import implementation
 
-Award quantity is normalized to `decimal(20,4)` to match model/business precision.
+Services live under `Modules/Pharma/Services/OfficialFacilityImport/`:
 
-Derived allocation state:
+- `OfficialFacilityParser` — XLSX/CSV only, maximum 10,000 rows;
+- `OfficialFacilityNormalizer`;
+- `OfficialFacilityValidator`;
+- `OfficialFacilityMatcher`;
+- `OfficialFacilityImportService` — upload/staging/classification;
+- `OfficialFacilityConflictResolver`;
+- `OfficialFacilityPartnerImporter`;
+- `OfficialFacilityImportSummary`.
 
-- `UNALLOCATED`
-- `PARTIALLY_ALLOCATED`
-- `FULLY_ALLOCATED`
-- `OVER_ALLOCATED` diagnostic only
+SHA-256 duplicate-file detection is a warning, not a hard block. Duplicate staged rows receive a skip outcome. Re-import of the same official identity must resolve to the same Partner and refresh source observation data.
 
-`remaining_quantity = award.quantity - total_active_allocated_quantity`; negative remaining is intentionally preserved for inconsistency detection.
+## Matching contract
 
-## Concurrency / integrity
+Priority:
 
-Allocation writes use a database transaction and `lockForUpdate()` on the parent `DrugBidAward`, then recalculate active allocation SUM before writing.
+1. source + external_id;
+2. tax code;
+3. normalized name + canonical province;
+4. normalized name + normalized address.
 
-Contract writes use a database transaction and `lockForUpdate()` on the parent allocation, then recalculate committed contract SUM before writing.
+Classifications:
 
-This makes Livewire validation advisory rather than the only integrity barrier.
+- `NEW`;
+- `EXACT`;
+- `LIKELY_MATCH`;
+- `CONFLICT`;
+- `INVALID`.
 
-## Authorization boundary
+No fuzzy/AI matching is used. `LIKELY_MATCH` and `CONFLICT` cannot be imported until an admin explicitly chooses link/create/skip.
 
-The implementation introduces independent permissions:
+## Partner write protection
 
-- `view_pharma_allocations`
-- `manage_pharma_allocations`
-- `cancel_pharma_allocations`
-- `view_pharma_contracts`
-- `manage_pharma_contracts`
-- `cancel_pharma_contracts`
+New Partner defaults:
 
-`edit_pharma` alone does not grant allocation/contract mutation rights. Permission records are created but are not automatically granted to every existing role.
+- `legal_type = hospital`;
+- `partner_types = ['customer']`;
+- `status = active`;
+- `source = import`;
+- canonical `province_code` from explicit import context.
 
-## UI / export foundation
+For an existing Partner:
 
-- Drug Award rows expose **Phân bổ** only to users with allocation view permission.
-- Workspace route: `/admin/pharma/drug-bid-awards/{id}/allocations`.
-- Workspace keeps procurement context read-only and labels the original party explicitly as **Chủ đầu tư TBMT**.
-- KPI: winning, allocated, remaining, hospital count and derived allocation state.
-- bounded pagination: `10/25/50/100`; no unbounded `All`.
-- checkbox selection is page-scoped.
-- allocation and contract CSV exports follow: selected rows when selection exists; otherwise all rows matching active filters.
-- controlled pause/cancel actions preserve the domain audit boundary.
-- Drug Award filter workspace follows the established `admin/muasamcong/kqlcnt-awards` interaction pattern: searchable dropdowns for TBMT, investor, medicine/HSSP and contractor, with bounded option lists and shared `<x-select-search>`/TomSelect behavior.
+- name is not auto-renamed;
+- phone/email/contact_person are not overwritten;
+- address is fill-only when empty;
+- tax code is fill-only when empty; a conflicting non-empty value blocks;
+- canonical province is fill-only when empty; a conflicting non-empty value blocks;
+- Partner/source-reference/row outcome are written transactionally per selected row.
 
-The existing Drug Award HSSP enrichment/provenance indicators (`Bổ sung từ HSSP`, source lineage) are retained.
+## Admin UI / authorization
 
-## Canonical hospital management UX
+Workspace: `/admin/pharma/official-facilities/import`.
 
-Hospital master data remains owned by `Partner`; Pharma does not introduce a duplicate Hospital model/table.
+Dashboard now exposes **Cơ sở KCB chính thức** when the user has view permission.
 
-- **Quản lý bệnh viện** opens the canonical Partner list scoped to `legal_type = hospital`.
-- **+ Thêm bệnh viện** opens the canonical Partner create form prefilled with `legal_type = hospital`.
-- Partner import accepts `name` + `legal_type` as the minimum hospital identity, keeps optional profile fields, avoids null-tax-code collisions, and retains bounded pagination/export semantics.
-- Pharma allocations reference the canonical Partner through `partner_id`.
-- Procurement investor remains separate from receiving-hospital allocation.
+Permissions:
 
-## Final verification evidence
+- `view_pharma_official_facilities`;
+- `import_pharma_official_facilities`;
+- `resolve_pharma_official_facility_conflicts`.
 
-Current closeout evidence:
+Workspace includes upload, preview/filter, page-scoped checkbox selection, conflict resolution, selected-only import and batch history.
 
-- full `tests/Feature/Pharma` regression: **57 tests / 324 assertions PASS**;
-- focused Pint on changed Pharma/Partner implementation and regression files: **10 files PASS**;
-- frontend build: **PASS**, Vite **34 modules transformed**; subsequent commits were PHP/test/document formatting only and did not modify frontend assets;
-- manual UI acceptance: **PASS**, including allocation/contract workspace, canonical hospital entry points, Partner hospital UX and KQLCNT-style Drug Award searchable filters;
-- branch comparison against `main`: branch is ahead with no base drift at closeout;
-- GitHub reported no commit status checks/workflow runs for this PR head during closeout, so no CI PASS is claimed.
+Pagination is bounded to `10/25/50/100`; no `All`. Header checkbox explicitly means current page. Selection is stored in staging, and saving one page preserves selections on other pages.
 
-Whole-module Pint still reports legacy style debt in unrelated pre-existing Pharma files. Those files are outside this objective and were intentionally not reformatted to avoid scope creep.
+## Manifest / contract synchronization
 
-## Deferred scope
+`Modules/Pharma/config/module.php` now declares `Partner` as an explicit dependency and includes current allocation/contract + official-facility permissions/tables so the module manifest no longer reflects the old pre-allocation shape.
 
-Not implemented in this objective:
+`docs/modules/Pharma/MODULE.md` documents Partner ownership, staging boundaries, permissions, deterministic matching, selected-only semantics, canonical/source province separation and deferred scope.
 
-- delivery / goods receipt;
-- inventory;
-- invoice reconciliation;
-- automatic consumption;
-- allocation Excel import;
-- AI/fuzzy hospital matching;
-- contract amendment engine.
+## Tests added
 
-Schema/domain boundaries intentionally leave room for future delivery and amendment entities.
+Focused tests were added for:
 
-## Merge handoff
+- normalization and canonical-province validation;
+- selected-only Partner import;
+- NEW Partner defaults;
+- source-reference creation;
+- idempotent same-source re-import;
+- preservation of manual Partner contact/name data.
 
-PR #165 is ready for manual merge once GitHub reports a mergeable state. No additional application changes are required from the accepted implementation unless GitHub exposes a repository-level merge gate.
+These tests have been committed but have **not yet been claimed PASS** in this handoff. Local verification is the next gate.
+
+## Required local verification
+
+Run focused checks first. If they pass, run Pharma + Partner directly impacted regression, route inspection and build. Manual UI acceptance remains a separate `UI PASS` gate.
+
+Do not claim merge readiness until local evidence is supplied.
+
+## Explicitly out of scope
+
+- MOH/BHXH runtime API auto-sync;
+- captcha bypass;
+- runtime scraping;
+- PDF import;
+- whole-province automatic import;
+- fuzzy/AI facility matching;
+- automatic merge of likely/conflict rows;
+- source-specific IDs on `partners`;
+- arbitrary overwrite of manual Partner data;
+- delivery/inventory/invoice changes.
 
 ## Prior checkpoint
 
-The Multi-source Drug Intelligence objective was merged to `main` via PR #164 before this branch began. Its canonical ownership, HSSP enrichment and source-provenance behavior remain baseline contracts for this implementation.
+Drug Award Allocation & Hospital Contract Management was merged to `main` via PR #165 before this branch started. Partner remains the canonical hospital organization master established by that objective.
