@@ -88,6 +88,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Index.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
+        $selectSearch = file_get_contents(base_path('resources/views/components/select-search.blade.php'));
 
         $this->assertStringContainsString("'tbmtOptions' => \$this->distinctOptions('bidding_notice_code')", $component);
         $this->assertStringContainsString("'investorOptions' => \$this->distinctOptions('investor_name')", $component);
@@ -95,7 +96,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("'medicineOptions' => \$this->distinctOptions('medicine_name')", $component);
         $this->assertStringContainsString('->distinct()', $component);
         $this->assertStringContainsString('->limit(500)', $component);
-        $this->assertStringContainsString('new TomSelect', $view);
+        $this->assertStringContainsString('<x-select-search', $view);
+        $this->assertStringContainsString('new TomSelect', $selectSearch);
         $this->assertStringContainsString('drug-award-filter-tbmt', $view);
         $this->assertStringContainsString('drug-award-filter-investor', $view);
         $this->assertStringContainsString('drug-award-filter-company', $view);
