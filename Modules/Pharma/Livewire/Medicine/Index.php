@@ -38,15 +38,26 @@ class Index extends Component
         $this->perPage = $this->normalizePerPage($this->perPage);
     }
 
-    public function updatedSearch(): void { $this->resetWorkspacePage(); }
+    public function updatedSearch(): void
+    {
+        $this->resetWorkspacePage();
+    }
 
-    public function updatedFilterCircularGroup(): void { $this->resetWorkspacePage(); }
+    public function updatedFilterCircularGroup(): void
+    {
+        $this->resetWorkspacePage();
+    }
 
-    public function updatedFilterSpecialControl(): void { $this->resetWorkspacePage(); }
+    public function updatedFilterSpecialControl(): void
+    {
+        $this->resetWorkspacePage();
+    }
 
     public function updatedFilterProfileStatus(): void
     {
-        $this->filterProfileStatus = array_key_exists($this->filterProfileStatus, $this->profileStatusOptions()) ? $this->filterProfileStatus : '';
+        $this->filterProfileStatus = array_key_exists($this->filterProfileStatus, $this->profileStatusOptions())
+            ? $this->filterProfileStatus
+            : '';
         $this->resetWorkspacePage();
     }
 
@@ -56,7 +67,10 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
-    public function updatedSelectPage(bool $value): void { $this->selectedIds = $value ? $this->currentPageIds() : []; }
+    public function updatedSelectPage(bool $value): void
+    {
+        $this->selectedIds = $value ? $this->currentPageIds() : [];
+    }
 
     public function updatedSelectedIds(): void
     {
@@ -99,6 +113,7 @@ class Index extends Component
 
         if ($ids === []) {
             $this->clearSelection();
+
             return;
         }
 
@@ -106,6 +121,7 @@ class Index extends Component
             foreach ($ids as $id) {
                 $medicineService->delete((int) $id);
             }
+
             $this->clearSelection();
             session()->flash('success', 'Đã xóa các bản ghi được chọn trên trang hiện tại.');
         } catch (Exception $exception) {
@@ -149,7 +165,8 @@ class Index extends Component
     {
         return collect($this->paginated(app(MedicineService::class))->items())
             ->map(static fn ($medicine): string => (string) $medicine->id)
-            ->values()->all();
+            ->values()
+            ->all();
     }
 
     private function resetWorkspacePage(): void
@@ -167,6 +184,7 @@ class Index extends Component
     private function normalizePerPage(mixed $value): int
     {
         $value = (int) $value;
+
         return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : 10;
     }
 
