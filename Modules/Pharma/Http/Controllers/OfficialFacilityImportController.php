@@ -26,9 +26,9 @@ class OfficialFacilityImportController extends Controller
             $batch = OfficialFacilityImportBatch::query()->findOrFail($request->integer('batch'));
             $rows = $batch->rows()
                 ->with(['matchedPartner'])
-                ->when($request->filled('classification'), fn ($query) => $query->where('classification', $request->string('classification')))
+                ->when($request->filled('classification'), fn ($query) => $query->where('classification', (string) $request->string('classification')))
                 ->when($request->filled('search'), function ($query) use ($request) {
-                    $search = '%'.$request->string('search').'%';
+                    $search = '%'.(string) $request->string('search').'%';
                     $query->where(function ($nested) use ($search) {
                         $nested->where('facility_name', 'like', $search)
                             ->orWhere('external_id', 'like', $search)
@@ -66,10 +66,17 @@ class OfficialFacilityImportController extends Controller
 
     public function selection(Request $request, OfficialFacilityImportBatch $batch, OfficialFacilityImportSummary $summary): RedirectResponse
     {
-        $validated = $request->validate(['selected' => ['array'], 'selected.*' => ['integer']]);
-        $selected = collect($validated['selected'] ?? [])->map(fn ($id) => (int) $id)->all();
+        $validated = $request->validate([
+            'visible' => ['required', 'array'],
+            'visible.*' => ['integer'],
+            'selected' => ['array'],
+            'selected.*' => ['integer'],
+        ]);
 
-        $batch->rows()->whereNull('imported_at')->update(['is_selected' => false]);
+        $visible = collect($validated['visible'])->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $selected = collect($validated['selected'] ?? [])->map(fn ($id) => (int) $id)->intersect($visible)->unique()->values()->all();
+
+        $batch->rows()->whereIn('id', $visible)->whereNull('imported_at')->update(['is_selected' => false]);
         if ($selected !== []) {
             $batch->rows()
                 ->whereIn('id', $selected)
@@ -79,7 +86,7 @@ class OfficialFacilityImportController extends Controller
         }
         $summary->refresh($batch);
 
-        return back()->with('success', 'Đã lưu lựa chọn. Chỉ các dòng được chọn mới đủ điều kiện import.');
+        return back()->with('success', 'Đã lưu lựa chọn của trang hiện tại. Lựa chọn ở các trang khác được giữ nguyên.');
     }
 
     public function resolve(Request $request, OfficialFacilityImportRow $row, OfficialFacilityConflictResolver $resolver): RedirectResponse
@@ -113,7 +120,8 @@ class OfficialFacilityImportController extends Controller
         }
 
         $summary->refresh($batch);
-        $batch->refresh()->update([
+        $batch->refresh();
+        $batch->update([
             'status' => $batch->failed_count > 0 ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED',
             'completed_at' => now(),
         ]);
