@@ -1,158 +1,157 @@
 # Pharma Module Analysis
 
-Last verified: 2026-08-30
+Last verified: 2026-09-05
 
-Scope: `Modules/Pharma/**`, `docs/modules/Pharma/**`, and direct Shared/Admin dependencies used by Pharma.
+Scope: `Modules/Pharma/**`, `docs/modules/Pharma/**`, direct Shared/Admin dependencies, and the explicit Pharma-owned Muasamcong KQLCNT integration boundary.
 
 ## Executive Summary
 
-The Pharma Major Refactor has completed its planned implementation sequence through MR-6 and has passed the MR-7 final acceptance gates.
+Pharma has moved from a sync-ready Drug Bid Award workspace to the approved **Option B+ — Pharma Multi-source Medicine Intelligence Architecture**.
 
-The original recommendation was **Major Refactor, not rebuild**. That recommendation has now been executed successfully: the existing module architecture was retained while security boundaries, shared import/export safety, Admin workspaces, domain integrity, sync-ready metadata, and the PriceList pipeline were hardened.
+The accepted ownership model is now:
 
-Current conclusion: **Major Refactor accepted; no further structural refactor is required for closeout.** Remaining items are intentional future capabilities/non-goals and must not be treated as unfinished defects of this program.
+1. **Procurement Canonical — Muasamcong owner**: `muasamcong_kqlcnt_award_items` and source acquisition/recovery concerns.
+2. **Medicine Master Canonical — Pharma/HSSP owner**: `pharma_medicines` + `pharma_medicine_sources`.
+3. **Drug Award Business Canonical — Pharma owner**: `pharma_drug_bid_awards` + `pharma_drug_bid_award_sources`.
 
-## Current Module Shape
+HSSP describes the medicine/product. Drug Award describes a procurement result. They link by `medicine_id`, but they remain separate business entities.
 
-Pharma remains a domain module depending on `Shared`, with four primary Admin work areas:
+The core invariant is:
 
-1. Medicine / HSSP.
-2. Drug Bid Awards.
-3. Supplier Tracking.
-4. Price List generation.
+> **VALID RECORD != COMPLETE RECORD.** Missing medicine attributes may be enriched from a deterministically linked HSSP profile for read/export purposes, but enrichment must never overwrite a non-empty historical award snapshot or be represented as procurement-origin data.
 
-A dedicated Pharma Admin Dashboard is available at `/admin/pharma`.
+## Implemented Architecture
 
-The tracked manifest remains intentionally disabled:
+### Medicine Master / HSSP
+
+`pharma_medicines` now supports canonical identity, identity status, profile-quality status, nullable partial-source fields, shelf-life metadata and verification timestamps.
+
+`pharma_medicine_sources` records source-system lineage for one canonical Medicine profile.
+
+`MedicineIdentityResolver` performs deterministic resolution only. Fuzzy matching remains suggestion-only and does not auto-merge records.
+
+Identity outcomes currently include verified, provisional, ambiguous and unresolved states. Profile-quality states distinguish incomplete, complete, verified and needs-review profiles.
+
+Manual/runtime paths allow incomplete Medicine profiles without fake placeholder values. The legacy Excel Medicine import remains intentionally strict as a source-specific contract.
+
+### Drug Award Business Catalog
+
+`pharma_drug_bid_awards` now carries richer KQLCNT-compatible procurement fields including lot, medicine code/snapshot attributes, plan/winning pricing, contractor/investor identifiers, publication metadata and contract fields.
+
+Legacy constraints that prevented partial source records were relaxed. Quantity now supports decimal source values.
+
+`pharma_drug_bid_award_sources` provides many-source-to-one-award lineage through the unique source identity `(source_system, source_record_type, source_record_key)`.
+
+`DrugAwardProjectionService` is the canonical multi-source write boundary. It:
+
+- resolves Medicine deterministically;
+- optionally creates provisional HSSP profiles only when strong identity signals exist;
+- preserves non-empty historical source values;
+- performs idempotent source-lineage upserts;
+- keeps source payload/recovery internals outside Pharma business tables.
+
+`DrugBidAward::effectiveMedicineAttribute()` provides read-layer provenance with `award`, `hssp` or `missing` origin.
+
+Procurement-only facts — price, quantity, investor, contractor, decision and contract — are never HSSP-enriched.
+
+### Muasamcong Boundary
+
+Pharma owns the explicit integration adapter:
+
+- `Integrations/Muasamcong/MuasamcongKqlcntAwardAdapter.php`
+- `Integrations/Muasamcong/MuasamcongDrugAwardSyncService.php`
+
+There is no Pharma dependency on Muasamcong UI/controllers and no direct HSSP page query of Muasamcong tables.
+
+The manual sync action is bounded:
+
+- default 250 rows per request;
+- hard service cap 1000;
+- cursor continues from the last Muasamcong source ID;
+- guarded by `edit_pharma`;
+- missing Muasamcong canonical table affects sync only, not browsing existing Pharma data.
+
+### Legacy-schema Compatibility
+
+List/export behavior detects whether `pharma_drug_bid_award_sources` exists before eager-loading or filtering source lineage. This preserves compatibility with focused tests or legacy schemas that still expose only `source_type`, while production intelligence schemas use both legacy source metadata and lineage.
+
+## Workspace Analysis
+
+### `/admin/pharma/hssp`
+
+The HSSP workspace is now the **Medicine Master / Product Profile / Data Quality** surface.
+
+It supports:
+
+- expanded search by name, ingredient, registration, concentration, manufacturer and country;
+- profile-quality filtering;
+- existing circular-group and special-control filters;
+- bounded `10/25/50/100` pagination;
+- identity/profile status visibility;
+- source count and linked award count;
+- selected/all export semantics.
+
+### `/admin/pharma/drug-bid-awards`
+
+The workspace is now **Multi-source Procurement Award Intelligence**.
+
+It supports:
+
+- search across medicine, ingredient, medicine code, TBMT, lot and decision;
+- investor, contractor, source-system and HSSP match-status filters;
+- source lineage display;
+- visible `Bổ sung từ HSSP` provenance for effective medicine fields;
+- bounded manual KQLCNT synchronization;
+- safe rendering of nullable/decimal source data;
+- selected/all export semantics.
+
+## Export Analysis
+
+For Drug Bid Awards:
+
+- selected IDs non-empty -> export exactly selected records;
+- no selection -> export the complete active filtered dataset;
+- active filters include search, investor, contractor, source and Medicine match state;
+- exported medicine attributes may use effective values with provenance;
+- raw Muasamcong `raw_payload`, recovery internals and contractor-search/import-batch implementation details are excluded.
+
+The existing strict Excel import mapping remains source-specific and is not treated as the universal ingestion contract.
+
+## Verification Evidence
+
+Latest local verification reported by the user:
 
 ```text
-name: Pharma
-type: domain
-enabled: false
-depends: Shared
-permissions:
-  view_pharma
-  create_pharma
-  edit_pharma
-  delete_pharma
+Focused Pint: PASS
+PharmaDrugBidAwardWorkspaceTest: 7 passed, 56 assertions
+Full tests/Feature/Pharma: 47 passed, 265 assertions
 ```
 
-Production/runtime enablement was not part of this refactor.
+All five intelligence migrations were previously applied successfully:
 
-## Accepted Architecture After Refactor
+- `2026_09_05_010000_add_intelligence_fields_to_medicines_table`
+- `2026_09_05_011000_create_medicine_sources_table`
+- `2026_09_05_012000_add_intelligence_fields_to_drug_bid_awards_table`
+- `2026_09_05_013000_create_drug_bid_award_sources_table`
+- `2026_09_05_014000_relax_legacy_drug_award_constraints`
 
-### Security and authorization
+No full-project regression is required by the agreed workflow; validation remains scoped to Pharma and directly impacted behavior.
 
-- Pharma Admin routes remain behind `web` + `auth:admin`.
-- Dashboard/index routes require `view_pharma`; create/edit routes require their matching capabilities.
-- Sensitive Livewire mutations use server-side Pharma capability authorization.
-- The obsolete/broken public Pharma API contract was removed; `routes/api.php` intentionally exposes no public endpoint.
-- Raw exception details are not used as normal operator-facing error messages in hardened workflows.
+## Remaining Acceptance Gates
 
-### Shared Import / Export
+Before PR readiness:
 
-- Pharma continues to reuse the Shared Import/Export foundation; no competing engine was introduced.
-- Shared service selection is server-owned/locked at action time rather than trusting mutable client state.
-- Pharma import modes are constrained by domain usage.
-- Generated Shared exports use private storage and authorized download behavior.
-- Existing business import/export contracts remain covered by focused regression tests.
-
-### Medicine / HSSP workspace
-
-- Uses bounded `10/25/50/100` pagination; there is no `All` path.
-- Selection and destructive bulk actions are page-scoped.
-- Destructive bulk actions are permission-aware and confirmed explicitly.
-- Search/filter/import/export/CRUD remain within the canonical Admin shell.
-- Dashboard return navigation, responsive behavior, and loading states are present.
-
-### Drug Bid Award workspace and sync-ready foundation
-
-- Uses bounded workspace behavior and bounded Medicine lookup.
-- Source metadata supports stable external identity through `source_type` + `source_id`, synchronization timestamp and payload hash.
-- Source projection is idempotent and preserves explicit conflict handling for manual rows.
-- Linked/unmatched source state is visible without fuzzy Medicine auto-matching.
-- The foundation is sync-ready, but actual Muasamcong -> Pharma production synchronization is intentionally not wired by this refactor.
-
-### Supplier Tracking integrity and workspace
-
-- Canonical business key is Medicine + normalized supplier name + working date when working date is non-null.
-- Database migration/backfill and unique constraint enforce the accepted duplicate rule.
-- Multiple null-working-date rows remain allowed by design.
-- Friendly duplicate-domain errors replace raw database failure behavior.
-- Bounded workspace, page-scoped selection, confirmation, bounded Medicine lookup, filters and financial recalculation are preserved.
-- Existing Medicine -> Supplier Tracking cascade-delete behavior was intentionally retained.
-
-### Price List security and pipeline
-
-- Full workbook analysis/product payload is no longer public Livewire state.
-- Product workspace is bounded to `10/25/50/100` and does not auto-select the complete workbook.
-- Header selection is page-scoped.
-- `PriceListService::generate()` is the canonical workbook analysis/validation/generation boundary.
-- Request/component input cannot choose an arbitrary production output path.
-- Generated files are allocated under private PriceList export storage and partial output is cleaned on build failure.
-- Successful UI downloads use delete-after-send behavior.
-- Existing XLSX business format remains covered by focused tests and manual acceptance.
-
-## Final Route Contract
-
-MR-7 route acceptance reports exactly 11 Admin Pharma routes:
-
-- dashboard;
-- Medicine/HSSP index/create/edit;
-- Drug Bid Award index/create/edit;
-- Supplier Tracking index/create/edit;
-- Price List create.
-
-No public Pharma API route is part of the accepted contract.
-
-## Final Acceptance Evidence
-
-MR-7 acceptance was executed from `main` checkpoint `c5d6e4b341c5f99f2bf73d8104fba0975ddd5375` on the dedicated closeout branch.
-
-```bash
-php artisan route:list --path=admin/pharma
-php artisan test tests/Feature/Pharma Modules/Pharma/Tests
-npm run build
-```
-
-Results:
-
-- Route inventory: **PASS — 11 Pharma Admin routes**.
-- Focused Pharma regression: **PASS — 41 tests, 240 assertions**.
-- Frontend production build: **PASS — 34 modules transformed**.
-- MR-6 final manual PriceList UI acceptance immediately before merge: **PASS**.
-- Earlier workspace MRs also completed their focused tests and manual UI acceptance before merge.
-
-No full-project test suite was run; this follows the agreed module-focused verification policy.
-
-## Major Refactor Delivery Record
-
-- PR #88 — MR-1 Security Foundation + MR-2 Shared Import/Export Hardening.
-- PR #89 — Pharma Admin Dashboard.
-- PR #90 — MR-3 Medicine/HSSP Workspace.
-- PR #91 — MR-4 Drug Bid Award Workspace + Sync-Ready Foundation.
-- PR #92 — MR-5 Supplier Tracking Integrity + Workspace.
-- PR #93 — MR-6 Price List Security + Pipeline; merged as `c5d6e4b341c5f99f2bf73d8104fba0975ddd5375`.
-- MR-7 — Final Acceptance + documentation closeout.
-
-## Intentional Deferred Scope / Non-goals
-
-The following are not blockers for Major Refactor acceptance:
-
-- actual Muasamcong -> Pharma production synchronization/wiring;
-- automated fuzzy Medicine matching;
-- production/runtime enablement of Pharma;
-- PriceList database entity/table;
-- PriceList queue/background generation unless future benchmarking justifies it;
-- user upload/replacement of the PriceList source workbook;
-- switching PriceList source data to Medicine database records;
-- changing Medicine -> Supplier Tracking cascade-delete policy;
-- broad project-wide regression unrelated to Pharma.
-
-Any of these should begin as a separately approved future objective with its own analysis and acceptance criteria.
+1. run production frontend build;
+2. manually smoke `/admin/pharma/hssp`;
+3. manually smoke `/admin/pharma/drug-bid-awards`;
+4. verify bounded KQLCNT sync as an `edit_pharma` admin;
+5. verify selected-row export;
+6. verify no-selection filtered export;
+7. verify pagination and input treatment;
+8. record UI PASS and final build evidence in `COLLABORATION_HANDOFF.md`.
 
 ## Final Recommendation
 
-Close the Pharma Major Refactor after MR-7 documentation is reviewed and merged.
+Keep the approved B+ architecture. Do not collapse Medicine Master and Drug Award into one table, do not duplicate Muasamcong procurement warehouse data, and do not introduce fuzzy automatic merging in this phase.
 
-Do not continue refactoring merely for architectural aesthetics. Future work should be driven by a concrete business objective, especially Muasamcong synchronization or production enablement, and should preserve the accepted boundaries established by this refactor.
+Future work should build on the explicit source-lineage and deterministic identity boundaries rather than reintroducing UI/controller coupling between Pharma and Muasamcong.
