@@ -10,7 +10,11 @@ return new class extends Migration
     {
         Schema::create('pharma_drug_bid_award_contracts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('drug_bid_award_allocation_id')->constrained('pharma_drug_bid_award_allocations')->restrictOnDelete();
+            $table->foreignId('drug_bid_award_allocation_id');
+            $table->foreign('drug_bid_award_allocation_id', 'pharma_award_contract_allocation_fk')
+                ->references('id')
+                ->on('pharma_drug_bid_award_allocations')
+                ->restrictOnDelete();
             $table->string('contract_number');
             $table->date('contract_date')->nullable();
             $table->decimal('contract_quantity', 20, 4);
