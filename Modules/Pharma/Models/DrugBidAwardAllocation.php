@@ -10,6 +10,7 @@ use Modules\Partner\Models\Partner;
 class DrugBidAwardAllocation extends Model
 {
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     protected $table = 'pharma_drug_bid_award_allocations';
