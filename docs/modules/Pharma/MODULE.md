@@ -24,6 +24,22 @@ Drug Award describes **what medicine won where and under which procurement resul
 
 `Muasamcong` remains owner of external procurement acquisition/recovery and its canonical KQLCNT warehouse. Pharma may consume that canonical through an explicit integration adapter/service, but must not depend on Muasamcong UI/controllers or rewrite Muasamcong persistence.
 
+### Official healthcare facility import
+
+`Partner` remains the canonical organization master for hospitals/healthcare facilities. Pharma must not create a second Hospital/Facility master.
+
+Pharma owns only the staging/audit workflow for official facility import:
+
+- `pharma_official_import_batches`;
+- `pharma_official_import_rows`.
+
+Partner owns the canonical organization record and official source identities:
+
+- `partners`;
+- `partner_source_references`.
+
+`partners.province_code` is a nullable, source-independent canonical province attribute. The Official Facility Import populates it for healthcare facilities when the canonical province is explicitly supplied. Other Partner types, including ordinary companies/suppliers, may remain `NULL`. Source-specific province identifiers such as BHXH `92TTT` never belong in `partners.province_code`.
+
 ## Multi-source architecture
 
 Canonical flow:
@@ -38,6 +54,12 @@ Canonical flow:
 
 Multiple physical source records may resolve to one Pharma business record. Source lineage must remain auditable.
 
+Official facility flow is separate:
+
+`Official XLSX/CSV -> Upload -> Pharma staging -> Validate/Normalize -> Match/Dedupe -> Preview -> Explicit checkbox selection -> Partner + Partner source reference`.
+
+Upload/staging must never mutate Partner.
+
 ## Persistence ownership
 
 Canonical Pharma persistence includes:
@@ -46,7 +68,9 @@ Canonical Pharma persistence includes:
 - `pharma_medicine_sources`;
 - `pharma_drug_bid_awards`;
 - `pharma_drug_bid_award_sources`;
-- `pharma_supplier_trackings`.
+- `pharma_supplier_trackings`;
+- `pharma_official_import_batches`;
+- `pharma_official_import_rows`.
 
 Cross-module code must use an explicit Pharma integration/service boundary rather than writing these tables directly.
 
@@ -101,6 +125,8 @@ Legacy `source_type/source_id` on Drug Award remains a compatibility surface dur
 
 Raw Muasamcong recovery payloads, contractor-search internals, import-batch internals and recovery state do not belong in the default Pharma business record/export.
 
+For healthcare facilities, official identities are Partner-owned and use generic `(source, external_id)` uniqueness in `partner_source_references`. Do not add source-specific `bhxh_id`, `moh_id`, `source_province_code` or similar columns to `partners`.
+
 ## Muasamcong synchronization boundary
 
 Pharma may synchronize KQLCNT through `Modules\Pharma\Integrations\Muasamcong`.
@@ -117,7 +143,9 @@ Rules:
 ## Authorization boundary
 
 - Pharma Admin routes require `web` + `auth:admin` and the appropriate Pharma capability.
-- Canonical capabilities are `view_pharma`, `create_pharma`, `edit_pharma`, and `delete_pharma`.
+- Base capabilities are `view_pharma`, `create_pharma`, `edit_pharma`, and `delete_pharma`.
+- Official Facility Import capabilities are `view_pharma_official_facilities`, `import_pharma_official_facilities`, and `resolve_pharma_official_facility_conflicts`.
+- Upload/selection/import and conflict-resolution mutations authorize server-side through route middleware.
 - Livewire mutations must authorize server-side.
 - Row selection is available to export/edit-capable users independently of delete permission.
 - Destructive actions remain independently guarded by `delete_pharma`.
@@ -127,10 +155,36 @@ Rules:
 - Canonical entry point: `/admin/pharma`.
 - HSSP: `/admin/pharma/hssp` = Medicine Master / Product Profile / Data Quality workspace.
 - Drug Awards: `/admin/pharma/drug-bid-awards` = Multi-source Procurement Award Intelligence workspace.
+- Official Facility Import: `/admin/pharma/official-facilities/import` = upload/staging/preview/conflict/history workspace.
 - Production list workspaces use bounded page sizes `10/25/50/100`; there is no `All` mode.
 - Filtering, pagination, selection, loading, empty and error states follow `.codex/standards/ADMIN_UI_STANDARD.md`.
 - Inputs/selects have visible boundaries in the default/empty state and explicit focus/disabled states.
-- Selection is page-scoped; changing page or filters clears the current page selection.
+- Official Facility selection is persisted in staging and the header checkbox is explicitly page-scoped. There is no hidden whole-province import action.
+
+## Official Facility Import invariants
+
+Phase 1 supports XLSX and CSV only. No PDF, captcha bypass, runtime scraping, private/session API auto-sync or fuzzy/AI matching is permitted.
+
+Matching priority is deterministic:
+
+1. `source + external_id`;
+2. `tax_code`;
+3. normalized name + canonical province;
+4. normalized name + normalized address.
+
+Rows are classified as `NEW`, `EXACT`, `LIKELY_MATCH`, `CONFLICT`, or `INVALID`. `LIKELY_MATCH` and `CONFLICT` require explicit resolution and must never be silently auto-merged.
+
+Partner mutation rules:
+
+- selected rows only;
+- a new Partner defaults to `legal_type=hospital`, `partner_types=['customer']`, `status=active`, `source=import`;
+- existing `phone`, `email`, `contact_person`, and name are not automatically overwritten;
+- address and canonical province are safe-fill only when empty; conflicting non-empty canonical province blocks/requires review;
+- tax code is safe-fill only when empty; conflicting non-empty tax code blocks/requires review;
+- re-importing the same official identity updates source observation metadata/`last_seen_at` and must not duplicate Partner;
+- Partner/source-reference writes are transactional per selected row, not one transaction for an entire batch.
+
+File controls include XLSX/CSV extension/MIME/size checks, a 10,000-row parser ceiling, normalized input values, SHA-256 duplicate-file warning and duplicate-row staging outcomes. Duplicate-file detection warns but does not itself block legitimate idempotent re-import.
 
 ## Export contract
 
@@ -162,12 +216,15 @@ Pharma currently exposes no public API contract. `routes/api.php` must not gain 
 
 ## Deferred scope
 
-- fuzzy/AI automatic Medicine merging;
+- fuzzy/AI automatic Medicine or facility merging;
 - unattended/background large-volume KQLCNT synchronization;
-- automated adjudication of ambiguous Medicine matches;
+- automated adjudication of ambiguous Medicine/facility matches;
+- MOH/BHXH runtime scraping or captcha bypass;
+- PDF facility import;
+- automatic whole-province facility import;
 - Pharma runtime enablement changes;
 - unrelated Supplier Tracking/PriceList redesign.
 
 ## Refactor rule
 
-Refactoring Pharma must preserve the ownership and provenance boundaries above. Prefer explicit domain services/adapters over shared mega-components, and never collapse Medicine Master, Drug Award business records and external procurement acquisition into one table/entity merely because fields overlap.
+Refactoring Pharma must preserve the ownership and provenance boundaries above. Prefer explicit domain services/adapters over shared mega-components, and never collapse Medicine Master, Drug Award business records, external procurement acquisition and Partner organization master into one table/entity merely because fields overlap.
