@@ -24,8 +24,8 @@
             'title' => 'Import / Export kết quả trúng thầu',
             'description' => 'Nếu có chọn checkbox: export phần đã chọn. Nếu không chọn: export toàn bộ kết quả theo bộ lọc hiện tại.',
             'permission' => 'edit_pharma',
-            'filters' => ['search' => $search, 'investor' => $filterInvestor, 'company' => $filterCompany, 'source' => $filterSource, 'medicine_match_status' => $filterMatchStatus, 'selected_ids' => $selectedIds],
-        ], key('drug-bid-award-import-export-' . md5(json_encode([$search, $filterInvestor, $filterCompany, $filterSource, $filterMatchStatus, $selectedIds]))))
+            'filters' => ['search' => $search, 'tbmt' => $filterTbmt, 'investor' => $filterInvestor, 'company' => $filterCompany, 'source' => $filterSource, 'medicine_match_status' => $filterMatchStatus, 'selected_ids' => $selectedIds],
+        ], key('drug-bid-award-import-export-' . md5(json_encode([$search, $filterTbmt, $filterInvestor, $filterCompany, $filterSource, $filterMatchStatus, $selectedIds]))))
     @endif
 
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
