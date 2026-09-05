@@ -1,10 +1,10 @@
 # Pharma Module Information
 
-Last verified: 2026-08-30
+Last verified: 2026-09-05
 
 ## Purpose
 
-Pharma owns medicine master data, drug bid awards, supplier/commercial tracking, and XLSX price-list generation.
+Pharma owns medicine master data, pharmaceutical procurement intelligence, supplier/commercial tracking and XLSX price-list generation.
 
 ## Module State
 
@@ -23,195 +23,270 @@ edit_pharma
 delete_pharma
 ```
 
-These permissions are currently declared but not consistently enforced by Pharma routes/Livewire actions.
+Current Pharma Admin workspaces enforce these capabilities through route/component authorization patterns.
+
+## Canonical Ownership
+
+### Medicine Master Canonical — Pharma/HSSP
+
+Tables:
+
+- `pharma_medicines`
+- `pharma_medicine_sources`
+
+Purpose:
+
+- canonical medicine/product profile;
+- medicine identity and profile-quality state;
+- source lineage;
+- deterministic matching target for Drug Award records.
+
+### Drug Award Business Canonical — Pharma
+
+Tables:
+
+- `pharma_drug_bid_awards`
+- `pharma_drug_bid_award_sources`
+
+Purpose:
+
+- multi-source drug procurement result catalog;
+- historical source snapshots;
+- source lineage;
+- linked/effective HSSP enrichment for medicine attributes.
+
+### Procurement Canonical — Muasamcong
+
+Pharma does not own `muasamcong_kqlcnt_award_items`.
+
+Pharma consumes Muasamcong procurement data only through the explicit integration adapter/service boundary. Acquisition, recovery, raw payloads and procurement warehouse concerns remain owned by Muasamcong.
 
 ## Features
 
-- Medicine CRUD, search/filter, bulk selection/delete, import/export.
-- DrugBidAward CRUD, filters, bulk selection/delete, import/export.
-- SupplierTracking CRUD/list/filter, commercial calculations, bulk delete, import/export.
-- PriceList workbook analysis, product/column selection, recipient/signature metadata, XLSX generation/download.
-- CLI support for selected Pharma workflows.
+- HSSP Medicine Master CRUD/search/filter/data-quality workspace.
+- Medicine identity/profile status and source lineage.
+- Drug Bid Award CRUD, multi-source filters, HSSP match state and source provenance.
+- Bounded manual Muasamcong KQLCNT synchronization.
+- Deterministic Medicine resolution and provisional profile creation for strong source identities.
+- Selected/all import-export behavior.
+- Supplier Tracking CRUD/list/filter/commercial calculations/import-export.
+- PriceList workbook analysis, selection and XLSX generation/download.
 
-## Routes
+## Main Routes
 
-Admin prefix: `/admin/pharma`, active middleware currently `web, auth:admin`.
+Admin prefix: `/admin/pharma`.
 
-Main routes:
+Important routes include:
 
+- `/admin/pharma`
 - `/admin/pharma/hssp`
 - `/admin/pharma/hssp/create`
 - `/admin/pharma/hssp/{id}/edit`
 - `/admin/pharma/drug-bid-awards`
 - `/admin/pharma/drug-bid-awards/create`
 - `/admin/pharma/drug-bid-awards/{id}/edit`
-- `/admin/pharma/supplier-trackings`
-- `/admin/pharma/supplier-trackings/create`
-- `/admin/pharma/supplier-trackings/{id}/edit`
-- `/admin/pharma/supplier-trackings/import-export`
-- `/admin/pharma/price-lists/create`
+- Supplier Tracking workspace routes
+- Price List creation route
 
-API:
+Pharma exposes no accepted public API contract.
 
-- `GET /api/pharma` currently targets `Api\PharmaController@index`, but the controller has no `index()` method. The active API route is not guarded by Sanctum.
-
-## Controllers
-
-- `Http/Controllers/PharmaController.php`
-- `Http/Controllers/DrugBidAwardController.php`
-- `Http/Controllers/SupplierTrackingController.php`
-- `Http/Controllers/PriceListController.php`
-- `Http/Controllers/Api/PharmaController.php` — empty scaffold at current checkpoint.
-
-Web controllers are primarily thin page controllers.
-
-## Livewire Components
-
-- `Medicine/Index.php`
-- `Medicine/Form.php`
-- `DrugBidAward/Index.php`
-- `DrugBidAward/Form.php`
-- `SupplierTrackings/Index.php`
-- `SupplierTrackings/Form.php`
-- `PriceList/Create.php`
-
-Important current behavior:
-
-- Medicine and DrugBidAward support an `All` path implemented as `999999` rows.
-- SupplierTracking select-all loads every filtered ID.
-- CRUD/delete/generate Livewire actions do not currently enforce capability authorization.
-- Medicine/DrugBidAward/PriceList contain user-facing raw exception paths.
-- PriceList keeps workbook analysis in a public Livewire property.
-
-## Blade Views
-
-Module views live under `Modules/Pharma/resources/views` and use the Admin shell. Interactive feature behavior is delegated to Livewire.
-
-## Services
-
-Core services:
-
-- `MedicineService`
-- `DrugBidAwardService`
-- `SupplierTrackingService`
-- `PriceListService`
-
-Import/export:
-
-- `MedicineImportExport`
-- `DrugBidAwardImportExport`
-- `ImportExport` (SupplierTracking)
-- compatibility helper `MedicineImportService`
-
-Spreadsheet:
-
-- `Spreadsheet/WorkbookAnalyzer`
-- `Spreadsheet/PriceListWorkbookBuilder`
-
-## Imports / Exports
-
-Pharma reuses the canonical Shared import/export foundation.
-
-Shared panel behavior currently includes:
-
-- upload validation for xlsx/csv and max size;
-- dry-run support;
-- modes `create_only`, `update_or_create`, `skip_duplicate`, `replace`;
-- optional permission check;
-- subclass check for the configured service during `mount()`.
-
-Known concerns:
-
-- `serviceClass` remains public mutable Livewire state and is dynamically resolved during actions;
-- permission is optional;
-- imports are collection-based;
-- exports are collection-based and written to `storage/app/public`;
-- no observed explicit retention/cleanup contract for shared exports.
-
-PriceList differs from shared exports: its default generated file is under private storage and the HTTP response deletes the file after send.
-
-## Models
+## Core Models
 
 - `Medicine`
+- `MedicineSource`
 - `DrugBidAward`
+- `DrugBidAwardSource`
 - `SupplierTracking`
-- `Pharma` — scaffold/unused status should be confirmed before removal.
 
-## Database Tables
+### Medicine
 
-- `pharma_medicines`
-- `pharma_drug_bid_awards`
-- `pharma_supplier_trackings`
+Important intelligence fields include:
 
-Medicine has a composite unique constraint for registration number + packaging specification.
+- `canonical_identity_key`
+- `identity_status`
+- `profile_status`
+- `shelf_life_months`
+- `last_verified_at`
 
-SupplierTracking has indexes on `(medicine_id, supplier_name)` and `status`, but no unique constraint for a supplier business key involving working date.
+Relations:
 
-PriceList has no table/model; generated quotations are not persisted as audit records.
+- `sources()`
+- `drugBidAwards()`
 
-## Relationships
+### DrugBidAward
 
-- DrugBidAward -> Medicine (`belongsTo`).
-- SupplierTracking -> Medicine (`belongsTo`).
-- Medicine inverse relationships are not a major requirement for current behavior and should only be added if callers need them.
+Important intelligence fields include:
 
-## Shared / Cross-Module Dependencies
+- lot identity;
+- medicine code/snapshot attributes;
+- match state;
+- price plan/winning price/amount;
+- contractor and investor identifiers;
+- publication and contract metadata;
+- active state.
 
-- `Modules/Shared/Services/ImportExport/*`
-- `Modules/Shared/Livewire/ImportExport/Panel.php`
-- Admin layout/shell
+Relations:
 
-No circular module dependency was observed.
+- `medicine()`
+- `sources()`
 
-## Events / Jobs
+`effectiveMedicineAttribute()` returns a medicine field value plus provenance origin: `award`, `hssp` or `missing`.
 
-No Pharma domain event/listener or queue job was observed in the current module structure. Long-running import/export/PriceList work currently runs synchronously.
+## Identity / Resolution
 
-## Configuration / Environment Variables
+`MedicineIdentityResolver` uses deterministic matching only.
 
-`Modules/Pharma/config/module.php` defines module metadata, dependency, permissions, table catalog, and currently `enabled => false`.
+Strong identity:
 
-PriceList default source:
+- registration number + packaging specification.
+
+Composite identity may use normalized:
+
+- medicine name;
+- active ingredient;
+- concentration;
+- dosage form;
+- manufacturer.
+
+Fuzzy matching does not auto-merge records.
+
+Possible outcome/status concepts include verified, provisional, ambiguous and unresolved.
+
+`registration_or_import_license` from procurement is not blindly written into HSSP `registration_number`.
+
+## Partial Data Contract
+
+The canonical invariant is:
 
 ```text
-storage/app/excel/BANG_GIA_TONG_HOP.xlsx
+VALID RECORD != COMPLETE RECORD
 ```
 
-Default generated directory:
+Medicine and Drug Award runtime paths tolerate partial source data.
+
+Missing Drug Award medicine attributes may be read from a deterministically linked HSSP profile, but:
+
+- non-empty award snapshots win;
+- HSSP-derived values remain visibly HSSP-origin;
+- HSSP enrichment does not rewrite the historical source snapshot;
+- procurement-only facts are never HSSP-enriched.
+
+The existing Excel Medicine import remains stricter as a source-specific policy.
+
+## Muasamcong Integration
+
+Pharma-owned integration classes:
+
+- `Integrations/Muasamcong/MuasamcongKqlcntAwardAdapter`
+- `Integrations/Muasamcong/MuasamcongDrugAwardSyncService`
+
+The sync boundary:
+
+- reads `KqlcntAwardItem`;
+- maps to the source-neutral `DrugAwardProjectionData` DTO;
+- projects through `DrugAwardProjectionService`;
+- does not call Muasamcong UI/controllers;
+- does not copy raw recovery payloads into Pharma.
+
+Manual sync behavior:
 
 ```text
-storage/app/private/exports/price-lists
+default batch: 250
+hard cap: 1000
+continuation: last source ID
+permission: edit_pharma
 ```
 
-No Pharma-specific environment variable was observed.
+If the Muasamcong canonical table is unavailable, sync fails without making existing Pharma catalog pages unavailable.
 
-## Test Inventory
+## HSSP Workspace
 
-Observed module-local tests:
+`/admin/pharma/hssp` acts as Medicine Master / Product Profile / Data Quality.
+
+Search includes:
+
+- medicine name;
+- active ingredient;
+- registration number;
+- concentration;
+- manufacturer;
+- manufacturing country.
+
+Filters include:
+
+- profile status;
+- circular group;
+- special-control state.
+
+The table exposes identity/quality status, product details, source count and linked Drug Award count.
+
+Pagination is bounded to `10/25/50/100`.
+
+## Drug Award Workspace
+
+`/admin/pharma/drug-bid-awards` acts as Multi-source Procurement Award Intelligence.
+
+Search includes:
+
+- medicine name;
+- active ingredient;
+- medicine code;
+- bidding notice/TBMT;
+- lot;
+- decision.
+
+Filters include:
+
+- investor;
+- winning contractor;
+- source system;
+- HSSP match status.
+
+The UI may show `Bổ sung từ HSSP` for effective medicine values while preserving source snapshots.
+
+Source lineage is displayed when the lineage table exists; legacy schemas fall back to `source_type`.
+
+## Import / Export
+
+Pharma reuses Shared Import/Export infrastructure.
+
+Canonical list export rule:
+
+- selected IDs present -> export exactly selected records;
+- no selection -> export all records matching active filters.
+
+Drug Award export supports search, investor, contractor, source and match-status filters.
+
+It may export effective medicine values with provenance and richer procurement fields.
+
+It does not export raw Muasamcong recovery payloads by default.
+
+## Database Migrations Added for Intelligence
+
+- `2026_09_05_010000_add_intelligence_fields_to_medicines_table.php`
+- `2026_09_05_011000_create_medicine_sources_table.php`
+- `2026_09_05_012000_add_intelligence_fields_to_drug_bid_awards_table.php`
+- `2026_09_05_013000_create_drug_bid_award_sources_table.php`
+- `2026_09_05_014000_relax_legacy_drug_award_constraints.php`
+
+All five were reported applied successfully on the current development database.
+
+## Verification Snapshot
+
+Latest reported verification:
 
 ```text
-Modules/Pharma/Tests/Unit/PriceListServiceTest.php
+Focused Pint: PASS
+PharmaDrugBidAwardWorkspaceTest: 7 passed / 56 assertions
+Full tests/Feature/Pharma: 47 passed / 265 assertions
 ```
 
-The previously documented `PharmaImportExportTest` was not found in the current repository search.
-
-## Known Limitations
-
-- capability authorization is incomplete;
-- PriceList analysis data is stored in public Livewire state;
-- shared exports use public storage;
-- shared import/export service selection remains browser-influenced;
-- API route is currently broken/public;
-- large lists/import/export are not bounded/streamed sufficiently;
-- full Medicine collections are loaded for some form selectors;
-- SupplierTracking duplicate/business-key semantics are not database-enforced;
-- PriceList has no persisted lifecycle/audit history;
-- some raw exception text can reach UI.
+Final UI smoke and frontend production build are still required before PR readiness.
 
 ## Maintenance Notes
 
-- Treat Pharma as a **Major Refactor** candidate, not a full rebuild.
-- Fix P0 authorization/data/file boundaries before performance or visual cleanup.
-- Preserve existing route names/tables/Livewire aliases unless compatibility impact is explicitly planned.
-- Shared Import/Export fixes require impacted-module regression beyond Pharma.
-- Do not enable Pharma in production merely because source/documentation analysis is complete; runtime enablement is a separate operational decision.
+- Do not merge Medicine Master and Drug Award entities.
+- Do not duplicate the Muasamcong procurement warehouse inside Pharma merely for convenience.
+- Do not introduce automatic fuzzy merges without a separately approved identity-review workflow.
+- Preserve source lineage and provenance whenever adding future ingestion sources.
+- Keep Pharma browsing independent of Muasamcong runtime availability; only synchronization should depend on the source module/table.
