@@ -6,7 +6,7 @@
 - Objective: **Drug Award Allocation & Hospital Contract Management**
 - Branch: `feat/pharma-drug-award-allocation-contracts`
 - PR: `#165`
-- Status: **IMPLEMENTED — UI ACCEPTED; final executable closeout checks pending**
+- Status: **PR READY — executable checks and UI acceptance PASS**
 - Date: 2026-09-05
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - Consolidation: **one implementation branch / one PR**
@@ -86,8 +86,8 @@ The implementation introduces independent permissions:
 - bounded pagination: `10/25/50/100`; no unbounded `All`.
 - checkbox selection is page-scoped.
 - allocation and contract CSV exports follow: selected rows when selection exists; otherwise all rows matching active filters.
-- dangerous cancellation requires a reason and confirmation.
-- Drug Award filter workspace follows the established `admin/muasamcong/kqlcnt-awards` interaction pattern: searchable dropdowns for TBMT, investor, medicine/HSSP and contractor, with bounded option lists and Livewire filter reset synchronization.
+- controlled pause/cancel actions preserve the domain audit boundary.
+- Drug Award filter workspace follows the established `admin/muasamcong/kqlcnt-awards` interaction pattern: searchable dropdowns for TBMT, investor, medicine/HSSP and contractor, with bounded option lists and shared `<x-select-search>`/TomSelect behavior.
 
 The existing Drug Award HSSP enrichment/provenance indicators (`Bổ sung từ HSSP`, source lineage) are retained.
 
@@ -95,22 +95,24 @@ The existing Drug Award HSSP enrichment/provenance indicators (`Bổ sung từ H
 
 Hospital master data remains owned by `Partner`; Pharma does not introduce a duplicate Hospital model/table.
 
-- **Quản lý bệnh viện** opens `/admin/partner/partners` scoped to `legal_type = hospital`.
+- **Quản lý bệnh viện** opens the canonical Partner list scoped to `legal_type = hospital`.
 - **+ Thêm bệnh viện** opens the canonical Partner create form prefilled with `legal_type = hospital`.
+- Partner import accepts `name` + `legal_type` as the minimum hospital identity, keeps optional profile fields, avoids null-tax-code collisions, and retains bounded pagination/export semantics.
 - Pharma allocations reference the canonical Partner through `partner_id`.
 - Procurement investor remains separate from receiving-hospital allocation.
 
-## Verification evidence
+## Final verification evidence
 
-Recorded executable/manual evidence for this branch:
+Current closeout evidence:
 
-- focused allocation/contract feature test previously PASS: **8 tests / 40 assertions** before the later hospital-entry/filter UI additions;
-- full `tests/Feature/Pharma` regression after hospital-management additions: **56 tests / 310 assertions PASS**;
-- frontend build previously PASS: Vite **34 modules transformed** before the latest Partner/filter UI additions;
-- relevant allocation route was verified earlier;
-- manual UI acceptance: **PASS** on 2026-09-05, including the latest Drug Award searchable-filter UX aligned with `admin/muasamcong/kqlcnt-awards`.
+- full `tests/Feature/Pharma` regression: **57 tests / 324 assertions PASS**;
+- focused Pint on changed Pharma/Partner implementation and regression files: **10 files PASS**;
+- frontend build: **PASS**, Vite **34 modules transformed**; subsequent commits were PHP/test/document formatting only and did not modify frontend assets;
+- manual UI acceptance: **PASS**, including allocation/contract workspace, canonical hospital entry points, Partner hospital UX and KQLCNT-style Drug Award searchable filters;
+- branch comparison against `main`: branch is ahead with no base drift at closeout;
+- GitHub reported no commit status checks/workflow runs for this PR head during closeout, so no CI PASS is claimed.
 
-Because Partner/filter files changed after some executable evidence was collected, the final PR closeout should rerun the focused impacted checks and frontend build rather than treating the earlier build/focused counts as current-head evidence.
+Whole-module Pint still reports legacy style debt in unrelated pre-existing Pharma files. Those files are outside this objective and were intentionally not reformatted to avoid scope creep.
 
 ## Deferred scope
 
@@ -126,18 +128,9 @@ Not implemented in this objective:
 
 Schema/domain boundaries intentionally leave room for future delivery and amendment entities.
 
-## Final closeout remaining
+## Merge handoff
 
-Before manual merge of PR #165:
-
-- confirm migration ledger/schema recovery for `2026_09_05_022000_create_drug_bid_award_contracts_table` if not already completed locally;
-- run focused tests for the current head, including the hospital-management entry-point test;
-- run directly impacted Partner regression if available/relevant;
-- run focused Pint for changed implementation files;
-- rerun frontend build after the latest UI changes;
-- recheck PR #165 mergeability and GitHub workflow/status state.
-
-No additional UI redesign is required unless a closeout check exposes a regression.
+PR #165 is ready for manual merge once GitHub reports a mergeable state. No additional application changes are required from the accepted implementation unless GitHub exposes a repository-level merge gate.
 
 ## Prior checkpoint
 
