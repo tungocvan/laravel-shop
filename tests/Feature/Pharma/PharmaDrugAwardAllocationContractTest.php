@@ -88,7 +88,7 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("route('admin.partner.partners.create', ['legal_type' => 'hospital'])", $allocationPage);
         $this->assertStringContainsString("request()->query('legalType', '')", $partnerIndex);
         $this->assertStringContainsString("request()->query('legal_type', 'company')", $partnerCreate);
-        $this->assertStringContainsString("array_key_exists(\$legal_type, Partner::LEGAL_TYPES)", $partnerForm);
+        $this->assertStringContainsString('array_key_exists($legal_type, Partner::LEGAL_TYPES)', $partnerForm);
     }
 
     public function test_partner_hospital_import_requires_only_name_and_legal_type_and_keeps_ui_bounded(): void
