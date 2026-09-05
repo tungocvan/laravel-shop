@@ -83,18 +83,22 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('snapshot', $view);
     }
 
-    public function test_large_dimension_filters_do_not_load_distinct_option_collections(): void
+    public function test_searchable_dimension_filters_use_bounded_distinct_option_collections(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Index.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
 
-        $this->assertStringNotContainsString('getUniqueInvestors', $component);
-        $this->assertStringNotContainsString('getUniqueCompanies', $component);
-        $this->assertStringNotContainsString('getUniqueInvestors', $service);
-        $this->assertStringNotContainsString('getUniqueCompanies', $service);
-        $this->assertStringContainsString('wire:model.live.debounce.300ms="filterInvestor"', $view);
-        $this->assertStringContainsString('wire:model.live.debounce.300ms="filterCompany"', $view);
+        $this->assertStringContainsString("'tbmtOptions' => \$this->distinctOptions('bidding_notice_code')", $component);
+        $this->assertStringContainsString("'investorOptions' => \$this->distinctOptions('investor_name')", $component);
+        $this->assertStringContainsString("'companyOptions' => \$this->distinctOptions('winning_company_name')", $component);
+        $this->assertStringContainsString("'medicineOptions' => \$this->distinctOptions('medicine_name')", $component);
+        $this->assertStringContainsString('->distinct()', $component);
+        $this->assertStringContainsString('->limit(500)', $component);
+        $this->assertStringContainsString('new TomSelect', $view);
+        $this->assertStringContainsString('drug-award-filter-tbmt', $view);
+        $this->assertStringContainsString('drug-award-filter-investor', $view);
+        $this->assertStringContainsString('drug-award-filter-company', $view);
         $this->assertStringContainsString("where('investor_name', 'like'", $service);
         $this->assertStringContainsString("where('winning_company_name', 'like'", $service);
     }
