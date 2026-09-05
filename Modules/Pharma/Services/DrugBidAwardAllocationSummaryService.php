@@ -8,8 +8,11 @@ use Modules\Pharma\Models\DrugBidAwardAllocation;
 class DrugBidAwardAllocationSummaryService
 {
     public const UNALLOCATED = 'UNALLOCATED';
+
     public const PARTIALLY_ALLOCATED = 'PARTIALLY_ALLOCATED';
+
     public const FULLY_ALLOCATED = 'FULLY_ALLOCATED';
+
     public const OVER_ALLOCATED = 'OVER_ALLOCATED';
 
     public function forAward(DrugBidAward $award): array
