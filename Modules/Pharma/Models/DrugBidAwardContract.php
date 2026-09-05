@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DrugBidAwardContract extends Model
 {
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SIGNED = 'signed';
+
     public const STATUS_IN_PROGRESS = 'in_progress';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     public const COMMITTED_STATUSES = [
