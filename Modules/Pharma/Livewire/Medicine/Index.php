@@ -5,6 +5,7 @@ namespace Modules\Pharma\Livewire\Medicine;
 use Exception;
 use Livewire\Component;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
+use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\MedicineService;
 
 class Index extends Component
@@ -22,6 +23,8 @@ class Index extends Component
     public string $filterCircularGroup = '';
 
     public string $filterSpecialControl = '';
+
+    public string $filterProfileStatus = '';
 
     public array $selectedIds = [];
 
@@ -50,6 +53,14 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
+    public function updatedFilterProfileStatus(): void
+    {
+        $this->filterProfileStatus = array_key_exists($this->filterProfileStatus, $this->profileStatusOptions())
+            ? $this->filterProfileStatus
+            : '';
+        $this->resetWorkspacePage();
+    }
+
     public function updatedPerPage(mixed $value): void
     {
         $this->perPage = $this->normalizePerPage($value);
@@ -64,17 +75,13 @@ class Index extends Component
     public function updatedSelectedIds(): void
     {
         $pageIds = $this->currentPageIds();
-        $this->selectedIds = array_values(array_intersect(
-            array_map('strval', $this->selectedIds),
-            $pageIds,
-        ));
-
+        $this->selectedIds = array_values(array_intersect(array_map('strval', $this->selectedIds), $pageIds));
         $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
     }
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterCircularGroup', 'filterSpecialControl']);
+        $this->reset(['search', 'filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus']);
         $this->page = 1;
         $this->clearSelection();
     }
@@ -102,9 +109,7 @@ class Index extends Component
     public function deleteSelected(MedicineService $medicineService): void
     {
         $this->authorizePharmaDelete();
-
-        $pageIds = $this->currentPageIds();
-        $ids = array_values(array_intersect(array_map('strval', $this->selectedIds), $pageIds));
+        $ids = array_values(array_intersect(array_map('strval', $this->selectedIds), $this->currentPageIds()));
 
         if ($ids === []) {
             $this->clearSelection();
@@ -128,46 +133,37 @@ class Index extends Component
     public function render(MedicineService $medicineService)
     {
         $this->perPage = $this->normalizePerPage($this->perPage);
-
-        $medicines = $medicineService->getPaginatedMedicines(
-            $this->search,
-            $this->perPage,
-            $this->page,
-            $this->filterCircularGroup,
-            $this->filterSpecialControl,
-        );
+        $medicines = $this->paginated($medicineService);
 
         if ($medicines->lastPage() > 0 && $this->page > $medicines->lastPage()) {
             $this->page = $medicines->lastPage();
             $this->clearSelection();
-            $medicines = $medicineService->getPaginatedMedicines(
-                $this->search,
-                $this->perPage,
-                $this->page,
-                $this->filterCircularGroup,
-                $this->filterSpecialControl,
-            );
+            $medicines = $this->paginated($medicineService);
         }
 
         return view('Pharma::livewire.medicine.index', [
             'medicines' => $medicines,
             'circularGroups' => $medicineService->getUniqueCircularGroups(),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'profileStatusOptions' => $this->profileStatusOptions(),
         ]);
+    }
+
+    private function paginated(MedicineService $service)
+    {
+        return $service->getPaginatedMedicines(
+            $this->search,
+            $this->perPage,
+            $this->page,
+            $this->filterCircularGroup,
+            $this->filterSpecialControl,
+            $this->filterProfileStatus ?: null,
+        );
     }
 
     private function currentPageIds(): array
     {
-        $medicineService = app(MedicineService::class);
-        $currentItems = $medicineService->getPaginatedMedicines(
-            $this->search,
-            $this->normalizePerPage($this->perPage),
-            $this->page,
-            $this->filterCircularGroup,
-            $this->filterSpecialControl,
-        );
-
-        return collect($currentItems->items())
+        return collect($this->paginated(app(MedicineService::class))->items())
             ->map(static fn ($medicine): string => (string) $medicine->id)
             ->values()
             ->all();
@@ -190,5 +186,16 @@ class Index extends Component
         $value = (int) $value;
 
         return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : 10;
+    }
+
+    private function profileStatusOptions(): array
+    {
+        return [
+            '' => 'Tất cả chất lượng',
+            Medicine::PROFILE_INCOMPLETE => 'Thiếu dữ liệu',
+            Medicine::PROFILE_NEEDS_REVIEW => 'Cần rà soát',
+            Medicine::PROFILE_COMPLETE => 'Đầy đủ',
+            Medicine::PROFILE_VERIFIED => 'Đã xác minh',
+        ];
     }
 }

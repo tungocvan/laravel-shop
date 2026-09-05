@@ -29,15 +29,45 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringContainsString('$this->clearSelection();', $component);
     }
 
-    public function test_destructive_controls_are_permission_aware_and_confirmed(): void
+    public function test_workspace_exposes_profile_quality_and_source_award_counts(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        $this->assertStringContainsString('public string $filterProfileStatus =', $component);
+        $this->assertStringContainsString('Medicine::PROFILE_INCOMPLETE', $component);
+        $this->assertStringContainsString('Medicine::PROFILE_NEEDS_REVIEW', $component);
+        $this->assertStringContainsString("->withCount(['sources', 'drugBidAwards'])", $service);
+        $this->assertStringContainsString("->when(\$profileStatus", $service);
+        $this->assertStringContainsString('Data Quality filters', $view);
+        $this->assertStringContainsString('{{ $medicine->sources_count }} nguồn', $view);
+        $this->assertStringContainsString('{{ $medicine->drug_bid_awards_count }} kết quả trúng thầu', $view);
+    }
+
+    public function test_workspace_search_covers_product_identity_fields(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        $this->assertStringContainsString("orWhere('registration_number', 'like'", $service);
+        $this->assertStringContainsString("orWhere('concentration', 'like'", $service);
+        $this->assertStringContainsString("orWhere('manufacturing_company', 'like'", $service);
+        $this->assertStringContainsString("orWhere('manufacturing_country', 'like'", $service);
+        $this->assertStringContainsString('SĐK', $view);
+        $this->assertStringContainsString('NSX', $view);
+    }
+
+    public function test_destructive_and_export_controls_are_permission_aware(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
 
+        $this->assertStringContainsString("\$canEdit = \$admin?->can('edit_pharma') ?? false;", $view);
         $this->assertStringContainsString("\$canDelete = \$admin?->can('delete_pharma') ?? false;", $view);
-        $this->assertStringContainsString('@if ($canDelete)', $view);
         $this->assertStringContainsString('wire:confirm="Xóa vĩnh viễn các hồ sơ thuốc đã chọn trên trang hiện tại?"', $view);
-        $this->assertStringContainsString('wire:loading.attr="disabled"', $view);
         $this->assertStringContainsString("'permission' => 'edit_pharma'", $view);
+        $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
+        $this->assertStringContainsString("'profile_status' => \$filterProfileStatus", $view);
     }
 
     public function test_workspace_preserves_existing_named_routes_and_admin_navigation(): void

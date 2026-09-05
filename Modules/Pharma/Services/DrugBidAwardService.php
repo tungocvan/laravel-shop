@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use LogicException;
 use Modules\Pharma\Data\DrugBidAwardSourceData;
 use Modules\Pharma\Models\DrugBidAward;
@@ -19,16 +20,39 @@ class DrugBidAwardService
         int $perPage = 10,
         int $page = 1,
         ?string $sourceType = null,
+        ?string $matchStatus = null,
     ): LengthAwarePaginator {
-        return DrugBidAward::query()->with('medicine')
+        $lineageAvailable = Schema::hasTable('pharma_drug_bid_award_sources');
+        $query = DrugBidAward::query()->with('medicine');
+
+        if ($lineageAvailable) {
+            $query->with('sources');
+        }
+
+        return $query
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('medicine_name', 'like', "%{$value}%")
+                ->orWhere('active_ingredient', 'like', "%{$value}%")
+                ->orWhere('medicine_code', 'like', "%{$value}%")
                 ->orWhere('bidding_notice_code', 'like', "%{$value}%")
+                ->orWhere('lot_name', 'like', "%{$value}%")
                 ->orWhere('decision_number', 'like', "%{$value}%")))
             ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
             ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
-            ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
-            ->latest()
+            ->when($sourceType, function ($query, $value) use ($lineageAvailable): void {
+                if (! $lineageAvailable) {
+                    $query->where('source_type', $value);
+
+                    return;
+                }
+
+                $query->where(fn ($nested) => $nested
+                    ->where('source_type', $value)
+                    ->orWhereHas('sources', fn ($source) => $source->where('source_system', $value)));
+            })
+            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value))
+            ->latest('published_at')
+            ->latest('id')
             ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 

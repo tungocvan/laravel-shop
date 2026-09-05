@@ -4,6 +4,7 @@ namespace Modules\Pharma\Livewire\DrugBidAward;
 
 use Exception;
 use Livewire\Component;
+use Modules\Pharma\Integrations\Muasamcong\MuasamcongDrugAwardSyncService;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Services\DrugBidAwardService;
@@ -22,6 +23,8 @@ class Index extends Component
 
     public string $filterSource = '';
 
+    public string $filterMatchStatus = '';
+
     public int $perPage = 10;
 
     public int $page = 1;
@@ -32,11 +35,16 @@ class Index extends Component
 
     public bool $showBulkDeleteModal = false;
 
+    public ?int $syncAfterId = null;
+
+    public bool $syncHasMore = false;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'filterInvestor' => ['except' => ''],
         'filterCompany' => ['except' => ''],
         'filterSource' => ['except' => ''],
+        'filterMatchStatus' => ['except' => ''],
         'perPage' => ['except' => 10],
         'page' => ['except' => 1],
     ];
@@ -68,6 +76,14 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
+    public function updatedFilterMatchStatus(): void
+    {
+        $this->filterMatchStatus = in_array($this->filterMatchStatus, $this->matchStatusValues(), true)
+            ? $this->filterMatchStatus
+            : '';
+        $this->resetWorkspacePage();
+    }
+
     public function updatedPerPage(mixed $value): void
     {
         $this->perPage = $this->normalizePerPage($value);
@@ -94,9 +110,41 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterInvestor', 'filterCompany', 'filterSource']);
+        $this->reset(['search', 'filterInvestor', 'filterCompany', 'filterSource', 'filterMatchStatus']);
         $this->page = 1;
         $this->clearSelection();
+    }
+
+    public function syncMuasamcong(MuasamcongDrugAwardSyncService $syncService): void
+    {
+        $this->authorizePharmaEdit();
+
+        try {
+            $result = $syncService->sync($this->syncAfterId, 250);
+            $this->syncAfterId = $result['last_id'];
+            $this->syncHasMore = $result['has_more'];
+            $this->page = 1;
+            $this->clearSelection();
+
+            $message = "Đồng bộ KQLCNT: {$result['projected']}/{$result['processed']} bản ghi thành công";
+
+            if ($result['failed'] > 0) {
+                $message .= ", {$result['failed']} lỗi";
+            }
+
+            $message .= $result['has_more'] ? '. Còn dữ liệu, có thể đồng bộ tiếp.' : '. Đã hết batch hiện tại.';
+            session()->flash($result['failed'] > 0 ? 'error' : 'success', $message);
+        } catch (\Throwable $exception) {
+            report($exception);
+            session()->flash('error', 'Không thể đồng bộ KQLCNT lúc này. Dữ liệu Pharma hiện có vẫn sử dụng bình thường.');
+        }
+    }
+
+    public function restartMuasamcongSync(): void
+    {
+        $this->authorizePharmaEdit();
+        $this->syncAfterId = null;
+        $this->syncHasMore = false;
     }
 
     public function confirmBulkDelete(): void
@@ -128,8 +176,7 @@ class Index extends Component
     public function deleteSelected(DrugBidAwardService $service): void
     {
         $this->authorizePharmaDelete();
-        $pageIds = $this->currentPageIds();
-        $ids = array_values(array_intersect(array_map('strval', $this->selectedIds), $pageIds));
+        $ids = array_values(array_intersect(array_map('strval', $this->selectedIds), $this->currentPageIds()));
 
         if ($ids === []) {
             $this->showBulkDeleteModal = false;
@@ -172,6 +219,12 @@ class Index extends Component
                 DrugBidAward::SOURCE_MANUAL => 'Nhập thủ công',
                 DrugBidAward::SOURCE_MUASAMCONG => 'Mua sắm công',
             ],
+            'matchStatusOptions' => [
+                DrugBidAward::MATCH_VERIFIED => 'Đã đối soát',
+                DrugBidAward::MATCH_PROVISIONAL => 'Tạm khớp',
+                DrugBidAward::MATCH_AMBIGUOUS => 'Mơ hồ',
+                DrugBidAward::MATCH_UNRESOLVED => 'Chưa đối soát',
+            ],
         ]);
     }
 
@@ -184,6 +237,7 @@ class Index extends Component
             $this->perPage,
             $this->page,
             $this->filterSource ?: null,
+            $this->filterMatchStatus ?: null,
         );
     }
 
@@ -218,5 +272,16 @@ class Index extends Component
     private function sourceOptions(): array
     {
         return ['', DrugBidAward::SOURCE_MANUAL, DrugBidAward::SOURCE_MUASAMCONG];
+    }
+
+    private function matchStatusValues(): array
+    {
+        return [
+            '',
+            DrugBidAward::MATCH_VERIFIED,
+            DrugBidAward::MATCH_PROVISIONAL,
+            DrugBidAward::MATCH_AMBIGUOUS,
+            DrugBidAward::MATCH_UNRESOLVED,
+        ];
     }
 }

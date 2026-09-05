@@ -58,18 +58,18 @@ class Form extends Component
     protected function rules()
     {
         return [
-            'active_ingredients' => 'required|string|max:255',
-            'concentration' => 'required|string|max:255',
             'name' => 'required|string|max:255',
-            'dosage_form' => 'required|string|max:255',
-            'route_of_administration' => 'required|string|max:255',
-            'unit' => 'required|string|max:255',
-            'packaging_specification' => 'required|string|max:255',
-            'registration_number' => 'required|string|max:255',
-            'shelf_life' => 'required|string|max:255',
-            'registered_company' => 'required|string|max:255',
-            'manufacturing_company' => 'required|string|max:255',
-            'manufacturing_country' => 'required|string|max:255',
+            'active_ingredients' => 'nullable|string|max:255',
+            'concentration' => 'nullable|string|max:255',
+            'dosage_form' => 'nullable|string|max:255',
+            'route_of_administration' => 'nullable|string|max:255',
+            'unit' => 'nullable|string|max:255',
+            'packaging_specification' => 'nullable|string|max:255',
+            'registration_number' => 'nullable|string|max:255',
+            'shelf_life' => 'nullable|string|max:255',
+            'registered_company' => 'nullable|string|max:255',
+            'manufacturing_company' => 'nullable|string|max:255',
+            'manufacturing_country' => 'nullable|string|max:255',
             'circular_order_number' => 'nullable|string|max:255',
             'circular_group' => 'nullable|string|max:255',
             'visa_validity_date' => 'nullable|date',
@@ -111,7 +111,7 @@ class Form extends Component
                 session()->flash('success', 'Cập nhật hồ sơ thuốc thành công.');
             } else {
                 $medicineService->store($validatedData);
-                session()->flash('success', 'Thêm mới hồ sơ thuốc thành công.');
+                session()->flash('success', 'Thêm mới hồ sơ thuốc thành công. Hồ sơ thiếu dữ liệu sẽ được đánh dấu để hoàn thiện.');
             }
 
             return redirect()->route('admin.pharma.hssp.index');
