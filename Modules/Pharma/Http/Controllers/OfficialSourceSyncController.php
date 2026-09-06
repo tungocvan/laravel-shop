@@ -89,7 +89,7 @@ class OfficialSourceSyncController extends Controller
             'province_name' => (string) $snapshot['province_name'],
             'source_district_code' => $snapshot['source_district_code'] ?: null,
             'district_name' => $snapshot['district_name'] ?: null,
-            'sync_scope' => empty($snapshot['source_district_code']) ? 'province' : 'district',
+            'sync_scope' => empty($snapshot['source_district_code']) ? 'source_partition' : 'district',
             'status' => 'QUEUED',
             'fetched_count' => count($facilities),
             'requested_by' => auth('admin')->id(),
