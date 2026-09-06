@@ -8,9 +8,7 @@ use Modules\Pharma\Models\OfficialSourceSyncBatch;
 
 class OfficialSourceMirrorService
 {
-    public function __construct(private readonly OfficialFacilityNormalizer $normalizer)
-    {
-    }
+    public function __construct(private readonly OfficialFacilityNormalizer $normalizer) {}
 
     public function persist(OfficialSourceSyncBatch $batch, array $facilities): void
     {
@@ -71,6 +69,7 @@ class OfficialSourceMirrorService
                         'last_sync_batch_id' => $batch->id,
                     ]);
                     $created += 1;
+
                     continue;
                 }
 
