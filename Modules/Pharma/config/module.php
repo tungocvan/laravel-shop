@@ -20,6 +20,7 @@ return [
         'manage_pharma_contracts',
         'cancel_pharma_contracts',
         'view_pharma_official_facilities',
+        'sync_pharma_official_facilities',
         'import_pharma_official_facilities',
         'resolve_pharma_official_facility_conflicts',
     ],
@@ -33,5 +34,7 @@ return [
         'pharma_drug_bid_award_contracts',
         'pharma_official_import_batches',
         'pharma_official_import_rows',
+        'pharma_official_source_sync_batches',
+        'pharma_official_source_facilities',
     ],
 ];
