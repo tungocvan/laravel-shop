@@ -70,11 +70,11 @@ class OfficialSourceMirrorService
                         'last_synced_at' => now(),
                         'last_sync_batch_id' => $batch->id,
                     ]);
-                    $created++;
+                    ++$created;
                     continue;
                 }
 
-                $changed = $record->payload_hash !== $hash || ! $record->is_active;
+                $changed = $record->payload_hash !== $hash || !$record->is_active;
                 $record->update([
                     'facility_name' => $facilityName,
                     'normalized_name' => $this->normalizer->identity($facilityName),
@@ -91,9 +91,9 @@ class OfficialSourceMirrorService
                 ]);
 
                 if ($changed) {
-                    $updated++;
+                    ++$updated;
                 } else {
-                    $unchanged++;
+                    ++$unchanged;
                 }
             }
 
