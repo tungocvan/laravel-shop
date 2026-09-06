@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -31,13 +32,18 @@ class MstLookupCommandTest extends TestCase
             'https://masothue.com/1700285659-benh-vien-da-khoa-kien-giang' => Http::response($this->detailHtml(), 200),
         ]);
 
-        $this->artisan('mst:lookup', [
+        $exitCode = Artisan::call('mst:lookup', [
             'query' => 'Bệnh viện đa khoa Kiên Giang',
             '--json' => true,
-        ])
-            ->expectsOutputToContain('"tax_code": "1700285659"')
-            ->expectsOutputToContain('"match_type": "exact"')
-            ->assertSuccessful();
+        ]);
+
+        $this->assertSame(0, $exitCode);
+
+        $payload = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('1700285659', $payload['tax_code']);
+        $this->assertSame('exact', $payload['match_type']);
+        $this->assertSame('BỆNH VIỆN ĐA KHOA KIÊN GIANG', $payload['name']);
     }
 
     public function test_it_fails_when_search_has_no_results(): void
