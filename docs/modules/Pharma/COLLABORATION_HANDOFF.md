@@ -6,7 +6,7 @@
 - Objective: **Official Facility Import + BHXH Source Mirror**
 - Branch: `feat/pharma-official-facility-import`
 - Base: `main` at `1f77f1575050648c143d45339d0ec8535e9dba6e`
-- Status: **IMPLEMENTATION IN PROGRESS — BHXH lookup UI PASS; source mirror/queue awaiting local verification**
+- Status: **IMPLEMENTATION COMPLETE FOR UI CONTRACT — UI PASS; final focused CLI gate pending**
 - Date: 2026-09-06
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - Consolidation: **one implementation branch / one PR**
@@ -15,173 +15,135 @@
 
 `Partner` remains the sole canonical organization master for hospitals/healthcare facilities. Pharma must not create a second Hospital/Facility master.
 
-Pharma now owns two non-canonical operational layers:
-
-1. Official import staging/audit.
-2. Official source mirror/cache for external source snapshots.
-
-Neither layer may write Partner directly except through the explicit Official Facility Import matcher/importer flow.
+Pharma owns two non-canonical operational layers: Official Facility import staging/audit and Official Source mirror/cache. Neither may bypass the explicit matcher/importer flow to mutate Partner.
 
 ## Official import pipeline
 
 `Official XLSX/CSV -> Upload -> Pharma staging -> Validate/Normalize -> Match/Dedupe -> Preview -> Explicit checkbox selection -> Partner + PartnerSourceReference`.
 
-Upload/staging never writes Partner.
-
-Partner-owned canonical changes:
-
-- nullable `partners.province_code` as a generic, source-independent province attribute;
-- `partner_source_references` with unique `(source, external_id)` provenance identity.
-
-Pharma-owned import tables:
-
-- `pharma_official_import_batches`;
-- `pharma_official_import_rows`.
+Partner-owned generic provenance remains `(source, external_id)` in `partner_source_references`. `partners.province_code` is canonical/source-independent; BHXH codes never belong there.
 
 ## BHXH interactive lookup
 
 Workspace: `/admin/pharma/official-facilities/bhxh`.
 
-The BHXH integration is human-in-the-loop:
+The integration is human-in-the-loop: ERP bootstraps the public BHXH session, loads CAPTCHA with that session, the user manually enters CAPTCHA, and ERP submits the selected BHXH source geography. No OCR, CAPTCHA solving/bypass, unattended lookup, or hidden multi-request CAPTCHA reuse is implemented.
 
-- ERP bootstraps the public BHXH page/session;
-- ERP loads the CAPTCHA image from BHXH with the same session cookie;
-- the user manually enters CAPTCHA;
-- ERP posts `MaTinh`, `MaQuanHuyen`, and `tokenRecaptch` to the public BHXH facility endpoint;
-- no OCR, CAPTCHA solving, bypass, or unattended lookup is implemented.
+The observed BHXH facility listing exposes the basic facility identity used by this integration: `Mã CSKCB` and `Tên CSKCB`. `Mã CSKCB` is retained as the durable BHXH source identity for future detail enrichment.
 
-Province selection uses a deduplicated display catalog while preserving duplicate/legacy BHXH codes as aliases. District selection is loaded dynamically from the BHXH `GetHuyenByLstmatinh` endpoint.
+Manual BHXH lookup/sync UI verification is **PASS** as of 2026-09-06.
 
-Manual UI verification for the BHXH lookup flow is **PASS** as of 2026-09-06.
+## Canonical province vs BHXH source geography
+
+ERP geography and BHXH source geography are intentionally separate.
+
+A human-facing ERP province may map to one or more BHXH **source partitions**. Duplicate BHXH province labels are not treated as primary/fallback aliases.
+
+Verified example:
+
+`Tỉnh An Giang -> 89TTT (Khu vực An Giang cũ) + 91TTT (Khu vực Kiên Giang cũ)`.
+
+The BHXH workspace therefore uses three concepts:
+
+1. `Tỉnh/Thành` — ERP-facing/canonical province label.
+2. `Vùng dữ liệu BHXH` — exact source partition/code used for BHXH requests.
+3. `Địa bàn BHXH` — source district/geography returned for that partition; it may reflect legacy administrative geography.
+
+For duplicate-name provinces whose historical partition meaning has not been verified, UI labels remain neutral and include the source code. Do not invent old-region names.
+
+A CAPTCHA is consumed by exactly one lookup request against the explicitly selected source partition. The old alias-fallback behavior is removed.
 
 ## Official source mirror/cache
 
 Approved flow:
 
-`BHXH live lookup -> server-side lookup snapshot -> queued persistence -> local source mirror -> later Official Facility staging -> Partner`.
+`BHXH live lookup -> server-side snapshot -> queued persistence -> local source mirror -> later Official Facility staging -> Partner`.
 
-The local mirror exists so historic/source data remains searchable when the external API is unavailable or changes.
-
-Pharma-owned source mirror tables:
+Pharma-owned mirror tables:
 
 - `pharma_official_source_sync_batches`;
 - `pharma_official_source_facilities`.
 
-Source facility identity is unique by `(source, external_id)`. For BHXH, `external_id` is the official `Mã CSKCB` and is intentionally retained as the stable source key for future detail enrichment.
+Source identity is unique by `(source, external_id)`. The mirror keeps listing payload (`raw_payload`, `payload_hash`) separate from reserved future enrichment (`source_details`, `details_hash`, `details_synced_at`). Basic listing sync must never erase enrichment.
 
-The mirror stores basic listing payload separately from future source detail enrichment:
+The server session owns the successful lookup snapshot; the browser does not resubmit arbitrary facility payloads for persistence.
 
-- `raw_payload` + `payload_hash` for listing snapshots;
-- `source_details` + `details_hash` + `details_synced_at` reserved for future source-specific detail lookup by `Mã CSKCB`.
+## Synchronization and completeness safety
 
-Regular listing sync must not erase `source_details` enrichment.
+Explicit sync creates a batch and dispatches `PersistOfficialSourceSnapshotJob`. Batch states are `QUEUED`, `RUNNING`, `COMPLETED`, and `FAILED`; the BHXH UI polls local batch state and shows completion/failure without making additional BHXH lookup requests.
 
-## Queue synchronization semantics
+Current BHXH `-- Toàn vùng --` lookup is persisted with `sync_scope=source_partition`, not as a complete province snapshot. A source-partition or district snapshot may create/update/reactivate seen facilities but **must not stale unseen facilities**.
 
-After a successful BHXH lookup, the backend stores the returned snapshot in the server session. The browser does not submit the facility payload back for synchronization.
+Only a future snapshot explicitly proven `province_complete` may stale previously active records that are absent from that complete snapshot. Records are never hard-deleted by synchronization.
 
-When the user clicks **Đồng bộ dữ liệu tỉnh này**:
+This protects the mirror from false stale transitions when BHXH responses are incomplete, partitioned, paginated, or administratively transitional.
 
-- `OfficialSourceSyncController` creates a sync batch;
-- `PersistOfficialSourceSnapshotJob` is dispatched;
-- `OfficialSourceMirrorService` performs source upsert;
-- source mirror persistence never writes Partner.
-
-Batch statuses include `QUEUED`, `RUNNING`, `COMPLETED`, and `FAILED`.
-
-Full-province sync semantics:
-
-- seen facilities are created/updated/reactivated;
-- previously active facilities in that province that are missing from the new complete province snapshot become `STALE` (`is_active = false`);
-- records are never hard-deleted.
-
-District sync semantics:
-
-- only seen facilities are upserted;
-- it must never mark other facilities in the province stale.
+Bulk whole-province/district orchestration is currently **deferred** because CAPTCHA behavior prevents safe unattended multi-request synchronization.
 
 ## Source mirror workspace
 
 Workspace: `/admin/pharma/official-facilities/source`.
 
-It supports:
+The workspace uses `<x-search>` and live filters. Search covers `Mã CSKCB`, facility name, province name/code, district name/code. Dropdown changes apply immediately without a separate Filter button.
 
-- search by `Mã CSKCB` or facility name;
-- source filter;
-- province filter;
-- Active/Stale filter;
-- bounded pagination `10/25/50/100`;
-- recent sync batch visibility with fetched/created/updated/unchanged/stale counters.
+Filters include source, canonical `Tỉnh/Thành`, `Vùng nguồn BHXH`, Active/Stale, and bounded pagination `10/25/50/100`. Province filtering groups multiple source partitions under one ERP-facing province; partition filtering can inspect each source code independently. Query state is retained across pagination.
 
-This workspace remains usable from local database even when BHXH is unavailable.
+Manual verification of live filters and An Giang source-partition behavior is **UI PASS**.
 
 ## Matching / Partner protection
 
-Official Facility Import matching remains deterministic:
+Matching priority remains deterministic: source+external_id, tax code, normalized name+canonical province, normalized name+address. Classifications remain `NEW`, `EXACT`, `LIKELY_MATCH`, `CONFLICT`, `INVALID`; no fuzzy/AI auto-merge.
 
-1. `source + external_id`;
-2. tax code;
-3. normalized name + canonical province;
-4. normalized name + normalized address.
-
-Classifications remain `NEW`, `EXACT`, `LIKELY_MATCH`, `CONFLICT`, `INVALID`.
-
-No fuzzy/AI matching. `LIKELY_MATCH` and `CONFLICT` require explicit resolution.
-
-Existing Partner protection remains:
-
-- no automatic rename;
-- no overwrite of phone/email/contact_person;
-- address/tax/province are safe-fill only with conflicts blocked/reviewed;
-- same source identity must not duplicate Partner.
+Existing Partner fields remain protected: no automatic rename or overwrite of phone/email/contact person; address/tax/canonical province are safe-fill only with conflicts blocked/reviewed. Same source identity must not duplicate Partner.
 
 ## Authorization
 
-Current capabilities:
+Capabilities:
 
 - `view_pharma_official_facilities`;
 - `sync_pharma_official_facilities`;
 - `import_pharma_official_facilities`;
 - `resolve_pharma_official_facility_conflicts`.
 
-`sync_*` means external source -> Pharma local mirror.
+`sync_*` means external source -> Pharma local mirror. `import_*` means staging -> Partner canonical master.
 
-`import_*` means staging -> Partner canonical master.
+## Verified acceptance state
 
-These responsibilities intentionally remain separate.
+Confirmed locally during this objective:
 
-## Current test state
+- Official Facility Import focused gate previously: **13 tests / 33 assertions PASS**.
+- `BhxhFacilityLookupClientTest`: **4 tests / 19 assertions PASS**.
+- BHXH lookup UI: **PASS**.
+- source mirror sync-status UI: **PASS**.
+- `<x-search>` + live filter UI: **PASS**.
+- An Giang canonical province + `89TTT/91TTT` source-partition UI: **PASS**.
 
-Previously confirmed locally:
+The final combined focused CLI gate for the latest partition/completeness changes is still required before PR readiness. Do not claim final PR readiness until that gate passes locally.
 
-- Official Facility Import focused gate: **13 tests / 33 assertions PASS**.
-- BHXH live lookup UI: **PASS**.
+## Final local gate before PR
 
-New source mirror/queue tests are committed but not yet locally verified:
+Run:
 
-- `OfficialSourceMirrorServiceTest`;
-- `OfficialSourceSyncContractTest`;
-- impacted BHXH lookup/catalog tests.
+```bash
+php artisan test \
+  Modules/Pharma/Tests/Unit/BhxhProvinceCatalogTest.php \
+  Modules/Pharma/Tests/Unit/BhxhFacilityLookupContractTest.php \
+  Modules/Pharma/Tests/Unit/BhxhFacilityLookupClientTest.php \
+  Modules/Pharma/Tests/Unit/OfficialSourceSyncContractTest.php \
+  Modules/Pharma/Tests/Unit/OfficialSourceMirrorServiceTest.php
+```
 
-Do not claim final PR readiness until these new migrations/tests plus focused Pharma regression and queue/UI verification pass locally.
-
-## Next local gate
-
-1. Pull branch.
-2. Run new Pharma migrations.
-3. Run focused source mirror/BHXH tests.
-4. Ensure a queue worker is running when queue connection is asynchronous.
-5. Tra cứu one province in BHXH UI, click sync, then inspect `/admin/pharma/official-facilities/source`.
-6. Confirm second sync is idempotent/unchanged and full-province missing records become stale only when appropriate.
+Then run the focused Pharma regression required by the collaboration workflow plus Pint on changed PHP files. Manual UI does not need to be repeated unless those gates require a UI-affecting code change.
 
 ## Deferred scope
 
 - automatic/unattended CAPTCHA solving or bypass;
-- scheduled BHXH lookup that requires CAPTCHA;
+- bulk whole-province/district synchronization requiring multiple CAPTCHA-protected requests;
+- scheduled BHXH lookup requiring CAPTCHA;
 - automatic source mirror -> Partner writes;
 - fuzzy/AI facility matching;
 - source-specific IDs on `partners`;
-- detail enrichment API implementation beyond the reserved `source_details` boundary;
+- source-detail enrichment implementation beyond reserved `source_details`;
 - PDF import;
 - unrelated delivery/inventory/invoice changes.
 
