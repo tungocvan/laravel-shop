@@ -8,7 +8,7 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-sky-600">Pharma / Official Source Mirror</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">Kho dữ liệu cơ sở KCB nguồn</h1>
-                <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Kho mirror giữ dữ liệu nguồn BHXH đã đồng bộ để vẫn tra cứu được khi API nguồn tạm thời không khả dụng. Đây không phải Partner master.</p>
+                <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Kho mirror giữ dữ liệu nguồn BHXH. Tỉnh/Thành là nhãn ERP-facing; mã vùng nguồn BHXH được giữ riêng để không làm mất lịch sử địa bàn nguồn.</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.pharma.official-facilities.bhxh.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">Tra cứu BHXH</a>
@@ -17,18 +17,12 @@
         </header>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <form
-                method="GET"
-                action="{{ route('admin.pharma.official-facilities.source.index') }}"
-                autocomplete="off"
-                data-live-filter-form
-                class="grid gap-3 lg:grid-cols-12"
-            >
+            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" data-live-filter-form class="grid gap-3 lg:grid-cols-12">
                 <x-search
                     name="search"
                     value="{{ request('search') }}"
-                    placeholder="Tìm mã, tên cơ sở, tỉnh/thành, quận/huyện..."
-                    class="lg:col-span-4"
+                    placeholder="Tìm mã, tên cơ sở, tỉnh/thành, địa bàn BHXH..."
+                    class="lg:col-span-3"
                     data-live-search
                 />
 
@@ -39,12 +33,21 @@
 
                 <select name="province" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả tỉnh/thành</option>
-                    @foreach ($provinceOptions as $province)
-                        <option value="{{ $province->source_province_code }}" @selected(request('province') === $province->source_province_code)>{{ $province->province_name }}</option>
+                    @foreach ($provinceOptions as $provinceName)
+                        <option value="{{ $provinceName }}" @selected(request('province') === $provinceName)>{{ $provinceName }}</option>
                     @endforeach
                 </select>
 
-                <select name="status" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="partition" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                    <option value="">Tất cả vùng nguồn BHXH</option>
+                    @foreach ($partitionOptions as $partition)
+                        <option value="{{ $partition->source_province_code }}" @selected(request('partition') === $partition->source_province_code)>
+                            {{ $partitionLabels[$partition->source_province_code] ?? ($partition->province_name.' · '.$partition->source_province_code) }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="status" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-1">
                     <option value="">Tất cả trạng thái</option>
                     <option value="active" @selected(request('status') === 'active')>Active</option>
                     <option value="stale" @selected(request('status') === 'stale')>Stale</option>
@@ -56,12 +59,11 @@
                     @endforeach
                 </select>
 
-                <div class="flex items-center justify-between gap-3 lg:col-span-12">
-                    <p data-live-filter-status class="text-xs text-slate-500">Bộ lọc áp dụng tự động khi thay đổi lựa chọn; ô tìm kiếm cập nhật sau khi ngừng gõ.</p>
-                    @if (request()->hasAny(['search', 'source', 'province', 'status', 'per_page']))
+                @if (request()->hasAny(['search', 'source', 'province', 'partition', 'status', 'per_page']))
+                    <div class="lg:col-span-12 flex justify-end">
                         <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
-                    @endif
-                </div>
+                    </div>
+                @endif
             </form>
         </section>
 
@@ -69,7 +71,7 @@
             <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Dữ liệu đã đồng bộ</h2>
-                    <p class="mt-1 text-sm text-slate-500">Identity nguồn: <code>(source, external_id)</code>. Ô tìm kiếm áp dụng cho mã CSKCB, tên cơ sở, tỉnh/thành và quận/huyện.</p>
+                    <p class="mt-1 text-sm text-slate-500">Identity nguồn: <code>(source, external_id)</code>. Tỉnh/Thành và vùng nguồn BHXH được hiển thị tách biệt.</p>
                 </div>
                 <div class="text-sm font-semibold text-slate-700">{{ number_format($facilities->total()) }} cơ sở</div>
             </div>
@@ -77,7 +79,15 @@
             <div class="overflow-x-auto rounded-xl border border-slate-200">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                        <tr><th class="px-4 py-3">Nguồn</th><th class="px-4 py-3">Mã CSKCB</th><th class="px-4 py-3">Tên cơ sở</th><th class="px-4 py-3">Tỉnh/Thành</th><th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3">Lần đồng bộ cuối</th></tr>
+                        <tr>
+                            <th class="px-4 py-3">Nguồn</th>
+                            <th class="px-4 py-3">Mã CSKCB</th>
+                            <th class="px-4 py-3">Tên cơ sở</th>
+                            <th class="px-4 py-3">Tỉnh/Thành</th>
+                            <th class="px-4 py-3">Vùng nguồn BHXH</th>
+                            <th class="px-4 py-3">Trạng thái</th>
+                            <th class="px-4 py-3">Lần đồng bộ cuối</th>
+                        </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($facilities as $facility)
@@ -85,12 +95,16 @@
                                 <td class="px-4 py-3 font-semibold text-slate-700">{{ strtoupper($facility->source) }}</td>
                                 <td class="px-4 py-3 font-mono text-slate-800">{{ $facility->external_id }}</td>
                                 <td class="px-4 py-3 font-medium text-slate-900">{{ $facility->facility_name }}</td>
-                                <td class="px-4 py-3 text-slate-600">{{ $facility->province_name ?: $facility->source_province_code }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ $facility->province_name ?: '—' }}</td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <div>{{ $partitionLabels[$facility->source_province_code] ?? $facility->source_province_code }}</div>
+                                    <div class="mt-0.5 text-xs text-slate-400">{{ $facility->source_province_code }}</div>
+                                </td>
                                 <td class="px-4 py-3"><span class="rounded-full border px-2 py-1 text-xs font-semibold {{ $facility->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">{{ $facility->is_active ? 'ACTIVE' : 'STALE' }}</span></td>
                                 <td class="px-4 py-3 text-slate-600">{{ optional($facility->last_synced_at)->format('d/m/Y H:i') ?: '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
+                            <tr><td colspan="7" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -102,12 +116,12 @@
             <div class="mb-4"><h2 class="text-lg font-semibold text-slate-900">20 batch đồng bộ gần nhất</h2><p class="mt-1 text-sm text-slate-500">Theo dõi queue và kết quả upsert/stale.</p></div>
             <div class="overflow-x-auto rounded-xl border border-slate-200">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"><tr><th class="px-3 py-3">Batch</th><th class="px-3 py-3">Tỉnh/Thành</th><th class="px-3 py-3">Scope</th><th class="px-3 py-3">Status</th><th class="px-3 py-3">Fetched</th><th class="px-3 py-3">Created</th><th class="px-3 py-3">Updated</th><th class="px-3 py-3">Unchanged</th><th class="px-3 py-3">Stale</th></tr></thead>
+                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"><tr><th class="px-3 py-3">Batch</th><th class="px-3 py-3">Tỉnh/Thành</th><th class="px-3 py-3">Vùng nguồn</th><th class="px-3 py-3">Scope</th><th class="px-3 py-3">Status</th><th class="px-3 py-3">Fetched</th><th class="px-3 py-3">Created</th><th class="px-3 py-3">Updated</th><th class="px-3 py-3">Unchanged</th><th class="px-3 py-3">Stale</th></tr></thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($batches as $batch)
-                            <tr><td class="px-3 py-3 font-semibold">#{{ $batch->id }}</td><td class="px-3 py-3">{{ $batch->province_name }}</td><td class="px-3 py-3">{{ strtoupper($batch->sync_scope) }}</td><td class="px-3 py-3 font-semibold">{{ $batch->status }}</td><td class="px-3 py-3">{{ $batch->fetched_count }}</td><td class="px-3 py-3">{{ $batch->created_count }}</td><td class="px-3 py-3">{{ $batch->updated_count }}</td><td class="px-3 py-3">{{ $batch->unchanged_count }}</td><td class="px-3 py-3">{{ $batch->stale_count }}</td></tr>
+                            <tr><td class="px-3 py-3 font-semibold">#{{ $batch->id }}</td><td class="px-3 py-3">{{ $batch->province_name }}</td><td class="px-3 py-3">{{ $partitionLabels[$batch->source_province_code] ?? $batch->source_province_code }}</td><td class="px-3 py-3">{{ strtoupper($batch->sync_scope) }}</td><td class="px-3 py-3 font-semibold">{{ $batch->status }}</td><td class="px-3 py-3">{{ $batch->fetched_count }}</td><td class="px-3 py-3">{{ $batch->created_count }}</td><td class="px-3 py-3">{{ $batch->updated_count }}</td><td class="px-3 py-3">{{ $batch->unchanged_count }}</td><td class="px-3 py-3">{{ $batch->stale_count }}</td></tr>
                         @empty
-                            <tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">Chưa có batch đồng bộ.</td></tr>
+                            <tr><td colspan="10" class="px-4 py-8 text-center text-slate-500">Chưa có batch đồng bộ.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -120,37 +134,16 @@
             const form = document.querySelector('[data-live-filter-form]');
             if (!form) return;
 
+            const submit = () => form.requestSubmit();
+            form.querySelectorAll('[data-live-filter]').forEach((element) => element.addEventListener('change', submit));
+
             const search = form.querySelector('[data-live-search]');
-            const filters = form.querySelectorAll('[data-live-filter]');
-            const status = form.querySelector('[data-live-filter-status]');
-            let debounceTimer = null;
-            let submitting = false;
-
-            const submitFilters = () => {
-                if (submitting) return;
-                submitting = true;
-                window.clearTimeout(debounceTimer);
-
-                if (status) {
-                    status.textContent = 'Đang áp dụng bộ lọc...';
-                    status.className = 'text-xs font-medium text-sky-700';
-                }
-
-                form.requestSubmit();
-            };
-
-            filters.forEach((filter) => filter.addEventListener('change', submitFilters));
-
+            let timer = null;
             search?.addEventListener('input', () => {
-                window.clearTimeout(debounceTimer);
-                if (status) {
-                    status.textContent = 'Đang chờ nhập xong để tìm kiếm...';
-                    status.className = 'text-xs text-slate-500';
-                }
-                debounceTimer = window.setTimeout(submitFilters, 450);
+                window.clearTimeout(timer);
+                timer = window.setTimeout(submit, 450);
             });
-
-            search?.addEventListener('search', submitFilters);
+            search?.addEventListener('search', submit);
         });
     </script>
 @endsection
