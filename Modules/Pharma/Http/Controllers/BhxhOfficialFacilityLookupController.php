@@ -36,6 +36,28 @@ class BhxhOfficialFacilityLookupController extends Controller
         ]);
     }
 
+    public function districts(Request $request, BhxhFacilityLookupClient $client, BhxhProvinceCatalog $provinceCatalog): JsonResponse
+    {
+        $validated = $request->validate([
+            'ma_tinh' => ['required', 'string', Rule::in($provinceCatalog->codes())],
+        ]);
+
+        try {
+            $districts = $client->districts(trim($validated['ma_tinh']));
+        } catch (RuntimeException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'districts' => [],
+            ], 502);
+        }
+
+        return response()->json([
+            'message' => 'Đã tải danh sách quận/huyện từ BHXH.',
+            'districts' => $districts,
+            'count' => count($districts),
+        ]);
+    }
+
     public function lookup(Request $request, BhxhFacilityLookupClient $client, BhxhProvinceCatalog $provinceCatalog): JsonResponse
     {
         $validated = $request->validate([
