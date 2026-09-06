@@ -67,9 +67,11 @@ class BhxhOfficialFacilityLookupController extends Controller
         ]);
 
         try {
+            $provinceCode = trim($validated['ma_tinh']);
+            $districtCode = filled($validated['ma_quan_huyen'] ?? null) ? trim($validated['ma_quan_huyen']) : null;
             $result = $client->lookup(
-                trim($validated['ma_tinh']),
-                filled($validated['ma_quan_huyen'] ?? null) ? trim($validated['ma_quan_huyen']) : null,
+                $provinceCode,
+                $districtCode,
                 trim($validated['captcha']),
                 (array) $request->session()->get(self::SESSION_COOKIES, []),
             );
@@ -82,12 +84,27 @@ class BhxhOfficialFacilityLookupController extends Controller
 
         $request->session()->forget(self::SESSION_COOKIES);
 
+        if ($result['facilities'] !== []) {
+            $request->session()->put(OfficialSourceSyncController::BHXH_SNAPSHOT_SESSION, [
+                'source' => 'bhxh',
+                'source_province_code' => $provinceCode,
+                'province_name' => $provinceCatalog->all()[$provinceCode] ?? $provinceCode,
+                'source_district_code' => $districtCode,
+                'district_name' => null,
+                'facilities' => $result['facilities'],
+                'captured_at' => now()->toIso8601String(),
+            ]);
+        } else {
+            $request->session()->forget(OfficialSourceSyncController::BHXH_SNAPSHOT_SESSION);
+        }
+
         return response()->json([
             'message' => $result['facilities'] === []
                 ? ($result['message'] ?: 'Không có dữ liệu. Hãy kiểm tra tỉnh/quận huyện và CAPTCHA rồi thử lại.')
                 : 'Tra cứu BHXH thành công.',
             'facilities' => $result['facilities'],
             'count' => count($result['facilities']),
+            'can_sync' => $result['facilities'] !== [],
         ]);
     }
 }
