@@ -20,8 +20,7 @@ class PersistOfficialSourceSnapshotJob implements ShouldQueue
     public function __construct(
         public readonly int $batchId,
         public readonly array $facilities,
-    ) {
-    }
+    ) {}
 
     public function handle(OfficialSourceMirrorService $service): void
     {
