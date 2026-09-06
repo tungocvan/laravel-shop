@@ -12,6 +12,26 @@
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - Consolidation: **one implementation branch / one implementation PR**
 
+## Follow-up checkpoint — MaSoThue lookup CLI
+
+- Branch: `feat/mst-lookup-command`
+- Scope: reusable application-level CLI/service for manual legal/tax enrichment of healthcare facility master-data work.
+- Command: `php artisan mst:lookup "Bệnh viện đa khoa Kiên Giang"`.
+- JSON mode: `php artisan mst:lookup "Bệnh viện đa khoa Kiên Giang" --json`.
+- Source: `https://masothue.com` search HTML + canonical detail page; no search token is required.
+- Matching: normalized exact legal-name match is preferred; otherwise the first parsed search result is explicitly marked `first_result` for caller review.
+- Canonical detail URL is taken from the search result href; the service does not construct `/{mst}` or invent slugs.
+- MaSoThue remains a third-party enrichment/reference source, not the authoritative healthcare facility master. Partner remains canonical and this CLI does not write to Partner or Pharma staging automatically.
+- Focused test gate: **3 tests / 12 assertions PASS**.
+- Pint focused gate: **3 files PASS**.
+- Live smoke after syncing current `main`: **PASS**, returning MST `1700285659`, `match_type=exact`, canonical URL, active status, representative, active date, tax authority and organization type for `BỆNH VIỆN ĐA KHOA KIÊN GIANG`.
+- Working tree before final push: **clean**.
+- Branch after current-main synchronization: **ahead of `main`, behind 0**; functional diff before this handoff contains only the new command, lookup service and focused test.
+
+### MaSoThue safety boundary
+
+The CLI is intentionally human-triggered and read-only. Before any future bulk or scheduled use, add explicit throttling/cache/retry/telemetry and re-check source terms/robots constraints. Do not treat a noisy search result as canonical without deterministic matching/review, and verify production master data against authoritative sources where required.
+
 ## Canonical ownership
 
 `Partner` remains the sole canonical organization master for hospitals/healthcare facilities. Pharma must not create a second Hospital/Facility master.
