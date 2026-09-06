@@ -19,21 +19,28 @@ class BhxhFacilityLookupContractTest extends TestCase
     }
 
     #[Test]
-    public function live_lookup_does_not_write_partner_or_staging_records(): void
+    public function live_lookup_does_not_write_partner_or_staging_records_and_uses_one_explicit_source_partition(): void
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/BhxhOfficialFacilityLookupController.php'));
 
         $this->assertStringNotContainsString('Partner::', $controller);
         $this->assertStringNotContainsString('OfficialFacilityImportBatch::', $controller);
         $this->assertStringNotContainsString('OfficialFacilityImportRow::', $controller);
+        $this->assertStringContainsString("'source_partition'", $controller);
+        $this->assertStringContainsString('resolveSourcePartition', $controller);
+        $this->assertStringNotContainsString('retry_province_code', $controller);
+        $this->assertStringNotContainsString('SESSION_RESOLVED_PROVINCES', $controller);
     }
 
     #[Test]
-    public function workspace_states_that_captcha_is_human_entered(): void
+    public function workspace_keeps_human_captcha_boundary_and_exposes_source_partition(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/official-facilities/bhxh.blade.php'));
 
-        $this->assertStringContainsString('phải nhập thủ công', $view);
         $this->assertStringContainsString('Không OCR / không bypass CAPTCHA', $view);
+        $this->assertStringContainsString('Vùng dữ liệu BHXH', $view);
+        $this->assertStringContainsString('Địa bàn BHXH', $view);
+        $this->assertStringContainsString('source_partition', $view);
+        $this->assertStringContainsString('CAPTCHA BHXH', $view);
     }
 }
