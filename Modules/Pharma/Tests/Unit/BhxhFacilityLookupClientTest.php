@@ -38,6 +38,33 @@ class BhxhFacilityLookupClientTest extends TestCase
     }
 
     #[Test]
+    public function districts_post_bhxh_json_contract_and_parse_aspnet_d_payload(): void
+    {
+        Http::fake([
+            BhxhFacilityLookupClient::DISTRICT_URL => Http::response([
+                'd' => json_encode([
+                    ['MAHUYEN' => '916', 'TENHUYEN' => 'Quận Ninh Kiều'],
+                    ['MAHUYEN' => '917', 'TENHUYEN' => 'Quận Ô Môn'],
+                ], JSON_UNESCAPED_UNICODE),
+            ]),
+        ]);
+
+        $districts = app(BhxhFacilityLookupClient::class)->districts('92TTT');
+
+        Http::assertSent(function (Request $request): bool {
+            return $request->url() === BhxhFacilityLookupClient::DISTRICT_URL
+                && $request['lstmatinh'] === '92TTT'
+                && str_contains($request->header('Content-Type')[0] ?? '', 'application/json')
+                && ($request->header('X-Requested-With')[0] ?? '') === 'XMLHttpRequest';
+        });
+
+        $this->assertSame([
+            ['code' => '916', 'name' => 'Quận Ninh Kiều'],
+            ['code' => '917', 'name' => 'Quận Ô Môn'],
+        ], $districts);
+    }
+
+    #[Test]
     public function lookup_posts_exact_bhxh_form_body_and_parses_facilities(): void
     {
         Http::fake([
