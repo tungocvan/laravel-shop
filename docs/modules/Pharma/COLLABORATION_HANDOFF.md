@@ -4,12 +4,13 @@
 
 - Module: `Pharma`
 - Objective: **Official Facility Import + BHXH Source Mirror**
-- Branch: `feat/pharma-official-facility-import`
-- Base: `main` at `1f77f1575050648c143d45339d0ec8535e9dba6e`
-- Status: **PR READY — implementation complete; focused CLI, build, routes, Pint and UI gates PASS**
+- Implementation branch: `feat/pharma-official-facility-import`
+- Merged PR: **#166** — `feat(pharma): add official facility import and BHXH source mirror`
+- Merge commit: `c8abca6a39d3cfaadd8a086f43497313c85e93b7`
+- Status: **MERGED TO `main` — objective complete; post-merge closeout documentation only**
 - Date: 2026-09-06
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
-- Consolidation: **one implementation branch / one PR**
+- Consolidation: **one implementation branch / one implementation PR**
 
 ## Canonical ownership
 
@@ -109,7 +110,7 @@ Capabilities:
 
 ## Verified acceptance state
 
-Confirmed locally during this objective:
+Confirmed locally before merge:
 
 - Official Facility Import focused gate previously: **13 tests / 33 assertions PASS**.
 - Latest combined BHXH/source-mirror focused gate: **19 tests / 102 assertions PASS**.
@@ -125,7 +126,7 @@ Confirmed locally during this objective:
 
 A stale test expectation that asserted `permission:view_pharma_official_facilities` was corrected to the actual canonical Laravel middleware contract `can:view_pharma_official_facilities`; runtime authorization was not weakened or changed.
 
-No further local gate is required unless a subsequent code change affects behavior or UI.
+PR #166 was merged to `main` on 2026-09-06. No further implementation gate is required for this completed objective unless a new code change affects behavior or UI.
 
 ## Deferred scope
 
@@ -141,4 +142,4 @@ No further local gate is required unless a subsequent code change affects behavi
 
 ## Prior checkpoint
 
-Drug Award Allocation & Hospital Contract Management was merged to `main` via PR #165 before this branch started. Partner remains the canonical hospital organization master established by that objective.
+Drug Award Allocation & Hospital Contract Management was merged to `main` via PR #165 before this objective. Partner remains the canonical hospital organization master established by that objective.
