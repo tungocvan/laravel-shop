@@ -6,17 +6,21 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Modules\Pharma\Services\OfficialFacilityImport\BhxhFacilityLookupClient;
+use Modules\Pharma\Services\OfficialFacilityImport\BhxhProvinceCatalog;
 use RuntimeException;
 
 class BhxhOfficialFacilityLookupController extends Controller
 {
     private const SESSION_COOKIES = 'pharma.official_facilities.bhxh.cookies';
 
-    public function index(): View
+    public function index(BhxhProvinceCatalog $provinceCatalog): View
     {
-        return view('Pharma::pages.official-facilities.bhxh');
+        return view('Pharma::pages.official-facilities.bhxh', [
+            'bhxhProvinces' => $provinceCatalog->all(),
+        ]);
     }
 
     public function captcha(Request $request, BhxhFacilityLookupClient $client): Response
@@ -32,10 +36,10 @@ class BhxhOfficialFacilityLookupController extends Controller
         ]);
     }
 
-    public function lookup(Request $request, BhxhFacilityLookupClient $client): JsonResponse
+    public function lookup(Request $request, BhxhFacilityLookupClient $client, BhxhProvinceCatalog $provinceCatalog): JsonResponse
     {
         $validated = $request->validate([
-            'ma_tinh' => ['required', 'string', 'max:50'],
+            'ma_tinh' => ['required', 'string', Rule::in($provinceCatalog->codes())],
             'ma_quan_huyen' => ['nullable', 'string', 'max:50'],
             'captcha' => ['required', 'string', 'max:20'],
         ]);
@@ -58,7 +62,7 @@ class BhxhOfficialFacilityLookupController extends Controller
 
         return response()->json([
             'message' => $result['facilities'] === []
-                ? ($result['message'] ?: 'Không có dữ liệu. Hãy kiểm tra mã tỉnh/quận huyện và CAPTCHA rồi thử lại.')
+                ? ($result['message'] ?: 'Không có dữ liệu. Hãy kiểm tra tỉnh/quận huyện và CAPTCHA rồi thử lại.')
                 : 'Tra cứu BHXH thành công.',
             'facilities' => $result['facilities'],
             'count' => count($result['facilities']),
