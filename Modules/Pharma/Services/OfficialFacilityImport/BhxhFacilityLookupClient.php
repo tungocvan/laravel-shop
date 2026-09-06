@@ -14,6 +14,8 @@ class BhxhFacilityLookupClient
 
     public const LOOKUP_URL = 'https://baohiemxahoi.gov.vn/UserControls/Publishing/TraCuuCoSoKCB/pListCSKCBDangKy.aspx';
 
+    public const DISTRICT_URL = 'https://baohiemxahoi.gov.vn/UserControls/BHXH/BaoHiemYTe/HienThiHoGiaDinh/AjaxPost.aspx/GetHuyenByLstmatinh';
+
     public const REFERER_URL = 'https://baohiemxahoi.gov.vn/tracuu/Pages/cskcb-ky-hop-dong-kham-chua-benh-bhyt.aspx';
 
     public function captcha(): array
@@ -57,6 +59,62 @@ class BhxhFacilityLookupClient
             'content_type' => $response->header('Content-Type') ?: 'image/png',
             'cookies' => $cookies,
         ];
+    }
+
+    public function districts(string $provinceCode): array
+    {
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders(array_merge($this->browserHeaders(), [
+                    'Accept' => 'application/json, text/javascript, */*; q=0.01',
+                    'Content-Type' => 'application/json; charset=UTF-8',
+                    'Origin' => 'https://baohiemxahoi.gov.vn',
+                    'X-Requested-With' => 'XMLHttpRequest',
+                ]))
+                ->post(self::DISTRICT_URL, [
+                    'lstmatinh' => $provinceCode,
+                ]);
+        } catch (ConnectionException $exception) {
+            throw new RuntimeException('Không thể kết nối cổng BHXH để tải danh sách quận/huyện.', previous: $exception);
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Cổng BHXH trả lỗi khi tải quận/huyện (HTTP '.$response->status().').');
+        }
+
+        $payload = $response->json();
+        $data = is_array($payload) ? ($payload['d'] ?? $payload) : [];
+
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+            $data = is_array($decoded) ? $decoded : [];
+        }
+
+        if (! is_array($data)) {
+            return [];
+        }
+
+        $districts = [];
+
+        foreach ($data as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $code = $this->firstValue($item, ['MAHUYEN', 'MaHuyen', 'maHuyen', 'mahuyen', 'Value', 'value', 'Code', 'code']);
+            $name = $this->firstValue($item, ['TENHUYEN', 'TenHuyen', 'tenHuyen', 'tenhuyen', 'Text', 'text', 'Name', 'name']);
+
+            if ($code === '' || $name === '') {
+                continue;
+            }
+
+            $districts[] = [
+                'code' => $code,
+                'name' => $name,
+            ];
+        }
+
+        return $districts;
     }
 
     public function lookup(string $provinceCode, ?string $districtCode, string $captcha, array $cookies): array
@@ -183,6 +241,17 @@ class BhxhFacilityLookupClient
         return collect($cookies)
             ->map(fn ($value, $name) => $name.'='.$value)
             ->implode('; ');
+    }
+
+    private function firstValue(array $item, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $item) && filled($item[$key])) {
+                return $this->cleanText((string) $item[$key]);
+            }
+        }
+
+        return '';
     }
 
     private function cleanText(?string $value): string
