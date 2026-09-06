@@ -16,15 +16,24 @@ class OfficialSourceSyncController extends Controller
 
     public function index(Request $request): View
     {
+        $search = trim((string) $request->string('search'));
+        $source = trim((string) $request->string('source'));
+        $province = trim((string) $request->string('province'));
+        $status = trim((string) $request->string('status'));
+
         $query = OfficialSourceFacility::query()
-            ->when($request->filled('source'), fn ($builder) => $builder->where('source', (string) $request->string('source')))
-            ->when($request->filled('province'), fn ($builder) => $builder->where('source_province_code', (string) $request->string('province')))
-            ->when($request->filled('status'), fn ($builder) => $builder->where('is_active', $request->string('status') === 'active'))
-            ->when($request->filled('search'), function ($builder) use ($request): void {
-                $search = '%'.(string) $request->string('search').'%';
-                $builder->where(function ($nested) use ($search): void {
-                    $nested->where('external_id', 'like', $search)
-                        ->orWhere('facility_name', 'like', $search);
+            ->when($source !== '', fn ($builder) => $builder->where('source', $source))
+            ->when($province !== '', fn ($builder) => $builder->where('source_province_code', $province))
+            ->when(in_array($status, ['active', 'stale'], true), fn ($builder) => $builder->where('is_active', $status === 'active'))
+            ->when($search !== '', function ($builder) use ($search): void {
+                $like = '%'.$search.'%';
+                $builder->where(function ($nested) use ($like): void {
+                    $nested->where('external_id', 'like', $like)
+                        ->orWhere('facility_name', 'like', $like)
+                        ->orWhere('province_name', 'like', $like)
+                        ->orWhere('source_province_code', 'like', $like)
+                        ->orWhere('district_name', 'like', $like)
+                        ->orWhere('source_district_code', 'like', $like);
                 });
             })
             ->orderBy('province_name')
@@ -74,6 +83,21 @@ class OfficialSourceSyncController extends Controller
             'status' => $batch->status,
             'count' => count($facilities),
         ], 202);
+    }
+
+    public function status(OfficialSourceSyncBatch $batch): JsonResponse
+    {
+        return response()->json([
+            'batch_id' => $batch->id,
+            'status' => $batch->status,
+            'fetched_count' => $batch->fetched_count,
+            'created_count' => $batch->created_count,
+            'updated_count' => $batch->updated_count,
+            'unchanged_count' => $batch->unchanged_count,
+            'stale_count' => $batch->stale_count,
+            'completed_at' => optional($batch->completed_at)->toIso8601String(),
+            'error_message' => $batch->error_message,
+        ]);
     }
 
     private function perPage(Request $request): int
