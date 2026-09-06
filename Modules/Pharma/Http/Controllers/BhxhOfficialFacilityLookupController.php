@@ -86,8 +86,9 @@ class BhxhOfficialFacilityLookupController extends Controller
             : ($sourceCodes[0] ?? $uiCode);
 
         try {
-            // BHXH CAPTCHA is single-use. Never retry another province alias with the
-            // same CAPTCHA/session; alias resolution must happen before this request.
+            // BHXH CAPTCHA is single-use. One user-entered CAPTCHA is consumed by one
+            // source-code request only. If this alias is empty, the next alias is
+            // staged for the user's next lookup with a freshly loaded CAPTCHA.
             $result = $client->lookup(
                 $resolvedCode,
                 $districtCode,
@@ -101,8 +102,11 @@ class BhxhOfficialFacilityLookupController extends Controller
         }
 
         $provinceName = $provinceCatalog->provinceName($uiCode) ?? $uiCode;
+        $retryCode = null;
 
         if ($result['facilities'] !== []) {
+            $resolved[$uiCode] = $resolvedCode;
+            $request->session()->put(self::SESSION_RESOLVED_PROVINCES, $resolved);
             $request->session()->put(OfficialSourceSyncController::BHXH_SNAPSHOT_SESSION, [
                 'source' => 'bhxh',
                 'source_province_code' => $resolvedCode,
@@ -115,16 +119,30 @@ class BhxhOfficialFacilityLookupController extends Controller
             ]);
         } else {
             $request->session()->forget(OfficialSourceSyncController::BHXH_SNAPSHOT_SESSION);
+
+            $currentIndex = array_search($resolvedCode, $sourceCodes, true);
+            if ($currentIndex !== false && isset($sourceCodes[$currentIndex + 1])) {
+                $retryCode = $sourceCodes[$currentIndex + 1];
+                $resolved[$uiCode] = $retryCode;
+                $request->session()->put(self::SESSION_RESOLVED_PROVINCES, $resolved);
+            }
+        }
+
+        $message = $result['facilities'] === []
+            ? ($result['message'] ?: 'Không có dữ liệu. Hãy kiểm tra tỉnh/quận huyện và CAPTCHA rồi thử lại.')
+            : 'Tra cứu BHXH thành công.';
+
+        if ($retryCode !== null) {
+            $message .= ' Mã nguồn '.$resolvedCode.' không có dữ liệu; hệ thống đã chuyển sang '.$retryCode.'. Hãy nhập CAPTCHA mới và tra cứu lại.';
         }
 
         return response()->json([
-            'message' => $result['facilities'] === []
-                ? ($result['message'] ?: 'Không có dữ liệu. Hãy kiểm tra tỉnh/quận huyện và CAPTCHA rồi thử lại.')
-                : 'Tra cứu BHXH thành công.',
+            'message' => $message,
             'facilities' => $result['facilities'],
             'count' => count($result['facilities']),
             'can_sync' => $result['facilities'] !== [],
             'resolved_province_code' => $resolvedCode,
+            'retry_province_code' => $retryCode,
             'province_source_codes' => $sourceCodes,
             'response_structure' => $result['structure'] ?? [],
         ]);
