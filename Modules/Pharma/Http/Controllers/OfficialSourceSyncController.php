@@ -9,21 +9,24 @@ use Illuminate\View\View;
 use Modules\Pharma\Jobs\PersistOfficialSourceSnapshotJob;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\OfficialSourceSyncBatch;
+use Modules\Pharma\Services\OfficialFacilityImport\BhxhProvinceCatalog;
 
 class OfficialSourceSyncController extends Controller
 {
     public const BHXH_SNAPSHOT_SESSION = 'pharma.official_facilities.bhxh.last_snapshot';
 
-    public function index(Request $request): View
+    public function index(Request $request, BhxhProvinceCatalog $provinceCatalog): View
     {
         $search = trim((string) $request->string('search'));
         $source = trim((string) $request->string('source'));
         $province = trim((string) $request->string('province'));
+        $partition = trim((string) $request->string('partition'));
         $status = trim((string) $request->string('status'));
 
         $query = OfficialSourceFacility::query()
             ->when($source !== '', fn ($builder) => $builder->where('source', $source))
-            ->when($province !== '', fn ($builder) => $builder->where('source_province_code', $province))
+            ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
+            ->when($partition !== '', fn ($builder) => $builder->where('source_province_code', $partition))
             ->when(in_array($status, ['active', 'stale'], true), fn ($builder) => $builder->where('is_active', $status === 'active'))
             ->when($search !== '', function ($builder) use ($search): void {
                 $like = '%'.$search.'%';
@@ -37,17 +40,35 @@ class OfficialSourceSyncController extends Controller
                 });
             })
             ->orderBy('province_name')
+            ->orderBy('source_province_code')
             ->orderBy('facility_name');
+
+        $partitionLabels = [];
+        foreach ($provinceCatalog->codes() as $uiCode) {
+            foreach ($provinceCatalog->partitionsFor($uiCode) as $item) {
+                $partitionLabels[$item['source_code']] = $item['partition_name'];
+            }
+        }
+
+        $partitionOptions = OfficialSourceFacility::query()
+            ->select(['source_province_code', 'province_name'])
+            ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
+            ->distinct()
+            ->orderBy('province_name')
+            ->orderBy('source_province_code')
+            ->get();
 
         return view('Pharma::pages.official-facilities.source', [
             'facilities' => $query->paginate($this->perPage($request))->withQueryString(),
             'batches' => OfficialSourceSyncBatch::query()->latest('id')->limit(20)->get(),
             'provinceOptions' => OfficialSourceFacility::query()
-                ->select(['source_province_code', 'province_name'])
                 ->whereNotNull('province_name')
+                ->where('province_name', '<>', '')
                 ->distinct()
                 ->orderBy('province_name')
-                ->get(),
+                ->pluck('province_name'),
+            'partitionOptions' => $partitionOptions,
+            'partitionLabels' => $partitionLabels,
         ]);
     }
 
