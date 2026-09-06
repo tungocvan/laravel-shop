@@ -19,14 +19,20 @@
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5">
                 <h2 class="text-lg font-semibold text-slate-900">Tra cứu trực tuyến BHXH</h2>
-                <p class="mt-1 text-sm text-slate-500">Ví dụ Cần Thơ: <strong>MaTinh = 92TTT</strong>. Mã quận/huyện có thể để trống để tra toàn tỉnh.</p>
+                <p class="mt-1 text-sm text-slate-500">Chọn Tỉnh/Thành theo danh mục công khai của BHXH. Hệ thống tự gửi mã nguồn tương ứng, bạn không cần nhớ mã như <strong>92TTT</strong>.</p>
             </div>
 
             <form data-bhxh-lookup-form class="grid gap-4 lg:grid-cols-4">
                 @csrf
                 <div>
-                    <label for="ma_tinh" class="mb-1 block text-sm font-medium text-slate-700">Mã tỉnh BHXH</label>
-                    <input id="ma_tinh" name="ma_tinh" value="92TTT" required maxlength="50" class="min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500">
+                    <label for="ma_tinh" class="mb-1 block text-sm font-medium text-slate-700">Tỉnh/Thành <span class="text-rose-500">*</span></label>
+                    <select id="ma_tinh" name="ma_tinh" required class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500">
+                        <option value="">- Chọn Tỉnh/Thành -</option>
+                        @foreach ($bhxhProvinces as $code => $name)
+                            <option value="{{ $code }}" @selected($code === '92TTT')>{{ $name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Mã BHXH được giữ ở phía sau option và gửi tự động khi tra cứu.</p>
                 </div>
                 <div>
                     <label for="ma_quan_huyen" class="mb-1 block text-sm font-medium text-slate-700">Mã quận/huyện</label>
