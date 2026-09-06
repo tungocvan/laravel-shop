@@ -6,7 +6,7 @@
 - Objective: **Official Facility Import + BHXH Source Mirror**
 - Branch: `feat/pharma-official-facility-import`
 - Base: `main` at `1f77f1575050648c143d45339d0ec8535e9dba6e`
-- Status: **IMPLEMENTATION COMPLETE FOR UI CONTRACT — UI PASS; final focused CLI gate pending**
+- Status: **PR READY — implementation complete; focused CLI, build, routes, Pint and UI gates PASS**
 - Date: 2026-09-06
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - Consolidation: **one implementation branch / one PR**
@@ -112,28 +112,20 @@ Capabilities:
 Confirmed locally during this objective:
 
 - Official Facility Import focused gate previously: **13 tests / 33 assertions PASS**.
-- `BhxhFacilityLookupClientTest`: **4 tests / 19 assertions PASS**.
+- Latest combined BHXH/source-mirror focused gate: **19 tests / 102 assertions PASS**.
+- Final Pharma Unit regression: **40 tests / 170 assertions PASS**.
+- Pint focused gate: **16 files PASS**.
+- Official Facility route inventory: **13 routes present**.
+- Vite production build: **PASS**.
+- Working tree before final regression: **clean and synchronized with origin**.
 - BHXH lookup UI: **PASS**.
 - source mirror sync-status UI: **PASS**.
 - `<x-search>` + live filter UI: **PASS**.
 - An Giang canonical province + `89TTT/91TTT` source-partition UI: **PASS**.
 
-The final combined focused CLI gate for the latest partition/completeness changes is still required before PR readiness. Do not claim final PR readiness until that gate passes locally.
+A stale test expectation that asserted `permission:view_pharma_official_facilities` was corrected to the actual canonical Laravel middleware contract `can:view_pharma_official_facilities`; runtime authorization was not weakened or changed.
 
-## Final local gate before PR
-
-Run:
-
-```bash
-php artisan test \
-  Modules/Pharma/Tests/Unit/BhxhProvinceCatalogTest.php \
-  Modules/Pharma/Tests/Unit/BhxhFacilityLookupContractTest.php \
-  Modules/Pharma/Tests/Unit/BhxhFacilityLookupClientTest.php \
-  Modules/Pharma/Tests/Unit/OfficialSourceSyncContractTest.php \
-  Modules/Pharma/Tests/Unit/OfficialSourceMirrorServiceTest.php
-```
-
-Then run the focused Pharma regression required by the collaboration workflow plus Pint on changed PHP files. Manual UI does not need to be repeated unless those gates require a UI-affecting code change.
+No further local gate is required unless a subsequent code change affects behavior or UI.
 
 ## Deferred scope
 
