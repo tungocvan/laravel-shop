@@ -14,7 +14,7 @@ class OfficialSourceMirrorServiceTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function province_snapshot_creates_and_then_marks_unchanged_records(): void
+    public function source_partition_snapshot_creates_and_then_marks_unchanged_records(): void
     {
         $service = app(OfficialSourceMirrorService::class);
         $first = $this->batch();
@@ -42,7 +42,7 @@ class OfficialSourceMirrorServiceTest extends TestCase
     }
 
     #[Test]
-    public function full_province_snapshot_marks_missing_previous_records_stale_without_deleting_them(): void
+    public function unverified_source_partition_snapshot_never_marks_missing_records_stale(): void
     {
         $service = app(OfficialSourceMirrorService::class);
         $service->persist($this->batch(), $this->facilities());
@@ -51,12 +51,29 @@ class OfficialSourceMirrorServiceTest extends TestCase
         $service->persist($next, [$this->facilities()[0]]);
         $next->refresh();
 
-        $this->assertSame(1, $next->stale_count);
+        $this->assertSame(0, $next->stale_count);
+        $this->assertDatabaseHas('pharma_official_source_facilities', [
+            'external_id' => '94170',
+            'is_active' => true,
+        ]);
+        $this->assertSame(2, OfficialSourceFacility::query()->count());
+    }
+
+    #[Test]
+    public function explicitly_verified_complete_province_snapshot_may_mark_missing_records_stale(): void
+    {
+        $service = app(OfficialSourceMirrorService::class);
+        $service->persist($this->batch(), $this->facilities());
+
+        $complete = $this->batch(['sync_scope' => 'province_complete']);
+        $service->persist($complete, [$this->facilities()[0]]);
+        $complete->refresh();
+
+        $this->assertSame(1, $complete->stale_count);
         $this->assertDatabaseHas('pharma_official_source_facilities', [
             'external_id' => '94170',
             'is_active' => false,
         ]);
-        $this->assertSame(2, OfficialSourceFacility::query()->count());
     }
 
     #[Test]
@@ -67,7 +84,7 @@ class OfficialSourceMirrorServiceTest extends TestCase
 
         $districtBatch = $this->batch([
             'source_district_code' => 'DIST-01',
-            'district_name' => 'Quận Test',
+            'district_name' => 'Địa bàn Test',
             'sync_scope' => 'district',
         ]);
         $service->persist($districtBatch, [$this->facilities()[0]]);
@@ -106,7 +123,7 @@ class OfficialSourceMirrorServiceTest extends TestCase
             'source' => 'bhxh',
             'source_province_code' => '92TTT',
             'province_name' => 'Thành phố Cần Thơ',
-            'sync_scope' => 'province',
+            'sync_scope' => 'source_partition',
             'status' => 'QUEUED',
         ], $overrides));
     }
