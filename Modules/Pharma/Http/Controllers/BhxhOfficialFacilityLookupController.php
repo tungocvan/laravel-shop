@@ -27,52 +27,71 @@ class BhxhOfficialFacilityLookupController extends Controller
         $request->session()->put(self::SESSION_COOKIES, $captcha['cookies']);
 
         return response($captcha['body'], 200, [
-            'Content-Type' => $captcha['content_type'],
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'no-cache',
+            'Content-Type' => $captcha['content_type'], 'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0', 'Pragma' => 'no-cache',
         ]);
     }
 
     public function districts(Request $request, BhxhFacilityLookupClient $client, BhxhProvinceCatalog $provinceCatalog): JsonResponse
     {
         $validated = $request->validate(['ma_tinh' => ['required', 'string', Rule::in($provinceCatalog->codes())]]);
+        $uiCode = trim($validated['ma_tinh']);
+        $districts = [];
+        $resolvedCode = $uiCode;
+
         try {
-            $districts = $client->districts(trim($validated['ma_tinh']));
+            foreach ($provinceCatalog->sourceCodesFor($uiCode) as $sourceCode) {
+                $candidate = $client->districts($sourceCode);
+                if ($candidate !== []) {
+                    $districts = $candidate;
+                    $resolvedCode = $sourceCode;
+                    break;
+                }
+            }
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage(), 'districts' => []], 502);
         }
 
-        return response()->json(['message' => 'Đã tải danh sách quận/huyện từ BHXH.', 'districts' => $districts, 'count' => count($districts)]);
+        return response()->json([
+            'message' => 'Đã tải danh sách quận/huyện từ BHXH.', 'districts' => $districts, 'count' => count($districts), 'resolved_province_code' => $resolvedCode,
+        ]);
     }
 
     public function lookup(Request $request, BhxhFacilityLookupClient $client, BhxhProvinceCatalog $provinceCatalog): JsonResponse
     {
         $validated = $request->validate([
             'ma_tinh' => ['required', 'string', Rule::in($provinceCatalog->codes())],
-            'ma_quan_huyen' => ['nullable', 'string', 'max:50'],
-            'captcha' => ['required', 'string', 'max:20'],
+            'ma_quan_huyen' => ['nullable', 'string', 'max:50'], 'captcha' => ['required', 'string', 'max:20'],
         ]);
 
+        $uiCode = trim($validated['ma_tinh']);
+        $districtCode = filled($validated['ma_quan_huyen'] ?? null) ? trim($validated['ma_quan_huyen']) : null;
+        $cookies = (array) $request->session()->get(self::SESSION_COOKIES, []);
+        $result = ['facilities' => [], 'message' => null, 'structure' => []];
+        $resolvedCode = $uiCode;
+        $attemptedCodes = [];
+
         try {
-            $provinceCode = trim($validated['ma_tinh']);
-            $districtCode = filled($validated['ma_quan_huyen'] ?? null) ? trim($validated['ma_quan_huyen']) : null;
-            $result = $client->lookup($provinceCode, $districtCode, trim($validated['captcha']), (array) $request->session()->get(self::SESSION_COOKIES, []));
+            foreach ($provinceCatalog->sourceCodesFor($uiCode) as $sourceCode) {
+                $attemptedCodes[] = $sourceCode;
+                $candidate = $client->lookup($sourceCode, $districtCode, trim($validated['captcha']), $cookies);
+                $result = $candidate;
+                $resolvedCode = $sourceCode;
+                if ($candidate['facilities'] !== []) {
+                    break;
+                }
+            }
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage(), 'facilities' => []], 502);
         }
 
         $request->session()->forget(self::SESSION_COOKIES);
+        $provinceName = $provinceCatalog->provinceName($uiCode) ?? $uiCode;
 
         if ($result['facilities'] !== []) {
             $request->session()->put(OfficialSourceSyncController::BHXH_SNAPSHOT_SESSION, [
-                'source' => 'bhxh',
-                'source_province_code' => $provinceCode,
-                'province_name' => $provinceCatalog->all()[$provinceCode] ?? $provinceCode,
-                'source_district_code' => $districtCode,
-                'district_name' => null,
-                'facilities' => $result['facilities'],
-                'response_structure' => $result['structure'] ?? [],
-                'captured_at' => now()->toIso8601String(),
+                'source' => 'bhxh', 'source_province_code' => $resolvedCode, 'province_name' => $provinceName,
+                'source_district_code' => $districtCode, 'district_name' => null, 'facilities' => $result['facilities'],
+                'response_structure' => $result['structure'] ?? [], 'captured_at' => now()->toIso8601String(),
             ]);
         } else {
             $request->session()->forget(OfficialSourceSyncController::BHXH_SNAPSHOT_SESSION);
@@ -80,10 +99,8 @@ class BhxhOfficialFacilityLookupController extends Controller
 
         return response()->json([
             'message' => $result['facilities'] === [] ? ($result['message'] ?: 'Không có dữ liệu. Hãy kiểm tra tỉnh/quận huyện và CAPTCHA rồi thử lại.') : 'Tra cứu BHXH thành công.',
-            'facilities' => $result['facilities'],
-            'count' => count($result['facilities']),
-            'can_sync' => $result['facilities'] !== [],
-            'response_structure' => $result['structure'] ?? [],
+            'facilities' => $result['facilities'], 'count' => count($result['facilities']), 'can_sync' => $result['facilities'] !== [],
+            'resolved_province_code' => $resolvedCode, 'attempted_province_codes' => $attemptedCodes, 'response_structure' => $result['structure'] ?? [],
         ]);
     }
 }
