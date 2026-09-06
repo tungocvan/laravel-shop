@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Pharma\Http\Controllers\BhxhOfficialFacilityLookupController;
 use Modules\Pharma\Http\Controllers\DrugBidAwardController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
@@ -15,6 +16,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
     Route::middleware('can:view_pharma_official_facilities')->group(function () {
         Route::get('/official-facilities/import', [OfficialFacilityImportController::class, 'index'])->name('official-facilities.index');
         Route::get('/official-facilities/import/template', OfficialFacilityImportTemplateController::class)->name('official-facilities.template');
+        Route::get('/official-facilities/bhxh/captcha', [BhxhOfficialFacilityLookupController::class, 'captcha'])->name('official-facilities.bhxh.captcha');
+        Route::post('/official-facilities/bhxh/lookup', [BhxhOfficialFacilityLookupController::class, 'lookup'])->name('official-facilities.bhxh.lookup');
     });
 
     Route::middleware('can:import_pharma_official_facilities')->group(function () {
