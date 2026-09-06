@@ -8,9 +8,10 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-sky-600">Pharma / BHXH Facility Lookup</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">Tra cứu cơ sở KCB ký hợp đồng BHYT</h1>
-                <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">CAPTCHA được tải trực tiếp từ cổng BHXH và phải nhập thủ công. Kết quả tra cứu chỉ hiển thị để kiểm tra; chưa ghi Partner và chưa tự động staging.</p>
+                <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">CAPTCHA được tải trực tiếp từ cổng BHXH và phải nhập thủ công. Kết quả tra cứu có thể được lưu vào kho nguồn nội bộ bằng queue; chưa ghi Partner và chưa tự động staging.</p>
             </div>
             <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-100">Kho dữ liệu nguồn</a>
                 <a href="{{ route('admin.pharma.official-facilities.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Import XLSX/CSV</a>
                 <a href="{{ route('admin.pharma.dashboard') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300">Quay về Dashboard</a>
             </div>
@@ -63,13 +64,20 @@
         </section>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Kết quả</h2>
-                    <p class="mt-1 text-sm text-slate-500">Mã cơ sở và tên cơ sở do cổng BHXH trả về.</p>
+                    <p class="mt-1 text-sm text-slate-500">Mã cơ sở và tên cơ sở do cổng BHXH trả về. Mã CSKCB là identity nguồn để enrich dữ liệu về sau.</p>
                 </div>
-                <div data-result-count class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">0 cơ sở</div>
+                <div class="flex items-center gap-3">
+                    <div data-result-count class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">0 cơ sở</div>
+                    @can('sync_pharma_official_facilities')
+                        <button type="button" data-sync-source disabled class="min-h-11 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300">Đồng bộ dữ liệu tỉnh này</button>
+                    @endcan
+                </div>
             </div>
+
+            <div data-sync-message class="mt-4 hidden rounded-xl border px-4 py-3 text-sm"></div>
 
             <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -97,6 +105,8 @@
             const resultBody = document.querySelector('[data-result-body]');
             const resultCount = document.querySelector('[data-result-count]');
             const captchaInput = document.querySelector('#captcha');
+            const syncButton = document.querySelector('[data-sync-source]');
+            const syncMessage = document.querySelector('[data-sync-message]');
 
             const reloadCaptcha = () => {
                 captchaImage.src = `{{ route('admin.pharma.official-facilities.bhxh.captcha') }}?v=${Date.now()}`;
@@ -104,9 +114,10 @@
                 captchaInput.focus();
             };
 
-            const showMessage = (text, ok) => {
-                message.textContent = text;
-                message.className = `mt-4 rounded-xl border px-4 py-3 text-sm ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`;
+            const showMessage = (element, text, ok) => {
+                if (!element) return;
+                element.textContent = text;
+                element.className = `mt-4 rounded-xl border px-4 py-3 text-sm ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`;
             };
 
             const renderRows = (facilities) => {
@@ -148,9 +159,7 @@
                     const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
                     const payload = await response.json();
 
-                    if (!response.ok) {
-                        throw new Error(payload.message ?? 'Không tải được danh sách quận/huyện.');
-                    }
+                    if (!response.ok) throw new Error(payload.message ?? 'Không tải được danh sách quận/huyện.');
 
                     (payload.districts ?? []).forEach((district) => {
                         const option = document.createElement('option');
@@ -170,13 +179,20 @@
             };
 
             refreshCaptcha.addEventListener('click', reloadCaptcha);
-            provinceSelect.addEventListener('change', loadDistricts);
+            provinceSelect.addEventListener('change', () => {
+                if (syncButton) syncButton.disabled = true;
+                loadDistricts();
+            });
+            districtSelect.addEventListener('change', () => {
+                if (syncButton) syncButton.disabled = true;
+            });
             loadDistricts();
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 button.disabled = true;
                 button.textContent = 'Đang tra cứu...';
+                if (syncButton) syncButton.disabled = true;
 
                 try {
                     const response = await fetch(`{{ route('admin.pharma.official-facilities.bhxh.lookup') }}`, {
@@ -190,14 +206,42 @@
                     const payload = await response.json();
 
                     renderRows(payload.facilities ?? []);
-                    showMessage(payload.message ?? (response.ok ? 'Tra cứu hoàn tất.' : 'Tra cứu thất bại.'), response.ok && (payload.facilities ?? []).length > 0);
+                    showMessage(message, payload.message ?? (response.ok ? 'Tra cứu hoàn tất.' : 'Tra cứu thất bại.'), response.ok && (payload.facilities ?? []).length > 0);
+                    if (syncButton) syncButton.disabled = !payload.can_sync;
                 } catch (error) {
                     renderRows([]);
-                    showMessage('Không thể gọi route tra cứu BHXH. Kiểm tra kết nối máy chủ và log Laravel.', false);
+                    showMessage(message, 'Không thể gọi route tra cứu BHXH. Kiểm tra kết nối máy chủ và log Laravel.', false);
                 } finally {
                     button.disabled = false;
                     button.textContent = 'Tra cứu BHXH';
                     reloadCaptcha();
+                }
+            });
+
+            syncButton?.addEventListener('click', async () => {
+                syncButton.disabled = true;
+                syncButton.textContent = 'Đang đưa vào queue...';
+
+                try {
+                    const response = await fetch(`{{ route('admin.pharma.official-facilities.source.sync') }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+                        },
+                        body: JSON.stringify({}),
+                    });
+                    const payload = await response.json();
+
+                    showMessage(syncMessage, response.ok
+                        ? `${payload.message} Batch #${payload.batch_id} · ${payload.count} cơ sở.`
+                        : (payload.message ?? 'Không thể tạo batch đồng bộ.'), response.ok);
+                    if (response.ok) syncButton.textContent = 'Đã đưa vào hàng đợi';
+                } catch (error) {
+                    showMessage(syncMessage, 'Không thể tạo yêu cầu đồng bộ. Kiểm tra queue/log Laravel.', false);
+                    syncButton.disabled = false;
+                    syncButton.textContent = 'Đồng bộ dữ liệu tỉnh này';
                 }
             });
         });
