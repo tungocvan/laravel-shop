@@ -20,6 +20,9 @@ return new class extends Migration
             $table->string('district_name', 191)->nullable();
             $table->json('raw_payload')->nullable();
             $table->char('payload_hash', 64)->nullable();
+            $table->json('source_details')->nullable();
+            $table->char('details_hash', 64)->nullable();
+            $table->timestamp('details_synced_at')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamp('first_seen_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();
