@@ -11,8 +11,11 @@ use RuntimeException;
 class BhxhFacilityLookupClient
 {
     public const CAPTCHA_URL = 'https://baohiemxahoi.gov.vn/UserControls/CaptchaImageHandler.ashx';
+
     public const LOOKUP_URL = 'https://baohiemxahoi.gov.vn/UserControls/Publishing/TraCuuCoSoKCB/pListCSKCBDangKy.aspx';
+
     public const DISTRICT_URL = 'https://baohiemxahoi.gov.vn/UserControls/BHXH/BaoHiemYTe/HienThiHoGiaDinh/AjaxPost.aspx/GetHuyenByLstmatinh';
+
     public const REFERER_URL = 'https://baohiemxahoi.gov.vn/tracuu/Pages/cskcb-ky-hop-dong-kham-chua-benh-bhyt.aspx';
 
     public function captcha(): array
@@ -202,7 +205,8 @@ class BhxhFacilityLookupClient
         if (trim($html) === '') {
             return [null, null];
         }
-        $document = new DOMDocument();
+
+        $document = new DOMDocument;
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML('<?xml encoding="utf-8" ?>'.$html, LIBXML_NOWARNING | LIBXML_NOERROR);
         libxml_clear_errors();
@@ -214,6 +218,7 @@ class BhxhFacilityLookupClient
     private function extractMessage(string $html): ?string
     {
         $text = $this->cleanText(strip_tags($html));
+
         return $text === '' ? null : mb_substr($text, 0, 500);
     }
 
@@ -241,6 +246,7 @@ class BhxhFacilityLookupClient
                 $cookies[trim($name)] = trim($value);
             }
         }
+
         return $cookies;
     }
 
@@ -256,12 +262,14 @@ class BhxhFacilityLookupClient
                 return $this->cleanText((string) $item[$key]);
             }
         }
+
         return '';
     }
 
     private function cleanText(?string $value): string
     {
         $value = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
         return preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
     }
 
