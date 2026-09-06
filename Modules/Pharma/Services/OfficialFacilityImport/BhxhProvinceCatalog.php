@@ -6,10 +6,44 @@ class BhxhProvinceCatalog
 {
     /**
      * Source: public BHXH facility lookup province dropdown, captured 2026-09-06.
-     * Keys are source-specific BHXH province codes and must not be treated as
+     *
+     * BHXH currently publishes duplicate display names with multiple source codes.
+     * The admin UI exposes one display option per name and uses the first published
+     * source code as the primary code. Alternate source codes remain available via
+     * aliases() for diagnostics/backward compatibility and must never be treated as
      * canonical ERP province codes.
      */
     public function all(): array
+    {
+        $unique = [];
+
+        foreach ($this->sourceOptions() as $code => $name) {
+            if (! in_array($name, $unique, true)) {
+                $unique[$code] = $name;
+            }
+        }
+
+        return $unique;
+    }
+
+    public function codes(): array
+    {
+        return array_keys($this->all());
+    }
+
+    public function aliases(): array
+    {
+        $aliases = [];
+
+        foreach ($this->sourceOptions() as $code => $name) {
+            $aliases[$name] ??= [];
+            $aliases[$name][] = $code;
+        }
+
+        return array_filter($aliases, fn (array $codes): bool => count($codes) > 1);
+    }
+
+    private function sourceOptions(): array
     {
         return [
             '92TTT' => 'Thành phố Cần Thơ',
@@ -76,10 +110,5 @@ class BhxhProvinceCatalog
             '86TTT' => 'Tỉnh Vĩnh Long',
             '26TTT' => 'Tỉnh Vĩnh Phúc',
         ];
-    }
-
-    public function codes(): array
-    {
-        return array_keys($this->all());
     }
 }
