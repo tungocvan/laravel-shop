@@ -6,12 +6,18 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\View\View;
 use Modules\Pharma\Services\OfficialFacilityImport\BhxhFacilityLookupClient;
 use RuntimeException;
 
 class BhxhOfficialFacilityLookupController extends Controller
 {
     private const SESSION_COOKIES = 'pharma.official_facilities.bhxh.cookies';
+
+    public function index(): View
+    {
+        return view('Pharma::pages.official-facilities.bhxh');
+    }
 
     public function captcha(Request $request, BhxhFacilityLookupClient $client): Response
     {
@@ -48,8 +54,6 @@ class BhxhOfficialFacilityLookupController extends Controller
             ], 502);
         }
 
-        // CAPTCHA của BHXH được nhập thủ công và có thể chỉ dùng một lần.
-        // Xóa cookie phiên sau lookup để lần kế tiếp buộc người dùng tải CAPTCHA mới.
         $request->session()->forget(self::SESSION_COOKIES);
 
         return response()->json([
