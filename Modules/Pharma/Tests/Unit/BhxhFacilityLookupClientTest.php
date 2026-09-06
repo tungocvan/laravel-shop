@@ -11,12 +11,14 @@ use Tests\TestCase;
 class BhxhFacilityLookupClientTest extends TestCase
 {
     #[Test]
-    public function captcha_preserves_bhxh_session_cookie_for_human_lookup(): void
+    public function captcha_bootstraps_page_session_then_reuses_cookie_for_image(): void
     {
         Http::fake([
+            BhxhFacilityLookupClient::REFERER_URL => Http::response('<html></html>', 200, [
+                'Set-Cookie' => 'ASP.NET_SessionId=session-123; path=/; HttpOnly',
+            ]),
             BhxhFacilityLookupClient::CAPTCHA_URL => Http::response('image-bytes', 200, [
                 'Content-Type' => 'image/png',
-                'Set-Cookie' => 'ASP.NET_SessionId=session-123; path=/; HttpOnly',
             ]),
         ]);
 
@@ -25,10 +27,18 @@ class BhxhFacilityLookupClientTest extends TestCase
         $this->assertSame('image-bytes', $result['body']);
         $this->assertSame('image/png', $result['content_type']);
         $this->assertSame(['ASP.NET_SessionId' => 'session-123'], $result['cookies']);
+
+        Http::assertSent(function (Request $request): bool {
+            if ($request->url() !== BhxhFacilityLookupClient::CAPTCHA_URL) {
+                return true;
+            }
+
+            return str_contains($request->header('Cookie')[0] ?? '', 'ASP.NET_SessionId=session-123');
+        });
     }
 
     #[Test]
-    public function lookup_posts_exact_bhxh_contract_and_parses_facilities(): void
+    public function lookup_posts_exact_bhxh_form_body_and_parses_facilities(): void
     {
         Http::fake([
             BhxhFacilityLookupClient::LOOKUP_URL => Http::response(<<<'HTML'
@@ -49,10 +59,10 @@ class BhxhFacilityLookupClientTest extends TestCase
 
         Http::assertSent(function (Request $request): bool {
             return $request->url() === BhxhFacilityLookupClient::LOOKUP_URL
-                && $request['MaTinh'] === '92TTT'
-                && $request['MaQuanHuyen'] === ''
-                && $request['tokenRecaptch'] === 'EXQH7'
-                && str_contains($request->header('Cookie')[0] ?? '', 'ASP.NET_SessionId=session-123');
+                && $request->body() === 'MaTinh=92TTT&MaQuanHuyen=&tokenRecaptch=EXQH7'
+                && str_contains($request->header('Content-Type')[0] ?? '', 'application/x-www-form-urlencoded')
+                && str_contains($request->header('Cookie')[0] ?? '', 'ASP.NET_SessionId=session-123')
+                && ($request->header('X-Requested-With')[0] ?? '') === 'XMLHttpRequest';
         });
 
         $this->assertCount(2, $result['facilities']);
