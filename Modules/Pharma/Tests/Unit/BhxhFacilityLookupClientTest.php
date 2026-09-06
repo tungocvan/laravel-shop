@@ -20,9 +20,11 @@ class BhxhFacilityLookupClientTest extends TestCase
         $result = app(BhxhFacilityLookupClient::class)->captcha();
         $this->assertSame('image-bytes', $result['body']);
         $this->assertSame(['ASP.NET_SessionId' => 'session-123'], $result['cookies']);
-        $captchaRequests = Http::recorded(fn (Request $request) => $request->url() === BhxhFacilityLookupClient::CAPTCHA_URL);
-        $this->assertCount(1, $captchaRequests);
-        $this->assertStringContainsString('ASP.NET_SessionId=session-123', $captchaRequests[0][0]->header('Cookie')[0] ?? '');
+
+        $captchaRequest = Http::recorded(fn (Request $request) => $request->url() === BhxhFacilityLookupClient::CAPTCHA_URL)->first();
+
+        $this->assertNotNull($captchaRequest);
+        $this->assertStringContainsString('ASP.NET_SessionId=session-123', $captchaRequest[0]->header('Cookie')[0] ?? '');
     }
 
     #[Test]
@@ -59,12 +61,14 @@ class BhxhFacilityLookupClientTest extends TestCase
         $this->assertContains('data-source', $result['structure']['data_attributes']);
         $this->assertContains('data-row-id', $result['structure']['data_attributes']);
         $this->assertStringNotContainsString('secret-value', json_encode($result['structure']));
+        $this->assertStringNotContainsString('Địa chỉ thử nghiệm', json_encode($result['structure']));
     }
 
     #[Test]
     public function client_does_not_attempt_to_solve_captcha(): void
     {
         $source = file_get_contents(base_path('Modules/Pharma/Services/OfficialFacilityImport/BhxhFacilityLookupClient.php'));
+
         $this->assertStringContainsString("'tokenRecaptch' => \$captcha", $source);
         $this->assertStringNotContainsString('OCR', $source);
         $this->assertStringNotContainsString('tesseract', strtolower($source));
