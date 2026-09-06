@@ -5,12 +5,8 @@ namespace Modules\Pharma\Services\OfficialFacilityImport;
 class BhxhProvinceCatalog
 {
     /**
-     * Source: public BHXH facility lookup province dropdown, captured 2026-09-06.
-     *
-     * BHXH publishes some duplicate display names with multiple source codes. The UI
-     * exposes one option per display name, while sourceCodesFor() preserves every
-     * published source code for runtime fallback. These codes are BHXH source
-     * identities only and must never be treated as canonical ERP province codes.
+     * BHXH source geography is deliberately separate from ERP canonical geography.
+     * Duplicate BHXH province names are source partitions, not fallback aliases.
      */
     public function all(): array
     {
@@ -49,16 +45,55 @@ class BhxhProvinceCatalog
         ));
     }
 
+    /**
+     * Source partitions belonging to one ERP-facing province label.
+     *
+     * The source code remains the durable BHXH identity. partition_name is only an
+     * operator-facing label and never replaces canonical ERP geography.
+     */
+    public function partitionsFor(string $uiCode): array
+    {
+        $codes = $this->sourceCodesFor($uiCode);
+        $provinceName = $this->provinceName($uiCode);
+
+        return array_map(fn (string $code): array => [
+            'source_code' => $code,
+            'source_name' => $provinceName,
+            'partition_name' => $this->partitionName($code, $provinceName, count($codes)),
+        ], $codes);
+    }
+
+    public function isSourceCodeFor(string $uiCode, string $sourceCode): bool
+    {
+        return in_array($sourceCode, $this->sourceCodesFor($uiCode), true);
+    }
+
     public function aliases(): array
     {
-        $aliases = [];
+        $partitions = [];
 
         foreach ($this->sourceOptions() as $code => $name) {
-            $aliases[$name] ??= [];
-            $aliases[$name][] = $code;
+            $partitions[$name] ??= [];
+            $partitions[$name][] = $code;
         }
 
-        return array_filter($aliases, fn (array $codes): bool => count($codes) > 1);
+        return array_filter($partitions, fn (array $codes): bool => count($codes) > 1);
+    }
+
+    private function partitionName(string $code, ?string $provinceName, int $partitionCount): string
+    {
+        if ($partitionCount === 1) {
+            return $provinceName ?? $code;
+        }
+
+        // Verified operator mapping: after the An Giang/Kien Giang consolidation,
+        // BHXH still exposes the two former geographic partitions independently.
+        $known = [
+            '89TTT' => 'Khu vực An Giang cũ',
+            '91TTT' => 'Khu vực Kiên Giang cũ',
+        ];
+
+        return $known[$code] ?? (($provinceName ?? 'Địa bàn BHXH').' · mã '.$code);
     }
 
     private function sourceOptions(): array
