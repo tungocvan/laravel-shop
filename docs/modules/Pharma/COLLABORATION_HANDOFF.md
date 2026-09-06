@@ -3,135 +3,142 @@
 ## Current checkpoint
 
 - Module: `Pharma`
-- Objective: **Drug Award Allocation & Hospital Contract Management**
-- Branch: `feat/pharma-drug-award-allocation-contracts`
-- PR: `#165`
-- Status: **PR READY — executable checks and UI acceptance PASS**
-- Date: 2026-09-05
+- Objective: **Official Facility Import + BHXH Source Mirror**
+- Branch: `feat/pharma-official-facility-import`
+- Base: `main` at `1f77f1575050648c143d45339d0ec8535e9dba6e`
+- Status: **PR READY — implementation complete; focused CLI, build, routes, Pint and UI gates PASS**
+- Date: 2026-09-06
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - Consolidation: **one implementation branch / one PR**
 
 ## Canonical ownership
 
-The merged Multi-source Drug Intelligence architecture remains unchanged:
+`Partner` remains the sole canonical organization master for hospitals/healthcare facilities. Pharma must not create a second Hospital/Facility master.
 
-1. `Muasamcong` owns procurement canonical data.
-2. Pharma `DrugBidAward` owns the Drug Award business canonical projection/snapshot.
-3. `Partner` is reused as the organization master for receiving hospitals; phase 1 selects active partners with `legal_type = hospital`.
-4. Pharma owns allocation and hospital-contract data below the award.
+Pharma owns two non-canonical operational layers: Official Facility import staging/audit and Official Source mirror/cache. Neither may bypass the explicit matcher/importer flow to mutate Partner.
 
-A receiving hospital is **never** inferred to be the TBMT investor. Allocation/contract mutations do not write procurement source snapshots or Muasamcong data.
+## Official import pipeline
 
-## Implemented domain foundation
+`Official XLSX/CSV -> Upload -> Pharma staging -> Validate/Normalize -> Match/Dedupe -> Preview -> Explicit checkbox selection -> Partner + PartnerSourceReference`.
 
-### Allocation
+Partner-owned generic provenance remains `(source, external_id)` in `partner_source_references`. `partners.province_code` is canonical/source-independent; BHXH codes never belong there.
 
-`pharma_drug_bid_award_allocations` links one Drug Award to one canonical Partner hospital and stores allocated quantity, effective dates, lifecycle state, notes and audit/cancellation metadata.
+## BHXH interactive lookup
 
-- `(drug_bid_award_id, partner_id)` is unique.
-- cancelled allocations can be reactivated/reused as the same canonical row.
-- active allocation total cannot exceed `DrugBidAward.quantity` on user mutation.
-- allocation cannot be reduced below committed contract quantity.
-- no hard-delete workflow is exposed.
+Workspace: `/admin/pharma/official-facilities/bhxh`.
 
-### Contract
+The integration is human-in-the-loop: ERP bootstraps the public BHXH session, loads CAPTCHA with that session, the user manually enters CAPTCHA, and ERP submits the selected BHXH source geography. No OCR, CAPTCHA solving/bypass, unattended lookup, or hidden multi-request CAPTCHA reuse is implemented.
 
-`pharma_drug_bid_award_contracts` is separate from allocation and supports many contracts per allocation.
+The observed BHXH facility listing exposes the basic facility identity used by this integration: `Mã CSKCB` and `Tên CSKCB`. `Mã CSKCB` is retained as the durable BHXH source identity for future detail enrichment.
 
-- `contract_quantity` is independent from `allocated_quantity`.
-- committed statuses are `signed`, `in_progress`, `completed`.
-- committed contract total cannot exceed allocation quantity.
-- completed contracts cannot be directly cancelled in phase 1.
+Manual BHXH lookup/sync UI verification is **PASS** as of 2026-09-06.
 
-### Quantity state
+## Canonical province vs BHXH source geography
 
-Award quantity is normalized to `decimal(20,4)` to match model/business precision.
+ERP geography and BHXH source geography are intentionally separate.
 
-Derived allocation state:
+A human-facing ERP province may map to one or more BHXH **source partitions**. Duplicate BHXH province labels are not treated as primary/fallback aliases.
 
-- `UNALLOCATED`
-- `PARTIALLY_ALLOCATED`
-- `FULLY_ALLOCATED`
-- `OVER_ALLOCATED` diagnostic only
+Verified example:
 
-`remaining_quantity = award.quantity - total_active_allocated_quantity`; negative remaining is intentionally preserved for inconsistency detection.
+`Tỉnh An Giang -> 89TTT (Khu vực An Giang cũ) + 91TTT (Khu vực Kiên Giang cũ)`.
 
-## Concurrency / integrity
+The BHXH workspace therefore uses three concepts:
 
-Allocation writes use a database transaction and `lockForUpdate()` on the parent `DrugBidAward`, then recalculate active allocation SUM before writing.
+1. `Tỉnh/Thành` — ERP-facing/canonical province label.
+2. `Vùng dữ liệu BHXH` — exact source partition/code used for BHXH requests.
+3. `Địa bàn BHXH` — source district/geography returned for that partition; it may reflect legacy administrative geography.
 
-Contract writes use a database transaction and `lockForUpdate()` on the parent allocation, then recalculate committed contract SUM before writing.
+For duplicate-name provinces whose historical partition meaning has not been verified, UI labels remain neutral and include the source code. Do not invent old-region names.
 
-This makes Livewire validation advisory rather than the only integrity barrier.
+A CAPTCHA is consumed by exactly one lookup request against the explicitly selected source partition. The old alias-fallback behavior is removed.
 
-## Authorization boundary
+## Official source mirror/cache
 
-The implementation introduces independent permissions:
+Approved flow:
 
-- `view_pharma_allocations`
-- `manage_pharma_allocations`
-- `cancel_pharma_allocations`
-- `view_pharma_contracts`
-- `manage_pharma_contracts`
-- `cancel_pharma_contracts`
+`BHXH live lookup -> server-side snapshot -> queued persistence -> local source mirror -> later Official Facility staging -> Partner`.
 
-`edit_pharma` alone does not grant allocation/contract mutation rights. Permission records are created but are not automatically granted to every existing role.
+Pharma-owned mirror tables:
 
-## UI / export foundation
+- `pharma_official_source_sync_batches`;
+- `pharma_official_source_facilities`.
 
-- Drug Award rows expose **Phân bổ** only to users with allocation view permission.
-- Workspace route: `/admin/pharma/drug-bid-awards/{id}/allocations`.
-- Workspace keeps procurement context read-only and labels the original party explicitly as **Chủ đầu tư TBMT**.
-- KPI: winning, allocated, remaining, hospital count and derived allocation state.
-- bounded pagination: `10/25/50/100`; no unbounded `All`.
-- checkbox selection is page-scoped.
-- allocation and contract CSV exports follow: selected rows when selection exists; otherwise all rows matching active filters.
-- controlled pause/cancel actions preserve the domain audit boundary.
-- Drug Award filter workspace follows the established `admin/muasamcong/kqlcnt-awards` interaction pattern: searchable dropdowns for TBMT, investor, medicine/HSSP and contractor, with bounded option lists and shared `<x-select-search>`/TomSelect behavior.
+Source identity is unique by `(source, external_id)`. The mirror keeps listing payload (`raw_payload`, `payload_hash`) separate from reserved future enrichment (`source_details`, `details_hash`, `details_synced_at`). Basic listing sync must never erase enrichment.
 
-The existing Drug Award HSSP enrichment/provenance indicators (`Bổ sung từ HSSP`, source lineage) are retained.
+The server session owns the successful lookup snapshot; the browser does not resubmit arbitrary facility payloads for persistence.
 
-## Canonical hospital management UX
+## Synchronization and completeness safety
 
-Hospital master data remains owned by `Partner`; Pharma does not introduce a duplicate Hospital model/table.
+Explicit sync creates a batch and dispatches `PersistOfficialSourceSnapshotJob`. Batch states are `QUEUED`, `RUNNING`, `COMPLETED`, and `FAILED`; the BHXH UI polls local batch state and shows completion/failure without making additional BHXH lookup requests.
 
-- **Quản lý bệnh viện** opens the canonical Partner list scoped to `legal_type = hospital`.
-- **+ Thêm bệnh viện** opens the canonical Partner create form prefilled with `legal_type = hospital`.
-- Partner import accepts `name` + `legal_type` as the minimum hospital identity, keeps optional profile fields, avoids null-tax-code collisions, and retains bounded pagination/export semantics.
-- Pharma allocations reference the canonical Partner through `partner_id`.
-- Procurement investor remains separate from receiving-hospital allocation.
+Current BHXH `-- Toàn vùng --` lookup is persisted with `sync_scope=source_partition`, not as a complete province snapshot. A source-partition or district snapshot may create/update/reactivate seen facilities but **must not stale unseen facilities**.
 
-## Final verification evidence
+Only a future snapshot explicitly proven `province_complete` may stale previously active records that are absent from that complete snapshot. Records are never hard-deleted by synchronization.
 
-Current closeout evidence:
+This protects the mirror from false stale transitions when BHXH responses are incomplete, partitioned, paginated, or administratively transitional.
 
-- full `tests/Feature/Pharma` regression: **57 tests / 324 assertions PASS**;
-- focused Pint on changed Pharma/Partner implementation and regression files: **10 files PASS**;
-- frontend build: **PASS**, Vite **34 modules transformed**; subsequent commits were PHP/test/document formatting only and did not modify frontend assets;
-- manual UI acceptance: **PASS**, including allocation/contract workspace, canonical hospital entry points, Partner hospital UX and KQLCNT-style Drug Award searchable filters;
-- branch comparison against `main`: branch is ahead with no base drift at closeout;
-- GitHub reported no commit status checks/workflow runs for this PR head during closeout, so no CI PASS is claimed.
+Bulk whole-province/district orchestration is currently **deferred** because CAPTCHA behavior prevents safe unattended multi-request synchronization.
 
-Whole-module Pint still reports legacy style debt in unrelated pre-existing Pharma files. Those files are outside this objective and were intentionally not reformatted to avoid scope creep.
+## Source mirror workspace
+
+Workspace: `/admin/pharma/official-facilities/source`.
+
+The workspace uses `<x-search>` and live filters. Search covers `Mã CSKCB`, facility name, province name/code, district name/code. Dropdown changes apply immediately without a separate Filter button.
+
+Filters include source, canonical `Tỉnh/Thành`, `Vùng nguồn BHXH`, Active/Stale, and bounded pagination `10/25/50/100`. Province filtering groups multiple source partitions under one ERP-facing province; partition filtering can inspect each source code independently. Query state is retained across pagination.
+
+Manual verification of live filters and An Giang source-partition behavior is **UI PASS**.
+
+## Matching / Partner protection
+
+Matching priority remains deterministic: source+external_id, tax code, normalized name+canonical province, normalized name+address. Classifications remain `NEW`, `EXACT`, `LIKELY_MATCH`, `CONFLICT`, `INVALID`; no fuzzy/AI auto-merge.
+
+Existing Partner fields remain protected: no automatic rename or overwrite of phone/email/contact person; address/tax/canonical province are safe-fill only with conflicts blocked/reviewed. Same source identity must not duplicate Partner.
+
+## Authorization
+
+Capabilities:
+
+- `view_pharma_official_facilities`;
+- `sync_pharma_official_facilities`;
+- `import_pharma_official_facilities`;
+- `resolve_pharma_official_facility_conflicts`.
+
+`sync_*` means external source -> Pharma local mirror. `import_*` means staging -> Partner canonical master.
+
+## Verified acceptance state
+
+Confirmed locally during this objective:
+
+- Official Facility Import focused gate previously: **13 tests / 33 assertions PASS**.
+- Latest combined BHXH/source-mirror focused gate: **19 tests / 102 assertions PASS**.
+- Final Pharma Unit regression: **40 tests / 170 assertions PASS**.
+- Pint focused gate: **16 files PASS**.
+- Official Facility route inventory: **13 routes present**.
+- Vite production build: **PASS**.
+- Working tree before final regression: **clean and synchronized with origin**.
+- BHXH lookup UI: **PASS**.
+- source mirror sync-status UI: **PASS**.
+- `<x-search>` + live filter UI: **PASS**.
+- An Giang canonical province + `89TTT/91TTT` source-partition UI: **PASS**.
+
+A stale test expectation that asserted `permission:view_pharma_official_facilities` was corrected to the actual canonical Laravel middleware contract `can:view_pharma_official_facilities`; runtime authorization was not weakened or changed.
+
+No further local gate is required unless a subsequent code change affects behavior or UI.
 
 ## Deferred scope
 
-Not implemented in this objective:
-
-- delivery / goods receipt;
-- inventory;
-- invoice reconciliation;
-- automatic consumption;
-- allocation Excel import;
-- AI/fuzzy hospital matching;
-- contract amendment engine.
-
-Schema/domain boundaries intentionally leave room for future delivery and amendment entities.
-
-## Merge handoff
-
-PR #165 is ready for manual merge once GitHub reports a mergeable state. No additional application changes are required from the accepted implementation unless GitHub exposes a repository-level merge gate.
+- automatic/unattended CAPTCHA solving or bypass;
+- bulk whole-province/district synchronization requiring multiple CAPTCHA-protected requests;
+- scheduled BHXH lookup requiring CAPTCHA;
+- automatic source mirror -> Partner writes;
+- fuzzy/AI facility matching;
+- source-specific IDs on `partners`;
+- source-detail enrichment implementation beyond reserved `source_details`;
+- PDF import;
+- unrelated delivery/inventory/invoice changes.
 
 ## Prior checkpoint
 
-The Multi-source Drug Intelligence objective was merged to `main` via PR #164 before this branch began. Its canonical ownership, HSSP enrichment and source-provenance behavior remain baseline contracts for this implementation.
+Drug Award Allocation & Hospital Contract Management was merged to `main` via PR #165 before this branch started. Partner remains the canonical hospital organization master established by that objective.

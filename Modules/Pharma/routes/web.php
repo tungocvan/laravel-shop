@@ -1,7 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Pharma\Http\Controllers\BhxhOfficialFacilityLookupController;
 use Modules\Pharma\Http\Controllers\DrugBidAwardController;
+use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
+use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
+use Modules\Pharma\Http\Controllers\OfficialSourceSyncController;
 use Modules\Pharma\Http\Controllers\PharmaController;
 use Modules\Pharma\Http\Controllers\PharmaDashboardController;
 use Modules\Pharma\Http\Controllers\PriceListController;
@@ -9,6 +13,31 @@ use Modules\Pharma\Http\Controllers\SupplierTrackingController;
 
 Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:admin'])->group(function () {
     Route::get('/', PharmaDashboardController::class)->middleware('can:view_pharma')->name('dashboard');
+
+    Route::middleware('can:view_pharma_official_facilities')->group(function () {
+        Route::get('/official-facilities/import', [OfficialFacilityImportController::class, 'index'])->name('official-facilities.index');
+        Route::get('/official-facilities/import/template', OfficialFacilityImportTemplateController::class)->name('official-facilities.template');
+        Route::get('/official-facilities/source', [OfficialSourceSyncController::class, 'index'])->name('official-facilities.source.index');
+        Route::get('/official-facilities/source/sync/{batch}', [OfficialSourceSyncController::class, 'status'])->name('official-facilities.source.sync-status');
+        Route::get('/official-facilities/bhxh', [BhxhOfficialFacilityLookupController::class, 'index'])->name('official-facilities.bhxh.index');
+        Route::get('/official-facilities/bhxh/captcha', [BhxhOfficialFacilityLookupController::class, 'captcha'])->name('official-facilities.bhxh.captcha');
+        Route::get('/official-facilities/bhxh/districts', [BhxhOfficialFacilityLookupController::class, 'districts'])->name('official-facilities.bhxh.districts');
+        Route::post('/official-facilities/bhxh/lookup', [BhxhOfficialFacilityLookupController::class, 'lookup'])->name('official-facilities.bhxh.lookup');
+    });
+
+    Route::middleware('can:sync_pharma_official_facilities')->group(function () {
+        Route::post('/official-facilities/source/sync', [OfficialSourceSyncController::class, 'store'])->name('official-facilities.source.sync');
+    });
+
+    Route::middleware('can:import_pharma_official_facilities')->group(function () {
+        Route::post('/official-facilities/import', [OfficialFacilityImportController::class, 'store'])->name('official-facilities.store');
+        Route::put('/official-facilities/import/{batch}/selection', [OfficialFacilityImportController::class, 'selection'])->name('official-facilities.selection');
+        Route::post('/official-facilities/import/{batch}/run', [OfficialFacilityImportController::class, 'importSelected'])->name('official-facilities.run');
+    });
+
+    Route::put('/official-facilities/import/rows/{row}/resolve', [OfficialFacilityImportController::class, 'resolve'])
+        ->middleware('can:resolve_pharma_official_facility_conflicts')
+        ->name('official-facilities.resolve');
 
     Route::prefix('hssp')->name('hssp.')->group(function () {
         Route::get('/', [PharmaController::class, 'index'])->middleware('can:view_pharma')->name('index');
