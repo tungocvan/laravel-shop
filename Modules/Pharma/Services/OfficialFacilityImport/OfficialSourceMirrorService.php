@@ -97,11 +97,14 @@ class OfficialSourceMirrorService
                 }
             }
 
+            // Current interactive BHXH snapshots are source-partition or district
+            // snapshots whose completeness is not proven. They must never stale old
+            // records. A future verified aggregate may explicitly use province_complete.
             $stale = 0;
-            if ($batch->sync_scope === 'province') {
+            if ($batch->sync_scope === 'province_complete') {
                 $staleQuery = OfficialSourceFacility::query()
                     ->where('source', $batch->source)
-                    ->where('source_province_code', $batch->source_province_code)
+                    ->where('province_name', $batch->province_name)
                     ->where('is_active', true);
 
                 if ($seenIds !== []) {
