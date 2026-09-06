@@ -80,8 +80,8 @@ class OfficialSourceMirrorService
                     'normalized_name' => $this->normalizer->identity($facilityName),
                     'source_province_code' => $batch->source_province_code,
                     'province_name' => $batch->province_name,
-                    'source_district_code' => $batch->source_district_code,
-                    'district_name' => $batch->district_name,
+                    'source_district_code' => $batch->source_district_code ?: $record->source_district_code,
+                    'district_name' => $batch->district_name ?: $record->district_name,
                     'raw_payload' => $rawPayload,
                     'payload_hash' => $hash,
                     'is_active' => true,
@@ -90,7 +90,11 @@ class OfficialSourceMirrorService
                     'last_sync_batch_id' => $batch->id,
                 ]);
 
-                $changed ? $updated++ : $unchanged++;
+                if ($changed) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
             }
 
             $stale = 0;
