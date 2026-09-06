@@ -169,7 +169,10 @@ class MasothueLookupService
 
     protected function normalizeName(string $value): string
     {
-        return mb_strtolower($this->cleanText($value), 'UTF-8');
+        $value = $this->normalizeLabel($value);
+        $value = (string) preg_replace('/[^a-z0-9]+/u', ' ', $value);
+
+        return trim((string) preg_replace('/\s+/u', ' ', $value));
     }
 
     protected function normalizeLabel(string $value): string
