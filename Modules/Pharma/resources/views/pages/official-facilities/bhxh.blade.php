@@ -19,7 +19,7 @@
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5">
                 <h2 class="text-lg font-semibold text-slate-900">Tra cứu trực tuyến BHXH</h2>
-                <p class="mt-1 text-sm text-slate-500">Chọn Tỉnh/Thành theo danh mục công khai của BHXH. Hệ thống tự gửi mã nguồn tương ứng, bạn không cần nhớ mã như <strong>92TTT</strong>.</p>
+                <p class="mt-1 text-sm text-slate-500">Chọn Tỉnh/Thành và Quận/Huyện theo danh mục BHXH. Mã nguồn được gửi tự động phía sau, không cần nhập tay.</p>
             </div>
 
             <form data-bhxh-lookup-form class="grid gap-4 lg:grid-cols-4">
@@ -32,11 +32,14 @@
                             <option value="{{ $code }}" @selected($code === '92TTT')>{{ $name }}</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-slate-500">Mã BHXH được giữ ở phía sau option và gửi tự động khi tra cứu.</p>
+                    <p class="mt-1 text-xs text-slate-500">Danh sách hiển thị đã loại tên tỉnh/thành trùng lặp từ dropdown nguồn BHXH.</p>
                 </div>
                 <div>
-                    <label for="ma_quan_huyen" class="mb-1 block text-sm font-medium text-slate-700">Mã quận/huyện</label>
-                    <input id="ma_quan_huyen" name="ma_quan_huyen" maxlength="50" class="min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500" placeholder="Để trống = toàn tỉnh">
+                    <label for="ma_quan_huyen" class="mb-1 block text-sm font-medium text-slate-700">Quận/Huyện</label>
+                    <select id="ma_quan_huyen" name="ma_quan_huyen" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500">
+                        <option value="">-- Toàn tỉnh --</option>
+                    </select>
+                    <p data-district-status class="mt-1 text-xs text-slate-500">Đang tải danh sách quận/huyện từ BHXH...</p>
                 </div>
                 <div>
                     <label for="captcha" class="mb-1 block text-sm font-medium text-slate-700">Mã xác nhận</label>
@@ -84,6 +87,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.querySelector('[data-bhxh-lookup-form]');
+            const provinceSelect = document.querySelector('#ma_tinh');
+            const districtSelect = document.querySelector('#ma_quan_huyen');
+            const districtStatus = document.querySelector('[data-district-status]');
             const captchaImage = document.querySelector('[data-bhxh-captcha]');
             const refreshCaptcha = document.querySelector('[data-refresh-captcha]');
             const button = document.querySelector('[data-lookup-button]');
@@ -124,7 +130,48 @@
                 });
             };
 
+            const loadDistricts = async () => {
+                districtSelect.innerHTML = '<option value="">-- Toàn tỉnh --</option>';
+
+                if (!provinceSelect.value) {
+                    districtSelect.disabled = true;
+                    districtStatus.textContent = 'Chọn Tỉnh/Thành để tải danh sách quận/huyện.';
+                    return;
+                }
+
+                districtSelect.disabled = true;
+                districtStatus.textContent = 'Đang tải danh sách quận/huyện từ BHXH...';
+
+                try {
+                    const url = new URL(`{{ route('admin.pharma.official-facilities.bhxh.districts') }}`, window.location.origin);
+                    url.searchParams.set('ma_tinh', provinceSelect.value);
+                    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload.message ?? 'Không tải được danh sách quận/huyện.');
+                    }
+
+                    (payload.districts ?? []).forEach((district) => {
+                        const option = document.createElement('option');
+                        option.value = district.code;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+
+                    districtStatus.textContent = (payload.districts ?? []).length > 0
+                        ? `Đã tải ${(payload.districts ?? []).length} quận/huyện từ BHXH.`
+                        : 'BHXH không trả danh sách quận/huyện; vẫn có thể tra toàn tỉnh.';
+                } catch (error) {
+                    districtStatus.textContent = error.message || 'Không tải được danh sách quận/huyện; vẫn có thể tra toàn tỉnh.';
+                } finally {
+                    districtSelect.disabled = false;
+                }
+            };
+
             refreshCaptcha.addEventListener('click', reloadCaptcha);
+            provinceSelect.addEventListener('change', loadDistricts);
+            loadDistricts();
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
