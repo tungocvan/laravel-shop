@@ -17,46 +17,51 @@
         </header>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" class="grid gap-3 lg:grid-cols-12">
+            <form
+                method="GET"
+                action="{{ route('admin.pharma.official-facilities.source.index') }}"
+                autocomplete="off"
+                data-live-filter-form
+                class="grid gap-3 lg:grid-cols-12"
+            >
                 <x-search
                     name="search"
                     value="{{ request('search') }}"
                     placeholder="Tìm mã, tên cơ sở, tỉnh/thành, quận/huyện..."
                     class="lg:col-span-4"
+                    data-live-search
                 />
 
-                <select name="source" autocomplete="off" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="source" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả nguồn</option>
                     <option value="bhxh" @selected(request('source') === 'bhxh')>BHXH</option>
                 </select>
 
-                <select name="province" autocomplete="off" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="province" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả tỉnh/thành</option>
                     @foreach ($provinceOptions as $province)
                         <option value="{{ $province->source_province_code }}" @selected(request('province') === $province->source_province_code)>{{ $province->province_name }}</option>
                     @endforeach
                 </select>
 
-                <select name="status" autocomplete="off" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="status" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả trạng thái</option>
                     <option value="active" @selected(request('status') === 'active')>Active</option>
                     <option value="stale" @selected(request('status') === 'stale')>Stale</option>
                 </select>
 
-                <div class="flex gap-2 lg:col-span-2">
-                    <select name="per_page" autocomplete="off" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-                        @foreach ([10, 25, 50, 100] as $size)
-                            <option value="{{ $size }}" @selected((int) request('per_page', 25) === $size)>{{ $size }} / trang</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-sky-300">Lọc</button>
-                </div>
+                <select name="per_page" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                    @foreach ([10, 25, 50, 100] as $size)
+                        <option value="{{ $size }}" @selected((int) request('per_page', 25) === $size)>{{ $size }} / trang</option>
+                    @endforeach
+                </select>
 
-                @if (request()->hasAny(['search', 'source', 'province', 'status', 'per_page']))
-                    <div class="lg:col-span-12 flex justify-end">
+                <div class="flex items-center justify-between gap-3 lg:col-span-12">
+                    <p data-live-filter-status class="text-xs text-slate-500">Bộ lọc áp dụng tự động khi thay đổi lựa chọn; ô tìm kiếm cập nhật sau khi ngừng gõ.</p>
+                    @if (request()->hasAny(['search', 'source', 'province', 'status', 'per_page']))
                         <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
-                    </div>
-                @endif
+                    @endif
+                </div>
             </form>
         </section>
 
@@ -109,4 +114,43 @@
             </div>
         </section>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('[data-live-filter-form]');
+            if (!form) return;
+
+            const search = form.querySelector('[data-live-search]');
+            const filters = form.querySelectorAll('[data-live-filter]');
+            const status = form.querySelector('[data-live-filter-status]');
+            let debounceTimer = null;
+            let submitting = false;
+
+            const submitFilters = () => {
+                if (submitting) return;
+                submitting = true;
+                window.clearTimeout(debounceTimer);
+
+                if (status) {
+                    status.textContent = 'Đang áp dụng bộ lọc...';
+                    status.className = 'text-xs font-medium text-sky-700';
+                }
+
+                form.requestSubmit();
+            };
+
+            filters.forEach((filter) => filter.addEventListener('change', submitFilters));
+
+            search?.addEventListener('input', () => {
+                window.clearTimeout(debounceTimer);
+                if (status) {
+                    status.textContent = 'Đang chờ nhập xong để tìm kiếm...';
+                    status.className = 'text-xs text-slate-500';
+                }
+                debounceTimer = window.setTimeout(submitFilters, 450);
+            });
+
+            search?.addEventListener('search', submitFilters);
+        });
+    </script>
 @endsection
