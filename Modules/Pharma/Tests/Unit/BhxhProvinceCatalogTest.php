@@ -19,23 +19,28 @@ class BhxhProvinceCatalogTest extends TestCase
     }
 
     #[Test]
-    public function duplicate_display_names_keep_distinct_source_codes(): void
+    public function duplicate_display_names_are_hidden_from_ui_but_aliases_are_preserved(): void
     {
-        $catalog = app(BhxhProvinceCatalog::class)->all();
+        $service = app(BhxhProvinceCatalog::class);
+        $catalog = $service->all();
+        $aliases = $service->aliases();
 
-        $this->assertSame('Tỉnh An Giang', $catalog['89TTT']);
-        $this->assertSame('Tỉnh An Giang', $catalog['91TTT']);
-        $this->assertContains('89TTT', app(BhxhProvinceCatalog::class)->codes());
-        $this->assertContains('91TTT', app(BhxhProvinceCatalog::class)->codes());
+        $this->assertSame(1, count(array_filter($catalog, fn ($name) => $name === 'Tỉnh An Giang')));
+        $this->assertSame(['89TTT', '91TTT'], $aliases['Tỉnh An Giang']);
+        $this->assertContains('89TTT', $service->codes());
+        $this->assertNotContains('91TTT', $service->codes());
     }
 
     #[Test]
-    public function bhxh_lookup_view_uses_a_province_select_not_a_manual_code_input(): void
+    public function bhxh_lookup_view_uses_province_and_district_selects(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/official-facilities/bhxh.blade.php'));
 
         $this->assertStringContainsString('<select id="ma_tinh" name="ma_tinh"', $view);
         $this->assertStringContainsString('- Chọn Tỉnh/Thành -', $view);
+        $this->assertStringContainsString('<select id="ma_quan_huyen" name="ma_quan_huyen"', $view);
+        $this->assertStringContainsString('-- Toàn tỉnh --', $view);
         $this->assertStringNotContainsString('<input id="ma_tinh"', $view);
+        $this->assertStringNotContainsString('<input id="ma_quan_huyen"', $view);
     }
 }
