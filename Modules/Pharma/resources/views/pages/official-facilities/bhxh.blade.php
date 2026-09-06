@@ -107,6 +107,7 @@
             const captchaInput = document.querySelector('#captcha');
             const syncButton = document.querySelector('[data-sync-source]');
             const syncMessage = document.querySelector('[data-sync-message]');
+            let syncPollTimer = null;
 
             const reloadCaptcha = () => {
                 captchaImage.src = `{{ route('admin.pharma.official-facilities.bhxh.captcha') }}?v=${Date.now()}`;
@@ -118,6 +119,12 @@
                 if (!element) return;
                 element.textContent = text;
                 element.className = `mt-4 rounded-xl border px-4 py-3 text-sm ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`;
+            };
+
+            const showPendingMessage = (text) => {
+                if (!syncMessage) return;
+                syncMessage.textContent = text;
+                syncMessage.className = 'mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800';
             };
 
             const renderRows = (facilities) => {
@@ -178,6 +185,49 @@
                 }
             };
 
+            const pollSyncStatus = async (batchId) => {
+                const statusBase = `{{ route('admin.pharma.official-facilities.source.sync-status', ['batch' => '__BATCH__']) }}`;
+                const statusUrl = statusBase.replace('__BATCH__', batchId);
+
+                try {
+                    const response = await fetch(statusUrl, {
+                        headers: { 'Accept': 'application/json' },
+                        cache: 'no-store',
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.message ?? 'Không đọc được trạng thái batch.');
+
+                    if (payload.status === 'COMPLETED') {
+                        window.clearTimeout(syncPollTimer);
+                        syncPollTimer = null;
+                        syncButton.textContent = 'Đồng bộ hoàn tất';
+                        showMessage(
+                            syncMessage,
+                            `Đồng bộ hoàn tất. Batch #${payload.batch_id} · ${payload.fetched_count ?? 0} cơ sở · tạo mới ${payload.created_count ?? 0} · cập nhật ${payload.updated_count ?? 0} · không đổi ${payload.unchanged_count ?? 0}.`,
+                            true,
+                        );
+                        return;
+                    }
+
+                    if (payload.status === 'FAILED') {
+                        window.clearTimeout(syncPollTimer);
+                        syncPollTimer = null;
+                        syncButton.textContent = 'Đồng bộ thất bại';
+                        showMessage(syncMessage, payload.error_message || `Batch #${payload.batch_id} đồng bộ thất bại. Hãy tra cứu lại trước khi tạo batch mới.`, false);
+                        return;
+                    }
+
+                    syncButton.textContent = payload.status === 'RUNNING' ? 'Đang đồng bộ...' : 'Đang chờ queue...';
+                    showPendingMessage(`Batch #${payload.batch_id} · ${payload.status === 'RUNNING' ? 'đang đồng bộ dữ liệu...' : 'đang chờ worker xử lý...'}`);
+                    syncPollTimer = window.setTimeout(() => pollSyncStatus(batchId), 1500);
+                } catch (error) {
+                    window.clearTimeout(syncPollTimer);
+                    syncPollTimer = null;
+                    syncButton.textContent = 'Kiểm tra kho dữ liệu';
+                    showMessage(syncMessage, error.message || 'Không thể đọc trạng thái đồng bộ. Kiểm tra kho dữ liệu nguồn.', false);
+                }
+            };
+
             refreshCaptcha.addEventListener('click', reloadCaptcha);
             provinceSelect.addEventListener('change', () => {
                 if (syncButton) syncButton.disabled = true;
@@ -192,7 +242,10 @@
                 event.preventDefault();
                 button.disabled = true;
                 button.textContent = 'Đang tra cứu...';
-                if (syncButton) syncButton.disabled = true;
+                if (syncButton) {
+                    syncButton.disabled = true;
+                    syncButton.textContent = 'Đồng bộ dữ liệu tỉnh này';
+                }
 
                 try {
                     const response = await fetch(`{{ route('admin.pharma.official-facilities.bhxh.lookup') }}`, {
@@ -234,10 +287,15 @@
                     });
                     const payload = await response.json();
 
-                    showMessage(syncMessage, response.ok
-                        ? `${payload.message} Batch #${payload.batch_id} · ${payload.count} cơ sở.`
-                        : (payload.message ?? 'Không thể tạo batch đồng bộ.'), response.ok);
-                    if (response.ok) syncButton.textContent = 'Đã đưa vào hàng đợi';
+                    if (!response.ok) {
+                        showMessage(syncMessage, payload.message ?? 'Không thể tạo batch đồng bộ.', false);
+                        syncButton.textContent = 'Đồng bộ dữ liệu tỉnh này';
+                        return;
+                    }
+
+                    syncButton.textContent = 'Đang chờ queue...';
+                    showPendingMessage(`${payload.message} Batch #${payload.batch_id} · ${payload.count} cơ sở. Đang theo dõi trạng thái...`);
+                    pollSyncStatus(payload.batch_id);
                 } catch (error) {
                     showMessage(syncMessage, 'Không thể tạo yêu cầu đồng bộ. Kiểm tra queue/log Laravel.', false);
                     syncButton.disabled = false;
