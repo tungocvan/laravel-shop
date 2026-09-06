@@ -18,6 +18,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/official-facilities/import/template', OfficialFacilityImportTemplateController::class)->name('official-facilities.template');
         Route::get('/official-facilities/bhxh', [BhxhOfficialFacilityLookupController::class, 'index'])->name('official-facilities.bhxh.index');
         Route::get('/official-facilities/bhxh/captcha', [BhxhOfficialFacilityLookupController::class, 'captcha'])->name('official-facilities.bhxh.captcha');
+        Route::get('/official-facilities/bhxh/districts', [BhxhOfficialFacilityLookupController::class, 'districts'])->name('official-facilities.bhxh.districts');
         Route::post('/official-facilities/bhxh/lookup', [BhxhOfficialFacilityLookupController::class, 'lookup'])->name('official-facilities.bhxh.lookup');
     });
 
