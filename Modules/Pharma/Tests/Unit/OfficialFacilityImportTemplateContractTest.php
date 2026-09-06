@@ -12,7 +12,7 @@ class OfficialFacilityImportTemplateContractTest extends TestCase
         $route = collect(Route::getRoutes())->first(fn ($route) => $route->getName() === 'admin.pharma.official-facilities.template');
 
         $this->assertNotNull($route);
-        $this->assertContains('permission:view_pharma_official_facilities', $route->gatherMiddleware());
+        $this->assertContains('can:view_pharma_official_facilities', $route->gatherMiddleware());
     }
 
     public function test_workspace_exposes_excel_template_download_action(): void
