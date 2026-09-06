@@ -19,9 +19,25 @@ class BhxhFacilityLookupClient
     public function captcha(): array
     {
         try {
+            $bootstrap = Http::timeout(15)
+                ->withHeaders($this->browserHeaders())
+                ->get(self::REFERER_URL);
+        } catch (ConnectionException $exception) {
+            throw new RuntimeException('Không thể kết nối cổng BHXH để khởi tạo phiên tra cứu.', previous: $exception);
+        }
+
+        if (! $bootstrap->successful()) {
+            throw new RuntimeException('Cổng BHXH trả lỗi khi khởi tạo phiên tra cứu (HTTP '.$bootstrap->status().').');
+        }
+
+        $cookies = $this->extractCookies($bootstrap->headers()['Set-Cookie'] ?? []);
+
+        try {
             $response = Http::timeout(15)
                 ->accept('*/*')
-                ->withHeaders($this->browserHeaders())
+                ->withHeaders(array_merge($this->browserHeaders(), [
+                    'Cookie' => $this->cookieHeader($cookies),
+                ]))
                 ->get(self::CAPTCHA_URL);
         } catch (ConnectionException $exception) {
             throw new RuntimeException('Không thể kết nối cổng BHXH để tải CAPTCHA.', previous: $exception);
@@ -31,7 +47,10 @@ class BhxhFacilityLookupClient
             throw new RuntimeException('Cổng BHXH trả lỗi khi tải CAPTCHA (HTTP '.$response->status().').');
         }
 
-        $cookies = $this->extractCookies($response->headers()['Set-Cookie'] ?? []);
+        $cookies = array_merge(
+            $cookies,
+            $this->extractCookies($response->headers()['Set-Cookie'] ?? []),
+        );
 
         return [
             'body' => $response->body(),
@@ -46,27 +65,31 @@ class BhxhFacilityLookupClient
             throw new RuntimeException('Phiên CAPTCHA BHXH chưa tồn tại hoặc đã hết hạn. Hãy tải CAPTCHA mới.');
         }
 
+        $payload = http_build_query([
+            'MaTinh' => $provinceCode,
+            'MaQuanHuyen' => $districtCode ?? '',
+            'tokenRecaptch' => $captcha,
+        ], '', '&', PHP_QUERY_RFC1738);
+
         try {
             $response = Http::timeout(20)
-                ->asForm()
                 ->withHeaders(array_merge($this->browserHeaders(), [
                     'Accept' => 'text/html, */*; q=0.01',
-                    'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
                     'Cookie' => $this->cookieHeader($cookies),
                     'Origin' => 'https://baohiemxahoi.gov.vn',
                     'X-Requested-With' => 'XMLHttpRequest',
                 ]))
-                ->post(self::LOOKUP_URL, [
-                    'MaTinh' => $provinceCode,
-                    'MaQuanHuyen' => $districtCode ?? '',
-                    'tokenRecaptch' => $captcha,
-                ]);
+                ->withBody($payload, 'application/x-www-form-urlencoded; charset=UTF-8')
+                ->post(self::LOOKUP_URL);
         } catch (ConnectionException $exception) {
             throw new RuntimeException('Không thể kết nối cổng BHXH để tra cứu cơ sở KCB.', previous: $exception);
         }
 
         if (! $response->successful()) {
-            throw new RuntimeException('Cổng BHXH trả lỗi khi tra cứu cơ sở KCB (HTTP '.$response->status().').');
+            $diagnostic = $this->cleanText(strip_tags($response->body()));
+            $suffix = $diagnostic !== '' ? ' '.$this->truncate($diagnostic, 180) : '';
+
+            throw new RuntimeException('Cổng BHXH trả lỗi khi tra cứu cơ sở KCB (HTTP '.$response->status().').'.$suffix);
         }
 
         return [
@@ -127,7 +150,8 @@ class BhxhFacilityLookupClient
     {
         return [
             'Referer' => self::REFERER_URL,
-            'User-Agent' => 'Mozilla/5.0 (compatible; Laravel ERP Official Facility Lookup)',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+            'Accept-Language' => 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
             'Cache-Control' => 'no-cache',
             'Pragma' => 'no-cache',
         ];
@@ -167,5 +191,10 @@ class BhxhFacilityLookupClient
         $value = preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
 
         return $value;
+    }
+
+    private function truncate(string $value, int $length): string
+    {
+        return mb_strlen($value) <= $length ? $value : mb_substr($value, 0, $length).'…';
     }
 }
