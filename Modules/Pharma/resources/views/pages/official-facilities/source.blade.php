@@ -17,31 +17,46 @@
         </header>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <form method="GET" class="grid gap-3 md:grid-cols-5">
-                <input name="search" value="{{ request('search') }}" class="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Mã CSKCB hoặc tên cơ sở">
-                <select name="source" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" class="grid gap-3 lg:grid-cols-12">
+                <x-search
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Tìm mã, tên cơ sở, tỉnh/thành, quận/huyện..."
+                    class="lg:col-span-4"
+                />
+
+                <select name="source" autocomplete="off" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả nguồn</option>
                     <option value="bhxh" @selected(request('source') === 'bhxh')>BHXH</option>
                 </select>
-                <select name="province" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+
+                <select name="province" autocomplete="off" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả tỉnh/thành</option>
                     @foreach ($provinceOptions as $province)
                         <option value="{{ $province->source_province_code }}" @selected(request('province') === $province->source_province_code)>{{ $province->province_name }}</option>
                     @endforeach
                 </select>
-                <select name="status" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+
+                <select name="status" autocomplete="off" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả trạng thái</option>
                     <option value="active" @selected(request('status') === 'active')>Active</option>
                     <option value="stale" @selected(request('status') === 'stale')>Stale</option>
                 </select>
-                <div class="flex gap-2">
-                    <select name="per_page" class="min-h-11 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-                        @foreach ([10,25,50,100] as $size)
+
+                <div class="flex gap-2 lg:col-span-2">
+                    <select name="per_page" autocomplete="off" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                        @foreach ([10, 25, 50, 100] as $size)
                             <option value="{{ $size }}" @selected((int) request('per_page', 25) === $size)>{{ $size }} / trang</option>
                         @endforeach
                     </select>
-                    <button class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-sky-300">Lọc</button>
+                    <button type="submit" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-sky-300">Lọc</button>
                 </div>
+
+                @if (request()->hasAny(['search', 'source', 'province', 'status', 'per_page']))
+                    <div class="lg:col-span-12 flex justify-end">
+                        <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
+                    </div>
+                @endif
             </form>
         </section>
 
@@ -49,7 +64,7 @@
             <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Dữ liệu đã đồng bộ</h2>
-                    <p class="mt-1 text-sm text-slate-500">Identity nguồn: <code>(source, external_id)</code>. Bản ghi stale được giữ lại để phục vụ lịch sử.</p>
+                    <p class="mt-1 text-sm text-slate-500">Identity nguồn: <code>(source, external_id)</code>. Ô tìm kiếm áp dụng cho mã CSKCB, tên cơ sở, tỉnh/thành và quận/huyện.</p>
                 </div>
                 <div class="text-sm font-semibold text-slate-700">{{ number_format($facilities->total()) }} cơ sở</div>
             </div>
@@ -70,7 +85,7 @@
                                 <td class="px-4 py-3 text-slate-600">{{ optional($facility->last_synced_at)->format('d/m/Y H:i') ?: '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-500">Chưa có dữ liệu nguồn đã đồng bộ.</td></tr>
+                            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
