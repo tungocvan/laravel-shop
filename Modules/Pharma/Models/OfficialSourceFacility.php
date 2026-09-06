@@ -15,6 +15,8 @@ class OfficialSourceFacility extends Model
     {
         return [
             'raw_payload' => 'array',
+            'source_details' => 'array',
+            'details_synced_at' => 'datetime',
             'is_active' => 'boolean',
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
