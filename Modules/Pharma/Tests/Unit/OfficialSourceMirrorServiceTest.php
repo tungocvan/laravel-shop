@@ -73,8 +73,10 @@ class OfficialSourceMirrorServiceTest extends TestCase
         $service->persist($districtBatch, [$this->facilities()[0]]);
         $districtBatch->refresh();
 
+        $otherFacility = OfficialSourceFacility::query()->where('external_id', '94170')->firstOrFail();
+
         $this->assertSame(0, $districtBatch->stale_count);
-        $this->assertTrue(OfficialSourceFacility::query()->where('external_id', '94170')->value('is_active'));
+        $this->assertTrue($otherFacility->is_active);
     }
 
     #[Test]
