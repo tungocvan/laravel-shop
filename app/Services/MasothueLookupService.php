@@ -148,7 +148,10 @@ class MasothueLookupService
     {
         $document = new DOMDocument;
         $previous = libxml_use_internal_errors(true);
-        $loaded = $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET);
+        $loaded = $document->loadHTML(
+            '<?xml encoding="UTF-8">'.$html,
+            LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET
+        );
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
