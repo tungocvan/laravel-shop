@@ -2,12 +2,12 @@
 
 namespace Modules\Partner\Livewire;
 
-use App\Services\MasothueLookupService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Modules\Partner\Data\ExternalPartnerData;
 use Modules\Partner\Models\Partner;
+use Modules\Partner\Services\DoanhNghiepLookupService;
 use Modules\Partner\Services\PartnerMatcher;
 use Modules\Partner\Services\PartnerSyncPlanner;
 use Modules\Partner\Services\PartnerSyncService;
@@ -42,7 +42,7 @@ class BusinessLookup extends Component
         $this->authorizePermission('view_partner');
     }
 
-    public function search(MasothueLookupService $lookup): void
+    public function search(DoanhNghiepLookupService $lookup): void
     {
         $this->authorizePermission('view_partner');
         $this->validate(['query' => ['required', 'string', 'max:255']]);
@@ -65,7 +65,7 @@ class BusinessLookup extends Component
 
     public function selectCandidate(
         int $index,
-        MasothueLookupService $lookup,
+        DoanhNghiepLookupService $lookup,
         PartnerMatcher $matcher,
         PartnerSyncPlanner $planner
     ): void {
@@ -79,9 +79,14 @@ class BusinessLookup extends Component
         $candidate = $this->candidates[$index];
 
         try {
-            $detail = $lookup->fetchDetail($candidate['canonical_path']);
+            $detail = $lookup->fetchDetail((string) $candidate['tax_code']);
             $checkedAt = now()->toIso8601String();
-            $external = ExternalPartnerData::fromMasothue($candidate, $detail, $checkedAt);
+            $external = ExternalPartnerData::fromRegistry(
+                $candidate,
+                $detail,
+                $checkedAt,
+                $candidate['source'] ?? DoanhNghiepLookupService::SOURCE
+            );
             $match = $matcher->match($external);
 
             $candidate['checked_at'] = $checkedAt;
@@ -121,10 +126,11 @@ class BusinessLookup extends Component
             ]);
         }
 
-        $external = ExternalPartnerData::fromMasothue(
+        $external = ExternalPartnerData::fromRegistry(
             $this->selectedCandidate,
             $this->detail,
-            $this->selectedCandidate['checked_at'] ?? null
+            $this->selectedCandidate['checked_at'] ?? null,
+            $this->selectedCandidate['source'] ?? DoanhNghiepLookupService::SOURCE
         );
         $partner = $sync->sync(
             $partner,
