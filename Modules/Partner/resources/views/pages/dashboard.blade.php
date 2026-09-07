@@ -12,10 +12,10 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.partners.lookup') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tra cứu doanh nghiệp</a>
-                <a href="{{ route('admin.partner.partners.index') }}" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Quản lý Partner</a>
+                <a href="{{ route('admin.partners.index') }}" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Quản lý Partner</a>
             </div>
         </div>
 
-        <livewire:partner::dashboard />
+        @livewire('partner.dashboard')
     </div>
 @endsection
