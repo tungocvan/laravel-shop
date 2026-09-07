@@ -1,22 +1,38 @@
 <div class="space-y-6">
     <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <form wire:submit="search" class="flex flex-col gap-3 md:flex-row">
-            <div class="flex-1">
+        <form wire:submit="search" class="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto] md:items-end">
+            <div>
+                <label for="business-source" class="mb-1 block text-sm font-medium text-gray-700">Nguồn tra cứu</label>
+                <select id="business-source" wire:model.live="selectedSource" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                    @foreach ($sourceOptions as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('selectedSource') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
                 <label for="business-query" class="mb-1 block text-sm font-medium text-gray-700">Tên doanh nghiệp hoặc mã số thuế</label>
                 <input id="business-query" wire:model="query" type="text" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" placeholder="Ví dụ: Công ty ABC hoặc 0317193865">
                 @error('query') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
-            <div class="md:self-end">
+
+            <div>
                 <button type="submit" wire:loading.attr="disabled" wire:target="search" class="w-full rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
-                    <span wire:loading.remove wire:target="search">Tra cứu đa nguồn</span>
+                    <span wire:loading.remove wire:target="search">Tra cứu</span>
                     <span wire:loading wire:target="search">Đang tra cứu...</span>
                 </button>
             </div>
         </form>
-        <p class="mt-3 text-xs text-gray-500">Hệ thống đối chiếu MSTCongTy và Doanhnghiep.vn. Dữ liệu ngoài chỉ là nguồn tham khảo; tra cứu không tự ghi vào Partner.</p>
+
+        <div class="mt-3 flex flex-col gap-1 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>Mặc định: <strong>MSTCongTy</strong>. Bạn có thể đổi sang nguồn khác trước khi tra cứu.</p>
+            <p>Dữ liệu nguồn ngoài chỉ dùng để đối chiếu; không tự ghi vào Partner.</p>
+        </div>
+
         @if ($providerErrors)
             <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                Một số nguồn tạm thời không khả dụng; kết quả từ nguồn còn lại vẫn được hiển thị.
+                Nguồn đang chọn tạm thời không khả dụng. Bạn có thể đổi sang nguồn khác và thử lại.
             </div>
         @endif
         @if ($errorMessage) <div class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ $errorMessage }}</div> @endif
@@ -25,8 +41,8 @@
     @if ($candidates)
         <section class="rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div class="border-b border-gray-100 px-5 py-4">
-                <h2 class="font-semibold text-gray-900">Kết quả tra cứu đa nguồn</h2>
-                <p class="text-sm text-gray-500">Chọn đúng doanh nghiệp và đúng nguồn để xem chi tiết. Hệ thống không tự quyết định nguồn nào chính xác hơn.</p>
+                <h2 class="font-semibold text-gray-900">Kết quả tra cứu</h2>
+                <p class="text-sm text-gray-500">Kết quả chỉ đến từ nguồn bạn đã chọn. Sau khi chọn doanh nghiệp, hệ thống mới đối chiếu thêm với nguồn còn lại.</p>
             </div>
             <div class="divide-y divide-gray-100">
                 @foreach ($candidates as $index => $candidate)
@@ -40,10 +56,10 @@
                             <span class="block font-medium text-gray-900">{{ $candidate['name'] }}</span>
                             <span class="mt-1 block text-sm text-gray-500">MST: {{ $candidate['tax_code'] ?: '—' }}</span>
                             @if (! empty($candidate['address'])) <span class="mt-1 block text-xs text-gray-500">{{ $candidate['address'] }}</span> @endif
-                            <span class="mt-1 block text-xs text-gray-500">Nguồn: {{ $candidate['source_label'] ?? 'Nguồn công khai' }} @if (($candidate['cross_source_count'] ?? 1) > 1) · Có {{ $candidate['cross_source_count'] }} nguồn cùng MST @endif</span>
+                            <span class="mt-1 block text-xs text-gray-500">Nguồn: {{ $candidate['source_label'] ?? 'Nguồn công khai' }}</span>
                             <span class="mt-2 inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700">{{ $matchLabel }}</span>
                         </span>
-                        <span class="text-sm font-semibold text-indigo-600">Chọn nguồn</span>
+                        <span class="text-sm font-semibold text-indigo-600">Chọn doanh nghiệp</span>
                     </button>
                 @endforeach
             </div>
