@@ -8,6 +8,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Modules\Partner\Models\Partner;
+use Modules\Partner\Services\PartnerQueryService;
 use Modules\Partner\Services\PartnerService;
 use Rap2hpoutre\FastExcel\FastExcel;
 
@@ -19,52 +20,25 @@ class Index extends Component
     private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public string $search = '';
-
     public string $legalType = '';
-
     public string $partnerType = '';
-
     public string $source = '';
-
     public string $status = '';
-
     public int|string $perPage = 10;
-
     public array $selected = [];
-
     public bool $selectAll = false;
-
     public $importFile;
 
-    public function updatingSearch(): void
+    public function mount(): void
     {
-        $this->resetPage();
-        $this->resetSelection();
+        $this->authorizePermission('view_partner');
     }
 
-    public function updatingLegalType(): void
-    {
-        $this->resetPage();
-        $this->resetSelection();
-    }
-
-    public function updatingPartnerType(): void
-    {
-        $this->resetPage();
-        $this->resetSelection();
-    }
-
-    public function updatingSource(): void
-    {
-        $this->resetPage();
-        $this->resetSelection();
-    }
-
-    public function updatingStatus(): void
-    {
-        $this->resetPage();
-        $this->resetSelection();
-    }
+    public function updatingSearch(): void { $this->resetPage(); $this->resetSelection(); }
+    public function updatingLegalType(): void { $this->resetPage(); $this->resetSelection(); }
+    public function updatingPartnerType(): void { $this->resetPage(); $this->resetSelection(); }
+    public function updatingSource(): void { $this->resetPage(); $this->resetSelection(); }
+    public function updatingStatus(): void { $this->resetPage(); $this->resetSelection(); }
 
     public function updatedPerPage(): void
     {
@@ -78,7 +52,6 @@ class Index extends Component
     {
         if (! $value) {
             $this->selected = [];
-
             return;
         }
 
@@ -88,38 +61,31 @@ class Index extends Component
     public function updatedSelected(): void
     {
         $currentIds = $this->currentPagePartnerIds();
-
         $this->selectAll = count($currentIds) > 0
             && empty(array_diff($currentIds, array_map('intval', $this->selected)));
     }
 
     public function resetFilters(): void
     {
-        $this->reset([
-            'search',
-            'legalType',
-            'partnerType',
-            'source',
-            'status',
-        ]);
-
+        $this->reset(['search', 'legalType', 'partnerType', 'source', 'status']);
         $this->resetPage();
         $this->resetSelection();
     }
 
     public function delete(int $id, PartnerService $partnerService): void
     {
+        $this->authorizePermission('delete_partner');
         $partnerService->delete($partnerService->findOrFail($id));
         $this->resetSelection();
-
         session()->flash('success', 'Đã xóa đối tác thành công.');
     }
 
     public function deleteSelected(): void
     {
+        $this->authorizePermission('delete_partner');
+
         if (empty($this->selected)) {
             session()->flash('error', 'Vui lòng chọn ít nhất một đối tác để xóa.');
-
             return;
         }
 
@@ -128,22 +94,19 @@ class Index extends Component
             ->delete();
 
         $this->resetSelection();
-
         session()->flash('success', "Đã xóa {$count} đối tác được chọn.");
     }
 
     public function import(): void
     {
-        $this->validate([
-            'importFile' => ['required', 'file', 'mimes:xlsx,csv,txt'],
-        ]);
+        $this->authorizePermission('create_partner');
+        $this->validate(['importFile' => ['required', 'file', 'mimes:xlsx,csv,txt']]);
 
         $path = $this->importFile->getRealPath();
         $rowNumber = 1;
 
         (new FastExcel)->import($path, function (array $row) use (&$rowNumber) {
             $rowNumber++;
-
             $name = trim((string) ($row['name'] ?? $row['Tên đối tác'] ?? ''));
             $legalType = trim((string) ($row['legal_type'] ?? $row['Loại pháp lý'] ?? ''));
 
@@ -170,6 +133,7 @@ class Index extends Component
                 'legal_type' => $legalType,
                 'partner_types' => $partnerTypes,
                 'address' => $this->nullableString($row['address'] ?? null),
+                'province_code' => $this->nullableString($row['province_code'] ?? null),
                 'email' => $this->nullableString($row['email'] ?? null),
                 'phone' => $this->nullableString($row['phone'] ?? null),
                 'contact_person' => $this->nullableString($row['contact_person'] ?? null),
@@ -182,29 +146,26 @@ class Index extends Component
                 return Partner::updateOrCreate(['tax_code' => $taxCode], $data);
             }
 
-            return Partner::updateOrCreate(
-                ['name' => $name, 'legal_type' => $legalType],
-                $data
-            );
+            return Partner::updateOrCreate(['name' => $name, 'legal_type' => $legalType], $data);
         });
 
         $this->reset('importFile');
         $this->resetSelection();
-
         session()->flash('success', 'Import dữ liệu đối tác thành công.');
     }
 
     public function downloadTemplate()
     {
+        $this->authorizePermission('create_partner');
         $fileName = 'partner_hospital_import_template.xlsx';
         $filePath = storage_path('app/public/'.$fileName);
-
         $rows = collect([[
             'tax_code' => '',
             'name' => '',
             'legal_type' => 'hospital',
             'partner_types' => 'customer',
             'address' => '',
+            'province_code' => '',
             'email' => '',
             'phone' => '',
             'contact_person' => '',
@@ -214,52 +175,43 @@ class Index extends Component
         ]]);
 
         (new FastExcel($rows))->export($filePath);
-
         return response()->download($filePath)->deleteFileAfterSend(true);
     }
 
     public function export()
     {
+        $this->authorizePermission('view_partner');
         $fileName = 'partners_'.now()->format('Ymd_His').'.xlsx';
         $filePath = storage_path('app/public/'.$fileName);
-
         $query = $this->filteredQuery();
 
         if (! empty($this->selected)) {
             $query->whereIn('id', array_map('intval', $this->selected));
         }
 
-        $rows = $query
-            ->get()
-            ->map(fn (Partner $partner) => [
-                'tax_code' => $partner->tax_code,
-                'name' => $partner->name,
-                'legal_type' => $partner->legal_type,
-                'partner_types' => implode(',', $partner->partner_types ?? []),
-                'address' => $partner->address,
-                'email' => $partner->email,
-                'phone' => $partner->phone,
-                'contact_person' => $partner->contact_person,
-                'source' => $partner->source,
-                'status' => $partner->status,
-                'note' => $partner->note,
-            ]);
+        $rows = $query->get()->map(fn (Partner $partner) => [
+            'tax_code' => $partner->tax_code,
+            'name' => $partner->name,
+            'legal_type' => $partner->legal_type,
+            'partner_types' => implode(',', $partner->partner_types ?? []),
+            'address' => $partner->address,
+            'province_code' => $partner->province_code,
+            'email' => $partner->email,
+            'phone' => $partner->phone,
+            'contact_person' => $partner->contact_person,
+            'source' => $partner->source,
+            'status' => $partner->status,
+            'note' => $partner->note,
+        ]);
 
         (new FastExcel($rows))->export($filePath);
-
         return response()->download($filePath)->deleteFileAfterSend(true);
     }
 
     public function render(PartnerService $partnerService)
     {
         return view('Partner::livewire.partner.index', [
-            'partners' => $partnerService->paginate([
-                'search' => $this->search,
-                'legal_type' => $this->legalType,
-                'partner_type' => $this->partnerType,
-                'source' => $this->source,
-                'status' => $this->status,
-            ], $this->normalizedPerPage()),
+            'partners' => $partnerService->paginate($this->filters(), $this->normalizedPerPage()),
             'legalTypes' => Partner::LEGAL_TYPES,
             'partnerTypes' => Partner::PARTNER_TYPES,
             'sources' => Partner::SOURCES,
@@ -278,28 +230,25 @@ class Index extends Component
 
     private function filteredQuery(): Builder
     {
-        return Partner::query()
-            ->when($this->search, function (Builder $query): void {
-                $query->where(function (Builder $subQuery): void {
-                    $subQuery
-                        ->where('name', 'like', "%{$this->search}%")
-                        ->orWhere('tax_code', 'like', "%{$this->search}%")
-                        ->orWhere('phone', 'like', "%{$this->search}%")
-                        ->orWhere('email', 'like', "%{$this->search}%")
-                        ->orWhere('contact_person', 'like', "%{$this->search}%");
-                });
-            })
-            ->when($this->legalType, fn (Builder $query) => $query->where('legal_type', $this->legalType))
-            ->when($this->partnerType, fn (Builder $query) => $query->whereJsonContains('partner_types', $this->partnerType))
-            ->when($this->source, fn (Builder $query) => $query->where('source', $this->source))
-            ->when($this->status, fn (Builder $query) => $query->where('status', $this->status))
+        return app(PartnerQueryService::class)
+            ->query($this->filters())
             ->latest('id');
+    }
+
+    private function filters(): array
+    {
+        return [
+            'search' => $this->search,
+            'legal_type' => $this->legalType,
+            'partner_type' => $this->partnerType,
+            'source' => $this->source,
+            'status' => $this->status,
+        ];
     }
 
     private function normalizedPerPage(): int
     {
         $perPage = (int) $this->perPage;
-
         return in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
     }
 
@@ -311,9 +260,7 @@ class Index extends Component
 
     private function normalizePartnerTypes(null|string|array $value): array
     {
-        $types = is_array($value)
-            ? $value
-            : explode(',', (string) $value);
+        $types = is_array($value) ? $value : explode(',', (string) $value);
 
         return collect($types)
             ->map(fn ($item) => trim((string) $item))
@@ -325,14 +272,17 @@ class Index extends Component
     private function normalizeOption(mixed $value, array $options, string $default): string
     {
         $value = trim((string) $value);
-
         return array_key_exists($value, $options) ? $value : $default;
     }
 
     private function nullableString(mixed $value): ?string
     {
         $value = trim((string) $value);
-
         return $value === '' ? null : $value;
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }
