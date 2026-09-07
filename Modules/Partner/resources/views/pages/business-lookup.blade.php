@@ -13,6 +13,6 @@
             <a href="{{ route('admin.partners.dashboard') }}" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Quay về Dashboard</a>
         </div>
 
-        <livewire:partner::business-lookup />
+        @livewire('partner.business-lookup')
     </div>
 @endsection
