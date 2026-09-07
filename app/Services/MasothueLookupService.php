@@ -49,34 +49,36 @@ class MasothueLookupService
         $cookies = new CookieJar;
         $client = $this->http($cookies);
         $token = $this->fetchSearchToken($client);
-        $type = $this->isTaxCodeQuery($query) ? 'enterpriseTax' : 'enterpriseName';
         $payload = [
             'q' => $query,
-            'type' => $type,
+            'type' => $this->isTaxCodeQuery($query) ? 'enterpriseTax' : 'enterpriseName',
             'token' => $token,
             'force-search' => 1,
         ];
 
-        $ajaxResponse = $client
-            ->asForm()
-            ->acceptJson()
-            ->withHeaders([
-                'X-Requested-With' => 'XMLHttpRequest',
-                'Origin' => self::BASE_URL,
-                'Referer' => self::BASE_URL.'/',
-            ])
-            ->post(self::BASE_URL.'/Ajax/Search', $payload);
+        if ($this->isTaxCodeQuery($query)) {
+            $response = $client
+                ->withOptions(['allow_redirects' => false])
+                ->get(self::BASE_URL.'/Search/', $payload);
 
-        if ($ajaxResponse->successful()) {
-            $resolvedPath = $ajaxResponse->json('url');
+            if (in_array($response->status(), [301, 302, 303, 307, 308], true)) {
+                $location = $response->header('Location');
+                $path = $this->canonicalPathFromLocation($location);
 
-            if (is_string($resolvedPath) && preg_match('#^/([0-9]{10}(?:-[0-9]{3})?)-#', $resolvedPath)) {
-                $candidate = $this->candidateFromCanonicalPath($client, $resolvedPath);
+                if ($path !== null) {
+                    $candidate = $this->candidateFromCanonicalPath($client, $path);
 
-                if ($candidate !== null) {
-                    return $this->filterAndRankResults($query, [$candidate]);
+                    return $candidate === null
+                        ? []
+                        : $this->filterAndRankResults($query, [$candidate]);
                 }
             }
+
+            if (! $response->successful()) {
+                throw new RuntimeException("MaSoThue search tra ve HTTP {$response->status()}.");
+            }
+
+            return $this->filterAndRankResults($query, $this->parseSearchResults($response->body()));
         }
 
         $response = $client->get(self::BASE_URL.'/Search/', $payload);
@@ -159,7 +161,11 @@ class MasothueLookupService
     {
         $request = Http::timeout(15)
             ->accept('text/html,application/xhtml+xml')
-            ->withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36');
+            ->withHeaders([
+                'Accept-Language' => 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer' => self::BASE_URL.'/',
+            ])
+            ->withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36');
 
         return $cookies ? $request->withOptions(['cookies' => $cookies]) : $request;
     }
@@ -223,6 +229,7 @@ class MasothueLookupService
             ->acceptJson()
             ->withHeaders([
                 'X-Requested-With' => 'XMLHttpRequest',
+                'Origin' => self::BASE_URL,
                 'Referer' => self::BASE_URL.'/',
             ])
             ->post(self::BASE_URL.'/Ajax/Token', []);
@@ -238,6 +245,23 @@ class MasothueLookupService
         }
 
         return trim($token);
+    }
+
+    private function canonicalPathFromLocation(?string $location): ?string
+    {
+        if (! is_string($location) || trim($location) === '') {
+            return null;
+        }
+
+        $location = trim($location);
+
+        if (str_starts_with($location, self::BASE_URL)) {
+            $location = substr($location, strlen(self::BASE_URL));
+        }
+
+        return preg_match('#^/[0-9]{10}(?:-[0-9]{3})?-#', $location) === 1
+            ? $location
+            : null;
     }
 
     private function candidateFromCanonicalPath(PendingRequest $client, string $path): ?array
@@ -310,7 +334,7 @@ class MasothueLookupService
         if ($this->isTaxCodeQuery($query)) {
             return array_values(array_filter(
                 $results,
-                fn (array $result): bool => $result['tax_code'] === trim($query)
+                fn (array $result): bool => $result['tax_code'] === $query
             ));
         }
 
