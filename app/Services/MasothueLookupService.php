@@ -49,16 +49,14 @@ class MasothueLookupService
         $cookies = new CookieJar;
         $client = $this->http($cookies);
         $token = $this->fetchSearchToken($client);
+        $type = $this->isTaxCodeQuery($query) ? 'enterpriseTax' : 'enterpriseName';
         $payload = [
             'q' => $query,
-            'type' => 'auto',
+            'type' => $type,
             'token' => $token,
             'force-search' => 1,
         ];
 
-        // Current MaSoThue search flow first resolves the query through Ajax/Search
-        // using a token tied to the same cookie session. Exact MST/name queries can
-        // resolve directly to a canonical company URL.
         $ajaxResponse = $client
             ->asForm()
             ->acceptJson()
@@ -81,8 +79,6 @@ class MasothueLookupService
             }
         }
 
-        // Multi-result searches are rendered by /Search/. Reuse the same token and
-        // cookie jar; without this session MaSoThue can return its default/home list.
         $response = $client->get(self::BASE_URL.'/Search/', $payload);
 
         if (! $response->successful()) {
@@ -163,7 +159,7 @@ class MasothueLookupService
     {
         $request = Http::timeout(15)
             ->accept('text/html,application/xhtml+xml')
-            ->withUserAgent('Mozilla/5.0 (compatible; laravel-shop-mst-lookup/1.0)');
+            ->withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36');
 
         return $cookies ? $request->withOptions(['cookies' => $cookies]) : $request;
     }
@@ -314,7 +310,7 @@ class MasothueLookupService
         if ($this->isTaxCodeQuery($query)) {
             return array_values(array_filter(
                 $results,
-                fn (array $result): bool => $result['tax_code'] === $query
+                fn (array $result): bool => $result['tax_code'] === trim($query)
             ));
         }
 
