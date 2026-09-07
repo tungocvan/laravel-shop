@@ -3,9 +3,9 @@
 namespace Modules\Partner\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Validator;
 use Modules\Partner\Data\ExternalPartnerData;
 use Modules\Partner\Models\Partner;
 use Modules\Partner\Models\PartnerSourceReference;
