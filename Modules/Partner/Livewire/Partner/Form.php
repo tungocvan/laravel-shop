@@ -40,6 +40,7 @@ class Form extends Component
     public function mount(PartnerService $partnerService, ?int $partnerId = null, ?string $legal_type = null): void
     {
         $this->partnerId = $partnerId;
+        $this->authorizePermission($this->partnerId ? 'edit_partner' : 'create_partner');
 
         if ($this->partnerId) {
             $this->partner = $partnerService->findOrFail($this->partnerId);
@@ -68,6 +69,7 @@ class Form extends Component
 
     public function save(PartnerService $partnerService): void
     {
+        $this->authorizePermission($this->partner ? 'edit_partner' : 'create_partner');
         $validated = $this->validate();
 
         if ($this->partner) {
@@ -78,7 +80,7 @@ class Form extends Component
             session()->flash('success', 'Đã thêm đối tác thành công.');
         }
 
-        $this->redirectRoute('admin.partner.partners.index');
+        $this->redirectRoute('admin.partners.index');
     }
 
     protected function rules(): array
@@ -109,5 +111,10 @@ class Form extends Component
             'statuses' => Partner::STATUSES,
             'isEdit' => filled($this->partnerId),
         ]);
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }
