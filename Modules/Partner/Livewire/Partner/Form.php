@@ -10,29 +10,18 @@ use Modules\Partner\Services\PartnerService;
 class Form extends Component
 {
     public ?int $partnerId = null;
-
     public ?Partner $partner = null;
-
     public ?string $tax_code = null;
-
     public string $name = '';
-
     public string $legal_type = 'company';
-
     public array $partner_types = [];
-
     public ?string $phone = null;
-
     public ?string $email = null;
-
     public ?string $contact_person = null;
-
     public ?string $address = null;
-
+    public ?string $province_code = null;
     public string $source = 'manual';
-
     public string $status = 'active';
-
     public ?string $note = null;
 
     public function mount(PartnerService $partnerService, ?int $partnerId = null, ?string $legal_type = null): void
@@ -41,7 +30,6 @@ class Form extends Component
 
         if ($this->partnerId) {
             $this->partner = $partnerService->findOrFail($this->partnerId);
-
             $this->fill([
                 'tax_code' => $this->partner->tax_code,
                 'name' => $this->partner->name,
@@ -51,6 +39,7 @@ class Form extends Component
                 'email' => $this->partner->email,
                 'contact_person' => $this->partner->contact_person,
                 'address' => $this->partner->address,
+                'province_code' => $this->partner->province_code,
                 'source' => $this->partner->source,
                 'status' => $this->partner->status,
                 'note' => $this->partner->note,
@@ -70,11 +59,9 @@ class Form extends Component
 
         if ($this->partner) {
             $partnerService->update($this->partner, $validated);
-
             session()->flash('success', 'Đã cập nhật đối tác thành công.');
         } else {
             $partnerService->create($validated);
-
             session()->flash('success', 'Đã thêm đối tác thành công.');
         }
 
@@ -84,22 +71,16 @@ class Form extends Component
     protected function rules(): array
     {
         return [
-            'tax_code' => [
-                'nullable',
-                'string',
-                'max:50',
-                Rule::unique('partners', 'tax_code')->ignore($this->partnerId),
-            ],
+            'tax_code' => ['nullable', 'string', 'max:50', Rule::unique('partners', 'tax_code')->ignore($this->partnerId)],
             'name' => ['required', 'string', 'max:255'],
             'legal_type' => ['required', Rule::in(array_keys(Partner::LEGAL_TYPES))],
             'partner_types' => ['required', 'array', 'min:1'],
             'partner_types.*' => ['required', Rule::in(array_keys(Partner::PARTNER_TYPES))],
-
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'contact_person' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
-
+            'province_code' => ['nullable', 'string', 'max:20'],
             'source' => ['required', Rule::in(array_keys(Partner::SOURCES))],
             'status' => ['required', Rule::in(array_keys(Partner::STATUSES))],
             'note' => ['nullable', 'string', 'max:2000'],
