@@ -20,13 +20,21 @@ class Index extends Component
     private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public string $search = '';
+
     public string $legalType = '';
+
     public string $partnerType = '';
+
     public string $source = '';
+
     public string $status = '';
+
     public int|string $perPage = 10;
+
     public array $selected = [];
+
     public bool $selectAll = false;
+
     public $importFile;
 
     public function mount(): void
@@ -34,11 +42,35 @@ class Index extends Component
         $this->authorizePermission('view_partner');
     }
 
-    public function updatingSearch(): void { $this->resetPage(); $this->resetSelection(); }
-    public function updatingLegalType(): void { $this->resetPage(); $this->resetSelection(); }
-    public function updatingPartnerType(): void { $this->resetPage(); $this->resetSelection(); }
-    public function updatingSource(): void { $this->resetPage(); $this->resetSelection(); }
-    public function updatingStatus(): void { $this->resetPage(); $this->resetSelection(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatingLegalType(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatingPartnerType(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatingSource(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatingStatus(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
 
     public function updatedPerPage(): void
     {
@@ -52,6 +84,7 @@ class Index extends Component
     {
         if (! $value) {
             $this->selected = [];
+
             return;
         }
 
@@ -86,6 +119,7 @@ class Index extends Component
 
         if (empty($this->selected)) {
             session()->flash('error', 'Vui lòng chọn ít nhất một đối tác để xóa.');
+
             return;
         }
 
@@ -175,6 +209,7 @@ class Index extends Component
         ]]);
 
         (new FastExcel($rows))->export($filePath);
+
         return response()->download($filePath)->deleteFileAfterSend(true);
     }
 
@@ -205,6 +240,7 @@ class Index extends Component
         ]);
 
         (new FastExcel($rows))->export($filePath);
+
         return response()->download($filePath)->deleteFileAfterSend(true);
     }
 
@@ -249,6 +285,7 @@ class Index extends Component
     private function normalizedPerPage(): int
     {
         $perPage = (int) $this->perPage;
+
         return in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
     }
 
@@ -272,12 +309,14 @@ class Index extends Component
     private function normalizeOption(mixed $value, array $options, string $default): string
     {
         $value = trim((string) $value);
+
         return array_key_exists($value, $options) ? $value : $default;
     }
 
     private function nullableString(mixed $value): ?string
     {
         $value = trim((string) $value);
+
         return $value === '' ? null : $value;
     }
 
