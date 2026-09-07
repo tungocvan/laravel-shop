@@ -12,16 +12,21 @@ Major Refactor + Feature Development for `Modules/Partner`: establish Partner as
 
 - `Partner` remains canonical ERP data.
 - `PartnerSourceReference` remains canonical external provenance; no parallel source-reference table.
-- `DoanhNghiepLookupService` is the primary runtime lookup adapter for arbitrary Vietnamese companies.
-- MaSoThue is no longer the primary search provider because its token/session search flow returned accepted sessions without canonical results from server-side requests.
+- Business Lookup uses an explicit provider contract and lets the operator select the registry source before searching.
+- `MSTCongTy` is the default lookup source because it currently provides the preferred operational company detail and exposes a source-side update path for stale records.
+- `DoanhNghiepLookupService` remains an alternate/cross-check provider.
+- MaSoThue is retained only as reference/fallback context; its token/session search flow did not provide a reliable canonical server-side search contract.
 - Search/detail retrieval never writes Partner data.
 - Multiple/fallback search results require explicit human candidate selection.
+- Cross-source differences are presented for human review; the system does not silently arbitrate which external source is true.
 - Sync requires review of field-level diff states before mutation.
+- Current synchronized Partner master fields are limited to `tax_code`, `name`, and `address`.
+- External legal status, representative, activity date, organization type and other source-only attributes remain provenance/snapshot metadata and are not blindly promoted into Partner master columns.
 - External legal status is not mapped automatically to ERP `Partner.status`.
 - `Partner.source` remains record acquisition origin (`manual/import/system`), not enrichment source.
 - `(source, external_id)` provenance ownership is not silently reassigned.
 - Current unique `partners.tax_code` schema contract remains unchanged.
-- No bulk crawler, scheduled scraping, CAPTCHA bypass/OCR, automatic merge or automatic overwrite in this phase.
+- No bulk crawler, scheduled scraping, CAPTCHA/browser-challenge bypass, OCR, automatic merge or automatic overwrite in this phase.
 
 ## Implemented in current batch
 
@@ -34,52 +39,56 @@ Major Refactor + Feature Development for `Modules/Partner`: establish Partner as
 - reused `PartnerSourceReference` for source URL, lookup/sync timestamps, snapshot and hash metadata;
 - preserved legacy `/admin/partner/partners/*` routes while canonical workspace callers migrate;
 - added `province_code` to Partner service/form/import/export data path and visible form field;
-- replaced primary MaSoThue search with `DoanhNghiepLookupService` using JSON API search/detail endpoints;
-- verified the external acceptance fixture `0314492345` resolves to `Công Ty TNHH Inafo Việt Nam` by MST and name search from the deployment server;
+- added `BusinessRegistryProvider` as the provider boundary;
+- added `MstCongTyProvider` using the site's server-rendered search/detail pages without browser automation or challenge bypass;
+- adapted `DoanhNghiepLookupService` to the same provider contract;
+- added `MultiSourceBusinessLookupService` for selected-source lookup plus optional cross-source comparison;
+- added an explicit source selector to Business Lookup, defaulting to `MSTCongTy` and allowing `Doanhnghiep.vn` as an alternate source;
+- added source provenance, source labels, source-origin links and conflict presentation in the review UI;
+- preserved graceful failure when one external source is unavailable;
+- verified the external acceptance fixture `0314492345` resolves to `Công Ty TNHH Inafo Việt Nam` through the registry integration path;
 - preserved explicit source provenance and human review because external sources can disagree on fields such as legal representative;
 - quarantined the incomplete unauthenticated `/api/partner/` route instead of exposing a controller with no supported API contract;
 - added action-level authorization for Partner list/delete/import/export and create/edit form operations;
 - centralized list/page-selection/export filters through `PartnerQueryService`;
 - added focused planner and registry-adapter regression coverage.
 
-## Verification required before merge
+## Final verification
 
-Run locally on this branch:
+Local verification on 2026-09-07:
 
-```bash
-vendor/bin/pint Modules/Partner tests/Feature/Partner
-php artisan test tests/Feature/Partner
-php artisan route:list --path=admin/partners
-php artisan route:list --path=api/partner
-npm run build
-git diff --check
-git status -sb
-```
+- Pint: completed across `Modules/Partner` and `tests/Feature/Partner`; final run normalized 2 style issues in the multi-source lookup files and those fixes were committed as `c24ffbe8`.
+- Partner focused tests: **5 passed, 20 assertions**.
+- Canonical Partner routes: **5 routes** under `/admin/partners`.
+- Vite: **PASS**, 34 modules transformed, production assets built successfully.
+- Branch after the style commit/push: local branch synchronized with `origin/refactor/partner-master-hub-dashboard-lookup-sync` and working tree clean.
+- Incomplete `/api/partner/` route remains quarantined; no supported public Partner API contract is exposed in this batch.
 
 Do not run full-project regression unless a focused failure proves a wider impact.
 
-Manual UI smoke covered by user acceptance:
+## Manual UI acceptance
+
+User acceptance marker: **`UI PASS` on 2026-09-07** after the selectable-source update.
+
+Accepted UI behavior includes:
 
 1. Partner Dashboard KPI cards and navigation.
-2. Business Lookup search/error/empty states.
-3. Multiple candidates: no automatic sync or fallback selection.
-4. Candidate detail presentation.
-5. Existing Partner match and field conflict preview.
-6. New Partner preview.
-7. Explicit selected-field sync.
-8. Partner list pagination/filter behavior.
+2. Business Lookup source selector visible and usable.
+3. `MSTCongTy` selected by default.
+4. Operator can switch to `Doanhnghiep.vn` before searching.
+5. Search/error/empty states.
+6. Multiple candidates require explicit selection; no automatic sync or fallback selection.
+7. Candidate detail and source provenance presentation.
+8. Cross-source conflict review when comparison data differs.
+9. Existing Partner match and field conflict preview.
+10. New Partner classification preview.
+11. Explicit selected-field sync.
+12. Partner list pagination/filter behavior.
 
-User acceptance marker: `UI PASS` on 2026-09-07.
+## Merge readiness
 
-Because closeout subsequently touched Partner create/edit navigation, the visible `province_code` field, and server-side list/action authorization, perform a short smoke of Partner list + create/edit form after pulling the latest branch.
-
-## Remaining before merge
-
-- record final Pint/test/route/build counts from local verification;
-- confirm `/api/partner/` no longer exposes the incomplete public route;
-- perform the short post-closeout Partner list + create/edit UI smoke;
-- update this handoff with final PASS counts before PR/merge.
+Implementation, focused verification, build and UI acceptance are complete for the current Partner batch. The branch is ready for PR/merge subject to the normal repository collaboration workflow.
 
 ## Deferred
 
-Verification semantics, automatic/bulk enrichment, scheduled crawling, CAPTCHA handling, automatic dedup/merge, multi-source arbitration, synchronization from `Invoices` into `Partner`, removal of tax-code uniqueness, and promotion of all source-only fields into Partner columns remain separate future work.
+Verification semantics, automatic/bulk enrichment, scheduled crawling, CAPTCHA/browser-challenge handling, automatic dedup/merge, unattended source arbitration, synchronization from `Invoices` into `Partner`, removal of tax-code uniqueness, and promotion of source-only fields into Partner columns remain separate future work.
