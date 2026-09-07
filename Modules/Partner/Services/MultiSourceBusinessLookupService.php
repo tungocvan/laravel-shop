@@ -3,6 +3,7 @@
 namespace Modules\Partner\Services;
 
 use Modules\Partner\Contracts\BusinessRegistryProvider;
+use RuntimeException;
 use Throwable;
 
 class MultiSourceBusinessLookupService
@@ -18,43 +19,38 @@ class MultiSourceBusinessLookupService
         ];
     }
 
-    public function search(string $query): array
+    public function options(): array
     {
-        $candidates = [];
-        $errors = [];
+        return collect($this->providers)
+            ->mapWithKeys(fn (BusinessRegistryProvider $provider, string $source) => [$source => $provider->label()])
+            ->all();
+    }
 
-        foreach ($this->providers as $source => $provider) {
-            try {
-                foreach ($provider->search($query) as $candidate) {
-                    $candidate['source'] = $source;
-                    $candidate['source_label'] ??= $provider->label();
-                    $candidates[] = $candidate;
-                }
-            } catch (Throwable $exception) {
-                report($exception);
-                $errors[$source] = $exception->getMessage();
-            }
+    public function search(string $query, string $source = MstCongTyProvider::SOURCE): array
+    {
+        $provider = $this->providers[$source] ?? null;
+
+        if (! $provider) {
+            throw new RuntimeException('Nguồn tra cứu doanh nghiệp không được hỗ trợ.');
         }
 
-        $items = collect($candidates)
-            ->groupBy(fn (array $item) => (string) ($item['tax_code'] ?? ''))
-            ->flatMap(function ($group) {
-                $taxCode = (string) ($group->first()['tax_code'] ?? '');
-                $sources = $group->pluck('source')->filter()->unique()->values()->all();
+        try {
+            $items = collect($provider->search($query))
+                ->map(function (array $candidate) use ($provider, $source): array {
+                    $candidate['source'] = $source;
+                    $candidate['source_label'] ??= $provider->label();
 
-                return $group->map(function (array $item) use ($taxCode, $sources): array {
-                    $item['available_sources'] = $sources;
-                    $item['cross_source_count'] = count($sources);
-                    $item['tax_code'] = $taxCode;
+                    return $candidate;
+                })
+                ->values()
+                ->all();
 
-                    return $item;
-                });
-            })
-            ->sortByDesc(fn (array $item) => [$item['cross_source_count'] ?? 1, $item['source'] === MstCongTyProvider::SOURCE ? 1 : 0])
-            ->values()
-            ->all();
+            return ['items' => $items, 'errors' => []];
+        } catch (Throwable $exception) {
+            report($exception);
 
-        return ['items' => $items, 'errors' => $errors];
+            return ['items' => [], 'errors' => [$source => $exception->getMessage()]];
+        }
     }
 
     public function fetchDetail(array $candidate): array
@@ -63,7 +59,7 @@ class MultiSourceBusinessLookupService
         $provider = $this->providers[$source] ?? null;
 
         if (! $provider) {
-            throw new \RuntimeException('Nguồn tra cứu doanh nghiệp không được hỗ trợ.');
+            throw new RuntimeException('Nguồn tra cứu doanh nghiệp không được hỗ trợ.');
         }
 
         return $provider->fetchDetail($candidate);
@@ -87,6 +83,8 @@ class MultiSourceBusinessLookupService
                 $match = $matches->first();
 
                 if ($match) {
+                    $match['source'] = $source;
+                    $match['source_label'] ??= $provider->label();
                     $comparisons[$source] = [
                         'candidate' => $match,
                         'detail' => $provider->fetchDetail($match),
