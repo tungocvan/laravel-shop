@@ -73,6 +73,7 @@ class MultiSourceBusinessLookupService
         foreach ($this->providers as $source => $provider) {
             if ($source === ($candidate['source'] ?? null)) {
                 $comparisons[$source] = ['candidate' => $candidate, 'detail' => $detail, 'error' => null];
+
                 continue;
             }
 

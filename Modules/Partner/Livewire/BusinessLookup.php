@@ -17,19 +17,33 @@ use Throwable;
 class BusinessLookup extends Component
 {
     public string $query = '';
+
     public string $selectedSource = MstCongTyProvider::SOURCE;
+
     public array $candidates = [];
+
     public array $providerErrors = [];
+
     public ?array $selectedCandidate = null;
+
     public ?array $detail = null;
+
     public array $sourceComparison = [];
+
     public array $sourceConflicts = [];
+
     public ?array $match = null;
+
     public array $plan = [];
+
     public array $selectedFields = [];
+
     public string $newLegalType = 'company';
+
     public array $newPartnerTypes = [];
+
     public ?int $syncedPartnerId = null;
+
     public ?string $errorMessage = null;
 
     public function mount(): void
@@ -57,6 +71,7 @@ class BusinessLookup extends Component
             $this->candidates = collect($result['items'])
                 ->map(function (array $candidate): array {
                     $candidate['match_type'] = $this->candidateMatchType($candidate);
+
                     return $candidate;
                 })->values()->all();
 
@@ -148,6 +163,7 @@ class BusinessLookup extends Component
 
         $normalizedQuery = Str::of($query)->lower()->ascii()->squish()->value();
         $normalizedName = Str::of((string) ($candidate['name'] ?? ''))->lower()->ascii()->squish()->value();
+
         return $normalizedQuery !== '' && $normalizedQuery === $normalizedName ? 'exact_name' : 'approximate';
     }
 
