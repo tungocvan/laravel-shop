@@ -10,18 +10,31 @@ use Modules\Partner\Services\PartnerService;
 class Form extends Component
 {
     public ?int $partnerId = null;
+
     public ?Partner $partner = null;
+
     public ?string $tax_code = null;
+
     public string $name = '';
+
     public string $legal_type = 'company';
+
     public array $partner_types = [];
+
     public ?string $phone = null;
+
     public ?string $email = null;
+
     public ?string $contact_person = null;
+
     public ?string $address = null;
+
     public ?string $province_code = null;
+
     public string $source = 'manual';
+
     public string $status = 'active';
+
     public ?string $note = null;
 
     public function mount(PartnerService $partnerService, ?int $partnerId = null, ?string $legal_type = null): void
