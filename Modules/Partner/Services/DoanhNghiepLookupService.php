@@ -4,13 +4,24 @@ namespace Modules\Partner\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Modules\Partner\Contracts\BusinessRegistryProvider;
 use RuntimeException;
 
-class DoanhNghiepLookupService
+class DoanhNghiepLookupService implements BusinessRegistryProvider
 {
     public const BASE_URL = 'https://doanhnghiep.vn';
 
     public const SOURCE = 'doanhnghiep_vn';
+
+    public function source(): string
+    {
+        return self::SOURCE;
+    }
+
+    public function label(): string
+    {
+        return 'Doanhnghiep.vn';
+    }
 
     public function search(string $query): array
     {
@@ -45,9 +56,11 @@ class DoanhNghiepLookupService
             ->all();
     }
 
-    public function fetchDetail(string $taxCode): array
+    public function fetchDetail(array|string $candidate): array
     {
-        $taxCode = trim($taxCode);
+        $taxCode = is_array($candidate)
+            ? trim((string) ($candidate['tax_code'] ?? ''))
+            : trim($candidate);
 
         if (! preg_match('/^[0-9]{10}(?:[0-9]{3})?$/', $taxCode)) {
             throw new RuntimeException('Mã số thuế doanh nghiệp không hợp lệ.');
@@ -90,8 +103,8 @@ class DoanhNghiepLookupService
 
     private function candidate(array $item): array
     {
-        $taxCode = $this->string($item['mst'] ?? $item['tax_code'] ?? '');
-        $name = $this->string($item['name_vi'] ?? $item['name'] ?? '');
+        $taxCode = $this->string($item['mst'] ?? $item['tax_code'] ?? '') ?? '';
+        $name = $this->string($item['name_vi'] ?? $item['name'] ?? '') ?? '';
 
         return [
             'tax_code' => $taxCode,
@@ -99,7 +112,7 @@ class DoanhNghiepLookupService
             'canonical_path' => $taxCode,
             'canonical_url' => $taxCode !== '' ? self::BASE_URL.'/dn/'.rawurlencode($taxCode) : null,
             'source' => self::SOURCE,
-            'source_label' => 'Doanhnghiep.vn',
+            'source_label' => $this->label(),
             'status' => $this->string($item['status'] ?? null),
             'address' => $this->string($item['address_full'] ?? null),
             'representative' => $this->string($item['legal_rep_name'] ?? null),
