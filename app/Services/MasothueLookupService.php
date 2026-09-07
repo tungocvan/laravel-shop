@@ -5,6 +5,7 @@ namespace App\Services;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
+use GuzzleHttp\Cookie\CookieJar;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -39,45 +40,54 @@ class MasothueLookupService
 
     public function search(string $query): array
     {
-        $response = $this->http()->get(self::BASE_URL.'/Search/', [
+        $query = trim($query);
+
+        if ($query === '') {
+            return [];
+        }
+
+        $cookies = new CookieJar;
+        $client = $this->http($cookies);
+        $token = $this->fetchSearchToken($client);
+        $payload = [
             'q' => $query,
-            'type' => 'auto',
+            'type' => $this->isTaxCodeQuery($query) ? 'enterpriseTax' : 'enterpriseName',
+            'token' => $token,
             'force-search' => 1,
-        ]);
+        ];
+
+        if ($this->isTaxCodeQuery($query)) {
+            $response = $client
+                ->withOptions(['allow_redirects' => false])
+                ->get(self::BASE_URL.'/Search/', $payload);
+
+            if (in_array($response->status(), [301, 302, 303, 307, 308], true)) {
+                $location = $response->header('Location');
+                $path = $this->canonicalPathFromLocation($location);
+
+                if ($path !== null) {
+                    $candidate = $this->candidateFromCanonicalPath($client, $path);
+
+                    return $candidate === null
+                        ? []
+                        : $this->filterAndRankResults($query, [$candidate]);
+                }
+            }
+
+            if (! $response->successful()) {
+                throw new RuntimeException("MaSoThue search tra ve HTTP {$response->status()}.");
+            }
+
+            return $this->filterAndRankResults($query, $this->parseSearchResults($response->body()));
+        }
+
+        $response = $client->get(self::BASE_URL.'/Search/', $payload);
 
         if (! $response->successful()) {
             throw new RuntimeException("MaSoThue search tra ve HTTP {$response->status()}.");
         }
 
-        $xpath = $this->xpath($response->body());
-        $results = [];
-
-        foreach ($xpath->query('//h3/a[@href]') as $anchor) {
-            if (! $anchor instanceof DOMElement) {
-                continue;
-            }
-
-            $path = trim($anchor->getAttribute('href'));
-
-            if (! preg_match('#^/([0-9]{10}(?:-[0-9]{3})?)-#', $path, $matches)) {
-                continue;
-            }
-
-            $name = $this->cleanText($anchor->textContent);
-
-            if ($name === '') {
-                continue;
-            }
-
-            $results[] = [
-                'tax_code' => $matches[1],
-                'name' => $name,
-                'canonical_path' => $path,
-                'canonical_url' => self::BASE_URL.$path,
-            ];
-        }
-
-        return $results;
+        return $this->filterAndRankResults($query, $this->parseSearchResults($response->body()));
     }
 
     public function fetchDetail(string $canonicalPath): array
@@ -126,22 +136,38 @@ class MasothueLookupService
             return null;
         }
 
+        if ($this->isTaxCodeQuery($query)) {
+            foreach ($results as $result) {
+                if ($result['tax_code'] === trim($query)) {
+                    return $result + ['match_type' => 'exact_tax_code'];
+                }
+            }
+
+            return null;
+        }
+
         $normalizedQuery = $this->normalizeName($query);
 
         foreach ($results as $result) {
             if ($this->normalizeName($result['name']) === $normalizedQuery) {
-                return $result + ['match_type' => 'exact'];
+                return $result + ['match_type' => 'exact_name'];
             }
         }
 
-        return $results[0] + ['match_type' => 'first_result'];
+        return $results[0] + ['match_type' => 'approximate'];
     }
 
-    protected function http(): PendingRequest
+    protected function http(?CookieJar $cookies = null): PendingRequest
     {
-        return Http::timeout(15)
+        $request = Http::timeout(15)
             ->accept('text/html,application/xhtml+xml')
-            ->withUserAgent('laravel-shop-mst-lookup/1.0');
+            ->withHeaders([
+                'Accept-Language' => 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer' => self::BASE_URL.'/',
+            ])
+            ->withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36');
+
+        return $cookies ? $request->withOptions(['cookies' => $cookies]) : $request;
     }
 
     protected function xpath(string $html): DOMXPath
@@ -194,5 +220,168 @@ class MasothueLookupService
     protected function field(array $fields, string $key): ?string
     {
         return $fields[$key] ?? null;
+    }
+
+    private function fetchSearchToken(PendingRequest $client): string
+    {
+        $response = $client
+            ->asForm()
+            ->acceptJson()
+            ->withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'Origin' => self::BASE_URL,
+                'Referer' => self::BASE_URL.'/',
+            ])
+            ->post(self::BASE_URL.'/Ajax/Token', []);
+
+        if (! $response->successful()) {
+            throw new RuntimeException("MaSoThue token tra ve HTTP {$response->status()}.");
+        }
+
+        $token = $response->json('token');
+
+        if (! is_string($token) || trim($token) === '') {
+            throw new RuntimeException('MaSoThue khong tra ve search token hop le.');
+        }
+
+        return trim($token);
+    }
+
+    private function canonicalPathFromLocation(?string $location): ?string
+    {
+        if (! is_string($location) || trim($location) === '') {
+            return null;
+        }
+
+        $location = trim($location);
+
+        if (str_starts_with($location, self::BASE_URL)) {
+            $location = substr($location, strlen(self::BASE_URL));
+        }
+
+        return preg_match('#^/[0-9]{10}(?:-[0-9]{3})?-#', $location) === 1
+            ? $location
+            : null;
+    }
+
+    private function candidateFromCanonicalPath(PendingRequest $client, string $path): ?array
+    {
+        if (! preg_match('#^/([0-9]{10}(?:-[0-9]{3})?)-#', $path, $matches)) {
+            return null;
+        }
+
+        $response = $client->get(self::BASE_URL.$path);
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $xpath = $this->xpath($response->body());
+        $heading = $xpath->query('//h1')->item(0)?->textContent ?? '';
+        $name = $this->cleanText($heading);
+        $taxCode = $matches[1];
+
+        $name = trim((string) preg_replace('/^'.preg_quote($taxCode, '/').'\s*-\s*/u', '', $name));
+
+        if ($name === '') {
+            return null;
+        }
+
+        return [
+            'tax_code' => $taxCode,
+            'name' => $name,
+            'canonical_path' => $path,
+            'canonical_url' => self::BASE_URL.$path,
+        ];
+    }
+
+    private function parseSearchResults(string $html): array
+    {
+        $xpath = $this->xpath($html);
+        $results = [];
+
+        foreach ($xpath->query('//a[@href]') as $anchor) {
+            if (! $anchor instanceof DOMElement) {
+                continue;
+            }
+
+            $path = trim($anchor->getAttribute('href'));
+
+            if (! preg_match('#^/([0-9]{10}(?:-[0-9]{3})?)-#', $path, $matches)) {
+                continue;
+            }
+
+            $name = $this->cleanText($anchor->textContent);
+
+            if ($name === '') {
+                continue;
+            }
+
+            $taxCode = $matches[1];
+            $results[$taxCode.'|'.$path] = [
+                'tax_code' => $taxCode,
+                'name' => $name,
+                'canonical_path' => $path,
+                'canonical_url' => self::BASE_URL.$path,
+            ];
+        }
+
+        return array_values($results);
+    }
+
+    private function filterAndRankResults(string $query, array $results): array
+    {
+        if ($this->isTaxCodeQuery($query)) {
+            return array_values(array_filter(
+                $results,
+                fn (array $result): bool => $result['tax_code'] === $query
+            ));
+        }
+
+        $ranked = [];
+        foreach ($results as $result) {
+            $score = $this->relevanceScore($query, $result['name']);
+
+            if ($score < 0.55) {
+                continue;
+            }
+
+            $result['relevance_score'] = $score;
+            $ranked[] = $result;
+        }
+
+        usort($ranked, fn (array $left, array $right): int => $right['relevance_score'] <=> $left['relevance_score']);
+
+        return array_slice($ranked, 0, 10);
+    }
+
+    private function isTaxCodeQuery(string $query): bool
+    {
+        return preg_match('/^[0-9]{10}(?:-[0-9]{3})?$/', trim($query)) === 1;
+    }
+
+    private function relevanceScore(string $query, string $name): float
+    {
+        $query = $this->normalizeName($query);
+        $name = $this->normalizeName($name);
+
+        if ($query === '' || $name === '') {
+            return 0.0;
+        }
+
+        if ($query === $name) {
+            return 1.0;
+        }
+
+        if (str_contains($name, $query) || str_contains($query, $name)) {
+            return 0.9;
+        }
+
+        $queryTokens = array_values(array_unique(array_filter(explode(' ', $query))));
+        $nameTokens = array_values(array_unique(array_filter(explode(' ', $name))));
+        $intersection = count(array_intersect($queryTokens, $nameTokens));
+        $union = count(array_unique(array_merge($queryTokens, $nameTokens)));
+
+        return $union > 0 ? $intersection / $union : 0.0;
     }
 }
