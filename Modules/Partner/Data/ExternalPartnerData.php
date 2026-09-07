@@ -20,23 +20,32 @@ class ExternalPartnerData
         public readonly ?string $matchType = null,
     ) {}
 
-    public static function fromMasothue(array $candidate, array $detail, ?string $checkedAt = null): self
-    {
+    public static function fromRegistry(
+        array $candidate,
+        array $detail,
+        ?string $checkedAt = null,
+        string $source = 'doanhnghiep_vn'
+    ): self {
         return new self(
-            source: 'masothue',
+            source: $source,
             externalId: (string) $candidate['tax_code'],
             name: $candidate['name'] ?? null,
             taxCode: $candidate['tax_code'] ?? null,
-            address: $detail['tax_address'] ?? null,
-            representative: $detail['representative'] ?? null,
+            address: $detail['tax_address'] ?? $candidate['address'] ?? null,
+            representative: $detail['representative'] ?? $candidate['representative'] ?? null,
             activeSince: $detail['active_since'] ?? null,
             managedBy: $detail['managed_by'] ?? null,
             organizationType: $detail['organization_type'] ?? null,
-            externalStatus: $detail['status'] ?? null,
-            sourceUrl: $candidate['canonical_url'] ?? null,
+            externalStatus: $detail['status'] ?? $candidate['status'] ?? null,
+            sourceUrl: $detail['source_url'] ?? $candidate['canonical_url'] ?? null,
             checkedAt: $checkedAt ?? now()->toIso8601String(),
             matchType: $candidate['match_type'] ?? null,
         );
+    }
+
+    public static function fromMasothue(array $candidate, array $detail, ?string $checkedAt = null): self
+    {
+        return self::fromRegistry($candidate, $detail, $checkedAt, 'masothue');
     }
 
     public function snapshot(): array
