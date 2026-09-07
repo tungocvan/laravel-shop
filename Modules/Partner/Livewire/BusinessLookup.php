@@ -3,6 +3,8 @@
 namespace Modules\Partner\Livewire;
 
 use App\Services\MasothueLookupService;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Modules\Partner\Data\ExternalPartnerData;
 use Modules\Partner\Models\Partner;
@@ -27,25 +29,48 @@ class BusinessLookup extends Component
 
     public array $selectedFields = [];
 
+    public string $newLegalType = 'company';
+
+    public array $newPartnerTypes = [];
+
     public ?int $syncedPartnerId = null;
 
     public ?string $errorMessage = null;
 
+    public function mount(): void
+    {
+        $this->authorizePermission('view_partner');
+    }
+
     public function search(MasothueLookupService $lookup): void
     {
+        $this->authorizePermission('view_partner');
         $this->validate(['query' => ['required', 'string', 'max:255']]);
         $this->resetLookupState();
 
         try {
-            $this->candidates = $lookup->search(trim($this->query));
+            $this->candidates = collect($lookup->search(trim($this->query)))
+                ->map(function (array $candidate): array {
+                    $candidate['match_type'] = $this->candidateMatchType($candidate);
+
+                    return $candidate;
+                })
+                ->values()
+                ->all();
         } catch (Throwable $exception) {
             report($exception);
             $this->errorMessage = 'Không thể tra cứu doanh nghiệp lúc này. Vui lòng thử lại.';
         }
     }
 
-    public function selectCandidate(int $index, MasothueLookupService $lookup, PartnerMatcher $matcher, PartnerSyncPlanner $planner): void
-    {
+    public function selectCandidate(
+        int $index,
+        MasothueLookupService $lookup,
+        PartnerMatcher $matcher,
+        PartnerSyncPlanner $planner
+    ): void {
+        $this->authorizePermission('view_partner');
+
         if (! isset($this->candidates[$index])) {
             return;
         }
@@ -80,14 +105,55 @@ class BusinessLookup extends Component
             return;
         }
 
-        $external = ExternalPartnerData::fromMasothue($this->selectedCandidate, $this->detail);
         $partner = isset($this->match['partner_id']) && $this->match['partner_id']
             ? Partner::findOrFail($this->match['partner_id'])
             : null;
 
-        $partner = $sync->sync($partner, $external, $this->selectedFields);
+        $this->authorizePermission($partner ? 'edit_partner' : 'create_partner');
+
+        if (! $partner) {
+            $this->validate([
+                'newLegalType' => ['required', Rule::in(array_keys(Partner::LEGAL_TYPES))],
+                'newPartnerTypes' => ['required', 'array', 'min:1'],
+                'newPartnerTypes.*' => ['required', Rule::in(array_keys(Partner::PARTNER_TYPES))],
+            ]);
+        }
+
+        $external = ExternalPartnerData::fromMasothue($this->selectedCandidate, $this->detail);
+        $partner = $sync->sync(
+            $partner,
+            $external,
+            $this->selectedFields,
+            $partner ? [] : [
+                'legal_type' => $this->newLegalType,
+                'partner_types' => $this->newPartnerTypes,
+            ]
+        );
+
         $this->syncedPartnerId = $partner->id;
         $this->dispatch('partner-synced', partnerId: $partner->id);
+    }
+
+    private function candidateMatchType(array $candidate): string
+    {
+        $query = trim($this->query);
+        $candidateTaxCode = trim((string) ($candidate['tax_code'] ?? ''));
+
+        if ($candidateTaxCode !== '' && $query === $candidateTaxCode) {
+            return 'exact_tax_code';
+        }
+
+        $normalizedQuery = Str::of($query)->lower()->ascii()->squish()->value();
+        $normalizedName = Str::of((string) ($candidate['name'] ?? ''))->lower()->ascii()->squish()->value();
+
+        return $normalizedQuery !== '' && $normalizedQuery === $normalizedName
+            ? 'exact_name'
+            : 'approximate';
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 
     private function resetLookupState(): void
@@ -98,12 +164,17 @@ class BusinessLookup extends Component
         $this->match = null;
         $this->plan = [];
         $this->selectedFields = [];
+        $this->newLegalType = 'company';
+        $this->newPartnerTypes = [];
         $this->syncedPartnerId = null;
         $this->errorMessage = null;
     }
 
     public function render()
     {
-        return view('partner::livewire.business-lookup');
+        return view('partner::livewire.business-lookup', [
+            'legalTypes' => Partner::LEGAL_TYPES,
+            'partnerTypes' => Partner::PARTNER_TYPES,
+        ]);
     }
 }
