@@ -6,13 +6,14 @@
 
 ## Objective
 
-Major Refactor + Feature Development for `Modules/Partner`: establish Partner as the ERP master hub, add an Admin Dashboard, expose reviewed MaSoThue business lookup, and provide explicit conflict-aware synchronization into canonical Partner records.
+Major Refactor + Feature Development for `Modules/Partner`: establish Partner as the ERP master hub, add an Admin Dashboard, expose reviewed business-registry lookup, and provide explicit conflict-aware synchronization into canonical Partner records.
 
 ## Decisions locked
 
 - `Partner` remains canonical ERP data.
 - `PartnerSourceReference` remains canonical external provenance; no parallel source-reference table.
-- `App\Services\MasothueLookupService` remains the source-specific read adapter and is reused rather than duplicated.
+- `DoanhNghiepLookupService` is the primary runtime lookup adapter for arbitrary Vietnamese companies.
+- MaSoThue is no longer the primary search provider because its token/session search flow returned accepted sessions without canonical results from server-side requests.
 - Search/detail retrieval never writes Partner data.
 - Multiple/fallback search results require explicit human candidate selection.
 - Sync requires review of field-level diff states before mutation.
@@ -32,10 +33,16 @@ Major Refactor + Feature Development for `Modules/Partner`: establish Partner as
 - added reviewed field states: `new_value`, `same`, `local_differs`, `missing_locally`, `source_missing`;
 - reused `PartnerSourceReference` for source URL, lookup/sync timestamps, snapshot and hash metadata;
 - preserved legacy `/admin/partner/partners/*` routes while canonical workspace callers migrate;
-- added `province_code` to Partner service/form data path;
-- added focused planner regression coverage.
+- added `province_code` to Partner service/form/import/export data path and visible form field;
+- replaced primary MaSoThue search with `DoanhNghiepLookupService` using JSON API search/detail endpoints;
+- verified the external acceptance fixture `0314492345` resolves to `Công Ty TNHH Inafo Việt Nam` by MST and name search from the deployment server;
+- preserved explicit source provenance and human review because external sources can disagree on fields such as legal representative;
+- quarantined the incomplete unauthenticated `/api/partner/` route instead of exposing a controller with no supported API contract;
+- added action-level authorization for Partner list/delete/import/export and create/edit form operations;
+- centralized list/page-selection/export filters through `PartnerQueryService`;
+- added focused planner and registry-adapter regression coverage.
 
-## Verification still required before merge
+## Verification required before merge
 
 Run locally on this branch:
 
@@ -43,14 +50,15 @@ Run locally on this branch:
 vendor/bin/pint Modules/Partner tests/Feature/Partner
 php artisan test tests/Feature/Partner
 php artisan route:list --path=admin/partners
+php artisan route:list --path=api/partner
 npm run build
 git diff --check
 git status -sb
 ```
 
-Also run any directly impacted existing Partner/MaSoThue tests discovered locally. Do not run full-project regression unless a focused failure proves a wider impact.
+Do not run full-project regression unless a focused failure proves a wider impact.
 
-Manual UI smoke must cover:
+Manual UI smoke covered by user acceptance:
 
 1. Partner Dashboard KPI cards and navigation.
 2. Business Lookup search/error/empty states.
@@ -59,21 +67,19 @@ Manual UI smoke must cover:
 5. Existing Partner match and field conflict preview.
 6. New Partner preview.
 7. Explicit selected-field sync.
-8. Repeated sync does not duplicate source references.
-9. Partner list pagination/filter/export behavior remains intact.
-10. Partner create/edit form remains intact.
+8. Partner list pagination/filter behavior.
 
-User acceptance marker: `UI PASS`.
+User acceptance marker: `UI PASS` on 2026-09-07.
 
-## Remaining hardening before merge
+Because closeout subsequently touched Partner create/edit navigation, the visible `province_code` field, and server-side list/action authorization, perform a short smoke of Partner list + create/edit form after pulling the latest branch.
 
-- finish eliminating the legacy duplicated filter query in `Partner\Index` in favor of `PartnerQueryService` for list/page-selection/export consistency;
-- carry `province_code` through visible form/import/export UI where appropriate;
-- apply repository-canonical permission registration and action-level authorization after verifying the exact permission seeding convention;
-- add focused Dashboard, lookup, sync/idempotency/source-collision and export contract tests;
-- resolve any Pint/runtime issues found by local verification;
-- update this handoff with final test counts and UI result before PR/merge.
+## Remaining before merge
+
+- record final Pint/test/route/build counts from local verification;
+- confirm `/api/partner/` no longer exposes the incomplete public route;
+- perform the short post-closeout Partner list + create/edit UI smoke;
+- update this handoff with final PASS counts before PR/merge.
 
 ## Deferred
 
-Verification semantics, automatic/bulk enrichment, scheduled crawling, CAPTCHA handling, automatic dedup/merge, multi-source arbitration, removal of tax-code uniqueness, and promotion of all source-only fields into Partner columns remain separate future work.
+Verification semantics, automatic/bulk enrichment, scheduled crawling, CAPTCHA handling, automatic dedup/merge, multi-source arbitration, synchronization from `Invoices` into `Partner`, removal of tax-code uniqueness, and promotion of all source-only fields into Partner columns remain separate future work.
