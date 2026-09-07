@@ -3,16 +3,22 @@
 namespace Modules\Partner\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 use Modules\Partner\Data\ExternalPartnerData;
 use Modules\Partner\Models\Partner;
 use Modules\Partner\Models\PartnerSourceReference;
 
 class PartnerSyncService
 {
-    public function sync(?Partner $partner, ExternalPartnerData $external, array $selectedFields): Partner
-    {
-        return DB::transaction(function () use ($partner, $external, $selectedFields): Partner {
+    public function sync(
+        ?Partner $partner,
+        ExternalPartnerData $external,
+        array $selectedFields,
+        array $createAttributes = []
+    ): Partner {
+        return DB::transaction(function () use ($partner, $external, $selectedFields, $createAttributes): Partner {
             $existingReference = PartnerSourceReference::query()
                 ->where('source', $external->source)
                 ->where('external_id', $external->externalId)
@@ -50,13 +56,17 @@ class PartnerSyncService
                     ]);
                 }
 
+                $validatedCreateAttributes = Validator::make($createAttributes, [
+                    'legal_type' => ['required', Rule::in(array_keys(Partner::LEGAL_TYPES))],
+                    'partner_types' => ['required', 'array', 'min:1'],
+                    'partner_types.*' => ['required', Rule::in(array_keys(Partner::PARTNER_TYPES))],
+                ])->validate();
+
                 $partner = Partner::create(array_merge([
                     'name' => $external->name ?: $external->taxCode ?: $external->externalId,
-                    'legal_type' => 'company',
-                    'partner_types' => ['supplier'],
                     'source' => 'system',
-                    'status' => 'active',
-                ], $changes));
+                    'status' => 'pending',
+                ], $validatedCreateAttributes, $changes));
             } elseif ($changes !== []) {
                 $partner->update($changes);
             }
