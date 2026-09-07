@@ -7,6 +7,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Modules\Partner\Data\ExternalPartnerData;
 use Modules\Partner\Models\Partner;
+use Modules\Partner\Services\MstCongTyProvider;
 use Modules\Partner\Services\MultiSourceBusinessLookupService;
 use Modules\Partner\Services\PartnerMatcher;
 use Modules\Partner\Services\PartnerSyncPlanner;
@@ -16,6 +17,7 @@ use Throwable;
 class BusinessLookup extends Component
 {
     public string $query = '';
+    public string $selectedSource = MstCongTyProvider::SOURCE;
     public array $candidates = [];
     public array $providerErrors = [];
     public ?array $selectedCandidate = null;
@@ -35,14 +37,22 @@ class BusinessLookup extends Component
         $this->authorizePermission('view_partner');
     }
 
+    public function updatedSelectedSource(): void
+    {
+        $this->resetLookupState(keepSource: true);
+    }
+
     public function search(MultiSourceBusinessLookupService $lookup): void
     {
         $this->authorizePermission('view_partner');
-        $this->validate(['query' => ['required', 'string', 'max:255']]);
-        $this->resetLookupState();
+        $this->validate([
+            'query' => ['required', 'string', 'max:255'],
+            'selectedSource' => ['required', Rule::in(array_keys($lookup->options()))],
+        ]);
+        $this->resetLookupState(keepSource: true);
 
         try {
-            $result = $lookup->search(trim($this->query));
+            $result = $lookup->search(trim($this->query), $this->selectedSource);
             $this->providerErrors = $result['errors'];
             $this->candidates = collect($result['items'])
                 ->map(function (array $candidate): array {
@@ -51,7 +61,7 @@ class BusinessLookup extends Component
                 })->values()->all();
 
             if ($this->candidates === [] && $this->providerErrors !== []) {
-                $this->errorMessage = 'Các nguồn tra cứu hiện đều không khả dụng. Vui lòng thử lại sau.';
+                $this->errorMessage = 'Nguồn tra cứu đã chọn hiện không khả dụng. Bạn có thể chọn nguồn khác và thử lại.';
             }
         } catch (Throwable $exception) {
             report($exception);
@@ -91,7 +101,7 @@ class BusinessLookup extends Component
             $this->selectedFields = collect($this->plan)->filter(fn ($row) => $row['selected'])->keys()->all();
         } catch (Throwable $exception) {
             report($exception);
-            $this->errorMessage = 'Không thể tải chi tiết doanh nghiệp đã chọn. Vui lòng thử lại hoặc chọn kết quả từ nguồn khác.';
+            $this->errorMessage = 'Không thể tải chi tiết doanh nghiệp đã chọn. Vui lòng thử lại hoặc chọn nguồn khác.';
         }
     }
 
@@ -146,8 +156,9 @@ class BusinessLookup extends Component
         abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 
-    private function resetLookupState(): void
+    private function resetLookupState(bool $keepSource = false): void
     {
+        $source = $this->selectedSource;
         $this->candidates = [];
         $this->providerErrors = [];
         $this->selectedCandidate = null;
@@ -161,13 +172,18 @@ class BusinessLookup extends Component
         $this->newPartnerTypes = [];
         $this->syncedPartnerId = null;
         $this->errorMessage = null;
+
+        if ($keepSource) {
+            $this->selectedSource = $source;
+        }
     }
 
-    public function render()
+    public function render(MultiSourceBusinessLookupService $lookup)
     {
         return view('partner::livewire.business-lookup', [
             'legalTypes' => Partner::LEGAL_TYPES,
             'partnerTypes' => Partner::PARTNER_TYPES,
+            'sourceOptions' => $lookup->options(),
         ]);
     }
 }
