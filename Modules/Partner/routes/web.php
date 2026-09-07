@@ -9,6 +9,9 @@ Route::prefix('admin/partners')
     ->group(function () {
         Route::view('/dashboard', 'partner::pages.dashboard')->name('dashboard');
         Route::view('/business-lookup', 'partner::pages.business-lookup')->name('lookup');
+        Route::get('/', [PartnerController::class, 'index'])->name('index');
+        Route::get('/create', [PartnerController::class, 'create'])->name('create');
+        Route::get('/{id}/edit', [PartnerController::class, 'edit'])->name('edit');
     });
 
 // Legacy Partner routes remain available while callers migrate to the canonical /admin/partners workspace.
