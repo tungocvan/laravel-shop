@@ -80,9 +80,11 @@ class BusinessLookup extends Component
 
         try {
             $detail = $lookup->fetchDetail($candidate['canonical_path']);
-            $external = ExternalPartnerData::fromMasothue($candidate, $detail);
+            $checkedAt = now()->toIso8601String();
+            $external = ExternalPartnerData::fromMasothue($candidate, $detail, $checkedAt);
             $match = $matcher->match($external);
 
+            $candidate['checked_at'] = $checkedAt;
             $this->selectedCandidate = $candidate;
             $this->detail = $detail;
             $this->match = [
@@ -119,7 +121,11 @@ class BusinessLookup extends Component
             ]);
         }
 
-        $external = ExternalPartnerData::fromMasothue($this->selectedCandidate, $this->detail);
+        $external = ExternalPartnerData::fromMasothue(
+            $this->selectedCandidate,
+            $this->detail,
+            $this->selectedCandidate['checked_at'] ?? null
+        );
         $partner = $sync->sync(
             $partner,
             $external,
