@@ -14,13 +14,21 @@ use Throwable;
 class BusinessLookup extends Component
 {
     public string $query = '';
+
     public array $candidates = [];
+
     public ?array $selectedCandidate = null;
+
     public ?array $detail = null;
+
     public ?array $match = null;
+
     public array $plan = [];
+
     public array $selectedFields = [];
+
     public ?int $syncedPartnerId = null;
+
     public ?string $errorMessage = null;
 
     public function search(MasothueLookupService $lookup): void
