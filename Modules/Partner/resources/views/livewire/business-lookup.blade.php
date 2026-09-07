@@ -15,7 +15,7 @@
                 </button>
             </div>
         </form>
-        <p class="mt-3 text-xs text-gray-500">MaSoThue là nguồn tham khảo bên thứ ba, không phải nguồn xác minh pháp lý chính thức. Tra cứu không tự ghi dữ liệu vào Partner.</p>
+        <p class="mt-3 text-xs text-gray-500">Dữ liệu tra cứu được lấy từ nguồn doanh nghiệp công khai bên thứ ba và chỉ dùng để tham khảo/đối chiếu. Tra cứu không tự ghi dữ liệu vào Partner.</p>
         @if ($errorMessage)
             <div class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ $errorMessage }}</div>
         @endif
@@ -40,6 +40,7 @@
                         <span>
                             <span class="block font-medium text-gray-900">{{ $candidate['name'] }}</span>
                             <span class="mt-1 block text-sm text-gray-500">MST: {{ $candidate['tax_code'] ?: '—' }}</span>
+                            <span class="mt-1 block text-xs text-gray-500">Nguồn: {{ $candidate['source_label'] ?? 'Nguồn doanh nghiệp công khai' }}</span>
                             <span class="mt-2 inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700">{{ $matchLabel }}</span>
                         </span>
                         <span class="text-sm font-semibold text-indigo-600">Chọn</span>
@@ -55,7 +56,7 @@
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h2 class="font-semibold text-gray-900">Dữ liệu nguồn</h2>
-                        <p class="mt-1 text-xs text-gray-500">Nguồn: MaSoThue · kiểm tra lúc {{ $selectedCandidate['checked_at'] ?? '—' }}</p>
+                        <p class="mt-1 text-xs text-gray-500">Nguồn: {{ $selectedCandidate['source_label'] ?? 'Nguồn doanh nghiệp công khai' }} · kiểm tra lúc {{ $selectedCandidate['checked_at'] ?? '—' }}</p>
                     </div>
                     @if (! empty($selectedCandidate['canonical_url']))
                         <a href="{{ $selectedCandidate['canonical_url'] }}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Mở nguồn gốc</a>
@@ -67,11 +68,13 @@
                         'Tên pháp lý' => $selectedCandidate['name'] ?? null,
                         'Mã số thuế' => $selectedCandidate['tax_code'] ?? null,
                         'Trạng thái nguồn' => $detail['status'] ?? null,
-                        'Địa chỉ thuế' => $detail['tax_address'] ?? null,
+                        'Địa chỉ' => $detail['tax_address'] ?? null,
                         'Người đại diện' => $detail['representative'] ?? null,
-                        'Ngày hoạt động' => $detail['active_since'] ?? null,
+                        'Ngày đăng ký/hoạt động' => $detail['active_since'] ?? null,
                         'Cơ quan quản lý' => $detail['managed_by'] ?? null,
-                        'Loại tổ chức' => $detail['organization_type'] ?? null,
+                        'Loại hình doanh nghiệp' => $detail['organization_type'] ?? null,
+                        'Ngành chính' => $detail['industry'] ?? null,
+                        'Tỉnh/Thành phố' => $detail['province_name'] ?? null,
                     ] as $label => $value)
                         <div class="grid grid-cols-3 gap-3">
                             <dt class="text-gray-500">{{ $label }}</dt>
@@ -116,7 +119,7 @@
                             @enderror
                         </div>
                     </div>
-                    <p class="mt-2 text-xs text-gray-500">Partner mới được tạo với trạng thái ERP “Chờ xử lý”; trạng thái từ MaSoThue không tự ánh xạ thành trạng thái ERP.</p>
+                    <p class="mt-2 text-xs text-gray-500">Partner mới được tạo với trạng thái ERP “Chờ xử lý”; trạng thái từ nguồn tra cứu không tự ánh xạ thành trạng thái ERP.</p>
                 @endif
 
                 @php
