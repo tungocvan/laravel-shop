@@ -62,8 +62,8 @@ class InvoicesApplicationContractTest extends TestCase
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
         $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/dashboard.blade.php'));
 
-        $this->assertStringContainsString("$request->integer('year'", $adapter);
-        $this->assertStringContainsString("$request->query('month')", $adapter);
+        $this->assertStringContainsString('$request->integer(\'year\'', $adapter);
+        $this->assertStringContainsString('$request->query(\'month\')', $adapter);
         $this->assertStringContainsString("'periodScope' => $month === null ? 'year' : 'month'", $adapter);
         $this->assertStringContainsString('Cả năm', $dashboard);
         $this->assertStringContainsString('Mặc định hiển thị tổng quan cả năm', $dashboard);
