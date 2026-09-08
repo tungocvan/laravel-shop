@@ -18,5 +18,6 @@
         </div>
 
         @livewire('invoices.hoadon-list')
+        @livewire('invoices.invoice-pdf-drive-sync')
     </div>
 @endsection
