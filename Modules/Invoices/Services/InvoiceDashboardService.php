@@ -140,12 +140,8 @@ final class InvoiceDashboardService
         }
 
         try {
-            $summary = InvoiceFile::query()
-                ->selectRaw("SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as stored")
-                ->selectRaw("SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as errors")
-                ->first();
-            $stored = (int) ($summary?->stored ?? 0);
-            $errors = (int) ($summary?->errors ?? 0);
+            $stored = InvoiceFile::query()->where('status', 'available')->count();
+            $errors = InvoiceFile::query()->where('status', 'error')->count();
 
             return [
                 'visible' => true,
