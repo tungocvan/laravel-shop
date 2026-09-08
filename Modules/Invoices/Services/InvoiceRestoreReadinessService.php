@@ -42,10 +42,14 @@ final class InvoiceRestoreReadinessService
         return compact('status', 'checks', 'warnings', 'blockers');
     }
 
-    /** @param array<int,array<string,mixed>> $checks @param array<int,string> $blockers */
+    /**
+     * @param  array<int, array<string, mixed>>  $checks
+     * @param  array<int, string>  $blockers
+     */
     private function check(array &$checks, array &$blockers, string $code, bool $passed, string $failure): void
     {
         $checks[] = ['code' => $code, 'passed' => $passed];
+
         if (! $passed) {
             $blockers[] = $failure;
         }
