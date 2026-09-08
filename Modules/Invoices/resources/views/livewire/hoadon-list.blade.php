@@ -7,6 +7,42 @@
         </div>
     </div>
 
+    @if(in_array($monthlyPdfBatchStatus['status'] ?? null, ['queued', 'processing'], true))
+        <div wire:poll.2s="refreshMonthlyPdfBatchStatus" class="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex items-start gap-4">
+                    <div class="mt-1 h-10 w-10 shrink-0 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="text-lg font-bold text-slate-900">Đang tải PDF tháng {{ str_pad((string)($monthlyPdfBatchStatus['month'] ?? $month), 2, '0', STR_PAD_LEFT) }}/{{ $monthlyPdfBatchStatus['year'] ?? $year }}</h3>
+                        <p class="mt-1 text-sm text-slate-500">Hệ thống đã chia thành các queue tối đa 25 hóa đơn để xử lý ổn định. Bạn có thể giữ nguyên trang này để theo dõi tiến độ.</p>
+                    </div>
+                </div>
+                @php($monthlyTotal=max(1,(int)($monthlyPdfBatchStatus['total']??0)))
+                @php($monthlyProcessed=(int)($monthlyPdfBatchStatus['processed']??0))
+                @php($monthlyPercent=min(100,(int)round(($monthlyProcessed/$monthlyTotal)*100)))
+                <div class="mt-5">
+                    <div class="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600"><span>{{ number_format($monthlyProcessed) }} / {{ number_format((int)($monthlyPdfBatchStatus['total']??0)) }} hóa đơn</span><span>{{ $monthlyPercent }}%</span></div>
+                    <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-indigo-600 transition-all" style="width: {{ $monthlyPercent }}%"></div></div>
+                </div>
+                <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-xl bg-slate-50 px-3 py-2"><p class="text-xs text-slate-500">Queue hoàn tất</p><p class="mt-1 font-bold text-slate-900">{{ (int)($monthlyPdfBatchStatus['completed_chunks']??0) }}/{{ (int)($monthlyPdfBatchStatus['chunks']??0) }}</p></div>
+                    <div class="rounded-xl bg-emerald-50 px-3 py-2"><p class="text-xs text-emerald-700">Tải thành công</p><p class="mt-1 font-bold text-emerald-900">{{ number_format((int)($monthlyPdfBatchStatus['downloaded']??0)) }}</p></div>
+                    <div class="rounded-xl bg-red-50 px-3 py-2"><p class="text-xs text-red-700">Lỗi</p><p class="mt-1 font-bold text-red-900">{{ number_format((int)($monthlyPdfBatchStatus['failed']??0)) }}</p></div>
+                </div>
+            </div>
+        </div>
+    @elseif(in_array($monthlyPdfBatchStatus['status'] ?? null, ['completed', 'completed_with_errors'], true))
+        <div class="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full {{ ($monthlyPdfBatchStatus['failed']??0)>0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} text-2xl font-bold">{{ ($monthlyPdfBatchStatus['failed']??0)>0 ? '!' : '✓' }}</div>
+                <h3 class="mt-4 text-lg font-bold text-slate-900">Đồng bộ PDF tháng đã hoàn tất</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">Tháng {{ str_pad((string)($monthlyPdfBatchStatus['month']??$month),2,'0',STR_PAD_LEFT) }}/{{ $monthlyPdfBatchStatus['year']??$year }}: tải mới {{ number_format((int)($monthlyPdfBatchStatus['downloaded']??0)) }} PDF, lỗi {{ number_format((int)($monthlyPdfBatchStatus['failed']??0)) }}.</p>
+                @if(($monthlyPdfBatchStatus['failed']??0)>0)<p class="mt-2 text-xs text-amber-700">Các hóa đơn lỗi vẫn được giữ trạng thái để bạn lọc “Lỗi tải PDF” và thử lại sau.</p>@endif
+                <div class="mt-5 flex justify-end"><button type="button" wire:click="dismissMonthlyPdfBatchStatus" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Đóng</button></div>
+            </div>
+        </div>
+    @endif
+
     @if($downloadStatus === 'success' && $pdfNotice)
         <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
             <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
@@ -36,8 +72,8 @@
         <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-5 shadow-sm">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <p class="text-sm font-semibold text-sky-700">Doanh thu bán ra năm {{ $annualYear }}</p>
-                    <p class="mt-1 text-xs text-sky-600">Tổng hóa đơn bán ra trong năm đang chọn.</p>
+                    <p class="text-sm font-semibold text-sky-700">{{ $annualYear === 'Tất cả' ? 'Doanh thu bán ra — Tất cả các năm' : 'Doanh thu bán ra năm '.$annualYear }}</p>
+                    <p class="mt-1 text-xs text-sky-600">{{ $annualYear === 'Tất cả' ? 'Tổng hóa đơn bán ra của toàn bộ dữ liệu.' : 'Tổng hóa đơn bán ra trong năm đang chọn.' }}</p>
                 </div>
                 <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700">{{ number_format($annualStats['sold_count']) }} HĐ</span>
             </div>
@@ -46,8 +82,8 @@
         <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <p class="text-sm font-semibold text-amber-700">Giá trị mua vào năm {{ $annualYear }}</p>
-                    <p class="mt-1 text-xs text-amber-600">Tổng hóa đơn mua vào trong năm đang chọn.</p>
+                    <p class="text-sm font-semibold text-amber-700">{{ $annualYear === 'Tất cả' ? 'Giá trị mua vào — Tất cả các năm' : 'Giá trị mua vào năm '.$annualYear }}</p>
+                    <p class="mt-1 text-xs text-amber-600">{{ $annualYear === 'Tất cả' ? 'Tổng hóa đơn mua vào của toàn bộ dữ liệu.' : 'Tổng hóa đơn mua vào trong năm đang chọn.' }}</p>
                 </div>
                 <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-700">{{ number_format($annualStats['purchase_count']) }} HĐ</span>
             </div>
@@ -70,10 +106,7 @@
 
         <div class="space-y-6 p-5 sm:p-6">
             <section class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
-                <div class="mb-4">
-                    <h4 class="text-sm font-semibold text-slate-900">Kỳ dữ liệu</h4>
-                    <p class="mt-1 text-xs text-slate-500">Mặc định hiển thị tháng hiện tại. Khi đổi năm, hai tổng quan phía trên cũng chuyển theo năm đó.</p>
-                </div>
+                <div class="mb-4"><h4 class="text-sm font-semibold text-slate-900">Kỳ dữ liệu</h4><p class="mt-1 text-xs text-slate-500">Mặc định hiển thị tháng hiện tại. Khi đổi năm, hai tổng quan phía trên cũng chuyển theo năm đó.</p></div>
                 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Năm</span><select wire:model.live="year" class="{{ $controlClass }}"><option value="">Tất cả năm</option>@foreach($yearOptions as $yearOption)<option value="{{ $yearOption }}">Năm {{ $yearOption }}</option>@endforeach</select></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Tháng</span><select wire:model.live="month" @disabled($year==='') class="{{ $controlClass }}"><option value="">Cả năm</option>@for($m=1;$m<=12;$m++)<option value="{{ $m }}">Tháng {{ str_pad((string)$m,2,'0',STR_PAD_LEFT) }}</option>@endfor</select></label>
@@ -84,10 +117,7 @@
             </section>
 
             <section>
-                <div class="mb-4">
-                    <h4 class="text-sm font-semibold text-slate-900">Điều kiện lọc</h4>
-                    <p class="mt-1 text-xs text-slate-500">Dùng khi cần tra cứu hoặc đối soát sâu trong kỳ đã chọn.</p>
-                </div>
+                <div class="mb-4"><h4 class="text-sm font-semibold text-slate-900">Điều kiện lọc</h4><p class="mt-1 text-xs text-slate-500">Dùng khi cần tra cứu hoặc đối soát sâu trong kỳ đã chọn.</p></div>
                 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Loại hóa đơn</span><select wire:model.live="type" class="{{ $controlClass }}"><option value="">Tất cả loại</option><option value="sold">Bán ra</option><option value="purchase">Mua vào</option></select></label>
                     <div><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Đối tác</span><x-select-search id="invoice-partner-search" wire:model="name" options-wire="nameList" placeholder="Tìm đối tác..."><option value="">Tất cả đối tác</option>@foreach($nameList as $item)<option value="{{ $item }}" @selected($name===$item)>{{ $item }}</option>@endforeach</x-select-search></div>
@@ -108,7 +138,20 @@
             <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
                 <div><h3 class="text-sm font-bold">Kho PDF theo bộ lọc</h3><p class="mt-1 text-xs text-slate-500">Bộ lọc chỉ thu hẹp danh sách; xóa PDF chỉ áp dụng cho hóa đơn checkbox.</p></div>
                 <div class="mt-4 grid gap-3 sm:grid-cols-4">@foreach([['Tổng',$fileSummary['total']],['Đã có PDF',$fileSummary['available']],['Chưa có',$fileSummary['missing']],['Lỗi tải',$fileSummary['error']]] as [$label,$value])<div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs text-slate-500">{{ $label }}</p><p class="mt-1 text-xl font-bold">{{ number_format($value) }}</p></div>@endforeach</div>
-                @if(auth('admin')->user()?->can('invoices-download'))<div class="mt-4 flex flex-wrap gap-2"><button wire:click="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Quét metadata</button><button wire:click="downloadMissingPdfs" @disabled(($fileSummary['missing']+$fileSummary['error'])===0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải 25 PDF còn thiếu</button>@if($fileSummary['error']>0)<button wire:click="retryPdfErrors" class="rounded-xl bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-800">Thử lại {{ min(25,$fileSummary['error']) }} lỗi</button>@endif<button wire:click="downloadPdfZip" @disabled($fileSummary['available']===0) class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải ZIP PDF</button>@if(count($selected)>0)<button wire:click="deleteSelectedPdfs" wire:confirm="Xóa PDF của {{ count($selected) }} hóa đơn đã chọn? Dữ liệu hóa đơn không bị xóa." class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700">Xóa PDF đã chọn ({{ count($selected) }})</button>@endif</div>@endif
+                @if(auth('admin')->user()?->can('invoices-download'))
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button wire:click="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Quét metadata</button>
+                        @if($year !== '' && $month !== '' && $fileSummary['missing'] > 0)
+                            <button wire:click="queueMonthlyPdfDownloads" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Tải tất cả PDF tháng {{ str_pad($month,2,'0',STR_PAD_LEFT) }}/{{ $year }} ({{ number_format($fileSummary['missing']) }})</button>
+                        @else
+                            <button wire:click="downloadMissingPdfs" @disabled(($fileSummary['missing']+$fileSummary['error'])===0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải 25 PDF còn thiếu</button>
+                        @endif
+                        @if($fileSummary['error']>0)<button wire:click="retryPdfErrors" class="rounded-xl bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-800">Thử lại {{ min(25,$fileSummary['error']) }} lỗi</button>@endif
+                        <button wire:click="downloadPdfZip" @disabled($fileSummary['available']===0) class="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải ZIP PDF</button>
+                        @if(count($selected)>0)<button wire:click="deleteSelectedPdfs" wire:confirm="Xóa PDF của {{ count($selected) }} hóa đơn đã chọn? Dữ liệu hóa đơn không bị xóa." class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700">Xóa PDF đã chọn ({{ count($selected) }})</button>@endif
+                    </div>
+                    @if($year === '' || $month === '')<p class="mt-3 text-xs text-slate-500">Chọn cụ thể <strong>Năm + Tháng</strong> để xuất hiện nút tải toàn bộ PDF của tháng. Mỗi queue xử lý tối đa 25 hóa đơn.</p>@endif
+                @endif
             </div>
 
             <div class="flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between">
