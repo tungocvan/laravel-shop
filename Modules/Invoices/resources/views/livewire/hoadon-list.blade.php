@@ -36,22 +36,22 @@
         <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-5 shadow-sm">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <p class="text-sm font-semibold text-sky-700">Doanh thu bán ra</p>
-                    <p class="mt-1 text-xs text-sky-600">Theo bộ lọc hiện tại{{ $month !== '' && $year !== '' ? ' · Tháng '.str_pad($month, 2, '0', STR_PAD_LEFT).'/'.$year : '' }}</p>
+                    <p class="text-sm font-semibold text-sky-700">Doanh thu bán ra năm {{ $annualYear }}</p>
+                    <p class="mt-1 text-xs text-sky-600">Tổng hóa đơn bán ra từ đầu năm đến cuối năm hiện tại.</p>
                 </div>
-                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700">{{ number_format($filterStats['sold_count']) }} HĐ</span>
+                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700">{{ number_format($annualStats['sold_count']) }} HĐ</span>
             </div>
-            <p class="mt-4 text-3xl font-bold tracking-tight text-slate-900">{{ number_format((float) $filterStats['sold_amount']) }} ₫</p>
+            <p class="mt-4 text-3xl font-bold tracking-tight text-slate-900">{{ number_format((float) $annualStats['sold_amount']) }} ₫</p>
         </div>
         <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <p class="text-sm font-semibold text-amber-700">Giá trị mua vào</p>
-                    <p class="mt-1 text-xs text-amber-600">Theo bộ lọc hiện tại{{ $month !== '' && $year !== '' ? ' · Tháng '.str_pad($month, 2, '0', STR_PAD_LEFT).'/'.$year : '' }}</p>
+                    <p class="text-sm font-semibold text-amber-700">Giá trị mua vào năm {{ $annualYear }}</p>
+                    <p class="mt-1 text-xs text-amber-600">Tổng hóa đơn mua vào từ đầu năm đến cuối năm hiện tại.</p>
                 </div>
-                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-700">{{ number_format($filterStats['purchase_count']) }} HĐ</span>
+                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-700">{{ number_format($annualStats['purchase_count']) }} HĐ</span>
             </div>
-            <p class="mt-4 text-3xl font-bold tracking-tight text-slate-900">{{ number_format((float) $filterStats['purchase_amount']) }} ₫</p>
+            <p class="mt-4 text-3xl font-bold tracking-tight text-slate-900">{{ number_format((float) $annualStats['purchase_amount']) }} ₫</p>
         </div>
     </div>
 
