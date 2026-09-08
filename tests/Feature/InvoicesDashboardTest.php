@@ -106,7 +106,7 @@ class InvoicesDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('href="'.route('admin.invoices.hoadon').'"', false)
             ->assertSee('href="'.route('admin.invoices.backup-restore').'"', false)
-            ->assertSee('Backup & Recovery')
+            ->assertSee('Backup & Recovery', false)
             ->assertSee('Kiểm tra Restore / Backup ngay')
             ->assertSee('PDF khả dụng')
             ->assertSee('Backup gần đây')
