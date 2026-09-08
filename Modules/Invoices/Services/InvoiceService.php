@@ -169,6 +169,17 @@ class InvoiceService
     {
         $query = Invoices::query();
 
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $query->where(function (Builder $query) use ($search): void {
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('tax_code', 'like', '%'.$search.'%')
+                    ->orWhere('invoice_number', 'like', '%'.$search.'%')
+                    ->orWhere('symbol', 'like', '%'.$search.'%')
+                    ->orWhere('lookup_code', 'like', '%'.$search.'%');
+            });
+        }
+
         foreach (['lookup_code', 'symbol', 'invoice_number', 'type', 'tax_code', 'name', 'address', 'email', 'phone'] as $field) {
             if (filled($filters[$field] ?? null)) {
                 $query->where($field, 'like', '%'.$filters[$field].'%');
