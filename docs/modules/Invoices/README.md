@@ -4,7 +4,7 @@
 
 `Invoices` is the electronic-invoice domain module for GDT integration, sold/purchase invoice synchronization, Excel import/export, local PDF management, partner reporting and module-scoped recovery.
 
-Current status: the main invoice ingestion/PDF/Drive/reporting scope is merged; `feat/invoices-dashboard-backup-restore` adds the Operations Dashboard and module Backup/Restore workflow pending final PR closeout.
+Current status: the main invoice ingestion/PDF/Drive/reporting scope is merged; `feat/invoices-dashboard-backup-restore` adds the Operations Dashboard and module Backup/Restore workflow with Google Drive disaster-recovery transport.
 
 ## Registration
 
@@ -24,8 +24,6 @@ invoices
 invoice_files
 invoice_backup_runs
 ```
-
-Do not use legacy `module.json` as the architectural source of truth.
 
 ## Main Routes
 
@@ -63,7 +61,7 @@ invoices-download
 invoices-configure
 ```
 
-Sensitive Livewire actions enforce server-side permission checks. UI actions are also hidden/disabled when the admin lacks the corresponding capability.
+Sensitive Livewire actions enforce server-side permission checks.
 
 ## Invoice Identity / Import Safety
 
@@ -73,27 +71,9 @@ Current application identity remains:
 lookup_code + invoice_number + issued_date + tax_code
 ```
 
-Import duplicate detection is date-aware and does not overwrite an existing invoice in `skip_duplicate` mode.
+Import duplicate detection is date-aware and does not overwrite an existing invoice in `skip_duplicate` mode. A database unique constraint remains deferred until identity is validated against production data.
 
-A database unique constraint remains deferred until identity is validated against production data.
-
-## Invoice List / Import / Export
-
-Canonical import/export service:
-
-```text
-Modules/Invoices/Services/InvoiceImportExportService.php
-```
-
-It extends:
-
-```text
-Modules/Shared/Services/ImportExport/BaseImportExportService.php
-```
-
-The list workspace supports bounded pagination, searchable partner/MST filters, year/month/date filters, safe sort whitelists, page selection and explicit select-all-filtered behavior. Import/export supports XLSX/CSV and selected/all-filtered export without unbounded `All` pagination.
-
-## PDF Storage and Metadata
+## PDF Storage and Google Drive Protection
 
 PDFs are stored under:
 
@@ -101,41 +81,17 @@ PDFs are stored under:
 storage/app/invoices/pdf/{YYYY}/{MM}/{sold|purchase}/
 ```
 
-Legacy files under `storage/app/hoadon_temp` remain readable for compatibility.
-
 Metadata table:
 
 ```text
 invoice_files
 ```
 
-Tracked fields include provider, status, path, size, last error and downloaded time. PDF status is represented through values such as:
+PDF binaries are protected separately through the existing Local ↔ Google Drive workflow. Module DB snapshots intentionally do not embed PDF binaries.
 
-```text
-available
-missing
-error
-```
+## Partner Reporting Boundary
 
-The invoice record is never deleted when its PDF is deleted.
-
-## Google Drive PDF Protection
-
-PDF binaries are protected through the existing Local ↔ Google Drive workflow under the configured `Laravel-Backup` root. Module DB snapshots intentionally do not embed PDF binaries.
-
-The invoice list exposes the PDF ↔ Drive workspace for upload/restore comparison by invoice period. Same-name files are not blindly overwritten when sizes differ.
-
-## Partner Reporting
-
-Canonical route:
-
-```text
-/admin/invoices/reports/partners
-```
-
-The report supports filters, searchable partner/MST selectors, safe sorting, selected/all-filtered export and sold/purchase VAT-inclusive totals. The report does not present accounting differences as profit.
-
-Partner master is not owned by Invoices. Invoice-derived counterparty candidates are handed to the Partner-owned staging/review boundary; Invoices does not directly mutate Partner master during ingestion.
+Partner master is not owned by Invoices. Invoice-derived counterparty candidates are handed to the Partner-owned staging/review boundary. Backup/restore never mutates Partner master.
 
 ## Operations Dashboard
 
@@ -144,15 +100,6 @@ Canonical route:
 ```text
 /admin/invoices/dashboard
 admin.invoices.dashboard
-```
-
-Architecture:
-
-```text
-InvoicesDashboardController
-    -> InvoiceDashboardService
-        -> InvoiceDashboardData
-            -> Blade
 ```
 
 The Dashboard is an operations center with:
@@ -175,22 +122,7 @@ PDF đã lưu
 PDF chưa hoàn tất
 ```
 
-PDF KPI rules:
-
-```text
-PDF đã lưu      = invoice_files.status = available
-PDF lỗi         = invoice_files.status = error
-PDF chưa hoàn tất = total invoices - available - error, plus explicit errors in the detail copy
-```
-
-Operational Health exposes only actionable or bounded states:
-
-- GDT account/session state;
-- Google Drive stored connection metadata;
-- queue guidance at the relevant workspace instead of pretending to expose a global queue truth;
-- PDF stored/missing/error counts.
-
-Dashboard rendering does not call the external Google Drive API. It reads the existing stored `GoogleDriveConnectionService::status()` metadata and links to the System Google Drive connect flow when disconnected.
+Dashboard rendering does not call the external Google Drive API. It reads stored connection metadata and links to the System Google Drive connect flow when disconnected.
 
 ## Module Backup & Restore
 
@@ -207,13 +139,12 @@ Permission:
 invoices-configure
 ```
 
-Module snapshots contain:
+Module snapshots contain only:
 
 ```text
-invoices
-invoice_files metadata
 manifest.json
-SHA-256 payload checksums
+database/invoices.json
+database/invoice_files.json
 ```
 
 They exclude:
@@ -225,80 +156,99 @@ PDF binary files
 system/global database state
 ```
 
-The workspace supports:
-
-```text
-Backup ngay
-Lịch sử snapshot
-Kiểm tra khả năng khôi phục
-READY / WARNING / BLOCKED
-Impact Preview
-Safety Backup + Merge Restore
-Post-Restore Verification
-MANUAL snapshot delete
-Safety Backup rollback
-```
-
-## Restore Contract
-
-Safe Merge is the default restore mode:
-
-- insert snapshot invoices missing from current data;
-- preserve current matching invoices rather than overwriting newer records;
-- remap and restore missing `invoice_files` metadata;
-- never delete current-only invoices;
-- never mutate Partner master.
-
-A Safety Backup is mandatory before restore. If the Safety Backup cannot be created, mutation does not start.
-
-`SAFETY-BEFORE-RESTORE` snapshots are protected from normal deletion.
-
-Exact Safety Rollback restores the Invoices-owned `invoices + invoice_files` state represented by the selected Safety snapshot, creates another Safety Backup before rollback, and runs post-rollback verification. Partner master remains outside the rollback boundary.
-
-## GDT Synchronization Safety
-
-GDT synchronization validates pagination completeness. A partial page sequence must not silently produce a successful-looking Excel file.
-
-The sync flow compares received rows with the GDT reported total and treats incomplete pagination as a failure instead of silently exporting partial data.
-
-`TransactionID`/lookup values are resolved by field meaning rather than relying on one fixed array index.
-
-## Configuration
-
-GDT environment keys:
-
-```text
-GDT_API_BASE_URL
-GDT_API_USERNAME
-GDT_API_PASSWORD
-GDT_API_VERIFY_SSL
-GDT_API_TIMEOUT
-GDT_TOKEN_TTL
-GDT_TOKEN_CACHE_KEY
-```
-
-Optional MeInvoice fallback:
-
-```text
-MEINVOICE_API_TOKEN
-```
-
-Writable runtime directories include:
-
-```text
-storage/app/gdt
-storage/app/invoices/pdf
-storage/app/invoices/archives
-storage/app/hoadon_temp
-```
-
-Module snapshots use Laravel's configured local disk under the logical path:
+Local logical root:
 
 ```text
 invoices/module-backups/*
 ```
 
-Ensure the PHP/queue runtime user has write permission to `storage` and `bootstrap/cache`.
+Google Drive protection root:
+
+```text
+Laravel-Backup/Invoices/Module-Backups
+```
+
+MANUAL snapshots can be packaged as one ZIP artifact and protected on Google Drive. The archive carries an external SHA-256 integrity value in Drive `appProperties`, while the internal manifest continues to protect the individual payload files.
+
+Canonical new artifact name:
+
+```text
+Invoices-Module-<snapshot>.zip
+```
+
+The recovery reader also accepts the earlier compatibility form:
+
+```text
+.transport-Invoices-Module-<snapshot>.zip
+```
+
+Deleting a MANUAL snapshot locally never deletes the Google Drive copy. Remote delete is intentionally not exposed from this workspace.
+
+## Production / New-Server Recovery
+
+Recommended recovery flow:
+
+```text
+Deploy source
+→ configure environment/database
+→ php artisan migrate
+→ connect Google Drive
+→ open Backup & Restore
+→ Tìm backup trên Drive
+→ Tải về & kiểm tra
+→ verify ZIP SHA-256
+→ validate snapshot manifest/checksums
+→ Restore Readiness
+→ Impact Preview
+→ Safety Backup
+→ Safe Merge Restore
+→ Post-Restore Verification
+```
+
+PDF binaries are restored separately through PDF ↔ Drive.
+
+## Restore Contract
+
+Restore states:
+
+```text
+READY
+WARNING
+BLOCKED
+```
+
+Safe Merge is the default:
+
+- insert snapshot invoices missing from current data;
+- preserve current matching invoices;
+- remap and restore missing `invoice_files` metadata;
+- never delete current-only invoices;
+- never mutate Partner master.
+
+A Safety Backup is mandatory before restore. If it cannot be created, mutation does not start.
+
+`SAFETY-BEFORE-RESTORE` snapshots are protected from normal deletion. Exact rollback creates another Safety Backup before restoring the selected Invoices-owned state.
+
+## Real Google Drive DR Validation
+
+User-validated flow on 2026-09-08:
+
+```text
+Backup artifact created on Drive               PASS
+Local MANUAL snapshot deleted                  PASS
+Drive artifact rediscovered                    PASS
+SHA-256 metadata present                       PASS
+Tải về & kiểm tra                              PASS
+Snapshot restored to Local                     PASS
+Restore Readiness                              READY
+Impact insert                                  0
+Impact existing                                2,471
+Impact different                               0
+Impact delete                                  0
+Partner master                                 0 thay đổi
+```
+
+This proves the key module-level disaster-recovery path where the Local snapshot is gone but the Google Drive artifact can still reconstruct a valid restore candidate.
 
 ## Important Classes
 
@@ -308,35 +258,26 @@ Modules/Invoices/Http/Controllers/InvoicesDashboardController.php
 Modules/Invoices/Livewire/HoadonList.php
 Modules/Invoices/Livewire/ModuleBackupRestore.php
 Modules/Invoices/Livewire/PartnerReport.php
-Modules/Invoices/Services/GdtInvoiceService.php
-Modules/Invoices/Services/GdtPdfService.php
+Modules/Invoices/Services/GoogleDriveInvoiceModuleBackupService.php
 Modules/Invoices/Services/GoogleDriveInvoicePdfSyncService.php
 Modules/Invoices/Services/InvoiceDashboardService.php
 Modules/Invoices/Services/InvoiceImportExportService.php
-Modules/Invoices/Services/InvoiceFileService.php
 Modules/Invoices/Services/InvoiceModuleSnapshotService.php
 Modules/Invoices/Services/InvoiceRestoreReadinessService.php
 Modules/Invoices/Services/InvoiceRestoreImpactService.php
 Modules/Invoices/Services/InvoiceModuleRestoreService.php
 Modules/Invoices/Services/InvoiceRestoreVerificationService.php
-Modules/Invoices/Models/Invoices.php
-Modules/Invoices/Models/InvoiceFile.php
 ```
 
 ## Verification Strategy
 
 Use module-scoped regression rather than full-project regression unless a shared/core failure proves wider impact.
 
-Current final gate for the Dashboard/Backup-Restore branch:
+Latest recorded final gate:
 
-```bash
-php artisan test \
-  tests/Feature/InvoicesDashboardTest.php \
-  tests/Feature/InvoicesBackupRestoreWorkspaceTest.php \
-  tests/Feature/InvoicesModuleRestoreTest.php \
-  tests/Feature/InvoicesSnapshotLifecycleTest.php
-
-php artisan test tests/Feature/Invoices*.php
+```text
+Focused Dashboard/Backup-Restore tests: 20 passed / 142 assertions
+Invoices regression:                   55 passed / 303 assertions
 ```
 
 Manual smoke routes:
@@ -352,12 +293,11 @@ Manual smoke routes:
 ## Remaining Deferred Work
 
 1. Validate invoice identity against production records before adding a database unique constraint.
-2. Replace any remaining runtime secret mutation with production-grade settings/secrets storage.
-3. Add scheduled retention/Drive upload for module DB snapshots only if separately approved.
-4. Add advanced Replace restore mode only with a separate destructive-operation contract.
-5. Keep Partner candidate recovery outside Invoices until an explicit cross-module recovery contract exists.
-6. Add persisted global queue registry only if operational need justifies it.
-7. ClientPortal/PWA presentation remains a separate scope.
+2. Add scheduled retention/automatic module snapshot upload only if separately approved.
+3. Add advanced Replace restore mode only with a separate destructive-operation contract.
+4. Keep Partner candidate recovery outside Invoices until an explicit cross-module recovery contract exists.
+5. Add persisted global queue registry only if operational need justifies it.
+6. ClientPortal/PWA presentation remains a separate scope.
 
 ## Related Documentation
 
