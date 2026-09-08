@@ -8,7 +8,7 @@
     </div>
 
     @if(in_array($monthlyPdfBatchStatus['status'] ?? null, ['queued', 'processing'], true))
-        <div wire:poll.2s="refreshMonthlyPdfBatchStatus" class="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+        <div x-data="{ open: true }" x-show="open" x-cloak wire:poll.2s="refreshMonthlyPdfBatchStatus" class="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
             <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
                 <div class="flex items-start gap-4">
                     <div class="mt-1 h-10 w-10 shrink-0 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
@@ -29,6 +29,10 @@
                     <div class="rounded-xl bg-emerald-50 px-3 py-2"><p class="text-xs text-emerald-700">Tải thành công</p><p class="mt-1 font-bold text-emerald-900">{{ number_format((int)($monthlyPdfBatchStatus['downloaded']??0)) }}</p></div>
                     <div class="rounded-xl bg-red-50 px-3 py-2"><p class="text-xs text-red-700">Lỗi</p><p class="mt-1 font-bold text-red-900">{{ number_format((int)($monthlyPdfBatchStatus['failed']??0)) }}</p></div>
                 </div>
+                <div class="mt-5 flex justify-end">
+                    <button type="button" @click="open=false" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">OK, tiếp tục công việc</button>
+                </div>
+                <p class="mt-3 text-right text-xs text-slate-500">Queue vẫn tiếp tục chạy nền sau khi đóng cửa sổ này.</p>
             </div>
         </div>
     @elseif(($monthlyPdfBatchStatus['status'] ?? null) === 'auth_expired')
