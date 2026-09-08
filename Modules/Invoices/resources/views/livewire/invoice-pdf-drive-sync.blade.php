@@ -11,12 +11,8 @@
         <div wire:poll.3s="refreshBatchStatus" class="border-b border-indigo-100 bg-indigo-50/70 px-5 py-3 sm:px-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-indigo-900">
-                        {{ $batchRunning ? 'Google Drive đang đồng bộ ở chế độ nền' : 'Google Drive đã xử lý xong batch' }}
-                    </p>
-                    <p class="mt-1 text-xs text-indigo-700">
-                        Đã xử lý {{ (int)($batchStatus['processed']??0) }}/{{ (int)($batchStatus['total']??0) }} PDF · Thành công {{ (int)($batchStatus['success']??0) }} · Lỗi {{ (int)($batchStatus['failed']??0) }}.
-                    </p>
+                    <p class="text-sm font-semibold text-indigo-900">{{ $batchRunning ? 'Google Drive đang đồng bộ ở chế độ nền' : 'Google Drive đã xử lý xong batch' }}</p>
+                    <p class="mt-1 text-xs text-indigo-700">Đã xử lý {{ (int)($batchStatus['processed']??0) }}/{{ (int)($batchStatus['total']??0) }} PDF · Thành công {{ (int)($batchStatus['success']??0) }} · Lỗi {{ (int)($batchStatus['failed']??0) }}.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" wire:click="showBatchProgress" class="rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white">{{ $batchRunning ? 'Xem tiến độ' : 'Xem kết quả' }}</button>
@@ -73,7 +69,11 @@
             <div class="flex flex-wrap gap-3">
                 <button type="button" wire:click="queueUpload" @disabled(!($snapshot['connected']??false)||count($snapshot['upload']??[])===0||$batchRunning) class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:bg-slate-300">☁ Đồng bộ {{ count($snapshot['upload']??[]) }} PDF lên Google Drive</button>
                 <button type="button" wire:click="queueRestore" @disabled(!($snapshot['connected']??false)||count($snapshot['restore']??[])===0||$batchRunning) class="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">↓ Khôi phục {{ count($snapshot['restore']??[]) }} PDF về Local</button>
-                <button type="button" wire:click="refreshSnapshot" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Làm mới trạng thái</button>
+                <button type="button" wire:click="refreshSnapshot(true)" wire:loading.attr="disabled" wire:target="refreshSnapshot" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:cursor-wait disabled:opacity-60">
+                    <svg wire:loading wire:target="refreshSnapshot" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+                    <span wire:loading.remove wire:target="refreshSnapshot">Làm mới trạng thái</span>
+                    <span wire:loading wire:target="refreshSnapshot">Đang làm mới...</span>
+                </button>
             </div>
         @endif
     </div>
