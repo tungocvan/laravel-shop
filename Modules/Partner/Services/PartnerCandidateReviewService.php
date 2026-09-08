@@ -105,6 +105,16 @@ class PartnerCandidateReviewService
         $metadata['reviewed_at'] = now()->toIso8601String();
         $metadata['applied_fields'] = array_values($selectedFields);
 
+        $reference = PartnerSourceReference::query()
+            ->where('source', $candidate->source)
+            ->where('external_id', $candidate->tax_code)
+            ->lockForUpdate()
+            ->first();
+
+        if ($reference && (int) $reference->partner_id !== (int) $partner->getKey()) {
+            throw new \RuntimeException('Nguồn dữ liệu này đã được gắn với Partner khác; hệ thống không tự chuyển ownership.');
+        }
+
         $candidate->forceFill([
             'matched_partner_id' => $partner->getKey(),
             'status' => 'matched',
@@ -113,18 +123,20 @@ class PartnerCandidateReviewService
             'last_seen_at' => now(),
         ])->save();
 
-        PartnerSourceReference::query()->updateOrCreate([
+        $reference ??= new PartnerSourceReference([
+            'partner_id' => $partner->getKey(),
             'source' => $candidate->source,
             'external_id' => $candidate->tax_code,
-        ], [
-            'partner_id' => $partner->getKey(),
             'first_seen_at' => $candidate->first_seen_at ?? now(),
+        ]);
+
+        $reference->fill([
             'last_seen_at' => now(),
             'metadata' => [
                 'candidate_id' => $candidate->getKey(),
                 'partner_types' => $candidate->partner_types,
                 'source_metadata' => $metadata,
             ],
-        ]);
+        ])->save();
     }
 }
