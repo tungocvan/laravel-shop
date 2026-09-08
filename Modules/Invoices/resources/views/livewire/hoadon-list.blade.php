@@ -1,5 +1,34 @@
 <div class="space-y-6">
-    <div wire:loading.flex wire:target="reconcilePdfMetadata,downloadMissingPdfs,retryPdfErrors,downloadPdfZip,deleteSelectedPdfs" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl"><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div><h3 class="mt-4 text-lg font-bold text-slate-900">Đang xử lý dữ liệu hóa đơn</h3><p class="mt-2 text-sm text-slate-500">Vui lòng không đóng tab hoặc refresh trang cho đến khi tác vụ hoàn tất.</p></div></div>
+    <div wire:loading.flex wire:target="downloadSelected,reconcilePdfMetadata,downloadMissingPdfs,retryPdfErrors,downloadPdfZip,deleteSelectedPdfs" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">Đang xử lý PDF hóa đơn</h3>
+            <p class="mt-2 text-sm text-slate-500">Vui lòng chờ đến khi tác vụ hoàn tất. Không đóng tab hoặc refresh trang.</p>
+        </div>
+    </div>
+
+    @if($downloadStatus === 'success' && $pdfNotice)
+        <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">✓</div>
+                <h3 class="mt-4 text-lg font-bold text-slate-900">Tải PDF hoàn tất</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">{{ $pdfNotice }}</p>
+                <p class="mt-2 text-xs text-slate-500">Các hóa đơn đã có PDF được giữ nguyên và không tải lại.</p>
+                <div class="mt-5 flex justify-end"><button type="button" @click="open=false" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">Đóng</button></div>
+            </div>
+        </div>
+    @elseif($downloadStatus === 'error' && $pdfError)
+        <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-2xl font-bold text-red-700">!</div>
+                <h3 class="mt-4 text-lg font-bold text-slate-900">Có PDF tải không thành công</h3>
+                <p class="mt-2 text-sm leading-6 text-red-700">{{ $pdfError }}</p>
+                <p class="mt-2 text-xs text-slate-500">Bạn có thể lọc “Lỗi tải PDF” hoặc dùng “Thử lại lỗi” để xử lý lại.</p>
+                <div class="mt-5 flex justify-end"><button type="button" @click="open=false" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white">Đóng</button></div>
+            </div>
+        </div>
+    @endif
+
     @if($pdfNotice)<div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">{{ $pdfNotice }}</div>@endif
     @if($pdfError)<div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-800">{{ $pdfError }}</div>@endif
 
@@ -32,7 +61,7 @@
 
         <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5"><div class="flex items-start justify-between"><div><h3 class="text-sm font-bold">Kho PDF theo bộ lọc</h3><p class="mt-1 text-xs text-slate-500">Bộ lọc chỉ thu hẹp danh sách; xóa PDF chỉ áp dụng cho hóa đơn checkbox.</p></div></div><div class="mt-4 grid gap-3 sm:grid-cols-4">@foreach([['Tổng',$fileSummary['total']],['Đã có PDF',$fileSummary['available']],['Chưa có',$fileSummary['missing']],['Lỗi tải',$fileSummary['error']]] as [$label,$value])<div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs text-slate-500">{{ $label }}</p><p class="mt-1 text-xl font-bold">{{ number_format($value) }}</p></div>@endforeach</div>@if(auth('admin')->user()?->can('invoices-download'))<div class="mt-4 flex flex-wrap gap-2"><button wire:click="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Quét metadata</button><button wire:click="downloadMissingPdfs" @disabled(($fileSummary['missing']+$fileSummary['error'])===0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải 25 PDF còn thiếu</button>@if($fileSummary['error']>0)<button wire:click="retryPdfErrors" class="rounded-xl bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-800">Thử lại {{ min(25,$fileSummary['error']) }} lỗi</button>@endif<button wire:click="downloadPdfZip" @disabled($fileSummary['available']===0) class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải ZIP PDF</button>@if(count($selected)>0)<button wire:click="deleteSelectedPdfs" wire:confirm="Xóa PDF của {{ count($selected) }} hóa đơn đã chọn? Dữ liệu hóa đơn không bị xóa." class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700">Xóa PDF đã chọn ({{ count($selected) }})</button>@endif</div>@endif</div>
 
-        <div class="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between"><div class="flex flex-wrap items-center gap-3"><label><span class="sr-only">Số hóa đơn mỗi trang</span><select wire:model.live="perPage" class="{{ $controlClass }} !w-auto min-w-32">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} / trang</option>@endforeach</select></label>@if(count($selected)>0)<span class="rounded-full bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">Đã chọn {{ count($selected) }} hóa đơn</span><button wire:click="clearSelection" class="text-sm font-semibold text-gray-500 hover:text-gray-800">Bỏ chọn</button>@endif</div><div class="flex flex-wrap gap-2"><button wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700">Đặt lại bộ lọc</button>@if(auth('admin')->user()?->can('invoices-export'))<button wire:click="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white">{{ count($selected)>0?'Xuất '.count($selected).' hóa đơn':'Xuất theo bộ lọc' }}</button>@endif @if(auth('admin')->user()?->can('invoices-download'))<button wire:click="downloadSelected" @disabled(count($selected)===0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-40">Tải PDF ({{ count($selected) }})</button>@endif</div></div>
+        <div class="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between"><div class="flex flex-wrap items-center gap-3"><label><span class="sr-only">Số hóa đơn mỗi trang</span><select wire:model.live="perPage" class="{{ $controlClass }} !w-auto min-w-32">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} / trang</option>@endforeach</select></label>@if(count($selected)>0)<span class="rounded-full bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">Đã chọn {{ count($selected) }} hóa đơn</span><button wire:click="clearSelection" class="text-sm font-semibold text-gray-500 hover:text-gray-800">Bỏ chọn</button>@endif</div><div class="flex flex-wrap gap-2"><button wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700">Đặt lại bộ lọc</button>@if(auth('admin')->user()?->can('invoices-export'))<button wire:click="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white">{{ count($selected)>0?'Xuất '.count($selected).' hóa đơn':'Xuất theo bộ lọc' }}</button>@endif @if(auth('admin')->user()?->can('invoices-download'))<button wire:click="downloadSelected" wire:loading.attr="disabled" wire:target="downloadSelected" @disabled(count($selected)===0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-40">Tải PDF ({{ count($selected) }})</button>@endif</div></div>
     </div>
 
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
