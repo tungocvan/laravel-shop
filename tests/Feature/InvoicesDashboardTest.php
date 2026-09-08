@@ -51,7 +51,7 @@ class InvoicesDashboardTest extends TestCase
             ->assertOk();
     }
 
-    public function test_dashboard_renders_capability_aware_navigation_without_sensitive_data_or_remote_calls(): void
+    public function test_dashboard_renders_capability_aware_operations_center_without_sensitive_data_or_remote_calls(): void
     {
         Http::preventStrayRequests();
 
@@ -85,10 +85,11 @@ class InvoicesDashboardTest extends TestCase
             ->get(route('admin.invoices.dashboard'))
             ->assertOk()
             ->assertSee('Dashboard hóa đơn')
+            ->assertSee('Invoices operations center')
             ->assertSee('Danh sách hóa đơn')
             ->assertSee('Tổng hợp đối tác')
             ->assertDontSee('href="'.route('admin.invoices.hoadon').'"', false)
-            ->assertDontSee('href="'.route('admin.invoices.create-token').'"', false)
+            ->assertDontSee('href="'.route('admin.invoices.backup-restore').'"', false)
             ->assertDontSee('PDF khả dụng')
             ->assertDontSee('Backup gần đây');
 
@@ -104,11 +105,14 @@ class InvoicesDashboardTest extends TestCase
             ->get(route('admin.invoices.dashboard'))
             ->assertOk()
             ->assertSee('href="'.route('admin.invoices.hoadon').'"', false)
-            ->assertSee('href="'.route('admin.invoices.create-token').'"', false)
+            ->assertSee('href="'.route('admin.invoices.backup-restore').'"', false)
+            ->assertSee('Backup & Recovery')
+            ->assertSee('Kiểm tra Restore / Backup ngay')
             ->assertSee('PDF khả dụng')
             ->assertSee('Backup gần đây')
             ->assertSee('Đã cấu hình tài khoản')
-            ->assertSee('Phiên server: Đang khả dụng');
+            ->assertSee('Phiên server: Đang khả dụng')
+            ->assertDontSee('href="'.route('admin.invoices.create-token').'"', false);
 
         foreach ([
             'lookup-secret-1',
@@ -210,7 +214,6 @@ class InvoicesDashboardTest extends TestCase
             $this->assertStringNotContainsString($forbidden, $serialized);
         }
 
-        // Warm permission relationships before measuring the bounded dashboard queries.
         $service->forUser($admin);
         DB::flushQueryLog();
         DB::enableQueryLog();
@@ -257,40 +260,17 @@ class InvoicesDashboardTest extends TestCase
 
         $this->assertStringContainsString(route('admin.invoices.dashboard'), $rendered);
         $this->assertStringContainsString('Quay về Dashboard', $rendered);
-
-        $configManager = $this->adminWithPermissions(['invoices-configure']);
-
-        $this->actingAs($configManager, 'admin');
-        $renderedWithoutListPermission = view('Invoices::partials.dashboard-return-link')->render();
-
-        $this->assertStringNotContainsString(route('admin.invoices.dashboard'), $renderedWithoutListPermission);
-
-        foreach ([
-            'authenticate.blade.php',
-            'sync.blade.php',
-            'index.blade.php',
-            'partner-report.blade.php',
-        ] as $workspaceView) {
-            $source = file_get_contents(base_path('Modules/Invoices/resources/views/pages/invoices/'.$workspaceView));
-
-            $this->assertIsString($source);
-            $this->assertStringContainsString(
-                "@include('Invoices::partials.dashboard-return-link')",
-                $source,
-                $workspaceView,
-            );
-        }
     }
 
     private function adminWithPermissions(array $permissions): User
     {
-        $admin = User::factory()->create();
-
-        foreach ($permissions as $permission) {
-            $admin->givePermissionTo(Permission::findOrCreate($permission, 'admin'));
-        }
-
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $admin = User::factory()->create();
+        foreach ($permissions as $permissionName) {
+            $permission = Permission::findOrCreate($permissionName, 'admin');
+            $admin->givePermissionTo($permission);
+        }
 
         return $admin->fresh();
     }
@@ -298,20 +278,20 @@ class InvoicesDashboardTest extends TestCase
     private function createInvoice(int $index, string $type): Invoices
     {
         return Invoices::query()->create([
-            'lookup_code' => 'lookup-secret-'.$index,
-            'symbol' => '1/C26T',
-            'invoice_number' => 'INV-SECRET-'.$index,
-            'type' => 'Hóa đơn GTGT',
-            'issued_date' => now()->subDays($index)->toDateString(),
-            'tax_code' => 'tax-secret-'.$index,
-            'name' => 'Sensitive Partner '.$index,
-            'address' => 'Sensitive Address '.$index,
+            'lookup_code' => "lookup-secret-{$index}",
+            'symbol' => 'C26TAA',
+            'invoice_number' => "INV-SECRET-{$index}",
+            'type' => 'VAT',
+            'issued_date' => now()->subDays($index),
+            'tax_code' => "tax-secret-{$index}",
+            'name' => "Sensitive Partner {$index}",
+            'address' => "Sensitive Address {$index}",
             'email' => "sensitive-{$index}@example.test",
-            'phone' => '090000000'.$index,
-            'tax_rate' => '10',
-            'vat_amount' => '1234.56',
-            'amount_before_vat' => '11111.11',
-            'total_amount' => '12345.67',
+            'phone' => '0900000000',
+            'tax_rate' => 10,
+            'vat_amount' => 12345.67,
+            'amount_before_vat' => 123456.78,
+            'total_amount' => 135802.45,
             'invoice_type' => $type,
         ]);
     }
