@@ -13,7 +13,7 @@ final class InvoiceModuleSnapshotService
     public function create(string $mode = 'manual'): array
     {
         $createdAt = now();
-        $stamp = $createdAt->format('Ymd_His');
+        $stamp = $createdAt->format('Ymd_His_u');
         $directory = 'invoices/module-backups/'.$stamp;
 
         $invoices = DB::table('invoices')->orderBy('id')->get()->map(fn ($row) => (array) $row)->all();
