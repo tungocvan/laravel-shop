@@ -14,7 +14,7 @@
                     <div class="mt-1 h-10 w-10 shrink-0 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
                     <div class="min-w-0 flex-1">
                         <h3 class="text-lg font-bold text-slate-900">Đang tải PDF tháng {{ str_pad((string)($monthlyPdfBatchStatus['month'] ?? $month), 2, '0', STR_PAD_LEFT) }}/{{ $monthlyPdfBatchStatus['year'] ?? $year }}</h3>
-                        <p class="mt-1 text-sm text-slate-500">Hệ thống đã chia thành các queue tối đa 25 hóa đơn để xử lý ổn định. Bạn có thể giữ nguyên trang này để theo dõi tiến độ.</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ $monthlyPdfBatchStatus['message'] ?? 'Hệ thống đã chia thành các queue tối đa 25 hóa đơn để xử lý ổn định.' }}</p>
                     </div>
                 </div>
                 @php($monthlyTotal=max(1,(int)($monthlyPdfBatchStatus['total']??0)))
@@ -31,13 +31,26 @@
                 </div>
             </div>
         </div>
+    @elseif(($monthlyPdfBatchStatus['status'] ?? null) === 'auth_expired')
+        <div class="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-2xl font-bold text-red-700">!</div>
+                <h3 class="mt-4 text-lg font-bold text-slate-900">Phiên GDT đã hết hạn</h3>
+                <p class="mt-2 text-sm leading-6 text-red-700">{{ $monthlyPdfBatchStatus['message'] ?? 'Batch PDF đã dừng. Vui lòng kết nối lại GDT trước khi thử lại.' }}</p>
+                <p class="mt-2 text-xs text-slate-500">Các queue còn lại sẽ không tiếp tục gọi GDT. Sau khi kết nối lại, bạn có thể bấm nút tải toàn bộ PDF tháng để xử lý tiếp các hóa đơn lỗi/chưa có.</p>
+                <div class="mt-5 flex flex-wrap justify-end gap-2">
+                    <button type="button" wire:click="dismissMonthlyPdfBatchStatus" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Đóng</button>
+                    <a href="{{ route('admin.invoices.create-token') }}" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white">Kết nối lại GDT</a>
+                </div>
+            </div>
+        </div>
     @elseif(in_array($monthlyPdfBatchStatus['status'] ?? null, ['completed', 'completed_with_errors'], true))
         <div class="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
             <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
                 <div class="flex h-12 w-12 items-center justify-center rounded-full {{ ($monthlyPdfBatchStatus['failed']??0)>0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} text-2xl font-bold">{{ ($monthlyPdfBatchStatus['failed']??0)>0 ? '!' : '✓' }}</div>
-                <h3 class="mt-4 text-lg font-bold text-slate-900">Đồng bộ PDF tháng đã hoàn tất</h3>
+                <h3 class="mt-4 text-lg font-bold text-slate-900">{{ ($monthlyPdfBatchStatus['failed']??0)>0 ? 'Đồng bộ PDF tháng hoàn tất có lỗi' : 'Đồng bộ PDF tháng hoàn tất thành công' }}</h3>
                 <p class="mt-2 text-sm leading-6 text-slate-600">Tháng {{ str_pad((string)($monthlyPdfBatchStatus['month']??$month),2,'0',STR_PAD_LEFT) }}/{{ $monthlyPdfBatchStatus['year']??$year }}: tải mới {{ number_format((int)($monthlyPdfBatchStatus['downloaded']??0)) }} PDF, lỗi {{ number_format((int)($monthlyPdfBatchStatus['failed']??0)) }}.</p>
-                @if(($monthlyPdfBatchStatus['failed']??0)>0)<p class="mt-2 text-xs text-amber-700">Các hóa đơn lỗi vẫn được giữ trạng thái để bạn lọc “Lỗi tải PDF” và thử lại sau.</p>@endif
+                @if(($monthlyPdfBatchStatus['failed']??0)>0)<p class="mt-2 text-xs text-amber-700">Các hóa đơn lỗi vẫn được giữ trạng thái. Bạn có thể bấm lại nút tải toàn bộ PDF tháng để retry tất cả lỗi còn lại trong một lần.</p>@endif
                 <div class="mt-5 flex justify-end"><button type="button" wire:click="dismissMonthlyPdfBatchStatus" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Đóng</button></div>
             </div>
         </div>
@@ -57,10 +70,9 @@
         <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
             <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-2xl font-bold text-red-700">!</div>
-                <h3 class="mt-4 text-lg font-bold text-slate-900">Có PDF tải không thành công</h3>
+                <h3 class="mt-4 text-lg font-bold text-slate-900">Không thể tải PDF</h3>
                 <p class="mt-2 text-sm leading-6 text-red-700">{{ $pdfError }}</p>
-                <p class="mt-2 text-xs text-slate-500">Bạn có thể lọc “Lỗi tải PDF” hoặc dùng “Thử lại lỗi” để xử lý lại.</p>
-                <div class="mt-5 flex justify-end"><button type="button" @click="open=false" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white">Đóng</button></div>
+                @if(str_contains($pdfError, 'GDT'))<div class="mt-5 flex justify-end"><a href="{{ route('admin.invoices.create-token') }}" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white">Kết nối GDT</a></div>@else<div class="mt-5 flex justify-end"><button type="button" @click="open=false" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white">Đóng</button></div>@endif
             </div>
         </div>
     @endif
@@ -141,16 +153,16 @@
                 @if(auth('admin')->user()?->can('invoices-download'))
                     <div class="mt-4 flex flex-wrap gap-2">
                         <button wire:click="reconcilePdfMetadata" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Quét metadata</button>
-                        @if($year !== '' && $month !== '' && $fileSummary['missing'] > 0)
-                            <button wire:click="queueMonthlyPdfDownloads" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Tải tất cả PDF tháng {{ str_pad($month,2,'0',STR_PAD_LEFT) }}/{{ $year }} ({{ number_format($fileSummary['missing']) }})</button>
+                        @if($year !== '' && $month !== '' && ($fileSummary['missing'] + $fileSummary['error']) > 0)
+                            <button wire:click="queueMonthlyPdfDownloads" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Tải / Thử lại toàn bộ PDF tháng {{ str_pad($month,2,'0',STR_PAD_LEFT) }}/{{ $year }} ({{ number_format($fileSummary['missing'] + $fileSummary['error']) }})</button>
                         @else
                             <button wire:click="downloadMissingPdfs" @disabled(($fileSummary['missing']+$fileSummary['error'])===0) class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải 25 PDF còn thiếu</button>
                         @endif
-                        @if($fileSummary['error']>0)<button wire:click="retryPdfErrors" class="rounded-xl bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-800">Thử lại {{ min(25,$fileSummary['error']) }} lỗi</button>@endif
+                        @if($fileSummary['error']>0 && ($year === '' || $month === ''))<button wire:click="retryPdfErrors" class="rounded-xl bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-800">Thử lại {{ min(25,$fileSummary['error']) }} lỗi</button>@endif
                         <button wire:click="downloadPdfZip" @disabled($fileSummary['available']===0) class="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Tải ZIP PDF</button>
                         @if(count($selected)>0)<button wire:click="deleteSelectedPdfs" wire:confirm="Xóa PDF của {{ count($selected) }} hóa đơn đã chọn? Dữ liệu hóa đơn không bị xóa." class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700">Xóa PDF đã chọn ({{ count($selected) }})</button>@endif
                     </div>
-                    @if($year === '' || $month === '')<p class="mt-3 text-xs text-slate-500">Chọn cụ thể <strong>Năm + Tháng</strong> để xuất hiện nút tải toàn bộ PDF của tháng. Mỗi queue xử lý tối đa 25 hóa đơn.</p>@endif
+                    @if($year !== '' && $month !== '' && ($fileSummary['missing'] + $fileSummary['error']) > 0)<p class="mt-3 text-xs text-slate-500">Nút tải tháng sẽ xử lý cả <strong>{{ number_format($fileSummary['missing']) }} PDF chưa có</strong> và <strong>{{ number_format($fileSummary['error']) }} PDF đang lỗi</strong>, tự chia queue tối đa 25 hóa đơn.</p>@elseif($year === '' || $month === '')<p class="mt-3 text-xs text-slate-500">Chọn cụ thể <strong>Năm + Tháng</strong> để xuất hiện nút tải toàn bộ PDF của tháng. Mỗi queue xử lý tối đa 25 hóa đơn.</p>@endif
                 @endif
             </div>
 
