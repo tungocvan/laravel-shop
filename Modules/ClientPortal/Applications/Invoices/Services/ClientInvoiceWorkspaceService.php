@@ -24,13 +24,32 @@ final class ClientInvoiceWorkspaceService
             ? max(1, min(12, (int) $requestedMonth))
             : null;
 
-        $from = now()->setDate($year, $month ?? 1, 1);
-        $filters = [
-            'issued_date_from' => ($month === null ? $from->copy()->startOfYear() : $from->copy()->startOfMonth())->toDateString(),
-            'issued_date_to' => ($month === null ? $from->copy()->endOfYear() : $from->copy()->endOfMonth())->toDateString(),
-            'tax_rate' => 'all',
-            'pdf_status' => 'all',
-        ];
+        $periodDate = now()->setDate($year, $month ?? 1, 1);
+        $periodFilters = $this->periodFilters($year, $month);
+        $yearFilters = $this->periodFilters($year, null);
+        $sameMonth = (int) now()->format('m');
+        $sameMonthFilters = $this->periodFilters($year, $sameMonth);
+
+        $stats = $this->invoices->statistics($periodFilters);
+        $yearStats = $month === null ? $stats : $this->invoices->statistics($yearFilters);
+        $currentMonthStats = $this->invoices->statistics($sameMonthFilters);
+        $pdfMissing = $this->invoices->statistics(array_merge($periodFilters, ['pdf_status' => 'missing']))['count'];
+        $pdfErrors = $this->invoices->statistics(array_merge($periodFilters, ['pdf_status' => 'error']))['count'];
+        $monthlyPerformance = $this->invoices->monthlyPerformance($year);
+        $monthlyMax = max(1, (float) collect($monthlyPerformance)->max(fn (array $row) => max((float) $row['sold_total'], (float) $row['purchase_total'])));
+        $dashboard = $this->invoices->dashboard();
+        $yearlyPerformance = collect($dashboard['yearly'] ?? [])
+            ->take(6)
+            ->values()
+            ->map(function (array $row, int $index) use ($dashboard): array {
+                $next = $dashboard['yearly'][$index + 1] ?? null;
+                $current = (float) ($row['sold_total'] ?? 0);
+                $previous = (float) ($next['sold_total'] ?? 0);
+                $growth = $previous > 0 ? (($current - $previous) / $previous) * 100 : null;
+
+                return array_merge($row, ['sold_growth' => $growth]);
+            })
+            ->all();
 
         $years = collect($this->invoices->years())
             ->push($year)
@@ -42,12 +61,20 @@ final class ClientInvoiceWorkspaceService
         return [
             'period' => $month === null ? 'Năm '.$year : sprintf('Tháng %02d/%d', $month, $year),
             'periodScope' => $month === null ? 'year' : 'month',
+            'periodDate' => $periodDate,
             'selectedYear' => $year,
             'selectedMonth' => $month,
             'years' => $years,
-            'stats' => $this->invoices->statistics($filters),
-            'pdfMissing' => $this->invoices->statistics(array_merge($filters, ['pdf_status' => 'missing']))['count'],
-            'pdfErrors' => $this->invoices->statistics(array_merge($filters, ['pdf_status' => 'error']))['count'],
+            'stats' => $stats,
+            'yearStats' => $yearStats,
+            'currentMonthStats' => $currentMonthStats,
+            'currentMonthLabel' => sprintf('Tháng %02d/%d', $sameMonth, $year),
+            'pdfMissing' => $pdfMissing,
+            'pdfErrors' => $pdfErrors,
+            'pdfComplete' => max(0, (int) ($stats['count'] ?? 0) - $pdfMissing - $pdfErrors),
+            'monthlyPerformance' => $monthlyPerformance,
+            'monthlyMax' => $monthlyMax,
+            'yearlyPerformance' => $yearlyPerformance,
         ];
     }
 
@@ -139,5 +166,17 @@ final class ClientInvoiceWorkspaceService
         $status = Cache::get('invoices:gdt-sync:'.$syncId);
 
         return is_array($status) ? $status : null;
+    }
+
+    private function periodFilters(int $year, ?int $month): array
+    {
+        $date = now()->setDate($year, $month ?? 1, 1);
+
+        return [
+            'issued_date_from' => ($month === null ? $date->copy()->startOfYear() : $date->copy()->startOfMonth())->toDateString(),
+            'issued_date_to' => ($month === null ? $date->copy()->endOfYear() : $date->copy()->endOfMonth())->toDateString(),
+            'tax_rate' => 'all',
+            'pdf_status' => 'all',
+        ];
     }
 }
