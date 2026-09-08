@@ -40,6 +40,45 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             'type' => $this->vatIn ? 'purchase' : 'sold',
         ]);
 
+        $expectedFile = $service->expectedExportPath($this->start, $this->end, $this->vatIn);
+        $fileName = basename($expectedFile);
+
+        if (is_file($expectedFile) && is_readable($expectedFile)) {
+            $this->appendLog('File Excel '.$fileName.' đã tồn tại trên server; bỏ qua gọi GDT.');
+            $this->ensureLocalFileBackedUp($drive, $expectedFile);
+            $this->completeWithoutGdt($fileName, 'local', 'File Excel đã tồn tại trên server; không cần đồng bộ lại GDT.');
+
+            return;
+        }
+
+        if ($drive->isConnected()) {
+            $this->appendLog('Không có file Excel trên server; đang kiểm tra Laravel-Backup/Invoices trên Google Drive.');
+
+            try {
+                if ($drive->exists($fileName)) {
+                    $this->appendLog('Google Drive đã có '.$fileName.'; bỏ qua gọi GDT để tránh đồng bộ trùng.');
+                    $this->completeWithoutGdt($fileName, 'google_drive', 'File Excel đã tồn tại trên Google Drive; không cần đồng bộ lại GDT.');
+
+                    return;
+                }
+            } catch (Throwable $exception) {
+                Log::warning('[GDT JOB] Không thể xác minh file hóa đơn trên Google Drive.', [
+                    'sync_id' => $this->syncId,
+                    'file' => $fileName,
+                    'error' => $exception->getMessage(),
+                ]);
+
+                throw new RuntimeException(
+                    'Không thể xác minh file trên Google Drive nên chưa gọi GDT, tránh tạo dữ liệu trùng.',
+                    previous: $exception,
+                );
+            }
+
+            $this->appendLog('Google Drive chưa có '.$fileName.'; bắt đầu đồng bộ từ GDT.');
+        } else {
+            $this->appendLog('Không có file Excel trên server và Google Drive chưa kết nối; bắt đầu đồng bộ từ GDT.');
+        }
+
         $file = $service->processRange(
             $this->start,
             $this->end,
@@ -56,6 +95,8 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         $this->updateStatus('completed', 'Đồng bộ hoàn tất và file Excel đã được tạo.', [
             'file' => basename($file),
             'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
+            'source' => 'gdt',
+            'sync_skipped' => false,
             'finished_at' => now()->toIso8601String(),
         ]);
 
@@ -75,6 +116,51 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             'sync_id' => $this->syncId,
             'error' => $exception->getMessage(),
         ]);
+    }
+
+    private function completeWithoutGdt(string $fileName, string $source, string $message): void
+    {
+        $this->updateStatus('completed', $message, [
+            'file' => $fileName,
+            'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
+            'source' => $source,
+            'sync_skipped' => true,
+            'finished_at' => now()->toIso8601String(),
+        ]);
+
+        Log::info('[GDT JOB] Bỏ qua gọi GDT vì file đồng bộ đã tồn tại.', [
+            'sync_id' => $this->syncId,
+            'file' => $fileName,
+            'source' => $source,
+        ]);
+    }
+
+    private function ensureLocalFileBackedUp(GoogleDriveInvoiceExportService $drive, string $file): void
+    {
+        if (! $drive->isConnected()) {
+            $this->appendLog('Google Drive chưa kết nối; giữ file hiện có trên server.');
+
+            return;
+        }
+
+        try {
+            if ($drive->exists(basename($file))) {
+                $this->appendLog('Google Drive cũng đã có '.basename($file).'; không upload lại.');
+
+                return;
+            }
+
+            $this->appendLog('Google Drive chưa có file này; đang sao lưu file local vào Laravel-Backup/Invoices.');
+            $this->uploadToGoogleDrive($drive, $file);
+        } catch (Throwable $exception) {
+            $this->appendLog('Không thể kiểm tra/sao lưu Google Drive; file Excel trên server vẫn được giữ lại.');
+
+            Log::warning('[GDT JOB] Không thể đảm bảo backup Google Drive cho file local.', [
+                'sync_id' => $this->syncId,
+                'file' => basename($file),
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     private function uploadToGoogleDrive(GoogleDriveInvoiceExportService $drive, string $file): void
