@@ -14,8 +14,7 @@ final class InvoiceModuleRestoreService
         private readonly InvoiceRestoreReadinessService $readiness,
         private readonly InvoiceRestoreImpactService $impact,
         private readonly InvoiceRestoreVerificationService $verification,
-    ) {
-    }
+    ) {}
 
     public function restoreMerge(string $directory): array
     {
@@ -87,6 +86,7 @@ final class InvoiceModuleRestoreService
 
                     if (DB::table('invoice_files')->where('invoice_id', $actualInvoiceId)->exists()) {
                         $preservedFiles++;
+
                         continue;
                     }
 
