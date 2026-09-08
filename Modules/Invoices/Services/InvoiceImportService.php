@@ -2,10 +2,14 @@
 
 namespace Modules\Invoices\Services;
 
+use Modules\Partner\Services\PartnerCandidateIntakeService;
+
 class InvoiceImportService
 {
     public function __construct(
-        private readonly InvoiceImportExportService $importExportService
+        private readonly InvoiceImportExportService $importExportService,
+        private readonly InvoicePartnerCandidateExtractor $partnerCandidateExtractor,
+        private readonly PartnerCandidateIntakeService $partnerCandidateIntakeService,
     ) {}
 
     public function importExportedRange(
@@ -59,6 +63,37 @@ class InvoiceImportService
             "🎉 Hoàn tất! Tổng: {$total} – Import: {$success} – Bỏ qua: {$skipped} – Lỗi: {$errors}"
         );
 
+        $this->stagePartnerCandidates($filePath, $type, $callback);
+
         return $success;
+    }
+
+    private function stagePartnerCandidates(string $filePath, string $type, ?callable $callback): void
+    {
+        try {
+            $candidates = $this->partnerCandidateExtractor->extract($filePath, $type);
+
+            if ($candidates === []) {
+                $callback && $callback('ℹ️ Không có đối tác hợp lệ để đưa vào hàng chờ Partner.');
+
+                return;
+            }
+
+            $summary = $this->partnerCandidateIntakeService->intake('invoices', $candidates);
+
+            $callback && $callback(sprintf(
+                '👥 Partner candidates: %d tổng · %d chờ xử lý · %d đã khớp · %d cần xem xét · %d bỏ qua.',
+                $summary['total'],
+                $summary['pending'],
+                $summary['matched'],
+                $summary['conflict'],
+                $summary['ignored'],
+            ));
+        } catch (\Throwable $exception) {
+            report($exception);
+            $callback && $callback(
+                '⚠️ Hóa đơn đã đồng bộ vào CSDL nhưng không thể cập nhật hàng chờ Partner. Kiểm tra log hệ thống.'
+            );
+        }
     }
 }
