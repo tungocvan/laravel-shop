@@ -20,33 +20,51 @@ class InvoicePartnerCandidateExtractor
             $fastExcel->configureCsv(',');
         }
 
-        $rows = $fastExcel->import($filePath);
+        $normalizedRows = collect($fastExcel->import($filePath))
+            ->map(fn ($rawRow) => $this->normalizeSourceRow((array) $rawRow))
+            ->filter(fn (array $row) => $row['tax_code'] !== null
+                && $row['invoice_number'] !== null
+                && $row['issued_date'] !== null)
+            ->values();
+
+        if ($normalizedRows->isEmpty()) {
+            return [];
+        }
+
+        $existingIdentities = [];
+        $taxCodes = $normalizedRows->pluck('tax_code')->filter()->unique()->values();
+
+        foreach ($taxCodes->chunk(500) as $chunk) {
+            Invoices::query()
+                ->where('invoice_type', $invoiceType)
+                ->whereIn('tax_code', $chunk->all())
+                ->get(['lookup_code', 'invoice_number', 'issued_date', 'tax_code'])
+                ->each(function (Invoices $invoice) use (&$existingIdentities): void {
+                    $existingIdentities[$this->identityKey(
+                        $invoice->lookup_code,
+                        $invoice->invoice_number,
+                        optional($invoice->issued_date)->format('Y-m-d'),
+                        $invoice->tax_code,
+                    )] = true;
+                });
+        }
+
         $partnerType = $invoiceType === 'purchase' ? 'supplier' : 'customer';
         $candidates = [];
 
-        foreach ($rows as $rawRow) {
-            $row = (array) $rawRow;
-            $taxCode = $this->value($row, ['Mã số thuế', 'tax_code', 'ma_so_thue']);
-            $invoiceNumber = $this->value($row, ['Số hóa đơn', 'Số HĐ', 'invoice_number', 'so_hoa_don', 'so_hd']);
-            $lookupCode = $this->value($row, ['Mã tra cứu', 'lookup_code', 'ma_tra_cuu']);
-            $issuedDate = $this->normalizeDate($this->rawValue($row, ['Ngày lập', 'issued_date', 'ngay_lap']));
+        foreach ($normalizedRows as $row) {
+            $identity = $this->identityKey(
+                $row['lookup_code'],
+                $row['invoice_number'],
+                $row['issued_date'],
+                $row['tax_code'],
+            );
 
-            if ($taxCode === null || $invoiceNumber === null || $issuedDate === null) {
+            if (! isset($existingIdentities[$identity])) {
                 continue;
             }
 
-            $invoiceExists = Invoices::query()
-                ->where('lookup_code', $lookupCode)
-                ->where('invoice_number', $invoiceNumber)
-                ->whereDate('issued_date', $issuedDate)
-                ->where('tax_code', $taxCode)
-                ->where('invoice_type', $invoiceType)
-                ->exists();
-
-            if (! $invoiceExists) {
-                continue;
-            }
-
+            $taxCode = $row['tax_code'];
             $candidate = $candidates[$taxCode] ?? [
                 'tax_code' => $taxCode,
                 'name' => null,
@@ -60,15 +78,9 @@ class InvoicePartnerCandidateExtractor
                 ],
             ];
 
-            foreach ([
-                'name' => ['Đơn vị', 'name', 'don_vi'],
-                'address' => ['Địa chỉ', 'address', 'dia_chi'],
-                'email' => ['Email', 'email'],
-                'phone' => ['Phone', 'Số điện thoại', 'phone', 'so_dien_thoai'],
-            ] as $field => $aliases) {
-                $incoming = $this->value($row, $aliases);
-                if ($incoming !== null) {
-                    $candidate[$field] = $incoming;
+            foreach (['name', 'address', 'email', 'phone'] as $field) {
+                if ($row[$field] !== null) {
+                    $candidate[$field] = $row[$field];
                 }
             }
 
@@ -82,6 +94,30 @@ class InvoicePartnerCandidateExtractor
         }
 
         return array_values($candidates);
+    }
+
+    private function normalizeSourceRow(array $row): array
+    {
+        return [
+            'lookup_code' => $this->value($row, ['Mã tra cứu', 'lookup_code', 'ma_tra_cuu']),
+            'invoice_number' => $this->value($row, ['Số hóa đơn', 'Số HĐ', 'invoice_number', 'so_hoa_don', 'so_hd']),
+            'issued_date' => $this->normalizeDate($this->rawValue($row, ['Ngày lập', 'issued_date', 'ngay_lap'])),
+            'tax_code' => $this->value($row, ['Mã số thuế', 'tax_code', 'ma_so_thue']),
+            'name' => $this->value($row, ['Đơn vị', 'name', 'don_vi']),
+            'address' => $this->value($row, ['Địa chỉ', 'address', 'dia_chi']),
+            'email' => $this->value($row, ['Email', 'email']),
+            'phone' => $this->value($row, ['Phone', 'Số điện thoại', 'phone', 'so_dien_thoai']),
+        ];
+    }
+
+    private function identityKey(?string $lookupCode, ?string $invoiceNumber, ?string $issuedDate, ?string $taxCode): string
+    {
+        return hash('sha256', json_encode([
+            $lookupCode,
+            $invoiceNumber,
+            $issuedDate,
+            $taxCode,
+        ], JSON_UNESCAPED_UNICODE));
     }
 
     private function rawValue(array $row, array $aliases): mixed
