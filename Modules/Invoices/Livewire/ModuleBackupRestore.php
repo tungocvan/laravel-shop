@@ -52,6 +52,55 @@ class ModuleBackupRestore extends Component
         $this->resetFeedback();
     }
 
+    public function deleteSnapshot(string $directory, InvoiceModuleSnapshotService $snapshots): void
+    {
+        $this->resetFeedback();
+
+        try {
+            $snapshot = collect($this->snapshots())->firstWhere('directory', $directory);
+            if (! $snapshot) {
+                $this->error = 'Snapshot không còn tồn tại.';
+
+                return;
+            }
+
+            $snapshots->delete($directory);
+            if ($this->selectedSnapshot === $directory) {
+                $this->selectedSnapshot = null;
+                $this->readiness = null;
+                $this->impact = null;
+            }
+            $this->message = 'Đã xóa snapshot MANUAL.';
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->error = $exception->getMessage();
+        }
+    }
+
+    public function rollbackSafety(string $directory, InvoiceModuleRestoreService $restore): void
+    {
+        $this->resetFeedback();
+
+        $snapshot = collect($this->snapshots())->firstWhere('directory', $directory);
+        if (! $snapshot || ! str_starts_with((string) $snapshot['mode'], 'safety')) {
+            $this->error = 'Rollback chỉ được phép từ Safety Backup.';
+
+            return;
+        }
+
+        try {
+            $result = $restore->restoreMerge($directory);
+            $this->setLastRestore($result);
+            $this->selectedSnapshot = $directory;
+            $this->readiness = null;
+            $this->impact = null;
+            $this->message = 'Rollback từ Safety Backup đã hoàn tất theo chế độ Merge an toàn.';
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->error = 'Rollback thất bại hoặc bị chặn: '.$exception->getMessage();
+        }
+    }
+
     public function checkRestore(
         InvoiceModuleSnapshotService $snapshots,
         InvoiceRestoreReadinessService $readiness,
@@ -102,20 +151,7 @@ class ModuleBackupRestore extends Component
 
         try {
             $result = $restore->restoreMerge($this->selectedSnapshot);
-            $safetyBackup = $result['safety_backup'] ?? null;
-
-            $this->lastRestore = [
-                'mode' => (string) ($result['mode'] ?? 'merge'),
-                'safety_backup_directory' => is_array($safetyBackup)
-                    ? (string) ($safetyBackup['directory'] ?? '')
-                    : (is_string($safetyBackup) ? $safetyBackup : ''),
-                'inserted_invoices' => (int) ($result['result']['insertedInvoices'] ?? 0),
-                'preserved_invoices' => (int) ($result['result']['preservedInvoices'] ?? 0),
-                'inserted_files' => (int) ($result['result']['insertedFiles'] ?? 0),
-                'preserved_files' => (int) ($result['result']['preservedFiles'] ?? 0),
-                'verification_passed' => (bool) ($result['verification']['passed'] ?? false),
-                'partner_master_changes' => (int) ($result['partner_master_changes'] ?? 0),
-            ];
+            $this->setLastRestore($result);
             $this->message = 'Khôi phục Merge an toàn đã hoàn tất và đã chạy hậu kiểm.';
             $this->readiness = null;
             $this->impact = null;
@@ -153,6 +189,23 @@ class ModuleBackupRestore extends Component
         return view('Invoices::livewire.module-backup-restore', [
             'snapshots' => $this->snapshots(),
         ]);
+    }
+
+    private function setLastRestore(array $result): void
+    {
+        $safetyBackup = $result['safety_backup'] ?? null;
+        $this->lastRestore = [
+            'mode' => (string) ($result['mode'] ?? 'merge'),
+            'safety_backup_directory' => is_array($safetyBackup)
+                ? (string) ($safetyBackup['directory'] ?? '')
+                : (is_string($safetyBackup) ? $safetyBackup : ''),
+            'inserted_invoices' => (int) ($result['result']['insertedInvoices'] ?? 0),
+            'preserved_invoices' => (int) ($result['result']['preservedInvoices'] ?? 0),
+            'inserted_files' => (int) ($result['result']['insertedFiles'] ?? 0),
+            'preserved_files' => (int) ($result['result']['preservedFiles'] ?? 0),
+            'verification_passed' => (bool) ($result['verification']['passed'] ?? false),
+            'partner_master_changes' => (int) ($result['partner_master_changes'] ?? 0),
+        ];
     }
 
     private function resetFeedback(): void
