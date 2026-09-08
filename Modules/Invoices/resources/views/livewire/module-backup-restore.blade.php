@@ -34,7 +34,7 @@
                                 <p class="font-semibold text-slate-900">{{ $snapshot['created_at'] ? \Illuminate\Support\Carbon::parse($snapshot['created_at'])->timezone(config('app.timezone'))->format('d/m/Y H:i:s') : basename($snapshot['directory']) }}</p>
                                 <p class="mt-1 text-xs text-slate-500">{{ number_format($snapshot['invoices']) }} hóa đơn · {{ number_format($snapshot['files']) }} metadata PDF</p>
                             </div>
-                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $snapshot['mode'] === 'safety' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700' }}">{{ strtoupper($snapshot['mode']) }}</span>
+                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ str_starts_with($snapshot['mode'], 'safety') ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700' }}">{{ strtoupper($snapshot['mode']) }}</span>
                         </div>
                     </button>
                 @empty
@@ -107,7 +107,13 @@
             @if ($lastRestore)
                 <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
                     <p class="font-bold">Post-Restore Verification hoàn tất</p>
-                    <p class="mt-1">Safety Backup: <span class="font-mono text-xs">{{ $lastRestore['safety_backup'] ?? '—' }}</span></p>
+                    <dl class="mt-3 grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                        <div><dt class="text-emerald-700">Hóa đơn thêm</dt><dd class="font-bold">{{ number_format($lastRestore['inserted_invoices']) }}</dd></div>
+                        <div><dt class="text-emerald-700">Hóa đơn giữ nguyên</dt><dd class="font-bold">{{ number_format($lastRestore['preserved_invoices']) }}</dd></div>
+                        <div><dt class="text-emerald-700">Metadata PDF thêm</dt><dd class="font-bold">{{ number_format($lastRestore['inserted_files']) }}</dd></div>
+                        <div><dt class="text-emerald-700">Partner master</dt><dd class="font-bold">{{ number_format($lastRestore['partner_master_changes']) }} thay đổi</dd></div>
+                    </dl>
+                    <p class="mt-3 break-all text-xs">Safety Backup: <span class="font-mono">{{ $lastRestore['safety_backup_directory'] !== '' ? $lastRestore['safety_backup_directory'] : 'Đã tạo' }}</span></p>
                 </div>
             @endif
         </section>
