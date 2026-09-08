@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Schema;
 final class InvoiceRestoreReadinessService
 {
     public const READY = 'ready';
+
     public const WARNING = 'warning';
+
     public const BLOCKED = 'blocked';
 
     /**
