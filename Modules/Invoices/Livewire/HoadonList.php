@@ -10,6 +10,7 @@ use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Invoices\Exports\InvoicesSelectedExport;
 use Modules\Invoices\Jobs\DownloadInvoicePdfChunkJob;
+use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\InvoiceFileManagerService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
@@ -26,6 +27,8 @@ class HoadonList extends Component
     protected InvoiceFileManagerService $fileManager;
 
     protected InvoiceWorkspaceService $workspace;
+
+    protected GdtApiService $gdtApiService;
 
     public ?string $downloadStatus = null;
 
@@ -94,11 +97,13 @@ class HoadonList extends Component
         InvoicePdfService $pdfService,
         InvoiceFileManagerService $fileManager,
         InvoiceWorkspaceService $workspace,
+        GdtApiService $gdtApiService,
     ): void {
         $this->invoiceService = $invoiceService;
         $this->pdfService = $pdfService;
         $this->fileManager = $fileManager;
         $this->workspace = $workspace;
+        $this->gdtApiService = $gdtApiService;
     }
 
     public function mount(): void
@@ -271,6 +276,10 @@ class HoadonList extends Component
             return;
         }
 
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
         $this->downloadStatus = 'processing';
         $result = $this->pdfService->downloadSelected($this->selected);
         $this->downloadStatus = $result['failed'] > 0 ? 'error' : 'success';
@@ -288,12 +297,24 @@ class HoadonList extends Component
             return;
         }
 
-        $filters = $this->filters();
-        $filters['pdf_status'] = 'missing';
-        $ids = $this->workspace->allFilteredIds($filters);
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
+        $missingFilters = $this->filters();
+        $missingFilters['pdf_status'] = 'missing';
+        $errorFilters = $this->filters();
+        $errorFilters['pdf_status'] = 'error';
+
+        $ids = collect($this->workspace->allFilteredIds($missingFilters))
+            ->merge($this->workspace->allFilteredIds($errorFilters))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
         if ($ids === []) {
-            $this->pdfNotice = 'Tháng đã chọn không còn PDF nào cần tải.';
+            $this->pdfNotice = 'Tháng đã chọn không còn PDF thiếu hoặc lỗi cần tải lại.';
 
             return;
         }
@@ -312,6 +333,7 @@ class HoadonList extends Component
             'existing' => 0,
             'failed' => 0,
             'errors' => [],
+            'message' => 'Đã đưa '.count($ids).' PDF thiếu/lỗi vào '.count($chunks).' queue để xử lý.',
             'started_at' => now()->toISOString(),
             'finished_at' => null,
         ];
@@ -340,7 +362,7 @@ class HoadonList extends Component
 
         $this->monthlyPdfBatchStatus = $status;
 
-        if (in_array($status['status'] ?? null, ['completed', 'completed_with_errors'], true)) {
+        if (in_array($status['status'] ?? null, ['completed', 'completed_with_errors', 'auth_expired'], true)) {
             $this->fileManager->reconcile($this->filters());
         }
     }
@@ -355,6 +377,11 @@ class HoadonList extends Component
     {
         $this->authorizePermission('invoices-download');
         $this->clearPdfMessages();
+
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
         $this->pdfProcessingId = $invoiceId;
 
         try {
@@ -385,6 +412,10 @@ class HoadonList extends Component
         $this->authorizePermission('invoices-download');
         $this->clearPdfMessages();
 
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
         try {
             $this->fileManager->reconcile($this->filters());
             $ids = $this->fileManager->missingInvoiceIds($this->filters(), 25);
@@ -410,6 +441,10 @@ class HoadonList extends Component
     {
         $this->authorizePermission('invoices-download');
         $this->clearPdfMessages();
+
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
 
         try {
             $ids = $this->fileManager->errorInvoiceIds($this->filters(), 25);
@@ -575,8 +610,21 @@ class HoadonList extends Component
         abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 
+    private function ensureGdtToken(): bool
+    {
+        if ($this->gdtApiService->hasToken()) {
+            return true;
+        }
+
+        $this->downloadStatus = 'error';
+        $this->pdfError = 'Phiên đăng nhập GDT đã hết hạn hoặc chưa được tạo. Vui lòng kết nối lại GDT trước khi tải PDF.';
+
+        return false;
+    }
+
     private function clearPdfMessages(): void
     {
+        $this->downloadStatus = null;
         $this->pdfNotice = null;
         $this->pdfError = null;
     }
