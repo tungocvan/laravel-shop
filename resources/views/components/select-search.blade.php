@@ -89,5 +89,18 @@ function selectSearchComponent(config) {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
     border-color: #6366f1 !important;
 }
+
+/* Keep searchable dropdowns above cards, toolbars and neighboring filters. */
+.ts-wrapper {
+    position: relative;
+}
+
+.ts-wrapper.dropdown-active {
+    z-index: 70 !important;
+}
+
+.ts-dropdown {
+    z-index: 80 !important;
+}
 </style>
 @endonce
