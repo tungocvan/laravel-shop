@@ -101,7 +101,21 @@ class ModuleBackupRestore extends Component
         }
 
         try {
-            $this->lastRestore = $restore->restoreMerge($this->selectedSnapshot);
+            $result = $restore->restoreMerge($this->selectedSnapshot);
+            $safetyBackup = $result['safety_backup'] ?? null;
+
+            $this->lastRestore = [
+                'mode' => (string) ($result['mode'] ?? 'merge'),
+                'safety_backup_directory' => is_array($safetyBackup)
+                    ? (string) ($safetyBackup['directory'] ?? '')
+                    : (is_string($safetyBackup) ? $safetyBackup : ''),
+                'inserted_invoices' => (int) ($result['result']['insertedInvoices'] ?? 0),
+                'preserved_invoices' => (int) ($result['result']['preservedInvoices'] ?? 0),
+                'inserted_files' => (int) ($result['result']['insertedFiles'] ?? 0),
+                'preserved_files' => (int) ($result['result']['preservedFiles'] ?? 0),
+                'verification_passed' => (bool) ($result['verification']['passed'] ?? false),
+                'partner_master_changes' => (int) ($result['partner_master_changes'] ?? 0),
+            ];
             $this->message = 'Khôi phục Merge an toàn đã hoàn tất và đã chạy hậu kiểm.';
             $this->readiness = null;
             $this->impact = null;
