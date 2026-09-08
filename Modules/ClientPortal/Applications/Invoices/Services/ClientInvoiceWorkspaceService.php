@@ -16,17 +16,35 @@ final class ClientInvoiceWorkspaceService
         private readonly InvoicePdfService $pdf,
     ) {}
 
-    public function dashboardData(): array
+    public function dashboardData(Request $request): array
     {
+        $year = max(2000, min(2100, (int) $request->integer('year', (int) now()->format('Y'))));
+        $requestedMonth = $request->query('month');
+        $month = filter_var($requestedMonth, FILTER_VALIDATE_INT) !== false
+            ? max(1, min(12, (int) $requestedMonth))
+            : null;
+
+        $from = now()->setDate($year, $month ?? 1, 1);
         $filters = [
-            'issued_date_from' => now()->startOfMonth()->toDateString(),
-            'issued_date_to' => now()->endOfMonth()->toDateString(),
+            'issued_date_from' => ($month === null ? $from->copy()->startOfYear() : $from->copy()->startOfMonth())->toDateString(),
+            'issued_date_to' => ($month === null ? $from->copy()->endOfYear() : $from->copy()->endOfMonth())->toDateString(),
             'tax_rate' => 'all',
             'pdf_status' => 'all',
         ];
 
+        $years = collect($this->invoices->years())
+            ->push($year)
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+
         return [
-            'period' => now()->format('m/Y'),
+            'period' => $month === null ? 'Năm '.$year : sprintf('Tháng %02d/%d', $month, $year),
+            'periodScope' => $month === null ? 'year' : 'month',
+            'selectedYear' => $year,
+            'selectedMonth' => $month,
+            'years' => $years,
             'stats' => $this->invoices->statistics($filters),
             'pdfMissing' => $this->invoices->statistics(array_merge($filters, ['pdf_status' => 'missing']))['count'],
             'pdfErrors' => $this->invoices->statistics(array_merge($filters, ['pdf_status' => 'error']))['count'],
