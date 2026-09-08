@@ -13,7 +13,7 @@ class InvoiceCandidateReview extends Component
 
     private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
-    public string $status = 'pending';
+    public string $status = '';
 
     public string $search = '';
 
@@ -107,7 +107,7 @@ class InvoiceCandidateReview extends Component
 
     public function clearFilters(): void
     {
-        $this->status = 'pending';
+        $this->status = '';
         $this->search = '';
         $this->perPage = 10;
         $this->resetPage();
