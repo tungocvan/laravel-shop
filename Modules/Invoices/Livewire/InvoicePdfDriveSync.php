@@ -83,7 +83,7 @@ class InvoicePdfDriveSync extends Component
         $this->syncPeriod($year, $month);
     }
 
-    public function refreshSnapshot(): void
+    public function refreshSnapshot(bool $showFeedback = false): void
     {
         $this->notice = null;
         $this->error = null;
@@ -96,6 +96,10 @@ class InvoicePdfDriveSync extends Component
 
         try {
             $this->snapshot = $this->sync->snapshot((int) $this->year, (int) $this->month);
+
+            if ($showFeedback) {
+                $this->notice = 'Đã làm mới trạng thái Local ↔ Google Drive lúc '.now()->format('H:i:s').'.';
+            }
         } catch (\Throwable $e) {
             $this->snapshot = ['connected' => false];
             $this->error = $e->getMessage();
