@@ -21,6 +21,27 @@ class GoogleDriveInvoiceExportService
         return (bool) ($this->drive->status()['connected'] ?? false);
     }
 
+    public function exists(string $fileName): bool
+    {
+        $this->assertValidFileName($fileName);
+
+        if (! $this->isConnected()) {
+            return false;
+        }
+
+        $status = $this->drive->testConnection();
+        $rootId = trim((string) ($status['folder_id'] ?? ''));
+
+        if ($rootId === '') {
+            throw new RuntimeException('Không xác định được thư mục Laravel-Backup trên Google Drive.');
+        }
+
+        $token = $this->drive->accessToken();
+        $folderId = $this->findFolder($token, $rootId, self::FOLDER_NAME);
+
+        return $folderId !== null && $this->findFile($token, $folderId, $fileName) !== null;
+    }
+
     public function upload(string $path): array
     {
         if (! is_file($path) || ! is_readable($path)) {
@@ -28,10 +49,7 @@ class GoogleDriveInvoiceExportService
         }
 
         $fileName = basename($path);
-
-        if (! preg_match('/\A(?:vat_in|vat_out)_[A-Za-z0-9_.-]+\.xlsx\z/i', $fileName)) {
-            throw new RuntimeException('Tên file Excel hóa đơn không hợp lệ.');
-        }
+        $this->assertValidFileName($fileName);
 
         $status = $this->drive->testConnection();
         $rootId = trim((string) ($status['folder_id'] ?? ''));
@@ -85,7 +103,7 @@ class GoogleDriveInvoiceExportService
         ];
     }
 
-    private function findOrCreateFolder(string $token, string $parentId, string $name): string
+    private function findFolder(string $token, string $parentId, string $name): ?string
     {
         $escaped = $this->escapeQueryValue($name);
         $parent = $this->escapeQueryValue($parentId);
@@ -106,8 +124,18 @@ class GoogleDriveInvoiceExportService
         }
 
         $files = $list->json('files');
-        if (is_array($files) && isset($files[0]['id'])) {
-            return (string) $files[0]['id'];
+
+        return is_array($files) && isset($files[0]['id'])
+            ? (string) $files[0]['id']
+            : null;
+    }
+
+    private function findOrCreateFolder(string $token, string $parentId, string $name): string
+    {
+        $folderId = $this->findFolder($token, $parentId, $name);
+
+        if ($folderId !== null) {
+            return $folderId;
         }
 
         $create = Http::withToken($token)
@@ -180,6 +208,13 @@ class GoogleDriveInvoiceExportService
         Http::withToken($token)
             ->timeout(20)
             ->delete('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId));
+    }
+
+    private function assertValidFileName(string $fileName): void
+    {
+        if (! preg_match('/\A(?:vat_in|vat_out)_[A-Za-z0-9_.-]+\.xlsx\z/i', $fileName)) {
+            throw new RuntimeException('Tên file Excel hóa đơn không hợp lệ.');
+        }
     }
 
     private function escapeQueryValue(string $value): string
