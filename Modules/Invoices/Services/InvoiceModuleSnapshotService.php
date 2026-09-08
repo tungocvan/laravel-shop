@@ -87,6 +87,26 @@ final class InvoiceModuleSnapshotService
         ];
     }
 
+    public function readTable(string $directory, string $table): array
+    {
+        if (! in_array($table, ['invoices', 'invoice_files'], true)) {
+            throw new RuntimeException('Bảng snapshot Invoices không được hỗ trợ.');
+        }
+
+        $inspection = $this->inspect($directory);
+        if (! $inspection['manifest_valid'] || ! $inspection['checksum_valid'] || ! $inspection['version_supported']) {
+            throw new RuntimeException('Snapshot Invoices chưa vượt qua kiểm tra integrity.');
+        }
+
+        $path = trim($directory, '/').'/database/'.$table.'.json';
+        $payload = json_decode(Storage::disk('local')->get($path), true);
+        if (! is_array($payload)) {
+            throw new RuntimeException('Payload snapshot Invoices không hợp lệ.');
+        }
+
+        return $payload;
+    }
+
     private function json(array $value): string
     {
         $json = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
