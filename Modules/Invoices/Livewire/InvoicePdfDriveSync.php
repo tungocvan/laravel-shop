@@ -60,6 +60,29 @@ class InvoicePdfDriveSync extends Component
         $this->refreshSnapshot();
     }
 
+    public function syncPeriodFromQuery(string $query): void
+    {
+        parse_str(ltrim($query, '?'), $params);
+
+        $fromDate = trim((string) ($params['from_date'] ?? ''));
+        $year = trim((string) ($params['year'] ?? ''));
+        $month = trim((string) ($params['month'] ?? ''));
+
+        if ($year === '' && preg_match('/\A(\d{4})-\d{2}-\d{2}\z/', $fromDate, $match)) {
+            $year = $match[1];
+        }
+
+        if ($month === '' && preg_match('/\A\d{4}-(\d{2})-\d{2}\z/', $fromDate, $match)) {
+            $month = (string) ((int) $match[1]);
+        }
+
+        if ($year === $this->year && $month === $this->month) {
+            return;
+        }
+
+        $this->syncPeriod($year, $month);
+    }
+
     public function refreshSnapshot(): void
     {
         $this->notice = null;
