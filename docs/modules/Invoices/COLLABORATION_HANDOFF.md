@@ -3,23 +3,16 @@
 ## Current Status
 
 - Module: `Invoices`
-- Major/Clean Module Refactor: **COMPLETE / MERGED** through PR #157.
-- Current follow-up branch: `feat/invoices-auto-upload-google-drive`.
-- Current PR: **#171 — OPEN / NOT MERGED**.
-- Current follow-up scope: **GDT existence preflight + manual Local ↔ Google Drive transfer + explicit database sync + Partner candidate staging**.
+- Previous Drive/PDF/Partner reporting scope: **MERGED** through PR #171.
+- Current follow-up branch: `feat/invoices-dashboard-backup-restore`.
+- Base: `main` at merge commit `685dd1c898108ba76cb27c6599ec6f59889b505f`.
+- Current branch state at closeout preparation: ahead of `main`, behind by `0` commits.
+- Current scope: **Invoices Operations Dashboard + module-scoped Backup/Restore + Restore Readiness + Safety Rollback + Google Drive/PDF health**.
+- Merge authorization: **NOT YET GIVEN**.
 
 ## Canonical Ownership Contract
 
-Invoices remains the canonical domain owner for:
-
-- electronic invoice ingestion and local persistence;
-- GDT authentication/data synchronization boundaries;
-- invoice filtering/listing/reporting;
-- Excel import/export;
-- invoice PDF retrieval and file metadata;
-- invoice backup execution metadata.
-
-Canonical Invoices persistence ownership remains:
+Invoices remains the canonical owner of:
 
 ```text
 invoices
@@ -27,152 +20,210 @@ invoice_files
 invoice_backup_runs
 ```
 
-Partner master data is not owned by Invoices. Invoice import may detect counterparties and submit normalized candidates to the Partner-owned intake boundary, but it does not create or update `partners` directly.
+Invoices owns invoice ingestion, local invoice persistence, invoice PDF metadata, GDT synchronization, invoice reporting and module-level recovery of its own persistence.
 
-## GDT Existence Preflight
+Partner master remains outside the restore boundary. Backup/restore does not create, update, delete or rollback Partner master data. PDF binaries are also excluded from module snapshots because the existing PDF ↔ Google Drive workflow is the binary protection path.
 
-The queued GDT job derives the deterministic workbook name for the selected range/direction and applies this order before calling GDT:
+## Operations Dashboard
 
-```text
-1. Check the expected local workbook.
-2. If local is missing and Google Drive is connected, check Laravel-Backup/Invoices.
-3. Call GDT only when the workbook is absent from both locations.
-```
-
-Behavior:
-
-- local workbook exists -> skip GDT;
-- local missing + same workbook exists on Drive -> skip GDT and allow operator to restore it through the manual Drive panel;
-- local missing + Drive disconnected -> call GDT;
-- local missing + Drive connected + remote absent -> call GDT;
-- Drive is connected but existence verification fails -> fail safely without calling GDT, because absence was not proven;
-- after a new GDT export, the workbook remains local; it is not automatically uploaded to Drive.
-
-Important runtime boundary: the above existence preflight currently belongs to the queued `ProcessGdtInvoicesJob`. The legacy non-queue `SearchHoadon::run()` path still calls `GdtInvoiceService::processRange()` directly and therefore does not yet share the queue preflight orchestration.
-
-## Manual Local ↔ Google Drive
-
-`/admin/invoices/hoadon` now includes an explicit operator-controlled Local ↔ Google Drive panel.
-
-Contract:
-
-- list local `vat_in_*.xlsx` / `vat_out_*.xlsx` files;
-- list invoice workbooks under `Laravel-Backup/Invoices` when Drive is connected;
-- selected Local -> Drive upload;
-- same-name Drive workbook is updated instead of duplicated;
-- selected Drive -> Local restore;
-- Drive -> Local never overwrites an existing same-name local workbook;
-- connection state and refresh/error states are visible;
-- existing public-link Google Drive import remains available as a compatibility path.
-
-User acceptance for the manual Local ↔ Drive UI was reported **PASS** before the Partner candidate follow-up was added.
-
-## Explicit Database Sync
-
-The local workbook action on `/admin/invoices/hoadon` is presented as **Đồng bộ vào CSDL**.
-
-The existing `InvoiceImportService` / `InvoiceImportExportService` remains the invoice import engine:
-
-- duplicate business identities are skipped rather than overwritten;
-- import reports total/success/skipped/error information;
-- the UI action does not itself mutate Partner master data.
-
-The invoice list route `/admin/invoices/hoadon-list` remains the workspace for records already persisted in the Invoices database.
-
-## Partner Candidate Staging
-
-After invoice database import completes, `InvoiceImportService` performs a secondary best-effort candidate stage:
+Canonical route:
 
 ```text
-Invoice workbook
-    -> InvoiceImportExportService
-    -> Invoices DB
-    -> InvoicePartnerCandidateExtractor
-    -> PartnerCandidateIntakeService
-    -> partner_sync_candidates
+/admin/invoices/dashboard
+admin.invoices.dashboard
 ```
 
-Rules:
-
-- candidate extraction only accepts workbook rows whose invoice business identity exists in the Invoices table after import;
-- candidate identity validation is batch-oriented rather than one invoice query per workbook row;
-- `sold` counterparty -> `customer`;
-- `purchase` counterparty -> `supplier`;
-- candidates are deduplicated by MST for the source submission;
-- Invoices does not create/update `Partner`;
-- candidate staging failure is logged and surfaced as a warning but does not roll back an invoice import that already succeeded.
-
-Partner owns the staging table and review workflow. See `docs/modules/Partner/MODULE.md` and `docs/modules/Partner/COLLABORATION_HANDOFF.md`.
-
-## Partner Review Handoff
-
-The new Partner-owned review workspace is:
+The Dashboard is now an operations center rather than a duplicate navigation page. Its hierarchy is:
 
 ```text
-/admin/partners/sync/invoices
+Operational KPIs
+Quick Actions
+Operational Health
+Backup & Recovery
+Recent Activity
 ```
 
-It supports explicit human review for pending/matched/conflict/ignored invoice-derived candidates. Create/merge/ignore decisions happen in Partner, not Invoices.
-
-## Validation Status
-
-Previously user-reported acceptance within this branch:
+Current KPI wording:
 
 ```text
-Focused Invoices automated suite               PASS
-Manual Local ↔ Google Drive UI                 PASS
+Tổng hóa đơn
+Hóa đơn bán ra
+Hóa đơn mua vào
+PDF đã lưu
+PDF chưa hoàn tất
 ```
 
-The newly added database-sync wording + Partner candidate staging/review batch still requires one final local verification round before PR #171 is merge-ready:
+PDF metrics are derived from `invoice_files.status`:
 
 ```text
-Pint changed PHP files                         PENDING
-Invoices focused tests                         PENDING after candidate additions
-InvoicesPartnerCandidateSyncTest               PENDING
-Partner focused tests                          PENDING
-Admin Invoices/Partner route inspection        PENDING
-Frontend production build                      PENDING
-Invoice DB-sync UI                             PENDING
-Partner invoice-candidate review UI            PENDING
+available -> PDF đã lưu
+error     -> PDF lỗi
+missing   -> tổng hóa đơn - available - error
 ```
 
-No full-project regression is required unless a focused failure proves a wider impact.
+The production verification performed during this scope confirmed `invoice_files` exists and currently contains 156 rows, all with `status = available`; the Dashboard PDF aggregate was adjusted to use portable bounded count queries.
+
+Operational Health intentionally avoids pretending to know a global queue state. It exposes actionable health for:
+
+- GDT configuration/server session;
+- Google Drive stored connection status;
+- per-workspace queue guidance;
+- PDF stored/missing/error counts.
+
+Google Drive Dashboard status uses the existing `GoogleDriveConnectionService::status()` read path and does not call the external Google API on every Dashboard render. The Dashboard shows connected account/folder/last-check metadata when available, or the existing System Google Drive connect action when disconnected.
+
+## Module Backup / Restore
+
+Canonical route:
+
+```text
+/admin/invoices/backup-restore
+admin.invoices.backup-restore
+permission: invoices-configure
+```
+
+Module snapshots contain only:
+
+```text
+invoices
+invoice_files metadata
+manifest.json
+payload SHA-256 checksums
+```
+
+They explicitly exclude:
+
+```text
+Partner master
+Partner candidate state
+PDF binary files
+system/global database state
+```
+
+Snapshot storage root:
+
+```text
+storage/app/private/invoices/module-backups/*
+```
+
+(Resolved through Laravel's local disk; exact filesystem prefix remains disk-configuration dependent.)
+
+Snapshot paths are guarded so deletion/restore cannot escape the Invoices backup root.
+
+## Restore Readiness Gate
+
+Restore requires an explicit readiness check before the normal UI enables the restore action.
+
+States:
+
+```text
+READY
+WARNING
+BLOCKED
+```
+
+The readiness foundation verifies snapshot manifest/integrity/version support and current Invoices schema availability. Blocked snapshots cannot be restored. Impact Preview is shown before mutation and always reports the Partner boundary explicitly as `0 thay đổi`.
+
+Safe Merge is the default restore behavior:
+
+- insert missing snapshot invoices;
+- preserve current matching invoices rather than overwriting newer current data;
+- restore missing `invoice_files` metadata with invoice ID remapping;
+- never delete current-only invoices;
+- never mutate Partner master.
+
+Before any restore mutation, the service must successfully create a `safety-before-restore` snapshot. Failure to create the Safety Backup blocks the restore.
+
+## Safety Backup / Exact Rollback
+
+`SAFETY-BEFORE-RESTORE` snapshots are protected from the normal delete action and expose a dedicated Rollback action.
+
+Normal manual snapshots:
+
+- may be deleted after confirmation;
+- use guarded module-root deletion.
+
+Safety snapshots:
+
+- are not deletable through the normal UI;
+- can be used for exact module rollback;
+- trigger creation of another Safety Backup before rollback starts;
+- restore exact `invoices + invoice_files` snapshot state;
+- run post-rollback verification;
+- keep Partner master unchanged.
+
+The exact rollback behavior is covered by automated tests; production UI smoke intentionally did not require destructive rollback execution against live data.
+
+## UI / UX Acceptance
+
+Admin UI follows `.codex/standards/ADMIN_UI_STANDARD.md`.
+
+User-reported manual UI acceptance in this branch:
+
+```text
+Invoices Operations Dashboard                  PASS
+Backup & Restore workspace                     PASS
+Snapshot MANUAL delete UI                      PASS
+Safety snapshot protection / Rollback UI       PASS
+Restore Readiness / Impact Preview              PASS
+Google Drive Operational Health                 PASS
+PDF KPI/Operational Health final display        PASS
+```
+
+A prior runtime issue where Livewire attempted to render the Safety Backup result array directly was fixed by normalizing restore output into scalar UI state before rendering.
+
+## Automated Validation Recorded
+
+User-reported validation during this branch includes:
+
+```text
+Restore readiness/snapshot/impact foundation   7 passed / 22 assertions
+Restore focused gate                            9 passed / 35 assertions
+Invoices regression                             44 passed / 264 assertions
+Backup/Restore workspace focused                7 passed / 26 assertions
+Invoices regression                             46 passed / 271 assertions
+Snapshot lifecycle focused                      7 passed / 25 assertions
+```
+
+The exact Safety Rollback tests were added after the initial UI acceptance and were reported PASS together with the related focused gate.
+
+Because the final PDF Dashboard aggregation adjustment happened after the last recorded full Invoices regression, one final `tests/Feature/Invoices*.php` regression is still required before PR creation/merge readiness is declared.
+
+Full-project regression is **NOT APPLICABLE — module-scoped regression strategy**. The current change remains inside Invoices plus read-only use of the existing System Google Drive connection service/route contract.
 
 ## Compatibility / Non-Goals Preserved
 
 This follow-up does not:
 
-- rename Invoices persistence tables;
 - rename canonical `/admin/invoices/*` routes;
-- remove legacy invoice compatibility routes;
-- rename existing invoice permissions;
+- remove existing compatibility routes;
+- change invoice permissions;
 - expose protected invoice PDFs publicly;
-- integrate Invoices into ClientPortal/PWA;
-- automatically create/update/merge Partner master rows during invoice ingestion;
-- automatically overwrite existing Partner conflicts.
+- restore Partner master or Partner candidate state;
+- treat module snapshots as full MySQL disaster-recovery backups;
+- automatically call the Google Drive API whenever Dashboard loads;
+- replace the existing PDF ↔ Google Drive synchronization workflow.
 
-The cross-module schema addition is Partner-owned: `partner_sync_candidates`.
-
-## Deferred Existing Debt
+## Deferred Follow-up
 
 Still deferred unless separately approved:
 
-- unifying the non-queue GDT path with the queued Local -> Drive -> GDT existence preflight;
-- runtime GDT `.env` mutation;
-- high-volume import/export/ZIP/backup performance work beyond the current bounded changes;
-- public export storage for financial spreadsheets;
-- persisted global GDT job registry;
-- database uniqueness for invoice business identity pending separate proof;
-- ClientPortal/PWA presentation and protected PDF handoff.
+- persistence/retention metadata for module snapshots beyond the current filesystem manifest model;
+- automatic scheduled upload of module snapshots to Google Drive;
+- advanced Replace restore mode;
+- cross-module Partner candidate recovery contract;
+- database unique constraint for invoice business identity pending production proof;
+- global queue registry/health aggregation;
+- ClientPortal/PWA presentation.
 
-## Closeout Gate for PR #171
+## Final Closeout Gate
 
-Before merge:
+Before creating/reviewing the PR:
 
-1. run Partner migration;
-2. run Pint on changed PHP files;
-3. run focused Invoices + new candidate tests + Partner focused tests;
-4. inspect affected routes and run Vite build;
-5. UI-check `/admin/invoices/hoadon` database sync and `/admin/partners/sync/invoices` review flow;
-6. update this handoff with final PASS results;
-7. merge only after normal user acceptance under `docs/GITHUB_COLLABORATION_WORKFLOW.md`.
+1. pull the latest branch state;
+2. run focused Dashboard/Backup-Restore tests;
+3. run `php artisan test tests/Feature/Invoices*.php`;
+4. verify `git status -sb` is clean;
+5. retain the recorded Dashboard + Backup/Restore UI PASS;
+6. create/review the PR against `main`;
+7. merge only after explicit user authorization under `docs/GITHUB_COLLABORATION_WORKFLOW.md`.
