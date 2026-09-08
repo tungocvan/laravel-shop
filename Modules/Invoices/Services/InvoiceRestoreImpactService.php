@@ -50,8 +50,16 @@ final class InvoiceRestoreImpactService
 
     public function identity(array $invoice): string
     {
+        $invoiceType = strtolower(trim((string) ($invoice['invoice_type'] ?? '')));
+        $lookupCode = trim((string) ($invoice['lookup_code'] ?? ''));
+
+        if ($lookupCode !== '') {
+            return implode('|', ['lookup', $invoiceType, $lookupCode]);
+        }
+
         return implode('|', [
-            strtolower(trim((string) ($invoice['invoice_type'] ?? ''))),
+            'composite',
+            $invoiceType,
             trim((string) ($invoice['symbol'] ?? '')),
             trim((string) ($invoice['invoice_number'] ?? '')),
             trim((string) ($invoice['tax_code'] ?? '')),
