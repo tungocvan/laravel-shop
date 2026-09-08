@@ -30,6 +30,11 @@ class InvoicesController extends Controller
         return view('Invoices::pages.invoices.partner-report');
     }
 
+    public function backupRestore(): View
+    {
+        return view('Invoices::pages.invoices.backup-restore');
+    }
+
     public function createToken(): View
     {
         return view('Invoices::pages.invoices.authenticate');
