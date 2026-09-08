@@ -17,4 +17,11 @@ Foundation implemented in this checkpoint:
 
 No destructive restore mutation is included in this checkpoint.
 
+Validation:
+
+```bash
+./vendor/bin/pint Modules/Invoices/Services/InvoiceRestoreReadinessService.php tests/Feature/InvoicesRestoreReadinessTest.php
+php artisan test tests/Feature/InvoicesRestoreReadinessTest.php
+```
+
 Next batch: immutable snapshot manifest/history, checksum writer/verifier, canonical invoice identity impact preview, safety snapshot + queued restore orchestration, verification/rollback, then Backup/Restore workspace and Dashboard integration.
