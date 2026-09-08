@@ -103,7 +103,7 @@ class InvoiceService
 
         $yearly = Invoices::query()
             ->whereNotNull('issued_date')
-            ->selectRaw($yearExpression.' as year, COALESCE(SUM(CASE WHEN invoice_type="sold" THEN total_amount ELSE 0 END), 0) as sold_total, COALESCE(SUM(CASE WHEN invoice_type="purchase" THEN total_amount ELSE 0 END), 0) as purchase_total')
+            ->selectRaw($yearExpression.' as year, COUNT(*) as invoice_count, COALESCE(SUM(CASE WHEN invoice_type="sold" THEN total_amount ELSE 0 END), 0) as sold_total, COALESCE(SUM(CASE WHEN invoice_type="purchase" THEN total_amount ELSE 0 END), 0) as purchase_total')
             ->groupByRaw($yearExpression)
             ->orderByDesc('year')
             ->get()
@@ -116,6 +116,39 @@ class InvoiceService
             'purchase_customers' => (int) ($summary?->purchase_customers ?? 0),
             'yearly' => $yearly,
         ];
+    }
+
+    public function monthlyPerformance(int $year): array
+    {
+        $monthExpression = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%m', issued_date) AS INTEGER)"
+            : 'MONTH(issued_date)';
+
+        $rows = Invoices::query()
+            ->whereNotNull('issued_date')
+            ->whereDate('issued_date', '>=', sprintf('%04d-01-01', $year))
+            ->whereDate('issued_date', '<=', sprintf('%04d-12-31', $year))
+            ->selectRaw($monthExpression.' as month')
+            ->selectRaw('COUNT(*) as invoice_count')
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_total")
+            ->selectRaw('COALESCE(SUM(vat_amount), 0) as vat_total')
+            ->groupByRaw($monthExpression)
+            ->orderByRaw($monthExpression)
+            ->get()
+            ->keyBy(fn ($row) => (int) $row->month);
+
+        return collect(range(1, 12))->map(function (int $month) use ($rows): array {
+            $row = $rows->get($month);
+
+            return [
+                'month' => $month,
+                'invoice_count' => (int) ($row?->invoice_count ?? 0),
+                'sold_total' => $row?->sold_total ?? 0,
+                'purchase_total' => $row?->purchase_total ?? 0,
+                'vat_total' => $row?->vat_total ?? 0,
+            ];
+        })->all();
     }
 
     public function selected(array $ids): Collection
