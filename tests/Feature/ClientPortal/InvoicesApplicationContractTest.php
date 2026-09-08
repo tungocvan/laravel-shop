@@ -61,7 +61,7 @@ class InvoicesApplicationContractTest extends TestCase
     {
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
 
-        $this->assertStringContainsString("$request->input('selected', [])", $adapter);
+        $this->assertStringContainsString('$request->input(\'selected\', [])', $adapter);
         $this->assertStringContainsString('$selected === []', $adapter);
         $this->assertStringContainsString('$this->invoices->filter($this->filters($request))', $adapter);
         $this->assertStringContainsString('$this->invoices->selected($selected)', $adapter);
