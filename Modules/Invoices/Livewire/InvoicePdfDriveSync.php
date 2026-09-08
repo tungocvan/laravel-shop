@@ -4,6 +4,7 @@ namespace Modules\Invoices\Livewire;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Modules\Invoices\Jobs\SyncInvoicePdfDriveChunkJob;
 use Modules\Invoices\Services\GoogleDriveInvoicePdfSyncService;
@@ -35,12 +36,22 @@ class InvoicePdfDriveSync extends Component
 
     public function mount(): void
     {
-        $this->year = (string) request()->query('year', now()->year);
-        $this->month = (string) request()->query('month', now()->month);
+        $fromDate = (string) request()->query('from_date', '');
+        $queryYear = (string) request()->query('year', '');
+        $queryMonth = (string) request()->query('month', '');
+
+        $this->year = $queryYear !== ''
+            ? $queryYear
+            : (preg_match('/\A(\d{4})-\d{2}-\d{2}\z/', $fromDate, $match) ? $match[1] : (string) now()->year);
+        $this->month = $queryMonth !== ''
+            ? $queryMonth
+            : (preg_match('/\A\d{4}-(\d{2})-\d{2}\z/', $fromDate, $match) ? (string) ((int) $match[1]) : (string) now()->month);
+
         $this->normalizePeriod();
         $this->refreshSnapshot();
     }
 
+    #[On('invoice-period-changed')]
     public function syncPeriod(string $year, string $month): void
     {
         $this->year = $year;
