@@ -15,21 +15,40 @@ class PartnerReport extends Component
     use WithPagination;
 
     protected InvoicePartnerReportService $reportService;
+
     protected InvoiceService $invoiceService;
 
     public ?string $type = null;
+
     public string $name = '';
+
     public string $tax_code = '';
+
     public string $year = '';
+
     public string $month = '';
+
     public string $from_date = '';
+
     public string $to_date = '';
+
     public string $sort = 'sold_desc';
+
     public int $perPage = 25;
+
     public array $yearOptions = [];
+
     public array $nameList = [];
+
     public array $taxCodeList = [];
+
     public ?array $partnerDetail = null;
+
+    public array $selected = [];
+
+    public bool $selectPage = false;
+
+    public bool $selectAllFiltered = false;
 
     protected $queryString = ['type', 'name', 'tax_code', 'year', 'month', 'from_date', 'to_date', 'sort', 'perPage'];
 
@@ -50,15 +69,96 @@ class PartnerReport extends Component
         $this->refreshOptions();
     }
 
-    public function updatedType(): void { $this->resetReportState(true); }
-    public function updatedName(): void { $this->resetReportState(true); }
-    public function updatedTaxCode(): void { $this->resetReportState(true); }
-    public function updatedSort(): void { $this->resetPage(); }
-    public function updatedPerPage(): void { $this->perPage = in_array((int) $this->perPage, [10,25,50,100], true) ? (int) $this->perPage : 25; $this->resetPage(); }
-    public function updatedYear(): void { $this->applyPeriod(); }
-    public function updatedMonth(): void { $this->applyPeriod(); }
-    public function updatedFromDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
-    public function updatedToDate(): void { $this->year = ''; $this->month = ''; $this->resetReportState(true); }
+    public function updatedType(): void
+    {
+        $this->resetReportState(true);
+    }
+
+    public function updatedName(): void
+    {
+        $this->resetReportState(true);
+    }
+
+    public function updatedTaxCode(): void
+    {
+        $this->resetReportState(true);
+    }
+
+    public function updatedSort(): void
+    {
+        $this->clearSelection();
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->perPage = in_array((int) $this->perPage, [10, 25, 50, 100], true) ? (int) $this->perPage : 25;
+        $this->clearSelection();
+        $this->resetPage();
+    }
+
+    public function updatedYear(): void
+    {
+        $this->applyPeriod();
+    }
+
+    public function updatedMonth(): void
+    {
+        $this->applyPeriod();
+    }
+
+    public function updatedFromDate(): void
+    {
+        $this->year = '';
+        $this->month = '';
+        $this->resetReportState(true);
+    }
+
+    public function updatedToDate(): void
+    {
+        $this->year = '';
+        $this->month = '';
+        $this->resetReportState(true);
+    }
+
+    public function updatedSelected(): void
+    {
+        $this->selectAllFiltered = false;
+    }
+
+    public function togglePageSelection(): void
+    {
+        $partners = $this->reportService->paginate($this->filters(), $this->perPage);
+        $pageKeys = collect($partners->items())
+            ->map(fn ($partner): string => $this->partnerKey((string) $partner->partner_name, (string) $partner->partner_tax_code))
+            ->all();
+
+        if ($this->selectPage) {
+            $this->selected = collect($this->selected)->merge($pageKeys)->unique()->values()->all();
+        } else {
+            $this->selected = array_values(array_diff($this->selected, $pageKeys));
+        }
+
+        $this->selectAllFiltered = false;
+    }
+
+    public function selectAllFilteredResults(): void
+    {
+        $this->selected = $this->reportService->exportRows($this->filters())
+            ->map(fn ($partner): string => $this->partnerKey((string) $partner->partner_name, (string) $partner->partner_tax_code))
+            ->unique()
+            ->values()
+            ->all();
+        $this->selectPage = true;
+        $this->selectAllFiltered = true;
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selected = [];
+        $this->selectPage = false;
+        $this->selectAllFiltered = false;
+    }
 
     public function showPartnerDetail(string $key): void
     {
@@ -67,6 +167,7 @@ class PartnerReport extends Component
 
         if (! is_array($payload) || ! isset($payload['name'], $payload['tax_code'])) {
             $this->partnerDetail = null;
+
             return;
         }
 
@@ -93,6 +194,7 @@ class PartnerReport extends Component
         $this->to_date = Carbon::now()->format('Y-m-d');
         $this->sort = 'sold_desc';
         $this->partnerDetail = null;
+        $this->clearSelection();
         $this->refreshOptions();
         $this->resetPage();
         $this->dispatch('filters-reset');
@@ -101,8 +203,18 @@ class PartnerReport extends Component
     public function exportExcel()
     {
         abort_unless(auth('admin')->check() && auth('admin')->user()->can('invoices-export'), 403);
+
+        $rows = $this->reportService->exportRows($this->filters());
+        if ($this->selected !== []) {
+            $selected = array_flip($this->selected);
+            $rows = $rows->filter(fn ($partner): bool => isset($selected[$this->partnerKey(
+                (string) $partner->partner_name,
+                (string) $partner->partner_tax_code
+            )]))->values();
+        }
+
         return Excel::download(
-            new InvoicePartnerReportExport($this->reportService->exportRows($this->filters())),
+            new InvoicePartnerReportExport($rows),
             'bao-cao-doi-tac_'.now()->format('Ymd_His').'.xlsx'
         );
     }
@@ -110,8 +222,14 @@ class PartnerReport extends Component
     public function render()
     {
         $filters = $this->filters();
+        $partners = $this->reportService->paginate($filters, $this->perPage);
+        $pageKeys = collect($partners->items())
+            ->map(fn ($partner): string => $this->partnerKey((string) $partner->partner_name, (string) $partner->partner_tax_code))
+            ->all();
+        $this->selectPage = $pageKeys !== [] && collect($pageKeys)->every(fn (string $key): bool => in_array($key, $this->selected, true));
+
         return view('Invoices::livewire.partner-report', [
-            'partners' => $this->reportService->paginate($filters, $this->perPage),
+            'partners' => $partners,
             'summary' => $this->reportService->summary($filters),
         ]);
     }
@@ -123,10 +241,15 @@ class PartnerReport extends Component
             $this->from_date = '';
             $this->to_date = '';
             $this->resetReportState(true);
+
             return;
         }
+
         $year = (int) $this->year;
-        if ($year < 2000 || $year > 2100) return;
+        if ($year < 2000 || $year > 2100) {
+            return;
+        }
+
         if ($this->month === '') {
             $this->from_date = Carbon::create($year, 1, 1)->format('Y-m-d');
             $this->to_date = Carbon::create($year, 12, 31)->format('Y-m-d');
@@ -155,7 +278,10 @@ class PartnerReport extends Component
     private function resetReportState(bool $refreshOptions = false): void
     {
         $this->partnerDetail = null;
-        if ($refreshOptions) $this->refreshOptions();
+        $this->clearSelection();
+        if ($refreshOptions) {
+            $this->refreshOptions();
+        }
         $this->resetPage();
     }
 
@@ -169,5 +295,13 @@ class PartnerReport extends Component
             'issued_date_to' => $this->to_date,
             'sort' => $this->sort,
         ];
+    }
+
+    private function partnerKey(string $name, string $taxCode): string
+    {
+        return base64_encode(json_encode([
+            'name' => $name,
+            'tax_code' => $taxCode,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 }
