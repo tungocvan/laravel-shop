@@ -19,11 +19,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 final class InvoicesApplicationController extends Controller
 {
     public function dashboard(
+        Request $request,
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         ClientInvoiceWorkspaceService $workspace,
     ): View {
-        return $this->applicationView('dashboard', $registry, $settings, $workspace->dashboardData());
+        return $this->applicationView('dashboard', $registry, $settings, $workspace->dashboardData($request));
     }
 
     public function index(
