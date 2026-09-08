@@ -2,9 +2,9 @@
 
 ## Module Overview
 
-`Invoices` is the electronic-invoice domain module for GDT integration, sold/purchase invoice synchronization, Excel import/export, local PDF management and partner reporting.
+`Invoices` is the electronic-invoice domain module for GDT integration, sold/purchase invoice synchronization, Excel import/export, local PDF management, partner reporting and module-scoped recovery.
 
-Current source status: **R1–R6.5 behavior is present on `main`; read-only Admin Dashboard implementation is pending focused verification on `feat/invoices-admin-dashboard`.**
+Current status: the main invoice ingestion/PDF/Drive/reporting scope is merged; `feat/invoices-dashboard-backup-restore` adds the Operations Dashboard and module Backup/Restore workflow pending final PR closeout.
 
 ## Registration
 
@@ -44,6 +44,7 @@ admin.invoices.create-token       -> invoices-configure
 admin.invoices.hoadon             -> invoices-create
 admin.invoices.hoadon-list        -> invoices-list
 admin.invoices.reports.partners   -> invoices-list
+admin.invoices.backup-restore     -> invoices-configure
 admin.invoices.download-invoice   -> invoices-download
 admin.invoices.download           -> invoices-download
 ```
@@ -64,56 +65,7 @@ invoices-configure
 
 Sensitive Livewire actions enforce server-side permission checks. UI actions are also hidden/disabled when the admin lacks the corresponding capability.
 
-## Refactor Results
-
-### R1 — Authorization / GDT hardening
-
-- Route capabilities aligned with module permissions.
-- GDT configuration/login/token actions require `invoices-configure`.
-- Export requires `invoices-export`.
-- PDF actions require `invoices-download`.
-- GDT password is not hydrated back into public Livewire state.
-- GDT config validation rejects invalid cache keys/newline injection.
-
-Runtime `.env` mutation remains deferred for a future production secrets/settings store.
-
-### R2 — List / pagination / admin UX
-
-- Removed unbounded `All` pagination.
-- Allowed page sizes: `10/25/50/100`.
-- Searchable partner and tax-code filters use the shared select-search component.
-- Year/month/date filters and safe sort whitelist added.
-- Sort supports date, amount, invoice number and partner.
-- Header checkbox selects the current page.
-- After selecting the page, the UI can explicitly select the entire filtered result set.
-- Selection resets when filter/page-size state changes.
-
-### R3 — Import / Export
-
-Canonical service:
-
-```text
-Modules/Invoices/Services/InvoiceImportExportService.php
-```
-
-It extends:
-
-```text
-Modules/Shared/Services/ImportExport/BaseImportExportService.php
-```
-
-Behavior:
-
-- XLSX/CSV import.
-- Vietnamese header aliases.
-- `sold` / `purchase` support.
-- Default `skip_duplicate` mode.
-- Legacy `gdt:import-excel` compatibility through `InvoiceImportService` adapter.
-- Export current filter scope or selected IDs.
-- Decimal values are normalized without lossy float conversion.
-- Tax-rate normalization accepts GDT Excel variations.
-
-### R4 — Data integrity / idempotency
+## Invoice Identity / Import Safety
 
 Current application identity remains:
 
@@ -125,41 +77,31 @@ Import duplicate detection is date-aware and does not overwrite an existing invo
 
 A database unique constraint remains deferred until identity is validated against production data.
 
-### R5 — Query / statistics / dashboard
+## Invoice List / Import / Export
 
-- Filtered statistics consolidated into aggregate queries.
-- Dashboard totals/customer counts optimized.
-- Deterministic ordering maintained.
-- Selected IDs sanitized before query use.
-- Purchase invoices without `lookup_code` remain visible/filterable.
+Canonical import/export service:
 
-### R6.1 — Professional filter/sort UX
+```text
+Modules/Invoices/Services/InvoiceImportExportService.php
+```
 
-- Searchable partner/MST filters.
-- Year/month quick period selection.
-- Amount/date/invoice/partner sorting.
-- Filtered KPI row.
-- Indigo pagination component consistent with Admin UI.
+It extends:
 
-### R6.2 — PDF Storage Manager
+```text
+Modules/Shared/Services/ImportExport/BaseImportExportService.php
+```
 
-PDFs created after R6.2 are stored under:
+The list workspace supports bounded pagination, searchable partner/MST filters, year/month/date filters, safe sort whitelists, page selection and explicit select-all-filtered behavior. Import/export supports XLSX/CSV and selected/all-filtered export without unbounded `All` pagination.
+
+## PDF Storage and Metadata
+
+PDFs are stored under:
 
 ```text
 storage/app/invoices/pdf/{YYYY}/{MM}/{sold|purchase}/
 ```
 
-Filename pattern is human-readable and contains invoice date/number/tax code/partner slug.
-
-Legacy files under:
-
-```text
-storage/app/hoadon_temp
-```
-
-remain readable for backward compatibility.
-
-### R6.3 — Invoice File Management
+Legacy files under `storage/app/hoadon_temp` remain readable for compatibility.
 
 Metadata table:
 
@@ -167,69 +109,151 @@ Metadata table:
 invoice_files
 ```
 
-Tracks:
+Tracked fields include provider, status, path, size, last error and downloaded time. PDF status is represented through values such as:
 
 ```text
-invoice_id
-provider
-status
-path
-size
-last_error
-downloaded_at
+available
+missing
+error
 ```
 
-Supported management actions:
+The invoice record is never deleted when its PDF is deleted.
 
-- Reconcile/scan PDF metadata.
-- Download missing PDFs in bounded batches.
-- Retry failed PDF downloads.
-- Create ZIP archives from currently filtered PDFs.
-- Storage summary by year/month/type.
-- Delete PDF files only for explicitly checkbox-selected invoices.
+## Google Drive PDF Protection
 
-Deleting a PDF never deletes the invoice database record.
+PDF binaries are protected through the existing Local ↔ Google Drive workflow under the configured `Laravel-Backup` root. Module DB snapshots intentionally do not embed PDF binaries.
 
-### R6.4 — File Manager safety / UX
+The invoice list exposes the PDF ↔ Drive workspace for upload/restore comparison by invoice period. Same-name files are not blindly overwritten when sizes differ.
 
-- PDF status filter: all / available / missing / error.
-- Recent PDF error details.
-- Busy modal/overlay for long-running actions.
-- Selected-only destructive PDF deletion.
-- Error/retry state is stored in metadata.
+## Partner Reporting
 
-### R6.5 — Partner Revenue Report
-
-Route:
+Canonical route:
 
 ```text
 /admin/invoices/reports/partners
 ```
 
-Main report table focuses on:
+The report supports filters, searchable partner/MST selectors, safe sorting, selected/all-filtered export and sold/purchase VAT-inclusive totals. The report does not present accounting differences as profit.
+
+Partner master is not owned by Invoices. Invoice-derived counterparty candidates are handed to the Partner-owned staging/review boundary; Invoices does not directly mutate Partner master during ingestion.
+
+## Operations Dashboard
+
+Canonical route:
 
 ```text
-Partner
-Tax code
-Invoice count
-Sold total (VAT included)
-Purchase total (VAT included)
+/admin/invoices/dashboard
+admin.invoices.dashboard
 ```
 
-Partner detail modal displays:
+Architecture:
 
 ```text
-Sold total (VAT included)
-Purchase total (VAT included)
-Output VAT
-Input VAT
-Total difference = sold total - purchase total
-VAT difference   = output VAT - input VAT
+InvoicesDashboardController
+    -> InvoiceDashboardService
+        -> InvoiceDashboardData
+            -> Blade
 ```
 
-The total difference is an accounting comparison by partner and is explicitly **not presented as profit**.
+The Dashboard is an operations center with:
 
-Report filters mirror the invoice-list UX, including searchable partner/MST selectors, year/month/date range and sorting. Excel export is permission-protected.
+```text
+Operational KPIs
+Quick Actions
+Operational Health
+Backup & Recovery
+Recent Activity
+```
+
+Primary KPI wording:
+
+```text
+Tổng hóa đơn
+Hóa đơn bán ra
+Hóa đơn mua vào
+PDF đã lưu
+PDF chưa hoàn tất
+```
+
+PDF KPI rules:
+
+```text
+PDF đã lưu      = invoice_files.status = available
+PDF lỗi         = invoice_files.status = error
+PDF chưa hoàn tất = total invoices - available - error, plus explicit errors in the detail copy
+```
+
+Operational Health exposes only actionable or bounded states:
+
+- GDT account/session state;
+- Google Drive stored connection metadata;
+- queue guidance at the relevant workspace instead of pretending to expose a global queue truth;
+- PDF stored/missing/error counts.
+
+Dashboard rendering does not call the external Google Drive API. It reads the existing stored `GoogleDriveConnectionService::status()` metadata and links to the System Google Drive connect flow when disconnected.
+
+## Module Backup & Restore
+
+Canonical route:
+
+```text
+/admin/invoices/backup-restore
+admin.invoices.backup-restore
+```
+
+Permission:
+
+```text
+invoices-configure
+```
+
+Module snapshots contain:
+
+```text
+invoices
+invoice_files metadata
+manifest.json
+SHA-256 payload checksums
+```
+
+They exclude:
+
+```text
+Partner master
+Partner candidate state
+PDF binary files
+system/global database state
+```
+
+The workspace supports:
+
+```text
+Backup ngay
+Lịch sử snapshot
+Kiểm tra khả năng khôi phục
+READY / WARNING / BLOCKED
+Impact Preview
+Safety Backup + Merge Restore
+Post-Restore Verification
+MANUAL snapshot delete
+Safety Backup rollback
+```
+
+## Restore Contract
+
+Safe Merge is the default restore mode:
+
+- insert snapshot invoices missing from current data;
+- preserve current matching invoices rather than overwriting newer records;
+- remap and restore missing `invoice_files` metadata;
+- never delete current-only invoices;
+- never mutate Partner master.
+
+A Safety Backup is mandatory before restore. If the Safety Backup cannot be created, mutation does not start.
+
+`SAFETY-BEFORE-RESTORE` snapshots are protected from normal deletion.
+
+Exact Safety Rollback restores the Invoices-owned `invoices + invoice_files` state represented by the selected Safety snapshot, creates another Safety Backup before rollback, and runs post-rollback verification. Partner master remains outside the rollback boundary.
 
 ## GDT Synchronization Safety
 
@@ -237,25 +261,7 @@ GDT synchronization validates pagination completeness. A partial page sequence m
 
 The sync flow compares received rows with the GDT reported total and treats incomplete pagination as a failure instead of silently exporting partial data.
 
-`TransactionID`/lookup values are resolved by field meaning rather than relying on one fixed `cttkhac` array index.
-
-## PDF Provider Flow
-
-Primary flow:
-
-```text
-Invoice database row
-    -> GDT invoice detail endpoint
-    -> render local PDF with DomPDF
-    -> store PDF
-    -> record invoice_files metadata
-```
-
-GDT detail identity uses invoice data such as seller tax code, invoice symbol and invoice number; `lookup_code` is not required for purchase invoices.
-
-MeInvoice remains an optional fallback provider when configured.
-
-The generated GDT PDF is a **local representation rendered from GDT detail data**, not a claim that GDT supplied an original PDF binary.
+`TransactionID`/lookup values are resolved by field meaning rather than relying on one fixed array index.
 
 ## Configuration
 
@@ -283,7 +289,13 @@ Writable runtime directories include:
 storage/app/gdt
 storage/app/invoices/pdf
 storage/app/invoices/archives
-storage/app/hoadon_temp   # legacy compatibility
+storage/app/hoadon_temp
+```
+
+Module snapshots use Laravel's configured local disk under the logical path:
+
+```text
+invoices/module-backups/*
 ```
 
 Ensure the PHP/queue runtime user has write permission to `storage` and `bootstrap/cache`.
@@ -292,93 +304,60 @@ Ensure the PHP/queue runtime user has write permission to `storage` and `bootstr
 
 ```text
 Modules/Invoices/Http/Controllers/InvoicesController.php
-Modules/Invoices/Livewire/GdtLogin.php
+Modules/Invoices/Http/Controllers/InvoicesDashboardController.php
 Modules/Invoices/Livewire/HoadonList.php
+Modules/Invoices/Livewire/ModuleBackupRestore.php
 Modules/Invoices/Livewire/PartnerReport.php
 Modules/Invoices/Services/GdtInvoiceService.php
 Modules/Invoices/Services/GdtPdfService.php
-Modules/Invoices/Services/InvoiceService.php
+Modules/Invoices/Services/GoogleDriveInvoicePdfSyncService.php
+Modules/Invoices/Services/InvoiceDashboardService.php
 Modules/Invoices/Services/InvoiceImportExportService.php
 Modules/Invoices/Services/InvoiceFileService.php
-Modules/Invoices/Services/InvoiceFileManagerService.php
-Modules/Invoices/Services/InvoicePdfService.php
-Modules/Invoices/Services/InvoicePartnerReportService.php
+Modules/Invoices/Services/InvoiceModuleSnapshotService.php
+Modules/Invoices/Services/InvoiceRestoreReadinessService.php
+Modules/Invoices/Services/InvoiceRestoreImpactService.php
+Modules/Invoices/Services/InvoiceModuleRestoreService.php
+Modules/Invoices/Services/InvoiceRestoreVerificationService.php
 Modules/Invoices/Models/Invoices.php
 Modules/Invoices/Models/InvoiceFile.php
 ```
 
-## R7 Final Verification
+## Verification Strategy
 
-Before merge, synchronize the latest `main` into `agent/invoices-refactor` because the branches may have diverged.
+Use module-scoped regression rather than full-project regression unless a shared/core failure proves wider impact.
 
-Targeted suite:
+Current final gate for the Dashboard/Backup-Restore branch:
 
 ```bash
 php artisan test \
-  tests/Feature/InvoicesModuleTest.php \
-  tests/Feature/InvoicesFilterSortTest.php \
-  tests/Feature/InvoicesPdfStorageTest.php \
-  tests/Feature/InvoicesFileManagementTest.php \
-  tests/Feature/InvoicesPartnerReportTest.php
+  tests/Feature/InvoicesDashboardTest.php \
+  tests/Feature/InvoicesBackupRestoreWorkspaceTest.php \
+  tests/Feature/InvoicesModuleRestoreTest.php \
+  tests/Feature/InvoicesSnapshotLifecycleTest.php
+
+php artisan test tests/Feature/Invoices*.php
 ```
 
-Then run the scoped suites only:
-
-```bash
-php artisan test tests/Feature/InvoicesDashboardTest.php
-php artisan test tests/Feature/InvoicesModuleTest.php tests/Feature/InvoicesFilterSortTest.php tests/Feature/InvoicesPdfStorageTest.php tests/Feature/InvoicesFileManagementTest.php tests/Feature/InvoicesPartnerReportTest.php tests/Feature/InvoicesAutomaticBackupTest.php
-php artisan test tests/Feature/Admin
-```
-
-Required manual smoke checks:
+Manual smoke routes:
 
 ```text
 /admin/invoices/dashboard
-/admin/invoices/create-token
+/admin/invoices/backup-restore
 /admin/invoices/hoadon
 /admin/invoices/hoadon-list
 /admin/invoices/reports/partners
 ```
 
-Verify:
-
-- Sold and purchase synchronization.
-- Import from synchronized/uploaded Excel files.
-- Invoice list filters/sorts/select-all.
-- Single and batch PDF creation.
-- Metadata scan / retry / ZIP.
-- Selected-only PDF deletion.
-- Partner report filter, detail modal and Excel export.
-- Permissions for list/create/configure/export/download.
-
 ## Remaining Deferred Work
 
 1. Validate invoice identity against production records before adding a database unique constraint.
-2. Replace runtime `.env` mutation with a production-grade settings/secrets store.
-3. Move very large PDF batches/import/export jobs to background queue orchestration with persistent progress if scale requires it.
-4. Remove legacy PDF/routes only after compatibility usage is verified.
-
-## Read-only Admin Dashboard
-
-The Admin Dashboard is available at:
-
-```text
-/admin/invoices/dashboard
-admin.invoices.dashboard
-```
-
-Architecture:
-
-```text
-InvoicesDashboardController
-    -> InvoiceDashboardService
-        -> InvoiceDashboardData
-            -> Blade
-```
-
-The Dashboard uses bounded aggregate/recent queries, guards missing tables and excludes financial amounts, invoice/partner identity, credentials, tokens, backup recipient, file metadata, raw payloads and raw errors. Existing workspaces keep their current routes and expose a shared permission-aware `Quay về Dashboard` link.
-
-Invoices is expected to integrate with `Modules/ClientPortal` for PWA use later. That future work must use the ClientPortal manifest/registry, client authentication/permissions/adaptive navigation and a client-specific presentation; this Admin Dashboard does not modify ClientPortal.
+2. Replace any remaining runtime secret mutation with production-grade settings/secrets storage.
+3. Add scheduled retention/Drive upload for module DB snapshots only if separately approved.
+4. Add advanced Replace restore mode only with a separate destructive-operation contract.
+5. Keep Partner candidate recovery outside Invoices until an explicit cross-module recovery contract exists.
+6. Add persisted global queue registry only if operational need justifies it.
+7. ClientPortal/PWA presentation remains a separate scope.
 
 ## Related Documentation
 
@@ -387,6 +366,8 @@ docs/modules/Invoices/ANALYSIS.md
 docs/modules/Invoices/INFORMATION.md
 docs/modules/Invoices/REFACTOR_PLAN.md
 docs/modules/Invoices/IMPORT_EXPORT_PLAN.md
+docs/modules/Invoices/BACKUP_RESTORE_DESIGN.md
+docs/modules/Invoices/BACKUP_RESTORE_FOUNDATION.md
 docs/modules/Invoices/COLLABORATION_HANDOFF.md
 .codex/standards/MODULE_STANDARD.md
 .codex/standards/ADMIN_UI_STANDARD.md
