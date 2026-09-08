@@ -3,6 +3,7 @@
 namespace Tests\Concerns;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 trait CreatesInvoicesRestoreSchema
@@ -44,5 +45,8 @@ trait CreatesInvoicesRestoreSchema
                 $table->timestamps();
             });
         }
+
+        DB::table('invoice_files')->delete();
+        DB::table('invoices')->delete();
     }
 }
