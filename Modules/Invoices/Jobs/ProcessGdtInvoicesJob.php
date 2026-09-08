@@ -87,7 +87,27 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             $this->vatIn
         );
 
-        if (! is_string($file) || ! is_file($file) || ! is_readable($file)) {
+        if ($file === null) {
+            $this->updateStatus('completed', 'Không có hóa đơn trong khoảng thời gian đã chọn. Hệ thống không tạo file Excel.', [
+                'file' => null,
+                'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
+                'source' => 'gdt',
+                'sync_skipped' => false,
+                'no_data' => true,
+                'finished_at' => now()->toIso8601String(),
+            ]);
+
+            Log::info('[GDT JOB] Không có dữ liệu hóa đơn, không tạo file Excel.', [
+                'sync_id' => $this->syncId,
+                'start' => $this->start,
+                'end' => $this->end,
+                'type' => $this->vatIn ? 'purchase' : 'sold',
+            ]);
+
+            return;
+        }
+
+        if (! is_file($file) || ! is_readable($file)) {
             throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
         }
 
@@ -98,6 +118,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
             'source' => 'gdt',
             'sync_skipped' => false,
+            'no_data' => false,
             'finished_at' => now()->toIso8601String(),
         ]);
 
@@ -126,6 +147,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
             'source' => $source,
             'sync_skipped' => true,
+            'no_data' => false,
             'finished_at' => now()->toIso8601String(),
         ]);
 
