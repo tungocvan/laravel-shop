@@ -37,7 +37,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <p class="text-sm font-semibold text-sky-700">Doanh thu bán ra năm {{ $annualYear }}</p>
-                    <p class="mt-1 text-xs text-sky-600">Tổng hóa đơn bán ra từ đầu năm đến cuối năm hiện tại.</p>
+                    <p class="mt-1 text-xs text-sky-600">Tổng hóa đơn bán ra trong năm đang chọn.</p>
                 </div>
                 <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700">{{ number_format($annualStats['sold_count']) }} HĐ</span>
             </div>
@@ -47,7 +47,7 @@
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <p class="text-sm font-semibold text-amber-700">Giá trị mua vào năm {{ $annualYear }}</p>
-                    <p class="mt-1 text-xs text-amber-600">Tổng hóa đơn mua vào từ đầu năm đến cuối năm hiện tại.</p>
+                    <p class="mt-1 text-xs text-amber-600">Tổng hóa đơn mua vào trong năm đang chọn.</p>
                 </div>
                 <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-700">{{ number_format($annualStats['purchase_count']) }} HĐ</span>
             </div>
@@ -72,13 +72,14 @@
             <section class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
                 <div class="mb-4">
                     <h4 class="text-sm font-semibold text-slate-900">Kỳ dữ liệu</h4>
-                    <p class="mt-1 text-xs text-slate-500">Mặc định hiển thị tháng hiện tại. Có thể chọn cả năm hoặc nhập khoảng ngày thủ công.</p>
+                    <p class="mt-1 text-xs text-slate-500">Mặc định hiển thị tháng hiện tại. Khi đổi năm, hai tổng quan phía trên cũng chuyển theo năm đó.</p>
                 </div>
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Năm</span><select wire:model.live="year" class="{{ $controlClass }}"><option value="">Tất cả năm</option>@foreach($yearOptions as $yearOption)<option value="{{ $yearOption }}">Năm {{ $yearOption }}</option>@endforeach</select></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Tháng</span><select wire:model.live="month" @disabled($year==='') class="{{ $controlClass }}"><option value="">Cả năm</option>@for($m=1;$m<=12;$m++)<option value="{{ $m }}">Tháng {{ str_pad((string)$m,2,'0',STR_PAD_LEFT) }}</option>@endfor</select></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Từ ngày</span><input type="date" wire:model.live="from_date" class="{{ $controlClass }}"></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Đến ngày</span><input type="date" wire:model.live="to_date" class="{{ $controlClass }}"></label>
+                    <div class="flex items-end"><button type="button" wire:click="resetFilters" class="h-11 w-full rounded-xl border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Đặt lại bộ lọc</button></div>
                 </div>
             </section>
 
@@ -112,7 +113,7 @@
 
             <div class="flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex flex-wrap items-center gap-3"><label><span class="sr-only">Số hóa đơn mỗi trang</span><select wire:model.live="perPage" class="{{ $controlClass }} !w-auto min-w-32">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} / trang</option>@endforeach</select></label>@if(count($selected)>0)<span class="rounded-full bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">Đã chọn {{ count($selected) }} hóa đơn</span><button wire:click="clearSelection" class="text-sm font-semibold text-gray-500 hover:text-gray-800">Bỏ chọn</button>@endif</div>
-                <div class="flex flex-wrap gap-2"><button wire:click="resetFilters" class="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700">Đặt lại bộ lọc</button>@if(auth('admin')->user()?->can('invoices-export'))<button wire:click="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white">{{ count($selected)>0?'Xuất '.count($selected).' hóa đơn':'Xuất theo bộ lọc' }}</button>@endif @if(auth('admin')->user()?->can('invoices-download'))<button wire:click="downloadSelected" wire:loading.attr="disabled" wire:target="downloadSelected" @disabled(count($selected)===0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-40">Tải PDF ({{ count($selected) }})</button>@endif</div>
+                <div class="flex flex-wrap gap-2">@if(auth('admin')->user()?->can('invoices-export'))<button wire:click="exportSelected" class="h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white">{{ count($selected)>0?'Xuất '.count($selected).' hóa đơn':'Xuất theo bộ lọc' }}</button>@endif @if(auth('admin')->user()?->can('invoices-download'))<button wire:click="downloadSelected" wire:loading.attr="disabled" wire:target="downloadSelected" @disabled(count($selected)===0) class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-40">Tải PDF ({{ count($selected) }})</button>@endif</div>
             </div>
         </div>
     </div>
