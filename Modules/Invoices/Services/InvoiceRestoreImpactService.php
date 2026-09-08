@@ -23,6 +23,7 @@ final class InvoiceRestoreImpactService
             $currentInvoice = $current->get($key);
             if ($currentInvoice === null) {
                 $insert++;
+
                 continue;
             }
 
