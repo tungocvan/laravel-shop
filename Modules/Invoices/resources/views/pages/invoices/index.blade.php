@@ -3,7 +3,7 @@
 @section('title', 'Danh sách hóa đơn')
 
 @section('content')
-    <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight text-gray-900">Danh sách hóa đơn</h1>
