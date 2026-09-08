@@ -57,7 +57,7 @@ final class InvoiceModuleSnapshotService
     public function inspect(string $directory): array
     {
         $disk = Storage::disk('local');
-        $manifestPath = trim($directory, '/').'/manifest.json';
+        $manifestPath = $this->normalizeDirectory($directory).'/manifest.json';
         if (! $disk->exists($manifestPath)) {
             throw new RuntimeException('Không tìm thấy manifest snapshot Invoices.');
         }
@@ -71,7 +71,7 @@ final class InvoiceModuleSnapshotService
 
         if ($manifestValid) {
             foreach ($manifest['checksums'] as $path => $expected) {
-                $fullPath = trim($directory, '/').'/'.$path;
+                $fullPath = $this->normalizeDirectory($directory).'/'.$path;
                 if (! $disk->exists($fullPath) || ! hash_equals((string) $expected, hash('sha256', $disk->get($fullPath)))) {
                     $checksumValid = false;
                     break;
@@ -98,13 +98,38 @@ final class InvoiceModuleSnapshotService
             throw new RuntimeException('Snapshot Invoices chưa vượt qua kiểm tra integrity.');
         }
 
-        $path = trim($directory, '/').'/database/'.$table.'.json';
+        $path = $this->normalizeDirectory($directory).'/database/'.$table.'.json';
         $payload = json_decode(Storage::disk('local')->get($path), true);
         if (! is_array($payload)) {
             throw new RuntimeException('Payload snapshot Invoices không hợp lệ.');
         }
 
         return $payload;
+    }
+
+    public function delete(string $directory, bool $allowSafety = false): void
+    {
+        $directory = $this->normalizeDirectory($directory);
+        $inspection = $this->inspect($directory);
+        $mode = (string) ($inspection['manifest']['mode'] ?? '');
+
+        if (str_starts_with($mode, 'safety') && ! $allowSafety) {
+            throw new RuntimeException('Safety Backup đang được bảo vệ. Hãy dùng thao tác xóa nâng cao nếu thật sự cần xóa.');
+        }
+
+        if (! Storage::disk('local')->deleteDirectory($directory)) {
+            throw new RuntimeException('Không thể xóa snapshot Invoices khỏi local storage.');
+        }
+    }
+
+    private function normalizeDirectory(string $directory): string
+    {
+        $directory = trim($directory, '/');
+        if (! preg_match('#^invoices/module-backups/[A-Za-z0-9_-]+$#', $directory)) {
+            throw new RuntimeException('Đường dẫn snapshot Invoices không hợp lệ.');
+        }
+
+        return $directory;
     }
 
     private function json(array $value): string
