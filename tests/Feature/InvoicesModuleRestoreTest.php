@@ -87,6 +87,69 @@ class InvoicesModuleRestoreTest extends TestCase
         $this->assertTrue(DB::table('invoice_files')->where('invoice_id', $restoredId)->exists());
     }
 
+    public function test_exact_safety_rollback_restores_snapshot_state_and_removes_newer_rows(): void
+    {
+        $now = now()->subMinute();
+        $invoiceId = DB::table('invoices')->insertGetId([
+            'lookup_code' => 'ROLLBACK-A',
+            'symbol' => 'C26TAA',
+            'invoice_number' => '500',
+            'tax_code' => '0312345678',
+            'issued_date' => '2026-09-01',
+            'invoice_type' => 'purchase',
+            'name' => 'Before restore',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        DB::table('invoice_files')->insert([
+            'invoice_id' => $invoiceId,
+            'provider' => 'gdt',
+            'status' => 'stored',
+            'path' => 'invoices/rollback.pdf',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $safety = app(InvoiceModuleSnapshotService::class)->create('safety-before-restore');
+
+        DB::table('invoices')->where('id', $invoiceId)->update(['name' => 'Changed later', 'updated_at' => now()]);
+        DB::table('invoices')->insert([
+            'lookup_code' => 'ROLLBACK-NEWER',
+            'invoice_type' => 'sold',
+            'name' => 'Newer row',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('invoice_files')->where('invoice_id', $invoiceId)->update(['path' => 'invoices/changed.pdf']);
+
+        $result = app(InvoiceModuleRestoreService::class)->rollbackSafety($safety['directory']);
+
+        $this->assertSame('rollback', $result['mode']);
+        $this->assertTrue($result['verification']['passed']);
+        $this->assertSame(0, $result['partner_master_changes']);
+        $this->assertSame('Before restore', DB::table('invoices')->where('id', $invoiceId)->value('name'));
+        $this->assertFalse(DB::table('invoices')->where('lookup_code', 'ROLLBACK-NEWER')->exists());
+        $this->assertSame('invoices/rollback.pdf', DB::table('invoice_files')->where('invoice_id', $invoiceId)->value('path'));
+        $this->assertStringStartsWith('invoices/module-backups/', $result['safety_backup']['directory']);
+        $this->assertNotSame($safety['directory'], $result['safety_backup']['directory']);
+    }
+
+    public function test_exact_rollback_rejects_non_safety_snapshot(): void
+    {
+        DB::table('invoices')->insert([
+            'lookup_code' => 'ROLLBACK-MANUAL',
+            'invoice_type' => 'sold',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $snapshot = app(InvoiceModuleSnapshotService::class)->create('manual');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('chỉ được phép từ Safety Backup');
+
+        app(InvoiceModuleRestoreService::class)->rollbackSafety($snapshot['directory']);
+    }
+
     public function test_restore_is_blocked_when_snapshot_checksum_is_invalid(): void
     {
         DB::table('invoices')->insert([
