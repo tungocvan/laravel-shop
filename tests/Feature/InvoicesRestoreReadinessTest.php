@@ -2,12 +2,20 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\Schema;
 use Modules\Invoices\Services\InvoiceRestoreReadinessService;
+use Tests\Concerns\CreatesInvoicesRestoreSchema;
 use Tests\TestCase;
 
 class InvoicesRestoreReadinessTest extends TestCase
 {
+    use CreatesInvoicesRestoreSchema;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->createInvoicesRestoreSchema();
+    }
+
     public function test_invalid_manifest_blocks_restore(): void
     {
         $result = app(InvoiceRestoreReadinessService::class)->inspect([
@@ -22,10 +30,6 @@ class InvoicesRestoreReadinessTest extends TestCase
 
     public function test_newer_records_require_warning_when_schema_is_ready(): void
     {
-        if (! Schema::hasTable('invoices') || ! Schema::hasTable('invoice_files')) {
-            $this->markTestSkipped('Invoices schema is not available.');
-        }
-
         $result = app(InvoiceRestoreReadinessService::class)->inspect([
             'manifest_valid' => true,
             'checksum_valid' => true,
