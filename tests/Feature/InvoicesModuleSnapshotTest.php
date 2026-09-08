@@ -3,19 +3,23 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Modules\Invoices\Services\InvoiceModuleSnapshotService;
+use Tests\Concerns\CreatesInvoicesRestoreSchema;
 use Tests\TestCase;
 
 class InvoicesModuleSnapshotTest extends TestCase
 {
+    use CreatesInvoicesRestoreSchema;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->createInvoicesRestoreSchema();
+    }
+
     public function test_snapshot_excludes_partner_master_and_pdf_binaries(): void
     {
-        if (! Schema::hasTable('invoices') || ! Schema::hasTable('invoice_files')) {
-            $this->markTestSkipped('Invoices schema is not available.');
-        }
-
         Storage::fake('local');
         $snapshot = app(InvoiceModuleSnapshotService::class)->create('test');
 
@@ -32,10 +36,6 @@ class InvoicesModuleSnapshotTest extends TestCase
 
     public function test_modified_snapshot_payload_fails_checksum(): void
     {
-        if (! Schema::hasTable('invoices') || ! Schema::hasTable('invoice_files')) {
-            $this->markTestSkipped('Invoices schema is not available.');
-        }
-
         Storage::fake('local');
         $service = app(InvoiceModuleSnapshotService::class);
         $snapshot = $service->create('test');
