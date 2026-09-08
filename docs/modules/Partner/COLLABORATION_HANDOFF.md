@@ -2,93 +2,138 @@
 
 ## Current branch
 
-`refactor/partner-master-hub-dashboard-lookup-sync`
+Original Partner refactor branch: `refactor/partner-master-hub-dashboard-lookup-sync`.
+
+Current cross-module follow-up branch: `feat/invoices-auto-upload-google-drive` (PR #171).
 
 ## Objective
 
-Major Refactor + Feature Development for `Modules/Partner`: establish Partner as the ERP master hub, add an Admin Dashboard, expose reviewed business-registry lookup, and provide explicit conflict-aware synchronization into canonical Partner records.
+Partner remains the ERP master hub for customers, suppliers and other external organizations. The current follow-up adds an explicit review boundary for Partner candidates discovered while importing invoice workbooks.
 
 ## Decisions locked
 
 - `Partner` remains canonical ERP data.
-- `PartnerSourceReference` remains canonical external provenance; no parallel source-reference table.
-- Business Lookup uses an explicit provider contract and lets the operator select the registry source before searching.
-- `MSTCongTy` is the default lookup source because it currently provides the preferred operational company detail and exposes a source-side update path for stale records.
-- `DoanhNghiepLookupService` remains an alternate/cross-check provider.
-- MaSoThue is retained only as reference/fallback context; its token/session search flow did not provide a reliable canonical server-side search contract.
-- Search/detail retrieval never writes Partner data.
-- Multiple/fallback search results require explicit human candidate selection.
-- Cross-source differences are presented for human review; the system does not silently arbitrate which external source is true.
-- Sync requires review of field-level diff states before mutation.
-- Current synchronized Partner master fields are limited to `tax_code`, `name`, and `address`.
-- External legal status, representative, activity date, organization type and other source-only attributes remain provenance/snapshot metadata and are not blindly promoted into Partner master columns.
-- External legal status is not mapped automatically to ERP `Partner.status`.
-- `Partner.source` remains record acquisition origin (`manual/import/system`), not enrichment source.
-- `(source, external_id)` provenance ownership is not silently reassigned.
-- Current unique `partners.tax_code` schema contract remains unchanged.
-- No bulk crawler, scheduled scraping, CAPTCHA/browser-challenge bypass, OCR, automatic merge or automatic overwrite in this phase.
+- `PartnerSourceReference` remains canonical accepted external provenance.
+- `PartnerSyncCandidate` is staging only; it is not canonical master data.
+- Invoices may submit normalized candidates, but Invoices never creates or updates Partner master rows directly.
+- Tax code is the primary invoice-source match signal.
+- Candidate ingestion is idempotent by `(source, tax_code)`.
+- Existing Partner values are never silently overwritten.
+- Existing source-reference ownership is never silently reassigned.
+- Human review is required before create/merge/ignore.
+- Explicit merge applies only operator-selected fields; unselected ERP fields stay unchanged.
+- `sold` invoice counterparties map to `customer`; `purchase` counterparties map to `supplier`.
+- Candidate statuses are `pending`, `matched`, `conflict`, and `ignored`.
 
-## Implemented in current batch
+## Existing Partner baseline
 
-- added `docs/modules/Partner/MODULE.md` to satisfy the missing module-contract gate;
-- added canonical `PartnerQueryService` and bounded pagination support;
-- added `PartnerDashboardService` and `/admin/partners/dashboard` workspace;
-- added `/admin/partners/business-lookup` workspace;
-- added `ExternalPartnerData`, `PartnerMatcher`, `PartnerSyncPlanner`, and transactional `PartnerSyncService` boundaries;
-- added reviewed field states: `new_value`, `same`, `local_differs`, `missing_locally`, `source_missing`;
-- reused `PartnerSourceReference` for source URL, lookup/sync timestamps, snapshot and hash metadata;
-- preserved legacy `/admin/partner/partners/*` routes while canonical workspace callers migrate;
-- added `province_code` to Partner service/form/import/export data path and visible form field;
-- added `BusinessRegistryProvider` as the provider boundary;
-- added `MstCongTyProvider` using the site's server-rendered search/detail pages without browser automation or challenge bypass;
-- adapted `DoanhNghiepLookupService` to the same provider contract;
-- added `MultiSourceBusinessLookupService` for selected-source lookup plus optional cross-source comparison;
-- added an explicit source selector to Business Lookup, defaulting to `MSTCongTy` and allowing `Doanhnghiep.vn` as an alternate source;
-- added source provenance, source labels, source-origin links and conflict presentation in the review UI;
-- preserved graceful failure when one external source is unavailable;
-- verified the external acceptance fixture `0314492345` resolves to `Công Ty TNHH Inafo Việt Nam` through the registry integration path;
-- preserved explicit source provenance and human review because external sources can disagree on fields such as legal representative;
-- quarantined the incomplete unauthenticated `/api/partner/` route instead of exposing a controller with no supported API contract;
-- added action-level authorization for Partner list/delete/import/export and create/edit form operations;
-- centralized list/page-selection/export filters through `PartnerQueryService`;
-- added focused planner and registry-adapter regression coverage.
+The previously accepted Partner refactor remains intact:
 
-## Final verification
+- `/admin/partners/dashboard` Partner Dashboard;
+- `/admin/partners/business-lookup` external business lookup;
+- provider abstraction and selectable source;
+- `PartnerMatcher`, `PartnerSyncPlanner`, `PartnerSyncService`;
+- `PartnerSourceReference` provenance;
+- canonical list/query/export boundary;
+- bounded pagination and Admin UI standard;
+- action-level authorization;
+- legacy `/admin/partner/partners/*` compatibility routes.
 
-Local verification on 2026-09-07:
+User acceptance for that baseline was `UI PASS` on 2026-09-07.
 
-- Pint: completed across `Modules/Partner` and `tests/Feature/Partner`; final run normalized 2 style issues in the multi-source lookup files and those fixes were committed as `c24ffbe8`.
-- Partner focused tests: **5 passed, 20 assertions**.
-- Canonical Partner routes: **5 routes** under `/admin/partners`.
-- Vite: **PASS**, 34 modules transformed, production assets built successfully.
-- Branch after the style commit/push: local branch synchronized with `origin/refactor/partner-master-hub-dashboard-lookup-sync` and working tree clean.
-- Incomplete `/api/partner/` route remains quarantined; no supported public Partner API contract is exposed in this batch.
+## Invoice candidate follow-up implemented
 
-Do not run full-project regression unless a focused failure proves a wider impact.
+### Persistence
 
-## Manual UI acceptance
+Added `partner_sync_candidates` owned by Partner with:
 
-User acceptance marker: **`UI PASS` on 2026-09-07** after the selectable-source update.
+- `source` + `tax_code` idempotent identity;
+- name/address/email/phone snapshot;
+- customer/supplier roles;
+- `pending / matched / conflict / ignored` status;
+- optional matched Partner ID;
+- field-level conflict metadata;
+- source metadata and first/last-seen timestamps.
 
-Accepted UI behavior includes:
+`Modules/Partner/config/module.php` now declares:
 
-1. Partner Dashboard KPI cards and navigation.
-2. Business Lookup source selector visible and usable.
-3. `MSTCongTy` selected by default.
-4. Operator can switch to `Doanhnghiep.vn` before searching.
-5. Search/error/empty states.
-6. Multiple candidates require explicit selection; no automatic sync or fallback selection.
-7. Candidate detail and source provenance presentation.
-8. Cross-source conflict review when comparison data differs.
-9. Existing Partner match and field conflict preview.
-10. New Partner classification preview.
-11. Explicit selected-field sync.
-12. Partner list pagination/filter behavior.
+```text
+partners
+partner_source_references
+partner_sync_candidates
+```
 
-## Merge readiness
+### Intake boundary
 
-Implementation, focused verification, build and UI acceptance are complete for the current Partner batch. The branch is ready for PR/merge subject to the normal repository collaboration workflow.
+`PartnerCandidateIntakeService` accepts source-module candidates without mutating Partner master data.
+
+Behavior:
+
+- no Partner with MST -> `pending`;
+- Partner exists and source fields match -> `matched`;
+- Partner exists and fields differ or source can safely enrich a missing local field -> `conflict` for review;
+- ignored candidates remain ignored when seen again;
+- repeated invoice sightings update the candidate instead of creating duplicates;
+- roles are merged at candidate level so one MST may become both customer and supplier.
+
+### Review boundary
+
+Added `/admin/partners/sync/invoices` and `InvoiceCandidateReview`.
+
+The operator can:
+
+- inspect/filter candidates;
+- create a new Partner only after explicit confirmation;
+- link/merge with an existing MST match;
+- choose exactly which `name / address / email / phone / partner_types` fields are applied;
+- keep all unselected ERP values unchanged;
+- ignore a candidate without deleting invoice data.
+
+Accepted candidates promote provenance into `PartnerSourceReference`. If `(source, external_id)` already belongs to a different Partner, the operation fails rather than reassigning ownership.
+
+### Authorization
+
+- inspect workspace: `view_partner`;
+- create new Partner: `create_partner`;
+- merge/ignore: `edit_partner`.
+
+## Cross-module contract with Invoices
+
+```text
+Invoices workbook
+    -> invoice validation/import
+    -> Invoices DB
+    -> normalized counterparty extraction
+    -> PartnerCandidateIntakeService
+    -> partner_sync_candidates
+    -> human review in Partner
+    -> Partner + PartnerSourceReference
+```
+
+Candidate extraction only accepts workbook rows whose invoice business identity exists in the Invoices table after import. This prevents unrelated/invalid workbook rows from becoming Partner candidates.
+
+## Validation status
+
+Prior Partner refactor validation remains PASS. The new invoice-candidate follow-up adds focused coverage for:
+
+- invoice import creates candidate but not Partner;
+- existing Partner conflict detection does not overwrite master data;
+- explicit candidate review can create Partner and provenance;
+- explicit merge updates only selected fields and merges selected roles.
+
+Latest local Pint/focused-test/build/UI verification for this follow-up is still required before PR #171 merge.
+
+Do not run full-project regression unless a focused failure proves wider impact. Validate Invoices + Partner + affected routes/build/UI.
 
 ## Deferred
 
-Verification semantics, automatic/bulk enrichment, scheduled crawling, CAPTCHA/browser-challenge handling, automatic dedup/merge, unattended source arbitration, synchronization from `Invoices` into `Partner`, removal of tax-code uniqueness, and promotion of source-only fields into Partner columns remain separate future work.
+Still deferred:
+
+- automatic/bulk Partner master mutation;
+- automatic conflict overwrite;
+- unattended candidate approval;
+- scheduled external crawling or CAPTCHA/browser-challenge handling;
+- automatic dedup/merge beyond current tax-code identity rules;
+- source arbitration when multiple external sources disagree;
+- removal of tax-code uniqueness;
+- promotion of every source-only field into Partner master columns.
