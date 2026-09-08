@@ -1,4 +1,8 @@
-<div class="rounded-2xl border border-indigo-200 bg-white shadow-sm">
+<div
+    class="rounded-2xl border border-indigo-200 bg-white shadow-sm"
+    x-data
+    x-on:change.window.debounce.350ms="$wire.syncPeriodFromQuery(window.location.search)"
+>
     @php($batchState=$batchStatus['status']??null)
     @php($batchRunning=in_array($batchState,['queued','processing'],true))
     @php($batchDone=in_array($batchState,['completed','completed_with_errors','connection_lost'],true))
