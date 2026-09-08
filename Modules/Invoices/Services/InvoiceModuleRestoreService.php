@@ -36,12 +36,7 @@ final class InvoiceModuleRestoreService
             $snapshotInvoices = $this->snapshots->readTable($directory, 'invoices');
             $snapshotFiles = $this->snapshots->readTable($directory, 'invoice_files');
             $impact = $this->impact->preview($snapshotInvoices, $snapshotFiles);
-
-            try {
-                $safetyBackup = $this->snapshots->create('safety-before-restore');
-            } catch (Throwable $exception) {
-                throw new RuntimeException('Không thể tạo Safety Backup; restore bị chặn.', previous: $exception);
-            }
+            $safetyBackup = $this->createSafetyBackup('safety-before-restore');
 
             $result = DB::transaction(function () use ($snapshotInvoices, $snapshotFiles): array {
                 $current = DB::table('invoices')->get()->mapWithKeys(function ($row): array {
@@ -116,6 +111,75 @@ final class InvoiceModuleRestoreService
         }
     }
 
+    public function rollbackSafety(string $directory): array
+    {
+        $lock = Cache::lock('invoices:module-restore', 600);
+        if (! $lock->get()) {
+            throw new RuntimeException('Một tiến trình restore Invoices khác đang chạy.');
+        }
+
+        try {
+            $inspection = $this->snapshots->inspect($directory);
+            $manifest = $inspection['manifest'] ?? [];
+            $mode = (string) ($manifest['mode'] ?? '');
+
+            if (! str_starts_with($mode, 'safety')) {
+                throw new RuntimeException('Rollback chính xác chỉ được phép từ Safety Backup.');
+            }
+
+            $readiness = $this->readiness->inspect($inspection);
+            if ($readiness['status'] === InvoiceRestoreReadinessService::BLOCKED) {
+                throw new RuntimeException('Safety Backup chưa đủ điều kiện rollback: '.implode(' ', $readiness['blockers']));
+            }
+
+            $snapshotInvoices = $this->snapshots->readTable($directory, 'invoices');
+            $snapshotFiles = $this->snapshots->readTable($directory, 'invoice_files');
+            $safetyBackup = $this->createSafetyBackup('safety-before-rollback');
+
+            DB::transaction(function () use ($snapshotInvoices, $snapshotFiles): void {
+                DB::table('invoice_files')->delete();
+                DB::table('invoices')->delete();
+
+                foreach (array_chunk($snapshotInvoices, 250) as $chunk) {
+                    DB::table('invoices')->insert(array_map(fn (array $invoice): array => $this->exactInvoicePayload($invoice), $chunk));
+                }
+
+                foreach (array_chunk($snapshotFiles, 250) as $chunk) {
+                    DB::table('invoice_files')->insert(array_map(fn (array $file): array => $this->exactFilePayload($file), $chunk));
+                }
+            });
+
+            $verification = $this->verification->verify($snapshotInvoices);
+            if (! $verification['passed']) {
+                throw new RuntimeException('Post-rollback verification thất bại. Safety Backup mới đã được tạo trước rollback.');
+            }
+
+            return [
+                'mode' => 'rollback',
+                'safety_backup' => $safetyBackup,
+                'result' => [
+                    'insertedInvoices' => count($snapshotInvoices),
+                    'preservedInvoices' => 0,
+                    'insertedFiles' => count($snapshotFiles),
+                    'preservedFiles' => 0,
+                ],
+                'verification' => $verification,
+                'partner_master_changes' => 0,
+            ];
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function createSafetyBackup(string $mode): array
+    {
+        try {
+            return $this->snapshots->create($mode);
+        } catch (Throwable $exception) {
+            throw new RuntimeException('Không thể tạo Safety Backup; thao tác bị chặn.', previous: $exception);
+        }
+    }
+
     private function countNewerCurrentRecords(mixed $createdAt): int
     {
         if (! is_string($createdAt) || $createdAt === '') {
@@ -142,5 +206,21 @@ final class InvoiceModuleRestoreService
         $payload['invoice_id'] = $invoiceId;
 
         return $payload;
+    }
+
+    private function exactInvoicePayload(array $invoice): array
+    {
+        return collect($invoice)->only([
+            'id', 'lookup_code', 'symbol', 'invoice_number', 'type', 'issued_date', 'tax_code', 'name', 'address',
+            'email', 'phone', 'tax_rate', 'vat_amount', 'amount_before_vat', 'total_amount', 'invoice_type',
+            'created_at', 'updated_at',
+        ])->all();
+    }
+
+    private function exactFilePayload(array $file): array
+    {
+        return collect($file)->only([
+            'id', 'invoice_id', 'provider', 'status', 'path', 'size', 'last_error', 'downloaded_at', 'created_at', 'updated_at',
+        ])->all();
     }
 }
