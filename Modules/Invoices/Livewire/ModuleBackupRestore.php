@@ -89,12 +89,12 @@ class ModuleBackupRestore extends Component
         }
 
         try {
-            $result = $restore->restoreMerge($directory);
+            $result = $restore->rollbackSafety($directory);
             $this->setLastRestore($result);
             $this->selectedSnapshot = $directory;
             $this->readiness = null;
             $this->impact = null;
-            $this->message = 'Rollback từ Safety Backup đã hoàn tất theo chế độ Merge an toàn.';
+            $this->message = 'Rollback chính xác từ Safety Backup đã hoàn tất và đã chạy hậu kiểm.';
         } catch (Throwable $exception) {
             report($exception);
             $this->error = 'Rollback thất bại hoặc bị chặn: '.$exception->getMessage();
