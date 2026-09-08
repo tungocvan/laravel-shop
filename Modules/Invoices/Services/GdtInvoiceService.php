@@ -74,6 +74,19 @@ class GdtInvoiceService
         return ['items' => $invoices, 'total' => $total ?? count($invoices)];
     }
 
+    public function expectedExportPath(string $startDate, string $endDate, bool $vatIn = false): string
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        $filename = $start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
+        $baseFolder = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
+        $folder = $vatIn
+            ? storage_path("app/{$baseFolder}/vat_in")
+            : storage_path("app/{$baseFolder}/vat_out");
+
+        return $folder.'/'.($vatIn ? 'vat_in_' : 'vat_out_').$filename;
+    }
+
     /**
      * Xử lý dữ liệu theo khoảng thời gian.
      */
