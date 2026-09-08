@@ -140,6 +140,7 @@ class InvoicesDashboardTest extends TestCase
             $permission = Permission::findOrCreate($permissionName, 'admin');
             $admin->givePermissionTo($permission);
         }
+
         return $admin->fresh();
     }
 
