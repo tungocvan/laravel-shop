@@ -64,7 +64,7 @@ class InvoicesApplicationContractTest extends TestCase
 
         $this->assertStringContainsString('$request->integer(\'year\'', $adapter);
         $this->assertStringContainsString('$request->query(\'month\')', $adapter);
-        $this->assertStringContainsString("'periodScope' => $month === null ? 'year' : 'month'", $adapter);
+        $this->assertStringContainsString('\'periodScope\' => $month === null ? \'year\' : \'month\'', $adapter);
         $this->assertStringContainsString('Cả năm', $dashboard);
         $this->assertStringContainsString('Mặc định hiển thị tổng quan cả năm', $dashboard);
         $this->assertStringContainsString('name="year"', $dashboard);
