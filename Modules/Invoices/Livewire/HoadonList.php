@@ -103,7 +103,8 @@ class HoadonList extends Component
             $this->applyPeriodSelection(false);
         } elseif ($this->from_date === '' && $this->to_date === '') {
             $this->year = (string) now()->year;
-            $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
+            $this->month = (string) now()->month;
+            $this->from_date = Carbon::now()->startOfMonth()->format('Y-m-d');
             $this->to_date = Carbon::now()->format('Y-m-d');
         }
 
@@ -227,8 +228,8 @@ class HoadonList extends Component
         $this->name = '';
         $this->tax_code = '';
         $this->year = (string) now()->year;
-        $this->month = '';
-        $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
+        $this->month = (string) now()->month;
+        $this->from_date = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->to_date = Carbon::now()->format('Y-m-d');
         $this->taxRateFilter = 'all';
         $this->pdfStatusFilter = 'all';
