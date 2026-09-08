@@ -8,6 +8,7 @@
 - Runtime cleanup PR: `#157` — **MERGED**
 - Runtime cleanup merge checkpoint: `main@3334d773dea6a7c2ee0b475b53a7617ad9ffb56e`
 - Refactor status: **COMPLETE — MERGED TO MAIN**
+- Current follow-up: **GDT sync auto-upload to Google Drive — IMPLEMENTED ON FEATURE BRANCH / PENDING PR**
 
 PR #156 established `docs/modules/Invoices/MODULE.md` and aligned the module manifest with the three canonical persistence tables. PR #157 completed the approved runtime cleanup without schema changes, route renames or ClientPortal/PWA presentation changes.
 
@@ -72,6 +73,28 @@ Selection/destructive contracts remain intact:
 
 User acceptance for the corrected runtime UI: **PASS**.
 
+## Google Drive Auto-Upload Follow-up
+
+Scope: `/admin/invoices/hoadon` GDT synchronization only.
+
+After a GDT synchronization successfully creates its local `vat_in_*.xlsx` or `vat_out_*.xlsx` export, the queue job now checks the existing System Google Drive OAuth connection. When connected, it verifies the Drive connection and uploads the generated workbook to:
+
+```text
+Laravel-Backup/Invoices
+```
+
+The implementation reuses `Modules\System\Services\Cloud\GoogleDriveConnectionService` for OAuth status, connection verification and access-token refresh. Invoices owns only the invoice-specific folder/file upload adapter.
+
+Behavior contract:
+
+- disconnected Google Drive: local sync remains successful and auto-upload is skipped;
+- connected Google Drive: `Invoices` child folder is found or created below the configured `Laravel-Backup` root;
+- same workbook name already present: its contents are updated instead of creating an additional duplicate file;
+- Drive/API failure: warning is written to the synchronization log and application log, while the local Excel file and successful invoice synchronization are preserved;
+- the existing manual public-link Google Drive import workflow is unchanged.
+
+Feature branch: `feat/invoices-auto-upload-google-drive`.
+
 ## Validation Result
 
 User-reported validation before PR #157 merge:
@@ -86,6 +109,8 @@ Invoice filter/input UI acceptance             PASS
 PDF "Chưa có PDF" functional UI check          PASS
 Working tree                                   CLEAN
 ```
+
+For the Google Drive auto-upload follow-up, repository-level runtime validation is pending local execution because the connected editing environment cannot execute the project dependency stack. Review scope is limited to the Invoices GDT queue job, the invoice-specific Drive adapter and this handoff.
 
 No full-project regression was required; validation remained scoped to Invoices plus directly relevant route/build/UI behavior.
 
@@ -112,7 +137,7 @@ Still deferred unless separately approved:
 - broad/mixed synchronization workspace responsibilities;
 - unbounded or high-volume import/export/ZIP/backup paths requiring separate performance work;
 - public export storage for financial spreadsheets;
-- public-link Google Drive flow;
+- public-link Google Drive flow beyond the existing manual import boundary;
 - lack of a persisted global GDT job registry;
 - database uniqueness for invoice business identity pending duplicate/business-key proof;
 - ClientPortal/PWA presentation and protected PDF handoff implementation.
@@ -127,3 +152,4 @@ Still deferred unless separately approved:
 6. Canonical runtime merge checkpoint: `3334d773dea6a7c2ee0b475b53a7617ad9ffb56e`.
 7. Handoff closeout: **COMPLETE ON MAIN**.
 8. Invoices Major/Clean Module Refactor: **CLOSED**.
+9. Google Drive auto-upload follow-up: **IMPLEMENTED / PENDING VALIDATION AND PR MERGE**.
