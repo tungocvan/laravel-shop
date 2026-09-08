@@ -3,23 +3,16 @@
 ## Current Status
 
 - Module: `Invoices`
-- Major/Clean Module Refactor: **COMPLETE / MERGED** through PR #157.
-- Current follow-up branch: `feat/invoices-auto-upload-google-drive`.
-- Current PR: **#171 — OPEN / NOT MERGED**.
-- Current follow-up scope: **GDT existence preflight + manual Local ↔ Google Drive transfer + explicit database sync + Partner candidate staging**.
+- Previous Drive/PDF/Partner reporting scope: **MERGED** through PR #171.
+- Current follow-up branch: `feat/invoices-dashboard-backup-restore`.
+- Base: `main` at merge commit `685dd1c898108ba76cb27c6599ec6f59889b505f`.
+- Current scope: **Invoices Operations Dashboard + module-scoped Backup/Restore + Restore Readiness + Safety Rollback + Google Drive module snapshot protection/recovery**.
+- User-reported CLI regression and UI disaster-recovery smoke: **PASS**.
+- Merge authorization: **NOT YET GIVEN**.
 
 ## Canonical Ownership Contract
 
-Invoices remains the canonical domain owner for:
-
-- electronic invoice ingestion and local persistence;
-- GDT authentication/data synchronization boundaries;
-- invoice filtering/listing/reporting;
-- Excel import/export;
-- invoice PDF retrieval and file metadata;
-- invoice backup execution metadata.
-
-Canonical Invoices persistence ownership remains:
+Invoices remains the canonical owner of:
 
 ```text
 invoices
@@ -27,152 +20,238 @@ invoice_files
 invoice_backup_runs
 ```
 
-Partner master data is not owned by Invoices. Invoice import may detect counterparties and submit normalized candidates to the Partner-owned intake boundary, but it does not create or update `partners` directly.
+Partner master remains outside the restore boundary. Backup/restore does not create, update, delete or rollback Partner master data. PDF binaries are excluded from module snapshots because the existing PDF ↔ Google Drive workflow is the binary protection path.
 
-## GDT Existence Preflight
+## Operations Dashboard
 
-The queued GDT job derives the deterministic workbook name for the selected range/direction and applies this order before calling GDT:
-
-```text
-1. Check the expected local workbook.
-2. If local is missing and Google Drive is connected, check Laravel-Backup/Invoices.
-3. Call GDT only when the workbook is absent from both locations.
-```
-
-Behavior:
-
-- local workbook exists -> skip GDT;
-- local missing + same workbook exists on Drive -> skip GDT and allow operator to restore it through the manual Drive panel;
-- local missing + Drive disconnected -> call GDT;
-- local missing + Drive connected + remote absent -> call GDT;
-- Drive is connected but existence verification fails -> fail safely without calling GDT, because absence was not proven;
-- after a new GDT export, the workbook remains local; it is not automatically uploaded to Drive.
-
-Important runtime boundary: the above existence preflight currently belongs to the queued `ProcessGdtInvoicesJob`. The legacy non-queue `SearchHoadon::run()` path still calls `GdtInvoiceService::processRange()` directly and therefore does not yet share the queue preflight orchestration.
-
-## Manual Local ↔ Google Drive
-
-`/admin/invoices/hoadon` now includes an explicit operator-controlled Local ↔ Google Drive panel.
-
-Contract:
-
-- list local `vat_in_*.xlsx` / `vat_out_*.xlsx` files;
-- list invoice workbooks under `Laravel-Backup/Invoices` when Drive is connected;
-- selected Local -> Drive upload;
-- same-name Drive workbook is updated instead of duplicated;
-- selected Drive -> Local restore;
-- Drive -> Local never overwrites an existing same-name local workbook;
-- connection state and refresh/error states are visible;
-- existing public-link Google Drive import remains available as a compatibility path.
-
-User acceptance for the manual Local ↔ Drive UI was reported **PASS** before the Partner candidate follow-up was added.
-
-## Explicit Database Sync
-
-The local workbook action on `/admin/invoices/hoadon` is presented as **Đồng bộ vào CSDL**.
-
-The existing `InvoiceImportService` / `InvoiceImportExportService` remains the invoice import engine:
-
-- duplicate business identities are skipped rather than overwritten;
-- import reports total/success/skipped/error information;
-- the UI action does not itself mutate Partner master data.
-
-The invoice list route `/admin/invoices/hoadon-list` remains the workspace for records already persisted in the Invoices database.
-
-## Partner Candidate Staging
-
-After invoice database import completes, `InvoiceImportService` performs a secondary best-effort candidate stage:
+Canonical route:
 
 ```text
-Invoice workbook
-    -> InvoiceImportExportService
-    -> Invoices DB
-    -> InvoicePartnerCandidateExtractor
-    -> PartnerCandidateIntakeService
-    -> partner_sync_candidates
+/admin/invoices/dashboard
+admin.invoices.dashboard
 ```
 
-Rules:
-
-- candidate extraction only accepts workbook rows whose invoice business identity exists in the Invoices table after import;
-- candidate identity validation is batch-oriented rather than one invoice query per workbook row;
-- `sold` counterparty -> `customer`;
-- `purchase` counterparty -> `supplier`;
-- candidates are deduplicated by MST for the source submission;
-- Invoices does not create/update `Partner`;
-- candidate staging failure is logged and surfaced as a warning but does not roll back an invoice import that already succeeded.
-
-Partner owns the staging table and review workflow. See `docs/modules/Partner/MODULE.md` and `docs/modules/Partner/COLLABORATION_HANDOFF.md`.
-
-## Partner Review Handoff
-
-The new Partner-owned review workspace is:
+The Dashboard is an operations center rather than a duplicate navigation page:
 
 ```text
-/admin/partners/sync/invoices
+Operational KPIs
+Quick Actions
+Operational Health
+Backup & Recovery
+Recent Activity
 ```
 
-It supports explicit human review for pending/matched/conflict/ignored invoice-derived candidates. Create/merge/ignore decisions happen in Partner, not Invoices.
-
-## Validation Status
-
-Previously user-reported acceptance within this branch:
+Primary KPI wording:
 
 ```text
-Focused Invoices automated suite               PASS
-Manual Local ↔ Google Drive UI                 PASS
+Tổng hóa đơn
+Hóa đơn bán ra
+Hóa đơn mua vào
+PDF đã lưu
+PDF chưa hoàn tất
 ```
 
-The newly added database-sync wording + Partner candidate staging/review batch still requires one final local verification round before PR #171 is merge-ready:
+Google Drive Dashboard status uses the existing stored `GoogleDriveConnectionService::status()` read path and does not call the external API on every render.
+
+## Module Backup / Restore
+
+Canonical route:
 
 ```text
-Pint changed PHP files                         PENDING
-Invoices focused tests                         PENDING after candidate additions
-InvoicesPartnerCandidateSyncTest               PENDING
-Partner focused tests                          PENDING
-Admin Invoices/Partner route inspection        PENDING
-Frontend production build                      PENDING
-Invoice DB-sync UI                             PENDING
-Partner invoice-candidate review UI            PENDING
+/admin/invoices/backup-restore
+admin.invoices.backup-restore
+permission: invoices-configure
 ```
 
-No full-project regression is required unless a focused failure proves a wider impact.
+Module snapshots contain only:
+
+```text
+manifest.json
+database/invoices.json
+database/invoice_files.json
+```
+
+Each payload is covered by the snapshot manifest checksum contract. Partner master, Partner candidate state, PDF binaries and global/system database state are excluded.
+
+Local logical root:
+
+```text
+invoices/module-backups/*
+```
+
+Google Drive protection root:
+
+```text
+Laravel-Backup/Invoices/Module-Backups
+```
+
+Manual module snapshots are transported as one ZIP artifact with SHA-256 stored in Google Drive `appProperties`. New uploads use canonical names:
+
+```text
+Invoices-Module-<snapshot>.zip
+```
+
+A compatibility reader accepts the earlier temporary-prefix artifact form:
+
+```text
+.transport-Invoices-Module-<snapshot>.zip
+```
+
+The compatibility prefix is normalized in the UI and on download; new uploads no longer use it.
+
+Deleting a MANUAL Local snapshot does not delete the Google Drive artifact. Remote delete is intentionally not exposed.
+
+## Production / New-Server Recovery Flow
+
+Approved recovery sequence:
+
+```text
+Deploy application source
+→ configure environment/database
+→ run migrations
+→ connect Google Drive
+→ open /admin/invoices/backup-restore
+→ Tìm backup trên Drive
+→ Tải về & kiểm tra
+→ verify archive SHA-256
+→ validate ZIP contract + snapshot manifest
+→ extract into guarded Local snapshot root
+→ Restore Readiness
+→ Impact Preview
+→ mandatory Safety Backup
+→ Safe Merge Restore
+→ Post-Restore Verification
+```
+
+PDF binaries are restored separately through the existing PDF ↔ Drive workflow.
+
+## Restore Readiness Gate
+
+States:
+
+```text
+READY
+WARNING
+BLOCKED
+```
+
+Safe Merge is the default restore behavior:
+
+- insert missing snapshot invoices;
+- preserve current matching invoices;
+- restore missing `invoice_files` metadata with safe invoice mapping;
+- never delete current-only invoices;
+- never mutate Partner master.
+
+A successful Safety Backup is mandatory before any restore mutation.
+
+## Safety Backup / Exact Rollback
+
+`SAFETY-BEFORE-RESTORE` snapshots are protected from normal deletion and expose a dedicated Rollback action.
+
+Exact rollback:
+
+- creates another Safety Backup first;
+- restores exact Invoices-owned `invoices + invoice_files` state from the selected safety snapshot;
+- runs verification;
+- leaves Partner master unchanged.
+
+Production UI smoke intentionally did not execute destructive rollback or unnecessary restore against already-matching live data.
+
+## Google Drive Disaster-Recovery Acceptance
+
+User-validated real Google Drive flow on 2026-09-08:
+
+```text
+Google Drive connection                        PASS
+Backup artifact created on Drive               PASS
+Local MANUAL snapshot deleted                  PASS
+Drive artifact discovery                       PASS
+Legacy .transport-* artifact compatibility     PASS
+Drive SHA-256 metadata visible                 PASS
+Tải về & kiểm tra                              PASS
+Snapshot restored back to Local                PASS
+Restore Readiness                              READY
+Impact: thêm mới                               0
+Impact: đã tồn tại                             2,471
+Impact: có khác biệt                           0
+Impact: sẽ xóa                                 0
+Partner master                                 0 thay đổi
+```
+
+This proves the key disaster-recovery scenario: the Local module snapshot can be removed while the Google Drive artifact remains available, discoverable, downloadable, integrity-checked and accepted by Restore Readiness on the server.
+
+## Automated Validation Recorded
+
+Latest user-reported final gates:
+
+```text
+Focused Dashboard/Backup-Restore gate          20 passed / 142 assertions
+Invoices module regression                     55 passed / 303 assertions
+```
+
+Earlier Drive transport gate:
+
+```text
+InvoicesGoogleDriveModuleBackupTest             3 passed / 14 assertions
+```
+
+Earlier combined backup/restore gate:
+
+```text
+11 passed / 52 assertions
+```
+
+Full-project regression is **NOT APPLICABLE — module-scoped regression strategy**. Scope remains inside Invoices plus use of the existing System Google Drive connection service.
+
+## UI / UX Acceptance
+
+Admin UI follows `.codex/standards/ADMIN_UI_STANDARD.md`.
+
+User-reported manual acceptance:
+
+```text
+Invoices Operations Dashboard                  PASS
+Backup & Restore workspace                     PASS
+Snapshot MANUAL delete UI                      PASS
+Safety snapshot protection / Rollback UI       PASS
+Restore Readiness / Impact Preview             PASS
+Google Drive Operational Health                PASS
+PDF KPI/Operational Health final display       PASS
+Google Drive module backup discovery            PASS
+Google Drive download + readiness               PASS
+```
 
 ## Compatibility / Non-Goals Preserved
 
 This follow-up does not:
 
-- rename Invoices persistence tables;
 - rename canonical `/admin/invoices/*` routes;
-- remove legacy invoice compatibility routes;
-- rename existing invoice permissions;
+- change invoice permissions;
 - expose protected invoice PDFs publicly;
-- integrate Invoices into ClientPortal/PWA;
-- automatically create/update/merge Partner master rows during invoice ingestion;
-- automatically overwrite existing Partner conflicts.
+- restore Partner master or Partner candidate state;
+- treat module snapshots as full MySQL disaster-recovery backups;
+- automatically call Google Drive on Dashboard render;
+- replace the existing PDF ↔ Google Drive synchronization workflow;
+- delete Google Drive module backups from the Invoices workspace.
 
-The cross-module schema addition is Partner-owned: `partner_sync_candidates`.
-
-## Deferred Existing Debt
+## Deferred Follow-up
 
 Still deferred unless separately approved:
 
-- unifying the non-queue GDT path with the queued Local -> Drive -> GDT existence preflight;
-- runtime GDT `.env` mutation;
-- high-volume import/export/ZIP/backup performance work beyond the current bounded changes;
-- public export storage for financial spreadsheets;
-- persisted global GDT job registry;
-- database uniqueness for invoice business identity pending separate proof;
-- ClientPortal/PWA presentation and protected PDF handoff.
+- scheduled automatic module snapshot creation/upload and retention;
+- advanced Replace restore mode;
+- cross-module Partner candidate recovery contract;
+- database unique constraint for invoice business identity pending production proof;
+- global queue registry/health aggregation;
+- ClientPortal/PWA presentation.
 
-## Closeout Gate for PR #171
+## Final Closeout Gate
 
 Before merge:
 
-1. run Partner migration;
-2. run Pint on changed PHP files;
-3. run focused Invoices + new candidate tests + Partner focused tests;
-4. inspect affected routes and run Vite build;
-5. UI-check `/admin/invoices/hoadon` database sync and `/admin/partners/sync/invoices` review flow;
-6. update this handoff with final PASS results;
-7. merge only after normal user acceptance under `docs/GITHUB_COLLABORATION_WORKFLOW.md`.
+1. verify branch remains clean/aligned with its remote;
+2. compare against current `main` and resolve any base drift if present;
+3. create/review the PR against `main`;
+4. preserve the recorded CLI + UI PASS evidence;
+5. merge only after explicit user authorization under `docs/GITHUB_COLLABORATION_WORKFLOW.md`.
