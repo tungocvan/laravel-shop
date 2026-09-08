@@ -3,10 +3,13 @@
 namespace Modules\Invoices\Livewire;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Invoices\Exports\InvoicesSelectedExport;
+use Modules\Invoices\Jobs\DownloadInvoicePdfChunkJob;
 use Modules\Invoices\Services\InvoiceFileManagerService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
@@ -31,6 +34,10 @@ class HoadonList extends Component
     public ?string $pdfError = null;
 
     public ?int $pdfProcessingId = null;
+
+    public ?string $monthlyPdfBatchId = null;
+
+    public array $monthlyPdfBatchStatus = [];
 
     public ?string $type = null;
 
@@ -268,6 +275,80 @@ class HoadonList extends Component
         $result = $this->pdfService->downloadSelected($this->selected);
         $this->downloadStatus = $result['failed'] > 0 ? 'error' : 'success';
         $this->setBatchMessage($result, 'PDF mới');
+    }
+
+    public function queueMonthlyPdfDownloads(): void
+    {
+        $this->authorizePermission('invoices-download');
+        $this->clearPdfMessages();
+
+        if ($this->year === '' || $this->month === '') {
+            $this->pdfError = 'Vui lòng chọn cụ thể năm và tháng trước khi tải toàn bộ PDF theo tháng.';
+
+            return;
+        }
+
+        $filters = $this->filters();
+        $filters['pdf_status'] = 'missing';
+        $ids = $this->workspace->allFilteredIds($filters);
+
+        if ($ids === []) {
+            $this->pdfNotice = 'Tháng đã chọn không còn PDF nào cần tải.';
+
+            return;
+        }
+
+        $batchId = (string) Str::uuid();
+        $chunks = array_chunk($ids, 25);
+        $status = [
+            'status' => 'queued',
+            'year' => (int) $this->year,
+            'month' => (int) $this->month,
+            'total' => count($ids),
+            'chunks' => count($chunks),
+            'completed_chunks' => 0,
+            'processed' => 0,
+            'downloaded' => 0,
+            'existing' => 0,
+            'failed' => 0,
+            'errors' => [],
+            'started_at' => now()->toISOString(),
+            'finished_at' => null,
+        ];
+
+        Cache::put(DownloadInvoicePdfChunkJob::cacheKey($batchId), $status, now()->addHours(6));
+
+        foreach ($chunks as $chunk) {
+            DownloadInvoicePdfChunkJob::dispatch($batchId, $chunk);
+        }
+
+        $this->monthlyPdfBatchId = $batchId;
+        $this->monthlyPdfBatchStatus = $status;
+    }
+
+    public function refreshMonthlyPdfBatchStatus(): void
+    {
+        if (! $this->monthlyPdfBatchId) {
+            return;
+        }
+
+        $status = Cache::get(DownloadInvoicePdfChunkJob::cacheKey($this->monthlyPdfBatchId));
+
+        if (! is_array($status)) {
+            return;
+        }
+
+        $this->monthlyPdfBatchStatus = $status;
+
+        if (in_array($status['status'] ?? null, ['completed', 'completed_with_errors'], true)) {
+            $this->fileManager->reconcile($this->filters());
+        }
+    }
+
+    public function dismissMonthlyPdfBatchStatus(): void
+    {
+        $this->monthlyPdfBatchId = null;
+        $this->monthlyPdfBatchStatus = [];
     }
 
     public function downloadPdf(int $invoiceId, bool $force = false): void
