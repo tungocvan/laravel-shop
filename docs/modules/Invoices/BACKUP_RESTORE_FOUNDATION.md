@@ -25,3 +25,5 @@ php artisan test tests/Feature/InvoicesRestoreReadinessTest.php
 ```
 
 Next batch: immutable snapshot manifest/history, checksum writer/verifier, canonical invoice identity impact preview, safety snapshot + queued restore orchestration, verification/rollback, then Backup/Restore workspace and Dashboard integration.
+
+Status: foundation ready for local validation.
