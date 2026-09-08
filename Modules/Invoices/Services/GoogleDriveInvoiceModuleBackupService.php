@@ -34,6 +34,10 @@ final class GoogleDriveInvoiceModuleBackupService
             $name = basename($archive['path']);
             $existing = $this->findFile($token, $folderId, $name);
             if ($existing !== null) {
+                if ($existing['checksum'] === '' || ! hash_equals($archive['checksum'], $existing['checksum'])) {
+                    throw new RuntimeException('Đã có module backup cùng tên trên Google Drive nhưng checksum không khớp.');
+                }
+
                 return ['id' => $existing['id'], 'name' => $name, 'folder' => 'Laravel-Backup/Invoices/Module-Backups', 'checksum' => $archive['checksum'], 'already_exists' => true];
             }
 
@@ -73,23 +77,40 @@ final class GoogleDriveInvoiceModuleBackupService
         if (! $this->isConnected()) {
             return [];
         }
+
         [$token, $folderId] = $this->driveContext(false);
-        if ($folderId === null) {
-            return [];
-        }
-        $parent = $this->escape($folderId);
-        $response = Http::withToken($token)->acceptJson()->timeout(30)->get('https://www.googleapis.com/drive/v3/files', [
-            'q' => "trashed = false and '{$parent}' in parents",
-            'spaces' => 'drive',
-            'fields' => 'files(id,name,size,modifiedTime,appProperties)',
-            'orderBy' => 'modifiedTime desc',
-            'pageSize' => 100,
-        ]);
-        if (! $response->successful()) {
-            throw new RuntimeException('Không thể đọc module backup trên Google Drive. HTTP '.$response->status().'.');
+        $files = [];
+
+        if ($folderId !== null) {
+            $parent = $this->escape($folderId);
+            $response = Http::withToken($token)->acceptJson()->timeout(30)->get('https://www.googleapis.com/drive/v3/files', [
+                'q' => "trashed = false and '{$parent}' in parents",
+                'spaces' => 'drive',
+                'fields' => 'files(id,name,size,modifiedTime,appProperties)',
+                'orderBy' => 'modifiedTime desc',
+                'pageSize' => 100,
+            ]);
+            if (! $response->successful()) {
+                throw new RuntimeException('Không thể đọc module backup trên Google Drive. HTTP '.$response->status().'.');
+            }
+            $files = $response->json('files') ?: [];
         }
 
-        return collect($response->json('files') ?: [])->filter(fn (array $file): bool => $this->validArchiveName((string) ($file['name'] ?? '')))->map(fn (array $file): array => [
+        if ($files === []) {
+            $fallback = Http::withToken($token)->acceptJson()->timeout(30)->get('https://www.googleapis.com/drive/v3/files', [
+                'q' => "trashed = false and appProperties has { key='module' and value='Invoices' }",
+                'spaces' => 'drive',
+                'fields' => 'files(id,name,size,modifiedTime,appProperties,parents)',
+                'orderBy' => 'modifiedTime desc',
+                'pageSize' => 100,
+            ]);
+            if (! $fallback->successful()) {
+                throw new RuntimeException('Không thể dò module backup Invoices trên Google Drive. HTTP '.$fallback->status().'.');
+            }
+            $files = $fallback->json('files') ?: [];
+        }
+
+        return collect($files)->filter(fn (array $file): bool => $this->validArchiveName((string) ($file['name'] ?? '')) && (string) ($file['appProperties']['module'] ?? 'Invoices') === 'Invoices')->map(fn (array $file): array => [
             'id' => (string) ($file['id'] ?? ''),
             'name' => (string) ($file['name'] ?? ''),
             'size' => (int) ($file['size'] ?? 0),
@@ -169,7 +190,9 @@ final class GoogleDriveInvoiceModuleBackupService
         if (! is_dir(dirname($temp))) {
             mkdir(dirname($temp), 0775, true);
         }
-        file_put_contents($temp, $body, LOCK_EX);
+        if (file_put_contents($temp, $body, LOCK_EX) === false) {
+            throw new RuntimeException('Không thể ghi module backup tạm thời.');
+        }
         $zip = new ZipArchive;
         if ($zip->open($temp) !== true) {
             @unlink($temp);
