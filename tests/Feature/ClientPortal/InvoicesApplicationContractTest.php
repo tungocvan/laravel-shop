@@ -57,18 +57,26 @@ class InvoicesApplicationContractTest extends TestCase
     }
 
     #[Test]
-    public function invoices_dashboard_defaults_to_year_and_supports_month_drilldown(): void
+    public function invoices_dashboard_is_executive_first_with_automatic_period_drilldown(): void
     {
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
         $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/dashboard.blade.php'));
+        $invoiceService = file_get_contents(base_path('Modules/Invoices/Services/InvoiceService.php'));
 
         $this->assertStringContainsString('$request->integer(\'year\'', $adapter);
         $this->assertStringContainsString('$request->query(\'month\')', $adapter);
         $this->assertStringContainsString('\'periodScope\' => $month === null ? \'year\' : \'month\'', $adapter);
+        $this->assertStringContainsString('$this->invoices->monthlyPerformance($year)', $adapter);
+        $this->assertStringContainsString('public function monthlyPerformance(int $year): array', $invoiceService);
+
         $this->assertStringContainsString('Cả năm', $dashboard);
-        $this->assertStringContainsString('Mặc định hiển thị tổng quan cả năm', $dashboard);
-        $this->assertStringContainsString('name="year"', $dashboard);
-        $this->assertStringContainsString('name="month"', $dashboard);
+        $this->assertStringContainsString('onchange="this.form.submit()"', $dashboard);
+        $this->assertStringNotContainsString('>Xem</button>', $dashboard);
+        $this->assertStringContainsString('Tổng quan kinh doanh', $dashboard);
+        $this->assertStringContainsString('Tình trạng tài liệu', $dashboard);
+        $this->assertStringContainsString('Xu hướng 12 tháng', $dashboard);
+        $this->assertStringContainsString('Tình hình doanh thu qua các năm', $dashboard);
+        $this->assertStringContainsString('Tháng hiện tại trong năm đang xem', $dashboard);
     }
 
     #[Test]
