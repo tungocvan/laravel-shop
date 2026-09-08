@@ -11,6 +11,7 @@
                 <p class="mt-1 text-sm text-gray-500">Tổng quan đối tác, chất lượng dữ liệu và nguồn dữ liệu bên ngoài.</p>
             </div>
             <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.partners.invoice-candidates') }}" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Đồng bộ từ Invoices</a>
                 <a href="{{ route('admin.partners.lookup') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tra cứu doanh nghiệp</a>
                 <a href="{{ route('admin.partners.index') }}" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Quản lý Partner</a>
             </div>
