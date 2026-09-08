@@ -59,7 +59,11 @@ class InvoiceService
     {
         $row = $this->filteredQuery($filters)
             ->selectRaw('COUNT(*) as invoice_count')
+            ->selectRaw("SUM(CASE WHEN invoice_type = 'sold' THEN 1 ELSE 0 END) as sold_count")
+            ->selectRaw("SUM(CASE WHEN invoice_type = 'purchase' THEN 1 ELSE 0 END) as purchase_count")
             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount_sum')
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_amount_sum")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_amount_sum")
             ->selectRaw('COALESCE(SUM(vat_amount), 0) as vat_amount_sum')
             ->selectRaw('COALESCE(SUM(CASE WHEN tax_rate = 5 THEN total_amount ELSE 0 END), 0) as tax_rate_5_sum')
             ->selectRaw('COALESCE(SUM(CASE WHEN tax_rate = 8 THEN total_amount ELSE 0 END), 0) as tax_rate_8_sum')
@@ -69,7 +73,11 @@ class InvoiceService
 
         return [
             'count' => (int) ($row?->invoice_count ?? 0),
+            'sold_count' => (int) ($row?->sold_count ?? 0),
+            'purchase_count' => (int) ($row?->purchase_count ?? 0),
             'total_amount' => $row?->total_amount_sum ?? 0,
+            'sold_amount' => $row?->sold_amount_sum ?? 0,
+            'purchase_amount' => $row?->purchase_amount_sum ?? 0,
             'vat_amount' => $row?->vat_amount_sum ?? 0,
             'by_tax_rate' => [
                 5 => $row?->tax_rate_5_sum ?? 0,
