@@ -14,12 +14,19 @@ use Throwable;
 class ModuleBackupRestore extends Component
 {
     public ?string $selectedSnapshot = null;
+
     public ?array $readiness = null;
+
     public ?array $impact = null;
+
     public ?array $lastRestore = null;
+
     public ?string $message = null;
+
     public ?string $error = null;
+
     public array $driveBackups = [];
+
     public bool $driveConnected = false;
 
     public function mount(GoogleDriveInvoiceModuleBackupService $drive): void
@@ -104,15 +111,19 @@ class ModuleBackupRestore extends Component
         try {
             if (! collect($this->snapshots())->firstWhere('directory', $directory)) {
                 $this->error = 'Snapshot không còn tồn tại.';
+
                 return;
             }
             $snapshots->delete($directory);
             if ($this->selectedSnapshot === $directory) {
-                $this->selectedSnapshot = null; $this->readiness = null; $this->impact = null;
+                $this->selectedSnapshot = null;
+                $this->readiness = null;
+                $this->impact = null;
             }
             $this->message = 'Đã xóa snapshot MANUAL khỏi Local. Bản Google Drive (nếu có) vẫn được giữ nguyên.';
         } catch (Throwable $exception) {
-            report($exception); $this->error = $exception->getMessage();
+            report($exception);
+            $this->error = $exception->getMessage();
         }
     }
 
@@ -121,15 +132,20 @@ class ModuleBackupRestore extends Component
         $this->resetFeedback();
         $snapshot = collect($this->snapshots())->firstWhere('directory', $directory);
         if (! $snapshot || ! str_starts_with((string) $snapshot['mode'], 'safety')) {
-            $this->error = 'Rollback chỉ được phép từ Safety Backup.'; return;
+            $this->error = 'Rollback chỉ được phép từ Safety Backup.';
+
+            return;
         }
         try {
             $result = $restore->rollbackSafety($directory);
             $this->setLastRestore($result);
-            $this->selectedSnapshot = $directory; $this->readiness = null; $this->impact = null;
+            $this->selectedSnapshot = $directory;
+            $this->readiness = null;
+            $this->impact = null;
             $this->message = 'Rollback chính xác từ Safety Backup đã hoàn tất và đã chạy hậu kiểm.';
         } catch (Throwable $exception) {
-            report($exception); $this->error = 'Rollback thất bại hoặc bị chặn: '.$exception->getMessage();
+            report($exception);
+            $this->error = 'Rollback thất bại hoặc bị chặn: '.$exception->getMessage();
         }
     }
 
@@ -137,7 +153,9 @@ class ModuleBackupRestore extends Component
     {
         $this->resetFeedback();
         if (! $this->selectedSnapshot) {
-            $this->error = 'Hãy chọn một snapshot trước khi kiểm tra khả năng khôi phục.'; return;
+            $this->error = 'Hãy chọn một snapshot trước khi kiểm tra khả năng khôi phục.';
+
+            return;
         }
         try {
             $inspection = $snapshots->inspect($this->selectedSnapshot);
@@ -156,23 +174,29 @@ class ModuleBackupRestore extends Component
     {
         $this->resetFeedback();
         if (! $this->selectedSnapshot || ! $this->readiness || $this->readiness['status'] === InvoiceRestoreReadinessService::BLOCKED) {
-            $this->error = 'Snapshot chưa vượt qua Restore Readiness Gate.'; return;
+            $this->error = 'Snapshot chưa vượt qua Restore Readiness Gate.';
+
+            return;
         }
         try {
             $result = $restore->restoreMerge($this->selectedSnapshot);
             $this->setLastRestore($result);
             $this->message = 'Khôi phục Merge an toàn đã hoàn tất và đã chạy hậu kiểm.';
-            $this->readiness = null; $this->impact = null;
+            $this->readiness = null;
+            $this->impact = null;
         } catch (Throwable $exception) {
-            report($exception); $this->error = 'Khôi phục bị chặn hoặc thất bại: '.$exception->getMessage();
+            report($exception);
+            $this->error = 'Khôi phục bị chặn hoặc thất bại: '.$exception->getMessage();
         }
     }
 
     public function snapshots(): array
     {
         $disk = Storage::disk('local');
+
         return collect($disk->directories('invoices/module-backups'))->filter(fn (string $directory): bool => $disk->exists($directory.'/manifest.json'))->map(function (string $directory) use ($disk): array {
             $manifest = json_decode($disk->get($directory.'/manifest.json'), true);
+
             return ['directory' => $directory, 'created_at' => is_array($manifest) ? ($manifest['created_at'] ?? null) : null, 'mode' => is_array($manifest) ? ($manifest['mode'] ?? 'unknown') : 'unknown', 'invoices' => is_array($manifest) ? (int) ($manifest['tables']['invoices'] ?? 0) : 0, 'files' => is_array($manifest) ? (int) ($manifest['tables']['invoice_files'] ?? 0) : 0];
         })->sortByDesc('created_at')->take(20)->values()->all();
     }
@@ -190,6 +214,7 @@ class ModuleBackupRestore extends Component
 
     private function resetFeedback(): void
     {
-        $this->message = null; $this->error = null;
+        $this->message = null;
+        $this->error = null;
     }
 }

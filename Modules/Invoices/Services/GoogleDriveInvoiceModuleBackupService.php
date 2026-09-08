@@ -11,8 +11,11 @@ use ZipArchive;
 final class GoogleDriveInvoiceModuleBackupService
 {
     private const INVOICES_FOLDER = 'Invoices';
+
     private const BACKUP_FOLDER = 'Module-Backups';
+
     private const MIME = 'application/zip';
+
     private const MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024;
 
     public function __construct(private readonly GoogleDriveConnectionService $drive) {}
@@ -145,7 +148,7 @@ final class GoogleDriveInvoiceModuleBackupService
         if (! is_dir(dirname($temp))) {
             mkdir(dirname($temp), 0775, true);
         }
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($temp, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException('Không thể tạo ZIP module backup.');
         }
@@ -167,7 +170,7 @@ final class GoogleDriveInvoiceModuleBackupService
             mkdir(dirname($temp), 0775, true);
         }
         file_put_contents($temp, $body, LOCK_EX);
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($temp) !== true) {
             @unlink($temp);
             throw new RuntimeException('ZIP module backup không đọc được.');
@@ -175,30 +178,35 @@ final class GoogleDriveInvoiceModuleBackupService
         $allowed = ['manifest.json', 'database/invoices.json', 'database/invoice_files.json'];
         for ($i = 0; $i < $zip->numFiles; $i++) {
             if (! in_array($zip->getNameIndex($i), $allowed, true)) {
-                $zip->close(); @unlink($temp);
+                $zip->close();
+                @unlink($temp);
                 throw new RuntimeException('ZIP module backup chứa file ngoài contract.');
             }
         }
         $manifest = json_decode((string) $zip->getFromName('manifest.json'), true);
         if (! is_array($manifest) || ($manifest['module'] ?? null) !== 'Invoices') {
-            $zip->close(); @unlink($temp);
+            $zip->close();
+            @unlink($temp);
             throw new RuntimeException('Manifest module backup không hợp lệ.');
         }
         $directory = 'invoices/module-backups/'.preg_replace('/\.zip$/i', '', str_replace('Invoices-Module-', '', $fileName));
         $disk = Storage::disk('local');
         if ($disk->exists($directory.'/manifest.json')) {
-            $zip->close(); @unlink($temp);
+            $zip->close();
+            @unlink($temp);
             throw new RuntimeException('Snapshot đã tồn tại ở local; không tải đè.');
         }
         foreach ($allowed as $file) {
             $contents = $zip->getFromName($file);
             if ($contents === false) {
-                $zip->close(); @unlink($temp);
+                $zip->close();
+                @unlink($temp);
                 throw new RuntimeException('ZIP module backup thiếu file bắt buộc.');
             }
             $disk->put($directory.'/'.$file, $contents);
         }
-        $zip->close(); @unlink($temp);
+        $zip->close();
+        @unlink($temp);
 
         return ['directory' => $directory, 'manifest' => $manifest];
     }
@@ -215,12 +223,14 @@ final class GoogleDriveInvoiceModuleBackupService
         if ($invoices === null) {
             return [$token, null];
         }
+
         return [$token, $this->folder($token, $invoices, self::BACKUP_FOLDER, $create)];
     }
 
     private function folder(string $token, string $parentId, string $name, bool $create): ?string
     {
-        $parent = $this->escape($parentId); $escaped = $this->escape($name);
+        $parent = $this->escape($parentId);
+        $escaped = $this->escape($name);
         $query = "name = '{$escaped}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '{$parent}' in parents";
         $list = Http::withToken($token)->acceptJson()->timeout(20)->get('https://www.googleapis.com/drive/v3/files', ['q' => $query, 'spaces' => 'drive', 'fields' => 'files(id,name)', 'pageSize' => 10]);
         if (! $list->successful()) {
@@ -238,17 +248,20 @@ final class GoogleDriveInvoiceModuleBackupService
         if (! $response->successful() || $id === '') {
             throw new RuntimeException('Không thể tạo thư mục '.$name.' trên Google Drive. HTTP '.$response->status().'.');
         }
+
         return $id;
     }
 
     private function findFile(string $token, string $parentId, string $name): ?array
     {
-        $parent = $this->escape($parentId); $escaped = $this->escape($name);
+        $parent = $this->escape($parentId);
+        $escaped = $this->escape($name);
         $response = Http::withToken($token)->acceptJson()->timeout(20)->get('https://www.googleapis.com/drive/v3/files', ['q' => "name = '{$escaped}' and trashed = false and '{$parent}' in parents", 'spaces' => 'drive', 'fields' => 'files(id,name,appProperties)', 'pageSize' => 10]);
         if (! $response->successful()) {
             throw new RuntimeException('Không thể kiểm tra module backup trên Google Drive. HTTP '.$response->status().'.');
         }
         $files = $response->json('files');
+
         return is_array($files) && isset($files[0]) ? ['id' => (string) $files[0]['id'], 'checksum' => (string) ($files[0]['appProperties']['sha256'] ?? '')] : null;
     }
 
@@ -259,6 +272,6 @@ final class GoogleDriveInvoiceModuleBackupService
 
     private function escape(string $value): string
     {
-        return str_replace(["\\", "'"], ["\\\\", "\\'"], $value);
+        return str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
     }
 }
