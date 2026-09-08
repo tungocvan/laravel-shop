@@ -1,19 +1,4 @@
-<div
-    class="rounded-2xl border border-indigo-200 bg-white shadow-sm"
-    x-data="{}"
-    x-init="
-        const syncPeriod = () => {
-            const year = document.querySelector('select[wire\\:model\\.live=\"year\"]');
-            const month = document.querySelector('select[wire\\:model\\.live=\"month\"]');
-            if (year && month) { $wire.syncPeriod(year.value, month.value); }
-        };
-        document.addEventListener('change', (event) => {
-            if (event.target.matches('select[wire\\:model\\.live=\"year\"], select[wire\\:model\\.live=\"month\"]')) {
-                setTimeout(syncPeriod, 150);
-            }
-        });
-    "
->
+<div class="rounded-2xl border border-indigo-200 bg-white shadow-sm">
     @if(in_array($batchStatus['status'] ?? null, ['queued','processing'], true))
         <div wire:poll.2s="refreshBatchStatus" class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
             <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
