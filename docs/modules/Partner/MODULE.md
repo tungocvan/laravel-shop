@@ -11,9 +11,10 @@ The module owns canonical Partner records and their ERP-facing classification. E
 1. **Search is not Sync.** External lookup is read-only until an authorized user explicitly reviews and confirms a sync operation.
 2. **External source is not canonical ERP data.** External values must not blindly overwrite local values.
 3. **Human review before mutation.** Ambiguous matches and conflicting values require explicit operator choice.
-4. **Provenance is preserved.** External identity, source URL, timestamps, source snapshot and related metadata belong to `PartnerSourceReference` rather than a parallel provenance system.
-5. **Idempotent sync.** Repeating a sync for the same external identity and unchanged data must not create duplicate Partner or source-reference records.
-6. **No automatic bulk enrichment in the initial phase.** No crawler, scheduled scraping, CAPTCHA bypass, OCR CAPTCHA, or background bulk sync.
+4. **Provenance is preserved.** External identity, source URL, timestamps, source snapshot and related metadata belong to `PartnerSourceReference` after a source identity is accepted into canonical Partner data.
+5. **Candidate staging is not master data.** Source modules may submit normalized candidates to `PartnerSyncCandidate`; this never creates or updates `Partner` by itself.
+6. **Idempotent sync.** Repeating a sync for the same external identity and unchanged data must not create duplicate Partner, candidate or source-reference records.
+7. **No automatic bulk enrichment in the initial phase.** No crawler, scheduled scraping, CAPTCHA bypass, OCR CAPTCHA, or background bulk master-data mutation.
 
 ## Canonical ownership
 
@@ -35,9 +36,23 @@ External business/legal status must not be mapped blindly to ERP operational `st
 
 ### `PartnerSourceReference`
 
-Canonical owner for external-source provenance and identity association. Reuse the existing `(source, external_id)` uniqueness contract. Source-specific metadata may include source URL, lookup/sync timestamps, match information, source snapshot and snapshot hash when appropriate.
+Canonical owner for accepted external-source provenance and identity association. Reuse the existing `(source, external_id)` uniqueness contract. Source-specific metadata may include source URL, lookup/sync timestamps, match information, source snapshot and snapshot hash when appropriate.
 
 An existing external identity attached to one Partner must never be silently reassigned to another Partner.
+
+### `PartnerSyncCandidate`
+
+Canonical staging inbox for source-derived Partner candidates that have not yet been accepted into master data.
+
+Current rules:
+
+- `(source, tax_code)` is idempotent for invoice-derived candidates;
+- candidate roles may contain `customer`, `supplier`, or both;
+- status is `pending`, `matched`, `conflict`, or `ignored`;
+- tax-code match may identify an existing Partner, but conflicting or missing local fields remain reviewable;
+- candidate ingestion never creates or updates `Partner`;
+- explicit review may create a new Partner, apply only operator-selected fields to an existing Partner, merge selected roles, or ignore the candidate;
+- once accepted, provenance is promoted to `PartnerSourceReference` without reassigning an existing source identity to another Partner.
 
 ### `App\Services\MasothueLookupService`
 
@@ -52,6 +67,7 @@ The module provides these canonical admin capabilities:
 - Partner Dashboard;
 - Partner Management;
 - Business Lookup;
+- invoice candidate review at `/admin/partners/sync/invoices`;
 - reviewed conflict-aware Partner synchronization;
 - source provenance inspection where useful;
 - existing import/export behavior.
@@ -64,7 +80,11 @@ Lookup flow:
 
 `human-triggered search -> candidate selection -> detail retrieval -> Partner matching -> diff preview -> explicit sync`
 
-No database mutation is allowed during lookup/candidate/detail retrieval.
+Invoice candidate flow:
+
+`Invoices DB sync -> normalized Partner candidate -> Partner inbox -> human review -> create / selected-field merge / ignore -> provenance`
+
+No canonical Partner mutation is allowed during source lookup or candidate ingestion.
 
 Sync comparison states:
 
@@ -99,7 +119,7 @@ Production-capable list pagination is bounded and follows `.codex/standards/ADMI
 
 Partner actions require server-side authorization. Lookup and synchronization are distinct capabilities: permission to inspect external data does not imply permission to mutate canonical Partner data.
 
-Implementation must follow the repository's canonical permission naming/registration conventions while covering dashboard/view/create/update/delete/import/export/lookup/sync capabilities as applicable.
+Current candidate workspace uses `view_partner` for inspection, `create_partner` for explicit creation, and `edit_partner` for merge/ignore operations.
 
 ## UI contract
 
@@ -107,12 +127,12 @@ All admin workspaces follow `.codex/standards/ADMIN_UI_STANDARD.md`, including v
 
 ## Deferred scope
 
-Not part of the initial implementation:
+Not part of the current implementation:
 
 - automated or scheduled MaSoThue crawling;
 - CAPTCHA bypass/OCR;
 - automatic merge of duplicate Partners;
-- bulk source synchronization;
+- unattended/bulk source synchronization;
 - AI/fuzzy automatic deduplication;
 - treating MaSoThue as legal authority or automatic verification authority;
 - removal of the current tax-code uniqueness constraint;
