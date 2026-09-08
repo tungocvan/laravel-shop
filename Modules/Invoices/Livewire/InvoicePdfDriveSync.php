@@ -20,6 +20,8 @@ class InvoicePdfDriveSync extends Component
 
     public array $batchStatus = [];
 
+    public bool $showBatchModal = true;
+
     public ?string $notice = null;
 
     public ?string $error = null;
@@ -106,10 +108,22 @@ class InvoicePdfDriveSync extends Component
         }
     }
 
+    public function hideBatchModal(): void
+    {
+        $this->showBatchModal = false;
+    }
+
+    public function showBatchProgress(): void
+    {
+        $this->showBatchModal = true;
+        $this->refreshBatchStatus();
+    }
+
     public function dismissBatch(): void
     {
         $this->batchId = null;
         $this->batchStatus = [];
+        $this->showBatchModal = true;
         $this->refreshSnapshot();
     }
 
@@ -161,6 +175,7 @@ class InvoicePdfDriveSync extends Component
 
         $this->batchId = $batchId;
         $this->batchStatus = $status;
+        $this->showBatchModal = true;
     }
 
     private function normalizePeriod(): void
