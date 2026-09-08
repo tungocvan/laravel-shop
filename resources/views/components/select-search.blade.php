@@ -37,6 +37,7 @@ function selectSearchComponent(config) {
                 placeholder: config.placeholder,
                 create: false,
                 allowEmptyOption: true,
+                dropdownParent: 'body',
 
                 onChange: (value) => {
                     if (config.model) {
@@ -90,17 +91,9 @@ function selectSearchComponent(config) {
     border-color: #6366f1 !important;
 }
 
-/* Keep searchable dropdowns above cards, toolbars and neighboring filters. */
-.ts-wrapper {
-    position: relative;
-}
-
-.ts-wrapper.dropdown-active {
-    z-index: 70 !important;
-}
-
-.ts-dropdown {
-    z-index: 80 !important;
+/* Dropdown is portalled to body so parent cards/stacking contexts cannot cover it. */
+body > .ts-dropdown {
+    z-index: 99999 !important;
 }
 </style>
 @endonce
