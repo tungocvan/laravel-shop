@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\Invoices\Services\GdtInvoiceService;
+use Modules\Invoices\Services\GoogleDriveInvoiceExportService;
 use RuntimeException;
 use Throwable;
 
@@ -28,7 +29,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         public ?string $syncId = null,
     ) {}
 
-    public function handle(GdtInvoiceService $service): void
+    public function handle(GdtInvoiceService $service, GoogleDriveInvoiceExportService $drive): void
     {
         $this->updateStatus('processing', 'Worker bắt đầu xử lý.');
 
@@ -49,6 +50,8 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         if (! is_string($file) || ! is_file($file) || ! is_readable($file)) {
             throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
         }
+
+        $this->uploadToGoogleDrive($drive, $file);
 
         $this->updateStatus('completed', 'Đồng bộ hoàn tất và file Excel đã được tạo.', [
             'file' => basename($file),
@@ -72,6 +75,38 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             'sync_id' => $this->syncId,
             'error' => $exception->getMessage(),
         ]);
+    }
+
+    private function uploadToGoogleDrive(GoogleDriveInvoiceExportService $drive, string $file): void
+    {
+        if (! $drive->isConnected()) {
+            $this->appendLog('Google Drive chưa kết nối, bỏ qua upload tự động.');
+
+            return;
+        }
+
+        $this->appendLog('Google Drive đã kết nối, đang upload file vào Laravel-Backup/Invoices.');
+
+        try {
+            $uploaded = $drive->upload($file);
+
+            $this->appendLog('Google Drive: đã upload '.($uploaded['name'] ?? basename($file)).' vào Laravel-Backup/Invoices.');
+
+            Log::info('[GDT JOB] Đã upload file hóa đơn lên Google Drive.', [
+                'sync_id' => $this->syncId,
+                'file' => basename($file),
+                'drive_file_id' => $uploaded['id'] ?? null,
+                'updated_existing' => $uploaded['updated_existing'] ?? false,
+            ]);
+        } catch (Throwable $exception) {
+            $this->appendLog('Google Drive: upload tự động thất bại; file Excel trên server vẫn được giữ lại.');
+
+            Log::warning('[GDT JOB] Upload file hóa đơn lên Google Drive thất bại.', [
+                'sync_id' => $this->syncId,
+                'file' => basename($file),
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     private function statusKey(): ?string
