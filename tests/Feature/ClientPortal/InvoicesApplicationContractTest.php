@@ -57,6 +57,21 @@ class InvoicesApplicationContractTest extends TestCase
     }
 
     #[Test]
+    public function invoices_dashboard_defaults_to_year_and_supports_month_drilldown(): void
+    {
+        $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
+        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/dashboard.blade.php'));
+
+        $this->assertStringContainsString("$request->integer('year'", $adapter);
+        $this->assertStringContainsString("$request->query('month')", $adapter);
+        $this->assertStringContainsString("'periodScope' => $month === null ? 'year' : 'month'", $adapter);
+        $this->assertStringContainsString('Cả năm', $dashboard);
+        $this->assertStringContainsString('Mặc định hiển thị tổng quan cả năm', $dashboard);
+        $this->assertStringContainsString('name="year"', $dashboard);
+        $this->assertStringContainsString('name="month"', $dashboard);
+    }
+
+    #[Test]
     public function invoices_export_preserves_selected_or_filtered_contract(): void
     {
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
