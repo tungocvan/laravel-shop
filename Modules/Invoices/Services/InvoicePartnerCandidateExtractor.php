@@ -3,6 +3,7 @@
 namespace Modules\Invoices\Services;
 
 use Carbon\Carbon;
+use DateTimeInterface;
 use Modules\Invoices\Models\Invoices;
 use Rap2hpoutre\FastExcel\FastExcel;
 
@@ -28,7 +29,7 @@ class InvoicePartnerCandidateExtractor
             $taxCode = $this->value($row, ['Mã số thuế', 'tax_code', 'ma_so_thue']);
             $invoiceNumber = $this->value($row, ['Số hóa đơn', 'Số HĐ', 'invoice_number', 'so_hoa_don', 'so_hd']);
             $lookupCode = $this->value($row, ['Mã tra cứu', 'lookup_code', 'ma_tra_cuu']);
-            $issuedDate = $this->normalizeDate($this->value($row, ['Ngày lập', 'issued_date', 'ngay_lap']));
+            $issuedDate = $this->normalizeDate($this->rawValue($row, ['Ngày lập', 'issued_date', 'ngay_lap']));
 
             if ($taxCode === null || $invoiceNumber === null || $issuedDate === null) {
                 continue;
@@ -83,25 +84,46 @@ class InvoicePartnerCandidateExtractor
         return array_values($candidates);
     }
 
-    private function value(array $row, array $aliases): ?string
+    private function rawValue(array $row, array $aliases): mixed
     {
         foreach ($aliases as $alias) {
-            if (! array_key_exists($alias, $row)) {
-                continue;
-            }
-
-            $value = trim((string) $row[$alias]);
-            if ($value !== '') {
-                return $value;
+            if (array_key_exists($alias, $row)) {
+                return $row[$alias];
             }
         }
 
         return null;
     }
 
-    private function normalizeDate(?string $value): ?string
+    private function value(array $row, array $aliases): ?string
     {
-        if ($value === null) {
+        $value = $this->rawValue($row, $aliases);
+
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function normalizeDate(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return Carbon::instance($value)->format('Y-m-d');
+        }
+
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
             return null;
         }
 
