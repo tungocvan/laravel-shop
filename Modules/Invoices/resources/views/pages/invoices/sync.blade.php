@@ -13,6 +13,7 @@
         </div>
 
         @livewire('invoices.search-hoadon')
+        @livewire('invoices.invoice-drive-sync-panel')
         @livewire('invoices.automatic-backup-panel')
     </div>
 @endsection

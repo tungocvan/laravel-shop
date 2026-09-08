@@ -37,6 +37,7 @@ function selectSearchComponent(config) {
                 placeholder: config.placeholder,
                 create: false,
                 allowEmptyOption: true,
+                dropdownParent: 'body',
 
                 onChange: (value) => {
                     if (config.model) {
@@ -88,6 +89,11 @@ function selectSearchComponent(config) {
 .ts-wrapper.focus .ts-control {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
     border-color: #6366f1 !important;
+}
+
+/* Dropdown is portalled to body so parent cards/stacking contexts cannot cover it. */
+body > .ts-dropdown {
+    z-index: 99999 !important;
 }
 </style>
 @endonce

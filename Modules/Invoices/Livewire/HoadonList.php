@@ -3,10 +3,14 @@
 namespace Modules\Invoices\Livewire;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Invoices\Exports\InvoicesSelectedExport;
+use Modules\Invoices\Jobs\DownloadInvoicePdfChunkJob;
+use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\InvoiceFileManagerService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
@@ -24,6 +28,8 @@ class HoadonList extends Component
 
     protected InvoiceWorkspaceService $workspace;
 
+    protected GdtApiService $gdtApiService;
+
     public ?string $downloadStatus = null;
 
     public ?string $pdfNotice = null;
@@ -31,6 +37,10 @@ class HoadonList extends Component
     public ?string $pdfError = null;
 
     public ?int $pdfProcessingId = null;
+
+    public ?string $monthlyPdfBatchId = null;
+
+    public array $monthlyPdfBatchStatus = [];
 
     public ?string $type = null;
 
@@ -87,11 +97,13 @@ class HoadonList extends Component
         InvoicePdfService $pdfService,
         InvoiceFileManagerService $fileManager,
         InvoiceWorkspaceService $workspace,
+        GdtApiService $gdtApiService,
     ): void {
         $this->invoiceService = $invoiceService;
         $this->pdfService = $pdfService;
         $this->fileManager = $fileManager;
         $this->workspace = $workspace;
+        $this->gdtApiService = $gdtApiService;
     }
 
     public function mount(): void
@@ -103,7 +115,8 @@ class HoadonList extends Component
             $this->applyPeriodSelection(false);
         } elseif ($this->from_date === '' && $this->to_date === '') {
             $this->year = (string) now()->year;
-            $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
+            $this->month = (string) now()->month;
+            $this->from_date = Carbon::now()->startOfMonth()->format('Y-m-d');
             $this->to_date = Carbon::now()->format('Y-m-d');
         }
 
@@ -227,8 +240,8 @@ class HoadonList extends Component
         $this->name = '';
         $this->tax_code = '';
         $this->year = (string) now()->year;
-        $this->month = '';
-        $this->from_date = Carbon::now()->startOfYear()->format('Y-m-d');
+        $this->month = (string) now()->month;
+        $this->from_date = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->to_date = Carbon::now()->format('Y-m-d');
         $this->taxRateFilter = 'all';
         $this->pdfStatusFilter = 'all';
@@ -263,16 +276,112 @@ class HoadonList extends Component
             return;
         }
 
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
         $this->downloadStatus = 'processing';
         $result = $this->pdfService->downloadSelected($this->selected);
         $this->downloadStatus = $result['failed'] > 0 ? 'error' : 'success';
         $this->setBatchMessage($result, 'PDF mới');
     }
 
+    public function queueMonthlyPdfDownloads(): void
+    {
+        $this->authorizePermission('invoices-download');
+        $this->clearPdfMessages();
+
+        if ($this->year === '' || $this->month === '') {
+            $this->pdfError = 'Vui lòng chọn cụ thể năm và tháng trước khi tải toàn bộ PDF theo tháng.';
+
+            return;
+        }
+
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
+        $missingFilters = $this->filters();
+        $missingFilters['pdf_status'] = 'missing';
+        $errorFilters = $this->filters();
+        $errorFilters['pdf_status'] = 'error';
+
+        $ids = collect($this->workspace->allFilteredIds($missingFilters))
+            ->merge($this->workspace->allFilteredIds($errorFilters))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            $this->pdfNotice = 'Tháng đã chọn không còn PDF thiếu hoặc lỗi cần tải lại.';
+
+            return;
+        }
+
+        $batchId = (string) Str::uuid();
+        $chunks = array_chunk($ids, 25);
+        $status = [
+            'status' => 'queued',
+            'year' => (int) $this->year,
+            'month' => (int) $this->month,
+            'total' => count($ids),
+            'chunks' => count($chunks),
+            'completed_chunks' => 0,
+            'processed' => 0,
+            'downloaded' => 0,
+            'existing' => 0,
+            'failed' => 0,
+            'errors' => [],
+            'message' => 'Đã đưa '.count($ids).' PDF thiếu/lỗi vào '.count($chunks).' queue để xử lý.',
+            'started_at' => now()->toISOString(),
+            'finished_at' => null,
+        ];
+
+        Cache::put(DownloadInvoicePdfChunkJob::cacheKey($batchId), $status, now()->addHours(6));
+
+        foreach ($chunks as $chunk) {
+            DownloadInvoicePdfChunkJob::dispatch($batchId, $chunk);
+        }
+
+        $this->monthlyPdfBatchId = $batchId;
+        $this->monthlyPdfBatchStatus = $status;
+    }
+
+    public function refreshMonthlyPdfBatchStatus(): void
+    {
+        if (! $this->monthlyPdfBatchId) {
+            return;
+        }
+
+        $status = Cache::get(DownloadInvoicePdfChunkJob::cacheKey($this->monthlyPdfBatchId));
+
+        if (! is_array($status)) {
+            return;
+        }
+
+        $this->monthlyPdfBatchStatus = $status;
+
+        if (in_array($status['status'] ?? null, ['completed', 'completed_with_errors', 'auth_expired'], true)) {
+            $this->fileManager->reconcile($this->filters());
+        }
+    }
+
+    public function dismissMonthlyPdfBatchStatus(): void
+    {
+        $this->monthlyPdfBatchId = null;
+        $this->monthlyPdfBatchStatus = [];
+    }
+
     public function downloadPdf(int $invoiceId, bool $force = false): void
     {
         $this->authorizePermission('invoices-download');
         $this->clearPdfMessages();
+
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
         $this->pdfProcessingId = $invoiceId;
 
         try {
@@ -303,6 +412,10 @@ class HoadonList extends Component
         $this->authorizePermission('invoices-download');
         $this->clearPdfMessages();
 
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
+
         try {
             $this->fileManager->reconcile($this->filters());
             $ids = $this->fileManager->missingInvoiceIds($this->filters(), 25);
@@ -328,6 +441,10 @@ class HoadonList extends Component
     {
         $this->authorizePermission('invoices-download');
         $this->clearPdfMessages();
+
+        if (! $this->ensureGdtToken()) {
+            return;
+        }
 
         try {
             $ids = $this->fileManager->errorInvoiceIds($this->filters(), 25);
@@ -493,8 +610,21 @@ class HoadonList extends Component
         abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 
+    private function ensureGdtToken(): bool
+    {
+        if ($this->gdtApiService->hasToken()) {
+            return true;
+        }
+
+        $this->downloadStatus = 'error';
+        $this->pdfError = 'Phiên đăng nhập GDT đã hết hạn hoặc chưa được tạo. Vui lòng kết nối lại GDT trước khi tải PDF.';
+
+        return false;
+    }
+
     private function clearPdfMessages(): void
     {
+        $this->downloadStatus = null;
         $this->pdfNotice = null;
         $this->pdfError = null;
     }

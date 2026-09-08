@@ -3,13 +3,10 @@
 ## Current Status
 
 - Module: `Invoices`
-- Mode: **Major / Clean Module Refactor**
-- Contract bootstrap PR: `#156` — **MERGED**
-- Runtime cleanup PR: `#157` — **MERGED**
-- Runtime cleanup merge checkpoint: `main@3334d773dea6a7c2ee0b475b53a7617ad9ffb56e`
-- Refactor status: **COMPLETE — MERGED TO MAIN**
-
-PR #156 established `docs/modules/Invoices/MODULE.md` and aligned the module manifest with the three canonical persistence tables. PR #157 completed the approved runtime cleanup without schema changes, route renames or ClientPortal/PWA presentation changes.
+- Major/Clean Module Refactor: **COMPLETE / MERGED** through PR #157.
+- Current follow-up branch: `feat/invoices-auto-upload-google-drive`.
+- Current PR: **#171 — OPEN / NOT MERGED**.
+- Current follow-up scope: **GDT existence preflight + manual Local ↔ Google Drive transfer + explicit database sync + Partner candidate staging**.
 
 ## Canonical Ownership Contract
 
@@ -22,7 +19,7 @@ Invoices remains the canonical domain owner for:
 - invoice PDF retrieval and file metadata;
 - invoice backup execution metadata.
 
-Canonical persistence ownership:
+Canonical Invoices persistence ownership remains:
 
 ```text
 invoices
@@ -30,100 +27,152 @@ invoice_files
 invoice_backup_runs
 ```
 
-Invoices does **not** own Admin authentication/shell or ClientPortal authentication/navigation/PWA presentation.
+Partner master data is not owned by Invoices. Invoice import may detect counterparties and submit normalized candidates to the Partner-owned intake boundary, but it does not create or update `partners` directly.
 
-## Completed Runtime Cleanup
+## GDT Existence Preflight
 
-### Dead placeholder removal
-
-Caller/reachability review found no canonical routes, pages, service-provider registration or test callers for the empty `InvoiceList` / `InvoiceManager` Livewire placeholders, so they and their empty Blade views were removed. No canonical or compatibility route was removed.
-
-### Invoice list workspace boundary
-
-`HoadonList` remains the Livewire presentation/controller boundary and keeps the public state/actions used by Blade. `InvoiceWorkspaceService` now owns cohesive list-workspace read/orchestration concerns including paginator/view data assembly, current-page IDs, all-filtered IDs and selected-vs-filtered export record resolution.
-
-### Export contract
-
-The required export behavior is preserved and regression-covered:
-
-- non-empty checkbox selection exports exactly selected invoice IDs;
-- empty selection exports the complete current approved filtered scope;
-- empty selection never silently exports only the current paginator page.
-
-### PDF status/filter contract
-
-Canonical query semantics use `invoice_files.status` for `available / missing / error`. Active PDF filters reconcile metadata against physical storage so legacy/stale metadata cannot leave a physically available PDF inside **Chưa có PDF** results. `statusForInvoice()` treats an existing readable PDF as `available` before evaluating provider-resolution capability.
-
-The previously reported **Chưa có PDF** defect was re-tested after correction and accepted as **UI PASS**.
-
-### PDF failure boundary
-
-Provider exceptions from GDT/MeInvoice remain available server-side for diagnostics but are no longer propagated verbatim through list UI/batch output. User-facing failures are sanitized while provider fallback behavior is preserved.
-
-### Admin UI normalization
-
-The invoice list filter workspace now follows the Admin UI contract with visible bordered controls, consistent control height/focus state, explicit labels, responsive filter grid, bounded `10 / 25 / 50 / 100` page sizes and the existing explicit module pagination partial.
-
-Selection/destructive contracts remain intact:
-
-- header checkbox selects the current page only;
-- all-filtered selection is an explicit separate action;
-- destructive PDF deletion remains confirmation-gated.
-
-User acceptance for the corrected runtime UI: **PASS**.
-
-## Validation Result
-
-User-reported validation before PR #157 merge:
+The queued GDT job derives the deterministic workbook name for the selected range/direction and applies this order before calling GDT:
 
 ```text
-Pint changed PHP files                         PASS
-InvoicesFilterSortTest                         PASS — 4 tests, 11 assertions
-InvoicesWorkspaceServiceTest                   PASS — 3 tests, 4 assertions
-Admin Invoices route inspection                PASS — 8 routes
-Frontend production build                      PASS
-Invoice filter/input UI acceptance             PASS
-PDF "Chưa có PDF" functional UI check          PASS
-Working tree                                   CLEAN
+1. Check the expected local workbook.
+2. If local is missing and Google Drive is connected, check Laravel-Backup/Invoices.
+3. Call GDT only when the workbook is absent from both locations.
 ```
 
-No full-project regression was required; validation remained scoped to Invoices plus directly relevant route/build/UI behavior.
+Behavior:
+
+- local workbook exists -> skip GDT;
+- local missing + same workbook exists on Drive -> skip GDT and allow operator to restore it through the manual Drive panel;
+- local missing + Drive disconnected -> call GDT;
+- local missing + Drive connected + remote absent -> call GDT;
+- Drive is connected but existence verification fails -> fail safely without calling GDT, because absence was not proven;
+- after a new GDT export, the workbook remains local; it is not automatically uploaded to Drive.
+
+Important runtime boundary: the above existence preflight currently belongs to the queued `ProcessGdtInvoicesJob`. The legacy non-queue `SearchHoadon::run()` path still calls `GdtInvoiceService::processRange()` directly and therefore does not yet share the queue preflight orchestration.
+
+## Manual Local ↔ Google Drive
+
+`/admin/invoices/hoadon` now includes an explicit operator-controlled Local ↔ Google Drive panel.
+
+Contract:
+
+- list local `vat_in_*.xlsx` / `vat_out_*.xlsx` files;
+- list invoice workbooks under `Laravel-Backup/Invoices` when Drive is connected;
+- selected Local -> Drive upload;
+- same-name Drive workbook is updated instead of duplicated;
+- selected Drive -> Local restore;
+- Drive -> Local never overwrites an existing same-name local workbook;
+- connection state and refresh/error states are visible;
+- existing public-link Google Drive import remains available as a compatibility path.
+
+User acceptance for the manual Local ↔ Drive UI was reported **PASS** before the Partner candidate follow-up was added.
+
+## Explicit Database Sync
+
+The local workbook action on `/admin/invoices/hoadon` is presented as **Đồng bộ vào CSDL**.
+
+The existing `InvoiceImportService` / `InvoiceImportExportService` remains the invoice import engine:
+
+- duplicate business identities are skipped rather than overwritten;
+- import reports total/success/skipped/error information;
+- the UI action does not itself mutate Partner master data.
+
+The invoice list route `/admin/invoices/hoadon-list` remains the workspace for records already persisted in the Invoices database.
+
+## Partner Candidate Staging
+
+After invoice database import completes, `InvoiceImportService` performs a secondary best-effort candidate stage:
+
+```text
+Invoice workbook
+    -> InvoiceImportExportService
+    -> Invoices DB
+    -> InvoicePartnerCandidateExtractor
+    -> PartnerCandidateIntakeService
+    -> partner_sync_candidates
+```
+
+Rules:
+
+- candidate extraction only accepts workbook rows whose invoice business identity exists in the Invoices table after import;
+- candidate identity validation is batch-oriented rather than one invoice query per workbook row;
+- `sold` counterparty -> `customer`;
+- `purchase` counterparty -> `supplier`;
+- candidates are deduplicated by MST for the source submission;
+- Invoices does not create/update `Partner`;
+- candidate staging failure is logged and surfaced as a warning but does not roll back an invoice import that already succeeded.
+
+Partner owns the staging table and review workflow. See `docs/modules/Partner/MODULE.md` and `docs/modules/Partner/COLLABORATION_HANDOFF.md`.
+
+## Partner Review Handoff
+
+The new Partner-owned review workspace is:
+
+```text
+/admin/partners/sync/invoices
+```
+
+It supports explicit human review for pending/matched/conflict/ignored invoice-derived candidates. Create/merge/ignore decisions happen in Partner, not Invoices.
+
+## Validation Status
+
+Previously user-reported acceptance within this branch:
+
+```text
+Focused Invoices automated suite               PASS
+Manual Local ↔ Google Drive UI                 PASS
+```
+
+The newly added database-sync wording + Partner candidate staging/review batch still requires one final local verification round before PR #171 is merge-ready:
+
+```text
+Pint changed PHP files                         PENDING
+Invoices focused tests                         PENDING after candidate additions
+InvoicesPartnerCandidateSyncTest               PENDING
+Partner focused tests                          PENDING
+Admin Invoices/Partner route inspection        PENDING
+Frontend production build                      PENDING
+Invoice DB-sync UI                             PENDING
+Partner invoice-candidate review UI            PENDING
+```
+
+No full-project regression is required unless a focused failure proves a wider impact.
 
 ## Compatibility / Non-Goals Preserved
 
-The completed refactor did not:
+This follow-up does not:
 
-- rename or merge migrations;
-- rename persistence tables;
-- add a database unique constraint;
-- remove legacy `/invoices/*` compatibility aliases;
+- rename Invoices persistence tables;
 - rename canonical `/admin/invoices/*` routes;
-- rename permissions;
+- remove legacy invoice compatibility routes;
+- rename existing invoice permissions;
+- expose protected invoice PDFs publicly;
 - integrate Invoices into ClientPortal/PWA;
-- expose protected invoice PDFs through public URLs.
+- automatically create/update/merge Partner master rows during invoice ingestion;
+- automatically overwrite existing Partner conflicts.
 
-ClientPortal/PWA integration remains **DEFERRED** and must use ClientPortal-owned routes/auth/navigation/presentation plus the approved authenticated external-file handoff pattern.
+The cross-module schema addition is Partner-owned: `partner_sync_candidates`.
 
 ## Deferred Existing Debt
 
 Still deferred unless separately approved:
 
+- unifying the non-queue GDT path with the queued Local -> Drive -> GDT existence preflight;
 - runtime GDT `.env` mutation;
-- broad/mixed synchronization workspace responsibilities;
-- unbounded or high-volume import/export/ZIP/backup paths requiring separate performance work;
+- high-volume import/export/ZIP/backup performance work beyond the current bounded changes;
 - public export storage for financial spreadsheets;
-- public-link Google Drive flow;
-- lack of a persisted global GDT job registry;
-- database uniqueness for invoice business identity pending duplicate/business-key proof;
-- ClientPortal/PWA presentation and protected PDF handoff implementation.
+- persisted global GDT job registry;
+- database uniqueness for invoice business identity pending separate proof;
+- ClientPortal/PWA presentation and protected PDF handoff.
 
-## Closeout
+## Closeout Gate for PR #171
 
-1. Contract bootstrap PR #156: **COMPLETE / MERGED**.
-2. Runtime cleanup PR #157: **COMPLETE / MERGED**.
-3. Focused automated validation: **PASS**.
-4. Route/build validation: **PASS**.
-5. UI/PDF-filter acceptance: **PASS**.
-6. Canonical runtime merge checkpoint: `3334d773dea6a7c2ee0b475b53a7617ad9ffb56e`.
-7. Handoff closeout: **COMPLETE ON MAIN**.
-8. Invoices Major/Clean Module Refactor: **CLOSED**.
+Before merge:
+
+1. run Partner migration;
+2. run Pint on changed PHP files;
+3. run focused Invoices + new candidate tests + Partner focused tests;
+4. inspect affected routes and run Vite build;
+5. UI-check `/admin/invoices/hoadon` database sync and `/admin/partners/sync/invoices` review flow;
+6. update this handoff with final PASS results;
+7. merge only after normal user acceptance under `docs/GITHUB_COLLABORATION_WORKFLOW.md`.

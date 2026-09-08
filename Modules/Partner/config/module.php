@@ -12,5 +12,7 @@ return [
     ],
     'tables' => [
         'partners',
+        'partner_source_references',
+        'partner_sync_candidates',
     ],
 ];

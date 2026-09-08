@@ -293,10 +293,12 @@ class InvoicesModuleTest extends TestCase
             $service = app(InvoiceImportExportService::class);
             $filteredPath = $service->export(['invoice_type' => 'sold']);
             $selectedPath = $service->export(['invoice_type' => 'sold', 'selected_ids' => [$secondId, $secondId, -1, 'bad']]);
+            $filteredAbsolutePath = $service->exportAbsolutePath($filteredPath);
+            $selectedAbsolutePath = $service->exportAbsolutePath($selectedPath);
 
             try {
-                $filtered = (new FastExcel)->import(storage_path('app/public/'.$filteredPath));
-                $selected = (new FastExcel)->import(storage_path('app/public/'.$selectedPath));
+                $filtered = (new FastExcel)->import($filteredAbsolutePath);
+                $selected = (new FastExcel)->import($selectedAbsolutePath);
 
                 $this->assertCount(1, $filtered);
                 $this->assertSame('export-a', (string) $filtered->first()['Mã tra cứu']);
@@ -304,8 +306,8 @@ class InvoicesModuleTest extends TestCase
                 $this->assertSame('export-b', (string) $selected->first()['Mã tra cứu']);
                 $this->assertNotSame($firstId, $secondId);
             } finally {
-                @unlink(storage_path('app/public/'.$filteredPath));
-                @unlink(storage_path('app/public/'.$selectedPath));
+                @unlink($filteredAbsolutePath);
+                @unlink($selectedAbsolutePath);
             }
         });
     }

@@ -74,10 +74,23 @@ class GdtInvoiceService
         return ['items' => $invoices, 'total' => $total ?? count($invoices)];
     }
 
+    public function expectedExportPath(string $startDate, string $endDate, bool $vatIn = false): string
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        $filename = $start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
+        $baseFolder = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
+        $folder = $vatIn
+            ? storage_path("app/{$baseFolder}/vat_in")
+            : storage_path("app/{$baseFolder}/vat_out");
+
+        return $folder.'/'.($vatIn ? 'vat_in_' : 'vat_out_').$filename;
+    }
+
     /**
      * Xử lý dữ liệu theo khoảng thời gian.
      */
-    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false)
+    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false): ?string
     {
         $show = fn ($m) => $cb ? $cb($m) : null;
 
@@ -112,6 +125,12 @@ class GdtInvoiceService
         }
 
         $show('[GDT] Tổng cộng: '.count($all).' hóa đơn');
+
+        if ($all === []) {
+            $show('[GDT] Không có hóa đơn trong khoảng thời gian đã chọn. Không tạo file Excel.');
+
+            return null;
+        }
 
         $file = $this->exportExcel($all, $vatIn, $filename);
         $show('[GDT] File Excel tạo ra: '.$file);

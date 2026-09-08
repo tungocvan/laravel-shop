@@ -13,6 +13,22 @@ class InvoiceWorkspaceService
     public function viewData(array $filters, int $perPage, array $selected): array
     {
         $dashboard = $this->invoiceService->dashboard();
+        $annualYear = (int) substr((string) ($filters['issued_date_from'] ?? ''), 0, 4);
+        $hasAnnualYear = $annualYear >= 2000 && $annualYear <= 2100;
+
+        $annualStats = $this->invoiceService->statistics($hasAnnualYear
+            ? [
+                'issued_date_from' => sprintf('%04d-01-01', $annualYear),
+                'issued_date_to' => sprintf('%04d-12-31', $annualYear),
+                'tax_rate' => 'all',
+                'pdf_status' => 'all',
+            ]
+            : [
+                'tax_rate' => 'all',
+                'pdf_status' => 'all',
+            ]);
+
+        $annualYear = $hasAnnualYear ? $annualYear : 'Tất cả';
         $invoices = $this->invoiceService->paginate($filters, $perPage);
         $pageIds = collect($invoices->items())
             ->pluck('id')
@@ -29,6 +45,8 @@ class InvoiceWorkspaceService
                 ->mapWithKeys(fn ($invoice) => [$invoice->id => $this->pdfService->statusForInvoice($invoice)])
                 ->all(),
             'filterStats' => $this->invoiceService->statistics($filters),
+            'annualStats' => $annualStats,
+            'annualYear' => $annualYear,
             'fileSummary' => $this->fileManager->summary($filters),
             'pdfErrors' => $this->fileManager->errorDetails($filters),
             'storageBreakdown' => $this->fileManager->storageBreakdown($filters),
