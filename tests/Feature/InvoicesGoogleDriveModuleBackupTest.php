@@ -84,4 +84,33 @@ class InvoicesGoogleDriveModuleBackupTest extends TestCase
         $this->assertCount(1, $files);
         $this->assertSame('good', $files[0]['id']);
     }
+
+    public function test_drive_listing_falls_back_to_module_contract_when_expected_folder_is_empty(): void
+    {
+        $drive = $this->mock(GoogleDriveConnectionService::class);
+        $drive->shouldReceive('status')->once()->andReturn(['connected' => true]);
+        $drive->shouldReceive('testConnection')->once()->andReturn(['folder_id' => 'root-folder']);
+        $drive->shouldReceive('accessToken')->once()->andReturn('token');
+
+        Http::fake([
+            'https://www.googleapis.com/drive/v3/files*' => Http::sequence()
+                ->push(['files' => [['id' => 'invoices-folder']]], 200)
+                ->push(['files' => [['id' => 'backup-folder']]], 200)
+                ->push(['files' => []], 200)
+                ->push(['files' => [[
+                    'id' => 'fallback-file',
+                    'name' => 'Invoices-Module-20260908_170000.zip',
+                    'size' => '2048',
+                    'modifiedTime' => '2026-09-08T10:00:00Z',
+                    'parents' => ['legacy-backup-folder'],
+                    'appProperties' => ['module' => 'Invoices', 'sha256' => str_repeat('b', 64)],
+                ]]], 200),
+        ]);
+
+        $files = app(GoogleDriveInvoiceModuleBackupService::class)->files();
+
+        $this->assertCount(1, $files);
+        $this->assertSame('fallback-file', $files[0]['id']);
+        $this->assertSame(str_repeat('b', 64), $files[0]['checksum']);
+    }
 }
