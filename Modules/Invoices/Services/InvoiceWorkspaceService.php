@@ -13,6 +13,13 @@ class InvoiceWorkspaceService
     public function viewData(array $filters, int $perPage, array $selected): array
     {
         $dashboard = $this->invoiceService->dashboard();
+        $annualYear = (int) now()->year;
+        $annualStats = $this->invoiceService->statistics([
+            'issued_date_from' => now()->startOfYear()->toDateString(),
+            'issued_date_to' => now()->endOfYear()->toDateString(),
+            'tax_rate' => 'all',
+            'pdf_status' => 'all',
+        ]);
         $invoices = $this->invoiceService->paginate($filters, $perPage);
         $pageIds = collect($invoices->items())
             ->pluck('id')
@@ -29,6 +36,8 @@ class InvoiceWorkspaceService
                 ->mapWithKeys(fn ($invoice) => [$invoice->id => $this->pdfService->statusForInvoice($invoice)])
                 ->all(),
             'filterStats' => $this->invoiceService->statistics($filters),
+            'annualStats' => $annualStats,
+            'annualYear' => $annualYear,
             'fileSummary' => $this->fileManager->summary($filters),
             'pdfErrors' => $this->fileManager->errorDetails($filters),
             'storageBreakdown' => $this->fileManager->storageBreakdown($filters),
