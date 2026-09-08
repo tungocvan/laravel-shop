@@ -90,7 +90,7 @@ class GdtInvoiceService
     /**
      * Xử lý dữ liệu theo khoảng thời gian.
      */
-    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false)
+    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false): ?string
     {
         $show = fn ($m) => $cb ? $cb($m) : null;
 
@@ -125,6 +125,12 @@ class GdtInvoiceService
         }
 
         $show('[GDT] Tổng cộng: '.count($all).' hóa đơn');
+
+        if ($all === []) {
+            $show('[GDT] Không có hóa đơn trong khoảng thời gian đã chọn. Không tạo file Excel.');
+
+            return null;
+        }
 
         $file = $this->exportExcel($all, $vatIn, $filename);
         $show('[GDT] File Excel tạo ra: '.$file);
