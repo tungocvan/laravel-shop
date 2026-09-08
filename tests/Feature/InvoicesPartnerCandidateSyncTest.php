@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use Illuminate\Support\Facades\Schema;
 use Modules\Invoices\Services\InvoiceImportService;
 use Modules\Partner\Models\Partner;
+use Modules\Partner\Models\PartnerSourceReference;
 use Modules\Partner\Models\PartnerSyncCandidate;
 use Modules\Partner\Services\PartnerCandidateIntakeService;
+use Modules\Partner\Services\PartnerCandidateReviewService;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Tests\TestCase;
 
@@ -102,6 +104,87 @@ class InvoicesPartnerCandidateSyncTest extends TestCase
         $this->assertSame(['customer'], $partner->partner_types);
     }
 
+    public function test_review_can_create_partner_and_promote_invoice_provenance(): void
+    {
+        $this->migrateFixtures(false);
+
+        $candidate = PartnerSyncCandidate::query()->create([
+            'source' => 'invoices',
+            'tax_code' => '0300000002',
+            'name' => 'Partner Mới',
+            'address' => '2 Lê Lợi',
+            'email' => 'new@example.com',
+            'phone' => '0902000000',
+            'partner_types' => ['supplier'],
+            'status' => 'pending',
+            'first_seen_at' => now()->subDay(),
+            'last_seen_at' => now(),
+        ]);
+
+        $partner = app(PartnerCandidateReviewService::class)->createPartner($candidate);
+
+        $this->assertSame('0300000002', $partner->tax_code);
+        $this->assertSame(['supplier'], $partner->partner_types);
+        $this->assertSame('system', $partner->source);
+
+        $candidate->refresh();
+        $this->assertSame('matched', $candidate->status);
+        $this->assertSame($partner->getKey(), $candidate->matched_partner_id);
+
+        $reference = PartnerSourceReference::query()
+            ->where('source', 'invoices')
+            ->where('external_id', '0300000002')
+            ->firstOrFail();
+        $this->assertSame($partner->getKey(), $reference->partner_id);
+    }
+
+    public function test_review_existing_partner_updates_only_selected_fields_and_merges_roles(): void
+    {
+        $this->migrateFixtures(false);
+
+        $partner = Partner::query()->create([
+            'tax_code' => '0300000003',
+            'name' => 'Tên ERP',
+            'address' => 'Địa chỉ ERP',
+            'email' => 'erp@example.com',
+            'phone' => '0903000000',
+            'partner_types' => ['customer'],
+            'source' => 'manual',
+            'status' => 'active',
+        ]);
+
+        $candidate = PartnerSyncCandidate::query()->create([
+            'source' => 'invoices',
+            'tax_code' => '0300000003',
+            'name' => 'Tên Hóa Đơn',
+            'address' => 'Địa chỉ Hóa Đơn',
+            'email' => 'invoice@example.com',
+            'phone' => '0999999999',
+            'partner_types' => ['supplier'],
+            'status' => 'conflict',
+            'matched_partner_id' => $partner->getKey(),
+            'conflict_fields' => [
+                'name' => ['state' => 'different'],
+                'address' => ['state' => 'different'],
+            ],
+            'first_seen_at' => now()->subDay(),
+            'last_seen_at' => now(),
+        ]);
+
+        app(PartnerCandidateReviewService::class)->confirmExisting($candidate, ['address', 'partner_types']);
+
+        $partner->refresh();
+        $this->assertSame('Tên ERP', $partner->name);
+        $this->assertSame('Địa chỉ Hóa Đơn', $partner->address);
+        $this->assertSame('erp@example.com', $partner->email);
+        $this->assertSame(['customer', 'supplier'], $partner->partner_types);
+
+        $candidate->refresh();
+        $this->assertSame('matched', $candidate->status);
+        $this->assertNull($candidate->conflict_fields);
+        $this->assertSame(['address', 'partner_types'], $candidate->source_metadata['applied_fields']);
+    }
+
     private function migrateFixtures(bool $withInvoices = true): void
     {
         Schema::dropIfExists('partner_sync_candidates');
@@ -110,6 +193,7 @@ class InvoicesPartnerCandidateSyncTest extends TestCase
         Schema::dropIfExists('invoices');
 
         (require base_path('Modules/Partner/database/migrations/2026_05_26_095912_partners.php'))->up();
+        (require base_path('Modules/Partner/database/migrations/2026_09_05_201000_create_partner_source_references_table.php'))->up();
         (require base_path('Modules/Partner/database/migrations/2026_09_08_100000_create_partner_sync_candidates_table.php'))->up();
 
         if ($withInvoices) {
