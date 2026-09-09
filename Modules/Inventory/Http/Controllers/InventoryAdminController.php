@@ -24,6 +24,11 @@ final class InventoryAdminController extends Controller
         return view('Inventory::pages.invoice-inbox');
     }
 
+    public function intake(): View
+    {
+        return view('Inventory::pages.intake');
+    }
+
     public function workspace(Request $request): View
     {
         $workspace = (string) $request->route('workspace');
