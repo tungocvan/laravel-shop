@@ -64,8 +64,9 @@ class InvoicesPartnerReportPwaContractTest extends TestCase
         $this->assertStringContainsString('Tìm tên hoặc MST đối tác...', $view);
         $this->assertStringNotContainsString('>Tìm</button>', $view);
         $this->assertStringContainsString('Chênh lệch', $view);
-        $this->assertStringContainsString('md:hidden', $view);
-        $this->assertStringContainsString('hidden overflow-x-auto md:block', $view);
+        $this->assertStringContainsString('xl:hidden', $view);
+        $this->assertStringContainsString('hidden overflow-x-auto xl:block', $view);
+        $this->assertStringContainsString('sm:grid-cols-2', $view);
         $this->assertStringNotContainsString("@livewire('invoices.partner-report')", $view);
         $this->assertStringNotContainsString("@extends('Admin::layouts.master')", $view);
     }
