@@ -27,6 +27,7 @@ return [
         'inventory.stocktake.confirm',
         'inventory.stock.view',
         'inventory.movement.view',
+        'inventory.movement.reverse',
         'inventory.audit.view',
         'inventory.export',
     ],
