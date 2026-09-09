@@ -4,9 +4,12 @@ namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Inventory\Models\Concerns\ProtectsConfirmedParent;
 
 class TransferLine extends Model
 {
+    use ProtectsConfirmedParent;
+
     protected $table = 'inventory_transfer_lines';
 
     protected $guarded = [];
@@ -29,5 +32,15 @@ class TransferLine extends Model
     public function lot(): BelongsTo
     {
         return $this->belongsTo(Lot::class, 'lot_id');
+    }
+
+    protected function confirmedParentTable(): string
+    {
+        return 'inventory_transfers';
+    }
+
+    protected function confirmedParentForeignKey(): string
+    {
+        return 'transfer_id';
     }
 }
