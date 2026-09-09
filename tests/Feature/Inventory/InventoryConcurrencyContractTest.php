@@ -39,7 +39,7 @@ class InventoryConcurrencyContractTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Inventory/Services/StocktakePostingService.php'));
 
-        $this->assertStringContainsString("->unique()->sort()->values()->all()", $source);
+        $this->assertStringContainsString('->unique()->sort()->values()->all()', $source);
         $this->assertStringContainsString("->orderBy('dimension_key')", $source);
         $this->assertStringContainsString('Stocktake contains duplicate stock dimensions.', $source);
     }
