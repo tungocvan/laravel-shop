@@ -21,7 +21,7 @@ class StockPostingService
         $prepared = collect($movements)->map(fn (array $movement): array => $this->prepare($movement));
         $dimensionKeys = $prepared->pluck('dimension_key')->unique()->sort()->values();
 
-        foreach ($prepared->unique('dimension_key') as $movement) {
+        foreach ($prepared->unique('dimension_key')->sortBy('dimension_key') as $movement) {
             DB::table('inventory_balances')->insertOrIgnore([
                 'warehouse_id' => $movement['warehouse_id'],
                 'inventory_item_id' => $movement['inventory_item_id'],
