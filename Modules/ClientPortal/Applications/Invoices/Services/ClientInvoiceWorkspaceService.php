@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
+use Modules\Invoices\Services\InvoicePartnerReportService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
 
@@ -14,6 +15,7 @@ final class ClientInvoiceWorkspaceService
     public function __construct(
         private readonly InvoiceService $invoices,
         private readonly InvoicePdfService $pdf,
+        private readonly InvoicePartnerReportService $partnerReports,
     ) {}
 
     public function dashboardData(Request $request): array
@@ -96,14 +98,105 @@ final class ClientInvoiceWorkspaceService
         ];
     }
 
+    public function partnerReportData(Request $request): array
+    {
+        $year = max(2000, min(2100, (int) $request->integer('year', (int) now()->format('Y'))));
+        $requestedMonth = $request->query('month');
+        $month = filter_var($requestedMonth, FILTER_VALIDATE_INT) !== false
+            ? max(1, min(12, (int) $requestedMonth))
+            : null;
+        $type = in_array($request->query('type'), ['sold', 'purchase'], true)
+            ? $request->query('type')
+            : null;
+        $requestedSort = (string) $request->query('sort', '');
+        $validSorts = [
+            'sold_desc',
+            'purchase_desc',
+            'invoice_desc',
+            'vat_desc',
+            'net_desc',
+            'partner_asc',
+            'partner_desc',
+        ];
+        $sort = in_array($requestedSort, $validSorts, true)
+            ? $requestedSort
+            : ($type === 'purchase' ? 'purchase_desc' : 'sold_desc');
+        $perPage = (int) $request->integer('per_page', 25);
+        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
+        $date = now()->setDate($year, $month ?? 1, 1);
+
+        $filters = [
+            'invoice_type' => $type,
+            'partner' => trim((string) $request->query('partner', '')),
+            'issued_date_from' => ($month === null ? $date->copy()->startOfYear() : $date->copy()->startOfMonth())->toDateString(),
+            'issued_date_to' => ($month === null ? $date->copy()->endOfYear() : $date->copy()->endOfMonth())->toDateString(),
+            'sort' => $sort,
+        ];
+
+        $partners = $this->partnerReports->paginate($filters, $perPage)->withQueryString();
+        $summary = $this->partnerReports->summary($filters);
+        $topSold = $this->partnerReports->paginate(array_merge($filters, ['sort' => 'sold_desc']), 10)
+            ->getCollection()
+            ->take(5)
+            ->values();
+        $topPurchase = $this->partnerReports->paginate(array_merge($filters, ['sort' => 'purchase_desc']), 10)
+            ->getCollection()
+            ->take(5)
+            ->values();
+
+        $detailName = trim((string) $request->query('detail_name', ''));
+        $detailTaxCode = trim((string) $request->query('detail_tax_code', ''));
+        $partnerDetail = null;
+        if ($detailName !== '' && $detailTaxCode !== '') {
+            $partnerDetail = $this->partnerReports->partnerDetail(
+                array_merge($filters, ['partner' => null, 'sort' => null]),
+                $detailName,
+                $detailTaxCode,
+            );
+        }
+
+        return [
+            'partnerFilters' => [
+                'year' => $year,
+                'month' => $month,
+                'type' => $type,
+                'partner' => $filters['partner'],
+                'sort' => $sort,
+                'per_page' => $perPage,
+            ],
+            'partnerPeriod' => $month === null ? 'Năm '.$year : sprintf('Tháng %02d/%d', $month, $year),
+            'partnerYears' => collect($this->invoices->years())->push($year)->unique()->sortDesc()->values()->all(),
+            'partnerOptions' => $this->invoices->filterOptions([
+                'invoice_type' => $type,
+                'issued_date_from' => $filters['issued_date_from'],
+                'issued_date_to' => $filters['issued_date_to'],
+                'tax_rate' => 'all',
+                'pdf_status' => 'all',
+            ])['names'],
+            'partners' => $partners,
+            'partnerSummary' => $summary,
+            'partnerCount' => $partners->total(),
+            'partnerTopSold' => $topSold,
+            'partnerTopPurchase' => $topPurchase,
+            'partnerDetail' => $partnerDetail,
+        ];
+    }
+
     public function listData(Request $request): array
     {
         $filters = $this->filters($request);
         $perPage = (int) $request->integer('per_page', 25);
+        $year = max(2000, min(2100, (int) $request->integer('year', (int) now()->format('Y'))));
+        $requestedMonth = $request->has('month') ? $request->query('month') : (int) now()->format('m');
+        $month = filter_var($requestedMonth, FILTER_VALIDATE_INT) !== false
+            ? max(1, min(12, (int) $requestedMonth))
+            : null;
         $paginator = $this->invoices->paginate($filters, $perPage)->withQueryString();
 
         return [
             'filters' => $filters,
+            'selectedYear' => $year,
+            'selectedMonth' => $month,
             'perPage' => $perPage,
             'invoices' => $paginator,
             'stats' => $this->invoices->statistics($filters),
@@ -116,12 +209,12 @@ final class ClientInvoiceWorkspaceService
 
     public function filters(Request $request): array
     {
-        $month = (int) $request->integer('month', (int) now()->format('m'));
-        $year = (int) $request->integer('year', (int) now()->format('Y'));
-        $month = max(1, min(12, $month));
-        $year = max(2000, min(2100, $year));
-
-        $from = now()->setDate($year, $month, 1)->startOfMonth();
+        $year = max(2000, min(2100, (int) $request->integer('year', (int) now()->format('Y'))));
+        $requestedMonth = $request->has('month') ? $request->query('month') : (int) now()->format('m');
+        $month = filter_var($requestedMonth, FILTER_VALIDATE_INT) !== false
+            ? max(1, min(12, (int) $requestedMonth))
+            : null;
+        $period = $this->periodFilters($year, $month);
 
         return [
             'search' => trim((string) $request->query('search', '')),
@@ -129,8 +222,8 @@ final class ClientInvoiceWorkspaceService
             'invoice_type' => in_array($request->query('invoice_type'), ['sold', 'purchase'], true)
                 ? $request->query('invoice_type')
                 : null,
-            'issued_date_from' => $from->toDateString(),
-            'issued_date_to' => $from->copy()->endOfMonth()->toDateString(),
+            'issued_date_from' => $period['issued_date_from'],
+            'issued_date_to' => $period['issued_date_to'],
             'tax_rate' => 'all',
             'pdf_status' => 'all',
             'sort' => in_array((string) $request->query('sort', 'date_desc'), ['date_desc', 'date_asc', 'amount_desc', 'amount_asc', 'partner_asc', 'partner_desc'], true)
