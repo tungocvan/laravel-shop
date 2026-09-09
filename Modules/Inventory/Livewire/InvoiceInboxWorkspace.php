@@ -20,36 +20,34 @@ final class InvoiceInboxWorkspace extends Component
     use WithPagination;
 
     public string $search = '';
-
     public string $status = 'all';
-
     public int $perPage = 25;
-
     public ?int $selectedInboxId = null;
-
     public ?int $warehouseId = null;
-
+    public bool $showSourcePicker = false;
+    public string $sourceSearch = '';
     public ?string $errorMessage = null;
-
     public ?string $successMessage = null;
 
     private const PAGE_SIZES = [10, 25, 50, 100];
 
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedStatus(): void
-    {
-        $this->resetPage();
-    }
+    public function updatedSearch(): void { $this->resetPage(); }
+    public function updatedStatus(): void { $this->resetPage(); }
 
     public function updatedPerPage($value): void
     {
         $this->perPage = in_array((int) $value, self::PAGE_SIZES, true) ? (int) $value : 25;
         $this->resetPage();
     }
+
+    public function openSourcePicker(): void
+    {
+        abort_unless($this->canManageReceipt(), 403);
+        $this->sourceSearch = '';
+        $this->showSourcePicker = true;
+    }
+
+    public function closeSourcePicker(): void { $this->showSourcePicker = false; }
 
     public function selectInbox(int $id): void
     {
@@ -65,8 +63,9 @@ final class InvoiceInboxWorkspace extends Component
         $this->runAction(function () use ($invoiceId): string {
             $inbox = app(InvoiceInventoryHandoffService::class)->handoff($invoiceId);
             $this->selectedInboxId = $inbox->id;
+            $this->showSourcePicker = false;
 
-            return 'Đã đồng bộ hóa đơn vào Inbox. Chưa có thay đổi tồn kho.';
+            return 'Đã đưa hóa đơn vào Inbox. Tồn kho chưa thay đổi.';
         });
     }
 
@@ -102,9 +101,7 @@ final class InvoiceInboxWorkspace extends Component
             }
 
             $baseUom = trim((string) $line->source_uom) ?: 'unit';
-            $item = InventoryItem::query()->firstOrCreate([
-                'sku' => 'INV-LINE-'.$line->id,
-            ], [
+            $item = InventoryItem::query()->firstOrCreate(['sku' => 'INV-LINE-'.$line->id], [
                 'display_name' => $line->description_snapshot,
                 'base_uom' => $baseUom,
                 'lot_tracking' => false,
@@ -143,6 +140,14 @@ final class InvoiceInboxWorkspace extends Component
 
     public function render()
     {
+        $base = InvoiceInbox::query();
+        $stats = [
+            'pending' => (clone $base)->whereIn('processing_status', ['RECEIVED', 'MATCHING'])->count(),
+            'review' => (clone $base)->where('processing_status', 'REVIEW_REQUIRED')->count(),
+            'ready' => (clone $base)->where('processing_status', 'READY')->count(),
+            'created' => (clone $base)->where('processing_status', 'RECEIPT_CREATED')->count(),
+        ];
+
         $rows = InvoiceInbox::query()
             ->withCount(['lines as unresolved_lines_count' => fn ($query) => $query->where('classification', 'UNRESOLVED')])
             ->when($this->search !== '', function ($query): void {
@@ -154,21 +159,21 @@ final class InvoiceInboxWorkspace extends Component
                 });
             })
             ->when($this->status !== 'all', fn ($query) => $query->where('processing_status', $this->status))
-            ->latest('last_seen_at')
-            ->paginate($this->perPage);
+            ->latest('last_seen_at')->paginate($this->perPage);
 
         $selected = $this->selectedInboxId !== null
             ? InvoiceInbox::query()->with(['lines.item', 'receipt'])->find($this->selectedInboxId)
             : null;
 
         $sourceCandidates = collect();
-        if (class_exists(PurchaseInvoiceInventoryQueryService::class)) {
-            $sourceCandidates = app(PurchaseInvoiceInventoryQueryService::class)->recent($this->search, 30);
+        if ($this->showSourcePicker && class_exists(PurchaseInvoiceInventoryQueryService::class)) {
+            $sourceCandidates = app(PurchaseInvoiceInventoryQueryService::class)->recent($this->sourceSearch, 30);
         }
 
         return view('Inventory::livewire.invoice-inbox-workspace', [
             'rows' => $rows,
             'selected' => $selected,
+            'stats' => $stats,
             'sourceCandidates' => $sourceCandidates,
             'warehouses' => Warehouse::query()->where('is_active', true)->orderBy('name')->limit(100)->get(['id', 'code', 'name']),
             'items' => InventoryItem::query()->where('is_active', true)->orderBy('display_name')->limit(100)->get(['id', 'sku', 'display_name', 'base_uom']),
@@ -179,14 +184,9 @@ final class InvoiceInboxWorkspace extends Component
 
     private function ownedLine(int $lineId): InvoiceInboxLine
     {
-        if ($this->selectedInboxId === null) {
-            abort(404);
-        }
+        if ($this->selectedInboxId === null) { abort(404); }
 
-        return InvoiceInboxLine::query()
-            ->with('inbox')
-            ->where('inbox_id', $this->selectedInboxId)
-            ->findOrFail($lineId);
+        return InvoiceInboxLine::query()->with('inbox')->where('inbox_id', $this->selectedInboxId)->findOrFail($lineId);
     }
 
     private function canManageReceipt(): bool
@@ -198,10 +198,7 @@ final class InvoiceInboxWorkspace extends Component
     {
         $this->errorMessage = null;
         $this->successMessage = null;
-
-        try {
-            $this->successMessage = $action();
-        } catch (Throwable $exception) {
+        try { $this->successMessage = $action(); } catch (Throwable $exception) {
             report($exception);
             $this->errorMessage = $exception->getMessage();
         }
