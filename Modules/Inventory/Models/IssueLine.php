@@ -4,9 +4,12 @@ namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Inventory\Models\Concerns\ProtectsConfirmedParent;
 
 class IssueLine extends Model
 {
+    use ProtectsConfirmedParent;
+
     protected $table = 'inventory_issue_lines';
 
     protected $guarded = [];
@@ -29,5 +32,15 @@ class IssueLine extends Model
     public function lot(): BelongsTo
     {
         return $this->belongsTo(Lot::class, 'lot_id');
+    }
+
+    protected function confirmedParentTable(): string
+    {
+        return 'inventory_issues';
+    }
+
+    protected function confirmedParentForeignKey(): string
+    {
+        return 'issue_id';
     }
 }
