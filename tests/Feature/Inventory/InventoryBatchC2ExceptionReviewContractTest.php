@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Inventory;
 
+use Modules\Inventory\Services\InvoiceLineStockClassifier;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -44,5 +45,74 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
         $this->assertStringContainsString('wire:model="bulkItemId"', $view);
         $this->assertStringContainsString('trạng thái tự chuyển READY', $view);
         $this->assertStringNotContainsString('ReceiptPostingService', $view);
+    }
+
+    #[Test]
+    public function deterministic_classifier_uses_gdt_goods_category_as_stock_evidence(): void
+    {
+        $result = app(InvoiceLineStockClassifier::class)->classify(
+            'Cefuroxime 125mg/5ml',
+            'Lọ',
+            [
+                'raw_gdt_line' => [
+                    'InventoryItemCategoryCode' => 'HH',
+                    'InventoryItemCategoryName' => 'Hàng hóa',
+                ],
+            ],
+        );
+
+        $this->assertSame('STOCK', $result['classification']);
+        $this->assertSame('gdt_goods_category', $result['reason']);
+        $this->assertSame('deterministic-v1', $result['classifier']);
+    }
+
+    #[Test]
+    public function deterministic_classifier_rejects_service_and_interest_lines_from_stock(): void
+    {
+        $classifier = app(InvoiceLineStockClassifier::class);
+
+        $service = $classifier->classify(
+            'Dịch vụ kiểm định',
+            null,
+            [
+                'raw_gdt_line' => [
+                    'InventoryItemCategoryCode' => 'DV',
+                    'InventoryItemCategoryName' => 'Dịch vụ',
+                ],
+            ],
+        );
+
+        $interest = $classifier->classify('Thanh toan lai', null, []);
+
+        $this->assertSame('NON_STOCK', $service['classification']);
+        $this->assertSame('gdt_service_category', $service['reason']);
+        $this->assertSame('NON_STOCK', $interest['classification']);
+        $this->assertSame('interest_payment', $interest['reason']);
+    }
+
+    #[Test]
+    public function deterministic_classifier_fails_safe_when_evidence_is_insufficient(): void
+    {
+        $result = app(InvoiceLineStockClassifier::class)->classify(
+            'Khoản chi khác',
+            null,
+            [],
+        );
+
+        $this->assertSame('UNRESOLVED', $result['classification']);
+        $this->assertSame('insufficient_deterministic_evidence', $result['reason']);
+    }
+
+    #[Test]
+    public function stock_without_inventory_item_remains_review_required_by_contract(): void
+    {
+        $matching = file_get_contents(base_path('Modules/Inventory/Services/InventoryItemMatchingService.php'));
+        $integration = file_get_contents(base_path('Modules/Inventory/Services/InventoryInvoiceIntegrationService.php'));
+
+        $this->assertStringContainsString("->where('classification', 'STOCK')", $matching);
+        $this->assertStringContainsString("->whereNull('inventory_item_id')", $matching);
+        $this->assertStringContainsString("'processing_status' => \$reviewRequired ? 'REVIEW_REQUIRED' : 'READY'", $matching);
+        $this->assertStringContainsString("'stock_classification'", $integration);
+        $this->assertStringContainsString("'match_reason' => 'classifier:'", $integration);
     }
 }
