@@ -17,7 +17,7 @@ class InventoryAdminBatchBContractTest extends TestCase
         }
 
         $this->assertStringContainsString("prefix('admin/inventory')", $routes);
-        $this->assertStringContainsString("auth:admin", $routes);
+        $this->assertStringContainsString('auth:admin', $routes);
         $this->assertStringNotContainsString('invoices/pdf', $routes);
     }
 
@@ -40,11 +40,26 @@ class InventoryAdminBatchBContractTest extends TestCase
     public function high_risk_confirm_actions_delegate_to_batch_a_posting_services(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/AdminWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/admin-workspace.blade.php'));
 
         $this->assertStringContainsString('ReceiptPostingService::class', $component);
         $this->assertStringContainsString('IssuePostingService::class', $component);
         $this->assertStringContainsString('TransferPostingService::class', $component);
         $this->assertStringContainsString('StocktakePostingService::class', $component);
-        $this->assertStringContainsString("wire:loading.attr=\"disabled\"", file_get_contents(base_path('Modules/Inventory/resources/views/livewire/admin-workspace.blade.php')));
+        $this->assertStringContainsString('wire:loading.attr="disabled"', $view);
+    }
+
+    #[Test]
+    public function inventory_admin_menu_registration_is_scoped_and_permission_aware(): void
+    {
+        $migration = file_get_contents(base_path('Modules/Inventory/database/migrations/2026_09_09_150001_register_inventory_admin_menu.php'));
+
+        $this->assertStringContainsString("'inventory-operations'", $migration);
+        $this->assertStringContainsString("'inventory.dashboard.view'", $migration);
+        $this->assertStringContainsString("'inventory.receipt.view'", $migration);
+        $this->assertStringContainsString("'inventory.movement.view'", $migration);
+        $this->assertStringContainsString("Cache::forget('admin.menus')", $migration);
+        $this->assertStringNotContainsString('Product.quantity', $migration);
+        $this->assertStringNotContainsString('invoices/pdf', $migration);
     }
 }
