@@ -97,7 +97,9 @@ class InvoicesApplicationContractTest extends TestCase
         $this->assertStringContainsString("'partner' => trim((string) \$request->query('partner', ''))", $adapter);
         $this->assertStringContainsString("'tax_rate' => 'all'", $adapter);
         $this->assertStringContainsString("'pdf_status' => 'all'", $adapter);
-        $this->assertStringContainsString('<x-search name="partner"', $list);
+        $this->assertStringContainsString('<x-search', $list);
+        $this->assertStringContainsString('name="partner"', $list);
+        $this->assertStringContainsString('list="invoice-partner-options"', $list);
         $this->assertStringContainsString('Xóa bộ lọc', $list);
         $this->assertStringContainsString('Giá trị cao nhất', $list);
         $this->assertStringContainsString('$showInvoiceTypeColumn = empty($filters[\'invoice_type\'])', $list);
