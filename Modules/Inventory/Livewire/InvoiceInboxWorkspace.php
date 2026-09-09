@@ -27,8 +27,6 @@ final class InvoiceInboxWorkspace extends Component
 
     public ?int $selectedInboxId = null;
 
-    public ?int $selectedSourceInvoiceId = null;
-
     public ?int $warehouseId = null;
 
     public ?string $errorMessage = null;
@@ -64,83 +62,83 @@ final class InvoiceInboxWorkspace extends Component
     public function syncSourceInvoice(int $invoiceId): void
     {
         abort_unless($this->canManageReceipt(), 403);
-        $this->errorMessage = null;
-        $this->successMessage = null;
-
-        try {
+        $this->runAction(function () use ($invoiceId): string {
             $inbox = app(InvoiceInventoryHandoffService::class)->handoff($invoiceId);
             $this->selectedInboxId = $inbox->id;
-            $this->selectedSourceInvoiceId = null;
-            $this->successMessage = 'Đã đồng bộ hóa đơn vào Inbox. Chưa có thay đổi tồn kho.';
-        } catch (Throwable $exception) {
-            report($exception);
-            $this->errorMessage = $exception->getMessage();
-        }
+
+            return 'Đã đồng bộ hóa đơn vào Inbox. Chưa có thay đổi tồn kho.';
+        });
     }
 
     public function assignLine(int $lineId, int $itemId): void
     {
         abort_unless($this->canManageReceipt(), 403);
-        $actorId = (int) auth('admin')->id();
-        $line = $this->ownedLine($lineId);
-        $item = InventoryItem::query()->where('is_active', true)->findOrFail($itemId);
+        $this->runAction(function () use ($lineId, $itemId): string {
+            $line = $this->ownedLine($lineId);
+            $item = InventoryItem::query()->where('is_active', true)->findOrFail($itemId);
+            app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
 
-        app(InventoryItemMatchingService::class)->assign($line, $item, $actorId);
-        $this->successMessage = 'Đã xác nhận mapping mặt hàng và lưu alias theo nguồn.';
+            return 'Đã xác nhận mapping mặt hàng và lưu alias theo nguồn.';
+        });
     }
 
     public function markNonStock(int $lineId): void
     {
         abort_unless($this->canManageReceipt(), 403);
-        app(InventoryItemMatchingService::class)->markNonStock($this->ownedLine($lineId));
-        $this->successMessage = 'Đã đánh dấu dòng NON_STOCK.';
+        $this->runAction(function () use ($lineId): string {
+            app(InventoryItemMatchingService::class)->markNonStock($this->ownedLine($lineId));
+
+            return 'Đã đánh dấu dòng NON_STOCK.';
+        });
     }
 
     public function createStandaloneItem(int $lineId): void
     {
         abort_unless((bool) auth('admin')->user()?->can('inventory.item.manage'), 403);
-        $line = $this->ownedLine($lineId);
-        $baseUom = trim((string) $line->source_uom) ?: 'unit';
+        $this->runAction(function () use ($lineId): string {
+            $line = $this->ownedLine($lineId);
+            if ($line->inventory_item_id !== null) {
+                throw new DomainException('Dòng này đã có InventoryItem.');
+            }
 
-        $item = InventoryItem::query()->create([
-            'sku' => 'INV-LINE-'.$line->id,
-            'display_name' => $line->description_snapshot,
-            'base_uom' => $baseUom,
-            'lot_tracking' => false,
-            'expiry_tracking' => false,
-            'allow_fractional_quantity' => true,
-            'is_active' => true,
-            'metadata' => [
-                'created_from_invoice_inbox_line_id' => $line->id,
-                'source_invoice_identity' => $line->inbox->source_invoice_identity,
-            ],
-        ]);
+            $baseUom = trim((string) $line->source_uom) ?: 'unit';
+            $item = InventoryItem::query()->firstOrCreate([
+                'sku' => 'INV-LINE-'.$line->id,
+            ], [
+                'display_name' => $line->description_snapshot,
+                'base_uom' => $baseUom,
+                'lot_tracking' => false,
+                'expiry_tracking' => false,
+                'allow_fractional_quantity' => true,
+                'is_active' => true,
+                'metadata' => [
+                    'created_from_invoice_inbox_line_id' => $line->id,
+                    'source_invoice_identity' => $line->inbox->source_invoice_identity,
+                ],
+            ]);
 
-        app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
-        $this->successMessage = 'Đã tạo InventoryItem độc lập và mapping dòng hóa đơn.';
+            app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
+
+            return 'Đã tạo InventoryItem độc lập và mapping dòng hóa đơn.';
+        });
     }
 
     public function createDraftReceipt(): void
     {
         abort_unless($this->canManageReceipt(), 403);
-        if ($this->selectedInboxId === null || $this->warehouseId === null) {
-            throw new DomainException('Hãy chọn hóa đơn Inbox và kho nhận.');
-        }
+        $this->runAction(function (): string {
+            if ($this->selectedInboxId === null || $this->warehouseId === null) {
+                throw new DomainException('Hãy chọn hóa đơn Inbox và kho nhận.');
+            }
 
-        $this->errorMessage = null;
-        $this->successMessage = null;
-
-        try {
             $receipt = app(InvoiceReceiptProposalService::class)->createOrRefresh(
                 $this->selectedInboxId,
                 $this->warehouseId,
                 (int) auth('admin')->id(),
             );
-            $this->successMessage = 'Đã tạo/cập nhật phiếu nhập DRAFT '.$receipt->number.'. Tồn kho chưa thay đổi cho đến khi xác nhận phiếu.';
-        } catch (Throwable $exception) {
-            report($exception);
-            $this->errorMessage = $exception->getMessage();
-        }
+
+            return 'Đã tạo/cập nhật phiếu nhập DRAFT '.$receipt->number.'. Tồn kho chưa thay đổi cho đến khi xác nhận phiếu.';
+        });
     }
 
     public function render()
@@ -194,5 +192,18 @@ final class InvoiceInboxWorkspace extends Component
     private function canManageReceipt(): bool
     {
         return (bool) auth('admin')->user()?->can('inventory.receipt.manage');
+    }
+
+    private function runAction(callable $action): void
+    {
+        $this->errorMessage = null;
+        $this->successMessage = null;
+
+        try {
+            $this->successMessage = $action();
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->errorMessage = $exception->getMessage();
+        }
     }
 }
