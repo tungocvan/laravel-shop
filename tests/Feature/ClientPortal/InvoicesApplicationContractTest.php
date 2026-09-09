@@ -66,6 +66,7 @@ class InvoicesApplicationContractTest extends TestCase
         $this->assertStringContainsString('$request->integer(\'year\'', $adapter);
         $this->assertStringContainsString('$request->query(\'month\')', $adapter);
         $this->assertStringContainsString('\'periodScope\' => $month === null ? \'year\' : \'month\'', $adapter);
+        $this->assertStringContainsString("'previousYear' => \$previousYear", $adapter);
         $this->assertStringContainsString('$this->invoices->monthlyPerformance($year)', $adapter);
         $this->assertStringContainsString("'yearGrowth' =>", $adapter);
         $this->assertStringContainsString("'currentMonthGrowth' =>", $adapter);
@@ -78,7 +79,7 @@ class InvoicesApplicationContractTest extends TestCase
         $this->assertStringNotContainsString('>Xem</button>', $dashboard);
         $this->assertStringContainsString('Tổng quan kinh doanh', $dashboard);
         $this->assertStringContainsString('Doanh thu năm', $dashboard);
-        $this->assertStringContainsString('So với năm', $dashboard);
+        $this->assertStringContainsString('So với năm {{ $previousYear }}', $dashboard);
         $this->assertStringContainsString('Tình trạng tài liệu', $dashboard);
         $this->assertStringContainsString('Xu hướng 12 tháng', $dashboard);
         $this->assertStringContainsString('Tình hình doanh thu qua các năm', $dashboard);
@@ -91,14 +92,18 @@ class InvoicesApplicationContractTest extends TestCase
     {
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/index.blade.php'));
+        $invoiceService = file_get_contents(base_path('Modules/Invoices/Services/InvoiceService.php'));
 
-        $this->assertStringContainsString("'name' => trim((string) \$request->query('partner', ''))", $adapter);
+        $this->assertStringContainsString("'partner' => trim((string) \$request->query('partner', ''))", $adapter);
         $this->assertStringContainsString("'tax_rate' => 'all'", $adapter);
         $this->assertStringContainsString("'pdf_status' => 'all'", $adapter);
-        $this->assertStringContainsString('Tất cả đối tác', $list);
+        $this->assertStringContainsString('<x-search name="partner"', $list);
+        $this->assertStringContainsString('Xóa bộ lọc', $list);
         $this->assertStringContainsString('Giá trị cao nhất', $list);
         $this->assertStringContainsString('$showInvoiceTypeColumn = empty($filters[\'invoice_type\'])', $list);
         $this->assertStringContainsString('onchange="this.form.submit()"', $list);
+        $this->assertStringContainsString("\$query->where('name', 'like', '%'.\$partner.'%')", $invoiceService);
+        $this->assertStringContainsString("->orWhere('tax_code', 'like', '%'.\$partner.'%')", $invoiceService);
         $this->assertStringNotContainsString('>Áp dụng</button>', $list);
         $this->assertStringNotContainsString('>Thuế<', $list);
         $this->assertStringNotContainsString('>PDF<select', $list);
