@@ -213,6 +213,14 @@ class InvoiceService
             });
         }
 
+        $partner = trim((string) ($filters['partner'] ?? ''));
+        if ($partner !== '') {
+            $query->where(function (Builder $query) use ($partner): void {
+                $query->where('name', 'like', '%'.$partner.'%')
+                    ->orWhere('tax_code', 'like', '%'.$partner.'%');
+            });
+        }
+
         foreach (['lookup_code', 'symbol', 'invoice_number', 'type', 'tax_code', 'name', 'address', 'email', 'phone'] as $field) {
             if (filled($filters[$field] ?? null)) {
                 $query->where($field, 'like', '%'.$filters[$field].'%');
