@@ -1,6 +1,120 @@
 # ClientPortal Module — Collaboration Handoff
 
-- Last updated: 2026-09-01
+## Active delivery — Invoices PWA
+
+- Last updated: 2026-09-09
+- Active branch: `feat/clientportal-invoices-pwa`
+- Base at branch creation: `main` / `ed5b9078d17ebcf0142a261d876ae4d64d3a378c`
+- Objective: expose `Modules/Invoices` capabilities through a professional Mobile/Tablet-first ClientPortal application without moving Invoices business ownership into ClientPortal.
+- Status: **IMPLEMENTED ON BRANCH — UI ACCEPTED; FINAL BOUNDED CLI CLOSEOUT PENDING**.
+- Merge authorization: **NOT YET GIVEN**.
+
+Canonical boundary for this delivery:
+
+```text
+Modules/Invoices
+  owns models, schema, query rules, GDT integration, jobs, PDF/file services and exports
+
+Modules/ClientPortal/Applications/Invoices
+  owns web-guard authorization boundary, PWA routes, presentation, responsive workspace and client-safe orchestration
+```
+
+Implemented client routes:
+
+```text
+GET  /apps/invoices                  client.invoices.dashboard
+GET  /apps/invoices/list             client.invoices.index
+GET  /apps/invoices/list/{invoice}   client.invoices.show
+POST /apps/invoices/export           client.invoices.export
+GET  /apps/invoices/list/{invoice}/pdf client.invoices.pdf
+GET  /apps/invoices/sync             client.invoices.sync
+POST /apps/invoices/sync             client.invoices.sync.start
+```
+
+PWA UI/UX contract:
+
+- Mobile-first invoice cards; Tablet/Desktop table workspace.
+- shared adaptive ClientPortal navigation remains the only navigation truth source;
+- unified quick search supports partner name, MST, invoice number, symbol and lookup code;
+- Mobile filter sheet and touch targets are designed for installed PWA use;
+- pagination is preserved rather than replacing business navigation with unbounded infinite scroll;
+- invoice detail is a first-class screen;
+- PDF download goes through an authorized controller/service handoff and does not reveal storage paths;
+- export contract remains: selected rows => export selected; no selection => export all filtered records;
+- GDT sync is queue-backed and server-side; credentials/tokens are not placed into browser storage or client state;
+- Google Drive configuration, backup/restore and destructive operations remain Admin/Invoices-only.
+
+Validation added:
+
+```text
+tests/Feature/ClientPortal/InvoicesApplicationContractTest.php
+```
+
+### Validation baseline — do not rerun unchanged scopes
+
+The following rule is now part of this delivery handoff:
+
+> A test pack that has already PASSed does not need to be rerun after a later change unless that change touches the code, contract, route, shared component, permission boundary or build surface covered by that pack.
+
+Recorded acceptance/baseline for the current branch:
+
+```text
+Manual UI — Executive Dashboard: PASS
+Manual UI — Invoice list Desktop: PASS
+Manual UI — Invoice list Tablet: PASS
+Manual UI — Invoice list Mobile: PASS
+Manual UI — partner autocomplete / compact dropdown: PASS
+Manual UI — selected-vs-filtered export UX: PASS
+ClientPortal/ClientApps focused regression: previously PASSed during this delivery
+Focused Invoices PWA contract tests: previously PASSed during this delivery; rerun only after contract/service/view changes affecting them
+Latest recorded focused test batch: 62 passed (378 assertions)
+npm run build: PASS (Vite build completed successfully)
+```
+
+Testing policy for subsequent changes on this branch:
+
+```text
+UI-only Blade/Tailwind change in one Invoices PWA screen
+  -> manual UI for impacted breakpoint(s)
+  -> contract test only if markup contract changed
+  -> no broad ClientPortal/Invoices regression rerun
+
+Shared ClientPortal component change
+  -> impacted ClientPortal/ClientApps tests only
+  -> rerun Invoices PWA contract only if the component is used there
+
+Invoices service/query/export change
+  -> Invoices PWA contract + impacted Invoices focused tests
+  -> no unrelated ClientPortal regression unless client contract changed
+
+Route/authz/manifest change
+  -> route/authz/application contract tests + impacted ClientPortal focused tests
+
+Final pre-merge
+  -> run only the not-yet-recorded or invalidated bounded gates below
+```
+
+Pint policy for this delivery:
+
+- do **not** use full-repository `vendor/bin/pint --test` as the branch gate;
+- full-repository Pint currently reports large pre-existing/legacy style debt outside this delivery scope;
+- run Pint only against PHP files changed by `feat/clientportal-invoices-pwa` or files modified after their last recorded PASS;
+- unrelated Pint failures are not a reason to reformat or touch other modules in this branch.
+
+Required bounded acceptance before PR, with previously PASSed scopes reused unless invalidated:
+
+```text
+vendor/bin/pint --test <changed PHP files since last Pint PASS>
+php artisan test tests/Feature/ClientPortal/InvoicesApplicationContractTest.php  # only if invalidated by later change
+ClientPortal focused regression                                                 # only if invalidated
+Invoices focused regression                                                     # only if invalidated
+php artisan route:list --name=client.invoices                                   # if routes changed or not yet recorded
+npm run build                                                                   # already PASS; rerun only if frontend/build inputs change
+Manual UI: impacted Mobile/Tablet/Desktop surfaces only                         # current invoice UI PASS recorded
+```
+
+## Previous stable state
+
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
 - Completed MR: **MR-8 — PWA Header Account Menu**
@@ -11,7 +125,6 @@
 - Corrective merge commit: `0439b7675e6af8b9bb49046c8d941e43ff135ac0`
 - Completed refactor: **ClientPortal architecture boundaries — PR #124 MERGED / CLOSED**
 - Refactor merge commit: `d3396567312a2d04834956148ef48697b41f3330`
-- Current status: **MERGED / CLOSED — NO ACTIVE DELIVERY**
 
 ## Completed refactor — ClientPortal architecture boundaries
 
@@ -102,7 +215,7 @@ MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — P
 MR-8 — PWA Header Account Menu: MERGED / CLOSED — PR #68
 Corrective — Canonical web logout / route cache: MERGED / CLOSED — PR #86
 Refactor — ClientPortal architecture boundaries: MERGED / CLOSED — PR #124
-Next delivery: NOT DETERMINED
+Current delivery: Invoices PWA — ACTIVE
 ```
 
 ## MR-7 authentication contract
@@ -201,12 +314,9 @@ For the `tnv` production stack, `.env` changes require the platform optimize/rel
 
 The canonical logout corrective restores successful route caching during that optimization path.
 
-## Next-step boundary
-
-ClientPortal architecture-boundaries refactor is merged and closed. No new implementation is authorized by this handoff alone. The next delivery is `NOT DETERMINED` and requires a new explicit objective before any branch or code change.
-
-Deferred debt remains intentionally quarantined:
+## Deferred debt
 
 - relocate/remove legacy root Muasamcong export jobs only with explicit queued-payload proof;
 - remove root model aliases only after caller proof;
-- avoid speculative consolidation of small ClientPortal resolver/presenter services without concrete duplication or caller evidence.
+- avoid speculative consolidation of small ClientPortal resolver/presenter services without concrete duplication or caller evidence;
+- keep Invoices Google Drive configuration, backup/restore and destructive recovery outside ClientPortal PWA unless a separate security/operations scope explicitly authorizes them.

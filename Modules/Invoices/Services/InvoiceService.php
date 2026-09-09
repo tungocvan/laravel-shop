@@ -103,7 +103,7 @@ class InvoiceService
 
         $yearly = Invoices::query()
             ->whereNotNull('issued_date')
-            ->selectRaw($yearExpression.' as year, COALESCE(SUM(CASE WHEN invoice_type="sold" THEN total_amount ELSE 0 END), 0) as sold_total, COALESCE(SUM(CASE WHEN invoice_type="purchase" THEN total_amount ELSE 0 END), 0) as purchase_total')
+            ->selectRaw($yearExpression.' as year, COUNT(*) as invoice_count, COALESCE(SUM(CASE WHEN invoice_type="sold" THEN total_amount ELSE 0 END), 0) as sold_total, COALESCE(SUM(CASE WHEN invoice_type="purchase" THEN total_amount ELSE 0 END), 0) as purchase_total')
             ->groupByRaw($yearExpression)
             ->orderByDesc('year')
             ->get()
@@ -116,6 +116,39 @@ class InvoiceService
             'purchase_customers' => (int) ($summary?->purchase_customers ?? 0),
             'yearly' => $yearly,
         ];
+    }
+
+    public function monthlyPerformance(int $year): array
+    {
+        $monthExpression = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%m', issued_date) AS INTEGER)"
+            : 'MONTH(issued_date)';
+
+        $rows = Invoices::query()
+            ->whereNotNull('issued_date')
+            ->whereDate('issued_date', '>=', sprintf('%04d-01-01', $year))
+            ->whereDate('issued_date', '<=', sprintf('%04d-12-31', $year))
+            ->selectRaw($monthExpression.' as month')
+            ->selectRaw('COUNT(*) as invoice_count')
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_total")
+            ->selectRaw('COALESCE(SUM(vat_amount), 0) as vat_total')
+            ->groupByRaw($monthExpression)
+            ->orderByRaw($monthExpression)
+            ->get()
+            ->keyBy(fn ($row) => (int) $row->month);
+
+        return collect(range(1, 12))->map(function (int $month) use ($rows): array {
+            $row = $rows->get($month);
+
+            return [
+                'month' => $month,
+                'invoice_count' => (int) ($row?->invoice_count ?? 0),
+                'sold_total' => $row?->sold_total ?? 0,
+                'purchase_total' => $row?->purchase_total ?? 0,
+                'vat_total' => $row?->vat_total ?? 0,
+            ];
+        })->all();
     }
 
     public function selected(array $ids): Collection
@@ -168,6 +201,25 @@ class InvoiceService
     private function filteredQuery(array $filters, bool $includeTaxRate = true): Builder
     {
         $query = Invoices::query();
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $query->where(function (Builder $query) use ($search): void {
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('tax_code', 'like', '%'.$search.'%')
+                    ->orWhere('invoice_number', 'like', '%'.$search.'%')
+                    ->orWhere('symbol', 'like', '%'.$search.'%')
+                    ->orWhere('lookup_code', 'like', '%'.$search.'%');
+            });
+        }
+
+        $partner = trim((string) ($filters['partner'] ?? ''));
+        if ($partner !== '') {
+            $query->where(function (Builder $query) use ($partner): void {
+                $query->where('name', 'like', '%'.$partner.'%')
+                    ->orWhere('tax_code', 'like', '%'.$partner.'%');
+            });
+        }
 
         foreach (['lookup_code', 'symbol', 'invoice_number', 'type', 'tax_code', 'name', 'address', 'email', 'phone'] as $field) {
             if (filled($filters[$field] ?? null)) {
