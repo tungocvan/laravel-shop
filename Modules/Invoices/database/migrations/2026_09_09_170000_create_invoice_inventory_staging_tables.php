@@ -12,10 +12,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('invoice_id')->constrained('invoices')->cascadeOnDelete();
             $table->string('source', 32)->default('gdt_detail');
-            $table->char('payload_hash', 64);
-            $table->string('status', 32)->default('FETCHED');
-            $table->json('raw_payload');
-            $table->timestamp('fetched_at');
+            $table->char('payload_hash', 64)->nullable();
+            $table->string('status', 32)->default('PENDING');
+            $table->json('raw_payload')->nullable();
+            $table->unsignedInteger('attempt_count')->default(0);
+            $table->timestamp('last_attempt_at')->nullable();
+            $table->timestamp('fetched_at')->nullable();
             $table->timestamp('normalized_at')->nullable();
             $table->text('last_error')->nullable();
             $table->timestamps();
