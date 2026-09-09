@@ -36,6 +36,10 @@ final class InventoryDashboardService
             ->whereBetween('expiry_date', [now()->toDateString(), now()->addDays(90)->toDateString()])
             ->count();
 
+        $pendingInvoiceInbox = Schema::hasTable('inventory_invoice_inbox')
+            ? DB::table('inventory_invoice_inbox')->whereIn('processing_status', ['RECEIVED', 'MATCHING', 'REVIEW_REQUIRED', 'READY'])->count()
+            : 0;
+
         return [
             'available' => true,
             'generated_at' => now(),
@@ -43,6 +47,7 @@ final class InventoryDashboardService
                 'warehouses' => DB::table('inventory_warehouses')->where('is_active', true)->count(),
                 'items' => DB::table('inventory_items')->where('is_active', true)->count(),
                 'draft_receipts' => DB::table('inventory_receipts')->where('status', 'DRAFT')->count(),
+                'invoice_inbox_pending' => $pendingInvoiceInbox,
                 'low_stock' => $lowStock,
                 'expiring_lots' => $expiringLots,
                 'pending_stocktakes' => DB::table('inventory_stocktakes')->whereIn('status', ['DRAFT', 'COUNTED'])->count(),
@@ -77,7 +82,7 @@ final class InventoryDashboardService
         return [
             'available' => false,
             'generated_at' => now(),
-            'metrics' => array_fill_keys(['warehouses', 'items', 'draft_receipts', 'low_stock', 'expiring_lots', 'pending_stocktakes', 'movements_today'], 0),
+            'metrics' => array_fill_keys(['warehouses', 'items', 'draft_receipts', 'invoice_inbox_pending', 'low_stock', 'expiring_lots', 'pending_stocktakes', 'movements_today'], 0),
             'recent_movements' => collect(),
             'warnings' => [['level' => 'danger', 'message' => 'Schema Inventory chưa sẵn sàng. Hãy chạy migration trước khi vận hành Dashboard.']],
         ];
