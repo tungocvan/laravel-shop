@@ -43,7 +43,17 @@
         @foreach([['label' => 'Khách hàng', 'title' => 'Top bán ra', 'rows' => $partnerTopSold, 'amount' => 'sold_total', 'count' => 'sold_count', 'dark' => true], ['label' => 'Nhà cung cấp', 'title' => 'Top mua vào', 'rows' => $partnerTopPurchase, 'amount' => 'purchase_total', 'count' => 'purchase_count', 'dark' => false]] as $ranking)
             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5 xl:p-6">
                 <div class="flex items-end justify-between gap-3"><div><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 sm:text-xs">{{ $ranking['label'] }}</p><h2 class="mt-1 text-lg font-black text-slate-950 sm:text-xl">{{ $ranking['title'] }}</h2></div><span class="text-[11px] font-semibold text-slate-400 sm:text-xs">Top 5</span></div>
-                <div class="mt-3 space-y-2 sm:mt-5 sm:space-y-3">@forelse($ranking['rows'] as $row)<a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="flex items-center gap-2.5 rounded-xl bg-slate-50 p-2.5 transition hover:bg-slate-100 sm:gap-3 sm:rounded-2xl sm:p-3"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $ranking['dark'] ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-700' }} text-xs font-black sm:h-9 sm:w-9 sm:text-sm">{{ $loop->iteration }}</span><span class="min-w-0 flex-1"><strong class="block truncate text-xs text-slate-950 sm:text-sm">{{ $row->partner_name }}</strong><span class="block truncate text-[10px] text-slate-500 sm:text-xs">MST {{ $row->partner_tax_code }} · {{ number_format($row->{$ranking['count']}) }} HĐ</span></span><strong class="shrink-0 whitespace-nowrap text-right text-xs text-slate-950 sm:text-sm">{{ $money($row->{$ranking['amount']}) }}</strong></a>@empty<p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có dữ liệu trong kỳ.</p>@endforelse</div>
+                <div class="mt-3 space-y-2 sm:mt-5 sm:space-y-3">
+                    @forelse($ranking['rows'] as $row)
+                        <a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-xl bg-slate-50 p-2.5 transition hover:bg-slate-100 sm:gap-x-3 sm:rounded-2xl sm:p-3 xl:grid-cols-[auto_minmax(0,1fr)_auto]">
+                            <span class="row-span-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $ranking['dark'] ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-700' }} text-xs font-black sm:h-9 sm:w-9 sm:text-sm xl:row-span-1">{{ $loop->iteration }}</span>
+                            <span class="min-w-0"><strong class="block truncate text-xs text-slate-950 sm:text-sm">{{ $row->partner_name }}</strong><span class="block truncate text-[10px] text-slate-500 sm:text-xs">MST {{ $row->partner_tax_code }} · {{ number_format($row->{$ranking['count']}) }} HĐ</span></span>
+                            <strong class="col-start-2 whitespace-nowrap text-left text-xs font-black text-slate-950 sm:text-sm xl:col-start-3 xl:row-start-1 xl:text-right">{{ $money($row->{$ranking['amount']}) }}</strong>
+                        </a>
+                    @empty
+                        <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có dữ liệu trong kỳ.</p>
+                    @endforelse
+                </div>
             </div>
         @endforeach
     </section>
