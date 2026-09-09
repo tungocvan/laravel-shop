@@ -20,21 +20,15 @@ final class InvoiceInboxWorkspace extends Component
     use WithPagination;
 
     public string $search = '';
-
     public string $status = 'all';
-
     public int $perPage = 25;
-
     public ?int $selectedInboxId = null;
-
     public ?int $warehouseId = null;
-
     public bool $showSourcePicker = false;
-
     public string $sourceSearch = '';
-
+    public array $selectedLineIds = [];
+    public ?int $bulkItemId = null;
     public ?string $errorMessage = null;
-
     public ?string $successMessage = null;
 
     private const PAGE_SIZES = [10, 25, 50, 100];
@@ -71,8 +65,29 @@ final class InvoiceInboxWorkspace extends Component
     {
         InvoiceInbox::query()->findOrFail($id);
         $this->selectedInboxId = $id;
+        $this->selectedLineIds = [];
+        $this->bulkItemId = null;
         $this->errorMessage = null;
         $this->successMessage = null;
+    }
+
+    public function selectAllUnresolved(): void
+    {
+        if ($this->selectedInboxId === null) {
+            $this->selectedLineIds = [];
+            return;
+        }
+
+        $this->selectedLineIds = InvoiceInboxLine::query()
+            ->where('inbox_id', $this->selectedInboxId)
+            ->where('classification', 'UNRESOLVED')
+            ->pluck('id')->map(fn ($id) => (string) $id)->all();
+    }
+
+    public function clearSelectedLines(): void
+    {
+        $this->selectedLineIds = [];
+        $this->bulkItemId = null;
     }
 
     public function syncSourceInvoice(int $invoiceId): void
@@ -81,6 +96,7 @@ final class InvoiceInboxWorkspace extends Component
         $this->runAction(function () use ($invoiceId): string {
             $inbox = app(InvoiceInventoryHandoffService::class)->handoff($invoiceId);
             $this->selectedInboxId = $inbox->id;
+            $this->selectedLineIds = [];
             $this->showSourcePicker = false;
 
             return 'Đã đưa hóa đơn vào Inbox. Tồn kho chưa thay đổi.';
@@ -99,6 +115,27 @@ final class InvoiceInboxWorkspace extends Component
         });
     }
 
+    public function bulkAssignSelected(): void
+    {
+        abort_unless($this->canManageReceipt(), 403);
+        $this->runAction(function (): string {
+            if ($this->bulkItemId === null) {
+                throw new DomainException('Chọn InventoryItem áp dụng cho các dòng đã chọn.');
+            }
+
+            $item = InventoryItem::query()->where('is_active', true)->findOrFail($this->bulkItemId);
+            $lines = $this->selectedOwnedLines();
+            foreach ($lines as $line) {
+                app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
+            }
+
+            $count = $lines->count();
+            $this->clearSelectedLines();
+
+            return "Đã mapping {$count} dòng vào {$item->sku} — {$item->display_name}.";
+        });
+    }
+
     public function markNonStock(int $lineId): void
     {
         abort_unless($this->canManageReceipt(), 403);
@@ -106,6 +143,22 @@ final class InvoiceInboxWorkspace extends Component
             app(InventoryItemMatchingService::class)->markNonStock($this->ownedLine($lineId));
 
             return 'Đã đánh dấu dòng NON_STOCK.';
+        });
+    }
+
+    public function bulkMarkNonStock(): void
+    {
+        abort_unless($this->canManageReceipt(), 403);
+        $this->runAction(function (): string {
+            $lines = $this->selectedOwnedLines();
+            foreach ($lines as $line) {
+                app(InventoryItemMatchingService::class)->markNonStock($line);
+            }
+
+            $count = $lines->count();
+            $this->clearSelectedLines();
+
+            return "Đã đánh dấu {$count} dòng là NON_STOCK.";
         });
     }
 
@@ -207,6 +260,30 @@ final class InvoiceInboxWorkspace extends Component
         }
 
         return InvoiceInboxLine::query()->with('inbox')->where('inbox_id', $this->selectedInboxId)->findOrFail($lineId);
+    }
+
+    private function selectedOwnedLines()
+    {
+        if ($this->selectedInboxId === null) {
+            throw new DomainException('Chọn hóa đơn Inbox trước.');
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $this->selectedLineIds))));
+        if ($ids === []) {
+            throw new DomainException('Chọn ít nhất một dòng cần xử lý.');
+        }
+
+        $lines = InvoiceInboxLine::query()
+            ->with('inbox')
+            ->where('inbox_id', $this->selectedInboxId)
+            ->whereIn('id', $ids)
+            ->get();
+
+        if ($lines->count() !== count($ids)) {
+            throw new DomainException('Có dòng đã chọn không thuộc hóa đơn hiện tại.');
+        }
+
+        return $lines;
     }
 
     private function canManageReceipt(): bool
