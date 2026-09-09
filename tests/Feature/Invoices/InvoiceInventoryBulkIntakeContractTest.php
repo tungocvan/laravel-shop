@@ -30,14 +30,14 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
 
         $this->assertStringContainsString("['status' => 'PENDING']", $service);
         $this->assertStringContainsString("'status' => 'FETCHING'", $service);
-        $this->assertStringContainsString("'attempt_count' => ((int) $snapshot->attempt_count) + 1", $service);
+        $this->assertStringContainsString("'attempt_count' => ((int) \$snapshot->attempt_count) + 1", $service);
         $this->assertStringContainsString("hash('sha256'", $service);
-        $this->assertStringContainsString("$snapshot->payload_hash === $hash", $service);
+        $this->assertStringContainsString('\$snapshot->payload_hash === \$hash', $service);
         $this->assertStringContainsString("'status' => 'NORMALIZED'", $service);
         $this->assertStringContainsString("'status' => 'ERROR'", $service);
         $this->assertStringContainsString("'last_error' => mb_substr", $service);
-        $this->assertStringContainsString("'raw_payload' => $detail", $service);
-        $this->assertStringContainsString("'raw_payload' => $line", $service);
+        $this->assertStringContainsString("'raw_payload' => \$detail", $service);
+        $this->assertStringContainsString("'raw_payload' => \$line", $service);
     }
 
     #[Test]
