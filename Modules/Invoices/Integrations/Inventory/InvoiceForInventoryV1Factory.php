@@ -54,6 +54,7 @@ final class InvoiceForInventoryV1Factory
                 'expiry_date' => $line->expiry_date?->toDateString(),
                 'manufacture_date' => $line->manufacture_date?->toDateString(),
                 'metadata' => [
+                    'tax_rate' => $line->tax_rate,
                     'raw_description' => $line->raw_description,
                     'strength' => $line->strength,
                     'dosage_form' => $line->dosage_form,
