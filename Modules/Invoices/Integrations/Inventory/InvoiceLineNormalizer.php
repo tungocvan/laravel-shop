@@ -6,6 +6,13 @@ use Carbon\CarbonImmutable;
 
 final class InvoiceLineNormalizer
 {
+    public const VERSION = 'deterministic-v3';
+
+    public function version(): string
+    {
+        return self::VERSION;
+    }
+
     public function normalize(array $line): array
     {
         $raw = (string) ($line['ten'] ?? '');
@@ -37,7 +44,7 @@ final class InvoiceLineNormalizer
             'manufacture_date' => $manufacture ?? $this->dateValue($line['nsx'] ?? null),
             'expiry_date' => $expiry ?? $this->dateValue($line['hsd'] ?? $line['expiry_date'] ?? null),
             'normalization_status' => 'NORMALIZED',
-            'normalization_meta' => ['parser' => 'deterministic-v3'],
+            'normalization_meta' => ['parser' => self::VERSION],
         ];
     }
 
