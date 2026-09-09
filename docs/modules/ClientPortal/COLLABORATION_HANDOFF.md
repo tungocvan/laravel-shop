@@ -1,318 +1,166 @@
 # ClientPortal Module — Collaboration Handoff
 
-## Active delivery — Invoices PWA
+## Current delivery — Invoices Partner Report PWA
 
 - Last updated: 2026-09-09
-- Active branch: `feat/clientportal-invoices-pwa`
-- Base at branch creation: `main` / `ed5b9078d17ebcf0142a261d876ae4d64d3a378c`
-- Objective: expose `Modules/Invoices` capabilities through a professional Mobile/Tablet-first ClientPortal application without moving Invoices business ownership into ClientPortal.
-- Status: **IMPLEMENTED ON BRANCH — UI ACCEPTED; FINAL BOUNDED CLI CLOSEOUT PENDING**.
-- Merge authorization: **NOT YET GIVEN**.
+- Active branch: `feat/clientportal-invoices-partner-report`
+- Base branch: `main`
+- Base merge checkpoint: `b0f4d18ee7430e16b302ac43914c3dbac3065e40`
+- Status: **IMPLEMENTED — UI PASS — BOUNDED CLI PASS — READY FOR PR**
+- Closeout: `docs/modules/ClientPortal/INVOICES_PARTNER_REPORT_CLOSEOUT.md`
 
-Canonical boundary for this delivery:
+### Objective
+
+Expose the Admin partner-report capability as a dedicated executive ClientPortal/PWA experience without moving Invoices business ownership into ClientPortal and without reusing Admin authentication or Admin presentation.
+
+### Canonical ownership
 
 ```text
 Modules/Invoices
-  owns models, schema, query rules, GDT integration, jobs, PDF/file services and exports
+  owns invoice/partner business data
+  owns partner aggregation/query rules
+  owns InvoicePartnerReportService
 
 Modules/ClientPortal/Applications/Invoices
-  owns web-guard authorization boundary, PWA routes, presentation, responsive workspace and client-safe orchestration
+  owns PWA routes
+  owns web-guard/client-feature authorization
+  owns executive responsive presentation
+  owns client-safe orchestration
 ```
 
-Implemented client routes:
+ClientPortal does not copy invoice models/schema/core services and does not reuse `auth:admin`, Admin Blade or Admin Livewire for this delivery.
+
+### Delivered client capability
 
 ```text
-GET  /apps/invoices                  client.invoices.dashboard
-GET  /apps/invoices/list             client.invoices.index
-GET  /apps/invoices/list/{invoice}   client.invoices.show
-POST /apps/invoices/export           client.invoices.export
-GET  /apps/invoices/list/{invoice}/pdf client.invoices.pdf
-GET  /apps/invoices/sync             client.invoices.sync
-POST /apps/invoices/sync             client.invoices.sync.start
+GET /apps/invoices/partners
+name: client.invoices.partners
+permission: client.invoices.partners.view
 ```
 
-PWA UI/UX contract:
+Implemented Partner Report UX:
 
-- Mobile-first invoice cards; Tablet/Desktop table workspace.
-- shared adaptive ClientPortal navigation remains the only navigation truth source;
-- unified quick search supports partner name, MST, invoice number, symbol and lookup code;
-- Mobile filter sheet and touch targets are designed for installed PWA use;
-- pagination is preserved rather than replacing business navigation with unbounded infinite scroll;
-- invoice detail is a first-class screen;
-- PDF download goes through an authorized controller/service handoff and does not reveal storage paths;
-- export contract remains: selected rows => export selected; no selection => export all filtered records;
-- GDT sync is queue-backed and server-side; credentials/tokens are not placed into browser storage or client state;
+- executive partner KPIs;
+- Top bán ra;
+- Top mua vào;
+- partner search by name or MST using the shared compact autocomplete pattern;
+- relationship filter: all / customer / supplier;
+- relationship-aware default sorting: customer => sold descending, supplier => purchase descending;
+- partner detail;
+- pagination;
+- Mobile/Tablet card presentation below `xl`;
+- Desktop table presentation from `xl` upward;
+- money values use stable single-line presentation where appropriate;
+- responsive filter panel for Mobile/Tablet;
+- Desktop horizontal filter workspace remains available.
+
+### Invoice List follow-up included in this branch
+
+`/apps/invoices/list` now supports `Tháng = Cả năm`.
+
+Contract:
+
+- empty `month` => full selected year (`01/01` through `31/12`);
+- explicit month => selected month only;
+- no `month` parameter on a normal initial request keeps the established current-month default;
+- header text reflects either `Cả năm YYYY` or `Tháng MM/YYYY`;
+- search, pagination and export preserve the selected yearly/monthly scope;
+- export contract remains selected rows => selected only, no selection => all filtered.
+
+### Validation evidence
+
+Manual UI acceptance: **PASS**
+
+```text
+Partner report Desktop: PASS
+Partner report Tablet: PASS
+Partner report Mobile/PWA: PASS
+Partner autocomplete: PASS
+Relationship-aware sort: PASS
+Top sold/top purchase amount visibility on Tablet/Mobile: PASS
+Invoice List `Cả năm`: PASS
+```
+
+Final bounded CLI acceptance: **PASS**
+
+```text
+php artisan test tests/Feature/ClientPortal/InvoicesPartnerReportPwaContractTest.php
+PASS
+
+vendor/bin/pint --test <changed PHP files for this delivery>
+PASS
+```
+
+The first focused run exposed only stale responsive assertions (`md` breakpoint) and one Pint style issue in `InvoicePartnerReportService.php`; both were corrected. The contract now protects the current responsive boundary (`xl:hidden` cards / `xl:block` desktop table).
+
+### Validation policy
+
+Previously PASSed Invoices PWA tests/build/UI scopes are not rerun unless later changes invalidate them. Full-repository Pint is not a merge gate because the repository contains unrelated legacy formatting debt. Only changed/invalidated scopes are gates for this delivery.
+
+### Security / operations boundary
+
+- GDT credentials/tokens remain server-side only.
+- No GDT token is placed in localStorage, IndexedDB, PWA cache, JS, Blade or public component state.
 - Google Drive configuration, backup/restore and destructive operations remain Admin/Invoices-only.
+- No migration, schema rewrite or destructive data operation is part of this delivery.
 
-Validation added:
+## Previous completed Invoices PWA delivery
 
-```text
-tests/Feature/ClientPortal/InvoicesApplicationContractTest.php
-```
+The base Invoices PWA delivery was merged through PR #173 and subsequently corrected by selected-month KPI hotfix PR #175.
 
-### Validation baseline — do not rerun unchanged scopes
-
-The following rule is now part of this delivery handoff:
-
-> A test pack that has already PASSed does not need to be rerun after a later change unless that change touches the code, contract, route, shared component, permission boundary or build surface covered by that pack.
-
-Recorded acceptance/baseline for the current branch:
+Canonical Invoices PWA routes already on `main` include:
 
 ```text
-Manual UI — Executive Dashboard: PASS
-Manual UI — Invoice list Desktop: PASS
-Manual UI — Invoice list Tablet: PASS
-Manual UI — Invoice list Mobile: PASS
-Manual UI — partner autocomplete / compact dropdown: PASS
-Manual UI — selected-vs-filtered export UX: PASS
-ClientPortal/ClientApps focused regression: previously PASSed during this delivery
-Focused Invoices PWA contract tests: previously PASSed during this delivery; rerun only after contract/service/view changes affecting them
-Latest recorded focused test batch: 62 passed (378 assertions)
-npm run build: PASS (Vite build completed successfully)
+GET  /apps/invoices
+GET  /apps/invoices/list
+GET  /apps/invoices/list/{invoice}
+POST /apps/invoices/export
+GET  /apps/invoices/list/{invoice}/pdf
+GET  /apps/invoices/sync
+POST /apps/invoices/sync
 ```
 
-Testing policy for subsequent changes on this branch:
+Base PWA validation previously recorded:
 
 ```text
-UI-only Blade/Tailwind change in one Invoices PWA screen
-  -> manual UI for impacted breakpoint(s)
-  -> contract test only if markup contract changed
-  -> no broad ClientPortal/Invoices regression rerun
-
-Shared ClientPortal component change
-  -> impacted ClientPortal/ClientApps tests only
-  -> rerun Invoices PWA contract only if the component is used there
-
-Invoices service/query/export change
-  -> Invoices PWA contract + impacted Invoices focused tests
-  -> no unrelated ClientPortal regression unless client contract changed
-
-Route/authz/manifest change
-  -> route/authz/application contract tests + impacted ClientPortal focused tests
-
-Final pre-merge
-  -> run only the not-yet-recorded or invalidated bounded gates below
+Executive Dashboard UI: PASS
+Invoice List Desktop: PASS
+Invoice List Tablet: PASS
+Invoice List Mobile: PASS
+Partner autocomplete: PASS
+Selected-vs-filtered export UX: PASS
+Focused ClientPortal/Invoices tests: PASS
+Latest recorded focused batch from base delivery: 62 passed (378 assertions)
+npm run build: PASS
 ```
 
-Pint policy for this delivery:
+## Stable ClientPortal architecture
 
-- do **not** use full-repository `vendor/bin/pint --test` as the branch gate;
-- full-repository Pint currently reports large pre-existing/legacy style debt outside this delivery scope;
-- run Pint only against PHP files changed by `feat/clientportal-invoices-pwa` or files modified after their last recorded PASS;
-- unrelated Pint failures are not a reason to reformat or touch other modules in this branch.
-
-Required bounded acceptance before PR, with previously PASSed scopes reused unless invalidated:
-
-```text
-vendor/bin/pint --test <changed PHP files since last Pint PASS>
-php artisan test tests/Feature/ClientPortal/InvoicesApplicationContractTest.php  # only if invalidated by later change
-ClientPortal focused regression                                                 # only if invalidated
-Invoices focused regression                                                     # only if invalidated
-php artisan route:list --name=client.invoices                                   # if routes changed or not yet recorded
-npm run build                                                                   # already PASS; rerun only if frontend/build inputs change
-Manual UI: impacted Mobile/Tablet/Desktop surfaces only                         # current invoice UI PASS recorded
-```
-
-## Previous stable state
-
-- Repository: `tungocvan/laravel-shop`
-- Stable branch: `main`
-- Completed MR: **MR-8 — PWA Header Account Menu**
-- MR-8 pull request: **#68 — MERGED / CLOSED**
-- MR-8 merge commit: `90290f492fde65fdac9b179705285273c69cd317`
-- MR-8 status: **MERGED / CLOSED**
-- Completed corrective: **Canonical web logout / route cache — PR #86 MERGED / CLOSED**
-- Corrective merge commit: `0439b7675e6af8b9bb49046c8d941e43ff135ac0`
-- Completed refactor: **ClientPortal architecture boundaries — PR #124 MERGED / CLOSED**
-- Refactor merge commit: `d3396567312a2d04834956148ef48697b41f3330`
-
-## Completed refactor — ClientPortal architecture boundaries
-
-The approved refactor consolidated the architecture-contract, portal-boundary and Muasamcong adapter ownership phases into one bounded delivery to reduce repeated pull/test cycles.
-
-Canonical ownership now established on `main`:
-
-- `docs/modules/ClientPortal/MODULE.md` is the architecture contract for the module;
-- ClientPortal remains a `support` module with `Auth` as its only direct module dependency;
-- Request and Muasamcong are adapter/source integrations rather than direct module dependencies;
-- ClientPortal core owns launcher/PWA shell, client permission/presentation infrastructure and adapter discovery;
-- Auth owns authentication/session/logout implementation;
-- Muasamcong-specific client state has canonical models under `Modules/ClientPortal/Applications/Muasamcong/Models`;
-- legacy root `Modules/ClientPortal/Models/{PriceListExport,PublicShare,SyncRequest}` classes remain compatibility aliases only;
-- existing `client_portal_*` tables and migrations remain unchanged, so the refactor introduced no destructive schema/data migration.
-
-Runtime callers moved to canonical adapter models:
-
-```text
-MuasamcongApplicationController -> Applications/Muasamcong/Models/SyncRequest
-SyncPricingResultsJob           -> Applications/Muasamcong/Models/SyncRequest
-MuasamcongPriceListController   -> Applications/Muasamcong/Models/PriceListExport
-MuasamcongShareManagementController -> Applications/Muasamcong/Models/PublicShare
-PublicDrugShareController       -> Applications/Muasamcong/Models/PublicShare
-```
-
-Queue compatibility boundary retained after merge:
-
-- root jobs `GeneratePriceListExport`, `GeneratePriceListPdf`, and `SendPriceListExportEmail` remain in their existing class names;
-- they are Muasamcong-specific architecture debt, but moving/removing serialized job class names may break already queued payloads;
-- therefore they remain classified `QUARANTINE / DEFER` until explicit queue/caller proof exists.
-
-Safe-removal boundary retained after merge:
-
-- no table or migration removal;
-- no root model deletion;
-- no root queued-job deletion or rename;
-- compatibility aliases may only be removed in a future caller/queue-proof cleanup.
-
-Architecture regression coverage is provided by `tests/Feature/ClientApps/ClientPortalArchitectureContractTest.php`, including the direct dependency contract, canonical model/table mapping, legacy compatibility aliases, and runtime adapter source checks preventing new `Modules\ClientPortal\Models\*` imports in the migrated Muasamcong paths.
-
-Final acceptance evidence before merge:
-
-```text
-Changed-PHP Pint gate: PASS
-ClientPortalArchitectureContractTest: PASS
-ClientApps regression: PASS
-Manual UI smoke: PASS
-Working tree: clean
-Branch synchronization: current main merged before PR creation
-```
-
-During final UI verification, the Wishlist icon exposed that the refactor branch predated the Website hotfix which changed the service reference from the removed `Modules\Website\Services\WishlistService` to canonical `Modules\Product\Services\WishlistService`. The refactor branch was synchronized with `main` containing PR #123 rather than duplicating that Website/Product ownership fix inside ClientPortal. UI verification passed after synchronization.
-
-Merge checkpoint:
-
-```text
-PR: #124
-PR state: CLOSED
-Merged: true
-Base: main
-Source branch: refactor/clientportal-architecture-boundaries
-Source head: 1bbf14fb0090483e2ef0103bdf9e282ab0ca491f
-Merge commit: d3396567312a2d04834956148ef48697b41f3330
-Refactor: MERGED / CLOSED
-```
-
-## Stable architecture
-
-ClientPortal remains an authenticated Client/WebApp platform that can host multiple applications without placing Module-specific business logic in Portal core.
+ClientPortal remains an authenticated Client/WebApp platform that can host multiple applications without placing module-specific business logic into ClientPortal core.
 
 Core rule:
 
 > Không được thêm logic đặc thù Module vào ClientPortal core.
 
-Auth owns shared authentication/session/logout behavior; ClientPortal owns PWA presentation and consumes the canonical Auth contract.
+Auth owns authentication/session/logout behavior. ClientPortal owns PWA presentation and consumes canonical module/application contracts.
 
-## Roadmap checkpoint
-
-```text
-MR-1 — Portal Architecture Foundation: MERGED / CLOSED
-MR-2 — Adaptive Navigation: MERGED / CLOSED
-MR-3 — Dynamic Portal Home: MERGED / CLOSED
-MR-4 — Muasamcong reference migration: MERGED / CLOSED
-MR-5 — PWA External File Download & Return UX: MERGED / CLOSED — PR #64
-MR-6 — PWA Install UX: MERGED / CLOSED — PR #65
-MR-7 — PWA Account Registration & Google Authentication: MERGED / CLOSED — PR #67
-MR-8 — PWA Header Account Menu: MERGED / CLOSED — PR #68
-Corrective — Canonical web logout / route cache: MERGED / CLOSED — PR #86
-Refactor — ClientPortal architecture boundaries: MERGED / CLOSED — PR #124
-Current delivery: Invoices PWA — ACTIVE
-```
-
-## MR-7 authentication contract
-
-- ordinary local registration uses email OTP activation;
-- Google authentication uses verified provider email and safe linking rules;
-- ClientPortal/PWA uses the shared `App\Models\User` and `web` guard;
-- Auth owns session regeneration, CSRF, authorization and logout;
-- PWA Google flow does not persist provider access/refresh tokens;
-- successful PWA authentication returns to `/my-apps`.
-
-Production Google credentials/callback enablement remains an operational concern separate from source acceptance.
-
-## MR-8 account-menu contract
-
-- one shared ClientPortal account menu for launcher and application shell;
-- read-only `/my-apps/account` information;
-- bounded `/my-apps/settings` using Auth-owned Google linking;
-- canonical CSRF-protected Auth logout;
-- no dependency on Admin-only Account presentation;
-- ClientPortal owns menu/account/settings presentation while Auth owns authentication/logout behavior.
-
-MR-8 acceptance:
+Historical stable checkpoints:
 
 ```text
-Tests: 130 passed (834 assertions)
-Duration: 8.52s
-Manual desktop/tablet/mobile/standalone UI: PASS
-PR: #68 — MERGED / CLOSED
-Merge commit: 90290f492fde65fdac9b179705285273c69cd317
+MR-1 Portal Architecture Foundation: MERGED
+MR-2 Adaptive Navigation: MERGED
+MR-3 Dynamic Portal Home: MERGED
+MR-4 Muasamcong reference migration: MERGED
+MR-5 PWA External File Download & Return UX: MERGED — PR #64
+MR-6 PWA Install UX: MERGED — PR #65
+MR-7 PWA Account Registration & Google Authentication: MERGED — PR #67
+MR-8 PWA Header Account Menu: MERGED — PR #68
+Canonical web logout corrective: MERGED — PR #86
+ClientPortal architecture boundaries refactor: MERGED — PR #124
+Invoices executive PWA: MERGED — PR #173
+Invoices selected-month KPI hotfix: MERGED — PR #175
+Invoices Partner Report PWA: READY FOR PR
 ```
-
-## Corrective — Canonical Web Logout / Route Cache
-
-Production optimization after MR-8 exposed a pre-existing duplicate global route name `logout`:
-
-```text
-Modules/Auth:    POST /logout          -> name logout
-Modules/Website: POST /website/logout  -> name logout
-```
-
-The corrective keeps Auth as the single owner of shared web logout and removes the competing Website endpoint.
-
-Canonical contract:
-
-```text
-POST /logout
-name: logout
-owner: Modules/Auth
-handler: Modules\Auth\Http\Controllers\AuthController::clientLogout
-legacy /website/logout: removed
-admin.logout: unchanged
-```
-
-Regression protection guarantees:
-
-- exactly one route is named `logout`;
-- canonical logout is `POST /logout`;
-- canonical action is Auth `clientLogout`;
-- legacy `/website/logout` is absent;
-- admin logout remains independently owned by `admin.logout`.
-
-Acceptance evidence:
-
-```text
-php artisan route:cache
-PASS — Routes cached successfully.
-
-ClientApps impacted regression
-111 passed (754 assertions)
-Duration: 8.52s
-
-AuthGuardSeparationTest after corrective contract
-6 passed (35 assertions)
-Duration: 0.54s
-```
-
-Full-project regression is not required for this bounded Auth/Website/ClientPortal corrective. No migration, schema, manifest, service-worker or environment-variable change was introduced.
-
-Merge checkpoint:
-
-```text
-PR: #86
-PR state: CLOSED
-Merged: true
-Base: main
-Source branch: fix/auth-canonical-web-logout-route-cache
-Source head: 1be9453b112efe65290da50aa61cebad36e0f7bb
-Merge commit: 0439b7675e6af8b9bb49046c8d941e43ff135ac0
-Corrective: MERGED / CLOSED
-```
-
-## Production operational note
-
-For the `tnv` production stack, `.env` changes require the platform optimize/reload operation so long-lived PHP/web processes receive the new environment. The established operational path is `platform-v2 deploy optimize tnv` / `OPTIMIZE / RELOAD .ENV: tnv`.
-
-The canonical logout corrective restores successful route caching during that optimization path.
 
 ## Deferred debt
 
