@@ -87,6 +87,24 @@ class InvoicesApplicationContractTest extends TestCase
     }
 
     #[Test]
+    public function invoices_list_uses_executive_filters_and_auto_applies_changes(): void
+    {
+        $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
+        $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/index.blade.php'));
+
+        $this->assertStringContainsString("'name' => trim((string) \$request->query('partner', ''))", $adapter);
+        $this->assertStringContainsString("'tax_rate' => 'all'", $adapter);
+        $this->assertStringContainsString("'pdf_status' => 'all'", $adapter);
+        $this->assertStringContainsString('Tất cả đối tác', $list);
+        $this->assertStringContainsString('Giá trị cao nhất', $list);
+        $this->assertStringContainsString('$showInvoiceTypeColumn = empty($filters[\'invoice_type\'])', $list);
+        $this->assertStringContainsString('onchange="this.form.submit()"', $list);
+        $this->assertStringNotContainsString('>Áp dụng</button>', $list);
+        $this->assertStringNotContainsString('>Thuế<', $list);
+        $this->assertStringNotContainsString('>PDF<select', $list);
+    }
+
+    #[Test]
     public function invoices_export_preserves_selected_or_filtered_contract(): void
     {
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
