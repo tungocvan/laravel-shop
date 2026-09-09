@@ -10,8 +10,8 @@ class InvoicesGdtSmartSyncContractTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Invoices/Services/GdtSyncReadinessService.php'));
 
-        $this->assertStringContainsString("where('is_purchase', \$purchase)", $source);
-        $this->assertStringContainsString("->max('invoice_date')", $source);
+        $this->assertStringContainsString('where(\'is_purchase\', $purchase)', $source);
+        $this->assertStringContainsString('->max(\'invoice_date\')', $source);
         $this->assertStringContainsString("'suggested_start' => \$latestDate ?? \$yearStart->toDateString()", $source);
         $this->assertStringContainsString("'suggested_end' => \$today->toDateString()", $source);
     }
@@ -36,7 +36,7 @@ class InvoicesGdtSmartSyncContractTest extends TestCase
 
         $this->assertStringContainsString("session()->put('client.invoices.gdt.captcha_key'", $controller);
         $this->assertStringContainsString("session()->get('client.invoices.gdt.captcha_key')", $controller);
-        $this->assertStringNotContainsString("name=\"ckey\"", $view);
+        $this->assertStringNotContainsString('name="ckey"', $view);
         $this->assertStringNotContainsString('GDT_API_PASSWORD', $view);
         $this->assertStringNotContainsString('accessToken', $view);
     }
