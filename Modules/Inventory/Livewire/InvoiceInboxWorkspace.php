@@ -5,14 +5,14 @@ namespace Modules\Inventory\Livewire;
 use DomainException;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Invoices\Integrations\Inventory\InvoiceInventoryHandoffService;
-use Modules\Invoices\Integrations\Inventory\PurchaseInvoiceInventoryQueryService;
 use Modules\Inventory\Models\InventoryItem;
 use Modules\Inventory\Models\InvoiceInbox;
 use Modules\Inventory\Models\InvoiceInboxLine;
 use Modules\Inventory\Models\Warehouse;
 use Modules\Inventory\Services\InventoryItemMatchingService;
 use Modules\Inventory\Services\InvoiceReceiptProposalService;
+use Modules\Invoices\Integrations\Inventory\InvoiceInventoryHandoffService;
+use Modules\Invoices\Integrations\Inventory\PurchaseInvoiceInventoryQueryService;
 use Throwable;
 
 final class InvoiceInboxWorkspace extends Component

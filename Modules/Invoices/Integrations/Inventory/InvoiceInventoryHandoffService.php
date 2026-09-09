@@ -3,9 +3,9 @@
 namespace Modules\Invoices\Integrations\Inventory;
 
 use DomainException;
-use Modules\Invoices\Models\Invoices;
 use Modules\Inventory\Models\InvoiceInbox;
 use Modules\Inventory\Services\InventoryInvoiceIntegrationService;
+use Modules\Invoices\Models\Invoices;
 
 final class InvoiceInventoryHandoffService
 {
