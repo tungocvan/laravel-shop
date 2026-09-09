@@ -150,6 +150,7 @@ final class InvoiceForInventoryV1Factory
     private function nullableString(mixed $value): ?string
     {
         $value = trim((string) $value);
+
         return $value === '' ? null : $value;
     }
 

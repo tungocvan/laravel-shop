@@ -17,12 +17,19 @@ final class ReceivingIntakeWorkspace extends Component
     use WithPagination;
 
     public string $fromDate = '2026-01-01';
+
     public string $toDate = '';
+
     public int $batchSize = 100;
+
     public string $lineStatus = 'all';
+
     public array $selectedSnapshots = [];
+
     public ?int $warehouseId = null;
+
     public ?string $message = null;
+
     public ?string $error = null;
 
     public function mount(): void
@@ -85,6 +92,7 @@ final class ReceivingIntakeWorkspace extends Component
         if ($ids === []) {
             throw new \DomainException('Chọn ít nhất một hóa đơn đã chuẩn hóa.');
         }
+
         return $ids;
     }
 

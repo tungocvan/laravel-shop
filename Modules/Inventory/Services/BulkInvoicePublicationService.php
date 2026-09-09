@@ -5,6 +5,7 @@ namespace Modules\Inventory\Services;
 use DomainException;
 use Illuminate\Support\Collection;
 use Modules\Inventory\Models\InvoiceInbox;
+use Modules\Inventory\Models\Receipt;
 use Modules\Invoices\Integrations\Inventory\InvoiceForInventoryV1Factory;
 use Modules\Invoices\Models\InvoiceInventorySnapshot;
 
@@ -35,7 +36,7 @@ final class BulkInvoicePublicationService
         });
     }
 
-    /** @return Collection<int, \Modules\Inventory\Models\Receipt> */
+    /** @return Collection<int, Receipt> */
     public function createDraftReceipts(array $snapshotIds, int $warehouseId, int $actorId): Collection
     {
         return $this->publishReady($snapshotIds)->map(function (InvoiceInbox $inbox) use ($warehouseId, $actorId) {
