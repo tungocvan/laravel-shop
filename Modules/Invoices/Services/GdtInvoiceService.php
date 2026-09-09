@@ -214,6 +214,7 @@ class GdtInvoiceService
             if ($page === 1) {
                 if ($total === 0) {
                     $show('ℹ Không có hóa đơn tháng này.');
+
                     return [];
                 }
 
