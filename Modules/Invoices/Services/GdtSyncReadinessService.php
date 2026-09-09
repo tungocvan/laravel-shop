@@ -39,11 +39,7 @@ final class GdtSyncReadinessService
 
     public function authenticate(string $cvalue, string $ckey): array
     {
-        return $this->gdt->login(
-            $cvalue,
-            $ckey,
-            (int) config('invoices.gdt.token_ttl', 36000),
-        );
+        return $this->gdt->login($cvalue, $ckey);
     }
 
     private function directionReadiness(
