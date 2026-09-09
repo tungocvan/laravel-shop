@@ -18,6 +18,24 @@ class InvoicesGdtSmartSyncContractTest extends TestCase
         $this->assertStringContainsString("'suggested_end' => \$today->toDateString()", $source);
     }
 
+    public function test_gdt_sync_persists_idempotently_before_excel_export(): void
+    {
+        $source = file_get_contents(base_path('Modules/Invoices/Services/GdtInvoiceService.php'));
+
+        $persist = strpos($source, '$stats = $this->persistInvoices($all, $vatIn);');
+        $export = strpos($source, '$file = $this->exportExcel($all, $vatIn, $filename);');
+
+        $this->assertNotFalse($persist);
+        $this->assertNotFalse($export);
+        $this->assertLessThan($export, $persist);
+        $this->assertStringContainsString('DB::transaction', $source);
+        $this->assertStringContainsString("'lookup_code' => \$attributes['lookup_code']", $source);
+        $this->assertStringContainsString("'invoice_type' => \$attributes['invoice_type']", $source);
+        $this->assertStringContainsString("'invoice_number' => \$attributes['invoice_number']", $source);
+        $this->assertStringContainsString("'issued_date' => \$attributes['issued_date']", $source);
+        $this->assertStringContainsString('tạo mới %d · cập nhật %d · không đổi %d', $source);
+    }
+
     public function test_pwa_sync_requires_server_side_gdt_token_before_dispatch(): void
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Http/Controllers/InvoicesApplicationController.php'));
