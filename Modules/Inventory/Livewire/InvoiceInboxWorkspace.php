@@ -20,15 +20,25 @@ final class InvoiceInboxWorkspace extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $status = 'all';
+
     public int $perPage = 25;
+
     public ?int $selectedInboxId = null;
+
     public ?int $warehouseId = null;
+
     public bool $showSourcePicker = false;
+
     public string $sourceSearch = '';
+
     public array $selectedLineIds = [];
+
     public ?int $bulkItemId = null;
+
     public ?string $errorMessage = null;
+
     public ?string $successMessage = null;
 
     private const PAGE_SIZES = [10, 25, 50, 100];
@@ -75,6 +85,7 @@ final class InvoiceInboxWorkspace extends Component
     {
         if ($this->selectedInboxId === null) {
             $this->selectedLineIds = [];
+
             return;
         }
 
