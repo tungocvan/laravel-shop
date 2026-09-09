@@ -12,6 +12,7 @@ final class InvoiceInventorySnapshot extends Model
         'invoice_id',
         'source',
         'payload_hash',
+        'normalizer_version',
         'status',
         'raw_payload',
         'attempt_count',
