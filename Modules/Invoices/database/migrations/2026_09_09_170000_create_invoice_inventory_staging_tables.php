@@ -36,6 +36,7 @@ return new class extends Migration
             $table->string('source_uom', 64)->nullable();
             $table->decimal('unit_price', 18, 4)->nullable();
             $table->decimal('line_amount', 18, 4)->nullable();
+            $table->string('tax_rate', 32)->nullable();
             $table->string('normalized_name')->nullable();
             $table->string('strength')->nullable();
             $table->string('dosage_form')->nullable();
