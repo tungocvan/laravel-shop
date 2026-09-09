@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Services;
 
+use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Modules\Inventory\Models\Receipt;
@@ -14,11 +15,14 @@ class ReceiptPostingService
     public function __construct(
         private readonly StockPostingService $stockPosting,
         private readonly LotService $lots,
+        private readonly InventoryAuthorizationService $authorization,
     ) {}
 
-    public function confirm(int $receiptId, ?int $actorId = null): Receipt
+    public function confirm(int $receiptId, User $actor): Receipt
     {
-        return DB::transaction(function () use ($receiptId, $actorId): Receipt {
+        $this->authorization->authorize($actor, 'inventory.receipt.confirm');
+
+        return DB::transaction(function () use ($receiptId, $actor): Receipt {
             $receipt = Receipt::query()->lockForUpdate()->findOrFail($receiptId);
 
             if ($receipt->status === 'CONFIRMED') {
@@ -88,7 +92,7 @@ class ReceiptPostingService
                     'source_type' => $receipt->source_type,
                     'source_identity_key' => $receipt->source_identity_key,
                     'occurred_at' => $receipt->document_date ?? now(),
-                    'posted_by' => $actorId,
+                    'posted_by' => $actor->getKey(),
                 ];
             }
 
@@ -99,7 +103,7 @@ class ReceiptPostingService
             $this->stockPosting->postBatch($movements);
 
             $receipt->status = 'CONFIRMED';
-            $receipt->confirmed_by = $actorId;
+            $receipt->confirmed_by = $actor->getKey();
             $receipt->confirmed_at = now();
             $receipt->save();
 
