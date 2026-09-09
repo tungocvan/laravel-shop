@@ -6,8 +6,8 @@
 - Approved inputs: `IDEA.md`, `REQUIREMENTS.md`, `CREATE_PLAN.md`
 - Implementation branch: `feat/inventory-batch-a-core-ledger`
 - Branch base: `docs/inventory-module-idea` because the three approved Inventory planning documents are still ahead of `main` on that branch.
-- Batch A — Foundation + Persistence + Core Ledger: **IMPLEMENTED / awaiting local PHPUnit + Pint verification**.
-- Do not split Batch A into additional MRs unless verification exposes a real blocker.
+- Batch A — Foundation + Persistence + Core Ledger: **IMPLEMENTED / VERIFIED / READY FOR PR REVIEW**.
+- Do not split Batch A into additional MRs unless review exposes a real blocker.
 
 ## Bootstrap contract implemented
 
@@ -153,9 +153,7 @@ Coverage includes:
 
 ## Verification status
 
-The GitHub branch contains the implementation and tests, but the assistant execution environment cannot resolve GitHub from its CLI/container, and this branch currently has no automatic GitHub Actions run/status. Therefore PHPUnit and Pint results must not be represented as passed yet.
-
-Required local gate:
+Local verification reported by the user on 2026-09-09:
 
 ### Test 1 — Inventory
 
@@ -163,7 +161,7 @@ Required local gate:
 php artisan test tests/Feature/Inventory
 ```
 
-If Test 1 fails, stop and send the full output before running Test 2.
+Result: **PASS**.
 
 ### Test 2 — directly impacted module foundation
 
@@ -171,7 +169,9 @@ If Test 1 fails, stop and send the full output before running Test 2.
 php artisan test tests/Feature/System/ModuleCatalogRegistryTest.php tests/Feature/System/ModuleGraphValidatorTest.php tests/Feature/System/ModuleBootstrapRuntimeStateTest.php
 ```
 
-No full regression is required for Batch A because no shared/root module infrastructure was modified.
+Result: **PASS**.
+
+No full regression is required for Batch A because no shared/root module infrastructure was modified. Status: **NOT APPLICABLE — module-scoped regression strategy**.
 
 ### Pint
 
@@ -179,15 +179,23 @@ No full regression is required for Batch A because no shared/root module infrast
 ./vendor/bin/pint Modules/Inventory tests/Feature/Inventory
 ```
 
-Pint result is currently **PENDING LOCAL VERIFICATION**.
+Result: **PASS after auto-fix** — Pint processed 36 files and fixed one `single_quote` style issue in `tests/Feature/Inventory/InventoryConcurrencyContractTest.php`.
+
+The Pint-only change was committed and pushed as `b3880d1c` (`style(inventory): apply pint formatting`).
+
+## Final diff review
+
+Compared with approved base `docs/inventory-module-idea`, branch `feat/inventory-batch-a-core-ledger` is ahead with no behind commits at closeout review. The implementation diff contains 37 Batch A files: Inventory models/services/support/config/routes, 3 migrations, this handoff, and 5 targeted Inventory test files.
+
+No Admin UI, invoice PDF ingestion, Batch C invoice integration, valuation layer, or Product quantity dual-write is present in Batch A.
 
 ## Known debt / next approved scopes
 
-- Real multi-process contention should be smoke-tested on the deployment DB after the deterministic locking/idempotency tests pass; SQLite PHPUnit verifies contract and retry behavior but is not a substitute for production-engine contention testing.
+- Real multi-process contention should be smoke-tested on the deployment DB after merge; SQLite PHPUnit verifies contract and retry behavior but is not a substitute for production-engine contention testing.
 - `MovementReversalService` currently provides full compensating reversal per original movement. Rich correction-document UX/reason taxonomy belongs to a later operational surface.
 - FEFO suggestion, exports/audit workspace, Admin UI and invoice integration remain in their approved later batches.
 - Product/Pharma/Partner mapping adapters remain optional boundaries and must not become hard dependencies.
 
 ## Stop gate
 
-After local Inventory + foundation tests and Pint pass, report the output and keep this branch for Batch A review/PR preparation. Do not start Batch B or Batch C automatically without the next explicit user instruction.
+Batch A verification gates are complete and the branch is ready for PR review. Do not start Batch B or Batch C automatically without the next explicit user instruction.
