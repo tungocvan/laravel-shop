@@ -96,7 +96,9 @@ final class InventoryInvoiceIntegrationService
 
     private function normalizedContract(array $contract): array
     {
-        $lines = collect((array) $contract['lines'])->values()->map(function (array $line, int $index): array {
+        $classifier = app(InvoiceLineStockClassifier::class);
+
+        $lines = collect((array) $contract['lines'])->values()->map(function (array $line, int $index) use ($classifier): array {
             $description = trim((string) ($line['description'] ?? ''));
             if ($description === '') {
                 throw new DomainException('Dòng hóa đơn thiếu description.');
@@ -113,6 +115,14 @@ final class InventoryInvoiceIntegrationService
                 $sourceLineKey = hash('sha256', $lineNumber.'|'.$description.'|'.$quantity.'|'.($line['uom'] ?? ''));
             }
 
+            $metadata = is_array($line['metadata'] ?? null) ? $line['metadata'] : [];
+            $classification = $classifier->classify(
+                $description,
+                $this->nullableString($line['uom'] ?? null),
+                $metadata,
+            );
+            $metadata['stock_classification'] = $classification;
+
             return [
                 'line_number' => $lineNumber,
                 'source_line_key' => $sourceLineKey,
@@ -126,13 +136,13 @@ final class InventoryInvoiceIntegrationService
                 'lot_number' => $this->nullableString($line['lot_number'] ?? null),
                 'expiry_date' => $this->nullableString($line['expiry_date'] ?? null),
                 'manufacture_date' => $this->nullableString($line['manufacture_date'] ?? null),
-                'classification' => 'UNRESOLVED',
+                'classification' => $classification['classification'],
                 'inventory_item_id' => null,
-                'match_reason' => null,
+                'match_reason' => 'classifier:'.$classification['reason'],
                 'conversion_factor' => 1,
                 'base_quantity' => null,
                 'base_uom' => null,
-                'metadata' => is_array($line['metadata'] ?? null) ? $line['metadata'] : null,
+                'metadata' => $metadata,
             ];
         })->all();
 
