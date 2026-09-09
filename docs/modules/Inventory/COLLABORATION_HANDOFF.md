@@ -4,230 +4,224 @@
 
 - Module: `Modules\Inventory`.
 - Approved inputs: `IDEA.md`, `REQUIREMENTS.md`, `CREATE_PLAN.md`.
-- `main` base for Batch B: `71ef46e9` (`feat(inventory): add Batch A core ledger foundation`).
 - Batch A — Foundation + Persistence + Core Ledger: **MERGED / VERIFIED / PASS**.
-- Batch B branch: `feat/inventory-batch-b-admin-operations`.
-- Batch B — Admin Dashboard + UI/UX: **IMPLEMENTED / VERIFIED / UI PASS / READY FOR MR**.
-- Keep Batch B in one MR unless review exposes a real blocker.
+- Batch B — Admin Dashboard + UI/UX: **MERGED / VERIFIED / UI PASS** via PR #179, merge commit `df406fae`.
+- Batch C branch: `feat/inventory-batch-c-invoice-integration`.
+- Batch C — Invoices Integration + Product Matching + Draft Receipt: **IMPLEMENTED / LOCAL VERIFICATION PENDING**.
+- Keep Batch C in one MR unless verification exposes a real blocker.
 
-## Batch A contract carried forward unchanged
-
-Batch B does not redesign or duplicate Batch A ledger behavior.
-
-- Inventory remains a `domain` module, disabled by default, with hard dependency `Shared` only.
-- `Invoices`, `Product`, `Partner`, `Pharma` remain optional integration boundaries.
-- `StockPostingService` remains the canonical mutation path for confirmed stock movements.
-- Receipt/issue/transfer/stocktake confirmation continues through the dedicated Batch A posting services with transaction, row-lock, idempotency and negative-stock protection.
-- Confirmed documents/lines and stock movements remain immutable by their existing model/service contracts.
-- No `Product.quantity` dual write was introduced.
-- No invoice PDF parsing/storage access was introduced.
-
-## Batch B implementation
-
-### Admin route family
-
-All Inventory Admin routes are under:
+## Ownership boundary carried forward
 
 ```text
-/admin/inventory
+PDF / GDT acquisition / invoice persistence / normalized source detail -> Modules\Invoices
+Inventory invoice inbox / matching / receipt proposal / stock workflow -> Modules\Inventory
 ```
 
-Route names:
+Critical invariant:
 
 ```text
-admin.inventory.dashboard
-admin.inventory.warehouses
-admin.inventory.items
-admin.inventory.receipts
-admin.inventory.issues
-admin.inventory.transfers
-admin.inventory.stocktakes
-admin.inventory.stock
-admin.inventory.lots
-admin.inventory.movements
+Invoice sync/import != stock posting
 ```
 
-Routes use `web`, `auth:admin` and the capability-specific permissions already declared by the Inventory manifest.
+Inventory does not read `storage/app/invoices/pdf`, does not parse invoice PDF and does not update `Product.quantity`.
 
-### Inventory Dashboard
+Physical stock still changes only through the Batch A receipt confirmation path and `ReceiptPostingService` / canonical stock posting services.
 
-`InventoryDashboardService` provides bounded/index-friendly operational aggregates for:
+## Batch C implementation
 
-- active warehouses;
-- active inventory items;
-- draft receipts;
-- low-stock dimensions against `reorder_level`;
-- lots expiring within 90 days;
-- draft/counted stocktakes;
-- movements today;
-- recent movements;
-- actionable low-stock / expiry warnings.
+### Invoices producer boundary
 
-Dashboard cards deep-link to the owning Inventory workspace.
-
-Batch C invoice matching/inbox KPIs are intentionally absent until the approved Batch C integration contract exists.
-
-### Admin operational workspaces
-
-A class-based Livewire `Inventory.AdminWorkspace` owns UI state for:
-
-- warehouse management;
-- InventoryItem management;
-- receipt drafts + confirmation;
-- issue drafts + confirmation;
-- transfer drafts + confirmation;
-- stocktake drafts + confirmation;
-- current stock browser;
-- lot/HSD browser;
-- immutable movement browser.
-
-The Livewire component does not implement stock posting logic. High-risk confirmation delegates to:
+Added:
 
 ```text
-ReceiptPostingService
-IssuePostingService
-TransferPostingService
-StocktakePostingService
+Modules/Invoices/Integrations/Inventory/InvoiceForInventoryV1Factory.php
+Modules/Invoices/Integrations/Inventory/InvoiceInventoryHandoffService.php
+Modules/Invoices/Integrations/Inventory/PurchaseInvoiceInventoryQueryService.php
 ```
 
-### Search / filter / pagination
+The producer:
 
-Production workspaces use bounded pagination only:
+- accepts purchase invoices only;
+- fetches structured GDT detail through the existing `GdtPdfService::fetchDetail()` source boundary;
+- uses `hdhhdvu` structured line data already used by the Invoices PDF renderer;
+- builds explicit contract version `1.0`;
+- preserves seller/header/totals/line documentary evidence;
+- never makes Inventory parse PDF or inspect invoice storage;
+- invokes Inventory only through an explicit handoff service, not an Eloquent observer.
+
+### Inventory integration inbox
+
+Added tables:
 
 ```text
-10 / 25 / 50 / 100
+inventory_invoice_inbox
+inventory_invoice_inbox_lines
 ```
 
-There is no `All` page size.
-
-Search/filter changes reset pagination. Filters are scoped by workspace, including status, warehouse, stock state, expiry state and movement type where relevant.
-
-Inventory owns an explicit Livewire pagination view with:
-
-- white inactive controls;
-- indigo active page;
-- clear disabled states;
-- previous/next/goto Livewire actions preserved.
-
-### UI/UX contract
-
-Batch B follows `.codex/standards/ADMIN_UI_STANDARD.md`:
-
-- canonical `Admin::layouts.master` shell;
-- page Blade remains a shell for Livewire workspaces;
-- visible bordered form/search controls;
-- responsive tables with horizontal overflow;
-- centered modal for create/edit and high-risk confirm;
-- loading/disabled state during save/confirm;
-- explicit empty/error states;
-- direct return path to Inventory Dashboard;
-- no bulk posting/confirm action.
-
-### Admin menu integration
-
-Inventory owns an idempotent menu-registration migration.
-
-It inserts/restores one permission-aware `Quản lý kho` group and child links for the Batch B workspaces, then clears the existing `admin.menus` cache.
-
-This is used instead of relying only on `AdminMenuSeeder`, because the repository seeder intentionally skips when `admin_menus` already contains data.
-
-Rollback removes only Inventory-owned menu slugs.
-
-## Batch B tests added
+Inbox identity is protected by:
 
 ```text
-tests/Feature/Inventory/InventoryAdminBatchBContractTest.php
+(source_module, source_invoice_identity, integration_purpose)
 ```
 
-Contract coverage includes:
+Each normalized payload also stores `normalized_payload_hash`.
 
-- approved Admin route family and `auth:admin` boundary;
-- no invoice PDF ownership leak;
-- bounded page-size contract;
-- visible input/pagination visual contract;
-- confirmation delegation to Batch A posting services;
-- loading/double-submit guard presence;
-- permission-aware Inventory admin-menu registration.
+Replay behavior:
 
-Existing Batch A Inventory tests remain part of the focused Batch B verification pack.
+- unchanged payload -> update `last_seen_at` only;
+- changed payload -> refresh eligible inbox data;
+- if linked receipt is no longer DRAFT -> changed payload is rejected and confirmed history is not rewritten.
 
-## Verification status
+Statuses:
 
-Local verification reported by the user on 2026-09-09.
+```text
+RECEIVED
+MATCHING
+REVIEW_REQUIRED
+READY
+RECEIPT_CREATED
+ERROR
+```
 
-### Test 1 — Inventory focused + module regression
+### Deterministic product matching
+
+`InventoryItemMatchingService` applies this order:
+
+```text
+1. confirmed supplier alias
+2. exact source product-code alias
+3. exact active InventoryItem display-name match when unique
+4. UNRESOLVED for human review
+```
+
+There is no fuzzy/AI auto-confirm.
+
+Human review supports:
+
+- select existing InventoryItem;
+- remember reviewed alias with supplier/source provenance;
+- mark explicit `NON_STOCK`;
+- create standalone InventoryItem when `inventory.item.manage` is allowed.
+
+Failed match remains `UNRESOLVED`; it is never silently treated as `NON_STOCK`.
+
+### Draft receipt proposal
+
+`InvoiceReceiptProposalService`:
+
+- requires all lines to be resolved/classified;
+- excludes explicit `NON_STOCK` lines;
+- creates or refreshes only a `DRAFT` receipt;
+- stores invoice seller/source/item/UOM/lot/HSD evidence on the draft;
+- refuses to rewrite a non-DRAFT linked receipt;
+- never calls `ReceiptPostingService` or `StockPostingService`.
+
+The operator must still open/confirm the receipt through the Batch B receipt workflow before stock changes.
+
+### Admin UI
+
+New route:
+
+```text
+GET /admin/inventory/invoice-inbox
+admin.inventory.invoice-inbox
+permission: inventory.receipt.view
+```
+
+The dashboard now surfaces `Hóa đơn chờ nhập kho`.
+
+The new Livewire workspace provides:
+
+- bounded pagination `10 / 25 / 50 / 100`;
+- recent purchase-invoice candidates through the Invoices integration query service;
+- explicit sync into Inventory Inbox;
+- deterministic/manual matching review;
+- explicit NON_STOCK classification;
+- standalone InventoryItem creation with permission gate;
+- warehouse selection;
+- create/refresh DRAFT receipt action;
+- direct path to the existing receipt workspace;
+- visible reminder that synchronization does not change stock.
+
+Batch C also adds an idempotent Admin-menu migration for `Hóa đơn chờ nhập kho` so existing databases receive the new child menu entry.
+
+## Tests added
+
+```text
+tests/Feature/Inventory/InventoryBatchCInvoiceIntegrationContractTest.php
+tests/Feature/Invoices/InvoiceInventoryHandoffContractTest.php
+```
+
+Coverage includes:
+
+- source ownership stays in Invoices;
+- V1 contract boundary;
+- GDT structured detail / `hdhhdvu` source;
+- no Inventory PDF-storage ownership leak;
+- inbox idempotency keys and payload hash;
+- deterministic matching / no fuzzy auto-confirm;
+- explicit human classification actions;
+- draft-only receipt proposal with no posting service call;
+- new Admin route, pagination and input/loading visual contract.
+
+## Verification gate — pending local execution
+
+Run only Inventory + directly impacted Invoices tests.
 
 ```bash
 php artisan test tests/Feature/Inventory
+php artisan test tests/Feature/Invoices/InvoiceInventoryHandoffContractTest.php
+./vendor/bin/pint Modules/Inventory Modules/Invoices/Integrations/Inventory tests/Feature/Inventory tests/Feature/Invoices/InvoiceInventoryHandoffContractTest.php
 ```
 
-Result: **PASS**.
+No full-project regression is required.
 
-### Test 2 — directly impacted Admin shell/menu contract
+After Pint, review any changed files before committing formatting changes.
+
+## Migration / UI gate after tests PASS
 
 ```bash
-php artisan test tests/Feature/Admin/AdminGeneralLayoutContractTest.php
+php artisan migrate
 ```
 
-Result: **PASS**.
+Manual UI check:
 
-### Pint
-
-```bash
-./vendor/bin/pint Modules/Inventory tests/Feature/Inventory
+```text
+/admin/inventory
+/admin/inventory/invoice-inbox
+/admin/inventory/receipts
 ```
 
-Result: **PASS after auto-fix**.
+Verify desktop/tablet/mobile, especially:
 
-Pint-only formatting in `Modules/Inventory/Livewire/AdminWorkspace.php` was reviewed, committed and pushed as `f1a62c35` (`style(inventory): apply pint formatting`).
+- purchase-invoice candidate sync;
+- GDT-detail error handling when token/session is unavailable;
+- inbox replay does not duplicate source identity;
+- line matching / NON_STOCK / standalone item actions;
+- unresolved lines block receipt proposal;
+- warehouse selection;
+- DRAFT receipt creation;
+- no stock movement/balance change before receipt confirmation;
+- receipt confirmation still uses existing Batch A/Batch B flow.
 
-No full-project regression was run, by approved scope. No Shared, Invoices, Product, Partner, Pharma or root module infrastructure application code changed in Batch B.
+Report `UI PASS` only after these checks.
 
-## Manual UI acceptance
-
-User reported **UI PASS** on 2026-09-09 after checking the Inventory Admin surfaces.
-
-Acceptance scope included representative desktop/tablet/mobile behavior for:
-
-- `/admin/inventory` dashboard hierarchy and deep links;
-- warehouse/item forms and visible borders/focus/error states;
-- receipt/issue/transfer/stocktake draft workflow;
-- confirmation modal and loading/disabled state;
-- stock/lots/movements responsive tables;
-- search/filter behavior;
-- white inactive + indigo active pagination;
-- Inventory menu/workspace navigation;
-- no blocking 404/500 UI issue reported.
-
-## Final diff/status review
-
-- Branch: `feat/inventory-batch-b-admin-operations`.
-- Base: `71ef46e9`.
-- Branch is ahead of the Batch B base and not behind at final review.
-- Final diff is limited to Inventory Admin implementation, Inventory-owned menu migration, Inventory tests and this handoff.
-- Working tree reported clean and synchronized with `origin/feat/inventory-batch-b-admin-operations` after the Pint-only commit.
-- No Batch C invoice integration, PDF ingestion, product matching or Batch D Excel export code is present.
-
-## Explicitly deferred to approved later batches
-
-### Batch C
-
-- Invoices normalized Inventory V1 producer/adapter;
-- integration inbox;
-- invoice -> draft receipt proposal;
-- product matching / alias review;
-- unresolved Partner snapshots;
-- optional Product/Pharma candidate references.
-
-### Batch D
+## Deferred to Batch D
 
 - Excel audit/export;
 - selected-vs-all-filtered export semantics;
-- import/template scope where approved;
-- final query/index/runtime hardening and closeout.
+- final query/index/runtime hardening;
+- final module closeout.
 
 ## Stop gate
 
-Batch B acceptance gates are complete. The branch is ready for one MR targeting `main`.
+Do not open/merge the Batch C MR until:
 
-Do not start Batch C until Batch B is merged or the user explicitly changes that sequence.
+1. Inventory focused tests PASS;
+2. directly impacted Invoices handoff test PASS;
+3. Pint PASS;
+4. migration PASS;
+5. manual UI smoke reports `UI PASS`;
+6. final branch diff/status is clean.
+
+Do not start Batch D automatically before Batch C is accepted/merged.
