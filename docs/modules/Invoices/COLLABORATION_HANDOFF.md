@@ -1,82 +1,125 @@
 # Invoices Collaboration Handoff
 
-## Current Status
+## Current Status — GDT Smart Sync PWA
 
 - Module: `Invoices`
-- Operations Dashboard + Backup/Restore + Google Drive disaster recovery: **MERGED** through PR #172.
-- Current follow-up branch: `fix/invoices-gdt-queue-token-guard`.
-- Current scope: **GDT queue token guard + default queue execution + database-import confirmation UX**.
-- User-reported focused tests: **PASS**.
-- User-reported Invoices module regression: **PASS**.
-- User-reported `/admin/invoices/hoadon` UI acceptance: **PASS**.
+- Active branch: `feat/clientportal-invoices-gdt-smart-sync`.
+- Current scope: **secure GDT Smart Sync + canonical database persistence + Excel export**.
+- User-reported focused tests: **14 passed (115 assertions)**.
+- User-reported PWA/UI/runtime acceptance: **PASS**.
+- Latest style-only correction: `24129a52ef532e916ed282811ae7a8553c18a1c7`.
+- Final post-fix Pint confirmation: **PENDING**.
 - Merge authorization: **NOT YET GIVEN**.
 
-## GDT Sync Safety Contract
+## Smart Sync Data Contract
 
-Canonical sync route remains `/admin/invoices/hoadon`.
+Canonical Invoices ownership remains in `Modules/Invoices`.
 
-- `Xử lý qua queue` is selected by default.
-- Before `ProcessGdtInvoicesJob` is dispatched, the action checks that the GDT token is available.
-- If the token is missing/expired, no queue job is dispatched; the user is redirected to the existing GDT authentication/token page.
-- The sync page exposes GDT readiness and a direct action to connect/re-authenticate when unavailable.
-- Synchronous execution remains available when the operator explicitly clears the queue checkbox.
-
-The guard intentionally runs before queue dispatch so a known-invalid GDT session is not placed into the worker queue.
-
-## Database Import Contract
-
-`Đồng bộ vào CSDL` remains incremental:
-
-- existing invoice identities are skipped rather than duplicated;
-- missing invoices are inserted;
-- current invoice records are not deleted;
-- Partner master is not directly created or updated;
-- import logging continues to report total/imported/skipped/error counts.
-
-Before `importSelectedFile` executes, the UI requires explicit confirmation explaining that the operation adds missing invoices, skips duplicates and does not directly mutate Partner master.
-
-## UI / UX Acceptance
-
-User-reported manual acceptance on 2026-09-09:
+The Smart Sync processing order for live GDT data is now:
 
 ```text
-/admin/invoices/hoadon                         PASS
-Queue selected by default                     PASS
-GDT token guard / reconnect flow              PASS
-Đồng bộ vào CSDL confirmation modal           PASS
-Incremental database-import presentation      PASS
+GDT API
+  -> map canonical invoice payload
+  -> transactional database persistence
+  -> Excel export
+  -> queue/PWA status log
 ```
 
-Admin presentation continues to follow `.codex/standards/ADMIN_UI_STANDARD.md`.
+Database persistence uses the canonical `invoices` model/schema and occurs before the Excel artifact is considered complete.
 
-## Automated Validation Recorded
+Identity strategy is intentionally idempotent without introducing a new schema migration in this delivery:
 
-User reported both requested gates PASS on 2026-09-09:
+- primary identity when available: `invoice_type + lookup_code`;
+- fallback identity: `invoice_type + symbol + invoice_number + tax_code + issued_date`;
+- if a safe identity cannot be established, persistence fails instead of inserting an ambiguous duplicate;
+- existing matching records are filled and classified as updated only when values changed;
+- unchanged matches are counted but not rewritten;
+- new identities are created;
+- the entire persistence batch runs in a database transaction.
+
+Runtime log reports:
 
 ```text
-Focused: tests/Feature/InvoicesGdtQueueTokenGuardTest.php   PASS
-Regression: tests/Feature/Invoices*.php                     PASS
+[DB] Đồng bộ hoàn tất: tạo mới X · cập nhật Y · không đổi Z.
 ```
 
-Full-project regression is not required for this module-scoped follow-up.
+## Smart Date Contract
+
+PWA readiness derives from the canonical database fields:
+
+```text
+issued_date
+invoice_type = purchase | sold
+```
+
+For each direction, the latest current-year invoice date becomes the suggested start date. The system deliberately does **not** add one day, allowing a later synchronization to recheck the latest date and capture invoices that appeared later on the same day.
+
+If no current-year invoice exists for a direction, the suggested start is January 1 of the current year. Suggested end is today.
+
+## GDT Security Contract
+
+- GDT username/password/token remain server-side only.
+- CAPTCHA challenge key (`ckey`) remains in server session.
+- PWA submits only the human-entered CAPTCHA value.
+- No access token or credential is exposed through Blade, JavaScript, localStorage, IndexedDB or PWA cache.
+- Queue dispatch is blocked when the server-side GDT token is unavailable.
+
+## Local / Drive / GDT Boundary
+
+Database remains authoritative for Smart Date readiness. Local or Google Drive files must not determine the next synchronization start date.
+
+The established queue/file fallback remains:
+
+```text
+Database readiness -> Local artifact check -> Google Drive artifact check -> GDT
+```
+
+Google Drive configuration, backup/restore and destructive disaster-recovery operations remain Admin/Invoices-only and are not moved into ClientPortal.
+
+## Validation Evidence
+
+Recorded focused automated gate:
+
+```text
+Tests: 14 passed (115 assertions)
+Duration: 2.52s
+```
+
+Manual PWA/UI/runtime acceptance reported by user: **PASS**.
+
+The last Pint check exposed only one formatting issue in `GdtInvoiceService.php` (`unary_operator_spaces`, `not_operator_with_successor_space`, `blank_line_before_statement`). Those style-only issues were corrected in commit `24129a52ef532e916ed282811ae7a8553c18a1c7`; a post-fix Pint confirmation remains the final CLI closeout gate.
+
+## Previous GDT Queue Safety Delivery
+
+Operations Dashboard + Backup/Restore + Google Drive disaster recovery was merged through PR #172. The previous GDT queue safety follow-up established:
+
+- queue selected by default in Admin;
+- GDT token guard before job dispatch;
+- reconnect action when token is missing/expired;
+- incremental database-import UX for selected files;
+- no direct Partner master mutation from invoice import.
+
+Those boundaries remain compatible with the Smart Sync delivery.
 
 ## Compatibility / Boundaries
 
-This follow-up does not:
+This delivery does not:
 
 - rename canonical `/admin/invoices/*` routes;
 - change invoice permissions;
-- change invoice business identity semantics;
+- move invoice model/schema ownership to ClientPortal;
 - change Partner master ownership;
-- alter module Backup/Restore or Google Drive disaster-recovery snapshot contracts;
-- force Google Drive connectivity for GDT-only synchronization;
-- remove synchronous GDT synchronization.
+- expose GDT secrets to the browser;
+- alter Backup/Restore disaster-recovery contracts;
+- require a destructive database operation;
+- introduce a schema migration solely for Smart Sync identity.
 
 ## Final Closeout Gate
 
 Before merge:
 
-1. compare the branch against current `main` and resolve any base drift if present;
-2. create/review the PR against `main`;
-3. preserve the recorded CLI + UI PASS evidence;
-4. merge only after explicit user authorization under `docs/GITHUB_COLLABORATION_WORKFLOW.md`.
+1. confirm Pint PASS on the changed PHP scope after commit `24129a52ef532e916ed282811ae7a8553c18a1c7`;
+2. preserve the recorded focused test + UI/runtime PASS evidence;
+3. compare branch against current `main` and resolve base drift if needed;
+4. create/review the PR against `main`;
+5. merge only after explicit user authorization under `docs/GITHUB_COLLABORATION_WORKFLOW.md`.

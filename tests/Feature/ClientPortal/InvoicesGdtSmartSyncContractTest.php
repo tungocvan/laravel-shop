@@ -1,0 +1,82 @@
+<?php
+
+namespace Tests\Feature\ClientPortal;
+
+use Tests\TestCase;
+
+class InvoicesGdtSmartSyncContractTest extends TestCase
+{
+    public function test_smart_sync_readiness_uses_database_latest_dates_per_direction(): void
+    {
+        $source = file_get_contents(base_path('Modules/Invoices/Services/GdtSyncReadinessService.php'));
+
+        $this->assertStringContainsString('where(\'invoice_type\', $invoiceType)', $source);
+        $this->assertStringContainsString('->max(\'issued_date\')', $source);
+        $this->assertStringContainsString("'purchase' => \$this->directionReadiness('purchase'", $source);
+        $this->assertStringContainsString("'sold' => \$this->directionReadiness('sold'", $source);
+        $this->assertStringContainsString("'suggested_start' => \$latestDate ?? \$yearStart->toDateString()", $source);
+        $this->assertStringContainsString("'suggested_end' => \$today->toDateString()", $source);
+    }
+
+    public function test_gdt_sync_persists_idempotently_before_excel_export(): void
+    {
+        $source = file_get_contents(base_path('Modules/Invoices/Services/GdtInvoiceService.php'));
+
+        $persist = strpos($source, '$stats = $this->persistInvoices($all, $vatIn);');
+        $export = strpos($source, '$file = $this->exportExcel($all, $vatIn, $filename);');
+
+        $this->assertNotFalse($persist);
+        $this->assertNotFalse($export);
+        $this->assertLessThan($export, $persist);
+        $this->assertStringContainsString('DB::transaction', $source);
+        $this->assertStringContainsString("'lookup_code' => \$attributes['lookup_code']", $source);
+        $this->assertStringContainsString("'invoice_type' => \$attributes['invoice_type']", $source);
+        $this->assertStringContainsString("'invoice_number' => \$attributes['invoice_number']", $source);
+        $this->assertStringContainsString("'issued_date' => \$attributes['issued_date']", $source);
+        $this->assertStringContainsString('tạo mới %d · cập nhật %d · không đổi %d', $source);
+    }
+
+    public function test_pwa_sync_requires_server_side_gdt_token_before_dispatch(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Http/Controllers/InvoicesApplicationController.php'));
+
+        $tokenGate = strpos($controller, 'if (! $readiness->hasToken())');
+        $dispatch = strpos($controller, '$workspace->dispatchSync');
+
+        $this->assertNotFalse($tokenGate);
+        $this->assertNotFalse($dispatch);
+        $this->assertLessThan($dispatch, $tokenGate);
+        $this->assertStringContainsString('Phiên GDT đã hết hạn', $controller);
+    }
+
+    public function test_pwa_captcha_flow_keeps_challenge_key_in_server_session(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Http/Controllers/InvoicesApplicationController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/sync.blade.php'));
+
+        $this->assertStringContainsString("session()->put('client.invoices.gdt.captcha_key'", $controller);
+        $this->assertStringContainsString("session()->get('client.invoices.gdt.captcha_key')", $controller);
+        $this->assertStringNotContainsString('name="ckey"', $view);
+        $this->assertStringNotContainsString('GDT_API_PASSWORD', $view);
+        $this->assertStringNotContainsString('accessToken', $view);
+    }
+
+    public function test_pwa_exposes_throttled_captcha_and_authentication_routes(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/routes.php'));
+
+        $this->assertStringContainsString("'/sync/captcha'", $routes);
+        $this->assertStringContainsString("'/sync/authenticate'", $routes);
+        $this->assertStringContainsString("'throttle:10,1'", $routes);
+    }
+
+    public function test_sync_view_switches_suggested_start_between_purchase_and_sold(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/sync.blade.php'));
+
+        $this->assertStringContainsString("'purchase' => \$purchase['suggested_start']", $view);
+        $this->assertStringContainsString("'sold' => \$sold['suggested_start']", $view);
+        $this->assertStringContainsString('Kết nối GDT để đồng bộ', $view);
+        $this->assertStringContainsString('Local → Google Drive → GDT', $view);
+    }
+}

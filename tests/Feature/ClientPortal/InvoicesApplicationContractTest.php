@@ -44,9 +44,7 @@ class InvoicesApplicationContractTest extends TestCase
     public function invoices_controller_uses_domain_services_and_authorized_file_handoff(): void
     {
         $this->assertTrue(class_exists(InvoicesApplicationController::class));
-
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Http/Controllers/InvoicesApplicationController.php'));
-
         $this->assertStringContainsString('ClientInvoiceWorkspaceService $workspace', $controller);
         $this->assertStringContainsString('InvoicePdfService $pdf', $controller);
         $this->assertStringContainsString('InvoiceFileService $files', $controller);
@@ -62,7 +60,6 @@ class InvoicesApplicationContractTest extends TestCase
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
         $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/dashboard.blade.php'));
         $invoiceService = file_get_contents(base_path('Modules/Invoices/Services/InvoiceService.php'));
-
         $this->assertStringContainsString('$request->integer(\'year\'', $adapter);
         $this->assertStringContainsString('$request->query(\'month\')', $adapter);
         $this->assertStringContainsString('\'periodScope\' => $month === null ? \'year\' : \'month\'', $adapter);
@@ -73,7 +70,6 @@ class InvoicesApplicationContractTest extends TestCase
         $this->assertStringContainsString("'currentMonthYearOverYearGrowth' =>", $adapter);
         $this->assertStringContainsString("'unclassifiedInvoiceCount' =>", $adapter);
         $this->assertStringContainsString('public function monthlyPerformance(int $year): array', $invoiceService);
-
         $this->assertStringContainsString('Cả năm', $dashboard);
         $this->assertStringContainsString('onchange="this.form.submit()"', $dashboard);
         $this->assertStringNotContainsString('>Xem</button>', $dashboard);
@@ -85,6 +81,10 @@ class InvoicesApplicationContractTest extends TestCase
         $this->assertStringContainsString('Tình hình doanh thu qua các năm', $dashboard);
         $this->assertStringContainsString('Tháng hiện tại trong năm đang xem', $dashboard);
         $this->assertStringContainsString('Tổng = bán ra + mua vào', $dashboard);
+        $this->assertStringContainsString('space-y-3 md:hidden', $dashboard);
+        $this->assertStringContainsString('hidden overflow-x-auto md:block', $dashboard);
+        $this->assertStringContainsString('break-words', $dashboard);
+        $this->assertStringContainsString('overflow-x-hidden', $dashboard);
     }
 
     #[Test]
@@ -93,7 +93,6 @@ class InvoicesApplicationContractTest extends TestCase
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/index.blade.php'));
         $invoiceService = file_get_contents(base_path('Modules/Invoices/Services/InvoiceService.php'));
-
         $this->assertStringContainsString("'partner' => trim((string) \$request->query('partner', ''))", $adapter);
         $this->assertStringContainsString("'tax_rate' => 'all'", $adapter);
         $this->assertStringContainsString("'pdf_status' => 'all'", $adapter);
@@ -112,10 +111,21 @@ class InvoicesApplicationContractTest extends TestCase
     }
 
     #[Test]
+    public function invoice_detail_back_navigation_uses_saved_list_context_instead_of_browser_history(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Http/Controllers/InvoicesApplicationController.php'));
+        $show = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/show.blade.php'));
+        $this->assertStringContainsString("session()->put('client.invoices.return_to', \$request->fullUrl())", $controller);
+        $this->assertStringContainsString("session()->get('client.invoices.return_to', route('client.invoices.index'))", $controller);
+        $this->assertStringContainsString('href="{{ $returnTo }}"', $show);
+        $this->assertStringNotContainsString('url()->previous()', $show);
+        $this->assertStringNotContainsString('history.back()', $show);
+    }
+
+    #[Test]
     public function invoices_export_preserves_selected_or_filtered_contract(): void
     {
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
-
         $this->assertStringContainsString('$request->input(\'selected\', [])', $adapter);
         $this->assertStringContainsString('$selected === []', $adapter);
         $this->assertStringContainsString('$this->invoices->filter($this->filters($request))', $adapter);
@@ -127,14 +137,12 @@ class InvoicesApplicationContractTest extends TestCase
     {
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/index.blade.php'));
         $sync = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/sync.blade.php'));
-
         $this->assertStringContainsString('md:hidden', $list);
         $this->assertStringContainsString('hidden overflow-hidden', $list);
         $this->assertStringContainsString('env(safe-area-inset-bottom)', $list);
         $this->assertStringContainsString('Có chọn: xuất phần chọn', $list);
         $this->assertStringContainsString('Không chọn: xuất toàn bộ kết quả lọc', $list);
         $this->assertStringContainsString('Token, mật khẩu và thông tin xác thực GDT không được đưa xuống trình duyệt', $sync);
-
         foreach (['localStorage', 'indexedDB', 'Authorization'] as $secretSurface) {
             $this->assertStringNotContainsString($secretSurface, $sync);
         }

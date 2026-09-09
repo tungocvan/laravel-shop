@@ -12,7 +12,7 @@
 
 <div class="mx-auto max-w-5xl space-y-5">
     <div class="flex items-center justify-between gap-3">
-        <a href="{{ url()->previous() === url()->current() ? route('client.invoices.index') : url()->previous() }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">Quay lại</a>
+        <a href="{{ $returnTo }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">Quay lại</a>
         <span @class([
             'rounded-full px-3 py-1.5 text-xs font-bold',
             'bg-sky-50 text-sky-700' => $invoice->invoice_type === 'purchase',
