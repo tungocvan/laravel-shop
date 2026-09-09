@@ -10,35 +10,73 @@ final class DecimalQuantity
 
     public static function normalize(string|int $value): string
     {
-        return self::fromScaledInteger(self::toScaledInteger((string) $value));
+        [$negative, $digits] = self::toScaledDigits((string) $value);
+
+        return self::fromScaledDigits($negative, $digits);
     }
 
     public static function add(string|int $left, string|int $right): string
     {
-        return self::fromScaledInteger(self::toScaledInteger((string) $left) + self::toScaledInteger((string) $right));
+        [$leftNegative, $leftDigits] = self::toScaledDigits((string) $left);
+        [$rightNegative, $rightDigits] = self::toScaledDigits((string) $right);
+
+        if ($leftNegative === $rightNegative) {
+            return self::fromScaledDigits($leftNegative, self::addDigits($leftDigits, $rightDigits));
+        }
+
+        $comparison = self::compareDigits($leftDigits, $rightDigits);
+        if ($comparison === 0) {
+            return '0.000000';
+        }
+
+        if ($comparison > 0) {
+            return self::fromScaledDigits($leftNegative, self::subtractDigits($leftDigits, $rightDigits));
+        }
+
+        return self::fromScaledDigits($rightNegative, self::subtractDigits($rightDigits, $leftDigits));
     }
 
     public static function negate(string|int $value): string
     {
-        return self::fromScaledInteger(-self::toScaledInteger((string) $value));
+        [$negative, $digits] = self::toScaledDigits((string) $value);
+
+        if (self::isZeroDigits($digits)) {
+            return '0.000000';
+        }
+
+        return self::fromScaledDigits(! $negative, $digits);
     }
 
     public static function isNegative(string|int $value): bool
     {
-        return self::toScaledInteger((string) $value) < 0;
+        [$negative, $digits] = self::toScaledDigits((string) $value);
+
+        return $negative && ! self::isZeroDigits($digits);
     }
 
     public static function isPositive(string|int $value): bool
     {
-        return self::toScaledInteger((string) $value) > 0;
+        [$negative, $digits] = self::toScaledDigits((string) $value);
+
+        return ! $negative && ! self::isZeroDigits($digits);
     }
 
     public static function isZero(string|int $value): bool
     {
-        return self::toScaledInteger((string) $value) === 0;
+        [, $digits] = self::toScaledDigits((string) $value);
+
+        return self::isZeroDigits($digits);
     }
 
-    private static function toScaledInteger(string $value): int
+    public static function hasFractionalPart(string|int $value): bool
+    {
+        $normalized = self::normalize($value);
+
+        return substr($normalized, -(self::SCALE)) !== str_repeat('0', self::SCALE);
+    }
+
+    /** @return array{0: bool, 1: string} */
+    private static function toScaledDigits(string $value): array
     {
         $value = trim($value);
 
@@ -46,27 +84,95 @@ final class DecimalQuantity
             throw new InvalidArgumentException('Inventory quantity must be a decimal with at most 6 fractional digits.');
         }
 
-        $sign = ($matches[1] ?? '') === '-' ? -1 : 1;
+        $negative = ($matches[1] ?? '') === '-';
         $whole = ltrim($matches[2], '0');
         $whole = $whole === '' ? '0' : $whole;
         $fraction = str_pad($matches[3] ?? '', self::SCALE, '0');
+        $digits = ltrim($whole.$fraction, '0');
+        $digits = $digits === '' ? '0' : $digits;
 
-        $maxWhole = intdiv(PHP_INT_MAX, 10 ** self::SCALE);
-        if ((int) $whole > $maxWhole) {
-            throw new InvalidArgumentException('Inventory quantity exceeds supported arithmetic range.');
+        if (strlen($digits) > 20) {
+            throw new InvalidArgumentException('Inventory quantity exceeds decimal(20,6) precision.');
         }
 
-        return $sign * (((int) $whole * (10 ** self::SCALE)) + (int) $fraction);
+        return [$negative, $digits];
     }
 
-    private static function fromScaledInteger(int $value): string
+    private static function fromScaledDigits(bool $negative, string $digits): string
     {
-        $sign = $value < 0 ? '-' : '';
-        $absolute = abs($value);
-        $scale = 10 ** self::SCALE;
-        $whole = intdiv($absolute, $scale);
-        $fraction = str_pad((string) ($absolute % $scale), self::SCALE, '0', STR_PAD_LEFT);
+        $digits = ltrim($digits, '0');
+        $digits = $digits === '' ? '0' : $digits;
+        $digits = str_pad($digits, self::SCALE + 1, '0', STR_PAD_LEFT);
+        $whole = substr($digits, 0, -self::SCALE);
+        $fraction = substr($digits, -self::SCALE);
+        $sign = $negative && ! self::isZeroDigits($digits) ? '-' : '';
 
         return $sign.$whole.'.'.$fraction;
+    }
+
+    private static function compareDigits(string $left, string $right): int
+    {
+        $left = ltrim($left, '0') ?: '0';
+        $right = ltrim($right, '0') ?: '0';
+
+        if (strlen($left) !== strlen($right)) {
+            return strlen($left) <=> strlen($right);
+        }
+
+        return strcmp($left, $right) <=> 0;
+    }
+
+    private static function addDigits(string $left, string $right): string
+    {
+        $left = strrev($left);
+        $right = strrev($right);
+        $length = max(strlen($left), strlen($right));
+        $carry = 0;
+        $result = '';
+
+        for ($index = 0; $index < $length; $index++) {
+            $sum = (int) ($left[$index] ?? '0') + (int) ($right[$index] ?? '0') + $carry;
+            $result .= (string) ($sum % 10);
+            $carry = intdiv($sum, 10);
+        }
+
+        if ($carry > 0) {
+            $result .= (string) $carry;
+        }
+
+        $digits = strrev($result);
+        if (strlen($digits) > 20) {
+            throw new InvalidArgumentException('Inventory quantity arithmetic exceeds decimal(20,6) precision.');
+        }
+
+        return $digits;
+    }
+
+    private static function subtractDigits(string $larger, string $smaller): string
+    {
+        $larger = strrev($larger);
+        $smaller = strrev($smaller);
+        $borrow = 0;
+        $result = '';
+
+        for ($index = 0; $index < strlen($larger); $index++) {
+            $digit = (int) $larger[$index] - $borrow - (int) ($smaller[$index] ?? '0');
+            if ($digit < 0) {
+                $digit += 10;
+                $borrow = 1;
+            } else {
+                $borrow = 0;
+            }
+            $result .= (string) $digit;
+        }
+
+        $digits = ltrim(strrev($result), '0');
+
+        return $digits === '' ? '0' : $digits;
+    }
+
+    private static function isZeroDigits(string $digits): bool
+    {
+        return trim($digits, '0') === '';
     }
 }
