@@ -84,16 +84,22 @@ class StocktakePostingService
                 }
                 $seenDimensions[$dimensionKey] = true;
 
+                $prepared[] = ['line' => $line, 'item' => $item, 'dimension_key' => $dimensionKey];
+            }
+
+            foreach (collect($prepared)->sortBy('dimension_key') as $entry) {
+                /** @var StocktakeLine $line */
+                $line = $entry['line'];
+                $item = $entry['item'];
+
                 DB::table('inventory_balances')->insertOrIgnore([
                     'warehouse_id' => $stocktake->warehouse_id,
                     'inventory_item_id' => $item->getKey(),
                     'lot_id' => $line->lot_id,
-                    'dimension_key' => $dimensionKey,
+                    'dimension_key' => $entry['dimension_key'],
                     'quantity_on_hand' => '0.000000',
                     'updated_at' => now(),
                 ]);
-
-                $prepared[] = ['line' => $line, 'item' => $item, 'dimension_key' => $dimensionKey];
             }
 
             $balances = DB::table('inventory_balances')
