@@ -5,8 +5,10 @@ namespace Modules\Invoices\Services;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Invoices\Models\Invoices;
 use Rap2hpoutre\FastExcel\FastExcel;
 
 class GdtInvoiceService
@@ -67,7 +69,7 @@ class GdtInvoiceService
 
         if ($total !== null && count($invoices) < $total) {
             throw new \RuntimeException(
-                "GDT trả thiếu dữ liệu: nhận ".count($invoices)."/{$total} hóa đơn. Vui lòng đồng bộ lại."
+                'GDT trả thiếu dữ liệu: nhận '.count($invoices)."/{$total} hóa đơn. Vui lòng đồng bộ lại."
             );
         }
 
@@ -131,6 +133,14 @@ class GdtInvoiceService
 
             return null;
         }
+
+        $stats = $this->persistInvoices($all, $vatIn);
+        $show(sprintf(
+            '[DB] Đồng bộ hoàn tất: tạo mới %d · cập nhật %d · không đổi %d.',
+            $stats['created'],
+            $stats['updated'],
+            $stats['unchanged'],
+        ));
 
         $file = $this->exportExcel($all, $vatIn, $filename);
         $show('[GDT] File Excel tạo ra: '.$file);
@@ -282,6 +292,102 @@ class GdtInvoiceService
             'Trước VAT' => $item['tgtcthue'] ?? 0,
             'Thành tiền' => $item['tgtttbso'] ?? 0,
         ];
+    }
+
+    private function persistInvoices(array $rows, bool $vatIn): array
+    {
+        return DB::transaction(function () use ($rows, $vatIn): array {
+            $stats = ['created' => 0, 'updated' => 0, 'unchanged' => 0];
+
+            foreach ($rows as $row) {
+                $attributes = $this->databaseAttributes($row, $vatIn);
+                $identity = $this->invoiceIdentity($attributes);
+                $invoice = Invoices::query()->where($identity)->first();
+
+                if (! $invoice) {
+                    Invoices::query()->create($attributes);
+                    $stats['created']++;
+
+                    continue;
+                }
+
+                $invoice->fill($attributes);
+
+                if (! $invoice->isDirty()) {
+                    $stats['unchanged']++;
+
+                    continue;
+                }
+
+                $invoice->save();
+                $stats['updated']++;
+            }
+
+            return $stats;
+        });
+    }
+
+    private function databaseAttributes(array $row, bool $vatIn): array
+    {
+        $issuedDate = trim((string) ($row['Ngày lập'] ?? ''));
+
+        return [
+            'lookup_code' => $this->nullableString($row['Mã tra cứu'] ?? null),
+            'symbol' => $this->nullableString($row['Ký hiệu'] ?? null),
+            'invoice_number' => $this->nullableString($row['Số hóa đơn'] ?? null),
+            'type' => $this->nullableString($row['Loại hóa đơn'] ?? null),
+            'issued_date' => $issuedDate !== '' ? Carbon::createFromFormat('d/m/Y', $issuedDate)->toDateString() : null,
+            'tax_code' => $this->nullableString($row['Mã số thuế'] ?? null),
+            'name' => $this->nullableString($row['Đơn vị'] ?? null),
+            'address' => $this->nullableString($row['Địa chỉ'] ?? null),
+            'email' => $this->nullableString($row['Email'] ?? null),
+            'phone' => $this->nullableString($row['Phone'] ?? null),
+            'tax_rate' => $this->nullableNumber($row['Thuế suất'] ?? null),
+            'vat_amount' => $this->nullableNumber($row['Tiền VAT'] ?? null),
+            'amount_before_vat' => $this->nullableNumber($row['Trước VAT'] ?? null),
+            'total_amount' => $this->nullableNumber($row['Thành tiền'] ?? null),
+            'invoice_type' => $vatIn ? 'purchase' : 'sold',
+        ];
+    }
+
+    private function invoiceIdentity(array $attributes): array
+    {
+        if (filled($attributes['lookup_code'])) {
+            return [
+                'invoice_type' => $attributes['invoice_type'],
+                'lookup_code' => $attributes['lookup_code'],
+            ];
+        }
+
+        if (blank($attributes['invoice_number']) || blank($attributes['issued_date'])) {
+            throw new \RuntimeException(
+                'Không thể xác định khóa hóa đơn để ghi cơ sở dữ liệu: thiếu mã tra cứu, số hóa đơn hoặc ngày lập.'
+            );
+        }
+
+        return [
+            'invoice_type' => $attributes['invoice_type'],
+            'symbol' => $attributes['symbol'],
+            'invoice_number' => $attributes['invoice_number'],
+            'tax_code' => $attributes['tax_code'],
+            'issued_date' => $attributes['issued_date'],
+        ];
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        return $value === '' ? null : $value;
+    }
+
+    private function nullableNumber(mixed $value): int|float|null
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return is_numeric($value) ? $value + 0 : null;
     }
 
     private function extractLookupCode(array $item): string
