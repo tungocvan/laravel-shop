@@ -162,6 +162,13 @@ final class ClientInvoiceWorkspaceService
             ],
             'partnerPeriod' => $month === null ? 'Năm '.$year : sprintf('Tháng %02d/%d', $month, $year),
             'partnerYears' => collect($this->invoices->years())->push($year)->unique()->sortDesc()->values()->all(),
+            'partnerOptions' => $this->invoices->filterOptions([
+                'invoice_type' => $type,
+                'issued_date_from' => $filters['issued_date_from'],
+                'issued_date_to' => $filters['issued_date_to'],
+                'tax_rate' => 'all',
+                'pdf_status' => 'all',
+            ])['names'],
             'partners' => $partners,
             'partnerSummary' => $summary,
             'partnerCount' => $partners->total(),
