@@ -58,10 +58,11 @@ final class ClientInvoiceWorkspaceService
             ->values()
             ->all();
 
-        $previousYearStats = $this->invoices->statistics($this->periodFilters($year - 1, null));
+        $previousYear = $year - 1;
+        $previousYearStats = $this->invoices->statistics($this->periodFilters($previousYear, null));
         $previousMonthDate = now()->setDate($year, $sameMonth, 1)->subMonth();
         $previousMonthStats = $this->invoices->statistics($this->periodFilters((int) $previousMonthDate->format('Y'), (int) $previousMonthDate->format('m')));
-        $previousYearMonthStats = $this->invoices->statistics($this->periodFilters($year - 1, $sameMonth));
+        $previousYearMonthStats = $this->invoices->statistics($this->periodFilters($previousYear, $sameMonth));
         $growth = static function ($current, $previous): ?float {
             $previous = (float) $previous;
 
@@ -74,6 +75,7 @@ final class ClientInvoiceWorkspaceService
             'periodScope' => $month === null ? 'year' : 'month',
             'periodDate' => $periodDate,
             'selectedYear' => $year,
+            'previousYear' => $previousYear,
             'selectedMonth' => $month,
             'years' => $years,
             'stats' => $stats,
