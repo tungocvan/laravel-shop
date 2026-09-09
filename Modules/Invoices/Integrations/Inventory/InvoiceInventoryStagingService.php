@@ -72,19 +72,20 @@ final class InvoiceInventoryStagingService
                         continue;
                     }
 
-                    $description = trim((string) ($line['ten'] ?? ''));
-                    if ($description === '') {
+                    $rawDescription = (string) ($line['ten'] ?? '');
+                    $descriptionForIdentity = trim($rawDescription);
+                    if ($descriptionForIdentity === '') {
                         continue;
                     }
 
                     $number = (int) ($line['stt'] ?? ($index + 1));
-                    $key = hash('sha256', $number.'|'.$description.'|'.($line['sluong'] ?? '').'|'.($line['dvtinh'] ?? ''));
+                    $key = hash('sha256', $number.'|'.$descriptionForIdentity.'|'.($line['sluong'] ?? '').'|'.($line['dvtinh'] ?? ''));
                     $seen[] = $key;
                     $normalized = $this->normalizer->normalize($line);
 
                     $snapshot->lines()->updateOrCreate(['source_line_key' => $key], array_merge([
                         'line_number' => $number,
-                        'raw_description' => $description,
+                        'raw_description' => $rawDescription,
                         'source_product_code' => $line['mhhdvu'] ?? $line['ma'] ?? null,
                         'source_quantity' => is_numeric($line['sluong'] ?? null) ? $line['sluong'] : null,
                         'source_uom' => $line['dvtinh'] ?? null,
