@@ -27,6 +27,15 @@ final class InvoicesApplicationController extends Controller
         return $this->applicationView('dashboard', $registry, $settings, $workspace->dashboardData($request));
     }
 
+    public function partners(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        ClientInvoiceWorkspaceService $workspace,
+    ): View {
+        return $this->applicationView('partners', $registry, $settings, $workspace->partnerReportData($request));
+    }
+
     public function index(
         Request $request,
         ApplicationRegistry $registry,
