@@ -108,7 +108,8 @@ final class ClientInvoiceWorkspaceService
         $type = in_array($request->query('type'), ['sold', 'purchase'], true)
             ? $request->query('type')
             : null;
-        $sort = in_array((string) $request->query('sort', 'sold_desc'), [
+        $requestedSort = (string) $request->query('sort', '');
+        $validSorts = [
             'sold_desc',
             'purchase_desc',
             'invoice_desc',
@@ -116,7 +117,10 @@ final class ClientInvoiceWorkspaceService
             'net_desc',
             'partner_asc',
             'partner_desc',
-        ], true) ? (string) $request->query('sort', 'sold_desc') : 'sold_desc';
+        ];
+        $sort = in_array($requestedSort, $validSorts, true)
+            ? $requestedSort
+            : ($type === 'purchase' ? 'purchase_desc' : 'sold_desc');
         $perPage = (int) $request->integer('per_page', 25);
         $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
         $date = now()->setDate($year, $month ?? 1, 1);
