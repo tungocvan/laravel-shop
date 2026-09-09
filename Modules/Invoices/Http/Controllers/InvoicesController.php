@@ -5,6 +5,7 @@ namespace Modules\Invoices\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Modules\Invoices\Models\Invoices;
+use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\InvoiceFileService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -15,9 +16,11 @@ class InvoicesController extends Controller
         return redirect()->route('admin.invoices.hoadon-list');
     }
 
-    public function hoadon(): View
+    public function hoadon(GdtApiService $gdtApiService): View
     {
-        return view('Invoices::pages.invoices.sync');
+        return view('Invoices::pages.invoices.sync', [
+            'gdtReady' => $gdtApiService->hasToken(),
+        ]);
     }
 
     public function hoadonList(): View
