@@ -8,10 +8,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class InvoiceInventorySnapshot extends Model
 {
-    protected $fillable = ['invoice_id', 'source', 'payload_hash', 'status', 'raw_payload', 'fetched_at', 'normalized_at', 'last_error'];
+    protected $fillable = [
+        'invoice_id',
+        'source',
+        'payload_hash',
+        'status',
+        'raw_payload',
+        'attempt_count',
+        'last_attempt_at',
+        'fetched_at',
+        'normalized_at',
+        'last_error',
+    ];
 
     protected $casts = [
         'raw_payload' => 'array',
+        'last_attempt_at' => 'datetime',
         'fetched_at' => 'datetime',
         'normalized_at' => 'datetime',
     ];
