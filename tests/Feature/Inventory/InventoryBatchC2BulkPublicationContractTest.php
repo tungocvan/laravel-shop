@@ -33,6 +33,19 @@ class InventoryBatchC2BulkPublicationContractTest extends TestCase
     }
 
     #[Test]
+    public function receipt_proposal_preserves_each_stock_line_and_its_lot_expiry_without_merging(): void
+    {
+        $service = file_get_contents(base_path('Modules/Inventory/Services/InvoiceReceiptProposalService.php'));
+
+        $this->assertStringContainsString('foreach ($stockLines as $index => $line)', $service);
+        $this->assertStringContainsString('ReceiptLine::query()->create([', $service);
+        $this->assertStringContainsString("'source_line_key' => \$line->source_line_key", $service);
+        $this->assertStringContainsString("'lot_number' => \$line->lot_number", $service);
+        $this->assertStringContainsString("'expiry_date' => \$line->expiry_date", $service);
+        $this->assertStringNotContainsString('groupBy(', $service);
+    }
+
+    #[Test]
     public function intake_ui_exposes_bulk_publish_and_draft_without_confirm_action(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/ReceivingIntakeWorkspace.php'));
