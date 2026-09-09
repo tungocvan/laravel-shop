@@ -69,6 +69,26 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertSame('P240801', $normalized['lot_number']);
         $this->assertSame('2028-08-01', $normalized['expiry_date']);
         $this->assertSame('hộp', $normalized['normalized_uom']);
-        $this->assertSame('deterministic-v1', $normalized['normalization_meta']['parser']);
+        $this->assertSame('deterministic-v2', $normalized['normalization_meta']['parser']);
+    }
+
+    #[Test]
+    public function deterministic_normalizer_handles_real_pharma_semicolon_format(): void
+    {
+        $normalized = app(InvoiceLineNormalizer::class)->normalize([
+            'ten' => 'Cefmetazol 2g (Hộp 10 lọ); Lô: C60D001; HSD: 07/06/2027; NSX: Việt Nam',
+            'dvtinh' => 'Lọ',
+        ]);
+
+        $this->assertSame('Cefmetazol', $normalized['normalized_name']);
+        $this->assertSame('2g', $normalized['strength']);
+        $this->assertSame('Hộp 10 lọ', $normalized['package_spec']);
+        $this->assertSame('C60D001', $normalized['lot_number']);
+        $this->assertSame('2027-06-07', $normalized['expiry_date']);
+        $this->assertSame('Việt Nam', $normalized['manufacturer']);
+        $this->assertNull($normalized['manufacture_date']);
+        $this->assertNull($normalized['dosage_form']);
+        $this->assertSame('lọ', $normalized['normalized_uom']);
+        $this->assertSame('deterministic-v2', $normalized['normalization_meta']['parser']);
     }
 }
