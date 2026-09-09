@@ -13,6 +13,10 @@ if ((bool) config('modules.registry.Invoices.enabled', false)) {
             ->middleware('client.feature:invoices,overview')
             ->name('dashboard');
 
+        Route::get('/partners', [InvoicesApplicationController::class, 'partners'])
+            ->middleware('client.feature:invoices,partners')
+            ->name('partners');
+
         Route::get('/list', [InvoicesApplicationController::class, 'index'])
             ->middleware('client.feature:invoices,list')
             ->name('index');
