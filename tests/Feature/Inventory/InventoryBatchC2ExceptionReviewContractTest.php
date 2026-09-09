@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Inventory;
 
+use Modules\Inventory\Services\InventoryReferenceCandidateService;
 use Modules\Inventory\Services\InvoiceLineStockClassifier;
+use Modules\Pharma\Models\Medicine;
 use PHPUnit\Framework\Attributes\Test;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class InventoryBatchC2ExceptionReviewContractTest extends TestCase
@@ -114,5 +117,54 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
         $this->assertStringContainsString("'processing_status' => \$reviewRequired ? 'REVIEW_REQUIRED' : 'READY'", $matching);
         $this->assertStringContainsString("'stock_classification'", $integration);
         $this->assertStringContainsString("'match_reason' => 'classifier:'", $integration);
+    }
+
+    #[Test]
+    public function Product_and_Pharma_are_reference_candidates_only_and_never_assign_inventory_item(): void
+    {
+        $candidateService = file_get_contents(base_path('Modules/Inventory/Services/InventoryReferenceCandidateService.php'));
+        $matching = file_get_contents(base_path('Modules/Inventory/Services/InventoryItemMatchingService.php'));
+
+        $this->assertStringContainsString("'source' => 'Product'", $candidateService);
+        $this->assertStringContainsString("'source' => 'Pharma'", $candidateService);
+        $this->assertStringContainsString("'auto_match_eligible' => false", $candidateService);
+        $this->assertStringContainsString('reference_only_no_inventory_item_link', $candidateService);
+        $this->assertStringNotContainsString("'inventory_item_id' =>", $candidateService);
+        $this->assertStringContainsString("'reference_candidates'", $matching);
+    }
+
+    #[Test]
+    public function unverified_and_demo_Pharma_records_are_explicitly_blocked_from_auto_match(): void
+    {
+        $service = app(InventoryReferenceCandidateService::class);
+        $method = new ReflectionMethod($service, 'pharmaBlockedReasons');
+        $method->setAccessible(true);
+
+        $medicine = new Medicine([
+            'identity_status' => Medicine::IDENTITY_UNVERIFIED,
+            'registration_number' => 'DEMO-PHARMA-HSSP-003',
+            'notes' => 'demo reference record',
+        ]);
+
+        $blocked = $method->invoke($service, $medicine);
+
+        $this->assertContains('identity_status_unverified', $blocked);
+        $this->assertContains('demo_registration', $blocked);
+        $this->assertContains('demo_record', $blocked);
+    }
+
+    #[Test]
+    public function pharma_candidate_anchor_does_not_reduce_identity_to_strength_or_lot_data(): void
+    {
+        $service = app(InventoryReferenceCandidateService::class);
+        $method = new ReflectionMethod($service, 'pharmaIdentityAnchor');
+        $method->setAccessible(true);
+
+        $anchor = $method->invoke(
+            $service,
+            'Cefuroxime 125mg/5ml ( H/1C.TT/60,8g BPHDU), Lô: 26001CN, HD: 28/03/2029',
+        );
+
+        $this->assertSame('cefuroxime', $anchor);
     }
 }
