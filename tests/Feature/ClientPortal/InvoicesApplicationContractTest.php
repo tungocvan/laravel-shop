@@ -112,6 +112,19 @@ class InvoicesApplicationContractTest extends TestCase
     }
 
     #[Test]
+    public function invoice_detail_back_navigation_uses_saved_list_context_instead_of_browser_history(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Http/Controllers/InvoicesApplicationController.php'));
+        $show = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/show.blade.php'));
+
+        $this->assertStringContainsString("session()->put('client.invoices.return_to', \$request->fullUrl())", $controller);
+        $this->assertStringContainsString("session()->get('client.invoices.return_to', route('client.invoices.index'))", $controller);
+        $this->assertStringContainsString('href="{{ $returnTo }}"', $show);
+        $this->assertStringNotContainsString('url()->previous()', $show);
+        $this->assertStringNotContainsString('history.back()', $show);
+    }
+
+    #[Test]
     public function invoices_export_preserves_selected_or_filtered_contract(): void
     {
         $adapter = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
