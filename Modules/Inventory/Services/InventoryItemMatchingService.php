@@ -19,10 +19,11 @@ final class InventoryItemMatchingService
 
             $match = $this->matchLine($inbox, $line);
             if ($match === null) {
+                $classifiedStock = $line->classification === 'STOCK';
                 $line->forceFill([
-                    'classification' => 'UNRESOLVED',
+                    'classification' => $classifiedStock ? 'STOCK' : 'UNRESOLVED',
                     'inventory_item_id' => null,
-                    'match_reason' => null,
+                    'match_reason' => $classifiedStock ? $line->match_reason : ($line->match_reason ?: 'classifier:insufficient_deterministic_evidence'),
                     'base_quantity' => null,
                     'base_uom' => null,
                 ])->save();
@@ -144,8 +145,17 @@ final class InventoryItemMatchingService
             return;
         }
 
-        $unresolved = $inbox->lines()->where('classification', 'UNRESOLVED')->count();
-        $inbox->forceFill(['processing_status' => $unresolved > 0 ? 'REVIEW_REQUIRED' : 'READY'])->save();
+        $reviewRequired = $inbox->lines()
+            ->where(function ($query): void {
+                $query->where('classification', 'UNRESOLVED')
+                    ->orWhere(function ($stockQuery): void {
+                        $stockQuery->where('classification', 'STOCK')
+                            ->whereNull('inventory_item_id');
+                    });
+            })
+            ->exists();
+
+        $inbox->forceFill(['processing_status' => $reviewRequired ? 'REVIEW_REQUIRED' : 'READY'])->save();
     }
 
     private function key(string $value): string
