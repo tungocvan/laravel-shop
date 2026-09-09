@@ -27,17 +27,12 @@ final class ClientInvoiceWorkspaceService
         $periodDate = now()->setDate($year, $month ?? 1, 1);
         $periodFilters = $this->periodFilters($year, $month);
         $yearFilters = $this->periodFilters($year, null);
-        $calendarMonth = (int) now()->format('m');
-        $currentMonthDate = now()->setDate($year, $calendarMonth, 1)->startOfMonth();
+        $sameMonth = (int) now()->format('m');
+        $sameMonthFilters = $this->periodFilters($year, $sameMonth);
 
         $stats = $this->invoices->statistics($periodFilters);
         $yearStats = $month === null ? $stats : $this->invoices->statistics($yearFilters);
-        $currentMonthStats = $this->invoices->statistics($this->periodFilters($year, $calendarMonth));
-        $previousMonthDate = $currentMonthDate->copy()->subMonth();
-        $previousMonthStats = $this->invoices->statistics($this->periodFilters((int) $previousMonthDate->year, (int) $previousMonthDate->month));
-        $sameMonthLastYearStats = $this->invoices->statistics($this->periodFilters($year - 1, $calendarMonth));
-        $previousYearStats = $this->invoices->statistics($this->periodFilters($year - 1, null));
-
+        $currentMonthStats = $this->invoices->statistics($sameMonthFilters);
         $pdfMissing = $this->invoices->statistics(array_merge($periodFilters, ['pdf_status' => 'missing']))['count'];
         $pdfErrors = $this->invoices->statistics(array_merge($periodFilters, ['pdf_status' => 'error']))['count'];
         $monthlyPerformance = $this->invoices->monthlyPerformance($year);
@@ -50,10 +45,9 @@ final class ClientInvoiceWorkspaceService
                 $next = $dashboard['yearly'][$index + 1] ?? null;
                 $current = (float) ($row['sold_total'] ?? 0);
                 $previous = (float) ($next['sold_total'] ?? 0);
+                $growth = $previous > 0 ? (($current - $previous) / $previous) * 100 : null;
 
-                return array_merge($row, [
-                    'sold_growth' => $this->growth($current, $previous),
-                ]);
+                return array_merge($row, ['sold_growth' => $growth]);
             })
             ->all();
 
@@ -63,6 +57,17 @@ final class ClientInvoiceWorkspaceService
             ->sortDesc()
             ->values()
             ->all();
+
+        $previousYearStats = $this->invoices->statistics($this->periodFilters($year - 1, null));
+        $previousMonthDate = now()->setDate($year, $sameMonth, 1)->subMonth();
+        $previousMonthStats = $this->invoices->statistics($this->periodFilters((int) $previousMonthDate->format('Y'), (int) $previousMonthDate->format('m')));
+        $previousYearMonthStats = $this->invoices->statistics($this->periodFilters($year - 1, $sameMonth));
+        $growth = static function ($current, $previous): ?float {
+            $previous = (float) $previous;
+
+            return $previous > 0 ? (((float) $current - $previous) / $previous) * 100 : null;
+        };
+        $classifiedCount = (int) ($stats['sold_count'] ?? 0) + (int) ($stats['purchase_count'] ?? 0);
 
         return [
             'period' => $month === null ? 'Năm '.$year : sprintf('Tháng %02d/%d', $month, $year),
@@ -74,13 +79,12 @@ final class ClientInvoiceWorkspaceService
             'stats' => $stats,
             'yearStats' => $yearStats,
             'currentMonthStats' => $currentMonthStats,
-            'currentMonthLabel' => sprintf('Tháng %02d/%d', $calendarMonth, $year),
-            'currentMonthGrowth' => $this->growth((float) ($currentMonthStats['sold_amount'] ?? 0), (float) ($previousMonthStats['sold_amount'] ?? 0)),
-            'currentMonthYearOverYearGrowth' => $this->growth((float) ($currentMonthStats['sold_amount'] ?? 0), (float) ($sameMonthLastYearStats['sold_amount'] ?? 0)),
-            'yearGrowth' => $this->growth((float) ($yearStats['sold_amount'] ?? 0), (float) ($previousYearStats['sold_amount'] ?? 0)),
-            'previousYear' => $year - 1,
-            'classifiedInvoiceCount' => (int) ($yearStats['sold_count'] ?? 0) + (int) ($yearStats['purchase_count'] ?? 0),
-            'unclassifiedInvoiceCount' => max(0, (int) ($yearStats['count'] ?? 0) - (int) ($yearStats['sold_count'] ?? 0) - (int) ($yearStats['purchase_count'] ?? 0)),
+            'currentMonthLabel' => sprintf('Tháng %02d/%d', $sameMonth, $year),
+            'previousMonthLabel' => sprintf('Tháng %02d/%d', (int) $previousMonthDate->format('m'), (int) $previousMonthDate->format('Y')),
+            'yearGrowth' => $growth($yearStats['sold_amount'] ?? 0, $previousYearStats['sold_amount'] ?? 0),
+            'currentMonthGrowth' => $growth($currentMonthStats['sold_amount'] ?? 0, $previousMonthStats['sold_amount'] ?? 0),
+            'currentMonthYearOverYearGrowth' => $growth($currentMonthStats['sold_amount'] ?? 0, $previousYearMonthStats['sold_amount'] ?? 0),
+            'unclassifiedInvoiceCount' => max(0, (int) ($stats['count'] ?? 0) - $classifiedCount),
             'pdfMissing' => $pdfMissing,
             'pdfErrors' => $pdfErrors,
             'pdfComplete' => max(0, (int) ($stats['count'] ?? 0) - $pdfMissing - $pdfErrors),
@@ -101,6 +105,7 @@ final class ClientInvoiceWorkspaceService
             'perPage' => $perPage,
             'invoices' => $paginator,
             'stats' => $this->invoices->statistics($filters),
+            'partnerOptions' => $this->invoices->filterOptions(array_merge($filters, ['name' => null]))['names'],
             'pdfStatuses' => collect($paginator->items())
                 ->mapWithKeys(fn ($invoice) => [$invoice->getKey() => $this->pdf->statusForInvoice($invoice)])
                 ->all(),
@@ -118,17 +123,14 @@ final class ClientInvoiceWorkspaceService
 
         return [
             'search' => trim((string) $request->query('search', '')),
+            'name' => trim((string) $request->query('partner', '')),
             'invoice_type' => in_array($request->query('invoice_type'), ['sold', 'purchase'], true)
                 ? $request->query('invoice_type')
                 : null,
             'issued_date_from' => $from->toDateString(),
             'issued_date_to' => $from->copy()->endOfMonth()->toDateString(),
-            'tax_rate' => in_array((string) $request->query('tax_rate', 'all'), ['all', '5', '8', '10', 'other'], true)
-                ? (string) $request->query('tax_rate', 'all')
-                : 'all',
-            'pdf_status' => in_array((string) $request->query('pdf_status', 'all'), ['all', 'available', 'missing', 'error'], true)
-                ? (string) $request->query('pdf_status', 'all')
-                : 'all',
+            'tax_rate' => 'all',
+            'pdf_status' => 'all',
             'sort' => in_array((string) $request->query('sort', 'date_desc'), ['date_desc', 'date_asc', 'amount_desc', 'amount_asc', 'partner_asc', 'partner_desc'], true)
                 ? (string) $request->query('sort', 'date_desc')
                 : 'date_desc',
@@ -190,10 +192,5 @@ final class ClientInvoiceWorkspaceService
             'tax_rate' => 'all',
             'pdf_status' => 'all',
         ];
-    }
-
-    private function growth(float $current, float $previous): ?float
-    {
-        return $previous > 0 ? (($current - $previous) / $previous) * 100 : null;
     }
 }
