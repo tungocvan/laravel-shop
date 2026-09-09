@@ -17,180 +17,50 @@
     <section class="overflow-hidden rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
         <div class="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-end">
             <div>
-                <div class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">
-                    <span class="h-2 w-2 rounded-full bg-sky-400"></span>{{ $partnerPeriod }}
-                </div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200"><span class="h-2 w-2 rounded-full bg-sky-400"></span>{{ $partnerPeriod }}</div>
                 <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Tổng quan đối tác</h1>
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Góc nhìn điều hành về khách hàng và nhà cung cấp: quy mô giao dịch, xếp hạng bán ra, mua vào, VAT và chênh lệch theo kỳ.</p>
             </div>
-
             <form method="GET" action="{{ route('client.invoices.partners') }}" class="grid gap-3 rounded-3xl bg-white/10 p-3 sm:grid-cols-2 xl:min-w-[520px]" data-partner-period-form>
-                <label class="text-xs font-bold uppercase tracking-wider text-slate-300">Năm
-                    <select name="year" onchange="this.form.submit()" class="mt-2 min-h-12 w-full rounded-2xl border-0 bg-white px-4 text-sm font-bold text-slate-950 shadow-sm">
-                        @foreach($partnerYears as $year)
-                            <option value="{{ $year }}" @selected($partnerFilters['year'] === $year)>{{ $year }}</option>
-                        @endforeach
-                    </select>
-                </label>
-                <label class="text-xs font-bold uppercase tracking-wider text-slate-300">Tháng
-                    <select name="month" onchange="this.form.submit()" class="mt-2 min-h-12 w-full rounded-2xl border-0 bg-white px-4 text-sm font-bold text-slate-950 shadow-sm">
-                        <option value="" @selected($partnerFilters['month'] === null)>Cả năm</option>
-                        @for($month = 1; $month <= 12; $month++)
-                            <option value="{{ $month }}" @selected($partnerFilters['month'] === $month)>Tháng {{ $month }}</option>
-                        @endfor
-                    </select>
-                </label>
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-300">Năm<select name="year" onchange="this.form.submit()" class="mt-2 min-h-12 w-full rounded-2xl border-0 bg-white px-4 text-sm font-bold text-slate-950 shadow-sm">@foreach($partnerYears as $year)<option value="{{ $year }}" @selected($partnerFilters['year'] === $year)>{{ $year }}</option>@endforeach</select></label>
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-300">Tháng<select name="month" onchange="this.form.submit()" class="mt-2 min-h-12 w-full rounded-2xl border-0 bg-white px-4 text-sm font-bold text-slate-950 shadow-sm"><option value="" @selected($partnerFilters['month'] === null)>Cả năm</option>@for($month = 1; $month <= 12; $month++)<option value="{{ $month }}" @selected($partnerFilters['month'] === $month)>Tháng {{ $month }}</option>@endfor</select></label>
                 @if($partnerFilters['type'])<input type="hidden" name="type" value="{{ $partnerFilters['type'] }}">@endif
                 @if($partnerFilters['partner'])<input type="hidden" name="partner" value="{{ $partnerFilters['partner'] }}">@endif
-                <input type="hidden" name="sort" value="{{ $partnerFilters['sort'] }}">
-                <input type="hidden" name="per_page" value="{{ $partnerFilters['per_page'] }}">
+                <input type="hidden" name="sort" value="{{ $partnerFilters['sort'] }}"><input type="hidden" name="per_page" value="{{ $partnerFilters['per_page'] }}">
             </form>
         </div>
     </section>
 
     <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Đối tác trong kỳ</p>
-            <p class="mt-3 text-3xl font-black tracking-tight text-slate-950">{{ number_format($partnerCount) }}</p>
-            <p class="mt-2 text-sm text-slate-500">{{ number_format($partnerSummary['invoice_count'] ?? 0) }} hóa đơn.</p>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Bán ra</p>
-            <p class="mt-3 text-xl font-black tracking-tight text-slate-950">{{ $money($partnerSummary['sold_total'] ?? 0) }}</p>
-            <p class="mt-2 text-sm text-slate-500">{{ number_format($partnerSummary['sold_count'] ?? 0) }} hóa đơn.</p>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Mua vào</p>
-            <p class="mt-3 text-xl font-black tracking-tight text-slate-950">{{ $money($partnerSummary['purchase_total'] ?? 0) }}</p>
-            <p class="mt-2 text-sm text-slate-500">{{ number_format($partnerSummary['purchase_count'] ?? 0) }} hóa đơn.</p>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Chênh lệch</p>
-            <p class="mt-3 text-xl font-black tracking-tight {{ $netTotal >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $money($netTotal) }}</p>
-            <p class="mt-2 text-sm text-slate-500">Bán ra trừ mua vào.</p>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">VAT</p>
-            <p class="mt-3 text-xl font-black tracking-tight text-slate-950">{{ $money($vatTotal) }}</p>
-            <p class="mt-2 text-sm text-slate-500">VAT bán ra + mua vào.</p>
-        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Đối tác trong kỳ</p><p class="mt-3 text-3xl font-black tracking-tight text-slate-950">{{ number_format($partnerCount) }}</p><p class="mt-2 text-sm text-slate-500">{{ number_format($partnerSummary['invoice_count'] ?? 0) }} hóa đơn.</p></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Bán ra</p><p class="mt-3 whitespace-nowrap text-xl font-black tracking-tight text-slate-950">{{ $money($partnerSummary['sold_total'] ?? 0) }}</p><p class="mt-2 text-sm text-slate-500">{{ number_format($partnerSummary['sold_count'] ?? 0) }} hóa đơn.</p></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Mua vào</p><p class="mt-3 whitespace-nowrap text-xl font-black tracking-tight text-slate-950">{{ $money($partnerSummary['purchase_total'] ?? 0) }}</p><p class="mt-2 text-sm text-slate-500">{{ number_format($partnerSummary['purchase_count'] ?? 0) }} hóa đơn.</p></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Chênh lệch</p><p class="mt-3 whitespace-nowrap text-xl font-black tracking-tight {{ $netTotal >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $money($netTotal) }}</p><p class="mt-2 text-sm text-slate-500">Bán ra trừ mua vào.</p></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">VAT</p><p class="mt-3 whitespace-nowrap text-xl font-black tracking-tight text-slate-950">{{ $money($vatTotal) }}</p><p class="mt-2 text-sm text-slate-500">VAT bán ra + mua vào.</p></div>
     </section>
 
     <section class="grid gap-4 xl:grid-cols-2">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div class="flex items-end justify-between gap-3">
-                <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Khách hàng</p><h2 class="mt-1 text-xl font-black text-slate-950">Top bán ra</h2></div>
-                <span class="text-xs font-semibold text-slate-400">Top 5</span>
-            </div>
-            <div class="mt-5 space-y-3">
-                @forelse($partnerTopSold as $row)
-                    <a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 transition hover:bg-slate-100">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white">{{ $loop->iteration }}</span>
-                        <span class="min-w-0 flex-1"><strong class="block truncate text-sm text-slate-950">{{ $row->partner_name }}</strong><span class="block truncate text-xs text-slate-500">MST {{ $row->partner_tax_code }} · {{ number_format($row->sold_count) }} HĐ</span></span>
-                        <strong class="shrink-0 text-right text-sm text-slate-950">{{ $money($row->sold_total) }}</strong>
-                    </a>
-                @empty
-                    <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có dữ liệu bán ra trong kỳ.</p>
-                @endforelse
-            </div>
-        </div>
-
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div class="flex items-end justify-between gap-3">
-                <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Nhà cung cấp</p><h2 class="mt-1 text-xl font-black text-slate-950">Top mua vào</h2></div>
-                <span class="text-xs font-semibold text-slate-400">Top 5</span>
-            </div>
-            <div class="mt-5 space-y-3">
-                @forelse($partnerTopPurchase as $row)
-                    <a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 transition hover:bg-slate-100">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-black text-slate-700">{{ $loop->iteration }}</span>
-                        <span class="min-w-0 flex-1"><strong class="block truncate text-sm text-slate-950">{{ $row->partner_name }}</strong><span class="block truncate text-xs text-slate-500">MST {{ $row->partner_tax_code }} · {{ number_format($row->purchase_count) }} HĐ</span></span>
-                        <strong class="shrink-0 text-right text-sm text-slate-950">{{ $money($row->purchase_total) }}</strong>
-                    </a>
-                @empty
-                    <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có dữ liệu mua vào trong kỳ.</p>
-                @endforelse
-            </div>
-        </div>
+        @foreach([['label' => 'Khách hàng', 'title' => 'Top bán ra', 'rows' => $partnerTopSold, 'amount' => 'sold_total', 'count' => 'sold_count', 'dark' => true], ['label' => 'Nhà cung cấp', 'title' => 'Top mua vào', 'rows' => $partnerTopPurchase, 'amount' => 'purchase_total', 'count' => 'purchase_count', 'dark' => false]] as $ranking)
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div class="flex items-end justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ $ranking['label'] }}</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ $ranking['title'] }}</h2></div><span class="text-xs font-semibold text-slate-400">Top 5</span></div><div class="mt-5 space-y-3">@forelse($ranking['rows'] as $row)<a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 transition hover:bg-slate-100"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full {{ $ranking['dark'] ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-700' }} text-sm font-black">{{ $loop->iteration }}</span><span class="min-w-0 flex-1"><strong class="block truncate text-sm text-slate-950">{{ $row->partner_name }}</strong><span class="block truncate text-xs text-slate-500">MST {{ $row->partner_tax_code }} · {{ number_format($row->{$ranking['count']}) }} HĐ</span></span><strong class="shrink-0 whitespace-nowrap text-right text-sm text-slate-950">{{ $money($row->{$ranking['amount']}) }}</strong></a>@empty<p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có dữ liệu trong kỳ.</p>@endforelse</div></div>
+        @endforeach
     </section>
 
     @if($partnerDetail)
-        <section class="rounded-3xl border border-sky-200 bg-sky-50/70 p-5 shadow-sm sm:p-6">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">Chi tiết đối tác</p>
-                    <h2 class="mt-1 text-xl font-black text-slate-950">{{ $partnerDetail['partner_name'] }}</h2>
-                    <p class="mt-1 text-sm text-slate-500">MST {{ $partnerDetail['partner_tax_code'] }} · {{ $partnerPeriod }}</p>
-                </div>
-                <a href="{{ route('client.invoices.partners', $detailBaseQuery) }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200">Đóng chi tiết</a>
-            </div>
-            <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div class="rounded-2xl bg-white p-4"><span class="text-xs font-semibold text-slate-500">Tổng hóa đơn</span><strong class="mt-1 block text-xl text-slate-950">{{ number_format($partnerDetail['invoice_count']) }}</strong></div>
-                <div class="rounded-2xl bg-white p-4"><span class="text-xs font-semibold text-slate-500">Bán ra</span><strong class="mt-1 block text-lg text-slate-950">{{ $money($partnerDetail['sold_total']) }}</strong></div>
-                <div class="rounded-2xl bg-white p-4"><span class="text-xs font-semibold text-slate-500">Mua vào</span><strong class="mt-1 block text-lg text-slate-950">{{ $money($partnerDetail['purchase_total']) }}</strong></div>
-                <div class="rounded-2xl bg-white p-4"><span class="text-xs font-semibold text-slate-500">Chênh lệch</span><strong class="mt-1 block text-lg {{ $partnerDetail['total_difference'] >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $money($partnerDetail['total_difference']) }}</strong></div>
-            </div>
-        </section>
+        <section class="rounded-3xl border border-sky-200 bg-sky-50/70 p-5 shadow-sm sm:p-6"><div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">Chi tiết đối tác</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ $partnerDetail['partner_name'] }}</h2><p class="mt-1 text-sm text-slate-500">MST {{ $partnerDetail['partner_tax_code'] }} · {{ $partnerPeriod }}</p></div><a href="{{ route('client.invoices.partners', $detailBaseQuery) }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200">Đóng chi tiết</a></div><div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><div class="rounded-2xl bg-white p-4"><span class="text-xs font-semibold text-slate-500">Tổng hóa đơn</span><strong class="mt-1 block text-xl text-slate-950">{{ number_format($partnerDetail['invoice_count']) }}</strong></div>@foreach([['Bán ra','sold_total'],['Mua vào','purchase_total'],['Chênh lệch','total_difference']] as [$label,$key])<div class="rounded-2xl bg-white p-4"><span class="text-xs font-semibold text-slate-500">{{ $label }}</span><strong class="mt-1 block whitespace-nowrap text-lg {{ $key === 'total_difference' ? (($partnerDetail[$key] >= 0) ? 'text-emerald-700' : 'text-rose-700') : 'text-slate-950' }}">{{ $money($partnerDetail[$key]) }}</strong></div>@endforeach</div></section>
     @endif
 
     <section class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-100 p-4 sm:p-5">
-            <form method="GET" action="{{ route('client.invoices.partners') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
-                <input type="hidden" name="year" value="{{ $partnerFilters['year'] }}">
-                @if($partnerFilters['month'])<input type="hidden" name="month" value="{{ $partnerFilters['month'] }}">@endif
-                <label class="xl:col-span-4">
-                    <span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Đối tác</span>
-                    <x-search
-                        name="partner"
-                        :value="$partnerFilters['partner']"
-                        list="invoice-partner-report-options"
-                        placeholder="Tìm tên hoặc MST đối tác..."
-                        autocomplete="off"
-                        input-class="min-h-11 rounded-2xl border-slate-200 bg-white px-4 text-sm text-slate-900 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                    />
-                    <datalist id="invoice-partner-report-options">
-                        @foreach($partnerOptions as $partner)
-                            <option value="{{ $partner }}"></option>
-                        @endforeach
-                    </datalist>
-                </label>
-                <label class="xl:col-span-2"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Quan hệ</span><select name="type" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="" @selected($partnerFilters['type'] === null)>Tất cả</option><option value="sold" @selected($partnerFilters['type'] === 'sold')>Khách hàng</option><option value="purchase" @selected($partnerFilters['type'] === 'purchase')>Nhà cung cấp</option></select></label>
-                <label class="xl:col-span-3"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Sắp xếp</span><select name="sort" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="sold_desc" @selected($partnerFilters['sort'] === 'sold_desc')>Bán ra cao nhất</option><option value="purchase_desc" @selected($partnerFilters['sort'] === 'purchase_desc')>Mua vào cao nhất</option><option value="invoice_desc" @selected($partnerFilters['sort'] === 'invoice_desc')>Nhiều hóa đơn nhất</option><option value="vat_desc" @selected($partnerFilters['sort'] === 'vat_desc')>VAT cao nhất</option><option value="net_desc" @selected($partnerFilters['sort'] === 'net_desc')>Chênh lệch cao nhất</option><option value="partner_asc" @selected($partnerFilters['sort'] === 'partner_asc')>Tên A → Z</option></select></label>
-                <label class="xl:col-span-1"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700">@foreach([10,25,50,100] as $size)<option value="{{ $size }}" @selected($partnerFilters['per_page'] === $size)>{{ $size }}</option>@endforeach</select></label>
-                <div class="flex items-end xl:col-span-2"><a href="{{ route('client.invoices.partners', ['year' => $partnerFilters['year'], 'month' => $partnerFilters['month']]) }}" class="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-600">Xóa lọc</a></div>
-            </form>
-        </div>
+        <div class="border-b border-slate-100 p-4 sm:p-5"><form method="GET" action="{{ route('client.invoices.partners') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-12"><input type="hidden" name="year" value="{{ $partnerFilters['year'] }}">@if($partnerFilters['month'])<input type="hidden" name="month" value="{{ $partnerFilters['month'] }}">@endif
+            <label class="xl:col-span-4"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Đối tác</span><x-search name="partner" :value="$partnerFilters['partner']" list="invoice-partner-report-options" placeholder="Tìm tên hoặc MST đối tác..." autocomplete="off" input-class="min-h-11 rounded-2xl border-slate-200 bg-white px-4 text-sm text-slate-900 focus:border-slate-400 focus:ring-2 focus:ring-slate-100" /><datalist id="invoice-partner-report-options">@foreach($partnerOptions as $partner)<option value="{{ $partner }}"></option>@endforeach</datalist></label>
+            <label class="xl:col-span-2"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Quan hệ</span><select name="type" onchange="const sort=this.form.elements.sort;if(this.value==='purchase'){sort.value='purchase_desc'}else if(this.value==='sold'){sort.value='sold_desc'};this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="" @selected($partnerFilters['type'] === null)>Tất cả</option><option value="sold" @selected($partnerFilters['type'] === 'sold')>Khách hàng</option><option value="purchase" @selected($partnerFilters['type'] === 'purchase')>Nhà cung cấp</option></select></label>
+            <label class="xl:col-span-3"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Sắp xếp</span><select name="sort" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="sold_desc" @selected($partnerFilters['sort'] === 'sold_desc')>Bán ra cao nhất</option><option value="purchase_desc" @selected($partnerFilters['sort'] === 'purchase_desc')>Mua vào cao nhất</option><option value="invoice_desc" @selected($partnerFilters['sort'] === 'invoice_desc')>Nhiều hóa đơn nhất</option><option value="vat_desc" @selected($partnerFilters['sort'] === 'vat_desc')>VAT cao nhất</option><option value="net_desc" @selected($partnerFilters['sort'] === 'net_desc')>Chênh lệch cao nhất</option><option value="partner_asc" @selected($partnerFilters['sort'] === 'partner_asc')>Tên A → Z</option></select></label>
+            <label class="xl:col-span-1"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700">@foreach([10,25,50,100] as $size)<option value="{{ $size }}" @selected($partnerFilters['per_page'] === $size)>{{ $size }}</option>@endforeach</select></label><div class="flex items-end xl:col-span-2"><a href="{{ route('client.invoices.partners', ['year' => $partnerFilters['year'], 'month' => $partnerFilters['month']]) }}" class="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-600">Xóa lọc</a></div>
+        </form></div>
 
-        <div class="space-y-3 p-4 md:hidden">
-            @forelse($partners as $row)
-                @php $difference = (float) $row->sold_total - (float) $row->purchase_total; @endphp
-                <a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="block rounded-2xl border border-slate-200 p-4">
-                    <div class="flex items-start justify-between gap-3"><div class="min-w-0"><strong class="block truncate text-sm text-slate-950">{{ $row->partner_name }}</strong><span class="mt-1 block text-xs text-slate-500">MST {{ $row->partner_tax_code }}</span></div><span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{{ number_format($row->invoice_count) }} HĐ</span></div>
-                    <div class="mt-4 grid grid-cols-2 gap-3 text-sm"><div><span class="text-xs text-slate-400">Bán ra</span><strong class="mt-1 block text-slate-950">{{ $money($row->sold_total) }}</strong></div><div><span class="text-xs text-slate-400">Mua vào</span><strong class="mt-1 block text-slate-950">{{ $money($row->purchase_total) }}</strong></div></div>
-                    <div class="mt-3 border-t border-slate-100 pt-3 text-xs"><span class="text-slate-500">Chênh lệch</span><strong class="float-right {{ $difference >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $money($difference) }}</strong></div>
-                </a>
-            @empty
-                <p class="rounded-2xl bg-slate-50 p-5 text-center text-sm text-slate-500">Không có đối tác phù hợp bộ lọc.</p>
-            @endforelse
-        </div>
+        <div class="space-y-3 p-4 md:hidden">@forelse($partners as $row)@php $difference = (float) $row->sold_total - (float) $row->purchase_total; @endphp<a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="block rounded-2xl border border-slate-200 p-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><strong class="block truncate text-sm text-slate-950">{{ $row->partner_name }}</strong><span class="mt-1 block text-xs text-slate-500">MST {{ $row->partner_tax_code }}</span></div><span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{{ number_format($row->invoice_count) }} HĐ</span></div><div class="mt-4 grid grid-cols-2 gap-3 text-sm"><div><span class="text-xs text-slate-400">Bán ra</span><strong class="mt-1 block whitespace-nowrap text-slate-950">{{ $money($row->sold_total) }}</strong></div><div><span class="text-xs text-slate-400">Mua vào</span><strong class="mt-1 block whitespace-nowrap text-slate-950">{{ $money($row->purchase_total) }}</strong></div></div><div class="mt-3 border-t border-slate-100 pt-3 text-xs"><span class="text-slate-500">Chênh lệch</span><strong class="float-right whitespace-nowrap {{ $difference >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $money($difference) }}</strong></div></a>@empty<p class="rounded-2xl bg-slate-50 p-5 text-center text-sm text-slate-500">Không có đối tác phù hợp bộ lọc.</p>@endforelse</div>
 
-        <div class="hidden overflow-x-auto md:block">
-            <table class="min-w-full text-sm">
-                <thead class="bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-400"><tr><th class="px-5 py-3">Đối tác</th><th class="px-4 py-3 text-right">Hóa đơn</th><th class="px-4 py-3 text-right">Bán ra</th><th class="px-4 py-3 text-right">Mua vào</th><th class="px-4 py-3 text-right">VAT</th><th class="px-5 py-3 text-right">Chênh lệch</th></tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($partners as $row)
-                        @php $difference = (float) $row->sold_total - (float) $row->purchase_total; @endphp
-                        <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="font-bold text-slate-950 hover:underline">{{ $row->partner_name }}</a><span class="mt-1 block text-xs text-slate-500">MST {{ $row->partner_tax_code }}</span></td><td class="px-4 py-4 text-right font-semibold text-slate-700">{{ number_format($row->invoice_count) }}</td><td class="px-4 py-4 text-right font-semibold text-slate-950">{{ $money($row->sold_total) }}</td><td class="px-4 py-4 text-right font-semibold text-slate-950">{{ $money($row->purchase_total) }}</td><td class="px-4 py-4 text-right text-slate-600">{{ $money($row->vat_total) }}</td><td class="px-5 py-4 text-right font-bold {{ $difference >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $money($difference) }}</td></tr>
-                    @empty
-                        <tr><td colspan="6" class="px-5 py-10 text-center text-slate-500">Không có đối tác phù hợp bộ lọc.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        @if($partners->hasPages())
-            <div class="border-t border-slate-100 px-4 py-4 sm:px-5">{{ $partners->links() }}</div>
-        @endif
+        <div class="hidden overflow-x-auto md:block"><table class="w-full min-w-[1100px] table-auto text-sm"><thead class="bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-400"><tr><th class="min-w-[300px] px-5 py-3">Đối tác</th><th class="w-px whitespace-nowrap px-4 py-3 text-right">Hóa đơn</th><th class="w-px whitespace-nowrap px-4 py-3 text-right">Bán ra</th><th class="w-px whitespace-nowrap px-4 py-3 text-right">Mua vào</th><th class="w-px whitespace-nowrap px-4 py-3 text-right">VAT</th><th class="w-px whitespace-nowrap px-5 py-3 text-right">Chênh lệch</th></tr></thead><tbody class="divide-y divide-slate-100">@forelse($partners as $row)@php $difference = (float) $row->sold_total - (float) $row->purchase_total; @endphp<tr class="transition hover:bg-slate-50"><td class="min-w-[300px] px-5 py-4"><a href="{{ route('client.invoices.partners', array_merge($detailBaseQuery, ['detail_name' => $row->partner_name, 'detail_tax_code' => $row->partner_tax_code])) }}" class="font-bold text-slate-950 hover:underline">{{ $row->partner_name }}</a><span class="mt-1 block text-xs text-slate-500">MST {{ $row->partner_tax_code }}</span></td><td class="w-px whitespace-nowrap px-4 py-4 text-right font-semibold text-slate-700">{{ number_format($row->invoice_count) }}</td><td class="w-px whitespace-nowrap px-4 py-4 text-right font-semibold text-slate-950">{{ $money($row->sold_total) }}</td><td class="w-px whitespace-nowrap px-4 py-4 text-right font-semibold text-slate-950">{{ $money($row->purchase_total) }}</td><td class="w-px whitespace-nowrap px-4 py-4 text-right text-slate-600">{{ $money($row->vat_total) }}</td><td class="w-px whitespace-nowrap px-5 py-4 text-right font-bold {{ $difference >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $money($difference) }}</td></tr>@empty<tr><td colspan="6" class="px-5 py-10 text-center text-slate-500">Không có đối tác phù hợp bộ lọc.</td></tr>@endforelse</tbody></table></div>
+        @if($partners->hasPages())<div class="border-t border-slate-100 px-4 py-4 sm:px-5">{{ $partners->links() }}</div>@endif
     </section>
 </div>
 @endsection
