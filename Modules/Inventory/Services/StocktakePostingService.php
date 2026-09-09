@@ -41,7 +41,7 @@ class StocktakePostingService
                 throw new DomainException('Stocktake must contain at least one line.');
             }
 
-            $movements = [];
+            $prepared = [];
 
             foreach ($lines as $line) {
                 $item = $line->item()->firstOrFail();
@@ -77,12 +77,23 @@ class StocktakePostingService
                     'updated_at' => now(),
                 ]);
 
-                $current = DB::table('inventory_balances')
-                    ->where('dimension_key', $dimensionKey)
-                    ->lockForUpdate()
-                    ->value('quantity_on_hand');
+                $prepared[] = ['line' => $line, 'item' => $item, 'dimension_key' => $dimensionKey];
+            }
 
-                $current = DecimalQuantity::normalize((string) ($current ?? '0'));
+            $balances = DB::table('inventory_balances')
+                ->whereIn('dimension_key', collect($prepared)->pluck('dimension_key')->unique()->sort()->values()->all())
+                ->orderBy('dimension_key')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('dimension_key');
+
+            $movements = [];
+
+            foreach ($prepared as $entry) {
+                /** @var StocktakeLine $line */
+                $line = $entry['line'];
+                $item = $entry['item'];
+                $current = DecimalQuantity::normalize((string) $balances->get($entry['dimension_key'])->quantity_on_hand);
                 $variance = DecimalQuantity::add((string) $line->counted_quantity, DecimalQuantity::negate($current));
 
                 $line->system_quantity_snapshot = $current;
