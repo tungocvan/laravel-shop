@@ -20,6 +20,7 @@
                 <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">GDT Smart Sync</p>
                 <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Đồng bộ hóa đơn</h1>
                 <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-300">Hệ thống tự đề xuất mốc từ dữ liệu mới nhất, kiểm tra Local → Google Drive → GDT và chỉ giữ thông tin xác thực ở server.</p>
+                <p class="mt-2 max-w-2xl text-xs font-semibold leading-5 text-slate-400">Token, mật khẩu và thông tin xác thực GDT không được đưa xuống trình duyệt.</p>
             </div>
             <span @class(['rounded-full px-3 py-2 text-xs font-black', 'bg-emerald-400/15 text-emerald-300' => $tokenReady, 'bg-amber-400/15 text-amber-200' => ! $tokenReady])>
                 {{ $tokenReady ? '● GDT đã kết nối' : '● GDT cần xác thực' }}
