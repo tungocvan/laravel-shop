@@ -9,7 +9,7 @@ final class InvoiceInventoryStagingLine extends Model
 {
     protected $fillable = [
         'snapshot_id', 'line_number', 'source_line_key', 'raw_description', 'source_product_code',
-        'source_quantity', 'source_uom', 'unit_price', 'line_amount', 'normalized_name', 'strength',
+        'source_quantity', 'source_uom', 'unit_price', 'line_amount', 'tax_rate', 'normalized_name', 'strength',
         'dosage_form', 'package_spec', 'manufacturer', 'normalized_uom', 'lot_number',
         'manufacture_date', 'expiry_date', 'normalization_status', 'raw_payload', 'normalization_meta',
     ];
