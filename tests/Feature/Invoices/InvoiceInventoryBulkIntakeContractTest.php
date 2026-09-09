@@ -19,6 +19,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString("->unsignedInteger('attempt_count')->default(0)", $migration);
         $this->assertStringContainsString("->timestamp('last_attempt_at')->nullable()", $migration);
         $this->assertStringContainsString("->text('raw_description')", $migration);
+        $this->assertStringContainsString("->string('tax_rate', 32)->nullable()", $migration);
         $this->assertStringContainsString("->string('lot_number')->nullable()", $migration);
         $this->assertStringContainsString("->date('expiry_date')->nullable()", $migration);
     }
@@ -33,6 +34,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString("'attempt_count' => ((int) \$snapshot->attempt_count) + 1", $service);
         $this->assertStringContainsString("hash('sha256'", $service);
         $this->assertStringContainsString('$snapshot->payload_hash === $hash', $service);
+        $this->assertStringContainsString("'tax_rate' => isset(\$line['tsuat'])", $service);
         $this->assertStringContainsString("'status' => 'NORMALIZED'", $service);
         $this->assertStringContainsString("'status' => 'ERROR'", $service);
         $this->assertStringContainsString("'last_error' => mb_substr", $service);
