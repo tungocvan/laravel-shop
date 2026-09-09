@@ -27,7 +27,7 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
 
-        $this->assertStringContainsString("->where('inbox_id', $this->selectedInboxId)", $component);
+        $this->assertStringContainsString("->where('inbox_id', \$this->selectedInboxId)", $component);
         $this->assertStringContainsString("throw new DomainException('Có dòng đã chọn không thuộc hóa đơn hiện tại.')", $component);
         $this->assertStringContainsString("throw new DomainException('Chọn ít nhất một dòng cần xử lý.')", $component);
     }
