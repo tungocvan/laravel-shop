@@ -13,10 +13,10 @@ class InventoryBatchC2BulkPublicationContractTest extends TestCase
         $factory = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceForInventoryV1Factory.php'));
 
         $this->assertStringContainsString('buildFromSnapshot(InvoiceInventorySnapshot $snapshot)', $factory);
-        $this->assertStringContainsString("$snapshot->status !== 'NORMALIZED'", $factory);
-        $this->assertStringContainsString("'staging_line_id' => $line->id", $factory);
-        $this->assertStringContainsString("'raw_description' => $line->raw_description", $factory);
-        $this->assertStringContainsString("'package_spec' => $line->package_spec", $factory);
+        $this->assertStringContainsString("\$snapshot->status !== 'NORMALIZED'", $factory);
+        $this->assertStringContainsString("'staging_line_id' => \$line->id", $factory);
+        $this->assertStringContainsString("'raw_description' => \$line->raw_description", $factory);
+        $this->assertStringContainsString("'package_spec' => \$line->package_spec", $factory);
     }
 
     #[Test]
