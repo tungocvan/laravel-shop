@@ -27,7 +27,7 @@ final class ClientInvoiceWorkspaceService
         $periodDate = now()->setDate($year, $month ?? 1, 1);
         $periodFilters = $this->periodFilters($year, $month);
         $yearFilters = $this->periodFilters($year, null);
-        $sameMonth = (int) now()->format('m');
+        $sameMonth = $month ?? (int) now()->format('m');
         $sameMonthFilters = $this->periodFilters($year, $sameMonth);
 
         $stats = $this->invoices->statistics($periodFilters);
