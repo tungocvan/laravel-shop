@@ -19,6 +19,11 @@ final class InventoryAdminController extends Controller
         ]);
     }
 
+    public function invoiceInbox(): View
+    {
+        return view('Inventory::pages.invoice-inbox');
+    }
+
     public function workspace(Request $request): View
     {
         $workspace = (string) $request->route('workspace');
