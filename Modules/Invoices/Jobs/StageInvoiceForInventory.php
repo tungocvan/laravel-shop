@@ -17,6 +17,7 @@ final class StageInvoiceForInventory implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 120;
 
     public function __construct(public readonly int $invoiceId, public readonly bool $refresh = false) {}

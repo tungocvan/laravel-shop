@@ -24,7 +24,7 @@ final class InvoiceLineNormalizer
             }
         }
         $name = preg_replace('/(?:S[ỐO]\s*L[ÔO]|LOT|HSD|EXP|NSX|MFG)\s*[:\-]?\s*[^,;]+/iu', ' ', $name) ?: $name;
-        $name = trim(preg_replace('/\s+/u', ' ', trim($name, " -;,")) ?: $name);
+        $name = trim(preg_replace('/\s+/u', ' ', trim($name, ' -;,')) ?: $name);
 
         return [
             'normalized_name' => $name !== '' ? $name : $raw,
