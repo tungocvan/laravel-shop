@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Services;
 
+use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Modules\Inventory\Models\Transfer;
@@ -11,11 +12,16 @@ use Modules\Inventory\Support\DecimalQuantity;
 
 class TransferPostingService
 {
-    public function __construct(private readonly StockPostingService $stockPosting) {}
+    public function __construct(
+        private readonly StockPostingService $stockPosting,
+        private readonly InventoryAuthorizationService $authorization,
+    ) {}
 
-    public function confirm(int $transferId, ?int $actorId = null): Transfer
+    public function confirm(int $transferId, User $actor): Transfer
     {
-        return DB::transaction(function () use ($transferId, $actorId): Transfer {
+        $this->authorization->authorize($actor, 'inventory.transfer.confirm');
+
+        return DB::transaction(function () use ($transferId, $actor): Transfer {
             $transfer = Transfer::query()->lockForUpdate()->findOrFail($transferId);
 
             if ($transfer->status === 'CONFIRMED') {
@@ -73,7 +79,7 @@ class TransferPostingService
                     'document_id' => $transfer->getKey(),
                     'document_line_id' => $line->getKey(),
                     'occurred_at' => $transfer->document_date ?? now(),
-                    'posted_by' => $actorId,
+                    'posted_by' => $actor->getKey(),
                 ];
 
                 $movements[] = [
@@ -95,7 +101,7 @@ class TransferPostingService
             $this->stockPosting->postBatch($movements);
 
             $transfer->status = 'CONFIRMED';
-            $transfer->confirmed_by = $actorId;
+            $transfer->confirmed_by = $actor->getKey();
             $transfer->confirmed_at = now();
             $transfer->save();
 
