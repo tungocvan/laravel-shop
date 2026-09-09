@@ -67,16 +67,23 @@ class InvoicesApplicationContractTest extends TestCase
         $this->assertStringContainsString('$request->query(\'month\')', $adapter);
         $this->assertStringContainsString('\'periodScope\' => $month === null ? \'year\' : \'month\'', $adapter);
         $this->assertStringContainsString('$this->invoices->monthlyPerformance($year)', $adapter);
+        $this->assertStringContainsString("'yearGrowth' =>", $adapter);
+        $this->assertStringContainsString("'currentMonthGrowth' =>", $adapter);
+        $this->assertStringContainsString("'currentMonthYearOverYearGrowth' =>", $adapter);
+        $this->assertStringContainsString("'unclassifiedInvoiceCount' =>", $adapter);
         $this->assertStringContainsString('public function monthlyPerformance(int $year): array', $invoiceService);
 
         $this->assertStringContainsString('Cả năm', $dashboard);
         $this->assertStringContainsString('onchange="this.form.submit()"', $dashboard);
         $this->assertStringNotContainsString('>Xem</button>', $dashboard);
         $this->assertStringContainsString('Tổng quan kinh doanh', $dashboard);
+        $this->assertStringContainsString('Doanh thu năm', $dashboard);
+        $this->assertStringContainsString('So với năm', $dashboard);
         $this->assertStringContainsString('Tình trạng tài liệu', $dashboard);
         $this->assertStringContainsString('Xu hướng 12 tháng', $dashboard);
         $this->assertStringContainsString('Tình hình doanh thu qua các năm', $dashboard);
         $this->assertStringContainsString('Tháng hiện tại trong năm đang xem', $dashboard);
+        $this->assertStringContainsString('Tổng = bán ra + mua vào', $dashboard);
     }
 
     #[Test]
