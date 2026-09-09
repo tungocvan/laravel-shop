@@ -4,9 +4,12 @@ namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Inventory\Models\Concerns\ProtectsConfirmedParent;
 
 class StocktakeLine extends Model
 {
+    use ProtectsConfirmedParent;
+
     protected $table = 'inventory_stocktake_lines';
 
     protected $guarded = [];
@@ -33,5 +36,15 @@ class StocktakeLine extends Model
     public function lot(): BelongsTo
     {
         return $this->belongsTo(Lot::class, 'lot_id');
+    }
+
+    protected function confirmedParentTable(): string
+    {
+        return 'inventory_stocktakes';
+    }
+
+    protected function confirmedParentForeignKey(): string
+    {
+        return 'stocktake_id';
     }
 }
