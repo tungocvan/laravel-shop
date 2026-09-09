@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Services;
 
+use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Modules\Inventory\Models\Stocktake;
@@ -11,11 +12,16 @@ use Modules\Inventory\Support\DecimalQuantity;
 
 class StocktakePostingService
 {
-    public function __construct(private readonly StockPostingService $stockPosting) {}
+    public function __construct(
+        private readonly StockPostingService $stockPosting,
+        private readonly InventoryAuthorizationService $authorization,
+    ) {}
 
-    public function confirm(int $stocktakeId, ?int $actorId = null): Stocktake
+    public function confirm(int $stocktakeId, User $actor): Stocktake
     {
-        return DB::transaction(function () use ($stocktakeId, $actorId): Stocktake {
+        $this->authorization->authorize($actor, 'inventory.stocktake.confirm');
+
+        return DB::transaction(function () use ($stocktakeId, $actor): Stocktake {
             $stocktake = Stocktake::query()->lockForUpdate()->findOrFail($stocktakeId);
 
             if ($stocktake->status === 'CONFIRMED') {
@@ -42,6 +48,7 @@ class StocktakePostingService
             }
 
             $prepared = [];
+            $seenDimensions = [];
 
             foreach ($lines as $line) {
                 $item = $line->item()->firstOrFail();
@@ -67,6 +74,11 @@ class StocktakePostingService
                     (string) $item->getKey(),
                     $line->lot_id === null ? 'NO_LOT' : (string) $line->lot_id,
                 ]));
+
+                if (isset($seenDimensions[$dimensionKey])) {
+                    throw new DomainException('Stocktake contains duplicate stock dimensions.');
+                }
+                $seenDimensions[$dimensionKey] = true;
 
                 DB::table('inventory_balances')->insertOrIgnore([
                     'warehouse_id' => $stocktake->warehouse_id,
@@ -116,7 +128,7 @@ class StocktakePostingService
                     'document_line_id' => $line->getKey(),
                     'movement_role' => 'VARIANCE',
                     'occurred_at' => now(),
-                    'posted_by' => $actorId,
+                    'posted_by' => $actor->getKey(),
                 ];
             }
 
@@ -125,7 +137,7 @@ class StocktakePostingService
             }
 
             $stocktake->status = 'CONFIRMED';
-            $stocktake->confirmed_by = $actorId;
+            $stocktake->confirmed_by = $actor->getKey();
             $stocktake->confirmed_at = now();
             $stocktake->save();
 
