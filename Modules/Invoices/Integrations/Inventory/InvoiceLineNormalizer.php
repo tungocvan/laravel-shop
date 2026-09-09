@@ -8,32 +8,26 @@ final class InvoiceLineNormalizer
 {
     public function normalize(array $line): array
     {
-        $raw = trim((string) ($line['ten'] ?? ''));
-        $working = preg_replace('/\s+/u', ' ', $raw) ?: $raw;
+        $raw = (string) ($line['ten'] ?? '');
+        $working = preg_replace('/\s+/u', ' ', trim($raw)) ?: trim($raw);
 
         $lot = $this->match($working, '/(?:S[ỐO]\s*L[ÔO]|L[ÔO]|LOT)\s*[:\-]?\s*([A-Z0-9.\/-]+)/iu');
-        $expiry = $this->dateMatch($working, '/(?:HSD|EXP)\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}|\d{1,2}[\/\-.]\d{4})/iu');
+        $expiry = $this->dateMatch($working, '/(?:HSD|HẠN\s*DÙNG|HAN\s*DUNG|HD|EXP)\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}|\d{1,2}[\/\-.]\d{4})/iu');
         $manufacture = $this->dateMatch($working, '/(?:NGÀY\s*(?:SX|SẢN\s*XUẤT)|MFG|NSX)\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})/iu');
         $strength = $this->match($working, '/\b(\d+(?:[.,]\d+)?\s*(?:MG|G|MCG|ML|IU|UI|%))\b/iu');
         $package = $this->packageSpec($working);
         $manufacturer = $this->manufacturer($working);
 
         $name = $working;
-        foreach ([$strength, $package] as $token) {
-            if ($token !== null) {
-                $name = str_ireplace($token, ' ', $name);
-            }
-        }
-
         $name = preg_replace('/(?:S[ỐO]\s*L[ÔO]|L[ÔO]|LOT)\s*[:\-]?\s*[A-Z0-9.\/-]+/iu', ' ', $name) ?: $name;
-        $name = preg_replace('/(?:HSD|EXP)\s*[:\-]?\s*\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}/iu', ' ', $name) ?: $name;
-        $name = preg_replace('/(?:HSD|EXP)\s*[:\-]?\s*\d{1,2}[\/\-.]\d{4}/iu', ' ', $name) ?: $name;
+        $name = preg_replace('/(?:HSD|HẠN\s*DÙNG|HAN\s*DUNG|HD|EXP)\s*[:\-]?\s*\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}/iu', ' ', $name) ?: $name;
+        $name = preg_replace('/(?:HSD|HẠN\s*DÙNG|HAN\s*DUNG|HD|EXP)\s*[:\-]?\s*\d{1,2}[\/\-.]\d{4}/iu', ' ', $name) ?: $name;
         $name = preg_replace('/(?:NGÀY\s*(?:SX|SẢN\s*XUẤT)|MFG|NSX)\s*[:\-]?\s*[^,;]+/iu', ' ', $name) ?: $name;
-        $name = preg_replace('/\(\s*\)/u', ' ', $name) ?: $name;
-        $name = trim(preg_replace('/\s+/u', ' ', trim($name, " -;,()")) ?: $name);
+        $name = trim(preg_replace('/\s*[,;]\s*[,;]+/u', '; ', $name) ?: $name);
+        $name = trim(preg_replace('/\s+/u', ' ', trim($name, " -;,")) ?: $name);
 
         return [
-            'normalized_name' => $name !== '' ? $name : $raw,
+            'normalized_name' => $name !== '' ? $name : trim($raw),
             'strength' => $strength,
             'dosage_form' => $this->dosageForm($working),
             'package_spec' => $package,
@@ -43,7 +37,7 @@ final class InvoiceLineNormalizer
             'manufacture_date' => $manufacture ?? $this->dateValue($line['nsx'] ?? null),
             'expiry_date' => $expiry ?? $this->dateValue($line['hsd'] ?? $line['expiry_date'] ?? null),
             'normalization_status' => 'NORMALIZED',
-            'normalization_meta' => ['parser' => 'deterministic-v2'],
+            'normalization_meta' => ['parser' => 'deterministic-v3'],
         ];
     }
 
