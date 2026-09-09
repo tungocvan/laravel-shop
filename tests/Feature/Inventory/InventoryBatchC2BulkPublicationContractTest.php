@@ -50,6 +50,7 @@ class InventoryBatchC2BulkPublicationContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/ReceivingIntakeWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/receiving-intake-workspace.blade.php'));
+        $page = file_get_contents(base_path('Modules/Inventory/resources/views/pages/intake.blade.php'));
 
         $this->assertStringContainsString('publishSelected', $component);
         $this->assertStringContainsString('createDraftReceipts', $component);
@@ -57,6 +58,8 @@ class InventoryBatchC2BulkPublicationContractTest extends TestCase
         $this->assertStringContainsString('Publish sang Inbox', $view);
         $this->assertStringContainsString('Tạo Receipt DRAFT', $view);
         $this->assertStringContainsString('Không có thao tác xác nhận tồn kho tại màn hình này.', $view);
+        $this->assertStringContainsString('<livewire:inventory.receiving-intake-workspace />', $page);
+        $this->assertStringNotContainsString('inventory::receiving-intake-workspace', $page);
         $this->assertStringNotContainsString('ReceiptPostingService', $component.$view);
     }
 }
