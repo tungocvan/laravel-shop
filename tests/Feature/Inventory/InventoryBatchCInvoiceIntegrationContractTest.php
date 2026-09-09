@@ -16,7 +16,7 @@ class InventoryBatchCInvoiceIntegrationContractTest extends TestCase
         $this->assertStringContainsString("'contract_version' => '1.0'", $factory);
         $this->assertStringContainsString('GdtPdfService', $factory);
         $this->assertStringContainsString('fetchDetail($invoice)', $factory);
-        $this->assertStringContainsString("str_starts_with($version, '1.')", $consumer);
+        $this->assertStringContainsString("str_starts_with(\$version, '1.')", $consumer);
         $this->assertStringNotContainsString('storage/app/invoices/pdf', $consumer);
         $this->assertStringNotContainsString('InvoicePdfService', $consumer);
     }
