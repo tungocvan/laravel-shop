@@ -10,8 +10,10 @@ class InvoicesGdtSmartSyncContractTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Invoices/Services/GdtSyncReadinessService.php'));
 
-        $this->assertStringContainsString('where(\'is_purchase\', $purchase)', $source);
-        $this->assertStringContainsString('->max(\'invoice_date\')', $source);
+        $this->assertStringContainsString('where(\'invoice_type\', $invoiceType)', $source);
+        $this->assertStringContainsString('->max(\'issued_date\')', $source);
+        $this->assertStringContainsString("'purchase' => \$this->directionReadiness('purchase'", $source);
+        $this->assertStringContainsString("'sold' => \$this->directionReadiness('sold'", $source);
         $this->assertStringContainsString("'suggested_start' => \$latestDate ?? \$yearStart->toDateString()", $source);
         $this->assertStringContainsString("'suggested_end' => \$today->toDateString()", $source);
     }
