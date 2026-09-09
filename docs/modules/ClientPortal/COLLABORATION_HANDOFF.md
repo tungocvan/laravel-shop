@@ -1,6 +1,59 @@
 # ClientPortal Module — Collaboration Handoff
 
-## Current delivery — Invoices Partner Report PWA
+## Current delivery — Invoices GDT Smart Sync PWA
+
+- Last updated: 2026-09-09
+- Active branch: `feat/clientportal-invoices-gdt-smart-sync`
+- Status: **IMPLEMENTED — FOCUSED TESTS PASS — UI/RUNTIME PASS — FINAL PINT CONFIRMATION PENDING**
+
+### Objective
+
+Expose a secure PWA GDT synchronization workflow while preserving the ownership boundary: ClientPortal owns client UX/orchestration and Invoices owns GDT/business/data persistence.
+
+### Delivered capability
+
+- server-side GDT token readiness gate before queue dispatch;
+- CAPTCHA reconnect flow with challenge key kept in server session;
+- no GDT username/password/access token exposed to Blade, JavaScript, localStorage, IndexedDB or PWA cache;
+- current-year Smart Date readiness split by `purchase` / `sold` using canonical `issued_date` and `invoice_type` fields;
+- suggested start remains the latest invoice date itself, not `+1 day`, so same-day late invoices can be rechecked;
+- responsive PWA Smart Sync UI with status/log presentation;
+- GDT payload persistence into the canonical `invoices` table before Excel export;
+- idempotent identity strategy: prefer `invoice_type + lookup_code`, fallback to `invoice_type + symbol + invoice_number + tax_code + issued_date` when lookup code is absent;
+- transactional DB persistence with `created / updated / unchanged` statistics in the sync log;
+- Excel export remains available after successful DB persistence.
+
+### Validation evidence
+
+Recorded focused automated gate:
+
+```text
+14 tests passed (115 assertions)
+```
+
+Manual PWA/UI/runtime acceptance reported by user: **PASS**.
+
+The final Pint run previously exposed one style-only issue in `GdtInvoiceService.php`; the affected formatting rules were corrected in commit `24129a52ef532e916ed282811ae7a8553c18a1c7`. A post-fix Pint confirmation remains the final CLI closeout gate.
+
+### Security / ownership boundary
+
+```text
+Modules/Invoices
+  owns GDT API/auth integration
+  owns invoice persistence/schema/model
+  owns Excel/file generation
+  owns queue/business behavior
+
+Modules/ClientPortal/Applications/Invoices
+  owns PWA routes
+  owns web-guard/client authorization
+  owns CAPTCHA/connect presentation
+  owns Smart Sync responsive UX
+```
+
+ClientPortal does not copy Invoices models/schema/core services and does not reuse Admin authentication or Admin presentation.
+
+## Previous delivery — Invoices Partner Report PWA
 
 - Last updated: 2026-09-09
 - Active branch: `feat/clientportal-invoices-partner-report`
@@ -160,6 +213,7 @@ ClientPortal architecture boundaries refactor: MERGED — PR #124
 Invoices executive PWA: MERGED — PR #173
 Invoices selected-month KPI hotfix: MERGED — PR #175
 Invoices Partner Report PWA: READY FOR PR
+Invoices GDT Smart Sync PWA: UI/RUNTIME PASS — FINAL PINT CONFIRMATION PENDING
 ```
 
 ## Deferred debt
