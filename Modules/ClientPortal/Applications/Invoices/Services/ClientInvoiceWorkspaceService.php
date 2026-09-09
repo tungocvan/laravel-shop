@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
+use Modules\Invoices\Services\InvoicePartnerReportService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
 
@@ -14,6 +15,7 @@ final class ClientInvoiceWorkspaceService
     public function __construct(
         private readonly InvoiceService $invoices,
         private readonly InvoicePdfService $pdf,
+        private readonly InvoicePartnerReportService $partnerReports,
     ) {}
 
     public function dashboardData(Request $request): array
@@ -93,6 +95,79 @@ final class ClientInvoiceWorkspaceService
             'monthlyPerformance' => $monthlyPerformance,
             'monthlyMax' => $monthlyMax,
             'yearlyPerformance' => $yearlyPerformance,
+        ];
+    }
+
+    public function partnerReportData(Request $request): array
+    {
+        $year = max(2000, min(2100, (int) $request->integer('year', (int) now()->format('Y'))));
+        $requestedMonth = $request->query('month');
+        $month = filter_var($requestedMonth, FILTER_VALIDATE_INT) !== false
+            ? max(1, min(12, (int) $requestedMonth))
+            : null;
+        $type = in_array($request->query('type'), ['sold', 'purchase'], true)
+            ? $request->query('type')
+            : null;
+        $sort = in_array((string) $request->query('sort', 'sold_desc'), [
+            'sold_desc',
+            'purchase_desc',
+            'invoice_desc',
+            'vat_desc',
+            'net_desc',
+            'partner_asc',
+            'partner_desc',
+        ], true) ? (string) $request->query('sort', 'sold_desc') : 'sold_desc';
+        $perPage = (int) $request->integer('per_page', 25);
+        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
+        $date = now()->setDate($year, $month ?? 1, 1);
+
+        $filters = [
+            'invoice_type' => $type,
+            'partner' => trim((string) $request->query('partner', '')),
+            'issued_date_from' => ($month === null ? $date->copy()->startOfYear() : $date->copy()->startOfMonth())->toDateString(),
+            'issued_date_to' => ($month === null ? $date->copy()->endOfYear() : $date->copy()->endOfMonth())->toDateString(),
+            'sort' => $sort,
+        ];
+
+        $partners = $this->partnerReports->paginate($filters, $perPage)->withQueryString();
+        $summary = $this->partnerReports->summary($filters);
+        $topSold = $this->partnerReports->paginate(array_merge($filters, ['sort' => 'sold_desc']), 10)
+            ->getCollection()
+            ->take(5)
+            ->values();
+        $topPurchase = $this->partnerReports->paginate(array_merge($filters, ['sort' => 'purchase_desc']), 10)
+            ->getCollection()
+            ->take(5)
+            ->values();
+
+        $detailName = trim((string) $request->query('detail_name', ''));
+        $detailTaxCode = trim((string) $request->query('detail_tax_code', ''));
+        $partnerDetail = null;
+        if ($detailName !== '' && $detailTaxCode !== '') {
+            $partnerDetail = $this->partnerReports->partnerDetail(
+                array_merge($filters, ['partner' => null, 'sort' => null]),
+                $detailName,
+                $detailTaxCode,
+            );
+        }
+
+        return [
+            'partnerFilters' => [
+                'year' => $year,
+                'month' => $month,
+                'type' => $type,
+                'partner' => $filters['partner'],
+                'sort' => $sort,
+                'per_page' => $perPage,
+            ],
+            'partnerPeriod' => $month === null ? 'Năm '.$year : sprintf('Tháng %02d/%d', $month, $year),
+            'partnerYears' => collect($this->invoices->years())->push($year)->unique()->sortDesc()->values()->all(),
+            'partners' => $partners,
+            'partnerSummary' => $summary,
+            'partnerCount' => $partners->total(),
+            'partnerTopSold' => $topSold,
+            'partnerTopPurchase' => $topPurchase,
+            'partnerDetail' => $partnerDetail,
         ];
     }
 
