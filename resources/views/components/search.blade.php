@@ -1,5 +1,6 @@
 @props([
     'placeholder' => 'Tìm kiếm...',
+    'inputClass' => '',
 ])
 
 <div {{ $attributes->only('class')->merge(['class' => 'relative']) }}>
@@ -12,8 +13,8 @@
     <input
         type="search"
         placeholder="{{ $placeholder }}"
-        {{ $attributes->except('class')->merge([
-            'class' => 'block w-full rounded-lg border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500',
+        {{ $attributes->except(['class', 'inputClass'])->merge([
+            'class' => trim('block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 '.$inputClass),
         ]) }}
     >
 </div>
