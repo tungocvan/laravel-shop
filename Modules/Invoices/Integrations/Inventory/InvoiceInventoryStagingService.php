@@ -90,6 +90,7 @@ final class InvoiceInventoryStagingService
                         'source_uom' => $line['dvtinh'] ?? null,
                         'unit_price' => is_numeric($line['dgia'] ?? null) ? $line['dgia'] : null,
                         'line_amount' => is_numeric($line['thtien'] ?? null) ? $line['thtien'] : null,
+                        'tax_rate' => isset($line['tsuat']) || isset($line['ltsuat']) ? (string) ($line['tsuat'] ?? $line['ltsuat']) : null,
                         'raw_payload' => $line,
                     ], $normalized));
                 }
