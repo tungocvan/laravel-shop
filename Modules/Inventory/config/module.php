@@ -46,5 +46,7 @@ return [
         'inventory_stocktake_lines',
         'inventory_movements',
         'inventory_balances',
+        'inventory_invoice_inbox',
+        'inventory_invoice_inbox_lines',
     ],
 ];
