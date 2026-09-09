@@ -2,21 +2,26 @@
 
 namespace Tests\Feature\Inventory;
 
+use App\Models\User;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use LogicException;
 use Modules\Inventory\Models\InventoryItem;
 use Modules\Inventory\Models\Issue;
 use Modules\Inventory\Models\IssueLine;
 use Modules\Inventory\Models\Receipt;
 use Modules\Inventory\Models\ReceiptLine;
+use Modules\Inventory\Models\StockMovement;
 use Modules\Inventory\Models\Stocktake;
 use Modules\Inventory\Models\StocktakeLine;
 use Modules\Inventory\Models\Transfer;
 use Modules\Inventory\Models\TransferLine;
 use Modules\Inventory\Models\Warehouse;
 use Modules\Inventory\Services\IssuePostingService;
+use Modules\Inventory\Services\MovementReversalService;
 use Modules\Inventory\Services\ReceiptPostingService;
 use Modules\Inventory\Services\StocktakePostingService;
 use Modules\Inventory\Services\TransferPostingService;
@@ -26,6 +31,8 @@ class InventoryCorePostingTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $actor;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -34,6 +41,18 @@ class InventoryCorePostingTest extends TestCase
             '--path' => 'Modules/Inventory/database/migrations',
             '--force' => true,
         ]);
+
+        foreach ([
+            'inventory.receipt.confirm',
+            'inventory.issue.confirm',
+            'inventory.transfer.confirm',
+            'inventory.stocktake.confirm',
+            'inventory.movement.reverse',
+        ] as $ability) {
+            Gate::define($ability, fn (User $user): bool => true);
+        }
+
+        $this->actor = User::factory()->create();
     }
 
     public function test_receipt_confirmation_is_retry_idempotent_and_updates_projection_once(): void
@@ -56,8 +75,8 @@ class InventoryCorePostingTest extends TestCase
             'base_uom' => 'EA',
         ]);
 
-        app(ReceiptPostingService::class)->confirm($receipt->id);
-        app(ReceiptPostingService::class)->confirm($receipt->id);
+        app(ReceiptPostingService::class)->confirm($receipt->id, $this->actor);
+        app(ReceiptPostingService::class)->confirm($receipt->id, $this->actor);
 
         $this->assertDatabaseCount('inventory_movements', 1);
         $this->assertDatabaseHas('inventory_balances', [
@@ -87,7 +106,7 @@ class InventoryCorePostingTest extends TestCase
         ]);
 
         try {
-            app(IssuePostingService::class)->confirm($issue->id);
+            app(IssuePostingService::class)->confirm($issue->id, $this->actor);
             $this->fail('Negative stock confirmation should fail.');
         } catch (DomainException $exception) {
             $this->assertStringContainsString('Negative inventory stock', $exception->getMessage());
@@ -122,7 +141,7 @@ class InventoryCorePostingTest extends TestCase
             'base_uom' => 'EA',
         ]);
 
-        app(TransferPostingService::class)->confirm($transfer->id);
+        app(TransferPostingService::class)->confirm($transfer->id, $this->actor);
 
         $this->assertDatabaseHas('inventory_balances', [
             'warehouse_id' => $source->id,
@@ -134,7 +153,7 @@ class InventoryCorePostingTest extends TestCase
             'inventory_item_id' => $item->id,
             'quantity_on_hand' => '3.000000',
         ]);
-        $this->assertSame(2, \DB::table('inventory_movements')->where('document_type', 'transfer')->count());
+        $this->assertSame(2, DB::table('inventory_movements')->where('document_type', 'transfer')->count());
         $this->assertSame('CONFIRMED', $transfer->refresh()->status);
     }
 
@@ -157,7 +176,7 @@ class InventoryCorePostingTest extends TestCase
             'base_uom' => 'EA',
         ]);
 
-        app(StocktakePostingService::class)->confirm($stocktake->id);
+        app(StocktakePostingService::class)->confirm($stocktake->id, $this->actor);
 
         $this->assertDatabaseHas('inventory_movements', [
             'document_type' => 'stocktake',
@@ -171,14 +190,53 @@ class InventoryCorePostingTest extends TestCase
         ]);
     }
 
-    public function test_confirmed_receipt_and_lines_are_immutable(): void
+    public function test_confirmed_receipt_and_its_lines_are_immutable(): void
     {
         [$warehouse, $item] = $this->foundation();
         $receipt = $this->seedStock($warehouse, $item, '1.000000');
+        $line = $receipt->lines()->firstOrFail();
+
+        try {
+            $receipt->notes = 'illegal edit';
+            $receipt->save();
+            $this->fail('Confirmed receipt should be immutable.');
+        } catch (LogicException) {
+            $this->assertTrue(true);
+        }
 
         $this->expectException(LogicException::class);
-        $receipt->notes = 'illegal edit';
-        $receipt->save();
+        $line->base_quantity = '2.000000';
+        $line->save();
+    }
+
+    public function test_stock_movement_is_immutable_and_reversal_is_compensating_and_idempotent(): void
+    {
+        [$warehouse, $item] = $this->foundation();
+        $this->seedStock($warehouse, $item, '4.000000');
+        $movement = StockMovement::query()->firstOrFail();
+
+        try {
+            $movement->quantity_delta = '9.000000';
+            $movement->save();
+            $this->fail('Stock movement should be immutable.');
+        } catch (LogicException) {
+            $this->assertTrue(true);
+        }
+
+        app(MovementReversalService::class)->reverse($movement->id, 'Correct posting', $this->actor);
+        app(MovementReversalService::class)->reverse($movement->id, 'Retry same correction', $this->actor);
+
+        $this->assertDatabaseCount('inventory_movements', 2);
+        $this->assertDatabaseHas('inventory_movements', [
+            'movement_type' => 'REVERSAL',
+            'reversal_of_movement_id' => $movement->id,
+            'quantity_delta' => '-4.000000',
+        ]);
+        $this->assertDatabaseHas('inventory_balances', [
+            'warehouse_id' => $warehouse->id,
+            'inventory_item_id' => $item->id,
+            'quantity_on_hand' => '0.000000',
+        ]);
     }
 
     private function foundation(): array
@@ -212,7 +270,7 @@ class InventoryCorePostingTest extends TestCase
             'base_quantity' => $quantity,
             'base_uom' => $item->base_uom,
         ]);
-        app(ReceiptPostingService::class)->confirm($receipt->id);
+        app(ReceiptPostingService::class)->confirm($receipt->id, $this->actor);
 
         return $receipt->refresh();
     }
