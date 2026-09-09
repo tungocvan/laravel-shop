@@ -25,8 +25,8 @@ final class GdtSyncReadinessService
             'token_ready' => $this->hasToken(),
             'year' => $year,
             'today' => $today->toDateString(),
-            'purchase' => $this->directionReadiness(true, $yearStart, $yearEnd, $today),
-            'sold' => $this->directionReadiness(false, $yearStart, $yearEnd, $today),
+            'purchase' => $this->directionReadiness('purchase', $yearStart, $yearEnd, $today),
+            'sold' => $this->directionReadiness('sold', $yearStart, $yearEnd, $today),
         ];
     }
 
@@ -41,16 +41,16 @@ final class GdtSyncReadinessService
     }
 
     private function directionReadiness(
-        bool $purchase,
+        string $invoiceType,
         CarbonImmutable $yearStart,
         CarbonImmutable $yearEnd,
         CarbonImmutable $today,
     ): array {
         $query = Invoices::query()
-            ->where('is_purchase', $purchase)
-            ->whereBetween('invoice_date', [$yearStart, $yearEnd]);
+            ->where('invoice_type', $invoiceType)
+            ->whereBetween('issued_date', [$yearStart, $yearEnd]);
 
-        $latest = (clone $query)->max('invoice_date');
+        $latest = (clone $query)->max('issued_date');
         $latestDate = $latest ? CarbonImmutable::parse($latest)->toDateString() : null;
 
         return [
