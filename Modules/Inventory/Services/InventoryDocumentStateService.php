@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Services;
 
+use App\Models\User;
 use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -12,24 +13,34 @@ use Modules\Inventory\Models\Transfer;
 
 class InventoryDocumentStateService
 {
-    public function cancelReceipt(int $id, ?int $actorId = null): Receipt
+    public function __construct(private readonly InventoryAuthorizationService $authorization) {}
+
+    public function cancelReceipt(int $id, User $actor): Receipt
     {
-        return $this->cancel(Receipt::class, $id, $actorId);
+        $this->authorization->authorize($actor, 'inventory.receipt.manage');
+
+        return $this->cancel(Receipt::class, $id, $actor);
     }
 
-    public function cancelIssue(int $id, ?int $actorId = null): Issue
+    public function cancelIssue(int $id, User $actor): Issue
     {
-        return $this->cancel(Issue::class, $id, $actorId);
+        $this->authorization->authorize($actor, 'inventory.issue.manage');
+
+        return $this->cancel(Issue::class, $id, $actor);
     }
 
-    public function cancelTransfer(int $id, ?int $actorId = null): Transfer
+    public function cancelTransfer(int $id, User $actor): Transfer
     {
-        return $this->cancel(Transfer::class, $id, $actorId);
+        $this->authorization->authorize($actor, 'inventory.transfer.manage');
+
+        return $this->cancel(Transfer::class, $id, $actor);
     }
 
-    public function markStocktakeCounted(int $id, ?int $actorId = null): Stocktake
+    public function markStocktakeCounted(int $id, User $actor): Stocktake
     {
-        return DB::transaction(function () use ($id, $actorId): Stocktake {
+        $this->authorization->authorize($actor, 'inventory.stocktake.manage');
+
+        return DB::transaction(function () use ($id, $actor): Stocktake {
             $stocktake = Stocktake::query()->lockForUpdate()->findOrFail($id);
 
             if ($stocktake->status === 'COUNTED') {
@@ -41,7 +52,7 @@ class InventoryDocumentStateService
             }
 
             $stocktake->status = 'COUNTED';
-            $stocktake->counted_by = $actorId;
+            $stocktake->counted_by = $actor->getKey();
             $stocktake->counted_at = now();
             $stocktake->save();
 
@@ -49,9 +60,11 @@ class InventoryDocumentStateService
         }, 3);
     }
 
-    public function cancelStocktake(int $id, ?int $actorId = null): Stocktake
+    public function cancelStocktake(int $id, User $actor): Stocktake
     {
-        return DB::transaction(function () use ($id, $actorId): Stocktake {
+        $this->authorization->authorize($actor, 'inventory.stocktake.manage');
+
+        return DB::transaction(function () use ($id, $actor): Stocktake {
             $stocktake = Stocktake::query()->lockForUpdate()->findOrFail($id);
 
             if ($stocktake->status === 'CANCELLED') {
@@ -63,7 +76,7 @@ class InventoryDocumentStateService
             }
 
             $stocktake->status = 'CANCELLED';
-            $stocktake->cancelled_by = $actorId;
+            $stocktake->cancelled_by = $actor->getKey();
             $stocktake->cancelled_at = now();
             $stocktake->save();
 
@@ -71,11 +84,9 @@ class InventoryDocumentStateService
         }, 3);
     }
 
-    /** @template T of Model */
-    private function cancel(string $modelClass, int $id, ?int $actorId): Model
+    private function cancel(string $modelClass, int $id, User $actor): Model
     {
-        return DB::transaction(function () use ($modelClass, $id, $actorId): Model {
-            /** @var Model&object{status:string} $document */
+        return DB::transaction(function () use ($modelClass, $id, $actor): Model {
             $document = $modelClass::query()->lockForUpdate()->findOrFail($id);
 
             if ($document->status === 'CANCELLED') {
@@ -87,7 +98,7 @@ class InventoryDocumentStateService
             }
 
             $document->status = 'CANCELLED';
-            $document->cancelled_by = $actorId;
+            $document->cancelled_by = $actor->getKey();
             $document->cancelled_at = now();
             $document->save();
 
