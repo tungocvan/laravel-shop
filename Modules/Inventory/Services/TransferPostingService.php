@@ -59,6 +59,10 @@ class TransferPostingService
                     throw new DomainException('Transfer quantity must be positive.');
                 }
 
+                if (! $item->allow_fractional_quantity && DecimalQuantity::hasFractionalPart((string) $line->base_quantity)) {
+                    throw new DomainException('Fractional quantity is not allowed for this inventory item.');
+                }
+
                 if ($line->base_uom !== $item->base_uom) {
                     throw new DomainException('Transfer line base UOM must match the inventory item base UOM.');
                 }
