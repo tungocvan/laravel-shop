@@ -42,6 +42,8 @@ final class InvoicesApplicationController extends Controller
         ClientPortalSettingsService $settings,
         ClientInvoiceWorkspaceService $workspace,
     ): View {
+        $request->session()->put('client.invoices.return_to', $request->fullUrl());
+
         return $this->applicationView('index', $registry, $settings, $workspace->listData($request));
     }
 
@@ -57,6 +59,7 @@ final class InvoicesApplicationController extends Controller
         return $this->applicationView('show', $registry, $settings, [
             'invoice' => $invoice,
             'pdfStatus' => $pdf->statusForInvoice($invoice),
+            'returnTo' => $request->session()->get('client.invoices.return_to', route('client.invoices.index')),
         ]);
     }
 
