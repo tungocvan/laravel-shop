@@ -20,19 +20,34 @@ final class InvoiceInboxWorkspace extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $status = 'all';
+
     public int $perPage = 25;
+
     public ?int $selectedInboxId = null;
+
     public ?int $warehouseId = null;
+
     public bool $showSourcePicker = false;
+
     public string $sourceSearch = '';
+
     public ?string $errorMessage = null;
+
     public ?string $successMessage = null;
 
     private const PAGE_SIZES = [10, 25, 50, 100];
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedStatus(): void { $this->resetPage(); }
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatus(): void
+    {
+        $this->resetPage();
+    }
 
     public function updatedPerPage($value): void
     {
@@ -47,7 +62,10 @@ final class InvoiceInboxWorkspace extends Component
         $this->showSourcePicker = true;
     }
 
-    public function closeSourcePicker(): void { $this->showSourcePicker = false; }
+    public function closeSourcePicker(): void
+    {
+        $this->showSourcePicker = false;
+    }
 
     public function selectInbox(int $id): void
     {
@@ -184,7 +202,9 @@ final class InvoiceInboxWorkspace extends Component
 
     private function ownedLine(int $lineId): InvoiceInboxLine
     {
-        if ($this->selectedInboxId === null) { abort(404); }
+        if ($this->selectedInboxId === null) {
+            abort(404);
+        }
 
         return InvoiceInboxLine::query()->with('inbox')->where('inbox_id', $this->selectedInboxId)->findOrFail($lineId);
     }
@@ -198,7 +218,9 @@ final class InvoiceInboxWorkspace extends Component
     {
         $this->errorMessage = null;
         $this->successMessage = null;
-        try { $this->successMessage = $action(); } catch (Throwable $exception) {
+        try {
+            $this->successMessage = $action();
+        } catch (Throwable $exception) {
             report($exception);
             $this->errorMessage = $exception->getMessage();
         }
