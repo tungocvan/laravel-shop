@@ -31,16 +31,25 @@ final class AdminWorkspace extends Component
     use WithPagination;
 
     public string $workspace = 'stock';
+
     public string $search = '';
+
     public string $status = 'all';
+
     public string $warehouseFilter = 'all';
+
     public int $perPage = 25;
+
     public bool $formOpen = false;
+
     public ?int $editingId = null;
+
     public ?int $confirmingId = null;
+
     public ?string $errorMessage = null;
 
     public array $form = [];
+
     public array $lines = [];
 
     private const PAGE_SIZES = [10, 25, 50, 100];
@@ -428,11 +437,13 @@ final class AdminWorkspace extends Component
         if ($this->workspace === 'warehouses') {
             $model = Warehouse::query()->findOrFail($id);
             $this->form = $model->only(['code', 'name', 'address', 'province_code', 'is_active']);
+
             return;
         }
         if ($this->workspace === 'items') {
             $model = InventoryItem::query()->findOrFail($id);
             $this->form = $model->only(['sku', 'display_name', 'base_uom', 'reorder_level', 'lot_tracking', 'expiry_tracking', 'allow_fractional_quantity', 'is_active']);
+
             return;
         }
 
