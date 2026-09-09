@@ -138,11 +138,26 @@
             <form method="GET" action="{{ route('client.invoices.partners') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
                 <input type="hidden" name="year" value="{{ $partnerFilters['year'] }}">
                 @if($partnerFilters['month'])<input type="hidden" name="month" value="{{ $partnerFilters['month'] }}">@endif
-                <label class="xl:col-span-4"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Tên hoặc MST đối tác</span><input name="partner" value="{{ $partnerFilters['partner'] }}" placeholder="Nhập tên hoặc mã số thuế..." class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"></label>
+                <label class="xl:col-span-4">
+                    <span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Đối tác</span>
+                    <x-search
+                        name="partner"
+                        :value="$partnerFilters['partner']"
+                        list="invoice-partner-report-options"
+                        placeholder="Tìm tên hoặc MST đối tác..."
+                        autocomplete="off"
+                        input-class="min-h-11 rounded-2xl border-slate-200 bg-white px-4 text-sm text-slate-900 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                    />
+                    <datalist id="invoice-partner-report-options">
+                        @foreach($partnerOptions as $partner)
+                            <option value="{{ $partner }}"></option>
+                        @endforeach
+                    </datalist>
+                </label>
                 <label class="xl:col-span-2"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Quan hệ</span><select name="type" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="" @selected($partnerFilters['type'] === null)>Tất cả</option><option value="sold" @selected($partnerFilters['type'] === 'sold')>Khách hàng</option><option value="purchase" @selected($partnerFilters['type'] === 'purchase')>Nhà cung cấp</option></select></label>
                 <label class="xl:col-span-3"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Sắp xếp</span><select name="sort" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="sold_desc" @selected($partnerFilters['sort'] === 'sold_desc')>Bán ra cao nhất</option><option value="purchase_desc" @selected($partnerFilters['sort'] === 'purchase_desc')>Mua vào cao nhất</option><option value="invoice_desc" @selected($partnerFilters['sort'] === 'invoice_desc')>Nhiều hóa đơn nhất</option><option value="vat_desc" @selected($partnerFilters['sort'] === 'vat_desc')>VAT cao nhất</option><option value="net_desc" @selected($partnerFilters['sort'] === 'net_desc')>Chênh lệch cao nhất</option><option value="partner_asc" @selected($partnerFilters['sort'] === 'partner_asc')>Tên A → Z</option></select></label>
                 <label class="xl:col-span-1"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700">@foreach([10,25,50,100] as $size)<option value="{{ $size }}" @selected($partnerFilters['per_page'] === $size)>{{ $size }}</option>@endforeach</select></label>
-                <div class="flex items-end gap-2 xl:col-span-2"><button type="submit" class="min-h-11 flex-1 rounded-2xl bg-slate-950 px-4 text-sm font-bold text-white">Tìm</button><a href="{{ route('client.invoices.partners', ['year' => $partnerFilters['year'], 'month' => $partnerFilters['month']]) }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-600">Xóa lọc</a></div>
+                <div class="flex items-end xl:col-span-2"><a href="{{ route('client.invoices.partners', ['year' => $partnerFilters['year'], 'month' => $partnerFilters['month']]) }}" class="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-600">Xóa lọc</a></div>
             </form>
         </div>
 
