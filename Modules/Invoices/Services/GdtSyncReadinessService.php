@@ -7,9 +7,7 @@ use Modules\Invoices\Models\Invoices;
 
 final class GdtSyncReadinessService
 {
-    public function __construct(private readonly GdtApiService $gdt)
-    {
-    }
+    public function __construct(private readonly GdtApiService $gdt) {}
 
     public function hasToken(): bool
     {
