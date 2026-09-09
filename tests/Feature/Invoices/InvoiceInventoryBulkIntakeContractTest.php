@@ -45,6 +45,23 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
     }
 
     #[Test]
+    public function staging_tracks_normalizer_version_and_supports_raw_first_renormalization(): void
+    {
+        $migration = file_get_contents(base_path('Modules/Invoices/database/migrations/2026_09_09_200200_add_normalizer_version_to_invoice_inventory_snapshots_table.php'));
+        $service = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceInventoryStagingService.php'));
+        $normalizer = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceLineNormalizer.php'));
+
+        $this->assertStringContainsString("->string('normalizer_version', 64)", $migration);
+        $this->assertStringContainsString("public const VERSION = 'deterministic-v3'", $normalizer);
+        $this->assertStringContainsString('$snapshot->normalizer_version === $normalizerVersion', $service);
+        $this->assertStringContainsString('$snapshot->normalizer_version !== $normalizerVersion', $service);
+        $this->assertStringContainsString('$this->hasUsableRawPayload($snapshot)', $service);
+        $this->assertStringContainsString("'normalizer_version' => \$normalizerVersion", $service);
+        $this->assertStringContainsString('updateOrCreate(', $service);
+        $this->assertStringContainsString('fetchedNow: false', $service);
+    }
+
+    #[Test]
     public function bulk_dispatch_is_bounded_by_date_chunk_and_queue(): void
     {
         $bulk = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/BulkInvoiceInventoryIntakeService.php'));
