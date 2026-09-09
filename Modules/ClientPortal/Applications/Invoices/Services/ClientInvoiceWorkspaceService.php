@@ -107,6 +107,7 @@ final class ClientInvoiceWorkspaceService
             'perPage' => $perPage,
             'invoices' => $paginator,
             'stats' => $this->invoices->statistics($filters),
+            'partnerOptions' => $this->invoices->filterOptions(array_merge($filters, ['partner' => null]))['names'],
             'pdfStatuses' => collect($paginator->items())
                 ->mapWithKeys(fn ($invoice) => [$invoice->getKey() => $this->pdf->statusForInvoice($invoice)])
                 ->all(),
