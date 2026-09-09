@@ -7,7 +7,7 @@
 - `main` base for Batch B: `71ef46e9` (`feat(inventory): add Batch A core ledger foundation`).
 - Batch A — Foundation + Persistence + Core Ledger: **MERGED / VERIFIED / PASS**.
 - Batch B branch: `feat/inventory-batch-b-admin-operations`.
-- Batch B — Admin Dashboard + UI/UX: **IMPLEMENTED / LOCAL VERIFICATION PENDING**.
+- Batch B — Admin Dashboard + UI/UX: **IMPLEMENTED / VERIFIED / UI PASS / READY FOR MR**.
 - Keep Batch B in one MR unless review exposes a real blocker.
 
 ## Batch A contract carried forward unchanged
@@ -151,9 +151,9 @@ Contract coverage includes:
 
 Existing Batch A Inventory tests remain part of the focused Batch B verification pack.
 
-## Verification gate — pending local execution
+## Verification status
 
-Run only the approved module/direct-impact scope.
+Local verification reported by the user on 2026-09-09.
 
 ### Test 1 — Inventory focused + module regression
 
@@ -161,7 +161,7 @@ Run only the approved module/direct-impact scope.
 php artisan test tests/Feature/Inventory
 ```
 
-Expected gate: **PASS**.
+Result: **PASS**.
 
 ### Test 2 — directly impacted Admin shell/menu contract
 
@@ -169,7 +169,7 @@ Expected gate: **PASS**.
 php artisan test tests/Feature/Admin/AdminGeneralLayoutContractTest.php
 ```
 
-Expected gate: **PASS**.
+Result: **PASS**.
 
 ### Pint
 
@@ -177,26 +177,36 @@ Expected gate: **PASS**.
 ./vendor/bin/pint Modules/Inventory tests/Feature/Inventory
 ```
 
-Expected gate: **PASS**.
+Result: **PASS after auto-fix**.
 
-No full-project regression is required for Batch B. No Shared, Invoices, Product, Partner, Pharma or root module infrastructure application code was changed.
+Pint-only formatting in `Modules/Inventory/Livewire/AdminWorkspace.php` was reviewed, committed and pushed as `f1a62c35` (`style(inventory): apply pint formatting`).
 
-## Manual UI acceptance — pending
+No full-project regression was run, by approved scope. No Shared, Invoices, Product, Partner, Pharma or root module infrastructure application code changed in Batch B.
 
-Verify representative desktop/tablet/mobile widths for:
+## Manual UI acceptance
+
+User reported **UI PASS** on 2026-09-09 after checking the Inventory Admin surfaces.
+
+Acceptance scope included representative desktop/tablet/mobile behavior for:
 
 - `/admin/inventory` dashboard hierarchy and deep links;
 - warehouse/item forms and visible borders/focus/error states;
 - receipt/issue/transfer/stocktake draft workflow;
 - confirmation modal and loading/disabled state;
 - stock/lots/movements responsive tables;
-- search/filter reset behavior;
+- search/filter behavior;
 - white inactive + indigo active pagination;
-- empty/error states;
-- Inventory menu/group visibility according to permissions;
-- no 404/500 or important console error.
+- Inventory menu/workspace navigation;
+- no blocking 404/500 UI issue reported.
 
-Report as `UI PASS` only after these checks.
+## Final diff/status review
+
+- Branch: `feat/inventory-batch-b-admin-operations`.
+- Base: `71ef46e9`.
+- Branch is ahead of the Batch B base and not behind at final review.
+- Final diff is limited to Inventory Admin implementation, Inventory-owned menu migration, Inventory tests and this handoff.
+- Working tree reported clean and synchronized with `origin/feat/inventory-batch-b-admin-operations` after the Pint-only commit.
+- No Batch C invoice integration, PDF ingestion, product matching or Batch D Excel export code is present.
 
 ## Explicitly deferred to approved later batches
 
@@ -218,12 +228,6 @@ Report as `UI PASS` only after these checks.
 
 ## Stop gate
 
-Batch B implementation is on the feature branch and must not be merged until:
+Batch B acceptance gates are complete. The branch is ready for one MR targeting `main`.
 
-1. Inventory test pack passes;
-2. directly impacted Admin test passes;
-3. Pint passes;
-4. manual UI smoke is reported `UI PASS`;
-5. final diff/status review is clean.
-
-Do not start Batch C automatically before Batch B is accepted/merged.
+Do not start Batch C until Batch B is merged or the user explicitly changes that sequence.
