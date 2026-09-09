@@ -13,7 +13,15 @@ final class InventoryItemMatchingService
     public function matchInbox(InvoiceInbox $inbox): void
     {
         foreach ($inbox->lines as $line) {
-            if ($line->classification === 'NON_STOCK' || ($line->classification === 'STOCK' && $line->inventory_item_id !== null)) {
+            if ($line->classification === 'NON_STOCK') {
+                $this->storeReferenceCandidates($line, []);
+
+                continue;
+            }
+
+            if ($line->classification === 'STOCK' && $line->inventory_item_id !== null) {
+                $this->storeReferenceCandidates($line, []);
+
                 continue;
             }
 
@@ -28,6 +36,11 @@ final class InventoryItemMatchingService
                     'base_uom' => null,
                 ])->save();
 
+                $this->storeReferenceCandidates(
+                    $line,
+                    app(InventoryReferenceCandidateService::class)->candidatesFor($line->fresh()),
+                );
+
                 continue;
             }
 
@@ -40,6 +53,7 @@ final class InventoryItemMatchingService
                 'base_quantity' => $line->source_quantity,
                 'base_uom' => $item->base_uom,
             ])->save();
+            $this->storeReferenceCandidates($line, []);
         }
 
         $this->refreshInboxStatus($inbox);
@@ -55,6 +69,7 @@ final class InventoryItemMatchingService
             'base_quantity' => $line->source_quantity,
             'base_uom' => $item->base_uom,
         ])->save();
+        $this->storeReferenceCandidates($line, []);
 
         if ($rememberAlias) {
             $inbox = $line->inbox;
@@ -90,6 +105,7 @@ final class InventoryItemMatchingService
             'base_quantity' => null,
             'base_uom' => null,
         ])->save();
+        $this->storeReferenceCandidates($line, []);
 
         $this->refreshInboxStatus($line->inbox);
     }
@@ -135,6 +151,14 @@ final class InventoryItemMatchingService
         }
 
         return null;
+    }
+
+    private function storeReferenceCandidates(InvoiceInboxLine $line, array $candidates): void
+    {
+        $metadata = is_array($line->metadata) ? $line->metadata : [];
+        $metadata['reference_candidates'] = array_values($candidates);
+
+        $line->forceFill(['metadata' => $metadata])->save();
     }
 
     private function refreshInboxStatus(InvoiceInbox $inbox): void
