@@ -6,7 +6,7 @@
 - Active branch: `feat/clientportal-invoices-pwa`
 - Base at branch creation: `main` / `ed5b9078d17ebcf0142a261d876ae4d64d3a378c`
 - Objective: expose `Modules/Invoices` capabilities through a professional Mobile/Tablet-first ClientPortal application without moving Invoices business ownership into ClientPortal.
-- Status: **IMPLEMENTED ON BRANCH — LOCAL CLI/UI ACCEPTANCE PENDING**.
+- Status: **IMPLEMENTED ON BRANCH — UI ACCEPTED; FINAL BOUNDED CLI CLOSEOUT PENDING**.
 - Merge authorization: **NOT YET GIVEN**.
 
 Canonical boundary for this delivery:
@@ -50,16 +50,67 @@ Validation added:
 tests/Feature/ClientPortal/InvoicesApplicationContractTest.php
 ```
 
-Required acceptance before PR:
+### Validation baseline — do not rerun unchanged scopes
+
+The following rule is now part of this delivery handoff:
+
+> A test pack that has already PASSed does not need to be rerun after a later change unless that change touches the code, contract, route, shared component, permission boundary or build surface covered by that pack.
+
+Recorded acceptance/baseline for the current branch:
 
 ```text
-vendor/bin/pint --test <changed PHP files>
-php artisan test tests/Feature/ClientPortal/InvoicesApplicationContractTest.php
-ClientPortal focused regression
-Invoices focused regression
-php artisan route:list --name=client.invoices
-npm run build
-Manual UI: Mobile + Tablet portrait + Tablet landscape + Desktop
+Manual UI — Executive Dashboard: PASS
+Manual UI — Invoice list Desktop: PASS
+Manual UI — Invoice list Tablet: PASS
+Manual UI — Invoice list Mobile: PASS
+Manual UI — partner autocomplete / compact dropdown: PASS
+Manual UI — selected-vs-filtered export UX: PASS
+ClientPortal/ClientApps focused regression: previously PASSed during this delivery
+Focused Invoices PWA contract tests: previously PASSed during this delivery; rerun only after contract/service/view changes affecting them
+Latest recorded focused test batch: 62 passed (378 assertions)
+npm run build: PASS (Vite build completed successfully)
+```
+
+Testing policy for subsequent changes on this branch:
+
+```text
+UI-only Blade/Tailwind change in one Invoices PWA screen
+  -> manual UI for impacted breakpoint(s)
+  -> contract test only if markup contract changed
+  -> no broad ClientPortal/Invoices regression rerun
+
+Shared ClientPortal component change
+  -> impacted ClientPortal/ClientApps tests only
+  -> rerun Invoices PWA contract only if the component is used there
+
+Invoices service/query/export change
+  -> Invoices PWA contract + impacted Invoices focused tests
+  -> no unrelated ClientPortal regression unless client contract changed
+
+Route/authz/manifest change
+  -> route/authz/application contract tests + impacted ClientPortal focused tests
+
+Final pre-merge
+  -> run only the not-yet-recorded or invalidated bounded gates below
+```
+
+Pint policy for this delivery:
+
+- do **not** use full-repository `vendor/bin/pint --test` as the branch gate;
+- full-repository Pint currently reports large pre-existing/legacy style debt outside this delivery scope;
+- run Pint only against PHP files changed by `feat/clientportal-invoices-pwa` or files modified after their last recorded PASS;
+- unrelated Pint failures are not a reason to reformat or touch other modules in this branch.
+
+Required bounded acceptance before PR, with previously PASSed scopes reused unless invalidated:
+
+```text
+vendor/bin/pint --test <changed PHP files since last Pint PASS>
+php artisan test tests/Feature/ClientPortal/InvoicesApplicationContractTest.php  # only if invalidated by later change
+ClientPortal focused regression                                                 # only if invalidated
+Invoices focused regression                                                     # only if invalidated
+php artisan route:list --name=client.invoices                                   # if routes changed or not yet recorded
+npm run build                                                                   # already PASS; rerun only if frontend/build inputs change
+Manual UI: impacted Mobile/Tablet/Desktop surfaces only                         # current invoice UI PASS recorded
 ```
 
 ## Previous stable state
