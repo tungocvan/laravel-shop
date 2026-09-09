@@ -11,6 +11,8 @@
     $netTotal = (float) ($partnerSummary['sold_total'] ?? 0) - (float) ($partnerSummary['purchase_total'] ?? 0);
     $vatTotal = (float) ($partnerSummary['sold_vat'] ?? 0) + (float) ($partnerSummary['purchase_vat'] ?? 0);
     $detailBaseQuery = collect($partnerFilters)->filter(fn ($value) => $value !== null && $value !== '')->all();
+    $defaultPartnerSort = $partnerFilters['type'] === 'purchase' ? 'purchase_desc' : 'sold_desc';
+    $hasPartnerFilters = (bool) ($partnerFilters['partner'] || $partnerFilters['type'] || $partnerFilters['sort'] !== $defaultPartnerSort || $partnerFilters['per_page'] !== 25);
 @endphp
 
 <div class="space-y-4 sm:space-y-5">
@@ -62,10 +64,31 @@
         <section class="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 shadow-sm sm:rounded-3xl sm:p-6"><div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 sm:text-xs">Chi tiết đối tác</p><h2 class="mt-1 text-lg font-black text-slate-950 sm:text-xl">{{ $partnerDetail['partner_name'] }}</h2><p class="mt-1 text-xs text-slate-500 sm:text-sm">MST {{ $partnerDetail['partner_tax_code'] }} · {{ $partnerPeriod }}</p></div><a href="{{ route('client.invoices.partners', $detailBaseQuery) }}" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-4 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 sm:min-h-11 sm:rounded-2xl sm:text-sm">Đóng chi tiết</a></div><div class="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3 xl:grid-cols-4"><div class="rounded-xl bg-white p-3 sm:rounded-2xl sm:p-4"><span class="text-[10px] font-semibold text-slate-500 sm:text-xs">Tổng hóa đơn</span><strong class="mt-1 block text-lg text-slate-950 sm:text-xl">{{ number_format($partnerDetail['invoice_count']) }}</strong></div>@foreach([['Bán ra','sold_total'],['Mua vào','purchase_total'],['Chênh lệch','total_difference']] as [$label,$key])<div class="rounded-xl bg-white p-3 sm:rounded-2xl sm:p-4"><span class="text-[10px] font-semibold text-slate-500 sm:text-xs">{{ $label }}</span><strong class="mt-1 block whitespace-nowrap text-sm sm:text-lg {{ $key === 'total_difference' ? (($partnerDetail[$key] >= 0) ? 'text-emerald-700' : 'text-rose-700') : 'text-slate-950' }}">{{ $money($partnerDetail[$key]) }}</strong></div>@endforeach</div></section>
     @endif
 
-    <section class="rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
-        <details class="group xl:hidden" @if($partnerFilters['partner'] || $partnerFilters['type'] || $partnerFilters['sort'] !== ($partnerFilters['type'] === 'purchase' ? 'purchase_desc' : 'sold_desc') || $partnerFilters['per_page'] !== 25) open @endif>
-            <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-bold text-slate-800 [&::-webkit-details-marker]:hidden"><span class="flex items-center gap-2"><span class="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100">⌕</span>Bộ lọc đối tác</span><span class="text-xs font-semibold text-slate-400 group-open:hidden">Mở</span><span class="hidden text-xs font-semibold text-slate-400 group-open:inline">Thu gọn</span></summary>
-            <div class="border-t border-slate-100 p-4"><form method="GET" action="{{ route('client.invoices.partners') }}" class="grid gap-3 sm:grid-cols-2"><input type="hidden" name="year" value="{{ $partnerFilters['year'] }}">@if($partnerFilters['month'])<input type="hidden" name="month" value="{{ $partnerFilters['month'] }}">@endif
+    <section class="rounded-2xl border {{ $hasPartnerFilters ? 'border-sky-300 bg-sky-50/40 ring-1 ring-sky-100' : 'border-slate-200 bg-white' }} shadow-sm sm:rounded-3xl">
+        <details class="group xl:hidden" @if($hasPartnerFilters) open @endif>
+            <summary class="cursor-pointer list-none px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="flex min-w-0 items-center gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl {{ $hasPartnerFilters ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-700' }} shadow-sm" aria-hidden="true">⌕</span>
+                        <span class="min-w-0">
+                            <span class="flex items-center gap-2 text-sm font-black text-slate-950">Bộ lọc đối tác @if($hasPartnerFilters)<span class="rounded-full bg-sky-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">Đang lọc</span>@endif</span>
+                            <span class="mt-0.5 block truncate text-[11px] font-medium text-slate-500">{{ $partnerFilters['partner'] ? 'Đang tìm: '.$partnerFilters['partner'] : 'Lọc theo tên, MST, quan hệ và thứ tự hiển thị' }}</span>
+                        </span>
+                    </span>
+                    <span class="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[11px] font-bold text-white group-open:hidden">Mở bộ lọc</span>
+                    <span class="hidden shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 group-open:inline">Thu gọn</span>
+                </div>
+            </summary>
+            @if($hasPartnerFilters)
+                <div class="border-t border-sky-100 px-4 py-2.5">
+                    <div class="flex flex-wrap items-center gap-2 text-[11px]">
+                        @if($partnerFilters['partner'])<span class="max-w-full truncate rounded-full bg-white px-3 py-1.5 font-bold text-sky-800 ring-1 ring-sky-200">Đang lọc: {{ $partnerFilters['partner'] }}</span>@endif
+                        @if($partnerFilters['type'])<span class="rounded-full bg-white px-3 py-1.5 font-semibold text-slate-600 ring-1 ring-slate-200">{{ $partnerFilters['type'] === 'sold' ? 'Khách hàng' : 'Nhà cung cấp' }}</span>@endif
+                        <a href="{{ route('client.invoices.partners', ['year' => $partnerFilters['year'], 'month' => $partnerFilters['month']]) }}" class="rounded-full bg-slate-950 px-3 py-1.5 font-bold text-white">× Xóa lọc</a>
+                    </div>
+                </div>
+            @endif
+            <div class="border-t {{ $hasPartnerFilters ? 'border-sky-100' : 'border-slate-100' }} bg-white p-4"><form method="GET" action="{{ route('client.invoices.partners') }}" class="grid gap-3 sm:grid-cols-2"><input type="hidden" name="year" value="{{ $partnerFilters['year'] }}">@if($partnerFilters['month'])<input type="hidden" name="month" value="{{ $partnerFilters['month'] }}">@endif
                 <label class="sm:col-span-2"><span class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">Đối tác</span><x-search name="partner" :value="$partnerFilters['partner']" list="invoice-partner-report-options-compact" placeholder="Tìm tên hoặc MST đối tác..." autocomplete="off" input-class="min-h-11 rounded-xl border-slate-200 bg-white px-4 text-sm text-slate-900 focus:border-slate-400 focus:ring-2 focus:ring-slate-100" /><datalist id="invoice-partner-report-options-compact">@foreach($partnerOptions as $partner)<option value="{{ $partner }}"></option>@endforeach</datalist></label>
                 <label><span class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">Quan hệ</span><select name="type" onchange="const sort=this.form.elements.sort;if(this.value==='purchase'){sort.value='purchase_desc'}else if(this.value==='sold'){sort.value='sold_desc'};this.form.submit()" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="" @selected($partnerFilters['type'] === null)>Tất cả</option><option value="sold" @selected($partnerFilters['type'] === 'sold')>Khách hàng</option><option value="purchase" @selected($partnerFilters['type'] === 'purchase')>Nhà cung cấp</option></select></label>
                 <label><span class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">Sắp xếp</span><select name="sort" onchange="this.form.submit()" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"><option value="sold_desc" @selected($partnerFilters['sort'] === 'sold_desc')>Bán ra cao nhất</option><option value="purchase_desc" @selected($partnerFilters['sort'] === 'purchase_desc')>Mua vào cao nhất</option><option value="invoice_desc" @selected($partnerFilters['sort'] === 'invoice_desc')>Nhiều hóa đơn nhất</option><option value="vat_desc" @selected($partnerFilters['sort'] === 'vat_desc')>VAT cao nhất</option><option value="net_desc" @selected($partnerFilters['sort'] === 'net_desc')>Chênh lệch cao nhất</option><option value="partner_asc" @selected($partnerFilters['sort'] === 'partner_asc')>Tên A → Z</option></select></label>
