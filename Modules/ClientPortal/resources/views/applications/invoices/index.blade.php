@@ -26,7 +26,7 @@
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <form method="GET" action="{{ route('client.invoices.index') }}" class="flex gap-2">
             <input type="hidden" name="invoice_type" value="{{ $filters['invoice_type'] }}">
-            <input type="hidden" name="partner" value="{{ $filters['name'] }}">
+            <input type="hidden" name="partner" value="{{ $filters['partner'] }}">
             <input type="hidden" name="month" value="{{ $month }}">
             <input type="hidden" name="year" value="{{ $year }}">
             <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
@@ -57,7 +57,7 @@
                     <p class="mt-1 text-sm text-slate-500">Các lựa chọn cập nhật ngay; đối tác nhấn Enter để tìm.</p>
                     <div class="mt-5 grid grid-cols-2 gap-3">
                         <label class="col-span-2 text-sm font-semibold text-slate-700">Đối tác
-                            <x-search name="partner" value="{{ $filters['name'] }}" placeholder="Tìm tên hoặc MST đối tác..." class="mt-2" autocomplete="off" />
+                            <x-search name="partner" value="{{ $filters['partner'] }}" placeholder="Tìm tên hoặc MST đối tác..." class="mt-2" autocomplete="off" />
                         </label>
                         <label class="text-sm font-semibold text-slate-700">Tháng
                             <select name="month" onchange="this.form.submit()" class="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-3">@for($m = 1; $m <= 12; $m++)<option value="{{ $m }}" @selected($m === $month)>Tháng {{ $m }}</option>@endfor</select>
@@ -77,7 +77,7 @@
         <form method="GET" action="{{ route('client.invoices.index') }}" class="mt-4 hidden grid-cols-2 gap-3 md:grid lg:grid-cols-7">
             <input type="hidden" name="search" value="{{ $filters['search'] }}">
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Loại HĐ<select name="invoice_type" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold"><option value="">Tất cả</option><option value="purchase" @selected(($filters['invoice_type'] ?? '') === 'purchase')>Mua vào</option><option value="sold" @selected(($filters['invoice_type'] ?? '') === 'sold')>Bán ra</option></select></label>
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Đối tác<x-search name="partner" value="{{ $filters['name'] }}" placeholder="Tên hoặc MST đối tác..." class="mt-2" autocomplete="off" /></label>
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Đối tác<x-search name="partner" value="{{ $filters['partner'] }}" placeholder="Tên hoặc MST đối tác..." class="mt-2" autocomplete="off" /></label>
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Tháng<select name="month" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold">@for($m = 1; $m <= 12; $m++)<option value="{{ $m }}" @selected($m === $month)>{{ $m }}</option>@endfor</select></label>
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Năm<input name="year" onchange="this.form.submit()" type="number" min="2000" max="2100" value="{{ $year }}" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold"></label>
             <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Sắp xếp<select name="sort" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold"><option value="date_desc" @selected($filters['sort'] === 'date_desc')>Mới nhất</option><option value="date_asc" @selected($filters['sort'] === 'date_asc')>Cũ nhất</option><option value="amount_desc" @selected($filters['sort'] === 'amount_desc')>Giá trị cao nhất</option><option value="amount_asc" @selected($filters['sort'] === 'amount_asc')>Giá trị thấp nhất</option><option value="partner_asc" @selected($filters['sort'] === 'partner_asc')>Đối tác A → Z</option><option value="partner_desc" @selected($filters['sort'] === 'partner_desc')>Đối tác Z → A</option></select></label>
@@ -88,7 +88,7 @@
 
     <form method="POST" action="{{ route('client.invoices.export') }}" class="space-y-4">
         @csrf
-        <input type="hidden" name="search" value="{{ $filters['search'] }}"><input type="hidden" name="partner" value="{{ $filters['name'] }}"><input type="hidden" name="invoice_type" value="{{ $filters['invoice_type'] }}"><input type="hidden" name="month" value="{{ $month }}"><input type="hidden" name="year" value="{{ $year }}"><input type="hidden" name="sort" value="{{ $filters['sort'] }}">
+        <input type="hidden" name="search" value="{{ $filters['search'] }}"><input type="hidden" name="partner" value="{{ $filters['partner'] }}"><input type="hidden" name="invoice_type" value="{{ $filters['invoice_type'] }}"><input type="hidden" name="month" value="{{ $month }}"><input type="hidden" name="year" value="{{ $year }}"><input type="hidden" name="sort" value="{{ $filters['sort'] }}">
 
         @if($invoices->isEmpty())
             <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center"><h2 class="text-lg font-black">Không tìm thấy hóa đơn</h2><p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Thử đổi từ khóa, tháng, đối tác hoặc cách sắp xếp. Không có dữ liệu riêng tư nào được lưu offline từ màn hình này.</p></div>
