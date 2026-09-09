@@ -5,6 +5,7 @@ use Modules\Inventory\Http\Controllers\InventoryAdminController;
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin/inventory')->name('admin.inventory.')->group(function (): void {
     Route::get('/', [InventoryAdminController::class, 'dashboard'])->middleware('permission:inventory.dashboard.view')->name('dashboard');
+    Route::get('/intake', [InventoryAdminController::class, 'intake'])->middleware('permission:inventory.receipt.view')->name('intake');
     Route::get('/invoice-inbox', [InventoryAdminController::class, 'invoiceInbox'])->middleware('permission:inventory.receipt.view')->name('invoice-inbox');
     Route::get('/warehouses', [InventoryAdminController::class, 'workspace'])->defaults('workspace', 'warehouses')->middleware('permission:inventory.warehouse.view')->name('warehouses');
     Route::get('/items', [InventoryAdminController::class, 'workspace'])->defaults('workspace', 'items')->middleware('permission:inventory.item.view')->name('items');
