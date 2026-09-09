@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Services;
 
+use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Modules\Inventory\Models\Issue;
@@ -11,11 +12,16 @@ use Modules\Inventory\Support\DecimalQuantity;
 
 class IssuePostingService
 {
-    public function __construct(private readonly StockPostingService $stockPosting) {}
+    public function __construct(
+        private readonly StockPostingService $stockPosting,
+        private readonly InventoryAuthorizationService $authorization,
+    ) {}
 
-    public function confirm(int $issueId, ?int $actorId = null): Issue
+    public function confirm(int $issueId, User $actor): Issue
     {
-        return DB::transaction(function () use ($issueId, $actorId): Issue {
+        $this->authorization->authorize($actor, 'inventory.issue.confirm');
+
+        return DB::transaction(function () use ($issueId, $actor): Issue {
             $issue = Issue::query()->lockForUpdate()->findOrFail($issueId);
 
             if ($issue->status === 'CONFIRMED') {
@@ -72,14 +78,14 @@ class IssuePostingService
                     'document_line_id' => $line->getKey(),
                     'movement_role' => 'OUT',
                     'occurred_at' => $issue->document_date ?? now(),
-                    'posted_by' => $actorId,
+                    'posted_by' => $actor->getKey(),
                 ];
             }
 
             $this->stockPosting->postBatch($movements);
 
             $issue->status = 'CONFIRMED';
-            $issue->confirmed_by = $actorId;
+            $issue->confirmed_by = $actor->getKey();
             $issue->confirmed_at = now();
             $issue->save();
 
