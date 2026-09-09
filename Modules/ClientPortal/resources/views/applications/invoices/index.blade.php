@@ -13,6 +13,12 @@
     $showInvoiceTypeColumn = empty($filters['invoice_type']);
 @endphp
 
+<datalist id="invoice-partner-options">
+    @foreach($partnerOptions as $partner)
+        <option value="{{ $partner }}"></option>
+    @endforeach
+</datalist>
+
 <div class="space-y-5">
     <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -54,10 +60,18 @@
                     <input type="hidden" name="invoice_type" value="{{ $filters['invoice_type'] }}">
                     <div class="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-200"></div>
                     <h2 class="text-xl font-black">Bộ lọc quản trị</h2>
-                    <p class="mt-1 text-sm text-slate-500">Các lựa chọn cập nhật ngay; đối tác nhấn Enter để tìm.</p>
+                    <p class="mt-1 text-sm text-slate-500">Các lựa chọn cập nhật ngay; gõ tên hoặc MST đối tác rồi nhấn Enter.</p>
                     <div class="mt-5 grid grid-cols-2 gap-3">
                         <label class="col-span-2 text-sm font-semibold text-slate-700">Đối tác
-                            <x-search name="partner" value="{{ $filters['partner'] }}" placeholder="Tìm tên hoặc MST đối tác..." class="mt-2" autocomplete="off" />
+                            <x-search
+                                name="partner"
+                                value="{{ $filters['partner'] }}"
+                                list="invoice-partner-options"
+                                placeholder="Tìm tên hoặc MST đối tác..."
+                                class="mt-2"
+                                input-class="min-h-12 rounded-2xl border-slate-300 bg-white"
+                                autocomplete="off"
+                            />
                         </label>
                         <label class="text-sm font-semibold text-slate-700">Tháng
                             <select name="month" onchange="this.form.submit()" class="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-3">@for($m = 1; $m <= 12; $m++)<option value="{{ $m }}" @selected($m === $month)>Tháng {{ $m }}</option>@endfor</select>
@@ -74,15 +88,46 @@
             </details>
         </div>
 
-        <form method="GET" action="{{ route('client.invoices.index') }}" class="mt-4 hidden grid-cols-2 gap-3 md:grid lg:grid-cols-7">
+        <form method="GET" action="{{ route('client.invoices.index') }}" class="mt-4 hidden gap-3 md:grid md:grid-cols-2 xl:grid-cols-12 xl:items-end">
             <input type="hidden" name="search" value="{{ $filters['search'] }}">
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Loại HĐ<select name="invoice_type" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold"><option value="">Tất cả</option><option value="purchase" @selected(($filters['invoice_type'] ?? '') === 'purchase')>Mua vào</option><option value="sold" @selected(($filters['invoice_type'] ?? '') === 'sold')>Bán ra</option></select></label>
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Đối tác<x-search name="partner" value="{{ $filters['partner'] }}" placeholder="Tên hoặc MST đối tác..." class="mt-2" autocomplete="off" /></label>
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Tháng<select name="month" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold">@for($m = 1; $m <= 12; $m++)<option value="{{ $m }}" @selected($m === $month)>{{ $m }}</option>@endfor</select></label>
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Năm<input name="year" onchange="this.form.submit()" type="number" min="2000" max="2100" value="{{ $year }}" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold"></label>
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Sắp xếp<select name="sort" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold"><option value="date_desc" @selected($filters['sort'] === 'date_desc')>Mới nhất</option><option value="date_asc" @selected($filters['sort'] === 'date_asc')>Cũ nhất</option><option value="amount_desc" @selected($filters['sort'] === 'amount_desc')>Giá trị cao nhất</option><option value="amount_asc" @selected($filters['sort'] === 'amount_asc')>Giá trị thấp nhất</option><option value="partner_asc" @selected($filters['sort'] === 'partner_asc')>Đối tác A → Z</option><option value="partner_desc" @selected($filters['sort'] === 'partner_desc')>Đối tác Z → A</option></select></label>
-            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Mỗi trang<select name="per_page" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold">@foreach([10,25,50,100] as $value)<option value="{{ $value }}" @selected($perPage === $value)>{{ $value }}</option>@endforeach</select></label>
-            <a href="{{ route('client.invoices.index') }}" class="mt-6 flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">Xóa bộ lọc</a>
+
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500 xl:col-span-1">Loại HĐ
+                <select name="invoice_type" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+                    <option value="">Tất cả</option>
+                    <option value="purchase" @selected(($filters['invoice_type'] ?? '') === 'purchase')>Mua vào</option>
+                    <option value="sold" @selected(($filters['invoice_type'] ?? '') === 'sold')>Bán ra</option>
+                </select>
+            </label>
+
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500 md:col-span-2 xl:col-span-4">Đối tác
+                <x-search
+                    name="partner"
+                    value="{{ $filters['partner'] }}"
+                    list="invoice-partner-options"
+                    placeholder="Tìm tên hoặc MST đối tác..."
+                    class="mt-2"
+                    input-class="min-h-11 rounded-xl border-slate-300 bg-white font-semibold"
+                    autocomplete="off"
+                />
+            </label>
+
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500 xl:col-span-1">Tháng
+                <select name="month" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold">@for($m = 1; $m <= 12; $m++)<option value="{{ $m }}" @selected($m === $month)>{{ $m }}</option>@endfor</select>
+            </label>
+
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500 xl:col-span-1">Năm
+                <input name="year" onchange="this.form.submit()" type="number" min="2000" max="2100" value="{{ $year }}" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold">
+            </label>
+
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500 xl:col-span-2">Sắp xếp
+                <select name="sort" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold"><option value="date_desc" @selected($filters['sort'] === 'date_desc')>Mới nhất</option><option value="date_asc" @selected($filters['sort'] === 'date_asc')>Cũ nhất</option><option value="amount_desc" @selected($filters['sort'] === 'amount_desc')>Giá trị cao nhất</option><option value="amount_asc" @selected($filters['sort'] === 'amount_asc')>Giá trị thấp nhất</option><option value="partner_asc" @selected($filters['sort'] === 'partner_asc')>Đối tác A → Z</option><option value="partner_desc" @selected($filters['sort'] === 'partner_desc')>Đối tác Z → A</option></select>
+            </label>
+
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500 xl:col-span-1">Mỗi trang
+                <select name="per_page" onchange="this.form.submit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold">@foreach([10,25,50,100] as $value)<option value="{{ $value }}" @selected($perPage === $value)>{{ $value }}</option>@endforeach</select>
+            </label>
+
+            <a href="{{ route('client.invoices.index') }}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 xl:col-span-2">Xóa bộ lọc</a>
         </form>
     </section>
 
