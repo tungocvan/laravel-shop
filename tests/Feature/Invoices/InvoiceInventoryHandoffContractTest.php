@@ -13,7 +13,7 @@ class InvoiceInventoryHandoffContractTest extends TestCase
         $factory = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceForInventoryV1Factory.php'));
 
         $this->assertStringContainsString('fetchDetail($invoice)', $factory);
-        $this->assertStringContainsString("$detail['hdhhdvu']", $factory);
+        $this->assertStringContainsString("$rawLines = is_array($detail['hdhhdvu'] ?? null)", $factory);
         $this->assertStringContainsString("'contract_version' => '1.0'", $factory);
         $this->assertStringNotContainsString('storage/app/invoices/pdf', $factory);
         $this->assertStringNotContainsString('downloadInvoice(', $factory);
@@ -24,7 +24,7 @@ class InvoiceInventoryHandoffContractTest extends TestCase
     {
         $handoff = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceInventoryHandoffService.php'));
 
-        $this->assertStringContainsString("$invoice->invoice_type !== 'purchase'", $handoff);
+        $this->assertStringContainsString("invoice_type !== 'purchase'", $handoff);
         $this->assertStringContainsString('InventoryInvoiceIntegrationService::class', $handoff);
         $this->assertStringContainsString('->ingest($this->factory->build($invoice))', $handoff);
     }
