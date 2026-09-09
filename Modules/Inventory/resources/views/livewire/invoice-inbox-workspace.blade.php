@@ -81,7 +81,26 @@
                                     <td class="px-4 py-4"><div class="font-medium text-slate-900">{{ $line->description_snapshot }}</div><div class="mt-1 text-xs text-slate-500">Mã nguồn: {{ $line->source_product_code ?: '—' }}</div>@if($line->lot_number || $line->expiry_date)<div class="mt-1 text-xs text-slate-500">Lô {{ $line->lot_number ?: '—' }} · HSD {{ $line->expiry_date?->format('d/m/Y') ?: '—' }}</div>@endif</td>
                                     <td class="whitespace-nowrap px-4 py-4 font-medium">{{ $line->source_quantity }} {{ $line->source_uom }}</td>
                                     <td class="px-4 py-4"><span class="rounded-full px-2 py-1 text-xs font-semibold {{ $line->classification === 'UNRESOLVED' ? 'bg-amber-100 text-amber-800' : ($line->classification === 'NON_STOCK' ? 'bg-slate-100 text-slate-700' : 'bg-emerald-100 text-emerald-800') }}">{{ $line->classification }}</span><div class="mt-2 max-w-48 text-xs text-slate-500">{{ $line->match_reason }}</div></td>
-                                    <td class="px-4 py-4">@if($line->item)<div class="mb-2 font-medium text-slate-900">{{ $line->item->sku }} — {{ $line->item->display_name }}</div>@endif @if($canManageReceipt)<div class="flex flex-wrap gap-2"><select wire:change="assignLine({{ $line->id }}, $event.target.value)" class="min-h-9 max-w-64 rounded-lg border border-gray-300 bg-white px-2 text-xs"><option value="">Chọn mặt hàng...</option>@foreach($items as $item)<option value="{{ $item->id }}">{{ $item->sku }} — {{ $item->display_name }}</option>@endforeach</select><button type="button" wire:click="markNonStock({{ $line->id }})" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium">Không nhập kho</button>@if($canManageItem)<button type="button" wire:click="createStandaloneItem({{ $line->id }})" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700">+ Tạo item</button>@endif</div>@endif</td>
+                                    <td class="px-4 py-4">
+                                        @if($line->item)<div class="mb-2 font-medium text-slate-900">{{ $line->item->sku }} — {{ $line->item->display_name }}</div>@endif
+                                        @php($referenceCandidates = data_get($line->metadata, 'reference_candidates', []))
+                                        @if(!empty($referenceCandidates))
+                                            <div class="mb-3 max-w-xl rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                                <div class="text-xs font-semibold uppercase tracking-wide text-amber-800">Gợi ý tham chiếu Product / Pharma</div>
+                                                <div class="mt-2 space-y-2">
+                                                    @foreach($referenceCandidates as $candidate)
+                                                        <div class="rounded-lg border border-amber-100 bg-white px-3 py-2 text-xs">
+                                                            <div class="flex flex-wrap items-center gap-2"><span class="font-semibold text-slate-800">{{ data_get($candidate, 'source') }}</span><span class="rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">{{ data_get($candidate, 'confidence', 'LOW') }}</span></div>
+                                                            <div class="mt-1 text-slate-700">{{ data_get($candidate, 'label') }}</div>
+                                                            @if(data_get($candidate, 'blocked_reasons'))<div class="mt-1 text-slate-500">Chỉ tham chiếu: {{ implode(', ', data_get($candidate, 'blocked_reasons', [])) }}</div>@endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                <p class="mt-2 text-[11px] text-amber-800">Candidate không tự gán InventoryItem. Hãy review và mapping thủ công khi phù hợp.</p>
+                                            </div>
+                                        @endif
+                                        @if($canManageReceipt)<div class="flex flex-wrap gap-2"><select wire:change="assignLine({{ $line->id }}, $event.target.value)" class="min-h-9 max-w-64 rounded-lg border border-gray-300 bg-white px-2 text-xs"><option value="">Chọn mặt hàng...</option>@foreach($items as $item)<option value="{{ $item->id }}">{{ $item->sku }} — {{ $item->display_name }}</option>@endforeach</select><button type="button" wire:click="markNonStock({{ $line->id }})" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium">Không nhập kho</button>@if($canManageItem)<button type="button" wire:click="createStandaloneItem({{ $line->id }})" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700">+ Tạo item</button>@endif</div>@endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
