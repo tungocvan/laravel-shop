@@ -57,6 +57,10 @@ class StocktakePostingService
                     throw new DomainException('Counted stock quantity cannot be negative.');
                 }
 
+                if (! $item->allow_fractional_quantity && DecimalQuantity::hasFractionalPart((string) $line->counted_quantity)) {
+                    throw new DomainException('Fractional quantity is not allowed for this inventory item.');
+                }
+
                 if ($line->base_uom !== $item->base_uom) {
                     throw new DomainException('Stocktake line base UOM must match the inventory item base UOM.');
                 }
