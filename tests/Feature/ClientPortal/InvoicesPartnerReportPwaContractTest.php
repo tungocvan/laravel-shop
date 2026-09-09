@@ -42,6 +42,7 @@ class InvoicesPartnerReportPwaContractTest extends TestCase
         $this->assertStringContainsString('$this->partnerReports->paginate(', $workspace);
         $this->assertStringContainsString('$this->partnerReports->summary(', $workspace);
         $this->assertStringContainsString('$this->partnerReports->partnerDetail(', $workspace);
+        $this->assertStringContainsString("'partnerOptions' => \$this->invoices->filterOptions([", $workspace);
         $this->assertStringContainsString("filled(\$filters['partner'] ?? null)", $reportService);
         $this->assertStringContainsString("->orWhere('tax_code', 'like'", $reportService);
     }
@@ -56,7 +57,12 @@ class InvoicesPartnerReportPwaContractTest extends TestCase
         $this->assertStringContainsString('Tổng quan đối tác', $view);
         $this->assertStringContainsString('Top bán ra', $view);
         $this->assertStringContainsString('Top mua vào', $view);
-        $this->assertStringContainsString('Tên hoặc MST đối tác', $view);
+        $this->assertStringContainsString('Đối tác', $view);
+        $this->assertStringContainsString('<x-search', $view);
+        $this->assertStringContainsString('name="partner"', $view);
+        $this->assertStringContainsString('list="invoice-partner-report-options"', $view);
+        $this->assertStringContainsString('Tìm tên hoặc MST đối tác...', $view);
+        $this->assertStringNotContainsString('>Tìm</button>', $view);
         $this->assertStringContainsString('Chênh lệch', $view);
         $this->assertStringContainsString('md:hidden', $view);
         $this->assertStringContainsString('hidden overflow-x-auto md:block', $view);
