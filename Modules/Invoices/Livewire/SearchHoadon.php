@@ -26,7 +26,7 @@ class SearchHoadon extends Component
     public $start_date;
     public $end_date;
     public $vatIn = false;
-    public $useQueue = false;
+    public $useQueue = true;
     public array $logs = [];
     public ?string $syncId = null;
     public string $syncState = 'idle';
@@ -63,9 +63,17 @@ class SearchHoadon extends Component
     {
         $this->authorizePermission('invoices-create');
         $this->validate(['start_date'=>['required','date'],'end_date'=>['required','date','after_or_equal:start_date'],'vatIn'=>['boolean'],'useQueue'=>['boolean']]);
+
+        if (! $this->apiService->hasToken()) {
+            session()->flash('status', 'Phiên GDT chưa sẵn sàng hoặc token đã hết hạn. Vui lòng kết nối lại trước khi chạy đồng bộ.');
+            $this->redirectRoute('admin.invoices.create-token');
+
+            return;
+        }
+
         $this->logs=[];$this->syncMessage=null;$this->syncFile=null;$this->log('Bắt đầu xử lý…');
         if($this->useQueue){$this->syncId=(string)Str::uuid();$this->syncState='queued';Cache::put($this->statusKey(),['state'=>'queued','message'=>'Đã đưa tác vụ vào hàng đợi.','logs'=>['['.now()->format('H:i:s').'] Đã đưa tác vụ vào hàng đợi.'],'started_at'=>now()->toIso8601String(),'file'=>null,'direction'=>(bool)$this->vatIn?'vat_in':'vat_out'],now()->addHours(24));ProcessGdtInvoicesJob::dispatch($this->start_date,$this->end_date,(bool)$this->vatIn,$this->syncId);$this->pollStatus();return;}
-        $this->syncState='processing';try{$file=$this->invoiceService->processRange($this->start_date,$this->end_date,fn($msg)=>$this->log($msg),(bool)$this->vatIn);if($file===null){$this->syncState='completed';$this->syncMessage='Không có hóa đơn trong khoảng thời gian đã chọn. Hệ thống không tạo file Excel.';$this->syncFile=null;$this->log('ℹ Không có dữ liệu hóa đơn; không tạo file Excel.');$this->refreshAvailableFiles();return;}if(!is_file($file)||!is_readable($file))throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');$this->syncState='completed';$this->syncMessage='Đồng bộ hoàn tất và file Excel đã được tạo.';$this->syncFile=basename($file);$this->log('Hoàn tất xử lý!');$this->refreshAvailableFiles();}catch(\Throwable $exception){$this->syncState='failed';$this->syncMessage=$exception->getMessage();$this->log('❌ '.$exception->getMessage());}if(!$this->apiService->hasToken()){session()->flash('status','Token đã hết hạn.');$this->redirectRoute('admin.invoices.create-token');}
+        $this->syncState='processing';try{$file=$this->invoiceService->processRange($this->start_date,$this->end_date,fn($msg)=>$this->log($msg),(bool)$this->vatIn);if($file===null){$this->syncState='completed';$this->syncMessage='Không có hóa đơn trong khoảng thời gian đã chọn. Hệ thống không tạo file Excel.';$this->syncFile=null;$this->log('ℹ Không có dữ liệu hóa đơn; không tạo file Excel.');$this->refreshAvailableFiles();return;}if(!is_file($file)||!is_readable($file))throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');$this->syncState='completed';$this->syncMessage='Đồng bộ hoàn tất và file Excel đã được tạo.';$this->syncFile=basename($file);$this->log('Hoàn tất xử lý!');$this->refreshAvailableFiles();}catch(\Throwable $exception){$this->syncState='failed';$this->syncMessage=$exception->getMessage();$this->log('❌ '.$exception->getMessage());}
     }
 
     public function pollStatus(): void
