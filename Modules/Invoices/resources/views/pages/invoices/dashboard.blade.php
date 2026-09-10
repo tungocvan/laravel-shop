@@ -6,11 +6,13 @@
     @php
         $capabilities = $dashboard->capabilities;
         $invoiceMetrics = $dashboard->metrics['invoices'];
+        $classificationMetrics = $dashboard->metrics['classification'] ?? ['available' => false, 'expense_breakdown' => []];
         $pdfMetrics = $dashboard->metrics['pdf'];
         $processing = $dashboard->processing;
         $formatDate = static fn (?string $value): string => $value
             ? \Illuminate\Support\Carbon::parse($value)->timezone(config('app.timezone'))->format('d/m/Y H:i')
             : 'Chưa có dữ liệu';
+        $formatMoney = static fn (float|int $value): string => number_format((float) $value, 0, ',', '.').' đ';
         $invoiceTypeLabels = ['sold' => 'Hóa đơn bán ra', 'purchase' => 'Hóa đơn mua vào', 'unknown' => 'Hóa đơn chưa xác định chiều'];
         $backupStatusLabels = ['running' => 'Đang chạy', 'skipped' => 'Không có file mới', 'success' => 'Hoàn tất', 'failed' => 'Thất bại', 'unknown' => 'Không xác định'];
     @endphp
@@ -20,10 +22,11 @@
             <div class="min-w-0">
                 <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Invoices operations center</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Dashboard hóa đơn</h1>
-                <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Theo dõi vận hành, sức khỏe tích hợp, mức độ bảo vệ dữ liệu và mở đúng workspace xử lý khi cần.</p>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Theo dõi vận hành, sức khỏe tích hợp, phân loại dữ liệu mua vào và mở đúng workspace xử lý khi cần.</p>
                 <p class="mt-2 text-xs text-slate-500">Cập nhật lúc {{ $formatDate($dashboard->generatedAt) }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
+                @if ($capabilities['create'])<a href="{{ route('admin.invoices.source-data') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">Phân loại dữ liệu nguồn</a>@endif
                 @if ($capabilities['configure'])<a href="{{ route('admin.invoices.backup-restore') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-300 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50">Backup & Restore</a>@endif
                 <a href="{{ route('admin.invoices.hoadon-list') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Mở danh sách hóa đơn</a>
             </div>
@@ -45,10 +48,34 @@
             </div>
         </section>
 
+        <section aria-labelledby="classification-kpi-heading" class="rounded-2xl border border-amber-200 bg-amber-50/30 p-5 shadow-sm sm:p-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div><p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Hóa đơn mua vào · sau phân loại</p><h2 id="classification-kpi-heading" class="mt-1 text-lg font-bold text-slate-950">Cơ cấu hàng hóa & chi phí</h2><p class="mt-1 text-sm text-slate-600">Giá trị sử dụng số tiền trước VAT. VAT hóa đơn không được tự động xem là chi phí.</p></div>
+                @if ($capabilities['create'])<a href="{{ route('admin.invoices.source-data') }}" class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700">Mở phân loại nguồn →</a>@endif
+            </div>
+
+            @if ($classificationMetrics['available'])
+                <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold uppercase text-slate-500">Tổng mua vào có nguồn</p><p class="mt-2 text-xl font-bold text-slate-950">{{ $formatMoney($classificationMetrics['total_value']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($classificationMetrics['total_count']) }} hóa đơn</p></div>
+                    <a href="{{ route('admin.invoices.source-data', ['businessClassification' => 'GOODS']) }}" class="rounded-xl border border-emerald-200 bg-white p-4 transition hover:border-emerald-400"><p class="text-xs font-semibold uppercase text-emerald-700">Hàng hóa</p><p class="mt-2 text-xl font-bold text-emerald-800">{{ $formatMoney($classificationMetrics['goods_value']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($classificationMetrics['goods_count']) }} hóa đơn</p></a>
+                    <a href="{{ route('admin.invoices.source-data', ['businessClassification' => 'SERVICE_EXPENSE']) }}" class="rounded-xl border border-amber-200 bg-white p-4 transition hover:border-amber-400"><p class="text-xs font-semibold uppercase text-amber-700">Dịch vụ / Chi phí</p><p class="mt-2 text-xl font-bold text-amber-800">{{ $formatMoney($classificationMetrics['expense_value']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($classificationMetrics['expense_count']) }} hóa đơn · {{ number_format($classificationMetrics['expense_unclassified_count']) }} chưa phân loại cấp 2</p></a>
+                    <a href="{{ route('admin.invoices.source-data', ['businessClassification' => 'MIXED']) }}" class="rounded-xl border border-violet-200 bg-white p-4 transition hover:border-violet-400"><p class="text-xs font-semibold uppercase text-violet-700">Hỗn hợp</p><p class="mt-2 text-xl font-bold text-violet-800">{{ $formatMoney($classificationMetrics['mixed_value']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($classificationMetrics['mixed_count']) }} hóa đơn · chưa tách giá trị theo dòng</p></a>
+                    <a href="{{ route('admin.invoices.source-data', ['businessClassification' => 'UNCLASSIFIED']) }}" class="rounded-xl border border-slate-300 bg-white p-4 transition hover:border-slate-400"><p class="text-xs font-semibold uppercase text-slate-600">Chưa phân loại</p><p class="mt-2 text-xl font-bold text-slate-800">{{ $formatMoney($classificationMetrics['unclassified_value']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($classificationMetrics['unclassified_count']) }} hóa đơn cần review</p></a>
+                </div>
+
+                @if (!empty($classificationMetrics['expense_breakdown']))
+                    <div class="mt-5"><div class="mb-3 flex items-center justify-between gap-3"><div><h3 class="font-semibold text-slate-900">Phân loại chi phí cấp 2</h3><p class="mt-1 text-xs text-slate-500">Danh mục động; có thể bổ sung nhóm mới mà không thay schema hóa đơn nguồn.</p></div></div><div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">@foreach ($classificationMetrics['expense_breakdown'] as $expense)<div class="rounded-xl border border-amber-100 bg-white px-4 py-3"><p class="truncate text-xs font-semibold text-slate-600" title="{{ $expense['name'] }}">{{ $expense['name'] }}</p><p class="mt-1 font-bold text-slate-950">{{ $formatMoney($expense['total_value']) }}</p><p class="mt-1 text-[11px] text-slate-500">{{ number_format($expense['invoice_count']) }} hóa đơn</p></div>@endforeach</div></div>
+                @endif
+            @else
+                <div class="mt-5 rounded-xl border border-amber-200 bg-white px-4 py-4 text-sm text-amber-900">Dữ liệu phân loại chưa sẵn sàng. Hãy chạy migration của Invoices rồi mở lại Dashboard.</div>
+            @endif
+        </section>
+
         <section aria-labelledby="quick-actions-heading">
             <div class="mb-3"><h2 id="quick-actions-heading" class="text-lg font-semibold text-slate-900">Thao tác nhanh</h2><p class="mt-1 text-sm text-slate-500">Dashboard không lặp lại nghiệp vụ; mỗi hành động mở đúng workspace chuyên trách.</p></div>
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                 <a href="{{ route('admin.invoices.hoadon-list') }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300"><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Dữ liệu</p><p class="mt-1 font-bold text-slate-950">Danh sách hóa đơn</p></a>
+                @if ($capabilities['create'])<a href="{{ route('admin.invoices.source-data') }}" class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm transition hover:border-amber-400"><p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Phân loại</p><p class="mt-1 font-bold text-slate-950">Dữ liệu nguồn & chi phí</p></a>@endif
                 @if ($capabilities['create'])<a href="{{ route('admin.invoices.hoadon') }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-300"><p class="text-xs font-semibold uppercase tracking-wide text-sky-600">GDT</p><p class="mt-1 font-bold text-slate-950">Đồng bộ hóa đơn</p></a>@endif
                 <a href="{{ route('admin.invoices.reports.partners') }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Báo cáo</p><p class="mt-1 font-bold text-slate-950">Tổng hợp đối tác</p></a>
                 <a href="{{ route('admin.invoices.hoadon-list') }}#invoice-pdf-drive-sync" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-violet-300"><p class="text-xs font-semibold uppercase tracking-wide text-violet-600">Google Drive</p><p class="mt-1 font-bold text-slate-950">PDF ↔ Drive</p></a>
