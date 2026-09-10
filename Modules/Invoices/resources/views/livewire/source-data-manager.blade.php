@@ -12,7 +12,7 @@
             'ERROR' => 'Lỗi',
             'FETCHING' => 'Đang xử lý',
         ];
-        $hasFilters = $search !== '' || $partner !== '' || $year !== 'all' || $month !== 'all' || $invoiceType !== 'purchase' || $detailStatus !== 'all' || $businessClassification !== 'all' || $perPage !== 25;
+        $hasFilters = $search !== '' || $partner !== '' || $year !== (string) now()->year || $month !== (string) now()->month || $invoiceType !== 'purchase' || $detailStatus !== 'all' || $businessClassification !== 'all' || $sortBy !== 'supplier_asc' || $perPage !== 25;
         $controlClass = 'h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400';
         $supplierBatchCount = collect($applySameTaxCode)->filter(fn ($selected) => (bool) $selected)->count();
     @endphp
@@ -155,7 +155,7 @@
     <section class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-5 py-5 sm:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
-                <div><h2 class="text-lg font-semibold text-gray-900">Bộ lọc dữ liệu nguồn</h2><p class="mt-1 text-sm text-gray-500">Chọn kỳ dữ liệu trước, sau đó tìm nhà cung cấp và thu hẹp theo trạng thái xử lý.</p></div>
+                <div><h2 class="text-lg font-semibold text-gray-900">Bộ lọc dữ liệu nguồn</h2><p class="mt-1 text-sm text-gray-500">Chọn kỳ dữ liệu trước, sau đó tìm nhà cung cấp, sắp xếp và thu hẹp theo trạng thái xử lý.</p></div>
                 @if ($hasFilters)<button type="button" wire:click="resetFilters" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-100">Xóa bộ lọc</button>@endif
             </div>
         </div>
@@ -177,7 +177,8 @@
                     <label class="block sm:col-span-2 xl:col-span-2"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Từ khóa hóa đơn</span><x-search wire:model.live.debounce.300ms="search" placeholder="Số HĐ, ký hiệu, MST, mã tra cứu..." inputClass="h-11 rounded-xl border-gray-300 shadow-sm" /></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Trạng thái chi tiết</span><select wire:model.live="detailStatus" class="{{ $controlClass }}"><option value="all">Mọi trạng thái</option><option value="READY">Sẵn sàng</option><option value="MISSING">Thiếu dữ liệu</option><option value="ERROR">Lỗi</option><option value="FETCHING">Đang xử lý</option></select></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Phân loại nghiệp vụ</span><select wire:model.live="businessClassification" class="{{ $controlClass }}"><option value="all">Mọi phân loại</option>@foreach ($classificationOptions as $option)<option value="{{ $option }}">{{ $classificationLabels[$option] }}</option>@endforeach</select></label>
-                    <label class="block sm:max-w-40"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Hiển thị</span><select wire:model.live="perPage" class="{{ $controlClass }}"><option value="25">25 / trang</option><option value="50">50 / trang</option><option value="100">100 / trang</option></select></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Sắp xếp</span><select wire:model.live="sortBy" class="{{ $controlClass }}"><option value="supplier_asc">Nhà cung cấp A → Z</option><option value="supplier_desc">Nhà cung cấp Z → A</option><option value="date_desc">Ngày hóa đơn mới nhất</option><option value="date_asc">Ngày hóa đơn cũ nhất</option></select></label>
+                    <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Hiển thị</span><select wire:model.live="perPage" class="{{ $controlClass }}"><option value="25">25 / trang</option><option value="50">50 / trang</option><option value="100">100 / trang</option></select></label>
                 </div>
             </section>
 
