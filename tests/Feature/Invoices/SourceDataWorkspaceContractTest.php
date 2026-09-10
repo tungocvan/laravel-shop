@@ -62,6 +62,26 @@ class SourceDataWorkspaceContractTest extends TestCase
     }
 
     #[Test]
+    public function source_data_save_action_exposes_a_readable_confirmation_modal(): void
+    {
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
+
+        $this->assertStringContainsString('public bool $saveModalOpen = false;', $component);
+        $this->assertStringContainsString('public array $saveModal = [];', $component);
+        $this->assertStringContainsString('public function closeSaveModal(): void', $component);
+        $this->assertStringContainsString('$this->showSaveModal($source, $classification, $note, true, $updated);', $component);
+        $this->assertStringContainsString('$this->showSaveModal($source, $classification, $note, false, 1);', $component);
+        $this->assertStringContainsString("'scope' => \$supplierWide ? 'Toàn bộ nhà cung cấp cùng MST và cùng loại hóa đơn' : 'Chỉ hóa đơn này'", $component);
+        $this->assertStringContainsString('@if ($saveModalOpen)', $view);
+        $this->assertStringContainsString('Nội dung phân loại vừa lưu', $view);
+        $this->assertStringContainsString('Phạm vi áp dụng', $view);
+        $this->assertStringContainsString('Ảnh hưởng:', $view);
+        $this->assertStringContainsString('wire:click="closeSaveModal"', $view);
+        $this->assertStringContainsString('Đóng và tiếp tục', $view);
+    }
+
+    #[Test]
     public function source_data_keeps_backend_classification_and_supplier_scope_contract(): void
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
