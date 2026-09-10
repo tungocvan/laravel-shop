@@ -16,6 +16,59 @@
         $controlClass = 'h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400';
     @endphp
 
+    @if ($saveModalOpen)
+        <div class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm" wire:click.self="closeSaveModal" x-on:keydown.escape.window="$wire.closeSaveModal()">
+            <div class="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5">
+                <div class="border-b border-emerald-100 bg-emerald-50 px-5 py-5 sm:px-6">
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700">✓</div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Đã lưu thành công</p>
+                            <h2 class="mt-1 text-lg font-bold text-slate-950">Nội dung phân loại vừa lưu</h2>
+                            <p class="mt-1 text-sm text-slate-600">Kiểm tra nhanh thông tin trước khi tiếp tục xử lý hóa đơn khác.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-5 px-5 py-5 sm:px-6">
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hóa đơn</p>
+                            <p class="mt-1 font-bold text-slate-950">#{{ $saveModal['invoice_number'] ?? '—' }} <span class="font-medium text-slate-500">{{ $saveModal['symbol'] ?? '—' }}</span></p>
+                            <p class="mt-1 text-xs text-slate-500">{{ $saveModal['issued_date'] ?? '—' }} · {{ $saveModal['invoice_type'] ?? '—' }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nhà cung cấp</p>
+                            <p class="mt-1 font-semibold text-slate-900">{{ $saveModal['partner'] ?? '—' }}</p>
+                            <p class="mt-1 text-xs text-slate-500">MST {{ $saveModal['tax_code'] ?? '—' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Phân loại nghiệp vụ</p>
+                            <p class="mt-1 text-base font-bold text-indigo-950">{{ $saveModal['classification'] ?? '—' }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Phạm vi áp dụng</p>
+                            <p class="mt-1 font-semibold text-slate-900">{{ $saveModal['scope'] ?? '—' }}</p>
+                            <p class="mt-1 text-xs text-slate-500">Ảnh hưởng: {{ number_format((int) ($saveModal['affected'] ?? 0)) }} hóa đơn</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ghi chú</p>
+                        <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">{{ $saveModal['note'] ?? 'Không có ghi chú' }}</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-6">
+                    <button type="button" wire:click="closeSaveModal" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Đóng và tiếp tục</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if ($message)
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800 shadow-sm">{{ $message }}</div>
     @endif
