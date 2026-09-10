@@ -15,6 +15,7 @@ final class BulkInvoicePublicationService
         private readonly InvoiceForInventoryV1Factory $factory,
         private readonly InventoryInvoiceIntegrationService $integration,
         private readonly InvoiceReceiptProposalService $receipts,
+        private readonly InvoiceReceivingEligibilityService $eligibility,
     ) {}
 
     /** @return Collection<int, InvoiceInbox> */
@@ -32,7 +33,10 @@ final class BulkInvoicePublicationService
                 throw new DomainException('Snapshot không còn hóa đơn nguồn.');
             }
 
-            return $this->integration->ingest($this->factory->buildFromSnapshot($snapshot));
+            $contract = $this->factory->buildFromSnapshot($snapshot);
+            $this->eligibility->assertEligible($contract);
+
+            return $this->integration->ingest($contract);
         });
     }
 
