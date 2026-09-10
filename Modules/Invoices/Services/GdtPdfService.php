@@ -6,6 +6,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Modules\Invoices\Models\InvoiceInventorySnapshot;
 use Modules\Invoices\Models\Invoices;
 use RuntimeException;
 
@@ -19,7 +20,7 @@ class GdtPdfService
             return $this->fileService->pdfPathForInvoice($invoice);
         }
 
-        $detail = $this->fetchDetail($invoice);
+        $detail = $this->fetchDetail($invoice, $force);
         $path = $this->fileService->targetPdfPathForInvoice($invoice);
         $directory = dirname($path);
 
@@ -39,7 +40,40 @@ class GdtPdfService
         return $path;
     }
 
-    public function fetchDetail(Invoices $invoice): array
+    /**
+     * Return the persisted GDT detail without making a network request.
+     */
+    public function storedDetail(Invoices $invoice): ?array
+    {
+        $snapshot = InvoiceInventorySnapshot::query()
+            ->where('invoice_id', $invoice->id)
+            ->where('source', 'gdt_detail')
+            ->first();
+
+        $payload = $snapshot?->raw_payload;
+
+        return is_array($payload) && is_array($payload['hdhhdvu'] ?? null) && $payload['hdhhdvu'] !== []
+            ? $payload
+            : null;
+    }
+
+    /**
+     * Local-first detail lookup. GDT is called only when RAW has never been persisted
+     * (or when an administrator explicitly forces a refresh).
+     */
+    public function fetchDetail(Invoices $invoice, bool $force = false): array
+    {
+        if (! $force && ($stored = $this->storedDetail($invoice)) !== null) {
+            return $stored;
+        }
+
+        return $this->fetchAndStoreDetail($invoice);
+    }
+
+    /**
+     * Acquire the detail from GDT and persist the immutable source payload in Invoices.
+     */
+    public function fetchAndStoreDetail(Invoices $invoice): array
     {
         $token = Cache::get((string) config('invoices.gdt.cache_key', 'gdt_token'));
         if (! $token) {
@@ -83,6 +117,25 @@ class GdtPdfService
         if (! is_array($data) || $data === []) {
             throw new RuntimeException('GDT không trả dữ liệu chi tiết hóa đơn.');
         }
+
+        $hash = hash('sha256', json_encode(
+            $data,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        ));
+
+        $snapshot = InvoiceInventorySnapshot::query()->firstOrCreate(
+            ['invoice_id' => $invoice->id, 'source' => 'gdt_detail'],
+            ['status' => 'PENDING'],
+        );
+        $payloadChanged = $snapshot->payload_hash !== null && $snapshot->payload_hash !== $hash;
+
+        $snapshot->forceFill([
+            'payload_hash' => $hash,
+            'raw_payload' => $data,
+            'status' => $payloadChanged ? 'FETCHED' : ($snapshot->status === 'NORMALIZED' ? 'NORMALIZED' : 'FETCHED'),
+            'fetched_at' => now(),
+            'last_error' => null,
+        ])->save();
 
         return $data;
     }
