@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
 use Rap2hpoutre\FastExcel\FastExcel;
+use Throwable;
 
 class GdtInvoiceService
 {
@@ -49,7 +51,7 @@ class GdtInvoiceService
                 throw new \RuntimeException('Không thể kết nối đến hệ thống GDT.', previous: $exception);
             }
 
-            if ($response->status() === 401) {
+            if (in_array($response->status(), [401, 403], true)) {
                 Cache::forget(config('invoices.gdt.cache_key'));
 
                 throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
@@ -90,13 +92,14 @@ class GdtInvoiceService
     }
 
     /**
-     * Xử lý dữ liệu theo khoảng thời gian.
+     * Canonical GDT acquisition workflow. /admin/invoices/hoadon is the only UI entry point
+     * that should invoke this method. Header RAW and detail RAW are persisted once and reused.
      */
     public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false): ?string
     {
-        $show = fn ($m) => $cb ? $cb($m) : null;
+        $show = fn ($message) => $cb ? $cb($message) : null;
 
-        $show('[GDT] Bắt đầu processRange...');
+        $show('[GDT] Bắt đầu đồng bộ nguồn canonical...');
         $vatIn = (bool) $vatIn;
         $show($vatIn ? '[GDT] Hóa đơn đầu vào' : '[GDT] Hóa đơn đầu ra');
 
@@ -136,10 +139,19 @@ class GdtInvoiceService
 
         $stats = $this->persistInvoices($all, $vatIn);
         $show(sprintf(
-            '[DB] Đồng bộ hoàn tất: tạo mới %d · cập nhật %d · không đổi %d.',
+            '[DB] Đồng bộ header hoàn tất: tạo mới %d · cập nhật %d · không đổi %d · RAW header %d.',
             $stats['created'],
             $stats['updated'],
             $stats['unchanged'],
+            count($stats['invoice_ids']),
+        ));
+
+        $detailStats = $this->acquireMissingDetails($stats['invoice_ids'], $show);
+        $show(sprintf(
+            '[RAW] Detail: đã có %d · tải mới %d · lỗi %d.',
+            $detailStats['reused'],
+            $detailStats['fetched'],
+            $detailStats['failed'],
         ));
 
         $file = $this->exportExcel($all, $vatIn, $filename);
@@ -196,7 +208,7 @@ class GdtInvoiceService
                 );
             }
 
-            if ($res->status() === 401) {
+            if (in_array($res->status(), [401, 403], true)) {
                 Cache::forget(config('invoices.gdt.cache_key'));
                 throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.');
             }
@@ -222,6 +234,10 @@ class GdtInvoiceService
             }
 
             foreach ($items as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
                 $result[] = $this->mapInvoice($item, $vatIn);
                 $processed++;
 
@@ -269,11 +285,7 @@ class GdtInvoiceService
         return rtrim((string) config('invoices.gdt.base_url'), '/').'/'.ltrim($path, '/');
     }
 
-    /**
-     * Map hóa đơn về dạng Excel. Với đầu vào, đối tác là người bán (nb*);
-     * với đầu ra, đối tác là người mua (nm*).
-     */
-    private function mapInvoice($item, $vatIn): array
+    private function mapInvoice(array $item, bool $vatIn): array
     {
         $counterpartyIsBuyer = ! $vatIn;
 
@@ -292,13 +304,14 @@ class GdtInvoiceService
             'Tiền VAT' => $item['tgtthue'] ?? 0,
             'Trước VAT' => $item['tgtcthue'] ?? 0,
             'Thành tiền' => $item['tgtttbso'] ?? 0,
+            '_gdt_raw_payload' => $item,
         ];
     }
 
     private function persistInvoices(array $rows, bool $vatIn): array
     {
         return DB::transaction(function () use ($rows, $vatIn): array {
-            $stats = ['created' => 0, 'updated' => 0, 'unchanged' => 0];
+            $stats = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'invoice_ids' => []];
 
             foreach ($rows as $row) {
                 $attributes = $this->databaseAttributes($row, $vatIn);
@@ -306,26 +319,78 @@ class GdtInvoiceService
                 $invoice = Invoices::query()->where($identity)->first();
 
                 if (! $invoice) {
-                    Invoices::query()->create($attributes);
+                    $invoice = Invoices::query()->create($attributes);
                     $stats['created']++;
+                } else {
+                    $invoice->fill($attributes);
 
-                    continue;
+                    if (! $invoice->isDirty()) {
+                        $stats['unchanged']++;
+                    } else {
+                        $invoice->save();
+                        $stats['updated']++;
+                    }
                 }
 
-                $invoice->fill($attributes);
-
-                if (! $invoice->isDirty()) {
-                    $stats['unchanged']++;
-
-                    continue;
-                }
-
-                $invoice->save();
-                $stats['updated']++;
+                $this->persistRawHeader($invoice, is_array($row['_gdt_raw_payload'] ?? null) ? $row['_gdt_raw_payload'] : []);
+                $stats['invoice_ids'][] = (int) $invoice->id;
             }
+
+            $stats['invoice_ids'] = array_values(array_unique($stats['invoice_ids']));
 
             return $stats;
         });
+    }
+
+    private function persistRawHeader(Invoices $invoice, array $raw): void
+    {
+        if ($raw === []) {
+            return;
+        }
+
+        $source = InvoiceSourceRecord::query()->firstOrCreate(
+            ['invoice_id' => $invoice->id, 'provider' => 'gdt'],
+            ['source_version' => 'gdt-v1'],
+        );
+        $source->forceFill([
+            'header_payload' => $raw,
+            'header_hash' => $this->payloadHash($raw),
+            'header_fetched_at' => now(),
+        ])->save();
+    }
+
+    private function acquireMissingDetails(array $invoiceIds, callable $show): array
+    {
+        $stats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
+        $service = app(GdtPdfService::class);
+        $tokenKey = (string) config('invoices.gdt.cache_key', 'gdt_token');
+        $invoices = Invoices::query()->whereKey($invoiceIds)->orderBy('id')->get();
+        $total = $invoices->count();
+
+        foreach ($invoices as $index => $invoice) {
+            if ($service->storedDetail($invoice) !== null) {
+                $stats['reused']++;
+                continue;
+            }
+
+            try {
+                $service->fetchAndStoreDetail($invoice);
+                $stats['fetched']++;
+            } catch (Throwable $exception) {
+                $stats['failed']++;
+                $show('⚠ RAW detail hóa đơn #'.$invoice->invoice_number.': '.$exception->getMessage());
+
+                if (! Cache::has($tokenKey)) {
+                    throw $exception;
+                }
+            }
+
+            if (($index + 1) % 25 === 0 || $index + 1 === $total) {
+                $show('[RAW] Đã xử lý '.($index + 1)."/{$total} detail.");
+            }
+        }
+
+        return $stats;
     }
 
     private function databaseAttributes(array $row, bool $vatIn): array
@@ -402,7 +467,15 @@ class GdtInvoiceService
         return '';
     }
 
-    private function exportExcel(array $data, bool $vatIn, $filename)
+    private function payloadHash(array $payload): string
+    {
+        return hash('sha256', json_encode(
+            $payload,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        ));
+    }
+
+    private function exportExcel(array $data, bool $vatIn, string $filename): string
     {
         $baseFolder = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
         $folder = $vatIn
@@ -413,8 +486,14 @@ class GdtInvoiceService
             throw new \RuntimeException('Không thể tạo thư mục lưu Excel GDT.');
         }
 
+        $rows = array_map(function (array $row): array {
+            unset($row['_gdt_raw_payload']);
+
+            return $row;
+        }, $data);
+
         $file = $folder.'/'.($vatIn ? 'vat_in_' : 'vat_out_').$filename;
-        (new FastExcel($data))->export($file);
+        (new FastExcel($rows))->export($file);
 
         return $file;
     }
