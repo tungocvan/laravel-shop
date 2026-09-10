@@ -44,7 +44,7 @@ final class InvoiceForInventoryV1Factory
             throw new DomainException('Snapshot chưa chuẩn hóa xong.');
         }
 
-        $detail = is_array($snapshot->raw_payload) ? $snapshot->raw_payload : [];
+        $detail = $this->gdtDetailService->fetchDetail($invoice);
         $identity = $this->identity($invoice, $detail);
         $sourceAnnotation = $this->sourceAnnotation($invoice);
         $lines = $snapshot->lines->sortBy('line_number')->map(function ($line) use ($identity, $sourceAnnotation): array {
@@ -103,11 +103,13 @@ final class InvoiceForInventoryV1Factory
             if (! is_array($line)) {
                 continue;
             }
+
             $description = trim((string) ($line['ten'] ?? ''));
             $quantity = $line['sluong'] ?? null;
             if ($description === '' || ! is_numeric($quantity) || (float) $quantity <= 0) {
                 continue;
             }
+
             $lineNumber = (int) ($line['stt'] ?? ($index + 1));
             $lines[] = [
                 'line_number' => $lineNumber,
@@ -127,6 +129,7 @@ final class InvoiceForInventoryV1Factory
                 ], $sourceAnnotation),
             ];
         }
+
         if ($lines === []) {
             throw new DomainException('Không có dòng hàng hóa hợp lệ để đưa sang Inventory.');
         }
