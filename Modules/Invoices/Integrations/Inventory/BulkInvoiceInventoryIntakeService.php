@@ -16,6 +16,9 @@ final class BulkInvoiceInventoryIntakeService
         Invoices::query()
             ->where('invoice_type', 'purchase')
             ->whereBetween('issued_date', [$from->toDateString(), $to->toDateString()])
+            ->whereHas('sourceRecord', fn ($query) => $query
+                ->where('detail_status', 'READY')
+                ->whereNotNull('detail_payload'))
             ->orderBy('id')
             ->select('id')
             ->chunkById($batchSize, function ($invoices) use (&$count, $refresh): void {
