@@ -14,12 +14,20 @@
                 <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Quản trị dữ liệu canonical đã lấy và lưu từ GDT, gồm header, chi tiết nguồn và phân loại nghiệp vụ. Màn hình này chỉ đọc dữ liệu nguồn đã lưu và không phát sinh yêu cầu tới GDT.</p>
             </div>
             <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                @if (Route::has('admin.inventory.invoice-inbox'))
+                    <a href="{{ route('admin.inventory.invoice-inbox') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">Tiếp tục nhập kho →</a>
+                @endif
                 <a href="{{ route('admin.invoices.hoadon') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">Đồng bộ GDT</a>
                 <a href="{{ route('admin.invoices.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">Danh sách hóa đơn</a>
             </div>
         </div>
     </header>
 
-    <livewire:invoices.source-data-manager />
+    <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-900 sm:px-5">
+        <span class="font-semibold">Quy trình tiếp theo:</span>
+        Hóa đơn mua vào đã phân loại Hàng hóa/Hỗn hợp được review tại Inventory Inbox → matching mặt hàng → chọn kho → tạo phiếu nhập DRAFT → xác nhận phiếu mới phát sinh tồn kho.
+    </div>
+
+    <livewire:invoices.source-data-manager :year="now()->format('Y')" :month="now()->format('n')" />
 </div>
 @endsection
