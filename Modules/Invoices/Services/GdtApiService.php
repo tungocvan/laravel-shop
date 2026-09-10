@@ -87,6 +87,7 @@ class GdtApiService
             Log::warning('API GDT trả lỗi khi tải captcha.', [
                 'url' => $this->url('/captcha'),
                 'status' => $response->status(),
+                'message' => $this->responseMessage($response->json()),
             ]);
 
             return [];
@@ -98,12 +99,14 @@ class GdtApiService
     }
 
     /**
-     * Authenticate & lấy token
+     * Authenticate & lấy token.
+     * Diagnostic logging intentionally excludes username, password, captcha and token.
      */
     public function login(string $cvalue, string $ckey, int $time = 1800): array
     {
         $username = config('invoices.gdt.username');
         $password = config('invoices.gdt.password');
+        $url = $this->url('/security-taxpayer/authenticate');
 
         if (! $username || ! $password) {
             Log::error('Chưa cấu hình GDT_API_USERNAME hoặc GDT_API_PASSWORD.');
@@ -115,7 +118,7 @@ class GdtApiService
         }
 
         try {
-            $res = $this->client()->post($this->url('/security-taxpayer/authenticate'), [
+            $res = $this->client()->post($url, [
                 'username' => $username,
                 'password' => $password,
                 'ckey' => $ckey,
@@ -123,7 +126,7 @@ class GdtApiService
             ]);
         } catch (ConnectionException $exception) {
             Log::warning('Không thể kết nối API GDT để đăng nhập.', [
-                'url' => $this->url('/security-taxpayer/authenticate'),
+                'url' => $url,
                 'error' => $exception->getMessage(),
             ]);
 
@@ -133,23 +136,64 @@ class GdtApiService
             ];
         }
 
+        $payload = $res->json();
+        $message = $this->responseMessage($payload);
+
         if ($res->successful()) {
-            $token = $res->json('token') ?? ($res->json('accessToken') ?? null);
+            $token = is_array($payload) ? ($payload['token'] ?? $payload['accessToken'] ?? null) : null;
 
             if ($token) {
                 Cache::put(config('invoices.gdt.cache_key'), $token, $time);
+
+                Log::notice('GDT login succeeded.', [
+                    'url' => $url,
+                    'status' => $res->status(),
+                    'token_cached' => true,
+                ]);
+
+                return ['status' => 'success', 'message' => null];
             }
 
+            Log::warning('GDT login response did not contain a token.', [
+                'url' => $url,
+                'status' => $res->status(),
+                'message' => $message,
+                'response_keys' => is_array($payload) ? array_keys($payload) : [],
+            ]);
+
             return [
-                'status' => $token ? 'success' : 'error',
-                'message' => $token ? null : 'GDT không trả về token.',
+                'status' => 'error',
+                'message' => $message ?: 'GDT xác thực thành công nhưng không trả về token.',
             ];
         }
 
+        Log::warning('GDT login rejected.', [
+            'url' => $url,
+            'status' => $res->status(),
+            'message' => $message,
+            'response_keys' => is_array($payload) ? array_keys($payload) : [],
+        ]);
+
         return [
             'status' => 'error',
-            'message' => $res->json('message') ?? 'Đăng nhập GDT không thành công.',
+            'message' => $message ?: "Đăng nhập GDT không thành công (HTTP {$res->status()}).",
         ];
+    }
+
+    private function responseMessage(mixed $payload): ?string
+    {
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        foreach (['message', 'error', 'detail', 'title'] as $key) {
+            $value = $payload[$key] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return mb_substr(trim($value), 0, 1000);
+            }
+        }
+
+        return null;
     }
 
     private function client()
