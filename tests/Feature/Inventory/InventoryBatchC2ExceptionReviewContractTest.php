@@ -66,7 +66,7 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
 
         $this->assertSame('STOCK', $result['classification']);
         $this->assertSame('gdt_goods_category', $result['reason']);
-        $this->assertSame('deterministic-v1', $result['classifier']);
+        $this->assertSame('deterministic-v2', $result['classifier']);
     }
 
     #[Test]
@@ -91,6 +91,64 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
         $this->assertSame('gdt_service_category', $service['reason']);
         $this->assertSame('NON_STOCK', $interest['classification']);
         $this->assertSame('interest_payment', $interest['reason']);
+    }
+
+    #[Test]
+    public function admin_goods_annotation_is_stock_evidence_but_does_not_assign_inventory_item(): void
+    {
+        $classifier = app(InvoiceLineStockClassifier::class);
+        $result = $classifier->classify('Vật tư chuyên môn', null, [
+            'source_business_classification' => 'GOODS',
+            'source_business_note' => 'Nhà cung cấp hàng hóa.',
+        ]);
+
+        $this->assertSame('STOCK', $result['classification']);
+        $this->assertSame('admin_source_goods', $result['reason']);
+        $this->assertSame('deterministic-v2', $result['classifier']);
+
+        $integration = file_get_contents(base_path('Modules/Inventory/Services/InventoryInvoiceIntegrationService.php'));
+        $this->assertStringContainsString("'inventory_item_id' => null", $integration);
+    }
+
+    #[Test]
+    public function admin_service_expense_annotation_marks_weak_lines_non_stock(): void
+    {
+        $result = app(InvoiceLineStockClassifier::class)->classify(
+            'Chi phí tư vấn tháng 01',
+            null,
+            ['source_business_classification' => 'SERVICE_EXPENSE'],
+        );
+
+        $this->assertSame('NON_STOCK', $result['classification']);
+        $this->assertSame('admin_source_service_expense', $result['reason']);
+    }
+
+    #[Test]
+    public function admin_service_expense_annotation_conflicting_with_physical_goods_fails_safe(): void
+    {
+        $result = app(InvoiceLineStockClassifier::class)->classify(
+            'Cefuroxime 125mg/5ml',
+            'Lọ',
+            ['source_business_classification' => 'SERVICE_EXPENSE'],
+        );
+
+        $this->assertSame('UNRESOLVED', $result['classification']);
+        $this->assertSame('source_annotation_conflicts_with_stock_evidence', $result['reason']);
+    }
+
+    #[Test]
+    public function mixed_annotation_does_not_override_line_level_evidence(): void
+    {
+        $classifier = app(InvoiceLineStockClassifier::class);
+        $goods = $classifier->classify('Thuốc Cefuroxime', 'Lọ', [
+            'source_business_classification' => 'MIXED',
+        ]);
+        $fee = $classifier->classify('Phí vận chuyển', null, [
+            'source_business_classification' => 'MIXED',
+        ]);
+
+        $this->assertSame('STOCK', $goods['classification']);
+        $this->assertSame('NON_STOCK', $fee['classification']);
     }
 
     #[Test]
