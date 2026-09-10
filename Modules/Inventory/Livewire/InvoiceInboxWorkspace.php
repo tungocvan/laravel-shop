@@ -4,6 +4,7 @@ namespace Modules\Inventory\Livewire;
 
 use DomainException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Inventory\Models\InventoryItem;
@@ -110,9 +111,19 @@ final class InvoiceInboxWorkspace extends Component
         });
     }
 
-    public function assignLine(int $lineId, int $itemId): void
+    public function assignLine(int $lineId, $itemId = null): void
     {
         abort_unless($this->canManageReceipt(), 403);
+
+        if ($itemId === null || trim((string) $itemId) === '') {
+            return;
+        }
+        if (! ctype_digit((string) $itemId) || (int) $itemId <= 0) {
+            $this->errorMessage = 'Mặt hàng được chọn không hợp lệ.';
+            return;
+        }
+
+        $itemId = (int) $itemId;
         $this->runAction(function () use ($lineId, $itemId): string {
             $line = $this->ownedLine($lineId);
             $item = InventoryItem::query()->where('is_active', true)->findOrFail($itemId);
@@ -252,52 +263,10 @@ final class InvoiceInboxWorkspace extends Component
                 throw new DomainException('Phiếu nhập DRAFT đã được tạo. Không sửa staging line sau khi đã snapshot sang receipt.');
             }
 
-            $key = 'receivingReview.'.$lineId;
-            $data = $this->validate([
-                $key.'.base_quantity' => ['required', 'numeric', 'gt:0'],
-                $key.'.base_uom' => ['required', 'string', 'max:80'],
-                $key.'.conversion_factor' => ['required', 'numeric', 'gt:0'],
-                $key.'.lot_number' => ['nullable', 'string', 'max:120'],
-                $key.'.manufacture_date' => ['nullable', 'date'],
-                $key.'.expiry_date' => ['nullable', 'date'],
-            ])['receivingReview'][$lineId];
-
-            $item = $line->item()->firstOrFail();
-            $lotNumber = trim((string) ($data['lot_number'] ?? ''));
-            $manufactureDate = filled($data['manufacture_date'] ?? null) ? $data['manufacture_date'] : null;
-            $expiryDate = filled($data['expiry_date'] ?? null) ? $data['expiry_date'] : null;
-
-            if ($item->lot_tracking && $lotNumber === '') {
-                throw new DomainException('Mặt hàng theo dõi lô: cần nhập số lô trước khi tạo DRAFT.');
-            }
-            if ($item->expiry_tracking && $expiryDate === null) {
-                throw new DomainException('Mặt hàng theo dõi HSD: cần nhập hạn dùng trước khi tạo DRAFT.');
-            }
-            if ($manufactureDate !== null && $expiryDate !== null && $expiryDate < $manufactureDate) {
-                throw new DomainException('HSD không được trước ngày sản xuất.');
-            }
-            if (trim((string) $data['base_uom']) !== (string) $item->base_uom) {
-                throw new DomainException('Base UOM sau review phải khớp Base UOM của InventoryItem.');
-            }
-
-            $metadata = $line->metadata ?? [];
-            $metadata['receiving_review'] = [
-                'reviewed_by' => (int) auth('admin')->id(),
-                'reviewed_at' => now()->toIso8601String(),
-                'mode' => 'explicit_admin_review',
-            ];
-
-            $line->forceFill([
-                'base_quantity' => $data['base_quantity'],
-                'base_uom' => trim((string) $data['base_uom']),
-                'conversion_factor' => $data['conversion_factor'],
-                'lot_number' => $lotNumber !== '' ? $lotNumber : null,
-                'manufacture_date' => $manufactureDate,
-                'expiry_date' => $expiryDate,
-                'metadata' => $metadata,
-            ])->save();
-
+            $data = $this->validateReceivingReview($line);
+            $this->persistReceivingReview($line, $data);
             $this->loadReceivingReviewState($this->selectedInbox());
+
             return 'Đã lưu review receiving: SL base/ĐVT/hệ số/lô/NSX/HSD.';
         });
     }
@@ -306,8 +275,30 @@ final class InvoiceInboxWorkspace extends Component
     {
         abort_unless($this->canManageReceipt(), 403);
         $this->runAction(function (): string {
-            if ($this->selectedInboxId === null || $this->warehouseId === null) {
-                throw new DomainException('Hãy chọn hóa đơn Inbox và kho nhận.');
+            if ($this->selectedInboxId === null) {
+                throw new DomainException('Hãy chọn hóa đơn Inbox.');
+            }
+            if ($this->warehouseId === null) {
+                throw new DomainException('Hãy chọn kho nhận trước khi tạo phiếu nhập DRAFT.');
+            }
+
+            $inbox = $this->selectedInbox();
+            if ($inbox->lines->contains(fn (InvoiceInboxLine $line) => $line->classification === 'UNRESOLVED')) {
+                throw new DomainException('Còn dòng hóa đơn chưa được phân loại/matching.');
+            }
+
+            $stockLines = $inbox->lines->where('classification', 'STOCK')->values();
+            if ($stockLines->isEmpty()) {
+                throw new DomainException('Hóa đơn không có dòng STOCK để tạo phiếu nhập.');
+            }
+
+            foreach ($stockLines as $line) {
+                if ($line->inventory_item_id === null) {
+                    throw new DomainException('Còn dòng STOCK chưa chọn InventoryItem.');
+                }
+
+                $data = $this->validateReceivingReview($line);
+                $this->persistReceivingReview($line, $data);
             }
 
             $receipt = app(InvoiceReceiptProposalService::class)->createOrRefresh(
@@ -438,6 +429,75 @@ final class InvoiceInboxWorkspace extends Component
         return $lines;
     }
 
+    private function validateReceivingReview(InvoiceInboxLine $line): array
+    {
+        $item = $line->item()->firstOrFail();
+        $key = 'receivingReview.'.$line->id;
+
+        $rules = [
+            $key.'.base_quantity' => ['required', 'numeric', 'gt:0'],
+            $key.'.base_uom' => ['required', 'string', 'max:80'],
+            $key.'.conversion_factor' => ['required', 'numeric', 'gt:0'],
+            $key.'.lot_number' => [$item->lot_tracking ? 'required' : 'nullable', 'string', 'max:120'],
+            $key.'.manufacture_date' => ['nullable', 'date'],
+            $key.'.expiry_date' => [$item->expiry_tracking ? 'required' : 'nullable', 'date'],
+        ];
+
+        $messages = [
+            $key.'.base_quantity.required' => 'Vui lòng nhập số lượng base cho '.$item->display_name.'.',
+            $key.'.base_quantity.numeric' => 'Số lượng base của '.$item->display_name.' phải là số.',
+            $key.'.base_quantity.gt' => 'Số lượng base của '.$item->display_name.' phải lớn hơn 0.',
+            $key.'.base_uom.required' => 'Vui lòng nhập Base UOM cho '.$item->display_name.'.',
+            $key.'.conversion_factor.required' => 'Vui lòng nhập hệ số quy đổi cho '.$item->display_name.'.',
+            $key.'.conversion_factor.numeric' => 'Hệ số quy đổi của '.$item->display_name.' phải là số.',
+            $key.'.conversion_factor.gt' => 'Hệ số quy đổi của '.$item->display_name.' phải lớn hơn 0.',
+            $key.'.lot_number.required' => 'Vui lòng nhập số lô cho '.$item->display_name.' vì mặt hàng đang theo dõi lô.',
+            $key.'.manufacture_date.date' => 'Ngày sản xuất của '.$item->display_name.' không hợp lệ.',
+            $key.'.expiry_date.required' => 'Vui lòng nhập HSD cho '.$item->display_name.' vì mặt hàng đang theo dõi HSD.',
+            $key.'.expiry_date.date' => 'HSD của '.$item->display_name.' không hợp lệ.',
+        ];
+
+        $data = $this->validate($rules, $messages)['receivingReview'][$line->id];
+        $manufactureDate = filled($data['manufacture_date'] ?? null) ? $data['manufacture_date'] : null;
+        $expiryDate = filled($data['expiry_date'] ?? null) ? $data['expiry_date'] : null;
+
+        if ($manufactureDate !== null && $expiryDate !== null && $expiryDate < $manufactureDate) {
+            throw ValidationException::withMessages([
+                $key.'.expiry_date' => 'HSD không được trước ngày sản xuất của '.$item->display_name.'.',
+            ]);
+        }
+        if (trim((string) $data['base_uom']) !== (string) $item->base_uom) {
+            throw ValidationException::withMessages([
+                $key.'.base_uom' => 'Base UOM phải là "'.$item->base_uom.'" để khớp InventoryItem '.$item->display_name.'.',
+            ]);
+        }
+
+        return $data;
+    }
+
+    private function persistReceivingReview(InvoiceInboxLine $line, array $data): void
+    {
+        $lotNumber = trim((string) ($data['lot_number'] ?? ''));
+        $manufactureDate = filled($data['manufacture_date'] ?? null) ? $data['manufacture_date'] : null;
+        $expiryDate = filled($data['expiry_date'] ?? null) ? $data['expiry_date'] : null;
+        $metadata = $line->metadata ?? [];
+        $metadata['receiving_review'] = [
+            'reviewed_by' => (int) auth('admin')->id(),
+            'reviewed_at' => now()->toIso8601String(),
+            'mode' => 'explicit_admin_review',
+        ];
+
+        $line->forceFill([
+            'base_quantity' => $data['base_quantity'],
+            'base_uom' => trim((string) $data['base_uom']),
+            'conversion_factor' => $data['conversion_factor'],
+            'lot_number' => $lotNumber !== '' ? $lotNumber : null,
+            'manufacture_date' => $manufactureDate,
+            'expiry_date' => $expiryDate,
+            'metadata' => $metadata,
+        ])->save();
+    }
+
     private function loadReceivingReviewState(InvoiceInbox $inbox): void
     {
         $inbox->loadMissing(['lines.item', 'receipt']);
@@ -471,6 +531,8 @@ final class InvoiceInboxWorkspace extends Component
         $this->successMessage = null;
         try {
             $this->successMessage = $action();
+        } catch (ValidationException $exception) {
+            $this->errorMessage = collect($exception->errors())->flatten()->first() ?: 'Dữ liệu chưa hợp lệ. Vui lòng kiểm tra lại các trường bắt buộc.';
         } catch (Throwable $exception) {
             report($exception);
             $this->errorMessage = $exception->getMessage();
