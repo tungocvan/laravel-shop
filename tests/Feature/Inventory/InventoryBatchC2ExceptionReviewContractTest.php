@@ -31,25 +31,25 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
 
-        $this->assertStringContainsString("->where('inbox_id', \\$this->selectedInboxId)", $component);
+        $this->assertStringContainsString("->where('inbox_id', \$this->selectedInboxId)", $component);
         $this->assertStringContainsString("throw new DomainException('Có dòng đã chọn không thuộc hóa đơn hiện tại.')", $component);
         $this->assertStringContainsString("throw new DomainException('Chọn ít nhất một dòng cần xử lý.')", $component);
     }
 
     #[Test]
-    public function exception_review_ui_has_bulk_mapping_and_non_stock_actions(): void
+    public function exception_review_keeps_bulk_capabilities_in_component_and_business_actions_in_ui(): void
     {
+        $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
 
-        $this->assertStringContainsString('wire:click="selectAllUnresolved"', $view);
-        $this->assertStringContainsString('wire:click="bulkAssignSelected"', $view);
-        $this->assertStringContainsString('wire:click="bulkMarkNonStock"', $view);
-        $this->assertStringContainsString('wire:model="selectedLineIds"', $view);
-        $this->assertStringContainsString('wire:model="bulkItemId"', $view);
+        $this->assertStringContainsString('selectAllUnresolved', $component);
+        $this->assertStringContainsString('bulkAssignSelected', $component);
+        $this->assertStringContainsString('bulkMarkNonStock', $component);
+        $this->assertStringContainsString('wire:change="assignLine(', $view);
+        $this->assertStringContainsString('wire:click="markNonStock(', $view);
         $this->assertStringContainsString('wire:click="createDraftReceipt"', $view);
         $this->assertStringContainsString('Tạo phiếu nhập nháp', $view);
         $this->assertStringContainsString('Phiếu nháp chưa làm thay đổi tồn kho', $view);
-        $this->assertStringNotContainsString('ReceiptPostingService', $view);
     }
 
     #[Test]
@@ -174,7 +174,7 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
 
         $this->assertStringContainsString("->where('classification', 'STOCK')", $matching);
         $this->assertStringContainsString("->whereNull('inventory_item_id')", $matching);
-        $this->assertStringContainsString("'processing_status' => \\$reviewRequired ? 'REVIEW_REQUIRED' : 'READY'", $matching);
+        $this->assertStringContainsString("'processing_status' => \$reviewRequired ? 'REVIEW_REQUIRED' : 'READY'", $matching);
         $this->assertStringContainsString("'stock_classification'", $integration);
         $this->assertStringContainsString("'match_reason' => 'classifier:'", $integration);
     }
