@@ -21,7 +21,7 @@
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <tr><th class="px-4 py-3">Hóa đơn</th><th class="px-4 py-3">RAW nguồn</th><th class="px-4 py-3 min-w-[220px]">Phân loại nghiệp vụ</th><th class="px-4 py-3 min-w-[280px]">Ghi chú quản trị</th><th class="px-4 py-3">Thao tác</th></tr>
+                    <tr><th class="px-4 py-3">Hóa đơn</th><th class="px-4 py-3">RAW nguồn</th><th class="px-4 py-3 min-w-[240px]">Phân loại nghiệp vụ</th><th class="px-4 py-3 min-w-[280px]">Ghi chú quản trị</th><th class="px-4 py-3">Thao tác</th></tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($records as $record)
@@ -46,6 +46,10 @@
                                     @foreach ($classificationOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach
                                 </select>
                                 <p class="mt-2 text-xs leading-5 text-slate-500">GOODS: hàng hóa · SERVICE_EXPENSE: dịch vụ/chi phí · MIXED: hỗn hợp · UNCLASSIFIED: cần review.</p>
+                                <label class="mt-3 flex items-start gap-2 text-xs font-medium text-slate-700">
+                                    <input type="checkbox" wire:model="applySameTaxCode.{{ $record->id }}" class="mt-0.5 rounded border-slate-300">
+                                    <span>Áp dụng cùng phân loại cho tất cả hóa đơn cùng MST {{ $invoice?->tax_code ?: 'này' }}.</span>
+                                </label>
                             </td>
                             <td class="px-4 py-4"><textarea wire:model="businessNotes.{{ $record->id }}" rows="3" maxlength="2000" class="w-full rounded-xl border-slate-300 text-sm" placeholder="Ví dụ: nhà cung cấp vận chuyển; hóa đơn này gồm hàng hóa + phí giao nhận..."></textarea></td>
                             <td class="px-4 py-4"><button wire:click="saveAnnotation({{ $record->id }})" wire:loading.attr="disabled" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">Lưu phân loại</button></td>
