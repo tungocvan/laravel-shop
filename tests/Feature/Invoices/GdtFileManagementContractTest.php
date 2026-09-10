@@ -36,7 +36,24 @@ class GdtFileManagementContractTest extends TestCase
         $this->assertStringContainsString("'selectedFiles' => ['required', 'array', 'size:1']", $component);
         $this->assertStringContainsString('resolveSingleSelectedFile()', $component);
         $this->assertStringContainsString('@disabled(count($selectedFiles)!==1)', $view);
-        $this->assertStringContainsString('không cần bấm Đồng bộ vào CSDL lần nữa', $view);
+        $this->assertStringContainsString('Import vào danh sách hóa đơn', $view);
+        $this->assertStringContainsString('File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và RAW canonical', $view);
         $this->assertStringContainsString('file upload thủ công, Google Drive hoặc dữ liệu legacy', $view);
+    }
+
+    #[Test]
+    public function sync_page_presents_secondary_backup_tools_as_collapsible_sections(): void
+    {
+        $page = file_get_contents(base_path('Modules/Invoices/resources/views/pages/invoices/sync.blade.php'));
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/search-hoadon.blade.php'));
+
+        $this->assertStringContainsString('Dữ liệu nguồn GDT', $page);
+        $this->assertStringContainsString('Danh sách hóa đơn', $page);
+        $this->assertStringContainsString('<details class="group rounded-2xl', $page);
+        $this->assertStringContainsString('Local ↔ Google Drive', $page);
+        $this->assertStringContainsString('Automatic Invoice Backup', $page);
+        $this->assertStringContainsString('Nhập file ngoài & backup nhanh', $view);
+        $this->assertStringContainsString('Nhật ký xử lý', $view);
+        $this->assertStringContainsString('Mở nhật ký', $view);
     }
 }
