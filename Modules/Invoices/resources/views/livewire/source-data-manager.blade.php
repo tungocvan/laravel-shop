@@ -14,53 +14,119 @@
         ];
         $hasFilters = $search !== '' || $partner !== '' || $year !== 'all' || $month !== 'all' || $invoiceType !== 'purchase' || $detailStatus !== 'all' || $businessClassification !== 'all' || $perPage !== 25;
         $controlClass = 'h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400';
+        $supplierBatchCount = collect($applySameTaxCode)->filter(fn ($selected) => (bool) $selected)->count();
     @endphp
+
+    @if ($detailModalOpen)
+        <div class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/50 px-3 py-4 backdrop-blur-sm sm:px-6" wire:click.self="closeDetailModal" x-on:keydown.escape.window="$wire.closeDetailModal()">
+            <div class="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10">
+                <div class="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
+                    <div class="min-w-0">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Chi tiết hóa đơn nguồn GDT</p>
+                        <h2 class="mt-1 text-lg font-bold text-slate-950">#{{ $detailModal['invoice_number'] ?? '—' }} <span class="font-medium text-slate-500">{{ $detailModal['symbol'] ?? '—' }}</span></h2>
+                        <p class="mt-1 text-sm text-slate-600">{{ $detailModal['partner'] ?? '—' }} · MST {{ $detailModal['tax_code'] ?? '—' }}</p>
+                    </div>
+                    <button type="button" wire:click="closeDetailModal" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-lg font-semibold text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900" aria-label="Đóng">×</button>
+                </div>
+
+                <div class="overflow-y-auto px-5 py-5 sm:px-6">
+                    <div class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Ngày hóa đơn</p><p class="mt-1 font-semibold text-slate-900">{{ $detailModal['issued_date'] ?? '—' }}</p></div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Loại</p><p class="mt-1 font-semibold text-slate-900">{{ $detailModal['invoice_type'] ?? '—' }}</p></div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Trạng thái chi tiết</p><p class="mt-1 font-semibold text-slate-900">{{ $detailLabels[$detailModal['detail_status'] ?? ''] ?? ($detailModal['detail_status'] ?? '—') }}</p></div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Số dòng hàng</p><p class="mt-1 font-semibold text-slate-900">{{ number_format((int) ($detailModal['item_count'] ?? 0)) }}</p></div>
+                    </div>
+
+                    @if (!empty($detailModal['last_error']))
+                        <div class="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{{ $detailModal['last_error'] }}</div>
+                    @endif
+
+                    @if (!empty($detailModal['items']))
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    <tr>
+                                        <th class="px-4 py-3 text-center">STT</th>
+                                        <th class="min-w-[320px] px-4 py-3">Tên hàng hóa / dịch vụ</th>
+                                        <th class="px-4 py-3">ĐVT</th>
+                                        <th class="px-4 py-3 text-right">Số lượng</th>
+                                        <th class="px-4 py-3 text-right">Đơn giá</th>
+                                        <th class="px-4 py-3 text-right">Thành tiền</th>
+                                        <th class="px-4 py-3 text-center">Thuế suất</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    @foreach ($detailModal['items'] as $item)
+                                        <tr class="align-top hover:bg-slate-50/70">
+                                            <td class="px-4 py-3 text-center text-slate-500">{{ $item['index'] ?? '—' }}</td>
+                                            <td class="px-4 py-3 font-medium text-slate-900">{{ $item['name'] ?? '—' }}</td>
+                                            <td class="px-4 py-3 text-slate-600">{{ $item['unit'] ?? '—' }}</td>
+                                            <td class="px-4 py-3 text-right tabular-nums text-slate-700">{{ is_numeric($item['quantity'] ?? null) ? number_format((float) $item['quantity'], 2) : ($item['quantity'] ?? '—') }}</td>
+                                            <td class="px-4 py-3 text-right tabular-nums text-slate-700">{{ is_numeric($item['unit_price'] ?? null) ? number_format((float) $item['unit_price']) : ($item['unit_price'] ?? '—') }}</td>
+                                            <td class="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">{{ is_numeric($item['amount'] ?? null) ? number_format((float) $item['amount']) : ($item['amount'] ?? '—') }}</td>
+                                            <td class="px-4 py-3 text-center text-slate-700">{{ $item['tax_rate'] ?? '—' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="mt-3 text-xs text-slate-500">Dùng nội dung hàng hóa/dịch vụ này để quyết định phân loại nghiệp vụ trước khi lưu.</p>
+                    @else
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-6 text-center">
+                            <p class="font-semibold text-amber-900">Chưa có dòng chi tiết để xem.</p>
+                            <p class="mt-1 text-sm text-amber-700">Trạng thái hiện tại: {{ $detailLabels[$detailModal['detail_status'] ?? ''] ?? ($detailModal['detail_status'] ?? '—') }} · lần lấy chi tiết {{ $detailModal['detail_fetched_at'] ?? '—' }}.</p>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex justify-end border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
+                    <button type="button" wire:click="closeDetailModal" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Đóng và phân loại</button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @if ($saveModalOpen)
         <div class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm" wire:click.self="closeSaveModal" x-on:keydown.escape.window="$wire.closeSaveModal()">
-            <div class="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5">
+            <div class="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5">
                 <div class="border-b border-emerald-100 bg-emerald-50 px-5 py-5 sm:px-6">
                     <div class="flex items-start gap-4">
                         <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700">✓</div>
                         <div class="min-w-0 flex-1">
                             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Đã lưu thành công</p>
-                            <h2 class="mt-1 text-lg font-bold text-slate-950">Nội dung phân loại vừa lưu</h2>
+                            <h2 class="mt-1 text-lg font-bold text-slate-950">{{ ($saveModal['mode'] ?? 'single') === 'batch' ? 'Kết quả lưu hàng loạt nhà cung cấp' : 'Nội dung phân loại vừa lưu' }}</h2>
                             <p class="mt-1 text-sm text-slate-600">Kiểm tra nhanh thông tin trước khi tiếp tục xử lý hóa đơn khác.</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-5 px-5 py-5 sm:px-6">
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hóa đơn</p>
-                            <p class="mt-1 font-bold text-slate-950">#{{ $saveModal['invoice_number'] ?? '—' }} <span class="font-medium text-slate-500">{{ $saveModal['symbol'] ?? '—' }}</span></p>
-                            <p class="mt-1 text-xs text-slate-500">{{ $saveModal['issued_date'] ?? '—' }} · {{ $saveModal['invoice_type'] ?? '—' }}</p>
+                @if (($saveModal['mode'] ?? 'single') === 'batch')
+                    <div class="space-y-4 px-5 py-5 sm:px-6">
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-emerald-700">Nhà cung cấp đã lưu</p><p class="mt-1 text-2xl font-bold text-emerald-950">{{ number_format((int) ($saveModal['supplier_count'] ?? 0)) }}</p></div>
+                            <div class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-indigo-700">Hóa đơn ảnh hưởng</p><p class="mt-1 text-2xl font-bold text-indigo-950">{{ number_format((int) ($saveModal['affected'] ?? 0)) }}</p></div>
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Bỏ qua</p><p class="mt-1 text-2xl font-bold text-slate-900">{{ number_format((int) ($saveModal['skipped'] ?? 0)) }}</p></div>
                         </div>
-                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nhà cung cấp</p>
-                            <p class="mt-1 font-semibold text-slate-900">{{ $saveModal['partner'] ?? '—' }}</p>
-                            <p class="mt-1 text-xs text-slate-500">MST {{ $saveModal['tax_code'] ?? '—' }}</p>
-                        </div>
-                    </div>
-
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Phân loại nghiệp vụ</p>
-                            <p class="mt-1 text-base font-bold text-indigo-950">{{ $saveModal['classification'] ?? '—' }}</p>
-                        </div>
-                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Phạm vi áp dụng</p>
-                            <p class="mt-1 font-semibold text-slate-900">{{ $saveModal['scope'] ?? '—' }}</p>
-                            <p class="mt-1 text-xs text-slate-500">Ảnh hưởng: {{ number_format((int) ($saveModal['affected'] ?? 0)) }} hóa đơn</p>
+                        <div class="max-h-[45vh] overflow-y-auto rounded-xl border border-slate-200">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                <thead class="sticky top-0 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">Nhà cung cấp</th><th class="px-4 py-3">MST</th><th class="px-4 py-3">Phân loại</th><th class="px-4 py-3 text-right">Ảnh hưởng</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100">@foreach (($saveModal['suppliers'] ?? []) as $supplier)<tr><td class="px-4 py-3 font-medium text-slate-900">{{ $supplier['partner'] ?? '—' }}</td><td class="px-4 py-3 text-slate-600">{{ $supplier['tax_code'] ?? '—' }}</td><td class="px-4 py-3 font-semibold text-indigo-700">{{ $supplier['classification'] ?? '—' }}</td><td class="px-4 py-3 text-right tabular-nums">{{ number_format((int) ($supplier['affected'] ?? 0)) }} HĐ</td></tr>@endforeach</tbody>
+                            </table>
                         </div>
                     </div>
-
-                    <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ghi chú</p>
-                        <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">{{ $saveModal['note'] ?? 'Không có ghi chú' }}</p>
+                @else
+                    <div class="space-y-5 px-5 py-5 sm:px-6">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hóa đơn</p><p class="mt-1 font-bold text-slate-950">#{{ $saveModal['invoice_number'] ?? '—' }} <span class="font-medium text-slate-500">{{ $saveModal['symbol'] ?? '—' }}</span></p><p class="mt-1 text-xs text-slate-500">{{ $saveModal['issued_date'] ?? '—' }} · {{ $saveModal['invoice_type'] ?? '—' }}</p></div>
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nhà cung cấp</p><p class="mt-1 font-semibold text-slate-900">{{ $saveModal['partner'] ?? '—' }}</p><p class="mt-1 text-xs text-slate-500">MST {{ $saveModal['tax_code'] ?? '—' }}</p></div>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3"><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Phân loại nghiệp vụ</p><p class="mt-1 text-base font-bold text-indigo-950">{{ $saveModal['classification'] ?? '—' }}</p></div>
+                            <div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Phạm vi áp dụng</p><p class="mt-1 font-semibold text-slate-900">{{ $saveModal['scope'] ?? '—' }}</p><p class="mt-1 text-xs text-slate-500">Ảnh hưởng: {{ number_format((int) ($saveModal['affected'] ?? 0)) }} hóa đơn</p></div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ghi chú</p><p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">{{ $saveModal['note'] ?? 'Không có ghi chú' }}</p></div>
                     </div>
-                </div>
+                @endif
 
                 <div class="flex justify-end border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-6">
                     <button type="button" wire:click="closeSaveModal" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Đóng và tiếp tục</button>
@@ -75,10 +141,7 @@
 
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Tổng quan theo bộ lọc kỳ dữ liệu</p>
-                <h2 class="mt-1 text-base font-bold text-gray-900">{{ $statsScopeLabel }}</h2>
-            </div>
+            <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Tổng quan theo bộ lọc kỳ dữ liệu</p><h2 class="mt-1 text-base font-bold text-gray-900">{{ $statsScopeLabel }}</h2></div>
             <span class="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">Danh sách hiện tại: {{ number_format($records->total()) }} hóa đơn</span>
         </div>
         <div class="grid gap-px bg-gray-200 sm:grid-cols-2 xl:grid-cols-4">
@@ -92,22 +155,14 @@
     <section class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-5 py-5 sm:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-lg font-semibold text-gray-900">Bộ lọc dữ liệu nguồn</h2>
-                    <p class="mt-1 text-sm text-gray-500">Chọn kỳ dữ liệu trước, sau đó tìm nhà cung cấp và thu hẹp theo trạng thái xử lý.</p>
-                </div>
-                @if ($hasFilters)
-                    <button type="button" wire:click="resetFilters" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-100">Xóa bộ lọc</button>
-                @endif
+                <div><h2 class="text-lg font-semibold text-gray-900">Bộ lọc dữ liệu nguồn</h2><p class="mt-1 text-sm text-gray-500">Chọn kỳ dữ liệu trước, sau đó tìm nhà cung cấp và thu hẹp theo trạng thái xử lý.</p></div>
+                @if ($hasFilters)<button type="button" wire:click="resetFilters" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-100">Xóa bộ lọc</button>@endif
             </div>
         </div>
 
         <div class="space-y-6 p-5 sm:p-6">
             <section class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
-                <div class="mb-4">
-                    <h3 class="text-sm font-semibold text-slate-900">Kỳ dữ liệu</h3>
-                    <p class="mt-1 text-xs text-slate-500">Các thẻ tổng quan phía trên tự động tính lại theo năm, tháng và loại hóa đơn đang chọn.</p>
-                </div>
+                <div class="mb-4"><h3 class="text-sm font-semibold text-slate-900">Kỳ dữ liệu</h3><p class="mt-1 text-xs text-slate-500">Các thẻ tổng quan phía trên tự động tính lại theo năm, tháng và loại hóa đơn đang chọn.</p></div>
                 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Năm</span><select wire:model.live="year" class="{{ $controlClass }}"><option value="all">Tất cả các năm</option>@foreach ($availableYears as $availableYear)<option value="{{ $availableYear }}">{{ $availableYear }}</option>@endforeach</select></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Tháng</span><select wire:model.live="month" class="{{ $controlClass }}"><option value="all">Tất cả các tháng</option>@for ($m = 1; $m <= 12; $m++)<option value="{{ $m }}">Tháng {{ str_pad((string) $m, 2, '0', STR_PAD_LEFT) }}</option>@endfor</select></label>
@@ -116,41 +171,33 @@
             </section>
 
             <section>
-                <div class="mb-4">
-                    <h3 class="text-sm font-semibold text-slate-900">Điều kiện lọc</h3>
-                    <p class="mt-1 text-xs text-slate-500">Tìm nhà cung cấp theo đúng kiểu tìm đối tác tại Danh sách hóa đơn; từ khóa dùng cho số hóa đơn, ký hiệu, MST hoặc mã tra cứu.</p>
-                </div>
+                <div class="mb-4"><h3 class="text-sm font-semibold text-slate-900">Điều kiện lọc</h3><p class="mt-1 text-xs text-slate-500">Tìm nhà cung cấp theo đúng kiểu tìm đối tác tại Danh sách hóa đơn; từ khóa dùng cho số hóa đơn, ký hiệu, MST hoặc mã tra cứu.</p></div>
                 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <div class="sm:col-span-2 xl:col-span-2">
-                        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Nhà cung cấp</span>
-                        <x-select-search id="source-data-partner-search" wire:model="partner" options-wire="partnerList" placeholder="Tìm nhà cung cấp...">
-                            <option value="">Tất cả nhà cung cấp</option>
-                            @foreach ($partnerList as $item)<option value="{{ $item }}" @selected($partner === $item)>{{ $item }}</option>@endforeach
-                        </x-select-search>
-                    </div>
-                    <label class="block sm:col-span-2 xl:col-span-2">
-                        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Từ khóa hóa đơn</span>
-                        <x-search wire:model.live.debounce.300ms="search" placeholder="Số HĐ, ký hiệu, MST, mã tra cứu..." inputClass="h-11 rounded-xl border-gray-300 shadow-sm" />
-                    </label>
+                    <div class="sm:col-span-2 xl:col-span-2"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Nhà cung cấp</span><x-select-search id="source-data-partner-search" wire:model="partner" options-wire="partnerList" placeholder="Tìm nhà cung cấp..."><option value="">Tất cả nhà cung cấp</option>@foreach ($partnerList as $item)<option value="{{ $item }}" @selected($partner === $item)>{{ $item }}</option>@endforeach</x-select-search></div>
+                    <label class="block sm:col-span-2 xl:col-span-2"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Từ khóa hóa đơn</span><x-search wire:model.live.debounce.300ms="search" placeholder="Số HĐ, ký hiệu, MST, mã tra cứu..." inputClass="h-11 rounded-xl border-gray-300 shadow-sm" /></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Trạng thái chi tiết</span><select wire:model.live="detailStatus" class="{{ $controlClass }}"><option value="all">Mọi trạng thái</option><option value="READY">Sẵn sàng</option><option value="MISSING">Thiếu dữ liệu</option><option value="ERROR">Lỗi</option><option value="FETCHING">Đang xử lý</option></select></label>
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Phân loại nghiệp vụ</span><select wire:model.live="businessClassification" class="{{ $controlClass }}"><option value="all">Mọi phân loại</option>@foreach ($classificationOptions as $option)<option value="{{ $option }}">{{ $classificationLabels[$option] }}</option>@endforeach</select></label>
                     <label class="block sm:max-w-40"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">Hiển thị</span><select wire:model.live="perPage" class="{{ $controlClass }}"><option value="25">25 / trang</option><option value="50">50 / trang</option><option value="100">100 / trang</option></select></label>
                 </div>
             </section>
 
-            <details class="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm text-slate-600">
-                <summary class="cursor-pointer select-none font-semibold text-slate-700">Hướng dẫn phân loại nghiệp vụ</summary>
-                <p class="mt-2 text-xs leading-5"><span class="font-semibold">Hàng hóa</span> — hàng tồn kho/vật tư/sản phẩm · <span class="font-semibold">Dịch vụ / Chi phí</span> — dịch vụ, phí, chi phí · <span class="font-semibold">Hỗn hợp</span> — nhiều nhóm · <span class="font-semibold">Chưa phân loại</span> — cần admin review.</p>
-            </details>
+            <details class="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm text-slate-600"><summary class="cursor-pointer select-none font-semibold text-slate-700">Hướng dẫn phân loại nghiệp vụ</summary><p class="mt-2 text-xs leading-5"><span class="font-semibold">Hàng hóa</span> — hàng tồn kho/vật tư/sản phẩm · <span class="font-semibold">Dịch vụ / Chi phí</span> — dịch vụ, phí, chi phí · <span class="font-semibold">Hỗn hợp</span> — nhiều nhóm · <span class="font-semibold">Chưa phân loại</span> — cần admin review.</p></details>
         </div>
     </section>
+
+    @if ($businessClassification === 'UNCLASSIFIED' || $supplierBatchCount > 0)
+        <section class="rounded-2xl border border-indigo-200 bg-indigo-50/60 px-4 py-4 shadow-sm sm:px-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div><p class="text-sm font-bold text-indigo-950">Lưu nhanh nhiều nhà cung cấp</p><p class="mt-1 text-xs leading-5 text-indigo-700">Chọn phân loại cho từng công ty, đánh dấu “Áp dụng cho toàn bộ nhà cung cấp”, sau đó lưu một lần. Dòng còn “Chưa phân loại” sẽ được bỏ qua.</p></div>
+                <button type="button" wire:click="saveSupplierBatch" wire:loading.attr="disabled" wire:target="saveSupplierBatch" @disabled($supplierBatchCount === 0) class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"><span wire:loading.remove wire:target="saveSupplierBatch">Lưu {{ number_format($supplierBatchCount) }} nhà cung cấp đã chọn</span><span wire:loading wire:target="saveSupplierBatch">Đang lưu hàng loạt...</span></button>
+            </div>
+        </section>
+    @endif
 
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="hidden overflow-x-auto lg:block">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
-                <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    <tr><th class="px-4 py-3">Hóa đơn</th><th class="px-4 py-3">Trạng thái nguồn</th><th class="min-w-[260px] px-4 py-3">Phân loại</th><th class="min-w-[170px] px-4 py-3">Ghi chú</th><th class="px-4 py-3">Thao tác</th></tr>
-                </thead>
+                <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"><tr><th class="px-4 py-3">Hóa đơn</th><th class="px-4 py-3">Trạng thái nguồn</th><th class="min-w-[260px] px-4 py-3">Phân loại</th><th class="min-w-[170px] px-4 py-3">Ghi chú</th><th class="px-4 py-3">Thao tác</th></tr></thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($records as $record)
                         @php($invoice = $record->invoice)
@@ -159,37 +206,14 @@
                                 <div class="font-bold text-slate-950">#{{ $invoice?->invoice_number ?: '—' }} <span class="font-medium text-slate-500">{{ $invoice?->symbol }}</span></div>
                                 <div class="mt-1 max-w-sm font-medium text-slate-800">{{ $invoice?->name ?: 'Không rõ nhà cung cấp' }}</div>
                                 <div class="mt-1 text-xs text-slate-500">{{ $invoice?->issued_date?->format('d/m/Y') ?: '—' }} · MST {{ $invoice?->tax_code ?: '—' }} · {{ $invoice?->invoice_type === 'purchase' ? 'Mua vào' : 'Bán ra' }}</div>
+                                <button type="button" wire:click="openDetailModal({{ $record->id }})" wire:loading.attr="disabled" wire:target="openDetailModal({{ $record->id }})" class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 transition hover:text-indigo-800"><span wire:loading.remove wire:target="openDetailModal({{ $record->id }})">Xem chi tiết hàng hóa / dịch vụ</span><span wire:loading wire:target="openDetailModal({{ $record->id }})">Đang mở chi tiết...</span></button>
                             </td>
-                            <td class="px-4 py-4">
-                                <div class="flex flex-wrap gap-2">
-                                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $record->header_payload ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $record->header_payload ? 'Header đã lưu' : 'Thiếu header' }}</span>
-                                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $record->detail_status === 'READY' ? 'bg-emerald-50 text-emerald-700' : ($record->detail_status === 'ERROR' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700') }}">{{ $record->detail_status === 'READY' ? 'Chi tiết sẵn sàng' : ($detailLabels[$record->detail_status] ?? 'Chưa rõ') }}</span>
-                                </div>
-                                <div class="mt-2 text-xs text-slate-500">Header: {{ optional($record->header_fetched_at)->format('d/m/Y H:i') ?: '—' }}</div>
-                                <div class="mt-0.5 text-xs text-slate-500">Chi tiết: {{ optional($record->detail_fetched_at)->format('d/m/Y H:i') ?: '—' }}</div>
-                                @if ($record->last_error)<div class="mt-2 max-w-md text-xs font-medium text-rose-700">{{ $record->last_error }}</div>@endif
-                            </td>
-                            <td class="px-4 py-4">
-                                <select wire:model="businessClassifications.{{ $record->id }}" class="{{ $controlClass }}">@foreach ($classificationOptions as $option)<option value="{{ $option }}">{{ $classificationLabels[$option] }}</option>@endforeach</select>
-                                <label class="mt-3 flex items-start gap-2 text-xs font-medium text-slate-700"><input type="checkbox" wire:model="applySameTaxCode.{{ $record->id }}" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"><span>Áp dụng cho toàn bộ nhà cung cấp<span class="mt-0.5 block font-normal text-slate-500">MST {{ $invoice?->tax_code ?: '—' }} · các hóa đơn cùng loại</span></span></label>
-                            </td>
-                            <td class="px-4 py-4">
-                                <details class="group w-full">
-                                    <summary class="inline-flex min-h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
-                                        {{ trim((string) ($businessNotes[$record->id] ?? '')) !== '' ? 'Sửa ghi chú' : 'Thêm ghi chú' }}
-                                        @if (trim((string) ($businessNotes[$record->id] ?? '')) !== '')<span class="h-2 w-2 rounded-full bg-indigo-500" title="Đã có ghi chú"></span>@endif
-                                    </summary>
-                                    <div class="mt-2 min-w-[260px] rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-                                        <textarea wire:model="businessNotes.{{ $record->id }}" rows="3" maxlength="2000" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nhập ghi chú quản trị..."></textarea>
-                                        <p class="mt-1.5 text-[11px] leading-4 text-slate-500">Ghi chú được lưu cùng phân loại khi bấm Lưu.</p>
-                                    </div>
-                                </details>
-                            </td>
+                            <td class="px-4 py-4"><div class="flex flex-wrap gap-2"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $record->header_payload ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $record->header_payload ? 'Header đã lưu' : 'Thiếu header' }}</span><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $record->detail_status === 'READY' ? 'bg-emerald-50 text-emerald-700' : ($record->detail_status === 'ERROR' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700') }}">{{ $record->detail_status === 'READY' ? 'Chi tiết sẵn sàng' : ($detailLabels[$record->detail_status] ?? 'Chưa rõ') }}</span></div><div class="mt-2 text-xs text-slate-500">Header: {{ optional($record->header_fetched_at)->format('d/m/Y H:i') ?: '—' }}</div><div class="mt-0.5 text-xs text-slate-500">Chi tiết: {{ optional($record->detail_fetched_at)->format('d/m/Y H:i') ?: '—' }}</div>@if ($record->last_error)<div class="mt-2 max-w-md text-xs font-medium text-rose-700">{{ $record->last_error }}</div>@endif</td>
+                            <td class="px-4 py-4"><select wire:model="businessClassifications.{{ $record->id }}" class="{{ $controlClass }}">@foreach ($classificationOptions as $option)<option value="{{ $option }}">{{ $classificationLabels[$option] }}</option>@endforeach</select><label class="mt-3 flex items-start gap-2 text-xs font-medium text-slate-700"><input type="checkbox" wire:model.live="applySameTaxCode.{{ $record->id }}" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"><span>Áp dụng cho toàn bộ nhà cung cấp<span class="mt-0.5 block font-normal text-slate-500">MST {{ $invoice?->tax_code ?: '—' }} · các hóa đơn cùng loại</span></span></label></td>
+                            <td class="px-4 py-4"><details class="group w-full"><summary class="inline-flex min-h-9 cursor-pointer select-none items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">{{ trim((string) ($businessNotes[$record->id] ?? '')) !== '' ? 'Sửa ghi chú' : 'Thêm ghi chú' }}@if (trim((string) ($businessNotes[$record->id] ?? '')) !== '')<span class="h-2 w-2 rounded-full bg-indigo-500" title="Đã có ghi chú"></span>@endif</summary><div class="mt-2 min-w-[260px] rounded-xl border border-slate-200 bg-slate-50 p-2.5"><textarea wire:model="businessNotes.{{ $record->id }}" rows="3" maxlength="2000" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nhập ghi chú quản trị..."></textarea><p class="mt-1.5 text-[11px] leading-4 text-slate-500">Ghi chú được lưu cùng phân loại khi bấm Lưu.</p></div></details></td>
                             <td class="px-4 py-4"><button type="button" wire:click="saveAnnotation({{ $record->id }})" wire:loading.attr="disabled" wire:target="saveAnnotation({{ $record->id }})" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60"><span wire:loading.remove wire:target="saveAnnotation({{ $record->id }})">Lưu</span><span wire:loading wire:target="saveAnnotation({{ $record->id }})">Đang lưu...</span></button></td>
                         </tr>
-                    @empty
-                        <tr><td colspan="5" class="px-4 py-14 text-center text-sm text-gray-500">Không có dữ liệu nguồn phù hợp bộ lọc.</td></tr>
-                    @endforelse
+                    @empty<tr><td colspan="5" class="px-4 py-14 text-center text-sm text-gray-500">Không có dữ liệu nguồn phù hợp bộ lọc.</td></tr>@endforelse
                 </tbody>
             </table>
         </div>
@@ -198,22 +222,17 @@
             @forelse ($records as $record)
                 @php($invoice = $record->invoice)
                 <article class="space-y-4 p-4 sm:p-5">
-                    <div><div class="font-bold text-slate-950">#{{ $invoice?->invoice_number ?: '—' }} <span class="font-medium text-slate-500">{{ $invoice?->symbol }}</span></div><div class="mt-1 font-semibold text-slate-800">{{ $invoice?->name ?: 'Không rõ nhà cung cấp' }}</div><div class="mt-1 text-xs text-slate-500">{{ $invoice?->issued_date?->format('d/m/Y') ?: '—' }} · MST {{ $invoice?->tax_code ?: '—' }} · {{ $invoice?->invoice_type === 'purchase' ? 'Mua vào' : 'Bán ra' }}</div></div>
+                    <div><div class="font-bold text-slate-950">#{{ $invoice?->invoice_number ?: '—' }} <span class="font-medium text-slate-500">{{ $invoice?->symbol }}</span></div><div class="mt-1 font-semibold text-slate-800">{{ $invoice?->name ?: 'Không rõ nhà cung cấp' }}</div><div class="mt-1 text-xs text-slate-500">{{ $invoice?->issued_date?->format('d/m/Y') ?: '—' }} · MST {{ $invoice?->tax_code ?: '—' }} · {{ $invoice?->invoice_type === 'purchase' ? 'Mua vào' : 'Bán ra' }}</div><button type="button" wire:click="openDetailModal({{ $record->id }})" class="mt-2 text-sm font-semibold text-indigo-600">Xem chi tiết hàng hóa / dịch vụ</button></div>
                     <div class="flex flex-wrap gap-2"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $record->header_payload ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $record->header_payload ? 'Header đã lưu' : 'Thiếu header' }}</span><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $record->detail_status === 'READY' ? 'bg-emerald-50 text-emerald-700' : ($record->detail_status === 'ERROR' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700') }}">{{ $record->detail_status === 'READY' ? 'Chi tiết sẵn sàng' : ($detailLabels[$record->detail_status] ?? 'Chưa rõ') }}</span></div>
                     @if ($record->last_error)<div class="rounded-lg bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">{{ $record->last_error }}</div>@endif
                     <label class="block"><span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Phân loại</span><select wire:model="businessClassifications.{{ $record->id }}" class="{{ $controlClass }}">@foreach ($classificationOptions as $option)<option value="{{ $option }}">{{ $classificationLabels[$option] }}</option>@endforeach</select></label>
-                    <label class="flex items-start gap-2 text-xs font-medium text-slate-700"><input type="checkbox" wire:model="applySameTaxCode.{{ $record->id }}" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"><span>Áp dụng cho toàn bộ nhà cung cấp<span class="mt-0.5 block font-normal text-slate-500">MST {{ $invoice?->tax_code ?: '—' }} · các hóa đơn cùng loại</span></span></label>
+                    <label class="flex items-start gap-2 text-xs font-medium text-slate-700"><input type="checkbox" wire:model.live="applySameTaxCode.{{ $record->id }}" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"><span>Áp dụng cho toàn bộ nhà cung cấp<span class="mt-0.5 block font-normal text-slate-500">MST {{ $invoice?->tax_code ?: '—' }} · các hóa đơn cùng loại</span></span></label>
                     <details class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"><summary class="cursor-pointer select-none text-sm font-semibold text-slate-700">{{ trim((string) ($businessNotes[$record->id] ?? '')) !== '' ? 'Sửa ghi chú quản trị' : 'Thêm ghi chú quản trị' }}</summary><div class="mt-3"><textarea wire:model="businessNotes.{{ $record->id }}" rows="3" maxlength="2000" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Nhập ghi chú quản trị..."></textarea><p class="mt-1.5 text-xs text-slate-500">Ghi chú được lưu cùng phân loại khi bấm Lưu.</p></div></details>
                     <button type="button" wire:click="saveAnnotation({{ $record->id }})" wire:loading.attr="disabled" wire:target="saveAnnotation({{ $record->id }})" class="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"><span wire:loading.remove wire:target="saveAnnotation({{ $record->id }})">Lưu phân loại</span><span wire:loading wire:target="saveAnnotation({{ $record->id }})">Đang lưu...</span></button>
                 </article>
-            @empty
-                <div class="px-4 py-14 text-center text-sm text-gray-500">Không có dữ liệu nguồn phù hợp bộ lọc.</div>
-            @endforelse
+            @empty<div class="px-4 py-14 text-center text-sm text-gray-500">Không có dữ liệu nguồn phù hợp bộ lọc.</div>@endforelse
         </div>
 
-        <div class="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-xs text-gray-500">Hiển thị {{ number_format($records->count()) }} / {{ number_format($records->total()) }} kết quả</p>
-            @if ($records->hasPages())<div>{{ $records->links('Invoices::vendor.pagination.admin-source-data') }}</div>@endif
-        </div>
+        <div class="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-xs text-gray-500">Hiển thị {{ number_format($records->count()) }} / {{ number_format($records->total()) }} kết quả</p>@if ($records->hasPages())<div>{{ $records->links('Invoices::vendor.pagination.admin-source-data') }}</div>@endif</div>
     </section>
 </div>
