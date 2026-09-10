@@ -14,6 +14,11 @@ final class InvoiceSourceRecord extends Model
         'MIXED',
     ];
 
+    public const CLASSIFICATION_SCOPES = [
+        'INVOICE',
+        'SUPPLIER',
+    ];
+
     protected $fillable = [
         'invoice_id',
         'provider',
@@ -27,6 +32,7 @@ final class InvoiceSourceRecord extends Model
         'detail_fetched_at',
         'last_error',
         'business_classification',
+        'classification_scope',
         'business_note',
         'classified_by',
         'classified_at',
