@@ -13,37 +13,22 @@ final class SourceDataManager extends Component
     use WithPagination;
 
     public string $search = '';
-
     public string $partner = '';
-
     public string $year = 'all';
-
     public string $month = 'all';
-
     public string $invoiceType = 'purchase';
-
     public string $detailStatus = 'all';
-
     public string $businessClassification = 'all';
-
     public int $perPage = 25;
-
     public array $partnerList = [];
-
     public array $businessClassifications = [];
-
     public array $businessNotes = [];
-
     public array $applySameTaxCode = [];
-
+    public array $supplierBatchIds = [];
     public ?string $message = null;
-
     public bool $saveModalOpen = false;
-
     public array $saveModal = [];
-
     public bool $detailModalOpen = false;
-
     public array $detailModal = [];
 
     public function updatedSearch(): void
@@ -53,18 +38,21 @@ final class SourceDataManager extends Component
 
     public function updatedPartner(): void
     {
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
 
     public function updatedYear(): void
     {
         $this->normalizeYear();
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
 
     public function updatedMonth(): void
     {
         $this->normalizeMonth();
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
 
@@ -74,6 +62,7 @@ final class SourceDataManager extends Component
             $this->invoiceType = 'purchase';
         }
 
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
 
@@ -83,6 +72,7 @@ final class SourceDataManager extends Component
             $this->detailStatus = 'all';
         }
 
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
 
@@ -92,6 +82,7 @@ final class SourceDataManager extends Component
             $this->businessClassification = 'all';
         }
 
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
 
@@ -101,7 +92,35 @@ final class SourceDataManager extends Component
             $this->perPage = 25;
         }
 
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
+    }
+
+    public function updatedApplySameTaxCode(mixed $value, string|int $sourceId): void
+    {
+        $sourceId = (int) $sourceId;
+
+        if ($sourceId <= 0) {
+            return;
+        }
+
+        if ((bool) $value) {
+            $this->supplierBatchIds[] = $sourceId;
+            $this->supplierBatchIds = array_values(array_unique(array_map('intval', $this->supplierBatchIds)));
+        } else {
+            $this->supplierBatchIds = array_values(array_filter(
+                array_map('intval', $this->supplierBatchIds),
+                fn (int $id) => $id !== $sourceId,
+            ));
+        }
+
+        // Rebuild checkbox state exclusively from explicit user selections.
+        // This prevents stale Livewire array state or duplicate responsive controls
+        // from making an unrelated supplier appear selected.
+        $this->applySameTaxCode = [];
+        foreach ($this->supplierBatchIds as $selectedId) {
+            $this->applySameTaxCode[$selectedId] = true;
+        }
     }
 
     public function resetFilters(): void
@@ -114,8 +133,15 @@ final class SourceDataManager extends Component
         $this->detailStatus = 'all';
         $this->businessClassification = 'all';
         $this->perPage = 25;
+        $this->clearSupplierBatchSelection();
         $this->dispatch('filters-reset');
         $this->resetPage();
+    }
+
+    public function clearSupplierBatchSelection(): void
+    {
+        $this->supplierBatchIds = [];
+        $this->applySameTaxCode = [];
     }
 
     public function closeSaveModal(): void
@@ -165,20 +191,19 @@ final class SourceDataManager extends Component
 
         if (! in_array($classification, InvoiceSourceRecord::CLASSIFICATIONS, true)) {
             $this->addError("businessClassifications.{$sourceId}", 'Phân loại nghiệp vụ không hợp lệ.');
-
             return;
         }
 
         $note = trim((string) ($this->businessNotes[$sourceId] ?? ''));
-        $applySupplierWide = (bool) ($this->applySameTaxCode[$sourceId] ?? false);
+        $applySupplierWide = in_array($sourceId, array_map('intval', $this->supplierBatchIds), true);
         $attributes = $this->annotationAttributes($classification, $note, $applySupplierWide);
         $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
 
         if ($applySupplierWide && $taxCode !== '') {
             $updated = $this->applySupplierRule($source, $attributes);
             $this->message = "Đã lưu quy tắc nhà cung cấp {$this->classificationLabel($classification)} và áp dụng cho {$updated} hóa đơn cùng MST {$taxCode}. Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.";
+            $this->removeSupplierBatchSelection($sourceId);
             $this->showSaveModal($source, $classification, $note, true, $updated);
-
             return;
         }
 
@@ -191,24 +216,18 @@ final class SourceDataManager extends Component
     {
         abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
 
-        $selectedIds = collect($this->applySameTaxCode)
-            ->filter(fn ($selected) => (bool) $selected)
-            ->keys()
+        $selectedIds = collect($this->supplierBatchIds)
             ->map(fn ($id) => (int) $id)
             ->filter()
+            ->unique()
             ->values();
 
         if ($selectedIds->isEmpty()) {
             $this->message = 'Chưa chọn nhà cung cấp nào để lưu hàng loạt.';
-
             return;
         }
 
-        $sources = InvoiceSourceRecord::query()
-            ->with('invoice')
-            ->whereIn('id', $selectedIds)
-            ->get();
-
+        $sources = InvoiceSourceRecord::query()->with('invoice')->whereIn('id', $selectedIds)->get();
         $processedSuppliers = [];
         $results = [];
         $affectedTotal = 0;
@@ -244,14 +263,10 @@ final class SourceDataManager extends Component
 
         if ($results === []) {
             $this->message = 'Chưa có nhà cung cấp hợp lệ để lưu. Hãy chọn phân loại khác “Chưa phân loại” cho các dòng đã đánh dấu.';
-
             return;
         }
 
-        foreach ($selectedIds as $sourceId) {
-            $this->applySameTaxCode[$sourceId] = false;
-        }
-
+        $this->clearSupplierBatchSelection();
         $this->message = 'Đã lưu hàng loạt '.count($results).' nhà cung cấp, ảnh hưởng '.number_format($affectedTotal).' hóa đơn.';
         $this->saveModal = [
             'mode' => 'batch',
@@ -272,35 +287,30 @@ final class SourceDataManager extends Component
             $this->perPage = 25;
         }
 
-        $scopeQuery = InvoiceSourceRecord::query()
-            ->whereHas('invoice', function ($query): void {
-                if (in_array($this->invoiceType, ['purchase', 'sold'], true)) {
-                    $query->where('invoice_type', $this->invoiceType);
-                }
-
-                if ($this->year !== 'all') {
-                    $query->whereYear('issued_date', (int) $this->year);
-                }
-
-                if ($this->month !== 'all') {
-                    $query->whereMonth('issued_date', (int) $this->month);
-                }
-
-                $partner = trim($this->partner);
-                if ($partner !== '') {
-                    $query->where('name', $partner);
-                }
-
-                $search = trim($this->search);
-                if ($search !== '') {
-                    $query->where(function ($query) use ($search): void {
-                        $query->where('invoice_number', 'like', "%{$search}%")
-                            ->orWhere('symbol', 'like', "%{$search}%")
-                            ->orWhere('tax_code', 'like', "%{$search}%")
-                            ->orWhere('lookup_code', 'like', "%{$search}%");
-                    });
-                }
-            });
+        $scopeQuery = InvoiceSourceRecord::query()->whereHas('invoice', function ($query): void {
+            if (in_array($this->invoiceType, ['purchase', 'sold'], true)) {
+                $query->where('invoice_type', $this->invoiceType);
+            }
+            if ($this->year !== 'all') {
+                $query->whereYear('issued_date', (int) $this->year);
+            }
+            if ($this->month !== 'all') {
+                $query->whereMonth('issued_date', (int) $this->month);
+            }
+            $partner = trim($this->partner);
+            if ($partner !== '') {
+                $query->where('name', $partner);
+            }
+            $search = trim($this->search);
+            if ($search !== '') {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhere('symbol', 'like', "%{$search}%")
+                        ->orWhere('tax_code', 'like', "%{$search}%")
+                        ->orWhere('lookup_code', 'like', "%{$search}%");
+                });
+            }
+        });
 
         $records = (clone $scopeQuery)
             ->with('invoice:id,lookup_code,symbol,invoice_number,issued_date,tax_code,name,invoice_type')
@@ -312,7 +322,14 @@ final class SourceDataManager extends Component
         foreach ($records as $record) {
             $this->businessClassifications[$record->id] ??= $record->business_classification;
             $this->businessNotes[$record->id] ??= (string) ($record->business_note ?? '');
-            $this->applySameTaxCode[$record->id] ??= false;
+        }
+
+        // Keep only explicit selections in checkbox state; never infer them from stored supplier scope.
+        $this->applySameTaxCode = [];
+        foreach (array_unique(array_map('intval', $this->supplierBatchIds)) as $selectedId) {
+            if ($selectedId > 0) {
+                $this->applySameTaxCode[$selectedId] = true;
+            }
         }
 
         $stats = [
@@ -322,29 +339,15 @@ final class SourceDataManager extends Component
             'unclassified' => (clone $scopeQuery)->where('business_classification', 'UNCLASSIFIED')->count(),
         ];
 
-        $availableYears = Invoices::query()
-            ->whereHas('sourceRecord')
-            ->whereNotNull('issued_date')
-            ->selectRaw('YEAR(issued_date) as invoice_year')
-            ->distinct()
-            ->orderByDesc('invoice_year')
-            ->pluck('invoice_year')
-            ->map(fn ($year) => (int) $year)
-            ->values()
-            ->all();
+        $availableYears = Invoices::query()->whereHas('sourceRecord')->whereNotNull('issued_date')
+            ->selectRaw('YEAR(issued_date) as invoice_year')->distinct()->orderByDesc('invoice_year')
+            ->pluck('invoice_year')->map(fn ($year) => (int) $year)->values()->all();
 
-        $this->partnerList = Invoices::query()
-            ->whereHas('sourceRecord')
-            ->whereNotNull('name')
-            ->where('name', '!=', '')
+        $this->partnerList = Invoices::query()->whereHas('sourceRecord')->whereNotNull('name')->where('name', '!=', '')
             ->when(in_array($this->invoiceType, ['purchase', 'sold'], true), fn ($query) => $query->where('invoice_type', $this->invoiceType))
             ->when($this->year !== 'all', fn ($query) => $query->whereYear('issued_date', (int) $this->year))
             ->when($this->month !== 'all', fn ($query) => $query->whereMonth('issued_date', (int) $this->month))
-            ->distinct()
-            ->orderBy('name')
-            ->pluck('name')
-            ->values()
-            ->all();
+            ->distinct()->orderBy('name')->pluck('name')->values()->all();
 
         return view('Invoices::livewire.source-data-manager', [
             'records' => $records,
@@ -353,7 +356,20 @@ final class SourceDataManager extends Component
             'availableYears' => $availableYears,
             'partnerList' => $this->partnerList,
             'classificationOptions' => InvoiceSourceRecord::CLASSIFICATIONS,
+            'supplierBatchCount' => count($this->supplierBatchIds),
         ]);
+    }
+
+    private function removeSupplierBatchSelection(int $sourceId): void
+    {
+        $this->supplierBatchIds = array_values(array_filter(
+            array_map('intval', $this->supplierBatchIds),
+            fn (int $id) => $id !== $sourceId,
+        ));
+        $this->applySameTaxCode = [];
+        foreach ($this->supplierBatchIds as $selectedId) {
+            $this->applySameTaxCode[$selectedId] = true;
+        }
     }
 
     private function annotationAttributes(string $classification, string $note, bool $supplierWide): array
@@ -375,9 +391,7 @@ final class SourceDataManager extends Component
 
         return InvoiceSourceRecord::query()
             ->where('provider', 'gdt')
-            ->whereHas('invoice', fn ($query) => $query
-                ->where('tax_code', $taxCode)
-                ->when($invoiceType, fn ($query) => $query->where('invoice_type', $invoiceType)))
+            ->whereHas('invoice', fn ($query) => $query->where('tax_code', $taxCode)->when($invoiceType, fn ($query) => $query->where('invoice_type', $invoiceType)))
             ->update($attributes);
     }
 
@@ -402,7 +416,6 @@ final class SourceDataManager extends Component
                 return $value;
             }
         }
-
         return null;
     }
 
@@ -411,10 +424,8 @@ final class SourceDataManager extends Component
         if ($this->year === 'all') {
             return;
         }
-
         $year = filter_var($this->year, FILTER_VALIDATE_INT);
         $currentYear = (int) now()->year;
-
         if ($year === false || $year < 2000 || $year > $currentYear + 1) {
             $this->year = 'all';
         }
@@ -425,7 +436,6 @@ final class SourceDataManager extends Component
         if ($this->month === 'all') {
             return;
         }
-
         $month = filter_var($this->month, FILTER_VALIDATE_INT);
         if ($month === false || $month < 1 || $month > 12) {
             $this->month = 'all';
@@ -440,24 +450,17 @@ final class SourceDataManager extends Component
             $this->year !== 'all' => 'Năm '.$this->year,
             default => 'Tất cả kỳ dữ liệu',
         };
-
         $type = match ($this->invoiceType) {
             'purchase' => 'Mua vào',
             'sold' => 'Bán ra',
             default => 'Tất cả loại',
         };
-
-        if ($this->partner !== '') {
-            return $period.' · '.$type.' · '.$this->partner;
-        }
-
-        return $period.' · '.$type;
+        return $this->partner !== '' ? $period.' · '.$type.' · '.$this->partner : $period.' · '.$type;
     }
 
     private function showSaveModal(InvoiceSourceRecord $source, string $classification, string $note, bool $supplierWide, int $affected): void
     {
         $invoice = $source->invoice;
-
         $this->saveModal = [
             'mode' => 'single',
             'invoice_number' => $invoice?->invoice_number ?: '—',
