@@ -29,10 +29,31 @@
         <input type="hidden" name="detail_status" value="{{ $detailStatus }}">
         <input type="hidden" name="business_classification" value="{{ $businessClassification }}">
         <span data-source-export-summary class="text-xs text-slate-500">Không chọn hóa đơn: xuất toàn bộ theo bộ lọc hiện tại.</span>
-        <button data-source-export-button type="submit" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Xuất Excel theo bộ lọc</button>
+        <button data-source-export-button type="submit" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60">Xuất Excel theo bộ lọc</button>
     </form>
 
     @include('Invoices::livewire.source-data-manager')
+
+    <div data-source-export-modal class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="source-data-export-modal-title">
+        <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10">
+            <div class="border-b border-emerald-100 bg-emerald-50 px-5 py-5 sm:px-6">
+                <div class="flex items-start gap-4">
+                    <div data-source-export-modal-icon class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700">✓</div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Xuất Excel</p>
+                        <h2 id="source-data-export-modal-title" class="mt-1 text-lg font-bold text-slate-950">Đã xuất dữ liệu thành công</h2>
+                        <p data-source-export-modal-message class="mt-1 text-sm leading-6 text-slate-600">File Excel đã được tạo và tải xuống.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-4 sm:px-6">
+                <p class="text-sm text-slate-600">Các checkbox hóa đơn đã xuất đã được bỏ chọn để tránh xuất lặp ngoài ý muốn.</p>
+            </div>
+            <div class="flex justify-end border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-6">
+                <button data-source-export-modal-close type="button" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Đóng</button>
+            </div>
+        </div>
+    </div>
 
     @once
         <script>
@@ -40,15 +61,37 @@
                 const state = window.__invoiceSourceExportState ??= { selected: new Set() };
 
                 const rowId = (row) => (row?.getAttribute('wire:key') || '').replace(/^source-data-(desktop|mobile)-row-/, '');
-
                 const roots = () => document.querySelectorAll('[data-source-export-root]');
+
+                const showModal = (root, message, error = false) => {
+                    const modal = root.querySelector('[data-source-export-modal]');
+                    if (!modal) return;
+                    const title = modal.querySelector('#source-data-export-modal-title');
+                    const body = modal.querySelector('[data-source-export-modal-message]');
+                    const icon = modal.querySelector('[data-source-export-modal-icon]');
+                    if (title) title.textContent = error ? 'Không thể xuất Excel' : 'Đã xuất dữ liệu thành công';
+                    if (body) body.textContent = message;
+                    if (icon) {
+                        icon.textContent = error ? '!' : '✓';
+                        icon.className = error
+                            ? 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xl font-bold text-rose-700'
+                            : 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700';
+                    }
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                };
+
+                const hideModal = (modal) => {
+                    modal?.classList.add('hidden');
+                    modal?.classList.remove('flex');
+                };
 
                 const syncSummary = (root) => {
                     const summary = root.querySelector('[data-source-export-summary]');
                     const button = root.querySelector('[data-source-export-button]');
                     const count = state.selected.size;
                     if (summary) summary.textContent = count > 0 ? `${count} hóa đơn đã chọn để xuất.` : 'Không chọn hóa đơn: xuất toàn bộ theo bộ lọc hiện tại.';
-                    if (button) button.textContent = count > 0 ? `Xuất ${count} hóa đơn đã chọn` : 'Xuất Excel theo bộ lọc';
+                    if (button && !button.disabled) button.textContent = count > 0 ? `Xuất ${count} hóa đơn đã chọn` : 'Xuất Excel theo bộ lọc';
                 };
 
                 const syncCheckboxes = (root) => {
@@ -111,9 +154,27 @@
                     }
                 });
 
-                document.addEventListener('submit', (event) => {
+                document.addEventListener('click', (event) => {
+                    const close = event.target.closest?.('[data-source-export-modal-close]');
+                    if (close) hideModal(close.closest('[data-source-export-modal]'));
+                    if (event.target.matches?.('[data-source-export-modal]')) hideModal(event.target);
+                });
+
+                document.addEventListener('submit', async (event) => {
                     const form = event.target.closest?.('#source-data-export-form');
                     if (!form) return;
+                    event.preventDefault();
+                    if (form.dataset.exporting === '1') return;
+
+                    const root = form.closest('[data-source-export-root]');
+                    const button = root?.querySelector('[data-source-export-button]');
+                    const selectedCount = state.selected.size;
+                    form.dataset.exporting = '1';
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = 'Đang tạo Excel...';
+                    }
+
                     form.querySelectorAll('[data-export-source-id]').forEach((input) => input.remove());
                     state.selected.forEach((id) => {
                         const hidden = document.createElement('input');
@@ -123,6 +184,46 @@
                         hidden.setAttribute('data-export-source-id', '1');
                         form.append(hidden);
                     });
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            credentials: 'same-origin',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                        const blob = await response.blob();
+                        const disposition = response.headers.get('Content-Disposition') || '';
+                        const utf8Name = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+                        const quotedName = disposition.match(/filename="([^"]+)"/i)?.[1];
+                        const filename = utf8Name ? decodeURIComponent(utf8Name) : (quotedName || 'hoa-don-chi-tiet.xlsx');
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = filename;
+                        document.body.append(link);
+                        link.click();
+                        link.remove();
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                        state.selected.clear();
+                        form.querySelectorAll('[data-export-source-id]').forEach((input) => input.remove());
+                        if (root) syncCheckboxes(root);
+                        showModal(
+                            root,
+                            selectedCount > 0
+                                ? `Đã xuất ${selectedCount} hóa đơn đã chọn. Các checkbox vừa xuất đã được bỏ chọn.`
+                                : 'Đã xuất toàn bộ hóa đơn theo bộ lọc hiện tại.',
+                        );
+                    } catch (error) {
+                        showModal(root, 'Có lỗi khi tạo hoặc tải file Excel. Vui lòng thử lại.', true);
+                    } finally {
+                        form.dataset.exporting = '0';
+                        if (button) button.disabled = false;
+                        if (root) syncSummary(root);
+                    }
                 });
 
                 installAll();
