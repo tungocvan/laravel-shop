@@ -14,6 +14,15 @@ final class InvoiceSourceRecord extends Model
         'MIXED',
     ];
 
+    public const EXPENSE_CLASSIFICATIONS = [
+        'SERVICE',
+        'TOOL_EQUIPMENT',
+        'FIXED_ASSET',
+        'TAX_FEE',
+        'FINANCE_INTEREST',
+        'OTHER_EXPENSE',
+    ];
+
     public const CLASSIFICATION_SCOPES = [
         'INVOICE',
         'SUPPLIER',
@@ -36,6 +45,10 @@ final class InvoiceSourceRecord extends Model
         'business_note',
         'classified_by',
         'classified_at',
+        'expense_classification',
+        'expense_note',
+        'expense_classified_by',
+        'expense_classified_at',
     ];
 
     protected $casts = [
@@ -44,6 +57,7 @@ final class InvoiceSourceRecord extends Model
         'header_fetched_at' => 'datetime',
         'detail_fetched_at' => 'datetime',
         'classified_at' => 'datetime',
+        'expense_classified_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -79,6 +93,13 @@ final class InvoiceSourceRecord extends Model
             $record->business_note = $supplierRule->business_note;
             $record->classified_by = $supplierRule->classified_by;
             $record->classified_at = $supplierRule->classified_at;
+
+            if ($supplierRule->business_classification === 'SERVICE_EXPENSE') {
+                $record->expense_classification = $supplierRule->expense_classification;
+                $record->expense_note = $supplierRule->expense_note;
+                $record->expense_classified_by = $supplierRule->expense_classified_by;
+                $record->expense_classified_at = $supplierRule->expense_classified_at;
+            }
         });
     }
 
