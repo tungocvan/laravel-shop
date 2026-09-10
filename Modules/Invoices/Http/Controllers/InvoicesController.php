@@ -28,6 +28,11 @@ class InvoicesController extends Controller
         return view('Invoices::pages.invoices.index');
     }
 
+    public function sourceData(): View
+    {
+        return view('Invoices::pages.invoices.source-data');
+    }
+
     public function partnerReport(): View
     {
         return view('Invoices::pages.invoices.partner-report');
