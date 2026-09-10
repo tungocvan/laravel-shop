@@ -85,7 +85,11 @@ class SourceDataWorkspaceContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
 
-        $this->assertStringContainsString('$scopeQuery = InvoiceSourceRecord::query()', $component);
+        $this->assertStringContainsString('$scopeQuery = $this->sourceScopeQuery(', $component);
+        $this->assertStringContainsString('private function sourceScopeQuery(array $invoiceTypes, bool $withSecondaryFilters = true)', $component);
+        $this->assertStringContainsString('return InvoiceSourceRecord::query()', $component);
+        $this->assertStringContainsString("->where('provider', 'gdt')", $component);
+        $this->assertStringContainsString("\$query->whereIn('invoice_type', \$invoiceTypes);", $component);
         $this->assertStringContainsString("'total' => (clone \$scopeQuery)->count()", $component);
         $this->assertStringContainsString("'detail_ready' => (clone \$scopeQuery)->where('detail_status', 'READY')->count()", $component);
         $this->assertStringContainsString("'detail_missing' => (clone \$scopeQuery)->whereIn('detail_status', ['MISSING', 'ERROR'])->count()", $component);
