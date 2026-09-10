@@ -33,14 +33,15 @@ class ProcessGdtInvoicesJob implements ShouldQueue
 
         if(is_file($expectedFile)&&is_readable($expectedFile)&&$canonicalReady){$this->appendLog('File Excel và RAW canonical đều đầy đủ; bỏ qua gọi GDT.');$this->completeWithoutGdt($fileName,'local','Dữ liệu nguồn canonical đã đầy đủ; không cần đồng bộ lại GDT.');return;}
 
-        if($this->vatIn&&(int)$sourceCoverage['total']>0&&(int)$sourceCoverage['detail_ready']<(int)$sourceCoverage['total']){
-            $detailRecovery=$service->recoverMissingDetailsFromLocalRange($this->start,$this->end,fn(string $message)=>$this->appendLog($message),true);
+        if((int)$sourceCoverage['total']>0&&(int)$sourceCoverage['detail_ready']<(int)$sourceCoverage['total']){
+            $this->appendLog('[RAW] Phát hiện detail còn thiếu; ưu tiên recovery từ invoice local trước khi tải lại danh sách GDT.');
+            $detailRecovery=$service->recoverMissingDetailsFromLocalRange($this->start,$this->end,fn(string $message)=>$this->appendLog($message),$this->vatIn);
             $this->appendLog(sprintf('[RAW] Recovery detail local: ứng viên %d · tải mới %d · đã có %d · lỗi %d.',$detailRecovery['candidates'],$detailRecovery['fetched'],$detailRecovery['reused'],$detailRecovery['failed']));
             $sourceCoverage=$coverage->coverage($this->start,$this->end,$this->vatIn);$canonicalReady=(bool)$sourceCoverage['complete'];$this->appendCoverage('RAW canonical sau recovery detail',$sourceCoverage);
         }
 
         $detailReady=(int)$sourceCoverage['total']>0&&(int)$sourceCoverage['detail_ready']===(int)$sourceCoverage['total'];
-        if(is_file($expectedFile)&&is_readable($expectedFile)&&$detailReady&&!$canonicalReady){$this->appendLog('RAW detail đã đầy đủ cho nghiệp vụ downstream; RAW header lịch sử còn thiếu và sẽ bổ sung khi API danh sách GDT ổn định.');$this->updateStatus('completed','Recovery RAW detail hoàn tất. Inventory có thể chuẩn hóa từ local; RAW header sẽ được bổ sung ở lần đồng bộ GDT sau.',['file'=>$fileName,'direction'=>'vat_in','source'=>'local_detail_recovery','sync_skipped'=>true,'source_header_pending'=>true,'no_data'=>false,'finished_at'=>now()->toIso8601String()]);return;}
+        if(is_file($expectedFile)&&is_readable($expectedFile)&&$detailReady&&!$canonicalReady){$this->appendLog('RAW detail đã đầy đủ cho nghiệp vụ downstream; RAW header lịch sử còn thiếu và sẽ bổ sung khi API danh sách GDT ổn định.');$this->updateStatus('completed','Recovery RAW detail hoàn tất. Dữ liệu detail local đã sẵn sàng; RAW header sẽ được bổ sung ở lần đồng bộ GDT sau.',['file'=>$fileName,'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'local_detail_recovery','sync_skipped'=>true,'source_header_pending'=>true,'no_data'=>false,'finished_at'=>now()->toIso8601String()]);return;}
 
         if(is_file($expectedFile)&&is_readable($expectedFile)&&!$canonicalReady)$this->appendLog('File Excel đã tồn tại nhưng RAW canonical chưa đầy đủ; tiếp tục gọi GDT để hoàn thiện phần còn thiếu.');
         if($drive->isConnected()){try{if($drive->exists($fileName)&&$canonicalReady){$this->appendLog('Google Drive đã có file và RAW canonical local đầy đủ; bỏ qua gọi GDT.');$this->completeWithoutGdt($fileName,'google_drive','Dữ liệu nguồn canonical đã đầy đủ; không cần đồng bộ lại GDT.');return;}if($drive->exists($fileName)&&!$canonicalReady)$this->appendLog('Google Drive đã có file nhưng RAW canonical local chưa đầy đủ; không dùng file backup làm lý do bỏ qua GDT.');}catch(Throwable $exception){Log::warning('[GDT JOB] Không thể xác minh file hóa đơn trên Google Drive.',['sync_id'=>$this->syncId,'file'=>$fileName,'error'=>$exception->getMessage()]);$this->appendLog('Không xác minh được file Google Drive; tiếp tục dựa trên trạng thái RAW canonical local.');}}
