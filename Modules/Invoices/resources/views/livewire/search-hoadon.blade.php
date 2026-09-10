@@ -61,14 +61,15 @@
                 @endforelse
             </div>
 
-            <div class="sticky bottom-3 z-10 mt-4 rounded-2xl border border-indigo-100 bg-white/95 p-4 shadow-lg backdrop-blur sm:static sm:shadow-none">
-                <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <div class="max-w-2xl"><p class="text-sm font-semibold text-gray-900">Thao tác với file đã chọn</p><p class="mt-1 text-xs leading-5 text-gray-500">Import chỉ dành cho file upload/Drive/legacy. File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và RAW canonical nên không cần import lại.</p></div>
-                    <div class="flex flex-wrap gap-2">
-                        <button wire:click="importSelectedFile" wire:confirm="Chỉ tiếp tục nếu đây là file upload thủ công, Google Drive hoặc dữ liệu legacy. File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và không cần import lần nữa. Bạn có muốn tiếp tục?" wire:loading.attr="disabled" @disabled(count($selectedFiles)!==1) class="h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white disabled:opacity-40"><span wire:loading.remove wire:target="importSelectedFile">Import vào danh sách hóa đơn</span><span wire:loading wire:target="importSelectedFile">Đang import…</span></button>
-                        <button wire:click="downloadSelectedFile" wire:loading.attr="disabled" @disabled(count($selectedFiles)!==1) class="h-11 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white disabled:opacity-40">Download 1 file</button>
-                        <button wire:click="deleteSelectedFiles" wire:confirm="Xác nhận xóa {{ count($selectedFiles) }} file đã chọn khỏi kho file? Dữ liệu hóa đơn, RAW canonical, Inventory và Partner không bị xóa." wire:loading.attr="disabled" @disabled(count($selectedFiles)===0) class="h-11 rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-700 disabled:opacity-40">Xóa ({{ count($selectedFiles) }})</button>
-                    </div>
+            <div class="sticky bottom-3 z-10 mt-4 overflow-hidden rounded-2xl border border-indigo-100 bg-white/95 shadow-lg backdrop-blur sm:static sm:shadow-none">
+                <div class="border-b border-gray-100 px-4 py-3 sm:px-5">
+                    <p class="text-sm font-semibold text-gray-900">Thao tác với file đã chọn</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">Import chỉ dành cho file upload/Drive/legacy. File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và RAW canonical nên không cần import lại.</p>
+                </div>
+                <div class="grid gap-2 bg-gray-50/70 p-3 sm:grid-cols-3 sm:p-4">
+                    <button wire:click="importSelectedFile" wire:confirm="Chỉ tiếp tục nếu đây là file upload thủ công, Google Drive hoặc dữ liệu legacy. File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và không cần import lần nữa. Bạn có muốn tiếp tục?" wire:loading.attr="disabled" @disabled(count($selectedFiles)!==1) class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 text-center text-sm font-semibold text-white disabled:opacity-40"><span wire:loading.remove wire:target="importSelectedFile">Import vào danh sách hóa đơn</span><span wire:loading wire:target="importSelectedFile">Đang import…</span></button>
+                    <button wire:click="downloadSelectedFile" wire:loading.attr="disabled" @disabled(count($selectedFiles)!==1) class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">Download file</button>
+                    <button wire:click="deleteSelectedFiles" wire:confirm="Xác nhận xóa {{ count($selectedFiles) }} file đã chọn khỏi kho file? Dữ liệu hóa đơn, RAW canonical, Inventory và Partner không bị xóa." wire:loading.attr="disabled" @disabled(count($selectedFiles)===0) class="inline-flex min-h-11 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40">Xóa file đã chọn ({{ count($selectedFiles) }})</button>
                 </div>
             </div>
             @error('selectedFiles')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
