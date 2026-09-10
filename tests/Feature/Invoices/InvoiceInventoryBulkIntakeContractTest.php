@@ -9,58 +9,126 @@ use Tests\TestCase;
 class InvoiceInventoryBulkIntakeContractTest extends TestCase
 {
     #[Test]
-    public function staging_schema_supports_pending_error_retry_and_raw_audit(): void
+    public function canonical_source_schema_owns_gdt_raw_and_business_annotations(): void
     {
-        $migration = file_get_contents(base_path('Modules/Invoices/database/migrations/2026_09_09_170000_create_invoice_inventory_staging_tables.php'));
+        $migration = file_get_contents(base_path('Modules/Invoices/database/migrations/2026_09_10_020000_create_invoice_source_records_table.php'));
 
-        $this->assertStringContainsString("->char('payload_hash', 64)->nullable()", $migration);
-        $this->assertStringContainsString("->string('status', 32)->default('PENDING')", $migration);
-        $this->assertStringContainsString("->json('raw_payload')->nullable()", $migration);
-        $this->assertStringContainsString("->unsignedInteger('attempt_count')->default(0)", $migration);
-        $this->assertStringContainsString("->timestamp('last_attempt_at')->nullable()", $migration);
-        $this->assertStringContainsString("->text('raw_description')", $migration);
-        $this->assertStringContainsString("->string('tax_rate', 32)->nullable()", $migration);
-        $this->assertStringContainsString("->string('lot_number')->nullable()", $migration);
-        $this->assertStringContainsString("->date('expiry_date')->nullable()", $migration);
+        $this->assertStringContainsString("Schema::create('invoice_source_records'", $migration);
+        $this->assertStringContainsString("->json('header_payload')->nullable()", $migration);
+        $this->assertStringContainsString("->json('detail_payload')->nullable()", $migration);
+        $this->assertStringContainsString("->char('header_hash', 64)->nullable()", $migration);
+        $this->assertStringContainsString("->char('detail_hash', 64)->nullable()", $migration);
+        $this->assertStringContainsString("->string('detail_status', 32)->default('MISSING')", $migration);
+        $this->assertStringContainsString("->string('business_classification', 32)->default('UNCLASSIFIED')", $migration);
+        $this->assertStringContainsString("->string('classification_scope', 16)->default('INVOICE')", $migration);
+        $this->assertStringContainsString('backfillLegacyInventoryRaw', $migration);
     }
 
     #[Test]
-    public function inventory_staging_consumes_persisted_gdt_raw_and_never_fetches_gdt(): void
+    public function inventory_staging_is_projection_and_never_acquires_gdt(): void
     {
         $service = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceInventoryStagingService.php'));
 
         $this->assertStringContainsString("['status' => 'PENDING']", $service);
         $this->assertStringContainsString('$this->gdtDetailService->storedDetail($invoice)', $service);
-        $this->assertStringContainsString('Chưa có RAW GDT detail trên server.', $service);
-        $this->assertStringNotContainsString('fetchDetail($invoice)', $service);
-        $this->assertStringNotContainsString('fetchAndStoreDetail($invoice)', $service);
-        $this->assertStringContainsString("hash('sha256'", $service);
-        $this->assertStringContainsString("'tax_rate' => isset(\$line['tsuat'])", $service);
+        $this->assertStringContainsString('RAW GDT detail canonical', $service);
+        $this->assertStringNotContainsString('fetchAndStoreDetail(', $service);
+        $this->assertStringNotContainsString("'raw_payload' => \$detail", $service);
+        $this->assertStringContainsString("'raw_payload' => \$line", $service);
         $this->assertStringContainsString("'status' => 'NORMALIZED'", $service);
         $this->assertStringContainsString("'status' => 'ERROR'", $service);
-        $this->assertStringContainsString("'last_error' => mb_substr", $service);
-        $this->assertStringContainsString("'raw_payload' => \$detail", $service);
-        $this->assertStringContainsString("'raw_payload' => \$line", $service);
-        $this->assertStringContainsString("\$rawDescription = (string) (\$line['ten'] ?? '')", $service);
-        $this->assertStringContainsString("'raw_description' => \$rawDescription", $service);
+        $this->assertStringContainsString('updateOrCreate(', $service);
     }
 
     #[Test]
-    public function invoices_gdt_detail_service_is_local_first_and_persists_remote_payload(): void
+    public function gdt_detail_service_is_local_only_for_consumers_and_explicit_for_acquisition(): void
     {
         $service = file_get_contents(base_path('Modules/Invoices/Services/GdtPdfService.php'));
 
         $this->assertStringContainsString('public function storedDetail(Invoices $invoice): ?array', $service);
-        $this->assertStringContainsString('if (! $force && ($stored = $this->storedDetail($invoice)) !== null)', $service);
-        $this->assertStringContainsString('return $this->fetchAndStoreDetail($invoice);', $service);
-        $this->assertStringContainsString("['invoice_id' => \$invoice->id, 'source' => 'gdt_detail']", $service);
-        $this->assertStringContainsString("'raw_payload' => \$data", $service);
-        $this->assertStringContainsString("'fetched_at' => now()", $service);
-        $this->assertStringContainsString("Cache::forget((string) config('invoices.gdt.cache_key', 'gdt_token'))", $service);
+        $this->assertStringContainsString('public function fetchDetail(Invoices $invoice, bool $force = false): array', $service);
+        $this->assertStringContainsString('public function fetchAndStoreDetail(Invoices $invoice): array', $service);
+        $this->assertStringContainsString('Chưa có RAW GDT detail trên server.', $service);
+        $this->assertStringContainsString("'detail_status' => 'READY'", $service);
+        $this->assertStringContainsString("'detail_status' => 'ERROR'", $service);
     }
 
     #[Test]
-    public function staging_tracks_normalizer_version_and_supports_raw_first_renormalization(): void
+    public function hoadon_sync_persists_full_header_and_missing_detail_raw_once(): void
+    {
+        $service = file_get_contents(base_path('Modules/Invoices/Services/GdtInvoiceService.php'));
+        $job = file_get_contents(base_path('Modules/Invoices/Jobs/ProcessGdtInvoicesJob.php'));
+
+        $this->assertStringContainsString("'_gdt_raw_payload' => \$item", $service);
+        $this->assertStringContainsString('persistRawHeader(', $service);
+        $this->assertStringContainsString('acquireMissingDetails(', $service);
+        $this->assertStringContainsString('$service->storedDetail($invoice) !== null', $service);
+        $this->assertStringContainsString('$service->fetchAndStoreDetail($invoice)', $service);
+        $this->assertStringContainsString('InvoiceSourceCoverageService $coverage', $job);
+        $this->assertStringContainsString('File Excel đã tồn tại nhưng RAW canonical chưa đầy đủ', $job);
+        $this->assertStringContainsString('&& $canonicalReady', $job);
+    }
+
+    #[Test]
+    public function gdt_sync_preflights_token_before_bulk_queue(): void
+    {
+        $api = file_get_contents(base_path('Modules/Invoices/Services/GdtApiService.php'));
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SearchHoadon.php'));
+
+        $this->assertStringContainsString('public function assertTokenUsable(): void', $api);
+        $this->assertStringContainsString('in_array($response->status(), [401, 403], true)', $api);
+        $this->assertStringContainsString('$this->forgetToken()', $api);
+        $this->assertStringContainsString('if (! $this->apiService->hasToken())', $component);
+        $this->assertStringContainsString("redirectRoute('admin.invoices.create-token')", $component);
+    }
+
+    #[Test]
+    public function source_data_workspace_manages_annotations_without_direct_gdt_calls(): void
+    {
+        $routes = file_get_contents(base_path('Modules/Invoices/routes/web.php'));
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
+
+        $this->assertStringContainsString("'/source-data'", $routes);
+        $this->assertStringContainsString("name('source-data')", $routes);
+        $this->assertStringContainsString('saveAnnotation', $component);
+        $this->assertStringContainsString("'classification_scope' => \$applySupplierWide ? 'SUPPLIER' : 'INVOICE'", $component);
+        $this->assertStringContainsString('applySameTaxCode', $component);
+        $this->assertStringContainsString('Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.', $component);
+        $this->assertStringContainsString('Áp dụng cùng phân loại cho tất cả hóa đơn cùng MST', $view);
+        $this->assertStringNotContainsString('GdtApiService', $component);
+        $this->assertStringNotContainsString('GdtInvoiceService', $component);
+        $this->assertStringNotContainsString('GdtPdfService', $component);
+    }
+
+    #[Test]
+    public function supplier_rules_are_inherited_by_future_source_records(): void
+    {
+        $model = file_get_contents(base_path('Modules/Invoices/Models/InvoiceSourceRecord.php'));
+
+        $this->assertStringContainsString("->where('classification_scope', 'SUPPLIER')", $model);
+        $this->assertStringContainsString("->where('business_classification', '!=', 'UNCLASSIFIED')", $model);
+        $this->assertStringContainsString("->where('tax_code', \$taxCode)", $model);
+        $this->assertStringContainsString('$record->business_classification = $supplierRule->business_classification', $model);
+    }
+
+    #[Test]
+    public function bulk_dispatch_only_queues_purchase_invoices_with_persisted_ready_raw(): void
+    {
+        $bulk = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/BulkInvoiceInventoryIntakeService.php'));
+
+        $this->assertStringContainsString("->where('invoice_type', 'purchase')", $bulk);
+        $this->assertStringContainsString("->whereBetween('issued_date'", $bulk);
+        $this->assertStringContainsString("->whereHas('sourceRecord'", $bulk);
+        $this->assertStringContainsString("->where('detail_status', 'READY')", $bulk);
+        $this->assertStringContainsString("->whereNotNull('detail_payload')", $bulk);
+        $this->assertStringContainsString('min($batchSize, 500)', $bulk);
+        $this->assertStringContainsString('StageInvoiceForInventory::dispatch', $bulk);
+        $this->assertStringContainsString("->onQueue('default')", $bulk);
+    }
+
+    #[Test]
+    public function staging_tracks_normalizer_version_and_supports_local_raw_renormalization(): void
     {
         $migration = file_get_contents(base_path('Modules/Invoices/database/migrations/2026_09_09_200200_add_normalizer_version_to_invoice_inventory_snapshots_table.php'));
         $service = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceInventoryStagingService.php'));
@@ -72,20 +140,6 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString('$this->gdtDetailService->storedDetail($invoice)', $service);
         $this->assertStringContainsString("'normalizer_version' => \$normalizerVersion", $service);
         $this->assertStringContainsString('updateOrCreate(', $service);
-        $this->assertStringContainsString('fetchedNow: false', $service);
-    }
-
-    #[Test]
-    public function bulk_dispatch_is_bounded_by_date_chunk_and_queue(): void
-    {
-        $bulk = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/BulkInvoiceInventoryIntakeService.php'));
-
-        $this->assertStringContainsString("->where('invoice_type', 'purchase')", $bulk);
-        $this->assertStringContainsString("->whereBetween('issued_date'", $bulk);
-        $this->assertStringContainsString('min($batchSize, 500)', $bulk);
-        $this->assertStringContainsString('->chunkById($batchSize', $bulk);
-        $this->assertStringContainsString('StageInvoiceForInventory::dispatch', $bulk);
-        $this->assertStringContainsString("->onQueue('default')", $bulk);
     }
 
     #[Test]
