@@ -35,10 +35,17 @@ final class SourceDataManager extends Component
     public bool $detailModalOpen = false;
     public array $detailModal = [];
 
-    public function mount(): void
+    public function mount(?string $year = null, ?string $month = null, ?string $businessClassification = null): void
     {
-        $this->year = (string) now()->year;
-        $this->month = (string) now()->month;
+        $this->year = $year ?? (string) now()->year;
+        $this->month = $month ?? (string) now()->month;
+        $this->businessClassification = $businessClassification ?? 'all';
+
+        $this->normalizeYear();
+        $this->normalizeMonth();
+        if ($this->businessClassification !== 'all' && ! in_array($this->businessClassification, InvoiceSourceRecord::CLASSIFICATIONS, true)) {
+            $this->businessClassification = 'all';
+        }
     }
 
     public function updatedSearch(): void
