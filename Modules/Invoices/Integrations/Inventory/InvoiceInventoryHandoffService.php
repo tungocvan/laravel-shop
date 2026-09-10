@@ -5,6 +5,7 @@ namespace Modules\Invoices\Integrations\Inventory;
 use DomainException;
 use Modules\Inventory\Models\InvoiceInbox;
 use Modules\Inventory\Services\InventoryInvoiceIntegrationService;
+use Modules\Inventory\Services\InvoiceReceivingEligibilityService;
 use Modules\Invoices\Models\Invoices;
 
 final class InvoiceInventoryHandoffService
@@ -22,6 +23,9 @@ final class InvoiceInventoryHandoffService
             throw new DomainException('Inventory integration hiện không khả dụng.');
         }
 
-        return app(InventoryInvoiceIntegrationService::class)->ingest($this->factory->build($invoice));
+        $contract = $this->factory->build($invoice);
+        app(InvoiceReceivingEligibilityService::class)->assertEligible($contract);
+
+        return app(InventoryInvoiceIntegrationService::class)->ingest($contract);
     }
 }
