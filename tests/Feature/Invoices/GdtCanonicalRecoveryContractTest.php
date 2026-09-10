@@ -48,7 +48,7 @@ class GdtCanonicalRecoveryContractTest extends TestCase
         $this->assertStringContainsString("config('invoices.gdt.detail_retry_attempts', 4)", $pdfService);
         $this->assertStringContainsString("config('invoices.gdt.detail_retry_backoff_seconds', [5, 10, 20, 40])", $pdfService);
         $this->assertStringContainsString('$response->status() === 429', $pdfService);
-        $this->assertStringContainsString("$response->header('Retry-After')", $pdfService);
+        $this->assertStringContainsString('$response->header(\'Retry-After\')', $pdfService);
         $this->assertStringContainsString('$onRateLimitRetry($attempt, $attempts, $delay);', $pdfService);
         $this->assertStringContainsString('sleep($delay);', $pdfService);
     }
