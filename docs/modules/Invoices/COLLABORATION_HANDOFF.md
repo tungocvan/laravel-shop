@@ -4,9 +4,9 @@
 
 - Module: `Invoices`.
 - Active branch: `feat/inventory-batch-c-invoice-integration`.
-- Current scope: **canonical GDT source data review, business classification, dynamic expense classification and dashboard drill-down toward Inventory intake**.
+- Current scope: **canonical GDT source data review, business classification, dynamic expense classification, source-detail Excel export, GDT detail recovery and dashboard drill-down toward Inventory intake**.
 - User-reported focused automated tests: **PASS**.
-- User-reported UI acceptance for Source Data + Dashboard: **PASS**.
+- User-reported UI acceptance for Source Data + Dashboard + source-detail export flow: **PASS**.
 - Merge authorization: **NOT YET GIVEN**.
 
 ## Canonical Source Data Workspace
@@ -36,9 +36,11 @@ MIXED
 
 Supplier-wide rules are scoped by supplier tax code and invoice type. Future source records may inherit a persisted supplier rule. Purchase and sold invoices remain independent scopes.
 
+For sold invoices, when a concrete year/month is selected and the current scope still contains `UNCLASSIFIED` rows, the UI exposes a bulk action to classify only those unclassified sold invoices as `GOODS`. Existing explicit classifications are preserved. The bulk-action section is hidden once the unclassified count reaches zero.
+
 ## Expense Classification — Level 2
 
-`SERVICE_EXPENSE` now supports a dynamic level-2 expense category instead of a hard-coded enum.
+`SERVICE_EXPENSE` supports a dynamic level-2 expense category instead of a hard-coded enum.
 
 Master data table:
 
@@ -85,6 +87,72 @@ When the row classification is `SERVICE_EXPENSE`, the workspace exposes:
 `GOODS` does not receive expense classification. `MIXED` remains separate and is not force-mapped to one expense category because mixed invoices require line-level classification for an accurate goods/expense split.
 
 Stable Livewire DOM keys for desktop/mobile supplier checkboxes must be preserved to prevent cross-row selection state leakage.
+
+The existing supplier checkbox under **Phân loại** is reserved for supplier-wide classification and must not be repurposed as an export selector.
+
+## Source Detail Excel Export
+
+Source Data supports exporting either explicitly selected invoices or the entire current filtered result set.
+
+Selection contract:
+
+```text
+No invoice checkbox selected -> export all rows matching current filters
+One or more invoice checkboxes selected -> export only those selected source invoices
+```
+
+Export selection checkboxes are placed directly in the **Hóa đơn** column. The desktop table header also exposes **Chọn tất cả trang**. Selection state is independent from the supplier-wide classification checkbox.
+
+Current export filters include the Source Data context:
+
+```text
+year
+month
+invoice_type
+partner
+search
+detail_status
+business_classification
+```
+
+The Excel output keeps exactly the approved 20-column layout:
+
+```text
+Loại hóa đơn
+Mã tra cứu
+Ký hiệu
+Số hóa đơn
+Loại / tên hóa đơn
+Ngày lập
+Mã số thuế đối tác
+Đơn vị / đối tác
+Địa chỉ
+Email
+Số điện thoại
+Tiền VAT
+Tiền trước VAT
+Tổng thanh toán
+Chi tiết - ten
+Chi tiết - dgia
+Chi tiết - dvtinh
+Chi tiết - ltsuat
+Chi tiết - sluong
+Chi tiết - thtien
+```
+
+Each canonical `detail_payload['hdhhdvu']` item becomes one Excel row and the invoice-level fields are repeated for each detail line. Detail rows with `thtien = 0` are skipped from export.
+
+After a successful export, the UI shows a completion modal and resets the selected export checkboxes without requiring a page reload. On export failure, the selection is kept so the user can retry.
+
+The previous DOM-mutation implementation that caused repeated Livewire refreshes was removed. The current selector installation is tied to stable Livewire render/morph events; user-reported UI acceptance confirms the refresh loop is resolved.
+
+## GDT Detail Recovery
+
+GDT detail synchronization is resumable and missing-detail recovery applies to both purchase and sold invoices.
+
+When headers are already complete but canonical detail is still missing, recovery remains local to the existing invoice set rather than reloading the full monthly GDT list. Transient connection/rate-limit failures use retry/backoff behavior, and unresolved missing detail can be scheduled for automatic background recovery.
+
+Automatic recovery is bounded by configured rounds/backoff, stops when detail coverage is complete, and stops safely when the GDT token expires or the configured retry limit is reached. Queue workers should be restarted after deploying code changes that modify this recovery flow.
 
 ## Invoices Dashboard Integration
 
@@ -145,7 +213,7 @@ Validated manually at:
 /admin/invoices/dashboard
 ```
 
-The focused test scope included Source Data workspace contracts and Invoices Dashboard classification/drill-down contracts.
+The latest focused scope included Source Data workspace contracts and Invoice source-detail export contracts. UI acceptance specifically covers the fixed export selection layout, successful Excel download flow, completion modal, checkbox reset after export, and resolution of the repeated-refresh regression.
 
 ## Previous GDT Smart Sync Delivery
 
@@ -167,7 +235,8 @@ This delivery does not:
 - expose GDT secrets to the browser;
 - automatically create stock from a classified invoice;
 - treat `MIXED` invoices as fully goods or fully expense;
-- require schema changes when a new expense category is added to master data.
+- require schema changes when a new expense category is added to master data;
+- use export-selection state to alter supplier-wide classification state.
 
 ## Final Closeout Gate
 
