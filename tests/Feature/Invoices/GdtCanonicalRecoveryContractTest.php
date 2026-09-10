@@ -25,15 +25,33 @@ class GdtCanonicalRecoveryContractTest extends TestCase
     }
 
     #[Test]
-    public function partial_recovery_with_complete_headers_does_not_reload_gdt_invoice_list(): void
+    public function partial_recovery_with_complete_headers_schedules_background_recovery_instead_of_reloading_list(): void
     {
         $job = file_get_contents(base_path('Modules/Invoices/Jobs/ProcessGdtInvoicesJob.php'));
+        $recovery = file_get_contents(base_path('Modules/Invoices/Jobs/RecoverMissingGdtDetailsJob.php'));
 
         $this->assertStringContainsString('$headersComplete=', $job);
         $this->assertStringContainsString('$remainingDetail=', $job);
-        $this->assertStringContainsString("'source'=>'local_detail_recovery'", $job);
-        $this->assertStringContainsString("'sync_skipped'=>true", $job);
-        $this->assertStringContainsString('Chạy lại cùng khoảng thời gian để tiếp tục recovery; hệ thống không tải lại danh sách GDT.', $job);
+        $this->assertStringContainsString('$this->scheduleAutoRecovery($remainingDetail);', $job);
+        $this->assertStringContainsString('RecoverMissingGdtDetailsJob::dispatch(', $job);
+        $this->assertStringContainsString('không cần bấm đồng bộ lại', $job);
+        $this->assertStringContainsString('recoverMissingDetailsFromLocalRange(', $recovery);
+        $this->assertStringContainsString("config('invoices.gdt.auto_recovery_max_rounds', 6)", $recovery);
+        $this->assertStringContainsString("config('invoices.gdt.auto_recovery_backoff_seconds', [60, 180, 300, 600, 900])", $recovery);
+        $this->assertStringContainsString("->delay(now()->addSeconds(\$delay));", $recovery);
+        $this->assertStringContainsString("'auto_recovery_pending' => true", $recovery);
+    }
+
+    #[Test]
+    public function automatic_recovery_stops_when_complete_token_expires_or_round_limit_is_reached(): void
+    {
+        $recovery = file_get_contents(base_path('Modules/Invoices/Jobs/RecoverMissingGdtDetailsJob.php'));
+
+        $this->assertStringContainsString('if ($missingAfter === 0)', $recovery);
+        $this->assertStringContainsString('if (! Cache::has(', $recovery);
+        $this->assertStringContainsString('phiên đăng nhập GDT đã hết hạn', $recovery);
+        $this->assertStringContainsString('if ($this->round >= $maxRounds)', $recovery);
+        $this->assertStringContainsString("'missing_detail' => 0", $recovery);
     }
 
     #[Test]
