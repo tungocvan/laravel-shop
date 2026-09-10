@@ -22,7 +22,7 @@ class GdtPdfService
             return $this->fileService->pdfPathForInvoice($invoice);
         }
 
-        $detail = $this->fetchDetail($invoice, $force);
+        $detail = $this->fetchDetail($invoice);
         $path = $this->fileService->targetPdfPathForInvoice($invoice);
         $directory = dirname($path);
 
@@ -84,15 +84,17 @@ class GdtPdfService
     }
 
     /**
-     * Local-first detail lookup. A network refresh is allowed only when explicitly requested.
+     * Local-only detail lookup. Missing RAW must be acquired from /admin/invoices/hoadon.
      */
     public function fetchDetail(Invoices $invoice, bool $force = false): array
     {
-        if (! $force && ($stored = $this->storedDetail($invoice)) !== null) {
+        if (($stored = $this->storedDetail($invoice)) !== null) {
             return $stored;
         }
 
-        return $this->fetchAndStoreDetail($invoice);
+        throw new RuntimeException(
+            'Chưa có RAW GDT detail trên server. Hãy đồng bộ nguồn tại /admin/invoices/hoadon trước khi sử dụng nghiệp vụ này.'
+        );
     }
 
     /**
