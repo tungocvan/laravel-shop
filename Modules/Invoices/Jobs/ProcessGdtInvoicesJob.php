@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\Invoices\Services\GdtInvoiceService;
 use Modules\Invoices\Services\GoogleDriveInvoiceExportService;
+use Modules\Invoices\Services\InvoiceSourceCoverageService;
 use RuntimeException;
 use Throwable;
 
@@ -29,8 +30,11 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         public ?string $syncId = null,
     ) {}
 
-    public function handle(GdtInvoiceService $service, GoogleDriveInvoiceExportService $drive): void
-    {
+    public function handle(
+        GdtInvoiceService $service,
+        GoogleDriveInvoiceExportService $drive,
+        InvoiceSourceCoverageService $coverage,
+    ): void {
         $this->updateStatus('processing', 'Worker bắt đầu xử lý.');
 
         Log::info('[GDT JOB] Bắt đầu xử lý hóa đơn.', [
@@ -42,25 +46,39 @@ class ProcessGdtInvoicesJob implements ShouldQueue
 
         $expectedFile = $service->expectedExportPath($this->start, $this->end, $this->vatIn);
         $fileName = basename($expectedFile);
+        $sourceCoverage = $coverage->coverage($this->start, $this->end, $this->vatIn);
+        $canonicalReady = (bool) $sourceCoverage['complete'];
 
-        if (is_file($expectedFile) && is_readable($expectedFile)) {
-            $this->appendLog('File Excel '.$fileName.' đã tồn tại ở local; bỏ qua gọi GDT.');
-            $this->appendLog('Nếu cần backup, hãy chọn file trong khối Local ↔ Google Drive và nhấn Upload file đã chọn lên Drive.');
-            $this->completeWithoutGdt($fileName, 'local', 'File Excel đã tồn tại ở local; không cần đồng bộ lại GDT.');
+        $this->appendLog(sprintf(
+            'RAW canonical hiện có: header %d/%d · detail %d/%d.',
+            $sourceCoverage['header_ready'],
+            $sourceCoverage['total'],
+            $sourceCoverage['detail_ready'],
+            $sourceCoverage['total'],
+        ));
+
+        if (is_file($expectedFile) && is_readable($expectedFile) && $canonicalReady) {
+            $this->appendLog('File Excel và RAW canonical đều đầy đủ; bỏ qua gọi GDT.');
+            $this->completeWithoutGdt($fileName, 'local', 'Dữ liệu nguồn canonical đã đầy đủ; không cần đồng bộ lại GDT.');
 
             return;
         }
 
-        if ($drive->isConnected()) {
-            $this->appendLog('Local chưa có file; đang kiểm tra Laravel-Backup/Invoices trên Google Drive.');
+        if (is_file($expectedFile) && is_readable($expectedFile) && ! $canonicalReady) {
+            $this->appendLog('File Excel đã tồn tại nhưng RAW canonical chưa đầy đủ; vẫn tiếp tục gọi GDT để hoàn thiện kho dữ liệu nguồn.');
+        }
 
+        if ($drive->isConnected()) {
             try {
-                if ($drive->exists($fileName)) {
-                    $this->appendLog('Google Drive đã có '.$fileName.'; bỏ qua gọi GDT để tránh đồng bộ trùng.');
-                    $this->appendLog('Hãy dùng nút Đồng bộ file đã chọn về Local nếu cần khôi phục file về server.');
-                    $this->completeWithoutGdt($fileName, 'google_drive', 'File Excel đã tồn tại trên Google Drive; không cần đồng bộ lại GDT.');
+                if ($drive->exists($fileName) && $canonicalReady) {
+                    $this->appendLog('Google Drive đã có file và RAW canonical local đầy đủ; bỏ qua gọi GDT.');
+                    $this->completeWithoutGdt($fileName, 'google_drive', 'Dữ liệu nguồn canonical đã đầy đủ; không cần đồng bộ lại GDT.');
 
                     return;
+                }
+
+                if ($drive->exists($fileName) && ! $canonicalReady) {
+                    $this->appendLog('Google Drive đã có file nhưng RAW canonical local chưa đầy đủ; không dùng file backup làm lý do bỏ qua GDT.');
                 }
             } catch (Throwable $exception) {
                 Log::warning('[GDT JOB] Không thể xác minh file hóa đơn trên Google Drive.', [
@@ -69,15 +87,8 @@ class ProcessGdtInvoicesJob implements ShouldQueue
                     'error' => $exception->getMessage(),
                 ]);
 
-                throw new RuntimeException(
-                    'Không thể xác minh file trên Google Drive nên chưa gọi GDT, tránh tạo dữ liệu trùng.',
-                    previous: $exception,
-                );
+                $this->appendLog('Không xác minh được file Google Drive; tiếp tục dựa trên trạng thái RAW canonical local.');
             }
-
-            $this->appendLog('Google Drive chưa có '.$fileName.'; bắt đầu đồng bộ từ GDT.');
-        } else {
-            $this->appendLog('Local chưa có file và Google Drive chưa kết nối; bắt đầu đồng bộ từ GDT.');
         }
 
         $file = $service->processRange(
@@ -97,13 +108,6 @@ class ProcessGdtInvoicesJob implements ShouldQueue
                 'finished_at' => now()->toIso8601String(),
             ]);
 
-            Log::info('[GDT JOB] Không có dữ liệu hóa đơn, không tạo file Excel.', [
-                'sync_id' => $this->syncId,
-                'start' => $this->start,
-                'end' => $this->end,
-                'type' => $this->vatIn ? 'purchase' : 'sold',
-            ]);
-
             return;
         }
 
@@ -111,9 +115,16 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
         }
 
-        $this->appendLog('File đã được lưu ở local. Nếu cần backup Google Drive, hãy chọn file và nhấn Upload file đã chọn lên Drive.');
+        $finalCoverage = $coverage->coverage($this->start, $this->end, $this->vatIn);
+        $this->appendLog(sprintf(
+            'RAW canonical sau đồng bộ: header %d/%d · detail %d/%d.',
+            $finalCoverage['header_ready'],
+            $finalCoverage['total'],
+            $finalCoverage['detail_ready'],
+            $finalCoverage['total'],
+        ));
 
-        $this->updateStatus('completed', 'Đồng bộ hoàn tất và file Excel đã được tạo ở local.', [
+        $this->updateStatus('completed', 'Đồng bộ hoàn tất: dữ liệu hóa đơn và RAW canonical đã được lưu trên server.', [
             'file' => basename($file),
             'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
             'source' => 'gdt',
@@ -125,6 +136,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         Log::info('[GDT JOB] Hoàn tất xử lý hóa đơn.', [
             'sync_id' => $this->syncId,
             'file' => $file,
+            'coverage' => $finalCoverage,
         ]);
     }
 
@@ -149,12 +161,6 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             'sync_skipped' => true,
             'no_data' => false,
             'finished_at' => now()->toIso8601String(),
-        ]);
-
-        Log::info('[GDT JOB] Bỏ qua gọi GDT vì file đồng bộ đã tồn tại.', [
-            'sync_id' => $this->syncId,
-            'file' => $fileName,
-            'source' => $source,
         ]);
     }
 
