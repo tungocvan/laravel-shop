@@ -33,6 +33,7 @@ final class SourceDataManager extends Component
 
     public function updatedSearch(): void
     {
+        $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
 
@@ -82,6 +83,10 @@ final class SourceDataManager extends Component
             $this->businessClassification = 'all';
         }
 
+        // A classification filter changes the record set. Discard row-level draft state
+        // so the first render after changing the filter always reflects database truth.
+        $this->businessClassifications = [];
+        $this->businessNotes = [];
         $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
@@ -114,13 +119,9 @@ final class SourceDataManager extends Component
             ));
         }
 
-        // Rebuild checkbox state exclusively from explicit user selections.
-        // This prevents stale Livewire array state or duplicate responsive controls
-        // from making an unrelated supplier appear selected.
-        $this->applySameTaxCode = [];
-        foreach ($this->supplierBatchIds as $selectedId) {
-            $this->applySameTaxCode[$selectedId] = true;
-        }
+        // Keep an explicit boolean value for every rendered checkbox. Removing an array
+        // key can leave a previously checked DOM node visually stale after morphing.
+        $this->rebuildApplySameTaxCodeState(array_keys($this->applySameTaxCode));
     }
 
     public function resetFilters(): void
@@ -133,6 +134,8 @@ final class SourceDataManager extends Component
         $this->detailStatus = 'all';
         $this->businessClassification = 'all';
         $this->perPage = 25;
+        $this->businessClassifications = [];
+        $this->businessNotes = [];
         $this->clearSupplierBatchSelection();
         $this->dispatch('filters-reset');
         $this->resetPage();
@@ -141,7 +144,10 @@ final class SourceDataManager extends Component
     public function clearSupplierBatchSelection(): void
     {
         $this->supplierBatchIds = [];
-        $this->applySameTaxCode = [];
+
+        // Preserve visible keys as explicit false values so Livewire unchecks every DOM
+        // control immediately instead of relying on a missing nested array key.
+        $this->applySameTaxCode = array_fill_keys(array_keys($this->applySameTaxCode), false);
     }
 
     public function closeSaveModal(): void
@@ -324,13 +330,9 @@ final class SourceDataManager extends Component
             $this->businessNotes[$record->id] ??= (string) ($record->business_note ?? '');
         }
 
-        // Keep only explicit selections in checkbox state; never infer them from stored supplier scope.
-        $this->applySameTaxCode = [];
-        foreach (array_unique(array_map('intval', $this->supplierBatchIds)) as $selectedId) {
-            if ($selectedId > 0) {
-                $this->applySameTaxCode[$selectedId] = true;
-            }
-        }
+        // Explicitly publish false as well as true for every visible checkbox.
+        // This makes the UI deterministic even with duplicated desktop/mobile controls.
+        $this->rebuildApplySameTaxCodeState($records->pluck('id')->all());
 
         $stats = [
             'total' => (clone $scopeQuery)->count(),
@@ -360,16 +362,28 @@ final class SourceDataManager extends Component
         ]);
     }
 
+    private function rebuildApplySameTaxCodeState(array $visibleIds): void
+    {
+        $selected = array_fill_keys(array_map('intval', $this->supplierBatchIds), true);
+        $state = [];
+
+        foreach ($visibleIds as $visibleId) {
+            $visibleId = (int) $visibleId;
+            if ($visibleId > 0) {
+                $state[$visibleId] = isset($selected[$visibleId]);
+            }
+        }
+
+        $this->applySameTaxCode = $state;
+    }
+
     private function removeSupplierBatchSelection(int $sourceId): void
     {
         $this->supplierBatchIds = array_values(array_filter(
             array_map('intval', $this->supplierBatchIds),
             fn (int $id) => $id !== $sourceId,
         ));
-        $this->applySameTaxCode = [];
-        foreach ($this->supplierBatchIds as $selectedId) {
-            $this->applySameTaxCode[$selectedId] = true;
-        }
+        $this->rebuildApplySameTaxCodeState(array_keys($this->applySameTaxCode));
     }
 
     private function annotationAttributes(string $classification, string $note, bool $supplierWide): array
