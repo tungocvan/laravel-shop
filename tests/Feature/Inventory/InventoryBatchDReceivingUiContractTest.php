@@ -25,6 +25,26 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
     }
 
     #[Test]
+    public function stock_lines_can_review_receiving_fields_before_draft_creation(): void
+    {
+        $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
+
+        $this->assertStringContainsString('public array $receivingReview = [];', $component);
+        $this->assertStringContainsString('saveReceivingReview', $component);
+        $this->assertStringContainsString("'mode' => 'explicit_admin_review'", $component);
+        $this->assertStringContainsString('Mặt hàng theo dõi HSD: cần nhập hạn dùng trước khi tạo DRAFT.', $component);
+        $this->assertStringContainsString('Mặt hàng theo dõi lô: cần nhập số lô trước khi tạo DRAFT.', $component);
+        $this->assertStringContainsString('receivingReview.{{ $line->id }}.base_quantity', $view);
+        $this->assertStringContainsString('receivingReview.{{ $line->id }}.base_uom', $view);
+        $this->assertStringContainsString('receivingReview.{{ $line->id }}.conversion_factor', $view);
+        $this->assertStringContainsString('receivingReview.{{ $line->id }}.lot_number', $view);
+        $this->assertStringContainsString('receivingReview.{{ $line->id }}.manufacture_date', $view);
+        $this->assertStringContainsString('receivingReview.{{ $line->id }}.expiry_date', $view);
+        $this->assertStringContainsString('Lưu review dòng', $view);
+    }
+
+    #[Test]
     public function invoice_inbox_confirms_only_through_canonical_receipt_posting_service(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
