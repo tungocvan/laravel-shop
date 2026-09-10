@@ -39,7 +39,7 @@ final class InvoiceInventoryStagingService
             $detail = $this->gdtDetailService->storedDetail($invoice);
             if ($detail === null) {
                 throw new DomainException(
-                    'Chưa có RAW GDT detail trên server. Hãy đồng bộ hóa đơn mua vào tại Modules\\Invoices trước khi chuẩn hóa Inventory.'
+                    'Chưa có RAW GDT detail canonical trên server. Hãy đồng bộ tại /admin/invoices/hoadon trước khi chuẩn hóa Inventory.'
                 );
             }
 
@@ -47,7 +47,6 @@ final class InvoiceInventoryStagingService
                 snapshot: $snapshot,
                 detail: $detail,
                 normalizerVersion: $normalizerVersion,
-                fetchedNow: false,
             );
         } catch (Throwable $exception) {
             $snapshot->forceFill([
@@ -63,30 +62,22 @@ final class InvoiceInventoryStagingService
         InvoiceInventorySnapshot $snapshot,
         array $detail,
         string $normalizerVersion,
-        bool $fetchedNow,
     ): InvoiceInventorySnapshot {
         $rawLines = $this->rawLines($detail);
 
         if ($rawLines === []) {
-            throw new DomainException('Raw snapshot không có chi tiết hàng hóa để chuẩn hóa.');
+            throw new DomainException('RAW canonical không có chi tiết hàng hóa để chuẩn hóa.');
         }
 
         $hash = $this->payloadHash($detail);
 
-        return DB::transaction(function () use ($snapshot, $detail, $rawLines, $hash, $normalizerVersion, $fetchedNow): InvoiceInventorySnapshot {
-            $snapshotAttributes = [
+        return DB::transaction(function () use ($snapshot, $rawLines, $hash, $normalizerVersion): InvoiceInventorySnapshot {
+            $snapshot->forceFill([
                 'payload_hash' => $hash,
                 'status' => 'FETCHED',
-                'raw_payload' => $detail,
                 'normalized_at' => null,
                 'last_error' => null,
-            ];
-
-            if ($fetchedNow) {
-                $snapshotAttributes['fetched_at'] = now();
-            }
-
-            $snapshot->forceFill($snapshotAttributes)->save();
+            ])->save();
 
             $seen = [];
             foreach (array_values($rawLines) as $index => $line) {
