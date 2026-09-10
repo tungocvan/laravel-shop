@@ -10,23 +10,13 @@ use RuntimeException;
 
 class GdtApiService
 {
+    /**
+     * Local cache-state check only. Do not call GDT from page rendering/status badges.
+     * Remote validity is checked explicitly by assertTokenUsable() before synchronization.
+     */
     public function hasToken(): bool
     {
-        if (! Cache::has(config('invoices.gdt.cache_key'))) {
-            return false;
-        }
-
-        try {
-            $this->assertTokenUsable();
-
-            return true;
-        } catch (RuntimeException $exception) {
-            Log::warning('GDT token preflight failed.', [
-                'error' => $exception->getMessage(),
-            ]);
-
-            return false;
-        }
+        return Cache::has(config('invoices.gdt.cache_key'));
     }
 
     public function forgetToken(): void
@@ -57,6 +47,11 @@ class GdtApiService
                     'search' => $search,
                 ]);
         } catch (ConnectionException $exception) {
+            Log::warning('GDT token preflight connection failure.', [
+                'url' => $this->url('/query/invoices/purchase'),
+                'error' => $exception->getMessage(),
+            ]);
+
             throw new RuntimeException('Không thể kiểm tra phiên GDT do mất kết nối.', previous: $exception);
         }
 
@@ -66,6 +61,12 @@ class GdtApiService
         }
 
         if (! $response->successful()) {
+            Log::warning('GDT token preflight rejected by upstream.', [
+                'url' => $this->url('/query/invoices/purchase'),
+                'status' => $response->status(),
+                'message' => $this->responseMessage($response->json()),
+            ]);
+
             throw new RuntimeException("Không thể xác minh phiên GDT: HTTP {$response->status()}.");
         }
     }
@@ -118,7 +119,9 @@ class GdtApiService
         }
 
         try {
-            $res = $this->client()->post($url, [
+            // Authentication can legitimately take longer than list/detail reads during GDT peak load.
+            // Do not blindly retry the POST because captcha/authenticate may not be safely repeatable.
+            $res = $this->authenticationClient()->post($url, [
                 'username' => $username,
                 'password' => $password,
                 'ckey' => $ckey,
@@ -127,12 +130,13 @@ class GdtApiService
         } catch (ConnectionException $exception) {
             Log::warning('Không thể kết nối API GDT để đăng nhập.', [
                 'url' => $url,
+                'timeout_seconds' => $this->authenticationTimeout(),
                 'error' => $exception->getMessage(),
             ]);
 
             return [
                 'status' => 'error',
-                'message' => 'Không thể kết nối đến hệ thống GDT.',
+                'message' => 'GDT không phản hồi trong thời gian chờ. Hãy tải captcha mới và thử lại sau; hệ thống chưa xác định đây là lỗi tài khoản/mật khẩu.',
             ];
         }
 
@@ -196,11 +200,25 @@ class GdtApiService
         return null;
     }
 
+    private function authenticationTimeout(): int
+    {
+        return max(30, min((int) config('invoices.gdt.auth_timeout', 45), 120));
+    }
+
+    private function authenticationClient()
+    {
+        return Http::withOptions([
+            'verify' => (bool) config('invoices.gdt.verify_ssl', true),
+        ])->connectTimeout(min(15, $this->authenticationTimeout()))
+            ->timeout($this->authenticationTimeout());
+    }
+
     private function client()
     {
         return Http::withOptions([
             'verify' => (bool) config('invoices.gdt.verify_ssl', true),
-        ])->timeout((int) config('invoices.gdt.timeout', 15));
+        ])->connectTimeout(min(10, (int) config('invoices.gdt.timeout', 15)))
+            ->timeout((int) config('invoices.gdt.timeout', 15));
     }
 
     private function url(string $path): string
