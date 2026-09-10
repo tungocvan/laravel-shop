@@ -19,7 +19,7 @@
         <div class="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="font-semibold text-slate-900">Inventory Receiving Inbox</h2>
-                <p class="mt-1 text-sm text-slate-500">Luồng nhận hàng: nguồn hóa đơn → matching → phiếu nhập DRAFT → xác nhận → movement/balance.</p>
+                <p class="mt-1 text-sm text-slate-500">Luồng nhận hàng: nguồn hóa đơn → matching → review receiving → phiếu nhập DRAFT → xác nhận → movement/balance.</p>
             </div>
             @if($canManageReceipt)
                 <button type="button" wire:click="openSourcePicker" wire:loading.attr="disabled" wire:target="openSourcePicker" class="min-h-11 shrink-0 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">+ Lấy hóa đơn từ Invoices</button>
@@ -216,6 +216,55 @@
                     </table>
                 </div>
 
+                @if(!$receipt && $canManageReceipt)
+                    <div class="border-t border-slate-200 bg-amber-50/40 p-5">
+                        <div>
+                            <h4 class="font-semibold text-slate-900">Review dữ liệu nhập kho trước khi tạo DRAFT</h4>
+                            <p class="mt-1 text-xs text-slate-600">Nguồn hóa đơn được giữ nguyên. Chỉ review projection nhập kho: SL base, Base UOM, hệ số quy đổi, lô, NSX và HSD.</p>
+                        </div>
+                        <div class="mt-4 space-y-3">
+                            @foreach($selected->lines->where('classification', 'STOCK') as $line)
+                                @if($line->inventory_item_id)
+                                    <div class="rounded-xl border border-slate-200 bg-white p-4">
+                                        <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                                            <div>
+                                                <div class="font-medium text-slate-900">{{ $line->item?->sku }} — {{ $line->description_snapshot }}</div>
+                                                <div class="mt-1 text-xs text-slate-500">Nguồn: {{ $line->source_quantity }} {{ $line->source_uom }} · {{ $line->item?->lot_tracking ? 'Theo dõi lô' : 'Không bắt buộc lô' }} · {{ $line->item?->expiry_tracking ? 'Theo dõi HSD' : 'Không bắt buộc HSD' }}</div>
+                                            </div>
+                                            @if(data_get($line->metadata, 'receiving_review.reviewed_at'))
+                                                <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">Đã review</span>
+                                            @endif
+                                        </div>
+                                        <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                                            <label class="text-xs font-medium text-slate-600">SL base
+                                                <input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.base_quantity" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                            </label>
+                                            <label class="text-xs font-medium text-slate-600">Base UOM
+                                                <input type="text" wire:model="receivingReview.{{ $line->id }}.base_uom" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                            </label>
+                                            <label class="text-xs font-medium text-slate-600">Hệ số
+                                                <input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.conversion_factor" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                            </label>
+                                            <label class="text-xs font-medium text-slate-600">Số lô @if($line->item?->lot_tracking)<span class="text-red-600">*</span>@endif
+                                                <input type="text" wire:model="receivingReview.{{ $line->id }}.lot_number" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                            </label>
+                                            <label class="text-xs font-medium text-slate-600">NSX
+                                                <input type="date" wire:model="receivingReview.{{ $line->id }}.manufacture_date" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                            </label>
+                                            <label class="text-xs font-medium text-slate-600">HSD @if($line->item?->expiry_tracking)<span class="text-red-600">*</span>@endif
+                                                <input type="date" wire:model="receivingReview.{{ $line->id }}.expiry_date" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                            </label>
+                                        </div>
+                                        <div class="mt-3 flex justify-end">
+                                            <button type="button" wire:click="saveReceivingReview({{ $line->id }})" wire:loading.attr="disabled" wire:target="saveReceivingReview({{ $line->id }})" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50">Lưu review dòng</button>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <div class="border-t border-slate-200 bg-white p-5">
                     @if(!$receipt)
                         @if($canManageReceipt)
@@ -228,7 +277,7 @@
                                 </label>
                                 <button type="button" wire:click="createDraftReceipt" wire:loading.attr="disabled" wire:target="createDraftReceipt" class="min-h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">Tạo phiếu nhập DRAFT</button>
                             </div>
-                            <p class="mt-2 text-xs text-slate-500">Chỉ tạo DRAFT khi tất cả line đã resolve và UOM/lot/HSD hợp lệ. DRAFT không thay đổi tồn kho.</p>
+                            <p class="mt-2 text-xs text-slate-500">Chỉ tạo DRAFT khi tất cả line đã resolve và UOM/lô/HSD hợp lệ. DRAFT không thay đổi tồn kho.</p>
                         @endif
                     @else
                         <div class="rounded-2xl border {{ $isConfirmed ? 'border-emerald-200 bg-emerald-50' : 'border-indigo-200 bg-indigo-50' }} p-4">
