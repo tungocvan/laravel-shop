@@ -25,6 +25,18 @@ class GdtCanonicalRecoveryContractTest extends TestCase
     }
 
     #[Test]
+    public function partial_recovery_with_complete_headers_does_not_reload_gdt_invoice_list(): void
+    {
+        $job = file_get_contents(base_path('Modules/Invoices/Jobs/ProcessGdtInvoicesJob.php'));
+
+        $this->assertStringContainsString('$headersComplete=', $job);
+        $this->assertStringContainsString('$remainingDetail=', $job);
+        $this->assertStringContainsString("'source'=>'local_detail_recovery'", $job);
+        $this->assertStringContainsString("'sync_skipped'=>true", $job);
+        $this->assertStringContainsString('Chạy lại cùng khoảng thời gian để tiếp tục recovery; hệ thống không tải lại danh sách GDT.', $job);
+    }
+
+    #[Test]
     public function complete_detail_allows_downstream_work_even_when_historical_raw_header_is_pending(): void
     {
         $job = file_get_contents(base_path('Modules/Invoices/Jobs/ProcessGdtInvoicesJob.php'));
