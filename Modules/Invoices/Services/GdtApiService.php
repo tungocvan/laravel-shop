@@ -12,7 +12,21 @@ class GdtApiService
 {
     public function hasToken(): bool
     {
-        return Cache::has(config('invoices.gdt.cache_key'));
+        if (! Cache::has(config('invoices.gdt.cache_key'))) {
+            return false;
+        }
+
+        try {
+            $this->assertTokenUsable();
+
+            return true;
+        } catch (RuntimeException $exception) {
+            Log::warning('GDT token preflight failed.', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     public function forgetToken(): void
