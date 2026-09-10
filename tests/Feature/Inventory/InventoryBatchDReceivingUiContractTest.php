@@ -8,6 +8,31 @@ use Tests\TestCase;
 class InventoryBatchDReceivingUiContractTest extends TestCase
 {
     #[Test]
+    public function receiving_entry_is_a_period_filtered_source_queue_instead_of_a_manual_picker(): void
+    {
+        $queue = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceReceivingSourceQueue.php'));
+        $queueView = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-receiving-source-queue.blade.php'));
+        $page = file_get_contents(base_path('Modules/Inventory/resources/views/pages/invoice-inbox.blade.php'));
+        $sourceQuery = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/PurchaseInvoiceInventoryQueryService.php'));
+
+        $this->assertStringContainsString('forReceivingQueue', $sourceQuery);
+        $this->assertStringContainsString("whereYear('issued_date', \$year)", $sourceQuery);
+        $this->assertStringContainsString("whereMonth('issued_date', \$month)", $sourceQuery);
+        $this->assertStringContainsString('public int $year;', $queue);
+        $this->assertStringContainsString('public int $month;', $queue);
+        $this->assertStringContainsString('hasUsableDetail', $queue);
+        $this->assertStringContainsString("['GOODS', 'MIXED']", $queue);
+        $this->assertStringContainsString('startReceiving', $queue);
+        $this->assertStringContainsString('InvoiceInventoryHandoffService::class', $queue);
+        $this->assertStringContainsString('Danh sách hóa đơn mua hàng', $queueView);
+        $this->assertStringContainsString('Chờ RAW detail', $queueView);
+        $this->assertStringContainsString('Nhập kho →', $queueView);
+        $this->assertStringContainsString('Tiếp tục →', $queueView);
+        $this->assertStringContainsString('invoice-receiving-source-queue', $page);
+        $this->assertStringContainsString(':selected-inbox-id="(int) request(\'inbox\')"', $page);
+    }
+
+    #[Test]
     public function inbox_exposes_explicit_item_review_instead_of_silent_creation(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
