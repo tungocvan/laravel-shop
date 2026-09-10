@@ -16,23 +16,7 @@
             </div>
         </div>
 
-        @if ($gdtReady)
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
-                <div>
-                    <p class="font-semibold">GDT đã sẵn sàng</p>
-                    <p class="mt-1 text-emerald-700">Token đã được preflight với GDT. Khi bắt đầu đồng bộ, RAW đã có sẽ được tái sử dụng; chỉ dữ liệu còn thiếu mới cần lấy thêm.</p>
-                </div>
-                <a href="{{ route('admin.invoices.create-token') }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2 font-semibold text-emerald-700">Quản lý kết nối</a>
-            </div>
-        @else
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-                <div>
-                    <p class="font-semibold">GDT chưa sẵn sàng hoặc token đã hết hạn</p>
-                    <p class="mt-1 text-amber-800">Hãy kết nối lại trước khi chạy đồng bộ. Hệ thống fail-closed và không đưa tác vụ hàng loạt vào queue khi token không vượt qua preflight.</p>
-                </div>
-                <a href="{{ route('admin.invoices.create-token') }}" class="rounded-xl bg-amber-600 px-4 py-2 font-semibold text-white">Kết nối GDT</a>
-            </div>
-        @endif
+        <livewire:invoices.quick-gdt-connect />
 
         @livewire('invoices.search-hoadon')
         @livewire('invoices.invoice-drive-sync-panel')
