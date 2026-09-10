@@ -42,7 +42,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             $remainingDetail=max(0,(int)$sourceCoverage['total']-(int)$sourceCoverage['detail_ready']);
             $headersComplete=(int)$sourceCoverage['total']>0&&(int)$sourceCoverage['header_ready']===(int)$sourceCoverage['total'];
             if(is_file($expectedFile)&&is_readable($expectedFile)&&$headersComplete&&$remainingDetail>0){
-                $this->updateStatus('partial',sprintf('Recovery detail một phần: header %d/%d · detail %d/%d · còn thiếu %d detail. Chạy lại cùng khoảng thời gian để tiếp tục recovery; hệ thống không tải lại danh sách GDT.',$sourceCoverage['header_ready'],$sourceCoverage['total'],$sourceCoverage['detail_ready'],$sourceCoverage['total'],$remainingDetail),['file'=>$fileName,'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'local_detail_recovery','sync_skipped'=>true,'no_data'=>false,'missing_detail'=>$remainingDetail,'finished_at'=>now()->toIso8601String()]);
+                $this->scheduleAutoRecovery($remainingDetail);
                 return;
             }
         }
@@ -59,7 +59,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
 
         $finalCoverage=$coverage->coverage($this->start,$this->end,$this->vatIn);$this->appendCoverage('RAW canonical sau đồng bộ',$finalCoverage);
         $missingDetail=max(0,(int)$finalCoverage['total']-(int)$finalCoverage['detail_ready']);
-        if($missingDetail>0){$this->updateStatus('partial',sprintf('Đồng bộ một phần: header %d/%d · detail %d/%d · còn thiếu %d detail cần recovery.',$finalCoverage['header_ready'],$finalCoverage['total'],$finalCoverage['detail_ready'],$finalCoverage['total'],$missingDetail),['file'=>basename($file),'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'gdt','sync_skipped'=>false,'no_data'=>false,'missing_detail'=>$missingDetail,'finished_at'=>now()->toIso8601String()]);Log::warning('[GDT JOB] Đồng bộ canonical còn thiếu detail.',['sync_id'=>$this->syncId,'file'=>$file,'coverage'=>$finalCoverage,'missing_detail'=>$missingDetail]);return;}
+        if($missingDetail>0){$this->scheduleAutoRecovery($missingDetail);Log::warning('[GDT JOB] Đồng bộ canonical còn thiếu detail; đã xếp lịch auto recovery.',['sync_id'=>$this->syncId,'file'=>$file,'coverage'=>$finalCoverage,'missing_detail'=>$missingDetail]);return;}
 
         $this->updateStatus('completed','Đồng bộ hoàn tất: RAW canonical đầy đủ và đã được lưu trên server.',['file'=>basename($file),'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'gdt','sync_skipped'=>false,'no_data'=>false,'missing_detail'=>0,'finished_at'=>now()->toIso8601String()]);Log::info('[GDT JOB] Hoàn tất xử lý hóa đơn.',['sync_id'=>$this->syncId,'file'=>$file,'coverage'=>$finalCoverage]);
     }
@@ -67,6 +67,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
     public function failed(Throwable $exception):void{$this->updateStatus('failed','Đồng bộ thất bại: '.$exception->getMessage(),['finished_at'=>now()->toIso8601String()]);Log::error('[GDT JOB] Xử lý hóa đơn thất bại.',['sync_id'=>$this->syncId,'error'=>$exception->getMessage()]);}
     private function appendCoverage(string $label,array $coverage):void{$this->appendLog(sprintf('%s: header %d/%d · detail %d/%d.',$label,$coverage['header_ready'],$coverage['total'],$coverage['detail_ready'],$coverage['total']));}
     private function completeWithoutGdt(string $fileName,string $source,string $message):void{$this->updateStatus('completed',$message,['file'=>$fileName,'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>$source,'sync_skipped'=>true,'no_data'=>false,'finished_at'=>now()->toIso8601String()]);}
+    private function scheduleAutoRecovery(int $missingDetail):void{$delay=max(1,(int)config('invoices.gdt.auto_recovery_initial_delay_seconds',60));$this->updateStatus('recovering',sprintf('Còn thiếu %d detail. Hệ thống đã tự xếp lịch recovery sau %d giây; không cần bấm đồng bộ lại.',$missingDetail,$delay),['direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'automatic_detail_recovery','missing_detail'=>$missingDetail,'auto_recovery_pending'=>true,'auto_recovery_round'=>1]);RecoverMissingGdtDetailsJob::dispatch($this->start,$this->end,$this->vatIn,$this->syncId,1)->delay(now()->addSeconds($delay));}
     private function statusKey():?string{return$this->syncId?'invoices:gdt-sync:'.$this->syncId:null;}
     private function appendLog(string $message):void{$key=$this->statusKey();if(!$key)return;$status=Cache::get($key,[]);$status['logs']??=[];$status['logs'][]='['.now()->format('H:i:s').'] '.$message;Cache::put($key,$status,now()->addHours(24));}
     private function updateStatus(string $state,string $message,array $extra=[]):void{$key=$this->statusKey();if(!$key)return;$status=Cache::get($key,[]);$status['state']=$state;$status['message']=$message;$status['logs']??=[];$status['logs'][]='['.now()->format('H:i:s').'] '.$message;$status=array_merge($status,$extra);Cache::put($key,$status,now()->addHours(24));}
