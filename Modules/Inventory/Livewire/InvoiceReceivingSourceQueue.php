@@ -59,7 +59,7 @@ final class InvoiceReceivingSourceQueue extends Component
             ->get()
             ->keyBy('source_invoice_id');
 
-        $rows = $invoices->map(function ($invoice) use ($inboxByInvoice): array {
+        $allRows = $invoices->map(function ($invoice) use ($inboxByInvoice): array {
             $source = $invoice->sourceRecord;
             $inbox = $inboxByInvoice->get($invoice->id);
             $hasRaw = (bool) $source?->hasUsableDetail();
@@ -74,15 +74,19 @@ final class InvoiceReceivingSourceQueue extends Component
             };
 
             return compact('invoice', 'source', 'inbox', 'hasRaw', 'classification', 'state');
-        })->when($this->queueStatus !== 'all', fn ($rows) => $rows->where('state', $this->queueStatus))->values();
+        })->values();
 
         $counts = [
-            'all' => $invoices->count(),
-            'ready' => $rows->where('state', 'ready')->count(),
-            'needs_raw' => $rows->where('state', 'needs_raw')->count(),
-            'in_progress' => $rows->where('state', 'in_progress')->count(),
-            'confirmed' => $rows->where('state', 'confirmed')->count(),
+            'all' => $allRows->count(),
+            'ready' => $allRows->where('state', 'ready')->count(),
+            'needs_raw' => $allRows->where('state', 'needs_raw')->count(),
+            'in_progress' => $allRows->where('state', 'in_progress')->count(),
+            'confirmed' => $allRows->where('state', 'confirmed')->count(),
         ];
+
+        $rows = $this->queueStatus === 'all'
+            ? $allRows
+            : $allRows->where('state', $this->queueStatus)->values();
 
         return view('Inventory::livewire.invoice-receiving-source-queue', [
             'rows' => $rows,
