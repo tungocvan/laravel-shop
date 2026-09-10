@@ -37,6 +37,10 @@ final class SourceDataManager extends Component
 
     public ?string $message = null;
 
+    public bool $saveModalOpen = false;
+
+    public array $saveModal = [];
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -109,6 +113,12 @@ final class SourceDataManager extends Component
         $this->resetPage();
     }
 
+    public function closeSaveModal(): void
+    {
+        $this->saveModalOpen = false;
+        $this->saveModal = [];
+    }
+
     public function saveAnnotation(int $sourceId): void
     {
         abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
@@ -145,12 +155,14 @@ final class SourceDataManager extends Component
 
             $updated = $query->update($attributes);
             $this->message = "Đã lưu quy tắc nhà cung cấp {$this->classificationLabel($classification)} và áp dụng cho {$updated} hóa đơn cùng MST {$taxCode}. Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.";
+            $this->showSaveModal($source, $classification, $note, true, $updated);
 
             return;
         }
 
         $source->forceFill($attributes)->save();
         $this->message = 'Đã cập nhật phân loại riêng cho hóa đơn #'.$source->invoice_id.'.';
+        $this->showSaveModal($source, $classification, $note, false, 1);
     }
 
     public function render()
@@ -292,6 +304,25 @@ final class SourceDataManager extends Component
         }
 
         return $period.' · '.$type;
+    }
+
+    private function showSaveModal(InvoiceSourceRecord $source, string $classification, string $note, bool $supplierWide, int $affected): void
+    {
+        $invoice = $source->invoice;
+
+        $this->saveModal = [
+            'invoice_number' => $invoice?->invoice_number ?: '—',
+            'symbol' => $invoice?->symbol ?: '—',
+            'issued_date' => $invoice?->issued_date?->format('d/m/Y') ?: '—',
+            'partner' => $invoice?->name ?: 'Không rõ nhà cung cấp',
+            'tax_code' => $invoice?->tax_code ?: '—',
+            'invoice_type' => $invoice?->invoice_type === 'sold' ? 'Bán ra' : 'Mua vào',
+            'classification' => $this->classificationLabel($classification),
+            'scope' => $supplierWide ? 'Toàn bộ nhà cung cấp cùng MST và cùng loại hóa đơn' : 'Chỉ hóa đơn này',
+            'affected' => $affected,
+            'note' => $note !== '' ? $note : 'Không có ghi chú',
+        ];
+        $this->saveModalOpen = true;
     }
 
     private function classificationLabel(string $classification): string
