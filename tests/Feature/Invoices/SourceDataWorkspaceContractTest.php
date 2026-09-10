@@ -47,6 +47,27 @@ class SourceDataWorkspaceContractTest extends TestCase
     }
 
     #[Test]
+    public function source_data_sort_defaults_to_supplier_and_supports_four_admin_modes(): void
+    {
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
+
+        $this->assertStringContainsString("public string \$sortBy = 'supplier_asc';", $component);
+        $this->assertStringContainsString('public function updatedSortBy(): void', $component);
+        $this->assertStringContainsString("['supplier_asc', 'supplier_desc', 'date_desc', 'date_asc']", $component);
+        $this->assertStringContainsString("\$this->sortBy = 'supplier_asc';", $component);
+        $this->assertStringContainsString('$this->applySort($recordsQuery);', $component);
+        $this->assertStringContainsString("select('name')->whereColumn('invoices.id', 'invoice_source_records.invoice_id')", $component);
+        $this->assertStringContainsString("select('tax_code')->whereColumn('invoices.id', 'invoice_source_records.invoice_id')", $component);
+        $this->assertStringContainsString("select('issued_date')->whereColumn('invoices.id', 'invoice_source_records.invoice_id')", $component);
+        $this->assertStringContainsString('wire:model.live="sortBy"', $view);
+        $this->assertStringContainsString('Nhà cung cấp A → Z', $view);
+        $this->assertStringContainsString('Nhà cung cấp Z → A', $view);
+        $this->assertStringContainsString('Ngày hóa đơn mới nhất', $view);
+        $this->assertStringContainsString('Ngày hóa đơn cũ nhất', $view);
+    }
+
+    #[Test]
     public function source_data_classification_filter_clears_stale_row_drafts_on_first_change(): void
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
