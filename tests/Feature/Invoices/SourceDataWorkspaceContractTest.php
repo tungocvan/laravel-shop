@@ -116,6 +116,21 @@ class SourceDataWorkspaceContractTest extends TestCase
     }
 
     #[Test]
+    public function supplier_batch_checkbox_state_is_isolated_to_explicit_source_rows(): void
+    {
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+
+        $this->assertStringContainsString('public array $supplierBatchIds = [];', $component);
+        $this->assertStringContainsString('public function updatedApplySameTaxCode(mixed $value, string|int $sourceId): void', $component);
+        $this->assertStringContainsString('$this->applySameTaxCode = [];', $component);
+        $this->assertStringContainsString('$this->applySameTaxCode[$selectedId] = true;', $component);
+        $this->assertStringContainsString('public function clearSupplierBatchSelection(): void', $component);
+        $this->assertStringContainsString('$selectedIds = collect($this->supplierBatchIds)', $component);
+        $this->assertStringContainsString('$applySupplierWide = in_array($sourceId, array_map(\'intval\', $this->supplierBatchIds), true);', $component);
+        $this->assertStringNotContainsString('$this->applySameTaxCode[$record->id] ??= $record->classification_scope === \'SUPPLIER\';', $component);
+    }
+
+    #[Test]
     public function source_data_keeps_backend_classification_and_supplier_scope_contract(): void
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
