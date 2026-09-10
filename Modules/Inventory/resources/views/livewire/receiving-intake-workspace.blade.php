@@ -2,21 +2,31 @@
     @if($message)<div class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ $message }}</div>@endif
     @if($error)<div class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">{{ $error }}</div>@endif
 
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        @foreach([['Hóa đơn đã staging',$stats['snapshots']],['Đã chuẩn hóa',$stats['normalized']],['Dòng hàng',$stats['lines']],['Lỗi cần xử lý',$stats['errors']]] as [$label,$value])
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        @foreach([
+            ['RAW sẵn sàng',$stats['raw_ready']],
+            ['RAW còn thiếu',$stats['raw_missing']],
+            ['Hóa đơn đã staging',$stats['snapshots']],
+            ['Đã chuẩn hóa',$stats['normalized']],
+            ['Dòng hàng',$stats['lines']],
+            ['Lỗi cần xử lý',$stats['errors']],
+        ] as [$label,$value])
             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</div><div class="mt-2 text-2xl font-bold text-slate-900">{{ number_format($value) }}</div></div>
         @endforeach
     </div>
 
     <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-200 p-5"><h2 class="text-lg font-bold text-slate-900">Trung tâm tiếp nhận & chuẩn hóa nhập kho</h2><p class="mt-1 text-sm text-slate-500">Invoices sở hữu RAW GDT detail. Inventory chỉ nhận dữ liệu đã chuẩn hóa để review và tạo DRAFT; không tự động cộng tồn.</p></div>
+        <div class="flex flex-col gap-3 border-b border-slate-200 p-5 lg:flex-row lg:items-start lg:justify-between">
+            <div><h2 class="text-lg font-bold text-slate-900">Trung tâm chuẩn hóa nhập kho</h2><p class="mt-1 max-w-4xl text-sm leading-6 text-slate-500">Invoices sở hữu RAW GDT canonical. Inventory chỉ đọc RAW đã lưu trên server để chuẩn hóa, review và tạo DRAFT; màn hình này không gọi GDT và không tự động cộng tồn.</p></div>
+            <a href="{{ route('admin.invoices.hoadon') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700">Đồng bộ nguồn tại Invoices</a>
+        </div>
         <div class="grid gap-4 p-5 md:grid-cols-4">
             <label class="text-sm font-medium text-slate-700">Từ ngày<input type="date" wire:model="fromDate" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3"></label>
             <label class="text-sm font-medium text-slate-700">Đến ngày<input type="date" wire:model="toDate" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3"></label>
             <label class="text-sm font-medium text-slate-700">Batch size<select wire:model="batchSize" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3"><option>50</option><option>100</option><option>200</option><option>500</option></select></label>
-            <div class="flex items-end"><button type="button" wire:click="dispatchIntake" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">Đồng bộ & chuẩn hóa</button></div>
+            <div class="flex items-end"><button type="button" wire:click="dispatchIntake" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">Chuẩn hóa RAW đã lưu</button></div>
         </div>
-        <div class="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-600">1. Tải chi tiết → 2. Chuẩn hóa → 3. Chọn hóa đơn → 4. Publish Inbox / Review ngoại lệ → 5. Tạo Receipt DRAFT → 6. Người dùng xác nhận nhập kho.</div>
+        <div class="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-600">1. Invoices lấy & lưu RAW GDT → 2. Inventory chuẩn hóa local → 3. Chọn hóa đơn → 4. Publish Inbox / Review ngoại lệ → 5. Tạo Receipt DRAFT → 6. Người dùng xác nhận nhập kho.</div>
     </section>
 
     <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
