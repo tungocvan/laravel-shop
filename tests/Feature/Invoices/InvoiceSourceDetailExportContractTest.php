@@ -22,7 +22,7 @@ class InvoiceSourceDetailExportContractTest extends TestCase
         $this->assertStringContainsString('Chọn xuất Excel', $shell);
         $this->assertStringContainsString('Chọn tất cả trang', $shell);
         $this->assertStringContainsString('Xuất Excel theo bộ lọc', $shell);
-        $this->assertStringContainsString('button.textContent = `Xuất ${selected.size} hóa đơn đã chọn`;', $shell);
+        $this->assertStringContainsString('button.textContent = count > 0 ? `Xuất ${count} hóa đơn đã chọn` : \'Xuất Excel theo bộ lọc\';', $shell);
         $this->assertStringContainsString("hidden.name = 'source_ids[]';", $shell);
         $this->assertStringContainsString('name="year"', $shell);
         $this->assertStringContainsString('name="month"', $shell);
@@ -37,6 +37,23 @@ class InvoiceSourceDetailExportContractTest extends TestCase
         $this->assertStringContainsString("\$selectedIds = collect((array) \$request->input('source_ids', []))", $controller);
         $this->assertStringContainsString('if ($selectedIds->isNotEmpty())', $controller);
         $this->assertStringContainsString("->whereIn('id', \$selectedIds)", $controller);
+    }
+
+    #[Test]
+    public function source_data_export_shows_completion_modal_and_resets_successful_selection(): void
+    {
+        $shell = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager-shell.blade.php'));
+
+        $this->assertStringContainsString('data-source-export-modal', $shell);
+        $this->assertStringContainsString('Đã xuất dữ liệu thành công', $shell);
+        $this->assertStringContainsString('Các checkbox hóa đơn đã xuất đã được bỏ chọn', $shell);
+        $this->assertStringContainsString('event.preventDefault();', $shell);
+        $this->assertStringContainsString('const response = await fetch(form.action', $shell);
+        $this->assertStringContainsString('const blob = await response.blob();', $shell);
+        $this->assertStringContainsString('link.download = filename;', $shell);
+        $this->assertStringContainsString('state.selected.clear();', $shell);
+        $this->assertStringContainsString('if (root) syncCheckboxes(root);', $shell);
+        $this->assertStringContainsString("showModal(root, 'Có lỗi khi tạo hoặc tải file Excel. Vui lòng thử lại.', true);", $shell);
     }
 
     #[Test]
