@@ -45,8 +45,9 @@ class InventoryBatchCInvoiceIntegrationContractTest extends TestCase
         $this->assertStringContainsString("'UNRESOLVED'", $matching);
         $this->assertStringContainsString('markNonStock', $workspace);
         $this->assertStringContainsString('beginCreateItem', $workspace);
-        $this->assertStringContainsString('saveCreatedItem', $workspace);
+        $this->assertStringContainsString('saveStandaloneItem', $workspace);
         $this->assertStringContainsString('itemForm', $workspace);
+        $this->assertStringContainsString("'creation_mode' => 'explicit_admin_review'", $workspace);
         $this->assertStringNotContainsString('createStandaloneItem', $workspace);
         $this->assertStringNotContainsString('firstOrCreate([\'sku\' => \'INV-LINE-\'', $workspace);
         $this->assertStringNotContainsString('fuzzy', strtolower($matching));
