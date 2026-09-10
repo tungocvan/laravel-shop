@@ -11,6 +11,7 @@ final class InvoiceLineStockClassifier
     {
         $metadata ??= [];
         $raw = is_array($metadata['raw_gdt_line'] ?? null) ? $metadata['raw_gdt_line'] : [];
+        $sourceBusinessClassification = strtoupper(trim((string) ($metadata['source_business_classification'] ?? 'UNCLASSIFIED')));
 
         $categoryCode = $this->firstString($raw, [
             'InventoryItemCategoryCode',
@@ -32,27 +33,64 @@ final class InvoiceLineStockClassifier
 
         $nonStockEvidence = $this->nonStockEvidence($normalizedDescription, $normalizedCategory, $normalizedCode);
         if ($nonStockEvidence !== null) {
-            return $this->result('NON_STOCK', $nonStockEvidence['reason'], $nonStockEvidence['evidence']);
+            return $this->result('NON_STOCK', $nonStockEvidence['reason'], array_merge(
+                $nonStockEvidence['evidence'],
+                ['source_business_classification' => $sourceBusinessClassification],
+            ));
         }
 
+        $strongStockEvidence = null;
         if ($normalizedCode === 'HH' || in_array($normalizedCategory, ['hang hoa', 'goods'], true)) {
-            return $this->result('STOCK', 'gdt_goods_category', array_filter([
-                'category_code' => $categoryCode,
-                'category_name' => $categoryName,
-                'uom' => $uom,
-            ], fn (mixed $value): bool => $value !== null && $value !== ''));
-        }
-
-        if ($normalizedUom !== '' && in_array($normalizedUom, [
+            $strongStockEvidence = [
+                'reason' => 'gdt_goods_category',
+                'evidence' => array_filter([
+                    'category_code' => $categoryCode,
+                    'category_name' => $categoryName,
+                    'uom' => $uom,
+                ], fn (mixed $value): bool => $value !== null && $value !== ''),
+            ];
+        } elseif ($normalizedUom !== '' && in_array($normalizedUom, [
             'hop', 'chai', 'lo', 'vien', 'goi', 'ong', 'tuyp', 'kg', 'g', 'mg', 'ml', 'lit', 'cai', 'bo', 'thung', 'kien',
         ], true)) {
-            return $this->result('STOCK', 'physical_goods_uom', ['uom' => $uom]);
+            $strongStockEvidence = [
+                'reason' => 'physical_goods_uom',
+                'evidence' => ['uom' => $uom],
+            ];
+        }
+
+        if ($sourceBusinessClassification === 'SERVICE_EXPENSE') {
+            if ($strongStockEvidence !== null) {
+                return $this->result('UNRESOLVED', 'source_annotation_conflicts_with_stock_evidence', array_merge(
+                    $strongStockEvidence['evidence'],
+                    ['source_business_classification' => $sourceBusinessClassification],
+                ));
+            }
+
+            return $this->result('NON_STOCK', 'admin_source_service_expense', [
+                'source_business_classification' => $sourceBusinessClassification,
+                'source_business_note' => $metadata['source_business_note'] ?? null,
+            ]);
+        }
+
+        if ($strongStockEvidence !== null) {
+            return $this->result('STOCK', $strongStockEvidence['reason'], array_merge(
+                $strongStockEvidence['evidence'],
+                ['source_business_classification' => $sourceBusinessClassification],
+            ));
+        }
+
+        if ($sourceBusinessClassification === 'GOODS') {
+            return $this->result('STOCK', 'admin_source_goods', [
+                'source_business_classification' => $sourceBusinessClassification,
+                'source_business_note' => $metadata['source_business_note'] ?? null,
+            ]);
         }
 
         return $this->result('UNRESOLVED', 'insufficient_deterministic_evidence', array_filter([
             'category_code' => $categoryCode,
             'category_name' => $categoryName,
             'uom' => $uom,
+            'source_business_classification' => $sourceBusinessClassification,
         ], fn (mixed $value): bool => $value !== null && $value !== ''));
     }
 
@@ -118,7 +156,7 @@ final class InvoiceLineStockClassifier
             'classification' => $classification,
             'reason' => $reason,
             'evidence' => $evidence,
-            'classifier' => 'deterministic-v1',
+            'classifier' => 'deterministic-v2',
         ];
     }
 
