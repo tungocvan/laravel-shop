@@ -36,50 +36,18 @@ final class InvoiceInventoryStagingService
         }
 
         try {
-            if (! $refresh
-                && $snapshot->normalizer_version !== $normalizerVersion
-                && $this->hasUsableRawPayload($snapshot)) {
-                return $this->normalizeSnapshot(
-                    snapshot: $snapshot,
-                    detail: $snapshot->raw_payload,
-                    normalizerVersion: $normalizerVersion,
-                    fetchedNow: false,
+            $detail = $this->gdtDetailService->storedDetail($invoice);
+            if ($detail === null) {
+                throw new DomainException(
+                    'Chưa có RAW GDT detail trên server. Hãy đồng bộ hóa đơn mua vào tại Modules\\Invoices trước khi chuẩn hóa Inventory.'
                 );
-            }
-
-            $snapshot->forceFill([
-                'status' => 'FETCHING',
-                'attempt_count' => ((int) $snapshot->attempt_count) + 1,
-                'last_attempt_at' => now(),
-                'last_error' => null,
-            ])->save();
-
-            $detail = $this->gdtDetailService->fetchDetail($invoice);
-            $rawLines = $this->rawLines($detail);
-
-            if ($rawLines === []) {
-                throw new DomainException('GDT không trả chi tiết hàng hóa cho hóa đơn này.');
-            }
-
-            $hash = $this->payloadHash($detail);
-
-            if ($snapshot->payload_hash === $hash
-                && $snapshot->normalized_at !== null
-                && $snapshot->normalizer_version === $normalizerVersion) {
-                $snapshot->forceFill([
-                    'status' => 'NORMALIZED',
-                    'fetched_at' => now(),
-                    'last_error' => null,
-                ])->save();
-
-                return $snapshot->fresh('lines');
             }
 
             return $this->normalizeSnapshot(
                 snapshot: $snapshot,
                 detail: $detail,
                 normalizerVersion: $normalizerVersion,
-                fetchedNow: true,
+                fetchedNow: false,
             );
         } catch (Throwable $exception) {
             $snapshot->forceFill([
@@ -164,15 +132,6 @@ final class InvoiceInventoryStagingService
 
             return $snapshot->fresh('lines');
         });
-    }
-
-    private function hasUsableRawPayload(InvoiceInventorySnapshot $snapshot): bool
-    {
-        if (! is_array($snapshot->raw_payload)) {
-            return false;
-        }
-
-        return $this->rawLines($snapshot->raw_payload) !== [];
     }
 
     private function rawLines(array $detail): array
