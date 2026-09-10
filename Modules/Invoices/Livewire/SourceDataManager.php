@@ -13,6 +13,8 @@ final class SourceDataManager extends Component
 
     public string $search = '';
 
+    public string $partner = '';
+
     public string $year = 'all';
 
     public string $month = 'all';
@@ -34,6 +36,11 @@ final class SourceDataManager extends Component
     public ?string $message = null;
 
     public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPartner(): void
     {
         $this->resetPage();
     }
@@ -89,12 +96,14 @@ final class SourceDataManager extends Component
     public function resetFilters(): void
     {
         $this->search = '';
+        $this->partner = '';
         $this->year = 'all';
         $this->month = 'all';
         $this->invoiceType = 'purchase';
         $this->detailStatus = 'all';
         $this->businessClassification = 'all';
         $this->perPage = 25;
+        $this->dispatch('filters-reset');
         $this->resetPage();
     }
 
@@ -151,8 +160,7 @@ final class SourceDataManager extends Component
             $this->perPage = 25;
         }
 
-        $query = InvoiceSourceRecord::query()
-            ->with('invoice:id,lookup_code,symbol,invoice_number,issued_date,tax_code,name,invoice_type')
+        $scopeQuery = InvoiceSourceRecord::query()
             ->whereHas('invoice', function ($query): void {
                 if (in_array($this->invoiceType, ['purchase', 'sold'], true)) {
                     $query->where('invoice_type', $this->invoiceType);
@@ -166,22 +174,28 @@ final class SourceDataManager extends Component
                     $query->whereMonth('issued_date', (int) $this->month);
                 }
 
+                $partner = trim($this->partner);
+                if ($partner !== '') {
+                    $query->where('name', $partner);
+                }
+
                 $search = trim($this->search);
                 if ($search !== '') {
                     $query->where(function ($query) use ($search): void {
                         $query->where('invoice_number', 'like', "%{$search}%")
                             ->orWhere('symbol', 'like', "%{$search}%")
                             ->orWhere('tax_code', 'like', "%{$search}%")
-                            ->orWhere('name', 'like', "%{$search}%")
                             ->orWhere('lookup_code', 'like', "%{$search}%");
                     });
                 }
-            })
+            });
+
+        $records = (clone $scopeQuery)
+            ->with('invoice:id,lookup_code,symbol,invoice_number,issued_date,tax_code,name,invoice_type')
             ->when($this->detailStatus !== 'all', fn ($query) => $query->where('detail_status', $this->detailStatus))
             ->when($this->businessClassification !== 'all', fn ($query) => $query->where('business_classification', $this->businessClassification))
-            ->latest('id');
-
-        $records = $query->paginate($this->perPage);
+            ->latest('id')
+            ->paginate($this->perPage);
 
         foreach ($records as $record) {
             $this->businessClassifications[$record->id] ??= $record->business_classification;
@@ -190,10 +204,10 @@ final class SourceDataManager extends Component
         }
 
         $stats = [
-            'total' => InvoiceSourceRecord::query()->count(),
-            'detail_ready' => InvoiceSourceRecord::query()->where('detail_status', 'READY')->count(),
-            'detail_missing' => InvoiceSourceRecord::query()->whereIn('detail_status', ['MISSING', 'ERROR'])->count(),
-            'unclassified' => InvoiceSourceRecord::query()->where('business_classification', 'UNCLASSIFIED')->count(),
+            'total' => (clone $scopeQuery)->count(),
+            'detail_ready' => (clone $scopeQuery)->where('detail_status', 'READY')->count(),
+            'detail_missing' => (clone $scopeQuery)->whereIn('detail_status', ['MISSING', 'ERROR'])->count(),
+            'unclassified' => (clone $scopeQuery)->where('business_classification', 'UNCLASSIFIED')->count(),
         ];
 
         $availableYears = Invoices::query()
@@ -207,10 +221,25 @@ final class SourceDataManager extends Component
             ->values()
             ->all();
 
+        $partnerList = Invoices::query()
+            ->whereHas('sourceRecord')
+            ->whereNotNull('name')
+            ->where('name', '!=', '')
+            ->when(in_array($this->invoiceType, ['purchase', 'sold'], true), fn ($query) => $query->where('invoice_type', $this->invoiceType))
+            ->when($this->year !== 'all', fn ($query) => $query->whereYear('issued_date', (int) $this->year))
+            ->when($this->month !== 'all', fn ($query) => $query->whereMonth('issued_date', (int) $this->month))
+            ->distinct()
+            ->orderBy('name')
+            ->pluck('name')
+            ->values()
+            ->all();
+
         return view('Invoices::livewire.source-data-manager', [
             'records' => $records,
             'stats' => $stats,
+            'statsScopeLabel' => $this->statsScopeLabel(),
             'availableYears' => $availableYears,
+            'partnerList' => $partnerList,
             'classificationOptions' => InvoiceSourceRecord::CLASSIFICATIONS,
         ]);
     }
@@ -239,6 +268,28 @@ final class SourceDataManager extends Component
         if ($month === false || $month < 1 || $month > 12) {
             $this->month = 'all';
         }
+    }
+
+    private function statsScopeLabel(): string
+    {
+        $period = match (true) {
+            $this->month !== 'all' && $this->year !== 'all' => 'Tháng '.str_pad($this->month, 2, '0', STR_PAD_LEFT).'/'.$this->year,
+            $this->month !== 'all' => 'Tháng '.str_pad($this->month, 2, '0', STR_PAD_LEFT).' · tất cả các năm',
+            $this->year !== 'all' => 'Năm '.$this->year,
+            default => 'Tất cả kỳ dữ liệu',
+        };
+
+        $type = match ($this->invoiceType) {
+            'purchase' => 'Mua vào',
+            'sold' => 'Bán ra',
+            default => 'Tất cả loại',
+        };
+
+        if ($this->partner !== '') {
+            return $period.' · '.$type.' · '.$this->partner;
+        }
+
+        return $period.' · '.$type;
     }
 
     private function classificationLabel(string $classification): string
