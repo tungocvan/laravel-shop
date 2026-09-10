@@ -11,7 +11,7 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Invoices · Nguồn canonical</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Dữ liệu nguồn GDT</h1>
-                <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Quản trị dữ liệu canonical đã lấy và lưu từ GDT, gồm header, chi tiết nguồn và phân loại nghiệp vụ. Màn hình này chỉ đọc dữ liệu nguồn đã lưu và không phát sinh yêu cầu tới GDT.</p>
+                <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Quản trị dữ liệu canonical đã lấy và lưu từ GDT, gồm header, chi tiết nguồn, phân loại nghiệp vụ và phân loại chi phí cấp 2. Màn hình này chỉ đọc dữ liệu nguồn đã lưu và không phát sinh yêu cầu tới GDT.</p>
             </div>
             <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 @if (Route::has('admin.inventory.invoice-inbox'))
@@ -23,11 +23,20 @@
         </div>
     </header>
 
+    <div class="rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm text-amber-950 sm:px-5">
+        <span class="font-semibold">Phân loại chi phí:</span>
+        Khi chọn Dịch vụ / Chi phí, có thể chọn tiếp danh mục chi phí cấp 2 từ Master Data. Danh mục này có thể mở rộng về sau mà không thay cấu trúc hóa đơn nguồn.
+    </div>
+
     <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-900 sm:px-5">
         <span class="font-semibold">Quy trình tiếp theo:</span>
         Hóa đơn mua vào đã phân loại Hàng hóa/Hỗn hợp được review tại Inventory Inbox → matching mặt hàng → chọn kho → tạo phiếu nhập DRAFT → xác nhận phiếu mới phát sinh tồn kho.
     </div>
 
-    <livewire:invoices.source-data-manager :year="now()->format('Y')" :month="now()->format('n')" />
+    <livewire:invoices.source-data-manager
+        :year="request('year', now()->format('Y'))"
+        :month="request('month', now()->format('n'))"
+        :business-classification="request('businessClassification', 'all')"
+    />
 </div>
 @endsection
