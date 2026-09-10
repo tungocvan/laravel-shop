@@ -25,16 +25,20 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
     }
 
     #[Test]
-    public function stock_lines_can_review_receiving_fields_before_draft_creation(): void
+    public function stock_lines_validate_required_receiving_fields_before_draft_creation(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
 
         $this->assertStringContainsString('public array $receivingReview = [];', $component);
         $this->assertStringContainsString('saveReceivingReview', $component);
-        $this->assertStringContainsString("'mode' => 'explicit_admin_review'", $component);
-        $this->assertStringContainsString('Mặt hàng theo dõi HSD: cần nhập hạn dùng trước khi tạo DRAFT.', $component);
-        $this->assertStringContainsString('Mặt hàng theo dõi lô: cần nhập số lô trước khi tạo DRAFT.', $component);
+        $this->assertStringContainsString('validateReceivingReview', $component);
+        $this->assertStringContainsString('persistReceivingReview', $component);
+        $this->assertStringContainsString("$item->lot_tracking ? 'required' : 'nullable'", $component);
+        $this->assertStringContainsString("$item->expiry_tracking ? 'required' : 'nullable'", $component);
+        $this->assertStringContainsString('Vui lòng nhập số lô', $component);
+        $this->assertStringContainsString('Vui lòng nhập HSD', $component);
+        $this->assertStringContainsString('Hãy chọn kho nhận trước khi tạo phiếu nhập DRAFT.', $component);
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.base_quantity', $view);
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.base_uom', $view);
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.conversion_factor', $view);
@@ -42,6 +46,27 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.manufacture_date', $view);
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.expiry_date', $view);
         $this->assertStringContainsString('Lưu review dòng', $view);
+    }
+
+    #[Test]
+    public function item_mapping_accepts_livewire_string_values_without_type_error(): void
+    {
+        $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
+
+        $this->assertStringContainsString('public function assignLine(int $lineId, $itemId = null): void', $component);
+        $this->assertStringContainsString("trim((string) $itemId) === ''", $component);
+        $this->assertStringContainsString('ctype_digit((string) $itemId)', $component);
+        $this->assertStringContainsString('$itemId = (int) $itemId;', $component);
+    }
+
+    #[Test]
+    public function validation_errors_are_user_facing_instead_of_reported_as_system_failures(): void
+    {
+        $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
+
+        $this->assertStringContainsString('catch (ValidationException $exception)', $component);
+        $this->assertStringContainsString('collect($exception->errors())->flatten()->first()', $component);
+        $this->assertStringContainsString('Dữ liệu chưa hợp lệ. Vui lòng kiểm tra lại các trường bắt buộc.', $component);
     }
 
     #[Test]
