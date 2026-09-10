@@ -42,10 +42,11 @@ final class InvoiceSourceDetailExportService
         return $sources->flatMap(function (InvoiceSourceRecord $source): array {
             $details = collect($source->detail_payload['hdhhdvu'] ?? [])
                 ->filter(fn ($item) => is_array($item))
+                ->filter(fn (array $item) => $this->hasExportableAmount($item))
                 ->values();
 
             if ($details->isEmpty()) {
-                return [$this->row($source, null)];
+                return [];
             }
 
             return $details
@@ -54,7 +55,24 @@ final class InvoiceSourceDetailExportService
         })->values();
     }
 
-    private function row(InvoiceSourceRecord $source, ?array $detail): array
+    private function hasExportableAmount(array $detail): bool
+    {
+        $amount = Arr::get($detail, 'thtien');
+
+        if ($amount === null || $amount === '') {
+            return false;
+        }
+
+        if (is_numeric($amount)) {
+            return (float) $amount != 0.0;
+        }
+
+        $normalized = str_replace([',', ' '], '', (string) $amount);
+
+        return ! is_numeric($normalized) || (float) $normalized != 0.0;
+    }
+
+    private function row(InvoiceSourceRecord $source, array $detail): array
     {
         $invoice = $source->invoice;
 
@@ -73,12 +91,12 @@ final class InvoiceSourceDetailExportService
             'Tiền VAT' => $invoice?->vat_amount,
             'Tiền trước VAT' => $invoice?->amount_before_vat,
             'Tổng thanh toán' => $invoice?->total_amount,
-            'Chi tiết - ten' => $detail === null ? null : $this->excelValue(Arr::get($detail, 'ten')),
-            'Chi tiết - dgia' => $detail === null ? null : $this->excelValue(Arr::get($detail, 'dgia')),
-            'Chi tiết - dvtinh' => $detail === null ? null : $this->excelValue(Arr::get($detail, 'dvtinh')),
-            'Chi tiết - ltsuat' => $detail === null ? null : $this->excelValue(Arr::get($detail, 'ltsuat')),
-            'Chi tiết - sluong' => $detail === null ? null : $this->excelValue(Arr::get($detail, 'sluong')),
-            'Chi tiết - thtien' => $detail === null ? null : $this->excelValue(Arr::get($detail, 'thtien')),
+            'Chi tiết - ten' => $this->excelValue(Arr::get($detail, 'ten')),
+            'Chi tiết - dgia' => $this->excelValue(Arr::get($detail, 'dgia')),
+            'Chi tiết - dvtinh' => $this->excelValue(Arr::get($detail, 'dvtinh')),
+            'Chi tiết - ltsuat' => $this->excelValue(Arr::get($detail, 'ltsuat')),
+            'Chi tiết - sluong' => $this->excelValue(Arr::get($detail, 'sluong')),
+            'Chi tiết - thtien' => $this->excelValue(Arr::get($detail, 'thtien')),
         ];
     }
 
