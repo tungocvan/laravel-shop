@@ -14,15 +14,6 @@ final class InvoiceSourceRecord extends Model
         'MIXED',
     ];
 
-    public const EXPENSE_CLASSIFICATIONS = [
-        'SERVICE',
-        'TOOL_EQUIPMENT',
-        'FIXED_ASSET',
-        'TAX_FEE',
-        'FINANCE_INTEREST',
-        'OTHER_EXPENSE',
-    ];
-
     public const CLASSIFICATION_SCOPES = [
         'INVOICE',
         'SUPPLIER',
@@ -45,7 +36,7 @@ final class InvoiceSourceRecord extends Model
         'business_note',
         'classified_by',
         'classified_at',
-        'expense_classification',
+        'expense_category_id',
         'expense_note',
         'expense_classified_by',
         'expense_classified_at',
@@ -95,7 +86,7 @@ final class InvoiceSourceRecord extends Model
             $record->classified_at = $supplierRule->classified_at;
 
             if ($supplierRule->business_classification === 'SERVICE_EXPENSE') {
-                $record->expense_classification = $supplierRule->expense_classification;
+                $record->expense_category_id = $supplierRule->expense_category_id;
                 $record->expense_note = $supplierRule->expense_note;
                 $record->expense_classified_by = $supplierRule->expense_classified_by;
                 $record->expense_classified_at = $supplierRule->expense_classified_at;
@@ -106,6 +97,11 @@ final class InvoiceSourceRecord extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoices::class, 'invoice_id');
+    }
+
+    public function expenseCategory(): BelongsTo
+    {
+        return $this->belongsTo(InvoiceExpenseCategory::class, 'expense_category_id');
     }
 
     public function hasUsableDetail(): bool
