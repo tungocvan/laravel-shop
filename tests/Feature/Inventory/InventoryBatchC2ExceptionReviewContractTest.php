@@ -41,12 +41,13 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
 
-        $this->assertStringContainsString('Chọn tất cả UNRESOLVED', $view);
-        $this->assertStringContainsString('Mapping hàng loạt', $view);
-        $this->assertStringContainsString('Đánh dấu NON_STOCK', $view);
+        $this->assertStringContainsString('wire:click="selectAllUnresolved"', $view);
+        $this->assertStringContainsString('wire:click="bulkAssignSelected"', $view);
+        $this->assertStringContainsString('wire:click="bulkMarkNonStock"', $view);
         $this->assertStringContainsString('wire:model="selectedLineIds"', $view);
         $this->assertStringContainsString('wire:model="bulkItemId"', $view);
-        $this->assertStringContainsString('trạng thái tự chuyển READY', $view);
+        $this->assertStringContainsString('Tạo phiếu nhập DRAFT', $view);
+        $this->assertStringContainsString('DRAFT không thay đổi tồn kho', $view);
         $this->assertStringNotContainsString('ReceiptPostingService', $view);
     }
 
