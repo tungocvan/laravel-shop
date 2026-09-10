@@ -8,6 +8,7 @@ use Livewire\WithPagination;
 use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Models\InvoiceExpenseCategory;
 use Modules\Invoices\Models\InvoiceSourceRecord;
+use Modules\Invoices\Services\InvoiceSourceDetailExportService;
 
 final class SourceDataManager extends Component
 {
@@ -29,6 +30,9 @@ final class SourceDataManager extends Component
     public array $expenseNotes = [];
     public array $applySameTaxCode = [];
     public array $supplierBatchIds = [];
+    public bool $exportAll = true;
+    public bool $exportPurchase = false;
+    public bool $exportSold = false;
     public ?string $message = null;
     public bool $saveModalOpen = false;
     public array $saveModal = [];
@@ -132,6 +136,54 @@ final class SourceDataManager extends Component
         $this->resetPage();
     }
 
+    public function updatedExportAll(bool $value): void
+    {
+        if ($value) {
+            $this->exportPurchase = false;
+            $this->exportSold = false;
+        }
+    }
+
+    public function updatedExportPurchase(bool $value): void
+    {
+        if ($value) {
+            $this->exportAll = false;
+        }
+        $this->normalizeExportTypes();
+    }
+
+    public function updatedExportSold(bool $value): void
+    {
+        if ($value) {
+            $this->exportAll = false;
+        }
+        $this->normalizeExportTypes();
+    }
+
+    public function exportSourceDetail(InvoiceSourceDetailExportService $exporter)
+    {
+        abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
+
+        $types = $this->selectedExportTypes();
+        $sources = $this->sourceScopeQuery($types)
+            ->with(['invoice', 'expenseCategory:id,code,name,parent_id'])
+            ->orderBy(
+                Invoices::query()->select('issued_date')->whereColumn('invoices.id', 'invoice_source_records.invoice_id')->limit(1),
+            )
+            ->orderBy('invoice_source_records.id')
+            ->get();
+
+        if ($sources->isEmpty()) {
+            $this->message = 'Không có hóa đơn phù hợp phạm vi xuất Excel.';
+            return null;
+        }
+
+        $typeLabel = $this->exportAll || count($types) === 2 ? 'tat-ca' : ($types[0] === 'sold' ? 'ban-ra' : 'mua-vao');
+        $period = ($this->year === 'all' ? 'all-years' : $this->year).'-'.($this->month === 'all' ? 'all-months' : str_pad($this->month, 2, '0', STR_PAD_LEFT));
+
+        return $exporter->download($sources, "hoa-don-chi-tiet-{$typeLabel}-{$period}.xlsx");
+    }
+
     public function updatedApplySameTaxCode(mixed $value, string|int $sourceId): void
     {
         $sourceId = (int) $sourceId;
@@ -204,6 +256,7 @@ final class SourceDataManager extends Component
         $now = now();
         $affected = InvoiceSourceRecord::query()
             ->where('provider', 'gdt')
+            ->where('business_classification', 'UNCLASSIFIED')
             ->whereHas('invoice', fn ($query) => $query
                 ->where('invoice_type', 'sold')
                 ->whereYear('issued_date', (int) $this->year)
@@ -225,7 +278,7 @@ final class SourceDataManager extends Component
         $this->expenseNotes = [];
         $this->clearSupplierBatchSelection();
         $this->message = sprintf(
-            'Đã áp dụng phân loại Hàng hóa cho %d hóa đơn bán ra của tháng %02d/%d. Bạn vẫn có thể đổi lại từng hóa đơn khi cần.',
+            'Đã áp dụng phân loại Hàng hóa cho %d hóa đơn bán ra chưa phân loại của tháng %02d/%d. Các hóa đơn đã phân loại trước đó được giữ nguyên.',
             $affected,
             (int) $this->month,
             (int) $this->year,
@@ -373,30 +426,7 @@ final class SourceDataManager extends Component
             $this->perPage = 25;
         }
 
-        $scopeQuery = InvoiceSourceRecord::query()->whereHas('invoice', function ($query): void {
-            if (in_array($this->invoiceType, ['purchase', 'sold'], true)) {
-                $query->where('invoice_type', $this->invoiceType);
-            }
-            if ($this->year !== 'all') {
-                $query->whereYear('issued_date', (int) $this->year);
-            }
-            if ($this->month !== 'all') {
-                $query->whereMonth('issued_date', (int) $this->month);
-            }
-            $partner = trim($this->partner);
-            if ($partner !== '') {
-                $query->where('name', $partner);
-            }
-            $search = trim($this->search);
-            if ($search !== '') {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('invoice_number', 'like', "%{$search}%")
-                        ->orWhere('symbol', 'like', "%{$search}%")
-                        ->orWhere('tax_code', 'like', "%{$search}%")
-                        ->orWhere('lookup_code', 'like', "%{$search}%");
-                });
-            }
-        });
+        $scopeQuery = $this->sourceScopeQuery(in_array($this->invoiceType, ['purchase', 'sold'], true) ? [$this->invoiceType] : ['purchase', 'sold'], false);
 
         $recordsQuery = (clone $scopeQuery)
             ->with(['invoice:id,lookup_code,symbol,invoice_number,issued_date,tax_code,name,invoice_type', 'expenseCategory:id,code,name,parent_id'])
@@ -451,6 +481,56 @@ final class SourceDataManager extends Component
             'expenseCategories' => $expenseCategories,
             'supplierBatchCount' => count($this->supplierBatchIds),
         ]);
+    }
+
+    private function sourceScopeQuery(array $invoiceTypes, bool $withSecondaryFilters = true)
+    {
+        return InvoiceSourceRecord::query()
+            ->where('provider', 'gdt')
+            ->whereHas('invoice', function ($query) use ($invoiceTypes): void {
+                $query->whereIn('invoice_type', $invoiceTypes);
+                if ($this->year !== 'all') {
+                    $query->whereYear('issued_date', (int) $this->year);
+                }
+                if ($this->month !== 'all') {
+                    $query->whereMonth('issued_date', (int) $this->month);
+                }
+                $partner = trim($this->partner);
+                if ($partner !== '') {
+                    $query->where('name', $partner);
+                }
+                $search = trim($this->search);
+                if ($search !== '') {
+                    $query->where(function ($query) use ($search): void {
+                        $query->where('invoice_number', 'like', "%{$search}%")
+                            ->orWhere('symbol', 'like', "%{$search}%")
+                            ->orWhere('tax_code', 'like', "%{$search}%")
+                            ->orWhere('lookup_code', 'like', "%{$search}%");
+                    });
+                }
+            })
+            ->when($withSecondaryFilters && $this->detailStatus !== 'all', fn ($query) => $query->where('detail_status', $this->detailStatus))
+            ->when($withSecondaryFilters && $this->businessClassification !== 'all', fn ($query) => $query->where('business_classification', $this->businessClassification));
+    }
+
+    private function selectedExportTypes(): array
+    {
+        $this->normalizeExportTypes();
+        if ($this->exportAll) {
+            return ['purchase', 'sold'];
+        }
+
+        return array_values(array_filter([
+            $this->exportPurchase ? 'purchase' : null,
+            $this->exportSold ? 'sold' : null,
+        ]));
+    }
+
+    private function normalizeExportTypes(): void
+    {
+        if (! $this->exportAll && ! $this->exportPurchase && ! $this->exportSold) {
+            $this->exportAll = true;
+        }
     }
 
     private function applySort($query): void
