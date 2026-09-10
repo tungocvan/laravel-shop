@@ -190,6 +190,49 @@ final class SourceDataManager extends Component
         $this->detailModal = [];
     }
 
+    public function applySoldMonthAsGoods(): void
+    {
+        abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
+
+        $this->normalizeYear();
+        $this->normalizeMonth();
+        if ($this->invoiceType !== 'sold' || $this->year === 'all' || $this->month === 'all') {
+            $this->message = 'Hãy chọn một năm, một tháng cụ thể và loại hóa đơn Bán ra trước khi áp dụng hàng loạt.';
+            return;
+        }
+
+        $now = now();
+        $affected = InvoiceSourceRecord::query()
+            ->where('provider', 'gdt')
+            ->whereHas('invoice', fn ($query) => $query
+                ->where('invoice_type', 'sold')
+                ->whereYear('issued_date', (int) $this->year)
+                ->whereMonth('issued_date', (int) $this->month))
+            ->update([
+                'business_classification' => 'GOODS',
+                'classification_scope' => 'INVOICE',
+                'classified_by' => (int) auth('admin')->id(),
+                'classified_at' => $now,
+                'expense_category_id' => null,
+                'expense_note' => null,
+                'expense_classified_by' => null,
+                'expense_classified_at' => null,
+                'updated_at' => $now,
+            ]);
+
+        $this->businessClassifications = [];
+        $this->expenseCategoryIds = [];
+        $this->expenseNotes = [];
+        $this->clearSupplierBatchSelection();
+        $this->message = sprintf(
+            'Đã áp dụng phân loại Hàng hóa cho %d hóa đơn bán ra của tháng %02d/%d. Bạn vẫn có thể đổi lại từng hóa đơn khi cần.',
+            $affected,
+            (int) $this->month,
+            (int) $this->year,
+        );
+        $this->resetPage();
+    }
+
     public function openDetailModal(int $sourceId): void
     {
         $source = InvoiceSourceRecord::query()->with('invoice')->findOrFail($sourceId);
