@@ -23,6 +23,7 @@ return new class extends Migration
             $table->timestamp('detail_fetched_at')->nullable();
             $table->text('last_error')->nullable();
             $table->string('business_classification', 32)->default('UNCLASSIFIED');
+            $table->string('classification_scope', 16)->default('INVOICE');
             $table->text('business_note')->nullable();
             $table->unsignedBigInteger('classified_by')->nullable();
             $table->timestamp('classified_at')->nullable();
@@ -31,6 +32,7 @@ return new class extends Migration
             $table->unique(['invoice_id', 'provider']);
             $table->index(['provider', 'detail_status']);
             $table->index(['business_classification', 'detail_status'], 'invoice_source_business_detail_idx');
+            $table->index(['classification_scope', 'business_classification'], 'invoice_source_classification_scope_idx');
         });
 
         $this->backfillLegacyInventoryRaw();
@@ -64,6 +66,7 @@ return new class extends Migration
                             'detail_fetched_at' => $snapshot->fetched_at ?: $snapshot->updated_at ?: $now,
                             'last_error' => null,
                             'business_classification' => 'UNCLASSIFIED',
+                            'classification_scope' => 'INVOICE',
                             'created_at' => $snapshot->created_at ?: $now,
                             'updated_at' => $now,
                         ],
