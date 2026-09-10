@@ -46,6 +46,42 @@ final class InvoiceSourceRecord extends Model
         'classified_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (InvoiceSourceRecord $record): void {
+            if (($record->business_classification ?? 'UNCLASSIFIED') !== 'UNCLASSIFIED') {
+                return;
+            }
+
+            $invoice = Invoices::query()->find($record->invoice_id);
+            $taxCode = trim((string) ($invoice?->tax_code ?? ''));
+            if ($invoice === null || $taxCode === '') {
+                return;
+            }
+
+            $supplierRule = self::query()
+                ->where('provider', $record->provider ?: 'gdt')
+                ->where('classification_scope', 'SUPPLIER')
+                ->where('business_classification', '!=', 'UNCLASSIFIED')
+                ->whereHas('invoice', fn ($query) => $query
+                    ->where('tax_code', $taxCode)
+                    ->where('invoice_type', $invoice->invoice_type))
+                ->latest('classified_at')
+                ->latest('id')
+                ->first();
+
+            if ($supplierRule === null) {
+                return;
+            }
+
+            $record->business_classification = $supplierRule->business_classification;
+            $record->classification_scope = 'SUPPLIER';
+            $record->business_note = $supplierRule->business_note;
+            $record->classified_by = $supplierRule->classified_by;
+            $record->classified_at = $supplierRule->classified_at;
+        });
+    }
+
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoices::class, 'invoice_id');
