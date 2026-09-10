@@ -92,6 +92,46 @@ class GdtInvoiceService
     }
 
     /**
+     * Recover missing purchase-invoice details directly from local invoice identities.
+     * This deliberately avoids the slower monthly list endpoint and is safe because
+     * detail acquisition is idempotent/local-first through GdtPdfService.
+     */
+    public function recoverMissingDetailsFromLocalRange(
+        string $startDate,
+        string $endDate,
+        ?callable $cb = null,
+        bool $vatIn = true,
+    ): array {
+        $show = fn (string $message) => $cb ? $cb($message) : null;
+        $invoiceType = $vatIn ? 'purchase' : 'sold';
+
+        $invoiceIds = Invoices::query()
+            ->where('invoice_type', $invoiceType)
+            ->whereBetween('issued_date', [
+                Carbon::parse($startDate)->toDateString(),
+                Carbon::parse($endDate)->toDateString(),
+            ])
+            ->where(function ($query): void {
+                $query->whereDoesntHave('sourceRecord')
+                    ->orWhereHas('sourceRecord', fn ($query) => $query->where('detail_status', '!=', 'READY'));
+            })
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        if ($invoiceIds === []) {
+            return ['reused' => 0, 'fetched' => 0, 'failed' => 0, 'candidates' => 0];
+        }
+
+        $show('[RAW] Ưu tiên recovery '.count($invoiceIds).' detail còn thiếu từ invoice local; chưa gọi API danh sách tháng.');
+        $stats = $this->acquireMissingDetails($invoiceIds, $show);
+        $stats['candidates'] = count($invoiceIds);
+
+        return $stats;
+    }
+
+    /**
      * Canonical GDT acquisition workflow. /admin/invoices/hoadon is the only UI entry point
      * that should invoke this method. Header RAW and detail RAW are persisted once and reused.
      */
@@ -221,30 +261,17 @@ class GdtInvoiceService
 
             $data = $res->json();
             $items = is_array($data['datas'] ?? null) ? $data['datas'] : [];
-            $total ??= (int) ($data['total'] ?? count($items));
-
-            if ($page === 1) {
-                if ($total === 0) {
-                    $show('ℹ Không có hóa đơn tháng này.');
-
-                    return [];
-                }
-
-                $show("📄 GDT báo tổng: {$total}");
-            }
+            $count = count($items);
+            $total ??= (int) ($data['total'] ?? $count);
 
             foreach ($items as $item) {
-                if (! is_array($item)) {
-                    continue;
-                }
-
-                $result[] = $this->mapInvoice($item, $vatIn);
-                $processed++;
-
-                if ($processed % 50 === 0) {
-                    $show("🔔 Đã xử lý {$processed}/{$total} hóa đơn");
+                if (is_array($item)) {
+                    $result[] = $this->mapInvoice($item, $vatIn);
                 }
             }
+
+            $processed += $count;
+            $show("📦 Nhận {$processed}/{$total} hóa đơn");
 
             if ($processed >= $total) {
                 break;
@@ -433,38 +460,46 @@ class GdtInvoiceService
 
         return [
             'invoice_type' => $attributes['invoice_type'],
-            'symbol' => $attributes['symbol'],
             'invoice_number' => $attributes['invoice_number'],
-            'tax_code' => $attributes['tax_code'],
+            'symbol' => $attributes['symbol'],
             'issued_date' => $attributes['issued_date'],
+            'tax_code' => $attributes['tax_code'],
         ];
     }
 
-    private function nullableString(mixed $value): ?string
+    private function exportExcel(array $rows, bool $vatIn, string $filename): string
     {
-        $value = trim((string) ($value ?? ''));
+        $baseFolder = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
+        $folder = $vatIn
+            ? storage_path("app/{$baseFolder}/vat_in")
+            : storage_path("app/{$baseFolder}/vat_out");
 
-        return $value === '' ? null : $value;
-    }
-
-    private function nullableNumber(mixed $value): int|float|null
-    {
-        if ($value === null || $value === '') {
-            return null;
+        if (! is_dir($folder) && ! mkdir($folder, 0775, true) && ! is_dir($folder)) {
+            throw new \RuntimeException('Không thể tạo thư mục export hóa đơn.');
         }
 
-        return is_numeric($value) ? $value + 0 : null;
+        $file = $folder.'/'.($vatIn ? 'vat_in_' : 'vat_out_').$filename;
+        $exportRows = array_map(function (array $row): array {
+            unset($row['_gdt_raw_payload']);
+
+            return $row;
+        }, $rows);
+
+        (new FastExcel($exportRows))->export($file);
+
+        return $file;
     }
 
-    private function extractLookupCode(array $item): string
+    private function extractLookupCode(array $item): ?string
     {
-        foreach ($item['cttkhac'] ?? [] as $field) {
-            if (($field['ttruong'] ?? null) === 'TransactionID' && filled($field['dlieu'] ?? null)) {
-                return trim((string) $field['dlieu']);
+        foreach (['mtdiep', 'mhdon', 'ma', 'id'] as $key) {
+            $value = trim((string) ($item[$key] ?? ''));
+            if ($value !== '') {
+                return $value;
             }
         }
 
-        return '';
+        return null;
     }
 
     private function payloadHash(array $payload): string
@@ -475,26 +510,15 @@ class GdtInvoiceService
         ));
     }
 
-    private function exportExcel(array $data, bool $vatIn, string $filename): string
+    private function nullableString(mixed $value): ?string
     {
-        $baseFolder = trim((string) config('invoices.storage.export_directory', 'gdt'), '/');
-        $folder = $vatIn
-            ? storage_path("app/{$baseFolder}/vat_in")
-            : storage_path("app/{$baseFolder}/vat_out");
+        $value = trim((string) $value);
 
-        if (! is_dir($folder) && ! mkdir($folder, 0775, true) && ! is_dir($folder)) {
-            throw new \RuntimeException('Không thể tạo thư mục lưu Excel GDT.');
-        }
+        return $value === '' ? null : $value;
+    }
 
-        $rows = array_map(function (array $row): array {
-            unset($row['_gdt_raw_payload']);
-
-            return $row;
-        }, $data);
-
-        $file = $folder.'/'.($vatIn ? 'vat_in_' : 'vat_out_').$filename;
-        (new FastExcel($rows))->export($file);
-
-        return $file;
+    private function nullableNumber(mixed $value): int|float|string|null
+    {
+        return is_numeric($value) ? $value : null;
     }
 }
