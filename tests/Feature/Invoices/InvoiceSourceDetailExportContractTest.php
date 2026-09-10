@@ -8,21 +8,22 @@ use Tests\TestCase;
 class InvoiceSourceDetailExportContractTest extends TestCase
 {
     #[Test]
-    public function source_data_export_supports_row_selection_or_current_filters(): void
+    public function source_data_export_supports_invoice_column_selection_or_current_filters(): void
     {
         $controller = file_get_contents(base_path('Modules/Invoices/Http/Controllers/InvoiceSourceDetailExportController.php'));
         $shell = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager-shell.blade.php'));
         $routes = file_get_contents(base_path('Modules/Invoices/routes/web.php'));
 
         $this->assertStringContainsString("Route::post('/source-data/export-detail'", $routes);
-        $this->assertStringContainsString('name="source_ids[]"', $shell);
-        $this->assertStringContainsString('data-export-source-checkbox', $shell);
+        $this->assertStringContainsString('data-source-export-checkbox', $shell);
+        $this->assertStringContainsString('data-source-export-select-all', $shell);
         $this->assertStringContainsString('source-data-desktop-row-', $shell);
         $this->assertStringContainsString('source-data-mobile-row-', $shell);
         $this->assertStringContainsString('Chọn xuất Excel', $shell);
-        $this->assertStringContainsString('Chọn tất cả', $shell);
+        $this->assertStringContainsString('Chọn tất cả trang', $shell);
         $this->assertStringContainsString('Xuất Excel theo bộ lọc', $shell);
-        $this->assertStringContainsString("'Xuất ' + selected.length + ' hóa đơn đã chọn'", $shell);
+        $this->assertStringContainsString('button.textContent = `Xuất ${selected.size} hóa đơn đã chọn`;', $shell);
+        $this->assertStringContainsString("hidden.name = 'source_ids[]';", $shell);
         $this->assertStringContainsString('name="year"', $shell);
         $this->assertStringContainsString('name="month"', $shell);
         $this->assertStringContainsString('name="invoice_type"', $shell);
@@ -30,6 +31,8 @@ class InvoiceSourceDetailExportContractTest extends TestCase
         $this->assertStringContainsString('name="search"', $shell);
         $this->assertStringContainsString('name="detail_status"', $shell);
         $this->assertStringContainsString('name="business_classification"', $shell);
+        $this->assertStringNotContainsString('x-data="{', $shell);
+        $this->assertStringNotContainsString('Chọn tất cả {{ number_format($records->count()) }} hóa đơn trên trang', $shell);
 
         $this->assertStringContainsString("\$selectedIds = collect((array) \$request->input('source_ids', []))", $controller);
         $this->assertStringContainsString('if ($selectedIds->isNotEmpty())', $controller);
