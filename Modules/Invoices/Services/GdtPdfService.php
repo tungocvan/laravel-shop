@@ -7,8 +7,10 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Modules\Invoices\Models\InvoiceInventorySnapshot;
+use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
 use RuntimeException;
+use Throwable;
 
 class GdtPdfService
 {
@@ -41,25 +43,48 @@ class GdtPdfService
     }
 
     /**
-     * Return the persisted GDT detail without making a network request.
+     * Read the canonical persisted GDT detail without a network request.
+     * Legacy Inventory snapshots are imported once for backward compatibility.
      */
     public function storedDetail(Invoices $invoice): ?array
     {
-        $snapshot = InvoiceInventorySnapshot::query()
+        $source = InvoiceSourceRecord::query()
+            ->where('invoice_id', $invoice->id)
+            ->where('provider', 'gdt')
+            ->first();
+
+        if ($source?->hasUsableDetail()) {
+            return $source->detail_payload;
+        }
+
+        $legacy = InvoiceInventorySnapshot::query()
             ->where('invoice_id', $invoice->id)
             ->where('source', 'gdt_detail')
             ->first();
+        $payload = $legacy?->raw_payload;
 
-        $payload = $snapshot?->raw_payload;
+        if (! is_array($payload) || ! is_array($payload['hdhhdvu'] ?? null) || $payload['hdhhdvu'] === []) {
+            return null;
+        }
 
-        return is_array($payload) && is_array($payload['hdhhdvu'] ?? null) && $payload['hdhhdvu'] !== []
-            ? $payload
-            : null;
+        $hash = $this->payloadHash($payload);
+        $source = InvoiceSourceRecord::query()->firstOrCreate(
+            ['invoice_id' => $invoice->id, 'provider' => 'gdt'],
+            ['source_version' => 'gdt-v1'],
+        );
+        $source->forceFill([
+            'detail_payload' => $payload,
+            'detail_hash' => $hash,
+            'detail_status' => 'READY',
+            'detail_fetched_at' => $legacy->fetched_at ?? now(),
+            'last_error' => null,
+        ])->save();
+
+        return $payload;
     }
 
     /**
-     * Local-first detail lookup. GDT is called only when RAW has never been persisted
-     * (or when an administrator explicitly forces a refresh).
+     * Local-first detail lookup. A network refresh is allowed only when explicitly requested.
      */
     public function fetchDetail(Invoices $invoice, bool $force = false): array
     {
@@ -71,7 +96,7 @@ class GdtPdfService
     }
 
     /**
-     * Acquire the detail from GDT and persist the immutable source payload in Invoices.
+     * Explicit GDT acquisition entry point. The /admin/invoices/hoadon workflow owns calls here.
      */
     public function fetchAndStoreDetail(Invoices $invoice): array
     {
@@ -88,6 +113,15 @@ class GdtPdfService
             throw new RuntimeException('Thiếu thông tin định danh để lấy chi tiết hóa đơn từ GDT.');
         }
 
+        $source = InvoiceSourceRecord::query()->firstOrCreate(
+            ['invoice_id' => $invoice->id, 'provider' => 'gdt'],
+            ['source_version' => 'gdt-v1'],
+        );
+        $source->forceFill([
+            'detail_status' => 'FETCHING',
+            'last_error' => null,
+        ])->save();
+
         try {
             $response = Http::withOptions([
                 'verify' => (bool) config('invoices.gdt.verify_ssl', true),
@@ -100,44 +134,53 @@ class GdtPdfService
                     'shdon' => $shdon,
                     'khmshdon' => $khmshdon,
                 ]);
+
+            if ($response->status() === 401 || $response->status() === 403) {
+                Cache::forget((string) config('invoices.gdt.cache_key', 'gdt_token'));
+                throw new RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+            }
+
+            if (! $response->successful()) {
+                throw new RuntimeException("GDT trả lỗi HTTP {$response->status()} khi lấy chi tiết hóa đơn.");
+            }
+
+            $data = $response->json();
+            if (! is_array($data) || $data === []) {
+                throw new RuntimeException('GDT không trả dữ liệu chi tiết hóa đơn.');
+            }
+
+            $source->forceFill([
+                'detail_payload' => $data,
+                'detail_hash' => $this->payloadHash($data),
+                'detail_status' => 'READY',
+                'detail_fetched_at' => now(),
+                'last_error' => null,
+            ])->save();
+
+            return $data;
         } catch (ConnectionException $exception) {
+            $this->markAcquisitionError($source, 'Không thể kết nối GDT để lấy chi tiết hóa đơn.');
             throw new RuntimeException('Không thể kết nối GDT để lấy chi tiết hóa đơn.', previous: $exception);
+        } catch (Throwable $exception) {
+            $this->markAcquisitionError($source, $exception->getMessage());
+            throw $exception;
         }
+    }
 
-        if ($response->status() === 401) {
-            Cache::forget((string) config('invoices.gdt.cache_key', 'gdt_token'));
-            throw new RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
-        }
+    private function markAcquisitionError(InvoiceSourceRecord $source, string $message): void
+    {
+        $source->forceFill([
+            'detail_status' => 'ERROR',
+            'last_error' => mb_substr($message, 0, 4000),
+        ])->save();
+    }
 
-        if (! $response->successful()) {
-            throw new RuntimeException("GDT trả lỗi HTTP {$response->status()} khi lấy chi tiết hóa đơn.");
-        }
-
-        $data = $response->json();
-        if (! is_array($data) || $data === []) {
-            throw new RuntimeException('GDT không trả dữ liệu chi tiết hóa đơn.');
-        }
-
-        $hash = hash('sha256', json_encode(
-            $data,
+    private function payloadHash(array $payload): string
+    {
+        return hash('sha256', json_encode(
+            $payload,
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
         ));
-
-        $snapshot = InvoiceInventorySnapshot::query()->firstOrCreate(
-            ['invoice_id' => $invoice->id, 'source' => 'gdt_detail'],
-            ['status' => 'PENDING'],
-        );
-        $payloadChanged = $snapshot->payload_hash !== null && $snapshot->payload_hash !== $hash;
-
-        $snapshot->forceFill([
-            'payload_hash' => $hash,
-            'raw_payload' => $data,
-            'status' => $payloadChanged ? 'FETCHED' : ($snapshot->status === 'NORMALIZED' ? 'NORMALIZED' : 'FETCHED'),
-            'fetched_at' => now(),
-            'last_error' => null,
-        ])->save();
-
-        return $data;
     }
 
     private function parseSymbol(string $symbol): array
@@ -149,6 +192,7 @@ class GdtPdfService
 
         if (str_contains($symbol, '/')) {
             [$template, $series] = array_pad(explode('/', $symbol, 2), 2, '');
+
             return [trim($template), trim($series)];
         }
 
