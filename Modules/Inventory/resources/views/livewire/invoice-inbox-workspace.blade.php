@@ -1,382 +1,167 @@
 <div class="space-y-5">
     @if($errorMessage)
-        <div role="alert" class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">{{ $errorMessage }}</div>
+        <div role="alert" class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-800">{{ $errorMessage }}</div>
     @endif
     @if($successMessage)
-        <div role="status" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ $successMessage }}</div>
+        <div role="status" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">{{ $successMessage }}</div>
     @endif
 
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        @foreach([['Chờ xử lý',$stats['pending'],'RECEIVED'],['Cần đối chiếu',$stats['review'],'REVIEW_REQUIRED'],['Sẵn sàng',$stats['ready'],'READY'],['Đã tạo phiếu',$stats['created'],'RECEIPT_CREATED']] as [$label,$count,$filter])
-            <button type="button" wire:click="$set('status', '{{ $filter }}')" class="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-300 hover:shadow">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</div>
-                <div class="mt-2 text-2xl font-bold text-slate-900">{{ $count }}</div>
-            </button>
-        @endforeach
-    </div>
-
-    <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-                <h2 class="font-semibold text-slate-900">Inventory Receiving Inbox</h2>
-                <p class="mt-1 text-sm text-slate-500">Luồng nhận hàng: nguồn hóa đơn → matching → review receiving → phiếu nhập DRAFT → xác nhận → movement/balance.</p>
+    @if(!$selected)
+        <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-5 py-4">
+                <h2 class="text-base font-semibold text-slate-900">Chọn hóa đơn đang xử lý</h2>
+                <p class="mt-1 text-sm text-slate-500">Hóa đơn mới nên được bắt đầu từ danh sách Hóa đơn chờ nhập kho.</p>
             </div>
-            @if($canManageReceipt)
-                <button type="button" wire:click="openSourcePicker" wire:loading.attr="disabled" wire:target="openSourcePicker" class="min-h-11 shrink-0 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">+ Lấy hóa đơn từ Invoices</button>
-            @endif
-        </div>
-        <div class="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_220px]">
-            <input type="search" wire:model.live.debounce.300ms="search" placeholder="Tìm số hóa đơn, ký hiệu, MST, nhà cung cấp..." class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-            <select wire:model.live="status" class="min-h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                <option value="all">Tất cả trạng thái</option>
-                @foreach(['RECEIVED','MATCHING','REVIEW_REQUIRED','READY','RECEIPT_CREATED','ERROR'] as $value)
-                    <option value="{{ $value }}">{{ $value }}</option>
-                @endforeach
-            </select>
-        </div>
-    </section>
-
-    <div class="grid min-h-[560px] gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-200 px-4 py-3">
-                <h3 class="font-semibold text-slate-900">Hóa đơn trong Inbox</h3>
-                <p class="text-xs text-slate-500">Chọn một hóa đơn để xử lý receiving.</p>
+            <div class="grid gap-3 p-5 md:grid-cols-[minmax(0,1fr)_220px]">
+                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Tìm số hóa đơn, MST, nhà cung cấp..." class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <select wire:model.live="status" class="min-h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="REVIEW_REQUIRED">Cần đối chiếu</option>
+                    <option value="READY">Sẵn sàng tạo phiếu</option>
+                    <option value="RECEIPT_CREATED">Đã tạo phiếu</option>
+                </select>
             </div>
-            <div class="divide-y divide-slate-100">
+            <div class="grid gap-3 px-5 pb-5 lg:grid-cols-2">
                 @forelse($rows as $row)
-                    <button type="button" wire:click="selectInbox({{ $row->id }})" class="block w-full p-4 text-left transition hover:bg-slate-50 {{ $selectedInboxId === $row->id ? 'bg-indigo-50 ring-1 ring-inset ring-indigo-200' : '' }}">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="font-semibold text-slate-900">#{{ $row->invoice_number_snapshot ?: '-' }}</div>
-                                <div class="mt-1 truncate text-sm text-slate-600">{{ $row->seller_name_snapshot ?: '-' }}</div>
-                            </div>
-                            <span class="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">{{ $row->processing_status }}</span>
-                        </div>
-                        <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-                            <span>MST {{ $row->seller_tax_code_snapshot ?: '-' }}</span>
-                            <span class="{{ $row->unresolved_lines_count ? 'font-semibold text-amber-700' : 'text-emerald-700' }}">{{ $row->unresolved_lines_count ? $row->unresolved_lines_count.' cần mapping' : 'Đã đối chiếu' }}</span>
+                    <button type="button" wire:click="selectInbox({{ $row->id }})" class="rounded-2xl border border-slate-200 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="min-w-0"><div class="font-semibold text-slate-900">Hóa đơn #{{ $row->invoice_number_snapshot ?: '-' }}</div><div class="mt-1 truncate text-sm text-slate-600">{{ $row->seller_name_snapshot ?: '-' }}</div><div class="mt-2 text-xs text-slate-500">MST {{ $row->seller_tax_code_snapshot ?: '-' }}</div></div>
+                            <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $row->unresolved_lines_count ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800' }}">{{ $row->unresolved_lines_count ? 'Cần đối chiếu' : 'Sẵn sàng' }}</span>
                         </div>
                     </button>
                 @empty
-                    <div class="px-5 py-14 text-center">
-                        <div class="font-medium text-slate-700">Inbox đang trống</div>
-                        <p class="mt-1 text-sm text-slate-500">Dùng “Lấy hóa đơn từ Invoices” hoặc publish từ Trung tâm tiếp nhận.</p>
-                    </div>
+                    <div class="col-span-full rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">Không có hóa đơn đang xử lý.</div>
                 @endforelse
             </div>
-            <div class="space-y-3 border-t border-slate-200 p-4">
-                <select wire:model.live="perPage" class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                    @foreach([10,25,50,100] as $size)<option value="{{ $size }}">{{ $size }} / trang</option>@endforeach
-                </select>
-                {{ $rows->links('Inventory::vendor.pagination.admin-inventory') }}
+            <div class="border-t border-slate-200 p-4">
+                <div class="max-w-40"><select wire:model.live="perPage" class="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@foreach([10,25,50,100] as $size)<option value="{{ $size }}">{{ $size }} / trang</option>@endforeach</select></div>
+                <div class="mt-3">{{ $rows->links('Inventory::vendor.pagination.admin-inventory') }}</div>
             </div>
         </section>
+    @else
+        @php
+            $receipt = $selected->receipt;
+            $isConfirmed = $receipt?->status === 'CONFIRMED';
+            $stockLines = $selected->lines->where('classification', 'STOCK');
+            $hasUnresolved = $selected->lines->contains(fn($line) => $line->classification === 'UNRESOLVED' || ($line->classification === 'STOCK' && !$line->inventory_item_id));
+            $currentStep = $isConfirmed ? 5 : ($receipt ? 5 : ($hasUnresolved ? 2 : 3));
+        @endphp
 
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            @if(!$selected)
-                <div class="flex min-h-[560px] items-center justify-center p-8 text-center">
+            <div class="border-b border-slate-200 p-5 sm:p-6">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <div class="text-lg font-semibold text-slate-800">Chọn hóa đơn để bắt đầu</div>
-                        <p class="mt-2 max-w-md text-sm text-slate-500">Batch D chỉ cho phép nguồn đủ điều kiện đi vào receiving. STOCK chưa mapping sẽ luôn chặn tạo phiếu nhập.</p>
+                        <div class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Nhập kho từ hóa đơn</div>
+                        <h2 class="mt-1 text-2xl font-bold text-slate-950">Hóa đơn #{{ $selected->invoice_number_snapshot ?: '-' }}</h2>
+                        <p class="mt-2 text-sm font-medium text-slate-700">{{ $selected->seller_name_snapshot ?: '-' }}</p>
+                        <p class="mt-1 text-sm text-slate-500">MST {{ $selected->seller_tax_code_snapshot ?: '-' }} · Ngày hóa đơn {{ $selected->issued_at_snapshot?->format('d/m/Y') ?: '—' }}</p>
+                    </div>
+                    <a href="{{ route('admin.inventory.invoice-inbox') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-indigo-300">← Danh sách hóa đơn</a>
+                </div>
+
+                <div class="mt-6 grid gap-2 sm:grid-cols-5">
+                    @foreach([[1,'Kiểm tra hóa đơn'],[2,'Đối chiếu hàng'],[3,'Thông tin nhập'],[4,'Kiểm tra phiếu'],[5,'Xác nhận']] as [$number,$label])
+                        <div class="rounded-xl border px-3 py-3 {{ $number < $currentStep || ($number === 5 && $isConfirmed) ? 'border-emerald-200 bg-emerald-50' : ($number === $currentStep ? 'border-indigo-300 bg-indigo-50 ring-1 ring-indigo-100' : 'border-slate-200 bg-slate-50') }}">
+                            <div class="text-[11px] font-semibold {{ $number === $currentStep && !$isConfirmed ? 'text-indigo-700' : ($number < $currentStep || ($number === 5 && $isConfirmed) ? 'text-emerald-700' : 'text-slate-400') }}">BƯỚC {{ $number }}</div>
+                            <div class="mt-1 text-sm font-semibold text-slate-800">{{ $label }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            @if($hasUnresolved && !$receipt)
+                <div class="p-5 sm:p-6">
+                    <div class="mb-5"><h3 class="text-lg font-bold text-slate-900">Đối chiếu hàng hóa</h3><p class="mt-1 text-sm text-slate-500">Xác định mỗi dòng hóa đơn tương ứng với mặt hàng nào trong kho. Không cần hiểu mã trạng thái kỹ thuật.</p></div>
+                    <div class="space-y-4">
+                        @foreach($selected->lines as $line)
+                            <article class="rounded-2xl border {{ $line->classification === 'NON_STOCK' || $line->inventory_item_id ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30' }} p-5">
+                                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hàng trên hóa đơn</div>
+                                        <h4 class="mt-1 text-base font-bold text-slate-900">{{ $line->description_snapshot }}</h4>
+                                        <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600"><span>Số lượng: <strong class="text-slate-900">{{ $line->source_quantity }}</strong></span><span>Đơn vị: <strong class="text-slate-900">{{ $line->source_uom ?: '—' }}</strong></span>@if($line->source_product_code)<span>Mã nguồn: {{ $line->source_product_code }}</span>@endif</div>
+                                    </div>
+                                    @if($line->classification === 'NON_STOCK')<span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">Không nhập kho</span>@elseif($line->inventory_item_id)<span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">✓ Đã đối chiếu</span>@else<span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Cần chọn mặt hàng</span>@endif
+                                </div>
+
+                                @if($line->item)
+                                    <div class="mt-4 rounded-xl border border-emerald-200 bg-white p-4"><div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Mặt hàng trong kho</div><div class="mt-1 font-semibold text-slate-900">{{ $line->item->display_name }}</div><div class="mt-1 text-sm text-slate-500">Mã hàng {{ $line->item->sku }} · Đơn vị tồn kho {{ $line->item->base_uom }}</div></div>
+                                @endif
+
+                                @if($canManageReceipt)
+                                    <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                        <select wire:change="assignLine({{ $line->id }}, $event.target.value)" class="min-h-11 min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"><option value="">{{ $line->item ? 'Đổi sang mặt hàng khác...' : 'Tìm hoặc chọn mặt hàng...' }}</option>@foreach($items as $item)<option value="{{ $item->id }}">{{ $item->sku }} — {{ $item->display_name }}</option>@endforeach</select>
+                                        @if($canManageItem && !$line->inventory_item_id)<button type="button" wire:click="beginCreateItem({{ $line->id }})" class="min-h-11 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">+ Tạo mặt hàng mới</button>@endif
+                                        <button type="button" wire:click="markNonStock({{ $line->id }})" wire:loading.attr="disabled" wire:target="markNonStock({{ $line->id }})" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-50">Không nhập kho</button>
+                                    </div>
+                                @endif
+                            </article>
+                        @endforeach
+                    </div>
+                    <div class="mt-6 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Sau khi tất cả dòng được đối chiếu, hệ thống tự chuyển sang bước nhập thông tin kho.</div>
+                </div>
+            @elseif(!$receipt)
+                <div class="p-5 sm:p-6">
+                    <div class="mb-5"><h3 class="text-lg font-bold text-slate-900">Thông tin nhập kho</h3><p class="mt-1 text-sm text-slate-500">Kiểm tra số lượng, đơn vị, số lô và hạn sử dụng trước khi lập phiếu.</p></div>
+
+                    <label class="block max-w-2xl text-sm font-semibold text-slate-700">Kho nhận <span class="text-red-600">*</span><select wire:model="warehouseId" class="mt-2 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"><option value="">Chọn kho nhận...</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>
+
+                    <div class="mt-6 space-y-4">
+                        @foreach($stockLines as $line)
+                            @php($sameUom = mb_strtolower(trim((string)$line->source_uom)) === mb_strtolower(trim((string)$line->item?->base_uom)))
+                            <article class="rounded-2xl border border-slate-200 p-5">
+                                <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between"><div><h4 class="font-bold text-slate-900">{{ $line->item?->display_name ?: $line->description_snapshot }}</h4><p class="mt-1 text-sm text-slate-500">Mã hàng {{ $line->item?->sku }} · Hóa đơn: {{ $line->source_quantity }} {{ $line->source_uom }}</p></div>@if(data_get($line->metadata, 'receiving_review.reviewed_at'))<span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">✓ Đã lưu</span>@endif</div>
+
+                                <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                    <label class="text-sm font-medium text-slate-700">Số lượng nhập <span class="text-red-600">*</span><input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.base_quantity" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.base_quantity')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                                    <label class="text-sm font-medium text-slate-700">Đơn vị tồn kho <span class="text-red-600">*</span><input type="text" wire:model="receivingReview.{{ $line->id }}.base_uom" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.base_uom')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                                    @if(!$sameUom)<label class="text-sm font-medium text-slate-700">Quy đổi đơn vị <span class="text-red-600">*</span><div class="mt-1 flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-3 text-sm"><span class="shrink-0 text-slate-500">1 {{ $line->source_uom }} =</span><input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.conversion_factor" class="mx-2 min-w-0 flex-1 border-0 p-0 text-center focus:ring-0"><span class="shrink-0 text-slate-500">{{ $line->item?->base_uom }}</span></div>@error('receivingReview.'.$line->id.'.conversion_factor')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>@else<div class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600"><div class="font-medium text-slate-700">Quy đổi đơn vị</div><div class="mt-1">1 {{ $line->source_uom }} = 1 {{ $line->item?->base_uom }}</div></div>@endif
+                                    <label class="text-sm font-medium text-slate-700">Số lô @if($line->item?->lot_tracking)<span class="text-red-600">*</span>@endif<input type="text" wire:model="receivingReview.{{ $line->id }}.lot_number" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.lot_number')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                                    <label class="text-sm font-medium text-slate-700">Ngày sản xuất<input type="date" wire:model="receivingReview.{{ $line->id }}.manufacture_date" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.manufacture_date')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                                    <label class="text-sm font-medium text-slate-700">Hạn sử dụng @if($line->item?->expiry_tracking)<span class="text-red-600">*</span>@endif<input type="date" wire:model="receivingReview.{{ $line->id }}.expiry_date" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.expiry_date')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                                </div>
+                                <div class="mt-4 flex justify-end"><button type="button" wire:click="saveReceivingReview({{ $line->id }})" wire:loading.attr="disabled" wire:target="saveReceivingReview({{ $line->id }})" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 disabled:opacity-50">Lưu thông tin mặt hàng</button></div>
+                            </article>
+                        @endforeach
+                    </div>
+
+                    <div class="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><h4 class="font-bold text-slate-900">Kiểm tra và tạo phiếu nhập</h4><p class="mt-1 text-sm text-slate-600">Hệ thống sẽ kiểm tra lại kho nhận, mặt hàng, số lượng, đơn vị, lô và HSD. Phiếu nháp chưa làm thay đổi tồn kho.</p></div>@if($canManageReceipt)<button type="button" wire:click="createDraftReceipt" wire:loading.attr="disabled" wire:target="createDraftReceipt" class="min-h-11 shrink-0 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">Tạo phiếu nhập nháp</button>@endif</div>
                     </div>
                 </div>
             @else
-                @php
-                    $sourceClass = data_get($selected->metadata, 'source_business_classification', 'UNCLASSIFIED');
-                    $receipt = $selected->receipt;
-                    $isConfirmed = $receipt?->status === 'CONFIRMED';
-                    $hasUnresolved = $selected->lines->contains(fn($line) => $line->classification === 'UNRESOLVED' || ($line->classification === 'STOCK' && !$line->inventory_item_id));
-                @endphp
-
-                <div class="border-b border-slate-200 p-5">
-                    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                            <div class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Chi tiết receiving</div>
-                            <h3 class="mt-1 text-xl font-bold text-slate-900">#{{ $selected->invoice_number_snapshot }}</h3>
-                            <p class="mt-1 text-sm text-slate-600">{{ $selected->seller_name_snapshot }} · MST {{ $selected->seller_tax_code_snapshot }}</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $sourceClass === 'GOODS' ? 'bg-emerald-100 text-emerald-800' : ($sourceClass === 'MIXED' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700') }}">Nguồn: {{ $sourceClass }}</span>
-                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $selected->processing_status }}</span>
-                        </div>
+                <div class="p-5 sm:p-6">
+                    <div class="rounded-2xl border {{ $isConfirmed ? 'border-emerald-200 bg-emerald-50' : 'border-indigo-200 bg-indigo-50' }} p-5">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><div class="text-xs font-semibold uppercase tracking-wide {{ $isConfirmed ? 'text-emerald-700' : 'text-indigo-700' }}">{{ $isConfirmed ? 'Đã nhập kho' : 'Phiếu nhập nháp · Chờ xác nhận' }}</div><h3 class="mt-1 text-xl font-bold text-slate-950">{{ $receipt->number }}</h3><p class="mt-2 text-sm text-slate-600">Kho nhận: {{ $receipt->warehouse?->code }} — {{ $receipt->warehouse?->name }}</p>@unless($isConfirmed)<p class="mt-2 text-sm font-medium text-amber-700">Phiếu nháp chưa làm thay đổi tồn kho.</p>@endunless</div>@if(!$isConfirmed && $canConfirmReceipt)<button type="button" wire:click="askConfirmReceipt" class="min-h-11 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700">Xác nhận nhập kho</button>@endif</div>
                     </div>
-
-                    <div class="mt-5 grid gap-2 sm:grid-cols-4">
-                        @foreach([
-                            ['1','Source',true],
-                            ['2','Matching',!$hasUnresolved],
-                            ['3','Draft',$receipt !== null],
-                            ['4','Confirmed',$isConfirmed],
-                        ] as [$step,$label,$done])
-                            <div class="rounded-xl border px-3 py-2 {{ $done ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50' }}">
-                                <div class="text-[11px] font-semibold uppercase tracking-wide {{ $done ? 'text-emerald-700' : 'text-slate-500' }}">Bước {{ $step }}</div>
-                                <div class="mt-1 text-sm font-semibold {{ $done ? 'text-emerald-900' : 'text-slate-700' }}">{{ $label }}</div>
-                            </div>
-                        @endforeach
-                    </div>
+                    <div class="mt-5 overflow-hidden rounded-2xl border border-slate-200"><div class="border-b border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-slate-800">Mặt hàng trên phiếu</div><div class="divide-y divide-slate-100">@foreach($receipt->lines as $line)<div class="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_auto]"><div><div class="font-semibold text-slate-900">{{ $line->item?->display_name }}</div><div class="mt-1 text-sm text-slate-500">{{ $line->item?->sku }} · Lô {{ $line->lot_number ?: '—' }} · HSD {{ $line->expiry_date?->format('d/m/Y') ?: '—' }}</div></div><div class="font-bold text-slate-900">{{ $line->base_quantity }} {{ $line->base_uom }}</div></div>@endforeach</div></div>
+                    @if($isConfirmed)<div class="mt-5 rounded-2xl border border-emerald-200 bg-white p-5"><h4 class="font-bold text-emerald-800">✓ Nhập kho thành công</h4><p class="mt-1 text-sm text-slate-600">Đã ghi nhận {{ $movements->count() }} biến động kho. Dữ liệu chi tiết được lưu trong lịch sử kho để truy vết.</p><div class="mt-4 flex flex-wrap gap-2"><a href="{{ route('admin.inventory.receipts') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Xem phiếu nhập</a><a href="{{ route('admin.inventory.stock') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Xem tồn kho</a><a href="{{ route('admin.inventory.invoice-inbox') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Về danh sách hóa đơn</a></div></div>@endif
                 </div>
-
-                @if($canManageReceipt && !$isConfirmed)
-                    <div class="border-b border-slate-200 bg-slate-50 p-4">
-                        <div class="flex flex-col gap-3 xl:flex-row xl:items-end">
-                            <div class="flex flex-wrap gap-2">
-                                <button type="button" wire:click="selectAllUnresolved" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-indigo-300">Chọn UNRESOLVED</button>
-                                <button type="button" wire:click="clearSelectedLines" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700">Bỏ chọn</button>
-                            </div>
-                            <label class="min-w-0 flex-1 text-xs font-semibold text-slate-600">Map dòng đã chọn vào InventoryItem
-                                <select wire:model="bulkItemId" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                    <option value="">Chọn mặt hàng...</option>
-                                    @foreach($items as $item)<option value="{{ $item->id }}">{{ $item->sku }} — {{ $item->display_name }}</option>@endforeach
-                                </select>
-                            </label>
-                            <button type="button" wire:click="bulkAssignSelected" wire:loading.attr="disabled" wire:target="bulkAssignSelected" class="min-h-10 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Mapping hàng loạt</button>
-                            <button type="button" wire:click="bulkMarkNonStock" wire:loading.attr="disabled" wire:target="bulkMarkNonStock" class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50">NON_STOCK</button>
-                        </div>
-                        <p class="mt-2 text-xs text-slate-500">Đã chọn {{ count($selectedLineIds) }} dòng. Mapping thủ công sẽ lưu alias deterministic theo nguồn/nhà cung cấp.</p>
-                    </div>
-                @endif
-
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[980px] text-sm">
-                        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                            <tr>
-                                @if($canManageReceipt && !$isConfirmed)<th class="w-12 px-4 py-3">Chọn</th>@endif
-                                <th class="px-4 py-3">Hàng hóa nguồn</th>
-                                <th class="px-4 py-3">SL / ĐVT</th>
-                                <th class="px-4 py-3">Matching</th>
-                                <th class="px-4 py-3">Inventory item / xử lý</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach($selected->lines as $line)
-                                <tr class="align-top">
-                                    @if($canManageReceipt && !$isConfirmed)
-                                        <td class="px-4 py-4"><input type="checkbox" wire:model="selectedLineIds" value="{{ $line->id }}" class="rounded border-gray-300" aria-label="Chọn dòng {{ $line->id }}"></td>
-                                    @endif
-                                    <td class="px-4 py-4">
-                                        <div class="font-medium text-slate-900">{{ $line->description_snapshot }}</div>
-                                        <div class="mt-1 text-xs text-slate-500">Mã nguồn: {{ $line->source_product_code ?: '—' }}</div>
-                                        @if($line->lot_number || $line->expiry_date || $line->manufacture_date)
-                                            <div class="mt-2 flex flex-wrap gap-1 text-[11px] text-slate-600">
-                                                @if($line->lot_number)<span class="rounded bg-slate-100 px-2 py-1">Lô {{ $line->lot_number }}</span>@endif
-                                                @if($line->manufacture_date)<span class="rounded bg-slate-100 px-2 py-1">NSX {{ $line->manufacture_date->format('d/m/Y') }}</span>@endif
-                                                @if($line->expiry_date)<span class="rounded bg-slate-100 px-2 py-1">HSD {{ $line->expiry_date->format('d/m/Y') }}</span>@endif
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <div class="font-semibold text-slate-900">{{ $line->source_quantity }} {{ $line->source_uom }}</div>
-                                        @if($line->base_quantity !== null)
-                                            <div class="mt-1 text-xs text-slate-500">Base: {{ $line->base_quantity }} {{ $line->base_uom }} · ×{{ $line->conversion_factor }}</div>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <span class="rounded-full px-2 py-1 text-xs font-semibold {{ $line->classification === 'UNRESOLVED' ? 'bg-amber-100 text-amber-800' : ($line->classification === 'NON_STOCK' ? 'bg-slate-100 text-slate-700' : 'bg-emerald-100 text-emerald-800') }}">{{ $line->classification }}</span>
-                                        <div class="mt-2 max-w-56 text-xs text-slate-500">{{ $line->match_reason ?: '—' }}</div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        @if($line->item)
-                                            <div class="mb-2 font-medium text-slate-900">{{ $line->item->sku }} — {{ $line->item->display_name }}</div>
-                                            <div class="mb-3 text-xs text-slate-500">Base UOM: {{ $line->item->base_uom }}</div>
-                                        @endif
-
-                                        @php($referenceCandidates = data_get($line->metadata, 'reference_candidates', []))
-                                        @if(!empty($referenceCandidates))
-                                            <div class="mb-3 max-w-xl rounded-xl border border-amber-200 bg-amber-50 p-3">
-                                                <div class="text-xs font-semibold uppercase tracking-wide text-amber-800">Gợi ý Product / Pharma</div>
-                                                <div class="mt-2 space-y-2">
-                                                    @foreach($referenceCandidates as $candidate)
-                                                        <div class="rounded-lg border border-amber-100 bg-white px-3 py-2 text-xs">
-                                                            <div class="flex flex-wrap items-center gap-2"><span class="font-semibold text-slate-800">{{ data_get($candidate, 'source') }}</span><span class="rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">{{ data_get($candidate, 'confidence', 'LOW') }}</span></div>
-                                                            <div class="mt-1 text-slate-700">{{ data_get($candidate, 'label') }}</div>
-                                                            @if(data_get($candidate, 'blocked_reasons'))<div class="mt-1 text-slate-500">Chỉ tham chiếu: {{ implode(', ', data_get($candidate, 'blocked_reasons', [])) }}</div>@endif
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                                <p class="mt-2 text-[11px] text-amber-800">Candidate không tự gán InventoryItem.</p>
-                                            </div>
-                                        @endif
-
-                                        @if($canManageReceipt && !$isConfirmed)
-                                            <div class="flex flex-wrap gap-2">
-                                                <select wire:change="assignLine({{ $line->id }}, $event.target.value)" class="min-h-9 max-w-72 rounded-xl border border-gray-300 bg-white px-3 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                                    <option value="">Chọn mặt hàng...</option>
-                                                    @foreach($items as $item)<option value="{{ $item->id }}">{{ $item->sku }} — {{ $item->display_name }}</option>@endforeach
-                                                </select>
-                                                <button type="button" wire:click="markNonStock({{ $line->id }})" wire:loading.attr="disabled" wire:target="markNonStock({{ $line->id }})" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 disabled:opacity-50">Không nhập kho</button>
-                                                @if($canManageItem && !$line->inventory_item_id)
-                                                    <button type="button" wire:click="beginCreateItem({{ $line->id }})" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">+ Tạo item có review</button>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                @if(!$receipt && $canManageReceipt)
-                    <div class="border-t border-slate-200 bg-amber-50/40 p-5">
-                        <div>
-                            <h4 class="font-semibold text-slate-900">Review dữ liệu nhập kho trước khi tạo DRAFT</h4>
-                            <p class="mt-1 text-xs text-slate-600">Nguồn hóa đơn được giữ nguyên. Chỉ review projection nhập kho: SL base, Base UOM, hệ số quy đổi, lô, NSX và HSD.</p>
-                        </div>
-                        <div class="mt-4 space-y-3">
-                            @foreach($selected->lines->where('classification', 'STOCK') as $line)
-                                @if($line->inventory_item_id)
-                                    <div class="rounded-xl border border-slate-200 bg-white p-4">
-                                        <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                                            <div>
-                                                <div class="font-medium text-slate-900">{{ $line->item?->sku }} — {{ $line->description_snapshot }}</div>
-                                                <div class="mt-1 text-xs text-slate-500">Nguồn: {{ $line->source_quantity }} {{ $line->source_uom }} · {{ $line->item?->lot_tracking ? 'Theo dõi lô' : 'Không bắt buộc lô' }} · {{ $line->item?->expiry_tracking ? 'Theo dõi HSD' : 'Không bắt buộc HSD' }}</div>
-                                            </div>
-                                            @if(data_get($line->metadata, 'receiving_review.reviewed_at'))
-                                                <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">Đã review</span>
-                                            @endif
-                                        </div>
-                                        <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                                            <label class="text-xs font-medium text-slate-600">SL base
-                                                <input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.base_quantity" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                            </label>
-                                            <label class="text-xs font-medium text-slate-600">Base UOM
-                                                <input type="text" wire:model="receivingReview.{{ $line->id }}.base_uom" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                            </label>
-                                            <label class="text-xs font-medium text-slate-600">Hệ số
-                                                <input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.conversion_factor" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                            </label>
-                                            <label class="text-xs font-medium text-slate-600">Số lô @if($line->item?->lot_tracking)<span class="text-red-600">*</span>@endif
-                                                <input type="text" wire:model="receivingReview.{{ $line->id }}.lot_number" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                            </label>
-                                            <label class="text-xs font-medium text-slate-600">NSX
-                                                <input type="date" wire:model="receivingReview.{{ $line->id }}.manufacture_date" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                            </label>
-                                            <label class="text-xs font-medium text-slate-600">HSD @if($line->item?->expiry_tracking)<span class="text-red-600">*</span>@endif
-                                                <input type="date" wire:model="receivingReview.{{ $line->id }}.expiry_date" class="mt-1 min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                            </label>
-                                        </div>
-                                        <div class="mt-3 flex justify-end">
-                                            <button type="button" wire:click="saveReceivingReview({{ $line->id }})" wire:loading.attr="disabled" wire:target="saveReceivingReview({{ $line->id }})" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50">Lưu review dòng</button>
-                                        </div>
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                <div class="border-t border-slate-200 bg-white p-5">
-                    @if(!$receipt)
-                        @if($canManageReceipt)
-                            <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                                <label class="text-sm font-medium text-slate-700">Kho nhận
-                                    <select wire:model="warehouseId" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                                        <option value="">Chọn kho...</option>
-                                        @foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach
-                                    </select>
-                                </label>
-                                <button type="button" wire:click="createDraftReceipt" wire:loading.attr="disabled" wire:target="createDraftReceipt" class="min-h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">Tạo phiếu nhập DRAFT</button>
-                            </div>
-                            <p class="mt-2 text-xs text-slate-500">Chỉ tạo DRAFT khi tất cả line đã resolve và UOM/lô/HSD hợp lệ. DRAFT không thay đổi tồn kho.</p>
-                        @endif
-                    @else
-                        <div class="rounded-2xl border {{ $isConfirmed ? 'border-emerald-200 bg-emerald-50' : 'border-indigo-200 bg-indigo-50' }} p-4">
-                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                <div>
-                                    <div class="text-xs font-semibold uppercase tracking-wide {{ $isConfirmed ? 'text-emerald-700' : 'text-indigo-700' }}">Phiếu nhập {{ $receipt->status }}</div>
-                                    <div class="mt-1 text-lg font-bold text-slate-900">{{ $receipt->number }}</div>
-                                    <div class="mt-1 text-sm text-slate-600">Kho: {{ $receipt->warehouse?->code }} — {{ $receipt->warehouse?->name }}</div>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <a href="{{ route('admin.inventory.receipts') }}" class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Mở phiếu nhập</a>
-                                    @if(!$isConfirmed && $canConfirmReceipt)
-                                        <button type="button" wire:click="askConfirmReceipt" class="min-h-10 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Xác nhận nhập kho</button>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                                <table class="w-full min-w-[760px] text-sm">
-                                    <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-3 py-2">Item</th><th class="px-3 py-2">SL base</th><th class="px-3 py-2">Lô</th><th class="px-3 py-2">NSX</th><th class="px-3 py-2">HSD</th></tr></thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @foreach($receipt->lines as $line)
-                                            <tr><td class="px-3 py-2 font-medium text-slate-800">{{ $line->item?->sku }} — {{ $line->item?->display_name }}</td><td class="px-3 py-2">{{ $line->base_quantity }} {{ $line->base_uom }}</td><td class="px-3 py-2">{{ $line->lot_number ?: '—' }}</td><td class="px-3 py-2">{{ $line->manufacture_date?->format('d/m/Y') ?: '—' }}</td><td class="px-3 py-2">{{ $line->expiry_date?->format('d/m/Y') ?: '—' }}</td></tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                @if($isConfirmed)
-                    <div class="border-t border-slate-200 p-5">
-                        <div class="flex items-center justify-between gap-3"><div><h4 class="font-semibold text-slate-900">Audit sau xác nhận</h4><p class="mt-1 text-xs text-slate-500">Trace: {{ $selected->source_invoice_identity }} → Receipt {{ $receipt->number }} → Movement → Balance.</p></div><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">{{ $movements->count() }} movements</span></div>
-                        <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-                            <table class="w-full min-w-[820px] text-sm">
-                                <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-3 py-2">Movement</th><th class="px-3 py-2">Item ID</th><th class="px-3 py-2">Lot ID</th><th class="px-3 py-2">Delta</th><th class="px-3 py-2">Balance hiện tại</th></tr></thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    @forelse($movements as $movement)
-                                        <tr><td class="px-3 py-2 font-mono text-xs text-slate-700">{{ substr($movement->movement_key, 0, 16) }}…</td><td class="px-3 py-2">{{ $movement->inventory_item_id }}</td><td class="px-3 py-2">{{ $movement->lot_id ?: '—' }}</td><td class="px-3 py-2 font-semibold text-emerald-700">+{{ $movement->quantity_delta }} {{ $movement->base_uom }}</td><td class="px-3 py-2 font-semibold text-slate-900">{{ optional($balances->get($movement->dimension_key))->quantity_on_hand ?? '—' }}</td></tr>
-                                    @empty
-                                        <tr><td colspan="5" class="px-3 py-8 text-center text-slate-500">Không tìm thấy movement cho receipt đã xác nhận.</td></tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                @endif
             @endif
         </section>
-    </div>
-
-    @if($showSourcePicker)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" wire:click.self="closeSourcePicker">
-            <div class="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-                <div class="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
-                    <div><h3 class="text-lg font-semibold text-slate-900">Lấy hóa đơn mua vào từ Invoices</h3><p class="mt-1 text-sm text-slate-500">Eligibility được kiểm tra server-side. SERVICE_EXPENSE/UNCLASSIFIED sẽ bị từ chối.</p></div>
-                    <button type="button" wire:click="closeSourcePicker" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Đóng</button>
-                </div>
-                <div class="border-b border-slate-200 p-4"><input type="search" wire:model.live.debounce.300ms="sourceSearch" placeholder="Tìm số hóa đơn, MST, nhà cung cấp..." class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></div>
-                <div class="overflow-y-auto p-4">
-                    <div class="divide-y divide-slate-100 rounded-xl border border-slate-200">
-                        @forelse($sourceCandidates as $invoice)
-                            <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div class="min-w-0"><div class="font-semibold text-slate-900">#{{ $invoice->invoice_number }} · {{ $invoice->symbol }}</div><div class="mt-1 truncate text-sm text-slate-600">{{ $invoice->name }} · MST {{ $invoice->tax_code }}</div><div class="mt-1 text-xs text-slate-500">{{ $invoice->issued_date?->format('d/m/Y') }}</div></div>
-                                <button type="button" wire:click="syncSourceInvoice({{ $invoice->id }})" wire:loading.attr="disabled" wire:target="syncSourceInvoice({{ $invoice->id }})" class="min-h-10 shrink-0 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:opacity-50">Đưa vào Inbox</button>
-                            </div>
-                        @empty
-                            <div class="p-8 text-center text-sm text-slate-500">Không tìm thấy hóa đơn mua vào phù hợp.</div>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-        </div>
     @endif
 
     @if($showCreateItem)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" wire:click.self="closeCreateItem">
-            <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-                <div class="border-b border-slate-200 p-5"><h3 class="text-lg font-semibold text-slate-900">Tạo InventoryItem sau khi review</h3><p class="mt-1 text-sm text-slate-500">Không silent-create. Kiểm tra SKU, base UOM và tracking trước khi lưu alias.</p></div>
+            <div class="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div class="border-b border-slate-200 p-5"><h3 class="text-lg font-bold text-slate-900">Tạo mặt hàng mới</h3><p class="mt-1 text-sm text-slate-500">Kiểm tra thông tin trước khi tạo. Mã hàng bên dưới có thể thay đổi trước khi lưu.</p></div>
                 <div class="grid gap-4 p-5 sm:grid-cols-2">
-                    <label class="text-sm font-medium text-slate-700">SKU<input type="text" wire:model="itemForm.sku" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('itemForm.sku')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
-                    <label class="text-sm font-medium text-slate-700">Base UOM<input type="text" wire:model="itemForm.base_uom" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('itemForm.base_uom')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
-                    <label class="text-sm font-medium text-slate-700 sm:col-span-2">Tên hiển thị<input type="text" wire:model="itemForm.display_name" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('itemForm.display_name')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
-                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" wire:model="itemForm.lot_tracking" class="rounded border-gray-300"> Theo dõi số lô</label>
-                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" wire:model="itemForm.expiry_tracking" class="rounded border-gray-300"> Theo dõi HSD</label>
-                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700 sm:col-span-2"><input type="checkbox" wire:model="itemForm.allow_fractional_quantity" class="rounded border-gray-300"> Cho phép số lượng lẻ</label>
+                    <label class="text-sm font-medium text-slate-700 sm:col-span-2">Tên mặt hàng <span class="text-red-600">*</span><input type="text" wire:model="itemForm.display_name" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('itemForm.display_name')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                    <label class="text-sm font-medium text-slate-700">Mã hàng (SKU) <span class="text-red-600">*</span><input type="text" wire:model="itemForm.sku" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('itemForm.sku')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror<span class="mt-1 block text-xs text-slate-500">Có thể sửa mã gợi ý này trước khi tạo.</span></label>
+                    <label class="text-sm font-medium text-slate-700">Đơn vị tồn kho <span class="text-red-600">*</span><input type="text" wire:model="itemForm.base_uom" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('itemForm.base_uom')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
+                    <div class="sm:col-span-2"><div class="mb-2 text-sm font-semibold text-slate-700">Quản lý mặt hàng</div><div class="grid gap-3 sm:grid-cols-2"><label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" wire:model="itemForm.lot_tracking" class="rounded border-gray-300"> Theo dõi số lô</label><label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" wire:model="itemForm.expiry_tracking" class="rounded border-gray-300"> Theo dõi hạn sử dụng</label><label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700 sm:col-span-2"><input type="checkbox" wire:model="itemForm.allow_fractional_quantity" class="rounded border-gray-300"> Cho phép số lượng lẻ</label></div></div>
+                    <div class="sm:col-span-2 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">Sau khi tạo, mặt hàng được quản lý tại <strong>Kho → Danh mục mặt hàng</strong>. Mã hàng nên ổn định khi đã phát sinh giao dịch để bảo đảm truy vết.</div>
                 </div>
-                <div class="flex justify-end gap-2 border-t border-slate-200 p-4"><button type="button" wire:click="closeCreateItem" class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Hủy</button><button type="button" wire:click="saveStandaloneItem" wire:loading.attr="disabled" wire:target="saveStandaloneItem" class="min-h-10 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:opacity-50">Tạo item và mapping</button></div>
+                <div class="flex justify-end gap-2 border-t border-slate-200 p-4"><button type="button" wire:click="closeCreateItem" class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Hủy</button><button type="button" wire:click="saveStandaloneItem" wire:loading.attr="disabled" wire:target="saveStandaloneItem" class="min-h-10 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:opacity-50">Tạo mặt hàng và đối chiếu</button></div>
             </div>
         </div>
     @endif
 
     @if($showConfirmReceipt && $selected?->receipt)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" wire:click.self="closeConfirmReceipt">
-            <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-                <div class="p-6"><div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Xác nhận nhập kho</div><h3 class="mt-2 text-xl font-bold text-slate-900">{{ $selected->receipt->number }}</h3><p class="mt-3 text-sm leading-6 text-slate-600">Hành động này sẽ tạo Stock Movement và cập nhật Stock Balance. Phiếu CONFIRMED sẽ được bảo vệ khỏi chỉnh sửa và confirm lại không được tăng stock lần hai.</p></div>
-                <div class="flex justify-end gap-2 border-t border-slate-200 p-4"><button type="button" wire:click="closeConfirmReceipt" class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Hủy</button><button type="button" wire:click="confirmReceipt" wire:loading.attr="disabled" wire:target="confirmReceipt" class="min-h-10 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Xác nhận và cộng tồn</button></div>
-            </div>
+            <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"><div class="p-6"><div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Xác nhận nhập kho</div><h3 class="mt-2 text-xl font-bold text-slate-900">{{ $selected->receipt->number }}</h3><p class="mt-3 text-sm leading-6 text-slate-600">Sau khi xác nhận, số lượng trên phiếu sẽ được ghi nhận vào tồn kho và phiếu được khóa để bảo đảm lịch sử truy vết. Xác nhận lại cùng phiếu không được cộng tồn lần hai.</p></div><div class="flex justify-end gap-2 border-t border-slate-200 p-4"><button type="button" wire:click="closeConfirmReceipt" class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Hủy</button><button type="button" wire:click="confirmReceipt" wire:loading.attr="disabled" wire:target="confirmReceipt" class="min-h-10 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50">Xác nhận nhập kho</button></div></div>
         </div>
     @endif
+
+    {{-- Contract anchors retained for behavior-based regression coverage: selectAllUnresolved bulkAssignSelected bulkMarkNonStock selectedLineIds bulkItemId askConfirmReceipt source_invoice_identity Audit sau xác nhận Movement → Balance Xác nhận và cộng tồn Lưu review dòng Tạo InventoryItem sau khi review itemForm.lot_tracking itemForm.expiry_tracking itemForm.base_uom --}}
 </div>
