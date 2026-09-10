@@ -34,8 +34,8 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
         $this->assertStringContainsString('saveReceivingReview', $component);
         $this->assertStringContainsString('validateReceivingReview', $component);
         $this->assertStringContainsString('persistReceivingReview', $component);
-        $this->assertStringContainsString("$item->lot_tracking ? 'required' : 'nullable'", $component);
-        $this->assertStringContainsString("$item->expiry_tracking ? 'required' : 'nullable'", $component);
+        $this->assertStringContainsString('$item->lot_tracking ? \'required\' : \'nullable\'', $component);
+        $this->assertStringContainsString('$item->expiry_tracking ? \'required\' : \'nullable\'', $component);
         $this->assertStringContainsString('Vui lòng nhập số lô', $component);
         $this->assertStringContainsString('Vui lòng nhập HSD', $component);
         $this->assertStringContainsString('Hãy chọn kho nhận trước khi tạo phiếu nhập DRAFT.', $component);
@@ -54,7 +54,7 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
 
         $this->assertStringContainsString('public function assignLine(int $lineId, $itemId = null): void', $component);
-        $this->assertStringContainsString("trim((string) $itemId) === ''", $component);
+        $this->assertStringContainsString("trim((string) \$itemId) === ''", $component);
         $this->assertStringContainsString('ctype_digit((string) $itemId)', $component);
         $this->assertStringContainsString('$itemId = (int) $itemId;', $component);
     }
