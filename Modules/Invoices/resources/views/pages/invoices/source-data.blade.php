@@ -3,6 +3,9 @@
 @section('title', 'Dữ liệu nguồn GDT')
 
 @section('content')
+@php
+    $classificationDrilldown = request()->filled('businessClassification');
+@endphp
 <div class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     <header class="border-b border-slate-200 pb-6">
         <a href="{{ route('admin.invoices.dashboard') }}" class="inline-flex min-h-10 items-center gap-1 rounded-lg text-sm font-semibold text-slate-600 transition hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">← Quay về Dashboard</a>
@@ -34,8 +37,8 @@
     </div>
 
     <livewire:invoices.source-data-manager
-        :year="request('year', now()->format('Y'))"
-        :month="request('month', now()->format('n'))"
+        :year="request('year', $classificationDrilldown ? 'all' : now()->format('Y'))"
+        :month="request('month', $classificationDrilldown ? 'all' : now()->format('n'))"
         :business-classification="request('businessClassification', 'all')"
     />
 </div>
