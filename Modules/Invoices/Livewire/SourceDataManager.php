@@ -27,6 +27,8 @@ final class SourceDataManager extends Component
 
     public int $perPage = 25;
 
+    public array $partnerList = [];
+
     public array $businessClassifications = [];
 
     public array $businessNotes = [];
@@ -221,7 +223,7 @@ final class SourceDataManager extends Component
             ->values()
             ->all();
 
-        $partnerList = Invoices::query()
+        $this->partnerList = Invoices::query()
             ->whereHas('sourceRecord')
             ->whereNotNull('name')
             ->where('name', '!=', '')
@@ -239,7 +241,7 @@ final class SourceDataManager extends Component
             'stats' => $stats,
             'statsScopeLabel' => $this->statsScopeLabel(),
             'availableYears' => $availableYears,
-            'partnerList' => $partnerList,
+            'partnerList' => $this->partnerList,
             'classificationOptions' => InvoiceSourceRecord::CLASSIFICATIONS,
         ]);
     }
