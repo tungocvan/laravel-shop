@@ -9,6 +9,7 @@ return [
         'invoices',
         'invoice_files',
         'invoice_backup_runs',
+        'invoice_source_records',
     ],
     'permissions' => [
         'invoices-list',

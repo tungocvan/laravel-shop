@@ -12,6 +12,9 @@ return [
         'timeout' => 15,
         'token_ttl' => 36000,
         'cache_key' => 'gdt_token',
+        'detail_request_delay_ms' => (int) env('GDT_DETAIL_REQUEST_DELAY_MS', 1000),
+        'detail_retry_attempts' => (int) env('GDT_DETAIL_RETRY_ATTEMPTS', 4),
+        'detail_retry_backoff_seconds' => [5, 10, 20, 40],
     ],
 
     'meinvoice' => [

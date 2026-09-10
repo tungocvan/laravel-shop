@@ -11,7 +11,10 @@
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Theo dõi tồn kho, chứng từ vận hành, lô/HSD và mở đúng workspace để xử lý.</p>
             <p class="mt-2 text-xs text-slate-500">Cập nhật {{ $dashboard['generated_at']->format('d/m/Y H:i') }}</p>
         </div>
-        <a href="{{ route('admin.inventory.receipts') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Mở phiếu nhập</a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.inventory.invoice-inbox') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100">Hóa đơn chờ nhập kho</a>
+            <a href="{{ route('admin.inventory.receipts') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Mở phiếu nhập</a>
+        </div>
     </header>
 
     @foreach($dashboard['warnings'] as $warning)
@@ -23,8 +26,8 @@
         <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach([
                 ['Kho đang hoạt động', 'warehouses', 'warehouses'], ['Mặt hàng', 'items', 'items'], ['Phiếu nhập nháp', 'draft_receipts', 'receipts'],
-                ['Tồn thấp', 'low_stock', 'stock'], ['Lô sắp hết HSD', 'expiring_lots', 'lots'], ['Kiểm kê chờ xử lý', 'pending_stocktakes', 'stocktakes'],
-                ['Biến động hôm nay', 'movements_today', 'movements'],
+                ['Hóa đơn chờ nhập kho', 'invoice_inbox_pending', 'invoice-inbox'], ['Tồn thấp', 'low_stock', 'stock'], ['Lô sắp hết HSD', 'expiring_lots', 'lots'],
+                ['Kiểm kê chờ xử lý', 'pending_stocktakes', 'stocktakes'], ['Biến động hôm nay', 'movements_today', 'movements'],
             ] as [$label, $metric, $route])
                 <a href="{{ route('admin.inventory.'.$route) }}" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
                     <p class="text-sm font-medium text-slate-600">{{ $label }}</p>
@@ -37,7 +40,7 @@
     <section>
         <h2 class="text-lg font-semibold text-slate-900">Workspaces</h2>
         <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            @foreach(['warehouses' => 'Kho', 'items' => 'Mặt hàng', 'receipts' => 'Nhập kho', 'issues' => 'Xuất kho', 'transfers' => 'Điều chuyển', 'stocktakes' => 'Kiểm kê', 'stock' => 'Tồn kho', 'lots' => 'Lô / HSD', 'movements' => 'Biến động'] as $route => $label)
+            @foreach(['invoice-inbox' => 'Hóa đơn chờ nhập', 'warehouses' => 'Kho', 'items' => 'Mặt hàng', 'receipts' => 'Nhập kho', 'issues' => 'Xuất kho', 'transfers' => 'Điều chuyển', 'stocktakes' => 'Kiểm kê', 'stock' => 'Tồn kho', 'lots' => 'Lô / HSD', 'movements' => 'Biến động'] as $route => $label)
                 <a href="{{ route('admin.inventory.'.$route) }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300"><p class="font-bold text-slate-950">{{ $label }}</p><p class="mt-1 text-xs text-slate-500">Mở workspace →</p></a>
             @endforeach
         </div>

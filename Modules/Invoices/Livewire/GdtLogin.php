@@ -21,6 +21,8 @@ class GdtLogin extends Component
 
     public bool $authenticated = false;
 
+    public ?string $loginError = null;
+
     public array $gdtConfig = [
         'base_url' => '',
         'username' => '',
@@ -78,9 +80,11 @@ class GdtLogin extends Component
         if (isset($captcha['key'], $captcha['content'])) {
             $this->ckey = $captcha['key'];
             $this->captchaSvg = $captcha['content'];
-        } else {
-            session()->flash('error', 'Không thể tải captcha từ hệ thống GDT. Vui lòng thử lại sau.');
+
+            return;
         }
+
+        $this->loginError = 'Không thể tải captcha từ hệ thống GDT. Vui lòng thử lại sau.';
     }
 
     public function saveGdtConfig(GdtConfigService $configService): void
@@ -132,6 +136,7 @@ class GdtLogin extends Component
     public function login(): void
     {
         $this->authorizePermission('invoices-configure');
+        $this->loginError = null;
 
         $this->validate([
             'cvalue' => ['required', 'string', 'max:20'],
@@ -139,27 +144,36 @@ class GdtLogin extends Component
             'cvalue.required' => 'Vui lòng nhập captcha.',
         ]);
 
-        if (! $this->authenticated) {
-            if (! $this->cvalue || ! $this->ckey) {
-                session()->flash('error', 'Captcha chưa sẵn sàng hoặc chưa được nhập.');
+        if (! $this->cvalue || ! $this->ckey) {
+            $this->loginError = 'Captcha chưa sẵn sàng hoặc chưa được nhập.';
 
-                return;
-            }
+            return;
+        }
 
+        try {
             $response = $this->service->login(
                 $this->cvalue,
                 $this->ckey,
                 (int) config('invoices.gdt.token_ttl', 36000)
             );
-            if (($response['status'] ?? 'error') !== 'success') {
-                session()->flash('error', $response['message'] ?? 'Đăng nhập GDT không thành công.');
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->loginError = 'Lỗi khi xác thực GDT: '.$exception->getMessage();
+            $this->refreshCaptcha();
 
-                return;
-            }
-
-            $this->authenticated = true;
+            return;
         }
 
+        if (($response['status'] ?? 'error') !== 'success') {
+            $message = (string) ($response['message'] ?? 'Đăng nhập GDT không thành công.');
+            $this->refreshCaptcha();
+            $this->loginError = $message;
+
+            return;
+        }
+
+        $this->authenticated = true;
+        $this->loginError = null;
         $this->redirectRoute('admin.invoices.create-token');
     }
 
@@ -168,6 +182,7 @@ class GdtLogin extends Component
         $this->authorizePermission('invoices-configure');
         $this->service->forgetToken();
         $this->authenticated = false;
+        $this->loginError = null;
         $this->redirectRoute('admin.invoices.create-token');
     }
 

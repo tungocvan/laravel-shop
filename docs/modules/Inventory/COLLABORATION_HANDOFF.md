@@ -4,230 +4,271 @@
 
 - Module: `Modules\Inventory`.
 - Approved inputs: `IDEA.md`, `REQUIREMENTS.md`, `CREATE_PLAN.md`.
-- `main` base for Batch B: `71ef46e9` (`feat(inventory): add Batch A core ledger foundation`).
 - Batch A — Foundation + Persistence + Core Ledger: **MERGED / VERIFIED / PASS**.
-- Batch B branch: `feat/inventory-batch-b-admin-operations`.
-- Batch B — Admin Dashboard + UI/UX: **IMPLEMENTED / VERIFIED / UI PASS / READY FOR MR**.
-- Keep Batch B in one MR unless review exposes a real blocker.
+- Batch B — Admin Dashboard + UI/UX: **MERGED / VERIFIED / UI PASS** via PR #179, merge commit `df406fae`.
+- Batch C branch: `feat/inventory-batch-c-invoice-integration`.
+- Batch C — Invoices Integration + Product Matching + Draft Receipt: **IMPLEMENTED**.
+- Batch C2 — Bulk Intake & Normalization: **IMPLEMENTED / HARDENING IN FINAL VERIFICATION**.
+- C2-A parser-version-aware re-normalization: **REAL SMOKE PASS**.
+- C2-B deterministic STOCK / NON_STOCK / UNRESOLVED classification: **IMPLEMENTED**.
+- C2-C Product / Pharma reference candidate matching: **REAL SMOKE PASS**.
+- Canonical GDT source ownership hardening: **IMPLEMENTED / LOCAL VERIFICATION PENDING**.
+- Real Khang Phát invoice #261 pilot: **PASS** for normalization, publication idempotency, candidate safety and zero stock mutation.
+- Previous focused pack before canonical-source hardening: **21 passed / 130 assertions**.
+- Keep Batch C/C2 in one MR. Do not merge until the new focused pack, source-data smoke and final UI smoke pass.
 
-## Batch A contract carried forward unchanged
-
-Batch B does not redesign or duplicate Batch A ledger behavior.
-
-- Inventory remains a `domain` module, disabled by default, with hard dependency `Shared` only.
-- `Invoices`, `Product`, `Partner`, `Pharma` remain optional integration boundaries.
-- `StockPostingService` remains the canonical mutation path for confirmed stock movements.
-- Receipt/issue/transfer/stocktake confirmation continues through the dedicated Batch A posting services with transaction, row-lock, idempotency and negative-stock protection.
-- Confirmed documents/lines and stock movements remain immutable by their existing model/service contracts.
-- No `Product.quantity` dual write was introduced.
-- No invoice PDF parsing/storage access was introduced.
-
-## Batch B implementation
-
-### Admin route family
-
-All Inventory Admin routes are under:
+## Canonical ownership boundary
 
 ```text
-/admin/inventory
+GDT external acquisition / invoice persistence / canonical RAW header+detail / source annotations -> Modules\Invoices
+Inventory staging projection / normalization / inbox / matching / exception review / receipt proposal -> Modules\Inventory
+Product / Pharma -> reference candidate sources only; never canonical stock owners
 ```
 
-Route names:
+Critical invariants:
 
 ```text
-admin.inventory.dashboard
-admin.inventory.warehouses
-admin.inventory.items
-admin.inventory.receipts
-admin.inventory.issues
-admin.inventory.transfers
-admin.inventory.stocktakes
-admin.inventory.stock
-admin.inventory.lots
-admin.inventory.movements
+/admin/invoices/hoadon = the only UI workflow allowed to acquire data directly from GDT
+Inventory never calls GDT
+Invoice sync/import != stock posting
 ```
 
-Routes use `web`, `auth:admin` and the capability-specific permissions already declared by the Inventory manifest.
-
-### Inventory Dashboard
-
-`InventoryDashboardService` provides bounded/index-friendly operational aggregates for:
-
-- active warehouses;
-- active inventory items;
-- draft receipts;
-- low-stock dimensions against `reorder_level`;
-- lots expiring within 90 days;
-- draft/counted stocktakes;
-- movements today;
-- recent movements;
-- actionable low-stock / expiry warnings.
-
-Dashboard cards deep-link to the owning Inventory workspace.
-
-Batch C invoice matching/inbox KPIs are intentionally absent until the approved Batch C integration contract exists.
-
-### Admin operational workspaces
-
-A class-based Livewire `Inventory.AdminWorkspace` owns UI state for:
-
-- warehouse management;
-- InventoryItem management;
-- receipt drafts + confirmation;
-- issue drafts + confirmation;
-- transfer drafts + confirmation;
-- stocktake drafts + confirmation;
-- current stock browser;
-- lot/HSD browser;
-- immutable movement browser.
-
-The Livewire component does not implement stock posting logic. High-risk confirmation delegates to:
+`Modules\Invoices` now persists canonical source data in:
 
 ```text
-ReceiptPostingService
-IssuePostingService
-TransferPostingService
-StocktakePostingService
+invoice_source_records
 ```
 
-### Search / filter / pagination
+The source record stores the full per-invoice GDT header payload, full GDT detail payload, hashes, fetched timestamps, source version, detail acquisition status/error and administrator business annotations.
 
-Production workspaces use bounded pagination only:
+`invoice_inventory_snapshots` and `invoice_inventory_staging_lines` are Inventory-facing projection/audit structures. They are not the canonical external source store. New normalization reads canonical RAW from Invoices and does not copy the full detail payload into the snapshot again; per-line RAW remains available on staging lines for traceability.
+
+Inventory does not read `storage/app/invoices/pdf`, does not parse invoice PDF and does not update `Product.quantity`.
+
+Physical stock still changes only through explicit Receipt confirmation and canonical Batch A posting services.
+
+## Canonical GDT acquisition workflow
+
+Canonical route:
 
 ```text
-10 / 25 / 50 / 100
+GET /admin/invoices/hoadon
+admin.invoices.hoadon
 ```
 
-There is no `All` page size.
-
-Search/filter changes reset pagination. Filters are scoped by workspace, including status, warehouse, stock state, expiry state and movement type where relevant.
-
-Inventory owns an explicit Livewire pagination view with:
-
-- white inactive controls;
-- indigo active page;
-- clear disabled states;
-- previous/next/goto Livewire actions preserved.
-
-### UI/UX contract
-
-Batch B follows `.codex/standards/ADMIN_UI_STANDARD.md`:
-
-- canonical `Admin::layouts.master` shell;
-- page Blade remains a shell for Livewire workspaces;
-- visible bordered form/search controls;
-- responsive tables with horizontal overflow;
-- centered modal for create/edit and high-risk confirm;
-- loading/disabled state during save/confirm;
-- explicit empty/error states;
-- direct return path to Inventory Dashboard;
-- no bulk posting/confirm action.
-
-### Admin menu integration
-
-Inventory owns an idempotent menu-registration migration.
-
-It inserts/restores one permission-aware `Quản lý kho` group and child links for the Batch B workspaces, then clears the existing `admin.menus` cache.
-
-This is used instead of relying only on `AdminMenuSeeder`, because the repository seeder intentionally skips when `admin_menus` already contains data.
-
-Rollback removes only Inventory-owned menu slugs.
-
-## Batch B tests added
+The workflow is now:
 
 ```text
-tests/Feature/Inventory/InventoryAdminBatchBContractTest.php
+administrator selects range
+  -> validate cached GDT token against GDT before bulk queue
+  -> fetch complete invoice header list
+  -> persist business invoice headers
+  -> persist full per-invoice GDT RAW header
+  -> reuse local RAW detail if already present
+  -> fetch only missing GDT detail
+  -> persist full GDT RAW detail
+  -> retain hashes / timestamps / source version / acquisition status
+  -> export/backup remains available
+  -> downstream modules consume local persisted source data
 ```
 
-Contract coverage includes:
+A 401/403 during token validation or acquisition clears the cached token and stops the workflow rather than dispatching a large set of doomed Inventory staging jobs.
 
-- approved Admin route family and `auth:admin` boundary;
-- no invoice PDF ownership leak;
-- bounded page-size contract;
-- visible input/pagination visual contract;
-- confirmation delegation to Batch A posting services;
-- loading/double-submit guard presence;
-- permission-aware Inventory admin-menu registration.
+The previous worker optimization that skipped GDT solely because an Excel file existed was hardened. Existing Excel/Google Drive backup files do not prove canonical RAW completeness. GDT is skipped only when the local canonical source coverage for the requested range is complete. If Excel exists but RAW header/detail coverage is incomplete, `/admin/invoices/hoadon` continues acquisition to repair the canonical source store.
 
-Existing Batch A Inventory tests remain part of the focused Batch B verification pack.
+Acquisition is resumable: detail payloads already stored are reused; after interruption/token expiry, the next administrator sync only needs to acquire missing detail records.
 
-## Verification status
+## Source-data administration
 
-Local verification reported by the user on 2026-09-09.
+Canonical route:
 
-### Test 1 — Inventory focused + module regression
-
-```bash
-php artisan test tests/Feature/Inventory
+```text
+GET /admin/invoices/source-data
+admin.invoices.source-data
 ```
 
-Result: **PASS**.
+This route never calls GDT. It lets administrators inspect canonical source coverage/status and enrich source records with operational classification:
 
-### Test 2 — directly impacted Admin shell/menu contract
-
-```bash
-php artisan test tests/Feature/Admin/AdminGeneralLayoutContractTest.php
+```text
+UNCLASSIFIED
+GOODS
+SERVICE_EXPENSE
+MIXED
 ```
 
-Result: **PASS**.
+Annotations include note, actor and timestamp. They can be scoped to one invoice or explicitly applied to all invoices from the same tax code.
 
-### Pint
+When the administrator chooses “apply to the same tax code”, the record is marked with `classification_scope = SUPPLIER`. Existing invoices for that tax code/type are updated and future source records for the same supplier/type inherit the latest supplier rule. A later invoice-specific override uses `classification_scope = INVOICE` and does not replace the supplier rule for future invoices.
 
-```bash
-./vendor/bin/pint Modules/Inventory tests/Feature/Inventory
+Source annotation is deterministic evidence, not a command to bypass line-level safety:
+
+- `GOODS` can support STOCK when line evidence is otherwise weak;
+- `SERVICE_EXPENSE` can support NON_STOCK when no physical-goods evidence conflicts;
+- `SERVICE_EXPENSE` plus strong physical/GDT goods evidence fails safe to `UNRESOLVED`;
+- `MIXED` never forces all lines to one class; line-level evidence decides;
+- explicit GDT service/category/description evidence continues to win over supplier defaults;
+- STOCK without a canonical `InventoryItem` remains `REVIEW_REQUIRED`.
+
+## Inventory local-only intake
+
+Canonical route:
+
+```text
+GET /admin/inventory/intake
+admin.inventory.intake
 ```
 
-Result: **PASS after auto-fix**.
+The action is now explicitly **“Chuẩn hóa RAW đã lưu”**.
 
-Pint-only formatting in `Modules/Inventory/Livewire/AdminWorkspace.php` was reviewed, committed and pushed as `f1a62c35` (`style(inventory): apply pint formatting`).
+Flow:
 
-No full-project regression was run, by approved scope. No Shared, Invoices, Product, Partner, Pharma or root module infrastructure application code changed in Batch B.
+```text
+Invoices canonical RAW READY
+  -> Inventory queues only purchase invoices with persisted READY detail
+  -> deterministic local normalization
+  -> publish Inventory Inbox
+  -> deterministic classification/matching/reference candidates
+  -> exception review
+  -> READY
+  -> Receipt DRAFT
+  -> explicit operator confirmation later
+  -> stock posting
+```
 
-## Manual UI acceptance
+Inventory does not perform token checks and does not call GDT. If no READY source data exists for the selected range, the UI points the administrator back to `/admin/invoices/hoadon`.
 
-User reported **UI PASS** on 2026-09-09 after checking the Inventory Admin surfaces.
+The 55 ERROR snapshots observed on 2026-09-10 were caused by an expired GDT token in the old Inventory-triggered detail acquisition path. They must not be deleted. After canonical RAW is acquired from Invoices, re-running local Inventory normalization reuses the existing snapshot identity and can recover those ERROR rows without another GDT call from Inventory.
 
-Acceptance scope included representative desktop/tablet/mobile behavior for:
+## Deterministic normalization v3
 
-- `/admin/inventory` dashboard hierarchy and deep links;
-- warehouse/item forms and visible borders/focus/error states;
-- receipt/issue/transfer/stocktake draft workflow;
-- confirmation modal and loading/disabled state;
-- stock/lots/movements responsive tables;
-- search/filter behavior;
-- white inactive + indigo active pagination;
-- Inventory menu/workspace navigation;
-- no blocking 404/500 UI issue reported.
+`InvoiceLineNormalizer` parser marker:
 
-## Final diff/status review
+```text
+deterministic-v3
+```
 
-- Branch: `feat/inventory-batch-b-admin-operations`.
-- Base: `71ef46e9`.
-- Branch is ahead of the Batch B base and not behind at final review.
-- Final diff is limited to Inventory Admin implementation, Inventory-owned menu migration, Inventory tests and this handoff.
-- Working tree reported clean and synchronized with `origin/feat/inventory-batch-b-admin-operations` after the Pint-only commit.
-- No Batch C invoice integration, PDF ingestion, product matching or Batch D Excel export code is present.
+Rules include lot labels `Lô`, `Số lô`, `LOT`; expiry labels `HSD`, `HD`, `Hạn dùng`, `EXP`; full date and month/year support; light normalized-name cleanup; and preservation of source description separately.
 
-## Explicitly deferred to approved later batches
+Lot / manufacture date / expiry remain transaction/lot-instance evidence and are not InventoryItem master data.
 
-### Batch C
+Real Khang Phát invoice #261 remains the regression pilot:
 
-- Invoices normalized Inventory V1 producer/adapter;
-- integration inbox;
-- invoice -> draft receipt proposal;
-- product matching / alias review;
-- unresolved Partner snapshots;
-- optional Product/Pharma candidate references.
+```text
+Cefuroxime 125mg/5ml ( H/1C.TT/60,8g BPHDU), Lô: 26001CN, HD: 28/03/2029
+  -> 1880 lọ / lot 26001CN / expiry 2029-03-28
 
-### Batch D
+Cefuroxime 125mg/5ml ( H/1C.TT/60,8g BPHDU), Lô: 26002CN, HD: 30/03/2029
+  -> 5880 lọ / lot 26002CN / expiry 2029-03-30
+```
 
-- Excel audit/export;
-- selected-vs-all-filtered export semantics;
-- import/template scope where approved;
-- final query/index/runtime hardening and closeout.
+The two lines must never be merged.
+
+## Product / Pharma candidate safeguards
+
+Product and Pharma remain reference sources only. `InventoryItem` is the canonical stock owner.
+
+Candidate discovery does not assign `inventory_item_id`. Unverified/demo Pharma records remain blocked from auto-match. The real #261 smoke produced only LOW-confidence demo references and left both stock lines `REVIEW_REQUIRED` with `inventory_item_id = null`.
+
+## Receipt proposal safety
+
+`InvoiceReceiptProposalService` is confirmed fail-safe:
+
+- it selects only `classification = STOCK` lines;
+- all-NON_STOCK invoices are rejected with “Hóa đơn không có dòng STOCK để tạo phiếu nhập.”;
+- mixed invoices exclude NON_STOCK lines from the Receipt proposal;
+- every STOCK line must already have InventoryItem, base quantity and base UOM;
+- source lines are preserved individually, including lot/HSD;
+- only a `DRAFT` receipt is created/refreshed;
+- no `ReceiptPostingService`, confirmation, stock movement or balance mutation occurs in this proposal service.
+
+## Real invoice #261 acceptance evidence
+
+Supplier:
+
+```text
+CÔNG TY TNHH THƯƠNG MẠI DƯỢC PHẨM KHANG PHÁT
+MST 0317953611
+invoice_number 261
+symbol 1/C26TKP
+local invoice id 2599
+source identity gdt:purchase:lookup:46FAI2PAR67B
+snapshot id 4
+```
+
+Previous real publication smoke:
+
+```text
+published_count = 1
+inbox_id = 1
+processing_status = REVIEW_REQUIRED
+receipt_id = null
+line_count = 2
+```
+
+Zero-mutation proof:
+
+```text
+before balances = 0
+before movements = 0
+before receipts = 0
+before inbox_lines = 2
+
+after balances = 0
+after movements = 0
+after receipts = 0
+after inbox_lines = 2
+
+delta balances = 0
+delta movements = 0
+delta receipts = 0
+delta inbox_lines = 0
+```
+
+No Receipt CONFIRMED was created and no stock posting was performed.
+
+## Focused verification required after canonical-source hardening
+
+Run only the directly impacted pack:
+
+```text
+tests/Feature/Invoices/InvoiceInventoryBulkIntakeContractTest.php
+tests/Feature/Inventory/InventoryBatchC2BulkPublicationContractTest.php
+tests/Feature/Inventory/InventoryBatchC2ExceptionReviewContractTest.php
+```
+
+The updated tests lock:
+
+- canonical GDT RAW source ownership;
+- token preflight before bulk synchronization;
+- local-only Inventory staging;
+- source-data administration and supplier-rule inheritance;
+- deterministic annotation safeguards;
+- Product/Pharma reference-only behavior;
+- all-NON_STOCK/mixed Receipt safety;
+- no confirm/post-stock path.
+
+No full regression is required by project policy.
+
+## Remaining acceptance gate before merge
+
+1. Pull latest branch and run the new Invoices migration.
+2. Run the focused three-file test pack above.
+3. Verify `/admin/invoices/hoadon` rejects an expired token before bulk queue.
+4. Re-authenticate GDT and sync a small known purchase range first.
+5. Verify `/admin/invoices/source-data` shows RAW header/detail coverage and annotation UI.
+6. Verify supplier-wide and invoice-specific classification controls without calling GDT from the source-data route.
+7. Run `/admin/inventory/intake` local normalization and verify it does not trigger GDT acquisition.
+8. UI smoke desktop/tablet/mobile for Intake and Invoice Inbox.
+9. Confirm Product/Pharma candidates remain reference-only and STOCK-unmapped lines remain review-required.
+10. Do not confirm a Receipt or post stock during smoke.
+
+## Deferred / next batches
+
+- Explicit administrator force-refresh/version-history UX for intentionally reacquiring a previously complete GDT source record.
+- Excel audit/export and selected-vs-all-filtered export semantics (Batch D).
+- final query/index/runtime hardening.
+- final module closeout after Batch C merge acceptance.
 
 ## Stop gate
 
-Batch B acceptance gates are complete. The branch is ready for one MR targeting `main`.
-
-Do not start Batch C until Batch B is merged or the user explicitly changes that sequence.
+Do not merge Batch C/C2 until the new focused tests pass, source-data + Inventory UI smoke is accepted by the operator, no stock mutation occurs before Receipt confirmation, final branch status is clean, and this handoff remains current.

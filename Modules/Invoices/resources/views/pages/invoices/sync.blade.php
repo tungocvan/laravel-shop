@@ -3,35 +3,68 @@
 @section('title', 'Đồng bộ hóa đơn')
 
 @section('content')
-    <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-gray-900">Đồng bộ hóa đơn GDT</h1>
-                <p class="mt-1 text-sm text-gray-500">Xuất Excel, đưa tác vụ vào queue, quản lý file trung gian và backup dữ liệu hóa đơn.</p>
-            </div>
-            @include('Invoices::partials.dashboard-return-link')
-        </div>
-
-        @if ($gdtReady)
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
-                <div>
-                    <p class="font-semibold">GDT đã sẵn sàng</p>
-                    <p class="mt-1 text-emerald-700">Token hiện còn trong thời hạn cache và có thể dùng để bắt đầu đồng bộ.</p>
+    <div class="mx-auto w-full max-w-7xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+        <header class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div class="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div class="[&>a]:inline-flex [&>a]:min-h-9 [&>a]:items-center [&>a]:rounded-lg [&>a]:border-0 [&>a]:bg-transparent [&>a]:px-0 [&>a]:py-2 [&>a]:text-sm [&>a]:font-semibold [&>a]:text-gray-600 [&>a]:shadow-none hover:[&>a]:text-indigo-700">
+                    @include('Invoices::partials.dashboard-return-link')
                 </div>
-                <a href="{{ route('admin.invoices.create-token') }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2 font-semibold text-emerald-700">Quản lý kết nối</a>
-            </div>
-        @else
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-                <div>
-                    <p class="font-semibold">GDT chưa sẵn sàng hoặc token đã hết hạn</p>
-                    <p class="mt-1 text-amber-800">Hãy kết nối lại trước khi chạy đồng bộ. Hệ thống sẽ không đưa tác vụ vào queue khi chưa có token hợp lệ.</p>
-                </div>
-                <a href="{{ route('admin.invoices.create-token') }}" class="rounded-xl bg-amber-600 px-4 py-2 font-semibold text-white">Kết nối GDT</a>
-            </div>
-        @endif
 
-        @livewire('invoices.search-hoadon')
-        @livewire('invoices.invoice-drive-sync-panel')
-        @livewire('invoices.automatic-backup-panel')
+                <nav aria-label="Điều hướng hóa đơn" class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('admin.invoices.hoadon-list') }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50">
+                        Danh sách hóa đơn
+                    </a>
+                    <a href="{{ route('admin.invoices.source-data') }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                        Dữ liệu nguồn GDT
+                    </a>
+                </nav>
+            </div>
+
+            <div class="px-5 py-6 sm:px-6 sm:py-7">
+                <div class="max-w-4xl">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">Invoices · GDT operations</p>
+                    <h1 class="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Đồng bộ hóa đơn GDT</h1>
+                    <p class="mt-3 text-sm leading-6 text-gray-500">Điểm thu nhận dữ liệu GDT canonical của hệ thống. Khi đồng bộ, header hóa đơn được ghi vào danh sách hóa đơn và RAW header + detail được lưu để Inventory cùng các nghiệp vụ downstream tái sử dụng mà không gọi GDT lần hai.</p>
+                </div>
+            </div>
+        </header>
+
+        <section aria-label="Kết nối GDT">
+            <livewire:invoices.quick-gdt-connect />
+        </section>
+
+        <section aria-label="Đồng bộ và quản lý file hóa đơn">
+            @livewire('invoices.search-hoadon')
+        </section>
+
+        <details class="group rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-6">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Backup nâng cao</p>
+                    <h2 class="mt-1 text-base font-semibold text-gray-900">Local ↔ Google Drive</h2>
+                    <p class="mt-1 text-sm text-gray-500">Mở khi cần chủ động sao chép file giữa kho local và thư mục backup trên Drive.</p>
+                </div>
+                <span class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 group-open:hidden">Mở</span>
+                <span class="hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 group-open:inline-flex">Thu gọn</span>
+            </summary>
+            <div class="border-t border-gray-100 p-4 sm:p-6">
+                @livewire('invoices.invoice-drive-sync-panel')
+            </div>
+        </details>
+
+        <details class="group rounded-2xl border border-violet-100 bg-white shadow-sm">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-6">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-violet-600">Backup tự động</p>
+                    <h2 class="mt-1 text-base font-semibold text-gray-900">Automatic Invoice Backup</h2>
+                    <p class="mt-1 text-sm text-gray-500">Cấu hình lịch, email nhận, trạng thái và lịch sử backup. Mặc định thu gọn để workspace tập trung vào nghiệp vụ đồng bộ.</p>
+                </div>
+                <span class="rounded-xl border border-violet-100 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 group-open:hidden">Mở</span>
+                <span class="hidden rounded-xl border border-violet-100 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 group-open:inline-flex">Thu gọn</span>
+            </summary>
+            <div class="border-t border-violet-100 p-4 sm:p-6">
+                @livewire('invoices.automatic-backup-panel')
+            </div>
+        </details>
     </div>
 @endsection

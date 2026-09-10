@@ -40,6 +40,12 @@ class Invoices extends Model
         return $this->hasOne(InvoiceFile::class, 'invoice_id');
     }
 
+    public function sourceRecord(): HasOne
+    {
+        return $this->hasOne(InvoiceSourceRecord::class, 'invoice_id')
+            ->where('provider', 'gdt');
+    }
+
     public static function headers()
     {
         return [

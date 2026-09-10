@@ -5,6 +5,11 @@
     @if (session('success'))
         <div class="mb-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">{{ session('success') }}</div>
     @endif
+    @if ($loginError)
+        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+            {{ $loginError }}
+        </div>
+    @endif
 
     <details class="mb-6 rounded-xl border border-gray-200 bg-gray-50">
         <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-gray-800">
@@ -86,7 +91,14 @@
     @else
         <form wire:submit="login" class="space-y-4">
             <div>
-                <label class="text-sm font-medium text-gray-700">Captcha</label>
+                <div class="flex items-center justify-between gap-3">
+                    <label class="text-sm font-medium text-gray-700">Captcha</label>
+                    <button type="button" wire:click="refreshCaptcha" wire:loading.attr="disabled" wire:target="refreshCaptcha"
+                        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="refreshCaptcha">Tải captcha mới</span>
+                        <span wire:loading wire:target="refreshCaptcha">Đang tải…</span>
+                    </button>
+                </div>
                 <div class="mt-2 min-h-16 rounded-xl border border-gray-200 bg-gray-50 p-3">
                     @if ($captchaSvg)
                         {!! $captchaSvg !!}
@@ -101,7 +113,7 @@
                     class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
                 @error('cvalue') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
-            <button type="submit" wire:loading.attr="disabled"
+            <button type="submit" wire:loading.attr="disabled" wire:target="login"
                 class="h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
                 <span wire:loading.remove wire:target="login">Đăng nhập GDT</span>
                 <span wire:loading wire:target="login">Đang xác thực…</span>

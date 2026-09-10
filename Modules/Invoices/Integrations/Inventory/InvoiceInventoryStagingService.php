@@ -1,0 +1,140 @@
+<?php
+
+namespace Modules\Invoices\Integrations\Inventory;
+
+use DomainException;
+use Illuminate\Support\Facades\DB;
+use Modules\Invoices\Models\InvoiceInventorySnapshot;
+use Modules\Invoices\Models\Invoices;
+use Modules\Invoices\Services\GdtPdfService;
+use Throwable;
+
+final class InvoiceInventoryStagingService
+{
+    public function __construct(
+        private readonly GdtPdfService $gdtDetailService,
+        private readonly InvoiceLineNormalizer $normalizer,
+    ) {}
+
+    public function stage(Invoices $invoice, bool $refresh = false): InvoiceInventorySnapshot
+    {
+        if ($invoice->invoice_type !== 'purchase') {
+            throw new DomainException('Chỉ staging hóa đơn mua vào.');
+        }
+
+        $snapshot = InvoiceInventorySnapshot::query()->firstOrCreate(
+            ['invoice_id' => $invoice->id, 'source' => 'gdt_detail'],
+            ['status' => 'PENDING'],
+        );
+
+        $normalizerVersion = $this->normalizer->version();
+
+        if (! $refresh
+            && $snapshot->status === 'NORMALIZED'
+            && $snapshot->normalizer_version === $normalizerVersion) {
+            return $snapshot->loadMissing('lines');
+        }
+
+        try {
+            $detail = $this->gdtDetailService->storedDetail($invoice);
+            if ($detail === null) {
+                throw new DomainException(
+                    'Chưa có RAW GDT detail canonical trên server. Hãy đồng bộ tại /admin/invoices/hoadon trước khi chuẩn hóa Inventory.'
+                );
+            }
+
+            return $this->normalizeSnapshot(
+                snapshot: $snapshot,
+                detail: $detail,
+                normalizerVersion: $normalizerVersion,
+            );
+        } catch (Throwable $exception) {
+            $snapshot->forceFill([
+                'status' => 'ERROR',
+                'last_error' => mb_substr($exception->getMessage(), 0, 4000),
+            ])->save();
+
+            throw $exception;
+        }
+    }
+
+    private function normalizeSnapshot(
+        InvoiceInventorySnapshot $snapshot,
+        array $detail,
+        string $normalizerVersion,
+    ): InvoiceInventorySnapshot {
+        $rawLines = $this->rawLines($detail);
+
+        if ($rawLines === []) {
+            throw new DomainException('RAW canonical không có chi tiết hàng hóa để chuẩn hóa.');
+        }
+
+        $hash = $this->payloadHash($detail);
+
+        return DB::transaction(function () use ($snapshot, $rawLines, $hash, $normalizerVersion): InvoiceInventorySnapshot {
+            $snapshot->forceFill([
+                'payload_hash' => $hash,
+                'status' => 'FETCHED',
+                'normalized_at' => null,
+                'last_error' => null,
+            ])->save();
+
+            $seen = [];
+            foreach (array_values($rawLines) as $index => $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+
+                $rawDescription = (string) ($line['ten'] ?? '');
+                $descriptionForIdentity = trim($rawDescription);
+                if ($descriptionForIdentity === '') {
+                    continue;
+                }
+
+                $number = (int) ($line['stt'] ?? ($index + 1));
+                $key = hash('sha256', $number.'|'.$descriptionForIdentity.'|'.($line['sluong'] ?? '').'|'.($line['dvtinh'] ?? ''));
+                $seen[] = $key;
+                $normalized = $this->normalizer->normalize($line);
+
+                $snapshot->lines()->updateOrCreate(['source_line_key' => $key], array_merge([
+                    'line_number' => $number,
+                    'raw_description' => $rawDescription,
+                    'source_product_code' => $line['mhhdvu'] ?? $line['ma'] ?? null,
+                    'source_quantity' => is_numeric($line['sluong'] ?? null) ? $line['sluong'] : null,
+                    'source_uom' => $line['dvtinh'] ?? null,
+                    'unit_price' => is_numeric($line['dgia'] ?? null) ? $line['dgia'] : null,
+                    'line_amount' => is_numeric($line['thtien'] ?? null) ? $line['thtien'] : null,
+                    'tax_rate' => isset($line['tsuat']) || isset($line['ltsuat']) ? (string) ($line['tsuat'] ?? $line['ltsuat']) : null,
+                    'raw_payload' => $line,
+                ], $normalized));
+            }
+
+            if ($seen === []) {
+                throw new DomainException('Không có dòng hàng hợp lệ để chuẩn hóa.');
+            }
+
+            $snapshot->lines()->whereNotIn('source_line_key', $seen)->delete();
+            $snapshot->forceFill([
+                'status' => 'NORMALIZED',
+                'normalizer_version' => $normalizerVersion,
+                'normalized_at' => now(),
+                'last_error' => null,
+            ])->save();
+
+            return $snapshot->fresh('lines');
+        });
+    }
+
+    private function rawLines(array $detail): array
+    {
+        return is_array($detail['hdhhdvu'] ?? null) ? $detail['hdhhdvu'] : [];
+    }
+
+    private function payloadHash(array $detail): string
+    {
+        return hash('sha256', json_encode(
+            $detail,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        ));
+    }
+}
