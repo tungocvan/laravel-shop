@@ -6,6 +6,7 @@ use Illuminate\Support\Arr;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Invoices\Models\Invoices;
+use Modules\Invoices\Models\InvoiceExpenseCategory;
 use Modules\Invoices\Models\InvoiceSourceRecord;
 
 final class SourceDataManager extends Component
@@ -24,6 +25,8 @@ final class SourceDataManager extends Component
     public array $partnerList = [];
     public array $businessClassifications = [];
     public array $businessNotes = [];
+    public array $expenseCategoryIds = [];
+    public array $expenseNotes = [];
     public array $applySameTaxCode = [];
     public array $supplierBatchIds = [];
     public ?string $message = null;
@@ -92,6 +95,8 @@ final class SourceDataManager extends Component
 
         $this->businessClassifications = [];
         $this->businessNotes = [];
+        $this->expenseCategoryIds = [];
+        $this->expenseNotes = [];
         $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
@@ -104,6 +109,8 @@ final class SourceDataManager extends Component
 
         $this->businessClassifications = [];
         $this->businessNotes = [];
+        $this->expenseCategoryIds = [];
+        $this->expenseNotes = [];
         $this->clearSupplierBatchSelection();
         $this->resetPage();
     }
@@ -151,6 +158,8 @@ final class SourceDataManager extends Component
         $this->perPage = 25;
         $this->businessClassifications = [];
         $this->businessNotes = [];
+        $this->expenseCategoryIds = [];
+        $this->expenseNotes = [];
         $this->clearSupplierBatchSelection();
         $this->dispatch('filters-reset');
         $this->resetPage();
@@ -204,7 +213,7 @@ final class SourceDataManager extends Component
     {
         abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
 
-        $source = InvoiceSourceRecord::query()->with('invoice')->findOrFail($sourceId);
+        $source = InvoiceSourceRecord::query()->with(['invoice', 'expenseCategory'])->findOrFail($sourceId);
         $classification = strtoupper(trim((string) ($this->businessClassifications[$sourceId] ?? 'UNCLASSIFIED')));
         if (! in_array($classification, InvoiceSourceRecord::CLASSIFICATIONS, true)) {
             $this->addError("businessClassifications.{$sourceId}", 'Phân loại nghiệp vụ không hợp lệ.');
@@ -212,21 +221,27 @@ final class SourceDataManager extends Component
         }
 
         $note = trim((string) ($this->businessNotes[$sourceId] ?? ''));
+        $expenseCategoryId = $this->validatedExpenseCategoryId($sourceId, $classification);
+        if ($classification === 'SERVICE_EXPENSE' && $expenseCategoryId === false) {
+            return;
+        }
+        $expenseNote = trim((string) ($this->expenseNotes[$sourceId] ?? ''));
         $applySupplierWide = in_array($sourceId, array_map('intval', $this->supplierBatchIds), true);
-        $attributes = $this->annotationAttributes($classification, $note, $applySupplierWide);
+        $attributes = $this->annotationAttributes($classification, $note, $applySupplierWide, $expenseCategoryId, $expenseNote);
         $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
 
         if ($applySupplierWide && $taxCode !== '') {
             $updated = $this->applySupplierRule($source, $attributes);
             $this->message = "Đã lưu quy tắc nhà cung cấp {$this->classificationLabel($classification)} và áp dụng cho {$updated} hóa đơn cùng MST {$taxCode}. Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.";
             $this->removeSupplierBatchSelection($sourceId);
-            $this->showSaveModal($source, $classification, $note, true, $updated);
+            $source->forceFill($attributes);
+            $this->showSaveModal($source, $classification, $note, true, $updated, $expenseCategoryId);
             return;
         }
 
         $source->forceFill($attributes)->save();
         $this->message = 'Đã cập nhật phân loại riêng cho hóa đơn #'.$source->invoice_id.'.';
-        $this->showSaveModal($source, $classification, $note, false, 1);
+        $this->showSaveModal($source, $classification, $note, false, 1, $expenseCategoryId);
     }
 
     public function saveSupplierBatch(): void
@@ -239,7 +254,7 @@ final class SourceDataManager extends Component
             return;
         }
 
-        $sources = InvoiceSourceRecord::query()->with('invoice')->whereIn('id', $selectedIds)->get();
+        $sources = InvoiceSourceRecord::query()->with(['invoice', 'expenseCategory'])->whereIn('id', $selectedIds)->get();
         $processedSuppliers = [];
         $results = [];
         $affectedTotal = 0;
@@ -259,8 +274,15 @@ final class SourceDataManager extends Component
                 continue;
             }
 
+            $expenseCategoryId = $this->validatedExpenseCategoryId($source->id, $classification, false);
+            if ($classification === 'SERVICE_EXPENSE' && $expenseCategoryId === false) {
+                $skipped++;
+                continue;
+            }
+
             $note = trim((string) ($this->businessNotes[$source->id] ?? ''));
-            $attributes = $this->annotationAttributes($classification, $note, true);
+            $expenseNote = trim((string) ($this->expenseNotes[$source->id] ?? ''));
+            $attributes = $this->annotationAttributes($classification, $note, true, $expenseCategoryId, $expenseNote);
             $affected = $this->applySupplierRule($source, $attributes);
             $processedSuppliers[$supplierKey] = true;
             $affectedTotal += $affected;
@@ -268,12 +290,13 @@ final class SourceDataManager extends Component
                 'partner' => $source->invoice?->name ?: 'Không rõ nhà cung cấp',
                 'tax_code' => $taxCode,
                 'classification' => $this->classificationLabel($classification),
+                'expense_category' => $this->expenseCategoryName($expenseCategoryId),
                 'affected' => $affected,
             ];
         }
 
         if ($results === []) {
-            $this->message = 'Chưa có nhà cung cấp hợp lệ để lưu. Hãy chọn phân loại khác “Chưa phân loại” cho các dòng đã đánh dấu.';
+            $this->message = 'Chưa có nhà cung cấp hợp lệ để lưu. Hãy kiểm tra phân loại nghiệp vụ và phân loại chi phí cấp 2.';
             return;
         }
 
@@ -326,7 +349,7 @@ final class SourceDataManager extends Component
         });
 
         $recordsQuery = (clone $scopeQuery)
-            ->with('invoice:id,lookup_code,symbol,invoice_number,issued_date,tax_code,name,invoice_type')
+            ->with(['invoice:id,lookup_code,symbol,invoice_number,issued_date,tax_code,name,invoice_type', 'expenseCategory:id,code,name,parent_id'])
             ->when($this->detailStatus !== 'all', fn ($query) => $query->where('detail_status', $this->detailStatus))
             ->when($this->businessClassification !== 'all', fn ($query) => $query->where('business_classification', $this->businessClassification));
 
@@ -336,6 +359,8 @@ final class SourceDataManager extends Component
         foreach ($records as $record) {
             $this->businessClassifications[$record->id] ??= $record->business_classification;
             $this->businessNotes[$record->id] ??= (string) ($record->business_note ?? '');
+            $this->expenseCategoryIds[$record->id] ??= $record->expense_category_id ? (string) $record->expense_category_id : '';
+            $this->expenseNotes[$record->id] ??= (string) ($record->expense_note ?? '');
         }
         $this->rebuildApplySameTaxCodeState($records->pluck('id')->all());
 
@@ -360,6 +385,12 @@ final class SourceDataManager extends Component
             ->when($this->month !== 'all', fn ($query) => $query->whereMonth('issued_date', (int) $this->month))
             ->distinct()->orderBy('name')->pluck('name')->values()->all();
 
+        $expenseCategories = InvoiceExpenseCategory::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'code', 'name']);
+
         return view('Invoices::livewire.source-data-manager', [
             'records' => $records,
             'stats' => $stats,
@@ -367,6 +398,7 @@ final class SourceDataManager extends Component
             'availableYears' => $availableYears,
             'partnerList' => $this->partnerList,
             'classificationOptions' => InvoiceSourceRecord::CLASSIFICATIONS,
+            'expenseCategories' => $expenseCategories,
             'supplierBatchCount' => count($this->supplierBatchIds),
         ]);
     }
@@ -416,16 +448,55 @@ final class SourceDataManager extends Component
         $this->rebuildApplySameTaxCodeState(array_keys($this->applySameTaxCode));
     }
 
-    private function annotationAttributes(string $classification, string $note, bool $supplierWide): array
+    private function annotationAttributes(string $classification, string $note, bool $supplierWide, int|false|null $expenseCategoryId, string $expenseNote): array
     {
+        $isExpense = $classification === 'SERVICE_EXPENSE';
+        $now = now();
+
         return [
             'business_classification' => $classification,
             'classification_scope' => $supplierWide ? 'SUPPLIER' : 'INVOICE',
             'business_note' => $note !== '' ? $note : null,
             'classified_by' => (int) auth('admin')->id(),
-            'classified_at' => now(),
-            'updated_at' => now(),
+            'classified_at' => $now,
+            'expense_category_id' => $isExpense && is_int($expenseCategoryId) ? $expenseCategoryId : null,
+            'expense_note' => $isExpense && $expenseNote !== '' ? $expenseNote : null,
+            'expense_classified_by' => $isExpense && is_int($expenseCategoryId) ? (int) auth('admin')->id() : null,
+            'expense_classified_at' => $isExpense && is_int($expenseCategoryId) ? $now : null,
+            'updated_at' => $now,
         ];
+    }
+
+    private function validatedExpenseCategoryId(int $sourceId, string $classification, bool $reportError = true): int|false|null
+    {
+        if ($classification !== 'SERVICE_EXPENSE') {
+            return null;
+        }
+
+        $raw = trim((string) ($this->expenseCategoryIds[$sourceId] ?? ''));
+        if ($raw === '') {
+            return null;
+        }
+
+        $categoryId = filter_var($raw, FILTER_VALIDATE_INT);
+        $exists = $categoryId !== false && InvoiceExpenseCategory::query()->whereKey((int) $categoryId)->where('is_active', true)->exists();
+        if (! $exists) {
+            if ($reportError) {
+                $this->addError("expenseCategoryIds.{$sourceId}", 'Phân loại chi phí cấp 2 không hợp lệ hoặc đã ngừng sử dụng.');
+            }
+            return false;
+        }
+
+        return (int) $categoryId;
+    }
+
+    private function expenseCategoryName(int|false|null $categoryId): string
+    {
+        if (! is_int($categoryId)) {
+            return 'Chưa phân loại chi phí';
+        }
+
+        return InvoiceExpenseCategory::query()->whereKey($categoryId)->value('name') ?: 'Chưa phân loại chi phí';
     }
 
     private function applySupplierRule(InvoiceSourceRecord $source, array $attributes): int
@@ -501,7 +572,7 @@ final class SourceDataManager extends Component
         return $this->partner !== '' ? $period.' · '.$type.' · '.$this->partner : $period.' · '.$type;
     }
 
-    private function showSaveModal(InvoiceSourceRecord $source, string $classification, string $note, bool $supplierWide, int $affected): void
+    private function showSaveModal(InvoiceSourceRecord $source, string $classification, string $note, bool $supplierWide, int $affected, int|false|null $expenseCategoryId = null): void
     {
         $invoice = $source->invoice;
         $this->saveModal = [
@@ -513,6 +584,7 @@ final class SourceDataManager extends Component
             'tax_code' => $invoice?->tax_code ?: '—',
             'invoice_type' => $invoice?->invoice_type === 'sold' ? 'Bán ra' : 'Mua vào',
             'classification' => $this->classificationLabel($classification),
+            'expense_category' => $classification === 'SERVICE_EXPENSE' ? $this->expenseCategoryName($expenseCategoryId) : null,
             'scope' => $supplierWide ? 'Toàn bộ nhà cung cấp cùng MST và cùng loại hóa đơn' : 'Chỉ hóa đơn này',
             'affected' => $affected,
             'note' => $note !== '' ? $note : 'Không có ghi chú',
