@@ -4,26 +4,28 @@
 
 @section('content')
     <div class="mx-auto w-full max-w-7xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-        <header class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-            <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                <div class="max-w-4xl">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Invoices · GDT operations</p>
-                    <h1 class="mt-2 text-2xl font-bold tracking-tight text-gray-900">Đồng bộ hóa đơn GDT</h1>
-                    <p class="mt-2 text-sm leading-6 text-gray-500">Điểm thu nhận dữ liệu GDT canonical của hệ thống. Khi đồng bộ, header hóa đơn được ghi vào danh sách hóa đơn và RAW header + detail được lưu để Inventory cùng các nghiệp vụ downstream tái sử dụng mà không gọi GDT lần hai.</p>
+        <header class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div class="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div class="[&>a]:inline-flex [&>a]:min-h-9 [&>a]:items-center [&>a]:rounded-lg [&>a]:border-0 [&>a]:bg-transparent [&>a]:px-0 [&>a]:py-2 [&>a]:text-sm [&>a]:font-semibold [&>a]:text-gray-600 [&>a]:shadow-none hover:[&>a]:text-indigo-700">
+                    @include('Invoices::partials.dashboard-return-link')
                 </div>
 
-                <nav aria-label="Điều hướng hóa đơn" class="flex w-full flex-wrap items-center gap-x-1 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 p-1.5 xl:w-auto">
-                    <a href="{{ route('admin.invoices.source-data') }}" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-white px-3 py-2 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-gray-200 hover:bg-indigo-50 sm:text-sm">
-                        Dữ liệu nguồn GDT
-                    </a>
-                    <a href="{{ route('admin.invoices.hoadon-list') }}" class="inline-flex min-h-9 items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-white hover:shadow-sm sm:text-sm">
+                <nav aria-label="Điều hướng hóa đơn" class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('admin.invoices.hoadon-list') }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50">
                         Danh sách hóa đơn
                     </a>
-                    <span class="hidden h-5 w-px bg-gray-300 sm:block"></span>
-                    <div class="[&>a]:min-h-9 [&>a]:rounded-lg [&>a]:border-0 [&>a]:bg-transparent [&>a]:px-3 [&>a]:py-2 [&>a]:text-xs [&>a]:shadow-none hover:[&>a]:bg-white sm:[&>a]:text-sm">
-                        @include('Invoices::partials.dashboard-return-link')
-                    </div>
+                    <a href="{{ route('admin.invoices.source-data') }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                        Dữ liệu nguồn GDT
+                    </a>
                 </nav>
+            </div>
+
+            <div class="px-5 py-6 sm:px-6 sm:py-7">
+                <div class="max-w-4xl">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">Invoices · GDT operations</p>
+                    <h1 class="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Đồng bộ hóa đơn GDT</h1>
+                    <p class="mt-3 text-sm leading-6 text-gray-500">Điểm thu nhận dữ liệu GDT canonical của hệ thống. Khi đồng bộ, header hóa đơn được ghi vào danh sách hóa đơn và RAW header + detail được lưu để Inventory cùng các nghiệp vụ downstream tái sử dụng mà không gọi GDT lần hai.</p>
+                </div>
             </div>
         </header>
 
