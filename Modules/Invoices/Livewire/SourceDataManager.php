@@ -2,6 +2,7 @@
 
 namespace Modules\Invoices\Livewire;
 
+use Illuminate\Support\Arr;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Invoices\Models\Invoices;
@@ -40,6 +41,10 @@ final class SourceDataManager extends Component
     public bool $saveModalOpen = false;
 
     public array $saveModal = [];
+
+    public bool $detailModalOpen = false;
+
+    public array $detailModal = [];
 
     public function updatedSearch(): void
     {
@@ -119,6 +124,38 @@ final class SourceDataManager extends Component
         $this->saveModal = [];
     }
 
+    public function closeDetailModal(): void
+    {
+        $this->detailModalOpen = false;
+        $this->detailModal = [];
+    }
+
+    public function openDetailModal(int $sourceId): void
+    {
+        $source = InvoiceSourceRecord::query()->with('invoice')->findOrFail($sourceId);
+        $invoice = $source->invoice;
+        $items = collect($source->detail_payload['hdhhdvu'] ?? [])
+            ->filter(fn ($item) => is_array($item))
+            ->values()
+            ->map(fn (array $item, int $index) => $this->normalizeDetailItem($item, $index + 1))
+            ->all();
+
+        $this->detailModal = [
+            'invoice_number' => $invoice?->invoice_number ?: '—',
+            'symbol' => $invoice?->symbol ?: '—',
+            'issued_date' => $invoice?->issued_date?->format('d/m/Y') ?: '—',
+            'partner' => $invoice?->name ?: 'Không rõ nhà cung cấp',
+            'tax_code' => $invoice?->tax_code ?: '—',
+            'invoice_type' => $invoice?->invoice_type === 'sold' ? 'Bán ra' : 'Mua vào',
+            'detail_status' => $source->detail_status,
+            'detail_fetched_at' => $source->detail_fetched_at?->format('d/m/Y H:i') ?: '—',
+            'last_error' => $source->last_error,
+            'items' => $items,
+            'item_count' => count($items),
+        ];
+        $this->detailModalOpen = true;
+    }
+
     public function saveAnnotation(int $sourceId): void
     {
         abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
@@ -134,26 +171,11 @@ final class SourceDataManager extends Component
 
         $note = trim((string) ($this->businessNotes[$sourceId] ?? ''));
         $applySupplierWide = (bool) ($this->applySameTaxCode[$sourceId] ?? false);
-        $attributes = [
-            'business_classification' => $classification,
-            'classification_scope' => $applySupplierWide ? 'SUPPLIER' : 'INVOICE',
-            'business_note' => $note !== '' ? $note : null,
-            'classified_by' => (int) auth('admin')->id(),
-            'classified_at' => now(),
-            'updated_at' => now(),
-        ];
-
+        $attributes = $this->annotationAttributes($classification, $note, $applySupplierWide);
         $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
 
         if ($applySupplierWide && $taxCode !== '') {
-            $invoiceType = $source->invoice?->invoice_type;
-            $query = InvoiceSourceRecord::query()
-                ->where('provider', 'gdt')
-                ->whereHas('invoice', fn ($query) => $query
-                    ->where('tax_code', $taxCode)
-                    ->when($invoiceType, fn ($query) => $query->where('invoice_type', $invoiceType)));
-
-            $updated = $query->update($attributes);
+            $updated = $this->applySupplierRule($source, $attributes);
             $this->message = "Đã lưu quy tắc nhà cung cấp {$this->classificationLabel($classification)} và áp dụng cho {$updated} hóa đơn cùng MST {$taxCode}. Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.";
             $this->showSaveModal($source, $classification, $note, true, $updated);
 
@@ -163,6 +185,82 @@ final class SourceDataManager extends Component
         $source->forceFill($attributes)->save();
         $this->message = 'Đã cập nhật phân loại riêng cho hóa đơn #'.$source->invoice_id.'.';
         $this->showSaveModal($source, $classification, $note, false, 1);
+    }
+
+    public function saveSupplierBatch(): void
+    {
+        abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
+
+        $selectedIds = collect($this->applySameTaxCode)
+            ->filter(fn ($selected) => (bool) $selected)
+            ->keys()
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values();
+
+        if ($selectedIds->isEmpty()) {
+            $this->message = 'Chưa chọn nhà cung cấp nào để lưu hàng loạt.';
+
+            return;
+        }
+
+        $sources = InvoiceSourceRecord::query()
+            ->with('invoice')
+            ->whereIn('id', $selectedIds)
+            ->get();
+
+        $processedSuppliers = [];
+        $results = [];
+        $affectedTotal = 0;
+        $skipped = 0;
+
+        foreach ($sources as $source) {
+            $classification = strtoupper(trim((string) ($this->businessClassifications[$source->id] ?? 'UNCLASSIFIED')));
+            $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
+            $invoiceType = (string) ($source->invoice?->invoice_type ?? '');
+            $supplierKey = $taxCode.'|'.$invoiceType;
+
+            if ($taxCode === '' || ! in_array($classification, InvoiceSourceRecord::CLASSIFICATIONS, true) || $classification === 'UNCLASSIFIED') {
+                $skipped++;
+                continue;
+            }
+
+            if (isset($processedSuppliers[$supplierKey])) {
+                continue;
+            }
+
+            $note = trim((string) ($this->businessNotes[$source->id] ?? ''));
+            $attributes = $this->annotationAttributes($classification, $note, true);
+            $affected = $this->applySupplierRule($source, $attributes);
+            $processedSuppliers[$supplierKey] = true;
+            $affectedTotal += $affected;
+            $results[] = [
+                'partner' => $source->invoice?->name ?: 'Không rõ nhà cung cấp',
+                'tax_code' => $taxCode,
+                'classification' => $this->classificationLabel($classification),
+                'affected' => $affected,
+            ];
+        }
+
+        if ($results === []) {
+            $this->message = 'Chưa có nhà cung cấp hợp lệ để lưu. Hãy chọn phân loại khác “Chưa phân loại” cho các dòng đã đánh dấu.';
+
+            return;
+        }
+
+        foreach ($selectedIds as $sourceId) {
+            $this->applySameTaxCode[$sourceId] = false;
+        }
+
+        $this->message = 'Đã lưu hàng loạt '.count($results).' nhà cung cấp, ảnh hưởng '.number_format($affectedTotal).' hóa đơn.';
+        $this->saveModal = [
+            'mode' => 'batch',
+            'supplier_count' => count($results),
+            'affected' => $affectedTotal,
+            'skipped' => $skipped,
+            'suppliers' => $results,
+        ];
+        $this->saveModalOpen = true;
     }
 
     public function render()
@@ -214,7 +312,7 @@ final class SourceDataManager extends Component
         foreach ($records as $record) {
             $this->businessClassifications[$record->id] ??= $record->business_classification;
             $this->businessNotes[$record->id] ??= (string) ($record->business_note ?? '');
-            $this->applySameTaxCode[$record->id] ??= $record->classification_scope === 'SUPPLIER';
+            $this->applySameTaxCode[$record->id] ??= false;
         }
 
         $stats = [
@@ -256,6 +354,56 @@ final class SourceDataManager extends Component
             'partnerList' => $this->partnerList,
             'classificationOptions' => InvoiceSourceRecord::CLASSIFICATIONS,
         ]);
+    }
+
+    private function annotationAttributes(string $classification, string $note, bool $supplierWide): array
+    {
+        return [
+            'business_classification' => $classification,
+            'classification_scope' => $supplierWide ? 'SUPPLIER' : 'INVOICE',
+            'business_note' => $note !== '' ? $note : null,
+            'classified_by' => (int) auth('admin')->id(),
+            'classified_at' => now(),
+            'updated_at' => now(),
+        ];
+    }
+
+    private function applySupplierRule(InvoiceSourceRecord $source, array $attributes): int
+    {
+        $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
+        $invoiceType = $source->invoice?->invoice_type;
+
+        return InvoiceSourceRecord::query()
+            ->where('provider', 'gdt')
+            ->whereHas('invoice', fn ($query) => $query
+                ->where('tax_code', $taxCode)
+                ->when($invoiceType, fn ($query) => $query->where('invoice_type', $invoiceType)))
+            ->update($attributes);
+    }
+
+    private function normalizeDetailItem(array $item, int $index): array
+    {
+        return [
+            'index' => $index,
+            'name' => $this->firstItemValue($item, ['ten', 'ten_hhdv', 'thhdvu', 'name', 'description']) ?: '—',
+            'unit' => $this->firstItemValue($item, ['dvtinh', 'don_vi_tinh', 'unit']) ?: '—',
+            'quantity' => $this->firstItemValue($item, ['sluong', 'so_luong', 'quantity']),
+            'unit_price' => $this->firstItemValue($item, ['dgia', 'don_gia', 'unit_price']),
+            'amount' => $this->firstItemValue($item, ['thtien', 'thanh_tien', 'amount']),
+            'tax_rate' => $this->firstItemValue($item, ['tsuat', 'thue_suat', 'tax_rate']) ?: '—',
+        ];
+    }
+
+    private function firstItemValue(array $item, array $keys): mixed
+    {
+        foreach ($keys as $key) {
+            $value = Arr::get($item, $key);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     private function normalizeYear(): void
@@ -311,6 +459,7 @@ final class SourceDataManager extends Component
         $invoice = $source->invoice;
 
         $this->saveModal = [
+            'mode' => 'single',
             'invoice_number' => $invoice?->invoice_number ?: '—',
             'symbol' => $invoice?->symbol ?: '—',
             'issued_date' => $invoice?->issued_date?->format('d/m/Y') ?: '—',
