@@ -25,7 +25,7 @@ class GdtQuickConnectModalContractTest extends TestCase
         $this->assertStringContainsString('$this->refreshCaptcha();', $component);
         $this->assertStringContainsString('public function connect(): void', $component);
         $this->assertStringContainsString('$this->service->login(', $component);
-        $this->assertStringContainsString("$this->modalOpen = false", $component);
+        $this->assertStringContainsString('$this->modalOpen = false', $component);
         $this->assertStringContainsString("$this->dispatch('gdt-connected')", $component);
         $this->assertStringNotContainsString('redirectRoute(', $component);
     }
