@@ -25,15 +25,16 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
     }
 
     #[Test]
-    public function staging_service_is_resumable_idempotent_and_persists_failures(): void
+    public function inventory_staging_consumes_persisted_gdt_raw_and_never_fetches_gdt(): void
     {
         $service = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceInventoryStagingService.php'));
 
         $this->assertStringContainsString("['status' => 'PENDING']", $service);
-        $this->assertStringContainsString("'status' => 'FETCHING'", $service);
-        $this->assertStringContainsString("'attempt_count' => ((int) \$snapshot->attempt_count) + 1", $service);
+        $this->assertStringContainsString('$this->gdtDetailService->storedDetail($invoice)', $service);
+        $this->assertStringContainsString('Chưa có RAW GDT detail trên server.', $service);
+        $this->assertStringNotContainsString('fetchDetail($invoice)', $service);
+        $this->assertStringNotContainsString('fetchAndStoreDetail($invoice)', $service);
         $this->assertStringContainsString("hash('sha256'", $service);
-        $this->assertStringContainsString('$snapshot->payload_hash === $hash', $service);
         $this->assertStringContainsString("'tax_rate' => isset(\$line['tsuat'])", $service);
         $this->assertStringContainsString("'status' => 'NORMALIZED'", $service);
         $this->assertStringContainsString("'status' => 'ERROR'", $service);
@@ -42,6 +43,20 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString("'raw_payload' => \$line", $service);
         $this->assertStringContainsString("\$rawDescription = (string) (\$line['ten'] ?? '')", $service);
         $this->assertStringContainsString("'raw_description' => \$rawDescription", $service);
+    }
+
+    #[Test]
+    public function invoices_gdt_detail_service_is_local_first_and_persists_remote_payload(): void
+    {
+        $service = file_get_contents(base_path('Modules/Invoices/Services/GdtPdfService.php'));
+
+        $this->assertStringContainsString('public function storedDetail(Invoices $invoice): ?array', $service);
+        $this->assertStringContainsString('if (! $force && ($stored = $this->storedDetail($invoice)) !== null)', $service);
+        $this->assertStringContainsString('return $this->fetchAndStoreDetail($invoice);', $service);
+        $this->assertStringContainsString("['invoice_id' => \$invoice->id, 'source' => 'gdt_detail']", $service);
+        $this->assertStringContainsString("'raw_payload' => \$data", $service);
+        $this->assertStringContainsString("'fetched_at' => now()", $service);
+        $this->assertStringContainsString("Cache::forget((string) config('invoices.gdt.cache_key', 'gdt_token'))", $service);
     }
 
     #[Test]
@@ -54,8 +69,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString("->string('normalizer_version', 64)", $migration);
         $this->assertStringContainsString("public const VERSION = 'deterministic-v3'", $normalizer);
         $this->assertStringContainsString('$snapshot->normalizer_version === $normalizerVersion', $service);
-        $this->assertStringContainsString('$snapshot->normalizer_version !== $normalizerVersion', $service);
-        $this->assertStringContainsString('$this->hasUsableRawPayload($snapshot)', $service);
+        $this->assertStringContainsString('$this->gdtDetailService->storedDetail($invoice)', $service);
         $this->assertStringContainsString("'normalizer_version' => \$normalizerVersion", $service);
         $this->assertStringContainsString('updateOrCreate(', $service);
         $this->assertStringContainsString('fetchedNow: false', $service);
