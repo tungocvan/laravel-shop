@@ -27,12 +27,12 @@ class InvoiceSourceDetailExportContractTest extends TestCase
         $this->assertStringContainsString('name="detail_status"', $shell);
         $this->assertStringContainsString('name="business_classification"', $shell);
 
-        $this->assertStringContainsString("$selectedIds = collect((array) $request->input('source_ids', []))", $controller);
+        $this->assertStringContainsString("\$selectedIds = collect((array) \$request->input('source_ids', []))", $controller);
         $this->assertStringContainsString('if ($selectedIds->isNotEmpty())', $controller);
-        $this->assertStringContainsString("->whereIn('id', $selectedIds)", $controller);
-        $this->assertStringContainsString("$request->input('invoice_type', 'purchase')", $controller);
-        $this->assertStringContainsString("$request->input('detail_status', 'all')", $controller);
-        $this->assertStringContainsString("$request->input('business_classification', 'all')", $controller);
+        $this->assertStringContainsString("->whereIn('id', \$selectedIds)", $controller);
+        $this->assertStringContainsString("\$request->input('invoice_type', 'purchase')", $controller);
+        $this->assertStringContainsString("\$request->input('detail_status', 'all')", $controller);
+        $this->assertStringContainsString("\$request->input('business_classification', 'all')", $controller);
     }
 
     #[Test]
@@ -68,13 +68,13 @@ class InvoiceSourceDetailExportContractTest extends TestCase
         }
 
         $this->assertCount(20, $expectedHeaders);
-        $this->assertStringContainsString("$source->detail_payload['hdhhdvu']", $service);
+        $this->assertStringContainsString("\$source->detail_payload['hdhhdvu']", $service);
         $this->assertStringContainsString('->flatMap(', $service);
-        $this->assertStringContainsString("'Số hóa đơn' => $invoice?->invoice_number", $service);
-        $this->assertStringContainsString("'Ngày lập' => $invoice?->issued_date?->format('d/m/Y')", $service);
-        $this->assertStringContainsString("'Mã số thuế đối tác' => $invoice?->tax_code", $service);
-        $this->assertStringContainsString("'Tiền trước VAT' => $invoice?->amount_before_vat", $service);
-        $this->assertStringContainsString("'Tổng thanh toán' => $invoice?->total_amount", $service);
+        $this->assertStringContainsString("'Số hóa đơn' => \$invoice?->invoice_number", $service);
+        $this->assertStringContainsString("'Ngày lập' => \$invoice?->issued_date?->format('d/m/Y')", $service);
+        $this->assertStringContainsString("'Mã số thuế đối tác' => \$invoice?->tax_code", $service);
+        $this->assertStringContainsString("'Tiền trước VAT' => \$invoice?->amount_before_vat", $service);
+        $this->assertStringContainsString("'Tổng thanh toán' => \$invoice?->total_amount", $service);
         $this->assertStringNotContainsString('Nhà cung cấp dữ liệu', $service);
         $this->assertStringNotContainsString('Trạng thái detail', $service);
         $this->assertStringNotContainsString('Phân loại nghiệp vụ', $service);
