@@ -38,6 +38,13 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             $detailRecovery=$service->recoverMissingDetailsFromLocalRange($this->start,$this->end,fn(string $message)=>$this->appendLog($message),$this->vatIn);
             $this->appendLog(sprintf('[RAW] Recovery detail local: ứng viên %d · tải mới %d · đã có %d · lỗi %d.',$detailRecovery['candidates'],$detailRecovery['fetched'],$detailRecovery['reused'],$detailRecovery['failed']));
             $sourceCoverage=$coverage->coverage($this->start,$this->end,$this->vatIn);$canonicalReady=(bool)$sourceCoverage['complete'];$this->appendCoverage('RAW canonical sau recovery detail',$sourceCoverage);
+
+            $remainingDetail=max(0,(int)$sourceCoverage['total']-(int)$sourceCoverage['detail_ready']);
+            $headersComplete=(int)$sourceCoverage['total']>0&&(int)$sourceCoverage['header_ready']===(int)$sourceCoverage['total'];
+            if(is_file($expectedFile)&&is_readable($expectedFile)&&$headersComplete&&$remainingDetail>0){
+                $this->updateStatus('partial',sprintf('Recovery detail một phần: header %d/%d · detail %d/%d · còn thiếu %d detail. Chạy lại cùng khoảng thời gian để tiếp tục recovery; hệ thống không tải lại danh sách GDT.',$sourceCoverage['header_ready'],$sourceCoverage['total'],$sourceCoverage['detail_ready'],$sourceCoverage['total'],$remainingDetail),['file'=>$fileName,'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'local_detail_recovery','sync_skipped'=>true,'no_data'=>false,'missing_detail'=>$remainingDetail,'finished_at'=>now()->toIso8601String()]);
+                return;
+            }
         }
 
         $detailReady=(int)$sourceCoverage['total']>0&&(int)$sourceCoverage['detail_ready']===(int)$sourceCoverage['total'];
