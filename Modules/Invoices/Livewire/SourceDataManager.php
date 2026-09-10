@@ -441,7 +441,7 @@ final class SourceDataManager extends Component
             ->orderBy('name')
             ->get(['id', 'parent_id', 'code', 'name']);
 
-        return view('Invoices::livewire.source-data-manager', [
+        return view('Invoices::livewire.source-data-manager-shell', [
             'records' => $records,
             'stats' => $stats,
             'statsScopeLabel' => $this->statsScopeLabel(),
