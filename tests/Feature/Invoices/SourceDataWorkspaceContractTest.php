@@ -82,13 +82,48 @@ class SourceDataWorkspaceContractTest extends TestCase
     }
 
     #[Test]
+    public function source_data_can_review_normalized_gdt_detail_before_classification(): void
+    {
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
+
+        $this->assertStringContainsString('public bool $detailModalOpen = false;', $component);
+        $this->assertStringContainsString('public function openDetailModal(int $sourceId): void', $component);
+        $this->assertStringContainsString("\$source->detail_payload['hdhhdvu'] ?? []", $component);
+        $this->assertStringContainsString('private function normalizeDetailItem(array $item, int $index): array', $component);
+        $this->assertStringContainsString("['ten', 'ten_hhdv', 'thhdvu', 'name', 'description']", $component);
+        $this->assertStringContainsString('wire:click="openDetailModal({{ $record->id }})"', $view);
+        $this->assertStringContainsString('Chi tiết hóa đơn nguồn GDT', $view);
+        $this->assertStringContainsString('Tên hàng hóa / dịch vụ', $view);
+        $this->assertStringContainsString('Đóng và phân loại', $view);
+    }
+
+    #[Test]
+    public function source_data_supports_one_click_supplier_batch_save_for_unclassified_review(): void
+    {
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
+
+        $this->assertStringContainsString('public function saveSupplierBatch(): void', $component);
+        $this->assertStringContainsString("\$classification === 'UNCLASSIFIED'", $component);
+        $this->assertStringContainsString("\$supplierKey = \$taxCode.'|'.\$invoiceType;", $component);
+        $this->assertStringContainsString('$this->applySupplierRule($source, $attributes);', $component);
+        $this->assertStringContainsString("'mode' => 'batch'", $component);
+        $this->assertStringContainsString('wire:model.live="applySameTaxCode.{{ $record->id }}"', $view);
+        $this->assertStringContainsString('wire:click="saveSupplierBatch"', $view);
+        $this->assertStringContainsString('Lưu nhanh nhiều nhà cung cấp', $view);
+        $this->assertStringContainsString('Kết quả lưu hàng loạt nhà cung cấp', $view);
+    }
+
+    #[Test]
     public function source_data_keeps_backend_classification_and_supplier_scope_contract(): void
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
         $model = file_get_contents(base_path('Modules/Invoices/Models/InvoiceSourceRecord.php'));
         $routes = file_get_contents(base_path('Modules/Invoices/routes/web.php'));
 
-        $this->assertStringContainsString("'classification_scope' => \$applySupplierWide ? 'SUPPLIER' : 'INVOICE'", $component);
+        $this->assertStringContainsString("'classification_scope' => \$supplierWide ? 'SUPPLIER' : 'INVOICE'", $component);
+        $this->assertStringContainsString('private function applySupplierRule(InvoiceSourceRecord $source, array $attributes): int', $component);
         $this->assertStringContainsString('InvoiceSourceRecord::CLASSIFICATIONS', $component);
         $this->assertStringContainsString("'UNCLASSIFIED'", $model);
         $this->assertStringContainsString("'GOODS'", $model);
