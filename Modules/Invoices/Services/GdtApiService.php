@@ -6,6 +6,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class GdtApiService
 {
@@ -17,6 +18,42 @@ class GdtApiService
     public function forgetToken(): void
     {
         Cache::forget(config('invoices.gdt.cache_key'));
+    }
+
+    /**
+     * Verify that the cached token is accepted by GDT before a bulk sync is queued.
+     */
+    public function assertTokenUsable(): void
+    {
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new RuntimeException('Phiên đăng nhập GDT chưa được tạo hoặc đã hết hạn.');
+        }
+
+        $today = now()->format('d/m/Y');
+        $search = "tdlap=ge={$today}T00:00:00;tdlap=le={$today}T23:59:59";
+
+        try {
+            $response = $this->client()
+                ->withToken($token)
+                ->acceptJson()
+                ->get($this->url('/query/invoices/purchase'), [
+                    'sort' => 'tdlap:desc',
+                    'size' => 1,
+                    'search' => $search,
+                ]);
+        } catch (ConnectionException $exception) {
+            throw new RuntimeException('Không thể kiểm tra phiên GDT do mất kết nối.', previous: $exception);
+        }
+
+        if (in_array($response->status(), [401, 403], true)) {
+            $this->forgetToken();
+            throw new RuntimeException('Phiên đăng nhập GDT đã hết hạn. Vui lòng kết nối lại trước khi đồng bộ.');
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException("Không thể xác minh phiên GDT: HTTP {$response->status()}.");
+        }
     }
 
     public function loadCaptcha(): array
