@@ -60,15 +60,16 @@ final class SourceDataManager extends Component
         }
 
         $note = trim((string) ($this->businessNotes[$sourceId] ?? ''));
+        $applySupplierWide = (bool) ($this->applySameTaxCode[$sourceId] ?? false);
         $attributes = [
             'business_classification' => $classification,
+            'classification_scope' => $applySupplierWide ? 'SUPPLIER' : 'INVOICE',
             'business_note' => $note !== '' ? $note : null,
             'classified_by' => (int) auth('admin')->id(),
             'classified_at' => now(),
             'updated_at' => now(),
         ];
 
-        $applySupplierWide = (bool) ($this->applySameTaxCode[$sourceId] ?? false);
         $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
 
         if ($applySupplierWide && $taxCode !== '') {
@@ -80,13 +81,13 @@ final class SourceDataManager extends Component
                     ->when($invoiceType, fn ($query) => $query->where('invoice_type', $invoiceType)));
 
             $updated = $query->update($attributes);
-            $this->message = "Đã áp dụng {$classification} cho {$updated} hóa đơn cùng MST {$taxCode}.";
+            $this->message = "Đã lưu quy tắc nhà cung cấp {$classification} và áp dụng cho {$updated} hóa đơn cùng MST {$taxCode}. Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.";
 
             return;
         }
 
         $source->forceFill($attributes)->save();
-        $this->message = 'Đã cập nhật phân loại nghiệp vụ cho hóa đơn #'.$source->invoice_id.'.';
+        $this->message = 'Đã cập nhật phân loại riêng cho hóa đơn #'.$source->invoice_id.'.';
     }
 
     public function render()
@@ -118,7 +119,7 @@ final class SourceDataManager extends Component
         foreach ($records as $record) {
             $this->businessClassifications[$record->id] ??= $record->business_classification;
             $this->businessNotes[$record->id] ??= (string) ($record->business_note ?? '');
-            $this->applySameTaxCode[$record->id] ??= false;
+            $this->applySameTaxCode[$record->id] ??= $record->classification_scope === 'SUPPLIER';
         }
 
         $stats = [
