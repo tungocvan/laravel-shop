@@ -93,8 +93,10 @@ class GdtPdfService
     /**
      * Explicit GDT acquisition entry point. The /admin/invoices/hoadon workflow owns calls here.
      * 429 is retried conservatively using Retry-After when available; other failures remain fail-closed.
+     *
+     * @param  null|callable(int, int, int): void  $onRateLimitRetry
      */
-    public function fetchAndStoreDetail(Invoices $invoice): array
+    public function fetchAndStoreDetail(Invoices $invoice, ?callable $onRateLimitRetry = null): array
     {
         $tokenKey = (string) config('invoices.gdt.cache_key', 'gdt_token');
         $token = Cache::get($tokenKey);
@@ -116,7 +118,7 @@ class GdtPdfService
         );
         $source->forceFill(['detail_status' => 'FETCHING', 'last_error' => null])->save();
 
-        $attempts = max(1, (int) config('invoices.gdt.detail_retry_attempts', 4));
+        $attempts = max(1, min(6, (int) config('invoices.gdt.detail_retry_attempts', 4)));
         $backoffs = array_values((array) config('invoices.gdt.detail_retry_backoff_seconds', [5, 10, 20, 40]));
 
         try {
@@ -135,7 +137,7 @@ class GdtPdfService
                         ]);
                 } catch (ConnectionException $exception) {
                     if ($attempt < $attempts) {
-                        sleep((int) ($backoffs[$attempt - 1] ?? 5));
+                        sleep(max(1, (int) ($backoffs[$attempt - 1] ?? 5)));
                         continue;
                     }
 
@@ -151,7 +153,12 @@ class GdtPdfService
                     $retryAfter = filter_var($response->header('Retry-After'), FILTER_VALIDATE_INT);
                     $delay = $retryAfter !== false
                         ? max(1, min((int) $retryAfter, 120))
-                        : (int) ($backoffs[$attempt - 1] ?? 5);
+                        : max(1, (int) ($backoffs[$attempt - 1] ?? 5));
+
+                    if ($onRateLimitRetry !== null) {
+                        $onRateLimitRetry($attempt, $attempts, $delay);
+                    }
+
                     sleep($delay);
                     continue;
                 }
