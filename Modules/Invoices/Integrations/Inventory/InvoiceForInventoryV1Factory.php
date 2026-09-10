@@ -4,6 +4,7 @@ namespace Modules\Invoices\Integrations\Inventory;
 
 use DomainException;
 use Modules\Invoices\Models\InvoiceInventorySnapshot;
+use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Services\GdtPdfService;
 
@@ -17,7 +18,12 @@ final class InvoiceForInventoryV1Factory
             throw new DomainException('Chỉ hóa đơn mua vào mới được đưa sang Inventory.');
         }
 
-        $snapshot = InvoiceInventorySnapshot::query()->with('lines')->where('invoice_id', $invoice->id)->where('source', 'gdt_detail')->first();
+        $snapshot = InvoiceInventorySnapshot::query()
+            ->with('lines')
+            ->where('invoice_id', $invoice->id)
+            ->where('source', 'gdt_detail')
+            ->first();
+
         if ($snapshot?->status === 'NORMALIZED' && $snapshot->lines->isNotEmpty()) {
             return $this->buildFromSnapshot($snapshot);
         }
@@ -40,7 +46,8 @@ final class InvoiceForInventoryV1Factory
 
         $detail = is_array($snapshot->raw_payload) ? $snapshot->raw_payload : [];
         $identity = $this->identity($invoice, $detail);
-        $lines = $snapshot->lines->sortBy('line_number')->map(function ($line) use ($identity): array {
+        $sourceAnnotation = $this->sourceAnnotation($invoice);
+        $lines = $snapshot->lines->sortBy('line_number')->map(function ($line) use ($identity, $sourceAnnotation): array {
             return [
                 'line_number' => (int) $line->line_number,
                 'source_line_key' => hash('sha256', $identity.'|'.$line->source_line_key),
@@ -53,7 +60,7 @@ final class InvoiceForInventoryV1Factory
                 'lot_number' => $line->lot_number,
                 'expiry_date' => $line->expiry_date?->toDateString(),
                 'manufacture_date' => $line->manufacture_date?->toDateString(),
-                'metadata' => [
+                'metadata' => array_merge([
                     'tax_rate' => $line->tax_rate,
                     'raw_description' => $line->raw_description,
                     'strength' => $line->strength,
@@ -62,7 +69,7 @@ final class InvoiceForInventoryV1Factory
                     'manufacturer' => $line->manufacturer,
                     'staging_line_id' => $line->id,
                     'raw_gdt_line' => $line->raw_payload,
-                ],
+                ], $sourceAnnotation),
             ];
         })->filter(fn (array $line) => is_numeric($line['quantity']) && (float) $line['quantity'] > 0)->values()->all();
 
@@ -70,7 +77,16 @@ final class InvoiceForInventoryV1Factory
             throw new DomainException('Snapshot không có dòng hàng hóa hợp lệ để đưa sang Inventory.');
         }
 
-        return $this->contract($invoice, $detail, $identity, $lines, ['snapshot_id' => $snapshot->id, 'payload_hash' => $snapshot->payload_hash]);
+        return $this->contract(
+            $invoice,
+            $detail,
+            $identity,
+            $lines,
+            array_merge([
+                'snapshot_id' => $snapshot->id,
+                'payload_hash' => $snapshot->payload_hash,
+            ], $sourceAnnotation),
+        );
     }
 
     private function buildFromDetail(Invoices $invoice, array $detail): array
@@ -81,6 +97,7 @@ final class InvoiceForInventoryV1Factory
         }
 
         $identity = $this->identity($invoice, $detail);
+        $sourceAnnotation = $this->sourceAnnotation($invoice);
         $lines = [];
         foreach (array_values($rawLines) as $index => $line) {
             if (! is_array($line)) {
@@ -104,14 +121,17 @@ final class InvoiceForInventoryV1Factory
                 'lot_number' => $this->nullableString($line['solo'] ?? $line['lot'] ?? null),
                 'expiry_date' => $this->nullableString($line['hsd'] ?? $line['expiry_date'] ?? null),
                 'manufacture_date' => $this->nullableString($line['nsx'] ?? $line['manufacture_date'] ?? null),
-                'metadata' => ['tax_rate' => $line['tsuat'] ?? $line['ltsuat'] ?? null, 'raw_gdt_line' => $line],
+                'metadata' => array_merge([
+                    'tax_rate' => $line['tsuat'] ?? $line['ltsuat'] ?? null,
+                    'raw_gdt_line' => $line,
+                ], $sourceAnnotation),
             ];
         }
         if ($lines === []) {
             throw new DomainException('Không có dòng hàng hóa hợp lệ để đưa sang Inventory.');
         }
 
-        return $this->contract($invoice, $detail, $identity, $lines);
+        return $this->contract($invoice, $detail, $identity, $lines, $sourceAnnotation);
     }
 
     private function contract(Invoices $invoice, array $detail, string $identity, array $lines, array $extraMetadata = []): array
@@ -133,8 +153,27 @@ final class InvoiceForInventoryV1Factory
                 'vat_amount' => $this->nullableNumber($detail['tgtthue'] ?? $invoice->vat_amount),
                 'total_amount' => $this->nullableNumber($detail['tgtttbso'] ?? $invoice->total_amount),
             ],
-            'metadata' => array_merge(['lookup_code' => $invoice->lookup_code, 'gdt_message_id' => $detail['mhdon'] ?? null, 'source' => 'gdt_detail'], $extraMetadata),
+            'metadata' => array_merge([
+                'lookup_code' => $invoice->lookup_code,
+                'gdt_message_id' => $detail['mhdon'] ?? null,
+                'source' => 'gdt_detail',
+            ], $extraMetadata),
             'lines' => $lines,
+        ];
+    }
+
+    private function sourceAnnotation(Invoices $invoice): array
+    {
+        $source = InvoiceSourceRecord::query()
+            ->where('invoice_id', $invoice->id)
+            ->where('provider', 'gdt')
+            ->first();
+
+        return [
+            'source_business_classification' => $source?->business_classification ?? 'UNCLASSIFIED',
+            'source_business_note' => $source?->business_note,
+            'source_classified_by' => $source?->classified_by,
+            'source_classified_at' => $source?->classified_at?->toIso8601String(),
         ];
     }
 
@@ -145,7 +184,12 @@ final class InvoiceForInventoryV1Factory
             return 'gdt:purchase:lookup:'.$lookup;
         }
 
-        return 'gdt:purchase:'.implode(':', [trim((string) ($detail['nbmst'] ?? $invoice->tax_code)), trim((string) ($detail['khmshdon'] ?? '')), trim((string) ($detail['khhdon'] ?? $invoice->symbol)), trim((string) ($detail['shdon'] ?? $invoice->invoice_number))]);
+        return 'gdt:purchase:'.implode(':', [
+            trim((string) ($detail['nbmst'] ?? $invoice->tax_code)),
+            trim((string) ($detail['khmshdon'] ?? '')),
+            trim((string) ($detail['khhdon'] ?? $invoice->symbol)),
+            trim((string) ($detail['shdon'] ?? $invoice->invoice_number)),
+        ]);
     }
 
     private function nullableString(mixed $value): ?string
