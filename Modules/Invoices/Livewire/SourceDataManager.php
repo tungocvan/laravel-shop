@@ -22,6 +22,8 @@ final class SourceDataManager extends Component
 
     public array $businessNotes = [];
 
+    public array $applySameTaxCode = [];
+
     public ?string $message = null;
 
     public function updatedSearch(): void
@@ -48,7 +50,7 @@ final class SourceDataManager extends Component
     {
         abort_unless((bool) auth('admin')->user()?->can('invoices-create'), 403);
 
-        $source = InvoiceSourceRecord::query()->findOrFail($sourceId);
+        $source = InvoiceSourceRecord::query()->with('invoice')->findOrFail($sourceId);
         $classification = strtoupper(trim((string) ($this->businessClassifications[$sourceId] ?? 'UNCLASSIFIED')));
 
         if (! in_array($classification, InvoiceSourceRecord::CLASSIFICATIONS, true)) {
@@ -58,13 +60,32 @@ final class SourceDataManager extends Component
         }
 
         $note = trim((string) ($this->businessNotes[$sourceId] ?? ''));
-        $source->forceFill([
+        $attributes = [
             'business_classification' => $classification,
             'business_note' => $note !== '' ? $note : null,
             'classified_by' => (int) auth('admin')->id(),
             'classified_at' => now(),
-        ])->save();
+            'updated_at' => now(),
+        ];
 
+        $applySupplierWide = (bool) ($this->applySameTaxCode[$sourceId] ?? false);
+        $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
+
+        if ($applySupplierWide && $taxCode !== '') {
+            $invoiceType = $source->invoice?->invoice_type;
+            $query = InvoiceSourceRecord::query()
+                ->where('provider', 'gdt')
+                ->whereHas('invoice', fn ($query) => $query
+                    ->where('tax_code', $taxCode)
+                    ->when($invoiceType, fn ($query) => $query->where('invoice_type', $invoiceType)));
+
+            $updated = $query->update($attributes);
+            $this->message = "Đã áp dụng {$classification} cho {$updated} hóa đơn cùng MST {$taxCode}.";
+
+            return;
+        }
+
+        $source->forceFill($attributes)->save();
         $this->message = 'Đã cập nhật phân loại nghiệp vụ cho hóa đơn #'.$source->invoice_id.'.';
     }
 
@@ -97,6 +118,7 @@ final class SourceDataManager extends Component
         foreach ($records as $record) {
             $this->businessClassifications[$record->id] ??= $record->business_classification;
             $this->businessNotes[$record->id] ??= (string) ($record->business_note ?? '');
+            $this->applySameTaxCode[$record->id] ??= false;
         }
 
         $stats = [
