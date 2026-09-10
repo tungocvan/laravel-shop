@@ -14,9 +14,9 @@ class InventoryBatchDEndToEndReceivingContractTest extends TestCase
         $handoff = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceInventoryHandoffService.php'));
         $bulk = file_get_contents(base_path('Modules/Inventory/Services/BulkInvoicePublicationService.php'));
 
-        $this->assertStringContainsString("source_business_classification", $eligibility);
-        $this->assertStringContainsString("$classification === 'GOODS'", $eligibility);
-        $this->assertStringContainsString("$classification === 'MIXED'", $eligibility);
+        $this->assertStringContainsString('source_business_classification', $eligibility);
+        $this->assertStringContainsString("\$classification === 'GOODS'", $eligibility);
+        $this->assertStringContainsString("\$classification === 'MIXED'", $eligibility);
         $this->assertStringContainsString('SERVICE_EXPENSE', $eligibility);
         $this->assertStringContainsString('assertEligible($contract)', $handoff);
         $this->assertStringContainsString('$this->eligibility->assertEligible($contract)', $bulk);
@@ -31,8 +31,8 @@ class InventoryBatchDEndToEndReceivingContractTest extends TestCase
         $this->assertStringContainsString('expiry_tracking', $proposal);
         $this->assertStringContainsString('lot_tracking', $proposal);
         $this->assertStringContainsString('Phiếu nhập DRAFT đã có dữ liệu review', $proposal);
-        $this->assertStringNotContainsString("$receipt->lines()->delete()", $proposal);
-        $this->assertStringContainsString("'source_invoice_identity' => $inbox->source_invoice_identity", $proposal);
+        $this->assertStringNotContainsString('$receipt->lines()->delete()', $proposal);
+        $this->assertStringContainsString("'source_invoice_identity' => \$inbox->source_invoice_identity", $proposal);
     }
 
     #[Test]
@@ -45,8 +45,8 @@ class InventoryBatchDEndToEndReceivingContractTest extends TestCase
         $this->assertStringNotContainsString('StockPostingService', $proposal);
         $this->assertStringNotContainsString('->confirm(', $proposal);
         $this->assertStringContainsString('$this->stockPosting->postBatch($movements)', $posting);
-        $this->assertStringContainsString("if ($receipt->status === 'CONFIRMED')", $posting);
-        $this->assertStringContainsString("$table->string('movement_key', 64)->unique()", $ledgerMigration);
-        $this->assertStringContainsString("$table->string('dimension_key', 64)->unique()", $ledgerMigration);
+        $this->assertStringContainsString("if (\$receipt->status === 'CONFIRMED')", $posting);
+        $this->assertStringContainsString("\$table->string('movement_key', 64)->unique()", $ledgerMigration);
+        $this->assertStringContainsString("\$table->string('dimension_key', 64)->unique()", $ledgerMigration);
     }
 }
