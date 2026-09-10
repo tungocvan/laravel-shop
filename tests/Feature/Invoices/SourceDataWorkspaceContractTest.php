@@ -75,6 +75,8 @@ class SourceDataWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('public function updatedBusinessClassification(): void', $component);
         $this->assertStringContainsString('$this->businessClassifications = [];', $component);
         $this->assertStringContainsString('$this->businessNotes = [];', $component);
+        $this->assertStringContainsString('$this->expenseCategoryIds = [];', $component);
+        $this->assertStringContainsString('$this->expenseNotes = [];', $component);
         $this->assertStringContainsString("->when(\$this->businessClassification !== 'all', fn (\$query) => \$query->where('business_classification', \$this->businessClassification))", $component);
     }
 
@@ -102,8 +104,8 @@ class SourceDataWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('public bool $saveModalOpen = false;', $component);
         $this->assertStringContainsString('public array $saveModal = [];', $component);
         $this->assertStringContainsString('public function closeSaveModal(): void', $component);
-        $this->assertStringContainsString('$this->showSaveModal($source, $classification, $note, true, $updated);', $component);
-        $this->assertStringContainsString('$this->showSaveModal($source, $classification, $note, false, 1);', $component);
+        $this->assertStringContainsString('$this->showSaveModal($source, $classification, $note, true, $updated, $expenseCategoryId);', $component);
+        $this->assertStringContainsString('$this->showSaveModal($source, $classification, $note, false, 1, $expenseCategoryId);', $component);
         $this->assertStringContainsString("'scope' => \$supplierWide ? 'Toàn bộ nhà cung cấp cùng MST và cùng loại hóa đơn' : 'Chỉ hóa đơn này'", $component);
         $this->assertStringContainsString('@if ($saveModalOpen)', $view);
         $this->assertStringContainsString('Nội dung phân loại vừa lưu', $view);
@@ -145,6 +147,34 @@ class SourceDataWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('wire:click="saveSupplierBatch"', $view);
         $this->assertStringContainsString('Lưu nhanh nhiều nhà cung cấp', $view);
         $this->assertStringContainsString('Kết quả lưu hàng loạt nhà cung cấp', $view);
+    }
+
+    #[Test]
+    public function source_data_supports_dynamic_expense_classification_level_two(): void
+    {
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $model = file_get_contents(base_path('Modules/Invoices/Models/InvoiceSourceRecord.php'));
+        $categoryModel = file_get_contents(base_path('Modules/Invoices/Models/InvoiceExpenseCategory.php'));
+        $migration = file_get_contents(base_path('Modules/Invoices/database/migrations/2026_09_10_120000_add_expense_classification_to_invoice_source_records_table.php'));
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
+
+        $this->assertStringContainsString('invoice_expense_categories', $migration);
+        $this->assertStringContainsString("\$table->foreignId('parent_id')->nullable()", $migration);
+        $this->assertStringContainsString("\$table->string('code', 64)->unique()", $migration);
+        $this->assertStringContainsString("\$table->boolean('is_active')->default(true)", $migration);
+        $this->assertStringContainsString("\$table->foreignId('expense_category_id')->nullable()", $migration);
+        $this->assertStringContainsString('final class InvoiceExpenseCategory extends Model', $categoryModel);
+        $this->assertStringContainsString('public function expenseCategory(): BelongsTo', $model);
+        $this->assertStringContainsString("'expense_category_id'", $model);
+        $this->assertStringContainsString('public array $expenseCategoryIds = [];', $component);
+        $this->assertStringContainsString('InvoiceExpenseCategory::query()', $component);
+        $this->assertStringContainsString('private function validatedExpenseCategoryId(', $component);
+        $this->assertStringContainsString("\$classification === 'SERVICE_EXPENSE'", $component);
+        $this->assertStringContainsString('Phân loại chi phí cấp 2', $view);
+        $this->assertStringContainsString('wire:model="expenseCategoryIds.{{ $record->id }}"', $view);
+        $this->assertStringContainsString('Chưa phân loại chi phí', $view);
+        $this->assertStringContainsString('source-data-desktop-expense-{{ $record->id }}', $view);
+        $this->assertStringContainsString('source-data-mobile-expense-{{ $record->id }}', $view);
     }
 
     #[Test]
