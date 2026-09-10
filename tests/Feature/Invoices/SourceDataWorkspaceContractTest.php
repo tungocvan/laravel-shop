@@ -12,7 +12,7 @@ class SourceDataWorkspaceContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
 
-        $this->assertStringContainsString('<x-select-search id="source-data-partner-search" wire:model="partner"', $view);
+        $this->assertStringContainsString('<x-select-search id="source-data-partner-search" wire:model="partner" options-wire="partnerList"', $view);
         $this->assertStringContainsString('<x-search wire:model.live.debounce.300ms="search"', $view);
         $this->assertStringContainsString('wire:model.live="year"', $view);
         $this->assertStringContainsString('wire:model.live="month"', $view);
@@ -36,6 +36,8 @@ class SourceDataWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("whereYear('issued_date'", $component);
         $this->assertStringContainsString("whereMonth('issued_date'", $component);
         $this->assertStringContainsString("\$query->where('name', \$partner);", $component);
+        $this->assertStringContainsString('public array $partnerList = [];', $component);
+        $this->assertStringContainsString('$this->partnerList = Invoices::query()', $component);
         $this->assertStringContainsString('public function updatedPartner(): void', $component);
         $this->assertStringContainsString('public function updatedYear(): void', $component);
         $this->assertStringContainsString('public function updatedMonth(): void', $component);
