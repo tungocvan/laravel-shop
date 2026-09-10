@@ -47,6 +47,17 @@ class SourceDataWorkspaceContractTest extends TestCase
     }
 
     #[Test]
+    public function source_data_classification_filter_clears_stale_row_drafts_on_first_change(): void
+    {
+        $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+
+        $this->assertStringContainsString('public function updatedBusinessClassification(): void', $component);
+        $this->assertStringContainsString('$this->businessClassifications = [];', $component);
+        $this->assertStringContainsString('$this->businessNotes = [];', $component);
+        $this->assertStringContainsString("->when(\$this->businessClassification !== 'all', fn (\$query) => \$query->where('business_classification', \$this->businessClassification))", $component);
+    }
+
+    #[Test]
     public function source_data_dashboard_stats_follow_the_period_partner_and_invoice_type_scope(): void
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
@@ -116,15 +127,17 @@ class SourceDataWorkspaceContractTest extends TestCase
     }
 
     #[Test]
-    public function supplier_batch_checkbox_state_is_isolated_to_explicit_source_rows(): void
+    public function supplier_batch_checkbox_state_is_explicit_for_each_visible_source_row(): void
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
 
         $this->assertStringContainsString('public array $supplierBatchIds = [];', $component);
         $this->assertStringContainsString('public function updatedApplySameTaxCode(mixed $value, string|int $sourceId): void', $component);
-        $this->assertStringContainsString('$this->applySameTaxCode = [];', $component);
-        $this->assertStringContainsString('$this->applySameTaxCode[$selectedId] = true;', $component);
-        $this->assertStringContainsString('public function clearSupplierBatchSelection(): void', $component);
+        $this->assertStringContainsString('$this->rebuildApplySameTaxCodeState(array_keys($this->applySameTaxCode));', $component);
+        $this->assertStringContainsString('$this->rebuildApplySameTaxCodeState($records->pluck(\'id\')->all());', $component);
+        $this->assertStringContainsString('private function rebuildApplySameTaxCodeState(array $visibleIds): void', $component);
+        $this->assertStringContainsString('$state[$visibleId] = isset($selected[$visibleId]);', $component);
+        $this->assertStringContainsString('$this->applySameTaxCode = array_fill_keys(array_keys($this->applySameTaxCode), false);', $component);
         $this->assertStringContainsString('$selectedIds = collect($this->supplierBatchIds)', $component);
         $this->assertStringContainsString('$applySupplierWide = in_array($sourceId, array_map(\'intval\', $this->supplierBatchIds), true);', $component);
         $this->assertStringNotContainsString('$this->applySameTaxCode[$record->id] ??= $record->classification_scope === \'SUPPLIER\';', $component);
