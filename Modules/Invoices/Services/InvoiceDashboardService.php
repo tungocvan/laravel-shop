@@ -3,6 +3,7 @@
 namespace Modules\Invoices\Services;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Modules\Invoices\Data\InvoiceDashboardData;
@@ -30,12 +31,17 @@ final class InvoiceDashboardService
             'invoices' => $this->tableExists('invoices'),
             'invoice_files' => $this->tableExists('invoice_files'),
             'invoice_backup_runs' => $this->tableExists('invoice_backup_runs'),
+            'invoice_source_records' => $this->tableExists('invoice_source_records'),
+            'invoice_expense_categories' => $this->tableExists('invoice_expense_categories'),
         ];
 
         $recentInvoices = $availability['invoices'] ? $this->recentInvoices() : [];
         $invoiceMetrics = $availability['invoices']
             ? $this->invoiceMetrics($recentInvoices)
             : $this->emptyInvoiceMetrics(false);
+        $classificationMetrics = $availability['invoices'] && $availability['invoice_source_records']
+            ? $this->classificationMetrics($availability['invoice_expense_categories'])
+            : $this->emptyClassificationMetrics(false);
         $pdfMetrics = $this->pdfMetrics(
             $capabilities['download'],
             $availability['invoice_files'] && $invoiceMetrics['available'],
@@ -64,6 +70,7 @@ final class InvoiceDashboardService
             availability: $availability,
             metrics: [
                 'invoices' => $invoiceMetrics,
+                'classification' => $classificationMetrics,
                 'pdf' => $pdfMetrics,
             ],
             processing: $processing,
@@ -101,6 +108,106 @@ final class InvoiceDashboardService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function classificationMetrics(bool $expenseCategoriesAvailable): array
+    {
+        try {
+            $summary = DB::table('invoices')
+                ->join('invoice_source_records', function ($join): void {
+                    $join->on('invoice_source_records.invoice_id', '=', 'invoices.id')
+                        ->where('invoice_source_records.provider', '=', 'gdt');
+                })
+                ->where('invoices.invoice_type', 'purchase')
+                ->selectRaw('COUNT(*) as total_count')
+                ->selectRaw('COALESCE(SUM(invoices.amount_before_vat), 0) as total_value')
+                ->selectRaw("SUM(CASE WHEN invoice_source_records.business_classification = 'GOODS' THEN 1 ELSE 0 END) as goods_count")
+                ->selectRaw("COALESCE(SUM(CASE WHEN invoice_source_records.business_classification = 'GOODS' THEN invoices.amount_before_vat ELSE 0 END), 0) as goods_value")
+                ->selectRaw("SUM(CASE WHEN invoice_source_records.business_classification = 'SERVICE_EXPENSE' THEN 1 ELSE 0 END) as expense_count")
+                ->selectRaw("COALESCE(SUM(CASE WHEN invoice_source_records.business_classification = 'SERVICE_EXPENSE' THEN invoices.amount_before_vat ELSE 0 END), 0) as expense_value")
+                ->selectRaw("SUM(CASE WHEN invoice_source_records.business_classification = 'MIXED' THEN 1 ELSE 0 END) as mixed_count")
+                ->selectRaw("COALESCE(SUM(CASE WHEN invoice_source_records.business_classification = 'MIXED' THEN invoices.amount_before_vat ELSE 0 END), 0) as mixed_value")
+                ->selectRaw("SUM(CASE WHEN invoice_source_records.business_classification = 'UNCLASSIFIED' THEN 1 ELSE 0 END) as unclassified_count")
+                ->selectRaw("COALESCE(SUM(CASE WHEN invoice_source_records.business_classification = 'UNCLASSIFIED' THEN invoices.amount_before_vat ELSE 0 END), 0) as unclassified_value")
+                ->selectRaw("SUM(CASE WHEN invoice_source_records.business_classification = 'SERVICE_EXPENSE' AND invoice_source_records.expense_category_id IS NULL THEN 1 ELSE 0 END) as expense_unclassified_count")
+                ->first();
+
+            $expenseBreakdown = [];
+            if ($expenseCategoriesAvailable) {
+                $expenseBreakdown = DB::table('invoice_expense_categories')
+                    ->leftJoin('invoice_source_records', function ($join): void {
+                        $join->on('invoice_source_records.expense_category_id', '=', 'invoice_expense_categories.id')
+                            ->where('invoice_source_records.provider', '=', 'gdt')
+                            ->where('invoice_source_records.business_classification', '=', 'SERVICE_EXPENSE');
+                    })
+                    ->leftJoin('invoices', function ($join): void {
+                        $join->on('invoices.id', '=', 'invoice_source_records.invoice_id')
+                            ->where('invoices.invoice_type', '=', 'purchase');
+                    })
+                    ->where('invoice_expense_categories.is_active', true)
+                    ->groupBy('invoice_expense_categories.id', 'invoice_expense_categories.code', 'invoice_expense_categories.name', 'invoice_expense_categories.sort_order')
+                    ->orderBy('invoice_expense_categories.sort_order')
+                    ->orderBy('invoice_expense_categories.name')
+                    ->get([
+                        'invoice_expense_categories.code',
+                        'invoice_expense_categories.name',
+                        DB::raw('COUNT(invoices.id) as invoice_count'),
+                        DB::raw('COALESCE(SUM(invoices.amount_before_vat), 0) as total_value'),
+                    ])
+                    ->map(fn ($row): array => [
+                        'code' => (string) $row->code,
+                        'name' => (string) $row->name,
+                        'invoice_count' => (int) $row->invoice_count,
+                        'total_value' => (float) $row->total_value,
+                    ])
+                    ->all();
+            }
+
+            return [
+                'available' => true,
+                'basis' => 'amount_before_vat',
+                'total_count' => (int) ($summary?->total_count ?? 0),
+                'total_value' => (float) ($summary?->total_value ?? 0),
+                'goods_count' => (int) ($summary?->goods_count ?? 0),
+                'goods_value' => (float) ($summary?->goods_value ?? 0),
+                'expense_count' => (int) ($summary?->expense_count ?? 0),
+                'expense_value' => (float) ($summary?->expense_value ?? 0),
+                'mixed_count' => (int) ($summary?->mixed_count ?? 0),
+                'mixed_value' => (float) ($summary?->mixed_value ?? 0),
+                'unclassified_count' => (int) ($summary?->unclassified_count ?? 0),
+                'unclassified_value' => (float) ($summary?->unclassified_value ?? 0),
+                'expense_unclassified_count' => (int) ($summary?->expense_unclassified_count ?? 0),
+                'expense_breakdown' => $expenseBreakdown,
+            ];
+        } catch (Throwable $exception) {
+            $this->logUnavailable('classification_metrics', $exception);
+
+            return $this->emptyClassificationMetrics(false);
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function emptyClassificationMetrics(bool $available): array
+    {
+        return [
+            'available' => $available,
+            'basis' => 'amount_before_vat',
+            'total_count' => 0,
+            'total_value' => 0.0,
+            'goods_count' => 0,
+            'goods_value' => 0.0,
+            'expense_count' => 0,
+            'expense_value' => 0.0,
+            'mixed_count' => 0,
+            'mixed_value' => 0.0,
+            'unclassified_count' => 0,
+            'unclassified_value' => 0.0,
+            'expense_unclassified_count' => 0,
+            'expense_breakdown' => [],
+        ];
+    }
+
+    /**
      * @return array{available: bool, total: int, sold: int, purchase: int, latest_at: ?string}
      */
     private function emptyInvoiceMetrics(bool $available): array
@@ -120,23 +227,11 @@ final class InvoiceDashboardService
     private function pdfMetrics(bool $visible, bool $available, int $invoiceTotal): array
     {
         if (! $visible) {
-            return [
-                'visible' => false,
-                'available' => false,
-                'stored' => null,
-                'error' => null,
-                'missing' => null,
-            ];
+            return ['visible' => false, 'available' => false, 'stored' => null, 'error' => null, 'missing' => null];
         }
 
         if (! $available) {
-            return [
-                'visible' => true,
-                'available' => false,
-                'stored' => 0,
-                'error' => 0,
-                'missing' => 0,
-            ];
+            return ['visible' => true, 'available' => false, 'stored' => 0, 'error' => 0, 'missing' => 0];
         }
 
         try {
@@ -152,20 +247,11 @@ final class InvoiceDashboardService
             ];
         } catch (Throwable $exception) {
             $this->logUnavailable('pdf_metrics', $exception);
-
-            return [
-                'visible' => true,
-                'available' => false,
-                'stored' => 0,
-                'error' => 0,
-                'missing' => 0,
-            ];
+            return ['visible' => true, 'available' => false, 'stored' => 0, 'error' => 0, 'missing' => 0];
         }
     }
 
-    /**
-     * @return array<int, array{type: string, created_at: ?string}>
-     */
+    /** @return array<int, array{type: string, created_at: ?string}> */
     private function recentInvoices(): array
     {
         try {
@@ -175,45 +261,28 @@ final class InvoiceDashboardService
                 ->limit(self::RECENT_LIMIT)
                 ->get()
                 ->map(fn (Invoices $invoice): array => [
-                    'type' => in_array($invoice->invoice_type, ['sold', 'purchase'], true)
-                        ? (string) $invoice->invoice_type
-                        : 'unknown',
+                    'type' => in_array($invoice->invoice_type, ['sold', 'purchase'], true) ? (string) $invoice->invoice_type : 'unknown',
                     'created_at' => $this->iso($invoice->created_at),
                 ])
                 ->all();
         } catch (Throwable $exception) {
             $this->logUnavailable('recent_invoices', $exception);
-
             return [];
         }
     }
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
+    /** @return array<int, array<string, mixed>> */
     private function recentBackupRuns(): array
     {
         try {
             return InvoiceBackupRun::query()
-                ->select([
-                    'mode',
-                    'status',
-                    'files_count',
-                    'emails_sent',
-                    'started_at',
-                    'finished_at',
-                    'created_at',
-                ])
+                ->select(['mode', 'status', 'files_count', 'emails_sent', 'started_at', 'finished_at', 'created_at'])
                 ->latest('id')
                 ->limit(self::RECENT_LIMIT)
                 ->get()
                 ->map(fn (InvoiceBackupRun $run): array => [
-                    'mode' => in_array($run->mode, ['automatic', 'manual'], true)
-                        ? (string) $run->mode
-                        : 'unknown',
-                    'status' => in_array($run->status, ['running', 'skipped', 'success', 'failed'], true)
-                        ? (string) $run->status
-                        : 'unknown',
+                    'mode' => in_array($run->mode, ['automatic', 'manual'], true) ? (string) $run->mode : 'unknown',
+                    'status' => in_array($run->status, ['running', 'skipped', 'success', 'failed'], true) ? (string) $run->status : 'unknown',
                     'files_count' => max(0, (int) $run->files_count),
                     'emails_sent' => max(0, (int) $run->emails_sent),
                     'started_at' => $this->iso($run->started_at ?? $run->created_at),
@@ -222,60 +291,35 @@ final class InvoiceDashboardService
                 ->all();
         } catch (Throwable $exception) {
             $this->logUnavailable('recent_backup_runs', $exception);
-
             return [];
         }
     }
 
-    /**
-     * @return array{visible: bool, available: bool, configured: ?bool, session_available: ?bool}
-     */
+    /** @return array{visible: bool, available: bool, configured: ?bool, session_available: ?bool} */
     private function gdtStatus(bool $visible): array
     {
         if (! $visible) {
-            return [
-                'visible' => false,
-                'available' => false,
-                'configured' => null,
-                'session_available' => null,
-            ];
+            return ['visible' => false, 'available' => false, 'configured' => null, 'session_available' => null];
         }
 
         try {
             return [
                 'visible' => true,
                 'available' => true,
-                'configured' => filled(config('invoices.gdt.username'))
-                    && filled(config('invoices.gdt.password')),
+                'configured' => filled(config('invoices.gdt.username')) && filled(config('invoices.gdt.password')),
                 'session_available' => $this->gdtApi->hasToken(),
             ];
         } catch (Throwable $exception) {
             $this->logUnavailable('gdt_status', $exception);
-
-            return [
-                'visible' => true,
-                'available' => false,
-                'configured' => null,
-                'session_available' => null,
-            ];
+            return ['visible' => true, 'available' => false, 'configured' => null, 'session_available' => null];
         }
     }
 
-    /**
-     * @param  array<int, array<string, mixed>>  $recentRuns
-     * @return array<string, mixed>
-     */
+    /** @param array<int, array<string, mixed>> $recentRuns */
     private function backupStatus(bool $visible, bool $historyAvailable, array $recentRuns): array
     {
         if (! $visible) {
-            return [
-                'visible' => false,
-                'history_available' => false,
-                'automatic_enabled' => null,
-                'schedule_day' => null,
-                'schedule_time' => null,
-                'latest_status' => null,
-            ];
+            return ['visible' => false, 'history_available' => false, 'automatic_enabled' => null, 'schedule_day' => null, 'schedule_time' => null, 'latest_status' => null];
         }
 
         $scheduleTime = (string) config('invoices.backup.schedule_time', '00:15');
@@ -285,9 +329,7 @@ final class InvoiceDashboardService
             'history_available' => $historyAvailable,
             'automatic_enabled' => (bool) config('invoices.backup.automatic_enabled', false),
             'schedule_day' => max(1, min(28, (int) config('invoices.backup.schedule_day', 1))),
-            'schedule_time' => preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $scheduleTime) === 1
-                ? $scheduleTime
-                : null,
+            'schedule_time' => preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $scheduleTime) === 1 ? $scheduleTime : null,
             'latest_status' => $recentRuns[0]['status'] ?? null,
         ];
     }
@@ -302,22 +344,16 @@ final class InvoiceDashboardService
     private function warnings(array $availability, array $invoiceMetrics, array $pdfMetrics, array $processing): array
     {
         $warnings = [];
-        $requiredTables = [
-            'invoices' => $availability['invoices'],
-        ];
+        $requiredTables = ['invoices' => $availability['invoices']];
 
         if ($pdfMetrics['visible']) {
             $requiredTables['invoice_files'] = $availability['invoice_files'];
         }
-
         if ($processing['backup']['visible']) {
             $requiredTables['invoice_backup_runs'] = $availability['invoice_backup_runs'];
         }
 
-        $missingTables = count(array_filter(
-            $requiredTables,
-            static fn (bool $available): bool => ! $available,
-        ));
+        $missingTables = count(array_filter($requiredTables, static fn (bool $available): bool => ! $available));
 
         if ($missingTables > 0) {
             $warnings[] = [
@@ -326,35 +362,17 @@ final class InvoiceDashboardService
                 'message' => "Có {$missingTables} nhóm dữ liệu chưa sẵn sàng. Hãy kiểm tra migration của Module.",
             ];
         } elseif (! $invoiceMetrics['available']) {
-            $warnings[] = [
-                'level' => 'warning',
-                'code' => 'invoice-metrics-unavailable',
-                'message' => 'Không thể tải thống kê hóa đơn tại thời điểm này.',
-            ];
+            $warnings[] = ['level' => 'warning', 'code' => 'invoice-metrics-unavailable', 'message' => 'Không thể tải thống kê hóa đơn tại thời điểm này.'];
         }
 
         if ($pdfMetrics['visible'] && $pdfMetrics['available'] && $pdfMetrics['error'] > 0) {
-            $warnings[] = [
-                'level' => 'danger',
-                'code' => 'pdf-errors',
-                'message' => number_format($pdfMetrics['error']).' PDF đang ở trạng thái lỗi.',
-            ];
+            $warnings[] = ['level' => 'danger', 'code' => 'pdf-errors', 'message' => number_format($pdfMetrics['error']).' PDF đang ở trạng thái lỗi.'];
         }
-
         if ($pdfMetrics['visible'] && $pdfMetrics['available'] && $pdfMetrics['missing'] > 0) {
-            $warnings[] = [
-                'level' => 'warning',
-                'code' => 'pdf-missing',
-                'message' => number_format($pdfMetrics['missing']).' hóa đơn chưa có PDF khả dụng.',
-            ];
+            $warnings[] = ['level' => 'warning', 'code' => 'pdf-missing', 'message' => number_format($pdfMetrics['missing']).' hóa đơn chưa có PDF khả dụng.'];
         }
-
         if (($processing['backup']['latest_status'] ?? null) === 'failed') {
-            $warnings[] = [
-                'level' => 'danger',
-                'code' => 'backup-failed',
-                'message' => 'Lần backup gần nhất thất bại. Hãy kiểm tra tại workspace đồng bộ.',
-            ];
+            $warnings[] = ['level' => 'danger', 'code' => 'backup-failed', 'message' => 'Lần backup gần nhất thất bại. Hãy kiểm tra tại workspace đồng bộ.'];
         }
 
         return $warnings;
@@ -366,7 +384,6 @@ final class InvoiceDashboardService
             return Schema::hasTable($table);
         } catch (Throwable $exception) {
             $this->logUnavailable('table_'.$table, $exception);
-
             return false;
         }
     }
@@ -378,8 +395,7 @@ final class InvoiceDashboardService
                 return true;
             }
 
-            return method_exists($user, 'checkPermissionTo')
-                && $user->checkPermissionTo($permission, 'admin');
+            return method_exists($user, 'checkPermissionTo') && $user->checkPermissionTo($permission, 'admin');
         } catch (Throwable) {
             return false;
         }
