@@ -42,10 +42,6 @@ class GdtPdfService
         return $path;
     }
 
-    /**
-     * Read the canonical persisted GDT detail without a network request.
-     * Legacy Inventory snapshots are imported once for backward compatibility.
-     */
     public function storedDetail(Invoices $invoice): ?array
     {
         $source = InvoiceSourceRecord::query()
@@ -83,9 +79,6 @@ class GdtPdfService
         return $payload;
     }
 
-    /**
-     * Local-only detail lookup. Missing RAW must be acquired from /admin/invoices/hoadon.
-     */
     public function fetchDetail(Invoices $invoice, bool $force = false): array
     {
         if (($stored = $this->storedDetail($invoice)) !== null) {
@@ -99,10 +92,12 @@ class GdtPdfService
 
     /**
      * Explicit GDT acquisition entry point. The /admin/invoices/hoadon workflow owns calls here.
+     * 429 is retried conservatively using Retry-After when available; other failures remain fail-closed.
      */
     public function fetchAndStoreDetail(Invoices $invoice): array
     {
-        $token = Cache::get((string) config('invoices.gdt.cache_key', 'gdt_token'));
+        $tokenKey = (string) config('invoices.gdt.cache_key', 'gdt_token');
+        $token = Cache::get($tokenKey);
         if (! $token) {
             throw new RuntimeException('Phiên đăng nhập GDT đã hết hạn hoặc chưa được tạo.');
         }
@@ -119,50 +114,69 @@ class GdtPdfService
             ['invoice_id' => $invoice->id, 'provider' => 'gdt'],
             ['source_version' => 'gdt-v1'],
         );
-        $source->forceFill([
-            'detail_status' => 'FETCHING',
-            'last_error' => null,
-        ])->save();
+        $source->forceFill(['detail_status' => 'FETCHING', 'last_error' => null])->save();
+
+        $attempts = max(1, (int) config('invoices.gdt.detail_retry_attempts', 4));
+        $backoffs = array_values((array) config('invoices.gdt.detail_retry_backoff_seconds', [5, 10, 20, 40]));
 
         try {
-            $response = Http::withOptions([
-                'verify' => (bool) config('invoices.gdt.verify_ssl', true),
-            ])->timeout((int) config('invoices.gdt.timeout', 15))
-                ->withToken($token)
-                ->acceptJson()
-                ->get(rtrim((string) config('invoices.gdt.base_url'), '/').'/query/invoices/detail', [
-                    'nbmst' => $nbmst,
-                    'khhdon' => $khhdon,
-                    'shdon' => $shdon,
-                    'khmshdon' => $khmshdon,
-                ]);
+            for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+                try {
+                    $response = Http::withOptions([
+                        'verify' => (bool) config('invoices.gdt.verify_ssl', true),
+                    ])->timeout((int) config('invoices.gdt.timeout', 15))
+                        ->withToken($token)
+                        ->acceptJson()
+                        ->get(rtrim((string) config('invoices.gdt.base_url'), '/').'/query/invoices/detail', [
+                            'nbmst' => $nbmst,
+                            'khhdon' => $khhdon,
+                            'shdon' => $shdon,
+                            'khmshdon' => $khmshdon,
+                        ]);
+                } catch (ConnectionException $exception) {
+                    if ($attempt < $attempts) {
+                        sleep((int) ($backoffs[$attempt - 1] ?? 5));
+                        continue;
+                    }
 
-            if ($response->status() === 401 || $response->status() === 403) {
-                Cache::forget((string) config('invoices.gdt.cache_key', 'gdt_token'));
-                throw new RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+                    throw new RuntimeException('Không thể kết nối GDT để lấy chi tiết hóa đơn.', previous: $exception);
+                }
+
+                if (in_array($response->status(), [401, 403], true)) {
+                    Cache::forget($tokenKey);
+                    throw new RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+                }
+
+                if ($response->status() === 429 && $attempt < $attempts) {
+                    $retryAfter = filter_var($response->header('Retry-After'), FILTER_VALIDATE_INT);
+                    $delay = $retryAfter !== false
+                        ? max(1, min((int) $retryAfter, 120))
+                        : (int) ($backoffs[$attempt - 1] ?? 5);
+                    sleep($delay);
+                    continue;
+                }
+
+                if (! $response->successful()) {
+                    throw new RuntimeException("GDT trả lỗi HTTP {$response->status()} khi lấy chi tiết hóa đơn.");
+                }
+
+                $data = $response->json();
+                if (! is_array($data) || $data === []) {
+                    throw new RuntimeException('GDT không trả dữ liệu chi tiết hóa đơn.');
+                }
+
+                $source->forceFill([
+                    'detail_payload' => $data,
+                    'detail_hash' => $this->payloadHash($data),
+                    'detail_status' => 'READY',
+                    'detail_fetched_at' => now(),
+                    'last_error' => null,
+                ])->save();
+
+                return $data;
             }
 
-            if (! $response->successful()) {
-                throw new RuntimeException("GDT trả lỗi HTTP {$response->status()} khi lấy chi tiết hóa đơn.");
-            }
-
-            $data = $response->json();
-            if (! is_array($data) || $data === []) {
-                throw new RuntimeException('GDT không trả dữ liệu chi tiết hóa đơn.');
-            }
-
-            $source->forceFill([
-                'detail_payload' => $data,
-                'detail_hash' => $this->payloadHash($data),
-                'detail_status' => 'READY',
-                'detail_fetched_at' => now(),
-                'last_error' => null,
-            ])->save();
-
-            return $data;
-        } catch (ConnectionException $exception) {
-            $this->markAcquisitionError($source, 'Không thể kết nối GDT để lấy chi tiết hóa đơn.');
-            throw new RuntimeException('Không thể kết nối GDT để lấy chi tiết hóa đơn.', previous: $exception);
+            throw new RuntimeException('Không thể hoàn tất lấy chi tiết hóa đơn từ GDT.');
         } catch (Throwable $exception) {
             $this->markAcquisitionError($source, $exception->getMessage());
             throw $exception;
