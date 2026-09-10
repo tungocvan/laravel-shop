@@ -10,6 +10,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/invoices')->name('admin.
     Route::get('/create-token', [InvoicesController::class, 'createToken'])->middleware('permission:invoices-configure')->name('create-token');
     Route::get('/hoadon', [InvoicesController::class, 'hoadon'])->middleware('permission:invoices-create')->name('hoadon');
     Route::get('/hoadon-list', [InvoicesController::class, 'hoadonList'])->middleware('permission:invoices-list')->name('hoadon-list');
+    Route::get('/source-data', [InvoicesController::class, 'sourceData'])->middleware('permission:invoices-create')->name('source-data');
     Route::get('/reports/partners', [InvoicesController::class, 'partnerReport'])->middleware('permission:invoices-list')->name('reports.partners');
     Route::get('/backup-restore', [InvoicesController::class, 'backupRestore'])->middleware('permission:invoices-configure')->name('backup-restore');
     Route::get('/download-invoice/{invoice}', [InvoicesController::class, 'downloadInvoice'])->middleware('permission:invoices-download')->whereNumber('invoice')->name('download-invoice');
@@ -22,6 +23,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('invoices')->name('invoices.')-
     Route::redirect('/create-token', '/admin/invoices/create-token')->name('create-token');
     Route::redirect('/hoadon', '/admin/invoices/hoadon')->name('hoadon');
     Route::redirect('/hoadon-list', '/admin/invoices/hoadon-list')->name('hoadon-list');
+    Route::redirect('/source-data', '/admin/invoices/source-data')->name('source-data');
     Route::redirect('/reports/partners', '/admin/invoices/reports/partners')->name('reports.partners');
     Route::get('/download/{lookup_code}', [InvoicesController::class, 'download'])
         ->middleware('permission:invoices-download')
