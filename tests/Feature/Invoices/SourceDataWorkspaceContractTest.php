@@ -35,7 +35,7 @@ class SourceDataWorkspaceContractTest extends TestCase
 
         $this->assertStringContainsString("whereYear('issued_date'", $component);
         $this->assertStringContainsString("whereMonth('issued_date'", $component);
-        $this->assertStringContainsString("$query->where('name', $partner);", $component);
+        $this->assertStringContainsString("\$query->where('name', \$partner);", $component);
         $this->assertStringContainsString('public function updatedPartner(): void', $component);
         $this->assertStringContainsString('public function updatedYear(): void', $component);
         $this->assertStringContainsString('public function updatedMonth(): void', $component);
