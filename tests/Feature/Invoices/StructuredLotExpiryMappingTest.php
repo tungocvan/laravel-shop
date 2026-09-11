@@ -12,7 +12,7 @@ final class StructuredLotExpiryMappingTest extends TestCase
     {
         $line = $this->camzitolLine();
 
-        $normalized = (new InvoiceLineNormalizer())->normalize($line);
+        $normalized = app(InvoiceLineNormalizer::class)->normalize($line);
 
         $this->assertSame('G0846', GdtInvoiceLineMetadata::lotNumber($line));
         $this->assertSame('2028-03-08', GdtInvoiceLineMetadata::expiryDate($line));
@@ -22,7 +22,7 @@ final class StructuredLotExpiryMappingTest extends TestCase
 
     public function test_text_fallback_remains_supported_when_structured_metadata_is_missing(): void
     {
-        $normalized = (new InvoiceLineNormalizer())->normalize([
+        $normalized = app(InvoiceLineNormalizer::class)->normalize([
             'ten' => 'Cefmetazol 2g (Hộp 10 lọ); Lô: C60D001; HSD: 07/06/2027; NSX: Việt Nam',
             'dvtinh' => 'Lọ',
         ]);
@@ -36,7 +36,7 @@ final class StructuredLotExpiryMappingTest extends TestCase
         $line = $this->camzitolLine();
         $line['ten'] = 'CAMZITOL; Lô: WRONG123; HSD: 01/01/2030';
 
-        $normalized = (new InvoiceLineNormalizer())->normalize($line);
+        $normalized = app(InvoiceLineNormalizer::class)->normalize($line);
 
         $this->assertSame('G0846', $normalized['lot_number']);
         $this->assertSame('2028-03-08', $normalized['expiry_date']);
@@ -44,7 +44,7 @@ final class StructuredLotExpiryMappingTest extends TestCase
 
     public function test_missing_lot_and_expiry_remain_null(): void
     {
-        $normalized = (new InvoiceLineNormalizer())->normalize([
+        $normalized = app(InvoiceLineNormalizer::class)->normalize([
             'ten' => 'Dịch vụ vận chuyển',
             'dvtinh' => 'Lần',
         ]);
