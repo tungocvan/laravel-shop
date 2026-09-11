@@ -33,12 +33,12 @@ final class InventoryInvoiceDraftEditorContractTest extends TestCase
 
         $this->assertStringContainsString('<x-search', $view);
         $this->assertStringContainsString('<x-search', $page);
-        $this->assertStringContainsString("wire:model.live.debounce.300ms=\"itemSearch\"", $view);
-        $this->assertStringContainsString("->limit(20)", $component);
+        $this->assertStringContainsString('wire:model.live.debounce.300ms="itemSearch"', $view);
+        $this->assertStringContainsString('->limit(20)', $component);
         $this->assertStringContainsString('searchInventoryItems', $controller);
-        $this->assertStringContainsString("->limit(20)", $controller);
+        $this->assertStringContainsString('->limit(20)', $controller);
         $this->assertStringContainsString("name('items.search')", $routes);
-        $this->assertStringContainsString("select[wire\\\\:change^=\"assignLine(\"]", $page);
+        $this->assertStringContainsString('select[wire\\:change^="assignLine("]', $page);
         $this->assertStringContainsString("component.call('assignLine'", $page);
     }
 
@@ -48,7 +48,7 @@ final class InventoryInvoiceDraftEditorContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-draft-editor.blade.php'));
 
         $this->assertStringContainsString('created_from_invoice_inbox_line_id', $component);
-        $this->assertStringContainsString("if (\$editableItem)", $component);
+        $this->assertStringContainsString('if ($editableItem)', $component);
         $this->assertStringContainsString("\$metadata['packaging']", $component);
         $this->assertStringContainsString('Mặt hàng dùng chung · bảo vệ master', $view);
         $this->assertStringContainsString('Có thể sửa master data', $view);
