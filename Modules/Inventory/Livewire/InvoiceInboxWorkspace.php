@@ -38,11 +38,19 @@ final class InvoiceInboxWorkspace extends Component
 
     public bool $showCreateItem = false;
     public ?int $creatingFromLineId = null;
+    public ?int $editingItemId = null;
     public array $itemForm = [];
     public array $receivingReview = [];
     public bool $showConfirmReceipt = false;
 
     private const PAGE_SIZES = [10, 25, 50, 100];
+
+    public function mount(?int $selectedInboxId = null): void
+    {
+        if ($selectedInboxId !== null) {
+            $this->selectInbox($selectedInboxId);
+        }
+    }
 
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedStatus(): void { $this->resetPage(); }
@@ -107,7 +115,7 @@ final class InvoiceInboxWorkspace extends Component
             $this->showSourcePicker = false;
             $this->loadReceivingReviewState($inbox);
 
-            return 'Đã đưa hóa đơn đủ điều kiện vào Inbox. Tồn kho chưa thay đổi.';
+            return 'Đã đưa hóa đơn vào quy trình nhập kho. Tồn kho chưa thay đổi.';
         });
     }
 
@@ -126,10 +134,12 @@ final class InvoiceInboxWorkspace extends Component
         $itemId = (int) $itemId;
         $this->runAction(function () use ($lineId, $itemId): string {
             $line = $this->ownedLine($lineId);
+            $this->assertDraftNotCreated($line);
             $item = InventoryItem::query()->where('is_active', true)->findOrFail($itemId);
             app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
             $this->loadReceivingReviewState($this->selectedInbox());
-            return 'Đã xác nhận mapping mặt hàng và lưu alias theo nguồn.';
+
+            return 'Đã đối chiếu mặt hàng. Bạn vẫn có thể đổi mặt hàng trước khi tạo phiếu nhập nháp.';
         });
     }
 
@@ -138,19 +148,21 @@ final class InvoiceInboxWorkspace extends Component
         abort_unless($this->canManageReceipt(), 403);
         $this->runAction(function (): string {
             if ($this->bulkItemId === null) {
-                throw new DomainException('Chọn InventoryItem áp dụng cho các dòng đã chọn.');
+                throw new DomainException('Chọn mặt hàng áp dụng cho các dòng đã chọn.');
             }
 
             $item = InventoryItem::query()->where('is_active', true)->findOrFail($this->bulkItemId);
             $lines = $this->selectedOwnedLines();
             foreach ($lines as $line) {
+                $this->assertDraftNotCreated($line);
                 app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
             }
 
             $count = $lines->count();
             $this->clearSelectedLines();
             $this->loadReceivingReviewState($this->selectedInbox());
-            return "Đã mapping {$count} dòng vào {$item->sku} — {$item->display_name}.";
+
+            return "Đã đối chiếu {$count} dòng với {$item->sku} — {$item->display_name}.";
         });
     }
 
@@ -158,9 +170,12 @@ final class InvoiceInboxWorkspace extends Component
     {
         abort_unless($this->canManageReceipt(), 403);
         $this->runAction(function () use ($lineId): string {
-            app(InventoryItemMatchingService::class)->markNonStock($this->ownedLine($lineId));
+            $line = $this->ownedLine($lineId);
+            $this->assertDraftNotCreated($line);
+            app(InventoryItemMatchingService::class)->markNonStock($line);
             unset($this->receivingReview[$lineId]);
-            return 'Đã đánh dấu dòng NON_STOCK.';
+
+            return 'Đã đánh dấu dòng này là không nhập kho.';
         });
     }
 
@@ -170,32 +185,46 @@ final class InvoiceInboxWorkspace extends Component
         $this->runAction(function (): string {
             $lines = $this->selectedOwnedLines();
             foreach ($lines as $line) {
+                $this->assertDraftNotCreated($line);
                 app(InventoryItemMatchingService::class)->markNonStock($line);
                 unset($this->receivingReview[$line->id]);
             }
             $count = $lines->count();
             $this->clearSelectedLines();
-            return "Đã đánh dấu {$count} dòng là NON_STOCK.";
+
+            return "Đã đánh dấu {$count} dòng là không nhập kho.";
         });
     }
 
     public function beginCreateItem(int $lineId): void
     {
-        abort_unless((bool) auth('admin')->user()?->can('inventory.item.manage'), 403);
+        abort_unless($this->canManageItem(), 403);
         $line = $this->ownedLine($lineId);
+        $this->assertDraftNotCreated($line);
         if ($line->inventory_item_id !== null) {
-            throw new DomainException('Dòng này đã có InventoryItem.');
+            throw new DomainException('Dòng này đã được đối chiếu với một mặt hàng.');
         }
 
         $this->creatingFromLineId = $line->id;
-        $this->itemForm = [
-            'sku' => 'INV-LINE-'.$line->id,
-            'display_name' => $line->description_snapshot,
-            'base_uom' => trim((string) $line->source_uom) ?: 'unit',
-            'lot_tracking' => filled($line->lot_number),
-            'expiry_tracking' => filled($line->expiry_date),
-            'allow_fractional_quantity' => false,
-        ];
+        $this->editingItemId = null;
+        $this->itemForm = $this->buildItemForm($line, null);
+        $this->showCreateItem = true;
+    }
+
+    public function beginEditItem(int $lineId): void
+    {
+        abort_unless($this->canManageItem(), 403);
+        $line = $this->ownedLine($lineId);
+        $this->assertDraftNotCreated($line);
+        $item = $line->item()->firstOrFail();
+
+        if ((int) data_get($item->metadata, 'created_from_invoice_inbox_line_id') !== $line->id) {
+            throw new DomainException('Mặt hàng có sẵn không sửa trực tiếp từ màn hình nhập kho. Hãy dùng Danh mục mặt hàng.');
+        }
+
+        $this->creatingFromLineId = $line->id;
+        $this->editingItemId = $item->id;
+        $this->itemForm = $this->buildItemForm($line, $item);
         $this->showCreateItem = true;
     }
 
@@ -203,51 +232,96 @@ final class InvoiceInboxWorkspace extends Component
     {
         $this->showCreateItem = false;
         $this->creatingFromLineId = null;
+        $this->editingItemId = null;
         $this->itemForm = [];
         $this->resetValidation();
     }
 
     public function saveStandaloneItem(): void
     {
-        abort_unless((bool) auth('admin')->user()?->can('inventory.item.manage'), 403);
+        abort_unless($this->canManageItem(), 403);
         $this->runAction(function (): string {
             if ($this->creatingFromLineId === null) {
                 throw new DomainException('Không xác định được dòng hóa đơn nguồn.');
             }
 
+            $line = $this->ownedLine($this->creatingFromLineId);
+            $this->assertDraftNotCreated($line);
+            $uniqueSku = Rule::unique('inventory_items', 'sku');
+            if ($this->editingItemId !== null) {
+                $uniqueSku->ignore($this->editingItemId);
+            }
+
             $data = $this->validate([
-                'itemForm.sku' => ['required', 'string', 'max:120', Rule::unique('inventory_items', 'sku')],
+                'itemForm.sku' => ['required', 'string', 'max:120', $uniqueSku],
                 'itemForm.display_name' => ['required', 'string', 'max:255'],
                 'itemForm.base_uom' => ['required', 'string', 'max:80'],
                 'itemForm.lot_tracking' => ['boolean'],
                 'itemForm.expiry_tracking' => ['boolean'],
                 'itemForm.allow_fractional_quantity' => ['boolean'],
+                'itemForm.lot_number' => ['nullable', 'string', 'max:120'],
+                'itemForm.expiry_date' => ['nullable', 'date'],
+                'itemForm.include_manufacture_date' => ['boolean'],
+                'itemForm.manufacture_date' => ['nullable', 'date'],
             ])['itemForm'];
 
             if ((bool) $data['expiry_tracking'] && ! (bool) $data['lot_tracking']) {
-                throw new DomainException('Theo dõi HSD yêu cầu bật theo dõi lô.');
+                throw new DomainException('Theo dõi hạn sử dụng yêu cầu bật theo dõi số lô.');
             }
 
-            $line = $this->ownedLine($this->creatingFromLineId);
-            $item = InventoryItem::query()->create([
-                'sku' => trim($data['sku']),
-                'display_name' => trim($data['display_name']),
-                'base_uom' => trim($data['base_uom']),
-                'lot_tracking' => (bool) $data['lot_tracking'],
-                'expiry_tracking' => (bool) $data['expiry_tracking'],
-                'allow_fractional_quantity' => (bool) $data['allow_fractional_quantity'],
-                'is_active' => true,
-                'metadata' => [
-                    'created_from_invoice_inbox_line_id' => $line->id,
-                    'source_invoice_identity' => $line->inbox->source_invoice_identity,
-                    'creation_mode' => 'explicit_admin_review',
-                ],
-            ]);
+            $manufactureDate = (bool) ($data['include_manufacture_date'] ?? false) && filled($data['manufacture_date'] ?? null)
+                ? $data['manufacture_date']
+                : null;
+            $expiryDate = filled($data['expiry_date'] ?? null) ? $data['expiry_date'] : null;
+            if ($manufactureDate !== null && $expiryDate !== null && $expiryDate < $manufactureDate) {
+                throw ValidationException::withMessages([
+                    'itemForm.expiry_date' => 'Hạn sử dụng không được trước ngày sản xuất.',
+                ]);
+            }
 
-            app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
+            if ($this->editingItemId !== null) {
+                $item = InventoryItem::query()->findOrFail($this->editingItemId);
+                $item->forceFill([
+                    'sku' => trim($data['sku']),
+                    'display_name' => trim($data['display_name']),
+                    'base_uom' => trim($data['base_uom']),
+                    'lot_tracking' => (bool) $data['lot_tracking'],
+                    'expiry_tracking' => (bool) $data['expiry_tracking'],
+                    'allow_fractional_quantity' => (bool) $data['allow_fractional_quantity'],
+                ])->save();
+            } else {
+                $item = InventoryItem::query()->create([
+                    'sku' => trim($data['sku']),
+                    'display_name' => trim($data['display_name']),
+                    'base_uom' => trim($data['base_uom']),
+                    'lot_tracking' => (bool) $data['lot_tracking'],
+                    'expiry_tracking' => (bool) $data['expiry_tracking'],
+                    'allow_fractional_quantity' => (bool) $data['allow_fractional_quantity'],
+                    'is_active' => true,
+                    'metadata' => [
+                        'created_from_invoice_inbox_line_id' => $line->id,
+                        'source_invoice_identity' => $line->inbox->source_invoice_identity,
+                        'creation_mode' => 'explicit_admin_review',
+                    ],
+                ]);
+                app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
+            }
+
+            $line->refresh();
+            $line->forceFill([
+                'base_uom' => $item->base_uom,
+                'lot_number' => filled($data['lot_number'] ?? null) ? trim((string) $data['lot_number']) : null,
+                'manufacture_date' => $manufactureDate,
+                'expiry_date' => $expiryDate,
+            ])->save();
+
+            $wasEditing = $this->editingItemId !== null;
             $this->closeCreateItem();
             $this->loadReceivingReviewState($this->selectedInbox());
-            return 'Đã tạo InventoryItem sau khi review và mapping dòng hóa đơn.';
+
+            return $wasEditing
+                ? 'Đã cập nhật mặt hàng và thông tin lô của lần nhập này.'
+                : 'Đã tạo và đối chiếu mặt hàng. Bạn vẫn có thể sửa hoặc đổi mặt hàng trước khi tạo phiếu nhập nháp.';
         });
     }
 
@@ -257,17 +331,15 @@ final class InvoiceInboxWorkspace extends Component
         $this->runAction(function () use ($lineId): string {
             $line = $this->ownedLine($lineId);
             if ($line->classification !== 'STOCK' || $line->inventory_item_id === null) {
-                throw new DomainException('Chỉ review receiving cho dòng STOCK đã mapping InventoryItem.');
+                throw new DomainException('Chỉ lưu thông tin nhập cho dòng hàng đã được đối chiếu.');
             }
-            if ($line->inbox->receipt !== null) {
-                throw new DomainException('Phiếu nhập DRAFT đã được tạo. Không sửa staging line sau khi đã snapshot sang receipt.');
-            }
+            $this->assertDraftNotCreated($line);
 
             $data = $this->validateReceivingReview($line);
             $this->persistReceivingReview($line, $data);
             $this->loadReceivingReviewState($this->selectedInbox());
 
-            return 'Đã lưu review receiving: SL base/ĐVT/hệ số/lô/NSX/HSD.';
+            return 'Đã lưu thông tin nhập kho của mặt hàng.';
         });
     }
 
@@ -276,7 +348,7 @@ final class InvoiceInboxWorkspace extends Component
         abort_unless($this->canManageReceipt(), 403);
         $this->runAction(function (): string {
             if ($this->selectedInboxId === null) {
-                throw new DomainException('Hãy chọn hóa đơn Inbox.');
+                throw new DomainException('Hãy chọn hóa đơn cần nhập kho.');
             }
             if ($this->warehouseId === null) {
                 throw new DomainException('Hãy chọn kho nhận trước khi tạo phiếu nhập DRAFT.');
@@ -284,17 +356,17 @@ final class InvoiceInboxWorkspace extends Component
 
             $inbox = $this->selectedInbox();
             if ($inbox->lines->contains(fn (InvoiceInboxLine $line) => $line->classification === 'UNRESOLVED')) {
-                throw new DomainException('Còn dòng hóa đơn chưa được phân loại/matching.');
+                throw new DomainException('Còn dòng hóa đơn chưa được đối chiếu.');
             }
 
             $stockLines = $inbox->lines->where('classification', 'STOCK')->values();
             if ($stockLines->isEmpty()) {
-                throw new DomainException('Hóa đơn không có dòng STOCK để tạo phiếu nhập.');
+                throw new DomainException('Hóa đơn không có mặt hàng để nhập kho.');
             }
 
             foreach ($stockLines as $line) {
                 if ($line->inventory_item_id === null) {
-                    throw new DomainException('Còn dòng STOCK chưa chọn InventoryItem.');
+                    throw new DomainException('Còn mặt hàng chưa được đối chiếu với danh mục kho.');
                 }
 
                 $data = $this->validateReceivingReview($line);
@@ -307,7 +379,7 @@ final class InvoiceInboxWorkspace extends Component
                 (int) auth('admin')->id(),
             );
 
-            return 'Đã tạo/cập nhật phiếu nhập DRAFT '.$receipt->number.'. Hãy review quantity/UOM/lô/HSD trước khi xác nhận.';
+            return 'Đã tạo phiếu nhập nháp '.$receipt->number.'. Tồn kho chưa thay đổi.';
         });
     }
 
@@ -316,7 +388,7 @@ final class InvoiceInboxWorkspace extends Component
         abort_unless($this->canConfirmReceipt(), 403);
         $selected = $this->selectedInbox();
         if ($selected->receipt === null || $selected->receipt->status !== 'DRAFT') {
-            throw new DomainException('Chưa có phiếu nhập DRAFT để xác nhận.');
+            throw new DomainException('Chưa có phiếu nhập nháp để xác nhận.');
         }
         $this->showConfirmReceipt = true;
     }
@@ -336,7 +408,8 @@ final class InvoiceInboxWorkspace extends Component
 
             $receipt = app(ReceiptPostingService::class)->confirm($selected->receipt->id, $actor);
             $this->showConfirmReceipt = false;
-            return 'Đã xác nhận phiếu '.$receipt->number.'. Stock Movement và Stock Balance đã được cập nhật qua canonical posting service.';
+
+            return 'Đã xác nhận phiếu '.$receipt->number.'. Tồn kho đã được cập nhật.';
         });
     }
 
@@ -395,28 +468,32 @@ final class InvoiceInboxWorkspace extends Component
             'balances' => $balances,
             'canManageReceipt' => $this->canManageReceipt(),
             'canConfirmReceipt' => $this->canConfirmReceipt(),
-            'canManageItem' => (bool) auth('admin')->user()?->can('inventory.item.manage'),
+            'canManageItem' => $this->canManageItem(),
         ]);
     }
 
     private function selectedInbox(): InvoiceInbox
     {
         if ($this->selectedInboxId === null) {
-            throw new DomainException('Chọn hóa đơn Inbox trước.');
+            throw new DomainException('Chọn hóa đơn trước.');
         }
+
         return InvoiceInbox::query()->with(['receipt.lines.item', 'lines.item'])->findOrFail($this->selectedInboxId);
     }
 
     private function ownedLine(int $lineId): InvoiceInboxLine
     {
         if ($this->selectedInboxId === null) { abort(404); }
-        return InvoiceInboxLine::query()->with(['inbox.receipt', 'item'])->where('inbox_id', $this->selectedInboxId)->findOrFail($lineId);
+
+        return InvoiceInboxLine::query()->with(['inbox.receipt', 'item'])
+            ->where('inbox_id', $this->selectedInboxId)
+            ->findOrFail($lineId);
     }
 
     private function selectedOwnedLines()
     {
         if ($this->selectedInboxId === null) {
-            throw new DomainException('Chọn hóa đơn Inbox trước.');
+            throw new DomainException('Chọn hóa đơn trước.');
         }
         $ids = array_values(array_unique(array_filter(array_map('intval', $this->selectedLineIds))));
         if ($ids === []) {
@@ -426,6 +503,7 @@ final class InvoiceInboxWorkspace extends Component
         if ($lines->count() !== count($ids)) {
             throw new DomainException('Có dòng đã chọn không thuộc hóa đơn hiện tại.');
         }
+
         return $lines;
     }
 
@@ -439,15 +517,16 @@ final class InvoiceInboxWorkspace extends Component
             $key.'.base_uom' => ['required', 'string', 'max:80'],
             $key.'.conversion_factor' => ['required', 'numeric', 'gt:0'],
             $key.'.lot_number' => [$item->lot_tracking ? 'required' : 'nullable', 'string', 'max:120'],
+            $key.'.include_manufacture_date' => ['boolean'],
             $key.'.manufacture_date' => ['nullable', 'date'],
             $key.'.expiry_date' => [$item->expiry_tracking ? 'required' : 'nullable', 'date'],
         ];
 
         $messages = [
-            $key.'.base_quantity.required' => 'Vui lòng nhập số lượng base cho '.$item->display_name.'.',
-            $key.'.base_quantity.numeric' => 'Số lượng base của '.$item->display_name.' phải là số.',
-            $key.'.base_quantity.gt' => 'Số lượng base của '.$item->display_name.' phải lớn hơn 0.',
-            $key.'.base_uom.required' => 'Vui lòng nhập Base UOM cho '.$item->display_name.'.',
+            $key.'.base_quantity.required' => 'Vui lòng nhập số lượng nhập cho '.$item->display_name.'.',
+            $key.'.base_quantity.numeric' => 'Số lượng nhập của '.$item->display_name.' phải là số.',
+            $key.'.base_quantity.gt' => 'Số lượng nhập của '.$item->display_name.' phải lớn hơn 0.',
+            $key.'.base_uom.required' => 'Vui lòng nhập đơn vị tồn kho cho '.$item->display_name.'.',
             $key.'.conversion_factor.required' => 'Vui lòng nhập hệ số quy đổi cho '.$item->display_name.'.',
             $key.'.conversion_factor.numeric' => 'Hệ số quy đổi của '.$item->display_name.' phải là số.',
             $key.'.conversion_factor.gt' => 'Hệ số quy đổi của '.$item->display_name.' phải lớn hơn 0.',
@@ -458,6 +537,10 @@ final class InvoiceInboxWorkspace extends Component
         ];
 
         $data = $this->validate($rules, $messages)['receivingReview'][$line->id];
+        if (! (bool) ($data['include_manufacture_date'] ?? false)) {
+            $data['manufacture_date'] = null;
+        }
+
         $manufactureDate = filled($data['manufacture_date'] ?? null) ? $data['manufacture_date'] : null;
         $expiryDate = filled($data['expiry_date'] ?? null) ? $data['expiry_date'] : null;
 
@@ -468,7 +551,7 @@ final class InvoiceInboxWorkspace extends Component
         }
         if (trim((string) $data['base_uom']) !== (string) $item->base_uom) {
             throw ValidationException::withMessages([
-                $key.'.base_uom' => 'Base UOM phải là "'.$item->base_uom.'" để khớp InventoryItem '.$item->display_name.'.',
+                $key.'.base_uom' => 'Đơn vị tồn kho phải là "'.$item->base_uom.'" để khớp mặt hàng '.$item->display_name.'.',
             ]);
         }
 
@@ -509,10 +592,34 @@ final class InvoiceInboxWorkspace extends Component
                     'base_uom' => (string) ($line->base_uom ?? $line->item?->base_uom ?? ''),
                     'conversion_factor' => (string) ($line->conversion_factor ?? '1'),
                     'lot_number' => (string) ($line->lot_number ?? ''),
+                    'include_manufacture_date' => $line->manufacture_date !== null,
                     'manufacture_date' => $line->manufacture_date?->format('Y-m-d') ?? '',
                     'expiry_date' => $line->expiry_date?->format('Y-m-d') ?? '',
                 ],
             ])->all();
+    }
+
+    private function buildItemForm(InvoiceInboxLine $line, ?InventoryItem $item): array
+    {
+        return [
+            'sku' => $item?->sku ?? 'INV-LINE-'.$line->id,
+            'display_name' => $item?->display_name ?? $line->description_snapshot,
+            'base_uom' => $item?->base_uom ?? (trim((string) $line->source_uom) ?: 'unit'),
+            'lot_tracking' => $item?->lot_tracking ?? filled($line->lot_number),
+            'expiry_tracking' => $item?->expiry_tracking ?? filled($line->expiry_date),
+            'allow_fractional_quantity' => $item?->allow_fractional_quantity ?? false,
+            'lot_number' => (string) ($line->lot_number ?? ''),
+            'expiry_date' => $line->expiry_date?->format('Y-m-d') ?? '',
+            'include_manufacture_date' => $line->manufacture_date !== null,
+            'manufacture_date' => $line->manufacture_date?->format('Y-m-d') ?? '',
+        ];
+    }
+
+    private function assertDraftNotCreated(InvoiceInboxLine $line): void
+    {
+        if ($line->inbox->receipt !== null) {
+            throw new DomainException('Phiếu nhập nháp đã được tạo. Không sửa đối chiếu hoặc dữ liệu nguồn sau khi đã lập phiếu.');
+        }
     }
 
     private function canManageReceipt(): bool
@@ -523,6 +630,11 @@ final class InvoiceInboxWorkspace extends Component
     private function canConfirmReceipt(): bool
     {
         return (bool) auth('admin')->user()?->can('inventory.receipt.confirm');
+    }
+
+    private function canManageItem(): bool
+    {
+        return (bool) auth('admin')->user()?->can('inventory.item.manage');
     }
 
     private function runAction(callable $action): void
