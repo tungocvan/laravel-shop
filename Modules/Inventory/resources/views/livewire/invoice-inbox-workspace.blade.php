@@ -123,7 +123,7 @@
                                 <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                     <label class="text-sm font-medium text-slate-700">Số lượng nhập <span class="text-red-600">*</span><input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.base_quantity" readonly class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.base_quantity')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
                                     <label class="text-sm font-medium text-slate-700">Đơn vị tồn kho <span class="text-red-600">*</span><input type="text" wire:model="receivingReview.{{ $line->id }}.base_uom" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.base_uom')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
-                                    @if(!$sameUom)<label class="text-sm font-medium text-slate-700">Quy đổi đơn vị <span class="text-red-600">*</span><div class="mt-1 flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-3 text-sm"><span class="shrink-0 text-slate-500">1 {{ $line->source_uom }} =</span><input type="number" step="any" wire:model.live.debounce.300ms="receivingReview.{{ $line->id }}.conversion_factor" class="mx-2 min-w-0 flex-1 border-0 p-0 text-center focus:ring-0"><span class="shrink-0 text-slate-500">{{ $line->item?->base_uom }}</span></div>@error('receivingReview.'.$line->id.'.conversion_factor')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>@else<div class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600"><div class="font-medium text-emerald-700">Không cần quy đổi</div><div class="mt-1">1 {{ $line->source_uom }} = 1 {{ $line->item?->base_uom }}</div></div>@endif
+                                    @if(!$sameUom)<label class="text-sm font-medium text-slate-700">Quy đổi đơn vị <span class="text-red-600">*</span><div class="mt-1 flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-3 text-sm"><span class="shrink-0 text-slate-500">1 {{ $line->source_uom }} =</span><input type="number" step="any" wire:model.live.debounce.300ms="receivingReview.{{ $line->id }}.conversion_factor" class="mx-2 min-w-0 flex-1 border-0 p-0 text-center focus:ring-0"><span class="shrink-0 text-slate-500">{{ $line->item?->base_uom }}</span></div>@error('receivingReview.'.$line->id.'.conversion_factor')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>@else<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm"><div class="font-semibold text-emerald-700">Không cần quy đổi</div><div class="mt-1 text-slate-700">1 {{ $line->source_uom }} = 1 {{ $line->item?->base_uom }}</div></div>@endif
                                     <label class="text-sm font-medium text-slate-700">Số lô @if($line->item?->lot_tracking)<span class="text-red-600">*</span>@endif<input type="text" wire:model="receivingReview.{{ $line->id }}.lot_number" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.lot_number')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
                                     <label class="text-sm font-medium text-slate-700">Hạn sử dụng @if($line->item?->expiry_tracking)<span class="text-red-600">*</span>@endif<input type="date" wire:model="receivingReview.{{ $line->id }}.expiry_date" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.expiry_date')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
                                     <div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><label class="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" wire:model.live="receivingReview.{{ $line->id }}.include_manufacture_date" class="rounded border-gray-300"> Nhập ngày sản xuất</label>@if(data_get($receivingReview, $line->id.'.include_manufacture_date'))<input type="date" wire:model="receivingReview.{{ $line->id }}.manufacture_date" class="mt-3 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.manufacture_date')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror@endif<div class="mt-2 text-xs text-slate-500">Không bắt buộc. Chỉ nhập khi có ngày sản xuất chính xác.</div></div>
@@ -183,32 +183,61 @@
                                 : null;
                         @endphp
 
-                        <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
-                            <div class="mb-4">
-                                <h4 class="font-bold text-slate-900">Quy cách quy đổi</h4>
-                                <p class="mt-1 text-xs text-slate-600">Xác định một đơn vị trên hóa đơn tương ứng bao nhiêu đơn vị tồn kho.</p>
-                            </div>
+                        @php
+                            $creatingLine = $selected?->lines->firstWhere('id', $creatingFromLineId);
+                            $modalSourceUom = trim((string) $creatingLine?->source_uom) ?: 'ĐVT hóa đơn';
+                            $modalBaseUom = trim((string) data_get($itemForm, 'base_uom')) ?: 'ĐVT tồn kho';
+                            $modalSameUom = mb_strtolower($modalSourceUom) === mb_strtolower($modalBaseUom);
+                            $modalFactor = $modalSameUom
+                                ? 1
+                                : (float) (data_get($itemForm, 'conversion_factor') ?: 0);
+                            $modalBaseQuantity = $creatingLine && $modalFactor > 0
+                                ? (float) $creatingLine->source_quantity * $modalFactor
+                                : null;
+                        @endphp
 
-                            <div class="grid gap-4 md:grid-cols-3">
-                                <div class="rounded-xl border border-slate-200 bg-white p-3">
-                                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Trên hóa đơn</div>
-                                    <div class="mt-1 font-bold text-slate-900">
-                                        {{ $creatingLine?->source_quantity ?: '—' }} {{ $modalSourceUom }}
+                        @if($modalSameUom)
+                            <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                                    Không cần quy đổi
+                                </div>
+                                <div class="mt-1 text-base font-bold text-slate-900">
+                                    1 {{ $modalSourceUom }} = 1 {{ $modalBaseUom }}
+                                </div>
+                                @if($creatingLine)
+                                    <div class="mt-2 text-sm text-slate-600">
+                                        Số lượng nhập giữ nguyên:
+                                        <span class="font-semibold text-slate-900">
+                                            {{ $creatingLine->source_quantity }} {{ $modalBaseUom }}
+                                        </span>
                                     </div>
+                                @endif
+                            </div>
+                        @else
+                            <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+                                <div class="mb-4">
+                                    <h4 class="font-bold text-slate-900">Quy đổi đơn vị nhập kho</h4>
+                                    <p class="mt-1 text-xs text-slate-600">
+                                        Chỉ dùng khi đơn vị trên hóa đơn khác đơn vị tồn kho.
+                                    </p>
                                 </div>
 
-                                @if($modalSameUom)
-                                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                                        <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Không cần quy đổi</div>
+                                <div class="grid gap-4 md:grid-cols-3">
+                                    <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            Trên hóa đơn
+                                        </div>
                                         <div class="mt-1 font-bold text-slate-900">
-                                            1 {{ $modalSourceUom }} = 1 {{ $modalBaseUom }}
+                                            {{ $creatingLine?->source_quantity ?: '—' }} {{ $modalSourceUom }}
                                         </div>
                                     </div>
-                                @else
+
                                     <label class="text-sm font-medium text-slate-700">
                                         Quy đổi <span class="text-red-600">*</span>
                                         <div class="mt-1 flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-3">
-                                            <span class="shrink-0 text-slate-500">1 {{ $modalSourceUom }} =</span>
+                                            <span class="shrink-0 text-slate-500">
+                                                1 {{ $modalSourceUom }} =
+                                            </span>
                                             <input
                                                 type="number"
                                                 min="0"
@@ -223,21 +252,19 @@
                                             <span class="mt-1 block text-xs text-red-600">{{ $message }}</span>
                                         @enderror
                                     </label>
-                                @endif
 
-                                <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
-                                    <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Số lượng tồn kho</div>
-                                    <div class="mt-1 font-bold text-slate-900">
-                                        {{ $modalBaseQuantity !== null ? rtrim(rtrim(number_format($modalBaseQuantity, 8, '.', ''), '0'), '.') : '—' }}
-                                        {{ $modalBaseUom }}
+                                    <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                                        <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                                            Số lượng tồn kho
+                                        </div>
+                                        <div class="mt-1 font-bold text-slate-900">
+                                            {{ $modalBaseQuantity !== null ? rtrim(rtrim(number_format($modalBaseQuantity, 8, '.', ''), '0'), '.') : '—' }}
+                                            {{ $modalBaseUom }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <p class="mt-3 text-xs text-slate-600">
-                                Ví dụ: 10 Hộp × 30 Viên/Hộp = 300 Viên.
-                            </p>
-                        </div>
+                        @endif
 
                         <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                             <div class="mb-4">
