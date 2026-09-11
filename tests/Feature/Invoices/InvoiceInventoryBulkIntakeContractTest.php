@@ -135,7 +135,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $normalizer = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceLineNormalizer.php'));
 
         $this->assertStringContainsString("->string('normalizer_version', 64)", $migration);
-        $this->assertStringContainsString("public const VERSION = 'deterministic-v3'", $normalizer);
+        $this->assertStringContainsString("public const VERSION = 'deterministic-v4'", $normalizer);
         $this->assertStringContainsString('$snapshot->normalizer_version === $normalizerVersion', $service);
         $this->assertStringContainsString('$this->gdtDetailService->storedDetail($invoice)', $service);
         $this->assertStringContainsString("'normalizer_version' => \$normalizerVersion", $service);
@@ -156,7 +156,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertSame('P240801', $normalized['lot_number']);
         $this->assertSame('2028-08-01', $normalized['expiry_date']);
         $this->assertSame('hộp', $normalized['normalized_uom']);
-        $this->assertSame('deterministic-v3', $normalized['normalization_meta']['parser']);
+        $this->assertSame('deterministic-v4', $normalized['normalization_meta']['parser']);
     }
 
     #[Test]
@@ -176,11 +176,11 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertNull($normalized['manufacture_date']);
         $this->assertNull($normalized['dosage_form']);
         $this->assertSame('lọ', $normalized['normalized_uom']);
-        $this->assertSame('deterministic-v3', $normalized['normalization_meta']['parser']);
+        $this->assertSame('deterministic-v4', $normalized['normalization_meta']['parser']);
     }
 
     #[Test]
-    public function deterministic_v3_handles_real_khang_phat_invoice_261_lot_and_hd_alias(): void
+    public function deterministic_v4_handles_real_khang_phat_invoice_261_lot_and_hd_alias(): void
     {
         $normalizer = app(InvoiceLineNormalizer::class);
 
@@ -204,6 +204,6 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringNotContainsString('26002CN', $second['normalized_name']);
         $this->assertStringNotContainsString('HD:', $second['normalized_name']);
         $this->assertStringContainsString('Cefuroxime 125mg/5ml', $second['normalized_name']);
-        $this->assertSame('deterministic-v3', $second['normalization_meta']['parser']);
+        $this->assertSame('deterministic-v4', $second['normalization_meta']['parser']);
     }
 }

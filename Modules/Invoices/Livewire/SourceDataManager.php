@@ -9,6 +9,7 @@ use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Models\InvoiceExpenseCategory;
 use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Services\InvoiceSourceDetailExportService;
+use Modules\Invoices\Support\GdtInvoiceLineMetadata;
 
 final class SourceDataManager extends Component
 {
@@ -649,6 +650,8 @@ final class SourceDataManager extends Component
             'unit_price' => $this->firstItemValue($item, ['dgia', 'don_gia', 'unit_price']),
             'amount' => $this->firstItemValue($item, ['thtien', 'thanh_tien', 'amount']),
             'tax_rate' => $this->firstItemValue($item, ['tsuat', 'thue_suat', 'tax_rate']) ?: '—',
+            'lot_number' => GdtInvoiceLineMetadata::lotNumber($item),
+            'expiry_date' => GdtInvoiceLineMetadata::expiryDate($item),
         ];
     }
 

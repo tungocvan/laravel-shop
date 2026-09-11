@@ -4,13 +4,16 @@ namespace Modules\Invoices\Integrations\Inventory;
 
 use DomainException;
 use Modules\Invoices\Models\InvoiceInventorySnapshot;
-use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
+use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Services\GdtPdfService;
 
 final class InvoiceForInventoryV1Factory
 {
-    public function __construct(private readonly GdtPdfService $gdtDetailService) {}
+    public function __construct(
+        private readonly GdtPdfService $gdtDetailService,
+        private readonly InvoiceLineNormalizer $lineNormalizer,
+    ) {}
 
     public function build(Invoices $invoice): array
     {
@@ -110,6 +113,7 @@ final class InvoiceForInventoryV1Factory
                 continue;
             }
 
+            $normalizedLine = $this->lineNormalizer->normalize($line);
             $lineNumber = (int) ($line['stt'] ?? ($index + 1));
             $lines[] = [
                 'line_number' => $lineNumber,
@@ -120,12 +124,13 @@ final class InvoiceForInventoryV1Factory
                 'quantity' => $quantity,
                 'unit_price' => $this->nullableNumber($line['dgia'] ?? null),
                 'line_amount' => $this->nullableNumber($line['thtien'] ?? null),
-                'lot_number' => $this->nullableString($line['solo'] ?? $line['lot'] ?? null),
-                'expiry_date' => $this->nullableString($line['hsd'] ?? $line['expiry_date'] ?? null),
-                'manufacture_date' => $this->nullableString($line['nsx'] ?? $line['manufacture_date'] ?? null),
+                'lot_number' => $normalizedLine['lot_number'] ?? null,
+                'expiry_date' => $normalizedLine['expiry_date'] ?? null,
+                'manufacture_date' => $normalizedLine['manufacture_date'] ?? null,
                 'metadata' => array_merge([
                     'tax_rate' => $line['tsuat'] ?? $line['ltsuat'] ?? null,
                     'raw_gdt_line' => $line,
+                    'normalizer_version' => InvoiceLineNormalizer::VERSION,
                 ], $sourceAnnotation),
             ];
         }
