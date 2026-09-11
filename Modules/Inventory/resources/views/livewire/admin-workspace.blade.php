@@ -18,12 +18,41 @@
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr>
-            @if($workspace==='warehouses')<th class="px-4 py-3">Mã</th><th class="px-4 py-3">Kho</th><th class="px-4 py-3">Địa chỉ</th><th class="px-4 py-3">Trạng thái</th>@elseif($workspace==='items')<th class="px-4 py-3">SKU</th><th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">ĐVT</th><th class="px-4 py-3">Theo dõi</th><th class="px-4 py-3">Tồn tối thiểu</th>@elseif(in_array($workspace,['receipts','issues','stocktakes']))<th class="px-4 py-3">Số phiếu</th><th class="px-4 py-3">Kho</th><th class="px-4 py-3">Ngày</th><th class="px-4 py-3">Trạng thái</th>@elseif($workspace==='transfers')<th class="px-4 py-3">Số phiếu</th><th class="px-4 py-3">Kho nguồn</th><th class="px-4 py-3">Kho đích</th><th class="px-4 py-3">Trạng thái</th>@elseif($workspace==='stock')<th class="px-4 py-3">Kho</th><th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">Lô/HSD</th><th class="px-4 py-3 text-right">Tồn</th>@elseif($workspace==='lots')<th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">Lô</th><th class="px-4 py-3">HSD</th><th class="px-4 py-3">Trạng thái</th>@else<th class="px-4 py-3">Thời gian</th><th class="px-4 py-3">Kho</th><th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">Loại</th><th class="px-4 py-3 text-right">Số lượng</th><th class="px-4 py-3">Chứng từ</th>@endif
+            @if($workspace==='warehouses')<th class="px-4 py-3">Mã</th><th class="px-4 py-3">Kho</th><th class="px-4 py-3">Địa chỉ</th><th class="px-4 py-3">Trạng thái</th>@elseif($workspace==='items')<th class="px-4 py-3">SKU</th><th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">ĐVT</th><th class="px-4 py-3 text-right">Tồn hiện tại</th><th class="px-4 py-3">Lô / HSD</th><th class="px-4 py-3">Theo dõi</th><th class="px-4 py-3">Tồn tối thiểu</th>@elseif(in_array($workspace,['receipts','issues','stocktakes']))<th class="px-4 py-3">Số phiếu</th><th class="px-4 py-3">Kho</th><th class="px-4 py-3">Ngày</th><th class="px-4 py-3">Trạng thái</th>@elseif($workspace==='transfers')<th class="px-4 py-3">Số phiếu</th><th class="px-4 py-3">Kho nguồn</th><th class="px-4 py-3">Kho đích</th><th class="px-4 py-3">Trạng thái</th>@elseif($workspace==='stock')<th class="px-4 py-3">Kho</th><th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">Lô/HSD</th><th class="px-4 py-3 text-right">Tồn</th>@elseif($workspace==='lots')<th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">Lô</th><th class="px-4 py-3">HSD</th><th class="px-4 py-3">Trạng thái</th>@else<th class="px-4 py-3">Thời gian</th><th class="px-4 py-3">Kho</th><th class="px-4 py-3">Mặt hàng</th><th class="px-4 py-3">Loại</th><th class="px-4 py-3 text-right">Số lượng</th><th class="px-4 py-3">Chứng từ</th>@endif
             @if($canManage || $canConfirm)<th class="px-4 py-3 text-right">Thao tác</th>@endif
         </tr></thead><tbody class="divide-y divide-slate-100">
         @forelse($rows as $row)<tr class="align-top hover:bg-slate-50/70">
             @if($workspace==='warehouses')<td class="px-4 py-3 font-semibold">{{ $row->code }}</td><td class="px-4 py-3">{{ $row->name }}</td><td class="px-4 py-3 text-slate-600">{{ $row->address ?: '—' }}</td><td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $row->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">{{ $row->is_active ? 'Đang dùng' : 'Ngừng dùng' }}</span></td>
-            @elseif($workspace==='items')<td class="px-4 py-3 font-semibold">{{ $row->sku }}</td><td class="px-4 py-3">{{ $row->display_name }}</td><td class="px-4 py-3">{{ $row->base_uom }}</td><td class="px-4 py-3 text-xs text-slate-600">{{ $row->lot_tracking ? 'Lô' : 'Không lô' }}{{ $row->expiry_tracking ? ' · HSD' : '' }}</td><td class="px-4 py-3">{{ $row->reorder_level ?? '—' }}</td>
+            @elseif($workspace==='items')
+                @php
+                    $stockSummary = data_get($itemStockSummaries, $row->id, []);
+                    $stockDimensions = data_get($stockSummary, 'dimensions', []);
+                @endphp
+                <td class="px-4 py-3 font-semibold">{{ $row->sku }}</td>
+                <td class="px-4 py-3">{{ $row->display_name }}</td>
+                <td class="px-4 py-3">{{ $row->base_uom }}</td>
+                <td class="px-4 py-3 text-right">
+                    <span class="font-bold text-slate-900">
+                        {{ data_get($stockSummary, 'total_quantity', '0') }}
+                    </span>
+                    <span class="text-xs text-slate-500">{{ $row->base_uom }}</span>
+                </td>
+                <td class="px-4 py-3 text-xs text-slate-600">
+                    @forelse($stockDimensions as $dimension)
+                        <div @class(['mt-1' => !$loop->first])>
+                            <span class="font-semibold text-slate-800">
+                                {{ data_get($dimension, 'lot_number') ?: 'Không lô' }}
+                            </span>
+                            @if(data_get($dimension, 'expiry_date'))
+                                · HSD {{ \Illuminate\Support\Carbon::parse(data_get($dimension, 'expiry_date'))->format('d/m/Y') }}
+                            @endif
+                        </div>
+                    @empty
+                        —
+                    @endforelse
+                </td>
+                <td class="px-4 py-3 text-xs text-slate-600">{{ $row->lot_tracking ? 'Lô' : 'Không lô' }}{{ $row->expiry_tracking ? ' · HSD' : '' }}</td>
+                <td class="px-4 py-3">{{ $row->reorder_level ?? '—' }}</td>
             @elseif(in_array($workspace,['receipts','issues','stocktakes']))<td class="px-4 py-3 font-semibold">{{ $row->number }}</td><td class="px-4 py-3">{{ $row->warehouse?->name }}</td><td class="px-4 py-3">{{ $row->document_date?->format('d/m/Y H:i') ?? $row->counted_at?->format('d/m/Y H:i') ?? '—' }}</td><td class="px-4 py-3"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold">{{ $row->status }}</span></td>
             @elseif($workspace==='transfers')<td class="px-4 py-3 font-semibold">{{ $row->number }}</td><td class="px-4 py-3">{{ $row->sourceWarehouse?->name }}</td><td class="px-4 py-3">{{ $row->destinationWarehouse?->name }}</td><td class="px-4 py-3"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold">{{ $row->status }}</span></td>
             @elseif($workspace==='stock')<td class="px-4 py-3">{{ $row->warehouse_code }} — {{ $row->warehouse_name }}</td><td class="px-4 py-3"><span class="font-semibold">{{ $row->sku }}</span><br><span class="text-xs text-slate-500">{{ $row->display_name }}</span></td><td class="px-4 py-3">{{ $row->lot_number ?: 'Không lô' }}@if($row->expiry_date)<br><span class="text-xs text-slate-500">HSD {{ \Illuminate\Support\Carbon::parse($row->expiry_date)->format('d/m/Y') }}</span>@endif</td><td class="px-4 py-3 text-right font-bold {{ $row->reorder_level !== null && $row->quantity_on_hand <= $row->reorder_level ? 'text-amber-700' : 'text-slate-900' }}">{{ $row->quantity_on_hand }}</td>
@@ -42,7 +71,84 @@
             @if($workspace==='warehouses')
                 <div class="grid gap-4 md:grid-cols-2"><label class="text-sm font-medium">Mã kho<input wire:model="form.code" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"></label><label class="text-sm font-medium">Tên kho<input wire:model="form.name" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="text-sm font-medium md:col-span-2">Địa chỉ<textarea wire:model="form.address" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></textarea></label><label class="text-sm font-medium">Mã tỉnh/thành<input wire:model="form.province_code" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="flex items-center gap-2 pt-8 text-sm font-medium"><input type="checkbox" wire:model="form.is_active"> Đang hoạt động</label></div>
             @elseif($workspace==='items')
-                <div class="grid gap-4 md:grid-cols-2"><label class="text-sm font-medium">SKU<input wire:model="form.sku" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="text-sm font-medium">Tên mặt hàng<input wire:model="form.display_name" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="text-sm font-medium">ĐVT cơ sở<input wire:model="form.base_uom" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="text-sm font-medium">Tồn tối thiểu<input type="number" step="0.000001" min="0" wire:model="form.reorder_level" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label></div><div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">@foreach(['lot_tracking'=>'Theo dõi lô','expiry_tracking'=>'Theo dõi HSD','allow_fractional_quantity'=>'Cho phép số lẻ','is_active'=>'Đang hoạt động'] as $key=>$label)<label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm"><input type="checkbox" wire:model="form.{{ $key }}"> {{ $label }}</label>@endforeach</div>
+                <div class="grid gap-4 md:grid-cols-2"><label class="text-sm font-medium">SKU<input wire:model="form.sku" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="text-sm font-medium">Tên mặt hàng<input wire:model="form.display_name" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="text-sm font-medium">ĐVT cơ sở<input wire:model="form.base_uom" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label><label class="text-sm font-medium">Tồn tối thiểu<input type="number" step="0.000001" min="0" wire:model="form.reorder_level" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label></div>
+
+                @if($editingId)
+                    <section class="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h3 class="font-bold text-slate-900">Thông tin tồn kho hiện tại</h3>
+                                <p class="mt-1 text-xs text-slate-600">
+                                    Dữ liệu chỉ đọc từ sổ kho. Số lượng, lô và HSD không sửa trực tiếp tại danh mục mặt hàng.
+                                </p>
+                            </div>
+                            <div class="rounded-xl border border-emerald-200 bg-white px-4 py-2 text-right">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Tổng tồn</div>
+                                <div class="mt-1 text-lg font-bold text-slate-900">
+                                    {{ data_get($itemInventorySummary, 'total_quantity', '0') }}
+                                    {{ data_get($itemInventorySummary, 'base_uom', data_get($form, 'base_uom')) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        @php
+                            $package = data_get($itemInventorySummary, 'packaging');
+                        @endphp
+
+                        @if(data_get($package, 'package_uom') && data_get($package, 'quantity'))
+                            <div class="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-slate-700">
+                                <span class="font-semibold text-slate-900">Quy cách đóng gói:</span>
+                                1 {{ data_get($package, 'package_uom') }}
+                                =
+                                {{ rtrim(rtrim(number_format((float) data_get($package, 'quantity'), 8, '.', ''), '0'), '.') }}
+                                {{ data_get($package, 'base_uom', data_get($form, 'base_uom')) }}
+                            </div>
+                        @endif
+
+                        <div class="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                            <div class="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,.8fr)] gap-3 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <div>Kho</div>
+                                <div>Lô</div>
+                                <div>Hạn sử dụng</div>
+                                <div class="text-right">Tồn</div>
+                            </div>
+
+                            <div class="divide-y divide-slate-100">
+                                @forelse(data_get($itemInventorySummary, 'dimensions', []) as $dimension)
+                                    <div class="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,.8fr)] gap-3 px-4 py-3 text-sm">
+                                        <div>
+                                            <div class="font-semibold text-slate-900">{{ data_get($dimension, 'warehouse_code') }}</div>
+                                            <div class="text-xs text-slate-500">{{ data_get($dimension, 'warehouse_name') }}</div>
+                                        </div>
+
+                                        <div class="font-medium text-slate-800">
+                                            {{ data_get($dimension, 'lot_number') ?: 'Không lô' }}
+                                        </div>
+
+                                        <div>
+                                            @if(data_get($dimension, 'expiry_date'))
+                                                {{ \Illuminate\Support\Carbon::parse(data_get($dimension, 'expiry_date'))->format('d/m/Y') }}
+                                            @else
+                                                —
+                                            @endif
+                                        </div>
+
+                                        <div class="text-right font-bold text-slate-900">
+                                            {{ data_get($dimension, 'quantity') }}
+                                            {{ data_get($itemInventorySummary, 'base_uom') }}
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="px-4 py-6 text-center text-sm text-slate-500">
+                                        Mặt hàng chưa có tồn kho.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </section>
+                @endif
+
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">@foreach(['lot_tracking'=>'Theo dõi lô','expiry_tracking'=>'Theo dõi HSD','allow_fractional_quantity'=>'Cho phép số lẻ','is_active'=>'Đang hoạt động'] as $key=>$label)<label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm"><input type="checkbox" wire:model="form.{{ $key }}"> {{ $label }}</label>@endforeach</div>
             @else
                 <div class="grid gap-4 md:grid-cols-2"><label class="text-sm font-medium">Số chứng từ<input wire:model="form.number" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>@if($workspace==='transfers')<label class="text-sm font-medium">Kho nguồn<select wire:model="form.source_warehouse_id" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">Chọn kho</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label><label class="text-sm font-medium">Kho đích<select wire:model="form.destination_warehouse_id" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">Chọn kho</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>@else<label class="text-sm font-medium">Kho<select wire:model="form.warehouse_id" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">Chọn kho</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></label>@endif @if($workspace!=='stocktakes')<label class="text-sm font-medium">Ngày chứng từ<input type="datetime-local" wire:model="form.document_date" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>@endif<label class="text-sm font-medium md:col-span-2">Ghi chú<textarea wire:model="form.notes" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></textarea></label></div>
                 <div class="space-y-3"><div class="flex items-center justify-between"><h3 class="font-semibold">Dòng hàng</h3><button type="button" wire:click="addLine" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">+ Thêm dòng</button></div>@foreach($lines as $index=>$line)<div class="grid gap-3 rounded-xl border border-slate-200 p-3 md:grid-cols-2 xl:grid-cols-6"><label class="text-xs font-semibold xl:col-span-2">Mặt hàng<select wire:model="lines.{{ $index }}.inventory_item_id" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"><option value="">Chọn mặt hàng</option>@foreach($items as $item)<option value="{{ $item->id }}">{{ $item->sku }} — {{ $item->display_name }} ({{ $item->base_uom }})</option>@endforeach</select></label><label class="text-xs font-semibold">Số lượng<input type="number" step="0.000001" min="0" wire:model="lines.{{ $index }}.quantity" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"></label><label class="text-xs font-semibold">Lô đã có<select wire:model="lines.{{ $index }}.lot_id" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"><option value="">Không chọn</option>@foreach($lots as $lot)<option value="{{ $lot->id }}">{{ $lot->lot_number }}{{ $lot->expiry_date ? ' · '.$lot->expiry_date->format('d/m/Y') : '' }}</option>@endforeach</select></label>@if($workspace==='receipts')<label class="text-xs font-semibold">Lô mới<input wire:model="lines.{{ $index }}.lot_number" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"></label><label class="text-xs font-semibold">HSD<input type="date" wire:model="lines.{{ $index }}.expiry_date" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"></label><label class="text-xs font-semibold">Đơn giá<input type="number" step="0.000001" min="0" wire:model="lines.{{ $index }}.unit_cost" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"></label>@endif<div class="flex items-end"><button type="button" wire:click="removeLine({{ $index }})" class="rounded-lg px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50">Xóa dòng</button></div></div>@endforeach</div>
