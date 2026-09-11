@@ -38,7 +38,7 @@ final class InventoryInvoiceDraftEditorContractTest extends TestCase
         $this->assertStringContainsString('searchInventoryItems', $controller);
         $this->assertStringContainsString('->limit(20)', $controller);
         $this->assertStringContainsString("name('items.search')", $routes);
-        $this->assertStringContainsString('select[wire\\:change^="assignLine("]', $page);
+        $this->assertStringContainsString('select[wire\\\\:change^="assignLine("]', $page);
         $this->assertStringContainsString("component.call('assignLine'", $page);
     }
 
