@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Inventory\Models\InventoryItem;
+use Modules\Inventory\Models\InvoiceInboxLine;
 use Modules\Inventory\Models\Issue;
 use Modules\Inventory\Models\IssueLine;
 use Modules\Inventory\Models\Lot;
@@ -313,14 +314,16 @@ final class AdminWorkspace extends Component
                 'base_uom' => '',
                 'dimensions' => [],
                 'packaging' => null,
+                'lifecycle' => 'catalog',
+                'lifecycle_label' => 'Danh mục',
+                'source' => null,
             ];
         }
 
-        $dimensions = DB::table('inventory_balances as b')
+        $allDimensions = DB::table('inventory_balances as b')
             ->join('inventory_warehouses as w', 'w.id', '=', 'b.warehouse_id')
             ->leftJoin('inventory_lots as l', 'l.id', '=', 'b.lot_id')
             ->where('b.inventory_item_id', $itemId)
-            ->where('b.quantity_on_hand', '!=', 0)
             ->select([
                 'b.quantity_on_hand',
                 'w.code as warehouse_code',
@@ -333,9 +336,37 @@ final class AdminWorkspace extends Component
             ->orderByRaw('l.expiry_date is null, l.expiry_date asc')
             ->get();
 
-        $total = $dimensions->sum(
-            fn ($row) => (float) $row->quantity_on_hand
-        );
+        $total = $allDimensions->sum(fn ($row) => (float) $row->quantity_on_hand);
+        $dimensions = $allDimensions
+            ->filter(fn ($row) => abs((float) $row->quantity_on_hand) > 0.00000001)
+            ->values();
+
+        $sourceLineId = (int) data_get($item->metadata, 'created_from_invoice_inbox_line_id', 0);
+        $sourceLine = $sourceLineId > 0
+            ? InvoiceInboxLine::query()->with(['inbox.receipt'])->find($sourceLineId)
+            : null;
+        $sourceInbox = $sourceLine?->inbox;
+        $sourceReceipt = $sourceInbox?->receipt;
+        $hasMovement = DB::table('inventory_movements')
+            ->where('inventory_item_id', $itemId)
+            ->exists();
+
+        if (! $item->is_active) {
+            $lifecycle = 'inactive';
+            $lifecycleLabel = 'Ngừng hoạt động';
+        } elseif ($sourceLineId > 0 && $sourceReceipt?->status !== 'CONFIRMED' && ! $hasMovement) {
+            $lifecycle = 'pending_receipt';
+            $lifecycleLabel = 'Chờ xác nhận nhập kho';
+        } elseif ($total > 0.00000001) {
+            $lifecycle = 'in_stock';
+            $lifecycleLabel = 'Đang tồn kho';
+        } elseif ($hasMovement || $sourceReceipt?->status === 'CONFIRMED') {
+            $lifecycle = 'zero_stock';
+            $lifecycleLabel = 'Đã xác nhận · Hết tồn';
+        } else {
+            $lifecycle = 'catalog';
+            $lifecycleLabel = 'Danh mục · Chưa có tồn';
+        }
 
         $packaging = data_get($item->metadata, 'packaging');
 
@@ -351,6 +382,15 @@ final class AdminWorkspace extends Component
                 'expiry_date' => $row->expiry_date,
             ])->all(),
             'packaging' => is_array($packaging) ? $packaging : null,
+            'lifecycle' => $lifecycle,
+            'lifecycle_label' => $lifecycleLabel,
+            'source' => $sourceInbox ? [
+                'inbox_id' => $sourceInbox->id,
+                'invoice_number' => (string) ($sourceInbox->invoice_number_snapshot ?? ''),
+                'seller_name' => (string) ($sourceInbox->seller_name_snapshot ?? ''),
+                'receipt_number' => $sourceReceipt?->number,
+                'receipt_status' => $sourceReceipt?->status,
+            ] : null,
         ];
     }
 
