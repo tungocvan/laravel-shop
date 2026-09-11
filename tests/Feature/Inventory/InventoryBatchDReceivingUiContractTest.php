@@ -33,20 +33,55 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
     }
 
     #[Test]
-    public function inbox_exposes_explicit_item_review_instead_of_silent_creation(): void
+    public function inbox_exposes_explicit_item_review_and_allows_revision_before_draft(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
 
         $this->assertStringContainsString('beginCreateItem', $component);
+        $this->assertStringContainsString('beginEditItem', $component);
         $this->assertStringContainsString('saveStandaloneItem', $component);
+        $this->assertStringContainsString('public ?int $editingItemId = null;', $component);
         $this->assertStringContainsString("'creation_mode' => 'explicit_admin_review'", $component);
-        $this->assertStringNotContainsString('createStandaloneItem', $component.$view);
+        $this->assertStringContainsString('created_from_invoice_inbox_line_id', $component);
         $this->assertStringNotContainsString('firstOrCreate', $component);
-        $this->assertStringContainsString('Tạo InventoryItem sau khi review', $view);
+        $this->assertStringContainsString('Tạo mặt hàng mới', $view);
+        $this->assertStringContainsString('Sửa mặt hàng', $view);
+        $this->assertStringContainsString('Đổi sang mặt hàng khác...', $view);
         $this->assertStringContainsString('itemForm.lot_tracking', $view);
         $this->assertStringContainsString('itemForm.expiry_tracking', $view);
         $this->assertStringContainsString('itemForm.base_uom', $view);
+    }
+
+    #[Test]
+    public function create_item_modal_carries_invoice_lot_and_expiry_into_receiving_review(): void
+    {
+        $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
+
+        $this->assertStringContainsString("'lot_number' => (string) (\$line->lot_number ?? '')", $component);
+        $this->assertStringContainsString("'expiry_date' => \$line->expiry_date?->format('Y-m-d') ?? ''", $component);
+        $this->assertStringContainsString("'lot_number' => filled(\$data['lot_number']", $component);
+        $this->assertStringContainsString("'expiry_date' => \$expiryDate", $component);
+        $this->assertStringContainsString('Thông tin lô của lần nhập này', $view);
+        $this->assertStringContainsString('itemForm.lot_number', $view);
+        $this->assertStringContainsString('itemForm.expiry_date', $view);
+        $this->assertStringContainsString('Hệ thống điền sẵn từ hóa đơn nếu có', $view);
+    }
+
+    #[Test]
+    public function manufacture_date_is_optional_and_only_shown_when_user_enables_it(): void
+    {
+        $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
+
+        $this->assertStringContainsString("'include_manufacture_date' => \$line->manufacture_date !== null", $component);
+        $this->assertStringContainsString("\$key.'.manufacture_date' => ['nullable', 'date']", $component);
+        $this->assertStringContainsString("if (! (bool) (\$data['include_manufacture_date'] ?? false))", $component);
+        $this->assertStringContainsString('receivingReview.{{ $line->id }}.include_manufacture_date', $view);
+        $this->assertStringContainsString('itemForm.include_manufacture_date', $view);
+        $this->assertStringContainsString('Ngày sản xuất là tùy chọn', $view);
+        $this->assertStringContainsString('Không dùng thông tin “NSX: Việt Nam” làm ngày sản xuất.', $view);
     }
 
     #[Test]
@@ -70,7 +105,7 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.lot_number', $view);
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.manufacture_date', $view);
         $this->assertStringContainsString('receivingReview.{{ $line->id }}.expiry_date', $view);
-        $this->assertStringContainsString('Lưu review dòng', $view);
+        $this->assertStringContainsString('Lưu thông tin mặt hàng', $view);
     }
 
     #[Test]
@@ -105,12 +140,12 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
         $this->assertStringContainsString('inventory.receipt.confirm', $component);
         $this->assertStringNotContainsString('StockPostingService', $component);
         $this->assertStringContainsString('askConfirmReceipt', $view);
-        $this->assertStringContainsString('Xác nhận và cộng tồn', $view);
+        $this->assertStringContainsString('Xác nhận nhập kho', $view);
         $this->assertStringContainsString('wire:loading.attr="disabled"', $view);
     }
 
     #[Test]
-    public function confirmed_receiving_exposes_source_to_movement_to_balance_trace(): void
+    public function confirmed_receiving_keeps_source_to_movement_to_balance_trace_in_backend(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
@@ -118,9 +153,9 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
         $this->assertStringContainsString('StockMovement::query()', $component);
         $this->assertStringContainsString('StockBalance::query()', $component);
         $this->assertStringContainsString("->where('document_type', 'receipt')", $component);
-        $this->assertStringContainsString('source_invoice_identity', $view);
-        $this->assertStringContainsString('Audit sau xác nhận', $view);
-        $this->assertStringContainsString('Movement → Balance', $view);
+        $this->assertStringContainsString('source_invoice_identity', $component);
+        $this->assertStringContainsString('Nhập kho thành công', $view);
+        $this->assertStringContainsString('lịch sử kho để truy vết', $view);
     }
 
     #[Test]
@@ -134,5 +169,7 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
         $this->assertStringContainsString('border border-gray-300 bg-white', $view);
         $this->assertStringContainsString('focus:ring-2 focus:ring-indigo-100', $view);
         $this->assertStringNotContainsString('<option value="all">All</option>', $view);
+        $this->assertStringContainsString('max-w-4xl', $view);
+        $this->assertStringContainsString('max-h-[92vh]', $view);
     }
 }
