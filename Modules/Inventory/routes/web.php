@@ -8,6 +8,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/inventory')->name('admin
     Route::get('/intake', [InventoryAdminController::class, 'intake'])->middleware('permission:inventory.receipt.view')->name('intake');
     Route::get('/invoice-inbox', [InventoryAdminController::class, 'invoiceInbox'])->middleware('permission:inventory.receipt.view')->name('invoice-inbox');
     Route::post('/invoice-inbox/{inboxId}/refresh-source', [InventoryAdminController::class, 'refreshInvoiceInboxSource'])->middleware('permission:inventory.receipt.manage')->name('invoice-inbox.refresh-source');
+    Route::get('/items/search', [InventoryAdminController::class, 'searchInventoryItems'])->middleware('permission:inventory.receipt.manage')->name('items.search');
     Route::get('/warehouses', [InventoryAdminController::class, 'workspace'])->defaults('workspace', 'warehouses')->middleware('permission:inventory.warehouse.view')->name('warehouses');
     Route::get('/items', [InventoryAdminController::class, 'workspace'])->defaults('workspace', 'items')->middleware('permission:inventory.item.view')->name('items');
     Route::get('/receipts', [InventoryAdminController::class, 'workspace'])->defaults('workspace', 'receipts')->middleware('permission:inventory.receipt.view')->name('receipts');
