@@ -39,9 +39,160 @@
     </header>
 
     @if(request()->filled('inbox'))
+        @if($selectedInboxHeader?->receipt?->status === 'DRAFT')
+            <livewire:inventory.invoice-draft-editor :inbox-id="(int) request('inbox')" />
+        @endif
+
+        <template id="inventory-item-search-template">
+            <div class="relative min-w-0 flex-1" data-inventory-item-search-shell>
+                <x-search placeholder="Tìm SKU hoặc tên mặt hàng..." input-class="min-h-11" />
+                <div data-inventory-item-search-results class="absolute inset-x-0 top-full z-[90] mt-2 hidden max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl ring-1 ring-slate-950/5"></div>
+            </div>
+        </template>
+
         <livewire:inventory.invoice-inbox-workspace :selected-inbox-id="(int) request('inbox')" />
     @else
         <livewire:inventory.invoice-receiving-source-queue />
     @endif
 </div>
+
+@if(request()->filled('inbox'))
+<script>
+(() => {
+    const endpoint = @json(route('admin.inventory.items.search'));
+    const template = document.getElementById('inventory-item-search-template');
+
+    const inventoryWorkspace = (element) => {
+        const root = element.closest('[wire\\:id]');
+        if (!root || !window.Livewire) return null;
+
+        return window.Livewire.find(root.getAttribute('wire:id'));
+    };
+
+    const renderResults = (menu, items, select, input, lineId) => {
+        menu.replaceChildren();
+
+        if (!items.length) {
+            menu.classList.add('hidden');
+            return;
+        }
+
+        items.forEach((item) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'block min-h-11 w-full rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none';
+
+            const title = document.createElement('span');
+            title.className = 'block truncate text-sm font-bold text-slate-900';
+            title.textContent = item.sku;
+            button.appendChild(title);
+
+            const meta = document.createElement('span');
+            meta.className = 'mt-0.5 block truncate text-xs font-medium text-slate-500';
+            meta.textContent = `${item.display_name} · ${item.base_uom || '—'}`;
+            button.appendChild(meta);
+
+            button.addEventListener('pointerdown', (event) => event.preventDefault());
+            button.addEventListener('click', async () => {
+                const component = inventoryWorkspace(select);
+                if (!component) return;
+
+                input.value = `${item.sku} — ${item.display_name}`;
+                menu.classList.add('hidden');
+                await component.call('assignLine', Number(lineId), Number(item.id));
+            });
+
+            menu.appendChild(button);
+        });
+
+        menu.classList.remove('hidden');
+    };
+
+    const enhanceItemSelectors = () => {
+        if (!template) return;
+
+        document.querySelectorAll('select[wire\\:change^="assignLine("]').forEach((select) => {
+            const action = select.getAttribute('wire:change') || '';
+            const match = action.match(/assignLine\((\d+)/);
+            if (!match) return;
+
+            const lineId = match[1];
+            const existing = select.parentElement?.querySelector(`[data-inventory-item-search-for="${lineId}"]`);
+            if (existing) {
+                select.classList.add('hidden');
+                return;
+            }
+
+            const fragment = template.content.cloneNode(true);
+            const shell = fragment.querySelector('[data-inventory-item-search-shell]');
+            const input = shell?.querySelector('input[type="search"]');
+            const menu = shell?.querySelector('[data-inventory-item-search-results]');
+            if (!shell || !input || !menu || !select.parentElement) return;
+
+            shell.dataset.inventoryItemSearchFor = lineId;
+            select.parentElement.insertBefore(fragment, select);
+            select.classList.add('hidden');
+
+            let timer = null;
+            let controller = null;
+
+            const load = () => {
+                window.clearTimeout(timer);
+                timer = window.setTimeout(async () => {
+                    controller?.abort();
+                    controller = new AbortController();
+
+                    try {
+                        const url = new URL(endpoint, window.location.origin);
+                        url.searchParams.set('q', input.value.trim());
+                        const response = await fetch(url, {
+                            headers: {'Accept': 'application/json'},
+                            signal: controller.signal,
+                        });
+                        if (!response.ok) return;
+
+                        const payload = await response.json();
+                        renderResults(menu, Array.isArray(payload.items) ? payload.items : [], select, input, lineId);
+                    } catch (error) {
+                        if (error.name !== 'AbortError') console.error(error);
+                    }
+                }, 220);
+            };
+
+            input.addEventListener('focus', load);
+            input.addEventListener('input', load);
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') menu.classList.add('hidden');
+            });
+            input.addEventListener('blur', () => window.setTimeout(() => menu.classList.add('hidden'), 140));
+        });
+    };
+
+    const bindDraftEditorTrigger = () => {
+        document.querySelectorAll('summary').forEach((summary) => {
+            if (!summary.textContent.includes('Chỉnh sửa phiếu nhập nháp trước khi xác nhận')) return;
+            if (summary.dataset.draftModalBound === '1') return;
+
+            summary.dataset.draftModalBound = '1';
+            summary.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                window.Livewire?.dispatch('open-invoice-draft-editor');
+            });
+        });
+    };
+
+    const enhance = () => {
+        enhanceItemSelectors();
+        bindDraftEditorTrigger();
+    };
+
+    document.addEventListener('DOMContentLoaded', enhance);
+    document.addEventListener('livewire:initialized', () => {
+        enhance();
+        window.Livewire?.hook('morph.updated', () => queueMicrotask(enhance));
+    });
+})();
+</script>
+@endif
 @endsection
