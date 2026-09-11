@@ -5,23 +5,18 @@
 - Module: `Modules\Inventory`.
 - Approved inputs: `IDEA.md`, `REQUIREMENTS.md`, `CREATE_PLAN.md`.
 - Batch A — Foundation + Persistence + Core Ledger: **MERGED / VERIFIED / PASS**.
-- Batch B — Admin Dashboard + UI/UX: **MERGED / VERIFIED / UI PASS** via PR #179, merge commit `df406fae`.
-- Batch C branch: `feat/inventory-batch-c-invoice-integration`.
-- Batch C — Invoices Integration + Product Matching + Draft Receipt: **IMPLEMENTED**.
-- Batch C2 — Bulk Intake & Normalization: **IMPLEMENTED / HARDENING IN FINAL VERIFICATION**.
-- C2-A parser-version-aware re-normalization: **REAL SMOKE PASS**.
-- C2-B deterministic STOCK / NON_STOCK / UNRESOLVED classification: **IMPLEMENTED**.
-- C2-C Product / Pharma reference candidate matching: **REAL SMOKE PASS**.
-- Canonical GDT source ownership hardening: **IMPLEMENTED / LOCAL VERIFICATION PENDING**.
-- Real Khang Phát invoice #261 pilot: **PASS** for normalization, publication idempotency, candidate safety and zero stock mutation.
-- Previous focused pack before canonical-source hardening: **21 passed / 130 assertions**.
-- Keep Batch C/C2 in one MR. Do not merge until the new focused pack, source-data smoke and final UI smoke pass.
+- Batch B — Admin Dashboard + UI/UX: **MERGED / VERIFIED / UI PASS**.
+- Batch C/C2 — Invoices Integration + Bulk Intake/Normalization: **MERGED / VERIFIED**.
+- Batch D branch: `feat/inventory-batch-d-receiving-product-matching`.
+- Batch D — Receiving + Product Matching + explicit Receipt confirmation: **IMPLEMENTED / UI PASS / FOCUSED REGRESSION PENDING**.
+- Operator UI acceptance: **UI PASS** on 2026-09-11 for source queue, receiving workspace, item/lot review, DRAFT receipt review and DRAFT correction before confirmation.
+- Do not merge Batch D until the focused regression pack passes and final branch status is clean.
 
 ## Canonical ownership boundary
 
 ```text
 GDT external acquisition / invoice persistence / canonical RAW header+detail / source annotations -> Modules\Invoices
-Inventory staging projection / normalization / inbox / matching / exception review / receipt proposal -> Modules\Inventory
+Inventory staging projection / normalization / inbox / matching / receiving review / Receipt DRAFT -> Modules\Inventory
 Product / Pharma -> reference candidate sources only; never canonical stock owners
 ```
 
@@ -31,244 +26,223 @@ Critical invariants:
 /admin/invoices/hoadon = the only UI workflow allowed to acquire data directly from GDT
 Inventory never calls GDT
 Invoice sync/import != stock posting
+InventoryItem = canonical stock item master
+Receipt DRAFT != stock
+Receipt CONFIRMED -> canonical posting -> immutable Movement -> Balance
 ```
-
-`Modules\Invoices` now persists canonical source data in:
-
-```text
-invoice_source_records
-```
-
-The source record stores the full per-invoice GDT header payload, full GDT detail payload, hashes, fetched timestamps, source version, detail acquisition status/error and administrator business annotations.
-
-`invoice_inventory_snapshots` and `invoice_inventory_staging_lines` are Inventory-facing projection/audit structures. They are not the canonical external source store. New normalization reads canonical RAW from Invoices and does not copy the full detail payload into the snapshot again; per-line RAW remains available on staging lines for traceability.
 
 Inventory does not read `storage/app/invoices/pdf`, does not parse invoice PDF and does not update `Product.quantity`.
 
-Physical stock still changes only through explicit Receipt confirmation and canonical Batch A posting services.
-
-## Canonical GDT acquisition workflow
-
-Canonical route:
+## Batch D canonical receiving flow
 
 ```text
-GET /admin/invoices/hoadon
-admin.invoices.hoadon
-```
-
-The workflow is now:
-
-```text
-administrator selects range
-  -> validate cached GDT token against GDT before bulk queue
-  -> fetch complete invoice header list
-  -> persist business invoice headers
-  -> persist full per-invoice GDT RAW header
-  -> reuse local RAW detail if already present
-  -> fetch only missing GDT detail
-  -> persist full GDT RAW detail
-  -> retain hashes / timestamps / source version / acquisition status
-  -> export/backup remains available
-  -> downstream modules consume local persisted source data
-```
-
-A 401/403 during token validation or acquisition clears the cached token and stops the workflow rather than dispatching a large set of doomed Inventory staging jobs.
-
-The previous worker optimization that skipped GDT solely because an Excel file existed was hardened. Existing Excel/Google Drive backup files do not prove canonical RAW completeness. GDT is skipped only when the local canonical source coverage for the requested range is complete. If Excel exists but RAW header/detail coverage is incomplete, `/admin/invoices/hoadon` continues acquisition to repair the canonical source store.
-
-Acquisition is resumable: detail payloads already stored are reused; after interruption/token expiry, the next administrator sync only needs to acquire missing detail records.
-
-## Source-data administration
-
-Canonical route:
-
-```text
-GET /admin/invoices/source-data
-admin.invoices.source-data
-```
-
-This route never calls GDT. It lets administrators inspect canonical source coverage/status and enrich source records with operational classification:
-
-```text
-UNCLASSIFIED
-GOODS
-SERVICE_EXPENSE
-MIXED
-```
-
-Annotations include note, actor and timestamp. They can be scoped to one invoice or explicitly applied to all invoices from the same tax code.
-
-When the administrator chooses “apply to the same tax code”, the record is marked with `classification_scope = SUPPLIER`. Existing invoices for that tax code/type are updated and future source records for the same supplier/type inherit the latest supplier rule. A later invoice-specific override uses `classification_scope = INVOICE` and does not replace the supplier rule for future invoices.
-
-Source annotation is deterministic evidence, not a command to bypass line-level safety:
-
-- `GOODS` can support STOCK when line evidence is otherwise weak;
-- `SERVICE_EXPENSE` can support NON_STOCK when no physical-goods evidence conflicts;
-- `SERVICE_EXPENSE` plus strong physical/GDT goods evidence fails safe to `UNRESOLVED`;
-- `MIXED` never forces all lines to one class; line-level evidence decides;
-- explicit GDT service/category/description evidence continues to win over supplier defaults;
-- STOCK without a canonical `InventoryItem` remains `REVIEW_REQUIRED`.
-
-## Inventory local-only intake
-
-Canonical route:
-
-```text
-GET /admin/inventory/intake
-admin.inventory.intake
-```
-
-The action is now explicitly **“Chuẩn hóa RAW đã lưu”**.
-
-Flow:
-
-```text
-Invoices canonical RAW READY
-  -> Inventory queues only purchase invoices with persisted READY detail
-  -> deterministic local normalization
-  -> publish Inventory Inbox
-  -> deterministic classification/matching/reference candidates
-  -> exception review
-  -> READY
+Invoices canonical RAW
+  -> Inventory Source Queue / Inbox
+  -> eligibility gate
+  -> line classification
+  -> item matching / explicit item creation
+  -> receiving review
   -> Receipt DRAFT
-  -> explicit operator confirmation later
-  -> stock posting
+  -> Step 4: operator reviews and may correct the DRAFT
+  -> explicit Receipt confirmation
+  -> immutable StockMovement
+  -> StockBalance projection
 ```
 
-Inventory does not perform token checks and does not call GDT. If no READY source data exists for the selected range, the UI points the administrator back to `/admin/invoices/hoadon`.
+Eligibility remains fail-safe:
 
-The 55 ERROR snapshots observed on 2026-09-10 were caused by an expired GDT token in the old Inventory-triggered detail acquisition path. They must not be deleted. After canonical RAW is acquired from Invoices, re-running local Inventory normalization reuses the existing snapshot identity and can recover those ERROR rows without another GDT call from Inventory.
+- `GOODS` is eligible for receiving review.
+- `SERVICE_EXPENSE` is blocked from stock receiving.
+- `UNCLASSIFIED` is blocked until reviewed.
+- `MIXED` requires line-level decisions and is never wholesale-posted to stock.
+- STOCK lines without a canonical `InventoryItem` remain unresolved/review-required.
 
-## Deterministic normalization v3
+## Receiving Source Queue
 
-`InvoiceLineNormalizer` parser marker:
+Canonical route:
 
 ```text
-deterministic-v3
+GET /admin/inventory/invoice-inbox
+admin.inventory.invoice-inbox
 ```
 
-Rules include lot labels `Lô`, `Số lô`, `LOT`; expiry labels `HSD`, `HD`, `Hạn dùng`, `EXP`; full date and month/year support; light normalized-name cleanup; and preservation of source description separately.
+Without an `inbox` query parameter, the page is the receiving Source Queue. It supports year/month/search/status filtering and stable status counts. The queue distinguishes ready, needs review, needs RAW, in progress and confirmed states.
 
-Lot / manufacture date / expiry remain transaction/lot-instance evidence and are not InventoryItem master data.
-
-Real Khang Phát invoice #261 remains the regression pilot:
+Starting/continuing receiving hands off through the versioned Invoices -> Inventory boundary and opens the selected inbox as:
 
 ```text
-Cefuroxime 125mg/5ml ( H/1C.TT/60,8g BPHDU), Lô: 26001CN, HD: 28/03/2029
-  -> 1880 lọ / lot 26001CN / expiry 2029-03-28
-
-Cefuroxime 125mg/5ml ( H/1C.TT/60,8g BPHDU), Lô: 26002CN, HD: 30/03/2029
-  -> 5880 lọ / lot 26002CN / expiry 2029-03-30
+/admin/inventory/invoice-inbox?inbox=<id>
 ```
 
-The two lines must never be merged.
+## Item matching and master-data safety
 
-## Product / Pharma candidate safeguards
+`InventoryItem` is the canonical warehouse item master. Product/Pharma candidates are reference-only and cannot silently assign stock ownership.
 
-Product and Pharma remain reference sources only. `InventoryItem` is the canonical stock owner.
+The receiving workspace supports:
 
-Candidate discovery does not assign `inventory_item_id`. Unverified/demo Pharma records remain blocked from auto-match. The real #261 smoke produced only LOW-confidence demo references and left both stock lines `REVIEW_REQUIRED` with `inventory_item_id = null`.
+- explicit matching to an existing InventoryItem;
+- explicit standalone InventoryItem creation from an invoice line;
+- revision of an item created specifically from that invoice line before stock confirmation;
+- visible SKU and base UOM;
+- lot-tracking / expiry-tracking flags;
+- optional fractional quantity support;
+- package metadata such as `1 Hộp = 60 Viên` without using that metadata as a stock conversion unless the invoice UOM actually requires conversion.
 
-## Receipt proposal safety
+Items created from invoice receiving but not yet confirmed are displayed in the item catalog as **Chờ xác nhận nhập kho**, with no false implication that stock already exists.
 
-`InvoiceReceiptProposalService` is confirmed fail-safe:
+## UOM conversion safety
 
-- it selects only `classification = STOCK` lines;
-- all-NON_STOCK invoices are rejected with “Hóa đơn không có dòng STOCK để tạo phiếu nhập.”;
-- mixed invoices exclude NON_STOCK lines from the Receipt proposal;
-- every STOCK line must already have InventoryItem, base quantity and base UOM;
-- source lines are preserved individually, including lot/HSD;
-- only a `DRAFT` receipt is created/refreshed;
-- no `ReceiptPostingService`, confirmation, stock movement or balance mutation occurs in this proposal service.
+Receiving conversion is explicit and fail-safe:
 
-## Real invoice #261 acceptance evidence
+- when source UOM equals base UOM, factor is 1;
+- when source UOM differs from base UOM, an explicit reviewed conversion factor is required;
+- silent factor `1` is rejected when UOMs differ;
+- base quantity is derived from source quantity × reviewed conversion factor;
+- package metadata is descriptive master data and must not silently multiply invoice quantity.
 
-Supplier:
+Example:
 
 ```text
-CÔNG TY TNHH THƯƠNG MẠI DƯỢC PHẨM KHANG PHÁT
-MST 0317953611
-invoice_number 261
-symbol 1/C26TKP
-local invoice id 2599
-source identity gdt:purchase:lookup:46FAI2PAR67B
-snapshot id 4
+Invoice source = 3,060 Viên
+Inventory base = Viên
+Package metadata = 1 Hộp = 60 Viên
+Receiving quantity remains 3,060 Viên.
 ```
 
-Previous real publication smoke:
+If source UOM were `Hộp` and base UOM were `Viên`, an explicit conversion factor would be required.
+
+## Lot / expiry / manufacture-date review
+
+Lot number, manufacture date and expiry date are receiving/lot-instance evidence, not InventoryItem master fields.
+
+The receiving UI pre-fills them when normalized invoice evidence exists and allows explicit operator review. Manufacture date is optional. Text such as `NSX: Việt Nam` is not interpreted as a manufacture date.
+
+Tracking rules remain enforced: a lot-tracked item requires a lot number and an expiry-tracked item requires expiry before the DRAFT can be prepared.
+
+## Receipt DRAFT review and correction
+
+Batch D now uses the following UI progression:
 
 ```text
-published_count = 1
-inbox_id = 1
-processing_status = REVIEW_REQUIRED
-receipt_id = null
-line_count = 2
+Bước 1 — Kiểm tra hóa đơn
+Bước 2 — Đối chiếu hàng
+Bước 3 — Thông tin nhập
+Bước 4 — Kiểm tra phiếu
+Bước 5 — Xác nhận
 ```
 
-Zero-mutation proof:
+A Receipt in `DRAFT` is **Bước 4**, not Bước 5. Only a `CONFIRMED` Receipt reaches Bước 5.
+
+The DRAFT review modal shows the source invoice, supplier, receiving warehouse, item/SKU, source and base quantities/UOMs, conversion factor where applicable, lot, expiry, manufacture date and package metadata.
+
+The operator can choose **Quay lại chỉnh sửa** before confirmation. While the Receipt remains `DRAFT`, the workspace allows correction of receiving warehouse and receiving review fields, then **Cập nhật phiếu nhập nháp** refreshes the same DRAFT proposal. It does not create a new confirmed transaction and does not mutate stock.
+
+This correction path is deliberately unavailable after confirmation. Confirmed documents remain protected/immutable according to the core ledger invariants.
+
+## Canonical confirmation and idempotency
+
+The receiving workspace confirms only through the canonical `ReceiptPostingService`.
+
+It does not call `StockPostingService` directly and does not implement an invoice-specific stock posting path.
+
+Confirmation is transaction-safe and preserves the Batch A invariants: document/line locking, active warehouse/item validation, positive quantity checks, UOM validation, deterministic movement keys and database uniqueness. Reconfirming the same confirmed Receipt does not add stock a second time.
+
+Traceability remains:
 
 ```text
-before balances = 0
-before movements = 0
-before receipts = 0
-before inbox_lines = 2
-
-after balances = 0
-after movements = 0
-after receipts = 0
-after inbox_lines = 2
-
-delta balances = 0
-delta movements = 0
-delta receipts = 0
-delta inbox_lines = 0
+source invoice
+  -> Inventory Inbox
+  -> matched InventoryItem / receiving review
+  -> Receipt
+  -> ReceiptLine
+  -> StockMovement
+  -> StockBalance
 ```
 
-No Receipt CONFIRMED was created and no stock posting was performed.
+## Inventory item catalog lifecycle
 
-## Focused verification required after canonical-source hardening
+The admin item catalog distinguishes business lifecycle from the simple active/inactive master flag.
+
+Relevant states include:
+
+- `Chờ xác nhận nhập kho` for invoice-created items whose receiving transaction is still pending;
+- in-stock/zero-stock/catalog states based on actual ledger/balance evidence;
+- inactive when the master item is disabled.
+
+For pending invoice-created items, the catalog links back to the corresponding receiving inbox. Stock is shown as **Chưa ghi sổ** rather than pretending the DRAFT quantity is available inventory.
+
+Confirmed items expose actual balance and lot/HSD evidence from warehouse data.
+
+## Batch D UI acceptance
+
+Operator UAT result on 2026-09-11: **UI PASS**.
+
+Accepted flow includes:
+
+```text
+Source Queue
+  -> open invoice receiving workspace
+  -> review/match item
+  -> review quantity/UOM/conversion/lot/HSD
+  -> create Receipt DRAFT
+  -> Step 4 review modal
+  -> return to correct DRAFT when necessary
+  -> refresh same DRAFT
+  -> review again
+  -> explicit confirmation
+```
+
+The UI follows the Inventory admin form/pagination boundaries, including bounded page sizes `10 / 25 / 50 / 100`, visible inputs, loading/disabled mutation states and responsive desktop/tablet/mobile layout.
+
+## Focused verification required before Batch D merge
 
 Run only the directly impacted pack:
 
 ```text
-tests/Feature/Invoices/InvoiceInventoryBulkIntakeContractTest.php
-tests/Feature/Inventory/InventoryBatchC2BulkPublicationContractTest.php
+tests/Feature/Inventory/InventoryBatchDDraftReceiptCorrectionContractTest.php
+tests/Feature/Inventory/InventoryBatchDReceivingUiContractTest.php
+tests/Feature/Inventory/InventoryBatchDEndToEndReceivingContractTest.php
+tests/Feature/Inventory/InventoryBatchCInvoiceIntegrationContractTest.php
 tests/Feature/Inventory/InventoryBatchC2ExceptionReviewContractTest.php
 ```
 
-The updated tests lock:
+Command:
 
-- canonical GDT RAW source ownership;
-- token preflight before bulk synchronization;
-- local-only Inventory staging;
-- source-data administration and supplier-rule inheritance;
-- deterministic annotation safeguards;
-- Product/Pharma reference-only behavior;
-- all-NON_STOCK/mixed Receipt safety;
-- no confirm/post-stock path.
+```bash
+php artisan test \
+  tests/Feature/Inventory/InventoryBatchDDraftReceiptCorrectionContractTest.php \
+  tests/Feature/Inventory/InventoryBatchDReceivingUiContractTest.php \
+  tests/Feature/Inventory/InventoryBatchDEndToEndReceivingContractTest.php \
+  tests/Feature/Inventory/InventoryBatchCInvoiceIntegrationContractTest.php \
+  tests/Feature/Inventory/InventoryBatchC2ExceptionReviewContractTest.php
+```
 
-No full regression is required by project policy.
+The pack must retain evidence that:
+
+- DRAFT correction is allowed only before confirmation;
+- explicit DRAFT refresh is intentional and stock-safe;
+- UI review/correction anchors remain present;
+- confirmation goes only through `ReceiptPostingService`;
+- no direct `StockPostingService` bypass exists in the Inbox component;
+- Invoices/Inventory integration contract remains compatible;
+- C2 exception review remains compatible.
 
 ## Remaining acceptance gate before merge
 
-1. Pull latest branch and run the new Invoices migration.
-2. Run the focused three-file test pack above.
-3. Verify `/admin/invoices/hoadon` rejects an expired token before bulk queue.
-4. Re-authenticate GDT and sync a small known purchase range first.
-5. Verify `/admin/invoices/source-data` shows RAW header/detail coverage and annotation UI.
-6. Verify supplier-wide and invoice-specific classification controls without calling GDT from the source-data route.
-7. Run `/admin/inventory/intake` local normalization and verify it does not trigger GDT acquisition.
-8. UI smoke desktop/tablet/mobile for Intake and Invoice Inbox.
-9. Confirm Product/Pharma candidates remain reference-only and STOCK-unmapped lines remain review-required.
-10. Do not confirm a Receipt or post stock during smoke.
+1. Pull the latest Batch D branch.
+2. Run the focused five-file test pack above.
+3. Confirm the focused pack is PASS.
+4. UI gate is already **PASS**; repeat UI smoke only if a subsequent code change touches receiving UI behavior.
+5. Verify final branch/working-tree status is clean and synchronized.
+6. Keep this handoff current before PR/merge.
+7. Merge only after the operator accepts the final gate.
 
-## Deferred / next batches
+## Deferred / next work
 
-- Explicit administrator force-refresh/version-history UX for intentionally reacquiring a previously complete GDT source record.
-- Excel audit/export and selected-vs-all-filtered export semantics (Batch D).
-- final query/index/runtime hardening.
-- final module closeout after Batch C merge acceptance.
+- Excel audit/export and selected-vs-all-filtered export semantics unless separately included in a later approved batch.
+- Additional query/index/runtime hardening when profiling demonstrates need.
+- Broader receiving automation only if it preserves explicit stock confirmation and ownership boundaries.
 
 ## Stop gate
 
-Do not merge Batch C/C2 until the new focused tests pass, source-data + Inventory UI smoke is accepted by the operator, no stock mutation occurs before Receipt confirmation, final branch status is clean, and this handoff remains current.
+Do not merge Batch D until the focused regression pack passes, the branch is clean/synchronized, UI PASS remains valid, stock still changes only through explicit canonical Receipt confirmation, and this handoff remains current.
