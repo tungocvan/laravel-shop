@@ -7,6 +7,7 @@ use Modules\Invoices\Models\InvoiceInventorySnapshot;
 use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Services\GdtPdfService;
+use Modules\Invoices\Support\GdtInvoiceLineMetadata;
 
 final class InvoiceForInventoryV1Factory
 {
@@ -120,9 +121,9 @@ final class InvoiceForInventoryV1Factory
                 'quantity' => $quantity,
                 'unit_price' => $this->nullableNumber($line['dgia'] ?? null),
                 'line_amount' => $this->nullableNumber($line['thtien'] ?? null),
-                'lot_number' => $this->nullableString($line['solo'] ?? $line['lot'] ?? null),
-                'expiry_date' => $this->nullableString($line['hsd'] ?? $line['expiry_date'] ?? null),
-                'manufacture_date' => $this->nullableString($line['nsx'] ?? $line['manufacture_date'] ?? null),
+                'lot_number' => GdtInvoiceLineMetadata::lotNumber($line),
+                'expiry_date' => GdtInvoiceLineMetadata::expiryDate($line),
+                'manufacture_date' => GdtInvoiceLineMetadata::manufactureDate($line),
                 'metadata' => array_merge([
                     'tax_rate' => $line['tsuat'] ?? $line['ltsuat'] ?? null,
                     'raw_gdt_line' => $line,
