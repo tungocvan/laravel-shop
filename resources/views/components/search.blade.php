@@ -29,11 +29,35 @@
     @if($listId)
         <div
             data-search-autocomplete-menu
-            class="absolute inset-x-0 top-full z-50 mt-2 hidden max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl ring-1 ring-slate-950/5"
+            class="absolute inset-x-0 top-full z-[10000] mt-2 hidden max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl ring-1 ring-slate-950/5"
             role="listbox"
         ></div>
     @endif
 </div>
+
+@once
+    <style>
+        [data-inventory-item-search-shell] {
+            position: relative;
+            z-index: 1;
+            overflow: visible;
+        }
+
+        [data-inventory-item-search-shell]:focus-within {
+            z-index: 9999;
+        }
+
+        [data-inventory-item-search-shell] [data-inventory-item-search-results] {
+            z-index: 10000 !important;
+        }
+
+        article:has([data-inventory-item-search-shell]:focus-within) {
+            position: relative;
+            z-index: 9998;
+            overflow: visible;
+        }
+    </style>
+@endonce
 
 @if($listId)
     @once
