@@ -3,10 +3,11 @@
 namespace Modules\Invoices\Integrations\Inventory;
 
 use Carbon\CarbonImmutable;
+use Modules\Invoices\Support\GdtInvoiceLineMetadata;
 
 final class InvoiceLineNormalizer
 {
-    public const VERSION = 'deterministic-v3';
+    public const VERSION = 'deterministic-v4';
 
     public function version(): string
     {
@@ -18,9 +19,12 @@ final class InvoiceLineNormalizer
         $raw = (string) ($line['ten'] ?? '');
         $working = preg_replace('/\s+/u', ' ', trim($raw)) ?: trim($raw);
 
-        $lot = $this->match($working, '/(?:S[ỐO]\s*L[ÔO]|L[ÔO]|LOT)\s*[:\-]?\s*([A-Z0-9.\/-]+)/iu');
-        $expiry = $this->dateMatch($working, '/(?:HSD|HẠN\s*DÙNG|HAN\s*DUNG|HD|EXP)\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}|\d{1,2}[\/\-.]\d{4})/iu');
-        $manufacture = $this->dateMatch($working, '/(?:NGÀY\s*(?:SX|SẢN\s*XUẤT)|MFG|NSX)\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})/iu');
+        $textLot = $this->match($working, '/(?:S[ỐO]\s*L[ÔO]|L[ÔO]|LOT)\s*[:\-]?\s*([A-Z0-9.\/-]+)/iu');
+        $textExpiry = $this->dateMatch($working, '/(?:HSD|HẠN\s*DÙNG|HAN\s*DUNG|HD|EXP)\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}|\d{1,2}[\/\-.]\d{4})/iu');
+        $textManufacture = $this->dateMatch($working, '/(?:NGÀY\s*(?:SX|SẢN\s*XUẤT)|MFG|NSX)\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})/iu');
+        $lot = GdtInvoiceLineMetadata::lotNumber($line) ?? $textLot;
+        $expiry = GdtInvoiceLineMetadata::expiryDate($line) ?? $textExpiry;
+        $manufacture = GdtInvoiceLineMetadata::manufactureDate($line) ?? $textManufacture;
         $strength = $this->match($working, '/\b(\d+(?:[.,]\d+)?\s*(?:MG|G|MCG|ML|IU|UI|%))\b/iu');
         $package = $this->packageSpec($working);
         $manufacturer = $this->manufacturer($working);
@@ -40,9 +44,9 @@ final class InvoiceLineNormalizer
             'package_spec' => $package,
             'manufacturer' => $manufacturer,
             'normalized_uom' => $this->normalizeUom($line['dvtinh'] ?? null),
-            'lot_number' => $lot ?? $this->nullable($line['solo'] ?? $line['lot'] ?? null),
-            'manufacture_date' => $manufacture ?? $this->dateValue($line['nsx'] ?? null),
-            'expiry_date' => $expiry ?? $this->dateValue($line['hsd'] ?? $line['expiry_date'] ?? null),
+            'lot_number' => $lot,
+            'manufacture_date' => $manufacture,
+            'expiry_date' => $expiry,
             'normalization_status' => 'NORMALIZED',
             'normalization_meta' => ['parser' => self::VERSION],
         ];
