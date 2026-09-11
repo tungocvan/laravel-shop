@@ -33,6 +33,26 @@ class InventoryBatchDReceivingUiContractTest extends TestCase
     }
 
     #[Test]
+    public function inbox_source_can_be_refreshed_explicitly_before_receipt_confirmation(): void
+    {
+        $routes = file_get_contents(base_path('Modules/Inventory/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Inventory/Http/Controllers/InventoryAdminController.php'));
+        $page = file_get_contents(base_path('Modules/Inventory/resources/views/pages/invoice-inbox.blade.php'));
+
+        $this->assertStringContainsString("Route::post('/invoice-inbox/{inboxId}/refresh-source'", $routes);
+        $this->assertStringContainsString("middleware('permission:inventory.receipt.manage')", $routes);
+        $this->assertStringContainsString('public function refreshInvoiceInboxSource(int $inboxId): RedirectResponse', $controller);
+        $this->assertStringContainsString('InvoiceInventoryHandoffService::class', $controller);
+        $this->assertStringContainsString("receipt?->status === 'CONFIRMED'", $controller);
+        $this->assertStringContainsString('Đối chiếu mặt hàng hiện có được giữ lại khi còn hợp lệ.', $controller);
+        $this->assertStringContainsString('Cập nhật phiếu nhập nháp', $controller);
+        $this->assertStringContainsString('admin.inventory.invoice-inbox.refresh-source', $page);
+        $this->assertStringContainsString('Cập nhật lại từ hóa đơn nguồn', $page);
+        $this->assertStringContainsString("receipt?->status !== 'CONFIRMED'", $page);
+        $this->assertStringContainsString("can('inventory.receipt.manage')", $page);
+    }
+
+    #[Test]
     public function inbox_exposes_explicit_item_review_and_allows_revision_before_draft(): void
     {
         $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
