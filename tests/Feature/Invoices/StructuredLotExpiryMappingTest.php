@@ -53,6 +53,17 @@ final class StructuredLotExpiryMappingTest extends TestCase
         $this->assertNull($normalized['expiry_date']);
     }
 
+    public function test_inventory_contract_uses_normalizer_so_text_fallback_reaches_inventory(): void
+    {
+        $factory = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceForInventoryV1Factory.php'));
+
+        $this->assertStringContainsString('$normalizedLine = $this->lineNormalizer->normalize($line);', $factory);
+        $this->assertStringContainsString("'lot_number' => \$normalizedLine['lot_number'] ?? null", $factory);
+        $this->assertStringContainsString("'expiry_date' => \$normalizedLine['expiry_date'] ?? null", $factory);
+        $this->assertStringContainsString("'manufacture_date' => \$normalizedLine['manufacture_date'] ?? null", $factory);
+        $this->assertStringContainsString("'normalizer_version' => InvoiceLineNormalizer::VERSION", $factory);
+    }
+
     public function test_inventory_contract_generated_pdf_and_source_data_use_shared_structured_metadata_extractor(): void
     {
         $factory = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceForInventoryV1Factory.php'));
@@ -60,8 +71,7 @@ final class StructuredLotExpiryMappingTest extends TestCase
         $manager = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
         $sourceDataView = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
 
-        $this->assertStringContainsString('GdtInvoiceLineMetadata::lotNumber($line)', $factory);
-        $this->assertStringContainsString('GdtInvoiceLineMetadata::expiryDate($line)', $factory);
+        $this->assertStringContainsString('$this->lineNormalizer->normalize($line)', $factory);
         $this->assertStringContainsString('GdtInvoiceLineMetadata::lotNumber($item)', $pdf);
         $this->assertStringContainsString('GdtInvoiceLineMetadata::expiryDate($item)', $pdf);
         $this->assertStringContainsString("'lot_number' => GdtInvoiceLineMetadata::lotNumber(\$item)", $manager);
