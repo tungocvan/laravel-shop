@@ -30,8 +30,10 @@ class InventoryBatchDEndToEndReceivingContractTest extends TestCase
         $this->assertStringContainsString('ĐVT nguồn khác ĐVT cơ sở', $proposal);
         $this->assertStringContainsString('expiry_tracking', $proposal);
         $this->assertStringContainsString('lot_tracking', $proposal);
-        $this->assertStringContainsString('Phiếu nhập DRAFT đã có dữ liệu review', $proposal);
-        $this->assertStringNotContainsString('$receipt->lines()->delete()', $proposal);
+        $this->assertStringContainsString("\$receipt !== null && \$receipt->status !== 'DRAFT'", $proposal);
+        $this->assertStringContainsString('refresh có chủ đích', $proposal);
+        $this->assertStringContainsString('$receipt->lines()->delete()', $proposal);
+        $this->assertStringContainsString('receipt đã CONFIRMED luôn bị chặn ở trên', $proposal);
         $this->assertStringContainsString("'source_invoice_identity' => \$inbox->source_invoice_identity", $proposal);
     }
 
