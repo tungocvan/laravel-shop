@@ -26,85 +26,42 @@
     </style>
 </head>
 <body>
+    @php
+        $items = collect($detail['hdhhdvu'] ?? [])->filter(fn ($item) => is_array($item))->map(function (array $item) {
+            $item['_lot_number'] = \Modules\Invoices\Support\GdtInvoiceLineMetadata::lotNumber($item);
+            $item['_expiry_date'] = \Modules\Invoices\Support\GdtInvoiceLineMetadata::expiryDate($item);
+            return $item;
+        });
+        $showLotExpiry = $items->contains(fn (array $item) => filled($item['_lot_number']) || filled($item['_expiry_date']));
+    @endphp
+
     <div class="center">
         <h1>HÓA ĐƠN GIÁ TRỊ GIA TĂNG</h1>
         <p class="mt-2">Bản thể hiện từ dữ liệu tra cứu của Tổng cục Thuế</p>
         <p class="muted mt-2">Ngày lập: {{ isset($detail['tdlap']) ? \Carbon\Carbon::parse($detail['tdlap'])->timezone(config('app.timezone'))->format('d/m/Y') : '-' }}</p>
     </div>
 
-    <div class="box">
-        <table class="grid">
-            <tr><td class="label">Mẫu số</td><td>{{ $detail['khmshdon'] ?? '-' }}</td><td class="label">Ký hiệu</td><td>{{ $detail['khhdon'] ?? '-' }}</td></tr>
-            <tr><td class="label">Số hóa đơn</td><td>{{ $detail['shdon'] ?? '-' }}</td><td class="label">Mã tra cứu</td><td>{{ $invoice->lookup_code ?: '-' }}</td></tr>
-            <tr><td class="label">Loại hóa đơn</td><td colspan="3">{{ $detail['thdon'] ?? $detail['tlhdon'] ?? '-' }}</td></tr>
-        </table>
-    </div>
+    <div class="box"><table class="grid"><tr><td class="label">Mẫu số</td><td>{{ $detail['khmshdon'] ?? '-' }}</td><td class="label">Ký hiệu</td><td>{{ $detail['khhdon'] ?? '-' }}</td></tr><tr><td class="label">Số hóa đơn</td><td>{{ $detail['shdon'] ?? '-' }}</td><td class="label">Mã tra cứu</td><td>{{ $invoice->lookup_code ?: '-' }}</td></tr><tr><td class="label">Loại hóa đơn</td><td colspan="3">{{ $detail['thdon'] ?? $detail['tlhdon'] ?? '-' }}</td></tr></table></div>
 
-    <div class="box">
-        <h2>Người bán</h2>
-        <table class="grid mt-2">
-            <tr><td class="label">Tên đơn vị</td><td>{{ $detail['nbten'] ?? '-' }}</td></tr>
-            <tr><td class="label">Mã số thuế</td><td>{{ $detail['nbmst'] ?? '-' }}</td></tr>
-            <tr><td class="label">Địa chỉ</td><td>{{ $detail['nbdchi'] ?? '-' }}</td></tr>
-            <tr><td class="label">Tài khoản</td><td>{{ $detail['nbstkhoan'] ?? '-' }}</td></tr>
-            <tr><td class="label">Ngân hàng</td><td>{{ $detail['nbtnhang'] ?? '-' }}</td></tr>
-        </table>
-    </div>
+    <div class="box"><h2>Người bán</h2><table class="grid mt-2"><tr><td class="label">Tên đơn vị</td><td>{{ $detail['nbten'] ?? '-' }}</td></tr><tr><td class="label">Mã số thuế</td><td>{{ $detail['nbmst'] ?? '-' }}</td></tr><tr><td class="label">Địa chỉ</td><td>{{ $detail['nbdchi'] ?? '-' }}</td></tr><tr><td class="label">Tài khoản</td><td>{{ $detail['nbstkhoan'] ?? '-' }}</td></tr><tr><td class="label">Ngân hàng</td><td>{{ $detail['nbtnhang'] ?? '-' }}</td></tr></table></div>
 
-    <div class="box">
-        <h2>Người mua</h2>
-        <table class="grid mt-2">
-            <tr><td class="label">Tên đơn vị</td><td>{{ $detail['nmten'] ?? '-' }}</td></tr>
-            <tr><td class="label">Mã số thuế</td><td>{{ $detail['nmmst'] ?? '-' }}</td></tr>
-            <tr><td class="label">Địa chỉ</td><td>{{ $detail['nmdchi'] ?? '-' }}</td></tr>
-            <tr><td class="label">Hình thức thanh toán</td><td>{{ $detail['thtttoan'] ?? '-' }}</td></tr>
-        </table>
-    </div>
+    <div class="box"><h2>Người mua</h2><table class="grid mt-2"><tr><td class="label">Tên đơn vị</td><td>{{ $detail['nmten'] ?? '-' }}</td></tr><tr><td class="label">Mã số thuế</td><td>{{ $detail['nmmst'] ?? '-' }}</td></tr><tr><td class="label">Địa chỉ</td><td>{{ $detail['nmdchi'] ?? '-' }}</td></tr><tr><td class="label">Hình thức thanh toán</td><td>{{ $detail['thtttoan'] ?? '-' }}</td></tr></table></div>
 
     <table class="items">
-        <thead>
-            <tr>
-                <th style="width: 32px;">STT</th>
-                <th>Tên hàng hóa, dịch vụ</th>
-                <th style="width: 65px;">ĐVT</th>
-                <th style="width: 65px;">SL</th>
-                <th style="width: 90px;">Đơn giá</th>
-                <th style="width: 70px;">Thuế</th>
-                <th style="width: 100px;">Thành tiền</th>
-            </tr>
-        </thead>
+        <thead><tr><th style="width: 32px;">STT</th><th>Tên hàng hóa, dịch vụ</th><th style="width: 65px;">ĐVT</th><th style="width: 65px;">SL</th><th style="width: 90px;">Đơn giá</th><th style="width: 70px;">Thuế</th>@if($showLotExpiry)<th style="width: 80px;">Số lô</th><th style="width: 90px;">Hạn sử dụng</th>@endif<th style="width: 100px;">Thành tiền</th></tr></thead>
         <tbody>
-            @forelse (($detail['hdhhdvu'] ?? []) as $item)
-                <tr>
-                    <td class="center">{{ $item['stt'] ?? $loop->iteration }}</td>
-                    <td>{{ $item['ten'] ?? '-' }}</td>
-                    <td class="center">{{ $item['dvtinh'] ?? '-' }}</td>
-                    <td class="right">{{ isset($item['sluong']) ? number_format((float) $item['sluong'], 2, ',', '.') : '-' }}</td>
-                    <td class="right">{{ isset($item['dgia']) ? number_format((float) $item['dgia'], 2, ',', '.') : '-' }}</td>
-                    <td class="center">{{ $item['ltsuat'] ?? (isset($item['tsuat']) ? rtrim(rtrim(number_format((float) $item['tsuat'] * 100, 2, '.', ''), '0'), '.').'%' : '-') }}</td>
-                    <td class="right">{{ isset($item['thtien']) ? number_format((float) $item['thtien'], 0, ',', '.') : '-' }}</td>
-                </tr>
+            @forelse ($items as $item)
+                <tr><td class="center">{{ $item['stt'] ?? $loop->iteration }}</td><td>{{ $item['ten'] ?? '-' }}</td><td class="center">{{ $item['dvtinh'] ?? '-' }}</td><td class="right">{{ isset($item['sluong']) ? number_format((float) $item['sluong'], 2, ',', '.') : '-' }}</td><td class="right">{{ isset($item['dgia']) ? number_format((float) $item['dgia'], 2, ',', '.') : '-' }}</td><td class="center">{{ $item['ltsuat'] ?? (isset($item['tsuat']) ? rtrim(rtrim(number_format((float) $item['tsuat'] * 100, 2, '.', ''), '0'), '.').'%' : '-') }}</td>@if($showLotExpiry)<td class="center">{{ $item['_lot_number'] ?: '-' }}</td><td class="center">{{ $item['_expiry_date'] ? \Carbon\Carbon::parse($item['_expiry_date'])->format('d/m/Y') : '-' }}</td>@endif<td class="right">{{ isset($item['thtien']) ? number_format((float) $item['thtien'], 0, ',', '.') : '-' }}</td></tr>
             @empty
-                <tr><td colspan="7" class="center muted">Không có chi tiết hàng hóa.</td></tr>
+                <tr><td colspan="{{ $showLotExpiry ? 9 : 7 }}" class="center muted">Không có chi tiết hàng hóa.</td></tr>
             @endforelse
         </tbody>
     </table>
 
-    <table class="total">
-        <tr><td>Tổng tiền trước thuế</td><td class="value">{{ number_format((float) ($detail['tgtcthue'] ?? 0), 0, ',', '.') }} đ</td></tr>
-        <tr><td>Tiền thuế GTGT</td><td class="value">{{ number_format((float) ($detail['tgtthue'] ?? 0), 0, ',', '.') }} đ</td></tr>
-        <tr><td>Tổng thanh toán</td><td class="value">{{ number_format((float) ($detail['tgtttbso'] ?? 0), 0, ',', '.') }} đ</td></tr>
-    </table>
+    <table class="total"><tr><td>Tổng tiền trước thuế</td><td class="value">{{ number_format((float) ($detail['tgtcthue'] ?? 0), 0, ',', '.') }} đ</td></tr><tr><td>Tiền thuế GTGT</td><td class="value">{{ number_format((float) ($detail['tgtthue'] ?? 0), 0, ',', '.') }} đ</td></tr><tr><td>Tổng thanh toán</td><td class="value">{{ number_format((float) ($detail['tgtttbso'] ?? 0), 0, ',', '.') }} đ</td></tr></table>
 
-    @if (! empty($detail['tgtttbchu']))
-        <p class="mt-2"><strong>Số tiền bằng chữ:</strong> {{ $detail['tgtttbchu'] }}</p>
-    @endif
+    @if (! empty($detail['tgtttbchu']))<p class="mt-2"><strong>Số tiền bằng chữ:</strong> {{ $detail['tgtttbchu'] }}</p>@endif
 
-    <div class="footer">
-        <p>Mã dữ liệu hóa đơn: {{ $detail['mhdon'] ?? '-' }}</p>
-        <p>Mã thông điệp đối chiếu: {{ $detail['mtdtchieu'] ?? '-' }}</p>
-        <p>Thời điểm ký: {{ $detail['nky'] ?? '-' }}</p>
-        <p class="mt-2">Tài liệu này được hệ thống tạo lại từ dữ liệu chi tiết trả về bởi API tra cứu hóa đơn GDT; không phải file PDF do GDT cung cấp trực tiếp.</p>
-    </div>
+    <div class="footer"><p>Mã dữ liệu hóa đơn: {{ $detail['mhdon'] ?? '-' }}</p><p>Mã thông điệp đối chiếu: {{ $detail['mtdtchieu'] ?? '-' }}</p><p>Thời điểm ký: {{ $detail['nky'] ?? '-' }}</p><p class="mt-2">Tài liệu này được hệ thống tạo lại từ dữ liệu chi tiết trả về bởi API tra cứu hóa đơn GDT; không phải file PDF do GDT cung cấp trực tiếp.</p></div>
 </body>
 </html>
