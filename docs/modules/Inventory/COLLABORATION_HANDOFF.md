@@ -9,9 +9,11 @@
 - Batch C/C2 — Invoices Integration + Bulk Intake/Normalization: **MERGED / VERIFIED**.
 - Batch D branch: `feat/inventory-batch-d-receiving-product-matching`.
 - Batch D — Receiving + Product Matching + explicit Receipt confirmation: **IMPLEMENTED / UI PASS / FOCUSED REGRESSION PASS / READY FOR PR**.
-- Operator UI acceptance: **UI PASS** on 2026-09-11 for source queue, receiving workspace, item/lot review, DRAFT receipt review and DRAFT correction before confirmation.
-- Focused regression on 2026-09-11: **33 passed / 207 assertions**.
-- Final operator branch status after regression: `feat/inventory-batch-d-receiving-product-matching...origin/feat/inventory-batch-d-receiving-product-matching` with no ahead/behind marker.
+- Cross-module canonical lot/expiry fix branch: `fix/invoices-structured-lot-expiry`.
+- Cross-module operator acceptance on 2026-09-11: **UI PASS** for Source Data lot/HSD, generated PDF, Inventory source refresh, item search, DRAFT editor and text-fallback lot/HSD propagation.
+- Structured CAMZITOL acceptance: `G0846 / 2028-03-08`.
+- Text-fallback Tharodas invoice #287 acceptance: `020526 / 2029-05-04`.
+- Focused regression on 2026-09-11: **33 passed / 207 assertions** for Batch D baseline; additional cross-module focused tests and Pint were run on `fix/invoices-structured-lot-expiry` and passed after fixes.
 
 ## Canonical ownership boundary
 
@@ -75,11 +77,26 @@ Starting/continuing receiving hands off through the versioned Invoices -> Invent
 /admin/inventory/invoice-inbox?inbox=<id>
 ```
 
+## Source refresh for existing Inbox rows
+
+The selected Inbox page exposes **Cập nhật lại từ hóa đơn nguồn** while the Receipt is not `CONFIRMED` and the operator has `inventory.receipt.manage`.
+
+The refresh path reuses the canonical `InvoiceInventoryHandoffService` / `InventoryInvoiceIntegrationService` identity flow. It does not create a duplicate Inbox. Existing valid item mapping is preserved, while source-controlled fields such as lot, expiry and manufacture date can be refreshed from the latest Invoices contract.
+
+Safety rules:
+
+- no refresh write is allowed after Receipt confirmation;
+- refresh does not post stock;
+- when a Receipt already exists as `DRAFT`, refreshed Inbox data remains reviewable and the operator explicitly refreshes the DRAFT proposal before confirmation;
+- confirmed stock history is never rewritten from refreshed invoice source data.
+
 ## Item matching and master-data safety
 
 `InventoryItem` is the canonical warehouse item master. Product/Pharma candidates are reference-only and cannot silently assign stock ownership.
 
 The receiving workspace supports explicit matching to an existing InventoryItem, explicit item creation from an invoice line, revision of an item created specifically from that invoice line before stock confirmation, visible SKU/base UOM, lot/expiry tracking flags, optional fractional quantity and package metadata.
+
+Item matching now uses a searchable SKU/name experience rather than depending on a fixed large select list. The search is bounded server-side and suitable for a growing SKU catalog. The search UI was accepted after fixing dropdown stacking so results render above adjacent receiving cards.
 
 Items created from invoice receiving but not yet confirmed are displayed in the item catalog as **Chờ xác nhận nhập kho**. Stock is shown as **Chưa ghi sổ** until canonical Receipt confirmation creates ledger evidence.
 
@@ -108,6 +125,33 @@ The UI pre-fills them when normalized invoice evidence exists and allows explici
 
 Tracking rules remain enforced: a lot-tracked item requires a lot number and an expiry-tracked item requires expiry before the DRAFT can be prepared.
 
+Cross-module source priority now accepted by Inventory is:
+
+```text
+structured GDT metadata
+  -> legacy/top-level source fields
+  -> deterministic text fallback from invoice description
+```
+
+Structured values always win over conflicting text. Text fallback remains valid when the source has no structured lot/HSD fields.
+
+Accepted evidence:
+
+```text
+CAMZITOL
+structured LotNo = G0846
+structured ExpiryDate = 2028-03-08
+Inventory = G0846 / 2028-03-08
+
+Tharodas invoice #287
+source description contains: Lô: 020526, HSD: 04/05/2029
+structured LotNo/ExpiryDate = null
+normalizer deterministic-v4 = 020526 / 2029-05-04
+Inventory after source refresh = 020526 / 2029-05-04
+```
+
+This confirms both structured and text-fallback paths reach Inventory Inbox without requiring OCR, generated-PDF parsing or manual re-entry.
+
 ## Receipt DRAFT review and correction
 
 Batch D UI progression:
@@ -122,9 +166,19 @@ Bước 5 — Xác nhận
 
 A Receipt in `DRAFT` is **Bước 4**. Only a `CONFIRMED` Receipt reaches Bước 5.
 
-The DRAFT review modal shows the source invoice, supplier, receiving warehouse, item/SKU, source/base quantities/UOMs, conversion factor, lot, expiry, manufacture date and package metadata where available.
+The operator action **✎ Chỉnh sửa phiếu nhập nháp trước khi xác nhận** now opens a dedicated DRAFT editor modal rather than only expanding an inline details block.
 
-The operator can use **Quay lại chỉnh sửa**. While the Receipt remains `DRAFT`, the workspace allows correction of warehouse and receiving review fields, then **Cập nhật phiếu nhập nháp** refreshes the same DRAFT proposal. This explicit refresh replaces only DRAFT lines and does not mutate stock. A confirmed Receipt is blocked from this correction path.
+The modal supports:
+
+- searchable item change by SKU/name;
+- source/base quantity and UOM review;
+- conversion-factor correction;
+- lot / HSD / optional manufacture-date correction;
+- package metadata review/update;
+- SKU/name/base-UOM/master-data editing only when the InventoryItem was explicitly created from that invoice line;
+- protection of shared InventoryItem master data from accidental invoice-specific edits.
+
+`Cập nhật phiếu nhập nháp` refreshes the same DRAFT proposal through `InvoiceReceiptProposalService`. This remains a non-posting operation. A confirmed Receipt is blocked from this correction path.
 
 ## Canonical confirmation and idempotency
 
@@ -146,61 +200,49 @@ source invoice
   -> StockBalance
 ```
 
-## Accepted Batch D UI
+## Accepted UI / regression evidence
 
 Operator UAT: **UI PASS**.
 
-Accepted flow:
+Accepted cross-module flow:
 
 ```text
-Source Queue
-  -> receiving workspace
-  -> match/create item
-  -> review quantity/UOM/conversion/lot/HSD
-  -> create Receipt DRAFT
-  -> Step 4 review
-  -> optionally return and correct DRAFT
-  -> refresh same DRAFT
-  -> review again
-  -> explicit confirmation
+Invoices Source Data
+  -> lot/HSD visible in source detail
+  -> generated PDF reflects canonical source fields
+  -> Inventory source refresh
+  -> Inbox receives structured or text-fallback lot/HSD
+  -> searchable SKU matching
+  -> Receipt DRAFT
+  -> modal correction before confirmation
+  -> explicit confirmation only when operator approves
+```
+
+Focused evidence includes:
+
+```text
+StructuredLotExpiryMappingTest: PASS
+InventoryInvoiceDraftEditorContractTest: 3 passed / 25 assertions
+Pint for draft editor/controller/routes/test: PASS
+Inventory UI source refresh: PASS
+Inventory searchable SKU dropdown: UI PASS after stacking fix
+Receipt DRAFT modal: UI PASS
+Invoice #287 Tharodas lot/HSD refresh: UI PASS
 ```
 
 The UI retains bounded pagination `10 / 25 / 50 / 100`, visible form controls, loading/disabled mutation states and responsive desktop/tablet/mobile behavior.
 
-## Final focused regression
-
-Executed pack:
-
-```text
-tests/Feature/Inventory/InventoryBatchDDraftReceiptCorrectionContractTest.php
-tests/Feature/Inventory/InventoryBatchDReceivingUiContractTest.php
-tests/Feature/Inventory/InventoryBatchDEndToEndReceivingContractTest.php
-tests/Feature/Inventory/InventoryBatchCInvoiceIntegrationContractTest.php
-tests/Feature/Inventory/InventoryBatchC2ExceptionReviewContractTest.php
-```
-
-Result:
-
-```text
-Tests: 33 passed (207 assertions)
-Duration: 5.11s
-```
-
-The regression confirms DRAFT correction safety, intentional DRAFT refresh, receiving UI contracts, canonical `ReceiptPostingService` confirmation, no direct posting bypass, Invoices/Inventory integration compatibility and C2 exception-review compatibility.
-
 ## PR / merge gate
 
-All pre-PR gates are now satisfied:
+Cross-module branch `fix/invoices-structured-lot-expiry` is in closeout state with operator UI acceptance recorded.
 
-- implementation complete;
-- UI PASS;
-- focused regression PASS (`33 / 207`);
-- branch synchronized with origin;
-- handoff current.
+Before merge:
 
-Batch D is ready to be opened as one coherent PR against `main`.
+- keep Invoices and Inventory handoff docs synchronized;
+- run any final focused regression requested by PR/CI;
+- do not merge until explicit operator confirmation.
 
-Merge remains a separate final action. After PR review/CI, merge only if no new change invalidates the UI/test evidence above.
+Merge remains a separate final action. No automatic merge is authorized by this handoff.
 
 ## Deferred / next work
 
