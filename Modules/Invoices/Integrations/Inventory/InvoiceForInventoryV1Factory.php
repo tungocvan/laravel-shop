@@ -4,14 +4,15 @@ namespace Modules\Invoices\Integrations\Inventory;
 
 use DomainException;
 use Modules\Invoices\Models\InvoiceInventorySnapshot;
-use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
+use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Services\GdtPdfService;
 use Modules\Invoices\Support\GdtInvoiceLineMetadata;
 
 final class InvoiceForInventoryV1Factory
 {
-    public function __construct(private readonly GdtPdfService $gdtDetailService) {}
+    public function __construct(private readonly GdtPdfService $gdtDetailService)
+    {}
 
     public function build(Invoices $invoice): array
     {
@@ -101,13 +102,13 @@ final class InvoiceForInventoryV1Factory
         $sourceAnnotation = $this->sourceAnnotation($invoice);
         $lines = [];
         foreach (array_values($rawLines) as $index => $line) {
-            if (! is_array($line)) {
+            if (!is_array($line)) {
                 continue;
             }
 
             $description = trim((string) ($line['ten'] ?? ''));
             $quantity = $line['sluong'] ?? null;
-            if ($description === '' || ! is_numeric($quantity) || (float) $quantity <= 0) {
+            if ($description === '' || !is_numeric($quantity) || (float) $quantity <= 0) {
                 continue;
             }
 
