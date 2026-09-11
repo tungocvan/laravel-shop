@@ -13,7 +13,7 @@ class InventoryBatchDDraftReceiptCorrectionContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Inventory/Services/InvoiceReceiptProposalService.php'));
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
 
-        $this->assertStringContainsString("$receipt !== null && $receipt->status !== 'DRAFT'", $service);
+        $this->assertStringContainsString("\$receipt !== null && \$receipt->status !== 'DRAFT'", $service);
         $this->assertStringContainsString('$receipt->lines()->delete();', $service);
         $this->assertStringContainsString('refresh có chủ đích', $service);
 
