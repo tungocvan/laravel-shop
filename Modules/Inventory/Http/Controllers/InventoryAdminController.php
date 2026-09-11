@@ -4,8 +4,10 @@ namespace Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Modules\Inventory\Models\InventoryItem;
 use Modules\Inventory\Models\InvoiceInbox;
 use Modules\Inventory\Services\InventoryDashboardService;
 use Modules\Invoices\Integrations\Inventory\InvoiceInventoryHandoffService;
@@ -65,6 +67,34 @@ final class InventoryAdminController extends Controller
             : 'Đã cập nhật lại dữ liệu từ hóa đơn nguồn. Đối chiếu mặt hàng hiện có được giữ lại khi còn hợp lệ.';
 
         return $redirect($refreshed)->with('inventory_success', $message);
+    }
+
+    public function searchInventoryItems(Request $request): JsonResponse
+    {
+        $admin = auth('admin')->user();
+        abort_unless((bool) $admin?->can('inventory.receipt.manage'), 403);
+
+        $term = trim((string) $request->query('q', ''));
+        $items = InventoryItem::query()
+            ->where('is_active', true)
+            ->when($term !== '', function ($query) use ($term): void {
+                $query->where(function ($nested) use ($term): void {
+                    $nested->where('sku', 'like', '%'.$term.'%')
+                        ->orWhere('display_name', 'like', '%'.$term.'%');
+                });
+            })
+            ->orderBy('display_name')
+            ->limit(20)
+            ->get(['id', 'sku', 'display_name', 'base_uom'])
+            ->map(fn (InventoryItem $item): array => [
+                'id' => $item->id,
+                'sku' => $item->sku,
+                'display_name' => $item->display_name,
+                'base_uom' => $item->base_uom,
+            ])
+            ->values();
+
+        return response()->json(['items' => $items]);
     }
 
     public function intake(): View
