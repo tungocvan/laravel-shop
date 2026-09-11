@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Livewire;
 
 use DomainException;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -228,6 +229,45 @@ final class InvoiceInboxWorkspace extends Component
         $this->showCreateItem = true;
     }
 
+    public function updatedReceivingReview($value, string $key): void
+    {
+        if (! str_ends_with($key, '.conversion_factor')) {
+            return;
+        }
+
+        [$lineId] = explode('.', $key, 2);
+
+        if (! ctype_digit((string) $lineId) || $this->selectedInboxId === null) {
+            return;
+        }
+
+        $line = InvoiceInboxLine::query()
+            ->with('item')
+            ->where('inbox_id', $this->selectedInboxId)
+            ->find((int) $lineId);
+
+        if ($line === null || $line->item === null) {
+            return;
+        }
+
+        if ($this->sameUom((string) $line->source_uom, (string) $line->item->base_uom)) {
+            $this->receivingReview[$line->id]['conversion_factor'] = '1';
+            $this->receivingReview[$line->id]['base_quantity'] = (string) $line->source_quantity;
+
+            return;
+        }
+
+        if (! is_numeric($value) || (float) $value <= 0) {
+            $this->receivingReview[$line->id]['base_quantity'] = '';
+
+            return;
+        }
+
+        $this->receivingReview[$line->id]['base_quantity'] = $this->quantityString(
+            (float) $line->source_quantity * (float) $value
+        );
+    }
+
     public function closeCreateItem(): void
     {
         $this->showCreateItem = false;
@@ -256,6 +296,9 @@ final class InvoiceInboxWorkspace extends Component
                 'itemForm.sku' => ['required', 'string', 'max:120', $uniqueSku],
                 'itemForm.display_name' => ['required', 'string', 'max:255'],
                 'itemForm.base_uom' => ['required', 'string', 'max:80'],
+                'itemForm.conversion_factor' => ['nullable', 'numeric', 'gt:0'],
+                'itemForm.package_uom' => ['nullable', 'string', 'max:80'],
+                'itemForm.package_quantity' => ['nullable', 'numeric', 'gt:0'],
                 'itemForm.lot_tracking' => ['boolean'],
                 'itemForm.expiry_tracking' => ['boolean'],
                 'itemForm.allow_fractional_quantity' => ['boolean'],
@@ -267,6 +310,52 @@ final class InvoiceInboxWorkspace extends Component
 
             if ((bool) $data['expiry_tracking'] && ! (bool) $data['lot_tracking']) {
                 throw new DomainException('Theo dõi hạn sử dụng yêu cầu bật theo dõi số lô.');
+            }
+
+            $sourceUom = trim((string) $line->source_uom);
+            $baseUom = trim((string) $data['base_uom']);
+            $sameUom = $this->sameUom($sourceUom, $baseUom);
+
+            if ($sameUom) {
+                $conversionFactor = 1.0;
+            } else {
+                if (! isset($data['conversion_factor'])
+                    || ! is_numeric($data['conversion_factor'])
+                    || (float) $data['conversion_factor'] <= 0) {
+                    throw ValidationException::withMessages([
+                        'itemForm.conversion_factor' => 'Vui lòng nhập quy cách, ví dụ 1 Hộp = 30 Viên.',
+                    ]);
+                }
+
+                $conversionFactor = (float) $data['conversion_factor'];
+
+                if (abs($conversionFactor - 1.0) < 0.00000001) {
+                    throw ValidationException::withMessages([
+                        'itemForm.conversion_factor' => 'Đơn vị hóa đơn khác đơn vị tồn kho. Hãy nhập quy cách thực tế thay vì mặc định hệ số 1.',
+                    ]);
+                }
+            }
+
+            $baseQuantity = (float) $line->source_quantity * $conversionFactor;
+
+            if ($baseQuantity <= 0) {
+                throw ValidationException::withMessages([
+                    'itemForm.conversion_factor' => 'Số lượng sau quy đổi phải lớn hơn 0.',
+                ]);
+            }
+
+            $packageUom = filled($data['package_uom'] ?? null)
+                ? trim((string) $data['package_uom'])
+                : null;
+
+            $packageQuantity = filled($data['package_quantity'] ?? null)
+                ? (float) $data['package_quantity']
+                : null;
+
+            if (($packageUom === null) xor ($packageQuantity === null)) {
+                throw ValidationException::withMessages([
+                    'itemForm.package_quantity' => 'Quy cách đóng gói cần đủ đơn vị đóng gói và số lượng trong một đơn vị.',
+                ]);
             }
 
             $manufactureDate = (bool) ($data['include_manufacture_date'] ?? false) && filled($data['manufacture_date'] ?? null)
@@ -281,6 +370,18 @@ final class InvoiceInboxWorkspace extends Component
 
             if ($this->editingItemId !== null) {
                 $item = InventoryItem::query()->findOrFail($this->editingItemId);
+                $metadata = is_array($item->metadata) ? $item->metadata : [];
+
+                if ($packageUom !== null && $packageQuantity !== null) {
+                    $metadata['packaging'] = [
+                        'package_uom' => $packageUom,
+                        'quantity' => $packageQuantity,
+                        'base_uom' => trim($data['base_uom']),
+                    ];
+                } else {
+                    unset($metadata['packaging']);
+                }
+
                 $item->forceFill([
                     'sku' => trim($data['sku']),
                     'display_name' => trim($data['display_name']),
@@ -288,6 +389,7 @@ final class InvoiceInboxWorkspace extends Component
                     'lot_tracking' => (bool) $data['lot_tracking'],
                     'expiry_tracking' => (bool) $data['expiry_tracking'],
                     'allow_fractional_quantity' => (bool) $data['allow_fractional_quantity'],
+                    'metadata' => $metadata,
                 ])->save();
             } else {
                 $item = InventoryItem::query()->create([
@@ -298,11 +400,18 @@ final class InvoiceInboxWorkspace extends Component
                     'expiry_tracking' => (bool) $data['expiry_tracking'],
                     'allow_fractional_quantity' => (bool) $data['allow_fractional_quantity'],
                     'is_active' => true,
-                    'metadata' => [
+                    'metadata' => array_filter([
                         'created_from_invoice_inbox_line_id' => $line->id,
                         'source_invoice_identity' => $line->inbox->source_invoice_identity,
                         'creation_mode' => 'explicit_admin_review',
-                    ],
+                        'packaging' => $packageUom !== null && $packageQuantity !== null
+                            ? [
+                                'package_uom' => $packageUom,
+                                'quantity' => $packageQuantity,
+                                'base_uom' => trim($data['base_uom']),
+                            ]
+                            : null,
+                    ], fn ($value) => $value !== null),
                 ]);
                 app(InventoryItemMatchingService::class)->assign($line, $item, (int) auth('admin')->id());
             }
@@ -310,6 +419,8 @@ final class InvoiceInboxWorkspace extends Component
             $line->refresh();
             $line->forceFill([
                 'base_uom' => $item->base_uom,
+                'conversion_factor' => $conversionFactor,
+                'base_quantity' => $this->quantityString($baseQuantity),
                 'lot_number' => filled($data['lot_number'] ?? null) ? trim((string) $data['lot_number']) : null,
                 'manufacture_date' => $manufactureDate,
                 'expiry_date' => $expiryDate,
@@ -555,6 +666,26 @@ final class InvoiceInboxWorkspace extends Component
             ]);
         }
 
+        $sameUom = $this->sameUom(
+            (string) $line->source_uom,
+            (string) $item->base_uom
+        );
+
+        $conversionFactor = (float) $data['conversion_factor'];
+
+        if ($sameUom) {
+            $conversionFactor = 1.0;
+        } elseif (abs($conversionFactor - 1.0) < 0.00000001) {
+            throw ValidationException::withMessages([
+                $key.'.conversion_factor' => 'Đơn vị hóa đơn khác đơn vị tồn kho. Hãy nhập quy cách thực tế.',
+            ]);
+        }
+
+        $data['conversion_factor'] = $conversionFactor;
+        $data['base_quantity'] = $this->quantityString(
+            (float) $line->source_quantity * $conversionFactor
+        );
+
         return $data;
     }
 
@@ -584,27 +715,72 @@ final class InvoiceInboxWorkspace extends Component
     private function loadReceivingReviewState(InvoiceInbox $inbox): void
     {
         $inbox->loadMissing(['lines.item', 'receipt']);
+
         $this->receivingReview = $inbox->lines
             ->where('classification', 'STOCK')
-            ->mapWithKeys(fn (InvoiceInboxLine $line) => [
-                $line->id => [
-                    'base_quantity' => (string) ($line->base_quantity ?? ''),
-                    'base_uom' => (string) ($line->base_uom ?? $line->item?->base_uom ?? ''),
-                    'conversion_factor' => (string) ($line->conversion_factor ?? '1'),
-                    'lot_number' => (string) ($line->lot_number ?? ''),
-                    'include_manufacture_date' => $line->manufacture_date !== null,
-                    'manufacture_date' => $line->manufacture_date?->format('Y-m-d') ?? '',
-                    'expiry_date' => $line->expiry_date?->format('Y-m-d') ?? '',
-                ],
-            ])->all();
+            ->mapWithKeys(function (InvoiceInboxLine $line): array {
+                $baseUom = (string) ($line->base_uom ?? $line->item?->base_uom ?? '');
+                $sameUom = $this->sameUom((string) $line->source_uom, $baseUom);
+                $factor = $line->conversion_factor;
+
+                if ($sameUom) {
+                    $factor = 1;
+                } elseif ($factor === null || abs((float) $factor - 1.0) < 0.00000001) {
+                    $factor = '';
+                }
+
+                $baseQuantity = $line->base_quantity;
+
+                if ($sameUom) {
+                    $baseQuantity = $line->source_quantity;
+                } elseif ($factor === '') {
+                    $baseQuantity = '';
+                }
+
+                return [
+                    $line->id => [
+                        'base_quantity' => (string) ($baseQuantity ?? ''),
+                        'base_uom' => $baseUom,
+                        'conversion_factor' => (string) $factor,
+                        'lot_number' => (string) ($line->lot_number ?? ''),
+                        'include_manufacture_date' => $line->manufacture_date !== null,
+                        'manufacture_date' => $line->manufacture_date?->format('Y-m-d') ?? '',
+                        'expiry_date' => $line->expiry_date?->format('Y-m-d') ?? '',
+                    ],
+                ];
+            })
+            ->all();
     }
 
     private function buildItemForm(InvoiceInboxLine $line, ?InventoryItem $item): array
     {
+        $baseUom = $item?->base_uom
+            ?? (trim((string) $line->source_uom) ?: 'unit');
+
+        $sameUom = $this->sameUom(
+            (string) $line->source_uom,
+            (string) $baseUom
+        );
+
+        $factor = $line->conversion_factor;
+
+        if ($sameUom) {
+            $factor = 1;
+        } elseif ($factor === null || abs((float) $factor - 1.0) < 0.00000001) {
+            $factor = '';
+        }
+
+        $packaging = is_array($item?->metadata)
+            ? data_get($item->metadata, 'packaging', [])
+            : [];
+
         return [
             'sku' => $item?->sku ?? 'INV-LINE-'.$line->id,
             'display_name' => $item?->display_name ?? $line->description_snapshot,
-            'base_uom' => $item?->base_uom ?? (trim((string) $line->source_uom) ?: 'unit'),
+            'base_uom' => $baseUom,
+            'conversion_factor' => (string) $factor,
+            'package_uom' => (string) data_get($packaging, 'package_uom', ''),
+            'package_quantity' => (string) data_get($packaging, 'quantity', ''),
             'lot_tracking' => $item?->lot_tracking ?? filled($line->lot_number),
             'expiry_tracking' => $item?->expiry_tracking ?? filled($line->expiry_date),
             'allow_fractional_quantity' => $item?->allow_fractional_quantity ?? false,
@@ -613,6 +789,29 @@ final class InvoiceInboxWorkspace extends Component
             'include_manufacture_date' => $line->manufacture_date !== null,
             'manufacture_date' => $line->manufacture_date?->format('Y-m-d') ?? '',
         ];
+    }
+
+    private function sameUom(string $sourceUom, string $baseUom): bool
+    {
+        return $this->uomKey($sourceUom) === $this->uomKey($baseUom);
+    }
+
+    private function uomKey(string $value): string
+    {
+        return Str::of($value)
+            ->lower()
+            ->ascii()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
+    }
+
+    private function quantityString(float $value): string
+    {
+        return rtrim(
+            rtrim(number_format($value, 8, '.', ''), '0'),
+            '.'
+        );
     }
 
     private function assertDraftNotCreated(InvoiceInboxLine $line): void
