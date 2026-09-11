@@ -55,10 +55,6 @@ final class InvoiceReceiptProposalService
                 throw new DomainException('Phiếu nhập từ hóa đơn này đã được xác nhận hoặc không còn ở trạng thái DRAFT.');
             }
 
-            if ($receipt !== null && $receipt->lines()->exists()) {
-                throw new DomainException('Phiếu nhập DRAFT đã có dữ liệu review. Không refresh tự động để tránh ghi đè thay đổi của người vận hành.');
-            }
-
             if ($receipt === null) {
                 $receipt = Receipt::query()->create([
                     'number' => 'INV-'.str_pad((string) $inbox->id, 8, '0', STR_PAD_LEFT),
@@ -85,6 +81,10 @@ final class InvoiceReceiptProposalService
                     'document_date' => $inbox->issued_at_snapshot,
                     'updated_by' => $actorId,
                 ])->save();
+
+                // Đây là refresh có chủ đích do người vận hành bấm cập nhật phiếu DRAFT.
+                // Chỉ DRAFT được thay thế lines; receipt đã CONFIRMED luôn bị chặn ở trên.
+                $receipt->lines()->delete();
             }
 
             foreach ($stockLines as $index => $line) {
