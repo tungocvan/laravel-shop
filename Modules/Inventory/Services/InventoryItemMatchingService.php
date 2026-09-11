@@ -45,12 +45,14 @@ final class InventoryItemMatchingService
             }
 
             [$item, $reason] = $match;
+            $sameUom = $this->key((string) $line->source_uom) === $this->key((string) $item->base_uom);
+
             $line->forceFill([
                 'classification' => 'STOCK',
                 'inventory_item_id' => $item->id,
                 'match_reason' => $reason,
-                'conversion_factor' => 1,
-                'base_quantity' => $line->source_quantity,
+                'conversion_factor' => $sameUom ? 1 : null,
+                'base_quantity' => $sameUom ? $line->source_quantity : null,
                 'base_uom' => $item->base_uom,
             ])->save();
             $this->storeReferenceCandidates($line, []);
@@ -61,12 +63,14 @@ final class InventoryItemMatchingService
 
     public function assign(InvoiceInboxLine $line, InventoryItem $item, int $actorId, bool $rememberAlias = true): void
     {
+        $sameUom = $this->key((string) $line->source_uom) === $this->key((string) $item->base_uom);
+
         $line->forceFill([
             'classification' => 'STOCK',
             'inventory_item_id' => $item->id,
             'match_reason' => 'manual_review',
-            'conversion_factor' => 1,
-            'base_quantity' => $line->source_quantity,
+            'conversion_factor' => $sameUom ? 1 : null,
+            'base_quantity' => $sameUom ? $line->source_quantity : null,
             'base_uom' => $item->base_uom,
         ])->save();
         $this->storeReferenceCandidates($line, []);

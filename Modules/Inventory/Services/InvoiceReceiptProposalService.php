@@ -4,6 +4,7 @@ namespace Modules\Inventory\Services;
 
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Inventory\Models\InvoiceInbox;
 use Modules\Inventory\Models\Receipt;
 use Modules\Inventory\Models\ReceiptLine;
@@ -29,6 +30,23 @@ final class InvoiceReceiptProposalService
             foreach ($stockLines as $line) {
                 if ($line->inventory_item_id === null || $line->base_quantity === null || $line->base_uom === null) {
                     throw new DomainException('Dòng STOCK chưa đủ item/base quantity/base UOM.');
+                }
+
+                if ((float) $line->base_quantity <= 0) {
+                    throw new DomainException('Dòng STOCK phải có số lượng nhập lớn hơn 0.');
+                }
+
+                if ($this->uomKey((string) $line->source_uom) !== $this->uomKey((string) $line->base_uom)
+                    && (string) $line->conversion_factor === '1.00000000') {
+                    throw new DomainException('ĐVT nguồn khác ĐVT cơ sở nhưng chưa có hệ số quy đổi được review.');
+                }
+
+                if ($line->item?->expiry_tracking && $line->expiry_date === null) {
+                    throw new DomainException('Mặt hàng theo dõi HSD nhưng dòng nhập chưa có hạn dùng.');
+                }
+
+                if ($line->item?->lot_tracking && trim((string) $line->lot_number) === '') {
+                    throw new DomainException('Mặt hàng theo dõi lô nhưng dòng nhập chưa có số lô.');
                 }
             }
 
@@ -63,6 +81,9 @@ final class InvoiceReceiptProposalService
                     'document_date' => $inbox->issued_at_snapshot,
                     'updated_by' => $actorId,
                 ])->save();
+
+                // Đây là refresh có chủ đích do người vận hành bấm cập nhật phiếu DRAFT.
+                // Chỉ DRAFT được thay thế lines; receipt đã CONFIRMED luôn bị chặn ở trên.
                 $receipt->lines()->delete();
             }
 
@@ -86,6 +107,7 @@ final class InvoiceReceiptProposalService
                     'metadata' => [
                         'invoice_inbox_id' => $inbox->id,
                         'invoice_inbox_line_id' => $line->id,
+                        'source_invoice_identity' => $inbox->source_invoice_identity,
                         'match_reason' => $line->match_reason,
                     ],
                 ]);
@@ -99,5 +121,10 @@ final class InvoiceReceiptProposalService
 
             return $receipt->fresh(['warehouse', 'lines']);
         });
+    }
+
+    private function uomKey(string $value): string
+    {
+        return Str::of($value)->lower()->ascii()->replaceMatches('/[^a-z0-9]+/', ' ')->squish()->toString();
     }
 }

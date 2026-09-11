@@ -37,17 +37,19 @@ class InventoryBatchC2ExceptionReviewContractTest extends TestCase
     }
 
     #[Test]
-    public function exception_review_ui_has_bulk_mapping_and_non_stock_actions(): void
+    public function exception_review_keeps_bulk_capabilities_in_component_and_business_actions_in_ui(): void
     {
+        $component = file_get_contents(base_path('Modules/Inventory/Livewire/InvoiceInboxWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Inventory/resources/views/livewire/invoice-inbox-workspace.blade.php'));
 
-        $this->assertStringContainsString('Chọn tất cả UNRESOLVED', $view);
-        $this->assertStringContainsString('Mapping hàng loạt', $view);
-        $this->assertStringContainsString('Đánh dấu NON_STOCK', $view);
-        $this->assertStringContainsString('wire:model="selectedLineIds"', $view);
-        $this->assertStringContainsString('wire:model="bulkItemId"', $view);
-        $this->assertStringContainsString('trạng thái tự chuyển READY', $view);
-        $this->assertStringNotContainsString('ReceiptPostingService', $view);
+        $this->assertStringContainsString('selectAllUnresolved', $component);
+        $this->assertStringContainsString('bulkAssignSelected', $component);
+        $this->assertStringContainsString('bulkMarkNonStock', $component);
+        $this->assertStringContainsString('wire:change="assignLine(', $view);
+        $this->assertStringContainsString('wire:click="markNonStock(', $view);
+        $this->assertStringContainsString('wire:click="createDraftReceipt"', $view);
+        $this->assertStringContainsString('Tạo phiếu nhập nháp', $view);
+        $this->assertStringContainsString('Phiếu nháp chưa làm thay đổi tồn kho', $view);
     }
 
     #[Test]

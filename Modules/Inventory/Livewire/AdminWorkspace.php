@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Inventory\Models\InventoryItem;
+use Modules\Inventory\Models\InvoiceInboxLine;
 use Modules\Inventory\Models\Issue;
 use Modules\Inventory\Models\IssueLine;
 use Modules\Inventory\Models\Lot;
@@ -51,6 +52,8 @@ final class AdminWorkspace extends Component
     public array $form = [];
 
     public array $lines = [];
+
+    public array $itemInventorySummary = [];
 
     private const PAGE_SIZES = [10, 25, 50, 100];
 
@@ -96,6 +99,7 @@ final class AdminWorkspace extends Component
         abort_if(in_array($this->workspace, ['stock', 'lots', 'movements'], true), 404);
         $this->editingId = null;
         $this->resetForm();
+        $this->itemInventorySummary = [];
         $this->formOpen = true;
     }
 
@@ -104,6 +108,9 @@ final class AdminWorkspace extends Component
         abort_unless($this->canManage(), 403);
         $this->editingId = $id;
         $this->loadForm($id);
+        $this->itemInventorySummary = $this->workspace === 'items'
+            ? $this->buildItemInventorySummary($id)
+            : [];
         $this->formOpen = true;
     }
 
@@ -174,8 +181,19 @@ final class AdminWorkspace extends Component
 
     public function render()
     {
+        $rows = $this->rows();
+
+        $itemStockSummaries = $this->workspace === 'items'
+            ? collect($rows->items())
+                ->mapWithKeys(fn (InventoryItem $item) => [
+                    $item->id => $this->buildItemInventorySummary($item->id),
+                ])
+                ->all()
+            : [];
+
         return view('Inventory::livewire.admin-workspace', [
-            'rows' => $this->rows(),
+            'rows' => $rows,
+            'itemStockSummaries' => $itemStockSummaries,
             'warehouses' => Warehouse::query()->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']),
             'items' => InventoryItem::query()->where('is_active', true)->orderBy('display_name')->get(['id', 'sku', 'display_name', 'base_uom', 'lot_tracking', 'expiry_tracking']),
             'lots' => Lot::query()->orderBy('expiry_date')->get(['id', 'inventory_item_id', 'lot_number', 'expiry_date']),
@@ -284,6 +302,104 @@ final class AdminWorkspace extends Component
             ->when($this->status !== 'all', fn ($q) => $q->where('m.movement_type', $this->status))
             ->when($this->warehouseFilter !== 'all', fn ($q) => $q->where('m.warehouse_id', (int) $this->warehouseFilter))
             ->latest('m.occurred_at')->paginate($this->perPage);
+    }
+
+    private function buildItemInventorySummary(int $itemId): array
+    {
+        $item = InventoryItem::query()->find($itemId);
+
+        if ($item === null) {
+            return [
+                'total_quantity' => '0',
+                'base_uom' => '',
+                'dimensions' => [],
+                'packaging' => null,
+                'lifecycle' => 'catalog',
+                'lifecycle_label' => 'Danh mục',
+                'source' => null,
+            ];
+        }
+
+        $allDimensions = DB::table('inventory_balances as b')
+            ->join('inventory_warehouses as w', 'w.id', '=', 'b.warehouse_id')
+            ->leftJoin('inventory_lots as l', 'l.id', '=', 'b.lot_id')
+            ->where('b.inventory_item_id', $itemId)
+            ->select([
+                'b.quantity_on_hand',
+                'w.code as warehouse_code',
+                'w.name as warehouse_name',
+                'l.lot_number',
+                'l.manufacture_date',
+                'l.expiry_date',
+            ])
+            ->orderBy('w.code')
+            ->orderByRaw('l.expiry_date is null, l.expiry_date asc')
+            ->get();
+
+        $total = $allDimensions->sum(fn ($row) => (float) $row->quantity_on_hand);
+        $dimensions = $allDimensions
+            ->filter(fn ($row) => abs((float) $row->quantity_on_hand) > 0.00000001)
+            ->values();
+
+        $sourceLineId = (int) data_get($item->metadata, 'created_from_invoice_inbox_line_id', 0);
+        $sourceLine = $sourceLineId > 0
+            ? InvoiceInboxLine::query()->with(['inbox.receipt'])->find($sourceLineId)
+            : null;
+        $sourceInbox = $sourceLine?->inbox;
+        $sourceReceipt = $sourceInbox?->receipt;
+        $hasMovement = DB::table('inventory_movements')
+            ->where('inventory_item_id', $itemId)
+            ->exists();
+
+        if (! $item->is_active) {
+            $lifecycle = 'inactive';
+            $lifecycleLabel = 'Ngừng hoạt động';
+        } elseif ($sourceLineId > 0 && $sourceReceipt?->status !== 'CONFIRMED' && ! $hasMovement) {
+            $lifecycle = 'pending_receipt';
+            $lifecycleLabel = 'Chờ xác nhận nhập kho';
+        } elseif ($total > 0.00000001) {
+            $lifecycle = 'in_stock';
+            $lifecycleLabel = 'Đang tồn kho';
+        } elseif ($hasMovement || $sourceReceipt?->status === 'CONFIRMED') {
+            $lifecycle = 'zero_stock';
+            $lifecycleLabel = 'Đã xác nhận · Hết tồn';
+        } else {
+            $lifecycle = 'catalog';
+            $lifecycleLabel = 'Danh mục · Chưa có tồn';
+        }
+
+        $packaging = data_get($item->metadata, 'packaging');
+
+        return [
+            'total_quantity' => $this->displayQuantity($total),
+            'base_uom' => (string) $item->base_uom,
+            'dimensions' => $dimensions->map(fn ($row) => [
+                'quantity' => $this->displayQuantity((float) $row->quantity_on_hand),
+                'warehouse_code' => (string) $row->warehouse_code,
+                'warehouse_name' => (string) $row->warehouse_name,
+                'lot_number' => $row->lot_number,
+                'manufacture_date' => $row->manufacture_date,
+                'expiry_date' => $row->expiry_date,
+            ])->all(),
+            'packaging' => is_array($packaging) ? $packaging : null,
+            'lifecycle' => $lifecycle,
+            'lifecycle_label' => $lifecycleLabel,
+            'source' => $sourceInbox ? [
+                'inbox_id' => $sourceInbox->id,
+                'invoice_number' => (string) ($sourceInbox->invoice_number_snapshot ?? ''),
+                'seller_name' => (string) ($sourceInbox->seller_name_snapshot ?? ''),
+                'receipt_number' => $sourceReceipt?->number,
+                'receipt_status' => $sourceReceipt?->status,
+            ] : null,
+        ];
+    }
+
+    private function displayQuantity(float $value): string
+    {
+        return rtrim(
+            rtrim(number_format($value, 6, '.', ''), '0'),
+            '.'
+        );
     }
 
     private function numericSearch(): int
