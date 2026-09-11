@@ -53,17 +53,25 @@ final class StructuredLotExpiryMappingTest extends TestCase
         $this->assertNull($normalized['expiry_date']);
     }
 
-    public function test_inventory_contract_and_generated_pdf_use_shared_structured_metadata_extractor(): void
+    public function test_inventory_contract_generated_pdf_and_source_data_use_shared_structured_metadata_extractor(): void
     {
         $factory = file_get_contents(base_path('Modules/Invoices/Integrations/Inventory/InvoiceForInventoryV1Factory.php'));
         $pdf = file_get_contents(base_path('Modules/Invoices/resources/views/pdf/gdt-invoice.blade.php'));
+        $manager = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $sourceDataView = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/source-data-manager.blade.php'));
 
         $this->assertStringContainsString('GdtInvoiceLineMetadata::lotNumber($line)', $factory);
         $this->assertStringContainsString('GdtInvoiceLineMetadata::expiryDate($line)', $factory);
         $this->assertStringContainsString('GdtInvoiceLineMetadata::lotNumber($item)', $pdf);
         $this->assertStringContainsString('GdtInvoiceLineMetadata::expiryDate($item)', $pdf);
+        $this->assertStringContainsString("'lot_number' => GdtInvoiceLineMetadata::lotNumber(\$item)", $manager);
+        $this->assertStringContainsString("'expiry_date' => GdtInvoiceLineMetadata::expiryDate(\$item)", $manager);
+        $this->assertStringContainsString("\$item['lot_number']", $sourceDataView);
+        $this->assertStringContainsString("\$item['expiry_date']", $sourceDataView);
         $this->assertStringContainsString('Số lô', $pdf);
         $this->assertStringContainsString('Hạn sử dụng', $pdf);
+        $this->assertStringContainsString('Số lô', $sourceDataView);
+        $this->assertStringContainsString('Hạn sử dụng', $sourceDataView);
     }
 
     private function camzitolLine(): array
