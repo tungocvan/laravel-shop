@@ -77,7 +77,6 @@
                     <div class="mb-5"><h3 class="text-lg font-bold text-slate-900">Đối chiếu hàng hóa</h3><p class="mt-1 text-sm text-slate-500">Xác định mỗi dòng hóa đơn tương ứng với mặt hàng nào trong kho.</p></div>
                     <div class="space-y-4">
                         @foreach($selected->lines as $line)
-                            @php($editableCreatedItem = $line->item && (int) data_get($line->item->metadata, 'created_from_invoice_inbox_line_id') === $line->id)
                             <article class="rounded-2xl border {{ $line->classification === 'NON_STOCK' || $line->inventory_item_id ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30' }} p-5">
                                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div class="min-w-0"><div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hàng trên hóa đơn</div><h4 class="mt-1 text-base font-bold text-slate-900">{{ $line->description_snapshot }}</h4><div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600"><span>Số lượng: <strong class="text-slate-900">{{ $line->source_quantity }}</strong></span><span>Đơn vị: <strong class="text-slate-900">{{ $line->source_uom ?: '—' }}</strong></span>@if($line->lot_number)<span>Lô: <strong class="text-slate-900">{{ $line->lot_number }}</strong></span>@endif @if($line->expiry_date)<span>HSD: <strong class="text-slate-900">{{ $line->expiry_date->format('d/m/Y') }}</strong></span>@endif</div></div>
@@ -87,7 +86,7 @@
                                     <div class="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
                                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                             <div><div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Mặt hàng trong kho</div><div class="mt-1 font-semibold text-slate-900">{{ $line->item->display_name }}</div><div class="mt-1 text-sm text-slate-500">Mã hàng {{ $line->item->sku }} · Đơn vị tồn kho {{ $line->item->base_uom }}</div></div>
-                                            @if($canManageItem && $editableCreatedItem)<button type="button" wire:click="beginEditItem({{ $line->id }})" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700">Sửa mặt hàng</button>@endif
+                                            @if($canManageItem && $line->item && (int) data_get($line->item->metadata, 'created_from_invoice_inbox_line_id') === $line->id)<button type="button" wire:click="beginEditItem({{ $line->id }})" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700">Sửa mặt hàng</button>@endif
                                         </div>
                                     </div>
                                 @endif
@@ -111,12 +110,11 @@
                         @foreach($stockLines as $line)
                             @php
                                 $sameUom = mb_strtolower(trim((string)$line->source_uom)) === mb_strtolower(trim((string)$line->item?->base_uom));
-                                $editableCreatedItem = $line->item && (int) data_get($line->item->metadata, 'created_from_invoice_inbox_line_id') === $line->id;
                             @endphp
                             <article class="rounded-2xl border border-slate-200 p-5">
                                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                     <div><h4 class="font-bold text-slate-900">{{ $line->item?->display_name ?: $line->description_snapshot }}</h4><p class="mt-1 text-sm text-slate-500">Mã hàng {{ $line->item?->sku }} · Hóa đơn: {{ $line->source_quantity }} {{ $line->source_uom }}</p></div>
-                                    <div class="flex flex-wrap gap-2">@if(data_get($line->metadata, 'receiving_review.reviewed_at'))<span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">✓ Đã lưu</span>@endif @if($canManageItem && $editableCreatedItem)<button type="button" wire:click="beginEditItem({{ $line->id }})" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">Sửa mặt hàng</button>@endif</div>
+                                    <div class="flex flex-wrap gap-2">@if(data_get($line->metadata, 'receiving_review.reviewed_at'))<span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">✓ Đã lưu</span>@endif @if($canManageItem && $line->item && (int) data_get($line->item->metadata, 'created_from_invoice_inbox_line_id') === $line->id)<button type="button" wire:click="beginEditItem({{ $line->id }})" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">Sửa mặt hàng</button>@endif</div>
                                 </div>
                                 <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                     <label class="text-sm font-medium text-slate-700">Số lượng nhập <span class="text-red-600">*</span><input type="number" step="any" wire:model="receivingReview.{{ $line->id }}.base_quantity" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">@error('receivingReview.'.$line->id.'.base_quantity')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label>
