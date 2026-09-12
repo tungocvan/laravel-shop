@@ -4,12 +4,13 @@ namespace Modules\Admin\Services;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Modules\System\Services\Cloud\GoogleDrivePortableFileService;
 use RuntimeException;
 
 class MenuSnapshotCloudSyncService
 {
-    public const CLOUD_PATH = 'Admin/Menu/menus.json';
+    public const CLOUD_DIRECTORY = 'Admin/Menu';
 
     public function __construct(private readonly GoogleDrivePortableFileService $cloudFiles) {}
 
@@ -18,7 +19,36 @@ class MenuSnapshotCloudSyncService
         return storage_path('app/menu/menus.json');
     }
 
-    public function pushLocalSnapshot(): array
+    public function snapshotFileName(string $snapshotName): string
+    {
+        $snapshotName = trim($snapshotName);
+        $snapshotName = preg_replace('/\.json\z/i', '', $snapshotName) ?? $snapshotName;
+        $snapshotName = preg_replace('/\Amenus[-_ ]*/i', '', $snapshotName) ?? $snapshotName;
+        $slug = Str::slug($snapshotName);
+
+        if ($slug === '' || strlen($slug) > 80) {
+            throw new RuntimeException('Tên snapshot không hợp lệ.');
+        }
+
+        return 'menus-'.$slug.'.json';
+    }
+
+    public function snapshots(): array
+    {
+        return collect($this->cloudFiles->list(self::CLOUD_DIRECTORY))
+            ->filter(fn (array $file): bool => $this->isAllowedSnapshotFile((string) ($file['name'] ?? '')))
+            ->map(fn (array $file): array => [
+                'id' => (string) ($file['id'] ?? ''),
+                'name' => (string) ($file['name'] ?? ''),
+                'size' => (int) ($file['size'] ?? 0),
+                'modified_at' => $file['modified_at'] ?? null,
+                'path' => self::CLOUD_DIRECTORY.'/'.(string) ($file['name'] ?? ''),
+            ])
+            ->values()
+            ->all();
+    }
+
+    public function pushLocalSnapshot(string $snapshotName): array
     {
         $path = $this->localPath();
 
@@ -28,20 +58,22 @@ class MenuSnapshotCloudSyncService
 
         $content = File::get($path);
         $this->assertValidSnapshot($content);
+        $fileName = $this->snapshotFileName($snapshotName);
 
-        return $this->cloudFiles->put(self::CLOUD_PATH, $content, 'application/json');
+        return $this->cloudFiles->put(self::CLOUD_DIRECTORY.'/'.$fileName, $content, 'application/json');
     }
 
-    public function pushLocalSnapshotBestEffort(): bool
+    public function pushLocalSnapshotBestEffort(string $snapshotName): bool
     {
         try {
-            $this->pushLocalSnapshot();
+            $this->pushLocalSnapshot($snapshotName);
 
             return true;
         } catch (\Throwable $exception) {
             Log::warning('Menu snapshot Google Drive sync failed after export.', [
                 'service' => static::class,
-                'path' => self::CLOUD_PATH,
+                'directory' => self::CLOUD_DIRECTORY,
+                'snapshot' => $snapshotName,
                 'message' => $exception->getMessage(),
             ]);
 
@@ -49,9 +81,10 @@ class MenuSnapshotCloudSyncService
         }
     }
 
-    public function pullToLocal(): array
+    public function pullToLocal(string $snapshotFile): array
     {
-        $remote = $this->cloudFiles->get(self::CLOUD_PATH);
+        $snapshotFile = $this->assertAllowedSnapshotFile($snapshotFile);
+        $remote = $this->cloudFiles->get(self::CLOUD_DIRECTORY.'/'.$snapshotFile);
         $content = (string) ($remote['content'] ?? '');
         $this->assertValidSnapshot($content);
 
@@ -70,6 +103,7 @@ class MenuSnapshotCloudSyncService
         unset($remote['content']);
 
         return array_merge($remote, [
+            'source_file' => $snapshotFile,
             'local_path' => $path,
             'synced_at' => now()->toIso8601String(),
         ]);
@@ -87,8 +121,24 @@ class MenuSnapshotCloudSyncService
             'local_size' => $localExists ? File::size($localPath) : null,
             'cloud_connected' => (bool) ($drive['connected'] ?? false),
             'cloud_folder' => (string) ($drive['folder_name'] ?? 'Laravel-Backup'),
-            'cloud_path' => self::CLOUD_PATH,
+            'cloud_path' => self::CLOUD_DIRECTORY,
         ];
+    }
+
+    private function assertAllowedSnapshotFile(string $snapshotFile): string
+    {
+        $snapshotFile = trim($snapshotFile);
+
+        if (! $this->isAllowedSnapshotFile($snapshotFile)) {
+            throw new RuntimeException('Tên file snapshot menu không hợp lệ.');
+        }
+
+        return $snapshotFile;
+    }
+
+    private function isAllowedSnapshotFile(string $snapshotFile): bool
+    {
+        return (bool) preg_match('/\Amenus(?:-[a-z0-9][a-z0-9-]{0,80})?\.json\z/', $snapshotFile);
     }
 
     private function assertValidSnapshot(string $content): void
