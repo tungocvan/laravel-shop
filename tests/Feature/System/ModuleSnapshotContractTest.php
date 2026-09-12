@@ -6,12 +6,16 @@ use Tests\TestCase;
 
 class ModuleSnapshotContractTest extends TestCase
 {
-    public function test_module_snapshot_service_has_manifest_checksum_ownership_and_rollback_guards(): void
+    public function test_module_snapshot_service_has_manifest_checksum_ownership_dependency_and_rollback_guards(): void
     {
         $service = file_get_contents(base_path('Modules/System/Services/Database/ModuleSnapshotService.php'));
+        $dependencies = file_get_contents(base_path('Modules/System/Services/Database/ModuleDependencyService.php'));
 
         $this->assertIsString($service);
+        $this->assertIsString($dependencies);
         $this->assertStringContainsString("'format_version' => self::FORMAT_VERSION", $service);
+        $this->assertStringContainsString("'dependencies' => \$this->dependencies->dependenciesFor(\$module)", $service);
+        $this->assertStringContainsString("(array) (\$manifest['dependencies'] ?? [])", $service);
         $this->assertStringContainsString("'schema_fingerprint' => \$this->schemaFingerprint(\$tables)", $service);
         $this->assertStringContainsString("'checksums.json'", $service);
         $this->assertStringContainsString("hash_equals(\$expectedChecksum, hash('sha256', \$sql))", $service);
@@ -23,6 +27,10 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("array_flip(['relative_path', 'absolute_path'])", $service);
         $this->assertStringContainsString("'--single-transaction'", $service);
         $this->assertStringContainsString("'--skip-lock-tables'", $service);
+
+        $this->assertStringContainsString('use App\\Modules\\ModuleRegistry;', $dependencies);
+        $this->assertStringContainsString('$this->registry->current()', $dependencies);
+        $this->assertStringContainsString("(array) (\$registered['depends'] ?? [])", $dependencies);
     }
 
     public function test_module_snapshot_cloud_sync_is_scoped_to_module_namespace(): void
@@ -73,6 +81,8 @@ class ModuleSnapshotContractTest extends TestCase
             $this->assertStringContainsString('function '.$method, $component);
         }
 
+        $this->assertStringContainsString('public array $moduleDependencies = [];', $component);
+        $this->assertStringContainsString('ModuleDependencyService::class', $component);
         $this->assertStringContainsString("authorizePermission('database.backup')", $component);
         $this->assertStringContainsString("authorizePermission('database.download')", $component);
         $this->assertStringContainsString("authorizePermission('database.restore')", $component);
@@ -91,5 +101,9 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('Bản local nếu có sẽ KHÔNG bị xóa', $view);
         $this->assertStringContainsString('RESTORE MODULE', $view);
         $this->assertStringContainsString('Safety Snapshot', $view);
+        $this->assertStringContainsString('DEPENDENCY WARNING', $view);
+        $this->assertStringContainsString('{{ $moduleFilter }} phụ thuộc:', $view);
+        $this->assertStringContainsString('@foreach ($moduleDependencies as $dependency)', $view);
+        $this->assertStringContainsString('không tự backup hoặc restore các Module phụ thuộc', $view);
     }
 }
