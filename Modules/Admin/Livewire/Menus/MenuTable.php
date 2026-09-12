@@ -30,6 +30,12 @@ class MenuTable extends Component
     public bool $showBulkPermissionsModal = false;
     public bool $showBulkDeleteModal = false;
     public bool $showRouteScannerModal = false;
+    public bool $showSnapshotModal = false;
+    public string $snapshotName = 'Default';
+    public string $snapshotFilePreview = 'menus-default.json';
+    public array $cloudSnapshots = [];
+    public ?string $snapshotListError = null;
+    public ?string $selectedSnapshotFile = null;
     public array $routeCandidates = [];
     public array $selectedRouteCandidates = [];
     public array $routeCandidateNames = [];
@@ -54,6 +60,7 @@ class MenuTable extends Component
         return [
             'importFile' => 'nullable|file|mimes:xlsx,csv|max:'.config('menu.import.max_file_size', 10240),
             'importMode' => 'required|in:skip_duplicate,update_or_create',
+            'snapshotName' => 'required|string|max:80',
             'bulkPermission' => 'nullable|exists:permissions,name',
             'routeCandidateNames.*' => 'nullable|string|max:255',
         ];
@@ -72,6 +79,16 @@ class MenuTable extends Component
     public function updatedSelectAll(bool $value): void
     {
         $this->selectedMenus = $value ? $this->menuService->idsForSelection($this->filters()) : [];
+    }
+
+    public function updatedSnapshotName(): void
+    {
+        try {
+            $this->snapshotFilePreview = $this->snapshotCloudSyncService->snapshotFileName($this->snapshotName);
+            $this->resetValidation('snapshotName');
+        } catch (\Throwable) {
+            $this->snapshotFilePreview = 'Tên snapshot chưa hợp lệ';
+        }
     }
 
     public function toggleMenuSelection(int|string $menuId): void
@@ -119,6 +136,31 @@ class MenuTable extends Component
         $this->reset(['showImportModal', 'importFile']);
         $this->importMode = 'skip_duplicate';
         $this->resetValidation();
+    }
+
+    public function openSnapshotModal(): void
+    {
+        $this->authorizePermission('admin.menu.export');
+        $this->prepareSnapshotModal();
+    }
+
+    public function openSnapshotLibraryModal(): void
+    {
+        $this->authorizePermission('admin.menu.restore');
+        $this->prepareSnapshotModal();
+    }
+
+    public function closeSnapshotModal(): void
+    {
+        $this->showSnapshotModal = false;
+        $this->snapshotListError = null;
+        $this->resetValidation('snapshotName');
+    }
+
+    public function refreshSnapshotLibrary(): void
+    {
+        $this->authorizePermission('admin.menu.export');
+        $this->loadCloudSnapshots();
     }
 
     public function openRouteScannerModal(): void
@@ -171,13 +213,14 @@ class MenuTable extends Component
         $this->notify("Da them {$count} route GET vao menu.", 'success', 'reload');
     }
 
-    public function syncSnapshotFromGoogleDrive(): void
+    public function syncSnapshotFromGoogleDrive(string $snapshotFile): void
     {
         $this->authorizePermission('admin.menu.restore');
 
         try {
-            $this->snapshotCloudSyncService->pullToLocal();
-            $this->notify('Da dong bo snapshot menu tu Google Drive ve local.', 'success');
+            $result = $this->snapshotCloudSyncService->pullToLocal($snapshotFile);
+            $this->selectedSnapshotFile = (string) ($result['source_file'] ?? $snapshotFile);
+            $this->notify("Da dong bo {$this->selectedSnapshotFile} tu Google Drive ve local.", 'success');
         } catch (\Throwable $exception) {
             report($exception);
             $this->notify($exception->getMessage(), 'error');
@@ -326,20 +369,42 @@ class MenuTable extends Component
     {
         $this->authorizePermission('admin.menu.export');
 
-        try {
-            $isFullExport = $this->selectedMenus === [];
-            $path = $isFullExport
-                ? $this->importExportService->export($this->filters())
-                : $this->importExportService->exportSelected($this->selectedMenus);
+        if ($this->selectedMenus === []) {
+            $this->prepareSnapshotModal();
 
-            if ($isFullExport && ! $this->snapshotCloudSyncService->pushLocalSnapshotBestEffort()) {
+            return null;
+        }
+
+        try {
+            return Storage::disk('public')->download($this->importExportService->exportSelected($this->selectedMenus));
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->notify('Loi export menu. Vui long kiem tra log.', 'error');
+
+            return null;
+        }
+    }
+
+    public function exportWithSnapshot()
+    {
+        $this->authorizePermission('admin.menu.export');
+        $this->validate(['snapshotName' => 'required|string|max:80']);
+
+        try {
+            $this->snapshotFilePreview = $this->snapshotCloudSyncService->snapshotFileName($this->snapshotName);
+            $path = $this->importExportService->export($this->filters());
+            $synced = $this->snapshotCloudSyncService->pushLocalSnapshotBestEffort($this->snapshotName);
+            $this->selectedSnapshotFile = $synced ? $this->snapshotFilePreview : null;
+            $this->showSnapshotModal = false;
+
+            if (! $synced) {
                 $this->notify('Export thanh cong, nhung snapshot Google Drive chua dong bo duoc.', 'warning');
             }
 
             return Storage::disk('public')->download($path);
         } catch (\Throwable $exception) {
             report($exception);
-            $this->notify('Loi export menu. Vui long kiem tra log.', 'error');
+            $this->addError('snapshotName', $exception->getMessage());
 
             return null;
         }
@@ -397,6 +462,28 @@ class MenuTable extends Component
             'permissionOptions' => $this->menuService->permissionOptions(),
             'snapshotStatus' => $this->snapshotCloudSyncService->status(),
         ]);
+    }
+
+    private function prepareSnapshotModal(): void
+    {
+        $this->snapshotName = 'Default';
+        $this->snapshotFilePreview = 'menus-default.json';
+        $this->snapshotListError = null;
+        $this->resetValidation('snapshotName');
+        $this->loadCloudSnapshots();
+        $this->showSnapshotModal = true;
+    }
+
+    private function loadCloudSnapshots(): void
+    {
+        try {
+            $this->cloudSnapshots = $this->snapshotCloudSyncService->snapshots();
+            $this->snapshotListError = null;
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->cloudSnapshots = [];
+            $this->snapshotListError = $exception->getMessage();
+        }
     }
 
     private function resetSelection(): void
