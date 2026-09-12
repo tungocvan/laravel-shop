@@ -21,24 +21,23 @@ class MenuSnapshotGoogleDriveContractTest extends TestCase
         $this->assertStringContainsString('GoogleDriveConnectionService', $systemService);
     }
 
-    public function test_snapshot_modal_uses_explicit_selected_or_all_scope_for_excel_and_drive_json(): void
+    public function test_excel_export_and_drive_snapshot_are_separate_actions(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Menus/MenuTable.php'));
         $service = file_get_contents(base_path('Modules/Admin/Services/MenuSnapshotCloudSyncService.php'));
-        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/menus/menu-table.blade.php'));
 
-        $this->assertStringContainsString("public string \$snapshotExportScope = 'all';", $component);
-        $this->assertStringContainsString("\$this->snapshotExportScope = \$this->selectedMenus === [] ? 'all' : 'selected';", $component);
-        $this->assertStringContainsString("\$isSelected = \$this->snapshotExportScope === 'selected';", $component);
-        $this->assertStringContainsString('exportSelected($this->selectedMenus)', $component);
+        $exportStart = strpos($component, 'public function export()');
+        $snapshotStart = strpos($component, 'public function exportWithSnapshot()');
+        $exportMethod = substr($component, $exportStart, $snapshotStart - $exportStart);
+
+        $this->assertStringContainsString('$this->selectedMenus === []', $exportMethod);
+        $this->assertStringContainsString('exportSelected($this->selectedMenus)', $exportMethod);
+        $this->assertStringNotContainsString('snapshotCloudSyncService', $exportMethod);
+        $this->assertStringContainsString('pushFullSnapshotBestEffort($this->snapshotName)', $component);
         $this->assertStringContainsString('pushSelectedSnapshotBestEffort($this->snapshotName, $this->selectedMenus)', $component);
-        $this->assertStringContainsString('pushLocalSnapshotBestEffort($this->snapshotName)', $component);
-        $this->assertStringContainsString('public function pushSelectedSnapshot(string $snapshotName, array $menuIds): array', $service);
+        $this->assertStringNotContainsString('pushLocalSnapshotBestEffort', $component);
+        $this->assertStringContainsString('private function fullSnapshotContent(): string', $service);
         $this->assertStringContainsString('private function selectedSnapshotContent(array $menuIds): string', $service);
-        $this->assertStringContainsString('wire:model.live="snapshotExportScope" value="selected"', $view);
-        $this->assertStringContainsString('Các menu đang chọn ({{ count($selectedMenus) }})', $view);
-        $this->assertStringContainsString('wire:model.live="snapshotExportScope" value="all"', $view);
-        $this->assertStringContainsString('Toàn bộ menu', $view);
     }
 
     public function test_cloud_pull_accepts_selected_snapshot_and_validates_before_atomic_local_replacement(): void
@@ -77,7 +76,7 @@ class MenuSnapshotGoogleDriveContractTest extends TestCase
         $this->assertStringContainsString('Đổi tên', $view);
     }
 
-    public function test_menu_ui_exposes_export_modal_drive_library_and_specific_snapshot_sync(): void
+    public function test_menu_ui_exposes_drive_library_and_specific_snapshot_sync(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Menus/MenuTable.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/menus/menu-table.blade.php'));
@@ -86,7 +85,6 @@ class MenuSnapshotGoogleDriveContractTest extends TestCase
         $this->assertStringContainsString('public array $cloudSnapshots = [];', $component);
         $this->assertStringContainsString('public function syncSnapshotFromGoogleDrive(string $snapshotFile): void', $component);
         $this->assertStringContainsString("authorizePermission('admin.menu.restore')", $component);
-        $this->assertStringContainsString('Export & thư viện snapshot Menu', $view);
         $this->assertStringContainsString('wire:click="exportWithSnapshot"', $view);
         $this->assertStringContainsString('Quản lý snapshot Google Drive', $view);
         $this->assertStringContainsString('Đồng bộ về local', $view);
