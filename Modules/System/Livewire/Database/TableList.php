@@ -7,6 +7,9 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\Cloud\GoogleDriveConnectionService;
+use Modules\System\Services\Cloud\GoogleDriveModuleSnapshotService;
+use Modules\System\Services\Database\ModuleSnapshotService;
 use Modules\System\Services\DatabaseService;
 
 #[Title('Quản lý Cơ sở dữ liệu')]
@@ -43,6 +46,20 @@ class TableList extends Component
 
     public ?string $selectedExportFile = null;
 
+    public array $moduleLocalSnapshots = [];
+
+    public array $moduleRemoteSnapshots = [];
+
+    public bool $moduleDriveConnected = false;
+
+    public bool $moduleCloudUnavailable = false;
+
+    public bool $showModuleRestoreModal = false;
+
+    public ?string $selectedModuleSnapshotReference = null;
+
+    public bool $isModuleRestoring = false;
+
     public function boot(DatabaseService $service): void
     {
         $this->service = $service;
@@ -56,6 +73,8 @@ class TableList extends Component
     public function updatedModuleFilter(): void
     {
         $this->resetVisibleSelectionState();
+        $this->resetModuleSnapshotState();
+        $this->refreshModuleSnapshots();
     }
 
     public function updatedSelectAll(bool $value): void
@@ -75,6 +94,183 @@ class TableList extends Component
         $visible = array_column($this->service->getAllTables($this->search, $this->moduleFilter), 'name');
         $this->selectAll = $visible !== [] && count(array_intersect($visible, $this->selectedTables)) === count($visible);
         $this->selectedExportFile = null;
+    }
+
+    public function refreshModuleSnapshots(): void
+    {
+        if ($this->moduleFilter === '' || $this->moduleFilter === 'Unknown') {
+            $this->moduleLocalSnapshots = [];
+            $this->moduleRemoteSnapshots = [];
+            $this->moduleDriveConnected = false;
+            $this->moduleCloudUnavailable = false;
+
+            return;
+        }
+
+        try {
+            $snapshots = app(ModuleSnapshotService::class);
+            $drive = app(GoogleDriveConnectionService::class);
+            $this->moduleLocalSnapshots = $snapshots->listLocal($this->moduleFilter, 30);
+            $this->moduleDriveConnected = (bool) ($drive->status()['connected'] ?? false);
+            $this->moduleRemoteSnapshots = [];
+            $this->moduleCloudUnavailable = false;
+
+            if ($this->moduleDriveConnected) {
+                try {
+                    $this->moduleRemoteSnapshots = app(GoogleDriveModuleSnapshotService::class)->list($this->moduleFilter, 30);
+                } catch (\Throwable $e) {
+                    $this->moduleCloudUnavailable = true;
+                    $this->reportOperationError('Module snapshot Google Drive listing failed.', $e, ['module' => $this->moduleFilter]);
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->moduleLocalSnapshots = [];
+            $this->moduleRemoteSnapshots = [];
+            $this->reportOperationError('Module snapshot catalog refresh failed.', $e, ['module' => $this->moduleFilter]);
+        }
+    }
+
+    public function backupModule(ModuleSnapshotService $snapshots): void
+    {
+        $this->authorizePermission('database.backup');
+        $module = $this->moduleFilter;
+
+        if ($module === '' || $module === 'Unknown') {
+            $this->notify('error', 'Vui lòng chọn một Module có ownership rõ ràng.');
+
+            return;
+        }
+
+        try {
+            $created = $snapshots->create($module);
+            $this->refreshModuleSnapshots();
+            $this->notify('success', "Đã tạo Module Snapshot {$created['name']} cho {$module}.");
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Module snapshot creation failed.', $e, ['module' => $module]);
+            $this->notify('error', 'Không thể tạo Module Snapshot. Vui lòng kiểm tra log hệ thống.');
+        }
+    }
+
+    public function backupModuleAndUpload(
+        ModuleSnapshotService $snapshots,
+        GoogleDriveModuleSnapshotService $cloud,
+    ): void {
+        $this->authorizePermission('database.backup');
+        $module = $this->moduleFilter;
+
+        if ($module === '' || $module === 'Unknown') {
+            $this->notify('error', 'Vui lòng chọn một Module có ownership rõ ràng.');
+
+            return;
+        }
+
+        try {
+            $created = $snapshots->create($module);
+            $cloud->uploadLocal($module, $created['reference']);
+            $this->refreshModuleSnapshots();
+            $this->notify('success', "Đã backup {$module} và đồng bộ Module Snapshot lên Google Drive.");
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Module snapshot backup and Drive upload failed.', $e, ['module' => $module]);
+            $this->refreshModuleSnapshots();
+            $this->notify('error', 'Không thể hoàn tất Backup & Upload Module Snapshot. Bản local nếu đã tạo vẫn được giữ lại.');
+        }
+    }
+
+    public function uploadModuleSnapshot(
+        string $reference,
+        GoogleDriveModuleSnapshotService $cloud,
+    ): void {
+        $this->authorizePermission('database.backup');
+        $module = $this->moduleFilter;
+
+        try {
+            $cloud->uploadLocal($module, $reference);
+            $this->refreshModuleSnapshots();
+            $this->notify('success', 'Đã upload Module Snapshot lên Google Drive.');
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Module snapshot Drive upload failed.', $e, ['module' => $module]);
+            $this->notify('error', 'Không thể upload Module Snapshot lên Google Drive.');
+        }
+    }
+
+    public function downloadModuleSnapshot(
+        string $reference,
+        GoogleDriveModuleSnapshotService $cloud,
+    ): void {
+        $this->authorizePermission('database.download');
+        $module = $this->moduleFilter;
+
+        try {
+            $cloud->downloadToLocal($module, $reference);
+            $this->refreshModuleSnapshots();
+            $this->notify('success', 'Đã tải Module Snapshot từ Google Drive về local và kiểm tra package.');
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Module snapshot Drive download failed.', $e, ['module' => $module]);
+            $this->notify('error', 'Không thể tải Module Snapshot từ Google Drive về local.');
+        }
+    }
+
+    public function openModuleRestoreModal(
+        string $reference,
+        ModuleSnapshotService $snapshots,
+    ): void {
+        $this->authorizePermission('database.restore');
+        $module = $this->moduleFilter;
+
+        try {
+            $snapshot = $snapshots->resolveLocalReference($reference, $module);
+            if ($snapshot === null) {
+                throw new \RuntimeException('Module snapshot local không tồn tại.');
+            }
+
+            $snapshots->validatePackage($snapshot['absolute_path'], $module, enforceSchema: true);
+            $this->selectedModuleSnapshotReference = $reference;
+            $this->showModuleRestoreModal = true;
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Open module snapshot restore rejected.', $e, ['module' => $module]);
+            $this->notify('error', 'Module Snapshot không tương thích hoặc không còn tồn tại.');
+        }
+    }
+
+    public function closeModuleRestoreModal(): void
+    {
+        if ($this->isModuleRestoring) {
+            return;
+        }
+
+        $this->showModuleRestoreModal = false;
+        $this->selectedModuleSnapshotReference = null;
+    }
+
+    public function restoreModuleSnapshot(ModuleSnapshotService $snapshots): void
+    {
+        $this->authorizePermission('database.restore');
+
+        if ($this->isModuleRestoring || $this->selectedModuleSnapshotReference === null) {
+            return;
+        }
+
+        $this->isModuleRestoring = true;
+        $module = $this->moduleFilter;
+
+        try {
+            $result = $snapshots->restore($this->selectedModuleSnapshotReference, $module);
+            $this->showModuleRestoreModal = false;
+            $this->selectedModuleSnapshotReference = null;
+            $this->refreshModuleSnapshots();
+            $this->notify(
+                'success',
+                "Restore Module {$module} thành công. Safety Snapshot: {$result['safety_snapshot']['name']}.",
+            );
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Module snapshot restore failed.', $e, [
+                'module' => $module,
+                'snapshot' => $this->selectedModuleSnapshotReference,
+            ]);
+            $this->notify('error', 'Restore Module thất bại. Hệ thống đã cố gắng rollback an toàn; vui lòng kiểm tra log.');
+        } finally {
+            $this->isModuleRestoring = false;
+        }
     }
 
     public function backupFull(): void
@@ -308,6 +504,15 @@ class TableList extends Component
         $this->selectAll = false;
         $this->selectedTables = [];
         $this->selectedExportFile = null;
+    }
+
+    private function resetModuleSnapshotState(): void
+    {
+        $this->moduleLocalSnapshots = [];
+        $this->moduleRemoteSnapshots = [];
+        $this->moduleCloudUnavailable = false;
+        $this->showModuleRestoreModal = false;
+        $this->selectedModuleSnapshotReference = null;
     }
 
     private function notify(string $type, string $message): void
