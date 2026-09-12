@@ -48,6 +48,7 @@ debug-report-*/
 /storage/app/temp/
 /storage/app/private/
 /storage/app/public/*
+/storage/app/menu/menus.json
 
 # Required document templates and public admission assets remain versioned.
 !/storage/app/templates/
