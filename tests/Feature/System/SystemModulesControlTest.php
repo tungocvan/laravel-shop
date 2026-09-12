@@ -35,23 +35,34 @@ class SystemModulesControlTest extends TestCase
         $this->assertSame('system.modules.view', $modulesMenu['can']);
     }
 
-    public function test_modules_form_enforces_update_permission_on_every_mutation(): void
+    public function test_runtime_mutations_enforce_update_permission_in_their_own_components(): void
     {
-        $source = file_get_contents(base_path('Modules/System/Livewire/Settings/ModulesForm.php'));
+        $modulesSource = file_get_contents(base_path('Modules/System/Livewire/Settings/ModulesForm.php'));
+        $queueSource = file_get_contents(base_path('Modules/System/Livewire/Settings/QueueManager.php'));
 
-        $this->assertStringContainsString('AuthorizesSystemActions', $source);
+        $this->assertStringContainsString('AuthorizesSystemActions', $modulesSource);
+        $this->assertStringContainsString('AuthorizesSystemActions', $queueSource);
 
-        foreach (['toggleRealtime', 'toggleModule', 'saveRouteTitle', 'addRouteToMenu'] as $method) {
-            $start = strpos($source, 'function '.$method.'(');
+        $moduleStart = strpos($modulesSource, 'function toggleModule(');
+        $this->assertNotFalse($moduleStart, 'Missing toggleModule method.');
+        $moduleNext = strpos($modulesSource, '\n    public function ', $moduleStart + 1);
+        $moduleMethod = substr($modulesSource, $moduleStart, $moduleNext === false ? null : $moduleNext - $moduleStart);
+        $this->assertStringContainsString("authorizePermission('system.modules.update')", $moduleMethod);
+
+        foreach (['toggleRealtime', 'processAction'] as $method) {
+            $start = strpos($queueSource, 'function '.$method.'(');
             $this->assertNotFalse($start, "Missing {$method} method.");
-            $next = strpos($source, '\n    public function ', $start + 1);
-            $methodSource = substr($source, $start, $next === false ? null : $next - $start);
+            $next = strpos($queueSource, '\n    public function ', $start + 1);
+            $methodSource = substr($queueSource, $start, $next === false ? null : $next - $start);
             $this->assertStringContainsString("authorizePermission('system.modules.update')", $methodSource);
         }
 
-        $this->assertStringNotContainsString('updateModuleManifest(', $source);
-        $this->assertStringNotContainsString('File::put(', $source);
-        $this->assertStringNotContainsString('function deleteModule(', $source);
+        $this->assertStringNotContainsString('toggleRealtime', $modulesSource);
+        $this->assertStringNotContainsString('saveRouteTitle', $modulesSource);
+        $this->assertStringNotContainsString('addRouteToMenu', $modulesSource);
+        $this->assertStringNotContainsString('updateModuleManifest(', $modulesSource);
+        $this->assertStringNotContainsString('File::put(', $modulesSource);
+        $this->assertStringNotContainsString('function deleteModule(', $modulesSource);
     }
 
     public function test_required_module_cannot_be_disabled(): void
@@ -154,15 +165,13 @@ class SystemModulesControlTest extends TestCase
         $this->assertStringNotContainsString('config(["modules.registry.', $source);
     }
 
-    public function test_control_service_uses_per_module_lock_and_livewire_validates_route_title(): void
+    public function test_control_service_uses_per_module_lock_and_route_manager_remains_normalized(): void
     {
         $serviceSource = file_get_contents(base_path('Modules/System/Services/SystemModuleControlService.php'));
-        $livewireSource = file_get_contents(base_path('Modules/System/Livewire/Settings/ModulesForm.php'));
         $routeManagerSource = file_get_contents(base_path('Modules/Admin/Services/ModuleRouteManager.php'));
 
         $this->assertStringContainsString('Cache::lock(', $serviceSource);
         $this->assertStringContainsString("'system:module-control:'", $serviceSource);
-        $this->assertStringContainsString("'routeTitle' => ['required', 'string', 'max:255']", $livewireSource);
         $this->assertStringContainsString("->pluck('url')", $routeManagerSource);
         $this->assertStringContainsString('normalizeMenuUrl', $routeManagerSource);
     }
@@ -199,11 +208,13 @@ class SystemModulesControlTest extends TestCase
 
     public function test_browser_messages_do_not_append_raw_internal_exceptions(): void
     {
-        $source = file_get_contents(base_path('Modules/System/Livewire/Settings/ModulesForm.php'));
+        $modulesSource = file_get_contents(base_path('Modules/System/Livewire/Settings/ModulesForm.php'));
+        $queueSource = file_get_contents(base_path('Modules/System/Livewire/Settings/QueueManager.php'));
 
-        $this->assertStringNotContainsString("'Không thể cập nhật realtime: ' . \$e->getMessage()", $source);
-        $this->assertStringNotContainsString("session()->flash('error', \$e->getMessage())", $source);
-        $this->assertStringContainsString('Vui lòng kiểm tra log hệ thống.', $source);
+        $this->assertStringNotContainsString("session()->flash('error', \$e->getMessage())", $modulesSource);
+        $this->assertStringNotContainsString('$e->getMessage()', $queueSource);
+        $this->assertStringContainsString('Vui lòng kiểm tra log hệ thống.', $modulesSource);
+        $this->assertStringContainsString('Vui lòng kiểm tra quyền PM2 và log hệ thống.', $queueSource);
     }
 
     private function service(): array
