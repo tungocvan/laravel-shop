@@ -392,8 +392,13 @@ class MenuTable extends Component
 
         try {
             $this->snapshotFilePreview = $this->snapshotCloudSyncService->snapshotFileName($this->snapshotName);
-            $path = $this->importExportService->export($this->filters());
-            $synced = $this->snapshotCloudSyncService->pushLocalSnapshotBestEffort($this->snapshotName);
+            $hasSelection = $this->selectedMenus !== [];
+            $path = $hasSelection
+                ? $this->importExportService->exportSelected($this->selectedMenus)
+                : $this->importExportService->export($this->filters());
+            $synced = $hasSelection
+                ? $this->snapshotCloudSyncService->pushSelectedSnapshotBestEffort($this->snapshotName, $this->selectedMenus)
+                : $this->snapshotCloudSyncService->pushLocalSnapshotBestEffort($this->snapshotName);
             $this->selectedSnapshotFile = $synced ? $this->snapshotFilePreview : null;
             $this->showSnapshotModal = false;
 
