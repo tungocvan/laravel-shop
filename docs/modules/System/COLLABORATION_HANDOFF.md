@@ -1,20 +1,87 @@
 # System Collaboration Handoff
 
-## Current Status — Database Backup / Module Snapshot Recovery
+## Current Status — Module Snapshot Dependency Metadata
+
+- Module: `System`
+- Mode: Capability hardening / recovery metadata
+- Delivery branch: `feat/system-module-snapshot-dependencies-v2`
+- Base checkpoint: `b4f1dfb6901420d3dd0c529c55504f914cd63cb6`
+- Route validated: `/admin/system/database`
+- Status: **IMPLEMENTATION COMPLETE — PR/MERGE GATE READY**
+- Focused tests: **PASS** on 2026-09-12
+- System regression: **PASS** on 2026-09-12
+- Manual UI smoke: **PASS** on 2026-09-12
+
+This phase hardens per-Module snapshot recovery by making declared Module dependencies visible to operators and recording them in snapshot metadata without changing ownership or restore scope.
+
+### Delivered Scope
+
+- Added `ModuleDependencyService` backed by the existing `App\Modules\ModuleRegistry`; no second dependency source of truth was introduced.
+- Dependency metadata is advisory recovery context, not an inferred database foreign-key graph.
+- New snapshots record a normalized `dependencies` array in `manifest.json`.
+- Snapshot validation remains backward compatible: packages created before dependency metadata existed are accepted with `dependencies = []`.
+- `TableList` refreshes dependency state when the selected Module changes and clears it when Module snapshot state resets.
+- Added `DEPENDENCY WARNING` UI for Modules that declare dependencies.
+- Warning text explicitly states that a Module Snapshot contains only tables owned by the selected Module and does not automatically backup or restore dependency Modules.
+- Restore behavior, ownership boundaries, safety snapshot, schema compatibility checks, local/Drive synchronization and deletion semantics remain unchanged.
+- No automatic `Backup Module + Dependencies`, dependency restore, cross-Module table inclusion or new permission was introduced in this phase.
+
+### Verification Completed
+
+Operator reported:
+
+```text
+Focused tests: PASS
+System regression: PASS
+UI smoke: PASS
+```
+
+UI verification confirmed the dependency warning appears on `/admin/system/database` for a Module with declared dependencies and correctly explains the recovery boundary.
+
+### Boundary / Safety Decisions
+
+| Concern | Decision |
+|---|---|
+| Dependency source | Existing `ModuleRegistry` metadata |
+| Database FK discovery | Not part of this phase; declared dependencies are advisory metadata |
+| Snapshot ownership | Selected Module-owned tables only |
+| Dependency tables | Never silently included |
+| Dependency backup/restore | Never automatic |
+| Existing snapshots | Remain valid when `dependencies` is absent |
+| Future recovery set | Deferred; may explicitly package Module + dependencies in a separate phase |
+
+### PR / Merge Gate
+
+1. **COMPLETE** — dependency resolver uses `ModuleRegistry`.
+2. **COMPLETE** — `dependencies` recorded in new snapshot manifests.
+3. **COMPLETE** — backward compatibility retained for legacy snapshots.
+4. **COMPLETE** — Livewire dependency state added without exposing raw exception messages.
+5. **COMPLETE** — `DEPENDENCY WARNING` UI implemented.
+6. **COMPLETE** — no automatic dependency backup/restore introduced.
+7. **COMPLETE** — focused tests passed.
+8. **COMPLETE** — System regression passed.
+9. **COMPLETE** — manual UI smoke passed.
+10. **READY** — create PR from `feat/system-module-snapshot-dependencies-v2` to `main` and merge after normal repository PR checks.
+
+A full-project regression remains outside the approved scope. Validation is limited to System and directly impacted recovery workflows.
+
+---
+
+## Previous Closeout — Database Backup / Module Snapshot Recovery
 
 - Module: `System`
 - Mode: Capability / maintenance enhancement
 - Delivery branch: `feat/system-database-backup-bulk-manage`
 - Base checkpoint: `7f61465585601c5c0d4bdc61a5662b9c4a8b5d99`
 - Routes validated: `/admin/system/database` and `/admin/system/database/backup-restore`
-- Status: **IMPLEMENTATION COMPLETE — PR/MERGE GATE READY**
+- Status: **COMPLETE — MERGED TO MAIN**
 - Manual UI smoke: **PASS** on 2026-09-12
 
-This phase upgrades System database recovery in two related areas: operational management of local/Google Drive SQL backups, and production-safe per-Module snapshot backup/restore so operators do not need to restore the full database for Module-scoped recovery.
+This phase upgraded System database recovery in two related areas: operational management of local/Google Drive SQL backups, and production-safe per-Module snapshot backup/restore so operators do not need to restore the full database for Module-scoped recovery.
 
-## Delivered Scope
+### Delivered Scope
 
-### Backup / Restore catalog management
+#### Backup / Restore catalog management
 
 - Added checkbox selection and bulk delete for local SQL backups and Google Drive SQL backups.
 - Added safe rename for local and Google Drive backups while preserving `.sql` naming rules.
@@ -23,7 +90,7 @@ This phase upgrades System database recovery in two related areas: operational m
 - Local and Drive destructive operations remain independent; deleting one side never implicitly deletes the other.
 - Existing Download, Upload Drive, email and Restore actions remain available.
 
-### Generic Module Snapshot workflow
+#### Generic Module Snapshot workflow
 
 - Added Module Snapshot workspace to `/admin/system/database` when a concrete Module filter is selected.
 - Module ownership is resolved server-side from the existing System table-to-module mapping; browser checkbox state is not trusted as the snapshot ownership source.
@@ -36,7 +103,7 @@ This phase upgrades System database recovery in two related areas: operational m
 - Module SQL dump uses transactional dump options appropriate to the current MySQL workflow (`--single-transaction`, `--skip-lock-tables`).
 - Snapshot restore changes only tables owned by the selected Module; external Module dependencies are not pulled into the package.
 
-### Local <-> Google Drive Module Snapshot synchronization
+#### Local <-> Google Drive Module Snapshot synchronization
 
 - Local namespace: `storage/app/private/backups/modules/<Module>/YYYY/MM/`.
 - Google Drive namespace: `Laravel-Backup/database/modules/<Module>/YYYY/MM/`.
@@ -46,7 +113,7 @@ This phase upgrades System database recovery in two related areas: operational m
 - UI exposes `LOCAL ONLY`, `DRIVE ONLY`, `LOCAL + DRIVE`, `COMPATIBLE`, `BLOCKED`, and `SAFETY` states.
 - No filesystem-style destructive auto-sync is implemented: local deletion never propagates to Drive and Drive deletion never propagates to local.
 
-## Verification Completed
+### Verification Completed
 
 Focused Module Snapshot / backup-management contract tests: **PASS**.
 
@@ -67,7 +134,7 @@ Local <-> Google Drive synchronization smoke: **PASS**:
 4. Delete Drive left the local copy intact and produced `LOCAL ONLY`.
 5. Upload Drive restored `LOCAL + DRIVE`.
 
-### Restore proof — Invoices
+#### Restore proof — Invoices
 
 Generic Module Snapshot restore was exercised against `Invoices` (7 owned tables).
 
@@ -93,7 +160,7 @@ invoices                         3014
 
 A new `safety_invoices_*.zip` snapshot was created and remained available as `SAFETY + COMPATIBLE` after restore.
 
-### Restore proof — Inventory
+#### Restore proof — Inventory
 
 The same generic engine was exercised against `Inventory` (16 owned tables), demonstrating that the implementation is not hard-coded to Invoices.
 
@@ -128,7 +195,7 @@ inventory_warehouses            1
 
 `inventory_receipt_lines` correctly retained `max_id=6` with `count=4`, confirming restoration of the captured database state rather than artificial sequence normalization.
 
-## Boundary / Safety Decisions
+### Boundary / Safety Decisions
 
 | Concern | Decision |
 |---|---|
@@ -141,46 +208,6 @@ inventory_warehouses            1
 | Restore protection | Compatibility verification + safety snapshot + Module lock + automatic rollback |
 | Local/Drive deletion | Explicit and independent; never destructive auto-sync |
 | Client-provided paths | Prohibited; use trusted roots and opaque references |
-
-## Final Diff Review
-
-Compared with `main` at the final pre-closeout review, delivery branch was ahead 16 commits and behind 0 before this handoff commit. The implementation diff was limited to System database backup/snapshot services, Livewire/UI and focused System tests; no migration or route change was required.
-
-Implementation files reviewed:
-
-- `Modules/System/Livewire/Database/BackupManager.php`
-- `Modules/System/Livewire/Database/TableList.php`
-- `Modules/System/Services/Cloud/GoogleDriveBackupBrowserService.php`
-- `Modules/System/Services/Cloud/GoogleDriveModuleSnapshotService.php`
-- `Modules/System/Services/Database/DatabaseBackupCatalogService.php`
-- `Modules/System/Services/Database/ModuleSnapshotDeletionService.php`
-- `Modules/System/Services/Database/ModuleSnapshotService.php`
-- `Modules/System/resources/views/livewire/database/backup-manager.blade.php`
-- `Modules/System/resources/views/livewire/database/table-list.blade.php`
-- `tests/Feature/System/DatabaseBackupBulkManageTest.php`
-- `tests/Feature/System/ModuleSnapshotContractTest.php`
-
-No unrelated Module implementation was included in the reviewed diff.
-
-## PR / Merge Gate
-
-1. **COMPLETE** — SQL backup checkbox/bulk delete implemented for local and Drive.
-2. **COMPLETE** — safe local/Drive rename implemented.
-3. **COMPLETE** — generic Module Snapshot package and ownership boundary implemented.
-4. **COMPLETE** — manifest/checksum/schema compatibility verification implemented.
-5. **COMPLETE** — safety snapshot, Module lock and automatic rollback implemented.
-6. **COMPLETE** — explicit Local <-> Drive Module Snapshot synchronization implemented.
-7. **COMPLETE** — independent Local/Drive snapshot deletion implemented.
-8. **COMPLETE** — focused tests passed.
-9. **COMPLETE** — final System regression passed: 201 tests, 1163 assertions.
-10. **COMPLETE** — Local <-> Drive functional synchronization smoke passed.
-11. **COMPLETE** — Invoices Module restore proof passed.
-12. **COMPLETE** — Inventory Module restore proof passed.
-13. **COMPLETE** — manual UI smoke passed.
-14. **COMPLETE** — final implementation diff reviewed; branch was based directly on current merge base with no unrelated implementation changes.
-15. **READY** — create PR from `feat/system-database-backup-bulk-manage` to `main` and merge after normal repository PR checks.
-
-A full-project regression remains outside the approved scope. Per project policy, validation was limited to System and directly impacted recovery workflows.
 
 ---
 
