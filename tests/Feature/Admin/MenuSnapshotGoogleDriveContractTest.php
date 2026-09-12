@@ -48,7 +48,7 @@ class MenuSnapshotGoogleDriveContractTest extends TestCase
 
         $this->assertStringContainsString('public function syncSnapshotFromGoogleDrive(): void', $component);
         $this->assertStringContainsString("authorizePermission('admin.menu.restore')", $component);
-        $this->assertStringContainsString("'snapshotStatus' => $this->snapshotCloudSyncService->status()", $component);
+        $this->assertStringContainsString("'snapshotStatus' => \$this->snapshotCloudSyncService->status()", $component);
         $this->assertStringContainsString('wire:click="syncSnapshotFromGoogleDrive"', $view);
         $this->assertStringContainsString('Laravel-Backup/Admin/Menu/menus.json', $view);
         $this->assertStringContainsString('Khôi phục snapshot', $view);
