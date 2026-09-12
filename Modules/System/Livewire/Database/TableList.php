@@ -9,6 +9,7 @@ use Livewire\WithFileUploads;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\Cloud\GoogleDriveConnectionService;
 use Modules\System\Services\Cloud\GoogleDriveModuleSnapshotService;
+use Modules\System\Services\Database\ModuleSnapshotDeletionService;
 use Modules\System\Services\Database\ModuleSnapshotService;
 use Modules\System\Services\DatabaseService;
 
@@ -207,6 +208,40 @@ class TableList extends Component
         } catch (\Throwable $e) {
             $this->reportOperationError('Module snapshot Drive download failed.', $e, ['module' => $module]);
             $this->notify('error', 'Không thể tải Module Snapshot từ Google Drive về local.');
+        }
+    }
+
+    public function deleteLocalModuleSnapshot(
+        string $reference,
+        ModuleSnapshotDeletionService $deletion,
+    ): void {
+        $this->authorizePermission('database.destroy');
+        $module = $this->moduleFilter;
+
+        try {
+            $deleted = $deletion->deleteLocal($module, $reference);
+            $this->refreshModuleSnapshots();
+            $this->notify('success', "Đã xóa Local Snapshot {$deleted['name']}. Bản Google Drive nếu có vẫn được giữ nguyên.");
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Local module snapshot delete failed.', $e, ['module' => $module]);
+            $this->notify('error', 'Không thể xóa Local Snapshot. Vui lòng kiểm tra log hệ thống.');
+        }
+    }
+
+    public function deleteRemoteModuleSnapshot(
+        string $reference,
+        GoogleDriveModuleSnapshotService $cloud,
+    ): void {
+        $this->authorizePermission('database.destroy');
+        $module = $this->moduleFilter;
+
+        try {
+            $cloud->delete($module, $reference);
+            $this->refreshModuleSnapshots();
+            $this->notify('success', 'Đã xóa Module Snapshot trên Google Drive. Bản local nếu có vẫn được giữ nguyên.');
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Google Drive module snapshot delete failed.', $e, ['module' => $module]);
+            $this->notify('error', 'Không thể xóa Module Snapshot trên Google Drive.');
         }
     }
 
