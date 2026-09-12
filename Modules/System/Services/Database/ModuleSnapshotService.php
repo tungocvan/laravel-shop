@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\System\Services\Database;
 
-use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -140,32 +139,13 @@ class ModuleSnapshotService
 
     public function listLocal(string $module, int $limit = 50): array
     {
-        $this->tablesForModule($module);
-        $files = [];
-        $base = 'private/backups/modules/'.$module;
-
-        foreach (Storage::disk('local')->allFiles($base) as $relativePath) {
-            if (count($files) >= self::MAX_SCAN_FILES) {
-                break;
-            }
-
-            if (strtolower(pathinfo($relativePath, PATHINFO_EXTENSION)) !== 'zip') {
-                continue;
-            }
-
-            $absolutePath = Storage::disk('local')->path($relativePath);
-
-            try {
-                $validated = $this->validatePackage($absolutePath, $module, enforceSchema: false);
-                $files[] = $this->descriptor($relativePath, $absolutePath, $validated['manifest']);
-            } catch (\Throwable) {
-                continue;
-            }
-        }
-
-        usort($files, static fn (array $a, array $b): int => $b['time'] <=> $a['time']);
-
-        return array_slice($files, 0, max(1, min($limit, 100)));
+        return array_map(
+            static fn (array $snapshot): array => array_diff_key(
+                $snapshot,
+                array_flip(['relative_path', 'absolute_path']),
+            ),
+            $this->catalogLocal($module, $limit),
+        );
     }
 
     public function resolveLocalReference(string $reference, ?string $expectedModule = null): ?array
@@ -181,7 +161,7 @@ class ModuleSnapshotService
                 continue;
             }
 
-            foreach ($this->listLocal($module, 100) as $snapshot) {
+            foreach ($this->catalogLocal($module, 100) as $snapshot) {
                 if (hash_equals($snapshot['reference'], $reference)) {
                     return $snapshot;
                 }
@@ -381,6 +361,36 @@ class ModuleSnapshotService
         return $this->resolveLocalReference($reference, $module)['absolute_path'] ?? null;
     }
 
+    private function catalogLocal(string $module, int $limit): array
+    {
+        $this->tablesForModule($module);
+        $files = [];
+        $base = 'private/backups/modules/'.$module;
+
+        foreach (Storage::disk('local')->allFiles($base) as $relativePath) {
+            if (count($files) >= self::MAX_SCAN_FILES) {
+                break;
+            }
+
+            if (strtolower(pathinfo($relativePath, PATHINFO_EXTENSION)) !== 'zip') {
+                continue;
+            }
+
+            $absolutePath = Storage::disk('local')->path($relativePath);
+
+            try {
+                $validated = $this->validatePackage($absolutePath, $module, enforceSchema: false);
+                $files[] = $this->descriptor($relativePath, $absolutePath, $validated['manifest']);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        usort($files, static fn (array $a, array $b): int => $b['time'] <=> $a['time']);
+
+        return array_slice($files, 0, max(1, min($limit, 100)));
+    }
+
     private function descriptor(string $relativePath, string $absolutePath, array $manifest): array
     {
         $module = (string) ($manifest['module'] ?? '');
@@ -447,7 +457,9 @@ class ModuleSnapshotService
         foreach ($tables as $table) {
             $row = DB::selectOne('SHOW CREATE TABLE `'.str_replace('`', '``', $table).'`');
             $values = $row === null ? [] : array_values((array) $row);
-            $definitions[$table] = (string) ($values[1] ?? '');
+            $definition = (string) ($values[1] ?? '');
+            $definition = preg_replace('/\sAUTO_INCREMENT=\d+\b/i', '', $definition) ?? $definition;
+            $definitions[$table] = $definition;
         }
 
         ksort($definitions, SORT_STRING);
