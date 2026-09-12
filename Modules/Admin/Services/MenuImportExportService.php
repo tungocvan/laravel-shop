@@ -2,7 +2,6 @@
 
 namespace Modules\Admin\Services;
 
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -36,35 +35,7 @@ class MenuImportExportService
             throw new \RuntimeException('Khong co du lieu menu de export.');
         }
 
-        $this->refreshRestoreSnapshot();
-
         return $this->writeSpreadsheet($rows, 'menus');
-    }
-
-    public function refreshRestoreSnapshot(): string
-    {
-        $roots = AdminMenu::menu()
-            ->with('children')
-            ->whereNull('parent_id')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
-
-        $snapshot = $this->snapshotTree($roots);
-        $path = $this->defaultPath();
-        $directory = dirname($path);
-        File::ensureDirectoryExists($directory);
-
-        $json = json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        $temporary = $path.'.tmp';
-        File::put($temporary, $json.PHP_EOL, true);
-
-        if (! File::move($temporary, $path)) {
-            File::delete($temporary);
-            throw new \RuntimeException('Khong the cap nhat snapshot menu moi nhat.');
-        }
-
-        return $path;
     }
 
     public function exportSelected(array $menuIds): string
@@ -127,12 +98,12 @@ class MenuImportExportService
     public function restoreDefaults(): array
     {
         if (! File::exists($this->defaultPath())) {
-            throw new \RuntimeException('Chua co ban sao luu menu de khoi phuc. Hay Export tat ca menu truoc.');
+            throw new \RuntimeException('Chua co snapshot menu local de khoi phuc. Hay dong bo mot snapshot tu Google Drive ve local truoc.');
         }
 
         return $this->importFromJson(File::get($this->defaultPath()), [
             'mode' => 'replace',
-            'source' => 'latest_storage_snapshot',
+            'source' => 'local_working_snapshot',
         ]);
     }
 
@@ -314,23 +285,6 @@ class MenuImportExportService
         }
     }
 
-    private function snapshotTree(Collection $menus): array
-    {
-        return $menus->map(function (AdminMenu $menu): array {
-            $menu->loadMissing('children');
-
-            return [
-                'key' => $this->menuKey($menu),
-                'name' => $menu->name,
-                'url' => $menu->url,
-                'icon' => $menu->icon,
-                'can' => $menu->can,
-                'is_active' => (bool) $menu->is_active,
-                'children' => $this->snapshotTree($menu->children),
-            ];
-        })->values()->all();
-    }
-
     private function flattenMenus(array $filters): BaseCollection
     {
         $roots = $this->menuService->query($filters)
@@ -341,7 +295,7 @@ class MenuImportExportService
         return collect($this->flattenMenuCollection($roots));
     }
 
-    private function flattenMenuCollection(Collection $menus, ?string $parentKey = null): array
+    private function flattenMenuCollection(\Illuminate\Database\Eloquent\Collection $menus, ?string $parentKey = null): array
     {
         $rows = [];
 
