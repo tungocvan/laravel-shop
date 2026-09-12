@@ -36,7 +36,19 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("'application/zip'", $cloud);
         $this->assertStringContainsString('downloadToLocal', $cloud);
         $this->assertStringContainsString('importDownloadedPackage', $cloud);
+        $this->assertStringContainsString('public function delete(string $module, string $remoteReference): void', $cloud);
         $this->assertStringNotContainsString('restore(', $cloud);
+    }
+
+    public function test_local_module_snapshot_deletion_stays_inside_trusted_snapshot_root(): void
+    {
+        $deletion = file_get_contents(base_path('Modules/System/Services/Database/ModuleSnapshotDeletionService.php'));
+
+        $this->assertIsString($deletion);
+        $this->assertStringContainsString('resolveLocalReference($reference, $module)', $deletion);
+        $this->assertStringContainsString("storage_path('app/private/backups/modules')", $deletion);
+        $this->assertStringContainsString('str_starts_with($trustedFile, $rootPrefix)', $deletion);
+        $this->assertStringContainsString('unlink($trustedFile)', $deletion);
     }
 
     public function test_database_manager_exposes_module_snapshot_workflow_without_raw_exception_messages(): void
@@ -52,6 +64,8 @@ class ModuleSnapshotContractTest extends TestCase
             'backupModuleAndUpload',
             'uploadModuleSnapshot',
             'downloadModuleSnapshot',
+            'deleteLocalModuleSnapshot',
+            'deleteRemoteModuleSnapshot',
             'openModuleRestoreModal',
             'restoreModuleSnapshot',
             'refreshModuleSnapshots',
@@ -62,6 +76,7 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("authorizePermission('database.backup')", $component);
         $this->assertStringContainsString("authorizePermission('database.download')", $component);
         $this->assertStringContainsString("authorizePermission('database.restore')", $component);
+        $this->assertStringContainsString("authorizePermission('database.destroy')", $component);
         $this->assertStringNotContainsString('$e->getMessage()', $component);
 
         $this->assertStringContainsString('Module Snapshot — {{ $moduleFilter }}', $view);
@@ -70,6 +85,10 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('LOCAL + DRIVE', $view);
         $this->assertStringContainsString('DRIVE ONLY', $view);
         $this->assertStringContainsString('Tải về Local', $view);
+        $this->assertStringContainsString('Xóa Local', $view);
+        $this->assertStringContainsString('Xóa Drive', $view);
+        $this->assertStringContainsString('Bản Google Drive nếu có sẽ KHÔNG bị xóa', $view);
+        $this->assertStringContainsString('Bản local nếu có sẽ KHÔNG bị xóa', $view);
         $this->assertStringContainsString('RESTORE MODULE', $view);
         $this->assertStringContainsString('Safety Snapshot', $view);
     }
