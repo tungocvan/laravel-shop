@@ -2,147 +2,87 @@
 
 ## Current checkpoint
 
-Task: **Admin Menu Management Workspace — UI/UX Refactor & Menu Taxonomy Cleanup**
+Task: **Admin Menu Snapshot Library — Named Google Drive Snapshots / Local Sync**
 
-Status: **PR READY — UI PASS / IMPORT PASS / FOCUSED GATE PASS**
+Status: **ACCEPTED — FOCUSED TESTS PASS / UI PASS / READY FOR PR**
 
-Branch: `refactor/admin-menu-management-workspace`
+Branch: `feat/admin-menu-google-drive-snapshot`
 
-This checkpoint improves the canonical Admin-owned `/admin/menus` management surface without moving menu persistence or business-domain ownership out of `Modules/Admin`.
+Latest local formatting commit: `8bfaaabc` (`style(admin): apply Pint to menu snapshot workflow`).
 
-## Scope completed
+## Final approved semantics
 
-### Menu management workspace
+The menu export and restore responsibilities are deliberately separated:
 
-The menu management page was reorganized into a workspace-oriented Admin UI:
+- `Export Excel` only creates/downloads Excel. It does not write `storage/app/menu/menus.json` and does not upload Google Drive snapshots.
+- `Quản lý snapshot Google Drive` creates named JSON snapshots directly from the current `AdminMenu` database state and uploads them to `Laravel-Backup/Admin/Menu/*.json`.
+- Snapshot creation supports either all menus or the currently selected menu IDs.
+- `Đồng bộ về local` is the only cloud workflow that replaces `storage/app/menu/menus.json`; remote JSON is validated before replacement.
+- `Khôi phục snapshot` reads `storage/app/menu/menus.json` and explicitly replaces the current menu database tree.
 
-- primary actions emphasize route scanning and menu creation;
-- import/export/template/restore/layout-design actions are grouped as secondary tools;
-- menu statistics are presented compactly;
-- search and status filtering are integrated with the tree workspace;
-- expand/collapse controls support large menu trees;
-- hierarchical rows expose name, URL, permission and status more clearly;
-- section rows have stronger visual hierarchy;
-- row secondary actions are consolidated while status remains directly actionable;
-- selected-menu bulk actions remain available in a sticky toolbar;
-- drag/drop hierarchy and ordering remain supported.
+Therefore the working local snapshot is never changed as a side effect of Excel export or Drive snapshot creation.
 
-Existing menu-management contracts are preserved, including authorization, route scanning, import/export, restore snapshot, bulk delete/status/permission operations, selection behavior and drag/drop ordering.
+## Google Drive library
 
-Export semantics remain unchanged: when menu rows are selected, export uses the selected set; otherwise export follows the current menu filters.
+Examples:
 
-### Menu form
+- `Laravel-Backup/Admin/Menu/menus-default.json`
+- `Laravel-Backup/Admin/Menu/menus-kho.json`
+- `Laravel-Backup/Admin/Menu/menus-ke-toan.json`
+- legacy `menus.json` remains readable when present.
 
-The create/edit menu form was reorganized for clearer desktop and responsive usage:
+The library supports listing, selecting, syncing to local, renaming, and deleting selected Drive snapshot files. Same-name uploads update the existing file rather than intentionally creating a duplicate.
 
-- main information and display/settings are separated into clearer regions;
-- Link versus Section/Group intent is explicit;
-- icon selection provides practical presets while retaining manual icon input;
-- icon/sidebar preview is available while editing;
-- save/cancel actions are easier to reach.
+## Ownership boundary
 
-Business persistence remains delegated through the existing Menu service boundary.
+`Modules/System` remains owner of Google Drive OAuth, token refresh, root-folder resolution and generic portable-file operations through `GoogleDrivePortableFileService`.
 
-## Menu taxonomy/import acceptance
+`Modules/Admin` owns menu snapshot semantics through `MenuSnapshotCloudSyncService` and consumes the System capability. No second Google Drive connection is introduced in Admin.
 
-The exported menu catalog was reviewed for inconsistent titles, generic icons and duplicate top-level module sections.
+## Safety invariants
 
-The optimized import keeps stable menu keys, URLs, permissions and active state while improving display names, supported semantic icons, hierarchy and ordering.
+- Excel export is side-effect free with respect to local/Drive snapshots.
+- Snapshot creation does not write the local restore file.
+- Drive-to-local sync does not alter the database.
+- Restore is a separate explicit destructive action guarded by `admin.menu.restore`.
+- Invalid remote JSON must not overwrite a valid local snapshot.
+- Snapshot file selection is restricted to safe `menus*.json` files under `Admin/Menu`.
+- Selected Excel export remains selected-only.
+- Selected Drive snapshot creation remains selected-only.
+- No database schema migration is introduced.
+- `storage/app/menu/menus.json` is runtime/local working state and must not be committed.
 
-Canonical consolidation targets are:
+## Verification completed
 
-- `muasamcong.dashboard` under `mua-sam-cong`;
-- `admin.invoices.dashboard` under `hoa-don-dien-tu`;
-- `admin.system.dashboard` under `cong-cu-he-thong`;
-- `admin.pharma.dashboard` under `duoc-pham`.
+Focused contract tests reported by the user after the final semantics split:
 
-The redundant generated top-level sections associated with those four domains remain data cleanup candidates only after their dashboards are confirmed under the canonical parents. Spreadsheet `update_or_create` intentionally does not delete omitted records.
+- `tests/Feature/Admin/MenuSnapshotGoogleDriveContractTest.php`: **5 passed / 43 assertions**.
+- `tests/Feature/Admin/MenuLivewireRefactorContractTest.php`: **8 passed / 56 assertions**.
+- Pint: completed; local style fixes committed in `8bfaaabc`.
+- Manual UI smoke on `/admin/menus`: **PASS**.
 
-The import-ready workbook uses the exact flat import contract:
+No GitHub Actions workflow run was attached to `8bfaaabc`; local focused verification is the acceptance evidence for this branch.
 
-`key, parent_key, name, url, icon, can, is_active, sort_order`
+## Runtime acceptance scope
 
-User-confirmed acceptance:
+Verified workflow:
 
-- `/admin/menus` refactored UI: **PASS**
-- menu create/edit UI: **PASS**
-- optimized Excel menu import: **PASS**
+1. `Export Excel` downloads Excel without mutating the local restore snapshot.
+2. Selected export remains selected-only.
+3. Drive snapshot creation supports all-menu and selected-menu scope.
+4. Drive snapshot creation does not mutate `storage/app/menu/menus.json`.
+5. Snapshot library supports rename/delete and same-name update behavior.
+6. `Đồng bộ về local` writes the validated Drive snapshot to `storage/app/menu/menus.json` without changing DB.
+7. `Khôi phục snapshot` remains the explicit local-to-database restore step.
 
-## Icon compatibility finding
+## Regression strategy
 
-The current Admin `x-icon` component supports a limited explicit icon vocabulary. Menu taxonomy optimization therefore uses icons known to render through the existing component instead of introducing unsupported icon names that would silently fall back to the default icon.
+Full-project regression: **NOT APPLICABLE — module-scoped regression strategy**.
 
-A broader semantic icon library remains a separate enhancement and is not required for this checkpoint.
+Reason: the change is limited to Admin Menu snapshot/export behavior plus the explicit generic System Google Drive portable-file boundary. It does not change schema, framework bootstrap, shared auth/security policy, or project-wide persistence.
 
-## Safety / cleanup rule
+Known prior Admin regression baseline remains **213 passed / 3 failed / 1868 assertions**, with those failures attributed to unrelated Website/Auth ownership-contract drift. Do not expand this branch into those unrelated failures.
 
-Do not delete a duplicate module section merely because an optimized spreadsheet omits it when using `update_or_create`.
+## PR / merge note
 
-Before removing any legacy duplicate section, confirm:
-
-1. its canonical dashboard child now points to the intended canonical parent;
-2. the legacy section has no remaining required children;
-3. sidebar navigation remains reachable and authorized;
-4. deletion does not remove a still-required subtree.
-
-Historical duplicate section keys to verify separately:
-
-- `module-muasamcong`
-- `module-invoices`
-- `module-system`
-- `module-pharma`
-
-Their physical data deletion is not required for this UI refactor PR and should not expand this branch beyond proven-safe menu-management changes.
-
-## Verification closeout
-
-### Focused Menu gate — PASS
-
-`php artisan test tests/Feature/Admin/MenuLivewireRefactorContractTest.php`
-
-- **8 passed**
-- **56 assertions**
-
-Pint on the changed Menu contract test: **PASS**.
-
-Vite production build: **PASS**.
-
-Working tree after focused verification: **clean**.
-
-### Admin regression
-
-`php artisan test tests/Feature/Admin`
-
-Result:
-
-- **213 passed**
-- **3 failed**
-- **1868 assertions**
-
-The remaining three failures are pre-existing/out-of-scope ownership-contract drift and do not exercise the Menu workspace refactor:
-
-1. `AdminAffiliateOwnershipContractTest` expects a deprecated Admin affiliate compatibility service to extend `Modules\Website\Services\AdminAffiliateService`, while that canonical Website service is currently absent.
-2. `AdminAffiliateOwnershipContractTest` directly reads the same absent `Modules/Website/Services/AdminAffiliateService.php` during commission-list contract verification.
-3. `AdminWebsitePresentationOwnershipContractTest` expects the Auth Google controller source to reference `Modules\Auth\Services\AuthService`; the current Auth/Google ownership contract no longer matches that assertion.
-
-These failures belong to Website/Auth ownership cleanup and must not be corrected opportunistically in the Menu UI branch.
-
-No Admin regression failure remains attributable to `MenuLivewireRefactorContractTest` or the changed Menu views.
-
-## Acceptance criteria
-
-- Admin menu UI hierarchy/progressive disclosure: **COMPLETE / UI PASS**
-- menu create/edit form UX: **COMPLETE / UI PASS**
-- drag/drop and hierarchy behavior preserved: **UI PASS**
-- selected-versus-filtered export semantics preserved: **PRESERVED**
-- import-ready optimized menu taxonomy: **IMPORT PASS**
-- focused Menu contract test: **PASS — 8 tests / 56 assertions**
-- Pint focused gate: **PASS**
-- Vite build: **PASS**
-- Admin regression attributable to Menu scope: **PASS**
-- unrelated Website/Auth ownership baseline: **3 known failures / OUT OF SCOPE**
-- branch working tree after verification: **CLEAN**
-
-## Next checkpoint
-
-Open one consolidated pull request from `refactor/admin-menu-management-workspace` to `main`. The PR must explicitly disclose the three unrelated Website/Auth ownership baseline failures above. After merge, any physical deletion of the four duplicate menu-section records should be treated as a separate data cleanup only after tree/caller proof.
+Before merge, confirm the PR head includes this handoff closeout and `8bfaaabc`. After merge, local `storage/app/menu/menus.json` may remain untracked because it is runtime working state, not repository source.
