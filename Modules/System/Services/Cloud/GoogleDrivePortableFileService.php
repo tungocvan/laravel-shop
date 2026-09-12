@@ -171,6 +171,78 @@ class GoogleDrivePortableFileService
         return $files;
     }
 
+    public function rename(string $relativePath, string $newFileName): array
+    {
+        [$folders, $fileName] = $this->splitPath($relativePath);
+        $this->validatedSegments($newFileName, 1, 1);
+
+        if (! str_contains($newFileName, '.')) {
+            throw new RuntimeException('Portable file mới phải có phần mở rộng.');
+        }
+
+        $token = $this->drive->accessToken();
+        $parentId = $this->rootFolderId();
+
+        foreach ($folders as $folder) {
+            $parentId = $this->findChildFolder($token, $parentId, $folder)
+                ?? throw new RuntimeException('Không tìm thấy thư mục portable file trên Google Drive.');
+        }
+
+        $file = $this->findChildFile($token, $parentId, $fileName);
+        if ($file === null) {
+            throw new RuntimeException('Không tìm thấy portable file cần đổi tên trên Google Drive.');
+        }
+
+        if ($fileName !== $newFileName && $this->findChildFile($token, $parentId, $newFileName) !== null) {
+            throw new RuntimeException('Tên portable file mới đã tồn tại trên Google Drive.');
+        }
+
+        $response = Http::withToken($token)
+            ->asJson()
+            ->acceptJson()
+            ->timeout(30)
+            ->patch('https://www.googleapis.com/drive/v3/files/'.rawurlencode((string) $file['id']), [
+                'name' => $newFileName,
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Không thể đổi tên portable file trên Google Drive. HTTP '.$response->status());
+        }
+
+        return [
+            'id' => (string) $file['id'],
+            'old_name' => $fileName,
+            'name' => $newFileName,
+            'path' => implode('/', array_merge($folders, [$newFileName])),
+            'updated_at' => now()->toIso8601String(),
+        ];
+    }
+
+    public function delete(string $relativePath): void
+    {
+        [$folders, $fileName] = $this->splitPath($relativePath);
+        $token = $this->drive->accessToken();
+        $parentId = $this->rootFolderId();
+
+        foreach ($folders as $folder) {
+            $parentId = $this->findChildFolder($token, $parentId, $folder)
+                ?? throw new RuntimeException('Không tìm thấy thư mục portable file trên Google Drive.');
+        }
+
+        $file = $this->findChildFile($token, $parentId, $fileName);
+        if ($file === null) {
+            throw new RuntimeException('Không tìm thấy portable file cần xóa trên Google Drive.');
+        }
+
+        $response = Http::withToken($token)
+            ->timeout(30)
+            ->delete('https://www.googleapis.com/drive/v3/files/'.rawurlencode((string) $file['id']));
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Không thể xóa portable file trên Google Drive. HTTP '.$response->status());
+        }
+    }
+
     private function rootFolderId(): string
     {
         $rootId = trim((string) ($this->drive->status()['folder_id'] ?? ''));
