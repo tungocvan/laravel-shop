@@ -54,7 +54,7 @@
         <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
             <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Bản local cập nhật</div>
             <div class="mt-1 text-sm font-semibold text-gray-800">{{ $snapshotStatus['local_modified_at'] ? \Illuminate\Support\Carbon::parse($snapshotStatus['local_modified_at'])->format('d/m/Y H:i') : '—' }}</div>
-            <div class="mt-1 text-xs text-gray-500">Export toàn bộ cho phép đặt tên và lưu nhiều snapshot trên Drive.</div>
+            <div class="mt-1 text-xs text-gray-500">Export cho phép chọn rõ phạm vi và lưu nhiều snapshot trên Drive.</div>
         </div>
     </div>
 
@@ -150,18 +150,34 @@
 
     @if ($showSnapshotModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
-            <div class="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div class="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
                 <div class="border-b border-gray-200 px-6 py-5">
                     <div class="flex items-start justify-between gap-4">
-                        <div><h3 class="text-lg font-bold text-gray-900">Export & thư viện snapshot Menu</h3><p class="mt-1 text-sm text-gray-500">Mỗi full export có thể lưu thành một snapshot riêng trên Google Drive. Đồng bộ snapshot chỉ thay file local, chưa thay đổi DB.</p></div>
+                        <div><h3 class="text-lg font-bold text-gray-900">Export & thư viện snapshot Menu</h3><p class="mt-1 text-sm text-gray-500">Chọn rõ phạm vi export trước khi tạo snapshot. Đồng bộ snapshot chỉ thay file local, chưa thay đổi DB.</p></div>
                         <button type="button" wire:click="closeSnapshotModal" class="rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100">Đóng</button>
                     </div>
                 </div>
                 <div class="overflow-y-auto p-6">
-                    <div class="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div class="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)]">
                         <section class="rounded-2xl border border-gray-200 bg-gray-50 p-5">
                             <h4 class="text-sm font-bold text-gray-900">Tạo snapshot mới / cập nhật snapshot</h4>
-                            <p class="mt-1 text-xs text-gray-500">Nếu tên file đã tồn tại, nội dung snapshot đó sẽ được cập nhật thay vì tạo file trùng.</p>
+                            <p class="mt-1 text-xs text-gray-500">Nếu tên file đã tồn tại, snapshot đó sẽ được cập nhật thay vì tạo file trùng.</p>
+
+                            <div class="mt-4">
+                                <div class="mb-2 text-sm font-semibold text-gray-700">Phạm vi export</div>
+                                <div class="space-y-2">
+                                    <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 {{ $selectedMenus === [] ? 'opacity-50' : '' }}">
+                                        <input type="radio" wire:model.live="snapshotExportScope" value="selected" @disabled($selectedMenus === []) class="mt-0.5 border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span><span class="block text-sm font-semibold text-gray-900">Các menu đang chọn ({{ count($selectedMenus) }})</span><span class="block text-xs text-gray-500">Chỉ export Excel và JSON snapshot từ checkbox đang chọn trên màn hình Menu.</span></span>
+                                    </label>
+                                    <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3">
+                                        <input type="radio" wire:model.live="snapshotExportScope" value="all" class="mt-0.5 border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span><span class="block text-sm font-semibold text-gray-900">Toàn bộ menu</span><span class="block text-xs text-gray-500">Export toàn bộ menu theo luồng full snapshot.</span></span>
+                                    </label>
+                                </div>
+                                @error('snapshotExportScope')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                            </div>
+
                             <div class="mt-4">
                                 <label for="snapshot-name" class="mb-1.5 block text-sm font-semibold text-gray-700">Tên snapshot</label>
                                 <input id="snapshot-name" type="text" wire:model.live.debounce.250ms="snapshotName" maxlength="80" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" placeholder="Ví dụ: Menu Kho">
@@ -171,27 +187,46 @@
                                 <div class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Google Drive đích</div>
                                 <div class="mt-1 break-all font-mono text-xs text-indigo-900">{{ $snapshotStatus['cloud_folder'] }}/{{ $snapshotStatus['cloud_path'] }}/{{ $snapshotFilePreview }}</div>
                             </div>
-                            <button type="button" wire:click="exportWithSnapshot" wire:loading.attr="disabled" wire:target="exportWithSnapshot" class="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="exportWithSnapshot">Export Excel & lưu snapshot</span><span wire:loading wire:target="exportWithSnapshot">Đang export và đồng bộ...</span></button>
+                            <button type="button" wire:click="exportWithSnapshot" wire:loading.attr="disabled" wire:target="exportWithSnapshot" class="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="exportWithSnapshot">{{ $snapshotExportScope === 'selected' ? 'Export '.count($selectedMenus).' menu & lưu snapshot' : 'Export toàn bộ & lưu snapshot' }}</span><span wire:loading wire:target="exportWithSnapshot">Đang export và đồng bộ...</span></button>
                         </section>
 
-                        <section class="rounded-2xl border border-gray-200 bg-white">
-                            <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
+                        <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                            <div class="flex flex-col gap-3 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div><h4 class="text-sm font-bold text-gray-900">Snapshot trên Google Drive</h4><p class="mt-0.5 text-xs text-gray-500">{{ $snapshotStatus['cloud_folder'] }}/{{ $snapshotStatus['cloud_path'] }}</p></div>
-                                <button type="button" wire:click="refreshSnapshotLibrary" wire:loading.attr="disabled" wire:target="refreshSnapshotLibrary" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Làm mới</button>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @if($selectedCloudSnapshotFiles !== [])
+                                        <button type="button" wire:click="deleteSelectedSnapshots" wire:loading.attr="disabled" wire:target="deleteSelectedSnapshots" wire:confirm="Xóa {{ count($selectedCloudSnapshotFiles) }} snapshot đã chọn khỏi Google Drive? Thao tác này không thể hoàn tác." class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50">Xóa {{ count($selectedCloudSnapshotFiles) }} file</button>
+                                    @endif
+                                    <button type="button" wire:click="refreshSnapshotLibrary" wire:loading.attr="disabled" wire:target="refreshSnapshotLibrary" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Làm mới</button>
+                                </div>
                             </div>
                             @if ($snapshotListError)
                                 <div class="m-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ $snapshotListError }}</div>
                             @elseif ($cloudSnapshots === [])
                                 <div class="p-8 text-center"><p class="text-sm font-semibold text-gray-800">Chưa có snapshot Menu trên Drive</p><p class="mt-1 text-xs text-gray-500">Tạo snapshot bằng form bên trái.</p></div>
                             @else
-                                <div class="max-h-[430px] divide-y divide-gray-100 overflow-y-auto">
+                                <div class="max-h-[470px] divide-y divide-gray-100 overflow-y-auto">
                                     @foreach ($cloudSnapshots as $snapshot)
-                                        <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                                            <div class="min-w-0">
-                                                <div class="flex flex-wrap items-center gap-2"><span class="truncate font-mono text-sm font-semibold text-gray-800">{{ $snapshot['name'] }}</span>@if($selectedSnapshotFile === $snapshot['name'])<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Đang dùng local</span>@endif</div>
-                                                <div class="mt-1 text-xs text-gray-500">{{ number_format(($snapshot['size'] ?? 0) / 1024, 1) }} KB · {{ !empty($snapshot['modified_at']) ? \Illuminate\Support\Carbon::parse($snapshot['modified_at'])->format('d/m/Y H:i') : 'Không rõ thời gian' }}</div>
+                                        <div class="px-4 py-3">
+                                            <div class="flex items-start gap-3">
+                                                <input type="checkbox" wire:model.live="selectedCloudSnapshotFiles" value="{{ $snapshot['name'] }}" class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" aria-label="Chọn snapshot {{ $snapshot['name'] }}">
+                                                <div class="min-w-0 flex-1">
+                                                    @if($renamingSnapshotFile === $snapshot['name'])
+                                                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                                            <input type="text" wire:model="renameSnapshotName" maxlength="80" class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" placeholder="Tên snapshot mới">
+                                                            <div class="flex gap-2"><button type="button" wire:click="saveRenameSnapshot" wire:loading.attr="disabled" wire:target="saveRenameSnapshot" class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50">Lưu</button><button type="button" wire:click="cancelRenameSnapshot" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">Hủy</button></div>
+                                                        </div>
+                                                        @error('renameSnapshotName')<p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>@enderror
+                                                    @else
+                                                        <div class="flex flex-wrap items-center gap-2"><span class="truncate font-mono text-sm font-semibold text-gray-800">{{ $snapshot['name'] }}</span>@if($selectedSnapshotFile === $snapshot['name'])<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Đang dùng local</span>@endif</div>
+                                                        <div class="mt-1 text-xs text-gray-500">{{ number_format(($snapshot['size'] ?? 0) / 1024, 1) }} KB · {{ !empty($snapshot['modified_at']) ? \Illuminate\Support\Carbon::parse($snapshot['modified_at'])->format('d/m/Y H:i') : 'Không rõ thời gian' }}</div>
+                                                        <div class="mt-2 flex flex-wrap gap-2">
+                                                            <button type="button" wire:click="syncSnapshotFromGoogleDrive(@js($snapshot['name']))" wire:loading.attr="disabled" wire:target="syncSnapshotFromGoogleDrive" wire:confirm="Đồng bộ {{ $snapshot['name'] }} về storage/app/menu/menus.json? DB chưa thay đổi cho đến khi bạn bấm Khôi phục snapshot." class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 disabled:opacity-50">Đồng bộ về local</button>
+                                                            <button type="button" wire:click="startRenameSnapshot(@js($snapshot['name']))" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">Đổi tên</button>
+                                                        </div>
+                                                    @endif
+                                                </div>
                                             </div>
-                                            <button type="button" wire:click="syncSnapshotFromGoogleDrive(@js($snapshot['name']))" wire:loading.attr="disabled" wire:target="syncSnapshotFromGoogleDrive" wire:confirm="Đồng bộ {{ $snapshot['name'] }} về storage/app/menu/menus.json? DB chưa thay đổi cho đến khi bạn bấm Khôi phục snapshot." class="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 disabled:opacity-50">Đồng bộ về local</button>
                                         </div>
                                     @endforeach
                                 </div>
