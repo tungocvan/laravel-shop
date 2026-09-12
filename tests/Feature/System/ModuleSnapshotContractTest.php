@@ -12,6 +12,8 @@ class ModuleSnapshotContractTest extends TestCase
 
         $this->assertIsString($service);
         $this->assertStringContainsString("'format_version' => self::FORMAT_VERSION", $service);
+        $this->assertStringContainsString("'dependencies' => \$this->dependencies->dependenciesFor(\$module)", $service);
+        $this->assertStringContainsString("(array) (\$manifest['dependencies'] ?? [])", $service);
         $this->assertStringContainsString("'schema_fingerprint' => \$this->schemaFingerprint(\$tables)", $service);
         $this->assertStringContainsString("'checksums.json'", $service);
         $this->assertStringContainsString("hash_equals(\$expectedChecksum, hash('sha256', \$sql))", $service);
@@ -23,6 +25,19 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("array_flip(['relative_path', 'absolute_path'])", $service);
         $this->assertStringContainsString("'--single-transaction'", $service);
         $this->assertStringContainsString("'--skip-lock-tables'", $service);
+    }
+
+    public function test_module_dependency_metadata_uses_module_registry_as_single_source_of_truth(): void
+    {
+        $resolver = file_get_contents(base_path('Modules/System/Services/Database/ModuleDependencyService.php'));
+
+        $this->assertIsString($resolver);
+        $this->assertStringContainsString('use App\\Modules\\ModuleRegistry;', $resolver);
+        $this->assertStringContainsString('private readonly ModuleRegistry $registry', $resolver);
+        $this->assertStringContainsString('$this->registry->current()', $resolver);
+        $this->assertStringContainsString("(array) (\$registered['depends'] ?? [])", $resolver);
+        $this->assertStringNotContainsString('Schema::', $resolver);
+        $this->assertStringNotContainsString('information_schema', $resolver);
     }
 
     public function test_module_snapshot_cloud_sync_is_scoped_to_module_namespace(): void
