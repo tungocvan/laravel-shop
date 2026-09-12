@@ -8,6 +8,7 @@ use Livewire\WithFileUploads;
 use Modules\Admin\Services\MenuImportExportService;
 use Modules\Admin\Services\MenuRouteScannerService;
 use Modules\Admin\Services\MenuService;
+use Modules\Admin\Services\MenuSnapshotCloudSyncService;
 
 class MenuTable extends Component
 {
@@ -16,6 +17,7 @@ class MenuTable extends Component
     protected MenuService $menuService;
     protected MenuImportExportService $importExportService;
     protected MenuRouteScannerService $routeScannerService;
+    protected MenuSnapshotCloudSyncService $snapshotCloudSyncService;
 
     public string $search = '';
     public string $filterStatus = 'active';
@@ -39,10 +41,12 @@ class MenuTable extends Component
         MenuService $menuService,
         MenuImportExportService $importExportService,
         MenuRouteScannerService $routeScannerService,
+        MenuSnapshotCloudSyncService $snapshotCloudSyncService,
     ): void {
         $this->menuService = $menuService;
         $this->importExportService = $importExportService;
         $this->routeScannerService = $routeScannerService;
+        $this->snapshotCloudSyncService = $snapshotCloudSyncService;
     }
 
     protected function rules(): array
@@ -165,6 +169,19 @@ class MenuTable extends Component
 
         $this->closeRouteScannerModal();
         $this->notify("Da them {$count} route GET vao menu.", 'success', 'reload');
+    }
+
+    public function syncSnapshotFromGoogleDrive(): void
+    {
+        $this->authorizePermission('admin.menu.restore');
+
+        try {
+            $this->snapshotCloudSyncService->pullToLocal();
+            $this->notify('Da dong bo snapshot menu tu Google Drive ve local.', 'success');
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->notify($exception->getMessage(), 'error');
+        }
     }
 
     public function restoreDefaultMenu(): void
@@ -310,9 +327,14 @@ class MenuTable extends Component
         $this->authorizePermission('admin.menu.export');
 
         try {
-            $path = $this->selectedMenus === []
+            $isFullExport = $this->selectedMenus === [];
+            $path = $isFullExport
                 ? $this->importExportService->export($this->filters())
                 : $this->importExportService->exportSelected($this->selectedMenus);
+
+            if ($isFullExport && ! $this->snapshotCloudSyncService->pushLocalSnapshotBestEffort()) {
+                $this->notify('Export thanh cong, nhung snapshot Google Drive chua dong bo duoc.', 'warning');
+            }
 
             return Storage::disk('public')->download($path);
         } catch (\Throwable $exception) {
@@ -373,6 +395,7 @@ class MenuTable extends Component
             'totalMenus' => $stats['totalMenus'],
             'activeMenus' => $stats['activeMenus'],
             'permissionOptions' => $this->menuService->permissionOptions(),
+            'snapshotStatus' => $this->snapshotCloudSyncService->status(),
         ]);
     }
 
