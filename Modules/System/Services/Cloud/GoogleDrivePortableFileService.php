@@ -98,14 +98,77 @@ class GoogleDrivePortableFileService
             throw new RuntimeException('Không thể tải portable file từ Google Drive. HTTP '.$response->status());
         }
 
+        $content = $response->body();
+        if (strlen($content) > self::MAX_DOWNLOAD_BYTES) {
+            throw new RuntimeException('Portable file vượt quá giới hạn tải cho phép.');
+        }
+
         return [
             'id' => (string) $file['id'],
             'path' => $relativePath,
             'name' => $fileName,
-            'size' => $size,
+            'size' => $size > 0 ? $size : strlen($content),
             'modified_at' => $file['modifiedTime'] ?? null,
-            'content' => $response->body(),
+            'content' => $content,
         ];
+    }
+
+    public function list(string $relativeDirectory): array
+    {
+        $folders = $this->splitDirectory($relativeDirectory);
+        $token = $this->drive->accessToken();
+        $parentId = $this->rootFolderId();
+
+        foreach ($folders as $folder) {
+            $parentId = $this->findChildFolder($token, $parentId, $folder);
+            if ($parentId === null) {
+                return [];
+            }
+        }
+
+        $files = [];
+        $pageToken = null;
+
+        do {
+            $parameters = [
+                'q' => "mimeType != 'application/vnd.google-apps.folder' and '{$parentId}' in parents and trashed = false",
+                'fields' => 'nextPageToken,files(id,name,size,mimeType,modifiedTime)',
+                'pageSize' => 100,
+                'orderBy' => 'modifiedTime desc',
+            ];
+
+            if ($pageToken !== null) {
+                $parameters['pageToken'] = $pageToken;
+            }
+
+            $response = Http::withToken($token)
+                ->acceptJson()
+                ->timeout(30)
+                ->get('https://www.googleapis.com/drive/v3/files', $parameters);
+
+            if (! $response->successful()) {
+                throw new RuntimeException('Không thể liệt kê portable files trên Google Drive. HTTP '.$response->status());
+            }
+
+            foreach ((array) $response->json('files', []) as $file) {
+                if (! is_array($file)) {
+                    continue;
+                }
+
+                $files[] = [
+                    'id' => (string) ($file['id'] ?? ''),
+                    'name' => (string) ($file['name'] ?? ''),
+                    'size' => (int) ($file['size'] ?? 0),
+                    'mime_type' => (string) ($file['mimeType'] ?? ''),
+                    'modified_at' => $file['modifiedTime'] ?? null,
+                    'path' => trim($relativeDirectory, '/').'/'.(string) ($file['name'] ?? ''),
+                ];
+            }
+
+            $pageToken = trim((string) ($response->json('nextPageToken') ?? '')) ?: null;
+        } while ($pageToken !== null);
+
+        return $files;
     }
 
     private function rootFolderId(): string
@@ -126,10 +189,27 @@ class GoogleDrivePortableFileService
 
     private function splitPath(string $relativePath): array
     {
+        $segments = $this->validatedSegments($relativePath, 2, 8);
+        $fileName = array_pop($segments);
+
+        if (! str_contains($fileName, '.')) {
+            throw new RuntimeException('Portable file phải có phần mở rộng.');
+        }
+
+        return [$segments, $fileName];
+    }
+
+    private function splitDirectory(string $relativeDirectory): array
+    {
+        return $this->validatedSegments($relativeDirectory, 1, 7);
+    }
+
+    private function validatedSegments(string $relativePath, int $minimum, int $maximum): array
+    {
         $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
         $segments = array_values(array_filter(explode('/', $relativePath), static fn (string $segment): bool => $segment !== ''));
 
-        if (count($segments) < 2 || count($segments) > 8) {
+        if (count($segments) < $minimum || count($segments) > $maximum) {
             throw new RuntimeException('Portable file path không hợp lệ.');
         }
 
@@ -139,13 +219,7 @@ class GoogleDrivePortableFileService
             }
         }
 
-        $fileName = array_pop($segments);
-
-        if (! str_contains($fileName, '.')) {
-            throw new RuntimeException('Portable file phải có phần mở rộng.');
-        }
-
-        return [$segments, $fileName];
+        return $segments;
     }
 
     private function ensureChildFolder(string $token, string $parentId, string $name): string
