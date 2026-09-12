@@ -23,7 +23,7 @@ class MenuSnapshotCloudSyncService
     {
         $snapshotName = trim($snapshotName);
         $snapshotName = preg_replace('/\.json\z/i', '', $snapshotName) ?? $snapshotName;
-        $snapshotName = preg_replace('/\Amenus[-_ ]*/i', '', $snapshotName) ?? $snapshotName;
+        $snapshotName = preg_replace('/\Amenus?[-_ ]*/i', '', $snapshotName) ?? $snapshotName;
         $slug = Str::slug($snapshotName);
 
         if ($slug === '' || strlen($slug) > 80) {
