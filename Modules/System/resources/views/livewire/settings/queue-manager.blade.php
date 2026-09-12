@@ -1,4 +1,16 @@
 <div wire:poll.5s="$refresh" class="space-y-5">
+    @if (session('message'))
+        <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            {{ session('message') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {{ session('error') }}
+        </div>
+    @endif
+
     @if (session('queue_message'))
         <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
             {{ session('queue_message') }}
@@ -8,14 +20,16 @@
     <div>
         <h3 class="text-lg font-semibold text-gray-900">Queue Manager</h3>
         <p class="mt-1 text-sm text-gray-500">
-            Theo dõi các queue do Module khai báo. System chỉ quản lý registry, health và số job; Docker/PM2 chịu trách nhiệm chạy worker.
+            Theo dõi Realtime / Socket.IO và các queue do Module khai báo. System quản lý registry, health và số job; Docker/PM2 chịu trách nhiệm chạy worker.
         </p>
     </div>
+
+    <x-realtime-control :enabled="$realtimeEnabled" :status="$realtimeStatus" :can-update="$canUpdateRealtime" />
 
     <div class="space-y-4">
         @forelse ($queues as $queue)
             @php($status = $queue['status'])
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+            <div class="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         <div class="flex flex-wrap items-center gap-2">
@@ -52,7 +66,7 @@
                     </div>
                     <div class="rounded-xl bg-emerald-50 p-3">
                         <div class="text-xs text-emerald-700">Probe gần nhất</div>
-                        <div class="mt-1 text-xs font-semibold text-emerald-900 break-words">
+                        <div class="mt-1 break-words text-xs font-semibold text-emerald-900">
                             {{ $status['last_probe_at'] ?: 'Chưa xác nhận' }}
                         </div>
                     </div>
