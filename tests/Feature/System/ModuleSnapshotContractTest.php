@@ -12,6 +12,8 @@ class ModuleSnapshotContractTest extends TestCase
 
         $this->assertIsString($service);
         $this->assertStringContainsString("'format_version' => self::FORMAT_VERSION", $service);
+        $this->assertStringContainsString("'dependencies' => \$this->dependencies->dependenciesFor(\$module)", $service);
+        $this->assertStringContainsString("(array) (\$manifest['dependencies'] ?? [])", $service);
         $this->assertStringContainsString("'schema_fingerprint' => \$this->schemaFingerprint(\$tables)", $service);
         $this->assertStringContainsString("'checksums.json'", $service);
         $this->assertStringContainsString("hash_equals(\$expectedChecksum, hash('sha256', \$sql))", $service);
@@ -23,6 +25,19 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("array_flip(['relative_path', 'absolute_path'])", $service);
         $this->assertStringContainsString("'--single-transaction'", $service);
         $this->assertStringContainsString("'--skip-lock-tables'", $service);
+    }
+
+    public function test_module_dependency_service_uses_registry_as_single_dependency_source(): void
+    {
+        $dependency = file_get_contents(base_path('Modules/System/Services/Database/ModuleDependencyService.php'));
+
+        $this->assertIsString($dependency);
+        $this->assertStringContainsString('use App\\Modules\\ModuleRegistry;', $dependency);
+        $this->assertStringContainsString('private readonly ModuleRegistry $registry', $dependency);
+        $this->assertStringContainsString('$this->registry->current()', $dependency);
+        $this->assertStringContainsString("(array) (\$registered['depends'] ?? [])", $dependency);
+        $this->assertStringNotContainsString('Schema::', $dependency);
+        $this->assertStringNotContainsString('information_schema', $dependency);
     }
 
     public function test_module_snapshot_cloud_sync_is_scoped_to_module_namespace(): void
@@ -55,9 +70,11 @@ class ModuleSnapshotContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/System/Livewire/Database/TableList.php'));
         $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/table-list.blade.php'));
+        $dependencyView = file_get_contents(base_path('Modules/System/resources/views/livewire/database/table-list-with-dependencies.blade.php'));
 
         $this->assertIsString($component);
         $this->assertIsString($view);
+        $this->assertIsString($dependencyView);
 
         foreach ([
             'backupModule',
@@ -77,7 +94,20 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("authorizePermission('database.download')", $component);
         $this->assertStringContainsString("authorizePermission('database.restore')", $component);
         $this->assertStringContainsString("authorizePermission('database.destroy')", $component);
+        $this->assertStringContainsString('public array $moduleDependencies = [];', $component);
+        $this->assertStringContainsString('app(ModuleDependencyService::class)->dependenciesFor($this->moduleFilter)', $component);
+        $this->assertStringContainsString("view('System::livewire.database.table-list-with-dependencies'", $component);
         $this->assertStringNotContainsString('$e->getMessage()', $component);
+
+        $this->assertStringContainsString('DEPENDENCY WARNING', $dependencyView);
+        $this->assertStringContainsString("implode(' · ', \$moduleDependencies)", $dependencyView);
+        $this->assertStringContainsString('không được tự động backup hoặc restore', $dependencyView);
+        $this->assertStringContainsString("@include('System::livewire.database.table-list')", $dependencyView);
+        $this->assertStringContainsString('Xác nhận phạm vi Backup Module {{ $moduleFilter }}', $dependencyView);
+        $this->assertStringContainsString('toàn bộ bảng thuộc ownership của Module {{ $moduleFilter }}', $dependencyView);
+        $this->assertStringContainsString('Bộ lọc tìm kiếm và checkbox bảng đang hiển thị không làm thay đổi phạm vi Module Snapshot', $dependencyView);
+        $this->assertStringContainsString('Đã hiểu, tiếp tục', $dependencyView);
+        $this->assertStringContainsString('wire:key="module-backup-scope-{{ $moduleFilter }}"', $dependencyView);
 
         $this->assertStringContainsString('Module Snapshot — {{ $moduleFilter }}', $view);
         $this->assertStringContainsString('Backup Module', $view);

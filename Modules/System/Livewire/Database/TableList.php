@@ -9,6 +9,7 @@ use Livewire\WithFileUploads;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\Cloud\GoogleDriveConnectionService;
 use Modules\System\Services\Cloud\GoogleDriveModuleSnapshotService;
+use Modules\System\Services\Database\ModuleDependencyService;
 use Modules\System\Services\Database\ModuleSnapshotDeletionService;
 use Modules\System\Services\Database\ModuleSnapshotService;
 use Modules\System\Services\DatabaseService;
@@ -50,6 +51,8 @@ class TableList extends Component
     public array $moduleLocalSnapshots = [];
 
     public array $moduleRemoteSnapshots = [];
+
+    public array $moduleDependencies = [];
 
     public bool $moduleDriveConnected = false;
 
@@ -102,6 +105,7 @@ class TableList extends Component
         if ($this->moduleFilter === '' || $this->moduleFilter === 'Unknown') {
             $this->moduleLocalSnapshots = [];
             $this->moduleRemoteSnapshots = [];
+            $this->moduleDependencies = [];
             $this->moduleDriveConnected = false;
             $this->moduleCloudUnavailable = false;
 
@@ -111,6 +115,7 @@ class TableList extends Component
         try {
             $snapshots = app(ModuleSnapshotService::class);
             $drive = app(GoogleDriveConnectionService::class);
+            $this->moduleDependencies = app(ModuleDependencyService::class)->dependenciesFor($this->moduleFilter);
             $this->moduleLocalSnapshots = $snapshots->listLocal($this->moduleFilter, 30);
             $this->moduleDriveConnected = (bool) ($drive->status()['connected'] ?? false);
             $this->moduleRemoteSnapshots = [];
@@ -127,6 +132,7 @@ class TableList extends Component
         } catch (\Throwable $e) {
             $this->moduleLocalSnapshots = [];
             $this->moduleRemoteSnapshots = [];
+            $this->moduleDependencies = [];
             $this->reportOperationError('Module snapshot catalog refresh failed.', $e, ['module' => $this->moduleFilter]);
         }
     }
@@ -524,7 +530,7 @@ class TableList extends Component
 
     public function render()
     {
-        return view('System::livewire.database.table-list', [
+        return view('System::livewire.database.table-list-with-dependencies', [
             'tables' => $this->service->getAllTables($this->search, $this->moduleFilter),
             'modules' => $this->service->getModuleOptions(),
             'canBackup' => (bool) auth('admin')->user()?->can('database.backup'),
@@ -545,6 +551,7 @@ class TableList extends Component
     {
         $this->moduleLocalSnapshots = [];
         $this->moduleRemoteSnapshots = [];
+        $this->moduleDependencies = [];
         $this->moduleCloudUnavailable = false;
         $this->showModuleRestoreModal = false;
         $this->selectedModuleSnapshotReference = null;
