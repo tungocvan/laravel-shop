@@ -4,21 +4,23 @@
 
 Task: **Admin Menu Snapshot Library — Named Google Drive Snapshots / Local Sync**
 
-Status: **IMPLEMENTED ON BRANCH — FOCUSED RETEST REQUIRED**
+Status: **ACCEPTED — FOCUSED TESTS PASS / UI PASS / READY FOR PR**
 
 Branch: `feat/admin-menu-google-drive-snapshot`
+
+Latest local formatting commit: `8bfaaabc` (`style(admin): apply Pint to menu snapshot workflow`).
 
 ## Final approved semantics
 
 The menu export and restore responsibilities are deliberately separated:
 
-- `Export Excel` only creates/downloads Excel. It must not write `storage/app/menu/menus.json` and must not upload Google Drive snapshots.
+- `Export Excel` only creates/downloads Excel. It does not write `storage/app/menu/menus.json` and does not upload Google Drive snapshots.
 - `Quản lý snapshot Google Drive` creates named JSON snapshots directly from the current `AdminMenu` database state and uploads them to `Laravel-Backup/Admin/Menu/*.json`.
 - Snapshot creation supports either all menus or the currently selected menu IDs.
 - `Đồng bộ về local` is the only cloud workflow that replaces `storage/app/menu/menus.json`; remote JSON is validated before replacement.
 - `Khôi phục snapshot` reads `storage/app/menu/menus.json` and explicitly replaces the current menu database tree.
 
-Therefore the working local snapshot is never changed as a side effect of Excel export.
+Therefore the working local snapshot is never changed as a side effect of Excel export or Drive snapshot creation.
 
 ## Google Drive library
 
@@ -29,7 +31,7 @@ Examples:
 - `Laravel-Backup/Admin/Menu/menus-ke-toan.json`
 - legacy `menus.json` remains readable when present.
 
-The library supports listing, selecting, syncing to local, renaming, and deleting selected Drive snapshot files. Same-name uploads update the existing file rather than intentionally creating a new duplicate.
+The library supports listing, selecting, syncing to local, renaming, and deleting selected Drive snapshot files. Same-name uploads update the existing file rather than intentionally creating a duplicate.
 
 ## Ownership boundary
 
@@ -48,44 +50,39 @@ The library supports listing, selecting, syncing to local, renaming, and deletin
 - Selected Excel export remains selected-only.
 - Selected Drive snapshot creation remains selected-only.
 - No database schema migration is introduced.
+- `storage/app/menu/menus.json` is runtime/local working state and must not be committed.
 
-## Focused verification
+## Verification completed
 
-Run:
+Focused contract tests reported by the user after the final semantics split:
 
-```bash
-php artisan test tests/Feature/Admin/MenuSnapshotGoogleDriveContractTest.php
-php artisan test tests/Feature/Admin/MenuLivewireRefactorContractTest.php
+- `tests/Feature/Admin/MenuSnapshotGoogleDriveContractTest.php`: **5 passed / 43 assertions**.
+- `tests/Feature/Admin/MenuLivewireRefactorContractTest.php`: **8 passed / 56 assertions**.
+- Pint: completed; local style fixes committed in `8bfaaabc`.
+- Manual UI smoke on `/admin/menus`: **PASS**.
 
-./vendor/bin/pint \
-Modules/Admin/Livewire/Menus/MenuTable.php \
-Modules/Admin/Services/MenuImportExportService.php \
-Modules/Admin/Services/MenuSnapshotCloudSyncService.php \
-Modules/System/Services/Cloud/GoogleDrivePortableFileService.php \
-tests/Feature/Admin/MenuSnapshotGoogleDriveContractTest.php \
-tests/Feature/Admin/MenuLivewireRefactorContractTest.php
-```
+No GitHub Actions workflow run was attached to `8bfaaabc`; local focused verification is the acceptance evidence for this branch.
 
-Runtime smoke on `/admin/menus`:
+## Runtime acceptance scope
 
-1. Note timestamp/hash of `storage/app/menu/menus.json`.
-2. Run `Export Excel` with no selection and verify Excel downloads while local `menus.json` remains unchanged.
-3. Select several menu rows, run `Export đã chọn`, verify selected-only Excel and local `menus.json` remains unchanged.
-4. Open `Quản lý snapshot Google Drive`, create an all-menu snapshot and verify Drive JSON is created without changing local `menus.json`.
-5. Create a selected-menu snapshot and verify Drive JSON contains only the selected menu tree.
-6. Rename a Drive snapshot and verify the library refreshes with the new name.
-7. Select one or more Drive snapshots and delete them.
-8. Choose a Drive snapshot and `Đồng bộ về local`; only now should `storage/app/menu/menus.json` change while DB remains unchanged.
-9. Use `Khôi phục snapshot` only after confirming the local snapshot; verify DB is then replaced from local.
+Verified workflow:
 
-## Prior verified baseline
+1. `Export Excel` downloads Excel without mutating the local restore snapshot.
+2. Selected export remains selected-only.
+3. Drive snapshot creation supports all-menu and selected-menu scope.
+4. Drive snapshot creation does not mutate `storage/app/menu/menus.json`.
+5. Snapshot library supports rename/delete and same-name update behavior.
+6. `Đồng bộ về local` writes the validated Drive snapshot to `storage/app/menu/menus.json` without changing DB.
+7. `Khôi phục snapshot` remains the explicit local-to-database restore step.
 
-Before the final Excel/snapshot semantics split, user reported:
+## Regression strategy
 
-- `MenuSnapshotGoogleDriveContractTest`: 5 passed / 30 assertions.
-- `MenuLivewireRefactorContractTest`: 8 passed / 56 assertions.
-- UI snapshot library: PASS.
+Full-project regression: **NOT APPLICABLE — module-scoped regression strategy**.
 
-The final semantics change requires rerunning the focused gates above.
+Reason: the change is limited to Admin Menu snapshot/export behavior plus the explicit generic System Google Drive portable-file boundary. It does not change schema, framework bootstrap, shared auth/security policy, or project-wide persistence.
 
 Known prior Admin regression baseline remains **213 passed / 3 failed / 1868 assertions**, with those failures attributed to unrelated Website/Auth ownership-contract drift. Do not expand this branch into those unrelated failures.
+
+## PR / merge note
+
+Before merge, confirm the PR head includes this handoff closeout and `8bfaaabc`. After merge, local `storage/app/menu/menus.json` may remain untracked because it is runtime working state, not repository source.
