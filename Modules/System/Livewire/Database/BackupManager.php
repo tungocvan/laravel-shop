@@ -209,7 +209,7 @@ class BackupManager extends Component
             $this->notify('success', $message);
         } catch (Throwable $e) {
             $this->reportOperationError('Database backup rename failed.', $e);
-            $this->addError('renameName', $e->getMessage());
+            $this->addError('renameName', 'Không thể đổi tên backup. Vui lòng kiểm tra tên mới hoặc log hệ thống.');
         }
     }
 
