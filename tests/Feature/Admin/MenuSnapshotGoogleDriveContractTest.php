@@ -19,15 +19,17 @@ class MenuSnapshotGoogleDriveContractTest extends TestCase
         $this->assertStringContainsString('GoogleDriveConnectionService', $systemService);
     }
 
-    public function test_full_export_opens_named_snapshot_flow_but_selected_export_stays_excel_only(): void
+    public function test_snapshot_modal_preserves_selected_scope_for_excel_and_drive_json(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Menus/MenuTable.php'));
+        $service = file_get_contents(base_path('Modules/Admin/Services/MenuSnapshotCloudSyncService.php'));
 
-        $this->assertStringContainsString('if ($this->selectedMenus === [])', $component);
-        $this->assertStringContainsString('$this->prepareSnapshotModal();', $component);
+        $this->assertStringContainsString('$hasSelection = $this->selectedMenus !== [];', $component);
         $this->assertStringContainsString('exportSelected($this->selectedMenus)', $component);
-        $this->assertStringContainsString('public function exportWithSnapshot()', $component);
+        $this->assertStringContainsString('pushSelectedSnapshotBestEffort($this->snapshotName, $this->selectedMenus)', $component);
         $this->assertStringContainsString('pushLocalSnapshotBestEffort($this->snapshotName)', $component);
+        $this->assertStringContainsString('public function pushSelectedSnapshot(string $snapshotName, array $menuIds): array', $service);
+        $this->assertStringContainsString('private function selectedSnapshotContent(array $menuIds): string', $service);
     }
 
     public function test_cloud_pull_accepts_selected_snapshot_and_validates_before_atomic_local_replacement(): void
