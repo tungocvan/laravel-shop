@@ -5,6 +5,7 @@
 
 !menu/
 !menu/**
+menu/menus.json
 
 !import/
 import/*
