@@ -102,6 +102,35 @@ class MenuSnapshotCloudSyncService
         }
     }
 
+    public function renameSnapshot(string $snapshotFile, string $newSnapshotName): array
+    {
+        $snapshotFile = $this->assertAllowedSnapshotFile($snapshotFile);
+        $newFileName = $this->snapshotFileName($newSnapshotName);
+
+        return $this->cloudFiles->rename(
+            self::CLOUD_DIRECTORY.'/'.$snapshotFile,
+            $newFileName,
+        );
+    }
+
+    public function deleteSnapshots(array $snapshotFiles): int
+    {
+        $files = array_values(array_unique(array_filter(array_map(
+            fn (mixed $file): string => $this->assertAllowedSnapshotFile((string) $file),
+            $snapshotFiles,
+        ))));
+
+        if ($files === []) {
+            throw new RuntimeException('Chưa chọn snapshot để xóa.');
+        }
+
+        foreach ($files as $file) {
+            $this->cloudFiles->delete(self::CLOUD_DIRECTORY.'/'.$file);
+        }
+
+        return count($files);
+    }
+
     public function pullToLocal(string $snapshotFile): array
     {
         $snapshotFile = $this->assertAllowedSnapshotFile($snapshotFile);
