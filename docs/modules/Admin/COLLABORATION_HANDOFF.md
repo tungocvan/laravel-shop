@@ -70,6 +70,7 @@ Contract:
 - cloud directory is fixed to `Admin/Menu`;
 - local path remains `storage/app/menu/menus.json`;
 - human snapshot names are normalized to safe `menus-<slug>.json` file names;
+- optional leading `Menu` / `Menus` in the entered name is removed, so `Menu Kho` becomes `menus-kho.json`;
 - Drive listing is filtered to allowed menu snapshot JSON names only;
 - full snapshot upload validates local JSON before upload;
 - same-name snapshot upload updates that Drive file;
@@ -157,7 +158,7 @@ Then UI/runtime smoke on `/admin/menus`:
 
 1. confirm Google Drive status points to `Laravel-Backup/Admin/Menu/*.json`;
 2. with no menu selected, click `Export Excel` and confirm the snapshot modal opens;
-3. enter `Menu Kho`, verify preview becomes `menus-menu-kho.json` with the current normalization rule;
+3. enter `Menu Kho`, verify preview becomes `menus-kho.json`;
 4. click `Export Excel & lưu snapshot`, verify Excel downloads, local `storage/app/menu/menus.json` refreshes and Drive receives the named snapshot;
 5. export again with the same name and confirm the existing Drive file is updated rather than duplicated;
 6. export another name and confirm both snapshots appear in the modal library;
