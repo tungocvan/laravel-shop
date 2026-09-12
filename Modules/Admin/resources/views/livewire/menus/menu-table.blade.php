@@ -27,15 +27,34 @@
                     Công cụ
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
-                <div x-show="toolsOpen" x-transition x-cloak class="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                <div x-show="toolsOpen" x-transition x-cloak class="absolute right-0 z-40 mt-2 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
                     <a href="{{ route('admin.layout.design') }}#sidebar-menu" class="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">Thiết lập giao diện Menu</a>
                     <button type="button" wire:click="exportTemplate" @click="toolsOpen = false" class="flex w-full items-center px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">Tải Template Excel</button>
                     <button type="button" wire:click="export" @click="toolsOpen = false" class="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"><span>Export Excel</span>@if(!empty($selectedMenus))<span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">{{ count($selectedMenus) }} đã chọn</span>@endif</button>
                     <button type="button" wire:click="openImportModal" @click="toolsOpen = false" class="flex w-full items-center px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">Import Menu</button>
                     <div class="my-1 border-t border-gray-100"></div>
-                    <button type="button" wire:click="restoreDefaultMenu" wire:confirm="Khôi phục menu từ snapshot gần nhất tại storage/app/menu/menus.json?" @click="toolsOpen = false" class="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-amber-700 hover:bg-amber-50">Khôi phục snapshot</button>
+                    <button type="button" wire:click="syncSnapshotFromGoogleDrive" wire:loading.attr="disabled" wire:target="syncSnapshotFromGoogleDrive" wire:confirm="Đồng bộ Laravel-Backup/Admin/Menu/menus.json từ Google Drive và ghi đè snapshot local hiện tại?" @click="toolsOpen = false" class="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50"><span wire:loading.remove wire:target="syncSnapshotFromGoogleDrive">Đồng bộ snapshot từ Drive</span><span wire:loading wire:target="syncSnapshotFromGoogleDrive">Đang đồng bộ...</span></button>
+                    <button type="button" wire:click="restoreDefaultMenu" wire:confirm="Khôi phục menu từ snapshot local đã được kiểm tra? Thao tác này sẽ thay thế cấu trúc menu hiện tại." @click="toolsOpen = false" class="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-amber-700 hover:bg-amber-50">Khôi phục snapshot</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="mb-5 grid gap-3 md:grid-cols-3">
+        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Snapshot local</div>
+            <div class="mt-1 text-sm font-semibold {{ $snapshotStatus['local_exists'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $snapshotStatus['local_exists'] ? 'Sẵn sàng' : 'Chưa có' }}</div>
+            <div class="mt-1 text-xs text-gray-500">storage/app/menu/menus.json</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Google Drive</div>
+            <div class="mt-1 text-sm font-semibold {{ $snapshotStatus['cloud_connected'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $snapshotStatus['cloud_connected'] ? 'Đã kết nối' : 'Chưa kết nối' }}</div>
+            <div class="mt-1 text-xs text-gray-500">{{ $snapshotStatus['cloud_folder'] }}/{{ $snapshotStatus['cloud_path'] }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Bản local cập nhật</div>
+            <div class="mt-1 text-sm font-semibold text-gray-800">{{ $snapshotStatus['local_modified_at'] ? \Illuminate\Support\Carbon::parse($snapshotStatus['local_modified_at'])->format('d/m/Y H:i') : '—' }}</div>
+            <div class="mt-1 text-xs text-gray-500">Export toàn bộ sẽ cập nhật local và đồng bộ Drive.</div>
         </div>
     </div>
 
