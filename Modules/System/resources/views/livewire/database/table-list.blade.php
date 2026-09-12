@@ -129,6 +129,15 @@
                                                 Restore Module
                                             </button>
                                         @endif
+                                        @if ($canDestroy)
+                                            <button type="button"
+                                                wire:click="deleteLocalModuleSnapshot('{{ $snapshot['reference'] }}')"
+                                                wire:confirm="Xóa vĩnh viễn Local Snapshot {{ $snapshot['name'] }}? Bản Google Drive nếu có sẽ KHÔNG bị xóa."
+                                                wire:loading.attr="disabled"
+                                                class="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-50">
+                                                Xóa Local
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                             </article>
@@ -180,6 +189,15 @@
                                                     Tải về Local
                                                 </button>
                                             @endif
+                                            @if ($canDestroy)
+                                                <button type="button"
+                                                    wire:click="deleteRemoteModuleSnapshot('{{ $remote['reference'] }}')"
+                                                    wire:confirm="Xóa vĩnh viễn Module Snapshot {{ $remote['name'] }} khỏi Google Drive? Bản local nếu có sẽ KHÔNG bị xóa."
+                                                    wire:loading.attr="disabled"
+                                                    class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50">
+                                                    Xóa Drive
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </article>
@@ -193,7 +211,7 @@
 
             <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
                 Restore chỉ dùng snapshot local đã xác minh. Snapshot DRIVE ONLY phải tải về local trước, kiểm tra manifest/checksum/schema rồi mới có thể Restore Module.
-                Safety Snapshot được tạo tự động trước mỗi lần restore và không tự xóa khi thao tác hoàn tất.
+                Xóa Local và Xóa Drive là hai thao tác độc lập; xóa một phía không tự xóa phía còn lại. Safety Snapshot được tạo tự động trước mỗi lần restore và không tự xóa khi thao tác hoàn tất.
             </div>
         </section>
     @endif
@@ -377,7 +395,7 @@
         </div>
     @endif
 
-    <div wire:loading wire:target="backupFull,exportTable,exportSelected,restoreTable,truncateTable,dropTable,backupModule,backupModuleAndUpload,uploadModuleSnapshot,downloadModuleSnapshot,restoreModuleSnapshot"
+    <div wire:loading wire:target="backupFull,exportTable,exportSelected,restoreTable,truncateTable,dropTable,backupModule,backupModuleAndUpload,uploadModuleSnapshot,downloadModuleSnapshot,deleteLocalModuleSnapshot,deleteRemoteModuleSnapshot,restoreModuleSnapshot"
         class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
         <div class="rounded-2xl bg-white px-6 py-5 shadow-xl">
             <div class="flex items-center gap-3 text-sm font-medium text-gray-700">
