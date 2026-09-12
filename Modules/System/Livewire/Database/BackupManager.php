@@ -13,6 +13,7 @@ use Modules\System\Jobs\UploadDatabaseBackupToGoogleDrive;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\Cloud\GoogleDriveBackupBrowserService;
 use Modules\System\Services\Cloud\GoogleDriveConnectionService;
+use Modules\System\Services\Database\DatabaseBackupCatalogService;
 use Modules\System\Services\DatabaseService;
 use Throwable;
 
@@ -33,6 +34,22 @@ class BackupManager extends Component
     public string $backupEmail = '';
 
     public bool $showDriveBackups = true;
+
+    public array $selectedLocalBackups = [];
+
+    public array $selectedRemoteBackups = [];
+
+    public bool $showRenameModal = false;
+
+    public string $renameScope = '';
+
+    public string $renameReference = '';
+
+    public string $renameName = '';
+
+    public bool $showBulkDeleteModal = false;
+
+    public string $bulkDeleteScope = '';
 
     #[On('backup-updated')]
     public function refresh(): void
@@ -85,6 +102,11 @@ class BackupManager extends Component
             }
         }
 
+        $localIds = array_column($backups, 'id');
+        $remoteIds = array_column($remoteBackups, 'reference');
+        $this->selectedLocalBackups = array_values(array_intersect($this->selectedLocalBackups, $localIds));
+        $this->selectedRemoteBackups = array_values(array_intersect($this->selectedRemoteBackups, $remoteIds));
+
         return view('System::livewire.database.backup-manager', [
             'backups' => $backups,
             'driveStatus' => $driveStatus,
@@ -96,6 +118,181 @@ class BackupManager extends Component
             'backupHistoryLimit' => self::RECENT_BACKUP_LIMIT,
             'backupHistoryTruncated' => count($allBackups) > self::RECENT_BACKUP_LIMIT,
         ]);
+    }
+
+    public function toggleSelectAllLocal(DatabaseService $service): void
+    {
+        $visible = array_slice($service->getAllBackupFiles(), 0, self::RECENT_BACKUP_LIMIT);
+        $references = array_column($visible, 'id');
+        $this->selectedLocalBackups = count($this->selectedLocalBackups) === count($references) ? [] : $references;
+    }
+
+    public function toggleSelectAllRemote(GoogleDriveBackupBrowserService $browser): void
+    {
+        try {
+            $references = array_column($browser->listBackups(100), 'reference');
+            $this->selectedRemoteBackups = count($this->selectedRemoteBackups) === count($references) ? [] : $references;
+        } catch (Throwable $e) {
+            $this->reportOperationError('Google Drive remote backup select-all failed.', $e);
+            $this->notify('error', 'Không thể chọn danh sách backup Google Drive.');
+        }
+    }
+
+    public function openLocalRenameModal(DatabaseBackupCatalogService $catalog): void
+    {
+        $this->authorizePermission('database.destroy');
+        $reference = $this->singleSelectedReference($this->selectedLocalBackups);
+
+        if ($reference === null) {
+            $this->notify('error', 'Vui lòng chọn đúng 1 backup local để đổi tên.');
+
+            return;
+        }
+
+        $backup = $catalog->resolveReference($reference, ['sql']);
+
+        if ($backup === null) {
+            $this->notify('error', 'Backup local không còn tồn tại.');
+
+            return;
+        }
+
+        $this->openRename('local', $reference, $backup['name']);
+    }
+
+    public function openRemoteRenameModal(GoogleDriveBackupBrowserService $browser): void
+    {
+        $this->authorizePermission('database.destroy');
+        $reference = $this->singleSelectedReference($this->selectedRemoteBackups);
+
+        if ($reference === null) {
+            $this->notify('error', 'Vui lòng chọn đúng 1 backup Google Drive để đổi tên.');
+
+            return;
+        }
+
+        try {
+            $backup = $browser->describe($reference);
+            $this->openRename('remote', $reference, $backup['name']);
+        } catch (Throwable $e) {
+            $this->reportOperationError('Google Drive remote backup rename preparation failed.', $e);
+            $this->notify('error', 'Không thể mở chức năng đổi tên Google Drive.');
+        }
+    }
+
+    public function submitRename(
+        DatabaseBackupCatalogService $catalog,
+        GoogleDriveBackupBrowserService $browser,
+    ): void {
+        $this->authorizePermission('database.destroy');
+        $validated = $this->validate([
+            'renameScope' => ['required', 'in:local,remote'],
+            'renameReference' => ['required', 'string', 'size:64', 'regex:/\A[a-f0-9]{64}\z/'],
+            'renameName' => ['required', 'string', 'max:124'],
+        ], [
+            'renameName.required' => 'Vui lòng nhập tên backup mới.',
+            'renameName.max' => 'Tên backup quá dài.',
+        ]);
+
+        try {
+            if ($validated['renameScope'] === 'local') {
+                $renamed = $catalog->renameReference($validated['renameReference'], $validated['renameName']);
+                $this->selectedLocalBackups = [];
+                $message = 'Đã đổi tên backup local thành '.$renamed['name'].'.';
+            } else {
+                $renamed = $browser->rename($validated['renameReference'], $validated['renameName']);
+                $this->selectedRemoteBackups = [];
+                $message = 'Đã đổi tên backup Google Drive thành '.$renamed['name'].'.';
+            }
+
+            $this->closeRenameModal();
+            $this->notify('success', $message);
+        } catch (Throwable $e) {
+            $this->reportOperationError('Database backup rename failed.', $e);
+            $this->addError('renameName', 'Không thể đổi tên backup. Vui lòng kiểm tra tên mới hoặc log hệ thống.');
+        }
+    }
+
+    public function closeRenameModal(): void
+    {
+        $this->showRenameModal = false;
+        $this->renameScope = '';
+        $this->renameReference = '';
+        $this->renameName = '';
+        $this->resetErrorBag('renameName');
+    }
+
+    public function openBulkDeleteModal(string $scope): void
+    {
+        $this->authorizePermission('database.destroy');
+
+        if (! in_array($scope, ['local', 'remote'], true)) {
+            return;
+        }
+
+        $selected = $scope === 'local' ? $this->selectedLocalBackups : $this->selectedRemoteBackups;
+
+        if ($selected === []) {
+            $this->notify('error', 'Vui lòng chọn ít nhất 1 backup để xóa.');
+
+            return;
+        }
+
+        $this->bulkDeleteScope = $scope;
+        $this->showBulkDeleteModal = true;
+    }
+
+    public function confirmBulkDelete(
+        DatabaseService $service,
+        GoogleDriveBackupBrowserService $browser,
+    ): void {
+        $this->authorizePermission('database.destroy');
+        $scope = $this->bulkDeleteScope;
+        $references = array_values(array_unique($scope === 'local' ? $this->selectedLocalBackups : $this->selectedRemoteBackups));
+
+        if (! in_array($scope, ['local', 'remote'], true) || $references === []) {
+            $this->showBulkDeleteModal = false;
+
+            return;
+        }
+
+        $deleted = 0;
+        $failed = 0;
+
+        foreach ($references as $reference) {
+            try {
+                if ($scope === 'local') {
+                    $service->deleteBackup($reference);
+                } else {
+                    $browser->delete($reference);
+                }
+                $deleted++;
+            } catch (Throwable $e) {
+                $failed++;
+                $this->reportOperationError('Database backup bulk delete item failed.', $e);
+            }
+        }
+
+        if ($scope === 'local') {
+            $this->selectedLocalBackups = [];
+        } else {
+            $this->selectedRemoteBackups = [];
+        }
+
+        $this->showBulkDeleteModal = false;
+        $this->bulkDeleteScope = '';
+
+        if ($failed === 0) {
+            $this->notify('success', "Đã xóa {$deleted} backup ".($scope === 'local' ? 'local.' : 'trên Google Drive.'));
+        } else {
+            $this->notify('error', "Đã xóa {$deleted} backup, {$failed} backup không thể xóa. Vui lòng kiểm tra log.");
+        }
+    }
+
+    public function cancelBulkDelete(): void
+    {
+        $this->showBulkDeleteModal = false;
+        $this->bulkDeleteScope = '';
     }
 
     public function backupAndUpload(DatabaseService $service, GoogleDriveConnectionService $drive): void
@@ -118,11 +315,8 @@ class BackupManager extends Component
         }
     }
 
-    public function uploadToGoogleDrive(
-        string $backupReference,
-        DatabaseService $service,
-        GoogleDriveConnectionService $drive,
-    ): void {
+    public function uploadToGoogleDrive(string $backupReference, DatabaseService $service, GoogleDriveConnectionService $drive): void
+    {
         $this->authorizePermission('database.backup');
 
         if (! ($drive->status()['connected'] ?? false)) {
@@ -143,11 +337,8 @@ class BackupManager extends Component
         $this->notify('success', 'Đã đưa backup vào hàng đợi upload Google Drive.');
     }
 
-    public function retryGoogleDriveUpload(
-        string $backupReference,
-        DatabaseService $service,
-        GoogleDriveConnectionService $drive,
-    ): void {
+    public function retryGoogleDriveUpload(string $backupReference, DatabaseService $service, GoogleDriveConnectionService $drive): void
+    {
         $this->uploadToGoogleDrive($backupReference, $service, $drive);
     }
 
@@ -157,6 +348,7 @@ class BackupManager extends Component
 
         try {
             $browser->delete($reference);
+            $this->selectedRemoteBackups = array_values(array_diff($this->selectedRemoteBackups, [$reference]));
             $this->notify('success', 'Đã xóa backup khỏi Google Drive.');
         } catch (Throwable $e) {
             $this->reportOperationError('Google Drive remote backup delete failed.', $e);
@@ -164,11 +356,8 @@ class BackupManager extends Component
         }
     }
 
-    public function downloadRemoteBackup(
-        string $reference,
-        GoogleDriveBackupBrowserService $browser,
-        DatabaseService $service,
-    ): void {
+    public function downloadRemoteBackup(string $reference, GoogleDriveBackupBrowserService $browser, DatabaseService $service): void
+    {
         $this->authorizePermission('database.download');
         $temporaryPath = tempnam(storage_path('framework'), 'drive-download-');
 
@@ -210,6 +399,7 @@ class BackupManager extends Component
 
         try {
             $service->deleteBackup($backupReference);
+            $this->selectedLocalBackups = array_values(array_diff($this->selectedLocalBackups, [$backupReference]));
             $this->notify('success', 'Đã xóa backup local.');
         } catch (Throwable $e) {
             $this->reportOperationError('Database backup delete failed.', $e);
@@ -228,10 +418,7 @@ class BackupManager extends Component
         ]);
 
         try {
-            $service->importBackupFile(
-                $validated['sqlFile']->getRealPath(),
-                $validated['sqlFile']->getClientOriginalName(),
-            );
+            $service->importBackupFile($validated['sqlFile']->getRealPath(), $validated['sqlFile']->getClientOriginalName());
             $this->reset('sqlFile');
             $this->notify('success', 'Đã tải file backup vào kho local. Hãy kiểm tra trước khi RESTORE.');
         } catch (Throwable $e) {
@@ -295,6 +482,22 @@ class BackupManager extends Component
         $this->emailBackupReference = '';
         $this->emailBackupName = '';
         $this->notify('success', 'Đã đưa yêu cầu gửi backup vào hàng đợi email.');
+    }
+
+    private function singleSelectedReference(array $selected): ?string
+    {
+        $selected = array_values(array_unique(array_filter($selected, 'is_string')));
+
+        return count($selected) === 1 ? $selected[0] : null;
+    }
+
+    private function openRename(string $scope, string $reference, string $name): void
+    {
+        $this->renameScope = $scope;
+        $this->renameReference = $reference;
+        $this->renameName = $name;
+        $this->resetErrorBag('renameName');
+        $this->showRenameModal = true;
     }
 
     private function queueDriveUpload(string $fileName, GoogleDriveConnectionService $drive): void

@@ -29,6 +29,11 @@ class GoogleDriveBackupBrowserService
         );
     }
 
+    public function describe(string $reference): array
+    {
+        return $this->safeDescriptor($this->resolveReference($reference));
+    }
+
     public function applyRetention(int $keep): int
     {
         $keep = max(1, min($keep, self::MAX_RETENTION_SCAN));
@@ -76,6 +81,42 @@ class GoogleDriveBackupBrowserService
     {
         $file = $this->resolveReference($reference);
         $this->deleteTrustedFileId($file['id']);
+
+        return $this->safeDescriptor($file);
+    }
+
+    public function rename(string $reference, string $requestedName): array
+    {
+        $file = $this->resolveReference($reference);
+        $newName = $this->normalizeSqlFileName($requestedName);
+
+        if (strcasecmp($file['name'], $newName) === 0) {
+            return $this->safeDescriptor($file);
+        }
+
+        $duplicateId = $this->findNamedFileInFolder(
+            $this->drive->accessToken(),
+            $file['parent_id'],
+            $newName,
+        );
+
+        if ($duplicateId !== null && $duplicateId !== $file['id']) {
+            throw new RuntimeException('Tên backup đã tồn tại trong thư mục Google Drive này.');
+        }
+
+        $response = Http::withToken($this->drive->accessToken())
+            ->acceptJson()
+            ->timeout(30)
+            ->patch('https://www.googleapis.com/drive/v3/files/'.rawurlencode($file['id']), [
+                'name' => $newName,
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Không thể đổi tên backup trên Google Drive. HTTP '.$response->status());
+        }
+
+        $file['name'] = $newName;
+        $file['modified_at'] = $response->json('modifiedTime') ?: now()->toIso8601String();
 
         return $this->safeDescriptor($file);
     }
@@ -151,6 +192,7 @@ class GoogleDriveBackupBrowserService
                         'modified_at' => $file['modifiedTime'] ?? null,
                         'year' => (string) $year['name'],
                         'month' => (string) $month['name'],
+                        'parent_id' => (string) $month['id'],
                     ];
                 }
             }
@@ -220,6 +262,43 @@ class GoogleDriveBackupBrowserService
         }
 
         return (string) ($response->json('files.0.id') ?: '') ?: null;
+    }
+
+    private function findNamedFileInFolder(string $token, string $parentId, string $name): ?string
+    {
+        $escaped = str_replace("'", "\\'", $name);
+        $response = Http::withToken($token)->acceptJson()->timeout(20)->get('https://www.googleapis.com/drive/v3/files', [
+            'q' => "name = '{$escaped}' and mimeType != 'application/vnd.google-apps.folder' and '{$parentId}' in parents and trashed = false",
+            'fields' => 'files(id,name)',
+            'pageSize' => 2,
+        ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Không thể kiểm tra tên backup Google Drive. HTTP '.$response->status());
+        }
+
+        return (string) ($response->json('files.0.id') ?: '') ?: null;
+    }
+
+    private function normalizeSqlFileName(string $requestedName): string
+    {
+        $requestedName = trim($requestedName);
+
+        if ($requestedName === '') {
+            throw new RuntimeException('Tên backup không được để trống.');
+        }
+
+        $base = preg_replace('/\.sql\z/i', '', $requestedName);
+
+        if (! is_string($base) || ! preg_match('/\A[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\z/', $base)) {
+            throw new RuntimeException('Tên backup chỉ được dùng chữ, số, dấu chấm, gạch dưới và gạch ngang.');
+        }
+
+        if (str_contains($base, '..')) {
+            throw new RuntimeException('Tên backup không hợp lệ.');
+        }
+
+        return $base.'.sql';
     }
 
     private function listFolders(string $token, string $parentId, int $limit): array

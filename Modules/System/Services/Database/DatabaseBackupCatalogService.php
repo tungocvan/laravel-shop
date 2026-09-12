@@ -67,6 +67,38 @@ class DatabaseBackupCatalogService
         return 1;
     }
 
+    public function renameReference(string $reference, string $requestedName): array
+    {
+        $backup = $this->resolveReference($reference, ['sql']);
+
+        if ($backup === null) {
+            throw new RuntimeException('Backup file not found.');
+        }
+
+        $newName = $this->normalizeSqlFileName($requestedName);
+        $currentName = basename($backup['relative_path']);
+
+        if (strcasecmp($currentName, $newName) === 0) {
+            return $this->descriptor($backup['relative_path'], $backup['absolute_path']);
+        }
+
+        $directory = dirname($backup['relative_path']);
+        $targetRelativePath = $directory.'/'.$newName;
+
+        if (Storage::disk('local')->exists($targetRelativePath)) {
+            throw new RuntimeException('Tên backup đã tồn tại trong kho local.');
+        }
+
+        if (! Storage::disk('local')->move($backup['relative_path'], $targetRelativePath)) {
+            throw new RuntimeException('Không thể đổi tên backup local.');
+        }
+
+        return $this->descriptor(
+            $targetRelativePath,
+            Storage::disk('local')->path($targetRelativePath),
+        );
+    }
+
     public function isFullDatabaseBackup(string $path): bool
     {
         if (! is_readable($path) || filesize($path) < 100) {
@@ -157,6 +189,27 @@ class DatabaseBackupCatalogService
         }
 
         return $files;
+    }
+
+    private function normalizeSqlFileName(string $requestedName): string
+    {
+        $requestedName = trim($requestedName);
+
+        if ($requestedName === '') {
+            throw new RuntimeException('Tên backup không được để trống.');
+        }
+
+        $base = preg_replace('/\.sql\z/i', '', $requestedName);
+
+        if (! is_string($base) || ! preg_match('/\A[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\z/', $base)) {
+            throw new RuntimeException('Tên backup chỉ được dùng chữ, số, dấu chấm, gạch dưới và gạch ngang.');
+        }
+
+        if (str_contains($base, '..')) {
+            throw new RuntimeException('Tên backup không hợp lệ.');
+        }
+
+        return $base.'.sql';
     }
 
     private function allowedFileName(string $fileName, array $extensions): bool
