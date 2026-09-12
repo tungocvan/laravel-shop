@@ -1,160 +1,114 @@
 # Invoices Collaboration Handoff
 
-## Current Status — Structured Lot / Expiry Canonical Mapping
+## Final status — Structured Lot / Expiry Canonical Mapping
 
-- Module: `Invoices`, with versioned integration into `Inventory`.
-- Active branch: `fix/invoices-structured-lot-expiry`.
-- Current scope: preserve structured pharmaceutical lot number and expiry date from canonical GDT detail through Source Data, reconstructed PDF, Inventory contract/staging and Draft Receipt.
-- Merge authorization: **NOT YET GIVEN**.
-- No schema migration is required.
-- Invoices → Inventory contract remains `1.0`; the lot/expiry/manufacture fields are optional backward-compatible line fields.
+- Module: `Modules\Invoices`, integrated with `Modules\Inventory` through contract `1.0`.
+- Implementation branch: `fix/invoices-structured-lot-expiry`.
+- PR: `#182 — fix: preserve invoice lot expiry through inventory receiving`.
+- Merge commit on `main`: `8a41e22a08c0ee01cef038296b5680b5a8d1bb88`.
+- Status: **MERGED / VERIFIED / UI PASS / CLOSEOUT COMPLETE**.
+- No schema migration was required.
+- `InvoiceLineNormalizer::VERSION = deterministic-v4`.
 
-## Confirmed Root Cause and Source Evidence
+## Canonical ownership boundary
 
-The GDT raw detail was proven to contain the missing SINVICO data. For invoice id `2477`, source id `525`, supplier `CÔNG TY TNHH DƯỢC PHẨM SINVICO`, symbol `1/C26TSV`, invoice number `123`, product `CAMZITOL`, the raw line contains structured metadata under `hdhhdvu[].ttkhac`:
+Invoices owns raw/canonical invoice source detail, extraction and normalization of invoice-supplied lot/expiry/manufacture metadata, Source Data presentation, reconstructed PDF presentation and publication through the versioned Inventory contract.
 
-```text
-ExpiryDate = 2028-03-08
-LotNo      = G0846
-```
+Inventory owns item matching, warehouse receiving, InventoryItem, lot instances, Receipt, StockMovement and StockBalance.
 
-Therefore GDT acquisition/retry/recovery is not the loss point. Do not OCR or parse the reconstructed PDF back into canonical data, and do not refetch GDT merely to recover these already-stored fields.
+The reconstructed PDF is presentation only. It must never be parsed back into canonical data. Inventory must never call GDT directly.
 
-The loss occurred downstream because consumers only inspected legacy top-level keys such as `solo`, `lot`, `hsd` and `expiry_date`, while ignoring `ttkhac[].ttruong/dlieu`.
+## Lot / expiry priority
 
-## Canonical Structured Field Rule
-
-`Modules\Invoices\Support\GdtInvoiceLineMetadata` is the shared extractor for GDT line metadata.
-
-Priority is mandatory:
+Canonical priority is:
 
 ```text
 structured GDT metadata (`ttkhac`)
-    -> legacy top-level field
-    -> text parser fallback
-    -> null
+  -> legacy/top-level source fields
+  -> deterministic text fallback
+  -> null
 ```
 
-Structured values must never be overwritten by text parsing. No lot number or expiry date may be guessed or fabricated.
+Structured values always win over conflicting text. Missing values remain null; no lot or expiry may be guessed or fabricated.
 
-Recognized structured fields include:
+`Modules\Invoices\Support\GdtInvoiceLineMetadata` extracts structured/top-level GDT metadata. `InvoiceLineNormalizer` applies the complete priority chain, including deterministic text fallback. The Inventory contract factory uses the normalizer so both structured and fallback values reach Inventory.
+
+Optional line fields remain backward-compatible under contract version `1.0`:
 
 ```text
-LotNo
-ExpiryDate
-ManufactureDate (when upstream provides it)
+lot_number
+expiry_date
+manufacture_date
 ```
 
-The existing text fallback remains supported for descriptions such as:
+## Accepted runtime cases
 
-```text
-Cefmetazol 2g ...; Lô: C60D001; HSD: 07/06/2027
-```
-
-`InvoiceLineNormalizer::VERSION` is now `deterministic-v4`, because normalization semantics changed and existing v3 snapshots may need local re-normalization to acquire structured metadata from stored raw lines.
-
-## Invoices → Inventory Boundary
-
-Invoices owns:
-
-- raw/canonical invoice source detail;
-- extraction and normalization of invoice-supplied structured lot/expiry/manufacture values;
-- transmission of those optional values through integration contract `1.0`.
-
-Inventory owns:
-
-- item/product matching;
-- warehouses and receipts;
-- Inventory Lot entities;
-- stock movements and balances.
-
-Lot/expiry are proposed receipt-line values only. They do not alter product identity and do not cause automatic product creation. A Draft Receipt still does not increase stock; stock changes only on receipt confirmation.
-
-## Source Data and Reconstructed PDF
-
-Admin workspace remains:
-
-```text
-/admin/invoices/source-data
-```
-
-`SourceDataManager::normalizeDetailItem()` now uses the shared structured extractor and exposes line-level `lot_number` and `expiry_date`.
-
-The Source Data detail modal displays:
-
-- product/service name;
-- lot number (`Số lô`);
-- expiry date (`Hạn sử dụng`, UI format `d/m/Y`);
-- unit, quantity, unit price, amount and tax rate.
-
-The reconstructed GDT PDF also reads the same canonical structured extractor. `Số lô` and `Hạn sử dụng` columns are shown when the invoice contains these optional values; invoices without lot/expiry remain valid and must not receive fabricated values.
-
-The PDF is a presentation of canonical data only. It is never a source to parse back into the system.
-
-## SINVICO Acceptance Case
-
-Acceptance invoice:
+### SINVICO / CAMZITOL
 
 ```text
 Invoice id:      2477
 Source id:       525
 Symbol:          1/C26TSV
 Invoice number:  123
-Issued date:     2026-09-07
 Supplier:        CÔNG TY TNHH DƯỢC PHẨM SINVICO
 Product:         CAMZITOL
-Expected lot:    G0846
-Expected expiry: 2028-03-08 (UI/PDF: 08/03/2028)
+Structured lot:  G0846
+Structured HSD:  2028-03-08
 ```
 
-Required end-to-end acceptance:
+Raw GDT detail contains `LotNo = G0846` and `ExpiryDate = 2028-03-08`. The accepted UI/PDF/Inventory representation preserves `G0846 / 08/03/2028` without OCR, GDT refetch or manual re-entry.
+
+### KHANG PHÁT / Tharodas invoice #287
 
 ```text
-stored GDT detail
--> canonical extractor
--> Source Data detail modal
--> reconstructed PDF
--> Inventory contract/staging
--> Draft Receipt proposal
+Invoice id:      2530
+Source id:       516
+Symbol:          1/C26TKP
+Invoice number:  287
+Supplier:        CÔNG TY TNHH THƯƠNG MẠI DƯỢC PHẨM KHANG PHÁT
+Description:     Tharodas ... Lô: 020526, HSD: 04/05/2029 ...
+Structured lot/HSD: null / null
+Normalized:      020526 / 2029-05-04
 ```
 
-Every downstream representation must preserve `G0846 / 2028-03-08`. Admin must not need to re-enter these values.
+This case proved that text fallback must be carried through `InvoiceForInventoryV1Factory`; direct use of the structured-only extractor at that boundary would lose fallback values. The factory now consumes `InvoiceLineNormalizer`, and Inventory refresh was accepted with `020526 / 2029-05-04`.
 
-## Regression Contract
+## Source Data and reconstructed PDF
 
-Required regression cases:
-
-1. Structured metadata: `G0846 / 2028-03-08` is preserved independently of product-name regex.
-2. Text fallback: `C60D001 / 2027-06-07` remains supported.
-3. Conflict: structured `G0846 / 2028-03-08` wins over text `WRONG123 / 2030-01-01`.
-4. Missing metadata: remains `null / null`; no fabrication.
-5. Source Data and reconstructed PDF both use the shared extractor.
-6. Inventory integration and Draft Receipt continue carrying lot/expiry.
-
-Focused structured mapping, Inventory integration, bulk publication, receiving UI and Pint were user-reported **PASS** before the final Source Data contract checkpoint.
-
-## Existing Canonical Source Data Behavior — Preserve
-
-The Source Data workspace continues to read canonical source data already persisted in `invoice_source_records`. It must not make a GDT recovery/fetch call during classification.
-
-Primary business classifications remain:
-
-```text
-UNCLASSIFIED
-GOODS
-SERVICE_EXPENSE
-MIXED
-```
+`/admin/invoices/source-data` displays line-level lot number and expiry date from canonical data. Expiry is presented as `d/m/Y` in UI/PDF where applicable. Optional lot/HSD columns remain conditional so invoices without those values stay valid.
 
 Preserve existing Source Data filters, supplier-wide classification, expense classification, Dashboard classification, Excel detail export, GDT automatic recovery/retry/backoff and stable Livewire row/checkbox/label keys.
 
-Existing baseline string-contract debt around older GDT acquisition/annotation implementation is outside this branch and must not be fixed by reverting production code to legacy implementation details.
+## Stock safety
 
-## Next Step
+Invoice synchronization/import does not post stock. Lot/expiry values are proposed receiving evidence and do not define product identity or automatically create products.
 
-1. Pull `fix/invoices-structured-lot-expiry`.
-2. Run the final focused structured mapping test and Pint checkpoint.
-3. Perform read-only runtime acceptance against SINVICO source id `525` / invoice id `2477`.
-4. UI PASS on `/admin/invoices/source-data` and reconstructed PDF.
-5. Update this handoff with final PASS evidence if needed.
-6. Do **not merge** until explicit user authorization.
+```text
+Invoices canonical source
+  -> Inventory contract/staging
+  -> Inventory Inbox
+  -> Receipt DRAFT
+  -> explicit operator confirmation
+  -> StockMovement / StockBalance
+```
+
+Only confirmed Inventory receipts change stock.
+
+## Acceptance evidence
+
+- Structured GDT metadata path: PASS.
+- Text fallback path: PASS.
+- Structured-over-text conflict priority: PASS.
+- Missing metadata remains null: PASS.
+- Source Data lot/HSD: UI PASS.
+- Reconstructed PDF lot/HSD: UI PASS.
+- Inventory contract propagation: PASS.
+- Inventory source refresh and DRAFT receiving flow: UI PASS.
+- Focused tests: PASS.
+- Pint on changed scoped files: PASS.
+- PR #182: MERGED.
+- `main` synchronized at merge commit `8a41e22a`.
+
+## Closeout
+
+This scope is complete. Do not reopen `fix/invoices-structured-lot-expiry` for new work. Future work starts from current `main` and must preserve the canonical ownership and stock-posting invariants above.
