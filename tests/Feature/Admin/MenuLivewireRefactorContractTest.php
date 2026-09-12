@@ -65,14 +65,17 @@ class MenuLivewireRefactorContractTest extends TestCase
         $this->assertStringContainsString('@if ($showRouteScannerModal)', $view);
     }
 
-    public function test_full_export_uses_private_storage_snapshot_and_selected_export_does_not_refresh_it(): void
+    public function test_excel_export_is_side_effect_free_and_restore_uses_private_local_snapshot(): void
     {
         $service = file_get_contents(base_path('Modules/Admin/Services/MenuImportExportService.php'));
+        $exportStart = strpos($service, 'public function export(array $filters = []): string');
+        $selectedStart = strpos($service, 'public function exportSelected(array $menuIds): string');
+        $exportMethod = substr($service, $exportStart, $selectedStart - $exportStart);
 
         $this->assertStringContainsString("storage_path('app/menu/menus.json')", $service);
-        $this->assertStringContainsString('$this->refreshRestoreSnapshot();', $service);
-        $this->assertStringContainsString('public function exportSelected(array $menuIds): string', $service);
-        $this->assertSame(1, substr_count($service, '$this->refreshRestoreSnapshot();'));
+        $this->assertStringContainsString("'source' => 'local_working_snapshot'", $service);
+        $this->assertStringNotContainsString('refreshRestoreSnapshot', $service);
+        $this->assertStringNotContainsString('menus.json', $exportMethod);
         $this->assertStringNotContainsString("base_path('Modules/Admin/data/menus.json')", $service);
     }
 
