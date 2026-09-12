@@ -2,9 +2,11 @@
 
 namespace Modules\Admin\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Modules\Admin\Models\AdminMenu;
 use Modules\System\Services\Cloud\GoogleDrivePortableFileService;
 use RuntimeException;
 
@@ -70,11 +72,30 @@ class MenuSnapshotCloudSyncService
 
             return true;
         } catch (\Throwable $exception) {
-            Log::warning('Menu snapshot Google Drive sync failed after export.', [
-                'service' => static::class,
-                'directory' => self::CLOUD_DIRECTORY,
-                'snapshot' => $snapshotName,
-                'message' => $exception->getMessage(),
+            $this->logSyncFailure($snapshotName, $exception);
+
+            return false;
+        }
+    }
+
+    public function pushSelectedSnapshot(string $snapshotName, array $menuIds): array
+    {
+        $content = $this->selectedSnapshotContent($menuIds);
+        $this->assertValidSnapshot($content);
+        $fileName = $this->snapshotFileName($snapshotName);
+
+        return $this->cloudFiles->put(self::CLOUD_DIRECTORY.'/'.$fileName, $content, 'application/json');
+    }
+
+    public function pushSelectedSnapshotBestEffort(string $snapshotName, array $menuIds): bool
+    {
+        try {
+            $this->pushSelectedSnapshot($snapshotName, $menuIds);
+
+            return true;
+        } catch (\Throwable $exception) {
+            $this->logSyncFailure($snapshotName, $exception, [
+                'selected_menu_count' => count($menuIds),
             ]);
 
             return false;
@@ -123,6 +144,79 @@ class MenuSnapshotCloudSyncService
             'cloud_folder' => (string) ($drive['folder_name'] ?? 'Laravel-Backup'),
             'cloud_path' => self::CLOUD_DIRECTORY,
         ];
+    }
+
+    private function selectedSnapshotContent(array $menuIds): string
+    {
+        $ids = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $id): string => trim((string) $id),
+            $menuIds,
+        ), static fn (string $id): bool => $id !== '')));
+
+        if ($ids === []) {
+            throw new RuntimeException('Chưa chọn menu để tạo snapshot.');
+        }
+
+        $menus = AdminMenu::menu()
+            ->whereIn('id', $ids)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        if ($menus->isEmpty()) {
+            throw new RuntimeException('Không có menu hợp lệ trong phạm vi đã chọn.');
+        }
+
+        $selectedIds = $menus->mapWithKeys(fn (AdminMenu $menu): array => [(string) $menu->getKey() => true]);
+        $roots = $menus->filter(function (AdminMenu $menu) use ($selectedIds): bool {
+            $parentId = $menu->parent_id;
+
+            return $parentId === null || ! $selectedIds->has((string) $parentId);
+        })->values();
+
+        $snapshot = $this->selectedSnapshotTree($roots, $menus);
+
+        return json_encode(
+            $snapshot,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        ).PHP_EOL;
+    }
+
+    private function selectedSnapshotTree(Collection $menus, Collection $selectedMenus): array
+    {
+        return $menus->map(function (AdminMenu $menu) use ($selectedMenus): array {
+            $children = $selectedMenus
+                ->filter(fn (AdminMenu $candidate): bool => (string) $candidate->parent_id === (string) $menu->getKey())
+                ->sortBy([['sort_order', 'asc'], ['id', 'asc']])
+                ->values();
+
+            return [
+                'key' => $this->menuKey($menu),
+                'name' => $menu->name,
+                'url' => $menu->url,
+                'icon' => $menu->icon,
+                'can' => $menu->can,
+                'is_active' => (bool) $menu->is_active,
+                'children' => $this->selectedSnapshotTree($children, $selectedMenus),
+            ];
+        })->values()->all();
+    }
+
+    private function menuKey(AdminMenu $menu): string
+    {
+        $slug = trim((string) ($menu->slug ?? ''));
+
+        return $slug !== '' ? $slug : (Str::slug($menu->name) ?: 'menu-'.$menu->getKey());
+    }
+
+    private function logSyncFailure(string $snapshotName, \Throwable $exception, array $context = []): void
+    {
+        Log::warning('Menu snapshot Google Drive sync failed after export.', array_merge([
+            'service' => static::class,
+            'directory' => self::CLOUD_DIRECTORY,
+            'snapshot' => $snapshotName,
+            'message' => $exception->getMessage(),
+        ], $context));
     }
 
     private function assertAllowedSnapshotFile(string $snapshotFile): string
