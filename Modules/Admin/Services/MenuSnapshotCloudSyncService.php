@@ -50,25 +50,19 @@ class MenuSnapshotCloudSyncService
             ->all();
     }
 
-    public function pushLocalSnapshot(string $snapshotName): array
+    public function pushFullSnapshot(string $snapshotName): array
     {
-        $path = $this->localPath();
-
-        if (! File::exists($path) || ! is_readable($path)) {
-            throw new RuntimeException('Snapshot menu local chưa tồn tại hoặc không đọc được.');
-        }
-
-        $content = File::get($path);
+        $content = $this->fullSnapshotContent();
         $this->assertValidSnapshot($content);
         $fileName = $this->snapshotFileName($snapshotName);
 
         return $this->cloudFiles->put(self::CLOUD_DIRECTORY.'/'.$fileName, $content, 'application/json');
     }
 
-    public function pushLocalSnapshotBestEffort(string $snapshotName): bool
+    public function pushFullSnapshotBestEffort(string $snapshotName): bool
     {
         try {
-            $this->pushLocalSnapshot($snapshotName);
+            $this->pushFullSnapshot($snapshotName);
 
             return true;
         } catch (\Throwable $exception) {
@@ -173,6 +167,26 @@ class MenuSnapshotCloudSyncService
             'cloud_folder' => (string) ($drive['folder_name'] ?? 'Laravel-Backup'),
             'cloud_path' => self::CLOUD_DIRECTORY,
         ];
+    }
+
+    private function fullSnapshotContent(): string
+    {
+        $menus = AdminMenu::menu()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        if ($menus->isEmpty()) {
+            throw new RuntimeException('Không có menu hợp lệ để tạo snapshot.');
+        }
+
+        $roots = $menus->filter(fn (AdminMenu $menu): bool => $menu->parent_id === null)->values();
+        $snapshot = $this->selectedSnapshotTree($roots, $menus);
+
+        return json_encode(
+            $snapshot,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        ).PHP_EOL;
     }
 
     private function selectedSnapshotContent(array $menuIds): string
