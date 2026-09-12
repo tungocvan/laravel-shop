@@ -103,6 +103,11 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("implode(' · ', \$moduleDependencies)", $dependencyView);
         $this->assertStringContainsString('không được tự động backup hoặc restore', $dependencyView);
         $this->assertStringContainsString("@include('System::livewire.database.table-list')", $dependencyView);
+        $this->assertStringContainsString('Xác nhận phạm vi Backup Module {{ $moduleFilter }}', $dependencyView);
+        $this->assertStringContainsString('toàn bộ bảng thuộc ownership của Module {{ $moduleFilter }}', $dependencyView);
+        $this->assertStringContainsString('Bộ lọc tìm kiếm và checkbox bảng đang hiển thị không làm thay đổi phạm vi Module Snapshot', $dependencyView);
+        $this->assertStringContainsString('Đã hiểu, tiếp tục', $dependencyView);
+        $this->assertStringContainsString('wire:key="module-backup-scope-{{ $moduleFilter }}"', $dependencyView);
 
         $this->assertStringContainsString('Module Snapshot — {{ $moduleFilter }}', $view);
         $this->assertStringContainsString('Backup Module', $view);
