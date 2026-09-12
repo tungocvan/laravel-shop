@@ -359,6 +359,6 @@ class GoogleDrivePortableFileService
 
     private function escapeQueryValue(string $value): string
     {
-        return str_replace(["\\", "'"], ["\\\\", "\\'"], $value);
+        return str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
     }
 }

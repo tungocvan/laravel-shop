@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -18,9 +19,7 @@ class MenuImportExportService
         'key', 'parent_key', 'name', 'url', 'icon', 'can', 'is_active', 'sort_order',
     ];
 
-    public function __construct(private readonly MenuService $menuService)
-    {
-    }
+    public function __construct(private readonly MenuService $menuService) {}
 
     public function defaultPath(): string
     {
@@ -117,7 +116,7 @@ class MenuImportExportService
                 throw new \InvalidArgumentException('Che do import menu khong hop le.');
             }
 
-            $rows = (new FastExcel())->import($filePath)
+            $rows = (new FastExcel)->import($filePath)
                 ->map(fn ($row): array => $this->normalizeExcelRow((array) $row))
                 ->filter(fn (array $row): bool => $this->rowHasData($row))
                 ->values();
@@ -143,6 +142,7 @@ class MenuImportExportService
 
                     if (in_array($key, $seenKeys, true)) {
                         $report['skipped_rows']++;
+
                         continue;
                     }
 
@@ -152,6 +152,7 @@ class MenuImportExportService
                     if ($existing && $mode === 'skip_duplicate' && ! $existing->trashed()) {
                         $menusByKey[$key] = $existing;
                         $report['skipped_rows']++;
+
                         continue;
                     }
 
@@ -295,7 +296,7 @@ class MenuImportExportService
         return collect($this->flattenMenuCollection($roots));
     }
 
-    private function flattenMenuCollection(\Illuminate\Database\Eloquent\Collection $menus, ?string $parentKey = null): array
+    private function flattenMenuCollection(Collection $menus, ?string $parentKey = null): array
     {
         $rows = [];
 
@@ -424,6 +425,7 @@ class MenuImportExportService
 
             if (! is_array($item)) {
                 $this->addError($report, $row, null, null, 'Menu item phai la object.');
+
                 continue;
             }
 
@@ -445,6 +447,7 @@ class MenuImportExportService
 
             if (array_key_exists('children', $item) && ! is_array($item['children'])) {
                 $this->addError($report, $row, 'children', null, 'Children phai la mang.');
+
                 continue;
             }
 
