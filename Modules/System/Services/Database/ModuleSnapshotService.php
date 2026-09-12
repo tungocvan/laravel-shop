@@ -21,7 +21,10 @@ class ModuleSnapshotService
 
     private const MAX_PACKAGE_BYTES = 1024 * 1024 * 1024;
 
-    public function __construct(private readonly DatabaseService $database) {}
+    public function __construct(
+        private readonly DatabaseService $database,
+        private readonly ModuleDependencyService $dependencies,
+    ) {}
 
     public function tablesForModule(string $module): array
     {
@@ -84,6 +87,7 @@ class ModuleSnapshotService
                 'format_version' => self::FORMAT_VERSION,
                 'snapshot_type' => $snapshotType,
                 'module' => $module,
+                'dependencies' => $this->dependencies->dependenciesFor($module),
                 'created_at' => $timestamp->toIso8601String(),
                 'database_driver' => (string) config('database.default'),
                 'database_name' => (string) config('database.connections.mysql.database'),
@@ -328,6 +332,12 @@ class ModuleSnapshotService
             throw new RuntimeException('Module snapshot không đúng Module hoặc phiên bản format.');
         }
 
+        // Backward compatible: snapshots created before dependency metadata was added remain valid.
+        $manifest['dependencies'] = array_values(array_filter(
+            (array) ($manifest['dependencies'] ?? []),
+            'is_string',
+        ));
+
         $expectedTables = $this->tablesForModule($module);
         $snapshotTables = array_values(array_filter((array) ($manifest['tables'] ?? []), 'is_string'));
         sort($snapshotTables, SORT_STRING);
@@ -403,6 +413,7 @@ class ModuleSnapshotService
             'module' => $module,
             'snapshot_type' => (string) ($manifest['snapshot_type'] ?? 'manual'),
             'created_at' => $manifest['created_at'] ?? null,
+            'dependencies' => array_values((array) ($manifest['dependencies'] ?? [])),
             'tables' => array_values((array) ($manifest['tables'] ?? [])),
             'size' => (int) (filesize($absolutePath) ?: 0),
             'time' => (int) (filemtime($absolutePath) ?: 0),
