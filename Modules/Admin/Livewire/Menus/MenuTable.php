@@ -33,9 +33,13 @@ class MenuTable extends Component
     public bool $showSnapshotModal = false;
     public string $snapshotName = 'Default';
     public string $snapshotFilePreview = 'menus-default.json';
+    public string $snapshotExportScope = 'all';
     public array $cloudSnapshots = [];
+    public array $selectedCloudSnapshotFiles = [];
     public ?string $snapshotListError = null;
     public ?string $selectedSnapshotFile = null;
+    public ?string $renamingSnapshotFile = null;
+    public string $renameSnapshotName = '';
     public array $routeCandidates = [];
     public array $selectedRouteCandidates = [];
     public array $routeCandidateNames = [];
@@ -61,6 +65,8 @@ class MenuTable extends Component
             'importFile' => 'nullable|file|mimes:xlsx,csv|max:'.config('menu.import.max_file_size', 10240),
             'importMode' => 'required|in:skip_duplicate,update_or_create',
             'snapshotName' => 'required|string|max:80',
+            'snapshotExportScope' => 'required|in:all,selected',
+            'renameSnapshotName' => 'nullable|string|max:80',
             'bulkPermission' => 'nullable|exists:permissions,name',
             'routeCandidateNames.*' => 'nullable|string|max:255',
         ];
@@ -88,6 +94,13 @@ class MenuTable extends Component
             $this->resetValidation('snapshotName');
         } catch (\Throwable) {
             $this->snapshotFilePreview = 'Tên snapshot chưa hợp lệ';
+        }
+    }
+
+    public function updatedSnapshotExportScope(string $scope): void
+    {
+        if ($scope === 'selected' && $this->selectedMenus === []) {
+            $this->snapshotExportScope = 'all';
         }
     }
 
@@ -154,13 +167,88 @@ class MenuTable extends Component
     {
         $this->showSnapshotModal = false;
         $this->snapshotListError = null;
-        $this->resetValidation('snapshotName');
+        $this->selectedCloudSnapshotFiles = [];
+        $this->renamingSnapshotFile = null;
+        $this->renameSnapshotName = '';
+        $this->resetValidation(['snapshotName', 'renameSnapshotName']);
     }
 
     public function refreshSnapshotLibrary(): void
     {
         $this->authorizePermission('admin.menu.export');
         $this->loadCloudSnapshots();
+    }
+
+    public function startRenameSnapshot(string $snapshotFile): void
+    {
+        $this->authorizePermission('admin.menu.export');
+        $this->renamingSnapshotFile = $snapshotFile;
+        $this->renameSnapshotName = preg_replace('/\Amenus-?|\.json\z/i', '', $snapshotFile) ?: $snapshotFile;
+        $this->resetValidation('renameSnapshotName');
+    }
+
+    public function cancelRenameSnapshot(): void
+    {
+        $this->renamingSnapshotFile = null;
+        $this->renameSnapshotName = '';
+        $this->resetValidation('renameSnapshotName');
+    }
+
+    public function saveRenameSnapshot(): void
+    {
+        $this->authorizePermission('admin.menu.export');
+        $this->validate(['renameSnapshotName' => 'required|string|max:80']);
+
+        if ($this->renamingSnapshotFile === null) {
+            return;
+        }
+
+        try {
+            $oldFile = $this->renamingSnapshotFile;
+            $result = $this->snapshotCloudSyncService->renameSnapshot($oldFile, $this->renameSnapshotName);
+            $newFile = (string) ($result['name'] ?? '');
+
+            if ($this->selectedSnapshotFile === $oldFile && $newFile !== '') {
+                $this->selectedSnapshotFile = $newFile;
+            }
+
+            $this->selectedCloudSnapshotFiles = array_values(array_map(
+                static fn (string $file): string => $file === $oldFile && $newFile !== '' ? $newFile : $file,
+                $this->selectedCloudSnapshotFiles,
+            ));
+            $this->cancelRenameSnapshot();
+            $this->loadCloudSnapshots();
+            $this->notify('Đã đổi tên snapshot trên Google Drive.', 'success');
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('renameSnapshotName', $exception->getMessage());
+        }
+    }
+
+    public function deleteSelectedSnapshots(): void
+    {
+        $this->authorizePermission('admin.menu.export');
+
+        if ($this->selectedCloudSnapshotFiles === []) {
+            $this->notify('Vui lòng chọn ít nhất một snapshot để xóa.', 'warning');
+            return;
+        }
+
+        try {
+            $files = $this->selectedCloudSnapshotFiles;
+            $count = $this->snapshotCloudSyncService->deleteSnapshots($files);
+
+            if ($this->selectedSnapshotFile !== null && in_array($this->selectedSnapshotFile, $files, true)) {
+                $this->selectedSnapshotFile = null;
+            }
+
+            $this->selectedCloudSnapshotFiles = [];
+            $this->loadCloudSnapshots();
+            $this->notify("Đã xóa {$count} snapshot trên Google Drive.", 'success');
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->notify($exception->getMessage(), 'error');
+        }
     }
 
     public function openRouteScannerModal(): void
@@ -368,35 +456,32 @@ class MenuTable extends Component
     public function export()
     {
         $this->authorizePermission('admin.menu.export');
+        $this->prepareSnapshotModal();
 
-        if ($this->selectedMenus === []) {
-            $this->prepareSnapshotModal();
-
-            return null;
-        }
-
-        try {
-            return Storage::disk('public')->download($this->importExportService->exportSelected($this->selectedMenus));
-        } catch (\Throwable $exception) {
-            report($exception);
-            $this->notify('Loi export menu. Vui long kiem tra log.', 'error');
-
-            return null;
-        }
+        return null;
     }
 
     public function exportWithSnapshot()
     {
         $this->authorizePermission('admin.menu.export');
-        $this->validate(['snapshotName' => 'required|string|max:80']);
+        $this->validate([
+            'snapshotName' => 'required|string|max:80',
+            'snapshotExportScope' => 'required|in:all,selected',
+        ]);
+
+        if ($this->snapshotExportScope === 'selected' && $this->selectedMenus === []) {
+            $this->addError('snapshotExportScope', 'Không còn menu nào được chọn. Vui lòng chọn lại hoặc export toàn bộ.');
+
+            return null;
+        }
 
         try {
             $this->snapshotFilePreview = $this->snapshotCloudSyncService->snapshotFileName($this->snapshotName);
-            $hasSelection = $this->selectedMenus !== [];
-            $path = $hasSelection
+            $isSelected = $this->snapshotExportScope === 'selected';
+            $path = $isSelected
                 ? $this->importExportService->exportSelected($this->selectedMenus)
                 : $this->importExportService->export($this->filters());
-            $synced = $hasSelection
+            $synced = $isSelected
                 ? $this->snapshotCloudSyncService->pushSelectedSnapshotBestEffort($this->snapshotName, $this->selectedMenus)
                 : $this->snapshotCloudSyncService->pushLocalSnapshotBestEffort($this->snapshotName);
             $this->selectedSnapshotFile = $synced ? $this->snapshotFilePreview : null;
@@ -473,8 +558,12 @@ class MenuTable extends Component
     {
         $this->snapshotName = 'Default';
         $this->snapshotFilePreview = 'menus-default.json';
+        $this->snapshotExportScope = $this->selectedMenus === [] ? 'all' : 'selected';
         $this->snapshotListError = null;
-        $this->resetValidation('snapshotName');
+        $this->selectedCloudSnapshotFiles = [];
+        $this->renamingSnapshotFile = null;
+        $this->renameSnapshotName = '';
+        $this->resetValidation(['snapshotName', 'snapshotExportScope', 'renameSnapshotName']);
         $this->loadCloudSnapshots();
         $this->showSnapshotModal = true;
     }
@@ -483,6 +572,8 @@ class MenuTable extends Component
     {
         try {
             $this->cloudSnapshots = $this->snapshotCloudSyncService->snapshots();
+            $available = array_column($this->cloudSnapshots, 'name');
+            $this->selectedCloudSnapshotFiles = array_values(array_intersect($this->selectedCloudSnapshotFiles, $available));
             $this->snapshotListError = null;
         } catch (\Throwable $exception) {
             report($exception);
