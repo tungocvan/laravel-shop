@@ -3,7 +3,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900">Quản lý Module</h2>
-                <p class="mt-1 text-sm text-gray-600">Bật/tắt, kiểm tra dependency, route và trạng thái database của các module.</p>
+                <p class="mt-1 text-sm text-gray-600">Bật/tắt Module và kiểm tra dependency, trạng thái database.</p>
                 <p class="mt-1 text-xs text-gray-500">Trạng thái bật/tắt runtime được lưu tại <code>storage/app/system/module-state.json</code> và không sửa manifest của module.</p>
                 @if (! $canUpdate)
                     <p class="mt-2 text-xs font-semibold text-amber-700">Chế độ chỉ xem — cần quyền system.modules.update để thay đổi cấu hình module.</p>
@@ -15,8 +15,6 @@
             </div>
         </div>
     </div>
-
-    <x-realtime-control :enabled="$realtimeEnabled" :status="$realtimeStatus" :can-update="$canUpdate" />
 
     @if (session()->has('message'))
         <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-700">{{ session('message') }}</div>
@@ -106,14 +104,6 @@
             </div>
         </div>
     @endforeach
-
-    <x-module-routes-table
-        :routes="$this->filteredModuleRoutes"
-        :total="count($moduleRoutes)"
-        :modules="collect($moduleRoutes)->pluck('module')->unique()->sort()->values()->all()"
-        :editing-route-key="$editingRouteKey"
-        :can-update="$canUpdate"
-    />
 
     <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <div class="flex">
