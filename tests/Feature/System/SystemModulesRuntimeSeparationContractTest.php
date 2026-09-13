@@ -55,6 +55,7 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertStringContainsString('function retrySelectedFailed', $component);
         $this->assertStringContainsString('function forgetSelectedFailed', $component);
         $this->assertStringContainsString('function clearFailedHistory', $component);
+        $this->assertStringContainsString('markProbeSent($queue)', $component);
         $this->assertStringContainsString("authorizePermission('system.settings.update')", $component);
         $this->assertStringContainsString("Artisan::call('queue:restart')", $component);
         $this->assertStringContainsString('QueueProbeJob::dispatch($queue)', $component);
@@ -64,6 +65,10 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertStringContainsString('Restart queue workers', $view);
         $this->assertStringContainsString('Không phụ thuộc PM2', $view);
         $this->assertStringContainsString('Trạng thái Queue', $view);
+        $this->assertStringContainsString('Pending quá 5 phút sẽ được cảnh báo.', $view);
+        $this->assertStringContainsString('Pending lâu nhất', $view);
+        $this->assertStringContainsString('Worker health', $view);
+        $this->assertStringContainsString('Worker chưa phản hồi', $view);
         $this->assertStringContainsString('Failed history', $view);
         $this->assertStringContainsString('Xem {{ $status[\'failed\'] }} lỗi', $view);
         $this->assertStringContainsString('Clear lịch sử', $view);
@@ -79,10 +84,14 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertStringContainsString('$runtimeModules = $this->modules->current()->keyBy(\'name\');', $registry);
         $this->assertStringContainsString('$disabledOwnedQueues[$name] = true;', $registry);
         $this->assertStringContainsString('if (isset($disabledOwnedQueues[$name]))', $registry);
+        $this->assertStringContainsString('private const STALE_PENDING_SECONDS = 300;', $registry);
+        $this->assertStringContainsString("'oldest_pending_age_seconds' =>", $registry);
+        $this->assertStringContainsString("'stale_pending' =>", $registry);
+        $this->assertStringContainsString("'probe_state' =>", $registry);
+        $this->assertStringContainsString('function markProbeSent', $registry);
         $this->assertStringContainsString("config('queue.connections.'.config('queue.default').'.queue', 'default')", $registry);
         $this->assertStringContainsString("DB::table('jobs')->distinct()->pluck('queue')", $registry);
         $this->assertStringContainsString("DB::table('failed_jobs')->distinct()->pluck('queue')", $registry);
-        $this->assertStringContainsString("'state' =>", $registry);
 
         $this->assertStringContainsString("Artisan::call('queue:retry'", $failedJobs);
         $this->assertStringContainsString('DB::table(\'failed_jobs\')->where(\'queue\', $queue)->delete()', $failedJobs);
