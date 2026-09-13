@@ -2,87 +2,78 @@
 
 ## Current checkpoint
 
-Task: **Admin Menu Snapshot Library — Named Google Drive Snapshots / Local Sync**
+Task: **Admin Header Authorization + Menu Drag & Drop Recovery**
 
-Status: **ACCEPTED — FOCUSED TESTS PASS / UI PASS / READY FOR PR**
+Status: **IMPLEMENTATION COMPLETE — FOCUSED TESTS PASS / UI PASS / PR-MERGE GATE READY**
 
-Branch: `feat/admin-menu-google-drive-snapshot`
+Branch: `fix/admin-header-authorization-403`
 
-Latest local formatting commit: `8bfaaabc` (`style(admin): apply Pint to menu snapshot workflow`).
+## Scope completed
 
-## Final approved semantics
+### Header authorization
 
-The menu export and restore responsibilities are deliberately separated:
+- `/admin/layout/header` now uses the Header-specific view permission `admin.header.view` instead of inheriting the generic `admin.layout.view` permission.
+- Header save/reset operations use `admin.header.update`.
+- Other layout sections continue to use `admin.layout.view` / `admin.layout.update`.
+- Livewire authorization no longer depends on a non-existent custom `hasPermission()` method; authorization is evaluated through Laravel/Spatie-compatible permission checks.
+- No hardcoded Super Admin role bypass was introduced.
 
-- `Export Excel` only creates/downloads Excel. It does not write `storage/app/menu/menus.json` and does not upload Google Drive snapshots.
-- `Quản lý snapshot Google Drive` creates named JSON snapshots directly from the current `AdminMenu` database state and uploads them to `Laravel-Backup/Admin/Menu/*.json`.
-- Snapshot creation supports either all menus or the currently selected menu IDs.
-- `Đồng bộ về local` is the only cloud workflow that replaces `storage/app/menu/menus.json`; remote JSON is validated before replacement.
-- `Khôi phục snapshot` reads `storage/app/menu/menus.json` and explicitly replaces the current menu database tree.
+### Menu drag & drop
 
-Therefore the working local snapshot is never changed as a side effect of Excel export or Drive snapshot creation.
+- SortableJS is declared as an application dependency and loaded through the existing Vite entrypoint.
+- The Admin menu tree continues to use the existing nested Sortable integration and `updateMenuOrder()` backend contract.
+- Browser/runtime verification confirmed SortableJS is loaded and attached to `#root-menu-list`.
+- Drag interaction is configured to use SortableJS fallback mode (`forceFallback`) to avoid the browser-native drag behavior that prevented the menu handle from moving in the target environment.
+- Existing nested menu semantics and `admin.menu.update` authorization remain unchanged.
 
-## Google Drive library
+## Important commits
 
-Examples:
-
-- `Laravel-Backup/Admin/Menu/menus-default.json`
-- `Laravel-Backup/Admin/Menu/menus-kho.json`
-- `Laravel-Backup/Admin/Menu/menus-ke-toan.json`
-- legacy `menus.json` remains readable when present.
-
-The library supports listing, selecting, syncing to local, renaming, and deleting selected Drive snapshot files. Same-name uploads update the existing file rather than intentionally creating a duplicate.
-
-## Ownership boundary
-
-`Modules/System` remains owner of Google Drive OAuth, token refresh, root-folder resolution and generic portable-file operations through `GoogleDrivePortableFileService`.
-
-`Modules/Admin` owns menu snapshot semantics through `MenuSnapshotCloudSyncService` and consumes the System capability. No second Google Drive connection is introduced in Admin.
-
-## Safety invariants
-
-- Excel export is side-effect free with respect to local/Drive snapshots.
-- Snapshot creation does not write the local restore file.
-- Drive-to-local sync does not alter the database.
-- Restore is a separate explicit destructive action guarded by `admin.menu.restore`.
-- Invalid remote JSON must not overwrite a valid local snapshot.
-- Snapshot file selection is restricted to safe `menus*.json` files under `Admin/Menu`.
-- Selected Excel export remains selected-only.
-- Selected Drive snapshot creation remains selected-only.
-- No database schema migration is introduced.
-- `storage/app/menu/menus.json` is runtime/local working state and must not be committed.
+- `949d06bf` — `fix(admin): isolate header route permission`
+- `3bd2d004` — `test(admin): align route authorization contracts`
+- `153bc90d` — `fix(admin): load SortableJS for menu drag and drop`
+- `80db2531` — `fix(admin): declare SortableJS menu dependency`
+- `cffa9cbd` — `fix(admin): harden menu drag fallback`
+- `package-lock.json` generated dependency lock is committed and the working tree is clean/synced with origin.
 
 ## Verification completed
 
-Focused contract tests reported by the user after the final semantics split:
+User-reported focused test run:
 
-- `tests/Feature/Admin/MenuSnapshotGoogleDriveContractTest.php`: **5 passed / 43 assertions**.
-- `tests/Feature/Admin/MenuLivewireRefactorContractTest.php`: **8 passed / 56 assertions**.
-- Pint: completed; local style fixes committed in `8bfaaabc`.
-- Manual UI smoke on `/admin/menus`: **PASS**.
+```bash
+php artisan test \
+tests/Feature/Admin/AdminHeaderConfigurationContractTest.php \
+tests/Feature/Admin/AdminRouteConfigurationTest.php \
+tests/Feature/Admin/AdminHeaderSettingsUiContractTest.php
+```
 
-No GitHub Actions workflow run was attached to `8bfaaabc`; local focused verification is the acceptance evidence for this branch.
+Result: **27 passed / 164 assertions**.
 
-## Runtime acceptance scope
+Manual runtime verification reported by the user:
 
-Verified workflow:
+- `/admin/layout/header`: **UI PASS**.
+- Header title save/reset flow: **PASS**.
+- `/admin/menus`: drag & drop from the six-dot handle: **UI PASS** after fallback-mode correction.
 
-1. `Export Excel` downloads Excel without mutating the local restore snapshot.
-2. Selected export remains selected-only.
-3. Drive snapshot creation supports all-menu and selected-menu scope.
-4. Drive snapshot creation does not mutate `storage/app/menu/menus.json`.
-5. Snapshot library supports rename/delete and same-name update behavior.
-6. `Đồng bộ về local` writes the validated Drive snapshot to `storage/app/menu/menus.json` without changing DB.
-7. `Khôi phục snapshot` remains the explicit local-to-database restore step.
+Working tree after verification:
 
-## Regression strategy
+```text
+## fix/admin-header-authorization-403...origin/fix/admin-header-authorization-403
+```
 
-Full-project regression: **NOT APPLICABLE — module-scoped regression strategy**.
+No full-project regression was requested or required for this module-scoped fix.
 
-Reason: the change is limited to Admin Menu snapshot/export behavior plus the explicit generic System Google Drive portable-file boundary. It does not change schema, framework bootstrap, shared auth/security policy, or project-wide persistence.
+## Safety / compatibility notes
 
-Known prior Admin regression baseline remains **213 passed / 3 failed / 1868 assertions**, with those failures attributed to unrelated Website/Auth ownership-contract drift. Do not expand this branch into those unrelated failures.
+- Header permission isolation preserves least-privilege behavior.
+- No schema migration was introduced.
+- No role-name bypass was added.
+- Existing menu persistence remains owned by `MenuTable::updateMenuOrder()` / `MenuService::updateOrder()`.
+- Existing menu snapshot, import/export and Google Drive snapshot behavior is outside the functional scope of this fix and should remain unchanged.
 
-## PR / merge note
+## Prior accepted checkpoint
 
-Before merge, confirm the PR head includes this handoff closeout and `8bfaaabc`. After merge, local `storage/app/menu/menus.json` may remain untracked because it is runtime working state, not repository source.
+The previous Admin Menu Snapshot Library work remains accepted: named Google Drive menu snapshots, local sync, explicit restore, selected-only export/snapshot semantics and the System-owned Google Drive portable-file boundary were already verified and merged before this task.
+
+## PR / merge gate
+
+This branch is ready for PR creation against `main` after this handoff closeout commit is included. Merge only after confirming the PR head contains the handoff update and the focused verification evidence above.
