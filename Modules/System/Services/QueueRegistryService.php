@@ -3,12 +3,15 @@
 namespace Modules\System\Services;
 
 use App\Modules\ModuleRegistry;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class QueueRegistryService
 {
+    private const STALE_PENDING_SECONDS = 300;
+
     public function __construct(private readonly ModuleRegistry $modules) {}
 
     public function queues(): array
@@ -73,17 +76,22 @@ class QueueRegistryService
         $pending = 0;
         $reserved = 0;
         $failed = 0;
+        $oldestPendingAt = null;
 
         if (Schema::hasTable('jobs')) {
-            $pending = DB::table('jobs')
+            $pendingQuery = DB::table('jobs')
                 ->where('queue', $queue)
-                ->whereNull('reserved_at')
-                ->count();
+                ->whereNull('reserved_at');
 
+            $pending = (clone $pendingQuery)->count();
             $reserved = DB::table('jobs')
                 ->where('queue', $queue)
                 ->whereNotNull('reserved_at')
                 ->count();
+
+            if ($pending > 0 && Schema::hasColumn('jobs', 'created_at')) {
+                $oldestPendingAt = (clone $pendingQuery)->min('created_at');
+            }
         }
 
         if (Schema::hasTable('failed_jobs')) {
@@ -93,15 +101,30 @@ class QueueRegistryService
         }
 
         $lastProbeAt = Cache::get($this->probeCacheKey($queue));
+        $lastProbeSentAt = Cache::get($this->probeSentCacheKey($queue));
+        $pendingAgeSeconds = $this->ageSeconds($oldestPendingAt);
+        $probeAgeSeconds = $this->ageSeconds($lastProbeSentAt);
+        $probeConfirmed = $this->probeConfirmed($lastProbeAt, $lastProbeSentAt);
+        $stalePending = $pending > 0 && $pendingAgeSeconds !== null && $pendingAgeSeconds >= self::STALE_PENDING_SECONDS;
+        $probeState = $lastProbeSentAt === null
+            ? 'unknown'
+            : ($probeConfirmed ? 'confirmed' : (($probeAgeSeconds ?? 0) >= 60 ? 'unresponsive' : 'waiting'));
 
         return [
             'pending' => $pending,
             'reserved' => $reserved,
             'failed' => $failed,
+            'oldest_pending_at' => $oldestPendingAt,
+            'oldest_pending_age_seconds' => $pendingAgeSeconds,
+            'stale_pending' => $stalePending,
             'last_probe_at' => $lastProbeAt,
+            'last_probe_sent_at' => $lastProbeSentAt,
+            'probe_state' => $probeState,
             'state' => $failed > 0
                 ? 'attention'
-                : ($reserved > 0 ? 'processing' : ($pending > 0 ? 'waiting' : 'idle')),
+                : ($stalePending || $probeState === 'unresponsive'
+                    ? 'stalled'
+                    : ($reserved > 0 ? 'processing' : ($pending > 0 ? 'waiting' : 'idle'))),
         ];
     }
 
@@ -118,9 +141,19 @@ class QueueRegistryService
         );
     }
 
+    public function markProbeSent(string $queue): void
+    {
+        Cache::put($this->probeSentCacheKey($queue), now()->toIso8601String(), now()->addDay());
+    }
+
     public function probeCacheKey(string $queue): string
     {
         return 'system.queue_probe.'.$queue;
+    }
+
+    public function probeSentCacheKey(string $queue): string
+    {
+        return 'system.queue_probe_sent.'.$queue;
     }
 
     private function defaults(string $name, string $module, ?string $description = null): array
@@ -158,5 +191,31 @@ class QueueRegistryService
             ->sort()
             ->values()
             ->all();
+    }
+
+    private function ageSeconds(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return max(0, Carbon::parse($value)->diffInSeconds(now()));
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function probeConfirmed(mixed $handledAt, mixed $sentAt): bool
+    {
+        if (! is_string($handledAt) || ! is_string($sentAt) || $handledAt === '' || $sentAt === '') {
+            return false;
+        }
+
+        try {
+            return Carbon::parse($handledAt)->greaterThanOrEqualTo(Carbon::parse($sentAt));
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }
