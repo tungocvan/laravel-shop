@@ -36,8 +36,17 @@ class AdminRouteConfigurationTest extends TestCase
             ['admin.profile', 'admin/profile', 'admin.profile.view'],
             ['admin.themes', 'admin/themes', 'admin.layout.view'],
             ['admin.layout', 'admin/layout', 'admin.layout.view'],
-            ['admin.layout.header', 'admin/layout/header', 'admin.layout.view'],
+            ['admin.layout.header', 'admin/layout/header', 'admin.header.view'],
         ];
+    }
+
+    public function test_header_route_does_not_inherit_layout_view_permission(): void
+    {
+        $route = Route::getRoutes()->getByName('admin.layout.header');
+
+        $this->assertNotNull($route);
+        $this->assertNotContains('permission:admin.layout.view,admin', $route->gatherMiddleware());
+        $this->assertContains('permission:admin.header.view,admin', $route->gatherMiddleware());
     }
 
     public function test_legacy_themes_route_redirects_into_layout_design_hub(): void
