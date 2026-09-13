@@ -14,46 +14,74 @@ class AdminShellPresentationService
     {
         $config=$this->layoutManager->config(); $container=(string)data_get($config,'layout.container','screen-2xl'); $density=(string)data_get($config,'layout.density','comfortable');
         $sidebar=$this->sidebarPresentation($config);
-        return ['container'=>$container,'density'=>$density,'container_class'=>$this->containerClass($container),'content_class'=>$this->containerClass($container),'content_padding_class'=>'','content_style'=>$this->contentStyle($config),'shell_style'=>$this->shellStyle($config),'reduced_motion'=>(bool)data_get($config,'layout.behavior.reduced_motion',true),'sidebar_expanded_width'=>(string)data_get($config,'sidebar.expanded_width','16rem'),'sidebar_collapsed_width'=>(string)data_get($config,'sidebar.collapsed_width','5rem'),'sidebar_background'=>$sidebar['background'],'sidebar_style'=>$sidebar['style'],'header_height'=>(string)data_get($config,'header.height','4rem'),'header_style'=>$this->headerStyle($config),'header_padding_x'=>$this->space(data_get($config,'header.presentation.padding_x','6')),'header_action_gap'=>$this->space(data_get($config,'header.presentation.action_gap','2')),'header_mode'=>(string)data_get($config,'header.presentation.mode','balanced'),'header_backdrop_blur'=>(bool)data_get($config,'header.presentation.backdrop_blur',true)];
+        return ['container'=>$container,'density'=>$density,'container_class'=>$this->containerClass($container),'content_class'=>$this->containerClass($container),'content_padding_class'=>'','content_style'=>$this->contentStyle($config),'shell_style'=>$this->shellStyle($config),'reduced_motion'=>(bool)data_get($config,'layout.behavior.reduced_motion',true),'sidebar_expanded_width'=>(string)data_get($config,'sidebar.expanded_width','16rem'),'sidebar_collapsed_width'=>(string)data_get($config,'sidebar.collapsed_width','5rem'),'sidebar_background'=>$sidebar['background'],'sidebar_style'=>$sidebar['style'],'sidebar_mode'=>$sidebar['mode'],'header_height'=>(string)data_get($config,'header.height','4rem'),'header_style'=>$this->headerStyle($config),'header_padding_x'=>$this->space(data_get($config,'header.presentation.padding_x','6')),'header_action_gap'=>$this->space(data_get($config,'header.presentation.action_gap','2')),'header_mode'=>(string)data_get($config,'header.presentation.mode','balanced'),'header_backdrop_blur'=>(bool)data_get($config,'header.presentation.backdrop_blur',true)];
     }
 
     public function sidebarPresentation(?array $config=null): array
     {
         $config ??= $this->layoutManager->config();
         $mode=(string)data_get($config,'sidebar.presentation.background','theme');
+        $mode=match($mode){'system','white'=>'light',default=>$mode};
         $design=app(AdminDesignService::class);
-        $navigationToken=data_get($config,'design.colors.sidebar_navigation_background','white');
+        $customBackground=$this->hex(data_get($config,'sidebar.presentation.custom_background'),'#0f172a');
+        $customAccent=$this->hex(data_get($config,'sidebar.presentation.custom_accent'),'#4f46e5');
 
-        [$background,$contrast]=match($mode){
-            'white'=>['#ffffff',$design->contrastVariables('white')],
-            'dark'=>['#020617',$design->contrastVariables('slate-950')],
-            'system'=>['var(--admin-sidebar-navigation-theme-background, var(--admin-surface-raised))',$design->contrastVariables($navigationToken)],
-            default=>[null,[]],
-        };
-
-        $style=[];
-        if($background!==null){$style[]='background-color: '.$background;}
-        foreach($contrast as $variable=>$value){$style[]=$variable.': '.$value;}
-
-        if($mode==='dark'){
-            $style[]='--admin-sidebar-menu-title-color: #e2e8f0';
-            $style[]='--admin-sidebar-menu-icon-color: #94a3b8';
-            $style[]='--admin-sidebar-submenu-title-color: #cbd5e1';
-            $style[]='--admin-sidebar-submenu-icon-color: #94a3b8';
-            $style[]='--admin-sidebar-active-title-color: #ffffff';
-            $style[]='--admin-sidebar-active-icon-color: #ffffff';
-            $style[]='--admin-sidebar-menu-active-border-color: #818cf8';
-            $style[]='--admin-sidebar-submenu-active-border-color: #818cf8';
-        } elseif($mode==='white') {
-            $style[]='--admin-sidebar-menu-title-color: #334155';
-            $style[]='--admin-sidebar-menu-icon-color: #64748b';
-            $style[]='--admin-sidebar-submenu-title-color: #475569';
-            $style[]='--admin-sidebar-submenu-icon-color: #64748b';
-            $style[]='--admin-sidebar-active-title-color: #312e81';
-            $style[]='--admin-sidebar-active-icon-color: #4f46e5';
+        if($mode==='theme'){
+            return ['mode'=>'theme','background'=>null,'style'=>''];
         }
 
+        $background=match($mode){'dark'=>'#020617','custom'=>$customBackground,default=>'#ffffff'};
+        $contrast=$mode==='custom'?$this->contrastForHex($customBackground):$design->contrastVariables($mode==='dark'?'slate-950':'white');
+        $textPrimary=$contrast['--admin-text-primary']??'#0f172a';
+        $textSecondary=$contrast['--admin-text-secondary']??'#334155';
+        $textMuted=$contrast['--admin-text-muted']??'#64748b';
+        $border=$contrast['--admin-border-subtle']??'rgb(15 23 42 / 0.12)';
+        $accent=$mode==='custom'?$customAccent:'#4f46e5';
+        $activeText=$this->isDarkHex($accent)?'#ffffff':'#0f172a';
+
+        $style=[
+            'background-color: '.$background,
+            '--admin-sidebar-accent: '.$accent,
+            '--admin-sidebar-active-surface: '.$accent,
+            '--admin-sidebar-hover-surface: color-mix(in srgb, '.$textPrimary.' 7%, transparent)',
+            '--admin-sidebar-control-surface: color-mix(in srgb, '.$textPrimary.' 6%, transparent)',
+            '--admin-sidebar-control-border: '.$border,
+            '--admin-text-primary: '.$textPrimary,
+            '--admin-text-secondary: '.$textSecondary,
+            '--admin-text-muted: '.$textMuted,
+            '--admin-border-subtle: '.$border,
+            '--admin-sidebar-menu-title-color: '.$textSecondary,
+            '--admin-sidebar-menu-icon-color: '.$textMuted,
+            '--admin-sidebar-submenu-title-color: '.$textMuted,
+            '--admin-sidebar-submenu-icon-color: '.$textMuted,
+            '--admin-sidebar-active-title-color: '.$activeText,
+            '--admin-sidebar-active-icon-color: '.$activeText,
+            '--admin-sidebar-menu-active-border-color: '.$accent,
+            '--admin-sidebar-submenu-active-border-color: '.$accent,
+        ];
+
         return ['mode'=>$mode,'background'=>$background,'style'=>implode('; ',$style)];
+    }
+
+    private function contrastForHex(string $hex): array
+    {
+        return $this->isDarkHex($hex)
+            ? ['--admin-text-primary'=>'#f8fafc','--admin-text-secondary'=>'#e2e8f0','--admin-text-muted'=>'#94a3b8','--admin-border-subtle'=>'rgb(255 255 255 / 0.14)']
+            : ['--admin-text-primary'=>'#0f172a','--admin-text-secondary'=>'#334155','--admin-text-muted'=>'#64748b','--admin-border-subtle'=>'rgb(15 23 42 / 0.10)'];
+    }
+
+    private function isDarkHex(string $hex): bool
+    {
+        $hex=ltrim($hex,'#');
+        if(strlen($hex)!==6)return false;
+        $r=hexdec(substr($hex,0,2)); $g=hexdec(substr($hex,2,2)); $b=hexdec(substr($hex,4,2));
+        return ((0.2126*$r+0.7152*$g+0.0722*$b)/255)<0.56;
+    }
+
+    private function hex(mixed $value,string $fallback): string
+    {
+        $value=strtolower(trim((string)$value));
+        return preg_match('/^#[0-9a-f]{6}$/',$value)?$value:$fallback;
     }
 
     private function containerClass(string $container): string
