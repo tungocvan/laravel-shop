@@ -1,4 +1,20 @@
 <aside x-data="{ navQuery: '', normalize(value) { return (value || '').toLowerCase(); }, matches(value) { const q = this.normalize(this.navQuery.trim()); return q === '' || this.normalize(value).includes(q); } }" class="flex h-full w-full flex-col overflow-hidden transition-all duration-300 motion-reduce:transition-none {{ $sidebarSurfaceClass }} {{ $sidebarTextClass }}" style="{{ $sidebarStyle }}">
+    <style>
+        .admin-sidebar-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: color-mix(in srgb, currentColor 28%, transparent) transparent;
+        }
+        .admin-sidebar-scrollbar::-webkit-scrollbar { width: 4px; }
+        .admin-sidebar-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, currentColor 28%, transparent);
+            border-radius: 9999px;
+        }
+        .admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: color-mix(in srgb, currentColor 45%, transparent);
+        }
+    </style>
+
     @if ($showSidebarHeader)
         <div class="relative flex min-h-16 shrink-0 items-center border-b px-3" style="border-color:var(--admin-border-subtle, currentColor); {{ $sidebarHeaderStyle }}">
             <div class="flex min-w-0 flex-1 items-center gap-3" :class="sidebarOpen ? '' : 'justify-center'">
@@ -48,21 +64,3 @@
         <div class="shrink-0 border-t p-3" style="border-color:var(--admin-border-subtle,currentColor); {{ $sidebarFooterStyle }}"><div class="flex min-w-0 items-center gap-3 rounded-xl px-2 py-2" style="background:var(--admin-sidebar-control-surface,transparent)" :class="sidebarOpen ? '' : 'justify-center'">@if ($showFooterAvatar)<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold shadow-sm {{ $sidebarMode === 'theme' ? $theme['active_bg'].' '.$theme['active_text'] : '' }}" @if($sidebarMode !== 'theme') style="background:var(--admin-sidebar-accent);color:var(--admin-sidebar-active-title-color)" @endif>{{ $profileInitial }}</div>@endif<div x-cloak x-show="sidebarOpen" class="min-w-0 flex-1">@if($showFooterName)<p class="truncate text-sm font-semibold">{{ $profileName }}</p>@endif @if($showFooterSubtitle)<p class="truncate text-[11px]" style="color:var(--admin-text-muted,currentColor)">{{ $footerSubtitle }}</p>@endif</div></div></div>
     @endif
 </aside>
-
-@once
-    <style>
-        .admin-sidebar-scrollbar {
-            scrollbar-width: thin;
-            scrollbar-color: color-mix(in srgb, currentColor 28%, transparent) transparent;
-        }
-        .admin-sidebar-scrollbar::-webkit-scrollbar { width: 4px; }
-        .admin-sidebar-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
-            background: color-mix(in srgb, currentColor 28%, transparent);
-            border-radius: 9999px;
-        }
-        .admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: color-mix(in srgb, currentColor 45%, transparent);
-        }
-    </style>
-@endonce
