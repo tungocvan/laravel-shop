@@ -41,8 +41,8 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
 
         $this->assertStringContainsString('migrationDiagnosis($module)', $preview);
         $this->assertStringContainsString('permissions->discoverModules()', $preview);
-        $this->assertStringContainsString("DB::table('jobs')->where('queue', $queue['name'])", $preview);
-        $this->assertStringContainsString("DB::table('failed_jobs')->where('queue', $queue['name'])", $preview);
+        $this->assertStringContainsString("DB::table('jobs')->where('queue', \$queue['name'])", $preview);
+        $this->assertStringContainsString("DB::table('failed_jobs')->where('queue', \$queue['name'])", $preview);
         $this->assertStringContainsString('$name !== $defaultQueue', $control);
         $this->assertStringContainsString("Artisan::call('queue:restart')", $control);
         $this->assertStringContainsString('SystemModuleLifecycleException', $control);
