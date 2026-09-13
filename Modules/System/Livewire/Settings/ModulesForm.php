@@ -97,7 +97,6 @@ class ModulesForm extends Component
             $result = $control->toggle($moduleName, auth('admin')->id());
             $this->loadModules();
 
-            $this->lifecyclePreflight = $preview->preview($moduleName);
             $this->lifecycleResult = [
                 'ok' => true,
                 'stage' => 'completed',
