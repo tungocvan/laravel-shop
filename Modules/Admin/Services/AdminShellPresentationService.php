@@ -28,10 +28,11 @@ class AdminShellPresentationService
             'white'=>['#ffffff',$design->contrastVariables('white')],
             'dark'=>['#020617',$design->contrastVariables('slate-950')],
             'system'=>['var(--admin-sidebar-navigation-theme-background, var(--admin-surface-raised))',$design->contrastVariables($navigationToken)],
-            default=>['transparent',[]],
+            default=>[null,[]],
         };
 
-        $style=['background-color: '.$background];
+        $style=[];
+        if($background!==null){$style[]='background-color: '.$background;}
         foreach($contrast as $variable=>$value){$style[]=$variable.': '.$value;}
 
         if($mode==='dark'){
