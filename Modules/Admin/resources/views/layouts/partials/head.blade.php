@@ -52,9 +52,11 @@
                 config: config || {},
 
                 init() {
+                    this.resetDocumentScroll();
                     this.syncViewport();
 
                     window.addEventListener('resize', () => this.syncViewport(), { passive: true });
+                    window.addEventListener('scroll', () => this.resetDocumentScroll(), { passive: true });
 
                     window.addEventListener('keydown', (event) => {
                         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -62,6 +64,19 @@
                             this.openSearch(document.activeElement);
                         }
                     });
+                },
+
+                resetDocumentScroll() {
+                    if ('scrollRestoration' in history) {
+                        history.scrollRestoration = 'manual';
+                    }
+
+                    if (window.scrollX !== 0 || window.scrollY !== 0) {
+                        window.scrollTo(0, 0);
+                    }
+
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
                 },
 
                 syncViewport() {

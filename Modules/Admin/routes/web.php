@@ -40,12 +40,29 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         ->middleware('permission:admin.layout.view,admin')
         ->name('layout');
 
-    Route::prefix('layout')->name('layout.')->middleware('permission:admin.layout.view,admin')->group(function () {
-        Route::get('/general', [AdminController::class, 'layoutGeneral'])->name('general');
-        Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header');
-        Route::get('/sidebar', [AdminController::class, 'layoutSidebar'])->name('sidebar');
-        Route::get('/footer', [AdminController::class, 'layoutFooter'])->name('footer');
-        Route::get('/design', [AdminController::class, 'layoutDesign'])->name('design');
-        Route::get('/navigation', [AdminController::class, 'layoutNavigation'])->name('navigation');
+    Route::prefix('layout')->name('layout.')->group(function () {
+        Route::get('/general', [AdminController::class, 'layoutGeneral'])
+            ->middleware('permission:admin.layout.view,admin')
+            ->name('general');
+
+        Route::get('/header', [AdminController::class, 'layoutHeader'])
+            ->middleware('permission:admin.header.view,admin')
+            ->name('header');
+
+        Route::get('/sidebar', [AdminController::class, 'layoutSidebar'])
+            ->middleware('permission:admin.layout.view,admin')
+            ->name('sidebar');
+
+        Route::get('/footer', [AdminController::class, 'layoutFooter'])
+            ->middleware('permission:admin.layout.view,admin')
+            ->name('footer');
+
+        Route::get('/design', [AdminController::class, 'layoutDesign'])
+            ->middleware('permission:admin.layout.view,admin')
+            ->name('design');
+
+        Route::get('/navigation', [AdminController::class, 'layoutNavigation'])
+            ->middleware('permission:admin.layout.view,admin')
+            ->name('navigation');
     });
 });

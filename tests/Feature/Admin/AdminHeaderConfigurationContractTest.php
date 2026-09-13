@@ -61,4 +61,24 @@ class AdminHeaderConfigurationContractTest extends TestCase
         $this->assertStringContainsString('w-auto whitespace-nowrap', $brand);
         $this->assertStringNotContainsString('max-w-44 truncate', $brand);
     }
+
+    public function test_header_save_and_reset_use_header_update_permission_through_laravel_gate(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+
+        $this->assertStringContainsString('use Illuminate\\Support\\Facades\\Gate;', $component);
+        $this->assertStringContainsString("return \$this->section === 'header' ? 'admin.header.update' : 'admin.layout.update';", $component);
+        $this->assertStringContainsString('Gate::forUser($user)->allows($permission)', $component);
+        $this->assertStringContainsString('$this->authorizePermission($this->updatePermission());', $component);
+        $this->assertStringNotContainsString("method_exists(\$user, 'hasPermission')", $component);
+        $this->assertStringNotContainsString("\$user->hasPermission(\$permission)", $component);
+    }
+
+    public function test_admin_manifest_declares_header_view_and_update_permissions(): void
+    {
+        $manifest = file_get_contents(base_path('Modules/Admin/config/module.php'));
+
+        $this->assertStringContainsString("'admin.header.view'", $manifest);
+        $this->assertStringContainsString("'admin.header.update'", $manifest);
+    }
 }

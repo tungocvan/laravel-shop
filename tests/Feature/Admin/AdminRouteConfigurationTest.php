@@ -29,15 +29,34 @@ class AdminRouteConfigurationTest extends TestCase
     public static function adminRoutesProvider(): array
     {
         return [
-            ['admin.dashboard', 'admin', 'admin.dashboard.view'],
+            ['admin.dashboard', 'admin/dashboard', 'admin.dashboard.view'],
             ['admin.menus.index', 'admin/menus', 'admin.menu.view'],
             ['admin.menus.create', 'admin/menus/create', 'admin.menu.create'],
             ['admin.menus.edit', 'admin/menus/{id}/edit', 'admin.menu.update'],
             ['admin.profile', 'admin/profile', 'admin.profile.view'],
             ['admin.themes', 'admin/themes', 'admin.layout.view'],
             ['admin.layout', 'admin/layout', 'admin.layout.view'],
-            ['admin.layout.header', 'admin/layout/header', 'admin.layout.view'],
+            ['admin.layout.header', 'admin/layout/header', 'admin.header.view'],
         ];
+    }
+
+    public function test_header_route_does_not_inherit_layout_view_permission(): void
+    {
+        $route = Route::getRoutes()->getByName('admin.layout.header');
+
+        $this->assertNotNull($route);
+        $this->assertNotContains('permission:admin.layout.view,admin', $route->gatherMiddleware());
+        $this->assertContains('permission:admin.header.view,admin', $route->gatherMiddleware());
+    }
+
+    public function test_other_layout_routes_keep_layout_view_permission(): void
+    {
+        foreach (['admin.layout.general', 'admin.layout.sidebar', 'admin.layout.footer', 'admin.layout.design', 'admin.layout.navigation'] as $routeName) {
+            $route = Route::getRoutes()->getByName($routeName);
+
+            $this->assertNotNull($route);
+            $this->assertContains('permission:admin.layout.view,admin', $route->gatherMiddleware());
+        }
     }
 
     public function test_legacy_themes_route_redirects_into_layout_design_hub(): void
