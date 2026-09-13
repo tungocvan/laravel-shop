@@ -2,78 +2,77 @@
 
 ## Current checkpoint
 
-Task: **Admin Header Authorization + Menu Drag & Drop Recovery**
+Task: **Admin Theme Editor — Sidebar Menu Visual Designer & Color States**
 
-Status: **IMPLEMENTATION COMPLETE — FOCUSED TESTS PASS / UI PASS / PR-MERGE GATE READY**
+Status: **IMPLEMENTATION COMPLETE — UI PASS / PR-MERGE AUTHORIZED**
 
-Branch: `fix/admin-header-authorization-403`
+Branch: `fix/admin-theme-sidebar-menu-colors`
 
 ## Scope completed
 
-### Header authorization
+### Theme Editor compatibility
 
-- `/admin/layout/header` now uses the Header-specific view permission `admin.header.view` instead of inheriting the generic `admin.layout.view` permission.
-- Header save/reset operations use `admin.header.update`.
-- Other layout sections continue to use `admin.layout.view` / `admin.layout.update`.
-- Livewire authorization no longer depends on a non-existent custom `hasPermission()` method; authorization is evaluated through Laravel/Spatie-compatible permission checks.
-- No hardcoded Super Admin role bypass was introduced.
+- Sidebar presentation validation is aligned with the current visual system: `theme`, `light`, `dark`, `custom`.
+- Legacy `system` / `white` sidebar presentation values are normalized to `light`.
+- Theme Editor no longer silently forces Sidebar presentation back to the legacy `system` mode.
 
-### Menu drag & drop
+### Sidebar Menu Visual Designer
 
-- SortableJS is declared as an application dependency and loaded through the existing Vite entrypoint.
-- The Admin menu tree continues to use the existing nested Sortable integration and `updateMenuOrder()` backend contract.
-- Browser/runtime verification confirmed SortableJS is loaded and attached to `#root-menu-list`.
-- Drag interaction is configured to use SortableJS fallback mode (`forceFallback`) to avoid the browser-native drag behavior that prevented the menu handle from moving in the target environment.
-- Existing nested menu semantics and `admin.menu.update` authorization remain unchanged.
+- Reworked `/admin/layout/design#sidebar-menu` into a dedicated professional Sidebar Menu Designer.
+- Menu Item / Menu cha and SubMenu Item now use the same visual-state model: `Normal`, `Hover`, `Active`.
+- Menu Item hover now has independent background, text and icon colors.
+- Menu Item active background is configurable independently from the Sidebar presentation accent.
+- SubMenu normal / hover / active background and text colors are independently configurable.
+- Existing typography, spacing, indent and border controls remain available, with advanced controls kept separate from the primary visual-state workflow.
 
-## Important commits
+### Custom color support
 
-- `949d06bf` — `fix(admin): isolate header route permission`
-- `3bd2d004` — `test(admin): align route authorization contracts`
-- `153bc90d` — `fix(admin): load SortableJS for menu drag and drop`
-- `80db2531` — `fix(admin): declare SortableJS menu dependency`
-- `cffa9cbd` — `fix(admin): harden menu drag fallback`
-- `package-lock.json` generated dependency lock is committed and the working tree is clean/synced with origin.
+- Menu visual-state colors accept either an existing design preset token or a custom `#RRGGBB` value.
+- Custom HEX values are normalized before they reach CSS variables.
+- Arbitrary CSS expressions such as `rgb(...)`, `var(...)`, `url(...)` and script-like payloads are rejected by the menu color reference contract.
+- Color controls expose a native color picker plus the current preset / HEX value for easier visual configuration.
 
-## Verification completed
+### Runtime Sidebar behavior
 
-User-reported focused test run:
+- Menu Item / Menu cha runtime consumes dedicated normal, hover and active design variables.
+- Active state takes precedence over hover for active items and active/open parent groups.
+- SubMenu runtime consumes dedicated normal, hover and active design variables.
+- Icon background remains configurable as transparent or color.
+- Sidebar navigation scrollbar was reduced to a slim presentation; the Livewire component remains single-root after the earlier inline-style regression was corrected.
 
-```bash
-php artisan test \
-tests/Feature/Admin/AdminHeaderConfigurationContractTest.php \
-tests/Feature/Admin/AdminRouteConfigurationTest.php \
-tests/Feature/Admin/AdminHeaderSettingsUiContractTest.php
-```
-
-Result: **27 passed / 164 assertions**.
+## Verification
 
 Manual runtime verification reported by the user:
 
-- `/admin/layout/header`: **UI PASS**.
-- Header title save/reset flow: **PASS**.
-- `/admin/menus`: drag & drop from the six-dot handle: **UI PASS** after fallback-mode correction.
+- `/admin/layout/design#sidebar-menu`: **UI PASS**.
+- Menu / SubMenu visual-state configuration: **UI PASS**.
+- Slim Sidebar scrollbar and Theme Editor runtime: **UI PASS**.
 
-Working tree after verification:
+Focused regression coverage is present in:
 
-```text
-## fix/admin-header-authorization-403...origin/fix/admin-header-authorization-403
+```bash
+php artisan test \
+tests/Feature/Admin/AdminDesignContractTest.php \
+tests/Feature/Admin/AdminThemeEditorSidebarMenuContractTest.php
 ```
 
-No full-project regression was requested or required for this module-scoped fix.
+The branch contains the focused contract tests for menu custom colors, parent hover variables, visual-state designer structure, legacy Sidebar presentation compatibility and runtime CSS-variable wiring. No fresh command-line test result was re-reported in the final UI PASS message, so this handoff does not claim an additional test execution result.
+
+No full-project regression was requested for this module-scoped UI/theme change.
 
 ## Safety / compatibility notes
 
-- Header permission isolation preserves least-privilege behavior.
 - No schema migration was introduced.
-- No role-name bypass was added.
-- Existing menu persistence remains owned by `MenuTable::updateMenuOrder()` / `MenuService::updateOrder()`.
-- Existing menu snapshot, import/export and Google Drive snapshot behavior is outside the functional scope of this fix and should remain unchanged.
+- Existing menu structure, URL, permission and persistence ownership remain unchanged.
+- Existing Sidebar presentation modes from the prior Sidebar Visual System are preserved.
+- Custom menu colors are constrained to preset tokens or normalized six-digit HEX values; arbitrary CSS is not accepted.
+- No raw exception message exposure was introduced.
 
-## Prior accepted checkpoint
+## Important final commits
 
-The previous Admin Menu Snapshot Library work remains accepted: named Google Drive menu snapshots, local sync, explicit restore, selected-only export/snapshot semantics and the System-owned Google Drive portable-file boundary were already verified and merged before this task.
+- `8af71e36` — `test(admin): cover professional menu designer states`
+- `3ae85f35` — `test(admin): cover custom menu colors and parent hover variables`
 
 ## PR / merge gate
 
-This branch is ready for PR creation against `main` after this handoff closeout commit is included. Merge only after confirming the PR head contains the handoff update and the focused verification evidence above.
+User reported final **UI PASS** and explicitly authorized updating the handoff and merging this branch into `main`.

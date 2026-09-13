@@ -1,4 +1,20 @@
 <aside x-data="{ navQuery: '', normalize(value) { return (value || '').toLowerCase(); }, matches(value) { const q = this.normalize(this.navQuery.trim()); return q === '' || this.normalize(value).includes(q); } }" class="flex h-full w-full flex-col overflow-hidden transition-all duration-300 motion-reduce:transition-none {{ $sidebarSurfaceClass }} {{ $sidebarTextClass }}" style="{{ $sidebarStyle }}">
+    <style>
+        .admin-sidebar-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: color-mix(in srgb, currentColor 28%, transparent) transparent;
+        }
+        .admin-sidebar-scrollbar::-webkit-scrollbar { width: 4px; }
+        .admin-sidebar-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, currentColor 28%, transparent);
+            border-radius: 9999px;
+        }
+        .admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: color-mix(in srgb, currentColor 45%, transparent);
+        }
+    </style>
+
     @if ($showSidebarHeader)
         <div class="relative flex min-h-16 shrink-0 items-center border-b px-3" style="border-color:var(--admin-border-subtle, currentColor); {{ $sidebarHeaderStyle }}">
             <div class="flex min-w-0 flex-1 items-center gap-3" :class="sidebarOpen ? '' : 'justify-center'">
@@ -38,7 +54,7 @@
         </div>
     @endif
 
-    <nav class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 [scrollbar-gutter:stable]" style="{{ $sidebarNavigationStyle }}" aria-label="Admin navigation">
+    <nav class="admin-sidebar-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3" style="{{ $sidebarNavigationStyle }}" aria-label="Admin navigation">
         <div x-cloak x-show="sidebarOpen" class="mb-2 flex items-center justify-between px-2"><span class="text-[10px] font-semibold uppercase tracking-[.16em]" style="color:var(--admin-text-muted,currentColor)">Điều hướng</span>@if ($destinationCount >= 8)<span class="rounded-md px-1.5 py-0.5 text-[10px] font-medium" style="background:var(--admin-sidebar-control-surface,rgba(0,0,0,.05));color:var(--admin-text-muted,currentColor)">{{ $destinationCount }}</span>@endif</div>
         <div class="flex flex-col" style="gap:var(--admin-sidebar-menu-item-gap)">@foreach ($menus as $item)<div x-show="matches(@js($item['name'].' '.collect($item['children'] ?? [])->pluck('name')->implode(' '))) || navQuery.trim() === ''">@include('Admin::livewire.partials.sidebar.navigation.' . $item['kind'], ['item' => $item])</div>@endforeach</div>
         @if ($showNavigationSearch)<p x-cloak x-show="sidebarOpen && navQuery.trim() !== ''" class="mt-3 border-t px-2 pt-3 text-[11px]" style="border-color:var(--admin-border-subtle,currentColor);color:var(--admin-text-muted,currentColor)">Đang lọc menu theo “<span x-text="navQuery"></span>”</p>@endif
