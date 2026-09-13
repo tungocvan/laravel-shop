@@ -40,32 +40,21 @@ final class SystemDashboardService
             'failed_jobs' => $capabilities['settings_view'] && $this->tableExists('failed_jobs'),
         ];
 
-        $settingsSnapshot = $this->settingsSnapshot(
-            $capabilities['env_view'],
-            $availability['settings'],
-        );
+        $settingsSnapshot = $this->settingsSnapshot($capabilities['env_view'], $availability['settings']);
         $configuration = $this->configurationMetrics($capabilities['env_view']);
         $queueMetrics = $this->queueMetrics(
             $capabilities['settings_view'],
             $availability['jobs'],
             $availability['failed_jobs'],
         );
-        $drive = $this->driveStatus(
-            $capabilities['env_view'],
-            $settingsSnapshot,
-        );
-        $cloudBackup = $this->cloudBackupStatus(
-            $capabilities['env_view'],
-            $settingsSnapshot,
-        );
+        $drive = $this->driveStatus($capabilities['env_view'], $settingsSnapshot);
+        $cloudBackup = $this->cloudBackupStatus($capabilities['env_view'], $settingsSnapshot);
         $workspaces = $this->workspaces($capabilities);
         $subsystems = [
             'settings' => [
                 'visible' => $settingsVisible,
                 'available' => $availability['settings'],
-                'state' => ! $settingsVisible
-                    ? 'hidden'
-                    : ($availability['settings'] ? 'ready' : 'unavailable'),
+                'state' => ! $settingsVisible ? 'hidden' : ($availability['settings'] ? 'ready' : 'unavailable'),
             ],
             'queue' => [
                 'visible' => $capabilities['settings_view'],
@@ -75,9 +64,7 @@ final class SystemDashboardService
             'database' => [
                 'visible' => $capabilities['database_view'],
                 'available' => $availability['database'],
-                'state' => ! $capabilities['database_view']
-                    ? 'hidden'
-                    : ($availability['database'] ? 'ready' : 'unavailable'),
+                'state' => ! $capabilities['database_view'] ? 'hidden' : ($availability['database'] ? 'ready' : 'unavailable'),
             ],
             'google_drive' => $drive,
             'cloud_backup' => $cloudBackup,
@@ -102,9 +89,7 @@ final class SystemDashboardService
                 ],
                 'configuration' => $configuration,
                 'queues' => $queueMetrics,
-                'warnings' => [
-                    'count' => count($warnings),
-                ],
+                'warnings' => ['count' => count($warnings)],
             ],
             subsystems: $subsystems,
             workspaces: $workspaces,
@@ -120,60 +105,60 @@ final class SystemDashboardService
     {
         $definitions = [
             [
-                'permission' => 'manage',
-                'code' => 'system',
-                'label' => 'System workspace',
-                'description' => 'Mở các tab giao diện, database, queue và cấu hình vận hành hiện có.',
-                'category' => 'Tổng quan',
-            ],
-            [
-                'permission' => 'settings_view',
-                'code' => 'settings',
-                'label' => 'Cấu hình chung',
-                'description' => 'Quản lý các thiết lập ứng dụng bằng workspace chuyên trách.',
-                'category' => 'Cấu hình',
-            ],
-            [
-                'permission' => 'env_view',
-                'code' => 'environment',
-                'label' => 'Môi trường & tích hợp',
-                'description' => 'Kiểm tra cấu hình database, mail, queue, thanh toán và lưu trữ cloud.',
-                'category' => 'Cấu hình',
-            ],
-            [
                 'permission' => 'modules_view',
                 'code' => 'modules',
-                'label' => 'Quản lý Module',
-                'description' => 'Xem trạng thái runtime và dependency của các Module.',
+                'label' => 'Quản lý Modules',
+                'description' => 'Bật/tắt Module với dependency, migration, permission và queue impact preflight.',
                 'category' => 'Vận hành',
             ],
             [
-                'permission' => 'commands_run',
-                'code' => 'artisan',
-                'label' => 'Thao tác Artisan',
-                'description' => 'Mở registry thao tác Artisan đã được giới hạn phía server.',
-                'category' => 'Vận hành',
-            ],
-            [
-                'permission' => 'commands_run',
-                'code' => 'scripts',
-                'label' => 'Thao tác Script',
-                'description' => 'Mở registry script vận hành đã được giới hạn phía server.',
+                'permission' => 'manage',
+                'code' => 'queue',
+                'label' => 'Queue Manager',
+                'description' => 'Theo dõi worker, pending/failed jobs, probe health và Realtime runtime.',
                 'category' => 'Vận hành',
             ],
             [
                 'permission' => 'database_view',
                 'code' => 'database',
                 'label' => 'Database Manager',
-                'description' => 'Xem bảng dữ liệu và mở các thao tác theo quyền riêng.',
-                'category' => 'Dữ liệu',
+                'description' => 'Quản lý dữ liệu và metadata database trong workspace có authorization riêng.',
+                'category' => 'Dữ liệu & Khôi phục',
             ],
             [
                 'permission' => 'database_view',
                 'code' => 'backup',
                 'label' => 'Backup / Restore',
-                'description' => 'Xem kho backup cục bộ; mutation vẫn được bảo vệ trong workspace.',
-                'category' => 'Dữ liệu',
+                'description' => 'Quản lý backup, Module Snapshot và khôi phục có safety boundary.',
+                'category' => 'Dữ liệu & Khôi phục',
+            ],
+            [
+                'permission' => 'env_view',
+                'code' => 'environment',
+                'label' => 'Môi trường & Tích hợp',
+                'description' => 'Database connection, Email, Storage / Cloud, Web & Analytics và Runtime & Bridge.',
+                'category' => 'Cấu hình hạ tầng',
+            ],
+            [
+                'permission' => 'settings_view',
+                'code' => 'login',
+                'label' => 'Giao diện & Đăng nhập',
+                'description' => 'Quản lý branding đăng nhập, hành vi sau đăng nhập và điều hướng mặc định.',
+                'category' => 'Quản trị truy cập',
+            ],
+            [
+                'permission' => 'commands_run',
+                'code' => 'artisan',
+                'label' => 'Artisan',
+                'description' => 'Chạy các thao tác Artisan đã được giới hạn phía server.',
+                'category' => 'Công cụ kỹ thuật',
+            ],
+            [
+                'permission' => 'commands_run',
+                'code' => 'scripts',
+                'label' => 'Scripts',
+                'description' => 'Chạy registry script vận hành đã được giới hạn phía server.',
+                'category' => 'Công cụ kỹ thuật',
             ],
         ];
 
@@ -189,18 +174,10 @@ final class SystemDashboardService
             ->all();
     }
 
-    /**
-     * @return array{visible: bool, available: bool, ready: ?int, total: ?int}
-     */
     private function configurationMetrics(bool $visible): array
     {
         if (! $visible) {
-            return [
-                'visible' => false,
-                'available' => false,
-                'ready' => null,
-                'total' => null,
-            ];
+            return ['visible' => false, 'available' => false, 'ready' => null, 'total' => null];
         }
 
         try {
@@ -219,38 +196,18 @@ final class SystemDashboardService
         } catch (Throwable $exception) {
             $this->logUnavailable('configuration', $exception);
 
-            return [
-                'visible' => true,
-                'available' => false,
-                'ready' => 0,
-                'total' => 3,
-            ];
+            return ['visible' => true, 'available' => false, 'ready' => 0, 'total' => 3];
         }
     }
 
-    /**
-     * @return array{visible: bool, available: bool, pending: ?int, reserved: ?int, failed: ?int}
-     */
     private function queueMetrics(bool $visible, bool $jobsAvailable, bool $failedJobsAvailable): array
     {
         if (! $visible) {
-            return [
-                'visible' => false,
-                'available' => false,
-                'pending' => null,
-                'reserved' => null,
-                'failed' => null,
-            ];
+            return ['visible' => false, 'available' => false, 'pending' => null, 'reserved' => null, 'failed' => null];
         }
 
         if (! $jobsAvailable || ! $failedJobsAvailable) {
-            return [
-                'visible' => true,
-                'available' => false,
-                'pending' => 0,
-                'reserved' => 0,
-                'failed' => 0,
-            ];
+            return ['visible' => true, 'available' => false, 'pending' => 0, 'reserved' => 0, 'failed' => 0];
         }
 
         try {
@@ -270,30 +227,14 @@ final class SystemDashboardService
         } catch (Throwable $exception) {
             $this->logUnavailable('queue_metrics', $exception);
 
-            return [
-                'visible' => true,
-                'available' => false,
-                'pending' => 0,
-                'reserved' => 0,
-                'failed' => 0,
-            ];
+            return ['visible' => true, 'available' => false, 'pending' => 0, 'reserved' => 0, 'failed' => 0];
         }
     }
 
-    /**
-     * @param  array{available: bool, values: array<string, string>}  $settingsSnapshot
-     * @return array<string, mixed>
-     */
     private function driveStatus(bool $visible, array $settingsSnapshot): array
     {
         if (! $visible) {
-            return [
-                'visible' => false,
-                'available' => false,
-                'configured' => null,
-                'connected' => null,
-                'state' => 'hidden',
-            ];
+            return ['visible' => false, 'available' => false, 'configured' => null, 'connected' => null, 'state' => 'hidden'];
         }
 
         $configured = filled(config('system.google_drive.client_id'))
@@ -308,16 +249,10 @@ final class SystemDashboardService
             'available' => $settingsSnapshot['available'],
             'configured' => $configured,
             'connected' => $connected,
-            'state' => ! $settingsSnapshot['available']
-                ? 'unavailable'
-                : ($configured && $connected ? 'ready' : 'attention'),
+            'state' => ! $settingsSnapshot['available'] ? 'unavailable' : ($configured && $connected ? 'ready' : 'attention'),
         ];
     }
 
-    /**
-     * @param  array{available: bool, values: array<string, string>}  $settingsSnapshot
-     * @return array<string, mixed>
-     */
     private function cloudBackupStatus(bool $visible, array $settingsSnapshot): array
     {
         if (! $visible) {
@@ -344,35 +279,22 @@ final class SystemDashboardService
 
         $lastStatus = (string) ($settingsSnapshot['values']['cloud.google_drive.auto.last_status'] ?? '');
         $lastStatus = in_array($lastStatus, ['success', 'failed'], true) ? $lastStatus : null;
-        $enabled = filter_var(
-            $settingsSnapshot['values']['cloud.google_drive.auto.enabled'] ?? false,
-            FILTER_VALIDATE_BOOL,
-        );
+        $enabled = filter_var($settingsSnapshot['values']['cloud.google_drive.auto.enabled'] ?? false, FILTER_VALIDATE_BOOL);
 
         return [
             'visible' => true,
             'available' => true,
             'enabled' => $enabled,
             'last_status' => $lastStatus,
-            'last_run_at' => $this->iso(
-                $settingsSnapshot['values']['cloud.google_drive.auto.last_run_at'] ?? null,
-            ),
-            'state' => $lastStatus === 'failed'
-                ? 'danger'
-                : ($enabled ? 'ready' : 'idle'),
+            'last_run_at' => $this->iso($settingsSnapshot['values']['cloud.google_drive.auto.last_run_at'] ?? null),
+            'state' => $lastStatus === 'failed' ? 'danger' : ($enabled ? 'ready' : 'idle'),
         ];
     }
 
-    /**
-     * @return array{available: bool, values: array<string, string>}
-     */
     private function settingsSnapshot(bool $visible, bool $settingsAvailable): array
     {
         if (! $visible || ! $settingsAvailable) {
-            return [
-                'available' => false,
-                'values' => [],
-            ];
+            return ['available' => false, 'values' => []];
         }
 
         try {
@@ -388,16 +310,10 @@ final class SystemDashboardService
         } catch (Throwable $exception) {
             $this->logUnavailable('settings_snapshot', $exception);
 
-            return [
-                'available' => false,
-                'values' => [],
-            ];
+            return ['available' => false, 'values' => []];
         }
     }
 
-    /**
-     * @param  array<string, mixed>  $queueMetrics
-     */
     private function queueState(array $queueMetrics): string
     {
         if (! $queueMetrics['visible']) {
@@ -408,26 +324,13 @@ final class SystemDashboardService
             return 'unavailable';
         }
 
-        if (
-            $queueMetrics['pending'] === 0
-            && $queueMetrics['reserved'] === 0
-            && $queueMetrics['failed'] === 0
-        ) {
+        if ($queueMetrics['pending'] === 0 && $queueMetrics['reserved'] === 0 && $queueMetrics['failed'] === 0) {
             return 'empty';
         }
 
         return $queueMetrics['failed'] > 0 ? 'danger' : 'ready';
     }
 
-    /**
-     * @param  array<string, bool>  $capabilities
-     * @param  array<string, bool>  $availability
-     * @param  array<string, mixed>  $configuration
-     * @param  array<string, mixed>  $queueMetrics
-     * @param  array<string, mixed>  $drive
-     * @param  array<string, mixed>  $cloudBackup
-     * @return array<int, array{level: string, code: string, message: string}>
-     */
     private function warnings(
         array $capabilities,
         array $availability,
@@ -515,8 +418,7 @@ final class SystemDashboardService
                 return true;
             }
 
-            return method_exists($user, 'checkPermissionTo')
-                && $user->checkPermissionTo($permission, 'admin');
+            return method_exists($user, 'checkPermissionTo') && $user->checkPermissionTo($permission, 'admin');
         } catch (Throwable) {
             return false;
         }
