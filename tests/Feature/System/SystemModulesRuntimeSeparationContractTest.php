@@ -74,7 +74,7 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertStringNotContainsString('processAction(', $view);
 
         $this->assertStringContainsString('use App\\Modules\\ModuleRegistry;', $registry);
-        $this->assertStringContainsString("$runtimeModules = $this->modules->current()->keyBy('name');", $registry);
+        $this->assertStringContainsString('$runtimeModules = $this->modules->current()->keyBy(\'name\');', $registry);
         $this->assertStringContainsString('$disabledOwnedQueues[$name] = true;', $registry);
         $this->assertStringContainsString('if (isset($disabledOwnedQueues[$name]))', $registry);
         $this->assertStringContainsString("config('queue.connections.'.config('queue.default').'.queue', 'default')", $registry);
@@ -83,7 +83,7 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertStringContainsString("'state' =>", $registry);
 
         $this->assertStringContainsString("Artisan::call('queue:retry'", $failedJobs);
-        $this->assertStringContainsString("DB::table('failed_jobs')->where('queue', $queue)->delete()", $failedJobs);
+        $this->assertStringContainsString('DB::table(\'failed_jobs\')->where(\'queue\', $queue)->delete()', $failedJobs);
         $this->assertStringContainsString('exceptionSummary', $failedJobs);
         $this->assertStringNotContainsString('shell_exec(', $failedJobs);
         $this->assertStringNotContainsString('exec(', $failedJobs);
