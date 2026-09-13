@@ -56,6 +56,7 @@
                     this.syncViewport();
 
                     window.addEventListener('resize', () => this.syncViewport(), { passive: true });
+                    window.addEventListener('scroll', () => this.resetDocumentScroll(), { passive: true });
 
                     window.addEventListener('keydown', (event) => {
                         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
