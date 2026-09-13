@@ -68,6 +68,7 @@ class AdminThemeEditor extends Component
         $wasSelected = $this->selectedTheme === $name;
         $profileService->deleteCustom($name);
         $this->profiles = $profileService->profiles();
+
         if ($wasSelected) {
             $this->selectedTheme = AdminThemeProfileService::DEFAULT_PROFILE;
             $this->config = $profileService->apply($this->selectedTheme, $layoutManager->config());
@@ -76,6 +77,7 @@ class AdminThemeEditor extends Component
             $profileService->setActive($this->selectedTheme);
             $this->dispatchDesignPreview();
         }
+
         session()->flash('warning', 'Đã xóa Theme tùy chỉnh.');
     }
 
@@ -131,17 +133,12 @@ class AdminThemeEditor extends Component
 
     private function normalizeDesign(AdminDesignService $designService): void
     {
-        $this->config['design'] = $designService->sanitize(
-            (array) data_get($this->config, 'design', [])
-        );
+        $this->config['design'] = $designService->sanitize((array) data_get($this->config, 'design', []));
     }
 
     private function dispatchDesignPreview(): void
     {
-        $variables = app(AdminDesignService::class)->cssVariables(
-            (array) data_get($this->config, 'design', [])
-        );
-
+        $variables = app(AdminDesignService::class)->cssVariables((array) data_get($this->config, 'design', []));
         $this->dispatch('admin-design-preview', variables: $variables);
     }
 
@@ -166,17 +163,121 @@ class AdminThemeEditor extends Component
         $colors = implode(',', array_keys($designService->colorOptions()));
         $surfaces = implode(',', array_keys($designService->surfaceColorOptions()));
         $sidebarPalettes = implode(',', $this->sidebarPalettes ?: ['soft-light']);
-        $fonts=implode(',',AdminDesignService::fontFamilyKeys());
-        $menuFonts=implode(',',AdminDesignService::menuFontFamilyKeys());
+        $fonts = implode(',', AdminDesignService::fontFamilyKeys());
+        $menuFonts = implode(',', AdminDesignService::menuFontFamilyKeys());
+        $menuColor = ['required', 'string', 'max:32', function (string $attribute, mixed $value, \Closure $fail) use ($designService): void {
+            if (! $designService->isMenuColorReference($value)) {
+                $fail('Màu menu phải là preset hợp lệ hoặc mã HEX dạng #RRGGBB.');
+            }
+        }];
 
         return [
-            'selectedTheme'=>'required|string|max:100','config.design.typography.font_family'=>'required|in:'.$fonts,'config.design.typography.body_size'=>'required|in:xs,sm,base,lg,2xl','config.design.typography.page_title_size'=>'required|in:xs,sm,base,lg,2xl','config.design.typography.heading_weight'=>'required|in:normal,medium,semibold,bold',
-            'config.design.colors.surface_base'=>'required|in:'.$colors,'config.design.colors.surface_raised'=>'required|in:'.$colors,'config.design.colors.text_primary'=>'required|in:'.$colors,'config.design.colors.text_secondary'=>'required|in:'.$colors,'config.design.colors.text_muted'=>'required|in:'.$colors,'config.design.colors.border_subtle'=>'required|in:'.$colors,'config.design.colors.accent'=>'required|in:'.$colors,'config.design.colors.focus_ring'=>'required|in:'.$colors,'config.design.colors.success'=>'required|in:'.$colors,'config.design.colors.warning'=>'required|in:'.$colors,'config.design.colors.danger'=>'required|in:'.$colors,'config.design.colors.info'=>'required|in:'.$colors,'config.design.colors.header_background'=>'required|in:'.$colors,'config.design.colors.footer_background'=>'required|in:'.$colors,'config.design.colors.page_background'=>'required|in:'.$surfaces,'config.design.colors.content_background'=>'required|in:'.$surfaces,'config.design.colors.sidebar_header_background'=>'required|in:'.$colors,'config.design.colors.sidebar_navigation_background'=>'required|in:'.$colors,'config.design.colors.sidebar_footer_background'=>'required|in:'.$colors,
-            'config.design.sidebar_menu.item.font_family'=>'required|in:'.$menuFonts,'config.design.sidebar_menu.item.font_size'=>'required|in:12,13,sm,15,base','config.design.sidebar_menu.item.font_weight'=>'required|in:normal,medium,semibold,bold','config.design.sidebar_menu.item.title_color'=>'required|in:'.$colors,'config.design.sidebar_menu.item.icon_color'=>'required|in:'.$colors,'config.design.sidebar_menu.item.icon_background_mode'=>'required|in:transparent,color','config.design.sidebar_menu.item.icon_background_color'=>'required|in:'.$colors,'config.design.sidebar_menu.item.icon_size'=>'required|in:16,18,20,22,24','config.design.sidebar_menu.item.item_height'=>'required|in:40,44,48,52','config.design.sidebar_menu.item.padding_x'=>'required|in:8,10,12,14,16','config.design.sidebar_menu.item.padding_y'=>'required|in:4,6,8,10,12','config.design.sidebar_menu.item.content_gap'=>'required|in:8,10,12,14,16','config.design.sidebar_menu.item.item_gap'=>'required|in:0,2,4,6,8',
-            'config.design.sidebar_menu.submenu.font_family'=>'required|in:'.$menuFonts,'config.design.sidebar_menu.submenu.font_size'=>'required|in:12,13,sm,15,base','config.design.sidebar_menu.submenu.font_weight'=>'required|in:normal,medium,semibold,bold','config.design.sidebar_menu.submenu.title_color'=>'required|in:'.$colors,'config.design.sidebar_menu.submenu.icon_color'=>'required|in:'.$colors,'config.design.sidebar_menu.submenu.background_mode'=>'required|in:transparent,color','config.design.sidebar_menu.submenu.background_color'=>'required|in:'.$colors,'config.design.sidebar_menu.submenu.hover_background_mode'=>'required|in:transparent,color','config.design.sidebar_menu.submenu.hover_background_color'=>'required|in:'.$colors,'config.design.sidebar_menu.submenu.hover_title_color'=>'required|in:'.$colors,'config.design.sidebar_menu.submenu.active_background_mode'=>'required|in:transparent,color','config.design.sidebar_menu.submenu.active_background_color'=>'required|in:'.$colors,'config.design.sidebar_menu.submenu.active_title_color'=>'required|in:'.$colors,'config.design.sidebar_menu.submenu.indent'=>'required|in:20,24,28,32,36','config.design.sidebar_menu.submenu.item_height'=>'required|in:32,36,40,44','config.design.sidebar_menu.submenu.padding_x'=>'required|in:8,10,12,14,16','config.design.sidebar_menu.submenu.padding_y'=>'required|in:2,4,6,8,10','config.design.sidebar_menu.submenu.offset'=>'required|in:8,10,12,14,16','config.design.sidebar_menu.submenu.item_gap'=>'required|in:0,2,4,6','config.design.sidebar_menu.group.gap'=>'required|in:2,4,6,8,12',
-            'config.design.sidebar_menu.active.title_color'=>'required|in:'.$colors,'config.design.sidebar_menu.active.icon_color'=>'required|in:'.$colors,'config.design.sidebar_menu.active.font_weight'=>'required|in:normal,medium,semibold,bold','config.design.sidebar_menu.active.menu_border_color'=>'required|in:'.$colors,'config.design.sidebar_menu.active.menu_border_width'=>'required|in:0,1,2,3','config.design.sidebar_menu.active.menu_border_style'=>'required|in:solid,dashed,dotted,double','config.design.sidebar_menu.active.submenu_border_color'=>'required|in:'.$colors,'config.design.sidebar_menu.active.submenu_border_width'=>'required|in:0,1,2,3','config.design.sidebar_menu.active.submenu_border_style'=>'required|in:solid,dashed,dotted,double',
-            'config.design.spacing.tight'=>'required|in:1,2,3,4,6,8','config.design.spacing.control'=>'required|in:1,2,3,4,6,8','config.design.spacing.content'=>'required|in:1,2,3,4,6,8','config.design.spacing.section'=>'required|in:1,2,3,4,6,8','config.design.radius.control'=>'required|in:sm,md,lg,xl','config.design.radius.panel'=>'required|in:sm,md,lg,xl','config.design.radius.overlay'=>'required|in:sm,md,lg,xl',
-            'config.theme.default'=>'required|in:'.$sidebarPalettes,'config.theme.dark_mode'=>'required|in:class','config.theme.accent'=>'required|in:blue,indigo,emerald,rose,amber','config.sidebar.presentation.background'=>'required|in:theme,light,dark,custom','config.header.presentation.mode'=>'required|in:balanced,compact,action-heavy','config.header.presentation.padding_x'=>'required|in:0,1,2,3,4,5,6,8,10,12','config.header.presentation.action_gap'=>'required|in:0,1,2,3,4,5,6,8,10,12','config.header.presentation.background'=>'required|in:system,white,transparent','config.header.presentation.divider'=>'required|in:subtle,none','config.header.presentation.shadow'=>'required|in:none,subtle','config.header.presentation.backdrop_blur'=>'boolean','config.footer.presentation.alignment'=>'required|in:split,center','config.footer.presentation.background'=>'required|in:system,transparent','config.footer.presentation.divider'=>'required|in:subtle,none','config.footer.presentation.compact'=>'boolean','config.layout.surface.page_background'=>'required|in:system,white,slate-50','config.layout.surface.content_surface'=>'required|in:transparent,system,white','config.layout.surface.border'=>'required|in:system,none','config.layout.surface.radius'=>'required|in:none,sm,md,lg',
+            'selectedTheme'=>'required|string|max:100',
+            'config.design.typography.font_family'=>'required|in:'.$fonts,
+            'config.design.typography.body_size'=>'required|in:xs,sm,base,lg,2xl',
+            'config.design.typography.page_title_size'=>'required|in:xs,sm,base,lg,2xl',
+            'config.design.typography.heading_weight'=>'required|in:normal,medium,semibold,bold',
+
+            'config.design.colors.surface_base'=>'required|in:'.$colors,
+            'config.design.colors.surface_raised'=>'required|in:'.$colors,
+            'config.design.colors.text_primary'=>'required|in:'.$colors,
+            'config.design.colors.text_secondary'=>'required|in:'.$colors,
+            'config.design.colors.text_muted'=>'required|in:'.$colors,
+            'config.design.colors.border_subtle'=>'required|in:'.$colors,
+            'config.design.colors.accent'=>'required|in:'.$colors,
+            'config.design.colors.focus_ring'=>'required|in:'.$colors,
+            'config.design.colors.success'=>'required|in:'.$colors,
+            'config.design.colors.warning'=>'required|in:'.$colors,
+            'config.design.colors.danger'=>'required|in:'.$colors,
+            'config.design.colors.info'=>'required|in:'.$colors,
+            'config.design.colors.header_background'=>'required|in:'.$colors,
+            'config.design.colors.footer_background'=>'required|in:'.$colors,
+            'config.design.colors.page_background'=>'required|in:'.$surfaces,
+            'config.design.colors.content_background'=>'required|in:'.$surfaces,
+            'config.design.colors.sidebar_header_background'=>'required|in:'.$colors,
+            'config.design.colors.sidebar_navigation_background'=>'required|in:'.$colors,
+            'config.design.colors.sidebar_footer_background'=>'required|in:'.$colors,
+
+            'config.design.sidebar_menu.item.font_family'=>'required|in:'.$menuFonts,
+            'config.design.sidebar_menu.item.font_size'=>'required|in:12,13,sm,15,base',
+            'config.design.sidebar_menu.item.font_weight'=>'required|in:normal,medium,semibold,bold',
+            'config.design.sidebar_menu.item.title_color'=>$menuColor,
+            'config.design.sidebar_menu.item.icon_color'=>$menuColor,
+            'config.design.sidebar_menu.item.background_mode'=>'required|in:transparent,color',
+            'config.design.sidebar_menu.item.background_color'=>$menuColor,
+            'config.design.sidebar_menu.item.icon_background_mode'=>'required|in:transparent,color',
+            'config.design.sidebar_menu.item.icon_background_color'=>$menuColor,
+            'config.design.sidebar_menu.item.hover_background_mode'=>'required|in:transparent,color',
+            'config.design.sidebar_menu.item.hover_background_color'=>$menuColor,
+            'config.design.sidebar_menu.item.hover_title_color'=>$menuColor,
+            'config.design.sidebar_menu.item.hover_icon_color'=>$menuColor,
+            'config.design.sidebar_menu.item.icon_size'=>'required|in:16,18,20,22,24',
+            'config.design.sidebar_menu.item.item_height'=>'required|in:40,44,48,52',
+            'config.design.sidebar_menu.item.padding_x'=>'required|in:8,10,12,14,16',
+            'config.design.sidebar_menu.item.padding_y'=>'required|in:4,6,8,10,12',
+            'config.design.sidebar_menu.item.content_gap'=>'required|in:8,10,12,14,16',
+            'config.design.sidebar_menu.item.item_gap'=>'required|in:0,2,4,6,8',
+
+            'config.design.sidebar_menu.submenu.font_family'=>'required|in:'.$menuFonts,
+            'config.design.sidebar_menu.submenu.font_size'=>'required|in:12,13,sm,15,base',
+            'config.design.sidebar_menu.submenu.font_weight'=>'required|in:normal,medium,semibold,bold',
+            'config.design.sidebar_menu.submenu.title_color'=>$menuColor,
+            'config.design.sidebar_menu.submenu.icon_color'=>$menuColor,
+            'config.design.sidebar_menu.submenu.background_mode'=>'required|in:transparent,color',
+            'config.design.sidebar_menu.submenu.background_color'=>$menuColor,
+            'config.design.sidebar_menu.submenu.hover_background_mode'=>'required|in:transparent,color',
+            'config.design.sidebar_menu.submenu.hover_background_color'=>$menuColor,
+            'config.design.sidebar_menu.submenu.hover_title_color'=>$menuColor,
+            'config.design.sidebar_menu.submenu.active_background_mode'=>'required|in:transparent,color',
+            'config.design.sidebar_menu.submenu.active_background_color'=>$menuColor,
+            'config.design.sidebar_menu.submenu.active_title_color'=>$menuColor,
+            'config.design.sidebar_menu.submenu.indent'=>'required|in:20,24,28,32,36',
+            'config.design.sidebar_menu.submenu.item_height'=>'required|in:32,36,40,44',
+            'config.design.sidebar_menu.submenu.padding_x'=>'required|in:8,10,12,14,16',
+            'config.design.sidebar_menu.submenu.padding_y'=>'required|in:2,4,6,8,10',
+            'config.design.sidebar_menu.submenu.offset'=>'required|in:8,10,12,14,16',
+            'config.design.sidebar_menu.submenu.item_gap'=>'required|in:0,2,4,6',
+            'config.design.sidebar_menu.group.gap'=>'required|in:2,4,6,8,12',
+
+            'config.design.sidebar_menu.active.title_color'=>$menuColor,
+            'config.design.sidebar_menu.active.icon_color'=>$menuColor,
+            'config.design.sidebar_menu.active.font_weight'=>'required|in:normal,medium,semibold,bold',
+            'config.design.sidebar_menu.active.menu_background_mode'=>'required|in:transparent,color',
+            'config.design.sidebar_menu.active.menu_background_color'=>$menuColor,
+            'config.design.sidebar_menu.active.menu_border_color'=>$menuColor,
+            'config.design.sidebar_menu.active.menu_border_width'=>'required|in:0,1,2,3',
+            'config.design.sidebar_menu.active.menu_border_style'=>'required|in:solid,dashed,dotted,double',
+            'config.design.sidebar_menu.active.submenu_border_color'=>$menuColor,
+            'config.design.sidebar_menu.active.submenu_border_width'=>'required|in:0,1,2,3',
+            'config.design.sidebar_menu.active.submenu_border_style'=>'required|in:solid,dashed,dotted,double',
+
+            'config.design.spacing.tight'=>'required|in:1,2,3,4,6,8',
+            'config.design.spacing.control'=>'required|in:1,2,3,4,6,8',
+            'config.design.spacing.content'=>'required|in:1,2,3,4,6,8',
+            'config.design.spacing.section'=>'required|in:1,2,3,4,6,8',
+            'config.design.radius.control'=>'required|in:sm,md,lg,xl',
+            'config.design.radius.panel'=>'required|in:sm,md,lg,xl',
+            'config.design.radius.overlay'=>'required|in:sm,md,lg,xl',
+
+            'config.theme.default'=>'required|in:'.$sidebarPalettes,
+            'config.theme.dark_mode'=>'required|in:class',
+            'config.theme.accent'=>'required|in:blue,indigo,emerald,rose,amber',
+            'config.sidebar.presentation.background'=>'required|in:theme,light,dark,custom',
+            'config.header.presentation.mode'=>'required|in:balanced,compact,action-heavy',
+            'config.header.presentation.padding_x'=>'required|in:0,1,2,3,4,5,6,8,10,12',
+            'config.header.presentation.action_gap'=>'required|in:0,1,2,3,4,5,6,8,10,12',
+            'config.header.presentation.background'=>'required|in:system,white,transparent',
+            'config.header.presentation.divider'=>'required|in:subtle,none',
+            'config.header.presentation.shadow'=>'required|in:none,subtle',
+            'config.header.presentation.backdrop_blur'=>'boolean',
+            'config.footer.presentation.alignment'=>'required|in:split,center',
+            'config.footer.presentation.background'=>'required|in:system,transparent',
+            'config.footer.presentation.divider'=>'required|in:subtle,none',
+            'config.footer.presentation.compact'=>'boolean',
+            'config.layout.surface.page_background'=>'required|in:system,white,slate-50',
+            'config.layout.surface.content_surface'=>'required|in:transparent,system,white',
+            'config.layout.surface.border'=>'required|in:system,none',
+            'config.layout.surface.radius'=>'required|in:none,sm,md,lg',
         ];
     }
 
