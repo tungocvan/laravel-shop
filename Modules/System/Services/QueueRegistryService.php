@@ -2,15 +2,20 @@
 
 namespace Modules\System\Services;
 
+use App\Modules\ModuleRegistry;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class QueueRegistryService
 {
+    public function __construct(private readonly ModuleRegistry $modules) {}
+
     public function queues(): array
     {
         $queues = [];
+        $disabledOwnedQueues = [];
+        $runtimeModules = $this->modules->current()->keyBy('name');
 
         $defaultQueue = (string) config('queue.connections.'.config('queue.default').'.queue', 'default');
         if ($defaultQueue !== '') {
@@ -20,18 +25,28 @@ class QueueRegistryService
         foreach (glob(base_path('Modules/*/config/module.php')) ?: [] as $configFile) {
             $config = require $configFile;
 
-            if (! is_array($config) || ! ($config['enabled'] ?? true)) {
+            if (! is_array($config)) {
                 continue;
             }
 
             $module = (string) ($config['name'] ?? basename(dirname(dirname($configFile))));
+            $enabled = (bool) data_get($runtimeModules->get($module), 'enabled', $config['enabled'] ?? true);
 
             foreach (($config['queues'] ?? []) as $definition) {
                 if (! is_array($definition) || empty($definition['name'])) {
                     continue;
                 }
 
-                $name = (string) $definition['name'];
+                $name = trim((string) $definition['name']);
+                if ($name === '') {
+                    continue;
+                }
+
+                if (! $enabled) {
+                    $disabledOwnedQueues[$name] = true;
+                    continue;
+                }
+
                 $queues[$name] = array_merge($this->defaults($name, $module), $definition, [
                     'module' => $module,
                     'name' => $name,
@@ -41,6 +56,10 @@ class QueueRegistryService
         }
 
         foreach ($this->discoveredQueueNames() as $name) {
+            if (isset($disabledOwnedQueues[$name])) {
+                continue;
+            }
+
             $queues[$name] ??= $this->defaults($name, 'Runtime', 'Queue được phát hiện từ dữ liệu jobs/failed_jobs hiện tại.');
         }
 
