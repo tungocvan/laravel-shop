@@ -6,7 +6,7 @@
 @endphp
 
 <!DOCTYPE html>
-<html lang="{{ $adminConfig['locale'] ?? 'vi' }}" class="h-full">
+<html lang="{{ $adminConfig['locale'] ?? 'vi' }}" class="h-full overflow-hidden">
     @include('Admin::layouts.partials.head')
 
     <body
