@@ -29,7 +29,7 @@ class AdminRouteConfigurationTest extends TestCase
     public static function adminRoutesProvider(): array
     {
         return [
-            ['admin.dashboard', 'admin', 'admin.dashboard.view'],
+            ['admin.dashboard', 'admin/dashboard', 'admin.dashboard.view'],
             ['admin.menus.index', 'admin/menus', 'admin.menu.view'],
             ['admin.menus.create', 'admin/menus/create', 'admin.menu.create'],
             ['admin.menus.edit', 'admin/menus/{id}/edit', 'admin.menu.update'],
@@ -47,6 +47,16 @@ class AdminRouteConfigurationTest extends TestCase
         $this->assertNotNull($route);
         $this->assertNotContains('permission:admin.layout.view,admin', $route->gatherMiddleware());
         $this->assertContains('permission:admin.header.view,admin', $route->gatherMiddleware());
+    }
+
+    public function test_other_layout_routes_keep_layout_view_permission(): void
+    {
+        foreach (['admin.layout.general', 'admin.layout.sidebar', 'admin.layout.footer', 'admin.layout.design', 'admin.layout.navigation'] as $routeName) {
+            $route = Route::getRoutes()->getByName($routeName);
+
+            $this->assertNotNull($route);
+            $this->assertContains('permission:admin.layout.view,admin', $route->gatherMiddleware());
+        }
     }
 
     public function test_legacy_themes_route_redirects_into_layout_design_hub(): void
