@@ -37,6 +37,7 @@ class Sidebar extends Component
     public bool $showFooterName = true;
     public bool $showFooterSubtitle = true;
     public string $footerSubtitle = 'Tài khoản quản trị';
+    public string $sidebarMode = 'theme';
     public string $sidebarSurfaceClass = '';
     public string $sidebarTextClass = '';
     public string $sidebarStyle = '';
@@ -106,8 +107,8 @@ class Sidebar extends Component
         $this->footerSubtitle = (string) data_get($layoutConfig, 'sidebar.footer.subtitle', 'Tài khoản quản trị');
 
         $presentation = app(AdminShellPresentationService::class)->sidebarPresentation($layoutConfig);
-        $mode = $presentation['mode'];
-        [$this->sidebarSurfaceClass, $this->sidebarTextClass] = $mode === 'theme'
+        $this->sidebarMode = $presentation['mode'];
+        [$this->sidebarSurfaceClass, $this->sidebarTextClass] = $this->sidebarMode === 'theme'
             ? [$this->theme['background'], $this->theme['text']]
             : ['bg-transparent', 'text-[var(--admin-text-primary)]'];
         $this->sidebarStyle = $presentation['style'];
