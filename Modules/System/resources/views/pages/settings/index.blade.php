@@ -21,7 +21,7 @@
                 <span class="mt-4 inline-flex text-sm font-semibold text-indigo-700">Mở workspace →</span>
             </a>
 
-            @can('system.env.view', 'admin')
+            @if ((bool) auth('admin')->user()?->can('system.env.view'))
                 <a href="{{ route('admin.system.settings.env') }}"
                    class="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
                     <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Cấu hình hạ tầng</p>
@@ -29,7 +29,7 @@
                     <p class="mt-2 text-sm leading-6 text-slate-600">Database, Email, Runtime & Bridge, Storage / Cloud, Web & Analytics và thanh toán.</p>
                     <span class="mt-4 inline-flex text-sm font-semibold text-indigo-700">Mở workspace →</span>
                 </a>
-            @endcan
+            @endif
         </div>
 
         <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900">
