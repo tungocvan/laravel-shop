@@ -73,7 +73,7 @@
                 <h3 class="text-base font-bold text-slate-900">Trạng thái Queue</h3>
                 <p class="mt-1 text-sm text-slate-500">Queue mặc định, queue của Module đang bật và queue runtime không thuộc Module đều được tổng hợp tại đây.</p>
             </div>
-            <div class="text-xs text-slate-400">Quyền quản lý: system.settings.update</div>
+            <div class="text-xs text-slate-400">Pending quá 5 phút sẽ được cảnh báo.</div>
         </div>
 
         <div class="divide-y divide-slate-100">
@@ -83,15 +83,34 @@
                     $state = $status['state'] ?? 'idle';
                     $stateLabel = match ($state) {
                         'attention' => 'Có lịch sử lỗi',
+                        'stalled' => 'Có dấu hiệu bị kẹt',
                         'processing' => 'Đang chạy',
                         'waiting' => 'Đang chờ',
                         default => 'Rảnh',
                     };
                     $stateClass = match ($state) {
                         'attention' => 'bg-rose-100 text-rose-800',
+                        'stalled' => 'bg-orange-100 text-orange-800',
                         'processing' => 'bg-blue-100 text-blue-800',
                         'waiting' => 'bg-amber-100 text-amber-800',
                         default => 'bg-emerald-100 text-emerald-800',
+                    };
+                    $pendingAge = (int) ($status['oldest_pending_age_seconds'] ?? 0);
+                    $pendingAgeLabel = $pendingAge >= 3600
+                        ? intdiv($pendingAge, 3600).' giờ '.intdiv($pendingAge % 3600, 60).' phút'
+                        : ($pendingAge >= 60 ? intdiv($pendingAge, 60).' phút '.($pendingAge % 60).' giây' : $pendingAge.' giây');
+                    $probeState = $status['probe_state'] ?? 'unknown';
+                    $probeLabel = match ($probeState) {
+                        'confirmed' => 'Worker đã xác nhận',
+                        'waiting' => 'Đang chờ worker',
+                        'unresponsive' => 'Worker chưa phản hồi',
+                        default => 'Chưa kiểm tra',
+                    };
+                    $probeClass = match ($probeState) {
+                        'confirmed' => 'text-emerald-700',
+                        'waiting' => 'text-amber-700',
+                        'unresponsive' => 'text-rose-700',
+                        default => 'text-slate-500',
                     };
                 @endphp
 
@@ -110,6 +129,11 @@
                             </div>
                             @if ($queue['description'])
                                 <p class="mt-1 text-sm text-slate-500">{{ $queue['description'] }}</p>
+                            @endif
+                            @if ($status['stale_pending'] ?? false)
+                                <div class="mt-3 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs leading-5 text-orange-800">
+                                    Queue có pending lâu hơn 5 phút. Hãy kiểm tra worker có đang nghe đúng queue <span class="font-mono font-semibold">{{ $queue['name'] }}</span> hay không.
+                                </div>
                             @endif
                         </div>
 
@@ -142,7 +166,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
                         <div class="rounded-xl border border-amber-100 bg-amber-50/70 p-3">
                             <div class="text-xs font-medium text-amber-700">Pending</div>
                             <div class="mt-1 text-xl font-bold text-amber-900">{{ $status['pending'] }}</div>
@@ -156,8 +180,17 @@
                             <div class="mt-1 text-xl font-bold text-rose-900">{{ $status['failed'] }}</div>
                         </div>
                         <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                            <div class="text-xs font-medium text-slate-600">Worker probe gần nhất</div>
-                            <div class="mt-1 break-words text-xs font-semibold text-slate-800">{{ $status['last_probe_at'] ?: 'Chưa xác nhận' }}</div>
+                            <div class="text-xs font-medium text-slate-600">Pending lâu nhất</div>
+                            <div class="mt-1 text-xs font-semibold {{ ($status['stale_pending'] ?? false) ? 'text-orange-700' : 'text-slate-800' }}">
+                                {{ ($status['pending'] ?? 0) > 0 ? $pendingAgeLabel : 'Không có' }}
+                            </div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div class="text-xs font-medium text-slate-600">Worker health</div>
+                            <div class="mt-1 text-xs font-semibold {{ $probeClass }}">{{ $probeLabel }}</div>
+                            @if ($status['last_probe_at'] ?? null)
+                                <div class="mt-1 break-words text-[11px] text-slate-400">{{ $status['last_probe_at'] }}</div>
+                            @endif
                         </div>
                     </div>
 
