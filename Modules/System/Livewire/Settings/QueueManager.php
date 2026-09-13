@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Modules\System\Jobs\QueueProbeJob;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\QueueFailedJobService;
 use Modules\System\Services\QueueRegistryService;
 use Modules\System\Services\SystemRealtimeControlService;
 use Throwable;
@@ -23,6 +24,12 @@ class QueueManager extends Component
     public bool $canUpdateRealtime = false;
 
     public bool $canManageQueues = false;
+
+    public ?string $failedQueue = null;
+
+    public array $failedJobs = [];
+
+    public array $selectedFailedIds = [];
 
     public function mount(): void
     {
@@ -77,13 +84,81 @@ class QueueManager extends Component
         }
     }
 
+    public function openFailedJobs(string $queue, QueueFailedJobService $failedJobs): void
+    {
+        $this->authorizePermission('system.settings.view');
+        $this->assertKnownQueue($queue);
+
+        $this->failedQueue = $queue;
+        $this->selectedFailedIds = [];
+        $this->failedJobs = $failedJobs->list($queue);
+    }
+
+    public function closeFailedJobs(): void
+    {
+        $this->failedQueue = null;
+        $this->failedJobs = [];
+        $this->selectedFailedIds = [];
+    }
+
+    public function retrySelectedFailed(QueueFailedJobService $failedJobs): void
+    {
+        $this->authorizePermission('system.settings.update');
+
+        if (! $this->failedQueue || $this->selectedFailedIds === []) {
+            return;
+        }
+
+        try {
+            $count = $failedJobs->retry($this->failedQueue, $this->selectedFailedIds);
+            session()->flash('queue_message', "Đã gửi retry cho {$count} failed job của queue {$this->failedQueue}.");
+            $this->refreshFailedJobs($failedJobs);
+        } catch (Throwable $e) {
+            Log::warning('QueueManager failed job retry failed.', ['exception' => $e::class]);
+            session()->flash('error', 'Không thể retry failed jobs. Vui lòng kiểm tra log hệ thống.');
+        }
+    }
+
+    public function forgetSelectedFailed(QueueFailedJobService $failedJobs): void
+    {
+        $this->authorizePermission('system.settings.update');
+
+        if (! $this->failedQueue || $this->selectedFailedIds === []) {
+            return;
+        }
+
+        try {
+            $count = $failedJobs->forget($this->failedQueue, $this->selectedFailedIds);
+            session()->flash('queue_message', "Đã xóa {$count} failed job khỏi lịch sử queue {$this->failedQueue}.");
+            $this->refreshFailedJobs($failedJobs);
+        } catch (Throwable $e) {
+            Log::warning('QueueManager failed job forget failed.', ['exception' => $e::class]);
+            session()->flash('error', 'Không thể xóa failed jobs đã chọn. Vui lòng kiểm tra log hệ thống.');
+        }
+    }
+
+    public function clearFailedHistory(string $queue, QueueFailedJobService $failedJobs): void
+    {
+        $this->authorizePermission('system.settings.update');
+        $this->assertKnownQueue($queue);
+
+        try {
+            $count = $failedJobs->clear($queue);
+            session()->flash('queue_message', "Đã clear {$count} failed job trong lịch sử queue {$queue}.");
+
+            if ($this->failedQueue === $queue) {
+                $this->refreshFailedJobs($failedJobs);
+            }
+        } catch (Throwable $e) {
+            Log::warning('QueueManager failed history clear failed.', ['exception' => $e::class]);
+            session()->flash('error', 'Không thể clear lịch sử failed jobs. Vui lòng kiểm tra log hệ thống.');
+        }
+    }
+
     public function probe(string $queue): void
     {
         $this->authorizePermission('system.settings.view');
-
-        $registry = app(QueueRegistryService::class);
-        $knownQueues = collect($registry->queues())->pluck('name');
-        abort_unless($knownQueues->contains($queue), 404);
+        $this->assertKnownQueue($queue);
 
         QueueProbeJob::dispatch($queue);
 
@@ -107,5 +182,21 @@ class QueueManager extends Component
         return view('System::livewire.settings.queue-manager', [
             'queues' => $queues,
         ]);
+    }
+
+    private function refreshFailedJobs(QueueFailedJobService $failedJobs): void
+    {
+        if (! $this->failedQueue) {
+            return;
+        }
+
+        $this->selectedFailedIds = [];
+        $this->failedJobs = $failedJobs->list($this->failedQueue);
+    }
+
+    private function assertKnownQueue(string $queue): void
+    {
+        $knownQueues = collect(app(QueueRegistryService::class)->queues())->pluck('name');
+        abort_unless($knownQueues->contains($queue), 404);
     }
 }
