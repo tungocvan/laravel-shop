@@ -1,4 +1,14 @@
-<div wire:poll.5s="$refresh" class="space-y-5">
+@php
+    $fastPolling = collect($queues)->contains(function ($queue) {
+        $status = $queue['status'] ?? [];
+
+        return (int) ($status['pending'] ?? 0) > 0
+            || (int) ($status['reserved'] ?? 0) > 0
+            || ($status['probe_state'] ?? null) === 'waiting';
+    });
+@endphp
+
+<div @if ($fastPolling) wire:poll.5s="$refresh" @else wire:poll.30s="$refresh" @endif class="space-y-5">
     @if (session('message'))
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
             {{ session('message') }}
@@ -28,22 +38,34 @@
             <div>
                 <div class="flex flex-wrap items-center gap-2">
                     <h3 class="text-xl font-bold text-slate-900">Queue Manager</h3>
-                    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Tự làm mới mỗi 5 giây</span>
+                    @if ($fastPolling)
+                        <span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">Theo dõi nhanh · 5 giây</span>
+                    @else
+                        <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">Hệ thống rảnh · 30 giây</span>
+                    @endif
                 </div>
                 <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
                     Theo dõi queue Laravel đang hoạt động, backlog và lịch sử failed jobs. Không phụ thuộc PM2; phù hợp Docker, Supervisor hoặc worker chạy trực tiếp.
                 </p>
             </div>
 
-            <button type="button"
-                wire:click="restartWorkers"
-                wire:confirm="Gửi tín hiệu restart đến toàn bộ Laravel queue workers? Worker sẽ kết thúc an toàn sau job hiện tại và tiến trình quản lý bên ngoài phải tự khởi động lại worker."
-                wire:loading.attr="disabled"
-                wire:target="restartWorkers"
-                @disabled(! $canManageQueues)
-                class="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
-                Restart queue workers
-            </button>
+            <div class="flex flex-wrap gap-2">
+                <button type="button"
+                    wire:click="$refresh"
+                    wire:loading.attr="disabled"
+                    class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                    Làm mới
+                </button>
+                <button type="button"
+                    wire:click="restartWorkers"
+                    wire:confirm="Gửi tín hiệu restart đến toàn bộ Laravel queue workers? Worker sẽ kết thúc an toàn sau job hiện tại và tiến trình quản lý bên ngoài phải tự khởi động lại worker."
+                    wire:loading.attr="disabled"
+                    wire:target="restartWorkers"
+                    @disabled(! $canManageQueues)
+                    class="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+                    Restart queue workers
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-2 gap-px bg-slate-200 lg:grid-cols-4">
