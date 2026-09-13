@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Livewire\Settings;
 
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
@@ -71,7 +72,7 @@ class AdminLayoutConfig extends Component
 
     public function save(AdminLayoutManager $manager): void
     {
-        $this->authorizePermission('admin.layout.update');
+        $this->authorizePermission($this->updatePermission());
         $validated = $this->validate($this->rules())['config'];
         $manager->save(array_replace_recursive($manager->config(), $validated));
         $this->config = $manager->config();
@@ -95,7 +96,7 @@ class AdminLayoutConfig extends Component
 
     public function resetSection(AdminLayoutManager $manager): void
     {
-        $this->authorizePermission('admin.layout.update');
+        $this->authorizePermission($this->updatePermission());
         $manager->save(array_replace_recursive($manager->config(), $this->sectionPayload($manager->defaults())));
         $this->config = $manager->config();
         $this->dispatch('admin-layout-updated');
@@ -229,10 +230,16 @@ class AdminLayoutConfig extends Component
         });
     }
 
+    private function updatePermission(): string
+    {
+        return $this->section === 'header' ? 'admin.header.update' : 'admin.layout.update';
+    }
+
     private function authorizePermission(string $permission): void
     {
         $user = auth('admin')->user();
-        abort_unless($user && method_exists($user, 'hasPermission') && $user->hasPermission($permission), 403);
+
+        abort_unless($user && Gate::forUser($user)->allows($permission), 403);
     }
 
     private function sectionTitle(): string
