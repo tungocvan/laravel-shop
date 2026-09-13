@@ -42,7 +42,10 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
 
     Route::prefix('layout')->name('layout.')->middleware('permission:admin.layout.view,admin')->group(function () {
         Route::get('/general', [AdminController::class, 'layoutGeneral'])->name('general');
-        Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header');
+        Route::get('/header', [AdminController::class, 'layoutHeader'])
+            ->withoutMiddleware('permission:admin.layout.view,admin')
+            ->middleware('permission:admin.header.view,admin')
+            ->name('header');
         Route::get('/sidebar', [AdminController::class, 'layoutSidebar'])->name('sidebar');
         Route::get('/footer', [AdminController::class, 'layoutFooter'])->name('footer');
         Route::get('/design', [AdminController::class, 'layoutDesign'])->name('design');
