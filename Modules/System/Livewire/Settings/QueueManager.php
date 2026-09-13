@@ -3,12 +3,12 @@
 namespace Modules\System\Livewire\Settings;
 
 use App\Services\RealtimeManager;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Modules\System\Jobs\QueueProbeJob;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\QueueRegistryService;
-use Modules\System\Services\SystemProcessManagerService;
 use Modules\System\Services\SystemRealtimeControlService;
 use Throwable;
 
@@ -22,12 +22,13 @@ class QueueManager extends Component
 
     public bool $canUpdateRealtime = false;
 
-    public bool $canManageProcesses = false;
+    public bool $canManageQueues = false;
 
     public function mount(): void
     {
-        $this->canUpdateRealtime = (bool) auth('admin')->user()?->can('system.modules.update');
-        $this->canManageProcesses = $this->canUpdateRealtime;
+        $admin = auth('admin')->user();
+        $this->canUpdateRealtime = (bool) $admin?->can('system.modules.update');
+        $this->canManageQueues = (bool) $admin?->can('system.settings.update');
         $this->refreshRealtimeStatus();
     }
 
@@ -58,20 +59,21 @@ class QueueManager extends Component
         }
     }
 
-    public function processAction(string $name, string $action, SystemProcessManagerService $processes): void
+    public function restartWorkers(): void
     {
-        $this->authorizePermission('system.modules.update');
+        $this->authorizePermission('system.settings.update');
 
         try {
-            $processes->act($name, $action, auth('admin')->id());
-            session()->flash('message', "Đã gửi lệnh {$action} cho {$name}.");
-        } catch (Throwable $e) {
-            Log::warning('QueueManager PM2 process mutation failed.', [
-                'process' => $name,
-                'action' => $action,
-                'exception' => $e::class,
+            Artisan::call('queue:restart');
+
+            Log::notice('Queue workers restart requested from System Queue Manager.', [
+                'actor_id' => auth('admin')->id(),
             ]);
-            session()->flash('error', 'Không thể điều khiển tiến trình PM2. Vui lòng kiểm tra quyền PM2 và log hệ thống.');
+
+            session()->flash('queue_message', 'Đã gửi tín hiệu restart đến queue workers. Worker sẽ khởi động lại an toàn sau khi hoàn tất job đang xử lý.');
+        } catch (Throwable $e) {
+            Log::warning('QueueManager queue restart failed.', ['exception' => $e::class]);
+            session()->flash('error', 'Không thể gửi tín hiệu restart queue. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
@@ -104,7 +106,6 @@ class QueueManager extends Component
 
         return view('System::livewire.settings.queue-manager', [
             'queues' => $queues,
-            'processStatus' => app(SystemProcessManagerService::class)->status(),
         ]);
     }
 }
