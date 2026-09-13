@@ -16,21 +16,23 @@ class SettingController extends Controller
         return view('System::pages.settings.index');
     }
 
-    public function loginTheme()
-    {
-        return view('System::pages.settings.login-theme');
-    }
-
-    public function loginRedirect(
+    public function loginTheme(
         AdminLoginRedirectService $redirect,
         ApplicationRootRedirectService $rootRedirect,
     ) {
-        return view('System::pages.settings.login-redirect', [
+        return view('System::pages.settings.login-theme', [
             'routeName' => $redirect->configuredRoute(),
             'routeOptions' => $redirect->availableRoutes(),
             'rootRouteName' => $rootRedirect->configuredRoute(),
             'rootRouteOptions' => $rootRedirect->availableRoutes(),
         ]);
+    }
+
+    public function loginRedirect(): RedirectResponse
+    {
+        return redirect()
+            ->route('admin.system.settings.login-theme')
+            ->with('info', 'Đăng nhập & Điều hướng đã được hợp nhất vào workspace Giao diện & Đăng nhập.');
     }
 
     public function updateLoginRedirect(
@@ -58,17 +60,15 @@ class SettingController extends Controller
         }
 
         if ($errors !== []) {
-            return back()
-                ->withInput()
-                ->withErrors($errors);
+            return back()->withInput()->withErrors($errors);
         }
 
         $settings->set(AdminLoginRedirectService::SETTING_KEY, $routeName, 'system', 'text');
         $settings->set(ApplicationRootRedirectService::SETTING_KEY, $rootRouteName, 'system', 'text');
 
         return redirect()
-            ->route('admin.system.settings.login-redirect')
-            ->with('success', 'Đã lưu cấu hình điều hướng Admin và trang thay thế cho /.');
+            ->route('admin.system.settings.login-theme')
+            ->with('success', 'Đã lưu cấu hình đăng nhập và điều hướng.');
     }
 
     public function profile()

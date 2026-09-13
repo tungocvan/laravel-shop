@@ -1,6 +1,123 @@
 # System Collaboration Handoff
 
-## Current Status — Modules Runtime Separation / Queue Manager / Lifecycle Control
+## Current Status — Dashboard Information Architecture Refactor
+
+- Module: `System`
+- Mode: Refactor Module / information architecture cleanup
+- Delivery branch: `refactor/system-dashboard-information-architecture`
+- Base branch: `main`
+- Routes validated: `/admin/system/dashboard`, `/admin/system`, `/admin/system/settings/env`, `/admin/system/settings/login-theme`
+- Status: **IMPLEMENTATION COMPLETE — PR/MERGE GATE READY**
+- Focused tests: **PASS** on 2026-09-13
+- Manual UI smoke: **PASS** on 2026-09-13
+
+This phase simplifies System administration by separating navigation, runtime operations, infrastructure configuration, data recovery, and login experience into clearer ownership boundaries. It removes duplicated entry points and misleading labels without deleting legacy backend services or migrating stored data.
+
+### Delivered Scope
+
+#### `/admin/system/dashboard` — professional navigation hub
+
+- Reorganized the dashboard into clearer operational groups instead of exposing overlapping workspace cards.
+- Removed `System workspace` and `Cấu hình chung` as redundant intermediate entry points.
+- Removed Theme / image / generic configuration concepts from the dashboard navigation.
+- Dashboard now emphasizes:
+  - Module operations.
+  - Queue Manager.
+  - Database Manager.
+  - Backup / Restore.
+  - Environment & Integrations.
+  - Login Experience.
+  - Developer tools when authorized.
+- Existing dashboard health/warning boundaries remain read-only and permission-aware.
+
+#### `/admin/system` — System Operations only
+
+- Removed the `Giao diện Sidebar` tab from System runtime operations.
+- Kept `/admin/system` focused on runtime/infrastructure concerns:
+  - Queue Manager.
+  - Email.
+  - Database connection.
+- Updated the workspace language to represent System Operations rather than a mixed environment/theme screen.
+- No PM2/Docker process commands were introduced; Queue Manager remains Laravel/runtime focused.
+
+#### Environment & Integrations
+
+- Renamed the ambiguous `Hệ thống & Queue` / custom configuration area to `Runtime & Bridge`.
+- Renamed `SEO & Social` to `Web & Analytics` because the component currently owns OAuth credentials, TinyMCE API configuration, and Google Analytics rather than canonical website SEO metadata.
+- Preserved Database, Email, payment and Storage / Cloud configuration in the infrastructure configuration workspace.
+- Added query-backed tab selection so dashboard deep links can open a specific Environment tab without creating new routes.
+
+#### Login Experience consolidation
+
+- Consolidated login appearance and redirect/navigation management into the `Giao diện & Đăng nhập` workspace.
+- Existing login branding, logo/background upload, theme settings and login redirect/root fallback configuration now live under one operator-facing page.
+- Existing backend redirect services, validation rules and permission checks remain unchanged.
+- No redirect ownership or route-security boundary was weakened.
+
+#### Configuration Hub cleanup
+
+- `/admin/system/settings` now acts as a lightweight ownership hub instead of mounting the legacy mixed tab collection.
+- It points operators to:
+  - `Giao diện & Đăng nhập` for branding/login/navigation.
+  - `Môi trường & Tích hợp` for infrastructure/runtime integrations.
+- Legacy partials/services were intentionally not deleted in this phase to avoid accidental data loss or breaking unknown callers before a dedicated dead-code audit.
+
+### Verification Completed
+
+Operator reported the approved focused batch as PASS:
+
+```text
+php artisan test \
+tests/Feature/System/SystemDashboardInformationArchitectureContractTest.php \
+tests/Feature/System/AdminLoginRedirectSettingTest.php \
+tests/Feature/System/ApplicationRootRedirectSettingTest.php
+```
+
+Manual UI smoke: **PASS** for:
+
+```text
+/admin/system/dashboard
+/admin/system
+/admin/system/settings/env
+/admin/system/settings/login-theme
+```
+
+The UI smoke included desktop/tablet/mobile layout checks and confirmed the removed/renamed navigation concepts behave as intended.
+
+### Boundary / Safety Decisions
+
+| Concern | Decision |
+|---|---|
+| Dashboard role | Read-only overview + direct navigation |
+| Runtime operations | `/admin/system` |
+| Infrastructure configuration | Environment & Integrations |
+| Login branding/navigation | Login Experience |
+| Website SEO metadata | Not moved into System; remains a future Website ownership concern |
+| OAuth / Analytics / TinyMCE | `Web & Analytics` under System environment integrations |
+| Sidebar/Admin theme | Removed from System Operations |
+| Legacy settings partials/services | Retained for now; no destructive cleanup in this phase |
+| Permissions | Preserve existing authorization boundaries |
+| Stored data | No migration or deletion |
+
+### PR / Merge Gate
+
+1. **COMPLETE** — dashboard information architecture simplified.
+2. **COMPLETE** — redundant `System workspace` / `Cấu hình chung` navigation removed.
+3. **COMPLETE** — Sidebar appearance removed from `/admin/system`.
+4. **COMPLETE** — `/admin/system` narrowed to System Operations.
+5. **COMPLETE** — custom runtime configuration renamed `Runtime & Bridge`.
+6. **COMPLETE** — `SEO & Social` renamed `Web & Analytics` to match actual ownership.
+7. **COMPLETE** — login appearance and redirect/navigation consolidated into one workspace.
+8. **COMPLETE** — legacy components retained to avoid destructive cleanup.
+9. **COMPLETE** — focused tests passed.
+10. **COMPLETE** — manual UI smoke passed.
+11. **READY** — create PR from `refactor/system-dashboard-information-architecture` to `main` and merge after normal repository PR checks.
+
+A full-project regression remains outside the approved scope. Validation is limited to System and directly impacted login/navigation boundaries.
+
+---
+
+## Previous Closeout — Modules Runtime Separation / Queue Manager / Lifecycle Control
 
 - Module: `System`
 - Mode: Refactor Module / runtime operations hardening
