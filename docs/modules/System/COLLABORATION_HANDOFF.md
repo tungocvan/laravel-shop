@@ -1,6 +1,117 @@
 # System Collaboration Handoff
 
-## Current Status — Module Snapshot Dependency Metadata
+## Current Status — Modules Runtime Separation / Queue Manager / Lifecycle Control
+
+- Module: `System`
+- Mode: Refactor Module / runtime operations hardening
+- Delivery branch: `refactor/system-modules-runtime-separation`
+- Base branch: `main`
+- Routes validated: `/admin/system/modules` and `/admin/system`
+- Status: **IMPLEMENTATION COMPLETE — PR/MERGE GATE READY**
+- Focused tests: **PASS** on 2026-09-13
+- Manual UI smoke: **PASS** on 2026-09-13
+
+This phase separates Module lifecycle management from runtime queue/realtime operations, hardens Module enable/disable preflight and error reporting, and aligns queue ownership with enabled Module state without coupling the web UI to PM2 or Docker process commands.
+
+### Delivered Scope
+
+#### `/admin/system/modules` — lifecycle only
+
+- Removed Realtime / Socket.IO controls from the Modules workspace.
+- Removed Module GET Routes management from the Modules workspace.
+- Kept the page focused on Module enable/disable lifecycle only.
+- Added `Module Lifecycle Control` modal before execution.
+- Preflight now reports dependency state, database/migration readiness, permission readiness, and queue impact.
+- Missing-but-safe migrations are shown as planned migration work instead of a generic failure.
+- Migration/schema ledger mismatch is treated as blocking and requires recovery before enable.
+- Permission manifest/discovery problems are surfaced as a blocking preflight condition when appropriate.
+- Required Shell Modules remain non-disableable.
+- Enabled dependent Modules block disabling their dependency.
+- Runtime state is written only after dependency validation, migration and permission sync complete successfully.
+- Structured lifecycle failures expose safe stage-specific guidance without rendering raw internal exception messages.
+
+#### Queue ownership integration
+
+- Module-owned queues are read from each Module manifest.
+- Queue `default` remains System-owned and is explicitly excluded from Module lifecycle queue control.
+- Disabling a Module hides its owned queues from Queue Manager even when historical `jobs` / `failed_jobs` rows still exist.
+- Pending and failed jobs are never deleted automatically when a Module is disabled.
+- Enabling/disabling a Module with owned queues sends Laravel's `queue:restart` signal so workers can recycle safely.
+- Browser lifecycle actions do not call PM2, Docker, Supervisor, `exec`, `shell_exec`, or sudo commands.
+
+#### `/admin/system` — Queue Manager
+
+- Realtime / Socket.IO controls moved into the Queue Manager tab.
+- Queue Manager is process-manager agnostic and works with Laravel queue state rather than PM2-specific controls.
+- Added global pending / processing / failed-history metrics.
+- Added per-queue pending age and stale backlog warning.
+- Added worker probe health (`unknown`, waiting, confirmed, unresponsive).
+- Added failed-job history viewer with retry selected, delete selected, and clear history.
+- Added Laravel-native `queue:restart` action.
+- Adaptive polling now uses 5 seconds while queue work/probe activity is present and 30 seconds while idle.
+- Manual refresh remains available.
+
+#### Local queue runner
+
+- `run-queue.sh` now discovers queues from enabled Module manifests through `ModuleRegistry`.
+- The general local PM2 worker is recreated when needed so queue arguments are actually updated.
+- Request-specific queues remain on the dedicated Request worker.
+- Disabled Module queues drop out of the dynamically generated general worker queue list when the script is rerun.
+- This script is a local runtime helper only; the web UI remains PM2-agnostic.
+
+### Verification Completed
+
+Operator reported the following focused tests as PASS:
+
+```text
+php artisan test tests/Feature/System/SystemModulesControlTest.php \
+  tests/Feature/System/SystemModulesRuntimeSeparationContractTest.php \
+  tests/Feature/System/SystemQueueRunnerContractTest.php
+```
+
+Manual UI smoke: **PASS**.
+
+The UI smoke included Module enable/disable behavior and Queue Manager verification, including disabling `Admission` and confirming Module-owned queue behavior remained aligned with runtime state.
+
+### Boundary / Safety Decisions
+
+| Concern | Decision |
+|---|---|
+| Modules page scope | Lifecycle only |
+| Queue / Realtime ownership | Queue Manager under `/admin/system` |
+| Module enable order | Dependency → migration → permission sync → runtime state |
+| Failed migration/permission | Do not persist enabled runtime state |
+| Browser error details | Structured safe stage + guidance; no raw exception text |
+| Module queue ownership | Manifest declarations + runtime Module enabled state |
+| `default` queue | System-owned; never disabled by Module lifecycle |
+| Pending / failed jobs on disable | Preserve; never auto-delete |
+| Worker recycle | Laravel `queue:restart` signal only |
+| PM2 / Docker process management | Outside browser UI |
+| Local PM2 helper | `run-queue.sh` dynamically follows enabled Module queues |
+| Queue polling | 5s when active; 30s when idle |
+
+### PR / Merge Gate
+
+1. **COMPLETE** — `/admin/system/modules` reduced to Module lifecycle responsibilities.
+2. **COMPLETE** — Queue/Reatime operations moved to Queue Manager.
+3. **COMPLETE** — lifecycle preflight modal added.
+4. **COMPLETE** — migration and permission failure stages provide safe remediation guidance.
+5. **COMPLETE** — runtime state is not persisted after migration/permission failure.
+6. **COMPLETE** — Module-owned queues follow Module enabled state.
+7. **COMPLETE** — `default` queue remains protected and System-owned.
+8. **COMPLETE** — pending/failed history is preserved on Module disable.
+9. **COMPLETE** — Queue Manager stale/probe/failed-history operations implemented.
+10. **COMPLETE** — adaptive 5s/30s polling implemented.
+11. **COMPLETE** — local `run-queue.sh` dynamically discovers enabled Module queues.
+12. **COMPLETE** — focused tests passed.
+13. **COMPLETE** — manual UI smoke passed.
+14. **READY** — create PR from `refactor/system-modules-runtime-separation` to `main` and merge after normal repository PR checks.
+
+A full-project regression remains outside the approved scope. Validation is limited to System and directly impacted queue/module lifecycle behavior.
+
+---
+
+## Previous Closeout — Module Snapshot Dependency Metadata
 
 - Module: `System`
 - Mode: Capability hardening / recovery metadata

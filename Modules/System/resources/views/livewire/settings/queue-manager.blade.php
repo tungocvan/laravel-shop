@@ -1,72 +1,302 @@
-<div wire:poll.5s="$refresh" class="space-y-5">
+@php
+    $fastPolling = collect($queues)->contains(function ($queue) {
+        $status = $queue['status'] ?? [];
+
+        return (int) ($status['pending'] ?? 0) > 0
+            || (int) ($status['reserved'] ?? 0) > 0
+            || ($status['probe_state'] ?? null) === 'waiting';
+    });
+@endphp
+
+<div @if ($fastPolling) wire:poll.5s="$refresh" @else wire:poll.30s="$refresh" @endif class="space-y-5">
+    @if (session('message'))
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+            {{ session('message') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+            {{ session('error') }}
+        </div>
+    @endif
+
     @if (session('queue_message'))
-        <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
             {{ session('queue_message') }}
         </div>
     @endif
 
-    <div>
-        <h3 class="text-lg font-semibold text-gray-900">Queue Manager</h3>
-        <p class="mt-1 text-sm text-gray-500">
-            Theo dõi các queue do Module khai báo. System chỉ quản lý registry, health và số job; Docker/PM2 chịu trách nhiệm chạy worker.
-        </p>
-    </div>
+    @php
+        $pendingTotal = collect($queues)->sum(fn ($queue) => (int) ($queue['status']['pending'] ?? 0));
+        $reservedTotal = collect($queues)->sum(fn ($queue) => (int) ($queue['status']['reserved'] ?? 0));
+        $failedTotal = collect($queues)->sum(fn ($queue) => (int) ($queue['status']['failed'] ?? 0));
+    @endphp
 
-    <div class="space-y-4">
-        @forelse ($queues as $queue)
-            @php($status = $queue['status'])
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 lg:flex-row lg:items-center lg:justify-between sm:px-6">
+            <div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="text-xl font-bold text-slate-900">Queue Manager</h3>
+                    @if ($fastPolling)
+                        <span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">Theo dõi nhanh · 5 giây</span>
+                    @else
+                        <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">Hệ thống rảnh · 30 giây</span>
+                    @endif
+                </div>
+                <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                    Theo dõi queue Laravel đang hoạt động, backlog và lịch sử failed jobs. Không phụ thuộc PM2; phù hợp Docker, Supervisor hoặc worker chạy trực tiếp.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button type="button"
+                    wire:click="$refresh"
+                    wire:loading.attr="disabled"
+                    class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                    Làm mới
+                </button>
+                <button type="button"
+                    wire:click="restartWorkers"
+                    wire:confirm="Gửi tín hiệu restart đến toàn bộ Laravel queue workers? Worker sẽ kết thúc an toàn sau job hiện tại và tiến trình quản lý bên ngoài phải tự khởi động lại worker."
+                    wire:loading.attr="disabled"
+                    wire:target="restartWorkers"
+                    @disabled(! $canManageQueues)
+                    class="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+                    Restart queue workers
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-px bg-slate-200 lg:grid-cols-4">
+            <div class="bg-white p-4 sm:p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Queues</div>
+                <div class="mt-2 text-2xl font-bold text-slate-900">{{ count($queues) }}</div>
+            </div>
+            <div class="bg-white p-4 sm:p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-amber-600">Pending</div>
+                <div class="mt-2 text-2xl font-bold text-amber-900">{{ $pendingTotal }}</div>
+            </div>
+            <div class="bg-white p-4 sm:p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-blue-600">Đang xử lý</div>
+                <div class="mt-2 text-2xl font-bold text-blue-900">{{ $reservedTotal }}</div>
+            </div>
+            <div class="bg-white p-4 sm:p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-rose-600">Failed history</div>
+                <div class="mt-2 text-2xl font-bold text-rose-900">{{ $failedTotal }}</div>
+                <div class="mt-1 text-[11px] text-slate-400">Lịch sử tích lũy, không đồng nghĩa worker đang lỗi.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-2 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Trạng thái Queue</h3>
+                <p class="mt-1 text-sm text-slate-500">Queue mặc định, queue của Module đang bật và queue runtime không thuộc Module đều được tổng hợp tại đây.</p>
+            </div>
+            <div class="text-xs text-slate-400">Pending quá 5 phút sẽ được cảnh báo.</div>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+            @forelse ($queues as $queue)
+                @php
+                    $status = $queue['status'];
+                    $state = $status['state'] ?? 'idle';
+                    $stateLabel = match ($state) {
+                        'attention' => 'Có lịch sử lỗi',
+                        'stalled' => 'Có dấu hiệu bị kẹt',
+                        'processing' => 'Đang chạy',
+                        'waiting' => 'Đang chờ',
+                        default => 'Rảnh',
+                    };
+                    $stateClass = match ($state) {
+                        'attention' => 'bg-rose-100 text-rose-800',
+                        'stalled' => 'bg-orange-100 text-orange-800',
+                        'processing' => 'bg-blue-100 text-blue-800',
+                        'waiting' => 'bg-amber-100 text-amber-800',
+                        default => 'bg-emerald-100 text-emerald-800',
+                    };
+                    $pendingAge = (int) ($status['oldest_pending_age_seconds'] ?? 0);
+                    $pendingAgeLabel = $pendingAge >= 3600
+                        ? intdiv($pendingAge, 3600).' giờ '.intdiv($pendingAge % 3600, 60).' phút'
+                        : ($pendingAge >= 60 ? intdiv($pendingAge, 60).' phút '.($pendingAge % 60).' giây' : $pendingAge.' giây');
+                    $probeState = $status['probe_state'] ?? 'unknown';
+                    $probeLabel = match ($probeState) {
+                        'confirmed' => 'Worker đã xác nhận',
+                        'waiting' => 'Đang chờ worker',
+                        'unresponsive' => 'Worker chưa phản hồi',
+                        default => 'Chưa kiểm tra',
+                    };
+                    $probeClass = match ($probeState) {
+                        'confirmed' => 'text-emerald-700',
+                        'waiting' => 'text-amber-700',
+                        'unresponsive' => 'text-rose-700',
+                        default => 'text-slate-500',
+                    };
+                @endphp
+
+                <article class="px-5 py-5 sm:px-6" wire:key="queue-{{ $queue['name'] }}">
+                    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h4 class="font-bold text-slate-900">{{ $queue['name'] }}</h4>
+                                <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $stateClass }}">{{ $stateLabel }}</span>
+                                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{{ $queue['module'] }}</span>
+                                @if (($queue['source'] ?? null) === 'runtime')
+                                    <span class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700">Runtime discovered</span>
+                                @elseif (($queue['source'] ?? null) === 'module')
+                                    <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">Module registry</span>
+                                @endif
+                            </div>
+                            @if ($queue['description'])
+                                <p class="mt-1 text-sm text-slate-500">{{ $queue['description'] }}</p>
+                            @endif
+                            @if ($status['stale_pending'] ?? false)
+                                <div class="mt-3 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs leading-5 text-orange-800">
+                                    Queue có pending lâu hơn 5 phút. Hãy kiểm tra worker có đang nghe đúng queue <span class="font-mono font-semibold">{{ $queue['name'] }}</span> hay không.
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            @if (($status['failed'] ?? 0) > 0)
+                                <button type="button"
+                                    wire:click="openFailedJobs('{{ $queue['name'] }}')"
+                                    wire:loading.attr="disabled"
+                                    wire:target="openFailedJobs('{{ $queue['name'] }}')"
+                                    class="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
+                                    Xem {{ $status['failed'] }} lỗi
+                                </button>
+                                <button type="button"
+                                    wire:click="clearFailedHistory('{{ $queue['name'] }}')"
+                                    wire:confirm="Clear toàn bộ lịch sử failed jobs của queue {{ $queue['name'] }}? Thao tác này không thể hoàn tác."
+                                    wire:loading.attr="disabled"
+                                    wire:target="clearFailedHistory('{{ $queue['name'] }}')"
+                                    @disabled(! $canManageQueues)
+                                    class="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                                    Clear lịch sử
+                                </button>
+                            @endif
+                            <button type="button"
+                                wire:click="probe('{{ $queue['name'] }}')"
+                                wire:loading.attr="disabled"
+                                wire:target="probe('{{ $queue['name'] }}')"
+                                class="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                                Kiểm tra worker
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+                        <div class="rounded-xl border border-amber-100 bg-amber-50/70 p-3">
+                            <div class="text-xs font-medium text-amber-700">Pending</div>
+                            <div class="mt-1 text-xl font-bold text-amber-900">{{ $status['pending'] }}</div>
+                        </div>
+                        <div class="rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+                            <div class="text-xs font-medium text-blue-700">Đang xử lý</div>
+                            <div class="mt-1 text-xl font-bold text-blue-900">{{ $status['reserved'] }}</div>
+                        </div>
+                        <div class="rounded-xl border border-rose-100 bg-rose-50/70 p-3">
+                            <div class="text-xs font-medium text-rose-700">Failed history</div>
+                            <div class="mt-1 text-xl font-bold text-rose-900">{{ $status['failed'] }}</div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div class="text-xs font-medium text-slate-600">Pending lâu nhất</div>
+                            <div class="mt-1 text-xs font-semibold {{ ($status['stale_pending'] ?? false) ? 'text-orange-700' : 'text-slate-800' }}">
+                                {{ ($status['pending'] ?? 0) > 0 ? $pendingAgeLabel : 'Không có' }}
+                            </div>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div class="text-xs font-medium text-slate-600">Worker health</div>
+                            <div class="mt-1 text-xs font-semibold {{ $probeClass }}">{{ $probeLabel }}</div>
+                            @if ($status['last_probe_at'] ?? null)
+                                <div class="mt-1 break-words text-[11px] text-slate-400">{{ $status['last_probe_at'] }}</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <details class="mt-4 rounded-xl border border-slate-200 bg-slate-50/60">
+                        <summary class="cursor-pointer px-4 py-3 text-xs font-semibold text-slate-600">Cấu hình worker</summary>
+                        <div class="border-t border-slate-200 px-4 py-3">
+                            <code class="block overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 text-xs text-slate-100">{{ $queue['command'] }}</code>
+                        </div>
+                    </details>
+                </article>
+            @empty
+                <div class="px-5 py-10 text-center text-sm text-slate-500">
+                    Chưa phát hiện queue nào trong registry hoặc dữ liệu runtime.
+                </div>
+            @endforelse
+        </div>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div class="mb-4">
+            <h3 class="text-base font-bold text-slate-900">Realtime / Socket.IO</h3>
+            <p class="mt-1 text-sm text-slate-500">Quản lý feature switch realtime độc lập với queue worker và công cụ quản lý tiến trình của môi trường triển khai.</p>
+        </div>
+        <x-realtime-control :enabled="$realtimeEnabled" :status="$realtimeStatus" :can-update="$canUpdateRealtime" />
+    </section>
+
+    @if ($failedQueue !== null)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4" wire:keydown.escape.window="closeFailedJobs">
+            <div class="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl" wire:click.stop>
+                <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <h4 class="font-semibold text-gray-900">{{ $queue['name'] }}</h4>
-                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">{{ $queue['module'] }}</span>
-                            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs text-blue-700">{{ $queue['workers'] }} worker</span>
-                        </div>
-                        @if ($queue['description'])
-                            <p class="mt-1 text-sm text-gray-500">{{ $queue['description'] }}</p>
-                        @endif
+                        <div class="text-xs font-semibold uppercase tracking-wide text-rose-600">Failed Jobs Management</div>
+                        <h3 class="mt-1 text-lg font-bold text-slate-900">{{ $failedQueue }}</h3>
+                        <p class="mt-1 text-sm text-slate-500">Hiển thị tối đa 25 lỗi gần nhất. Exception chỉ hiển thị dòng tóm tắt để tránh lộ thông tin nội bộ.</p>
                     </div>
-
-                    <button type="button"
-                        wire:click="probe('{{ $queue['name'] }}')"
-                        wire:loading.attr="disabled"
-                        wire:target="probe('{{ $queue['name'] }}')"
-                        class="inline-flex h-10 items-center justify-center rounded-xl bg-gray-900 px-4 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50">
-                        Kiểm tra worker
-                    </button>
+                    <button type="button" wire:click="closeFailedJobs" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Đóng</button>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-                    <div class="rounded-xl bg-amber-50 p-3">
-                        <div class="text-xs text-amber-700">Pending</div>
-                        <div class="mt-1 text-xl font-bold text-amber-900">{{ $status['pending'] }}</div>
-                    </div>
-                    <div class="rounded-xl bg-blue-50 p-3">
-                        <div class="text-xs text-blue-700">Đang xử lý</div>
-                        <div class="mt-1 text-xl font-bold text-blue-900">{{ $status['reserved'] }}</div>
-                    </div>
-                    <div class="rounded-xl bg-rose-50 p-3">
-                        <div class="text-xs text-rose-700">Failed</div>
-                        <div class="mt-1 text-xl font-bold text-rose-900">{{ $status['failed'] }}</div>
-                    </div>
-                    <div class="rounded-xl bg-emerald-50 p-3">
-                        <div class="text-xs text-emerald-700">Probe gần nhất</div>
-                        <div class="mt-1 text-xs font-semibold text-emerald-900 break-words">
-                            {{ $status['last_probe_at'] ?: 'Chưa xác nhận' }}
-                        </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
+                    <div class="text-sm text-slate-600">Đã chọn: <span class="font-bold text-slate-900">{{ count($selectedFailedIds) }}</span></div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button"
+                            wire:click="retrySelectedFailed"
+                            wire:confirm="Retry các failed job đã chọn?"
+                            @disabled(! $canManageQueues || $selectedFailedIds === [])
+                            class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                            Retry đã chọn
+                        </button>
+                        <button type="button"
+                            wire:click="forgetSelectedFailed"
+                            wire:confirm="Xóa các failed job đã chọn khỏi lịch sử? Thao tác này không thể hoàn tác."
+                            @disabled(! $canManageQueues || $selectedFailedIds === [])
+                            class="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">
+                            Xóa đã chọn
+                        </button>
+                        <button type="button"
+                            wire:click="clearFailedHistory('{{ $failedQueue }}')"
+                            wire:confirm="Clear toàn bộ lịch sử failed jobs của queue {{ $failedQueue }}? Thao tác này không thể hoàn tác."
+                            @disabled(! $canManageQueues || $failedJobs === [])
+                            class="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50">
+                            Clear toàn bộ lịch sử
+                        </button>
                     </div>
                 </div>
 
-                <div>
-                    <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Worker command</div>
-                    <code class="mt-2 block overflow-x-auto rounded-xl bg-gray-950 px-4 py-3 text-xs text-gray-100">{{ $queue['command'] }}</code>
+                <div class="max-h-[62vh] overflow-y-auto">
+                    @forelse ($failedJobs as $job)
+                        <label class="flex gap-3 border-b border-slate-100 px-5 py-4 hover:bg-slate-50">
+                            <input type="checkbox" wire:model="selectedFailedIds" value="{{ $job['id'] }}" class="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <div class="break-all text-sm font-bold text-slate-900">{{ $job['job'] }}</div>
+                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{{ $job['connection'] }}</span>
+                                </div>
+                                <div class="mt-1 break-all font-mono text-[11px] text-slate-400">{{ $job['id'] }}</div>
+                                <div class="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-800">{{ $job['exception'] }}</div>
+                                <div class="mt-2 text-xs text-slate-400">Failed at: {{ $job['failed_at'] ?: '—' }}</div>
+                            </div>
+                        </label>
+                    @empty
+                        <div class="px-5 py-12 text-center text-sm text-slate-500">Queue này không còn failed job trong lịch sử.</div>
+                    @endforelse
                 </div>
             </div>
-        @empty
-            <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-                Chưa có Module đang bật khai báo queue riêng.
-            </div>
-        @endforelse
-    </div>
+        </div>
+    @endif
 </div>
