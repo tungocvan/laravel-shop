@@ -100,7 +100,9 @@ class AdminLayoutManager
                 'enabled' => (bool) data_get($this->defaults, 'sidebar.search.enabled', true),
             ],
             'presentation' => [
-                'background' => data_get($this->defaults, 'sidebar.presentation.background', 'theme'),
+                'background' => $this->normalizeSidebarBackgroundMode(data_get($this->defaults, 'sidebar.presentation.background', 'theme')),
+                'custom_background' => $this->normalizeHexColor(data_get($this->defaults, 'sidebar.presentation.custom_background'), '#0f172a'),
+                'custom_accent' => $this->normalizeHexColor(data_get($this->defaults, 'sidebar.presentation.custom_accent'), '#4f46e5'),
             ],
         ];
     }
@@ -293,7 +295,9 @@ class AdminLayoutManager
                 'enabled' => (bool) data_get($sidebar, 'search.enabled', data_get($defaults, 'search.enabled')),
             ],
             'presentation' => [
-                'background' => $this->in(data_get($sidebar, 'presentation.background'), ['theme', 'system', 'white', 'dark'], data_get($defaults, 'presentation.background')),
+                'background' => $this->normalizeSidebarBackgroundMode(data_get($sidebar, 'presentation.background'), data_get($defaults, 'presentation.background')),
+                'custom_background' => $this->normalizeHexColor(data_get($sidebar, 'presentation.custom_background'), data_get($defaults, 'presentation.custom_background', '#0f172a')),
+                'custom_accent' => $this->normalizeHexColor(data_get($sidebar, 'presentation.custom_accent'), data_get($defaults, 'presentation.custom_accent', '#4f46e5')),
             ],
         ];
     }
@@ -415,6 +419,26 @@ class AdminLayoutManager
 
         $pixels = $toPixels($value) ?? $toPixels($fallback) ?? $min;
         return max($min, min($max, $pixels)).'px';
+    }
+
+    private function normalizeSidebarBackgroundMode(mixed $value, mixed $fallback = 'theme'): string
+    {
+        $legacy = ['system' => 'light', 'white' => 'light'];
+        $value = $legacy[(string) $value] ?? (string) $value;
+        $fallback = $legacy[(string) $fallback] ?? (string) $fallback;
+
+        return (string) $this->in($value, ['theme', 'light', 'dark', 'custom'], $fallback ?: 'theme');
+    }
+
+    private function normalizeHexColor(mixed $value, mixed $fallback): string
+    {
+        $value = strtolower(trim((string) $value));
+        $fallback = strtolower(trim((string) $fallback));
+
+        if (preg_match('/^#[0-9a-f]{6}$/', $value)) return $value;
+        if (preg_match('/^#[0-9a-f]{6}$/', $fallback)) return $fallback;
+
+        return '#0f172a';
     }
 
     private function spacing(mixed $value, mixed $fallback): string
