@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\System;
 
+use App\Modules\ModuleRegistry;
+use Modules\System\Services\QueueRegistryService;
 use Tests\TestCase;
 
 class SystemModulesRuntimeSeparationContractTest extends TestCase
@@ -91,5 +93,17 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertFileDoesNotExist(base_path('Modules/System/Services/SystemProcessManagerService.php'));
         $this->assertStringContainsString("'id' => 'queues'", $tabs);
         $this->assertStringContainsString("'component' => 'system.settings.queue-manager'", $tabs);
+    }
+
+    public function test_queue_owned_by_disabled_module_is_hidden_even_when_runtime_history_exists(): void
+    {
+        $registry = $this->mock(ModuleRegistry::class);
+        $registry->shouldReceive('current')->once()->andReturn(collect([
+            ['name' => 'Admission', 'enabled' => false],
+        ]));
+
+        $queues = collect((new QueueRegistryService($registry))->queues())->pluck('name');
+
+        $this->assertFalse($queues->contains('admission-documents'));
     }
 }
