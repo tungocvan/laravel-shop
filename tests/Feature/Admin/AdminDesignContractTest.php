@@ -20,6 +20,8 @@ class AdminDesignContractTest extends TestCase
         $this->assertSame('slate-50', data_get($design, 'colors.surface_base'));
         $this->assertSame('white', data_get($design, 'colors.surface_raised'));
         $this->assertSame('indigo-600', data_get($design, 'colors.accent'));
+        $this->assertSame('transparent', data_get($design, 'sidebar_menu.item.icon_background_mode'));
+        $this->assertSame('slate-100', data_get($design, 'sidebar_menu.item.icon_background_color'));
     }
 
     public function test_design_service_sanitizes_unknown_values_and_drops_unknown_keys(): void
@@ -35,6 +37,12 @@ class AdminDesignContractTest extends TestCase
                 'surface_base' => 'url(javascript:alert(1))',
                 'accent' => 'indigo-600',
             ],
+            'sidebar_menu' => [
+                'item' => [
+                    'icon_background_mode' => 'javascript:alert(1)',
+                    'icon_background_color' => 'url(javascript:alert(1))',
+                ],
+            ],
             'spacing' => [
                 'content' => '999',
             ],
@@ -48,6 +56,8 @@ class AdminDesignContractTest extends TestCase
         $this->assertSame('sm', data_get($tokens, 'typography.body_size'));
         $this->assertSame('slate-50', data_get($tokens, 'colors.surface_base'));
         $this->assertSame('indigo-600', data_get($tokens, 'colors.accent'));
+        $this->assertSame('transparent', data_get($tokens, 'sidebar_menu.item.icon_background_mode'));
+        $this->assertSame('slate-100', data_get($tokens, 'sidebar_menu.item.icon_background_color'));
         $this->assertSame('4', data_get($tokens, 'spacing.content'));
         $this->assertSame('lg', data_get($tokens, 'radius.control'));
         $this->assertArrayNotHasKey('unexpected', $tokens);
@@ -71,6 +81,12 @@ class AdminDesignContractTest extends TestCase
                 'danger' => 'rose-600',
                 'info' => 'sky-600',
             ],
+            'sidebar_menu' => [
+                'item' => [
+                    'icon_background_mode' => 'color',
+                    'icon_background_color' => 'indigo-100',
+                ],
+            ],
         ]);
 
         $this->assertSame('#f8fafc', $variables['--admin-surface-base']);
@@ -78,6 +94,7 @@ class AdminDesignContractTest extends TestCase
         $this->assertSame('#0f172a', $variables['--admin-text-primary']);
         $this->assertSame('#4f46e5', $variables['--admin-accent']);
         $this->assertSame('#6366f1', $variables['--admin-focus-ring']);
+        $this->assertSame('#e0e7ff', $variables['--admin-sidebar-menu-icon-background']);
         $this->assertSame('0.5rem', $variables['--admin-radius-control']);
         $this->assertSame('1rem', $variables['--admin-space-content']);
 
@@ -86,6 +103,21 @@ class AdminDesignContractTest extends TestCase
             $this->assertStringNotContainsString('javascript:', $value);
             $this->assertStringNotContainsString('<script', $value);
         }
+    }
+
+    public function test_transparent_icon_background_resolves_to_transparent_css_variable(): void
+    {
+        $service = new AdminDesignService();
+        $variables = $service->cssVariables([
+            'sidebar_menu' => [
+                'item' => [
+                    'icon_background_mode' => 'transparent',
+                    'icon_background_color' => 'indigo-100',
+                ],
+            ],
+        ]);
+
+        $this->assertSame('transparent', $variables['--admin-sidebar-menu-icon-background']);
     }
 
     public function test_head_composes_design_tokens_without_replacing_existing_asset_contracts(): void
