@@ -49,13 +49,17 @@ class SystemModulesControlTest extends TestCase
         $moduleMethod = substr($modulesSource, $moduleStart, $moduleNext === false ? null : $moduleNext - $moduleStart);
         $this->assertStringContainsString("authorizePermission('system.modules.update')", $moduleMethod);
 
-        foreach (['toggleRealtime', 'processAction'] as $method) {
-            $start = strpos($queueSource, 'function '.$method.'(');
-            $this->assertNotFalse($start, "Missing {$method} method.");
-            $next = strpos($queueSource, '\n    public function ', $start + 1);
-            $methodSource = substr($queueSource, $start, $next === false ? null : $next - $start);
-            $this->assertStringContainsString("authorizePermission('system.modules.update')", $methodSource);
-        }
+        $realtimeStart = strpos($queueSource, 'function toggleRealtime(');
+        $this->assertNotFalse($realtimeStart, 'Missing toggleRealtime method.');
+        $realtimeNext = strpos($queueSource, '\n    public function ', $realtimeStart + 1);
+        $realtimeMethod = substr($queueSource, $realtimeStart, $realtimeNext === false ? null : $realtimeNext - $realtimeStart);
+        $this->assertStringContainsString("authorizePermission('system.modules.update')", $realtimeMethod);
+
+        $restartStart = strpos($queueSource, 'function restartWorkers(');
+        $this->assertNotFalse($restartStart, 'Missing restartWorkers method.');
+        $restartNext = strpos($queueSource, '\n    public function ', $restartStart + 1);
+        $restartMethod = substr($queueSource, $restartStart, $restartNext === false ? null : $restartNext - $restartStart);
+        $this->assertStringContainsString("authorizePermission('system.settings.update')", $restartMethod);
 
         $this->assertStringNotContainsString('toggleRealtime', $modulesSource);
         $this->assertStringNotContainsString('saveRouteTitle', $modulesSource);
@@ -214,7 +218,7 @@ class SystemModulesControlTest extends TestCase
         $this->assertStringNotContainsString("session()->flash('error', \$e->getMessage())", $modulesSource);
         $this->assertStringNotContainsString('$e->getMessage()', $queueSource);
         $this->assertStringContainsString('Vui lòng kiểm tra log hệ thống.', $modulesSource);
-        $this->assertStringContainsString('Vui lòng kiểm tra quyền PM2 và log hệ thống.', $queueSource);
+        $this->assertStringContainsString('Không thể gửi tín hiệu restart queue. Vui lòng kiểm tra log hệ thống.', $queueSource);
     }
 
     private function service(): array
