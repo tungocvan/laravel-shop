@@ -157,7 +157,7 @@ class ModulesForm extends Component
                 'stage' => 'unknown',
                 'title' => 'Không thể cập nhật Module',
                 'message' => 'Thao tác không hoàn tất và trạng thái Module chưa được xác nhận thay đổi.',
-                'guidance' => 'Vui lòng kiểm tra log hệ thống và chạy lại preflight trước khi thử lại.',
+                'guidance' => 'Vui lòng kiểm tra log hệ thống. Chạy lại preflight trước khi thử lại.',
             ];
         }
     }
