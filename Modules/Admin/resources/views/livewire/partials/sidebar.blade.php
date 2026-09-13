@@ -1,4 +1,4 @@
-<aside x-data="{ navQuery: '', normalize(value) { return (value || '').toLowerCase(); }, matches(value) { const q = this.normalize(this.navQuery.trim()); return q === '' || this.normalize(value).includes(q); } }" class="flex h-full w-full flex-col overflow-hidden transition-all duration-300 motion-reduce:transition-none {{ $sidebarSurfaceClass }} {{ $sidebarTextClass }}">
+<aside x-data="{ navQuery: '', normalize(value) { return (value || '').toLowerCase(); }, matches(value) { const q = this.normalize(this.navQuery.trim()); return q === '' || this.normalize(value).includes(q); } }" class="flex h-full w-full flex-col overflow-hidden transition-all duration-300 motion-reduce:transition-none {{ $sidebarSurfaceClass }} {{ $sidebarTextClass }}" style="{{ $sidebarStyle }}">
     @if ($showSidebarHeader)
         <div class="relative flex min-h-16 shrink-0 items-center border-b px-3 {{ $theme['border'] }}" style="{{ $sidebarHeaderStyle }}">
             <div class="flex min-w-0 flex-1 items-center gap-3" :class="sidebarOpen ? '' : 'justify-center'">
