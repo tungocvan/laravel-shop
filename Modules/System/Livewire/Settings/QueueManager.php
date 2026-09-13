@@ -160,9 +160,11 @@ class QueueManager extends Component
         $this->authorizePermission('system.settings.view');
         $this->assertKnownQueue($queue);
 
+        $registry = app(QueueRegistryService::class);
+        $registry->markProbeSent($queue);
         QueueProbeJob::dispatch($queue);
 
-        session()->flash('queue_message', "Đã gửi probe vào queue {$queue}. Nếu worker đang chạy, trạng thái sẽ cập nhật sau vài giây.");
+        session()->flash('queue_message', "Đã gửi probe vào queue {$queue}. Nếu worker đang nghe đúng queue, trạng thái sẽ chuyển sang xác nhận sau vài giây.");
     }
 
     public function render()
