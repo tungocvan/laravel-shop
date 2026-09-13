@@ -32,20 +32,27 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertStringNotContainsString('GET Routes của Modules', $view);
     }
 
-    public function test_queue_manager_is_runtime_agnostic_and_controls_laravel_workers(): void
+    public function test_queue_manager_is_runtime_agnostic_and_manages_failed_history(): void
     {
         $component = file_get_contents(base_path('Modules/System/Livewire/Settings/QueueManager.php'));
         $view = file_get_contents(base_path('Modules/System/resources/views/livewire/settings/queue-manager.blade.php'));
         $registry = file_get_contents(base_path('Modules/System/Services/QueueRegistryService.php'));
+        $failedJobs = file_get_contents(base_path('Modules/System/Services/QueueFailedJobService.php'));
         $tabs = file_get_contents(base_path('Modules/System/config/system_tabs.php'));
 
         $this->assertIsString($component);
         $this->assertIsString($view);
         $this->assertIsString($registry);
+        $this->assertIsString($failedJobs);
         $this->assertIsString($tabs);
 
         $this->assertStringContainsString('use Illuminate\\Support\\Facades\\Artisan;', $component);
+        $this->assertStringContainsString('use Modules\\System\\Services\\QueueFailedJobService;', $component);
         $this->assertStringContainsString('function restartWorkers', $component);
+        $this->assertStringContainsString('function openFailedJobs', $component);
+        $this->assertStringContainsString('function retrySelectedFailed', $component);
+        $this->assertStringContainsString('function forgetSelectedFailed', $component);
+        $this->assertStringContainsString('function clearFailedHistory', $component);
         $this->assertStringContainsString("authorizePermission('system.settings.update')", $component);
         $this->assertStringContainsString("Artisan::call('queue:restart')", $component);
         $this->assertStringContainsString('QueueProbeJob::dispatch($queue)', $component);
@@ -55,16 +62,31 @@ class SystemModulesRuntimeSeparationContractTest extends TestCase
         $this->assertStringContainsString('Restart queue workers', $view);
         $this->assertStringContainsString('Không phụ thuộc PM2', $view);
         $this->assertStringContainsString('Trạng thái Queue', $view);
-        $this->assertStringContainsString('Runtime discovered', $view);
+        $this->assertStringContainsString('Failed history', $view);
+        $this->assertStringContainsString('Xem {{ $status[\'failed\'] }} lỗi', $view);
+        $this->assertStringContainsString('Clear lịch sử', $view);
+        $this->assertStringContainsString('Retry đã chọn', $view);
+        $this->assertStringContainsString('Xóa đã chọn', $view);
+        $this->assertStringContainsString('Clear toàn bộ lịch sử', $view);
         $this->assertStringContainsString('<x-realtime-control', $view);
         $this->assertStringContainsString('wire:poll.5s="$refresh"', $view);
         $this->assertStringNotContainsString('Dịch vụ nền PM2', $view);
         $this->assertStringNotContainsString('processAction(', $view);
 
+        $this->assertStringContainsString('use App\\Modules\\ModuleRegistry;', $registry);
+        $this->assertStringContainsString("$runtimeModules = $this->modules->current()->keyBy('name');", $registry);
+        $this->assertStringContainsString('$disabledOwnedQueues[$name] = true;', $registry);
+        $this->assertStringContainsString('if (isset($disabledOwnedQueues[$name]))', $registry);
         $this->assertStringContainsString("config('queue.connections.'.config('queue.default').'.queue', 'default')", $registry);
         $this->assertStringContainsString("DB::table('jobs')->distinct()->pluck('queue')", $registry);
         $this->assertStringContainsString("DB::table('failed_jobs')->distinct()->pluck('queue')", $registry);
         $this->assertStringContainsString("'state' =>", $registry);
+
+        $this->assertStringContainsString("Artisan::call('queue:retry'", $failedJobs);
+        $this->assertStringContainsString("DB::table('failed_jobs')->where('queue', $queue)->delete()", $failedJobs);
+        $this->assertStringContainsString('exceptionSummary', $failedJobs);
+        $this->assertStringNotContainsString('shell_exec(', $failedJobs);
+        $this->assertStringNotContainsString('exec(', $failedJobs);
 
         $this->assertFileDoesNotExist(base_path('Modules/System/Services/SystemProcessManagerService.php'));
         $this->assertStringContainsString("'id' => 'queues'", $tabs);
