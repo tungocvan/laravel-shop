@@ -5,6 +5,7 @@ namespace Modules\Admin\Livewire\Partials;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Modules\Admin\Services\AdminDesignService;
+use Modules\Admin\Services\AdminShellPresentationService;
 use Modules\Admin\Services\SidebarService;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Support\ThemeManager;
@@ -39,6 +40,7 @@ class Sidebar extends Component
     public string $footerSubtitle = 'Tài khoản quản trị';
     public string $sidebarSurfaceClass = '';
     public string $sidebarTextClass = '';
+    public string $sidebarStyle = '';
     public string $sidebarHeaderStyle = '';
     public string $sidebarNavigationStyle = '';
     public string $sidebarFooterStyle = '';
@@ -116,6 +118,7 @@ class Sidebar extends Component
             default => [$this->theme['background'], $this->theme['text']],
         };
 
+        $this->sidebarStyle = app(AdminShellPresentationService::class)->sidebarPresentation($layoutConfig)['style'];
         $this->sidebarHeaderStyle = '';
         $this->sidebarNavigationStyle = '';
         $this->sidebarFooterStyle = '';
