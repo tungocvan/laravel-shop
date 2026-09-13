@@ -13,7 +13,46 @@ class AdminShellPresentationService
     public function context(): array
     {
         $config=$this->layoutManager->config(); $container=(string)data_get($config,'layout.container','screen-2xl'); $density=(string)data_get($config,'layout.density','comfortable');
-        return ['container'=>$container,'density'=>$density,'container_class'=>$this->containerClass($container),'content_class'=>$this->containerClass($container),'content_padding_class'=>'','content_style'=>$this->contentStyle($config),'shell_style'=>$this->shellStyle($config),'reduced_motion'=>(bool)data_get($config,'layout.behavior.reduced_motion',true),'sidebar_expanded_width'=>(string)data_get($config,'sidebar.expanded_width','16rem'),'sidebar_collapsed_width'=>(string)data_get($config,'sidebar.collapsed_width','5rem'),'header_height'=>(string)data_get($config,'header.height','4rem'),'header_style'=>$this->headerStyle($config),'header_padding_x'=>$this->space(data_get($config,'header.presentation.padding_x','6')),'header_action_gap'=>$this->space(data_get($config,'header.presentation.action_gap','2')),'header_mode'=>(string)data_get($config,'header.presentation.mode','balanced'),'header_backdrop_blur'=>(bool)data_get($config,'header.presentation.backdrop_blur',true)];
+        $sidebar=$this->sidebarPresentation($config);
+        return ['container'=>$container,'density'=>$density,'container_class'=>$this->containerClass($container),'content_class'=>$this->containerClass($container),'content_padding_class'=>'','content_style'=>$this->contentStyle($config),'shell_style'=>$this->shellStyle($config),'reduced_motion'=>(bool)data_get($config,'layout.behavior.reduced_motion',true),'sidebar_expanded_width'=>(string)data_get($config,'sidebar.expanded_width','16rem'),'sidebar_collapsed_width'=>(string)data_get($config,'sidebar.collapsed_width','5rem'),'sidebar_background'=>$sidebar['background'],'sidebar_style'=>$sidebar['style'],'header_height'=>(string)data_get($config,'header.height','4rem'),'header_style'=>$this->headerStyle($config),'header_padding_x'=>$this->space(data_get($config,'header.presentation.padding_x','6')),'header_action_gap'=>$this->space(data_get($config,'header.presentation.action_gap','2')),'header_mode'=>(string)data_get($config,'header.presentation.mode','balanced'),'header_backdrop_blur'=>(bool)data_get($config,'header.presentation.backdrop_blur',true)];
+    }
+
+    public function sidebarPresentation(?array $config=null): array
+    {
+        $config ??= $this->layoutManager->config();
+        $mode=(string)data_get($config,'sidebar.presentation.background','theme');
+        $design=app(AdminDesignService::class);
+        $navigationToken=data_get($config,'design.colors.sidebar_navigation_background','white');
+
+        [$background,$contrast]=match($mode){
+            'white'=>['#ffffff',$design->contrastVariables('white')],
+            'dark'=>['#020617',$design->contrastVariables('slate-950')],
+            'system'=>['var(--admin-sidebar-navigation-theme-background, var(--admin-surface-raised))',$design->contrastVariables($navigationToken)],
+            default=>['transparent',[]],
+        };
+
+        $style=['background-color: '.$background];
+        foreach($contrast as $variable=>$value){$style[]=$variable.': '.$value;}
+
+        if($mode==='dark'){
+            $style[]='--admin-sidebar-menu-title-color: #e2e8f0';
+            $style[]='--admin-sidebar-menu-icon-color: #94a3b8';
+            $style[]='--admin-sidebar-submenu-title-color: #cbd5e1';
+            $style[]='--admin-sidebar-submenu-icon-color: #94a3b8';
+            $style[]='--admin-sidebar-active-title-color: #ffffff';
+            $style[]='--admin-sidebar-active-icon-color: #ffffff';
+            $style[]='--admin-sidebar-menu-active-border-color: #818cf8';
+            $style[]='--admin-sidebar-submenu-active-border-color: #818cf8';
+        } elseif($mode==='white') {
+            $style[]='--admin-sidebar-menu-title-color: #334155';
+            $style[]='--admin-sidebar-menu-icon-color: #64748b';
+            $style[]='--admin-sidebar-submenu-title-color: #475569';
+            $style[]='--admin-sidebar-submenu-icon-color: #64748b';
+            $style[]='--admin-sidebar-active-title-color: #312e81';
+            $style[]='--admin-sidebar-active-icon-color: #4f46e5';
+        }
+
+        return ['mode'=>$mode,'background'=>$background,'style'=>implode('; ',$style)];
     }
 
     private function containerClass(string $container): string
