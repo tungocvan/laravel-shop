@@ -4,21 +4,12 @@ namespace Modules\System\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Modules\System\Services\SystemConfigService;
-
 use Livewire\Mechanisms\ComponentRegistry;
+use Modules\System\Services\SystemConfigService;
 
 class SystemController extends Controller
 {
-    public function __construct()
-    {
-       // $this->middleware('permission:system-list|system-create|system-edit|system-delete', ['only' => ['index','show']]);
-       // $this->middleware('permission:system-create', ['only' => ['create','store']]);
-       // $this->middleware('permission:system-edit', ['only' => ['edit','update']]);
-       // $this->middleware('permission:system-delete', ['only' => ['destroy']]);
-    }
-
-    public function index(SystemConfigService $configService)
+    public function index(Request $request, SystemConfigService $configService)
     {
         $this->authorizePermission('system.manage');
 
@@ -27,13 +18,18 @@ class SystemController extends Controller
         $tabs = collect($configService->getTabs())
             ->filter(fn ($tab) => $tab['enabled'] ?? true)
             ->map(function ($tab) use ($registry) {
-                $tab['is_ready'] = !is_null(
-                    $registry->getClass($tab['component'])
-                );
-                return $tab;
-            });
+                $tab['is_ready'] = ! is_null($registry->getClass($tab['component']));
 
-        return view('System::system', compact('tabs'));
+                return $tab;
+            })
+            ->values();
+
+        $requestedTab = trim((string) $request->query('tab', ''));
+        $activeTab = $tabs->contains(fn (array $tab): bool => ($tab['id'] ?? null) === $requestedTab)
+            ? $requestedTab
+            : (string) data_get($tabs->first(), 'id', '');
+
+        return view('System::system', compact('tabs', 'activeTab'));
     }
 
     private function authorizePermission(string $permission): void
