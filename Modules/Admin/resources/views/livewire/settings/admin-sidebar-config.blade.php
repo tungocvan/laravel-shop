@@ -2,12 +2,6 @@
     $control = 'mt-2 block h-10 w-full rounded-lg border-slate-300 bg-white px-3 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
     $toggle = 'h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500';
     $background = data_get($config, 'sidebar.presentation.background', 'theme');
-    $previewPalette = match ($background) {
-        'white' => ['surface' => 'bg-white text-slate-900', 'muted' => 'text-slate-500', 'control' => 'border-slate-200 bg-slate-50 text-slate-500', 'active' => 'bg-indigo-100 text-indigo-900', 'item' => 'bg-slate-100 text-slate-700'],
-        'dark' => ['surface' => 'bg-slate-950 text-white', 'muted' => 'text-slate-300', 'control' => 'border-white/20 bg-white/10 text-slate-200', 'active' => 'bg-indigo-500/30 text-white ring-1 ring-inset ring-indigo-300/30', 'item' => 'bg-white/10 text-slate-100'],
-        'system' => ['surface' => 'bg-slate-50 text-slate-900', 'muted' => 'text-slate-500', 'control' => 'border-slate-200 bg-white text-slate-500', 'active' => 'bg-indigo-100 text-indigo-900', 'item' => 'bg-slate-200/70 text-slate-700'],
-        default => ['surface' => 'bg-indigo-50 text-slate-900', 'muted' => 'text-slate-600', 'control' => 'border-indigo-200 bg-white/80 text-slate-500', 'active' => 'bg-indigo-200 text-indigo-950', 'item' => 'bg-indigo-100/80 text-slate-700'],
-    };
     $widthToPx = static function (mixed $value, int $fallback): int {
         if (is_numeric($value)) return (int) $value;
         $value = trim((string) $value);
@@ -26,7 +20,47 @@
         <button type="button" wire:click="resetSection" wire:confirm="Khôi phục Sidebar về mặc định?" class="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Khôi phục Sidebar</button>
     </div>
 
-    <form wire:submit="save" class="space-y-6">
+    <form
+        wire:submit="save"
+        class="space-y-6"
+        x-data="{
+            sidebarBackground: @js($background),
+            palette(kind) {
+                const palettes = {
+                    theme: {
+                        surface: 'bg-indigo-50 text-slate-900',
+                        muted: 'text-slate-600',
+                        control: 'border-indigo-200 bg-white/80 text-slate-500',
+                        active: 'bg-indigo-200 text-indigo-950',
+                        item: 'bg-indigo-100/80 text-slate-700'
+                    },
+                    system: {
+                        surface: 'bg-slate-50 text-slate-900',
+                        muted: 'text-slate-500',
+                        control: 'border-slate-200 bg-white text-slate-500',
+                        active: 'bg-indigo-100 text-indigo-900',
+                        item: 'bg-slate-200/70 text-slate-700'
+                    },
+                    white: {
+                        surface: 'bg-white text-slate-900',
+                        muted: 'text-slate-500',
+                        control: 'border-slate-200 bg-slate-50 text-slate-500',
+                        active: 'bg-indigo-100 text-indigo-900',
+                        item: 'bg-slate-100 text-slate-700'
+                    },
+                    dark: {
+                        surface: 'bg-slate-950 text-white',
+                        muted: 'text-slate-300',
+                        control: 'border-white/20 bg-white/10 text-slate-200',
+                        active: 'bg-indigo-500/30 text-white ring-1 ring-inset ring-indigo-300/30',
+                        item: 'bg-white/10 text-slate-100'
+                    }
+                };
+
+                return (palettes[this.sidebarBackground] || palettes.theme)[kind];
+            }
+        }"
+    >
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
             <div class="space-y-6">
                 <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -102,7 +136,7 @@
                 </section>
 
                 <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">Sidebar background</h2><p class="mt-1 text-sm leading-6 text-slate-500">Chọn surface có tương phản an toàn. Màu active menu vẫn theo Sidebar Theme hiện tại.</p></div>
+                    <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">Sidebar background</h2><p class="mt-1 text-sm leading-6 text-slate-500">Chọn surface có tương phản an toàn. Preview đổi ngay trên trình duyệt; chỉ lưu cấu hình khi bấm Lưu Sidebar.</p></div>
                     <fieldset><legend class="sr-only">Màu nền Sidebar</legend><div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         @foreach ([
                             'theme' => ['Theo Theme', 'Giữ palette của Sidebar Theme', 'bg-indigo-100'],
@@ -110,7 +144,7 @@
                             'white' => ['White', 'Sáng, trung tính', 'bg-white border'],
                             'dark' => ['Dark', 'Slate 950', 'bg-slate-950'],
                         ] as $value => [$label, $description, $swatch])
-                            <label class="cursor-pointer rounded-lg border p-4 transition" :class="$wire.config.sidebar.presentation.background === '{{ $value }}' ? 'border-indigo-500 bg-indigo-50/50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-slate-300'"><input type="radio" wire:model.live="config.sidebar.presentation.background" value="{{ $value }}" class="sr-only"><span class="flex items-center gap-3"><span class="h-8 w-8 shrink-0 rounded-lg {{ $swatch }}"></span><span><span class="block text-sm font-semibold text-slate-800">{{ $label }}</span><span class="mt-0.5 block text-xs text-slate-500">{{ $description }}</span></span></span></label>
+                            <label class="cursor-pointer rounded-lg border p-4 transition" :class="sidebarBackground === '{{ $value }}' ? 'border-indigo-500 bg-indigo-50/50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-slate-300'"><input type="radio" wire:model="config.sidebar.presentation.background" x-model="sidebarBackground" value="{{ $value }}" class="sr-only"><span class="flex items-center gap-3"><span class="h-8 w-8 shrink-0 rounded-lg {{ $swatch }}"></span><span><span class="block text-sm font-semibold text-slate-800">{{ $label }}</span><span class="mt-0.5 block text-xs text-slate-500">{{ $description }}</span></span></span></label>
                         @endforeach
                     </div></fieldset>
                 </section>
@@ -120,13 +154,13 @@
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                     <div class="flex items-center justify-between gap-3"><div><h2 class="text-sm font-semibold text-slate-900">Sidebar preview</h2><p class="mt-0.5 text-xs text-slate-500">Xem nhanh hierarchy, contrast và width trước khi lưu.</p></div><span class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">Live</span></div>
                     <div class="mt-4 flex h-[28rem] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                        <div class="flex flex-col {{ $previewPalette['surface'] }} transition-[width] duration-200" style="width: {{ $previewSidebarWidth }}px" data-sidebar-preview-palette="{{ $background }}">
+                        <div class="flex flex-col transition-[width] duration-200" :class="palette('surface')" style="width: {{ $previewSidebarWidth }}px" :data-sidebar-preview-palette="sidebarBackground">
                             @if(data_get($config, 'sidebar.header.enabled', true))
-                                <div class="relative flex min-h-16 items-center gap-2 border-b border-current/15 px-3">@if(data_get($config,'sidebar.header.show_mark',true))<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-[10px] font-bold text-white">A</span>@endif<div class="min-w-0 pr-8">@if(data_get($config,'sidebar.header.show_title',true))<div class="truncate text-xs font-semibold">{{ trim((string)data_get($config,'sidebar.header.title')) !== '' ? data_get($config,'sidebar.header.title') : 'Admin' }}</div>@endif @if(data_get($config,'sidebar.header.show_subtitle',true))<div class="truncate text-[9px] {{ $previewPalette['muted'] }}">{{ data_get($config,'sidebar.header.subtitle') }}</div>@endif</div><div class="absolute right-2 top-2 flex gap-1">@if(data_get($config,'sidebar.controls.fullscreen_enabled',true))<span class="h-5 w-5 rounded border {{ $previewPalette['control'] }}"></span>@endif @if(data_get($config,'sidebar.controls.collapse_enabled',true))<span class="h-5 w-5 rounded border {{ $previewPalette['control'] }}"></span>@endif</div></div>
+                                <div class="relative flex min-h-16 items-center gap-2 border-b border-current/15 px-3">@if(data_get($config,'sidebar.header.show_mark',true))<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-[10px] font-bold text-white">A</span>@endif<div class="min-w-0 pr-8">@if(data_get($config,'sidebar.header.show_title',true))<div class="truncate text-xs font-semibold">{{ trim((string)data_get($config,'sidebar.header.title')) !== '' ? data_get($config,'sidebar.header.title') : 'Admin' }}</div>@endif @if(data_get($config,'sidebar.header.show_subtitle',true))<div class="truncate text-[9px]" :class="palette('muted')">{{ data_get($config,'sidebar.header.subtitle') }}</div>@endif</div><div class="absolute right-2 top-2 flex gap-1">@if(data_get($config,'sidebar.controls.fullscreen_enabled',true))<span class="h-5 w-5 rounded border" :class="palette('control')"></span>@endif @if(data_get($config,'sidebar.controls.collapse_enabled',true))<span class="h-5 w-5 rounded border" :class="palette('control')"></span>@endif</div></div>
                             @endif
-                            @if(data_get($config,'sidebar.search.enabled',true))<div class="px-3 pt-3"><div class="flex h-8 items-center rounded-lg border px-2 text-[9px] {{ $previewPalette['control'] }}">Tìm chức năng...</div></div>@endif
-                            <div class="flex-1 space-y-2 px-3 py-3"><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px] font-semibold {{ $previewPalette['active'] }}"><span class="h-2 w-2 rounded-full bg-current"></span><span>Tổng quan</span></div><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px] {{ $previewPalette['item'] }}"><span class="h-2 w-2 rounded-full bg-current opacity-60"></span><span>Quản lý dữ liệu</span></div><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px] {{ $previewPalette['item'] }}"><span class="h-2 w-2 rounded-full bg-current opacity-60"></span><span>Báo cáo</span></div><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px] {{ $previewPalette['item'] }}"><span class="h-2 w-2 rounded-full bg-current opacity-60"></span><span>Cấu hình</span></div></div>
-                            @if(data_get($config,'sidebar.footer.enabled',true))<div class="flex items-center gap-2 border-t border-current/15 p-3">@if(data_get($config,'sidebar.footer.show_avatar',true))<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-[10px] font-bold text-white">T</span>@endif<div class="min-w-0">@if(data_get($config,'sidebar.footer.show_name',true))<div class="truncate text-xs font-semibold">Từ Ngọc Vân</div>@endif @if(data_get($config,'sidebar.footer.show_subtitle',true))<div class="truncate text-[9px] {{ $previewPalette['muted'] }}">{{ data_get($config,'sidebar.footer.subtitle') }}</div>@endif</div></div>@endif
+                            @if(data_get($config,'sidebar.search.enabled',true))<div class="px-3 pt-3"><div class="flex h-8 items-center rounded-lg border px-2 text-[9px]" :class="palette('control')">Tìm chức năng...</div></div>@endif
+                            <div class="flex-1 space-y-2 px-3 py-3"><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px] font-semibold" :class="palette('active')"><span class="h-2 w-2 rounded-full bg-current"></span><span>Tổng quan</span></div><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px]" :class="palette('item')"><span class="h-2 w-2 rounded-full bg-current opacity-60"></span><span>Quản lý dữ liệu</span></div><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px]" :class="palette('item')"><span class="h-2 w-2 rounded-full bg-current opacity-60"></span><span>Báo cáo</span></div><div class="flex h-8 items-center gap-2 rounded-lg px-2 text-[10px]" :class="palette('item')"><span class="h-2 w-2 rounded-full bg-current opacity-60"></span><span>Cấu hình</span></div></div>
+                            @if(data_get($config,'sidebar.footer.enabled',true))<div class="flex items-center gap-2 border-t border-current/15 p-3">@if(data_get($config,'sidebar.footer.show_avatar',true))<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-[10px] font-bold text-white">T</span>@endif<div class="min-w-0">@if(data_get($config,'sidebar.footer.show_name',true))<div class="truncate text-xs font-semibold">Từ Ngọc Vân</div>@endif @if(data_get($config,'sidebar.footer.show_subtitle',true))<div class="truncate text-[9px]" :class="palette('muted')">{{ data_get($config,'sidebar.footer.subtitle') }}</div>@endif</div></div>@endif
                         </div>
                         <div class="min-w-0 flex-1 bg-slate-100 p-3"><div class="h-5 rounded bg-white"></div><div class="mt-3 h-20 rounded bg-white"></div></div>
                     </div>
