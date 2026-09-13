@@ -12,6 +12,11 @@ class QueueRegistryService
     {
         $queues = [];
 
+        $defaultQueue = (string) config('queue.connections.'.config('queue.default').'.queue', 'default');
+        if ($defaultQueue !== '') {
+            $queues[$defaultQueue] = $this->defaults($defaultQueue, 'System', 'Queue mặc định của ứng dụng.');
+        }
+
         foreach (glob(base_path('Modules/*/config/module.php')) ?: [] as $configFile) {
             $config = require $configFile;
 
@@ -27,21 +32,16 @@ class QueueRegistryService
                 }
 
                 $name = (string) $definition['name'];
-                $queues[$name] = array_merge([
+                $queues[$name] = array_merge($this->defaults($name, $module), $definition, [
                     'module' => $module,
                     'name' => $name,
-                    'workers' => 1,
-                    'timeout' => 180,
-                    'tries' => 3,
-                    'sleep' => 2,
-                    'max_jobs' => 100,
-                    'max_time' => 3600,
-                    'description' => null,
-                ], $definition, [
-                    'module' => $module,
-                    'name' => $name,
+                    'source' => 'module',
                 ]);
             }
+        }
+
+        foreach ($this->discoveredQueueNames() as $name) {
+            $queues[$name] ??= $this->defaults($name, 'Runtime', 'Queue được phát hiện từ dữ liệu jobs/failed_jobs hiện tại.');
         }
 
         ksort($queues);
@@ -73,11 +73,16 @@ class QueueRegistryService
                 ->count();
         }
 
+        $lastProbeAt = Cache::get($this->probeCacheKey($queue));
+
         return [
             'pending' => $pending,
             'reserved' => $reserved,
             'failed' => $failed,
-            'last_probe_at' => Cache::get($this->probeCacheKey($queue)),
+            'last_probe_at' => $lastProbeAt,
+            'state' => $failed > 0
+                ? 'attention'
+                : ($reserved > 0 ? 'processing' : ($pending > 0 ? 'waiting' : 'idle')),
         ];
     }
 
@@ -96,6 +101,43 @@ class QueueRegistryService
 
     public function probeCacheKey(string $queue): string
     {
-        return 'system.queue_probe.' . $queue;
+        return 'system.queue_probe.'.$queue;
+    }
+
+    private function defaults(string $name, string $module, ?string $description = null): array
+    {
+        return [
+            'module' => $module,
+            'name' => $name,
+            'workers' => 1,
+            'timeout' => 180,
+            'tries' => 3,
+            'sleep' => 2,
+            'max_jobs' => 100,
+            'max_time' => 3600,
+            'description' => $description,
+            'source' => 'system',
+        ];
+    }
+
+    private function discoveredQueueNames(): array
+    {
+        $names = collect();
+
+        if (Schema::hasTable('jobs')) {
+            $names = $names->merge(DB::table('jobs')->distinct()->pluck('queue'));
+        }
+
+        if (Schema::hasTable('failed_jobs')) {
+            $names = $names->merge(DB::table('failed_jobs')->distinct()->pluck('queue'));
+        }
+
+        return $names
+            ->filter(fn (mixed $name): bool => is_string($name) && trim($name) !== '')
+            ->map(fn (string $name): string => trim($name))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 }
