@@ -14,9 +14,9 @@
     >
         <span x-show="open" class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-current opacity-80" aria-hidden="true"></span>
         @if (!empty($item['icon']))
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition" :style="{ color: open ? 'var(--admin-sidebar-active-icon-color)' : 'var(--admin-sidebar-menu-icon-color)', background: open && @js($sidebarMode !== 'theme') ? 'color-mix(in srgb, var(--admin-sidebar-active-title-color) 12%, transparent)' : 'var(--admin-sidebar-control-surface,rgba(0,0,0,.04))' }"><x-icon name="{{ $item['icon'] }}" style="width:var(--admin-sidebar-menu-icon-size);height:var(--admin-sidebar-menu-icon-size)" /></span>
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition" :style="{ color: open ? 'var(--admin-sidebar-active-icon-color)' : 'var(--admin-sidebar-menu-icon-color)', background: 'var(--admin-sidebar-menu-icon-background, transparent)' }"><x-icon name="{{ $item['icon'] }}" style="width:var(--admin-sidebar-menu-icon-size);height:var(--admin-sidebar-menu-icon-size)" /></span>
         @else
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-semibold opacity-70" style="background:var(--admin-sidebar-control-surface,rgba(0,0,0,.04))" aria-hidden="true">{{ mb_strtoupper(mb_substr($item['name'], 0, 1, 'UTF-8'), 'UTF-8') }}</span>
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-semibold opacity-70" style="background:var(--admin-sidebar-menu-icon-background, transparent)" aria-hidden="true">{{ mb_strtoupper(mb_substr($item['name'], 0, 1, 'UTF-8'), 'UTF-8') }}</span>
         @endif
         <span x-cloak x-show="sidebarOpen" class="min-w-0 flex-1 truncate whitespace-nowrap text-left">{{ $item['name'] }}</span>
         <svg x-cloak x-show="sidebarOpen" :class="(open || (filterEnabled && navQuery.trim() !== '')) ? 'rotate-90' : ''" class="h-3.5 w-3.5 shrink-0 opacity-50 transition-transform duration-150 motion-reduce:transition-none" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6L14 10L6 14V6Z" /></svg>
