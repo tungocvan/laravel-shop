@@ -38,15 +38,18 @@
                 <div><label class="text-sm font-medium text-gray-600 block">Cơ sở sản xuất</label><input type="text" wire:model="manufacturing_company" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
                 <div><label class="text-sm font-medium text-gray-600 block">Nước sản xuất</label><input type="text" wire:model="manufacturing_country" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div><label class="text-sm font-medium text-gray-600 block">STT thông tư</label><input type="text" wire:model="circular_order_number" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
-                <div><label class="text-sm font-medium text-gray-600 block">Nhóm thuốc</label><input type="text" wire:model="circular_group" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
+                <div><label class="text-sm font-medium text-gray-600 block">Nhóm thuốc theo thông tư</label><input type="text" wire:model="circular_group" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
+                <div><label class="text-sm font-medium text-gray-600 block">Nhóm thuốc điều trị</label><input type="text" wire:model="therapeutic_group" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1" placeholder="Ví dụ: Tiêu hóa, Kháng sinh, Giảm đau..."></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label class="text-sm font-medium text-gray-600 block">Hiệu lực Visa</label><input type="date" wire:model="visa_validity_date" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
                 <div><label class="text-sm font-medium text-gray-600 block">GMP cơ sở sản xuất</label><input type="date" wire:model="gmp_certification_date" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label class="text-sm font-medium text-gray-600 block">Giá kê khai / kê khai lại</label><input type="number" wire:model="declared_price" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
-                <div class="flex items-end"><label class="inline-flex items-center gap-3 min-h-11"><input type="checkbox" wire:model="is_special_control" class="w-5 h-5 rounded-md border-gray-300 text-blue-600"><span class="text-sm font-semibold text-gray-900">Hoạt chất kiểm soát đặc biệt</span></label></div>
+                <div><label class="text-sm font-medium text-gray-600 block">Giá kê khai / kê khai lại</label><input type="number" step="any" wire:model="declared_price" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
+                <div class="flex items-end"><label class="inline-flex items-center gap-3 min-h-11"><input type="checkbox" wire:model="is_special_control" class="w-5 h-5 rounded-md border-gray-300 text-blue-600"><span class="text-sm font-semibold text-gray-900">Thuốc kiểm soát đặc biệt (KSĐB)</span></label></div>
             </div>
         </section>
 
