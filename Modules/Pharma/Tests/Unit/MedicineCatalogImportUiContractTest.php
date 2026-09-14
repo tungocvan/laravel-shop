@@ -22,7 +22,7 @@ class MedicineCatalogImportUiContractTest extends TestCase
     }
 
     #[Test]
-    public function import_workspace_has_template_auto_filters_timestamped_history_and_safe_clear_action(): void
+    public function import_workspace_has_template_auto_filters_timestamped_history_safe_clear_and_commit_modal(): void
     {
         $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/medicine-import/index.blade.php'));
@@ -41,6 +41,10 @@ class MedicineCatalogImportUiContractTest extends TestCase
         $this->assertStringContainsString('MedicineImportRow::query()->delete()', $controller);
         $this->assertStringContainsString('MedicineImportBatch::query()->delete()', $controller);
         $this->assertStringContainsString('Medicine Master đã đồng bộ không bị thay đổi', $controller);
+        $this->assertStringContainsString("with('medicine_import_commit_result'", $controller);
+        $this->assertStringContainsString("session('medicine_import_commit_result')", $view);
+        $this->assertStringContainsString('Import danh mục thuốc thành công', $view);
+        $this->assertStringContainsString('role="dialog"', $view);
         $this->assertStringContainsString("'Tên hoạt chất'", $export);
         $this->assertStringContainsString("'Nồng độ - Hàm lượng'", $export);
         $this->assertStringContainsString("'Tên biệt dược'", $export);
