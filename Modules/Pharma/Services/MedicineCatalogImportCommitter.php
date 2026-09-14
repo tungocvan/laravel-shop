@@ -66,6 +66,7 @@ class MedicineCatalogImportCommitter
                 'profile_status' => Medicine::PROFILE_COMPLETE,
                 'circular_order_number' => $data['circular_order_number'] ?? null,
                 'circular_group' => $data['circular_group'] ?? null,
+                'therapeutic_group' => $data['therapeutic_group'] ?? null,
                 'active_ingredients' => $data['active_ingredients'] ?? null,
                 'concentration' => $data['concentration'] ?? null,
                 'name' => $data['name'],
@@ -80,13 +81,14 @@ class MedicineCatalogImportCommitter
                 'manufacturing_company' => $data['manufacturing_company'] ?? null,
                 'manufacturing_country' => $data['manufacturing_country'] ?? null,
                 'declared_price' => $data['declared_price'] ?? null,
-                'is_special_control' => false,
+                'is_special_control' => (bool) ($data['is_special_control'] ?? false),
             ]);
             $createdMedicine = true;
         } else {
             $medicine->fill(array_filter([
                 'circular_order_number' => $data['circular_order_number'] ?? null,
                 'circular_group' => $data['circular_group'] ?? null,
+                'therapeutic_group' => $data['therapeutic_group'] ?? null,
                 'active_ingredients' => $data['active_ingredients'] ?? null,
                 'name' => $data['name'] ?? null,
                 'dosage_form' => $data['dosage_form'] ?? null,
@@ -97,6 +99,10 @@ class MedicineCatalogImportCommitter
                 'shelf_life' => $data['shelf_life'] ?? null,
                 'manufacturing_company' => $data['manufacturing_company'] ?? null,
                 'manufacturing_country' => $data['manufacturing_country'] ?? null,
+                'declared_price' => $data['declared_price'] ?? null,
+                'is_special_control' => array_key_exists('is_special_control', $data)
+                    ? (bool) $data['is_special_control']
+                    : null,
             ], fn ($value) => $value !== null));
             $medicine->save();
         }
