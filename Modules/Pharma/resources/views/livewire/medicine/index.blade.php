@@ -14,37 +14,38 @@
     <header class="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0">
             <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pharma · Medicine Master</p>
-            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Hồ sơ thuốc / HSSP</h1>
-            <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Nguồn chuẩn hồ sơ sản phẩm thuốc của Pharma. HSSP quản lý định danh, chất lượng dữ liệu và thông tin sản phẩm; dữ liệu trúng thầu chỉ tham chiếu và được phép dùng HSSP để bổ sung các thuộc tính thuốc đang thiếu.</p>
+            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Danh mục thuốc chuẩn</h1>
+            <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Nguồn chuẩn thuốc/sản phẩm của Pharma. Tên biệt dược, tên thuốc và tên sản phẩm cùng ánh xạ về một định danh canonical; SKU, biến thể và quy cách được quản lý riêng để tránh gộp nhầm các sản phẩm khác hàm lượng hoặc presentation.</p>
         </div>
-        @if ($canCreate)
-            <a href="{{ route('admin.pharma.hssp.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Thêm thuốc / HSSP</a>
-        @endif
+        <div class="flex flex-wrap gap-2">
+            @if ($canEdit)
+                <a href="{{ route('admin.pharma.medicines.import.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100">Import danh mục thuốc chuẩn</a>
+            @endif
+            @if ($canCreate)
+                <a href="{{ route('admin.pharma.hssp.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Thêm thuốc</a>
+            @endif
+        </div>
     </header>
 
     @if (session()->has('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
     @if (session()->has('error'))<div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>@endif
 
     @if ($canEdit)
-        @livewire('shared.import-export.panel', [
-            'serviceClass' => \Modules\Pharma\Services\MedicineImportExport::class,
-            'title' => 'Import / Export hồ sơ thuốc',
-            'description' => 'Import Excel hiện giữ validation riêng của nguồn; giá trị rỗng không ghi đè dữ liệu canonical đã có.',
-            'permission' => 'edit_pharma',
-            'filters' => [
-                'search' => $search,
-                'circular_group' => $filterCircularGroup,
-                'is_special_control' => $filterSpecialControl === '' ? null : $filterSpecialControl === 'yes',
-                'profile_status' => $filterProfileStatus,
-                'selected_ids' => $selectedIds,
-            ],
-        ], key('medicine-import-export-' . md5(json_encode([$search, $filterCircularGroup, $filterSpecialControl, $filterProfileStatus, $selectedIds]))))
+        <section class="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 shadow-sm sm:p-5" aria-labelledby="medicine-import-heading">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 id="medicine-import-heading" class="text-base font-semibold text-slate-950">Import an toàn qua staging</h2>
+                    <p class="mt-1 max-w-4xl text-sm leading-6 text-slate-600">File XLSX/CSV không còn ghi trực tiếp vào Medicine Master. Hệ thống sẽ chuẩn hóa, phân loại NEW / UPDATE / DUPLICATE / CONFLICT / NEEDS_REVIEW và cho xem preview trước khi xác nhận commit.</p>
+                </div>
+                <a href="{{ route('admin.pharma.medicines.import.index') }}" class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Mở Import Preview</a>
+            </div>
+        </section>
     @endif
 
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="medicine-filters-heading">
         <div class="mb-4"><h2 id="medicine-filters-heading" class="text-base font-semibold text-slate-900">Data Quality filters</h2><p class="mt-1 text-sm text-slate-500">Tìm theo tên, hoạt chất, số đăng ký, hàm lượng, nhà sản xuất hoặc quốc gia; lọc nhanh hồ sơ thiếu dữ liệu và cần rà soát.</p></div>
         <div class="grid gap-4 lg:grid-cols-12">
-            <div class="lg:col-span-4"><label for="medicine-search" class="block text-sm font-medium text-slate-700">Tìm kiếm</label><input id="medicine-search" type="search" wire:model.live.debounce.300ms="search" placeholder="Tên, hoạt chất, SĐK, hàm lượng, NSX..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"></div>
+            <div class="lg:col-span-4"><label for="medicine-search" class="block text-sm font-medium text-slate-700">Tìm kiếm</label><input id="medicine-search" type="search" wire:model.live.debounce.300ms="search" placeholder="Tên, SKU, hoạt chất, SĐK, hàm lượng, NSX..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"></div>
             <div class="lg:col-span-2"><label for="medicine-quality" class="block text-sm font-medium text-slate-700">Chất lượng hồ sơ</label><select id="medicine-quality" wire:model.live="filterProfileStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">@foreach ($profileStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
             <div class="lg:col-span-2"><label for="medicine-group" class="block text-sm font-medium text-slate-700">Nhóm Thông tư</label><select id="medicine-group" wire:model.live="filterCircularGroup" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"><option value="">Tất cả nhóm</option>@foreach ($circularGroups as $group)<option value="{{ $group }}">{{ $group }}</option>@endforeach</select></div>
             <div class="lg:col-span-2"><label for="medicine-special" class="block text-sm font-medium text-slate-700">Kiểm soát</label><select id="medicine-special" wire:model.live="filterSpecialControl" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"><option value="">Tất cả</option><option value="yes">KSĐB</option><option value="no">Thuốc thường</option></select></div>
