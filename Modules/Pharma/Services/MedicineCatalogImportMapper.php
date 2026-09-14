@@ -15,10 +15,13 @@ class MedicineCatalogImportMapper
 
         $registrationRaw = $value(['Giấy phép lưu hành sản phẩm', 'registration_number', 'registration_number_raw']);
         $name = $value(['Tên biệt dược', 'Tên thuốc', 'Tên sản phẩm', 'name', 'brand_name']);
+        $specialControlRaw = $value(['Thuốc KSĐB', 'Thuốc kiểm soát đặc biệt', 'KSĐB', 'is_special_control']);
 
         return [
             'circular_order_number' => $this->clean($value(['STT TT20/2022', 'Số thứ tự theo thông tư', 'circular_order_number'])),
             'circular_group' => $this->clean($value(['Nhóm thuốc', 'Phân nhóm theo thông tư', 'circular_group'])),
+            'therapeutic_group' => $this->clean($value(['Nhóm thuốc điều trị', 'Nhóm điều trị', 'therapeutic_group'])),
+            'is_special_control' => $this->booleanMarker($specialControlRaw),
             'active_ingredients' => $this->clean($value(['Tên hoạt chất', 'Hoạt chất', 'active_ingredients'])),
             'concentration' => $this->clean($value(['Nồng độ - Hàm lượng', 'Nồng độ/Hàm lượng', 'Hàm lượng', 'concentration', 'strength_text'])),
             'name' => $this->clean($name),
@@ -96,6 +99,18 @@ class MedicineCatalogImportMapper
         }
 
         return $value;
+    }
+
+    private function booleanMarker(mixed $value): bool
+    {
+        $value = $this->clean($value);
+        if ($value === null) {
+            return false;
+        }
+
+        $normalized = mb_strtolower($value, 'UTF-8');
+
+        return in_array($normalized, ['1', 'x', 'có', 'co', 'yes', 'true', 'ksđb', 'ksdb'], true);
     }
 
     private function number(mixed $value): ?float
