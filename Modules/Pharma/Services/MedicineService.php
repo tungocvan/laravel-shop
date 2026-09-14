@@ -20,10 +20,14 @@ class MedicineService
         ?string $circularGroup = null,
         ?string $specialControl = null,
         ?string $profileStatus = null,
+        ?string $hsspStatus = null,
     ): LengthAwarePaginator {
         return Medicine::query()
-            ->with(['variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default'])
-            ->withCount(['sources', 'drugBidAwards', 'variants'])
+            ->with([
+                'variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default',
+                'currentProfile:id,medicine_id,profile_version,profile_status,profile_link,verified_at,is_current',
+            ])
+            ->withCount(['sources', 'drugBidAwards', 'variants', 'profiles'])
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('name', 'like', "%{$value}%")
                 ->orWhere('medicine_code', 'like', "%{$value}%")
@@ -41,6 +45,8 @@ class MedicineService
             ->when($circularGroup, fn ($query, $value) => $query->where('circular_group', $value))
             ->when($specialControl, fn ($query, $value) => $query->where('is_special_control', $value === 'yes'))
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
+            ->when($hsspStatus === 'with', fn ($query) => $query->whereHas('currentProfile'))
+            ->when($hsspStatus === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
             ->latest()
             ->paginate($perPage, ['*'], 'page', $page);
     }
