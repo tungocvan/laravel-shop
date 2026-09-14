@@ -69,4 +69,37 @@ class MedicineCatalogImportMapperTest extends TestCase
         $this->assertSame('Hộp 2 vỉ x 7 viên', $mapped['packaging_specification']);
         $this->assertNotNull($mapped['declared_price']);
     }
+
+    #[Test]
+    public function unicode_equivalent_vietnamese_values_produce_the_same_payload_hash(): void
+    {
+        if (! class_exists(\Normalizer::class)) {
+            $this->markTestSkipped('PHP intl Normalizer is required for NFC regression coverage.');
+        }
+
+        $mapper = app(MedicineCatalogImportMapper::class);
+        $common = [
+            'Tên hoạt chất' => 'Simethicon',
+            'Nồng độ - Hàm lượng' => '275,5mg',
+            'Tên biệt dược' => 'Ozdectin',
+            'Dạng bào chế' => 'Viên nang mềm',
+            'Đường dùng' => 'uống',
+            'Đơn vị tính' => 'viên',
+            'Quy cách đóng gói' => 'Hộp 10 vỉ x 10 viên',
+            'Giấy phép lưu hành sản phẩm' => '893100952824',
+            'Hạn dùng' => '36 tháng',
+            'Nước sản xuất' => 'Việt Nam',
+            'Giá KK/ KKL' => 3200,
+        ];
+
+        $composed = $mapper->map($common + [
+            'Cơ sở sản xuất' => 'Công ty TNHH Dược phẩm Hoa Linh Hà Nam',
+        ]);
+        $decomposed = $mapper->map($common + [
+            'Cơ sở sản xuất' => "Công ty TNHH Dược phẩm Hoa Linh Hà Nam",
+        ]);
+
+        $this->assertSame($composed['manufacturing_company'], $decomposed['manufacturing_company']);
+        $this->assertSame($mapper->payloadHash($composed), $mapper->payloadHash($decomposed));
+    }
 }
