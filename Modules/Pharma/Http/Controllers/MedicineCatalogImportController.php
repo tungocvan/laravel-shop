@@ -5,6 +5,7 @@ namespace Modules\Pharma\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Pharma\Exports\MedicineCatalogTemplateExport;
@@ -119,6 +120,21 @@ class MedicineCatalogImportController extends Controller
             $result['updated'],
             $result['skipped'],
         ));
+    }
+
+    public function clearHistory(): RedirectResponse
+    {
+        $deletedBatches = DB::transaction(function (): int {
+            MedicineImportRow::query()->delete();
+
+            return MedicineImportBatch::query()->delete();
+        });
+
+        return redirect()->route('admin.pharma.medicines.import.index')
+            ->with('success', sprintf(
+                'Đã xóa %d lịch sử import/staging. Medicine Master đã đồng bộ không bị thay đổi.',
+                $deletedBatches,
+            ));
     }
 
     private function perPage(Request $request): int
