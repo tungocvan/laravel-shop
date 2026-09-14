@@ -44,4 +44,29 @@ class MedicineCatalogImportMapperTest extends TestCase
             $this->assertSame('Pitamsol', $mapped['name']);
         }
     }
+
+    #[Test]
+    public function it_normalizes_real_excel_header_whitespace_and_line_breaks(): void
+    {
+        $mapper = app(MedicineCatalogImportMapper::class);
+
+        $mapped = $mapper->map([
+            ' Tên hoạt chất' => "Telmisartan +\nHydrochlorothiazid",
+            "Nồng độ - \r\nHàm lượng" => '80mg + 12.5mg',
+            'Tên biệt dược' => 'Anvo-Telmisartan HCTZ 80/12,5mg',
+            'Quy cách đóng gói' => 'Hộp 2 vỉ x 7 viên',
+            'Giấy phép lưu hành sản phẩm' => '840110178923',
+            'Hạn dùng' => '36 tháng',
+            'Cơ sở sản xuất' => 'Laboratorios Liconsa, S.A',
+            'Nước sản xuất' => 'Spain',
+            'Giá KK/ KKL' => '15.500',
+        ]);
+
+        $this->assertSame('Telmisartan + Hydrochlorothiazid', $mapped['active_ingredients']);
+        $this->assertSame('80mg + 12.5mg', $mapped['concentration']);
+        $this->assertSame('Anvo-Telmisartan HCTZ 80/12,5mg', $mapped['name']);
+        $this->assertSame('840110178923', $mapped['registration_number']);
+        $this->assertSame('Hộp 2 vỉ x 7 viên', $mapped['packaging_specification']);
+        $this->assertNotNull($mapped['declared_price']);
+    }
 }
