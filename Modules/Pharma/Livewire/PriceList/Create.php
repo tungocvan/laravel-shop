@@ -38,6 +38,8 @@ class Create extends Component
     public int $page = 1;
     public bool $selectPage = false;
     public array $selectedRows = [];
+    public array $includedRows = [];
+    public bool $includeAll = true;
     public array $prices = [];
     public string $bulkDiscount = '';
     public ?string $successMessage = null;
@@ -55,7 +57,13 @@ class Create extends Component
     {
         $this->priceListId = $priceListId;
         $priceListId ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
-        if (! $priceListId) { $this->code = 'BG-'.now()->format('Ymd-His'); return; }
+
+        if (! $priceListId) {
+            $this->code = 'BG-'.now()->format('Ymd-His');
+            $this->effectiveFrom = now()->toDateString();
+            $this->effectiveTo = now()->addMonth()->toDateString();
+            return;
+        }
 
         $list = PriceList::query()->with('items')->findOrFail($priceListId);
         abort_unless($list->isDraft(), 422, 'Chỉ bảng giá Draft mới được chỉnh trực tiếp.');
@@ -66,6 +74,7 @@ class Create extends Component
             $key = $this->rowKey($item->medicine_variant_id, $item->medicine_package_id); $this->selectedRows[] = $key;
             $this->prices[$key] = ['company' => $item->company_sale_price ?? '', 'receivable' => $item->actual_receivable_price ?? '', 'invoice' => $item->invoice_price ?? ''];
         }
+        $this->includedRows = $this->selectedRows;
     }
 
     public function updatedType(string $value): void { if ($value === PriceList::TYPE_GLOBAL) { $this->partnerId = null; $this->sourceGlobalPriceListId = null; } }
@@ -78,14 +87,29 @@ class Create extends Component
     {
         $keys = $this->currentPageKeys();
         $this->selectedRows = $selected ? array_values(array_unique([...$this->selectedRows, ...$keys])) : array_values(array_diff($this->selectedRows, $keys));
+        $this->includedRows = $this->selectedRows;
+        $this->includeAll = true;
         $this->initializeSelectedPrices($keys);
     }
 
     public function updatedSelectedRows(): void
     {
         $this->selectedRows = array_values(array_unique($this->selectedRows));
+        $this->includedRows = $this->selectedRows;
+        $this->includeAll = true;
         $this->initializeSelectedPrices($this->selectedRows);
         $this->syncSelectPageState();
+    }
+
+    public function updatedIncludedRows(): void
+    {
+        $this->includedRows = array_values(array_unique(array_intersect($this->includedRows, $this->selectedRows)));
+        $this->includeAll = $this->selectedRows !== [] && count($this->includedRows) === count($this->selectedRows);
+    }
+
+    public function updatedIncludeAll(bool $value): void
+    {
+        $this->includedRows = $value ? $this->selectedRows : [];
     }
 
     public function gotoPage(mixed $page): void
@@ -99,25 +123,30 @@ class Create extends Component
         if ($step < 1 || $step > 4) return;
         if ($step >= 2 && ! $this->headerIsValid()) return;
         if ($step >= 3 && $this->selectedRows === []) { $this->addError('selectedRows', 'Vui lòng chọn ít nhất một SKU/quy cách trước khi thiết lập giá.'); $this->step = 2; return; }
+        if ($step >= 4 && $this->includedRows === []) { $this->addError('includedRows', 'Vui lòng giữ lại ít nhất một SKU trong bảng giá.'); $this->step = 3; return; }
         $this->initializeSelectedPrices($this->selectedRows); $this->step = $step;
     }
 
     public function nextStep(): void { $this->goToStep(min(4, $this->step + 1)); }
     public function previousStep(): void { $this->step = max(1, $this->step - 1); }
-    public function clearSelection(): void { $this->selectedRows = []; $this->prices = []; $this->selectPage = false; }
+    public function clearSelection(): void { $this->selectedRows = []; $this->includedRows = []; $this->prices = []; $this->selectPage = false; $this->includeAll = false; }
 
-    public function removeSelectedRow(string $key): void
+    public function resetProductFilters(): void
     {
-        $this->selectedRows = array_values(array_filter($this->selectedRows, fn (string $selected): bool => $selected !== $key));
-        unset($this->prices[$key]);
-        $this->syncSelectPageState();
-        if ($this->selectedRows === []) $this->step = 2;
+        $this->search = '';
+        $this->catalogStatus = 'active';
+        $this->specialControl = 'all';
+        $this->perPage = 10;
+        $this->resetProductPage();
     }
 
     public function selectAllMatching(): void
     {
         $keys = $this->productQuery()->get()->map(fn ($row): string => $this->rowKey((int) $row->variant_id, $row->package_id ? (int) $row->package_id : null))->all();
-        $this->selectedRows = array_values(array_unique([...$this->selectedRows, ...$keys])); $this->initializeSelectedPrices($keys); $this->syncSelectPageState();
+        $this->selectedRows = array_values(array_unique([...$this->selectedRows, ...$keys]));
+        $this->includedRows = $this->selectedRows;
+        $this->includeAll = true;
+        $this->initializeSelectedPrices($keys); $this->syncSelectPageState();
     }
 
     public function loadFromGlobalPriceList(): void
@@ -132,30 +161,38 @@ class Create extends Component
             $key = $this->rowKey($item->medicine_variant_id, $item->medicine_package_id); $this->selectedRows[] = $key;
             $this->prices[$key] = ['company' => $item->company_sale_price ?? $item->declared_price_snapshot ?? '', 'receivable' => $item->actual_receivable_price ?? $item->company_sale_price ?? '', 'invoice' => $item->invoice_price ?? $item->company_sale_price ?? ''];
         }
-        $this->successMessage = 'Đã khởi tạo '.count($this->selectedRows).' SKU/quy cách từ '.$source->name.'. Bạn có thể loại bỏ SKU không áp dụng và điều chỉnh các giá ngoại lệ.'; $this->step = 3;
+        $this->includedRows = $this->selectedRows;
+        $this->includeAll = true;
+        $this->successMessage = 'Đã khởi tạo '.count($this->selectedRows).' SKU/quy cách từ '.$source->name.'. Bỏ chọn những SKU không áp dụng và điều chỉnh giá ngoại lệ.'; $this->step = 3;
+    }
+
+    public function updatePrice(string $key, string $field, mixed $value): void
+    {
+        if (! in_array($key, $this->selectedRows, true) || ! in_array($field, ['company', 'receivable', 'invoice'], true)) return;
+        $this->prices[$key][$field] = $this->normalizePriceInput($value);
     }
 
     public function applyDiscount(): void
     {
         $discount = (float) $this->bulkDiscount;
         if ($discount < 0 || $discount > 100) { $this->addError('bulkDiscount', 'Tỷ lệ giảm phải từ 0 đến 100%.'); return; }
-        foreach ($this->declaredPricesForSelected() as $key => $declared) if ($declared !== null) $this->prices[$key]['receivable'] = round((float) $declared * (100 - $discount) / 100, 2);
+        foreach ($this->declaredPricesForKeys($this->includedRows) as $key => $declared) if ($declared !== null) $this->prices[$key]['receivable'] = round((float) $declared * (100 - $discount) / 100, 2);
     }
 
-    public function copyCompanyToReceivable(): void { foreach ($this->selectedRows as $key) $this->prices[$key]['receivable'] = $this->prices[$key]['company'] ?? ''; }
-    public function copyCompanyToInvoice(): void { foreach ($this->selectedRows as $key) $this->prices[$key]['invoice'] = $this->prices[$key]['company'] ?? ''; }
+    public function copyCompanyToReceivable(): void { foreach ($this->includedRows as $key) $this->prices[$key]['receivable'] = $this->prices[$key]['company'] ?? ''; }
+    public function copyCompanyToInvoice(): void { foreach ($this->includedRows as $key) $this->prices[$key]['invoice'] = $this->prices[$key]['company'] ?? ''; }
 
     public function saveDraft(): void
     {
         $this->priceListId ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate(); $this->resetValidation(); $this->successMessage = null; $this->errorMessage = null;
         if (! $this->headerIsValid()) { $this->step = 1; return; }
-        if ($this->selectedRows === []) { $this->addError('selectedRows', 'Bảng giá phải có ít nhất một SKU/quy cách.'); $this->step = 2; return; }
+        if ($this->includedRows === []) { $this->addError('includedRows', 'Bảng giá phải có ít nhất một SKU/quy cách.'); $this->step = 3; return; }
         try {
             DB::transaction(function (): void {
                 $header = $this->manager->validateHeader($this->headerPayload());
                 $list = $this->priceListId ? PriceList::query()->findOrFail($this->priceListId) : new PriceList(['status' => PriceList::STATUS_DRAFT, 'created_by' => auth('admin')->id()]);
                 abort_unless(! $list->exists || $list->isDraft(), 422, 'Chỉ bảng giá Draft mới được sửa.'); $list->fill($header); $list->status = PriceList::STATUS_DRAFT; $list->save(); $list->items()->delete();
-                foreach ($this->selectedRows as $key) {
+                foreach ($this->includedRows as $key) {
                     [$variantId, $packageId] = $this->parseRowKey($key); $rowPrices = $this->prices[$key] ?? [];
                     $list->items()->create($this->manager->validateItem(['medicine_variant_id' => $variantId, 'medicine_package_id' => $packageId, 'company_sale_price' => $this->nullablePrice($rowPrices['company'] ?? null), 'actual_receivable_price' => $this->nullablePrice($rowPrices['receivable'] ?? null), 'invoice_price' => $this->nullablePrice($rowPrices['invoice'] ?? null), 'status' => 'active']));
                 }
@@ -171,9 +208,9 @@ class Create extends Component
     {
         $customers = Partner::query()->where('status', 'active')->whereJsonContains('partner_types', 'customer')->orderBy('name')->get(['id', 'name', 'tax_code', 'address']);
         $globalPriceLists = PriceList::query()->where('type', PriceList::TYPE_GLOBAL)->where('status', PriceList::STATUS_ACTIVE)->activeAt(today())->orderByDesc('priority')->orderByDesc('effective_from')->orderBy('name')->get(['id', 'code', 'name', 'effective_from', 'effective_to']);
-        $products = $this->productPaginator(); $selectedProducts = $this->selectedProductRows(); $declared = $this->declaredPricesForSelected();
-        $missingSale = collect($this->selectedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') === '')->count();
-        $overCeiling = collect($this->selectedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') !== '' && ($declared[$key] ?? null) !== null && (float) $this->prices[$key]['company'] > (float) $declared[$key])->count();
+        $products = $this->productPaginator(); $selectedProducts = $this->selectedProductRows(); $declared = $this->declaredPricesForKeys($this->includedRows);
+        $missingSale = collect($this->includedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') === '')->count();
+        $overCeiling = collect($this->includedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') !== '' && ($declared[$key] ?? null) !== null && (float) $this->prices[$key]['company'] > (float) $declared[$key])->count();
         return view('Pharma::livewire.price-list.create', compact('customers', 'globalPriceLists', 'products', 'selectedProducts') + ['perPageOptions' => self::PER_PAGE_OPTIONS, 'missingSaleCount' => $missingSale, 'overCeilingCount' => $overCeiling]);
     }
 
@@ -214,7 +251,6 @@ class Create extends Component
         foreach ($keys as $key) { if (! in_array($key, $this->selectedRows, true) || isset($this->prices[$key])) continue; $ceiling = $declared[$key] ?? null; $this->prices[$key] = ['company' => $ceiling ?? '', 'receivable' => $ceiling ?? '', 'invoice' => $ceiling ?? '']; }
     }
 
-    private function declaredPricesForSelected(): array { return $this->declaredPricesForKeys($this->selectedRows); }
     private function declaredPricesForKeys(array $keys): array
     {
         if ($keys === []) return []; $wanted = array_flip($keys); $result = [];
@@ -237,6 +273,14 @@ class Create extends Component
     {
         $this->page = 1;
         $this->syncSelectPageState();
+    }
+
+    private function normalizePriceInput(mixed $value): float|string
+    {
+        if ($value === null || $value === '') return '';
+        $normalized = trim(str_replace(['₫', ' ', '.'], '', (string) $value));
+        $normalized = str_replace(',', '.', $normalized);
+        return is_numeric($normalized) ? max(0, (float) $normalized) : '';
     }
 
     private function rowKey(int $variantId, ?int $packageId): string { return $variantId.'-'.($packageId ?? 0); }
