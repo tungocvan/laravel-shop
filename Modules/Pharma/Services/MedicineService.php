@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 use Modules\Pharma\Models\Medicine;
 
 class MedicineService
@@ -95,7 +96,18 @@ class MedicineService
 
     public function delete(int $id): bool
     {
-        return DB::transaction(fn () => (bool) $this->findOrFail($id)->delete());
+        return DB::transaction(function () use ($id): bool {
+            $medicine = $this->findOrFail($id);
+
+            if ($medicine->profiles()->exists()
+                || $medicine->variants()->exists()
+                || $medicine->sources()->exists()
+                || $medicine->drugBidAwards()->exists()) {
+                throw new LogicException('Medicine đã được tham chiếu; hãy chuyển trạng thái thay vì xóa.');
+            }
+
+            return (bool) $medicine->delete();
+        });
     }
 
     public function importFromCsv(string $filePath): int
