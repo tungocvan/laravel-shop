@@ -19,8 +19,8 @@ class MedicineCatalogImportMapper
         return [
             'circular_order_number' => $this->clean($value(['STT TT20/2022', 'Số thứ tự theo thông tư', 'circular_order_number'])),
             'circular_group' => $this->clean($value(['Nhóm thuốc', 'Phân nhóm theo thông tư', 'circular_group'])),
-            'active_ingredients' => $this->clean($value(['Tên hoạt chất', 'active_ingredients'])),
-            'concentration' => $this->clean($value(['Nồng độ - Hàm lượng', 'concentration', 'strength_text'])),
+            'active_ingredients' => $this->clean($value(['Tên hoạt chất', 'Hoạt chất', 'active_ingredients'])),
+            'concentration' => $this->clean($value(['Nồng độ - Hàm lượng', 'Nồng độ/Hàm lượng', 'Hàm lượng', 'concentration', 'strength_text'])),
             'name' => $this->clean($name),
             'dosage_form' => $this->clean($value(['Dạng bào chế', 'dosage_form'])),
             'route_of_administration' => $this->clean($value(['Đường dùng', 'route_of_administration'])),
@@ -29,10 +29,10 @@ class MedicineCatalogImportMapper
             'registration_number_raw' => $this->clean($registrationRaw),
             'registration_number_primary' => $this->normalizer->registrationPrimary($this->clean($registrationRaw)),
             'registration_number' => $this->normalizer->registrationPrimary($this->clean($registrationRaw)),
-            'shelf_life' => $this->clean($value(['Hạn dùng', 'shelf_life'])),
-            'manufacturing_company' => $this->clean($value(['Cơ sở sản xuất', 'manufacturing_company', 'manufacturer'])),
-            'manufacturing_country' => $this->clean($value(['Nước sản xuất', 'manufacturing_country'])),
-            'declared_price' => $this->number($value(['Giá KK/KL', 'Giá kê khai', 'declared_price'])),
+            'shelf_life' => $this->clean($value(['Hạn dùng', 'Hạn sử dụng', 'shelf_life'])),
+            'manufacturing_company' => $this->clean($value(['Cơ sở sản xuất', 'Nhà sản xuất', 'manufacturing_company', 'manufacturer'])),
+            'manufacturing_country' => $this->clean($value(['Nước sản xuất', 'Nước SX', 'manufacturing_country'])),
+            'declared_price' => $this->number($value(['Giá KK/KL', 'Giá KK/ KKL', 'Giá kê khai', 'declared_price'])),
         ];
     }
 
@@ -45,13 +45,35 @@ class MedicineCatalogImportMapper
 
     private function firstValue(array $row, array $keys): mixed
     {
+        $normalizedRow = [];
+
+        foreach ($row as $header => $cell) {
+            $normalizedHeader = $this->normalizeHeader((string) $header);
+
+            if ($normalizedHeader !== '' && ! array_key_exists($normalizedHeader, $normalizedRow)) {
+                $normalizedRow[$normalizedHeader] = $cell;
+            }
+        }
+
         foreach ($keys as $key) {
-            if (array_key_exists($key, $row) && $row[$key] !== null && trim((string) $row[$key]) !== '') {
-                return $row[$key];
+            $normalizedKey = $this->normalizeHeader($key);
+
+            if (array_key_exists($normalizedKey, $normalizedRow)
+                && $normalizedRow[$normalizedKey] !== null
+                && trim((string) $normalizedRow[$normalizedKey]) !== '') {
+                return $normalizedRow[$normalizedKey];
             }
         }
 
         return null;
+    }
+
+    private function normalizeHeader(string $value): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return mb_strtolower($value, 'UTF-8');
     }
 
     private function clean(mixed $value): ?string
