@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Pharma\Http\Controllers\BhxhOfficialFacilityLookupController;
 use Modules\Pharma\Http\Controllers\DrugBidAwardController;
+use Modules\Pharma\Http\Controllers\HsspController;
 use Modules\Pharma\Http\Controllers\MedicineCatalogImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
@@ -40,20 +41,23 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         ->middleware('can:resolve_pharma_official_facility_conflicts')
         ->name('official-facilities.resolve');
 
-    Route::middleware('can:view_pharma')->group(function () {
-        Route::get('/medicines/import', [MedicineCatalogImportController::class, 'index'])->name('medicines.import.index');
-    });
+    Route::prefix('medicines')->name('medicines.')->group(function () {
+        Route::get('/', [PharmaController::class, 'index'])->middleware('can:view_pharma')->name('index');
+        Route::get('/create', [PharmaController::class, 'create'])->middleware('can:create_pharma')->name('create');
+        Route::get('/{id}/edit', [PharmaController::class, 'edit'])->whereNumber('id')->middleware('can:edit_pharma')->name('edit');
 
-    Route::middleware('can:edit_pharma')->group(function () {
-        Route::post('/medicines/import', [MedicineCatalogImportController::class, 'store'])->name('medicines.import.store');
-        Route::put('/medicines/import/{batch}/selection', [MedicineCatalogImportController::class, 'selection'])->name('medicines.import.selection');
-        Route::post('/medicines/import/{batch}/commit', [MedicineCatalogImportController::class, 'commit'])->name('medicines.import.commit');
+        Route::get('/import', [MedicineCatalogImportController::class, 'index'])->middleware('can:view_pharma')->name('import.index');
+        Route::post('/import', [MedicineCatalogImportController::class, 'store'])->middleware('can:edit_pharma')->name('import.store');
+        Route::put('/import/{batch}/selection', [MedicineCatalogImportController::class, 'selection'])->middleware('can:edit_pharma')->name('import.selection');
+        Route::post('/import/{batch}/commit', [MedicineCatalogImportController::class, 'commit'])->middleware('can:edit_pharma')->name('import.commit');
     });
 
     Route::prefix('hssp')->name('hssp.')->group(function () {
-        Route::get('/', [PharmaController::class, 'index'])->middleware('can:view_pharma')->name('index');
-        Route::get('/create', [PharmaController::class, 'create'])->middleware('can:create_pharma')->name('create');
-        Route::get('/{id}/edit', [PharmaController::class, 'edit'])->middleware('can:edit_pharma')->name('edit');
+        Route::get('/', [HsspController::class, 'index'])->middleware('can:view_pharma')->name('index');
+        Route::get('/{medicine}/create', [HsspController::class, 'create'])->middleware('can:create_pharma')->name('create');
+        Route::post('/{medicine}', [HsspController::class, 'store'])->middleware('can:create_pharma')->name('store');
+        Route::get('/{medicine}/{profile}/edit', [HsspController::class, 'edit'])->middleware('can:edit_pharma')->name('edit');
+        Route::put('/{medicine}/{profile}', [HsspController::class, 'update'])->middleware('can:edit_pharma')->name('update');
     });
 
     Route::prefix('drug-bid-awards')->name('drug-bid-awards.')->group(function () {
