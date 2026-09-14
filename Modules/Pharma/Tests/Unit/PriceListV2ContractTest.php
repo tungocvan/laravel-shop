@@ -57,7 +57,7 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString("'company' => \$ceiling ?? ''", $livewire);
         $this->assertStringContainsString("['receivable'] = round((float) \$declared", $livewire);
         $this->assertStringNotContainsString("['company'] = round((float) \$declared", $livewire);
-        $this->assertStringContainsString('Giá bán công ty mặc định', $view);
+        $this->assertStringContainsString('Giá bán công ty', $view);
         $this->assertStringContainsString('Giảm từ giá kê khai', $view);
         $this->assertStringContainsString('Giá thu thực tế', $view);
     }
@@ -75,6 +75,25 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString("route('admin.partners.index')", $view);
         $this->assertStringContainsString('Chưa có bảng giá chung ACTIVE đang hiệu lực', $view);
         $this->assertStringContainsString('Khởi tạo', $view);
+    }
+
+    #[Test]
+    public function builder_defaults_dates_formats_money_and_can_exclude_seeded_skus(): void
+    {
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+
+        $this->assertStringContainsString("\$this->effectiveFrom = now()->toDateString()", $livewire);
+        $this->assertStringContainsString("\$this->effectiveTo = now()->addMonth()->toDateString()", $livewire);
+        $this->assertStringContainsString('public array $includedRows = []', $livewire);
+        $this->assertStringContainsString('$this->includedRows = $this->selectedRows', $livewire);
+        $this->assertStringContainsString('foreach ($this->includedRows as $key)', $livewire);
+        $this->assertStringContainsString('updatePrice', $livewire);
+        $this->assertStringContainsString('wire:model.live="includedRows"', $view);
+        $this->assertStringContainsString('wire:model.live="includeAll"', $view);
+        $this->assertStringContainsString("number_format((float)\$company,0,',','.')", $view);
+        $this->assertStringContainsString('Bộ lọc danh mục', $view);
+        $this->assertStringContainsString('Đặt lại bộ lọc', $view);
     }
 
     #[Test]
