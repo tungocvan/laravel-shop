@@ -4,6 +4,7 @@ namespace Modules\Pharma\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Medicine extends Model
 {
@@ -91,6 +92,18 @@ class Medicine extends Model
     public function aliases(): HasMany
     {
         return $this->hasMany(MedicineAlias::class, 'medicine_id');
+    }
+
+    public function profiles(): HasMany
+    {
+        return $this->hasMany(MedicineProfile::class, 'medicine_id');
+    }
+
+    public function currentProfile(): HasOne
+    {
+        return $this->hasOne(MedicineProfile::class, 'medicine_id')
+            ->where('is_current', true)
+            ->latestOfMany();
     }
 
     public function drugBidAwards(): HasMany
