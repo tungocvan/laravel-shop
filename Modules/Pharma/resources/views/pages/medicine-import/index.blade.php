@@ -5,7 +5,7 @@
 @section('content')
 <div class="container-fluid space-y-6">
     <nav class="flex flex-wrap items-center gap-2" aria-label="Điều hướng Pharma">
-        <a href="{{ route('admin.pharma.hssp.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">← Danh mục thuốc chuẩn</a>
+        <a href="{{ route('admin.pharma.medicines.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">← Danh mục thuốc chuẩn</a>
         <a href="{{ route('admin.pharma.dashboard') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Dashboard Pharma</a>
     </nav>
 
