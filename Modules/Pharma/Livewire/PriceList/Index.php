@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\PriceListManager;
+use Throwable;
 
 class Index extends Component
 {
@@ -19,6 +20,7 @@ class Index extends Component
     public int $perPage = 10;
     public ?int $confirmingId = null;
     public ?string $confirmingAction = null;
+    public ?string $errorMessage = null;
 
     protected $queryString = ['search' => ['except' => ''], 'type' => ['except' => 'all'], 'status' => ['except' => 'all'], 'perPage' => ['except' => 10]];
 
@@ -35,26 +37,41 @@ class Index extends Component
     {
         $this->confirmingId = $id;
         $this->confirmingAction = $action;
+        $this->errorMessage = null;
     }
 
     public function cancelConfirm(): void
     {
         $this->confirmingId = null;
         $this->confirmingAction = null;
+        $this->errorMessage = null;
     }
 
     public function executeConfirmed(PriceListManager $manager): void
     {
         $list = PriceList::query()->findOrFail($this->confirmingId);
-        if ($this->confirmingAction === 'activate') {
-            $manager->activate($list, auth('admin')->id());
-        } elseif ($this->confirmingAction === 'deactivate') {
-            $manager->deactivate($list);
-        } elseif ($this->confirmingAction === 'clone') {
-            $manager->clone($list, ['name' => $list->name.' - Bản sao']);
+
+        try {
+            if ($this->confirmingAction === 'activate') {
+                $manager->activate($list, auth('admin')->id());
+            } elseif ($this->confirmingAction === 'deactivate') {
+                $manager->deactivate($list);
+            } elseif ($this->confirmingAction === 'clone') {
+                $manager->clone($list, ['name' => $list->name.' - Bản sao']);
+            } elseif ($this->confirmingAction === 'delete') {
+                $this->authorizePharmaEdit();
+                $manager->deleteDraft($list);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->errorMessage = $exception->getMessage();
+
+            return;
         }
+
+        $message = $this->confirmingAction === 'delete' ? 'Đã xóa bảng giá Draft.' : 'Thao tác bảng giá đã hoàn tất.';
         $this->cancelConfirm();
-        session()->flash('success', 'Thao tác bảng giá đã hoàn tất.');
+        session()->flash('success', $message);
     }
 
     public function render()
