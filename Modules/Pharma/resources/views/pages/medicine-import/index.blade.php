@@ -27,9 +27,14 @@
 
     @can('edit_pharma')
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="mb-4">
-                <h2 class="text-base font-semibold text-slate-950">1. Tải nguồn danh mục</h2>
-                <p class="mt-1 text-sm text-slate-500">Upload chỉ tạo staging. Không có dữ liệu canonical nào bị thay đổi cho tới khi anh xác nhận commit.</p>
+            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-950">1. Tải nguồn danh mục</h2>
+                    <p class="mt-1 text-sm text-slate-500">Upload chỉ tạo staging. Không có dữ liệu canonical nào bị thay đổi cho tới khi anh xác nhận commit.</p>
+                </div>
+                <a href="{{ route('admin.pharma.medicines.import.template') }}" class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                    Tải template danh mục thuốc (.xlsx)
+                </a>
             </div>
             <form method="POST" action="{{ route('admin.pharma.medicines.import.store') }}" enctype="multipart/form-data" class="flex flex-col gap-4 lg:flex-row lg:items-end">
                 @csrf
@@ -60,31 +65,31 @@
         </section>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <form method="GET" action="{{ route('admin.pharma.medicines.import.index') }}" class="grid flex-1 gap-3 md:grid-cols-4">
-                    <input type="hidden" name="batch" value="{{ $batch->id }}">
-                    <div class="md:col-span-2">
-                        <label for="catalog-import-search" class="block text-sm font-medium text-slate-700">Tìm kiếm</label>
-                        <input id="catalog-import-search" name="search" value="{{ request('search') }}" placeholder="Tên thuốc, GPLH, hoạt chất..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm">
-                    </div>
-                    <div>
-                        <label for="catalog-import-classification" class="block text-sm font-medium text-slate-700">Phân loại</label>
-                        <select id="catalog-import-classification" name="classification" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
-                            <option value="">Tất cả</option>
-                            @foreach ($classifications as $value => $label)
-                                <option value="{{ $value }}" @selected(request('classification') === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label for="catalog-import-per-page" class="block text-sm font-medium text-slate-700">Mỗi trang</label>
-                        <select id="catalog-import-per-page" name="per_page" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
-                            @foreach ([10,25,50,100] as $size)<option value="{{ $size }}" @selected((int) request('per_page',25) === $size)>{{ $size }}</option>@endforeach
-                        </select>
-                    </div>
-                    <div class="md:col-span-4 flex justify-end"><button class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Áp dụng bộ lọc</button></div>
-                </form>
-            </div>
+            <form method="GET" action="{{ route('admin.pharma.medicines.import.index') }}" class="grid gap-3 md:grid-cols-4">
+                <input type="hidden" name="batch" value="{{ $batch->id }}">
+                <div class="md:col-span-2">
+                    <label for="catalog-import-search" class="block text-sm font-medium text-slate-700">Tìm kiếm</label>
+                    <input id="catalog-import-search" name="search" value="{{ request('search') }}" placeholder="Tên thuốc, GPLH, hoạt chất..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm">
+                    <p class="mt-1 text-xs text-slate-500">Nhấn Enter để tìm kiếm.</p>
+                </div>
+                <div>
+                    <label for="catalog-import-classification" class="block text-sm font-medium text-slate-700">Phân loại</label>
+                    <select id="catalog-import-classification" name="classification" onchange="this.form.submit()" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                        <option value="">Tất cả</option>
+                        @foreach ($classifications as $value => $label)
+                            <option value="{{ $value }}" @selected(request('classification') === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Tự áp dụng khi chọn.</p>
+                </div>
+                <div>
+                    <label for="catalog-import-per-page" class="block text-sm font-medium text-slate-700">Mỗi trang</label>
+                    <select id="catalog-import-per-page" name="per_page" onchange="this.form.submit()" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                        @foreach ([10,25,50,100] as $size)<option value="{{ $size }}" @selected((int) request('per_page',25) === $size)>{{ $size }}</option>@endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Tự áp dụng khi chọn.</p>
+                </div>
+            </form>
         </section>
 
         <form method="POST" action="{{ route('admin.pharma.medicines.import.selection', $batch) }}" class="space-y-4">
@@ -145,9 +150,13 @@
 
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 class="text-base font-semibold text-slate-950">Lịch sử import gần đây</h2>
+        <p class="mt-1 text-sm text-slate-500">Thời gian hiển thị theo timezone của ứng dụng.</p>
         <div class="mt-4 divide-y divide-slate-100">
             @forelse($batches as $item)
-                <a href="{{ route('admin.pharma.medicines.import.index', ['batch' => $item->id]) }}" class="flex items-center justify-between gap-4 py-3 text-sm hover:text-indigo-700"><span><strong>#{{ $item->id }}</strong> · {{ $item->source_file ?: 'Không tên' }}</span><span class="text-xs text-slate-500">{{ $item->status }} · {{ $item->total_rows }} dòng</span></a>
+                <a href="{{ route('admin.pharma.medicines.import.index', ['batch' => $item->id]) }}" class="flex flex-col gap-1 py-3 text-sm hover:text-indigo-700 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <span><strong>#{{ $item->id }}</strong> · {{ $item->source_file ?: 'Không tên' }}</span>
+                    <span class="text-xs text-slate-500">{{ $item->created_at?->format('d/m/Y H:i') ?? '—' }} · {{ $item->status }} · {{ $item->total_rows }} dòng</span>
+                </a>
             @empty<p class="py-4 text-sm text-slate-500">Chưa có batch import.</p>@endforelse
         </div>
     </section>
