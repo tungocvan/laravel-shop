@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicineProfile;
@@ -46,7 +47,7 @@ class HsspController extends Controller
         return view('Pharma::pages.hssp.form', [
             'medicine' => $medicine,
             'profile' => new MedicineProfile([
-                'profile_version' => (string) (($medicine->profiles()->count()) + 1),
+                'profile_version' => (string) ($medicine->profiles()->count() + 1),
                 'profile_status' => MedicineProfile::STATUS_NEEDS_REVIEW,
                 'is_current' => true,
             ]),
@@ -56,7 +57,7 @@ class HsspController extends Controller
 
     public function store(Request $request, Medicine $medicine): RedirectResponse
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request, $medicine);
 
         DB::transaction(function () use ($medicine, $data): void {
             if ($data['is_current']) {
@@ -87,11 +88,11 @@ class HsspController extends Controller
     public function update(Request $request, Medicine $medicine, MedicineProfile $profile): RedirectResponse
     {
         abort_unless($profile->medicine_id === $medicine->id, 404);
-        $data = $this->validated($request, $profile);
+        $data = $this->validated($request, $medicine, $profile);
 
         DB::transaction(function () use ($medicine, $profile, $data): void {
             if ($data['is_current']) {
-                $medicine->profiles()->whereKeyNot($profile->id)->update(['is_current' => false]);
+                $medicine->profiles()->where('id', '!=', $profile->id)->update(['is_current' => false]);
             }
 
             $profile->update($data + ['updated_by' => auth('admin')->id()]);
@@ -101,7 +102,7 @@ class HsspController extends Controller
             ->with('success', 'Đã cập nhật HSSP của thuốc '.$medicine->name.'.');
     }
 
-    private function validated(Request $request, ?MedicineProfile $profile = null): array
+    private function validated(Request $request, Medicine $medicine, ?MedicineProfile $profile = null): array
     {
         $data = $request->validate([
             'profile_version' => ['required', 'string', 'max:50'],
@@ -115,13 +116,15 @@ class HsspController extends Controller
         ]);
 
         $duplicate = MedicineProfile::query()
-            ->where('medicine_id', $profile?->medicine_id ?? (int) $request->route('medicine')->id)
+            ->where('medicine_id', $medicine->id)
             ->where('profile_version', $data['profile_version'])
-            ->when($profile, fn ($query) => $query->whereKeyNot($profile->id))
+            ->when($profile, fn ($query) => $query->where('id', '!=', $profile->id))
             ->exists();
 
         if ($duplicate) {
-            abort(422, 'Phiên bản HSSP này đã tồn tại cho thuốc.');
+            throw ValidationException::withMessages([
+                'profile_version' => 'Phiên bản HSSP này đã tồn tại cho thuốc.',
+            ]);
         }
 
         $data['is_current'] = $request->boolean('is_current', true);
