@@ -51,8 +51,6 @@ class Form extends Component
 
     public $is_special_control = false;
 
-    public $profile_link;
-
     public $notes;
 
     protected function rules()
@@ -76,7 +74,6 @@ class Form extends Component
             'gmp_certification_date' => 'nullable|date',
             'declared_price' => 'nullable|numeric|min:0',
             'is_special_control' => 'boolean',
-            'profile_link' => 'nullable|url',
             'notes' => 'nullable|string',
         ];
     }
@@ -108,16 +105,16 @@ class Form extends Component
         try {
             if ($this->isEditMode) {
                 $medicineService->update($this->medicineId, $validatedData);
-                session()->flash('success', 'Cập nhật hồ sơ thuốc thành công.');
+                session()->flash('success', 'Cập nhật Medicine Master thành công.');
             } else {
                 $medicineService->store($validatedData);
-                session()->flash('success', 'Thêm mới hồ sơ thuốc thành công. Hồ sơ thiếu dữ liệu sẽ được đánh dấu để hoàn thiện.');
+                session()->flash('success', 'Đã thêm thuốc vào Medicine Master. HSSP có thể được bổ sung sau.');
             }
 
-            return redirect()->route('admin.pharma.hssp.index');
+            return redirect()->route('admin.pharma.medicines.index');
         } catch (Exception $e) {
             report($e);
-            session()->flash('error', 'Không thể lưu hồ sơ thuốc. Vui lòng thử lại hoặc kiểm tra log hệ thống.');
+            session()->flash('error', 'Không thể lưu thuốc. Vui lòng thử lại hoặc kiểm tra log hệ thống.');
         }
     }
 
