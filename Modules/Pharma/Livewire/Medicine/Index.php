@@ -26,6 +26,8 @@ class Index extends Component
 
     public string $filterProfileStatus = '';
 
+    public string $filterHssp = '';
+
     public array $selectedIds = [];
 
     public bool $selectPage = false;
@@ -50,6 +52,15 @@ class Index extends Component
 
     public function updatedFilterSpecialControl(): void
     {
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedFilterHssp(): void
+    {
+        if (! in_array($this->filterHssp, ['', 'with', 'without'], true)) {
+            $this->filterHssp = '';
+        }
+
         $this->resetWorkspacePage();
     }
 
@@ -81,7 +92,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus']);
+        $this->reset(['search', 'filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp']);
         $this->page = 1;
         $this->clearSelection();
     }
@@ -99,7 +110,7 @@ class Index extends Component
         try {
             $medicineService->delete($id);
             $this->clearSelection();
-            session()->flash('success', 'Đã xóa hồ sơ thuốc ra khỏi hệ thống.');
+            session()->flash('success', 'Đã xóa thuốc khỏi Medicine Master.');
         } catch (Exception $exception) {
             report($exception);
             session()->flash('error', 'Không thể xóa bản ghi này.');
@@ -123,7 +134,7 @@ class Index extends Component
             }
 
             $this->clearSelection();
-            session()->flash('success', 'Đã xóa các bản ghi được chọn trên trang hiện tại.');
+            session()->flash('success', 'Đã xóa các thuốc được chọn trên trang hiện tại.');
         } catch (Exception $exception) {
             report($exception);
             session()->flash('error', 'Có lỗi xảy ra khi xóa hàng loạt dữ liệu.');
@@ -158,6 +169,7 @@ class Index extends Component
             $this->filterCircularGroup,
             $this->filterSpecialControl,
             $this->filterProfileStatus ?: null,
+            $this->filterHssp ?: null,
         );
     }
 
@@ -191,7 +203,7 @@ class Index extends Component
     private function profileStatusOptions(): array
     {
         return [
-            '' => 'Tất cả chất lượng',
+            '' => 'Tất cả chất lượng master',
             Medicine::PROFILE_INCOMPLETE => 'Thiếu dữ liệu',
             Medicine::PROFILE_NEEDS_REVIEW => 'Cần rà soát',
             Medicine::PROFILE_COMPLETE => 'Đầy đủ',
