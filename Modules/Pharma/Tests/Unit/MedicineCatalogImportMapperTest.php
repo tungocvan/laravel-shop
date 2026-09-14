@@ -32,6 +32,8 @@ class MedicineCatalogImportMapperTest extends TestCase
         $this->assertSame('VD-34495-20', $mapped['registration_number_primary']);
         $this->assertSame('2mg/5ml; 150ml', $mapped['concentration']);
         $this->assertSame('Hộp 1 lọ 150ml', $mapped['packaging_specification']);
+        $this->assertFalse($mapped['is_special_control']);
+        $this->assertNull($mapped['therapeutic_group']);
     }
 
     #[Test]
@@ -43,6 +45,30 @@ class MedicineCatalogImportMapperTest extends TestCase
             $mapped = $mapper->map([$label => 'Pitamsol']);
             $this->assertSame('Pitamsol', $mapped['name']);
         }
+    }
+
+    #[Test]
+    public function it_maps_therapeutic_group_and_special_control_marker(): void
+    {
+        $mapper = app(MedicineCatalogImportMapper::class);
+
+        $mapped = $mapper->map([
+            'Tên biệt dược' => 'Thuốc mẫu',
+            'Nồng độ - Hàm lượng' => '500mg',
+            'Nhóm thuốc điều trị' => 'Kháng sinh',
+            'Thuốc KSĐB' => 'X',
+        ]);
+
+        $this->assertSame('Kháng sinh', $mapped['therapeutic_group']);
+        $this->assertTrue($mapped['is_special_control']);
+
+        $blank = $mapper->map([
+            'Tên biệt dược' => 'Thuốc mẫu 2',
+            'Nồng độ - Hàm lượng' => '500mg',
+            'Thuốc KSĐB' => '',
+        ]);
+
+        $this->assertFalse($blank['is_special_control']);
     }
 
     #[Test]
