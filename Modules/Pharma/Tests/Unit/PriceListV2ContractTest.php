@@ -34,17 +34,19 @@ class PriceListV2ContractTest extends TestCase
     {
         $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
 
+        $this->assertStringContainsString("Route::prefix('price-lists')->name('price-lists.')", $routes);
+
         foreach ([
-            "name('price-lists.index')",
-            "name('price-lists.create')",
-            "name('price-lists.store')",
-            "name('price-lists.show')",
-            "name('price-lists.edit')",
-            "name('price-lists.update')",
-            "name('price-lists.activate')",
-            "name('price-lists.deactivate')",
-            "name('price-lists.clone')",
-            "name('price-lists.export')",
+            "->name('index')",
+            "->name('create')",
+            "->name('store')",
+            "->name('show')",
+            "->name('edit')",
+            "->name('update')",
+            "->name('activate')",
+            "->name('deactivate')",
+            "->name('clone')",
+            "->name('export')",
         ] as $routeName) {
             $this->assertStringContainsString($routeName, $routes);
         }
@@ -73,11 +75,11 @@ class PriceListV2ContractTest extends TestCase
 
         $this->assertStringContainsString("Schema::create('pharma_price_lists'", $migration);
         $this->assertStringContainsString("Schema::create('pharma_price_list_items'", $migration);
-        $this->assertStringContainsString("declared_price_snapshot", $migration);
-        $this->assertStringContainsString("company_sale_price", $migration);
-        $this->assertStringContainsString("actual_receivable_price", $migration);
-        $this->assertStringContainsString("invoice_price", $migration);
-        $this->assertStringContainsString("pharma_price_list_items_identity_unique", $migration);
+        $this->assertStringContainsString('declared_price_snapshot', $migration);
+        $this->assertStringContainsString('company_sale_price', $migration);
+        $this->assertStringContainsString('actual_receivable_price', $migration);
+        $this->assertStringContainsString('invoice_price', $migration);
+        $this->assertStringContainsString('pharma_price_list_items_identity_unique', $migration);
     }
 
     #[Test]
@@ -90,7 +92,10 @@ class PriceListV2ContractTest extends TestCase
         $this->assertNotFalse($customerPosition);
         $this->assertNotFalse($globalPosition);
         $this->assertLessThan($globalPosition, $customerPosition);
-        $this->assertStringNotContainsString('declared_price', $resolver);
+
+        $this->assertStringContainsString('declared_price_snapshot', $resolver);
+        $this->assertStringNotContainsString('Medicine::', $resolver);
+        $this->assertStringNotContainsString('->declared_price', $resolver);
     }
 
     #[Test]
