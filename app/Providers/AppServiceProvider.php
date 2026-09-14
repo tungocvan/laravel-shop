@@ -7,6 +7,8 @@ use App\Modules\ModuleStateRepository;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use LogicException;
+use Modules\Pharma\Contracts\PriceResolver;
+use Modules\Pharma\Services\DatabasePriceResolver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
                 (string) config('modules.state.file', storage_path('app/system/module-state.json'))
             );
         });
+
+        $this->app->bind(PriceResolver::class, DatabasePriceResolver::class);
     }
 
     /**
