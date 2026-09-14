@@ -70,8 +70,15 @@ class MedicineService
     {
         return DB::transaction(function () use ($data): Medicine {
             $data = $this->normalizeQualityState($data);
+            $medicine = Medicine::query()->create($data);
 
-            return Medicine::query()->create($data);
+            if (! $medicine->medicine_code) {
+                $medicine->forceFill([
+                    'medicine_code' => 'MED-'.str_pad((string) $medicine->id, 6, '0', STR_PAD_LEFT),
+                ])->save();
+            }
+
+            return $medicine->refresh();
         });
     }
 
