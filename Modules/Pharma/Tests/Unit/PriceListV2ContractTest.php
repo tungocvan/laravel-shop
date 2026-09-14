@@ -54,9 +54,9 @@ class PriceListV2ContractTest extends TestCase
     {
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
-        $this->assertStringContainsString("'company' => $ceiling ?? ''", $livewire);
-        $this->assertStringContainsString("['receivable'] = round((float) $declared", $livewire);
-        $this->assertStringNotContainsString("['company'] = round((float) $declared", $livewire);
+        $this->assertStringContainsString("'company' => \$ceiling ?? ''", $livewire);
+        $this->assertStringContainsString("['receivable'] = round((float) \$declared", $livewire);
+        $this->assertStringNotContainsString("['company'] = round((float) \$declared", $livewire);
         $this->assertStringContainsString('Giá bán công ty mặc định bằng giá kê khai', $view);
         $this->assertStringContainsString('Giảm từ giá kê khai → Giá thu thực tế', $view);
     }
