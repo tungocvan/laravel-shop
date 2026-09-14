@@ -22,14 +22,22 @@ class MedicineService
         ?string $profileStatus = null,
     ): LengthAwarePaginator {
         return Medicine::query()
-            ->withCount(['sources', 'drugBidAwards'])
+            ->with(['variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default'])
+            ->withCount(['sources', 'drugBidAwards', 'variants'])
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('name', 'like', "%{$value}%")
+                ->orWhere('medicine_code', 'like', "%{$value}%")
                 ->orWhere('active_ingredients', 'like', "%{$value}%")
                 ->orWhere('registration_number', 'like', "%{$value}%")
+                ->orWhere('registration_number_primary', 'like', "%{$value}%")
                 ->orWhere('concentration', 'like', "%{$value}%")
                 ->orWhere('manufacturing_company', 'like', "%{$value}%")
-                ->orWhere('manufacturing_country', 'like', "%{$value}%")))
+                ->orWhere('manufacturing_country', 'like', "%{$value}%")
+                ->orWhereHas('variants', fn ($variant) => $variant
+                    ->where('sku', 'like', "%{$value}%")
+                    ->orWhere('strength_text', 'like', "%{$value}%")
+                    ->orWhere('presentation_text', 'like', "%{$value}%"))
+                ->orWhereHas('aliases', fn ($alias) => $alias->where('alias', 'like', "%{$value}%"))))
             ->when($circularGroup, fn ($query, $value) => $query->where('circular_group', $value))
             ->when($specialControl, fn ($query, $value) => $query->where('is_special_control', $value === 'yes'))
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
