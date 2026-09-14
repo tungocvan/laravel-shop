@@ -4,6 +4,7 @@ namespace Modules\Pharma\Livewire\Medicine;
 
 use Exception;
 use Livewire\Component;
+use LogicException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\MedicineService;
@@ -110,10 +111,12 @@ class Index extends Component
         try {
             $medicineService->delete($id);
             $this->clearSelection();
-            session()->flash('success', 'Đã xóa thuốc khỏi Medicine Master.');
+            session()->flash('success', 'Đã xóa thuốc và dữ liệu catalog nội bộ liên quan khỏi Medicine Master.');
+        } catch (LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
         } catch (Exception $exception) {
             report($exception);
-            session()->flash('error', 'Không thể xóa bản ghi này.');
+            session()->flash('error', 'Không thể xóa bản ghi này. Vui lòng kiểm tra log hệ thống.');
         }
     }
 
@@ -128,16 +131,34 @@ class Index extends Component
             return;
         }
 
-        try {
-            foreach ($ids as $id) {
-                $medicineService->delete((int) $id);
-            }
+        $deleted = 0;
+        $protected = 0;
+        $failed = 0;
 
-            $this->clearSelection();
-            session()->flash('success', 'Đã xóa các thuốc được chọn trên trang hiện tại.');
-        } catch (Exception $exception) {
-            report($exception);
-            session()->flash('error', 'Có lỗi xảy ra khi xóa hàng loạt dữ liệu.');
+        foreach ($ids as $id) {
+            try {
+                $medicineService->delete((int) $id);
+                $deleted++;
+            } catch (LogicException) {
+                $protected++;
+            } catch (Exception $exception) {
+                report($exception);
+                $failed++;
+            }
+        }
+
+        $this->clearSelection();
+
+        if ($deleted > 0) {
+            session()->flash('success', sprintf('Đã xóa %d thuốc khỏi Medicine Master.', $deleted));
+        }
+
+        if ($protected > 0 || $failed > 0) {
+            session()->flash('error', sprintf(
+                '%d thuốc không thể xóa do đã có HSSP/kết quả lựa chọn nhà thầu tham chiếu; %d thuốc gặp lỗi hệ thống.',
+                $protected,
+                $failed,
+            ));
         }
     }
 
