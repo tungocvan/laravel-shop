@@ -76,13 +76,23 @@ class Create extends Component
 
     public function updatedSelectPage(bool $selected): void
     {
-        $keys = collect($this->productPaginator()->items())->pluck('key')->all();
+        $keys = $this->currentPageKeys();
         $this->selectedRows = $selected ? array_values(array_unique([...$this->selectedRows, ...$keys])) : array_values(array_diff($this->selectedRows, $keys));
         $this->initializeSelectedPrices($keys);
     }
 
-    public function updatedSelectedRows(): void { $this->selectPage = false; $this->initializeSelectedPrices($this->selectedRows); }
-    public function gotoPage(mixed $page): void { $this->page = max(1, (int) $page); $this->selectPage = false; }
+    public function updatedSelectedRows(): void
+    {
+        $this->selectedRows = array_values(array_unique($this->selectedRows));
+        $this->initializeSelectedPrices($this->selectedRows);
+        $this->syncSelectPageState();
+    }
+
+    public function gotoPage(mixed $page): void
+    {
+        $this->page = max(1, (int) $page);
+        $this->syncSelectPageState();
+    }
 
     public function goToStep(int $step): void
     {
@@ -99,7 +109,7 @@ class Create extends Component
     public function selectAllMatching(): void
     {
         $keys = $this->productQuery()->get()->map(fn ($row): string => $this->rowKey((int) $row->variant_id, $row->package_id ? (int) $row->package_id : null))->all();
-        $this->selectedRows = array_values(array_unique([...$this->selectedRows, ...$keys])); $this->initializeSelectedPrices($keys); $this->selectPage = true;
+        $this->selectedRows = array_values(array_unique([...$this->selectedRows, ...$keys])); $this->initializeSelectedPrices($keys); $this->syncSelectPageState();
     }
 
     public function loadFromGlobalPriceList(): void
@@ -204,7 +214,23 @@ class Create extends Component
         return $result;
     }
 
-    private function resetProductPage(): void { $this->page = 1; $this->selectPage = false; }
+    private function currentPageKeys(): array
+    {
+        return collect($this->productPaginator()->items())->pluck('key')->all();
+    }
+
+    private function syncSelectPageState(): void
+    {
+        $keys = $this->currentPageKeys();
+        $this->selectPage = $keys !== [] && count(array_intersect($keys, $this->selectedRows)) === count($keys);
+    }
+
+    private function resetProductPage(): void
+    {
+        $this->page = 1;
+        $this->syncSelectPageState();
+    }
+
     private function rowKey(int $variantId, ?int $packageId): string { return $variantId.'-'.($packageId ?? 0); }
     private function parseRowKey(string $key): array { [$variantId, $packageId] = array_map('intval', explode('-', $key, 2)); return [$variantId, $packageId === 0 ? null : $packageId]; }
     private function nullablePrice(mixed $value): ?float { return $value === '' || $value === null ? null : (float) $value; }
