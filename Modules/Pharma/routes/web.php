@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Pharma\Http\Controllers\BhxhOfficialFacilityLookupController;
 use Modules\Pharma\Http\Controllers\DrugBidAwardController;
+use Modules\Pharma\Http\Controllers\MedicineCatalogImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
 use Modules\Pharma\Http\Controllers\OfficialSourceSyncController;
@@ -38,6 +39,16 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
     Route::put('/official-facilities/import/rows/{row}/resolve', [OfficialFacilityImportController::class, 'resolve'])
         ->middleware('can:resolve_pharma_official_facility_conflicts')
         ->name('official-facilities.resolve');
+
+    Route::middleware('can:view_pharma')->group(function () {
+        Route::get('/medicines/import', [MedicineCatalogImportController::class, 'index'])->name('medicines.import.index');
+    });
+
+    Route::middleware('can:edit_pharma')->group(function () {
+        Route::post('/medicines/import', [MedicineCatalogImportController::class, 'store'])->name('medicines.import.store');
+        Route::put('/medicines/import/{batch}/selection', [MedicineCatalogImportController::class, 'selection'])->name('medicines.import.selection');
+        Route::post('/medicines/import/{batch}/commit', [MedicineCatalogImportController::class, 'commit'])->name('medicines.import.commit');
+    });
 
     Route::prefix('hssp')->name('hssp.')->group(function () {
         Route::get('/', [PharmaController::class, 'index'])->middleware('can:view_pharma')->name('index');
