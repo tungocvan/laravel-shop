@@ -76,10 +76,18 @@ class MedicineCatalogImportMapper
             return null;
         }
 
-        if (str_contains($raw, ',') && ! str_contains($raw, '.')) {
+        $comma = strrpos($raw, ',');
+        $dot = strrpos($raw, '.');
+
+        if ($comma !== false && $dot !== false) {
+            if ($comma > $dot) {
+                $raw = str_replace('.', '', $raw);
+                $raw = str_replace(',', '.', $raw);
+            } else {
+                $raw = str_replace(',', '', $raw);
+            }
+        } elseif ($comma !== false) {
             $raw = str_replace(',', '.', $raw);
-        } elseif (str_contains($raw, ',') && str_contains($raw, '.')) {
-            $raw = str_replace(',', '', $raw);
         }
 
         return is_numeric($raw) ? (float) $raw : null;
