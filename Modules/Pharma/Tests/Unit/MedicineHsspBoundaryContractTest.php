@@ -27,8 +27,8 @@ class MedicineHsspBoundaryContractTest extends TestCase
         $medicine = file_get_contents(base_path('Modules/Pharma/Models/Medicine.php'));
 
         $this->assertStringContainsString("Schema::create('pharma_medicine_profiles'", $migration);
-        $this->assertStringContainsString("$table->foreignId('medicine_id')", $migration);
-        $this->assertStringContainsString("protected $table = 'pharma_medicine_profiles'", $model);
+        $this->assertStringContainsString("\$table->foreignId('medicine_id')", $migration);
+        $this->assertStringContainsString("protected \$table = 'pharma_medicine_profiles'", $model);
         $this->assertStringContainsString('public function profiles(): HasMany', $medicine);
         $this->assertStringContainsString('public function currentProfile(): HasOne', $medicine);
     }
@@ -40,7 +40,7 @@ class MedicineHsspBoundaryContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
         $form = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/Form.php'));
 
-        $this->assertStringContainsString("public string $filterHssp = ''", $component);
+        $this->assertStringContainsString("public string \$filterHssp = ''", $component);
         $this->assertStringContainsString('Có HSSP', $view);
         $this->assertStringContainsString('Chưa có HSSP', $view);
         $this->assertStringContainsString("route('admin.pharma.hssp.create'", $view);
