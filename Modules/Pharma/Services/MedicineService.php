@@ -26,7 +26,15 @@ class MedicineService
         return Medicine::query()
             ->with([
                 'variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default',
-                'currentProfile:id,medicine_id,profile_version,profile_status,profile_link,verified_at,is_current',
+                'currentProfile' => fn ($query) => $query->select([
+                    'pharma_medicine_profiles.id',
+                    'pharma_medicine_profiles.medicine_id',
+                    'pharma_medicine_profiles.profile_version',
+                    'pharma_medicine_profiles.profile_status',
+                    'pharma_medicine_profiles.profile_link',
+                    'pharma_medicine_profiles.verified_at',
+                    'pharma_medicine_profiles.is_current',
+                ]),
             ])
             ->withCount(['sources', 'drugBidAwards', 'variants', 'profiles'])
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
