@@ -17,6 +17,7 @@ class MedicineCatalogImportController extends Controller
     {
         $batch = null;
         $rows = null;
+        $selectedCount = 0;
 
         if ($request->filled('batch')) {
             $batch = MedicineImportBatch::query()->findOrFail($request->integer('batch'));
@@ -34,11 +35,17 @@ class MedicineCatalogImportController extends Controller
                 ->orderBy('source_row')
                 ->paginate($this->perPage($request))
                 ->withQueryString();
+
+            $selectedCount = $batch->rows()
+                ->where('selected', true)
+                ->whereIn('classification', [MedicineImportRow::CLASS_NEW, MedicineImportRow::CLASS_UPDATE])
+                ->count();
         }
 
         return view('Pharma::pages.medicine-import.index', [
             'batch' => $batch,
             'rows' => $rows,
+            'selectedCount' => $selectedCount,
             'batches' => MedicineImportBatch::query()->latest('id')->paginate(10, ['*'], 'history_page'),
             'classifications' => [
                 MedicineImportRow::CLASS_NEW => 'Mới',
@@ -87,6 +94,15 @@ class MedicineCatalogImportController extends Controller
 
     public function commit(MedicineImportBatch $batch, MedicineCatalogImportCommitter $committer): RedirectResponse
     {
+        $selectedCount = $batch->rows()
+            ->where('selected', true)
+            ->whereIn('classification', [MedicineImportRow::CLASS_NEW, MedicineImportRow::CLASS_UPDATE])
+            ->count();
+
+        if ($selectedCount === 0) {
+            return back()->with('error', 'Không có dòng NEW/UPDATE nào được chọn để đồng bộ. Hãy kiểm tra mapping hoặc phân loại staging trước khi commit.');
+        }
+
         $result = $committer->commit($batch);
 
         return back()->with('success', sprintf(
