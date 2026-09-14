@@ -46,6 +46,7 @@ class Medicine extends Model
         'catalog_status',
         'circular_order_number',
         'circular_group',
+        'therapeutic_group',
         'active_ingredients',
         'concentration',
         'name',
