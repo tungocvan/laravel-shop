@@ -70,6 +70,7 @@ class MedicineCatalogImportMapper
 
     private function normalizeHeader(string $value): string
     {
+        $value = $this->normalizeUnicode($value);
         $value = trim($value);
         $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
 
@@ -82,9 +83,19 @@ class MedicineCatalogImportMapper
             return null;
         }
 
-        $value = trim(preg_replace('/\s+/u', ' ', (string) $value) ?? '');
+        $value = $this->normalizeUnicode((string) $value);
+        $value = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
 
         return $value === '' ? null : $value;
+    }
+
+    private function normalizeUnicode(string $value): string
+    {
+        if (class_exists(\Normalizer::class)) {
+            return \Normalizer::normalize($value, \Normalizer::FORM_C) ?: $value;
+        }
+
+        return $value;
     }
 
     private function number(mixed $value): ?float
