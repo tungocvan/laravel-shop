@@ -97,20 +97,26 @@ class PriceListManager
 
         $overlap = PriceList::query()->whereKeyNot($priceList->id)->where('status', PriceList::STATUS_ACTIVE)->where('type', $priceList->type)
             ->when($priceList->type === PriceList::TYPE_CUSTOMER, fn ($query) => $query->where('partner_id', $priceList->partner_id), fn ($query) => $query->whereNull('partner_id'))
-            ->where(function ($query) use ($priceList): void { $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $priceList->effective_from ?? '1000-01-01'); })
-            ->where(function ($query) use ($priceList): void { $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', $priceList->effective_to ?? '9999-12-31'); })
+            ->where(function ($query) use ($priceList): void {
+                $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $priceList->effective_from ?? '1000-01-01');
+            })
+            ->where(function ($query) use ($priceList): void {
+                $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', $priceList->effective_to ?? '9999-12-31');
+            })
             ->exists();
         if ($overlap) {
             throw ValidationException::withMessages(['effective_from' => 'Đã có bảng giá ACTIVE bị chồng lấn thời gian trong cùng phạm vi.']);
         }
 
         $priceList->forceFill(['status' => PriceList::STATUS_ACTIVE, 'approved_by' => $approvedBy, 'approved_at' => now()])->save();
+
         return $priceList->refresh();
     }
 
     public function deactivate(PriceList $priceList): PriceList
     {
         $priceList->forceFill(['status' => PriceList::STATUS_INACTIVE])->save();
+
         return $priceList->refresh();
     }
 
@@ -130,7 +136,22 @@ class PriceListManager
                 $newItem->price_list_id = $copy->id;
                 $newItem->save();
             }
+
             return $copy->load('items');
+        });
+    }
+
+    public function deleteDraft(PriceList $priceList): void
+    {
+        if (! $priceList->isDraft()) {
+            throw ValidationException::withMessages([
+                'price_list' => 'Chỉ bảng giá DRAFT mới được xóa. Bảng giá đã kích hoạt phải Deactivate/Archive để giữ lịch sử.',
+            ]);
+        }
+
+        DB::transaction(function () use ($priceList): void {
+            $priceList->items()->delete();
+            $priceList->delete();
         });
     }
 }
