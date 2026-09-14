@@ -37,9 +37,14 @@ class MedicineCatalogContractTest extends TestCase
     {
         $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
 
-        $this->assertStringContainsString("name('medicines.import.index')", $routes);
-        $this->assertStringContainsString("name('medicines.import.store')", $routes);
-        $this->assertStringContainsString("name('medicines.import.selection')", $routes);
-        $this->assertStringContainsString("name('medicines.import.commit')", $routes);
+        $this->assertStringContainsString("Route::prefix('medicines')->name('medicines.')", $routes);
+        $this->assertStringContainsString("Route::get('/import', [MedicineCatalogImportController::class, 'index'])", $routes);
+        $this->assertStringContainsString("->name('import.index')", $routes);
+        $this->assertStringContainsString("Route::post('/import', [MedicineCatalogImportController::class, 'store'])", $routes);
+        $this->assertStringContainsString("->name('import.store')", $routes);
+        $this->assertStringContainsString("Route::put('/import/{batch}/selection', [MedicineCatalogImportController::class, 'selection'])", $routes);
+        $this->assertStringContainsString("->name('import.selection')", $routes);
+        $this->assertStringContainsString("Route::post('/import/{batch}/commit', [MedicineCatalogImportController::class, 'commit'])", $routes);
+        $this->assertStringContainsString("->name('import.commit')", $routes);
     }
 }
