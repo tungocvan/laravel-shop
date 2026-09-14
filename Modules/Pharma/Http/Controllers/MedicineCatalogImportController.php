@@ -114,12 +114,19 @@ class MedicineCatalogImportController extends Controller
 
         $result = $committer->commit($batch);
 
-        return back()->with('success', sprintf(
-            'Đã đồng bộ Medicine Master: %d created, %d updated, %d skipped.',
-            $result['created'],
-            $result['updated'],
-            $result['skipped'],
-        ));
+        return back()
+            ->with('success', sprintf(
+                'Đã đồng bộ Medicine Master: %d created, %d updated, %d skipped.',
+                $result['created'],
+                $result['updated'],
+                $result['skipped'],
+            ))
+            ->with('medicine_import_commit_result', [
+                'created' => (int) $result['created'],
+                'updated' => (int) $result['updated'],
+                'skipped' => (int) $result['skipped'],
+                'total' => (int) ($result['created'] + $result['updated'] + $result['skipped']),
+            ]);
     }
 
     public function clearHistory(): RedirectResponse
