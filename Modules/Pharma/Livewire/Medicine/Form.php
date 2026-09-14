@@ -19,6 +19,8 @@ class Form extends Component
 
     public $circular_group;
 
+    public $therapeutic_group;
+
     public $active_ingredients;
 
     public $concentration;
@@ -70,6 +72,7 @@ class Form extends Component
             'manufacturing_country' => 'nullable|string|max:255',
             'circular_order_number' => 'nullable|string|max:255',
             'circular_group' => 'nullable|string|max:255',
+            'therapeutic_group' => 'nullable|string|max:255',
             'visa_validity_date' => 'nullable|date',
             'gmp_certification_date' => 'nullable|date',
             'declared_price' => 'nullable|numeric|min:0',
