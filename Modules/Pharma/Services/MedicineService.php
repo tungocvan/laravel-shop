@@ -41,6 +41,7 @@ class MedicineService
                 ->where('name', 'like', "%{$value}%")
                 ->orWhere('medicine_code', 'like', "%{$value}%")
                 ->orWhere('active_ingredients', 'like', "%{$value}%")
+                ->orWhere('therapeutic_group', 'like', "%{$value}%")
                 ->orWhere('registration_number', 'like', "%{$value}%")
                 ->orWhere('registration_number_primary', 'like', "%{$value}%")
                 ->orWhere('concentration', 'like', "%{$value}%")
