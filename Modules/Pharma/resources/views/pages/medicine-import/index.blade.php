@@ -15,6 +15,27 @@
         <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Tải XLSX/CSV vào staging để chuẩn hóa, đối chiếu và phân loại trước khi ghi vào Medicine Master. Tên biệt dược, tên thuốc và tên sản phẩm được hiểu là cùng một trường canonical.</p>
     </header>
 
+    @if ($importResult = session('medicine_import_commit_result'))
+        <div id="medicine-import-result-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="medicine-import-result-title">
+            <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200">
+                <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Medicine Master</p>
+                    <h2 id="medicine-import-result-title" class="mt-1 text-xl font-bold text-slate-950">Import danh mục thuốc thành công</h2>
+                    <p class="mt-1 text-sm text-slate-500">Dữ liệu đã được đồng bộ vào danh mục thuốc chuẩn.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4 sm:p-6">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><p class="text-xs font-medium text-slate-500">Tổng xử lý</p><p class="mt-1 text-xl font-bold text-slate-950">{{ number_format((int) ($importResult['total'] ?? 0)) }}</p></div>
+                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p class="text-xs font-medium text-emerald-700">Tạo mới</p><p class="mt-1 text-xl font-bold text-emerald-900">{{ number_format((int) ($importResult['created'] ?? 0)) }}</p></div>
+                    <div class="rounded-xl border border-sky-200 bg-sky-50 p-3"><p class="text-xs font-medium text-sky-700">Cập nhật</p><p class="mt-1 text-xl font-bold text-sky-900">{{ number_format((int) ($importResult['updated'] ?? 0)) }}</p></div>
+                    <div class="rounded-xl border border-slate-200 bg-white p-3"><p class="text-xs font-medium text-slate-500">Bỏ qua</p><p class="mt-1 text-xl font-bold text-slate-900">{{ number_format((int) ($importResult['skipped'] ?? 0)) }}</p></div>
+                </div>
+                <div class="flex justify-end border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
+                    <button type="button" onclick="document.getElementById('medicine-import-result-modal').remove()" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Đóng</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if (session('success'))
         <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
     @endif
