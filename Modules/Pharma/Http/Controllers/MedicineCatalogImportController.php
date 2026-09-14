@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Pharma\Exports\MedicineCatalogTemplateExport;
 use Modules\Pharma\Models\MedicineImportBatch;
 use Modules\Pharma\Models\MedicineImportRow;
 use Modules\Pharma\Services\MedicineCatalogImportCommitter;
 use Modules\Pharma\Services\MedicineCatalogUploadService;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MedicineCatalogImportController extends Controller
 {
@@ -55,6 +58,11 @@ class MedicineCatalogImportController extends Controller
                 MedicineImportRow::CLASS_NEEDS_REVIEW => 'Cần rà soát',
             ],
         ]);
+    }
+
+    public function template(): BinaryFileResponse
+    {
+        return Excel::download(new MedicineCatalogTemplateExport, 'medicine-catalog-template.xlsx');
     }
 
     public function store(Request $request, MedicineCatalogUploadService $service): RedirectResponse
