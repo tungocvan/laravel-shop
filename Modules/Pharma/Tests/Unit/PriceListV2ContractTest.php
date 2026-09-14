@@ -69,6 +69,24 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function create_workspace_is_a_four_step_builder_and_can_seed_customer_prices_from_global(): void
+    {
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+
+        foreach (['Thông tin', 'Chọn thuốc', 'Thiết lập giá', 'Kiểm tra & lưu'] as $step) {
+            $this->assertStringContainsString($step, $view);
+        }
+
+        $this->assertStringContainsString('loadFromGlobalPriceList', $livewire);
+        $this->assertStringContainsString("where('type', PriceList::TYPE_GLOBAL)", $livewire);
+        $this->assertStringContainsString("where('status', PriceList::STATUS_ACTIVE)", $livewire);
+        $this->assertStringContainsString('Khởi tạo từ bảng giá chung', $view);
+        $this->assertStringContainsString('selectAllMatching', $livewire);
+        $this->assertStringContainsString('Chọn tất cả kết quả', $view);
+    }
+
+    #[Test]
     public function persistence_contract_contains_snapshot_and_duplicate_protection(): void
     {
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_14_140000_create_price_lists_v2_tables.php'));
