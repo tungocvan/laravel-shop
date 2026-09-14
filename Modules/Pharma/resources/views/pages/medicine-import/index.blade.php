@@ -18,6 +18,9 @@
     @if (session('success'))
         <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
     @endif
+    @if (session('error'))
+        <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>
+    @endif
     @if ($errors->any())
         <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ implode(' ', $errors->all()) }}</div>
     @endif
@@ -126,8 +129,15 @@
         @can('edit_pharma')
             <section class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div><h2 class="font-semibold text-indigo-950">3. Đồng bộ vào Medicine Master</h2><p class="mt-1 text-sm text-indigo-800">Chỉ các dòng đang được chọn và có phân loại NEW/UPDATE mới được commit.</p></div>
-                    <form method="POST" action="{{ route('admin.pharma.medicines.import.commit', $batch) }}">@csrf<button type="submit" onclick="return confirm('Xác nhận đồng bộ các dòng đã chọn vào Medicine Master?')" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Commit dòng đã chọn</button></form>
+                    <div>
+                        <h2 class="font-semibold text-indigo-950">3. Đồng bộ vào Medicine Master</h2>
+                        <p class="mt-1 text-sm text-indigo-800">Có <strong>{{ number_format($selectedCount) }}</strong> dòng NEW/UPDATE đang được chọn để commit.</p>
+                        @if($selectedCount === 0)<p class="mt-1 text-xs font-medium text-rose-700">Không thể đồng bộ khi chưa có dòng NEW/UPDATE hợp lệ.</p>@endif
+                    </div>
+                    <form method="POST" action="{{ route('admin.pharma.medicines.import.commit', $batch) }}">
+                        @csrf
+                        <button type="submit" @disabled($selectedCount === 0) onclick="return confirm('Xác nhận đồng bộ các dòng đã chọn vào Medicine Master?')" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40">Commit dòng đã chọn</button>
+                    </form>
                 </div>
             </section>
         @endcan
