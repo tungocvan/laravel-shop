@@ -1,0 +1,11 @@
+@extends('Admin::layouts.master')
+@section('title', $priceList->name)
+@section('content')
+<div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+<a href="{{ route('admin.pharma.price-lists.index') }}" class="text-sm font-semibold text-gray-600">← Bảng giá thuốc</a>
+<div><h1 class="text-2xl font-bold text-gray-900">{{ $priceList->name }}</h1><p class="mt-1 text-sm text-gray-500">{{ $priceList->code }} · {{ strtoupper($priceList->status) }} · {{ $priceList->partner?->name ?? 'Bảng giá chung' }}</p></div>
+<form method="GET" action="{{ route('admin.pharma.price-lists.export',$priceList) }}" class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+<div class="flex items-center justify-between border-b border-gray-100 p-4"><p class="text-sm text-gray-500">Chọn dòng để export; không chọn sẽ export toàn bộ.</p><button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Export Excel</button></div>
+<div class="overflow-x-auto"><table class="w-full min-w-[1000px] text-sm"><thead class="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th class="px-4 py-3"></th><th class="px-4 py-3">SKU</th><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Quy cách</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="px-4 py-3 text-right">Giá bán</th><th class="px-4 py-3 text-right">Giá thu</th><th class="px-4 py-3 text-right">Giá hóa đơn</th></tr></thead><tbody class="divide-y divide-gray-100">@foreach($priceList->items as $item)<tr><td class="px-4 py-3"><input type="checkbox" name="items[]" value="{{ $item->id }}" class="rounded border-gray-300"></td><td class="px-4 py-3 font-semibold">{{ $item->variant?->sku }}</td><td class="px-4 py-3">{{ $item->medicine?->name }}</td><td class="px-4 py-3">{{ $item->package?->packaging_text ?? '-' }}</td><td class="px-4 py-3 text-right">{{ number_format((float)$item->declared_price_snapshot,0,',','.') }}</td><td class="px-4 py-3 text-right">{{ number_format((float)$item->company_sale_price,0,',','.') }}</td><td class="px-4 py-3 text-right">{{ number_format((float)$item->actual_receivable_price,0,',','.') }}</td><td class="px-4 py-3 text-right">{{ number_format((float)$item->invoice_price,0,',','.') }}</td></tr>@endforeach</tbody></table></div>
+</form></div>
+@endsection
