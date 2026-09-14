@@ -15,8 +15,15 @@ class MedicineImportExport extends BaseImportExportService
 
     protected bool $ignoreNullValuesOnUpdate = true;
 
+    /**
+     * Legacy direct-import identity kept only for backward compatibility.
+     * The canonical workflow is staged import via MedicineCatalogImportStager.
+     */
     protected array $uniqueBy = [
         'registration_number',
+        'name',
+        'concentration',
+        'dosage_form',
         'packaging_specification',
     ];
 
@@ -141,7 +148,7 @@ class MedicineImportExport extends BaseImportExportService
             'Phân nhóm theo thông tư' => $model->circular_group,
             'Tên hoạt chất' => $model->active_ingredients,
             'Nồng độ - Hàm lượng' => $model->concentration,
-            'Tên thuốc' => $model->name,
+            'Tên biệt dược / Tên thuốc / Tên sản phẩm' => $model->name,
             'Dạng bào chế' => $model->dosage_form,
             'Đường dùng' => $model->route_of_administration,
             'Đơn vị tính' => $model->unit,
@@ -184,14 +191,15 @@ class MedicineImportExport extends BaseImportExportService
 
     private function existingRecord(array $data): ?Medicine
     {
-        if (! $data['registration_number'] || ! $data['packaging_specification']) {
-            return null;
+        foreach ($this->uniqueBy as $field) {
+            if (! ($data[$field] ?? null)) {
+                return null;
+            }
         }
 
-        return Medicine::query()->where([
-            'registration_number' => $data['registration_number'],
-            'packaging_specification' => $data['packaging_specification'],
-        ])->first();
+        return Medicine::query()->where(collect($this->uniqueBy)
+            ->mapWithKeys(fn (string $field) => [$field => $data[$field]])
+            ->all())->first();
     }
 
     private function vietnameseNumber(mixed $value): ?float
