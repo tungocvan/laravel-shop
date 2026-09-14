@@ -20,8 +20,8 @@ return new class extends Migration
             $table->timestamp('verified_at')->nullable();
             $table->boolean('is_current')->default(true);
             $table->text('notes')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
 
             $table->index(['medicine_id', 'is_current'], 'pharma_hssp_medicine_current_idx');
