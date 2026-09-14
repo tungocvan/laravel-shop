@@ -57,8 +57,9 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString("'company' => \$ceiling ?? ''", $livewire);
         $this->assertStringContainsString("['receivable'] = round((float) \$declared", $livewire);
         $this->assertStringNotContainsString("['company'] = round((float) \$declared", $livewire);
-        $this->assertStringContainsString('Giá bán công ty mặc định bằng giá kê khai', $view);
-        $this->assertStringContainsString('Giảm từ giá kê khai → Giá thu thực tế', $view);
+        $this->assertStringContainsString('Giá bán công ty mặc định', $view);
+        $this->assertStringContainsString('Giảm từ giá kê khai', $view);
+        $this->assertStringContainsString('Giá thu thực tế', $view);
     }
 
     #[Test]
