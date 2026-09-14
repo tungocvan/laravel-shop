@@ -104,7 +104,15 @@ class Create extends Component
 
     public function nextStep(): void { $this->goToStep(min(4, $this->step + 1)); }
     public function previousStep(): void { $this->step = max(1, $this->step - 1); }
-    public function clearSelection(): void { $this->selectedRows = []; $this->selectPage = false; }
+    public function clearSelection(): void { $this->selectedRows = []; $this->prices = []; $this->selectPage = false; }
+
+    public function removeSelectedRow(string $key): void
+    {
+        $this->selectedRows = array_values(array_filter($this->selectedRows, fn (string $selected): bool => $selected !== $key));
+        unset($this->prices[$key]);
+        $this->syncSelectPageState();
+        if ($this->selectedRows === []) $this->step = 2;
+    }
 
     public function selectAllMatching(): void
     {
@@ -124,7 +132,7 @@ class Create extends Component
             $key = $this->rowKey($item->medicine_variant_id, $item->medicine_package_id); $this->selectedRows[] = $key;
             $this->prices[$key] = ['company' => $item->company_sale_price ?? $item->declared_price_snapshot ?? '', 'receivable' => $item->actual_receivable_price ?? $item->company_sale_price ?? '', 'invoice' => $item->invoice_price ?? $item->company_sale_price ?? ''];
         }
-        $this->successMessage = 'Đã khởi tạo '.count($this->selectedRows).' SKU/quy cách từ '.$source->name.'. Hãy điều chỉnh các giá ngoại lệ của khách hàng.'; $this->step = 3;
+        $this->successMessage = 'Đã khởi tạo '.count($this->selectedRows).' SKU/quy cách từ '.$source->name.'. Bạn có thể loại bỏ SKU không áp dụng và điều chỉnh các giá ngoại lệ.'; $this->step = 3;
     }
 
     public function applyDiscount(): void
