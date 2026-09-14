@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('pharma_medicine_profiles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('medicine_id')->constrained('pharma_medicines')->cascadeOnDelete();
+            $table->foreignId('medicine_id')->constrained('pharma_medicines')->restrictOnDelete();
             $table->string('profile_version', 50)->default('1');
             $table->string('profile_status', 32)->default('needs_review');
             $table->text('profile_link')->nullable();
