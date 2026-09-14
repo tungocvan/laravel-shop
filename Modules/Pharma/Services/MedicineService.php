@@ -108,11 +108,11 @@ class MedicineService
         return DB::transaction(function () use ($id): bool {
             $medicine = $this->findOrFail($id);
 
-            if ($medicine->profiles()->exists()
-                || $medicine->variants()->exists()
-                || $medicine->sources()->exists()
-                || $medicine->drugBidAwards()->exists()) {
-                throw new LogicException('Medicine đã được tham chiếu; hãy chuyển trạng thái thay vì xóa.');
+            // Variants, packages, aliases and source provenance are owned catalog data
+            // and are configured to cascade with the medicine. Only external/business
+            // references must protect the canonical record from hard deletion.
+            if ($medicine->profiles()->exists() || $medicine->drugBidAwards()->exists()) {
+                throw new LogicException('Không thể xóa thuốc vì đã có HSSP hoặc dữ liệu kết quả lựa chọn nhà thầu tham chiếu.');
             }
 
             return (bool) $medicine->delete();
