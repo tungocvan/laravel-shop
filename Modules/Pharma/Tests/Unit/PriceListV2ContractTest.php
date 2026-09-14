@@ -95,7 +95,7 @@ class PriceListV2ContractTest extends TestCase
 
         $this->assertStringContainsString('declared_price_snapshot', $resolver);
         $this->assertStringNotContainsString('Medicine::', $resolver);
-        $this->assertStringNotContainsString('->declared_price', $resolver);
+        $this->assertSame(0, preg_match('/->declared_price(?!_)/', $resolver));
     }
 
     #[Test]
