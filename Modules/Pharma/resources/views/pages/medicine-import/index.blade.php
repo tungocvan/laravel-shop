@@ -149,8 +149,23 @@
     @endif
 
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 class="text-base font-semibold text-slate-950">Lịch sử import gần đây</h2>
-        <p class="mt-1 text-sm text-slate-500">Thời gian hiển thị theo timezone của ứng dụng.</p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-base font-semibold text-slate-950">Lịch sử import gần đây</h2>
+                <p class="mt-1 text-sm text-slate-500">Thời gian hiển thị theo timezone của ứng dụng. Xóa lịch sử chỉ dọn batch/staging, không xóa Medicine Master đã đồng bộ.</p>
+            </div>
+            @can('edit_pharma')
+                @if($batches->total() > 0)
+                    <form method="POST" action="{{ route('admin.pharma.medicines.import.history.clear') }}" class="shrink-0">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" onclick="return confirm('Xóa toàn bộ lịch sử import và dữ liệu staging? Medicine Master đã đồng bộ sẽ được giữ nguyên.')" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
+                            Clear lịch sử import
+                        </button>
+                    </form>
+                @endif
+            @endcan
+        </div>
         <div class="mt-4 divide-y divide-slate-100">
             @forelse($batches as $item)
                 <a href="{{ route('admin.pharma.medicines.import.index', ['batch' => $item->id]) }}" class="flex flex-col gap-1 py-3 text-sm hover:text-indigo-700 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
