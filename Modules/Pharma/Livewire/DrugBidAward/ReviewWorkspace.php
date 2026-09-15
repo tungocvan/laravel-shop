@@ -44,7 +44,6 @@ class ReviewWorkspace extends Component
         $this->selectedPackageId = $award->canonicalMatch?->medicine_package_id;
         $this->candidateSearch = (string) $award->medicine_name;
         $this->reset(['successMessage', 'errorMessage', 'confirmationAction']);
-
         if (! $this->selectedMedicineId) $this->applyDeterministicDefault($award);
     }
 
@@ -181,7 +180,9 @@ class ReviewWorkspace extends Component
 
         $selectedAward = $this->selectedAwardId ? DrugBidAward::query()->with(['canonicalMatch.medicine', 'canonicalMatch.variant', 'canonicalMatch.package'])->find($this->selectedAwardId) : null;
         $candidates = $selectedAward ? $this->candidateMedicines($selectedAward) : collect();
-        return view('Pharma::livewire.drug-bid-award.review-workspace', compact('awards', 'selectedAward', 'candidates'));
+        $isLinked = (bool) ($selectedAward?->canonicalMatch?->review_status === DrugBidAwardMatch::REVIEW_CONFIRMED && $selectedAward?->canonicalMatch?->medicine_id);
+
+        return view('Pharma::livewire.drug-bid-award.review-workspace', compact('awards', 'selectedAward', 'candidates', 'isLinked'));
     }
 
     private function showActionSuccess(string $message, ?Medicine $medicine = null): void
