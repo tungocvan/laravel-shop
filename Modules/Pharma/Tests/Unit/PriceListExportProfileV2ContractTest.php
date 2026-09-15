@@ -8,7 +8,7 @@ use Tests\TestCase;
 class PriceListExportProfileV2ContractTest extends TestCase
 {
     #[Test]
-    public function export_configurator_supports_persistent_profiles_media_and_portable_json(): void
+    public function export_configurator_supports_persistent_profiles_media_preview_and_portable_json(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/PriceListExportProfileService.php'));
@@ -20,11 +20,14 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $this->assertStringContainsString('exportJson()', $component);
         $this->assertStringContainsString('importJson()', $component);
         $this->assertStringContainsString('pharma.price-list-export-profile.v1', $service);
-        $this->assertStringContainsString('Export cấu hình JSON', $view);
-        $this->assertStringContainsString('Chọn file Import', $view);
-        $this->assertStringContainsString('Nội dung & thương hiệu', $view);
+        $this->assertStringContainsString('Export JSON', $view);
+        $this->assertStringContainsString('Import JSON', $view);
+        $this->assertStringContainsString('temporaryUrl()', $view);
+        $this->assertStringContainsString("Storage::disk('public')->url(\$logoPath)", $view);
+        $this->assertStringContainsString("Storage::disk('public')->url(\$signaturePath)", $view);
+        $this->assertStringContainsString('Thương hiệu & nội dung', $view);
         $this->assertStringContainsString('Cột dữ liệu', $view);
-        $this->assertStringContainsString('Thiết lập trang in', $view);
+        $this->assertStringContainsString('Trang in', $view);
     }
 
     #[Test]
@@ -39,5 +42,6 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $this->assertStringContainsString('$profile[\'signature_path\']', $controller);
         $this->assertStringContainsString('setPaperSize', $controller);
         $this->assertStringContainsString('setFitToWidth', $controller);
+        $this->assertStringContainsString('setNumberFormat', $controller);
     }
 }
