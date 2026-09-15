@@ -30,6 +30,7 @@ class ReviewWorkspace extends Component
     public bool $linkSuccessModal = false;
     public ?string $linkedMedicineName = null;
     public ?string $linkedMedicineCode = null;
+    public ?string $confirmationAction = null;
 
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingStatus(): void { $this->resetPage(); }
@@ -42,11 +43,9 @@ class ReviewWorkspace extends Component
         $this->selectedVariantId = $award->canonicalMatch?->medicine_variant_id;
         $this->selectedPackageId = $award->canonicalMatch?->medicine_package_id;
         $this->candidateSearch = (string) $award->medicine_name;
-        $this->reset(['successMessage', 'errorMessage']);
+        $this->reset(['successMessage', 'errorMessage', 'confirmationAction']);
 
-        if (! $this->selectedMedicineId) {
-            $this->applyDeterministicDefault($award);
-        }
+        if (! $this->selectedMedicineId) $this->applyDeterministicDefault($award);
     }
 
     public function chooseMedicine(int $medicineId): void
@@ -63,42 +62,76 @@ class ReviewWorkspace extends Component
     {
         $this->selectedPackageId = null;
         if (! $value || ! $this->selectedMedicineId) return;
-
         $variant = MedicineVariant::query()->where('medicine_id', $this->selectedMedicineId)->with('packages')->find($value);
-        if ($variant && $variant->packages->count() === 1) {
-            $this->selectedPackageId = $variant->packages->first()->id;
-        }
+        if ($variant && $variant->packages->count() === 1) $this->selectedPackageId = $variant->packages->first()->id;
     }
 
     public function closeReview(): void
     {
-        $this->reset(['selectedAwardId', 'selectedMedicineId', 'selectedVariantId', 'selectedPackageId', 'candidateSearch', 'successMessage', 'errorMessage']);
+        $this->reset(['selectedAwardId', 'selectedMedicineId', 'selectedVariantId', 'selectedPackageId', 'candidateSearch', 'successMessage', 'errorMessage', 'confirmationAction']);
     }
+
+    public function requestLinkSave(): void
+    {
+        if (! $this->selectedAwardId || ! $this->selectedMedicineId) {
+            $this->errorMessage = 'Vui lòng chọn một thuốc trong Danh mục thuốc chuẩn trước khi lưu liên kết.';
+            return;
+        }
+        $this->confirmationAction = 'save_link';
+    }
+
+    public function requestUnlink(): void
+    {
+        $award = $this->selectedAwardId ? DrugBidAward::query()->with('canonicalMatch')->find($this->selectedAwardId) : null;
+        if (! $award?->canonicalMatch?->medicine_id) {
+            $this->errorMessage = 'Kết quả này hiện chưa có liên kết để hủy.';
+            return;
+        }
+        $this->confirmationAction = 'unlink';
+    }
+
+    public function cancelConfirmation(): void { $this->confirmationAction = null; }
 
     public function confirmSelection(DrugBidAwardMatchManager $manager): void
     {
+        $this->confirmationAction = null;
         $this->errorMessage = null;
         if (! $this->selectedAwardId || ! $this->selectedMedicineId) {
             $this->errorMessage = 'Vui lòng chọn một thuốc trong Danh mục thuốc chuẩn trước khi xác nhận.';
             return;
         }
-
         $award = DrugBidAward::query()->findOrFail($this->selectedAwardId);
         $medicine = Medicine::query()->findOrFail($this->selectedMedicineId);
-        $variant = $this->selectedVariantId
-            ? MedicineVariant::query()->where('medicine_id', $medicine->id)->findOrFail($this->selectedVariantId)
-            : null;
-        $package = $this->selectedPackageId && $variant
-            ? MedicinePackage::query()->where('medicine_variant_id', $variant->id)->findOrFail($this->selectedPackageId)
-            : null;
-
+        $variant = $this->selectedVariantId ? MedicineVariant::query()->where('medicine_id', $medicine->id)->findOrFail($this->selectedVariantId) : null;
+        $package = $this->selectedPackageId && $variant ? MedicinePackage::query()->where('medicine_variant_id', $variant->id)->findOrFail($this->selectedPackageId) : null;
         $level = $package ? DrugBidAwardMatch::LEVEL_PACKAGE : ($variant ? DrugBidAwardMatch::LEVEL_VARIANT : DrugBidAwardMatch::LEVEL_MEDICINE);
         $manager->confirm($award, new DrugBidMatchResult($medicine, $variant, $package, DrugBidAwardMatch::STATUS_EXACT, 'manual_review', 100, $level), auth()->id());
+        $this->showActionSuccess('Đã lưu liên kết thành công.', $medicine);
+    }
 
-        $this->linkedMedicineName = $medicine->name;
-        $this->linkedMedicineCode = $medicine->medicine_code;
-        $this->linkSuccessModal = true;
-        $this->reset(['selectedAwardId', 'selectedMedicineId', 'selectedVariantId', 'selectedPackageId', 'candidateSearch', 'successMessage', 'errorMessage']);
+    public function unlinkSelection(): void
+    {
+        $this->confirmationAction = null;
+        $award = DrugBidAward::query()->with('canonicalMatch')->findOrFail($this->selectedAwardId);
+        $match = $award->canonicalMatch;
+        if (! $match?->medicine_id) {
+            $this->errorMessage = 'Kết quả này hiện chưa có liên kết để hủy.';
+            return;
+        }
+        $oldMedicine = $match->medicine;
+        $match->update([
+            'medicine_id' => null,
+            'medicine_variant_id' => null,
+            'medicine_package_id' => null,
+            'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED,
+            'resolution_level' => null,
+            'review_status' => DrugBidAwardMatch::REVIEW_PENDING,
+            'is_manual' => false,
+            'matched_by' => null,
+            'matched_at' => null,
+            'review_reason' => 'manual_unlink_requires_review',
+        ]);
+        $this->showActionSuccess('Đã hủy liên kết. Kết quả đã được đưa trở lại hàng chờ Cần rà soát.', $oldMedicine);
     }
 
     public function continueReview()
@@ -106,7 +139,6 @@ class ReviewWorkspace extends Component
         $this->linkSuccessModal = false;
         $this->linkedMedicineName = null;
         $this->linkedMedicineCode = null;
-
         return $this->redirectRoute('admin.pharma.drug-bid-awards.review', navigate: true);
     }
 
@@ -122,26 +154,24 @@ class ReviewWorkspace extends Component
     {
         $award = DrugBidAward::query()->findOrFail($this->selectedAwardId);
         $match = $award->canonicalMatch()->first();
-        if ($match) {
-            $match->update(['review_status' => DrugBidAwardMatch::REVIEW_IGNORED]);
-        } else {
+        if (! $match) {
             $this->errorMessage = 'Bản ghi chưa có kết quả matching để bỏ qua. Hãy Match lại hoặc chọn thuốc chuẩn.';
             return;
         }
-        $this->successMessage = 'Đã bỏ qua kết quả trúng thầu này khỏi hàng chờ rà soát.';
+        $match->update(['review_status' => DrugBidAwardMatch::REVIEW_IGNORED]);
+        $this->showActionSuccess('Đã bỏ qua kết quả trúng thầu này khỏi hàng chờ rà soát.', $match->medicine);
     }
 
     public function render()
     {
-        $awards = DrugBidAward::query()
-            ->with(['canonicalMatch.medicine', 'canonicalMatch.variant', 'canonicalMatch.package'])
+        $awards = DrugBidAward::query()->with(['canonicalMatch.medicine', 'canonicalMatch.variant', 'canonicalMatch.package'])
             ->when($this->search !== '', function ($query): void {
                 $search = '%'.trim($this->search).'%';
                 $query->where(fn ($inner) => $inner->where('medicine_name', 'like', $search)->orWhere('registration_or_import_license', 'like', $search)->orWhere('winning_company_name', 'like', $search)->orWhere('decision_number', 'like', $search));
             })
             ->when($this->status !== 'all', function ($query): void {
                 if ($this->status === 'linked') {
-                    $query->whereHas('canonicalMatch', fn ($match) => $match->whereNotNull('medicine_id'));
+                    $query->whereHas('canonicalMatch', fn ($match) => $match->whereNotNull('medicine_id')->where('review_status', DrugBidAwardMatch::REVIEW_CONFIRMED));
                 } elseif ($this->status === 'unmatched') {
                     $query->where(fn ($inner) => $inner->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch', fn ($match) => $match->where('match_status', DrugBidAwardMatch::STATUS_UNMATCHED)));
                 } else {
@@ -151,8 +181,16 @@ class ReviewWorkspace extends Component
 
         $selectedAward = $this->selectedAwardId ? DrugBidAward::query()->with(['canonicalMatch.medicine', 'canonicalMatch.variant', 'canonicalMatch.package'])->find($this->selectedAwardId) : null;
         $candidates = $selectedAward ? $this->candidateMedicines($selectedAward) : collect();
-
         return view('Pharma::livewire.drug-bid-award.review-workspace', compact('awards', 'selectedAward', 'candidates'));
+    }
+
+    private function showActionSuccess(string $message, ?Medicine $medicine = null): void
+    {
+        $this->linkedMedicineName = $medicine?->name;
+        $this->linkedMedicineCode = $medicine?->medicine_code;
+        $this->successMessage = $message;
+        $this->linkSuccessModal = true;
+        $this->reset(['selectedAwardId', 'selectedMedicineId', 'selectedVariantId', 'selectedPackageId', 'candidateSearch', 'errorMessage', 'confirmationAction']);
     }
 
     private function candidateMedicines(DrugBidAward $award): EloquentCollection
@@ -162,27 +200,17 @@ class ReviewWorkspace extends Component
         if ($search !== '') {
             $term = '%'.$search.'%';
             $query->where(fn ($inner) => $inner->where('name', 'like', $term)->orWhere('registration_number', 'like', $term)->orWhere('medicine_code', 'like', $term));
-        } elseif ($award->registration_or_import_license) {
-            $query->where('registration_number', $award->registration_or_import_license);
-        } else {
-            $query->where('name', 'like', '%'.trim((string) $award->medicine_name).'%');
-        }
-
+        } elseif ($award->registration_or_import_license) $query->where('registration_number', $award->registration_or_import_license);
+        else $query->where('name', 'like', '%'.trim((string) $award->medicine_name).'%');
         return $query->limit(12)->get();
     }
 
     private function applyDeterministicDefault(DrugBidAward $award): void
     {
         $candidates = collect();
-        if ($award->registration_or_import_license) {
-            $candidates = Medicine::query()->with(['variants.packages'])->where('registration_number', $award->registration_or_import_license)->limit(2)->get();
-        }
-        if ($candidates->isEmpty()) {
-            $candidates = Medicine::query()->with(['variants.packages'])->where('name', $award->medicine_name)->limit(2)->get();
-        }
-        if ($candidates->count() === 1) {
-            $this->chooseMedicine($candidates->first()->id);
-        }
+        if ($award->registration_or_import_license) $candidates = Medicine::query()->with(['variants.packages'])->where('registration_number', $award->registration_or_import_license)->limit(2)->get();
+        if ($candidates->isEmpty()) $candidates = Medicine::query()->with(['variants.packages'])->where('name', $award->medicine_name)->limit(2)->get();
+        if ($candidates->count() === 1) $this->chooseMedicine($candidates->first()->id);
     }
 
     private function applySingleVariantAndPackage(Medicine $medicine): void
@@ -190,8 +218,6 @@ class ReviewWorkspace extends Component
         if ($medicine->variants->count() !== 1) return;
         $variant = $medicine->variants->first();
         $this->selectedVariantId = $variant->id;
-        if ($variant->packages->count() === 1) {
-            $this->selectedPackageId = $variant->packages->first()->id;
-        }
+        if ($variant->packages->count() === 1) $this->selectedPackageId = $variant->packages->first()->id;
     }
 }
