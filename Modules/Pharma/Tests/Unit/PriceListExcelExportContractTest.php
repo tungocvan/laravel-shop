@@ -8,7 +8,7 @@ use Tests\TestCase;
 class PriceListExcelExportContractTest extends TestCase
 {
     #[Test]
-    public function price_list_detail_exposes_persistent_export_configuration_and_selection_scope(): void
+    public function price_list_detail_exposes_designer_and_requested_table_layout(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
         $config = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
@@ -16,10 +16,14 @@ class PriceListExcelExportContractTest extends TestCase
         $this->assertStringContainsString('submitPriceListExport()', $view);
         $this->assertStringContainsString('name="items[]"', $view);
         $this->assertStringContainsString("@livewire('pharma.price-list.export-configurator')", $view);
-        $this->assertStringContainsString('Cấu hình xuất Excel', $config);
-        $this->assertStringContainsString('Bố cục Bảng Giá Pharma', $config);
+        $this->assertStringContainsString('Nhóm thuốc', $view);
+        $this->assertStringContainsString('KQ trúng thầu', $view);
+        $this->assertStringNotContainsString('>Giá thu<', $view);
+        $this->assertStringNotContainsString('>Giá xuất HĐ<', $view);
+        $this->assertStringContainsString('Excel Designer', $config);
+        $this->assertStringContainsString('Bố cục xuất Bảng giá', $config);
         $this->assertStringContainsString('Cột dữ liệu', $config);
-        $this->assertStringContainsString('Thiết lập trang in', $config);
+        $this->assertStringContainsString('Trang in', $config);
         $this->assertStringNotContainsString('localStorage', $config);
     }
 
@@ -37,5 +41,6 @@ class PriceListExcelExportContractTest extends TestCase
         $this->assertStringContainsString('PriceListExportProfileService $profiles', $controller);
         $this->assertStringContainsString("with(['medicine','variant','package','bidEvidence'])", $controller);
         $this->assertStringContainsString('if($selected->isNotEmpty())', $controller);
+        $this->assertStringContainsString('new Drawing()', $controller);
     }
 }
