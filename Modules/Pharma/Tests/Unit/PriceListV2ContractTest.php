@@ -154,7 +154,10 @@ class PriceListV2ContractTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
         $show = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
-        $this->assertStringContainsString("query('items', [])", $controller); $this->assertStringContainsString('if ($selected->isNotEmpty())', $controller);
-        $this->assertStringContainsString('name="items[]"', $show); $this->assertStringContainsString('không chọn sẽ export toàn bộ', $show);
+        $this->assertStringContainsString("query('items', [])", $controller);
+        $this->assertStringContainsString('if ($selected->isNotEmpty())', $controller);
+        $this->assertStringContainsString('name="items[]"', $show);
+        $this->assertStringContainsString('Không chọn sản phẩm', $show);
+        $this->assertStringContainsString('Export toàn bộ', $show);
     }
 }
