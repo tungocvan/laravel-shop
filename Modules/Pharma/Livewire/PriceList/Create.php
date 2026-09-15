@@ -11,8 +11,11 @@ use Illuminate\Support\Str;
 use Livewire\Component;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
+use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListPurpose;
+use Modules\Pharma\Services\BidPriceIntelligenceService;
+use Modules\Pharma\Services\PriceBidEvidenceService;
 use Modules\Pharma\Services\PriceListManager;
 use Throwable;
 
@@ -49,6 +52,9 @@ class Create extends Component
     public array $includedRows = [];
     public bool $includeAll = true;
     public array $prices = [];
+    public array $bidIntelligence = [];
+    public array $selectedBidAwardIds = [];
+    public ?string $bidHistoryKey = null;
     public string $bulkDiscount = '';
     public ?string $successMessage = null;
     public ?string $errorMessage = null;
@@ -56,9 +62,16 @@ class Create extends Component
     public ?string $savedName = null;
 
     protected PriceListManager $manager;
+    protected BidPriceIntelligenceService $bidService;
+    protected PriceBidEvidenceService $evidenceService;
     protected $queryString = ['search' => ['except' => ''], 'catalogStatus' => ['except' => 'active'], 'specialControl' => ['except' => 'all'], 'perPage' => ['except' => 10], 'page' => ['except' => 1]];
 
-    public function boot(PriceListManager $manager): void { $this->manager = $manager; }
+    public function boot(PriceListManager $manager, BidPriceIntelligenceService $bidService, PriceBidEvidenceService $evidenceService): void
+    {
+        $this->manager = $manager;
+        $this->bidService = $bidService;
+        $this->evidenceService = $evidenceService;
+    }
 
     public function mount(?int $priceListId = null): void
     {
@@ -72,7 +85,7 @@ class Create extends Component
             return;
         }
 
-        $list = PriceList::query()->with('items')->findOrFail($priceListId);
+        $list = PriceList::query()->with(['items.bidEvidence'])->findOrFail($priceListId);
         abort_unless($list->isDraft(), 422, 'Chỉ bảng giá Draft mới được chỉnh trực tiếp.');
         $this->name = $list->name; $this->code = $list->code; $this->type = $list->type; $this->partnerId = $list->partner_id;
         $this->managerUserId = $list->manager_user_id ?: auth('admin')->id(); $this->purposeId = $list->purpose_id;
@@ -81,8 +94,10 @@ class Create extends Component
         foreach ($list->items as $item) {
             $key = $this->rowKey($item->medicine_variant_id, $item->medicine_package_id); $this->selectedRows[] = $key;
             $this->prices[$key] = ['company' => $item->company_sale_price ?? '', 'receivable' => $item->actual_receivable_price ?? '', 'invoice' => $item->invoice_price ?? ''];
+            if ($item->bidEvidence?->drug_bid_award_id) $this->selectedBidAwardIds[$key] = (int) $item->bidEvidence->drug_bid_award_id;
         }
         $this->includedRows = $this->selectedRows;
+        $this->refreshBidIntelligence();
     }
 
     public function updatedType(string $value): void
@@ -113,13 +128,13 @@ class Create extends Component
     {
         $keys = $this->currentPageKeys();
         $this->selectedRows = $selected ? array_values(array_unique([...$this->selectedRows, ...$keys])) : array_values(array_diff($this->selectedRows, $keys));
-        $this->includedRows = $this->selectedRows; $this->includeAll = true; $this->initializeSelectedPrices($keys);
+        $this->includedRows = $this->selectedRows; $this->includeAll = true; $this->initializeSelectedPrices($keys); $this->refreshBidIntelligence();
     }
 
     public function updatedSelectedRows(): void
     {
         $this->selectedRows = array_values(array_unique($this->selectedRows)); $this->includedRows = $this->selectedRows; $this->includeAll = true;
-        $this->initializeSelectedPrices($this->selectedRows); $this->syncSelectPageState();
+        $this->initializeSelectedPrices($this->selectedRows); $this->syncSelectPageState(); $this->refreshBidIntelligence();
     }
 
     public function updatedIncludedRows(): void { $this->includedRows = array_values(array_unique(array_intersect($this->includedRows, $this->selectedRows))); $this->includeAll = $this->selectedRows !== [] && count($this->includedRows) === count($this->selectedRows); }
@@ -132,19 +147,21 @@ class Create extends Component
         if ($step >= 2 && ! $this->headerIsValid()) return;
         if ($step >= 3 && $this->selectedRows === []) { $this->addError('selectedRows', 'Vui lòng chọn ít nhất một SKU/quy cách trước khi thiết lập giá.'); $this->step = 2; return; }
         if ($step >= 4 && $this->includedRows === []) { $this->addError('includedRows', 'Vui lòng giữ lại ít nhất một SKU trong bảng giá.'); $this->step = 3; return; }
-        $this->initializeSelectedPrices($this->selectedRows); $this->step = $step;
+        $this->initializeSelectedPrices($this->selectedRows);
+        if ($step >= 3) $this->refreshBidIntelligence();
+        $this->step = $step;
     }
 
     public function nextStep(): void { $this->goToStep(min(4, $this->step + 1)); }
     public function previousStep(): void { $this->step = max(1, $this->step - 1); }
-    public function clearSelection(): void { $this->selectedRows = []; $this->includedRows = []; $this->prices = []; $this->selectPage = false; $this->includeAll = false; }
+    public function clearSelection(): void { $this->selectedRows = []; $this->includedRows = []; $this->prices = []; $this->bidIntelligence = []; $this->selectedBidAwardIds = []; $this->selectPage = false; $this->includeAll = false; }
     public function resetProductFilters(): void { $this->search = ''; $this->catalogStatus = 'active'; $this->specialControl = 'all'; $this->perPage = 10; $this->resetProductPage(); }
 
     public function selectAllMatching(): void
     {
         $keys = $this->productQuery()->get()->map(fn ($row): string => $this->rowKey((int) $row->variant_id, $row->package_id ? (int) $row->package_id : null))->all();
         $this->selectedRows = array_values(array_unique([...$this->selectedRows, ...$keys])); $this->includedRows = $this->selectedRows; $this->includeAll = true;
-        $this->initializeSelectedPrices($keys); $this->syncSelectPageState();
+        $this->initializeSelectedPrices($keys); $this->syncSelectPageState(); $this->refreshBidIntelligence();
     }
 
     public function loadFromGlobalPriceList(): void
@@ -159,7 +176,7 @@ class Create extends Component
             $key = $this->rowKey($item->medicine_variant_id, $item->medicine_package_id); $this->selectedRows[] = $key;
             $this->prices[$key] = ['company' => $item->company_sale_price ?? $item->declared_price_snapshot ?? '', 'receivable' => $item->actual_receivable_price ?? $item->company_sale_price ?? '', 'invoice' => $item->invoice_price ?? $item->company_sale_price ?? ''];
         }
-        $this->includedRows = $this->selectedRows; $this->includeAll = true;
+        $this->includedRows = $this->selectedRows; $this->includeAll = true; $this->refreshBidIntelligence();
         $this->successMessage = 'Đã khởi tạo '.count($this->selectedRows).' SKU/quy cách từ '.$source->name.'. Bỏ chọn những SKU không áp dụng và điều chỉnh giá ngoại lệ.'; $this->step = 3;
     }
 
@@ -167,6 +184,17 @@ class Create extends Component
     {
         if (! in_array($key, $this->selectedRows, true) || ! in_array($field, ['company', 'receivable', 'invoice'], true)) return;
         $this->prices[$key][$field] = $this->normalizePriceInput($value);
+    }
+
+    public function showBidHistory(string $key): void { if (isset($this->bidIntelligence[$key])) $this->bidHistoryKey = $key; }
+    public function closeBidHistory(): void { $this->bidHistoryKey = null; }
+
+    public function selectBidAward(string $key, int $awardId): void
+    {
+        $history = collect($this->bidIntelligence[$key]['history'] ?? []);
+        if (! $history->contains(fn (array $award): bool => (int) $award['id'] === $awardId)) return;
+        $this->selectedBidAwardIds[$key] = $awardId;
+        $this->bidHistoryKey = null;
     }
 
     public function applyDiscount(): void
@@ -191,7 +219,12 @@ class Create extends Component
                 abort_unless(! $list->exists || $list->isDraft(), 422, 'Chỉ bảng giá Draft mới được sửa.'); $list->fill($header); $list->status = PriceList::STATUS_DRAFT; $list->save(); $list->items()->delete();
                 foreach ($this->includedRows as $key) {
                     [$variantId, $packageId] = $this->parseRowKey($key); $rowPrices = $this->prices[$key] ?? [];
-                    $list->items()->create($this->manager->validateItem(['medicine_variant_id' => $variantId, 'medicine_package_id' => $packageId, 'company_sale_price' => $this->nullablePrice($rowPrices['company'] ?? null), 'actual_receivable_price' => $this->nullablePrice($rowPrices['receivable'] ?? null), 'invoice_price' => $this->nullablePrice($rowPrices['invoice'] ?? null), 'status' => 'active']));
+                    $item = $list->items()->create($this->manager->validateItem(['medicine_variant_id' => $variantId, 'medicine_package_id' => $packageId, 'company_sale_price' => $this->nullablePrice($rowPrices['company'] ?? null), 'actual_receivable_price' => $this->nullablePrice($rowPrices['receivable'] ?? null), 'invoice_price' => $this->nullablePrice($rowPrices['invoice'] ?? null), 'status' => 'active']));
+                    $awardId = $this->selectedBidAwardIds[$key] ?? null;
+                    if ($awardId) {
+                        $award = DrugBidAward::query()->with(['canonicalMatch', 'sources'])->find($awardId);
+                        if ($award) $this->evidenceService->capture($item, $award, auth('admin')->id());
+                    }
                 }
                 $this->priceListId = $list->id; $this->savedName = $list->name;
             });
@@ -211,6 +244,23 @@ class Create extends Component
         $missingSale = collect($this->includedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') === '')->count();
         $overCeiling = collect($this->includedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') !== '' && ($declared[$key] ?? null) !== null && (float) $this->prices[$key]['company'] > (float) $declared[$key])->count();
         return view('Pharma::livewire.price-list.create', compact('customers', 'users', 'purposes', 'globalPriceLists', 'products', 'selectedProducts') + ['perPageOptions' => self::PER_PAGE_OPTIONS, 'missingSaleCount' => $missingSale, 'overCeilingCount' => $overCeiling]);
+    }
+
+    private function refreshBidIntelligence(): void
+    {
+        if ($this->selectedRows === []) { $this->bidIntelligence = []; return; }
+        $items = collect($this->selectedRows)->map(function (string $key): array { [$variantId, $packageId] = $this->parseRowKey($key); return ['variant_id' => $variantId, 'package_id' => $packageId]; })->all();
+        $intelligence = $this->bidService->forItems($items, 20);
+        $result = [];
+        foreach ($this->selectedRows as $key) {
+            [$variantId, $packageId] = $this->parseRowKey($key); $serviceKey = 'variant:'.$variantId.':package:'.($packageId ?? 0); $summary = $intelligence[$serviceKey] ?? null;
+            if (! $summary || $summary->count === 0) { $result[$key] = ['has_award' => false, 'history' => []]; continue; }
+            $history = $summary->recentAwards->map(fn ($award): array => ['id' => (int) $award->id, 'price' => $award->winning_price, 'quantity' => $award->quantity, 'decision_number' => $award->decision_number, 'award_date' => $award->decision_date?->toDateString() ?? $award->published_at?->toDateString(), 'contractor' => $award->winning_company_name, 'source' => $award->source_type === DrugBidAward::SOURCE_MANUAL ? 'Nhập thủ công' : 'Mua sắm công'])->values()->all();
+            $selectedId = $this->selectedBidAwardIds[$key] ?? ($history[0]['id'] ?? null); if ($selectedId) $this->selectedBidAwardIds[$key] = $selectedId;
+            $selected = collect($history)->firstWhere('id', $selectedId) ?? ($history[0] ?? null);
+            $result[$key] = ['has_award' => true, 'selected' => $selected, 'history' => $history, 'count' => $summary->count];
+        }
+        $this->bidIntelligence = $result;
     }
 
     private function headerIsValid(): bool
