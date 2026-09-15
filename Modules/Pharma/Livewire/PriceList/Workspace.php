@@ -24,14 +24,6 @@ class Workspace extends Create
     public string $manualBidContractorName = '';
     public string $manualBidNote = '';
 
-    protected DrugBidAwardMatchManager $matchManager;
-
-    public function boot(\Modules\Pharma\Services\PriceListManager $manager, \Modules\Pharma\Services\BidPriceIntelligenceService $bidService, \Modules\Pharma\Services\PriceBidEvidenceService $evidenceService, DrugBidAwardMatchManager $matchManager): void
-    {
-        parent::boot($manager, $bidService, $evidenceService);
-        $this->matchManager = $matchManager;
-    }
-
     public function mount(?int $priceListId = null): void
     {
         parent::mount($priceListId);
@@ -130,7 +122,7 @@ class Workspace extends Create
                 'manual_note' => trim($this->manualBidNote) ?: null,
             ]);
             $level = $package ? DrugBidAwardMatch::LEVEL_PACKAGE : DrugBidAwardMatch::LEVEL_VARIANT;
-            $this->matchManager->confirm($award, new DrugBidMatchResult($medicine, $variant, $package, DrugBidAwardMatch::STATUS_EXACT, 'manual_price_list', 100, $level), auth('admin')->id());
+            app(DrugBidAwardMatchManager::class)->confirm($award, new DrugBidMatchResult($medicine, $variant, $package, DrugBidAwardMatch::STATUS_EXACT, 'manual_price_list', 100, $level), auth('admin')->id());
             return $award;
         });
 
