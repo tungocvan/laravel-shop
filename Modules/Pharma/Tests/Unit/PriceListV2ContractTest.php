@@ -46,7 +46,9 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringNotContainsString('WorkbookAnalyzer', $livewire);
         $this->assertStringNotContainsString('PriceListService', $livewire);
         $this->assertStringNotContainsString('BANG_GIA_TONG_HOP.xlsx', $view);
-        foreach (['Medicine Master', 'Giá bán công ty', 'Giá thu thực tế', 'Giá xuất HĐ'] as $text) $this->assertStringContainsString($text, $view);
+        foreach (['Medicine Master', 'Giá bán công ty', 'Giá thu thực tế', 'Giá xuất HĐ'] as $text) {
+            $this->assertStringContainsString($text, $view);
+        }
     }
 
     #[Test]
@@ -83,8 +85,8 @@ class PriceListV2ContractTest extends TestCase
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
 
-        $this->assertStringContainsString("\$this->effectiveFrom = now()->toDateString()", $livewire);
-        $this->assertStringContainsString("\$this->effectiveTo = now()->addMonth()->toDateString()", $livewire);
+        $this->assertStringContainsString('$this->effectiveFrom = now()->toDateString()', $livewire);
+        $this->assertStringContainsString('$this->effectiveTo = now()->addMonth()->toDateString()', $livewire);
         $this->assertStringContainsString('public array $includedRows = []', $livewire);
         $this->assertStringContainsString('$this->includedRows = $this->selectedRows', $livewire);
         $this->assertStringContainsString('foreach ($this->includedRows as $key)', $livewire);
@@ -101,7 +103,9 @@ class PriceListV2ContractTest extends TestCase
     {
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
-        foreach (['Thông tin', 'Chọn thuốc', 'Thiết lập giá', 'Kiểm tra & lưu'] as $step) $this->assertStringContainsString($step, $view);
+        foreach (['Thông tin', 'Chọn thuốc', 'Thiết lập giá', 'Kiểm tra & lưu'] as $step) {
+            $this->assertStringContainsString($step, $view);
+        }
         $this->assertStringContainsString('selectAllMatching', $livewire);
         $this->assertStringContainsString('Chọn tất cả kết quả', $view);
         $this->assertStringContainsString('$this->savedModal = true', $livewire);
@@ -114,7 +118,9 @@ class PriceListV2ContractTest extends TestCase
     public function persistence_contract_contains_snapshot_and_duplicate_protection(): void
     {
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_14_140000_create_price_lists_v2_tables.php'));
-        foreach (["Schema::create('pharma_price_lists'", "Schema::create('pharma_price_list_items'", 'declared_price_snapshot', 'company_sale_price', 'actual_receivable_price', 'invoice_price', 'pharma_price_list_items_identity_unique'] as $text) $this->assertStringContainsString($text, $migration);
+        foreach (["Schema::create('pharma_price_lists'", "Schema::create('pharma_price_list_items'", 'declared_price_snapshot', 'company_sale_price', 'actual_receivable_price', 'invoice_price', 'pharma_price_list_items_identity_unique'] as $text) {
+            $this->assertStringContainsString($text, $migration);
+        }
     }
 
     #[Test]
@@ -137,7 +143,9 @@ class PriceListV2ContractTest extends TestCase
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
         $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/index.blade.php'));
-        foreach (['Tổng bảng giá', 'Đang hiệu lực', 'Bảng giá chung', 'Theo khách hàng', 'Sắp hết hiệu lực'] as $text) $this->assertStringContainsString($text, $view);
+        foreach (['Tổng bảng giá', 'Đang hiệu lực', 'Bảng giá chung', 'Theo khách hàng', 'Sắp hết hiệu lực'] as $text) {
+            $this->assertStringContainsString($text, $view);
+        }
         $this->assertStringContainsString('wire:model.live="perPage"', $view);
         $this->assertStringContainsString('confirmingId', $view);
         $this->assertStringContainsString("'delete'", $component);
