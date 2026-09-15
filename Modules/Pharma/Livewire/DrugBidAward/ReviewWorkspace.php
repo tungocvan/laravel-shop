@@ -113,9 +113,15 @@ class ReviewWorkspace extends Component
                 if ($this->status === 'linked') {
                     $query->whereHas('canonicalMatch', fn ($match) => $match->whereNotNull('medicine_id'));
                 } elseif ($this->status === 'unmatched') {
-                    $query->whereHas('canonicalMatch', fn ($match) => $match->where('match_status', DrugBidAwardMatch::STATUS_UNMATCHED));
+                    $query->where(function ($inner): void {
+                        $inner->whereDoesntHave('canonicalMatch')
+                            ->orWhereHas('canonicalMatch', fn ($match) => $match->where('match_status', DrugBidAwardMatch::STATUS_UNMATCHED));
+                    });
                 } else {
-                    $query->whereHas('canonicalMatch', fn ($match) => $match->whereIn('review_status', [DrugBidAwardMatch::REVIEW_PENDING, DrugBidAwardMatch::REVIEW_STALE]));
+                    $query->where(function ($inner): void {
+                        $inner->whereDoesntHave('canonicalMatch')
+                            ->orWhereHas('canonicalMatch', fn ($match) => $match->whereIn('review_status', [DrugBidAwardMatch::REVIEW_PENDING, DrugBidAwardMatch::REVIEW_STALE]));
+                    });
                 }
             })
             ->latest('id')
