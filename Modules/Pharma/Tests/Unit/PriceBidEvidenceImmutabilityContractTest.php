@@ -17,6 +17,17 @@ class PriceBidEvidenceImmutabilityContractTest extends TestCase
         $this->assertStringContainsString('restoreSnapshot(', $service);
     }
 
+    public function test_draft_edit_restores_saved_snapshot_instead_of_recapturing_latest_award(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+
+        $this->assertStringContainsString('public array $bidEvidenceSnapshots = [];', $component);
+        $this->assertStringContainsString('$item->bidEvidence->getAttributes()', $component);
+        $this->assertStringContainsString('restoreSnapshot($item, $this->bidEvidenceSnapshots[$key])', $component);
+        $this->assertStringContainsString('unset($this->bidEvidenceSnapshots[$key]);', $component);
+        $this->assertStringContainsString("DrugBidAward::query()->with(['canonicalMatch', 'sources'])->find(\$awardId)", $component);
+    }
+
     public function test_evidence_schema_is_a_snapshot_not_only_an_award_pointer(): void
     {
         $model = file_get_contents(base_path('Modules/Pharma/Models/PriceListItemBidEvidence.php'));
