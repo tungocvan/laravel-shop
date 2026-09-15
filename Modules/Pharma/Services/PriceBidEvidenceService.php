@@ -52,12 +52,17 @@ class PriceBidEvidenceService
 
     /**
      * Re-attach an already captured snapshot when a Draft save recreates its
-     * item rows. The values are copied verbatim and are not refreshed from the
-     * current DrugBidAward record.
+     * item rows. Values are copied from the stored evidence, never refreshed
+     * from the current DrugBidAward record.
      */
     public function restoreSnapshot(PriceListItem $item, array $snapshot): PriceListItemBidEvidence
     {
         unset($snapshot['id'], $snapshot['price_list_item_id'], $snapshot['created_at'], $snapshot['updated_at']);
+
+        if (isset($snapshot['metadata']) && is_string($snapshot['metadata'])) {
+            $decoded = json_decode($snapshot['metadata'], true);
+            $snapshot['metadata'] = is_array($decoded) ? $decoded : null;
+        }
 
         return PriceListItemBidEvidence::query()->create([
             ...$snapshot,
