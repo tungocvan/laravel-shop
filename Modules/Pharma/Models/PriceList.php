@@ -28,6 +28,7 @@ class PriceList extends Model
         'partner_id',
         'manager_user_id',
         'purpose_id',
+        'source_price_list_id',
         'status',
         'effective_from',
         'effective_to',
@@ -64,6 +65,11 @@ class PriceList extends Model
     public function purpose(): BelongsTo
     {
         return $this->belongsTo(PriceListPurpose::class, 'purpose_id');
+    }
+
+    public function sourcePriceList(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'source_price_list_id');
     }
 
     public function scopeActiveAt(Builder $query, mixed $date): Builder
