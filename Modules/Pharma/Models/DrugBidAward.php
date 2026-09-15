@@ -10,10 +10,15 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class DrugBidAward extends Model
 {
     public const SOURCE_MANUAL = 'manual';
+
     public const SOURCE_MUASAMCONG = 'muasamcong';
+
     public const MATCH_VERIFIED = 'verified';
+
     public const MATCH_PROVISIONAL = 'provisional';
+
     public const MATCH_AMBIGUOUS = 'ambiguous';
+
     public const MATCH_UNRESOLVED = 'unresolved';
 
     protected $table = 'pharma_drug_bid_awards';
