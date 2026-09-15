@@ -12,11 +12,15 @@ use Modules\Partner\Models\Partner;
 class PriceList extends Model
 {
     public const TYPE_GLOBAL = 'global';
+
     public const TYPE_CUSTOMER = 'customer';
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_INACTIVE = 'inactive';
+
     public const STATUS_ARCHIVED = 'archived';
 
     protected $table = 'pharma_price_lists';
