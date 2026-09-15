@@ -2,6 +2,7 @@
 
 namespace Modules\Pharma\Livewire\PriceList;
 
+use Illuminate\Contracts\View\View;
 use Modules\Pharma\Models\PriceList;
 
 class Workspace extends Create
@@ -69,5 +70,12 @@ class Workspace extends Create
         ]);
 
         $this->persistedSourceGlobalPriceListId = $sourceId;
+    }
+
+    public function render(): View
+    {
+        $base = parent::render();
+
+        return view('Pharma::livewire.price-list.workspace-bid', $base->getData());
     }
 }
