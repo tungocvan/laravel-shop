@@ -37,6 +37,20 @@ class DrugBidAwardCanonicalMatchTest extends TestCase
     }
 
     #[Test]
+    public function matcher_allows_unique_normalized_name_as_high_confidence_without_ignoring_conflicts(): void
+    {
+        $matcher = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardMatcher.php'));
+
+        $this->assertStringContainsString('STATUS_HIGH_CONFIDENCE', $matcher);
+        $this->assertStringContainsString('normalized_name_unique', $matcher);
+        $this->assertStringContainsString('unique_normalized_name_no_conflict', $matcher);
+        $this->assertStringContainsString('availableAttributesDoNotConflict', $matcher);
+        $this->assertStringContainsString('medicine_identity_conflict', $matcher);
+        $this->assertStringContainsString('normalized_name_ambiguous', $matcher);
+        $this->assertStringNotContainsString("if ($ingredient === null)", $matcher);
+    }
+
+    #[Test]
     public function projection_does_not_silently_create_provisional_medicine_and_runs_canonical_matcher(): void
     {
         $projection = file_get_contents(base_path('Modules/Pharma/Services/DrugAwardProjectionService.php'));
