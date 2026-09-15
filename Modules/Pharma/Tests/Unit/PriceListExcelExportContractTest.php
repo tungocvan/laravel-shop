@@ -13,10 +13,10 @@ class PriceListExcelExportContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
         $config = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
 
-        $this->assertStringContainsString('Cấu hình xuất Excel', $view);
         $this->assertStringContainsString('submitPriceListExport()', $view);
         $this->assertStringContainsString('name="items[]"', $view);
         $this->assertStringContainsString("@livewire('pharma.price-list.export-configurator')", $view);
+        $this->assertStringContainsString('Cấu hình xuất Excel', $config);
         $this->assertStringContainsString('Bố cục Bảng Giá Pharma', $config);
         $this->assertStringContainsString('Cột dữ liệu', $config);
         $this->assertStringContainsString('Thiết lập trang in', $config);
