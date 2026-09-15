@@ -34,16 +34,17 @@ class PriceListExportProfileV2ContractTest extends TestCase
     public function media_removal_is_only_committed_when_profile_is_saved(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $compact = str_replace(' ', '', $component);
 
         $this->assertStringContainsString('public bool $removeLogoRequested = false;', $component);
         $this->assertStringContainsString('public bool $removeSignatureRequested = false;', $component);
         $this->assertStringContainsString('public ?string $originalLogoPath = null;', $component);
-        $this->assertStringContainsString('$this->removeLogoRequested=true', str_replace(' ', '', $component));
-        $this->assertStringContainsString('$this->removeSignatureRequested=true', str_replace(' ', '', $component));
-        $this->assertStringContainsString("$this->originalLogoPath!==$saved['logo_path']", str_replace(' ', '', $component));
-        $this->assertStringContainsString("$this->originalSignaturePath!==$saved['signature_path']", str_replace(' ', '', $component));
-        $this->assertStringNotContainsString('removeLogo():void{$this->deleteMedia(', str_replace(' ', '', $component));
-        $this->assertStringNotContainsString('removeSignature():void{$this->deleteMedia(', str_replace(' ', '', $component));
+        $this->assertStringContainsString('$this->removeLogoRequested=true', $compact);
+        $this->assertStringContainsString('$this->removeSignatureRequested=true', $compact);
+        $this->assertStringContainsString("\$this->originalLogoPath!==\$saved['logo_path']", $compact);
+        $this->assertStringContainsString("\$this->originalSignaturePath!==\$saved['signature_path']", $compact);
+        $this->assertStringNotContainsString('removeLogo():void{$this->deleteMedia(', $compact);
+        $this->assertStringNotContainsString('removeSignature():void{$this->deleteMedia(', $compact);
     }
 
     #[Test]
@@ -91,5 +92,7 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $this->assertStringContainsString('Date::PHPToExcel', $controller);
         $this->assertStringContainsString("setFormatCode('dd/mm/yyyy')", $controller);
         $this->assertStringContainsString('getNumberFormat()->setFormatCode', $controller);
+        $this->assertStringContainsString('catch(Throwable)', str_replace(' ', '', $controller));
+        $this->assertStringContainsString("setCellValueExplicit(\$coordinate,(string)\$value,DataType::TYPE_STRING)", str_replace(' ', '', $controller));
     }
 }
