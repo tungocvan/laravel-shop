@@ -31,7 +31,7 @@ class PriceListExportProfileV2ContractTest extends TestCase
     }
 
     #[Test]
-    public function excel_export_applies_saved_profile_and_embeds_brand_media(): void
+    public function excel_export_applies_saved_profile_media_page_setup_and_cell_types(): void
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
 
@@ -42,6 +42,10 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $this->assertStringContainsString('$profile[\'signature_path\']', $controller);
         $this->assertStringContainsString('setPaperSize', $controller);
         $this->assertStringContainsString('setFitToWidth', $controller);
+        $this->assertStringContainsString('writeConfiguredCell(', $controller);
+        $this->assertStringContainsString('DataType::TYPE_STRING', $controller);
+        $this->assertStringContainsString('Date::PHPToExcel', $controller);
+        $this->assertStringContainsString("setFormatCode('dd/mm/yyyy')", $controller);
         $this->assertStringContainsString('getNumberFormat()->setFormatCode', $controller);
     }
 }
