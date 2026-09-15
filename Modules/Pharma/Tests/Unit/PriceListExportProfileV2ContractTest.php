@@ -35,8 +35,8 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $this->assertStringContainsString('PriceListExportProfileService $profiles', $controller);
         $this->assertStringContainsString("'export_profile_id'", $controller);
         $this->assertStringContainsString('new Drawing()', $controller);
-        $this->assertStringContainsString("$profile['logo_path']", $controller);
-        $this->assertStringContainsString("$profile['signature_path']", $controller);
+        $this->assertStringContainsString('$profile[\'logo_path\']', $controller);
+        $this->assertStringContainsString('$profile[\'signature_path\']', $controller);
         $this->assertStringContainsString('setPaperSize', $controller);
         $this->assertStringContainsString('setFitToWidth', $controller);
     }
