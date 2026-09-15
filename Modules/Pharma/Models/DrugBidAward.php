@@ -10,15 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class DrugBidAward extends Model
 {
     public const SOURCE_MANUAL = 'manual';
-
     public const SOURCE_MUASAMCONG = 'muasamcong';
-
     public const MATCH_VERIFIED = 'verified';
-
     public const MATCH_PROVISIONAL = 'provisional';
-
     public const MATCH_AMBIGUOUS = 'ambiguous';
-
     public const MATCH_UNRESOLVED = 'unresolved';
 
     protected $table = 'pharma_drug_bid_awards';
@@ -32,7 +27,7 @@ class DrugBidAward extends Model
         'decision_date', 'published_at', 'contract_no', 'contract_duration_months', 'contract_period',
         'contract_period_unit', 'contract_period_text', 'effect_frame_period', 'winning_company_name',
         'contractor_code', 'decision_document_url', 'is_active', 'source_type', 'source_id',
-        'source_synced_at', 'source_payload_hash',
+        'source_synced_at', 'source_payload_hash', 'created_by', 'manual_note',
     ];
 
     protected $casts = [
@@ -40,23 +35,12 @@ class DrugBidAward extends Model
         'winning_price' => 'decimal:4', 'amount' => 'decimal:4', 'unit_price' => 'decimal:2',
         'decision_date' => 'date', 'published_at' => 'datetime', 'contract_duration_months' => 'integer',
         'contract_period' => 'integer', 'shelf_life_months' => 'integer', 'is_active' => 'boolean',
-        'source_synced_at' => 'datetime',
+        'source_synced_at' => 'datetime', 'created_by' => 'integer',
     ];
 
-    public function medicine(): BelongsTo
-    {
-        return $this->belongsTo(Medicine::class, 'medicine_id');
-    }
-
-    public function sources(): HasMany
-    {
-        return $this->hasMany(DrugBidAwardSource::class, 'drug_bid_award_id');
-    }
-
-    public function canonicalMatch(): HasOne
-    {
-        return $this->hasOne(DrugBidAwardMatch::class, 'drug_bid_award_id');
-    }
+    public function medicine(): BelongsTo { return $this->belongsTo(Medicine::class, 'medicine_id'); }
+    public function sources(): HasMany { return $this->hasMany(DrugBidAwardSource::class, 'drug_bid_award_id'); }
+    public function canonicalMatch(): HasOne { return $this->hasOne(DrugBidAwardMatch::class, 'drug_bid_award_id'); }
 
     public function isExternalSource(): bool
     {
@@ -73,19 +57,11 @@ class DrugBidAward extends Model
             'packaging_specification' => 'packaging_specification', 'shelf_life_months' => 'shelf_life_months',
             'manufacturer' => 'manufacturing_company', 'country' => 'manufacturing_country',
         ];
-
         $awardValue = $this->getAttribute($attribute);
-        if ($awardValue !== null && $awardValue !== '') {
-            return ['value' => $awardValue, 'origin' => 'award'];
-        }
-
+        if ($awardValue !== null && $awardValue !== '') return ['value' => $awardValue, 'origin' => 'award'];
         $medicineAttribute = $hsspMap[$attribute] ?? null;
         $medicineValue = $medicineAttribute ? $this->medicine?->getAttribute($medicineAttribute) : null;
-
-        if ($medicineValue !== null && $medicineValue !== '') {
-            return ['value' => $medicineValue, 'origin' => 'hssp'];
-        }
-
+        if ($medicineValue !== null && $medicineValue !== '') return ['value' => $medicineValue, 'origin' => 'hssp'];
         return ['value' => null, 'origin' => 'missing'];
     }
 }
