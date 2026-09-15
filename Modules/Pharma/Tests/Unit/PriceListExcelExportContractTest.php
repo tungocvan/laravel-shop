@@ -32,6 +32,7 @@ class PriceListExcelExportContractTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/PriceListExportProfileService.php'));
+        $compactController = preg_replace('/\s+/', '', $controller);
 
         foreach ([
             'medicine_code', 'medicine_name', 'registration_number', 'registration_number_raw', 'registration_number_primary', 'sku', 'package_code', 'gtin', 'barcode',
@@ -42,7 +43,7 @@ class PriceListExcelExportContractTest extends TestCase
             'company_sale_price', 'discount_percent', 'actual_receivable_price', 'invoice_price', 'partner', 'effective', 'status', 'note',
         ] as $column) {
             $this->assertStringContainsString("'{$column}'", $service);
-            $this->assertStringContainsString("'{$column}' =>", $controller);
+            $this->assertStringContainsString("'{$column}'=>", $compactController);
         }
 
         $this->assertStringContainsString('public const GROUPS', $service);
