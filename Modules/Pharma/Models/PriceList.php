@@ -2,8 +2,10 @@
 
 namespace Modules\Pharma\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Partner\Models\Partner;
 
@@ -24,6 +26,8 @@ class PriceList extends Model
         'name',
         'type',
         'partner_id',
+        'manager_user_id',
+        'purpose_id',
         'status',
         'effective_from',
         'effective_to',
@@ -47,9 +51,19 @@ class PriceList extends Model
         return $this->hasMany(PriceListItem::class, 'price_list_id');
     }
 
-    public function partner()
+    public function partner(): BelongsTo
     {
         return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_user_id');
+    }
+
+    public function purpose(): BelongsTo
+    {
+        return $this->belongsTo(PriceListPurpose::class, 'purpose_id');
     }
 
     public function scopeActiveAt(Builder $query, mixed $date): Builder
@@ -68,4 +82,4 @@ class PriceList extends Model
     {
         return $this->status === self::STATUS_DRAFT;
     }
-};
+}
