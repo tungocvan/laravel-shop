@@ -1,16 +1,36 @@
 # Pharma Module Contract
 
-Last reviewed: 2026-09-06
+Last reviewed: 2026-09-15
 
 ## Purpose
 
-`Pharma` owns pharmaceutical product profiles, multi-source drug intelligence, supplier tracking, PriceList generation, Official Facility operational ingestion/mirroring, and Pharma Admin workspaces under `/admin/pharma/**`.
+`Pharma` owns pharmaceutical product profiles, canonical medicine/SKU/package identity, multi-source drug intelligence, supplier tracking, database-backed Price List v2, Official Facility operational ingestion/mirroring, and Pharma Admin workspaces under `/admin/pharma/**`.
 
 ## Canonical ownership
 
 ### Medicine Master
 
-Pharma owns `pharma_medicines` and `pharma_medicine_sources`.
+Pharma owns the canonical medicine catalog:
+
+`Medicine -> MedicineVariant / SKU -> MedicinePackage`.
+
+Canonical persistence includes `pharma_medicines`, `pharma_medicine_variants`, `pharma_medicine_packages`, aliases/source provenance and related Pharma-owned catalog data. Downstream pricing must identify an exact variant/SKU and package when applicable; medicine name alone is not a pricing identity.
+
+Medicine identity resolution remains deterministic. Weak or ambiguous records must not be silently auto-merged. `VALID RECORD != COMPLETE RECORD`; incomplete/provisional source records remain allowed where the source-specific contract permits them.
+
+### Price List v2
+
+Pharma owns database-backed commercial price lists through `pharma_price_lists` and `pharma_price_list_items`. The legacy `storage/app/excel/BANG_GIA_TONG_HOP.xlsx` is not a runtime source of truth for Price List v2; Excel is output/audit only.
+
+Price lists are `global` or `customer`, with statuses `draft`, `active`, `inactive`, `archived`. Customer lists reference the canonical `Partner` customer master and may retain `manager_user_id`, reusable `purpose_id`, and `source_price_list_id` for commercial ownership and source traceability.
+
+Each item snapshots the declared Medicine Master price and stores independent `company_sale_price`, `actual_receivable_price`, and `invoice_price`. `company_sale_price` must not exceed the declared-price snapshot and commercial prices must be non-negative.
+
+Price resolution is contract-based: active customer price first, active global fallback second, otherwise `NO_PRICE`. Medicine declared price is never silently used as a sale-price fallback. Future Sales/Inventory/Invoice consumers must use the resolver boundary instead of directly selecting a price-list table or Medicine declared price.
+
+Customer initialization may copy an ACTIVE Global list as a starting point. After a Customer Draft is saved, its persisted `pharma_price_list_items` are the authoritative current SKU selection. `source_price_list_id` records origin only: editing a Draft must not reinitialize or re-check all Global SKUs that the user previously excluded. A future explicit source-refresh workflow must preserve this invariant unless the user deliberately adds new SKUs.
+
+Activation is separate from Draft save and validates list/item invariants, customer eligibility, effective dates, duplicate identities and overlapping active applicability. ACTIVE identity is not edited directly; clone/version workflow is used for a new editable Draft.
 
 ### Drug Award business canonical
 
@@ -22,7 +42,7 @@ Pharma owns `pharma_drug_bid_awards` and `pharma_drug_bid_award_sources`.
 
 ### Healthcare organization canonical
 
-`Partner` remains the sole canonical organization master for hospitals/healthcare facilities. Pharma must not create a second Hospital/Facility business master.
+`Partner` remains the sole canonical organization master for hospitals/healthcare facilities and Price List customers. Pharma must not create a second Hospital/Facility/Customer business master.
 
 Partner owns `partners` and `partner_source_references`. `partners.province_code` is source-independent. External identifiers such as BHXH province codes never belong in that canonical field. Official identities use generic `(source, external_id)` uniqueness; do not add `bhxh_id`, `moh_id`, or similar source-specific columns to Partner.
 
@@ -133,18 +153,19 @@ Canonical entry: `/admin/pharma`.
 Primary workspaces:
 
 - `/admin/pharma/hssp` — Medicine Master / Product Profile / Data Quality;
+- `/admin/pharma/price-lists` — database-backed Global/Customer Price List v2;
 - `/admin/pharma/drug-bid-awards` — procurement award intelligence;
 - `/admin/pharma/official-facilities/import` — XLSX/CSV staging/preview/conflict/selected-only Partner import;
 - `/admin/pharma/official-facilities/bhxh` — human-in-the-loop BHXH lookup;
 - `/admin/pharma/official-facilities/source` — local source mirror/history browser.
+
+Price List create/edit uses the four-step workflow `Thông tin -> Chọn thuốc -> Thiết lập giá -> Kiểm tra & lưu`. Selection persists across filtering/pagination, page sizes are bounded to `10/25/50/100`, and seeded Customer lists allow explicit SKU exclusion before save.
 
 Admin lists follow `.codex/standards/ADMIN_UI_STANDARD.md`, including bounded `10/25/50/100` pagination and explicit loading/empty/error states.
 
 ## Medicine/award boundaries
 
 Medicine Master and Drug Award remain separate entities. A Drug Award may link to a Medicine, but procurement-origin facts must not be overwritten by HSSP enrichment. Historical award source values win; otherwise deterministic HSSP values may provide effective medicine attributes with provenance metadata. Winning price is not declared price; procurement-only facts such as price, quantity, investor, contractor, decision and contract are never HSSP-enriched.
-
-Medicine identity resolution remains deterministic. Weak/ambiguous records must not be silently auto-merged. `VALID RECORD != COMPLETE RECORD`; incomplete/provisional source records are allowed where the source-specific contract permits them.
 
 ## Muasamcong synchronization boundary
 
@@ -153,6 +174,8 @@ Pharma may synchronize KQLCNT only through `Modules\Pharma\Integrations\Muasamco
 ## Export contract
 
 For list workspaces with checkbox selection: non-empty selection exports exactly selected records; no selection exports the complete dataset matching active export filters, not only the visible page; selected IDs take precedence; export selection does not depend on delete permission.
+
+Price List export reads database-backed list/items only. No selected item means export all items in that price list; selected item IDs mean export only those items.
 
 ## Public/API boundary
 
@@ -168,9 +191,10 @@ Pharma exposes no public ERP API contract. BHXH integration is server-side consu
 - source-specific IDs on Partner;
 - PDF facility import;
 - source-detail enrichment beyond reserved `source_details`;
-- Pharma runtime enablement changes;
-- unrelated Supplier Tracking/PriceList redesign.
+- automatic downstream Sales/Inventory/Invoice Price List integration beyond the resolver contract;
+- automatic Global-source refresh that silently restores Customer SKUs previously excluded by the user;
+- Pharma runtime enablement changes.
 
 ## Refactor rule
 
-Preserve ownership/provenance boundaries. Prefer explicit domain services/adapters over shared mega-components. Never collapse Medicine Master, Drug Award, procurement acquisition, source mirror, import staging and Partner organization master into one entity merely because fields overlap.
+Preserve ownership/provenance boundaries. Prefer explicit domain services/adapters over shared mega-components. Never collapse Medicine Master, Medicine SKU/package identity, Price List, Drug Award, procurement acquisition, source mirror, import staging and Partner organization master into one entity merely because fields overlap.
