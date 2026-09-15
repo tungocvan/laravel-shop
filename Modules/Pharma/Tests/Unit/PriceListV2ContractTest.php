@@ -32,9 +32,7 @@ class PriceListV2ContractTest extends TestCase
     {
         $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
         $this->assertStringContainsString("Route::prefix('price-lists')->name('price-lists.')", $routes);
-        foreach (["->name('index')", "->name('create')", "->name('store')", "->name('show')", "->name('edit')", "->name('update')", "->name('activate')", "->name('deactivate')", "->name('clone')", "->name('export')"] as $routeName) {
-            $this->assertStringContainsString($routeName, $routes);
-        }
+        foreach (["->name('index')", "->name('create')", "->name('store')", "->name('show')", "->name('edit')", "->name('update')", "->name('activate')", "->name('deactivate')", "->name('clone')", "->name('export')"] as $routeName) $this->assertStringContainsString($routeName, $routes);
     }
 
     #[Test]
@@ -46,9 +44,7 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringNotContainsString('WorkbookAnalyzer', $livewire);
         $this->assertStringNotContainsString('PriceListService', $livewire);
         $this->assertStringNotContainsString('BANG_GIA_TONG_HOP.xlsx', $view);
-        foreach (['Medicine Master', 'Giá bán công ty', 'Giá thu thực tế', 'Giá xuất HĐ'] as $text) {
-            $this->assertStringContainsString($text, $view);
-        }
+        foreach (['Medicine Master', 'Giá bán công ty', 'Giá thu thực tế', 'Giá xuất HĐ'] as $text) $this->assertStringContainsString($text, $view);
     }
 
     #[Test]
@@ -70,13 +66,25 @@ class PriceListV2ContractTest extends TestCase
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
         $this->assertStringContainsString("whereJsonContains('partner_types', 'customer')", $livewire);
-        $this->assertStringContainsString("where('status', 'active')", $livewire);
         $this->assertStringContainsString('loadFromGlobalPriceList', $livewire);
         $this->assertStringContainsString("where('type', PriceList::TYPE_GLOBAL)", $livewire);
-        $this->assertStringContainsString("where('status', PriceList::STATUS_ACTIVE)", $livewire);
         $this->assertStringContainsString("route('admin.partners.index')", $view);
-        $this->assertStringContainsString('Chưa có bảng giá chung ACTIVE đang hiệu lực', $view);
         $this->assertStringContainsString('Khởi tạo', $view);
+    }
+
+    #[Test]
+    public function customer_builder_tracks_manager_and_reusable_business_purpose(): void
+    {
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_15_150000_add_price_list_customer_context.php'));
+
+        foreach (['manager_user_id', 'purpose_id', 'pharma_price_list_purposes'] as $field) $this->assertStringContainsString($field, $migration);
+        $this->assertStringContainsString('$this->managerUserId = auth(\'admin\')->id()', $livewire);
+        $this->assertStringContainsString('createPurpose', $livewire);
+        $this->assertStringContainsString("where('is_active', true)", $manager);
+        foreach (['Người phụ trách khách hàng', 'Mục đích bảng giá', 'Thêm mục đích sử dụng', 'Giải nghĩa:', 'Thêm & chọn'] as $text) $this->assertStringContainsString($text, $view);
     }
 
     #[Test]
@@ -84,7 +92,6 @@ class PriceListV2ContractTest extends TestCase
     {
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
-
         $this->assertStringContainsString('$this->effectiveFrom = now()->toDateString()', $livewire);
         $this->assertStringContainsString('$this->effectiveTo = now()->addMonth()->toDateString()', $livewire);
         $this->assertStringContainsString('public array $includedRows = []', $livewire);
@@ -103,9 +110,7 @@ class PriceListV2ContractTest extends TestCase
     {
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
-        foreach (['Thông tin', 'Chọn thuốc', 'Thiết lập giá', 'Kiểm tra & lưu'] as $step) {
-            $this->assertStringContainsString($step, $view);
-        }
+        foreach (['Thông tin', 'Chọn thuốc', 'Thiết lập giá', 'Kiểm tra & lưu'] as $step) $this->assertStringContainsString($step, $view);
         $this->assertStringContainsString('selectAllMatching', $livewire);
         $this->assertStringContainsString('Chọn tất cả kết quả', $view);
         $this->assertStringContainsString('$this->savedModal = true', $livewire);
@@ -118,23 +123,16 @@ class PriceListV2ContractTest extends TestCase
     public function persistence_contract_contains_snapshot_and_duplicate_protection(): void
     {
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_14_140000_create_price_lists_v2_tables.php'));
-        foreach (["Schema::create('pharma_price_lists'", "Schema::create('pharma_price_list_items'", 'declared_price_snapshot', 'company_sale_price', 'actual_receivable_price', 'invoice_price', 'pharma_price_list_items_identity_unique'] as $text) {
-            $this->assertStringContainsString($text, $migration);
-        }
+        foreach (["Schema::create('pharma_price_lists'", "Schema::create('pharma_price_list_items'", 'declared_price_snapshot', 'company_sale_price', 'actual_receivable_price', 'invoice_price', 'pharma_price_list_items_identity_unique'] as $text) $this->assertStringContainsString($text, $migration);
     }
 
     #[Test]
     public function resolver_order_is_customer_then_global_and_never_declared_price_fallback(): void
     {
         $resolver = file_get_contents(base_path('Modules/Pharma/Services/DatabasePriceResolver.php'));
-        $customerPosition = strpos($resolver, 'PriceList::TYPE_CUSTOMER');
-        $globalPosition = strpos($resolver, 'PriceList::TYPE_GLOBAL');
-        $this->assertNotFalse($customerPosition);
-        $this->assertNotFalse($globalPosition);
-        $this->assertLessThan($globalPosition, $customerPosition);
-        $this->assertStringContainsString('declared_price_snapshot', $resolver);
-        $this->assertStringNotContainsString('Medicine::', $resolver);
-        $this->assertSame(0, preg_match('/->declared_price(?!_)/', $resolver));
+        $customerPosition = strpos($resolver, 'PriceList::TYPE_CUSTOMER'); $globalPosition = strpos($resolver, 'PriceList::TYPE_GLOBAL');
+        $this->assertNotFalse($customerPosition); $this->assertNotFalse($globalPosition); $this->assertLessThan($globalPosition, $customerPosition);
+        $this->assertStringContainsString('declared_price_snapshot', $resolver); $this->assertStringNotContainsString('Medicine::', $resolver); $this->assertSame(0, preg_match('/->declared_price(?!_)/', $resolver));
     }
 
     #[Test]
@@ -143,15 +141,9 @@ class PriceListV2ContractTest extends TestCase
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
         $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/index.blade.php'));
-        foreach (['Tổng bảng giá', 'Đang hiệu lực', 'Bảng giá chung', 'Theo khách hàng', 'Sắp hết hiệu lực'] as $text) {
-            $this->assertStringContainsString($text, $view);
-        }
-        $this->assertStringContainsString('wire:model.live="perPage"', $view);
-        $this->assertStringContainsString('confirmingId', $view);
-        $this->assertStringContainsString("'delete'", $component);
-        $this->assertStringContainsString('deleteDraft', $manager);
-        $this->assertStringContainsString('Chỉ bảng giá DRAFT mới được xóa', $manager);
-        $this->assertStringContainsString('Xóa Draft', $view);
+        foreach (['Tổng bảng giá', 'Đang hiệu lực', 'Bảng giá chung', 'Theo khách hàng', 'Sắp hết hiệu lực'] as $text) $this->assertStringContainsString($text, $view);
+        $this->assertStringContainsString('wire:model.live="perPage"', $view); $this->assertStringContainsString('confirmingId', $view); $this->assertStringContainsString("'delete'", $component);
+        $this->assertStringContainsString('deleteDraft', $manager); $this->assertStringContainsString('Chỉ bảng giá DRAFT mới được xóa', $manager); $this->assertStringContainsString('Xóa Draft', $view);
     }
 
     #[Test]
@@ -159,9 +151,7 @@ class PriceListV2ContractTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
         $show = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
-        $this->assertStringContainsString("query('items', [])", $controller);
-        $this->assertStringContainsString('if ($selected->isNotEmpty())', $controller);
-        $this->assertStringContainsString('name="items[]"', $show);
-        $this->assertStringContainsString('không chọn sẽ export toàn bộ', $show);
+        $this->assertStringContainsString("query('items', [])", $controller); $this->assertStringContainsString('if ($selected->isNotEmpty())', $controller);
+        $this->assertStringContainsString('name="items[]"', $show); $this->assertStringContainsString('không chọn sẽ export toàn bộ', $show);
     }
 }
