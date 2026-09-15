@@ -4,6 +4,7 @@ namespace Modules\Pharma\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PriceListItem extends Model
 {
@@ -68,4 +69,9 @@ class PriceListItem extends Model
     {
         return $this->belongsTo(MedicinePackage::class, 'medicine_package_id');
     }
-};
+
+    public function bidEvidence(): HasOne
+    {
+        return $this->hasOne(PriceListItemBidEvidence::class, 'price_list_item_id');
+    }
+}
