@@ -31,6 +31,22 @@ class PriceListExportProfileV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function media_removal_is_only_committed_when_profile_is_saved(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+
+        $this->assertStringContainsString('public bool $removeLogoRequested = false;', $component);
+        $this->assertStringContainsString('public bool $removeSignatureRequested = false;', $component);
+        $this->assertStringContainsString('public ?string $originalLogoPath = null;', $component);
+        $this->assertStringContainsString('$this->removeLogoRequested=true', str_replace(' ', '', $component));
+        $this->assertStringContainsString('$this->removeSignatureRequested=true', str_replace(' ', '', $component));
+        $this->assertStringContainsString("$this->originalLogoPath!==$saved['logo_path']", str_replace(' ', '', $component));
+        $this->assertStringContainsString("$this->originalSignaturePath!==$saved['signature_path']", str_replace(' ', '', $component));
+        $this->assertStringNotContainsString('removeLogo():void{$this->deleteMedia(', str_replace(' ', '', $component));
+        $this->assertStringNotContainsString('removeSignature():void{$this->deleteMedia(', str_replace(' ', '', $component));
+    }
+
+    #[Test]
     public function column_designer_supports_cross_group_drag_drop_and_persists_custom_placement(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
