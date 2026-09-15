@@ -73,7 +73,15 @@ class ExportConfigurator extends Component
     public function resetColumnGroup(string $key): void
     {
         if (! isset(PriceListExportProfileService::COLUMNS[$key])) return;
-        $this->moveColumnToGroup($key, PriceListExportProfileService::COLUMNS[$key]['group']);
+
+        $definition = PriceListExportProfileService::COLUMNS[$key];
+        $this->moveColumnToGroup($key, $definition['group']);
+        $this->headers[$key] = $definition['label'];
+        $this->alignments[$key] = $definition['align'];
+        $this->widths[$key] = $definition['width'];
+        $this->dataTypes[$key] = $definition['type'];
+        $this->decimals[$key] = 0;
+        $this->selectedColumns[$key] = in_array($key, PriceListExportProfileService::DEFAULT_SELECTED, true);
     }
 
     public function duplicate(): void { if (! $this->profileId) return; $this->apply(app(PriceListExportProfileService::class)->duplicate((int) auth('admin')->id(), $this->profileId)); $this->refreshProfiles(); }
