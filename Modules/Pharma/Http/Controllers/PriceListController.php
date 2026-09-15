@@ -20,6 +20,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class PriceListController extends Controller
 {
@@ -57,7 +58,18 @@ class PriceListController extends Controller
     }
 
     private function yesNo(?bool $value):?string{return $value===null?null:($value?'Có':'Không');}
-    private function writeConfiguredCell($sheet,string $coordinate,mixed $value,string $type,int $decimals):void{if($value===null||$value===''){$sheet->setCellValue($coordinate,null);return;}if($type==='string'){$sheet->setCellValueExplicit($coordinate,(string)$value,DataType::TYPE_STRING);return;}if($type==='number'){$numeric=is_numeric($value)?(float)$value:null;if($numeric===null){$sheet->setCellValueExplicit($coordinate,(string)$value,DataType::TYPE_STRING);return;}$sheet->setCellValue($coordinate,$numeric);$sheet->getStyle($coordinate)->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',min(6,$decimals)):''));return;}if($type==='date'){$date=$value instanceof DateTimeInterface?$value:new DateTimeImmutable((string)$value);$sheet->setCellValue($coordinate,Date::PHPToExcel($date));$sheet->getStyle($coordinate)->getNumberFormat()->setFormatCode('dd/mm/yyyy');return;}$sheet->setCellValue($coordinate,$value);}
+    private function writeConfiguredCell($sheet,string $coordinate,mixed $value,string $type,int $decimals):void
+    {
+        if($value===null||$value===''){$sheet->setCellValue($coordinate,null);return;}
+        if($type==='string'){$sheet->setCellValueExplicit($coordinate,(string)$value,DataType::TYPE_STRING);return;}
+        if($type==='number'){$numeric=is_numeric($value)?(float)$value:null;if($numeric===null){$sheet->setCellValueExplicit($coordinate,(string)$value,DataType::TYPE_STRING);return;}$sheet->setCellValue($coordinate,$numeric);$sheet->getStyle($coordinate)->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',min(6,$decimals)):''));return;}
+        if($type==='date'){
+            try{$date=$value instanceof DateTimeInterface?$value:new DateTimeImmutable((string)$value);}
+            catch(Throwable){$sheet->setCellValueExplicit($coordinate,(string)$value,DataType::TYPE_STRING);return;}
+            $sheet->setCellValue($coordinate,Date::PHPToExcel($date));$sheet->getStyle($coordinate)->getNumberFormat()->setFormatCode('dd/mm/yyyy');return;
+        }
+        $sheet->setCellValue($coordinate,$value);
+    }
     private function addDrawing($sheet,?string $path,string $name,string $coordinate,float $widthCm,float $heightCm,bool $right=false):void{if(!$path||!Storage::disk('public')->exists($path))return;$drawing=new Drawing();$drawing->setName($name);$drawing->setPath(Storage::disk('public')->path($path));$drawing->setCoordinates($coordinate);$drawing->setWidth(max(20,(int)round($widthCm*37.795)));$drawing->setHeight(max(20,(int)round($heightCm*37.795)));if($right)$drawing->setOffsetX(-max(0,(int)round($widthCm*20)));$drawing->setWorksheet($sheet);}
     private function headerRules():array{return['code'=>['required','string','max:80'],'name'=>['required','string','max:255'],'type'=>['required','in:global,customer'],'partner_id'=>['nullable','integer'],'effective_from'=>['nullable','date'],'effective_to'=>['nullable','date'],'currency'=>['required','string','size:3'],'priority'=>['required','integer'],'notes'=>['nullable','string']];}
 }
