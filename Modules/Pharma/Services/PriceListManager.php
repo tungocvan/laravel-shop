@@ -2,6 +2,7 @@
 
 namespace Modules\Pharma\Services;
 
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Partner\Models\Partner;
@@ -9,6 +10,7 @@ use Modules\Pharma\Models\MedicinePackage;
 use Modules\Pharma\Models\MedicineVariant;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
+use Modules\Pharma\Models\PriceListPurpose;
 
 class PriceListManager
 {
@@ -16,18 +18,28 @@ class PriceListManager
     {
         $type = (string) ($data['type'] ?? PriceList::TYPE_GLOBAL);
         $partnerId = $data['partner_id'] ?? null;
+        $managerUserId = $data['manager_user_id'] ?? null;
+        $purposeId = $data['purpose_id'] ?? null;
 
         if (! in_array($type, [PriceList::TYPE_GLOBAL, PriceList::TYPE_CUSTOMER], true)) {
             throw ValidationException::withMessages(['type' => 'Loại bảng giá không hợp lệ.']);
         }
         if ($type === PriceList::TYPE_GLOBAL) {
             $partnerId = null;
+            $managerUserId = null;
+            $purposeId = null;
         }
         if ($type === PriceList::TYPE_CUSTOMER) {
             $partner = Partner::query()->find($partnerId);
             $types = $partner?->partner_types ?? [];
             if (! $partner || $partner->status !== 'active' || ! in_array('customer', $types, true)) {
                 throw ValidationException::withMessages(['partner_id' => 'Khách hàng phải là Partner đang hoạt động và có loại customer.']);
+            }
+            if (! $managerUserId || ! User::query()->whereKey($managerUserId)->where('is_active', true)->exists()) {
+                throw ValidationException::withMessages(['manager_user_id' => 'Người phụ trách phải là user đang hoạt động.']);
+            }
+            if (! $purposeId || ! PriceListPurpose::query()->whereKey($purposeId)->where('is_active', true)->exists()) {
+                throw ValidationException::withMessages(['purpose_id' => 'Vui lòng chọn mục đích sử dụng bảng giá đang hoạt động.']);
             }
         }
 
@@ -37,7 +49,11 @@ class PriceListManager
             throw ValidationException::withMessages(['effective_to' => 'Ngày hết hiệu lực không được trước ngày hiệu lực.']);
         }
 
-        return array_merge($data, ['partner_id' => $partnerId]);
+        return array_merge($data, [
+            'partner_id' => $partnerId,
+            'manager_user_id' => $managerUserId,
+            'purpose_id' => $purposeId,
+        ]);
     }
 
     public function validateItem(array $data): array
@@ -102,8 +118,7 @@ class PriceListManager
             })
             ->where(function ($query) use ($priceList): void {
                 $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', $priceList->effective_to ?? '9999-12-31');
-            })
-            ->exists();
+            })->exists();
         if ($overlap) {
             throw ValidationException::withMessages(['effective_from' => 'Đã có bảng giá ACTIVE bị chồng lấn thời gian trong cùng phạm vi.']);
         }
