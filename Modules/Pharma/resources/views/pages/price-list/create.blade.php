@@ -10,6 +10,6 @@
     </div>
     <div class="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 shadow-sm lg:block">Medicine Master → Price List → Customer / Global</div>
 </div>
-@livewire('pharma.price-list.create')
+@livewire('pharma.price-list.workspace')
 </div>
 @endsection
