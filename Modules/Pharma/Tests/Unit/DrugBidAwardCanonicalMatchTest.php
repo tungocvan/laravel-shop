@@ -47,7 +47,7 @@ class DrugBidAwardCanonicalMatchTest extends TestCase
         $this->assertStringContainsString('availableAttributesDoNotConflict', $matcher);
         $this->assertStringContainsString('medicine_identity_conflict', $matcher);
         $this->assertStringContainsString('normalized_name_ambiguous', $matcher);
-        $this->assertStringNotContainsString("if ($ingredient === null)", $matcher);
+        $this->assertStringNotContainsString('if ($ingredient === null)', $matcher);
     }
 
     #[Test]
