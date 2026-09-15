@@ -20,6 +20,7 @@ class ReviewWorkspace extends Component
     public string $status = 'pending';
     public string $search = '';
     public int $perPage = 25;
+    public array $selectedAwardIds = [];
     public ?int $selectedAwardId = null;
     public string $candidateSearch = '';
     public ?int $selectedMedicineId = null;
@@ -32,8 +33,8 @@ class ReviewWorkspace extends Component
     public ?string $linkedMedicineCode = null;
     public ?string $confirmationAction = null;
 
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingStatus(): void { $this->resetPage(); }
+    public function updatingSearch(): void { $this->resetPage(); $this->selectedAwardIds = []; }
+    public function updatingStatus(): void { $this->resetPage(); $this->selectedAwardIds = []; }
 
     public function selectAward(int $awardId): void
     {
@@ -105,7 +106,31 @@ class ReviewWorkspace extends Component
         $package = $this->selectedPackageId && $variant ? MedicinePackage::query()->where('medicine_variant_id', $variant->id)->findOrFail($this->selectedPackageId) : null;
         $level = $package ? DrugBidAwardMatch::LEVEL_PACKAGE : ($variant ? DrugBidAwardMatch::LEVEL_VARIANT : DrugBidAwardMatch::LEVEL_MEDICINE);
         $manager->confirm($award, new DrugBidMatchResult($medicine, $variant, $package, DrugBidAwardMatch::STATUS_EXACT, 'manual_review', 100, $level), auth()->id());
-        $this->showActionSuccess('Đã lưu liên kết thành công.', $medicine);
+        $this->showActionSuccess('Đã liên kết thành công với Danh mục thuốc chuẩn.', $medicine);
+    }
+
+    public function bulkLinkSelected(DrugBidAwardMatchManager $manager): void
+    {
+        $ids = collect($this->selectedAwardIds)->map(fn ($id) => (int) $id)->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            $this->errorMessage = 'Vui lòng chọn ít nhất một kết quả trúng thầu để liên kết hàng loạt.';
+            return;
+        }
+        $linked = 0;
+        $skipped = 0;
+        foreach (DrugBidAward::query()->whereIn('id', $ids)->get() as $award) {
+            $match = $manager->refresh($award);
+            if (! $match->medicine_id || ! in_array($match->match_status, [DrugBidAwardMatch::STATUS_EXACT, DrugBidAwardMatch::STATUS_HIGH_CONFIDENCE], true)) {
+                $skipped++;
+                continue;
+            }
+            $manager->confirm($award, new DrugBidMatchResult($match->medicine, $match->variant, $match->package, $match->match_status, $match->match_method ?: 'bulk_review', (int) $match->confidence, $match->resolution_level), auth()->id());
+            $linked++;
+        }
+        $this->selectedAwardIds = [];
+        $message = "Đã liên kết hàng loạt {$linked} kết quả.";
+        if ($skipped > 0) $message .= " {$skipped} kết quả chưa đủ điều kiện xác định nên được giữ lại để rà soát thủ công.";
+        $this->showActionSuccess($message);
     }
 
     public function unlinkSelection(): void
@@ -113,23 +138,9 @@ class ReviewWorkspace extends Component
         $this->confirmationAction = null;
         $award = DrugBidAward::query()->with('canonicalMatch')->findOrFail($this->selectedAwardId);
         $match = $award->canonicalMatch;
-        if (! $match?->medicine_id) {
-            $this->errorMessage = 'Kết quả này hiện chưa có liên kết để hủy.';
-            return;
-        }
+        if (! $match?->medicine_id) { $this->errorMessage = 'Kết quả này hiện chưa có liên kết để hủy.'; return; }
         $oldMedicine = $match->medicine;
-        $match->update([
-            'medicine_id' => null,
-            'medicine_variant_id' => null,
-            'medicine_package_id' => null,
-            'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED,
-            'resolution_level' => null,
-            'review_status' => DrugBidAwardMatch::REVIEW_PENDING,
-            'is_manual' => false,
-            'matched_by' => null,
-            'matched_at' => null,
-            'review_reason' => 'manual_unlink_requires_review',
-        ]);
+        $match->update(['medicine_id' => null, 'medicine_variant_id' => null, 'medicine_package_id' => null, 'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED, 'resolution_level' => null, 'review_status' => DrugBidAwardMatch::REVIEW_PENDING, 'is_manual' => false, 'matched_by' => null, 'matched_at' => null, 'review_reason' => 'manual_unlink_requires_review']);
         $this->showActionSuccess('Đã hủy liên kết. Kết quả đã được đưa trở lại hàng chờ Cần rà soát.', $oldMedicine);
     }
 
@@ -153,10 +164,7 @@ class ReviewWorkspace extends Component
     {
         $award = DrugBidAward::query()->findOrFail($this->selectedAwardId);
         $match = $award->canonicalMatch()->first();
-        if (! $match) {
-            $this->errorMessage = 'Bản ghi chưa có kết quả matching để bỏ qua. Hãy Match lại hoặc chọn thuốc chuẩn.';
-            return;
-        }
+        if (! $match) { $this->errorMessage = 'Bản ghi chưa có kết quả matching để bỏ qua. Hãy Match lại hoặc chọn thuốc chuẩn.'; return; }
         $match->update(['review_status' => DrugBidAwardMatch::REVIEW_IGNORED]);
         $this->showActionSuccess('Đã bỏ qua kết quả trúng thầu này khỏi hàng chờ rà soát.', $match->medicine);
     }
@@ -164,24 +172,15 @@ class ReviewWorkspace extends Component
     public function render()
     {
         $awards = DrugBidAward::query()->with(['canonicalMatch.medicine', 'canonicalMatch.variant', 'canonicalMatch.package'])
-            ->when($this->search !== '', function ($query): void {
-                $search = '%'.trim($this->search).'%';
-                $query->where(fn ($inner) => $inner->where('medicine_name', 'like', $search)->orWhere('registration_or_import_license', 'like', $search)->orWhere('winning_company_name', 'like', $search)->orWhere('decision_number', 'like', $search));
-            })
+            ->when($this->search !== '', function ($query): void { $search = '%'.trim($this->search).'%'; $query->where(fn ($inner) => $inner->where('medicine_name', 'like', $search)->orWhere('registration_or_import_license', 'like', $search)->orWhere('winning_company_name', 'like', $search)->orWhere('decision_number', 'like', $search)); })
             ->when($this->status !== 'all', function ($query): void {
-                if ($this->status === 'linked') {
-                    $query->whereHas('canonicalMatch', fn ($match) => $match->whereNotNull('medicine_id')->where('review_status', DrugBidAwardMatch::REVIEW_CONFIRMED));
-                } elseif ($this->status === 'unmatched') {
-                    $query->where(fn ($inner) => $inner->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch', fn ($match) => $match->where('match_status', DrugBidAwardMatch::STATUS_UNMATCHED)));
-                } else {
-                    $query->where(fn ($inner) => $inner->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch', fn ($match) => $match->whereIn('review_status', [DrugBidAwardMatch::REVIEW_PENDING, DrugBidAwardMatch::REVIEW_STALE])));
-                }
+                if ($this->status === 'linked') $query->whereHas('canonicalMatch', fn ($match) => $match->whereNotNull('medicine_id')->where('review_status', DrugBidAwardMatch::REVIEW_CONFIRMED));
+                elseif ($this->status === 'unmatched') $query->where(fn ($inner) => $inner->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch', fn ($match) => $match->where('match_status', DrugBidAwardMatch::STATUS_UNMATCHED)));
+                else $query->where(fn ($inner) => $inner->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch', fn ($match) => $match->whereIn('review_status', [DrugBidAwardMatch::REVIEW_PENDING, DrugBidAwardMatch::REVIEW_STALE])));
             })->latest('id')->paginate($this->perPage);
-
         $selectedAward = $this->selectedAwardId ? DrugBidAward::query()->with(['canonicalMatch.medicine', 'canonicalMatch.variant', 'canonicalMatch.package'])->find($this->selectedAwardId) : null;
         $candidates = $selectedAward ? $this->candidateMedicines($selectedAward) : collect();
         $isLinked = (bool) ($selectedAward?->canonicalMatch?->review_status === DrugBidAwardMatch::REVIEW_CONFIRMED && $selectedAward?->canonicalMatch?->medicine_id);
-
         return view('Pharma::livewire.drug-bid-award.review-workspace', compact('awards', 'selectedAward', 'candidates', 'isLinked'));
     }
 
@@ -198,10 +197,8 @@ class ReviewWorkspace extends Component
     {
         $query = Medicine::query()->with(['variants.packages']);
         $search = trim($this->candidateSearch);
-        if ($search !== '') {
-            $term = '%'.$search.'%';
-            $query->where(fn ($inner) => $inner->where('name', 'like', $term)->orWhere('registration_number', 'like', $term)->orWhere('medicine_code', 'like', $term));
-        } elseif ($award->registration_or_import_license) $query->where('registration_number', $award->registration_or_import_license);
+        if ($search !== '') { $term = '%'.$search.'%'; $query->where(fn ($inner) => $inner->where('name', 'like', $term)->orWhere('registration_number', 'like', $term)->orWhere('medicine_code', 'like', $term)); }
+        elseif ($award->registration_or_import_license) $query->where('registration_number', $award->registration_or_import_license);
         else $query->where('name', 'like', '%'.trim((string) $award->medicine_name).'%');
         return $query->limit(12)->get();
     }
