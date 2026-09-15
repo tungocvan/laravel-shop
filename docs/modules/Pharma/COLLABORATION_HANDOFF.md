@@ -1,168 +1,141 @@
 # Pharma Collaboration Handoff
 
-## Current checkpoint
+## Current checkpoint — Canonical Medicine Catalog + Price List v2
 
 - Module: `Pharma`
-- Objective: **Official Facility Import + BHXH Source Mirror**
-- Implementation branch: `feat/pharma-official-facility-import`
-- Merged PR: **#166** — `feat(pharma): add official facility import and BHXH source mirror`
-- Merge commit: `c8abca6a39d3cfaadd8a086f43497313c85e93b7`
-- Status: **MERGED TO `main` — objective complete; post-merge closeout documentation only**
-- Date: 2026-09-06
+- Objective: **Canonical Medicine Master / SKU / Package + database-backed Price List v2**
+- Implementation branch: `feat/pharma-canonical-medicine-catalog`
+- Status: **IMPLEMENTATION COMPLETE / UI PASS — ready for final branch sync and merge preparation**
+- Date: 2026-09-15
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
-- Consolidation: **one implementation branch / one implementation PR**
+- UI standard: `.codex/standards/ADMIN_UI_STANDARD.md`
+- Consolidation: keep the current implementation branch and merge the completed phases together.
 
-## Follow-up checkpoint — MaSoThue lookup CLI
+## Canonical Medicine Master
 
-- Implementation branch: `feat/mst-lookup-command`.
-- Merged PR: **#168** — `feat: add MaSoThue lookup command`.
-- Merge commit: `77d61419e0d1f4511a995dbe17f3b3c64881dc51`.
-- Status: **MERGED TO `main` — MaSoThue lookup CLI objective complete; this branch is documentation-only closeout**.
-- Scope: reusable application-level CLI/service for manual legal/tax enrichment of healthcare facility master-data work.
-- Command: `php artisan mst:lookup "Bệnh viện đa khoa Kiên Giang"`.
-- JSON mode: `php artisan mst:lookup "Bệnh viện đa khoa Kiên Giang" --json`.
-- Source: `https://masothue.com` search HTML + canonical detail page; no search token is required.
-- Matching: normalized exact legal-name match is preferred; otherwise the first parsed search result is explicitly marked `first_result` for caller review.
-- Canonical detail URL is taken from the search result href; the service does not construct `/{mst}` or invent slugs.
-- MaSoThue remains a third-party enrichment/reference source, not the authoritative healthcare facility master. Partner remains canonical and this CLI does not write to Partner or Pharma staging automatically.
-- Focused test gate before merge: **3 tests / 12 assertions PASS**.
-- Pint focused gate before merge: **3 files PASS**.
-- Live smoke after syncing current `main`: **PASS**, returning MST `1700285659`, `match_type=exact`, canonical URL, active status, representative, active date, tax authority and organization type for `BỆNH VIỆN ĐA KHOA KIÊN GIANG`.
-- Working tree before final push: **clean**.
-- PR #168 was merged to `main` on 2026-09-06. No further functional gate is required for this completed CLI objective unless a new code change affects behavior.
+The Pharma product identity is now explicitly modeled as:
 
-### MaSoThue safety boundary
+`Medicine -> MedicineVariant / SKU -> MedicinePackage`.
 
-The CLI is intentionally human-triggered and read-only. Before any future bulk or scheduled use, add explicit throttling/cache/retry/telemetry and re-check source terms/robots constraints. Do not treat a noisy search result as canonical without deterministic matching/review, and verify production master data against authoritative sources where required.
+Price List and future downstream consumers must use exact variant/SKU/package identity rather than medicine name alone. Canonical identity, aliasing and normalization remain deterministic; ambiguous records must not be silently merged.
 
-## Canonical ownership
+Medicine Master is the sole product source for Price List v2. The legacy `storage/app/excel/BANG_GIA_TONG_HOP.xlsx` is not a Price List runtime dependency.
 
-`Partner` remains the sole canonical organization master for hospitals/healthcare facilities. Pharma must not create a second Hospital/Facility master.
+## Price List v2 persistence and commercial contract
 
-Pharma owns two non-canonical operational layers: Official Facility import staging/audit and Official Source mirror/cache. Neither may bypass the explicit matcher/importer flow to mutate Partner.
+Price List v2 is database-backed through:
 
-## Official import pipeline
+- `pharma_price_lists`;
+- `pharma_price_list_items`;
+- reusable `pharma_price_list_purposes`.
 
-`Official XLSX/CSV -> Upload -> Pharma staging -> Validate/Normalize -> Match/Dedupe -> Preview -> Explicit checkbox selection -> Partner + PartnerSourceReference`.
+List types are `global` and `customer`; statuses are `draft`, `active`, `inactive`, `archived`.
 
-Partner-owned generic provenance remains `(source, external_id)` in `partner_source_references`. `partners.province_code` is canonical/source-independent; BHXH codes never belong there.
+Customer lists reference an active Partner classified as customer and can retain:
 
-## BHXH interactive lookup
+- `manager_user_id` — responsible user;
+- `purpose_id` — reusable business purpose;
+- `source_price_list_id` — Global source traceability.
 
-Workspace: `/admin/pharma/official-facilities/bhxh`.
+Each price-list item uses deterministic variant/package identity and snapshots declared price from Medicine Master. Commercial fields are:
 
-The integration is human-in-the-loop: ERP bootstraps the public BHXH session, loads CAPTCHA with that session, the user manually enters CAPTCHA, and ERP submits the selected BHXH source geography. No OCR, CAPTCHA solving/bypass, unattended lookup, or hidden multi-request CAPTCHA reuse is implemented.
+- `declared_price_snapshot` — readonly snapshot;
+- `company_sale_price`;
+- `actual_receivable_price`;
+- `invoice_price`.
 
-The observed BHXH facility listing exposes the basic facility identity used by this integration: `Mã CSKCB` and `Tên CSKCB`. `Mã CSKCB` is retained as the durable BHXH source identity for future detail enrichment.
+Invariant: prices are non-negative and `company_sale_price <= declared_price_snapshot`.
 
-Manual BHXH lookup/sync UI verification is **PASS** as of 2026-09-06.
+## Customer initialization and Edit invariant
 
-## Canonical province vs BHXH source geography
+An ACTIVE Global price list may initialize a Customer Draft. Initial creation may seed all source SKUs so the operator can remove non-applicable products and adjust exceptions.
 
-ERP geography and BHXH source geography are intentionally separate.
+After the Customer Draft is saved, its persisted `pharma_price_list_items` become the authoritative current SKU selection. The Global list is origin/reference only.
 
-A human-facing ERP province may map to one or more BHXH **source partitions**. Duplicate BHXH province labels are not treated as primary/fallback aliases.
+Critical regression rule:
 
-Verified example:
+`Global A,B,C,D,E -> Customer initialized A,B,C,D,E -> user excludes B,D -> save A,C,E -> Edit must keep A,C,E; B,D must not become checked again.`
 
-`Tỉnh An Giang -> 89TTT (Khu vực An Giang cũ) + 91TTT (Khu vực Kiên Giang cũ)`.
+`source_price_list_id` persists the original Global source for traceability. The Edit workspace restores that source but does not reinitialize selection from it. Invoking the source action while editing keeps the saved Draft SKU set instead of resetting to all source items. Changing the persisted source during Edit is guarded to prevent accidental reseeding.
 
-The BHXH workspace therefore uses three concepts:
+A future explicit "refresh/update from Global" feature may propose newly available SKUs, but it must not silently restore SKUs the user previously excluded.
 
-1. `Tỉnh/Thành` — ERP-facing/canonical province label.
-2. `Vùng dữ liệu BHXH` — exact source partition/code used for BHXH requests.
-3. `Địa bàn BHXH` — source district/geography returned for that partition; it may reflect legacy administrative geography.
+## Price List workspace and UI
 
-For duplicate-name provinces whose historical partition meaning has not been verified, UI labels remain neutral and include the source code. Do not invent old-region names.
+Canonical workspace: `/admin/pharma/price-lists`.
 
-A CAPTCHA is consumed by exactly one lookup request against the explicitly selected source partition. The old alias-fallback behavior is removed.
+Create/Edit uses four steps:
 
-## Official source mirror/cache
+`Thông tin -> Chọn thuốc -> Thiết lập giá -> Kiểm tra & lưu`.
 
-Approved flow:
+Implemented UX includes Partner customer selection, responsible user, reusable business purpose, ACTIVE Global seed source, Medicine Master filters, bounded pagination `10/25/50/100`, selection persistence, bulk receivable discount, formatted VND values, explicit SKU inclusion checkboxes, Draft save-success modal and professional quotation review/show layout.
 
-`BHXH live lookup -> server-side snapshot -> queued persistence -> local source mirror -> later Official Facility staging -> Partner`.
+Commercial UX rule confirmed during implementation: company sale defaults from declared price; percentage discount is applied to actual receivable price, not company sale price.
 
-Pharma-owned mirror tables:
+Quotation review supports selected-item Excel export; with no checkbox selection, all items in the price list are exported.
 
-- `pharma_official_source_sync_batches`;
-- `pharma_official_source_facilities`.
+UI verification for the completed Price List workflow: **PASS**.
 
-Source identity is unique by `(source, external_id)`. The mirror keeps listing payload (`raw_payload`, `payload_hash`) separate from reserved future enrichment (`source_details`, `details_hash`, `details_synced_at`). Basic listing sync must never erase enrichment.
+## Lifecycle and resolver
 
-The server session owns the successful lookup snapshot; the browser does not resubmit arbitrary facility payloads for persistence.
+Draft save and activation are separate operations. Activation validates item/customer/date/overlap invariants. ACTIVE identity is not edited directly; clone/version workflow creates a new editable Draft.
 
-## Synchronization and completeness safety
+`PriceResolver` / `DatabasePriceResolver` is the downstream pricing boundary:
 
-Explicit sync creates a batch and dispatches `PersistOfficialSourceSnapshotJob`. Batch states are `QUEUED`, `RUNNING`, `COMPLETED`, and `FAILED`; the BHXH UI polls local batch state and shows completion/failure without making additional BHXH lookup requests.
+1. applicable active Customer price;
+2. applicable active Global price;
+3. otherwise `NO_PRICE`.
 
-Current BHXH `-- Toàn vùng --` lookup is persisted with `sync_scope=source_partition`, not as a complete province snapshot. A source-partition or district snapshot may create/update/reactivate seen facilities but **must not stale unseen facilities**.
+Medicine declared price is never a sale-price fallback. The readonly `ResolvedPrice` DTO snapshots list/item/source/customer/medicine/variant/package IDs, commercial prices, currency/effective dates and resolution time.
 
-Only a future snapshot explicitly proven `province_complete` may stale previously active records that are absent from that complete snapshot. Records are never hard-deleted by synchronization.
+Future Sales/Inventory/Invoice integration must consume this resolver contract; direct integration is outside this completed objective.
 
-This protects the mirror from false stale transitions when BHXH responses are incomplete, partitioned, paginated, or administratively transitional.
+## Acceptance state
 
-Bulk whole-province/district orchestration is currently **deferred** because CAPTCHA behavior prevents safe unattended multi-request synchronization.
+Latest operator-confirmed targeted gate after the source-selection regression fix:
 
-## Source mirror workspace
+- `PriceListV2ContractTest` + `PriceListSourceSelectionContractTest`: **14 tests / 111 assertions PASS**;
+- focused Pint on Workspace/PriceList/source migration/source-selection contract: **PASS after one automatic `class_attributes_separation` formatting fix**;
+- subsequent `git status -sb`: branch synchronized with origin and working tree clean;
+- Price List UI: **PASS**.
 
-Workspace: `/admin/pharma/official-facilities/source`.
+Earlier canonical Medicine identity gate during this branch was also confirmed PASS before Price List closeout.
 
-The workspace uses `<x-search>` and live filters. Search covers `Mã CSKCB`, facility name, province name/code, district name/code. Dropdown changes apply immediately without a separate Filter button.
+The contract tests are targeted implementation guards and do not represent a full application regression suite. Per project workflow, do not run unrelated full regression unless a directly impacted module requires it.
 
-Filters include source, canonical `Tỉnh/Thành`, `Vùng nguồn BHXH`, Active/Stale, and bounded pagination `10/25/50/100`. Province filtering groups multiple source partitions under one ERP-facing province; partition filtering can inspect each source code independently. Query state is retained across pagination.
+## Migration notes
 
-Manual verification of live filters and An Giang source-partition behavior is **UI PASS**.
+Customer ownership/purpose uses the canonical migration:
 
-## Matching / Partner protection
+`2026_09_15_160000_add_customer_ownership_and_purpose_to_price_lists.php`.
 
-Matching priority remains deterministic: source+external_id, tax code, normalized name+canonical province, normalized name+address. Classifications remain `NEW`, `EXACT`, `LIKELY_MATCH`, `CONFLICT`, `INVALID`; no fuzzy/AI auto-merge.
+The accidental duplicate customer-context migration was removed and must not be restored from an old stash.
 
-Existing Partner fields remain protected: no automatic rename or overwrite of phone/email/contact person; address/tax/canonical province are safe-fill only with conflicts blocked/reviewed. Same source identity must not duplicate Partner.
+Global source traceability uses:
 
-## Authorization
+`2026_09_15_170000_add_source_price_list_to_price_lists.php`.
 
-Capabilities:
+## Local stash warning
 
-- `view_pharma_official_facilities`;
-- `sync_pharma_official_facilities`;
-- `import_pharma_official_facilities`;
-- `resolve_pharma_official_facility_conflicts`.
+The implementation machine retains historical stashes created during multi-step synchronization. Some contain older versions of `Create.php`, `PriceList.php`, `PriceListController.php` and contract-test assertions. Do not bulk `stash pop` them onto the completed branch. Inspect any needed stash diff selectively; otherwise leave them untouched until after merge/cleanup.
 
-`sync_*` means external source -> Pharma local mirror. `import_*` means staging -> Partner canonical master.
+## Canonical ownership boundaries retained
 
-## Verified acceptance state
+`Partner` remains the canonical organization/customer master. Pharma Price List references Partner; it does not duplicate customer master data.
 
-Confirmed locally before merge:
+`Muasamcong` remains owner of procurement acquisition/recovery. Drug Award procurement facts remain separate from Medicine Master and commercial Price List pricing.
 
-- Official Facility Import focused gate previously: **13 tests / 33 assertions PASS**.
-- Latest combined BHXH/source-mirror focused gate: **19 tests / 102 assertions PASS**.
-- Final Pharma Unit regression: **40 tests / 170 assertions PASS**.
-- Pint focused gate: **16 files PASS**.
-- Official Facility route inventory: **13 routes present**.
-- Vite production build: **PASS**.
-- Working tree before final regression: **clean and synchronized with origin**.
-- BHXH lookup UI: **PASS**.
-- source mirror sync-status UI: **PASS**.
-- `<x-search>` + live filter UI: **PASS**.
-- An Giang canonical province + `89TTT/91TTT` source-partition UI: **PASS**.
-
-A stale test expectation that asserted `permission:view_pharma_official_facilities` was corrected to the actual canonical Laravel middleware contract `can:view_pharma_official_facilities`; runtime authorization was not weakened or changed.
-
-PR #166 was merged to `main` on 2026-09-06. No further implementation gate is required for this completed objective unless a new code change affects behavior or UI.
+Official Facility import/BHXH source-mirror ownership and safety boundaries from the previous completed Pharma objective remain unchanged.
 
 ## Deferred scope
 
-- automatic/unattended CAPTCHA solving or bypass;
-- bulk whole-province/district synchronization requiring multiple CAPTCHA-protected requests;
-- scheduled BHXH lookup requiring CAPTCHA;
-- automatic source mirror -> Partner writes;
-- fuzzy/AI facility matching;
-- source-specific IDs on `partners`;
-- source-detail enrichment implementation beyond reserved `source_details`;
-- PDF import;
-- unrelated delivery/inventory/invoice changes.
+- automatic downstream Sales/Inventory/Invoice integration beyond `PriceResolver`;
+- silent/automatic Global source refresh of Customer Draft selections;
+- fuzzy/AI medicine identity merge;
+- unrelated Inventory/Invoices/Partner refactors;
+- unrelated Official Facility/BHXH changes;
+- Pharma runtime enablement changes.
 
-## Prior checkpoint
+## Previous completed checkpoints
 
-Drug Award Allocation & Hospital Contract Management was merged to `main` via PR #165 before this objective. Partner remains the canonical hospital organization master established by that objective.
+Official Facility Import + BHXH Source Mirror was merged to `main` via PR #166 on 2026-09-06. MaSoThue lookup CLI was merged via PR #168. Drug Award Allocation & Hospital Contract Management was merged earlier via PR #165. Those objectives remain complete and their ownership/safety contracts are preserved by this Price List work.
