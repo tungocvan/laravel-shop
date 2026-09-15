@@ -79,6 +79,20 @@ class PriceListExportProfileV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function restoring_a_column_resets_all_column_level_customization_to_canonical_defaults(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $compact = str_replace(' ', '', $component);
+
+        $this->assertStringContainsString("\$this->headers[\$key]=\$definition['label'];", $compact);
+        $this->assertStringContainsString("\$this->alignments[\$key]=\$definition['align'];", $compact);
+        $this->assertStringContainsString("\$this->widths[\$key]=\$definition['width'];", $compact);
+        $this->assertStringContainsString("\$this->dataTypes[\$key]=\$definition['type'];", $compact);
+        $this->assertStringContainsString('$this->decimals[$key]=0;', $compact);
+        $this->assertStringContainsString('in_array($key,PriceListExportProfileService::DEFAULT_SELECTED,true)', $compact);
+    }
+
+    #[Test]
     public function pharma_dashboard_promotes_database_price_list_workspace(): void
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/PharmaDashboardService.php'));
