@@ -24,7 +24,9 @@ class PriceListSourceSelectionContractTest extends TestCase
 
         $this->assertStringContainsString('$this->sourceGlobalPriceListId = $this->persistedSourceGlobalPriceListId', $workspace);
         $this->assertStringContainsString('if ($this->priceListId)', $workspace);
-        $this->assertStringContainsString("count(\$this->includedRows).' SKU đã lưu'", $workspace);
+        $this->assertStringContainsString('count($this->includedRows)', $workspace);
+        $this->assertStringContainsString('SKU đã lưu', $workspace);
+        $this->assertStringContainsString('không khởi tạo lại selection', $workspace);
         $this->assertStringContainsString('parent::loadFromGlobalPriceList()', $workspace);
         $this->assertStringContainsString("'source_price_list_id' => \$sourceId", $workspace);
     }
