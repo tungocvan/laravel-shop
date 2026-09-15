@@ -31,24 +31,29 @@ class PriceListExportProfileV2ContractTest extends TestCase
     }
 
     #[Test]
-    public function column_designer_supports_drag_drop_search_filters_groups_and_inspector(): void
+    public function column_designer_supports_cross_group_drag_drop_and_persists_custom_placement(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/PriceListExportProfileService.php'));
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceListExportProfile.php'));
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_15_200000_add_column_groups_to_price_list_export_profiles_table.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
 
-        $this->assertStringContainsString('public function reorderColumns(array $orderedKeys)', $component);
-        $this->assertStringContainsString('public function selectGroup(string $group, bool $selected = true)', $component);
-        $this->assertStringContainsString("'columnGroups'=>PriceListExportProfileService::GROUPS", str_replace(' ', '', $component));
+        $this->assertStringContainsString('public array $columnOrder = [], $columnGroupsMap = []', $component);
+        $this->assertStringContainsString('public function moveColumnToGroup(string $key, string $group, ?string $beforeKey = null)', $component);
+        $this->assertStringContainsString('public function resetColumnGroup(string $key)', $component);
+        $this->assertStringContainsString("'column_groups'=>\$this->columnGroupsMap", str_replace(' ', '', $component));
+        $this->assertStringContainsString("'column_groups' => 'array'", $model);
+        $this->assertStringContainsString("json('column_groups')", $migration);
+        $this->assertStringContainsString('normalizeGroups(', $service);
+        $this->assertStringContainsString("'column_groups'=>\$this->normalizeGroups", str_replace(' ', '', $service));
         $this->assertStringContainsString('Column Designer', $view);
-        $this->assertStringContainsString('Column Inspector', $view);
-        $this->assertStringContainsString('draggable="true"', $view);
-        $this->assertStringContainsString('@drop.prevent="dropOn(', $view);
-        $this->assertStringContainsString('$wire.reorderColumns(order)', $view);
-        $this->assertStringContainsString('Tìm tên cột hoặc field', $view);
-        $this->assertStringContainsString('Đang xuất', $view);
-        $this->assertStringContainsString('Chưa xuất', $view);
-        $this->assertStringContainsString('Chọn nhóm', $view);
-        $this->assertStringContainsString('Bỏ nhóm', $view);
+        $this->assertStringContainsString('Cross-group Drag & Drop', $view);
+        $this->assertStringContainsString('dropGroup(targetGroup)', $view);
+        $this->assertStringContainsString('$wire.moveColumnToGroup(key,targetGroup,null)', $view);
+        $this->assertStringContainsString('Nhóm hiển thị', $view);
+        $this->assertStringContainsString('Khôi phục nhóm dữ liệu gốc', $view);
+        $this->assertStringContainsString('Kéo cột vào nhóm', $view);
         $this->assertStringNotContainsString('moveUp(', $component);
         $this->assertStringNotContainsString('moveDown(', $component);
     }
