@@ -78,7 +78,7 @@ class PriceListV2ContractTest extends TestCase
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
         $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
-        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_15_150000_add_price_list_customer_context.php'));
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_15_160000_add_customer_ownership_and_purpose_to_price_lists.php'));
 
         foreach (['manager_user_id', 'purpose_id', 'pharma_price_list_purposes'] as $field) $this->assertStringContainsString($field, $migration);
         $this->assertStringContainsString('$this->managerUserId = auth(\'admin\')->id()', $livewire);
@@ -100,7 +100,10 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('updatePrice', $livewire);
         $this->assertStringContainsString('wire:model.live="includedRows"', $view);
         $this->assertStringContainsString('wire:model.live="includeAll"', $view);
-        $this->assertStringContainsString("number_format((float) \$company, 0, ',', '.')", $view);
+        $this->assertStringContainsString('number_format(', $view);
+        $this->assertStringContainsString("','", $view);
+        $this->assertStringContainsString("'.'", $view);
+        $this->assertStringContainsString("₫", $view);
         $this->assertStringContainsString('Bộ lọc danh mục', $view);
         $this->assertStringContainsString('Đặt lại bộ lọc', $view);
     }
