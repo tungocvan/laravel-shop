@@ -71,8 +71,27 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $this->assertStringContainsString('Nhóm hiển thị', $view);
         $this->assertStringContainsString('Khôi phục nhóm dữ liệu gốc', $view);
         $this->assertStringContainsString('Kéo cột vào nhóm', $view);
+        $this->assertStringContainsString('wire:key="column-row-{{ $key }}"', $view);
+        $this->assertStringContainsString('wire:key="column-inspector-{{ $activeColumnKey }}"', $view);
+        $this->assertStringContainsString('wire:key="column-header-{{ $activeColumnKey }}"', $view);
         $this->assertStringNotContainsString('moveUp(', $component);
         $this->assertStringNotContainsString('moveDown(', $component);
+    }
+
+    #[Test]
+    public function pharma_dashboard_promotes_database_price_list_workspace(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/PharmaDashboardService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
+
+        $this->assertStringContainsString('use Modules\\Pharma\\Models\\PriceList;', $service);
+        $this->assertStringContainsString("'price_lists' => \$this->count(PriceList::class, 'price_lists')", $service);
+        $this->assertStringContainsString('private function priceListSummary(): array', $service);
+        $this->assertStringContainsString("route('admin.pharma.price-lists.index')", $view);
+        $this->assertStringContainsString('Trung tâm Bảng giá Pharma', $view);
+        $this->assertStringContainsString('Price List v2', $view);
+        $this->assertStringNotContainsString('Workbook bảng giá', $view);
+        $this->assertStringNotContainsString('Thiếu file nguồn', $view);
     }
 
     #[Test]
