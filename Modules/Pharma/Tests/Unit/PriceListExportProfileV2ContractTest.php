@@ -31,6 +31,29 @@ class PriceListExportProfileV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function column_designer_supports_drag_drop_search_filters_groups_and_inspector(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
+
+        $this->assertStringContainsString('public function reorderColumns(array $orderedKeys)', $component);
+        $this->assertStringContainsString('public function selectGroup(string $group, bool $selected = true)', $component);
+        $this->assertStringContainsString("'columnGroups'=>PriceListExportProfileService::GROUPS", str_replace(' ', '', $component));
+        $this->assertStringContainsString('Column Designer', $view);
+        $this->assertStringContainsString('Column Inspector', $view);
+        $this->assertStringContainsString('draggable="true"', $view);
+        $this->assertStringContainsString('@drop.prevent="dropOn(', $view);
+        $this->assertStringContainsString('$wire.reorderColumns(order)', $view);
+        $this->assertStringContainsString('Tìm tên cột hoặc field', $view);
+        $this->assertStringContainsString('Đang xuất', $view);
+        $this->assertStringContainsString('Chưa xuất', $view);
+        $this->assertStringContainsString('Chọn nhóm', $view);
+        $this->assertStringContainsString('Bỏ nhóm', $view);
+        $this->assertStringNotContainsString('moveUp(', $component);
+        $this->assertStringNotContainsString('moveDown(', $component);
+    }
+
+    #[Test]
     public function excel_export_applies_saved_profile_media_page_setup_and_cell_types(): void
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
