@@ -39,7 +39,7 @@ class PriceListBidProfessionalUiContractTest extends TestCase
         $this->assertStringContainsString('saveManualBid()', $workspace);
         $this->assertStringContainsString("'source_type' => DrugBidAward::SOURCE_MANUAL", $workspace);
         $this->assertStringContainsString("'created_by' => auth('admin')->id()", $workspace);
-        $this->assertStringContainsString('matchManager->confirm(', $workspace);
+        $this->assertStringContainsString('app(DrugBidAwardMatchManager::class)->confirm(', $workspace);
     }
 
     #[Test]
