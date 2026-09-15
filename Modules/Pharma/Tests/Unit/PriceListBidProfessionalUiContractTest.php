@@ -27,9 +27,9 @@ class PriceListBidProfessionalUiContractTest extends TestCase
         $this->assertStringContainsString('md:hidden', $view);
         $this->assertStringContainsString('lg:hidden', $view);
         $this->assertStringContainsString('selectedBidAwardIds', $component);
-        $this->assertStringNotContainsString("prices[$key]['company'] = $award", $component);
-        $this->assertStringNotContainsString("prices[$key]['receivable'] = $award", $component);
-        $this->assertStringNotContainsString("prices[$key]['invoice'] = $award", $component);
+        $this->assertStringNotContainsString('prices[$key][\'company\'] = $award', $component);
+        $this->assertStringNotContainsString('prices[$key][\'receivable\'] = $award', $component);
+        $this->assertStringNotContainsString('prices[$key][\'invoice\'] = $award', $component);
     }
 
     #[Test]
