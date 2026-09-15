@@ -36,7 +36,7 @@ class PriceListController extends Controller
 
     public function show(PriceList $priceList): View
     {
-        $priceList->load(['partner', 'items.medicine', 'items.variant', 'items.package']);
+        $priceList->load(['partner', 'manager', 'purpose', 'items.medicine', 'items.variant', 'items.package']);
 
         return view('Pharma::pages.price-list.show', compact('priceList'));
     }
