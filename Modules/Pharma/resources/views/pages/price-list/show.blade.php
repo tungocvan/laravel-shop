@@ -1,0 +1,114 @@
+@extends('Admin::layouts.master')
+@section('title', $priceList->name)
+@section('content')
+@php
+    $status = match ($priceList->status) {
+        'active' => ['Đang hiệu lực', 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'],
+        'inactive' => ['Ngưng hiệu lực', 'bg-slate-100 text-slate-700 ring-slate-500/20'],
+        'archived' => ['Lưu trữ', 'bg-amber-50 text-amber-700 ring-amber-600/20'],
+        default => ['Bản nháp', 'bg-indigo-50 text-indigo-700 ring-indigo-600/20'],
+    };
+    $money = fn ($value) => $value === null ? '—' : number_format((float) $value, 0, ',', '.').' ₫';
+    $from = $priceList->effective_from?->format('d/m/Y') ?? 'Không giới hạn';
+    $to = $priceList->effective_to?->format('d/m/Y') ?? 'Không giới hạn';
+@endphp
+
+<div class="mx-auto w-full max-w-[1500px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+            <a href="{{ route('admin.pharma.price-lists.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-indigo-600">
+                <span aria-hidden="true">←</span> Danh sách bảng giá
+            </a>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{{ $priceList->name }}</h1>
+                <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset {{ $status[1] }}">{{ $status[0] }}</span>
+            </div>
+            <p class="mt-2 text-sm text-slate-500">{{ $priceList->code }} · {{ $priceList->type === 'customer' ? 'Bảng giá khách hàng' : 'Bảng giá chung' }}</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            @if($priceList->isDraft())
+                <a href="{{ route('admin.pharma.price-lists.edit', $priceList) }}" class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">Chỉnh sửa</a>
+            @endif
+            <form method="POST" action="{{ route('admin.pharma.price-lists.clone', $priceList) }}">@csrf<button type="submit" class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">Nhân bản</button></form>
+        </div>
+    </div>
+
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4 sm:px-6">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Thông tin báo giá</p>
+                    <h2 class="mt-1 text-lg font-bold text-slate-900">Tóm tắt chính sách thương mại</h2>
+                </div>
+                <div class="text-sm font-medium text-slate-500">{{ $priceList->items->count() }} SKU · {{ $priceList->currency }}</div>
+            </div>
+        </div>
+
+        <div class="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Khách hàng</p><p class="mt-2 text-sm font-bold text-slate-900">{{ $priceList->partner?->name ?? 'Áp dụng chung' }}</p></div>
+            <div class="bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Mục đích</p><p class="mt-2 text-sm font-bold text-slate-900">{{ $priceList->purpose?->name ?? 'Chưa chỉ định' }}</p></div>
+            <div class="bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Người phụ trách</p><p class="mt-2 text-sm font-bold text-slate-900">{{ $priceList->manager?->name ?? 'Chưa chỉ định' }}</p></div>
+            <div class="bg-white p-5"><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Thời gian hiệu lực</p><p class="mt-2 text-sm font-bold text-slate-900">{{ $from }} → {{ $to }}</p></div>
+        </div>
+
+        @if($priceList->notes)
+            <div class="border-t border-slate-100 px-5 py-4 sm:px-6"><span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Ghi chú</span><p class="mt-1 text-sm leading-6 text-slate-700">{{ $priceList->notes }}</p></div>
+        @endif
+    </section>
+
+    <form method="GET" action="{{ route('admin.pharma.price-lists.export', $priceList) }}" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Chi tiết bảng báo giá</h2>
+                <p class="mt-1 text-sm text-slate-500">Đối chiếu SKU, quy cách và toàn bộ chính sách giá trước khi phát hành. Chọn sản phẩm nếu chỉ muốn xuất một phần.</p>
+            </div>
+            <button class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700">Export Excel</button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[1280px] text-sm">
+                <thead class="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="w-12 px-5 py-3.5"><span class="sr-only">Chọn</span></th>
+                        <th class="px-4 py-3.5">Sản phẩm / SKU</th>
+                        <th class="px-4 py-3.5">Thông tin thuốc</th>
+                        <th class="px-4 py-3.5">Quy cách</th>
+                        <th class="px-4 py-3.5 text-right">Giá kê khai</th>
+                        <th class="px-4 py-3.5 text-right">Giá bán công ty</th>
+                        <th class="px-4 py-3.5 text-right">Giá thu thực tế</th>
+                        <th class="px-5 py-3.5 text-right">Giá xuất HĐ</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @forelse($priceList->items as $item)
+                        <tr class="align-top transition hover:bg-slate-50/70">
+                            <td class="px-5 py-4"><input type="checkbox" name="items[]" value="{{ $item->id }}" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></td>
+                            <td class="px-4 py-4">
+                                <div class="font-bold text-slate-900">{{ $item->medicine?->name ?? '—' }}</div>
+                                <div class="mt-1 font-mono text-xs font-semibold text-indigo-600">{{ $item->variant?->sku ?? '—' }}</div>
+                            </td>
+                            <td class="px-4 py-4 text-slate-600">
+                                <div>{{ $item->medicine?->active_ingredients ?: '—' }}</div>
+                                <div class="mt-1 text-xs text-slate-400">{{ $item->variant?->strength_text ?: $item->medicine?->concentration ?: 'Chưa có hàm lượng' }}</div>
+                            </td>
+                            <td class="max-w-xs px-4 py-4 leading-6 text-slate-600">{{ $item->package?->packaging_text ?: $item->medicine?->packaging_specification ?: '—' }}</td>
+                            <td class="px-4 py-4 text-right font-semibold tabular-nums text-slate-600">{{ $money($item->declared_price_snapshot) }}</td>
+                            <td class="px-4 py-4 text-right font-bold tabular-nums text-slate-900">{{ $money($item->company_sale_price) }}</td>
+                            <td class="px-4 py-4 text-right font-bold tabular-nums text-emerald-700">{{ $money($item->actual_receivable_price) }}</td>
+                            <td class="px-5 py-4 text-right font-semibold tabular-nums text-slate-900">{{ $money($item->invoice_price) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="8" class="px-6 py-14 text-center"><p class="font-semibold text-slate-700">Bảng giá chưa có sản phẩm</p><p class="mt-1 text-sm text-slate-400">Hãy chỉnh sửa bản nháp và chọn SKU từ Medicine Master.</p></td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <span>Đơn vị tiền tệ: <strong class="text-slate-700">{{ $priceList->currency }}</strong></span>
+            <span>Không chọn sản phẩm → Export toàn bộ {{ $priceList->items->count() }} SKU.</span>
+        </div>
+    </form>
+</div>
+@endsection

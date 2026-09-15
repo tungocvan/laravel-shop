@@ -4,6 +4,7 @@ namespace Modules\Pharma\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Medicine extends Model
 {
@@ -25,14 +26,27 @@ class Medicine extends Model
 
     public const PROFILE_NEEDS_REVIEW = 'needs_review';
 
+    public const CATALOG_ACTIVE = 'active';
+
+    public const CATALOG_INACTIVE = 'inactive';
+
+    public const CATALOG_DISCONTINUED = 'discontinued';
+
+    public const CATALOG_SUSPENDED = 'suspended';
+
+    public const CATALOG_NEEDS_REVIEW = 'needs_review';
+
     protected $table = 'pharma_medicines';
 
     protected $fillable = [
+        'medicine_code',
         'canonical_identity_key',
         'identity_status',
         'profile_status',
+        'catalog_status',
         'circular_order_number',
         'circular_group',
+        'therapeutic_group',
         'active_ingredients',
         'concentration',
         'name',
@@ -41,6 +55,8 @@ class Medicine extends Model
         'unit',
         'packaging_specification',
         'registration_number',
+        'registration_number_raw',
+        'registration_number_primary',
         'shelf_life',
         'shelf_life_months',
         'registered_company',
@@ -67,6 +83,28 @@ class Medicine extends Model
     public function sources(): HasMany
     {
         return $this->hasMany(MedicineSource::class, 'medicine_id');
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(MedicineVariant::class, 'medicine_id');
+    }
+
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(MedicineAlias::class, 'medicine_id');
+    }
+
+    public function profiles(): HasMany
+    {
+        return $this->hasMany(MedicineProfile::class, 'medicine_id');
+    }
+
+    public function currentProfile(): HasOne
+    {
+        return $this->hasOne(MedicineProfile::class, 'medicine_id')
+            ->where('is_current', true)
+            ->latestOfMany();
     }
 
     public function drugBidAwards(): HasMany

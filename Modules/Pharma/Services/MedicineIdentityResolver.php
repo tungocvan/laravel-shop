@@ -2,7 +2,6 @@
 
 namespace Modules\Pharma\Services;
 
-use Illuminate\Support\Str;
 use Modules\Pharma\Data\DrugAwardProjectionData;
 use Modules\Pharma\Data\MedicineResolution;
 use Modules\Pharma\Models\DrugBidAward;
@@ -10,16 +9,24 @@ use Modules\Pharma\Models\Medicine;
 
 class MedicineIdentityResolver
 {
+    public function __construct(private ?MedicineCatalogNormalizer $normalizer = null)
+    {
+        $this->normalizer ??= new MedicineCatalogNormalizer;
+    }
+
     public function resolve(DrugAwardProjectionData $source): MedicineResolution
     {
         $registration = $this->normalize($source->registrationOrImportLicense);
         $packaging = $this->normalize($source->packagingSpec);
 
         if ($registration !== null) {
-            $query = Medicine::query()->whereNotNull('registration_number');
-            $matches = $query->get()->filter(fn (Medicine $medicine) => $this->normalize($medicine->registration_number) === $registration
-                && ($packaging === null || $this->normalize($medicine->packaging_specification) === $packaging)
-            )->values();
+            $matches = Medicine::query()
+                ->whereNotNull('registration_number')
+                ->get()
+                ->filter(fn (Medicine $medicine) => $this->normalize($medicine->registration_number) === $registration
+                    && ($packaging === null || $this->normalize($medicine->packaging_specification) === $packaging)
+                )
+                ->values();
 
             if ($matches->count() === 1) {
                 return new MedicineResolution(
@@ -37,7 +44,10 @@ class MedicineIdentityResolver
 
         $identity = $this->compositeIdentity($source);
         if ($identity !== null) {
-            $matches = Medicine::query()->get()->filter(fn (Medicine $medicine) => $this->medicineCompositeIdentity($medicine) === $identity)->values();
+            $matches = Medicine::query()
+                ->get()
+                ->filter(fn (Medicine $medicine) => $this->medicineCompositeIdentity($medicine) === $identity)
+                ->values();
 
             if ($matches->count() === 1) {
                 return new MedicineResolution(
@@ -56,19 +66,22 @@ class MedicineIdentityResolver
         return new MedicineResolution(null, DrugBidAward::MATCH_UNRESOLVED);
     }
 
+    /**
+     * Medicine-level identity intentionally excludes strength and packaging.
+     * A product may have multiple strengths/presentations under one canonical medicine.
+     */
     public function canonicalMedicineIdentity(array $attributes): ?string
     {
-        $registration = $this->normalize($attributes['registration_number'] ?? null);
-        $packaging = $this->normalize($attributes['packaging_specification'] ?? null);
+        $registration = $this->normalizer->registration($attributes['registration_number'] ?? null);
+        $name = $this->normalize($attributes['name'] ?? $attributes['brand_name'] ?? null);
 
-        if ($registration !== null) {
-            return hash('sha256', implode('|', ['registration', $registration, $packaging ?? '-']));
+        if ($registration !== null && $name !== null) {
+            return hash('sha256', implode('|', ['medicine-v2', $registration, $name]));
         }
 
         $parts = [
-            $this->normalize($attributes['name'] ?? null),
+            $name,
             $this->normalize($attributes['active_ingredients'] ?? null),
-            $this->normalize($attributes['concentration'] ?? null),
             $this->normalize($attributes['dosage_form'] ?? null),
             $this->normalize($attributes['manufacturing_company'] ?? null),
         ];
@@ -78,6 +91,15 @@ class MedicineIdentityResolver
         }
 
         return hash('sha256', implode('|', array_map(fn ($value) => $value ?? '-', $parts)));
+    }
+
+    /**
+     * Variant identity distinguishes the same brand/registration by strength,
+     * dosage form and presentation. Packaging quantity is handled separately.
+     */
+    public function canonicalVariantIdentity(array $attributes): string
+    {
+        return (new MedicineSkuGenerator($this->normalizer))->variantIdentity($attributes);
     }
 
     private function compositeIdentity(DrugAwardProjectionData $source): ?string
@@ -116,10 +138,6 @@ class MedicineIdentityResolver
 
     private function normalize(?string $value): ?string
     {
-        if ($value === null || trim($value) === '') {
-            return null;
-        }
-
-        return preg_replace('/\s+/u', ' ', Str::lower(Str::ascii(trim($value))));
+        return $this->normalizer->text($value);
     }
 }

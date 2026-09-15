@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 use Modules\Pharma\Models\Medicine;
 
 class MedicineService
@@ -20,19 +21,42 @@ class MedicineService
         ?string $circularGroup = null,
         ?string $specialControl = null,
         ?string $profileStatus = null,
+        ?string $hsspStatus = null,
     ): LengthAwarePaginator {
         return Medicine::query()
-            ->withCount(['sources', 'drugBidAwards'])
+            ->with([
+                'variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default',
+                'currentProfile' => fn ($query) => $query->select([
+                    'pharma_medicine_profiles.id',
+                    'pharma_medicine_profiles.medicine_id',
+                    'pharma_medicine_profiles.profile_version',
+                    'pharma_medicine_profiles.profile_status',
+                    'pharma_medicine_profiles.profile_link',
+                    'pharma_medicine_profiles.verified_at',
+                    'pharma_medicine_profiles.is_current',
+                ]),
+            ])
+            ->withCount(['sources', 'drugBidAwards', 'variants', 'profiles'])
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('name', 'like', "%{$value}%")
+                ->orWhere('medicine_code', 'like', "%{$value}%")
                 ->orWhere('active_ingredients', 'like', "%{$value}%")
+                ->orWhere('therapeutic_group', 'like', "%{$value}%")
                 ->orWhere('registration_number', 'like', "%{$value}%")
+                ->orWhere('registration_number_primary', 'like', "%{$value}%")
                 ->orWhere('concentration', 'like', "%{$value}%")
                 ->orWhere('manufacturing_company', 'like', "%{$value}%")
-                ->orWhere('manufacturing_country', 'like', "%{$value}%")))
+                ->orWhere('manufacturing_country', 'like', "%{$value}%")
+                ->orWhereHas('variants', fn ($variant) => $variant
+                    ->where('sku', 'like', "%{$value}%")
+                    ->orWhere('strength_text', 'like', "%{$value}%")
+                    ->orWhere('presentation_text', 'like', "%{$value}%"))
+                ->orWhereHas('aliases', fn ($alias) => $alias->where('alias', 'like', "%{$value}%"))))
             ->when($circularGroup, fn ($query, $value) => $query->where('circular_group', $value))
             ->when($specialControl, fn ($query, $value) => $query->where('is_special_control', $value === 'yes'))
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
+            ->when($hsspStatus === 'with', fn ($query) => $query->whereHas('currentProfile'))
+            ->when($hsspStatus === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
             ->latest()
             ->paginate($perPage, ['*'], 'page', $page);
     }
@@ -56,8 +80,15 @@ class MedicineService
     {
         return DB::transaction(function () use ($data): Medicine {
             $data = $this->normalizeQualityState($data);
+            $medicine = Medicine::query()->create($data);
 
-            return Medicine::query()->create($data);
+            if (! $medicine->medicine_code) {
+                $medicine->forceFill([
+                    'medicine_code' => 'MED-'.str_pad((string) $medicine->id, 6, '0', STR_PAD_LEFT),
+                ])->save();
+            }
+
+            return $medicine->refresh();
         });
     }
 
@@ -74,7 +105,18 @@ class MedicineService
 
     public function delete(int $id): bool
     {
-        return DB::transaction(fn () => (bool) $this->findOrFail($id)->delete());
+        return DB::transaction(function () use ($id): bool {
+            $medicine = $this->findOrFail($id);
+
+            // Variants, packages, aliases and source provenance are owned catalog data
+            // and are configured to cascade with the medicine. Only external/business
+            // references must protect the canonical record from hard deletion.
+            if ($medicine->profiles()->exists() || $medicine->drugBidAwards()->exists()) {
+                throw new LogicException('Không thể xóa thuốc vì đã có HSSP hoặc dữ liệu kết quả lựa chọn nhà thầu tham chiếu.');
+            }
+
+            return (bool) $medicine->delete();
+        });
     }
 
     public function importFromCsv(string $filePath): int
