@@ -35,8 +35,22 @@ class ExportConfigurator extends Component
     public function newProfile(): void { $this->apply(app(PriceListExportProfileService::class)->defaults()); $this->profileName = 'Cấu hình mới'; }
     public function selectAll(): void { foreach ($this->columnOrder as $key) $this->selectedColumns[$key] = true; }
     public function clearAll(): void { foreach ($this->columnOrder as $key) $this->selectedColumns[$key] = false; }
-    public function moveUp(string $key): void { $i = array_search($key, $this->columnOrder, true); if ($i !== false && $i > 0) [$this->columnOrder[$i - 1], $this->columnOrder[$i]] = [$this->columnOrder[$i], $this->columnOrder[$i - 1]]; }
-    public function moveDown(string $key): void { $i = array_search($key, $this->columnOrder, true); if ($i !== false && $i < count($this->columnOrder) - 1) [$this->columnOrder[$i + 1], $this->columnOrder[$i]] = [$this->columnOrder[$i], $this->columnOrder[$i + 1]]; }
+
+    public function selectGroup(string $group, bool $selected = true): void
+    {
+        foreach ($this->columnOrder as $key) {
+            if ((PriceListExportProfileService::COLUMNS[$key]['group'] ?? null) === $group) $this->selectedColumns[$key] = $selected;
+        }
+    }
+
+    public function reorderColumns(array $orderedKeys): void
+    {
+        $known = array_keys(PriceListExportProfileService::COLUMNS);
+        $ordered = array_values(array_unique(array_filter($orderedKeys, fn ($key) => is_string($key) && in_array($key, $known, true))));
+        foreach ($this->columnOrder as $key) if (! in_array($key, $ordered, true)) $ordered[] = $key;
+        $this->columnOrder = $ordered;
+    }
+
     public function duplicate(): void { if (! $this->profileId) return; $this->apply(app(PriceListExportProfileService::class)->duplicate((int) auth('admin')->id(), $this->profileId)); $this->refreshProfiles(); }
     public function delete(): void { if (! $this->profileId) return; app(PriceListExportProfileService::class)->delete((int) auth('admin')->id(), $this->profileId); $this->profileId = null; $this->refreshProfiles(); $this->loadProfile(); }
 
@@ -56,5 +70,5 @@ class ExportConfigurator extends Component
     private function refreshProfiles():void{$this->profiles=app(PriceListExportProfileService::class)->profilesForUser((int)auth('admin')->id());}
     private function loadProfile():void{$this->apply(app(PriceListExportProfileService::class)->forUser((int)auth('admin')->id(),$this->profileId));}
     private function apply(array $p):void{$this->profileId=$p['profile_id'];$this->profileName=$p['profile_name'];$this->isDefault=$p['is_default'];$this->columnOrder=$p['column_order'];$lookup=array_fill_keys($p['selected_columns'],true);$this->selectedColumns=[];foreach($this->columnOrder as$k)$this->selectedColumns[$k]=isset($lookup[$k]);$this->headers=$p['headers'];$this->alignments=$p['alignments'];$this->widths=$p['widths'];$this->dataTypes=$p['data_types'];$this->decimals=$p['decimals'];$this->headerFooter=$p['header_footer'];$this->pageSetup=$p['page_setup'];$this->logoPath=$p['logo_path'];$this->signaturePath=$p['signature_path'];$this->activeColumnKey=$this->activeColumnKey&&isset(PriceListExportProfileService::COLUMNS[$this->activeColumnKey])?$this->activeColumnKey:($this->columnOrder[0]??null);}
-    public function render():View{return view('Pharma::livewire.price-list.export-configurator',['columnDefinitions'=>PriceListExportProfileService::COLUMNS]);}
+    public function render():View{return view('Pharma::livewire.price-list.export-configurator',['columnDefinitions'=>PriceListExportProfileService::COLUMNS,'columnGroups'=>PriceListExportProfileService::GROUPS]);}
 }
