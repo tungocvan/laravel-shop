@@ -100,7 +100,7 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('updatePrice', $livewire);
         $this->assertStringContainsString('wire:model.live="includedRows"', $view);
         $this->assertStringContainsString('wire:model.live="includeAll"', $view);
-        $this->assertStringContainsString("number_format((float)\$company,0,',','.')", $view);
+        $this->assertStringContainsString("number_format((float) \$company, 0, ',', '.')", $view);
         $this->assertStringContainsString('Bộ lọc danh mục', $view);
         $this->assertStringContainsString('Đặt lại bộ lọc', $view);
     }
