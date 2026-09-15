@@ -28,19 +28,31 @@ class PriceListExcelExportContractTest extends TestCase
     }
 
     #[Test]
-    public function export_controller_supports_persistent_profile_commercial_and_bid_evidence_columns(): void
+    public function export_catalog_covers_full_pharma_master_data_and_commercial_evidence(): void
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/PriceListExportProfileService.php'));
 
-        foreach (['medicine_code', 'sku', 'declared_price', 'bid_price', 'bid_quantity', 'bid_decision', 'bid_date', 'bid_contractor', 'bid_source', 'company_sale_price', 'discount_percent', 'actual_receivable_price', 'invoice_price'] as $column) {
+        foreach ([
+            'medicine_code', 'medicine_name', 'registration_number', 'registration_number_raw', 'registration_number_primary', 'sku', 'package_code', 'gtin', 'barcode',
+            'active_ingredients', 'strength', 'dosage_form', 'route_of_administration', 'unit', 'therapeutic_group', 'circular_group', 'circular_order_number', 'shelf_life', 'shelf_life_months', 'is_special_control',
+            'registered_company', 'manufacturing_company', 'manufacturing_country', 'visa_validity_date', 'gmp_certification_date',
+            'presentation_text', 'base_unit', 'content_value', 'content_uom', 'package', 'outer_package_type', 'inner_package_type', 'outer_quantity', 'inner_quantity', 'base_quantity', 'container_volume', 'container_volume_uom', 'is_orderable', 'is_inventory_unit',
+            'declared_price', 'bid_price', 'bid_quantity', 'bid_decision', 'bid_date', 'bid_contractor', 'bid_investor', 'bid_unit', 'bid_source',
+            'company_sale_price', 'discount_percent', 'actual_receivable_price', 'invoice_price', 'partner', 'effective', 'status', 'note',
+        ] as $column) {
             $this->assertStringContainsString("'{$column}'", $service);
+            $this->assertStringContainsString("'{$column}' =>", $controller);
         }
 
+        $this->assertStringContainsString('public const GROUPS', $service);
+        $this->assertStringContainsString('public const DEFAULT_SELECTED', $service);
         $this->assertStringContainsString("'export_profile_id'", $controller);
         $this->assertStringContainsString('PriceListExportProfileService $profiles', $controller);
-        $this->assertStringContainsString("with(['medicine','variant','package','bidEvidence'])", $controller);
-        $this->assertStringContainsString('if($selected->isNotEmpty())', $controller);
+        foreach (['medicine', 'variant', 'package', 'bidEvidence'] as $relation) {
+            $this->assertStringContainsString("'{$relation}'", $controller);
+        }
+        $this->assertStringContainsString('$selected->isNotEmpty()', $controller);
         $this->assertStringContainsString('new Drawing()', $controller);
     }
 }
