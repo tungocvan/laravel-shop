@@ -27,6 +27,9 @@ class ReviewWorkspace extends Component
     public ?int $selectedPackageId = null;
     public ?string $successMessage = null;
     public ?string $errorMessage = null;
+    public bool $linkSuccessModal = false;
+    public ?string $linkedMedicineName = null;
+    public ?string $linkedMedicineCode = null;
 
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingStatus(): void { $this->resetPage(); }
@@ -92,9 +95,19 @@ class ReviewWorkspace extends Component
         $level = $package ? DrugBidAwardMatch::LEVEL_PACKAGE : ($variant ? DrugBidAwardMatch::LEVEL_VARIANT : DrugBidAwardMatch::LEVEL_MEDICINE);
         $manager->confirm($award, new DrugBidMatchResult($medicine, $variant, $package, DrugBidAwardMatch::STATUS_EXACT, 'manual_review', 100, $level), auth()->id());
 
-        $this->successMessage = 'Đã xác nhận liên kết với Danh mục thuốc chuẩn.';
-        $this->selectAward($award->id);
-        $this->successMessage = 'Đã xác nhận liên kết với Danh mục thuốc chuẩn.';
+        $this->linkedMedicineName = $medicine->name;
+        $this->linkedMedicineCode = $medicine->medicine_code;
+        $this->linkSuccessModal = true;
+        $this->reset(['selectedAwardId', 'selectedMedicineId', 'selectedVariantId', 'selectedPackageId', 'candidateSearch', 'successMessage', 'errorMessage']);
+    }
+
+    public function continueReview()
+    {
+        $this->linkSuccessModal = false;
+        $this->linkedMedicineName = null;
+        $this->linkedMedicineCode = null;
+
+        return $this->redirectRoute('admin.pharma.drug-bid-awards.review', navigate: true);
     }
 
     public function rematch(DrugBidAwardMatchManager $manager): void
