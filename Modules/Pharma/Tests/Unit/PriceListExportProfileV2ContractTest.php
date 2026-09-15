@@ -42,6 +42,6 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $this->assertStringContainsString('$profile[\'signature_path\']', $controller);
         $this->assertStringContainsString('setPaperSize', $controller);
         $this->assertStringContainsString('setFitToWidth', $controller);
-        $this->assertStringContainsString('setNumberFormat', $controller);
+        $this->assertStringContainsString('getNumberFormat()->setFormatCode', $controller);
     }
 }
