@@ -6,7 +6,7 @@
 - Objective: **Canonical Medicine Master / SKU / Package + Drug Bid Intelligence + database-backed Price List v2**
 - Implementation branch: `feat/pharma-price-list-bid-ui-professional`
 - Parent implementation branch: `feat/pharma-drug-bid-intelligence`
-- Status: **IMPLEMENTATION IN PROGRESS — professional Price List bid-intelligence UI**
+- Status: **BATCH C IMPLEMENTATION COMPLETE — LOCAL ACCEPTANCE CHECKPOINT PENDING**
 - Date: 2026-09-15
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - UI standard: `.codex/standards/ADMIN_UI_STANDARD.md`
@@ -73,7 +73,7 @@ A later Muasamcong synchronization must not silently delete or overwrite a manua
 
 Price List uses live bid intelligence for discovery and snapshots the selected reference when the item is saved. `PriceListItemBidEvidence` is immutable historical evidence for the commercial decision and survives later source changes according to its persistence contract.
 
-The currently selected award is captured only as evidence. Saving a Price List item does not copy the winning bid price into any commercial price field.
+Editing a Draft preserves the already-captured evidence snapshot even when a newer matching award now exists. A different historical award becomes the saved evidence only after an explicit user selection. Saving a Price List item never copies the winning bid price into commercial price fields.
 
 ## Price List v2 persistence and commercial contract
 
@@ -117,7 +117,7 @@ Create/Edit uses four steps:
 
 `Thông tin -> Chọn thuốc -> Thiết lập giá -> Kiểm tra & lưu`.
 
-The current UI refinement must remain full-width on Create/Edit. Bid intelligence is integrated into the Medicine Master / pricing workflow rather than rendered as a long standalone card above the table.
+The UI remains full-width on Create/Edit. Bid intelligence is integrated into the Medicine Master / pricing workflow rather than rendered as a long standalone card above the table.
 
 Required interaction:
 
@@ -129,15 +129,44 @@ Required interaction:
 
 Partner remains the canonical customer master; the Customer field links to `/admin/partners` rather than duplicating organization data.
 
+The Price List detail table is intentionally compact: product/SKU, medicine information, package, medicine group, declared price, company sale price and bid result; receivable/invoice prices are not duplicated in this detail table.
+
+## Excel Designer v2 checkpoint
+
+Price List detail export now uses persistent per-admin export profiles rather than browser-only configuration. Profiles store branding/content, selected columns, global column order, custom group placement, custom headers, alignment, width, datatype/decimals and page setup.
+
+The Designer exposes the full Pharma master/export catalog and supports cross-group drag/drop. `column_groups` changes only Designer organization; Excel output order remains controlled by `column_order`. Existing profiles without custom group placement fall back to canonical column groups.
+
+Logo/signature support includes browser preview and actual PhpSpreadsheet drawings. Removal/replacement is transactional from the operator's perspective: opening the Designer and removing an image does not delete the persisted file until the profile is successfully saved; cancelling restores persisted state.
+
+Export semantics remain: when detail-table checkboxes contain item IDs, export only those items; when none are selected, export every item in the Price List. Saved page size/orientation/margins/centering/scaling are applied to the workbook. Configured string/number/date types are applied per cell; a value configured as date but not parseable falls back to an explicit string rather than aborting the entire export.
+
+Profile JSON import/export is portable and additive/backward-compatible with profiles that predate custom `column_groups`.
+
 ## Performance and backfill
 
-Bid intelligence must use batch lookup (`forItems`) for selected Variant/Package identities to avoid N+1 queries.
+Bid intelligence uses batch lookup (`forItems`) for selected Variant/Package identities to avoid N+1 queries.
 
 Historical matching/backfill is a separate resumable command, not a migration. Expected operational options include dry-run, chunking, ID ranges, unmatched-only and auto-rematch modes. Manual confirmed matches must not be rematched by default.
 
-## Targeted acceptance gates
+## Batch C acceptance checkpoint
 
-Run only Pharma and directly impacted module tests. Required coverage includes deterministic Medicine/Variant/Package matching, ambiguity handling, manual-match precedence, source resync safety, latest-award ordering, batch intelligence lookup, Price List default evidence, alternate historical evidence, manual award fallback, evidence immutability and unchanged Customer -> Global -> NO_PRICE resolver behavior.
+Local acceptance is now required before Batch C can be called PASS. Run the focused Pharma tests for professional Price List UI, Excel export/profile v2, bid evidence immutability and bid intelligence. Run Pint only against the touched Batch C PHP files. Apply outstanding Pharma migrations before browser testing.
+
+Manual acceptance must verify:
+
+- create/edit Price List Desktop, Tablet and Mobile;
+- customer initialization from an ACTIVE Global list;
+- customer Partner selection/link;
+- latest bid reference and explicit historical selection;
+- Draft edit keeps immutable evidence instead of silently moving to a newer award;
+- manual bid fallback;
+- detail-table selected-only export and no-selection export-all;
+- Excel Designer cross-group drag/drop persists after save/reopen;
+- Inspector custom header/type/alignment/width/decimals persists;
+- logo/signature preview, cancel safety and saved workbook drawings;
+- page setup in the generated workbook;
+- real generated `.xlsx` opens cleanly in Excel/LibreOffice.
 
 Frontend note: the operator previously reported `npm run build` failing because Vite/Rollup could not resolve an import. Do not report frontend build PASS until that existing failure is reproduced/fixed or shown to be unrelated.
 
