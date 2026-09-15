@@ -13,6 +13,7 @@ class PriceListExportProfile extends Model
     protected $casts = [
         'is_default' => 'boolean',
         'column_order' => 'array',
+        'column_groups' => 'array',
         'selected_columns' => 'array',
         'headers' => 'array',
         'alignments' => 'array',
