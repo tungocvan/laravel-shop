@@ -21,7 +21,7 @@ class ExportConfigurator extends Component
     public ?string $logoPath=null,$signaturePath=null,$originalLogoPath=null,$originalSignaturePath=null; public bool $removeLogoRequested=false,$removeSignatureRequested=false;
     public $logoUpload=null,$signatureUpload=null,$profileJsonUpload=null;
     public bool $jsonLibraryOpen=false,$jsonSaveOpen=false,$noticeOpen=false,$confirmOpen=false;
-    public array $jsonFiles=[]; public string $jsonFileName=''; public ?string $selectedJsonFile=null; public string $noticeTitle='',$noticeMessage='',$confirmAction='',$confirmValue='';
+    public array $jsonFiles=[]; public string $jsonFileName=''; public ?string $selectedJsonFile=null; public string $noticeTitle='',$noticeMessage='',$pendingConfirmAction='',$pendingConfirmValue='';
 
     public function mount():void{$this->refreshProfiles();$this->loadProfile();}
     public function openConfig():void{$this->refreshProfiles();$this->loadProfile();$this->activeSection='brand';$this->open=true;}
@@ -42,7 +42,7 @@ class ExportConfigurator extends Component
     public function applyColumnDraft():void{$this->commitColumnDraft();}
     public function setColumnWidthPreset(string $preset):void{if(!$this->activeColumnKey)return;$width=match($preset){'xs'=>70,'s'=>95,'m'=>125,'l'=>170,'xl'=>220,default=>PriceListExportProfileService::COLUMNS[$this->activeColumnKey]['width']??125};$this->columnDraft['width']=$width;$this->commitColumnDraft();}
     public function duplicate():void{if(!$this->profileId)return;$this->apply(app(PriceListExportProfileService::class)->duplicate((int)auth('admin')->id(),$this->profileId));$this->refreshProfiles();$this->notify('Đã nhân đôi','Profile đã được nhân đôi thành cấu hình mới.');}
-    public function requestDeleteProfile():void{if($this->profileId)$this->confirm('Xóa profile?','delete-profile',(string)$this->profileId);}
+    public function requestDeleteProfile():void{if($this->profileId)$this->openConfirmation('Xóa profile?','delete-profile',(string)$this->profileId);}
     public function delete():void{$this->requestDeleteProfile();}
 
     public function save():void
@@ -63,19 +63,19 @@ class ExportConfigurator extends Component
     public function openJsonLibrary():void{$this->refreshJsonFiles();$this->selectedJsonFile=null;$this->jsonLibraryOpen=true;}
     public function selectJsonFile(string $name):void{$this->selectedJsonFile=$name;}
     public function importSelectedJson():void{if(!$this->selectedJsonFile){$this->addError('jsonLibrary','Hãy chọn một file JSON.');return;}$payload=app(PriceListExportJsonLibrary::class)->read((int)auth('admin')->id(),$this->selectedJsonFile);$saved=app(PriceListExportProfileService::class)->importPayload((int)auth('admin')->id(),$payload);$this->apply($saved);$this->refreshProfiles();$this->jsonLibraryOpen=false;$this->notify('Import thành công','Đã tạo profile mới từ “'.$this->selectedJsonFile.'”.');}
-    public function requestDeleteJson(string $name):void{$this->confirm('Xóa file JSON?','delete-json',$name);}
+    public function requestDeleteJson(string $name):void{$this->openConfirmation('Xóa file JSON?','delete-json',$name);}
     public function exportJson():void{$this->openJsonSave();}
     public function importJson():void{$this->validate(['profileJsonUpload'=>'required|file|max:1024']);$payload=json_decode((string)file_get_contents($this->profileJsonUpload->getRealPath()),true);if(!is_array($payload)){$this->addError('profileJsonUpload','File JSON không hợp lệ.');return;}try{$saved=app(PriceListExportProfileService::class)->importPayload((int)auth('admin')->id(),$payload);}catch(InvalidArgumentException $e){$this->addError('profileJsonUpload',$e->getMessage());return;}$this->apply($saved);$this->refreshProfiles();$this->reset('profileJsonUpload');$this->notify('Import thành công','Đã tạo profile mới từ file JSON trên máy.');}
-    public function confirmAction():void
+    public function executeConfirmedAction():void
     {
-        $action=$this->confirmAction;$value=$this->confirmValue;$this->confirmOpen=false;$this->confirmAction='';$this->confirmValue='';
+        $action=$this->pendingConfirmAction;$value=$this->pendingConfirmValue;$this->confirmOpen=false;$this->pendingConfirmAction='';$this->pendingConfirmValue='';
         if($action==='delete-profile'&&$value!==''){$profileId=(int)$value;app(PriceListExportProfileService::class)->delete((int)auth('admin')->id(),$profileId);$this->profileId=null;$this->refreshProfiles();$this->loadProfile();$this->notify('Đã xóa profile','Profile đã được xóa thành công.');return;}
         if($action==='delete-json'&&$value!==''){$jsonName=$value;app(PriceListExportJsonLibrary::class)->delete((int)auth('admin')->id(),$jsonName);$this->refreshJsonFiles();$this->selectedJsonFile=null;$this->notify('Đã xóa JSON','File cấu hình JSON đã được xóa khỏi server.');}
     }
     public function closeNotice():void{$this->noticeOpen=false;}
 
     private function notify(string $title,string $message):void{$this->noticeTitle=$title;$this->noticeMessage=$message;$this->noticeOpen=true;}
-    private function confirm(string $title,string $action,string $value=''):void{$this->noticeTitle=$title;$this->confirmAction=$action;$this->confirmValue=$value;$this->confirmOpen=true;}
+    private function openConfirmation(string $title,string $action,string $value=''):void{$this->noticeTitle=$title;$this->pendingConfirmAction=$action;$this->pendingConfirmValue=$value;$this->confirmOpen=true;}
     private function refreshJsonFiles():void{$this->jsonFiles=app(PriceListExportJsonLibrary::class)->list((int)auth('admin')->id());}
     private function selectedOrder():array{return array_values(array_filter($this->columnOrder,fn($key)=>$this->selectedColumns[$key]??false));}
     private function replaceSelectedOrder(array $selected):void{$unselected=array_values(array_filter($this->columnOrder,fn($key)=>!($this->selectedColumns[$key]??false)));$this->columnOrder=[...$selected,...$unselected];}
