@@ -31,9 +31,11 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
         $wrapper = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v32.blade.php'));
 
-        foreach (['openJsonSave', 'saveJsonToServer', 'openJsonLibrary', 'importSelectedJson', 'requestDeleteJson', 'confirmAction', 'notify'] as $method) {
+        foreach (['openJsonSave', 'saveJsonToServer', 'openJsonLibrary', 'importSelectedJson', 'requestDeleteJson', 'executeConfirmedAction', 'notify'] as $method) {
             $this->assertStringContainsString('function '.$method, $component);
         }
+        $this->assertStringContainsString('function openConfirmation', $component);
+        $this->assertStringNotContainsString('function confirmAction', $component);
         foreach (['pageSetup.header_background', 'pageSetup.header_text_color', 'pageSetup.table_border'] as $binding) {
             $this->assertStringContainsString($binding, $component);
             $this->assertStringContainsString($binding, $view);
