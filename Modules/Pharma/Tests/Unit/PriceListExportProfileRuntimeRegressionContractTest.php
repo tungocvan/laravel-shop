@@ -36,4 +36,23 @@ class PriceListExportProfileRuntimeRegressionContractTest extends TestCase
         $this->assertStringContainsString("if(\$action==='delete-json'&&\$value!==''){\$jsonName=\$value;", $component);
         $this->assertStringContainsString('->delete((int)auth(\'admin\')->id(),$jsonName)', $component);
     }
+
+    public function test_v32_json_library_uses_native_value_binding_instead_of_filename_expressions(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v32.blade.php'));
+
+        $this->assertStringContainsString('wire:model.live="selectedJsonFile"', $view);
+        $this->assertStringContainsString('value="{{ $file[\'name\'] }}"', $view);
+        $this->assertStringContainsString('$wire.requestDeleteJson($el.value)', $view);
+        $this->assertStringNotContainsString('selectJsonFile(@js(', $view);
+    }
+
+    public function test_v32_confirmation_explicitly_calls_livewire_method(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v32.blade.php'));
+
+        $this->assertStringContainsString("\$wire.\$call('confirmAction')", $view);
+        $this->assertStringContainsString('wire:key="excel-designer-confirm-v32"', $view);
+        $this->assertStringContainsString('z-[135]', $view);
+    }
 }
