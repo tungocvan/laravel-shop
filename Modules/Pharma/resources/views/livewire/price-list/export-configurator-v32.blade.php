@@ -75,7 +75,7 @@
                 <p class="mt-2 text-sm text-slate-500">Thao tác này cần xác nhận trước khi thực hiện.</p>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" wire:click="$set('confirmOpen',false)" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold">Hủy</button>
-                    <button type="button" wire:click="confirmAction" wire:loading.attr="disabled" wire:target="confirmAction" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Xác nhận</button>
+                    <button type="button" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Xác nhận</button>
                 </div>
             </div>
         </div>
