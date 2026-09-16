@@ -63,7 +63,9 @@ class PriceListExcelDocumentLayoutContractTest extends TestCase
         foreach (['logo_width_cm', 'logo_height_cm', 'signature_width_cm', 'signature_height_cm'] as $key) {
             $this->assertStringContainsString("'{$key}'", $layout);
         }
-        $this->assertStringContainsString('centerOffsetPixels', $layout);
+        $this->assertStringContainsString('centeredDrawingAnchor', $layout);
+        $this->assertStringContainsString('setOffsetX($offsetX)', $layout);
+        $this->assertStringContainsString('$firstIndex = max(1, $lastIndex - 4);', $layout);
         $this->assertStringContainsString('$infoStartIndex = min(4, max(1, $columnCount));', $layout);
     }
 
