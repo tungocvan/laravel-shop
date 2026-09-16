@@ -9,7 +9,6 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
     public function test_excel_typography_supports_table_style_and_times_new_roman(): void
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/PriceListExcelTypography.php'));
-
         $this->assertStringContainsString("FONT_FAMILY = 'Times New Roman'", $service);
         $this->assertStringContainsString('BORDER_THIN', $service);
         $this->assertStringContainsString('header_background', $service);
@@ -20,44 +19,46 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
     public function test_json_library_is_private_per_admin_and_sanitizes_names(): void
     {
         $library = file_get_contents(base_path('Modules/Pharma/Services/PriceListExportJsonLibrary.php'));
-
         $this->assertStringContainsString("Storage::disk('local')", $library);
         $this->assertStringContainsString("self::DIRECTORY.'/'.\$userId", $library);
         $this->assertStringContainsString('basename(', $library);
         $this->assertStringContainsString("'.json'", $library);
     }
 
-    public function test_configurator_has_server_library_feedback_and_style_validation(): void
+    public function test_configurator_has_server_library_feedback_and_v31_workspace(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
-        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
 
         foreach (['openJsonSave', 'saveJsonToServer', 'openJsonLibrary', 'importSelectedJson', 'requestDeleteJson', 'confirmAction', 'notify'] as $method) {
             $this->assertStringContainsString('function '.$method, $component);
         }
-
         foreach (['pageSetup.header_background', 'pageSetup.header_text_color', 'pageSetup.table_border'] as $binding) {
             $this->assertStringContainsString($binding, $component);
             $this->assertStringContainsString($binding, $view);
         }
-
-        foreach (['Excel Designer v3', 'Thư viện cấu hình JSON', 'Lưu cấu hình JSON', 'Xem trước header Excel', 'Times New Roman'] as $label) {
+        foreach (['Excel Designer v3.1', 'Thư viện cấu hình JSON', 'Lưu cấu hình JSON', 'Xem trước header Excel', 'Times New Roman'] as $label) {
             $this->assertStringContainsString($label, $view);
         }
+        $this->assertStringContainsString("price-list.export-configurator-v31", $component);
     }
 
-    public function test_column_inspector_uses_isolated_draft_state(): void
+    public function test_column_inspector_uses_isolated_draft_state_and_keyed_dom(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
 
         $this->assertStringContainsString('public array $columnDraft=[];', $component);
         $this->assertStringContainsString('function loadColumnDraft', $component);
         $this->assertStringContainsString('function commitColumnDraft', $component);
         $this->assertStringContainsString("\$key!==\$this->activeColumnKey", $component);
-        $this->assertStringContainsString("\$this->widths[\$key]=", $component);
-        $this->assertStringContainsString("\$this->headers[\$key]=", $component);
-        $this->assertStringContainsString("\$this->alignments[\$key]=", $component);
-        $this->assertStringContainsString("\$this->dataTypes[\$key]=", $component);
-        $this->assertStringContainsString("\$this->decimals[\$key]=", $component);
+        foreach (["\$this->widths[\$key]=", "\$this->headers[\$key]=", "\$this->alignments[\$key]=", "\$this->dataTypes[\$key]=", "\$this->decimals[\$key]="] as $assignment) {
+            $this->assertStringContainsString($assignment, $component);
+        }
+        foreach (['wire:key="inspector-{{ $activeColumnKey }}"', 'wire:model="columnDraft.width"', 'wire:model="columnDraft.header"', 'wire:model="columnDraft.alignment"', 'wire:model="columnDraft.data_type"', 'wire:model="columnDraft.decimals"'] as $binding) {
+            $this->assertStringContainsString($binding, $view);
+        }
+        $this->assertStringNotContainsString('wire:model="widths.{{ $activeColumnKey }}"', $view);
+        $this->assertStringContainsString('Width phản ánh tương đối', $view);
     }
 }
