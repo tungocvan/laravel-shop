@@ -81,40 +81,157 @@ class PriceListExportProfileService
         'company_sale_price', 'partner', 'effective', 'note',
     ];
 
-    public const DEFAULT_HEADER_FOOTER = ['enabled'=>true,'company_name'=>'CÔNG TY TNHH INAFO VIỆT NAM','address'=>'','tax_code'=>'','phone'=>'','email'=>'','title'=>'BẢNG BÁO GIÁ','recipient'=>'QUÝ KHÁCH HÀNG','intro'=>'Công ty INAFO Việt Nam xin trân trọng gửi đến Quý Khách hàng báo giá một số sản phẩm chúng tôi đang phân phối trên thị trường hiện nay như sau:','logo_width_cm'=>2.48,'logo_height_cm'=>3.83,'signature_width_cm'=>4.00,'signature_height_cm'=>2.00,'footer_location'=>'Tp.HCM','signatory_title'=>'GIÁM ĐỐC CÔNG TY','signatory_name'=>'','footer_year'=>''];
-    public const DEFAULT_PAGE_SETUP = ['paper_size'=>'A4','orientation'=>'landscape','margin_left_cm'=>0.3,'margin_right_cm'=>0.3,'margin_top_cm'=>0.8,'margin_bottom_cm'=>0.8,'center_horizontal'=>true,'center_vertical'=>false,'scaling'=>'fit_width','fit_width'=>1,'fit_height'=>0];
+    public const DEFAULT_HEADER_FOOTER = ['enabled' => true, 'company_name' => 'CÔNG TY TNHH INAFO VIỆT NAM', 'address' => '', 'tax_code' => '', 'phone' => '', 'email' => '', 'title' => 'BẢNG BÁO GIÁ', 'recipient' => 'QUÝ KHÁCH HÀNG', 'intro' => 'Công ty INAFO Việt Nam xin trân trọng gửi đến Quý Khách hàng báo giá một số sản phẩm chúng tôi đang phân phối trên thị trường hiện nay như sau:', 'logo_width_cm' => 2.48, 'logo_height_cm' => 3.83, 'signature_width_cm' => 4.00, 'signature_height_cm' => 2.00, 'footer_location' => 'Tp.HCM', 'signatory_title' => 'GIÁM ĐỐC CÔNG TY', 'signatory_name' => '', 'footer_year' => ''];
 
-    public function profilesForUser(int $userId): array { return PriceListExportProfile::query()->where('user_id',$userId)->orderByDesc('is_default')->orderBy('name')->get(['id','name','is_default'])->toArray(); }
-    public function forUser(int $userId, ?int $profileId = null): array { $q=PriceListExportProfile::query()->where('user_id',$userId); $p=$profileId?$q->whereKey($profileId)->first():$q->orderByDesc('is_default')->orderBy('id')->first(); return $p?$this->payload($p):$this->defaults(); }
+    public const DEFAULT_PAGE_SETUP = ['paper_size' => 'A4', 'orientation' => 'landscape', 'margin_left_cm' => 0.3, 'margin_right_cm' => 0.3, 'margin_top_cm' => 0.8, 'margin_bottom_cm' => 0.8, 'center_horizontal' => true, 'center_vertical' => false, 'scaling' => 'fit_width', 'fit_width' => 1, 'fit_height' => 0];
+
+    public function profilesForUser(int $userId): array
+    {
+        return PriceListExportProfile::query()->where('user_id', $userId)->orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'is_default'])->toArray();
+    }
+
+    public function forUser(int $userId, ?int $profileId = null): array
+    {
+        $q = PriceListExportProfile::query()->where('user_id', $userId);
+        $p = $profileId ? $q->whereKey($profileId)->first() : $q->orderByDesc('is_default')->orderBy('id')->first();
+
+        return $p ? $this->payload($p) : $this->defaults();
+    }
 
     public function save(int $userId, array $data, ?int $profileId = null): array
     {
-        $profile=$profileId?PriceListExportProfile::query()->where('user_id',$userId)->findOrFail($profileId):new PriceListExportProfile(['user_id'=>$userId]);
-        $order=$this->normalizeOrder((array)($data['column_order']??[])); $selected=array_values(array_intersect($order,(array)($data['selected_columns']??[]))); if($selected===[])$selected=$order;
-        $makeDefault=(bool)($data['is_default']??false); if(!$profile->exists&&!PriceListExportProfile::query()->where('user_id',$userId)->exists())$makeDefault=true; if($makeDefault)PriceListExportProfile::query()->where('user_id',$userId)->update(['is_default'=>false]);
-        $profile->forceFill(['user_id'=>$userId,'name'=>mb_substr(trim((string)($data['name']??'Cấu hình Bảng Giá'))?:'Cấu hình Bảng Giá',0,120),'is_default'=>$makeDefault||(bool)$profile->is_default,'column_order'=>$order,'column_groups'=>$this->normalizeGroups((array)($data['column_groups']??[])),'selected_columns'=>$selected,'headers'=>$this->normalizeMap((array)($data['headers']??[]),'label'),'alignments'=>$this->normalizeMap((array)($data['alignments']??[]),'align'),'widths'=>$this->normalizeWidths((array)($data['widths']??[])),'data_types'=>$this->normalizeMap((array)($data['data_types']??[]),'type'),'decimals'=>$this->normalizeDecimals((array)($data['decimals']??[])),'header_footer'=>array_replace(self::DEFAULT_HEADER_FOOTER,(array)($data['header_footer']??[])),'page_setup'=>array_replace(self::DEFAULT_PAGE_SETUP,(array)($data['page_setup']??[])),'logo_path'=>$data['logo_path']??$profile->logo_path,'signature_path'=>$data['signature_path']??$profile->signature_path])->save(); return $this->payload($profile->fresh());
+        $profile = $profileId ? PriceListExportProfile::query()->where('user_id', $userId)->findOrFail($profileId) : new PriceListExportProfile(['user_id' => $userId]);
+        $order = $this->normalizeOrder((array) ($data['column_order'] ?? []));
+        $selected = array_values(array_intersect($order, (array) ($data['selected_columns'] ?? [])));
+        if ($selected === []) {
+            $selected = $order;
+        }
+        $makeDefault = (bool) ($data['is_default'] ?? false);
+        if (! $profile->exists && ! PriceListExportProfile::query()->where('user_id', $userId)->exists()) {
+            $makeDefault = true;
+        } if ($makeDefault) {
+            PriceListExportProfile::query()->where('user_id', $userId)->update(['is_default' => false]);
+        }
+        $profile->forceFill(['user_id' => $userId, 'name' => mb_substr(trim((string) ($data['name'] ?? 'Cấu hình Bảng Giá')) ?: 'Cấu hình Bảng Giá', 0, 120), 'is_default' => $makeDefault || (bool) $profile->is_default, 'column_order' => $order, 'column_groups' => $this->normalizeGroups((array) ($data['column_groups'] ?? [])), 'selected_columns' => $selected, 'headers' => $this->normalizeMap((array) ($data['headers'] ?? []), 'label'), 'alignments' => $this->normalizeMap((array) ($data['alignments'] ?? []), 'align'), 'widths' => $this->normalizeWidths((array) ($data['widths'] ?? [])), 'data_types' => $this->normalizeMap((array) ($data['data_types'] ?? []), 'type'), 'decimals' => $this->normalizeDecimals((array) ($data['decimals'] ?? [])), 'header_footer' => array_replace(self::DEFAULT_HEADER_FOOTER, (array) ($data['header_footer'] ?? [])), 'page_setup' => array_replace(self::DEFAULT_PAGE_SETUP, (array) ($data['page_setup'] ?? [])), 'logo_path' => $data['logo_path'] ?? $profile->logo_path, 'signature_path' => $data['signature_path'] ?? $profile->signature_path])->save();
+
+        return $this->payload($profile->fresh());
     }
-    public function duplicate(int $userId,int $profileId):array{$s=PriceListExportProfile::query()->where('user_id',$userId)->findOrFail($profileId);$c=$s->replicate();$c->name=$this->uniqueName($userId,mb_substr($s->name.' - Bản sao',0,120));$c->is_default=false;$c->save();return $this->payload($c);}
-    public function delete(int $userId,int $profileId):void{$p=PriceListExportProfile::query()->where('user_id',$userId)->findOrFail($profileId);$d=$p->is_default;$p->delete();if($d)PriceListExportProfile::query()->where('user_id',$userId)->orderBy('id')->first()?->update(['is_default'=>true]);}
+
+    public function duplicate(int $userId, int $profileId): array
+    {
+        $s = PriceListExportProfile::query()->where('user_id', $userId)->findOrFail($profileId);
+        $c = $s->replicate();
+        $c->name = $this->uniqueName($userId, mb_substr($s->name.' - Bản sao', 0, 120));
+        $c->is_default = false;
+        $c->save();
+
+        return $this->payload($c);
+    }
+
+    public function delete(int $userId, int $profileId): void
+    {
+        $p = PriceListExportProfile::query()->where('user_id', $userId)->findOrFail($profileId);
+        $d = $p->is_default;
+        $p->delete();
+        if ($d) {
+            PriceListExportProfile::query()->where('user_id', $userId)->orderBy('id')->first()?->update(['is_default' => true]);
+        }
+    }
 
     public function exportPayload(int $userId, ?int $profileId): array
     {
-        $p=$this->forUser($userId,$profileId); unset($p['profile_id'],$p['is_default'],$p['logo_path'],$p['signature_path']);
-        return ['schema'=>self::EXPORT_SCHEMA,'exported_at'=>now()->toIso8601String(),'profile'=>$p];
+        $p = $this->forUser($userId, $profileId);
+        unset($p['profile_id'],$p['is_default'],$p['logo_path'],$p['signature_path']);
+
+        return ['schema' => self::EXPORT_SCHEMA, 'exported_at' => now()->toIso8601String(), 'profile' => $p];
     }
-    public function importPayload(int $userId,array $payload):array
+
+    public function importPayload(int $userId, array $payload): array
     {
-        if(($payload['schema']??null)!==self::EXPORT_SCHEMA||!is_array($payload['profile']??null))throw new InvalidArgumentException('File không đúng định dạng cấu hình Pharma Price List v1.');
-        $p=$payload['profile'];
-        $baseName=mb_substr(trim((string)($p['profile_name']??'Cấu hình import')).' - Import',0,120);
-        return $this->save($userId,['name'=>$this->uniqueName($userId,$baseName),'is_default'=>false,'column_order'=>(array)($p['column_order']??[]),'column_groups'=>(array)($p['column_groups']??[]),'selected_columns'=>(array)($p['selected_columns']??[]),'headers'=>(array)($p['headers']??[]),'alignments'=>(array)($p['alignments']??[]),'widths'=>(array)($p['widths']??[]),'data_types'=>(array)($p['data_types']??[]),'decimals'=>(array)($p['decimals']??[]),'header_footer'=>(array)($p['header_footer']??[]),'page_setup'=>(array)($p['page_setup']??[])],null);
+        if (($payload['schema'] ?? null) !== self::EXPORT_SCHEMA || ! is_array($payload['profile'] ?? null)) {
+            throw new InvalidArgumentException('File không đúng định dạng cấu hình Pharma Price List v1.');
+        }
+        $p = $payload['profile'];
+        $baseName = mb_substr(trim((string) ($p['profile_name'] ?? 'Cấu hình import')).' - Import', 0, 120);
+
+        return $this->save($userId, ['name' => $this->uniqueName($userId, $baseName), 'is_default' => false, 'column_order' => (array) ($p['column_order'] ?? []), 'column_groups' => (array) ($p['column_groups'] ?? []), 'selected_columns' => (array) ($p['selected_columns'] ?? []), 'headers' => (array) ($p['headers'] ?? []), 'alignments' => (array) ($p['alignments'] ?? []), 'widths' => (array) ($p['widths'] ?? []), 'data_types' => (array) ($p['data_types'] ?? []), 'decimals' => (array) ($p['decimals'] ?? []), 'header_footer' => (array) ($p['header_footer'] ?? []), 'page_setup' => (array) ($p['page_setup'] ?? [])], null);
     }
-    public function defaults():array{$k=array_keys(self::COLUMNS);return['profile_id'=>null,'profile_name'=>'Mặc định','is_default'=>false,'column_order'=>$k,'column_groups'=>$this->normalizeGroups([]),'selected_columns'=>self::DEFAULT_SELECTED,'headers'=>$this->normalizeMap([],'label'),'alignments'=>$this->normalizeMap([],'align'),'widths'=>$this->normalizeWidths([]),'data_types'=>$this->normalizeMap([],'type'),'decimals'=>$this->normalizeDecimals([]),'header_footer'=>self::DEFAULT_HEADER_FOOTER,'page_setup'=>self::DEFAULT_PAGE_SETUP,'logo_path'=>null,'signature_path'=>null];}
-    private function payload(PriceListExportProfile $p):array{return['profile_id'=>(int)$p->id,'profile_name'=>$p->name,'is_default'=>(bool)$p->is_default,'column_order'=>$this->normalizeOrder((array)$p->column_order),'column_groups'=>$this->normalizeGroups((array)$p->column_groups),'selected_columns'=>array_values(array_intersect(array_keys(self::COLUMNS),(array)$p->selected_columns)),'headers'=>$this->normalizeMap((array)$p->headers,'label'),'alignments'=>$this->normalizeMap((array)$p->alignments,'align'),'widths'=>$this->normalizeWidths((array)$p->widths),'data_types'=>$this->normalizeMap((array)$p->data_types,'type'),'decimals'=>$this->normalizeDecimals((array)$p->decimals),'header_footer'=>array_replace(self::DEFAULT_HEADER_FOOTER,(array)$p->header_footer),'page_setup'=>array_replace(self::DEFAULT_PAGE_SETUP,(array)$p->page_setup),'logo_path'=>$p->logo_path,'signature_path'=>$p->signature_path];}
-    private function uniqueName(int $userId,string $base):string{$base=mb_substr(trim($base)?:'Cấu hình',0,120);$name=$base;$i=2;while(PriceListExportProfile::query()->where('user_id',$userId)->where('name',$name)->exists()){$suffix=' ('.$i++.')';$name=mb_substr($base,0,120-mb_strlen($suffix)).$suffix;}return$name;}
-    private function normalizeOrder(array $o):array{$v=array_values(array_unique(array_filter($o,fn($k)=>is_string($k)&&isset(self::COLUMNS[$k]))));foreach(array_keys(self::COLUMNS)as$k)if(!in_array($k,$v,true))$v[]=$k;return$v;}
-    private function normalizeGroups(array $v):array{$o=[];foreach(self::COLUMNS as$k=>$c){$group=(string)($v[$k]??$c['group']);$o[$k]=isset(self::GROUPS[$group])?$group:$c['group'];}return$o;}
-    private function normalizeMap(array $v,string $d):array{$o=[];foreach(self::COLUMNS as$k=>$c)$o[$k]=trim((string)($v[$k]??$c[$d]))?:$c[$d];return$o;}
-    private function normalizeWidths(array $v):array{$o=[];foreach(self::COLUMNS as$k=>$c)$o[$k]=max(40,min(600,(int)($v[$k]??$c['width'])));return$o;}
-    private function normalizeDecimals(array $v):array{$o=[];foreach(self::COLUMNS as$k=>$c)$o[$k]=max(0,min(6,(int)($v[$k]??0)));return$o;}
+
+    public function defaults(): array
+    {
+        $k = array_keys(self::COLUMNS);
+
+        return ['profile_id' => null, 'profile_name' => 'Mặc định', 'is_default' => false, 'column_order' => $k, 'column_groups' => $this->normalizeGroups([]), 'selected_columns' => self::DEFAULT_SELECTED, 'headers' => $this->normalizeMap([], 'label'), 'alignments' => $this->normalizeMap([], 'align'), 'widths' => $this->normalizeWidths([]), 'data_types' => $this->normalizeMap([], 'type'), 'decimals' => $this->normalizeDecimals([]), 'header_footer' => self::DEFAULT_HEADER_FOOTER, 'page_setup' => self::DEFAULT_PAGE_SETUP, 'logo_path' => null, 'signature_path' => null];
+    }
+
+    private function payload(PriceListExportProfile $p): array
+    {
+        return ['profile_id' => (int) $p->id, 'profile_name' => $p->name, 'is_default' => (bool) $p->is_default, 'column_order' => $this->normalizeOrder((array) $p->column_order), 'column_groups' => $this->normalizeGroups((array) $p->column_groups), 'selected_columns' => array_values(array_intersect(array_keys(self::COLUMNS), (array) $p->selected_columns)), 'headers' => $this->normalizeMap((array) $p->headers, 'label'), 'alignments' => $this->normalizeMap((array) $p->alignments, 'align'), 'widths' => $this->normalizeWidths((array) $p->widths), 'data_types' => $this->normalizeMap((array) $p->data_types, 'type'), 'decimals' => $this->normalizeDecimals((array) $p->decimals), 'header_footer' => array_replace(self::DEFAULT_HEADER_FOOTER, (array) $p->header_footer), 'page_setup' => array_replace(self::DEFAULT_PAGE_SETUP, (array) $p->page_setup), 'logo_path' => $p->logo_path, 'signature_path' => $p->signature_path];
+    }
+
+    private function uniqueName(int $userId, string $base): string
+    {
+        $base = mb_substr(trim($base) ?: 'Cấu hình', 0, 120);
+        $name = $base;
+        $i = 2;
+        while (PriceListExportProfile::query()->where('user_id', $userId)->where('name', $name)->exists()) {
+            $suffix = ' ('.$i++.')';
+            $name = mb_substr($base, 0, 120 - mb_strlen($suffix)).$suffix;
+        }
+
+return $name;
+    }
+
+    private function normalizeOrder(array $o): array
+    {
+        $v = array_values(array_unique(array_filter($o, fn ($k) => is_string($k) && isset(self::COLUMNS[$k]))));
+        foreach (array_keys(self::COLUMNS) as $k) {
+            if (! in_array($k, $v, true)) {
+                $v[] = $k;
+            }
+        }
+
+return $v;
+    }
+
+    private function normalizeGroups(array $v): array
+    {
+        $o = [];
+        foreach (self::COLUMNS as $k => $c) {
+            $group = (string) ($v[$k] ?? $c['group']);
+            $o[$k] = isset(self::GROUPS[$group]) ? $group : $c['group'];
+        }
+
+return $o;
+    }
+
+    private function normalizeMap(array $v, string $d): array
+    {
+        $o = [];
+        foreach (self::COLUMNS as $k => $c) {
+            $o[$k] = trim((string) ($v[$k] ?? $c[$d])) ?: $c[$d];
+        }
+
+return $o;
+    }
+
+    private function normalizeWidths(array $v): array
+    {
+        $o = [];
+        foreach (self::COLUMNS as $k => $c) {
+            $o[$k] = max(40, min(600, (int) ($v[$k] ?? $c['width'])));
+        }
+
+return $o;
+    }
+
+    private function normalizeDecimals(array $v): array
+    {
+        $o = [];
+        foreach (self::COLUMNS as $k => $c) {
+            $o[$k] = max(0,min(6,(int) ($v[$k] ?? 0)));
+        }
+
+return $o;
+    }
 }

@@ -14,7 +14,7 @@ class PriceListExportProfileRuntimeRegressionContractTest extends TestCase
         $this->assertStringContainsString($this->compact("where('user_id',\$userId)->where('name',\$name)->exists()"), $service);
         $this->assertStringContainsString($this->compact("\$suffix=' ('.\$i++.')'"), $service);
         $this->assertStringContainsString($this->compact("'name'=>\$this->uniqueName(\$userId,\$baseName)"), $service);
-        $this->assertStringContainsString($this->compact("\$c->name=\$this->uniqueName"), $service);
+        $this->assertStringContainsString($this->compact('$c->name=$this->uniqueName'), $service);
     }
 
     public function test_confirmed_profile_delete_uses_collision_free_captured_profile_id(): void
@@ -24,9 +24,9 @@ class PriceListExportProfileRuntimeRegressionContractTest extends TestCase
         $this->assertStringContainsString('publicfunctionrequestDeleteProfile():void', $component);
         $this->assertStringContainsString("\$this->openConfirmation('Xóaprofile?','delete-profile',(string)\$this->profileId);", $component);
         $this->assertStringContainsString('publicfunctionexecuteConfirmedAction():void', $component);
-        $this->assertStringContainsString($this->compact("\$action=\$this->pendingConfirmAction;\$value=\$this->pendingConfirmValue;"), $component);
+        $this->assertStringContainsString($this->compact('$action=$this->pendingConfirmAction;$value=$this->pendingConfirmValue;'), $component);
         $this->assertStringContainsString($this->compact("if(\$action==='delete-profile'&&\$value!=='')"), $component);
-        $this->assertStringContainsString($this->compact("\$profileId=(int)\$value;"), $component);
+        $this->assertStringContainsString($this->compact('$profileId=(int)$value;'), $component);
         $this->assertStringContainsString($this->compact("->delete((int)auth('admin')->id(),\$profileId)"), $component);
     }
 
@@ -36,9 +36,9 @@ class PriceListExportProfileRuntimeRegressionContractTest extends TestCase
 
         $this->assertStringContainsString('publicfunctionrequestDeleteJson(string$name):void', $component);
         $this->assertStringContainsString("\$this->openConfirmation('XóafileJSON?','delete-json',\$name);", $component);
-        $this->assertStringContainsString($this->compact("\$action=\$this->pendingConfirmAction;\$value=\$this->pendingConfirmValue;"), $component);
+        $this->assertStringContainsString($this->compact('$action=$this->pendingConfirmAction;$value=$this->pendingConfirmValue;'), $component);
         $this->assertStringContainsString($this->compact("if(\$action==='delete-json'&&\$value!=='')"), $component);
-        $this->assertStringContainsString($this->compact("\$jsonName=\$value;"), $component);
+        $this->assertStringContainsString($this->compact('$jsonName=$value;'), $component);
         $this->assertStringContainsString($this->compact("->delete((int)auth('admin')->id(),\$jsonName)"), $component);
     }
 

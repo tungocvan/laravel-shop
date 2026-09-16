@@ -35,8 +35,8 @@ class PriceListExcelJsonMediaRoundTripContractTest extends TestCase
     {
         $model = file_get_contents(base_path('Modules/Pharma/Models/PriceListExportProfile.php'));
 
-        $this->assertStringContainsString("=== \$title", $model);
-        $this->assertStringContainsString("=== \$name", $model);
+        $this->assertStringContainsString('=== $title', $model);
+        $this->assertStringContainsString('=== $name', $model);
         $this->assertStringNotContainsString("latest('id')->value('signature_path')", $model);
     }
 }

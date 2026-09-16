@@ -57,8 +57,8 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
         $this->assertStringContainsString($this->compact('public array $columnDraft=[];'), $compact);
         $this->assertStringContainsString('function loadColumnDraft', $component);
         $this->assertStringContainsString('function commitColumnDraft', $component);
-        $this->assertStringContainsString($this->compact("\$key!==\$this->activeColumnKey"), $compact);
-        foreach (["\$this->widths[\$key]=", "\$this->headers[\$key]=", "\$this->alignments[\$key]=", "\$this->dataTypes[\$key]=", "\$this->decimals[\$key]="] as $assignment) {
+        $this->assertStringContainsString($this->compact('$key!==$this->activeColumnKey'), $compact);
+        foreach (['$this->widths[$key]=', '$this->headers[$key]=', '$this->alignments[$key]=', '$this->dataTypes[$key]=', '$this->decimals[$key]='] as $assignment) {
             $this->assertStringContainsString($this->compact($assignment), $compact);
         }
         foreach (['wire:key="inspector-{{ $activeColumnKey }}"', 'wire:model="columnDraft.width"', 'wire:model="columnDraft.header"', 'wire:model="columnDraft.alignment"', 'wire:model="columnDraft.data_type"', 'wire:model="columnDraft.decimals"'] as $binding) {
