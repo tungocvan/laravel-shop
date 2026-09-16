@@ -35,11 +35,20 @@ class PriceListExcelMediaSizingContractTest extends TestCase
 
     public function test_dimension_validation_matches_excel_layout_limits(): void
     {
-        $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $component = $this->compact(file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php')));
 
-        $this->assertStringContainsString("'headerFooter.logo_width_cm'=>'nullable|numeric|min:1|max:12'", $component);
-        $this->assertStringContainsString("'headerFooter.logo_height_cm'=>'nullable|numeric|min:1|max:8'", $component);
-        $this->assertStringContainsString("'headerFooter.signature_width_cm'=>'nullable|numeric|min:1|max:12'", $component);
-        $this->assertStringContainsString("'headerFooter.signature_height_cm'=>'nullable|numeric|min:1|max:8'", $component);
+        foreach ([
+            "'headerFooter.logo_width_cm'=>'nullable|numeric|min:1|max:12'",
+            "'headerFooter.logo_height_cm'=>'nullable|numeric|min:1|max:8'",
+            "'headerFooter.signature_width_cm'=>'nullable|numeric|min:1|max:12'",
+            "'headerFooter.signature_height_cm'=>'nullable|numeric|min:1|max:8'",
+        ] as $rule) {
+            $this->assertStringContainsString($this->compact($rule), $component);
+        }
+    }
+
+    private function compact(string $source): string
+    {
+        return preg_replace('/\s+/', '', $source) ?? $source;
     }
 }
