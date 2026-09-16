@@ -43,39 +43,30 @@ class ExportConfigurator extends Component
     public function selectGroup(string $group, bool $selected = true): void
     {
         foreach ($this->columnOrder as $key) {
-            if (($this->columnGroupsMap[$key] ?? PriceListExportProfileService::COLUMNS[$key]['group'] ?? null) === $group) $this->selectedColumns[$key] = $selected;
+            if ((PriceListExportProfileService::COLUMNS[$key]['group'] ?? null) === $group) $this->selectedColumns[$key] = $selected;
         }
     }
 
-    public function reorderColumns(array $orderedKeys): void
+    public function setColumnPosition(string $key, int $position): void
     {
-        $known = array_keys(PriceListExportProfileService::COLUMNS);
-        $ordered = array_values(array_unique(array_filter($orderedKeys, fn ($key) => is_string($key) && in_array($key, $known, true))));
-        foreach ($this->columnOrder as $key) if (! in_array($key, $ordered, true)) $ordered[] = $key;
-        $this->columnOrder = $ordered;
-    }
+        if (! isset(PriceListExportProfileService::COLUMNS[$key])) return;
 
-    public function moveColumnToGroup(string $key, string $group, ?string $beforeKey = null): void
-    {
-        if (! isset(PriceListExportProfileService::COLUMNS[$key]) || ! isset(PriceListExportProfileService::GROUPS[$group])) return;
-        $this->columnGroupsMap[$key] = $group;
         $order = array_values(array_filter($this->columnOrder, fn ($columnKey) => $columnKey !== $key));
-        $targetIndex = $beforeKey ? array_search($beforeKey, $order, true) : false;
-        if ($targetIndex === false) {
-            $groupKeys = array_values(array_filter($order, fn ($columnKey) => ($this->columnGroupsMap[$columnKey] ?? PriceListExportProfileService::COLUMNS[$columnKey]['group'] ?? 'general') === $group));
-            if ($groupKeys === []) $order[] = $key;
-            else { $lastGroupKey = end($groupKeys); $lastIndex = array_search($lastGroupKey, $order, true); array_splice($order, $lastIndex + 1, 0, [$key]); }
-        } else array_splice($order, $targetIndex, 0, [$key]);
+        $position = max(1, min(count($order) + 1, $position));
+        array_splice($order, $position - 1, 0, [$key]);
         $this->columnOrder = $order;
         $this->activeColumnKey = $key;
     }
 
-    public function resetColumnGroup(string $key): void
+    public function resetColumn(string $key): void
     {
         if (! isset(PriceListExportProfileService::COLUMNS[$key])) return;
 
         $definition = PriceListExportProfileService::COLUMNS[$key];
-        $this->moveColumnToGroup($key, $definition['group']);
+        $canonicalOrder = array_keys(PriceListExportProfileService::COLUMNS);
+        $canonicalIndex = array_search($key, $canonicalOrder, true);
+        $this->setColumnPosition($key, $canonicalIndex === false ? count($this->columnOrder) : $canonicalIndex + 1);
+        $this->columnGroupsMap[$key] = $definition['group'];
         $this->headers[$key] = $definition['label'];
         $this->alignments[$key] = $definition['align'];
         $this->widths[$key] = $definition['width'];
@@ -83,6 +74,9 @@ class ExportConfigurator extends Component
         $this->decimals[$key] = 0;
         $this->selectedColumns[$key] = in_array($key, PriceListExportProfileService::DEFAULT_SELECTED, true);
     }
+
+    /** @deprecated Kept for old Livewire/browser payloads during the profile transition. */
+    public function resetColumnGroup(string $key): void { $this->resetColumn($key); }
 
     public function duplicate(): void { if (! $this->profileId) return; $this->apply(app(PriceListExportProfileService::class)->duplicate((int) auth('admin')->id(), $this->profileId)); $this->refreshProfiles(); }
     public function delete(): void { if (! $this->profileId) return; app(PriceListExportProfileService::class)->delete((int) auth('admin')->id(), $this->profileId); $this->profileId = null; $this->refreshProfiles(); $this->loadProfile(); }
@@ -93,7 +87,8 @@ class ExportConfigurator extends Component
         $selected=collect($this->selectedColumns)->filter(fn($v)=>(bool)$v)->keys()->all(); if($selected===[]){$this->addError('columns','Chọn ít nhất một cột để xuất.');$this->activeSection='columns';return;}
         $newLogo=$this->logoUpload?$this->storeMedia($this->logoUpload,'logo'):($this->removeLogoRequested?null:$this->logoPath);
         $newSignature=$this->signatureUpload?$this->storeMedia($this->signatureUpload,'signature'):($this->removeSignatureRequested?null:$this->signaturePath);
-        $saved=app(PriceListExportProfileService::class)->save((int)auth('admin')->id(),['name'=>$this->profileName,'is_default'=>$this->isDefault,'column_order'=>$this->columnOrder,'column_groups'=>$this->columnGroupsMap,'selected_columns'=>$selected,'headers'=>$this->headers,'alignments'=>$this->alignments,'widths'=>$this->widths,'data_types'=>$this->dataTypes,'decimals'=>$this->decimals,'header_footer'=>$this->headerFooter,'page_setup'=>$this->pageSetup,'logo_path'=>$newLogo,'signature_path'=>$newSignature],$this->profileId);
+        $canonicalGroups=[];foreach(array_keys(PriceListExportProfileService::COLUMNS) as$key)$canonicalGroups[$key]=PriceListExportProfileService::COLUMNS[$key]['group'];
+        $saved=app(PriceListExportProfileService::class)->save((int)auth('admin')->id(),['name'=>$this->profileName,'is_default'=>$this->isDefault,'column_order'=>$this->columnOrder,'column_groups'=>$canonicalGroups,'selected_columns'=>$selected,'headers'=>$this->headers,'alignments'=>$this->alignments,'widths'=>$this->widths,'data_types'=>$this->dataTypes,'decimals'=>$this->decimals,'header_footer'=>$this->headerFooter,'page_setup'=>$this->pageSetup,'logo_path'=>$newLogo,'signature_path'=>$newSignature],$this->profileId);
         if($this->originalLogoPath&&$this->originalLogoPath!==$saved['logo_path'])$this->deleteMedia($this->originalLogoPath);
         if($this->originalSignaturePath&&$this->originalSignaturePath!==$saved['signature_path'])$this->deleteMedia($this->originalSignaturePath);
         $this->apply($saved);$this->refreshProfiles();$this->reset(['logoUpload','signatureUpload']);$this->dispatch('pharma-price-list-export-profile-saved',profileId:$this->profileId);session()->flash('export-config-success','Đã lưu cấu hình xuất Excel.');
@@ -106,6 +101,6 @@ class ExportConfigurator extends Component
     private function deleteMedia(?string $path):void{if($path)Storage::disk('public')->delete($path);}
     private function refreshProfiles():void{$this->profiles=app(PriceListExportProfileService::class)->profilesForUser((int)auth('admin')->id());}
     private function loadProfile():void{$this->apply(app(PriceListExportProfileService::class)->forUser((int)auth('admin')->id(),$this->profileId));}
-    private function apply(array $p):void{$this->profileId=$p['profile_id'];$this->profileName=$p['profile_name'];$this->isDefault=$p['is_default'];$this->columnOrder=$p['column_order'];$this->columnGroupsMap=$p['column_groups'];$lookup=array_fill_keys($p['selected_columns'],true);$this->selectedColumns=[];foreach($this->columnOrder as$k)$this->selectedColumns[$k]=isset($lookup[$k]);$this->headers=$p['headers'];$this->alignments=$p['alignments'];$this->widths=$p['widths'];$this->dataTypes=$p['data_types'];$this->decimals=$p['decimals'];$this->headerFooter=$p['header_footer'];$this->pageSetup=$p['page_setup'];$this->logoPath=$p['logo_path'];$this->signaturePath=$p['signature_path'];$this->originalLogoPath=$this->logoPath;$this->originalSignaturePath=$this->signaturePath;$this->removeLogoRequested=false;$this->removeSignatureRequested=false;$this->activeColumnKey=$this->activeColumnKey&&isset(PriceListExportProfileService::COLUMNS[$this->activeColumnKey])?$this->activeColumnKey:($this->columnOrder[0]??null);}
+    private function apply(array $p):void{$this->profileId=$p['profile_id'];$this->profileName=$p['profile_name'];$this->isDefault=$p['is_default'];$this->columnOrder=$p['column_order'];$this->columnGroupsMap=[];foreach(array_keys(PriceListExportProfileService::COLUMNS)as$k)$this->columnGroupsMap[$k]=PriceListExportProfileService::COLUMNS[$k]['group'];$lookup=array_fill_keys($p['selected_columns'],true);$this->selectedColumns=[];foreach($this->columnOrder as$k)$this->selectedColumns[$k]=isset($lookup[$k]);$this->headers=$p['headers'];$this->alignments=$p['alignments'];$this->widths=$p['widths'];$this->dataTypes=$p['data_types'];$this->decimals=$p['decimals'];$this->headerFooter=$p['header_footer'];$this->pageSetup=$p['page_setup'];$this->logoPath=$p['logo_path'];$this->signaturePath=$p['signature_path'];$this->originalLogoPath=$this->logoPath;$this->originalSignaturePath=$this->signaturePath;$this->removeLogoRequested=false;$this->removeSignatureRequested=false;$this->activeColumnKey=$this->activeColumnKey&&isset(PriceListExportProfileService::COLUMNS[$this->activeColumnKey])?$this->activeColumnKey:($this->columnOrder[0]??null);}
     public function render():View{return view('Pharma::livewire.price-list.export-configurator',['columnDefinitions'=>PriceListExportProfileService::COLUMNS,'columnGroups'=>PriceListExportProfileService::GROUPS]);}
 }
