@@ -21,7 +21,14 @@ class PriceListExcelMediaSizingContractTest extends TestCase
             $this->assertStringContainsString($default, $component);
         }
 
-        $this->assertStringContainsString('Giữa 5 cột cuối', $panel);
+        $this->assertStringContainsString('data-pharma-media-sizing="logo"', $panel);
+        $this->assertStringContainsString('data-pharma-media-sizing="signature"', $panel);
+        $this->assertStringContainsString("p.textContent.trim()==='Logo công ty'", $panel);
+        $this->assertStringContainsString("p.textContent.trim()==='Ảnh chữ ký'", $panel);
+        $this->assertStringContainsString('target.appendChild($el)', $panel);
+        $this->assertStringContainsString('giữa 5 cột cuối', $panel);
+        $this->assertStringNotContainsString('fixed bottom-20', $panel);
+        $this->assertStringNotContainsString('shadow-2xl', $panel);
         $this->assertStringContainsString('export-media-dimensions', $wrapper);
         $this->assertStringContainsString('export-configurator-v32', $component);
     }
