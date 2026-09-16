@@ -48,30 +48,36 @@ class PriceListExportProfileV2ContractTest extends TestCase
     }
 
     #[Test]
-    public function column_designer_keeps_canonical_groups_and_uses_explicit_excel_positions(): void
+    public function column_designer_uses_data_library_export_order_and_live_preview(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
         $compact = str_replace(' ', '', $component);
 
-        $this->assertStringContainsString('public function setColumnPosition(string $key, int $position)', $component);
-        $this->assertStringContainsString('public function resetColumn(string $key)', $component);
-        $this->assertStringContainsString("PriceListExportProfileService::COLUMNS[\$key]['group']", $component);
+        $this->assertStringContainsString('public function addColumn(string $key)', $component);
+        $this->assertStringContainsString('public function removeColumn(string $key)', $component);
+        $this->assertStringContainsString('public function moveColumn(string $key, int $offset)', $component);
+        $this->assertStringContainsString('public function resetSelectedOrder(): void', $component);
+        $this->assertStringContainsString('private function replaceSelectedOrder(array $selected): void', $component);
         $this->assertStringContainsString("'column_order'=>\$this->columnOrder", $compact);
         $this->assertStringContainsString("'column_groups'=>\$canonicalGroups", $compact);
-        $this->assertStringContainsString('Danh sách cột theo nhóm chuẩn', $view);
-        $this->assertStringContainsString('Fixed Data Groups', $view);
-        $this->assertStringContainsString('Vị trí trên Excel', $view);
-        $this->assertStringContainsString("setColumnPosition('{{ \$activeColumnKey }}',\$event.target.value)", $view);
-        $this->assertStringContainsString('A, B, C…', $view);
-        $this->assertStringContainsString('Khôi phục cột mặc định', $view);
-        $this->assertStringContainsString('wire:key="column-row-{{ $key }}"', $view);
+
+        $this->assertStringContainsString('1. Kho dữ liệu', $view);
+        $this->assertStringContainsString('2. Cột sẽ xuất Excel', $view);
+        $this->assertStringContainsString('3. Xem trước header Excel', $view);
+        $this->assertStringContainsString('A/B/C ở đây chính là vị trí thật trong file.', $view);
+        $this->assertStringContainsString("wire:click=\"addColumn('{{ \$key }}')\"", $view);
+        $this->assertStringContainsString("wire:click=\"removeColumn('{{ \$key }}')\"", $view);
+        $this->assertStringContainsString("wire:click=\"moveColumn('{{ \$key }}',-1)\"", $view);
+        $this->assertStringContainsString("wire:click=\"moveColumn('{{ \$key }}',1)\"", $view);
+        $this->assertStringContainsString('wire:click="resetSelectedOrder"', $view);
+        $this->assertStringContainsString('wire:key="export-column-{{ $key }}"', $view);
         $this->assertStringContainsString('wire:key="column-inspector-{{ $activeColumnKey }}"', $view);
-        $this->assertStringContainsString('wire:key="column-position-{{ $activeColumnKey }}"', $view);
         $this->assertStringContainsString('wire:key="column-header-{{ $activeColumnKey }}"', $view);
+        $this->assertStringContainsString('wire:model.live.debounce.300ms="headers.{{ $activeColumnKey }}"', $view);
+        $this->assertStringNotContainsString('Vị trí trên Excel<select', $view);
         $this->assertStringNotContainsString('Cross-group Drag & Drop', $view);
         $this->assertStringNotContainsString('draggable="true"', $view);
-        $this->assertStringNotContainsString('moveColumnToGroup(', $component);
     }
 
     #[Test]
