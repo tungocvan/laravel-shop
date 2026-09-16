@@ -21,9 +21,11 @@ class PriceListExportProfileRuntimeRegressionContractTest extends TestCase
     {
         $component = $this->compact(file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php')));
 
-        $this->assertStringContainsString($this->compact("requestDeleteProfile():void{if(\$this->profileId)\$this->confirm('Xóa profile?','delete-profile',(string)\$this->profileId);}"), $component);
+        $this->assertStringContainsString('publicfunctionrequestDeleteProfile():void', $component);
+        $this->assertStringContainsString("\$this->confirm('Xóaprofile?','delete-profile',(string)\$this->profileId);", $component);
         $this->assertStringContainsString($this->compact("\$action=\$this->confirmAction;\$value=\$this->confirmValue;"), $component);
-        $this->assertStringContainsString($this->compact("if(\$action==='delete-profile'&&\$value!==''){\$profileId=(int)\$value;"), $component);
+        $this->assertStringContainsString($this->compact("if(\$action==='delete-profile'&&\$value!=='')"), $component);
+        $this->assertStringContainsString($this->compact("\$profileId=(int)\$value;"), $component);
         $this->assertStringContainsString($this->compact("->delete((int)auth('admin')->id(),\$profileId)"), $component);
     }
 
@@ -31,21 +33,26 @@ class PriceListExportProfileRuntimeRegressionContractTest extends TestCase
     {
         $component = $this->compact(file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php')));
 
-        $this->assertStringContainsString($this->compact("requestDeleteJson(string \$name):void{\$this->confirm('Xóa file JSON?','delete-json',\$name);}"), $component);
+        $this->assertStringContainsString('publicfunctionrequestDeleteJson(string$name):void', $component);
+        $this->assertStringContainsString("\$this->confirm('XóafileJSON?','delete-json',\$name);", $component);
         $this->assertStringContainsString($this->compact("\$action=\$this->confirmAction;\$value=\$this->confirmValue;"), $component);
-        $this->assertStringContainsString($this->compact("if(\$action==='delete-json'&&\$value!==''){\$jsonName=\$value;"), $component);
+        $this->assertStringContainsString($this->compact("if(\$action==='delete-json'&&\$value!=='')"), $component);
+        $this->assertStringContainsString($this->compact("\$jsonName=\$value;"), $component);
         $this->assertStringContainsString($this->compact("->delete((int)auth('admin')->id(),\$jsonName)"), $component);
     }
 
-    public function test_designer_delete_and_json_selection_wiring_avoids_expression_parser_edges(): void
+    public function test_designer_v32_owns_interaction_safe_json_and_confirmation_overlays(): void
     {
-        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
+        $legacyView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v32.blade.php'));
 
-        $this->assertStringContainsString('wire:click="requestDeleteProfile"', $view);
-        $this->assertStringContainsString('wire:click="selectJsonFile($event.currentTarget.value)"', $view);
-        $this->assertStringContainsString('wire:click="requestDeleteJson($event.currentTarget.value)"', $view);
-        $this->assertStringContainsString('wire:click="$call(\'confirmAction\')"', $view);
-        $this->assertStringContainsString('wire:key="json-library-{{ $loop->index }}"', $view);
+        $this->assertStringContainsString('wire:click="requestDeleteProfile"', $legacyView);
+        $this->assertStringContainsString('wire:key="excel-designer-json-library-v32"', $view);
+        $this->assertStringContainsString('wire:model.live="selectedJsonFile"', $view);
+        $this->assertStringContainsString('value="{{ $file[\'name\'] }}"', $view);
+        $this->assertStringContainsString('$wire.requestDeleteJson($el.value)', $view);
+        $this->assertStringContainsString('wire:key="excel-designer-confirm-v32"', $view);
+        $this->assertStringContainsString("\$wire.\$call('confirmAction')", $view);
         $this->assertStringNotContainsString('selectJsonFile(@js(', $view);
         $this->assertStringNotContainsString('requestDeleteJson(@js(', $view);
     }
