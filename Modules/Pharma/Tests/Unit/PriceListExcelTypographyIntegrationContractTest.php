@@ -10,7 +10,7 @@ class PriceListExcelTypographyIntegrationContractTest extends TestCase
     #[Test]
     public function export_designer_exposes_product_font_size_from_ten_to_thirteen(): void
     {
-        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
 
         $this->assertStringContainsString('Excel Typography', $view);
         $this->assertStringContainsString('Times New Roman', $view);
