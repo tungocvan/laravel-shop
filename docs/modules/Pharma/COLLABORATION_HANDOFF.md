@@ -1,141 +1,131 @@
 # Pharma Collaboration Handoff
 
-## Current checkpoint — Canonical Medicine Catalog + Price List v2
+## Current checkpoint — Price List v2 + Excel Designer v3.2 accepted
 
 - Module: `Pharma`
-- Objective: **Canonical Medicine Master / SKU / Package + database-backed Price List v2**
-- Implementation branch: `feat/pharma-canonical-medicine-catalog`
-- Status: **IMPLEMENTATION COMPLETE / UI PASS — ready for final branch sync and merge preparation**
-- Date: 2026-09-15
+- Implementation branch: `feat/pharma-price-list-bid-ui-professional`
+- Parent implementation branch: `feat/pharma-drug-bid-intelligence`
+- Status: **IMPLEMENTATION COMPLETE — TEST PASS + UI PASS + PINT PASS — READY FOR PR/MERGE**
+- Date: 2026-09-16
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - UI standard: `.codex/standards/ADMIN_UI_STANDARD.md`
-- Consolidation: keep the current implementation branch and merge the completed phases together.
+- Reusable Excel standard: `.codex/standards/EXCEL_EXPORT_CONFIGURATION_STANDARD.md`
 
-## Canonical Medicine Master
+## Scope accepted
 
-The Pharma product identity is now explicitly modeled as:
+This branch completes the professional database-backed Pharma Price List workflow and the reusable Excel Designer reference implementation. The canonical product identity remains `Medicine -> MedicineVariant / SKU -> MedicinePackage`; Price List must use deterministic variant/package identity and must not silently merge ambiguous medicine identities.
 
-`Medicine -> MedicineVariant / SKU -> MedicinePackage`.
+Price List resolver precedence remains:
 
-Price List and future downstream consumers must use exact variant/SKU/package identity rather than medicine name alone. Canonical identity, aliasing and normalization remain deterministic; ambiguous records must not be silently merged.
+1. applicable ACTIVE Customer price;
+2. applicable ACTIVE Global price;
+3. otherwise `NO_PRICE` / null.
 
-Medicine Master is the sole product source for Price List v2. The legacy `storage/app/excel/BANG_GIA_TONG_HOP.xlsx` is not a Price List runtime dependency.
+Bid prices are reference evidence only. They must never become a commercial-price fallback or silently mutate `company_sale_price`, `actual_receivable_price` or `invoice_price`.
 
-## Price List v2 persistence and commercial contract
+## Price List v2 invariants
 
-Price List v2 is database-backed through:
+Price List v2 is database-backed through `pharma_price_lists`, `pharma_price_list_items`, reusable purposes and bid-evidence persistence. List types are `global` and `customer`; statuses are `draft`, `active`, `inactive`, `archived`.
 
-- `pharma_price_lists`;
-- `pharma_price_list_items`;
-- reusable `pharma_price_list_purposes`.
+Customer lists use Partner as the canonical customer master and may retain `manager_user_id`, `purpose_id` and `source_price_list_id`. Customer creation can initialize from an ACTIVE Global list.
 
-List types are `global` and `customer`; statuses are `draft`, `active`, `inactive`, `archived`.
+After a Customer Draft is saved, persisted `pharma_price_list_items` are authoritative. The Global source becomes traceability/reference only. Edit must not silently re-add products the operator previously excluded.
 
-Customer lists reference an active Partner classified as customer and can retain:
+Commercial UX accepted:
 
-- `manager_user_id` — responsible user;
-- `purpose_id` — reusable business purpose;
-- `source_price_list_id` — Global source traceability.
+- company sale defaults from declared price;
+- declared-price discount percentage applies to actual receivable price;
+- Customer links to `/admin/partners`;
+- save uses success feedback and returns through the Price List route;
+- Price List delete is available with explicit confirmation;
+- bid intelligence stays secondary to commercial pricing inputs.
 
-Each price-list item uses deterministic variant/package identity and snapshots declared price from Medicine Master. Commercial fields are:
+## Bid evidence
 
-- `declared_price_snapshot` — readonly snapshot;
-- `company_sale_price`;
-- `actual_receivable_price`;
-- `invoice_price`.
+`Muasamcong` owns procurement acquisition/source facts. `Pharma` owns canonical bid matching, bid intelligence and Price List evidence.
 
-Invariant: prices are non-negative and `company_sale_price <= declared_price_snapshot`.
+For each selected Variant/Package, the default proposal is the latest correctly matched award ordered by `decision_date DESC`, then `published_at DESC`, then `id DESC`. The operator can explicitly inspect history or choose another result.
 
-## Customer initialization and Edit invariant
+When no matched award exists, the operator can add a reusable manual Pharma award. Manual confirmed matches must not be silently overwritten by later automatic synchronization.
 
-An ACTIVE Global price list may initialize a Customer Draft. Initial creation may seed all source SKUs so the operator can remove non-applicable products and adjust exceptions.
+Price List snapshots the selected bid reference when the item is saved. Editing a Draft preserves its captured evidence unless the operator explicitly selects another historical result. Saving never copies a winning bid price into commercial price fields.
 
-After the Customer Draft is saved, its persisted `pharma_price_list_items` become the authoritative current SKU selection. The Global list is origin/reference only.
+## Excel Designer v3.2 accepted reference implementation
 
-Critical regression rule:
+The Price List export uses persistent per-admin profiles and supports:
 
-`Global A,B,C,D,E -> Customer initialized A,B,C,D,E -> user excludes B,D -> save A,C,E -> Edit must keep A,C,E; B,D must not become checked again.`
+- profile create, duplicate, set-default and delete;
+- server-side JSON library plus local JSON import;
+- branding, selected columns and page setup sections;
+- searchable/grouped data library;
+- explicit Excel column order;
+- isolated per-column Inspector draft state;
+- custom header, width, alignment, datatype and decimals;
+- Times New Roman typography and configurable table styling;
+- orientation, paper size, margins, centering and scaling;
+- logo/signature preview and configurable dimensions;
+- signing location, full `Ngày tháng năm`, signatory title and signatory name.
 
-`source_price_list_id` persists the original Global source for traceability. The Edit workspace restores that source but does not reinitialize selection from it. Invoking the source action while editing keeps the saved Draft SKU set instead of resetting to all source items. Changing the persisted source during Edit is guarded to prevent accidental reseeding.
+Export semantics remain: when detail-table checkboxes contain item IDs, export only those items; when none are selected, export every item in the Price List.
 
-A future explicit "refresh/update from Global" feature may propose newly available SKUs, but it must not silently restore SKUs the user previously excluded.
+### JSON/media contract
 
-## Price List workspace and UI
+Profile JSON is portable configuration and must not blindly embed binary media. Logo may be recovered in the appropriate profile/user scope. Signature recovery is identity-sensitive and must match normalized `signatory_title + signatory_name`; it must never fall back to another person's signature.
 
-Canonical workspace: `/admin/pharma/price-lists`.
+An explicit signing date restored from JSON/profile must be preserved. The current date is only the default when that field is empty. Logo/signature custom dimensions remain profile-scoped.
 
-Create/Edit uses four steps:
+### Runtime regression rules
 
-`Thông tin -> Chọn thuốc -> Thiết lập giá -> Kiểm tra & lưu`.
+The final accepted Designer establishes these mandatory rules:
 
-Implemented UX includes Partner customer selection, responsible user, reusable business purpose, ACTIVE Global seed source, Medicine Master filters, bounded pagination `10/25/50/100`, selection persistence, bulk receivable discount, formatted VND values, explicit SKU inclusion checkboxes, Draft save-success modal and professional quotation review/show layout.
+- imported/duplicated profile names are collision-safe under `(user_id, name)` uniqueness;
+- destructive actions capture the exact target before confirmation;
+- Livewire confirmation state uses `pendingConfirmAction` and `pendingConfirmValue`;
+- the execution method is `executeConfirmedAction()`;
+- a Livewire public property and public action method must never share the same name;
+- profile delete and JSON delete require explicit confirmation;
+- static tests alone are insufficient for destructive UI interactions: browser UI acceptance is mandatory.
 
-Commercial UX rule confirmed during implementation: company sale defaults from declared price; percentage discount is applied to actual receivable price, not company sale price.
+The reusable implementation standard is `.codex/standards/EXCEL_EXPORT_CONFIGURATION_STANDARD.md`. Other modules should implement that standard within their own ownership boundary. They may use Pharma v3.2 as a reference but must not introduce a hard dependency on Pharma solely to reuse the Designer.
 
-Quotation review supports selected-item Excel export; with no checkbox selection, all items in the price list are exported.
+## Final acceptance — 2026-09-16
 
-UI verification for the completed Price List workflow: **PASS**.
+Operator verification after final Pint formatting:
 
-## Lifecycle and resolver
+```text
+Tests: 14 passed (126 assertions)
+Pint: PASS — 6 files
+UI: PASS
+Working tree: clean and synchronized with origin before this handoff commit
+```
 
-Draft save and activation are separate operations. Activation validates item/customer/date/overlap invariants. ACTIVE identity is not edited directly; clone/version workflow creates a new editable Draft.
+Focused regression suite:
 
-`PriceResolver` / `DatabasePriceResolver` is the downstream pricing boundary:
+```text
+Modules/Pharma/Tests/Unit/PriceListExportProfileRuntimeRegressionContractTest.php
+Modules/Pharma/Tests/Unit/PriceListExcelJsonMediaRoundTripContractTest.php
+Modules/Pharma/Tests/Unit/PriceListExcelDesignerV3ContractTest.php
+Modules/Pharma/Tests/Unit/PriceListExcelMediaSizingContractTest.php
+```
 
-1. applicable active Customer price;
-2. applicable active Global price;
-3. otherwise `NO_PRICE`.
+Final formatting commit before this handoff: `36b9ee29 style(pharma): finalize price list excel designer formatting`.
 
-Medicine declared price is never a sale-price fallback. The readonly `ResolvedPrice` DTO snapshots list/item/source/customer/medicine/variant/package IDs, commercial prices, currency/effective dates and resolution time.
+Frontend note: an earlier `npm run build` attempt failed because Vite/Rollup could not resolve an import. This closeout does **not** claim frontend build PASS; that issue is outside this targeted Pharma acceptance checkpoint.
 
-Future Sales/Inventory/Invoice integration must consume this resolver contract; direct integration is outside this completed objective.
+## Local stash safety
 
-## Acceptance state
-
-Latest operator-confirmed targeted gate after the source-selection regression fix:
-
-- `PriceListV2ContractTest` + `PriceListSourceSelectionContractTest`: **14 tests / 111 assertions PASS**;
-- focused Pint on Workspace/PriceList/source migration/source-selection contract: **PASS after one automatic `class_attributes_separation` formatting fix**;
-- subsequent `git status -sb`: branch synchronized with origin and working tree clean;
-- Price List UI: **PASS**.
-
-Earlier canonical Medicine identity gate during this branch was also confirmed PASS before Price List closeout.
-
-The contract tests are targeted implementation guards and do not represent a full application regression suite. Per project workflow, do not run unrelated full regression unless a directly impacted module requires it.
-
-## Migration notes
-
-Customer ownership/purpose uses the canonical migration:
-
-`2026_09_15_160000_add_customer_ownership_and_purpose_to_price_lists.php`.
-
-The accidental duplicate customer-context migration was removed and must not be restored from an old stash.
-
-Global source traceability uses:
-
-`2026_09_15_170000_add_source_price_list_to_price_lists.php`.
-
-## Local stash warning
-
-The implementation machine retains historical stashes created during multi-step synchronization. Some contain older versions of `Create.php`, `PriceList.php`, `PriceListController.php` and contract-test assertions. Do not bulk `stash pop` them onto the completed branch. Inspect any needed stash diff selectively; otherwise leave them untouched until after merge/cleanup.
-
-## Canonical ownership boundaries retained
-
-`Partner` remains the canonical organization/customer master. Pharma Price List references Partner; it does not duplicate customer master data.
-
-`Muasamcong` remains owner of procurement acquisition/recovery. Drug Award procurement facts remain separate from Medicine Master and commercial Price List pricing.
-
-Official Facility import/BHXH source-mirror ownership and safety boundaries from the previous completed Pharma objective remain unchanged.
+Historical stashes remain on the operator machine from earlier synchronization checkpoints. Do not bulk-pop or bulk-drop them during this merge. The closeout working tree was clean without restoring those historical patches. Inspect any stash individually only when explicitly needed; unrelated Invoices stashes remain untouched.
 
 ## Deferred scope
 
-- automatic downstream Sales/Inventory/Invoice integration beyond `PriceResolver`;
-- silent/automatic Global source refresh of Customer Draft selections;
-- fuzzy/AI medicine identity merge;
+- automatic downstream Sales/Inventory/Invoice integration beyond existing Pharma contracts;
+- silent/automatic Global-source refresh of persisted Customer Draft selections;
+- fuzzy/AI medicine identity auto-confirmation;
+- advanced bid analytics in the central Price List create UI;
 - unrelated Inventory/Invoices/Partner refactors;
-- unrelated Official Facility/BHXH changes;
-- Pharma runtime enablement changes.
+- unrelated frontend/Vite import-resolution repair;
+- unrelated Pharma runtime enablement changes.
 
 ## Previous completed checkpoints
 
-Official Facility Import + BHXH Source Mirror was merged to `main` via PR #166 on 2026-09-06. MaSoThue lookup CLI was merged via PR #168. Drug Award Allocation & Hospital Contract Management was merged earlier via PR #165. Those objectives remain complete and their ownership/safety contracts are preserved by this Price List work.
+Official Facility Import + BHXH Source Mirror was merged to `main` via PR #166 on 2026-09-06. MaSoThue lookup CLI was merged via PR #168. Drug Award Allocation & Hospital Contract Management was merged earlier via PR #165. Those ownership and safety contracts remain preserved.

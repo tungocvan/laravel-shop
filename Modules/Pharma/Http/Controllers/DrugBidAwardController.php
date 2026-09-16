@@ -12,6 +12,11 @@ class DrugBidAwardController extends Controller
         return view('Pharma::pages.drug-bid-award.index');
     }
 
+    public function review(): View
+    {
+        return view('Pharma::pages.drug-bid-award.review');
+    }
+
     public function create(): View
     {
         return view('Pharma::pages.drug-bid-award.create');

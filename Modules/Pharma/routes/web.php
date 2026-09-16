@@ -63,6 +63,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
 
     Route::prefix('drug-bid-awards')->name('drug-bid-awards.')->group(function () {
         Route::get('/', [DrugBidAwardController::class, 'index'])->middleware('can:view_pharma')->name('index');
+        Route::get('/review', [DrugBidAwardController::class, 'review'])->middleware('can:edit_pharma')->name('review');
         Route::get('/create', [DrugBidAwardController::class, 'create'])->middleware('can:create_pharma')->name('create');
         Route::get('/{id}/allocations', [DrugBidAwardController::class, 'allocations'])->middleware('can:view_pharma_allocations')->name('allocations');
         Route::get('/{id}/edit', [DrugBidAwardController::class, 'edit'])->middleware('can:edit_pharma')->name('edit');

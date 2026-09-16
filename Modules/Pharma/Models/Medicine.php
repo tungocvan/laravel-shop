@@ -80,6 +80,30 @@ class Medicine extends Model
         'last_verified_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::created(function (Medicine $medicine): void {
+            if (filled($medicine->medicine_code)) {
+                return;
+            }
+
+            $code = static::codeForId((int) $medicine->getKey());
+            $belongsToAnotherMedicine = static::query()
+                ->where('medicine_code', $code)
+                ->whereKeyNot($medicine->getKey())
+                ->exists();
+
+            if (! $belongsToAnotherMedicine) {
+                $medicine->forceFill(['medicine_code' => $code])->saveQuietly();
+            }
+        });
+    }
+
+    public static function codeForId(int $id): string
+    {
+        return sprintf('MED-%06d', $id);
+    }
+
     public function sources(): HasMany
     {
         return $this->hasMany(MedicineSource::class, 'medicine_id');
