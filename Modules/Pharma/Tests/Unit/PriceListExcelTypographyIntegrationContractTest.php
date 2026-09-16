@@ -14,7 +14,7 @@ class PriceListExcelTypographyIntegrationContractTest extends TestCase
 
         $this->assertStringContainsString('Excel Typography', $view);
         $this->assertStringContainsString('Times New Roman', $view);
-        $this->assertStringContainsString('12pt · Đậm · Canh giữa', $view);
+        $this->assertStringContainsString('12pt · Đậm · Giữa', $view);
         $this->assertStringContainsString('wire:model="pageSetup.product_font_size"', $view);
         $this->assertStringContainsString('<option value="10">10 pt</option>', $view);
         $this->assertStringContainsString('<option value="11">11 pt</option>', $view);
