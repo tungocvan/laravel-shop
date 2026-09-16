@@ -45,4 +45,19 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
             $this->assertStringContainsString($label, $view);
         }
     }
+
+    public function test_column_inspector_uses_isolated_draft_state(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+
+        $this->assertStringContainsString('public array $columnDraft=[];', $component);
+        $this->assertStringContainsString('function loadColumnDraft', $component);
+        $this->assertStringContainsString('function commitColumnDraft', $component);
+        $this->assertStringContainsString("\$key!==\$this->activeColumnKey", $component);
+        $this->assertStringContainsString("\$this->widths[\$key]=", $component);
+        $this->assertStringContainsString("\$this->headers[\$key]=", $component);
+        $this->assertStringContainsString("\$this->alignments[\$key]=", $component);
+        $this->assertStringContainsString("\$this->dataTypes[\$key]=", $component);
+        $this->assertStringContainsString("\$this->decimals[\$key]=", $component);
+    }
 }
