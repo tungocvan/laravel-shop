@@ -27,16 +27,6 @@
         ></div>
     @endif
 
-    {{--
-        Interaction-safe v3.2 overlays.
-
-        v3.1 passes JSON filenames directly inside wire:click JavaScript expressions and
-        also exposes a public property named confirmAction alongside the method with the
-        same name. Both patterns are fragile in Livewire's browser expression parser.
-        This layer keeps filenames in ordinary HTML values and explicitly calls the
-        confirmation method through Livewire's $call API. The original v3.1 markup stays
-        intact for backwards compatibility while these higher-z overlays own interaction.
-    --}}
     @if($open && $jsonLibraryOpen)
         <div class="fixed inset-0 z-[125] grid place-items-center bg-slate-950/55 p-4" wire:key="excel-designer-json-library-v32">
             <div class="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-3xl bg-white p-6 shadow-2xl">
@@ -53,25 +43,13 @@
                     @forelse($jsonFiles as $index => $file)
                         <div wire:key="json-v32-{{ md5($file['name']) }}" class="flex items-center gap-3 border-b border-slate-100 p-3 last:border-b-0 {{ $selectedJsonFile === $file['name'] ? 'bg-indigo-50' : 'bg-white' }}">
                             <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
-                                <input
-                                    type="radio"
-                                    name="pharma-price-list-json-v32"
-                                    wire:model.live="selectedJsonFile"
-                                    value="{{ $file['name'] }}"
-                                    class="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                >
+                                <input type="radio" name="pharma-price-list-json-v32" wire:model.live="selectedJsonFile" value="{{ $file['name'] }}" class="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                 <span class="min-w-0 flex-1">
                                     <b class="block truncate text-sm text-slate-800">{{ $file['name'] }}</b>
                                     <span class="text-xs text-slate-400">{{ date('d/m/Y H:i', $file['updated_at']) }} · {{ number_format($file['size'] / 1024, 1) }} KB</span>
                                 </span>
                             </label>
-                            <button
-                                type="button"
-                                value="{{ $file['name'] }}"
-                                x-data
-                                x-on:click="$wire.selectedJsonFile = $el.value; $wire.requestDeleteJson($el.value)"
-                                class="rounded-lg px-2 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50"
-                            >Xóa</button>
+                            <button type="button" value="{{ $file['name'] }}" x-data x-on:click="$wire.selectedJsonFile = $el.value; $wire.requestDeleteJson($el.value)" class="rounded-lg px-2 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50">Xóa</button>
                         </div>
                     @empty
                         <p class="p-8 text-center text-sm text-slate-400">Chưa có file JSON trên server.</p>
@@ -97,7 +75,7 @@
                 <p class="mt-2 text-sm text-slate-500">Thao tác này cần xác nhận trước khi thực hiện.</p>
                 <div class="mt-6 flex justify-end gap-2">
                     <button type="button" wire:click="$set('confirmOpen',false)" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold">Hủy</button>
-                    <button type="button" x-data x-on:click="$wire.$call('confirmAction')" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white">Xác nhận</button>
+                    <button type="button" wire:click="confirmAction" wire:loading.attr="disabled" wire:target="confirmAction" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Xác nhận</button>
                 </div>
             </div>
         </div>
