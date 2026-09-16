@@ -49,19 +49,25 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
     public function test_column_inspector_uses_isolated_draft_state_and_keyed_dom(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $compact = $this->compact($component);
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
 
-        $this->assertStringContainsString('public array $columnDraft=[];', $component);
+        $this->assertStringContainsString($this->compact('public array $columnDraft=[];'), $compact);
         $this->assertStringContainsString('function loadColumnDraft', $component);
         $this->assertStringContainsString('function commitColumnDraft', $component);
-        $this->assertStringContainsString("\$key!==\$this->activeColumnKey", $component);
+        $this->assertStringContainsString($this->compact("\$key!==\$this->activeColumnKey"), $compact);
         foreach (["\$this->widths[\$key]=", "\$this->headers[\$key]=", "\$this->alignments[\$key]=", "\$this->dataTypes[\$key]=", "\$this->decimals[\$key]="] as $assignment) {
-            $this->assertStringContainsString($assignment, $component);
+            $this->assertStringContainsString($this->compact($assignment), $compact);
         }
         foreach (['wire:key="inspector-{{ $activeColumnKey }}"', 'wire:model="columnDraft.width"', 'wire:model="columnDraft.header"', 'wire:model="columnDraft.alignment"', 'wire:model="columnDraft.data_type"', 'wire:model="columnDraft.decimals"'] as $binding) {
             $this->assertStringContainsString($binding, $view);
         }
         $this->assertStringNotContainsString('wire:model="widths.{{ $activeColumnKey }}"', $view);
         $this->assertStringContainsString('Width phản ánh tương đối', $view);
+    }
+
+    private function compact(string $source): string
+    {
+        return preg_replace('/\s+/', '', $source) ?? $source;
     }
 }
