@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing as DrawingMetrics;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -30,14 +31,7 @@ class PriceListExcelDocumentLayout
         $row = $startRow;
 
         $sheet->mergeCells("A{$row}:{$logoEnd}".($row + 3));
-        $this->addDrawing(
-            $sheet,
-            $profile['logo_path'] ?? null,
-            'Logo',
-            "A{$row}",
-            $this->dimension($hf, 'logo_width_cm', self::DEFAULT_LOGO_WIDTH_CM, 1, 12),
-            $this->dimension($hf, 'logo_height_cm', self::DEFAULT_LOGO_HEIGHT_CM, 1, 8)
-        );
+        $this->addDrawing($sheet, $profile['logo_path'] ?? null, 'Logo', "A{$row}", $this->dimension($hf, 'logo_width_cm', self::DEFAULT_LOGO_WIDTH_CM, 1, 12), $this->dimension($hf, 'logo_height_cm', self::DEFAULT_LOGO_HEIGHT_CM, 1, 8));
 
         $companyRows = [
             [(string) ($hf['company_name'] ?? ''), true],
@@ -45,14 +39,11 @@ class PriceListExcelDocumentLayout
             [($hf['tax_code'] ?? '') !== '' ? 'Mã số thuế: '.$hf['tax_code'] : '', false],
             [$this->contactLine($hf), false],
         ];
-
         foreach ($companyRows as $offset => [$value, $bold]) {
             $currentRow = $row + $offset;
             $sheet->mergeCells("{$infoStart}{$currentRow}:{$lastColumn}{$currentRow}");
             $sheet->setCellValue("{$infoStart}{$currentRow}", $value);
-            $sheet->getStyle("{$infoStart}{$currentRow}:{$lastColumn}{$currentRow}")->getAlignment()
-                ->setVertical(Alignment::VERTICAL_CENTER)
-                ->setWrapText(true);
+            $sheet->getStyle("{$infoStart}{$currentRow}:{$lastColumn}{$currentRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
             if ($bold) {
                 $sheet->getStyle("{$infoStart}{$currentRow}")->getFont()->setBold(true)->setSize(12);
             }
@@ -78,7 +69,6 @@ class PriceListExcelDocumentLayout
             $sheet->getStyle("A{$row}")->getFont()->setBold(true);
             $row++;
         }
-
         if (($hf['intro'] ?? '') !== '') {
             $sheet->mergeCells("A{$row}:{$lastColumn}{$row}");
             $sheet->setCellValue("A{$row}", $hf['intro']);
@@ -102,7 +92,6 @@ class PriceListExcelDocumentLayout
         $first = Coordinate::stringFromColumnIndex($firstIndex);
         $last = Coordinate::stringFromColumnIndex($lastIndex);
         $row = $afterRow + 2;
-
         $location = trim((string) ($hf['footer_location'] ?? ''));
         $year = trim((string) ($hf['footer_year'] ?? ''));
         $locationLine = $location;
@@ -118,22 +107,14 @@ class PriceListExcelDocumentLayout
         $sheet->mergeCells("{$first}{$signatureRow}:{$last}{$signatureEndRow}");
         $signatureWidthCm = $this->dimension($hf, 'signature_width_cm', self::DEFAULT_SIGNATURE_WIDTH_CM, 1, 12);
         $signatureHeightCm = $this->dimension($hf, 'signature_height_cm', self::DEFAULT_SIGNATURE_HEIGHT_CM, 1, 8);
-        $this->addDrawing(
-            $sheet,
-            $profile['signature_path'] ?? null,
-            'Signature',
-            "{$first}{$signatureRow}",
-            $signatureWidthCm,
-            $signatureHeightCm,
-            $this->centerOffsetPixels($sheet, $firstIndex, $lastIndex, $signatureWidthCm)
-        );
+        [$anchorColumn, $offsetX] = $this->centeredDrawingAnchor($sheet, $firstIndex, $lastIndex, $signatureWidthCm);
+        $this->addDrawing($sheet, $profile['signature_path'] ?? null, 'Signature', "{$anchorColumn}{$signatureRow}", $signatureWidthCm, $signatureHeightCm, $offsetX);
+
         $signatureRowHeight = max(30, ($signatureHeightCm * 28.35) / 3);
         foreach (range($signatureRow, $signatureEndRow) as $imageRow) {
             $sheet->getRowDimension($imageRow)->setRowHeight($signatureRowHeight);
         }
-
-        $nameRow = $signatureEndRow + 1;
-        $this->mergedFooterCell($sheet, $first, $last, $nameRow, (string) ($hf['signatory_name'] ?? ''), true, false);
+        $this->mergedFooterCell($sheet, $first, $last, $signatureEndRow + 1, (string) ($hf['signatory_name'] ?? ''), true, false);
     }
 
     private function mergedFooterCell(Worksheet $sheet, string $first, string $last, int $row, string $value, bool $bold, bool $italic): void
@@ -148,42 +129,52 @@ class PriceListExcelDocumentLayout
     private function contactLine(array $hf): string
     {
         $parts = [];
-        if (($hf['phone'] ?? '') !== '') {
-            $parts[] = 'Số điện thoại: '.$hf['phone'];
-        }
-        if (($hf['email'] ?? '') !== '') {
-            $parts[] = 'Email: '.$hf['email'];
-        }
-
+        if (($hf['phone'] ?? '') !== '') $parts[] = 'Số điện thoại: '.$hf['phone'];
+        if (($hf['email'] ?? '') !== '') $parts[] = 'Email: '.$hf['email'];
         return implode('     ', $parts);
     }
 
     private function dimension(array $hf, string $key, float $default, float $min, float $max): float
     {
         $value = (float) ($hf[$key] ?? $default);
-
         return max($min, min($max, $value > 0 ? $value : $default));
     }
 
-    private function centerOffsetPixels(Worksheet $sheet, int $firstIndex, int $lastIndex, float $drawingWidthCm): int
+    /** @return array{0:string,1:int} */
+    private function centeredDrawingAnchor(Worksheet $sheet, int $firstIndex, int $lastIndex, float $drawingWidthCm): array
     {
-        $regionPixels = 0.0;
+        $widths = [];
+        $regionPixels = 0;
         for ($index = $firstIndex; $index <= $lastIndex; $index++) {
             $column = Coordinate::stringFromColumnIndex($index);
             $width = (float) $sheet->getColumnDimension($column)->getWidth();
-            $regionPixels += $width > 0 ? $width * 7 : 64;
+            if ($width <= 0) {
+                $width = (float) $sheet->getDefaultColumnDimension()->getWidth();
+            }
+            if ($width <= 0) {
+                $width = 8.43;
+            }
+            $pixels = DrawingMetrics::cellDimensionToPixels($width, $sheet->getParent()?->getDefaultStyle()->getFont());
+            $widths[$index] = $pixels;
+            $regionPixels += $pixels;
         }
-        $drawingPixels = $drawingWidthCm * 37.795;
 
-        return max(0, (int) round(($regionPixels - $drawingPixels) / 2));
+        $drawingPixels = (int) round($drawingWidthCm * 37.795);
+        $targetLeft = max(0, (int) round(($regionPixels - $drawingPixels) / 2));
+        $consumed = 0;
+        foreach ($widths as $index => $pixels) {
+            if ($targetLeft < $consumed + $pixels) {
+                return [Coordinate::stringFromColumnIndex($index), max(0, $targetLeft - $consumed)];
+            }
+            $consumed += $pixels;
+        }
+
+        return [Coordinate::stringFromColumnIndex($firstIndex), 0];
     }
 
     private function addDrawing(Worksheet $sheet, ?string $path, string $name, string $coordinate, float $widthCm, float $heightCm, int $offsetX = 0): void
     {
-        if (! $path || ! Storage::disk('public')->exists($path)) {
-            return;
-        }
-
+        if (! $path || ! Storage::disk('public')->exists($path)) return;
         $drawing = new Drawing;
         $drawing->setName($name);
         $drawing->setPath(Storage::disk('public')->path($path));
