@@ -22,7 +22,7 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
         $library = file_get_contents(base_path('Modules/Pharma/Services/PriceListExportJsonLibrary.php'));
 
         $this->assertStringContainsString("Storage::disk('local')", $library);
-        $this->assertStringContainsString("self::DIRECTORY.'/'.$userId", $library);
+        $this->assertStringContainsString("self::DIRECTORY.'/'.\$userId", $library);
         $this->assertStringContainsString('basename(', $library);
         $this->assertStringContainsString("'.json'", $library);
     }
