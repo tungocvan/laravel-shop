@@ -10,6 +10,11 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class PriceListExcelDocumentLayout
 {
+    private const DEFAULT_LOGO_WIDTH_CM = 4.65;
+    private const DEFAULT_LOGO_HEIGHT_CM = 2.82;
+    private const DEFAULT_SIGNATURE_WIDTH_CM = 4.00;
+    private const DEFAULT_SIGNATURE_HEIGHT_CM = 3.60;
+
     public function header(Worksheet $sheet, array $profile, int $columnCount, int $startRow = 1): int
     {
         $hf = $profile['header_footer'] ?? [];
@@ -17,10 +22,11 @@ class PriceListExcelDocumentLayout
             return $startRow;
         }
 
-        $lastColumn = Coordinate::stringFromColumnIndex($columnCount);
-        $infoStartIndex = $columnCount >= 4 ? 3 : min(2, $columnCount);
+        $lastColumn = Coordinate::stringFromColumnIndex(max(1, $columnCount));
+        $logoEndIndex = min(3, max(1, $columnCount));
+        $logoEnd = Coordinate::stringFromColumnIndex($logoEndIndex);
+        $infoStartIndex = min(4, max(1, $columnCount));
         $infoStart = Coordinate::stringFromColumnIndex($infoStartIndex);
-        $logoEnd = Coordinate::stringFromColumnIndex(max(1, $infoStartIndex - 1));
         $row = $startRow;
 
         $sheet->mergeCells("A{$row}:{$logoEnd}".($row + 3));
@@ -29,8 +35,8 @@ class PriceListExcelDocumentLayout
             $profile['logo_path'] ?? null,
             'Logo',
             "A{$row}",
-            (float) ($hf['logo_width_cm'] ?? 2.48),
-            (float) ($hf['logo_height_cm'] ?? 3.83)
+            $this->dimension($hf, 'logo_width_cm', self::DEFAULT_LOGO_WIDTH_CM, 1, 12),
+            $this->dimension($hf, 'logo_height_cm', self::DEFAULT_LOGO_HEIGHT_CM, 1, 8)
         );
 
         $companyRows = [
@@ -52,11 +58,10 @@ class PriceListExcelDocumentLayout
             }
         }
 
+        $logoHeightCm = $this->dimension($hf, 'logo_height_cm', self::DEFAULT_LOGO_HEIGHT_CM, 1, 8);
+        $headerRowHeight = max(20, ($logoHeightCm * 28.35) / 4);
         foreach (range($row, $row + 3) as $headerRow) {
-            $sheet->getRowDimension($headerRow)->setRowHeight(20);
-        }
-        if (! empty($profile['logo_path'])) {
-            $sheet->getRowDimension($row)->setRowHeight(24);
+            $sheet->getRowDimension($headerRow)->setRowHeight($headerRowHeight);
         }
 
         $row += 5;
@@ -111,16 +116,21 @@ class PriceListExcelDocumentLayout
         $signatureRow = ++$row;
         $signatureEndRow = $signatureRow + 2;
         $sheet->mergeCells("{$first}{$signatureRow}:{$last}{$signatureEndRow}");
+        $signatureWidthCm = $this->dimension($hf, 'signature_width_cm', self::DEFAULT_SIGNATURE_WIDTH_CM, 1, 12);
+        $signatureHeightCm = $this->dimension($hf, 'signature_height_cm', self::DEFAULT_SIGNATURE_HEIGHT_CM, 1, 8);
         $this->addDrawing(
             $sheet,
             $profile['signature_path'] ?? null,
             'Signature',
             "{$first}{$signatureRow}",
-            (float) ($hf['signature_width_cm'] ?? 4),
-            (float) ($hf['signature_height_cm'] ?? 2),
-            true
+            $signatureWidthCm,
+            $signatureHeightCm,
+            $this->centerOffsetPixels($sheet, $firstIndex, $lastIndex, $signatureWidthCm)
         );
-        $sheet->getRowDimension($signatureRow)->setRowHeight(max(30, (float) ($hf['signature_height_cm'] ?? 2) * 28.35));
+        $signatureRowHeight = max(30, ($signatureHeightCm * 28.35) / 3);
+        foreach (range($signatureRow, $signatureEndRow) as $imageRow) {
+            $sheet->getRowDimension($imageRow)->setRowHeight($signatureRowHeight);
+        }
 
         $nameRow = $signatureEndRow + 1;
         $this->mergedFooterCell($sheet, $first, $last, $nameRow, (string) ($hf['signatory_name'] ?? ''), true, false);
@@ -148,7 +158,27 @@ class PriceListExcelDocumentLayout
         return implode('     ', $parts);
     }
 
-    private function addDrawing(Worksheet $sheet, ?string $path, string $name, string $coordinate, float $widthCm, float $heightCm, bool $center = false): void
+    private function dimension(array $hf, string $key, float $default, float $min, float $max): float
+    {
+        $value = (float) ($hf[$key] ?? $default);
+
+        return max($min, min($max, $value > 0 ? $value : $default));
+    }
+
+    private function centerOffsetPixels(Worksheet $sheet, int $firstIndex, int $lastIndex, float $drawingWidthCm): int
+    {
+        $regionPixels = 0.0;
+        for ($index = $firstIndex; $index <= $lastIndex; $index++) {
+            $column = Coordinate::stringFromColumnIndex($index);
+            $width = (float) $sheet->getColumnDimension($column)->getWidth();
+            $regionPixels += $width > 0 ? $width * 7 : 64;
+        }
+        $drawingPixels = $drawingWidthCm * 37.795;
+
+        return max(0, (int) round(($regionPixels - $drawingPixels) / 2));
+    }
+
+    private function addDrawing(Worksheet $sheet, ?string $path, string $name, string $coordinate, float $widthCm, float $heightCm, int $offsetX = 0): void
     {
         if (! $path || ! Storage::disk('public')->exists($path)) {
             return;
@@ -160,9 +190,7 @@ class PriceListExcelDocumentLayout
         $drawing->setCoordinates($coordinate);
         $drawing->setWidth(max(20, (int) round($widthCm * 37.795)));
         $drawing->setHeight(max(20, (int) round($heightCm * 37.795)));
-        if ($center) {
-            $drawing->setOffsetX(12);
-        }
+        $drawing->setOffsetX($offsetX);
         $drawing->setWorksheet($sheet);
     }
 }
