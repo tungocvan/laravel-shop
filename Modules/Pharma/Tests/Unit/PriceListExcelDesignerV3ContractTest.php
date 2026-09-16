@@ -30,13 +30,19 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
     public function test_configurator_has_server_library_feedback_and_style_validation(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
 
         foreach (['openJsonSave', 'saveJsonToServer', 'openJsonLibrary', 'importSelectedJson', 'requestDeleteJson', 'confirmAction', 'notify'] as $method) {
             $this->assertStringContainsString('function '.$method, $component);
         }
 
-        $this->assertStringContainsString('pageSetup.header_background', $component);
-        $this->assertStringContainsString('pageSetup.header_text_color', $component);
-        $this->assertStringContainsString('pageSetup.table_border', $component);
+        foreach (['pageSetup.header_background', 'pageSetup.header_text_color', 'pageSetup.table_border'] as $binding) {
+            $this->assertStringContainsString($binding, $component);
+            $this->assertStringContainsString($binding, $view);
+        }
+
+        foreach (['Excel Designer v3', 'Thư viện cấu hình JSON', 'Lưu cấu hình JSON', 'Xem trước header Excel', 'Times New Roman'] as $label) {
+            $this->assertStringContainsString($label, $view);
+        }
     }
 }
