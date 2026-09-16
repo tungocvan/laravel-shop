@@ -50,9 +50,12 @@ class PriceListExportProfileV2ContractTest extends TestCase
     public function excel_export_applies_saved_profile_media_page_setup_and_cell_types(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
+        $layout=file_get_contents(base_path('Modules/Pharma/Services/PriceListExcelDocumentLayout.php'));
         $compact=str_replace(' ','',$controller);
 
-        foreach(['PriceListExportProfileService $profiles',"'export_profile_id'",'new Drawing','$profile[\'logo_path\']','$profile[\'signature_path\']','setPaperSize','setFitToWidth','writeConfiguredCell(','DataType::TYPE_STRING','Date::PHPToExcel',"setFormatCode('dd/mm/yyyy')",'getNumberFormat()->setFormatCode'] as $needle)$this->assertStringContainsString($needle,$controller);
+        foreach(['PriceListExportProfileService $profiles',"'export_profile_id'",'setPaperSize','setFitToWidth','writeConfiguredCell(','DataType::TYPE_STRING','Date::PHPToExcel',"setFormatCode('dd/mm/yyyy')",'getNumberFormat()->setFormatCode'] as $needle)$this->assertStringContainsString($needle,$controller);
+        foreach(['new Drawing',"\$profile['logo_path']","\$profile['signature_path']",'Storage::disk(\'public\')'] as $needle)$this->assertStringContainsString($needle,$layout);
+        $this->assertStringContainsString('PriceListExcelDocumentLayout $layout',$controller);
         $this->assertStringContainsString('catch(Throwable)',$compact);
     }
 }
