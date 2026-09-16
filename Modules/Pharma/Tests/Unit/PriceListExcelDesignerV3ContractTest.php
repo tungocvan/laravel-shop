@@ -25,10 +25,11 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
         $this->assertStringContainsString("'.json'", $library);
     }
 
-    public function test_configurator_has_server_library_feedback_and_v31_workspace(): void
+    public function test_configurator_has_server_library_feedback_and_v32_workspace(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/ExportConfigurator.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v31.blade.php'));
+        $wrapper = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator-v32.blade.php'));
 
         foreach (['openJsonSave', 'saveJsonToServer', 'openJsonLibrary', 'importSelectedJson', 'requestDeleteJson', 'confirmAction', 'notify'] as $method) {
             $this->assertStringContainsString('function '.$method, $component);
@@ -40,7 +41,9 @@ class PriceListExcelDesignerV3ContractTest extends TestCase
         foreach (['Excel Designer v3.1', 'Thư viện cấu hình JSON', 'Lưu cấu hình JSON', 'Xem trước header Excel', 'Times New Roman'] as $label) {
             $this->assertStringContainsString($label, $view);
         }
-        $this->assertStringContainsString("price-list.export-configurator-v31", $component);
+        $this->assertStringContainsString('export-configurator-v31', $wrapper);
+        $this->assertStringContainsString('export-media-dimensions', $wrapper);
+        $this->assertStringContainsString('price-list.export-configurator-v32', $component);
     }
 
     public function test_column_inspector_uses_isolated_draft_state_and_keyed_dom(): void
