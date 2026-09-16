@@ -66,7 +66,12 @@ class ExportConfigurator extends Component
     public function requestDeleteJson(string $name):void{$this->confirm('Xóa file JSON?','delete-json',$name);}
     public function exportJson():void{$this->openJsonSave();}
     public function importJson():void{$this->validate(['profileJsonUpload'=>'required|file|max:1024']);$payload=json_decode((string)file_get_contents($this->profileJsonUpload->getRealPath()),true);if(!is_array($payload)){$this->addError('profileJsonUpload','File JSON không hợp lệ.');return;}try{$saved=app(PriceListExportProfileService::class)->importPayload((int)auth('admin')->id(),$payload);}catch(InvalidArgumentException $e){$this->addError('profileJsonUpload',$e->getMessage());return;}$this->apply($saved);$this->refreshProfiles();$this->reset('profileJsonUpload');$this->notify('Import thành công','Đã tạo profile mới từ file JSON trên máy.');}
-    public function confirmAction():void{if($this->confirmAction==='delete-profile'&&$this->profileId){app(PriceListExportProfileService::class)->delete((int)auth('admin')->id(),$this->profileId);$this->profileId=null;$this->refreshProfiles();$this->loadProfile();$this->notify('Đã xóa profile','Profile đã được xóa thành công.');}elseif($this->confirmAction==='delete-json'&&$this->confirmValue!==''){app(PriceListExportJsonLibrary::class)->delete((int)auth('admin')->id(),$this->confirmValue);$this->refreshJsonFiles();$this->selectedJsonFile=null;$this->notify('Đã xóa JSON','File cấu hình JSON đã được xóa khỏi server.');}$this->confirmOpen=false;$this->confirmAction='';$this->confirmValue='';}
+    public function confirmAction():void
+    {
+        $action=$this->confirmAction;$value=$this->confirmValue;$this->confirmOpen=false;$this->confirmAction='';$this->confirmValue='';
+        if($action==='delete-profile'&&$value!==''){$profileId=(int)$value;app(PriceListExportProfileService::class)->delete((int)auth('admin')->id(),$profileId);$this->profileId=null;$this->refreshProfiles();$this->loadProfile();$this->notify('Đã xóa profile','Profile đã được xóa thành công.');return;}
+        if($action==='delete-json'&&$value!==''){$jsonName=$value;app(PriceListExportJsonLibrary::class)->delete((int)auth('admin')->id(),$jsonName);$this->refreshJsonFiles();$this->selectedJsonFile=null;$this->notify('Đã xóa JSON','File cấu hình JSON đã được xóa khỏi server.');}
+    }
     public function closeNotice():void{$this->noticeOpen=false;}
 
     private function notify(string $title,string $message):void{$this->noticeTitle=$title;$this->noticeMessage=$message;$this->noticeOpen=true;}
