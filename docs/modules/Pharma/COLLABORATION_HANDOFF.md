@@ -1,131 +1,82 @@
 # Pharma Collaboration Handoff
 
-## Current checkpoint — Price List v2 + Excel Designer v3.2 accepted
+## Current checkpoint — Production medicine migration-order hotfix
 
 - Module: `Pharma`
-- Implementation branch: `feat/pharma-price-list-bid-ui-professional`
-- Parent implementation branch: `feat/pharma-drug-bid-intelligence`
-- Status: **IMPLEMENTATION COMPLETE — TEST PASS + UI PASS + PINT PASS — READY FOR PR/MERGE**
+- Implementation branch: `fix/pharma-medicine-import-migration-order`
+- Parent checkpoint: Price List v2 + Excel Designer v3.2 accepted and merged to `main`
+- Status: **HOTFIX IMPLEMENTED — TARGETED TEST/PINT VERIFICATION REQUIRED BEFORE MERGE**
 - Date: 2026-09-16
 - Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 - UI standard: `.codex/standards/ADMIN_UI_STANDARD.md`
 - Reusable Excel standard: `.codex/standards/EXCEL_EXPORT_CONFIGURATION_STANDARD.md`
 
-## Scope accepted
+## Production incident and root cause
 
-This branch completes the professional database-backed Pharma Price List workflow and the reusable Excel Designer reference implementation. The canonical product identity remains `Medicine -> MedicineVariant / SKU -> MedicinePackage`; Price List must use deterministic variant/package identity and must not silently merge ambiguous medicine identities.
+Production deployment failed while running `2026_09_14_020000_create_medicine_import_staging_tables.php`. The staging migration declares `matched_variant_id` as a foreign key to `pharma_medicine_variants`, but the referenced table is created later by `2026_09_14_100000_create_canonical_medicine_catalog_tables.php`.
 
-Price List resolver precedence remains:
+MariaDB therefore rejected the foreign key before the canonical catalog migration could run. The failed DDL left `pharma_medicine_import_batches` and `pharma_medicine_import_rows` as partial tables while the migration itself was not recorded in the `migrations` table.
 
-1. applicable ACTIVE Customer price;
-2. applicable ACTIVE Global price;
-3. otherwise `NO_PRICE` / null.
+Production verification confirmed both partial staging tables contained zero rows. They were explicitly dropped before this source hotfix; no staging data was lost.
 
-Bid prices are reference evidence only. They must never become a commercial-price fallback or silently mutate `company_sale_price`, `actual_receivable_price` or `invoice_price`.
+## Hotfix contract
 
-## Price List v2 invariants
+The import staging migration is renamed to:
 
-Price List v2 is database-backed through `pharma_price_lists`, `pharma_price_list_items`, reusable purposes and bid-evidence persistence. List types are `global` and `customer`; statuses are `draft`, `active`, `inactive`, `archived`.
+`2026_09_14_120000_create_medicine_import_staging_tables.php`
 
-Customer lists use Partner as the canonical customer master and may retain `manager_user_id`, `purpose_id` and `source_price_list_id`. Customer creation can initialize from an ACTIVE Global list.
+The intended order is now:
 
-After a Customer Draft is saved, persisted `pharma_price_list_items` are authoritative. The Global source becomes traceability/reference only. Edit must not silently re-add products the operator previously excluded.
+1. `2026_09_14_100000_create_canonical_medicine_catalog_tables.php`
+2. `2026_09_14_110000_create_medicine_profiles_table.php`
+3. `2026_09_14_120000_create_medicine_import_staging_tables.php`
+4. `2026_09_14_130000_add_therapeutic_group_to_medicines_table.php`
+5. `2026_09_14_140000_create_price_lists_v2_tables.php`
 
-Commercial UX accepted:
+The `matched_variant_id -> pharma_medicine_variants.id` foreign key remains intact. The fix corrects migration dependency ordering rather than weakening referential integrity.
 
-- company sale defaults from declared price;
-- declared-price discount percentage applies to actual receivable price;
-- Customer links to `/admin/partners`;
-- save uses success feedback and returns through the Price List route;
-- Price List delete is available with explicit confirmation;
-- bid intelligence stays secondary to commercial pricing inputs.
+`MedicineMigrationOrderContractTest` guards the ordering and verifies that the canonical migration creates `pharma_medicine_variants` while the staging migration retains the variant foreign key.
 
-## Bid evidence
+## Required verification before merge/deploy
 
-`Muasamcong` owns procurement acquisition/source facts. `Pharma` owns canonical bid matching, bid intelligence and Price List evidence.
+Run only the focused Pharma checks for this hotfix:
 
-For each selected Variant/Package, the default proposal is the latest correctly matched award ordered by `decision_date DESC`, then `published_at DESC`, then `id DESC`. The operator can explicitly inspect history or choose another result.
+```bash
+php artisan test Modules/Pharma/Tests/Unit/MedicineMigrationOrderContractTest.php
+php artisan test Modules/Pharma/Tests/Unit/MedicineCatalogContractTest.php Modules/Pharma/Tests/Unit/MedicineCanonicalIdentityTest.php Modules/Pharma/Tests/Unit/MedicineCatalogImportStagerTest.php
+./vendor/bin/pint Modules/Pharma/Tests/Unit/MedicineMigrationOrderContractTest.php Modules/Pharma/database/migrations/2026_09_14_120000_create_medicine_import_staging_tables.php
+```
 
-When no matched award exists, the operator can add a reusable manual Pharma award. Manual confirmed matches must not be silently overwritten by later automatic synchronization.
+Do not rerun production migration until this branch is merged and production source is synchronized. Do not restore the two partial staging tables; the corrected migration will recreate them after the canonical catalog exists.
 
-Price List snapshots the selected bid reference when the item is saved. Editing a Draft preserves its captured evidence unless the operator explicitly selects another historical result. Saving never copies a winning bid price into commercial price fields.
+## Production deploy note
 
-## Excel Designer v3.2 accepted reference implementation
+Production currently has untracked `compose.queue.yaml`, `compose.scheduler.yaml`, and `compose.socket.yaml`. Preserve them until their ownership/purpose is verified. `deploy.sh --pull` requires a clean working tree, so do not delete or overwrite these files merely to satisfy the pull guard.
 
-The Price List export uses persistent per-admin profiles and supports:
+The production queue workers were also observed restarting while the application container remained healthy. Treat that as a separate runtime/bootstrap investigation after the migration-order hotfix is verified; do not mix it into this schema fix.
 
-- profile create, duplicate, set-default and delete;
-- server-side JSON library plus local JSON import;
-- branding, selected columns and page setup sections;
-- searchable/grouped data library;
-- explicit Excel column order;
-- isolated per-column Inspector draft state;
-- custom header, width, alignment, datatype and decimals;
-- Times New Roman typography and configurable table styling;
-- orientation, paper size, margins, centering and scaling;
-- logo/signature preview and configurable dimensions;
-- signing location, full `Ngày tháng năm`, signatory title and signatory name.
+## Accepted Price List v2 + Excel Designer v3.2 baseline
 
-Export semantics remain: when detail-table checkboxes contain item IDs, export only those items; when none are selected, export every item in the Price List.
+The canonical product identity remains `Medicine -> MedicineVariant / SKU -> MedicinePackage`. Price List resolver precedence remains ACTIVE Customer price, then ACTIVE Global price, otherwise `NO_PRICE` / null. Bid prices remain reference evidence only and never silently mutate commercial price fields.
 
-### JSON/media contract
+Price List v2 is database-backed through `pharma_price_lists`, `pharma_price_list_items`, reusable purposes and bid-evidence persistence. Customer lists use Partner as canonical customer master and may initialize from an ACTIVE Global list. Persisted Draft items remain authoritative after save.
 
-Profile JSON is portable configuration and must not blindly embed binary media. Logo may be recovered in the appropriate profile/user scope. Signature recovery is identity-sensitive and must match normalized `signatory_title + signatory_name`; it must never fall back to another person's signature.
+The accepted Excel Designer v3.2 supports persistent per-admin profiles, server/local JSON, branding, logo/signature, signing identity/date, selected columns and ordering, per-column Inspector state, typography, page setup, selected/all export scope, and responsive administrative UX. Signature recovery remains identity-sensitive by normalized `signatory_title + signatory_name` and must never fall back to another person's signature.
 
-An explicit signing date restored from JSON/profile must be preserved. The current date is only the default when that field is empty. Logo/signature custom dimensions remain profile-scoped.
+The reusable implementation standard remains `.codex/standards/EXCEL_EXPORT_CONFIGURATION_STANDARD.md`; other modules may use Pharma v3.2 as a reference without introducing a hard dependency on Pharma.
 
-### Runtime regression rules
+## Previous acceptance — 2026-09-16
 
-The final accepted Designer establishes these mandatory rules:
-
-- imported/duplicated profile names are collision-safe under `(user_id, name)` uniqueness;
-- destructive actions capture the exact target before confirmation;
-- Livewire confirmation state uses `pendingConfirmAction` and `pendingConfirmValue`;
-- the execution method is `executeConfirmedAction()`;
-- a Livewire public property and public action method must never share the same name;
-- profile delete and JSON delete require explicit confirmation;
-- static tests alone are insufficient for destructive UI interactions: browser UI acceptance is mandatory.
-
-The reusable implementation standard is `.codex/standards/EXCEL_EXPORT_CONFIGURATION_STANDARD.md`. Other modules should implement that standard within their own ownership boundary. They may use Pharma v3.2 as a reference but must not introduce a hard dependency on Pharma solely to reuse the Designer.
-
-## Final acceptance — 2026-09-16
-
-Operator verification after final Pint formatting:
+Before this production migration incident, the Price List v2 + Excel Designer v3.2 implementation had operator verification:
 
 ```text
 Tests: 14 passed (126 assertions)
 Pint: PASS — 6 files
 UI: PASS
-Working tree: clean and synchronized with origin before this handoff commit
 ```
 
-Focused regression suite:
-
-```text
-Modules/Pharma/Tests/Unit/PriceListExportProfileRuntimeRegressionContractTest.php
-Modules/Pharma/Tests/Unit/PriceListExcelJsonMediaRoundTripContractTest.php
-Modules/Pharma/Tests/Unit/PriceListExcelDesignerV3ContractTest.php
-Modules/Pharma/Tests/Unit/PriceListExcelMediaSizingContractTest.php
-```
-
-Final formatting commit before this handoff: `36b9ee29 style(pharma): finalize price list excel designer formatting`.
-
-Frontend note: an earlier `npm run build` attempt failed because Vite/Rollup could not resolve an import. This closeout does **not** claim frontend build PASS; that issue is outside this targeted Pharma acceptance checkpoint.
+Frontend note: an earlier `npm run build` attempt failed because Vite/Rollup could not resolve an import. This hotfix does not claim frontend build PASS and does not change frontend assets.
 
 ## Local stash safety
 
-Historical stashes remain on the operator machine from earlier synchronization checkpoints. Do not bulk-pop or bulk-drop them during this merge. The closeout working tree was clean without restoring those historical patches. Inspect any stash individually only when explicitly needed; unrelated Invoices stashes remain untouched.
-
-## Deferred scope
-
-- automatic downstream Sales/Inventory/Invoice integration beyond existing Pharma contracts;
-- silent/automatic Global-source refresh of persisted Customer Draft selections;
-- fuzzy/AI medicine identity auto-confirmation;
-- advanced bid analytics in the central Price List create UI;
-- unrelated Inventory/Invoices/Partner refactors;
-- unrelated frontend/Vite import-resolution repair;
-- unrelated Pharma runtime enablement changes.
-
-## Previous completed checkpoints
-
-Official Facility Import + BHXH Source Mirror was merged to `main` via PR #166 on 2026-09-06. MaSoThue lookup CLI was merged via PR #168. Drug Award Allocation & Hospital Contract Management was merged earlier via PR #165. Those ownership and safety contracts remain preserved.
+Historical stashes remain on operator machines from earlier synchronization checkpoints. Do not bulk-pop or bulk-drop them. Invoices stashes remain unrelated and untouched. Inspect a stash individually only when explicitly needed.
