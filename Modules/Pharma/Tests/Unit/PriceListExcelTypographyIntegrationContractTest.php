@@ -14,14 +14,14 @@ class PriceListExcelTypographyIntegrationContractTest extends TestCase
 
         $this->assertStringContainsString('Excel Typography', $view);
         $this->assertStringContainsString('Times New Roman', $view);
-        $this->assertStringContainsString('Header: 12pt', $view);
-        $this->assertStringContainsString('bold', $view);
-        $this->assertStringContainsString('center', $view);
         $this->assertStringContainsString('wire:model="pageSetup.product_font_size"', $view);
         $this->assertStringContainsString('<option value="10">10 pt</option>', $view);
         $this->assertStringContainsString('<option value="11">11 pt</option>', $view);
         $this->assertStringContainsString('<option value="12">12 pt · Mặc định</option>', $view);
         $this->assertStringContainsString('<option value="13">13 pt</option>', $view);
+        $this->assertStringContainsString('wire:model.live="pageSetup.header_background"', $view);
+        $this->assertStringContainsString('wire:model.live="pageSetup.header_text_color"', $view);
+        $this->assertStringContainsString('wire:model.live="pageSetup.table_border"', $view);
     }
 
     #[Test]
