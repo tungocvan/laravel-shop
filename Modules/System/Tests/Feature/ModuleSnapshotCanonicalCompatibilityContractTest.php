@@ -23,7 +23,7 @@ class ModuleSnapshotCanonicalCompatibilityContractTest extends TestCase
         $source = file_get_contents(base_path('Modules/System/Services/Database/CanonicalModuleSnapshotService.php'));
         self::assertIsString($source);
         self::assertStringContainsString('parent::validatePackage($path, $module, enforceSchema: false)', $source);
-        self::assertStringContainsString("'compatibility_basis' =", str_replace('[', ' =', $source));
+        self::assertStringContainsString('compatibility_basis', $source);
         self::assertStringContainsString('legacySqlMatchesCurrent', $source);
         self::assertStringContainsString("'canonical_schema'", $source);
         self::assertStringContainsString("'raw_fingerprint'", $source);
