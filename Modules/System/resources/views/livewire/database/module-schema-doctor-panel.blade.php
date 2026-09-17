@@ -31,7 +31,7 @@
 
     @if ($open && $report)
         <div class="fixed inset-0 z-[10020] flex items-center justify-center bg-gray-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-            <div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
                 <div class="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-6">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wider text-indigo-600">Schema Doctor · {{ $module }}</p>
@@ -58,7 +58,23 @@
                                         <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ str_replace('_', ' ', $issue['type'] ?? 'schema') }}</span>
                                     </div>
                                     <p class="mt-2 text-sm font-semibold text-gray-900">{{ $issue['message'] ?? '' }}</p>
-                                    @if (! empty($issue['suggestion']))<p class="mt-1 text-sm leading-6 text-gray-600"><span class="font-semibold">Khắc phục:</span> {{ $issue['suggestion'] }}</p>@endif
+
+                                    @if (($issue['differences'] ?? []) !== [])
+                                        <div class="mt-3 overflow-hidden rounded-xl border border-gray-200">
+                                            <div class="grid grid-cols-[minmax(90px,0.8fr)_minmax(120px,1fr)_minmax(120px,1fr)] bg-gray-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                                                <span>Thuộc tính</span><span>Snapshot</span><span>Hiện tại</span>
+                                            </div>
+                                            @foreach ($issue['differences'] as $attribute => $difference)
+                                                <div class="grid grid-cols-[minmax(90px,0.8fr)_minmax(120px,1fr)_minmax(120px,1fr)] gap-2 border-t border-gray-100 px-3 py-2 text-xs sm:text-sm">
+                                                    <code class="font-bold text-gray-700">{{ $attribute }}</code>
+                                                    <code class="break-all text-amber-800">{{ var_export($difference['snapshot'] ?? null, true) }}</code>
+                                                    <code class="break-all text-indigo-800">{{ var_export($difference['current'] ?? null, true) }}</code>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    @if (! empty($issue['suggestion']))<p class="mt-2 text-sm leading-6 text-gray-600"><span class="font-semibold">Khắc phục:</span> {{ $issue['suggestion'] }}</p>@endif
                                 </article>
                             @endforeach
                         </div>
@@ -66,7 +82,7 @@
 
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
                         <p class="font-bold text-gray-900">Fix Plan an toàn</p>
-                        <p class="mt-1">Auto-repair hiện bị khóa. Chỉ sau khi remediation được xác minh và fingerprint trở thành COMPATIBLE thì nút Restore Module mới được phép xuất hiện.</p>
+                        <p class="mt-1">Doctor chỉ đề xuất sửa khi khác biệt đã được xác định chính xác. Auto-repair hiện bị khóa; không DROP cột/bảng và không ALTER dữ liệu chỉ để ép fingerprint. Sau remediation phải chẩn đoán lại và fingerprint trở thành COMPATIBLE thì Restore Module mới được mở.</p>
                     </div>
                 </div>
 
