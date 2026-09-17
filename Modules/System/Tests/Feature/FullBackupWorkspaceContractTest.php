@@ -41,6 +41,39 @@ class FullBackupWorkspaceContractTest extends TestCase
         self::assertStringContainsString('Upload Drive', $view);
     }
 
+    public function test_workspace_diagnoses_insufficient_drive_scope_and_offers_reauthorization(): void
+    {
+        $readiness = file_get_contents(base_path('Modules/System/Services/Cloud/GoogleDriveReadinessService.php'));
+        $component = file_get_contents(base_path('Modules/System/Livewire/Database/FullBackupWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/full-backup-workspace.blade.php'));
+        self::assertIsString($readiness);
+        self::assertIsString($component);
+        self::assertIsString($view);
+
+        self::assertStringContainsString('ACCESS_TOKEN_SCOPE_INSUFFICIENT', $readiness);
+        self::assertStringContainsString('insufficientPermissions', $readiness);
+        self::assertStringContainsString("'scope_insufficient'", $readiness);
+        self::assertStringContainsString('GoogleDriveReadinessService', $component);
+        self::assertStringContainsString("if (! \$this->driveReady(\$readiness))", $component);
+        self::assertStringContainsString('DRIVE API READY', $view);
+        self::assertStringContainsString('DRIVE CẦN XỬ LÝ', $view);
+        self::assertStringContainsString('Google Drive thiếu quyền OAuth', $view);
+        self::assertStringContainsString('Cấp lại quyền Google Drive', $view);
+        self::assertStringContainsString("route('admin.system.settings.cloud.google.connect')", $view);
+    }
+
+    public function test_google_drive_oauth_requests_drive_file_scope_and_fresh_consent(): void
+    {
+        $config = file_get_contents(base_path('Modules/System/config/google_drive.php'));
+        $service = file_get_contents(base_path('Modules/System/Services/Cloud/GoogleDriveConnectionService.php'));
+        self::assertIsString($config);
+        self::assertIsString($service);
+
+        self::assertStringContainsString('https://www.googleapis.com/auth/drive.file', $config);
+        self::assertStringContainsString("'prompt' => 'consent'", $service);
+        self::assertStringContainsString("'include_granted_scopes' => 'true'", $service);
+    }
+
     public function test_restore_remains_local_only_and_database_service_creates_safety_backup(): void
     {
         $component = file_get_contents(base_path('Modules/System/Livewire/Database/FullBackupWorkspace.php'));
