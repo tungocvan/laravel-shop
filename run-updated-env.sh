@@ -1,80 +1,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-PROJECT_NAME="$(basename "$SCRIPT_DIR")"
-ENV_FILE="$SCRIPT_DIR/.env"
-APP_CONTAINER="${PROJECT_NAME}-app-1"
-
-fail() { printf '[FAIL] %s\n' "$*" >&2; exit 1; }
-info() { printf '[INFO] %s\n' "$*"; }
-warn() { printf '[WARN] %s\n' "$*" >&2; }
-pass() { printf '[PASS] %s\n' "$*"; }
-
-command -v docker >/dev/null 2>&1 || fail 'Docker không tồn tại trong PATH.'
-docker compose version >/dev/null 2>&1 || fail 'Docker Compose plugin không khả dụng.'
-[[ -f compose.yaml || -f compose.yml || -f docker-compose.yml || -f docker-compose.yaml ]] || fail 'Không tìm thấy Compose file tại project root.'
-[[ -f "$ENV_FILE" ]] || fail "Không tìm thấy production .env: $ENV_FILE"
-
-printf '%s\n' '=== PRODUCTION ENV APPLY ==='
-printf 'Project      : %s\n' "$PROJECT_NAME"
-printf 'Path         : %s\n' "$SCRIPT_DIR"
-printf 'Environment  : %s\n' "$ENV_FILE"
-printf '%s\n' 'Image rebuild: NO'
-printf '%s\n\n' 'Database     : NO MIGRATION'
-
-info 'Validate Docker Compose configuration...'
-docker compose config --quiet || fail 'Compose config không hợp lệ. Container hiện tại chưa bị thay đổi.'
-pass 'Compose config hợp lệ.'
-
-# These values affect image/build selection. This helper intentionally never builds.
-BUILD_TIME_KEYS=(PHP_VERSION NODE_VERSION INSTALL_LIBREOFFICE MARIADB_VERSION REDIS_VERSION)
-for key in "${BUILD_TIME_KEYS[@]}"; do
-    if grep -Eq "^[[:space:]]*${key}=" "$ENV_FILE"; then
-        warn "$key có thể ảnh hưởng image/build. run-updated-env.sh chỉ apply runtime và không rebuild image."
-    fi
-done
-
-info 'Reconcile services từ .env hiện tại, không build image...'
-docker compose up -d --no-build || fail 'Docker Compose reconciliation thất bại.'
-
-if ! docker inspect "$APP_CONTAINER" >/dev/null 2>&1; then
-    fail "Không tìm thấy application container: $APP_CONTAINER"
-fi
-if [[ "$(docker inspect -f '{{.State.Running}}' "$APP_CONTAINER")" != 'true' ]]; then
-    fail "Application container không chạy: $APP_CONTAINER"
-fi
-
-info 'Refresh Laravel configuration cache...'
-docker exec "$APP_CONTAINER" bash -lc 'php artisan config:clear && php artisan config:cache' || fail 'Laravel config refresh thất bại.'
-pass 'Laravel config cache đã được refresh.'
-
-info 'Yêu cầu Laravel queue workers reload application state...'
-if docker exec "$APP_CONTAINER" bash -lc 'php artisan queue:restart'; then
-    pass 'queue:restart hoàn tất.'
-else
-    warn 'queue:restart thất bại; kiểm tra queue/cache connection.'
-fi
-
-if docker compose config --services | grep -qx 'scheduler'; then
-    info 'Restart scheduler để schedule:work nhận environment mới...'
-    if docker compose restart scheduler >/dev/null; then
-        pass 'Scheduler đã restart.'
-    else
-        warn 'Không restart được scheduler.'
-    fi
-fi
-
-printf '\n%s\n' '=== SERVICE STATUS ==='
-docker compose ps
-
-unhealthy="$(docker compose ps --format json 2>/dev/null | grep -c '"Health":"unhealthy"' || true)"
-exited="$(docker compose ps --all --format json 2>/dev/null | grep -Ec '"State":"(exited|dead)"' || true)"
-
-printf '\n%s\n' '=== RESULT ==='
-if [[ "$unhealthy" -gt 0 || "$exited" -gt 0 ]]; then
-    warn "Apply hoàn tất nhưng phát hiện unhealthy=$unhealthy, exited/dead=$exited."
-    exit 2
-fi
-pass 'Environment đã được apply mà không rebuild image hoặc migrate database.'
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"; cd "$SCRIPT_DIR"
+PROJECT_NAME="$(basename "$SCRIPT_DIR")"; ENV_FILE="$SCRIPT_DIR/.env"
+fail(){ printf '[FAIL] %s\n' "$*" >&2; exit 1; }; info(){ printf '[INFO] %s\n' "$*"; }; pass(){ printf '[PASS] %s\n' "$*"; }; warn(){ printf '[WARN] %s\n' "$*" >&2; }; app_id(){ docker compose ps -q app 2>/dev/null|head -1; }
+command -v docker >/dev/null 2>&1||fail 'Docker không tồn tại trong PATH.'; docker compose version >/dev/null 2>&1||fail 'Docker Compose plugin không khả dụng.'; [[ -f "$ENV_FILE" ]]||fail "Không tìm thấy production .env: $ENV_FILE"
+printf '=== PRODUCTION ENV APPLY ===\nProject path : %s\nPath         : %s\nEnvironment  : %s\nImage rebuild: NO\nDatabase     : NO MIGRATION\n\n' "$PROJECT_NAME" "$SCRIPT_DIR" "$ENV_FILE"
+info 'Validate Docker Compose configuration...'; docker compose config --quiet||fail 'Compose config không hợp lệ. Container hiện tại chưa bị thay đổi.'; pass 'Compose config hợp lệ.'
+APP="$(app_id)"; [[ -n "$APP" ]]||fail 'Compose app service hiện không chạy. Dừng để tránh reconcile production stack chưa rõ trạng thái.'; [[ "$(docker inspect -f '{{.State.Running}}' "$APP" 2>/dev/null)" == true ]]||fail 'Compose app service không running.'
+DEGRADED="$(docker compose ps --all --format '{{.Service}}|{{.State}}|{{.Status}}' 2>/dev/null|awk -F'|' '$2 != "running" {print}')"; if [[ -n "$DEGRADED" ]]; then printf '%s\n' "$DEGRADED" >&2; fail 'Production Compose stack đang có service không running. Diagnosis/fix topology trước khi apply .env.'; fi
+info 'Reconcile services từ .env hiện tại, không build image...'; docker compose up -d --no-build||fail 'Docker Compose reconciliation thất bại.'
+APP="$(app_id)"; [[ -n "$APP" && "$(docker inspect -f '{{.State.Running}}' "$APP" 2>/dev/null)" == true ]]||fail 'Compose app service không chạy sau reconciliation.'
+info 'Refresh Laravel configuration cache...'; docker exec "$APP" bash -lc 'php artisan config:clear && php artisan config:cache'||fail 'Laravel config refresh thất bại.'; pass 'Laravel config cache đã refresh.'
+info 'Yêu cầu Laravel queue workers reload application state...'; docker exec "$APP" bash -lc 'php artisan queue:restart'&&pass 'queue:restart hoàn tất.'||warn 'queue:restart thất bại.'
+if docker compose config --services|grep -qx scheduler; then info 'Restart scheduler...'; docker compose restart scheduler >/dev/null&&pass 'Scheduler đã restart.'||warn 'Không restart được scheduler.'; fi
+printf '\n=== SERVICE STATUS ===\n'; docker compose ps --all
+DEGRADED="$(docker compose ps --all --format '{{.Service}}|{{.State}}|{{.Status}}' 2>/dev/null|awk -F'|' '$2 != "running" {print}')"; printf '\n=== RESULT ===\n'; [[ -z "$DEGRADED" ]]||{ printf '%s\n' "$DEGRADED" >&2; fail 'Apply hoàn tất nhưng stack chưa running hoàn toàn.'; }; pass 'Environment đã apply mà không rebuild image hoặc migrate database.'
