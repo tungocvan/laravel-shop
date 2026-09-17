@@ -10,6 +10,7 @@ use Modules\System\Jobs\UploadDatabaseBackupToGoogleDrive;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\Cloud\GoogleDriveBackupBrowserService;
 use Modules\System\Services\Cloud\GoogleDriveConnectionService;
+use Modules\System\Services\Cloud\GoogleDriveReadinessService;
 use Modules\System\Services\DatabaseService;
 use Throwable;
 
@@ -18,16 +19,14 @@ class FullBackupWorkspace extends Component
     use AuthorizesSystemActions;
 
     public array $selectedNames = [];
-
     public bool $showRestoreModal = false;
     public string $restoreReference = '';
     public string $restoreName = '';
-
     public bool $showDeleteModal = false;
     public bool $deleteLocal = true;
     public bool $deleteDrive = false;
 
-    public function render(DatabaseService $service, GoogleDriveConnectionService $drive, GoogleDriveBackupBrowserService $browser)
+    public function render(DatabaseService $service, GoogleDriveReadinessService $readiness, GoogleDriveBackupBrowserService $browser)
     {
         $user = auth('admin')->user() ?: auth()->user();
         $capabilities = [
@@ -35,14 +34,16 @@ class FullBackupWorkspace extends Component
             'download' => (bool) $user?->can('database.download'),
             'restore' => (bool) $user?->can('database.restore'),
             'destroy' => (bool) $user?->can('database.destroy'),
+            'reauthorizeDrive' => (bool) $user?->can('system.env.update'),
         ];
-        $status = $drive->status();
-        $driveConnected = (bool) ($status['connected'] ?? false);
+        $driveReadiness = $readiness->check();
+        $driveConnected = (bool) $driveReadiness['connected'];
+        $driveReady = (bool) $driveReadiness['ready'];
         $local = array_values(array_filter($service->getAllBackupFiles(), static fn (array $file): bool => (bool) ($file['is_full'] ?? false)));
         $remote = [];
         $remoteUnavailable = false;
 
-        if ($driveConnected) {
+        if ($driveReady) {
             try {
                 $remote = $browser->listBackups(100);
             } catch (Throwable $e) {
@@ -61,10 +62,9 @@ class FullBackupWorkspace extends Component
         }
         uasort($catalog, static fn (array $a, array $b): int => $b['time'] <=> $a['time']);
         $catalog = array_values($catalog);
-        $visibleNames = array_column($catalog, 'name');
-        $this->selectedNames = array_values(array_intersect($this->selectedNames, $visibleNames));
+        $this->selectedNames = array_values(array_intersect($this->selectedNames, array_column($catalog, 'name')));
 
-        return view('System::livewire.database.full-backup-workspace', compact('catalog', 'driveConnected', 'remoteUnavailable', 'capabilities'));
+        return view('System::livewire.database.full-backup-workspace', compact('catalog', 'driveConnected', 'driveReady', 'driveReadiness', 'remoteUnavailable', 'capabilities'));
     }
 
     public function createBackup(DatabaseService $service): void
@@ -78,11 +78,10 @@ class FullBackupWorkspace extends Component
         }
     }
 
-    public function createBackupAndUpload(DatabaseService $service, GoogleDriveConnectionService $drive): void
+    public function createBackupAndUpload(DatabaseService $service, GoogleDriveConnectionService $drive, GoogleDriveReadinessService $readiness): void
     {
         $this->authorizePermission('database.backup');
-        if (! ($drive->status()['connected'] ?? false)) {
-            $this->notify('error', 'Google Drive chưa được kết nối.');
+        if (! $this->driveReady($readiness)) {
             return;
         }
         try {
@@ -95,12 +94,15 @@ class FullBackupWorkspace extends Component
         }
     }
 
-    public function uploadLocal(string $reference, DatabaseService $service, GoogleDriveConnectionService $drive): void
+    public function uploadLocal(string $reference, DatabaseService $service, GoogleDriveConnectionService $drive, GoogleDriveReadinessService $readiness): void
     {
         $this->authorizePermission('database.backup');
         $backup = $service->getBackupDescriptor($reference, ['sql']);
-        if ($backup === null || ! ($drive->status()['connected'] ?? false)) {
-            $this->notify('error', 'Backup local không tồn tại hoặc Google Drive chưa kết nối.');
+        if ($backup === null) {
+            $this->notify('error', 'Backup local không còn tồn tại.');
+            return;
+        }
+        if (! $this->driveReady($readiness)) {
             return;
         }
         $drive->markBackupQueued($backup['name']);
@@ -209,6 +211,16 @@ class FullBackupWorkspace extends Component
         $this->selectedNames = [];
         $this->showDeleteModal = false;
         $this->notify('success', "Đã hoàn tất xóa {$deleted} bản sao tại các vị trí được chọn.");
+    }
+
+    private function driveReady(GoogleDriveReadinessService $readiness): bool
+    {
+        $state = $readiness->check();
+        if ($state['ready']) {
+            return true;
+        }
+        $this->notify('error', (string) $state['message']);
+        return false;
     }
 
     private function notify(string $type, string $message): void
