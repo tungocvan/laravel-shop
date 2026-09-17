@@ -6,7 +6,9 @@ namespace Modules\System\Tests\Unit;
 
 use Modules\System\Services\Database\ModuleSchemaDoctorService;
 use Modules\System\Services\Database\ModuleSnapshotService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 class ModuleSchemaDoctorServiceTest extends TestCase
 {
@@ -34,5 +36,42 @@ class ModuleSchemaDoctorServiceTest extends TestCase
 
         self::assertSame('SAFE', $result['verdict']);
         self::assertTrue($result['restore_unlocked']);
+    }
+
+    public function test_same_named_index_is_equal_after_canonicalization(): void
+    {
+        $doctor = new ModuleSchemaDoctorService($this->createMock(ModuleSnapshotService::class));
+        $method = new ReflectionMethod($doctor, 'namedStructureDifferences');
+        $method->setAccessible(true);
+
+        $snapshot = [
+            'pharma_drug_bid_awards_medicine_id_foreign' => [
+                ['column' => 'medicine_id', 'sequence' => 1, 'unique' => false],
+            ],
+        ];
+        $mysql = [
+            'pharma_drug_bid_awards_medicine_id_foreign' => [
+                ['unique' => false, 'sequence' => 1, 'column' => 'medicine_id'],
+            ],
+        ];
+
+        self::assertSame([], $method->invoke($doctor, $snapshot, $mysql, 'indexes'));
+    }
+
+    public function test_foreign_key_is_compared_separately_from_supporting_index(): void
+    {
+        $doctor = new ModuleSchemaDoctorService($this->createMock(ModuleSnapshotService::class));
+        $method = new ReflectionMethod($doctor, 'namedStructureDifferences');
+        $method->setAccessible(true);
+
+        $foreignKey = [
+            'pharma_drug_bid_awards_medicine_id_foreign' => [[
+                'column' => 'medicine_id',
+                'referenced_table' => 'pharma_medicines',
+                'referenced_column' => 'id',
+            ]],
+        ];
+
+        self::assertSame([], $method->invoke($doctor, $foreignKey, $foreignKey, 'foreign_keys'));
     }
 }
