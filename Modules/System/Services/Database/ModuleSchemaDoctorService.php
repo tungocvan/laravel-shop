@@ -68,7 +68,15 @@ class ModuleSchemaDoctorService
             }
         }
 
-        $verdict = collect($issues)->contains(fn (array $issue): bool => $issue['risk'] === 'BLOCKED') ? 'BLOCKED' : 'REVIEW';
+        $hasBlockedIssue = false;
+        foreach ($issues as $issue) {
+            if (($issue['risk'] ?? null) === 'BLOCKED') {
+                $hasBlockedIssue = true;
+                break;
+            }
+        }
+        $verdict = $hasBlockedIssue ? 'BLOCKED' : 'REVIEW';
+
         return $this->result($verdict, $verdict === 'BLOCKED' ? 'Có khác biệt schema có thể làm mất dữ liệu; Doctor khóa auto-repair và Restore.' : 'Đã xác định khác biệt nhưng cần đối chiếu migration trước khi sửa.', $issues);
     }
 
@@ -88,20 +96,14 @@ class ModuleSchemaDoctorService
             $columns = [];
             foreach ($columnRows as $row) {
                 $data = (array) $row;
-                $columns[(string) $data['Field']] = [
-                    'type' => strtolower((string) $data['Type']),
-                    'null' => strtoupper((string) $data['Null']),
-                    'default' => $data['Default'],
-                    'extra' => strtolower((string) $data['Extra']),
-                ];
+                $columns[(string) $data['Field']] = ['type' => strtolower((string) $data['Type']), 'null' => strtoupper((string) $data['Null']), 'default' => $data['Default'], 'extra' => strtolower((string) $data['Extra'])];
             }
             ksort($columns, SORT_STRING);
 
             $indexes = [];
             foreach (DB::select('SHOW INDEX FROM '.$quotedTable) as $row) {
                 $data = (array) $row;
-                $name = (string) $data['Key_name'];
-                $indexes[$name][] = ['column' => (string) $data['Column_name'], 'sequence' => (int) $data['Seq_in_index'], 'unique' => (int) $data['Non_unique'] === 0];
+                $indexes[(string) $data['Key_name']][] = ['column' => (string) $data['Column_name'], 'sequence' => (int) $data['Seq_in_index'], 'unique' => (int) $data['Non_unique'] === 0];
             }
             ksort($indexes, SORT_STRING);
 
@@ -115,6 +117,7 @@ class ModuleSchemaDoctorService
             $schema[$table] = ['columns' => $columns, 'indexes' => $indexes, 'foreign_keys' => $foreignKeys];
         }
         ksort($schema, SORT_STRING);
+
         return $schema;
     }
 
