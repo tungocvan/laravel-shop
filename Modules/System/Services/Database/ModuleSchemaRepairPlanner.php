@@ -125,7 +125,7 @@ class ModuleSchemaRepairPlanner
             'migration_candidates' => [],
         ];
 
-        if ($table !== '' && $columns !== []) {
+        if ($table !== '' && $columns !== [] && $this->hasLaravelApplication()) {
             try {
                 $database = (string) DB::connection()->getDatabaseName();
                 $rows = DB::select(
@@ -160,11 +160,12 @@ class ModuleSchemaRepairPlanner
 
     private function migrationCandidates(string $table, array $columns): array
     {
-        if ($table === '' || $columns === [] || ! function_exists('base_path')) {
+        $basePath = $this->applicationBasePath();
+        if ($table === '' || $columns === [] || $basePath === null) {
             return [];
         }
 
-        $files = glob(base_path('Modules/*/database/migrations/*.php')) ?: [];
+        $files = glob($basePath.'/Modules/*/database/migrations/*.php') ?: [];
         $candidates = [];
         foreach ($files as $file) {
             $source = @file_get_contents($file);
@@ -179,7 +180,7 @@ class ModuleSchemaRepairPlanner
                 continue;
             }
 
-            $relative = str_replace('\\', '/', substr($file, strlen(base_path()) + 1));
+            $relative = str_replace('\\', '/', substr($file, strlen($basePath) + 1));
             $candidates[] = [
                 'file' => $relative,
                 'foreign_id' => collect($columns)->contains(
@@ -190,6 +191,20 @@ class ModuleSchemaRepairPlanner
         }
 
         return $candidates;
+    }
+
+    private function hasLaravelApplication(): bool
+    {
+        return function_exists('app') && method_exists(app(), 'basePath');
+    }
+
+    private function applicationBasePath(): ?string
+    {
+        if (! $this->hasLaravelApplication()) {
+            return null;
+        }
+
+        return app()->basePath();
     }
 
     private function equivalentIndexName(array $expectedDefinition, array $current): ?string
