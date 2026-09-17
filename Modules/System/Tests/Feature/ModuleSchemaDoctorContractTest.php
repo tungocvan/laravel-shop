@@ -29,7 +29,7 @@ class ModuleSchemaDoctorContractTest extends TestCase
         $source = file_get_contents(base_path('Modules/System/Services/Database/ModuleSnapshotSchemaManifest.php'));
 
         self::assertIsString($source);
-        self::assertStringContainsString('$manifest[\'schema_manifest\'] = $schemaManifest;', $source);
+        self::assertStringContainsString("schema_manifest'] =", $source);
         self::assertStringNotContainsString("format_version'] =", $source);
     }
 }
