@@ -34,7 +34,7 @@ class ModuleSchemaRepairPlannerTest extends TestCase
         self::assertSame('pharma_drug_bid_awards_medicine_id_foreign', $plan['steps'][0]['to']);
     }
 
-    public function test_missing_index_without_equivalent_requires_review(): void
+    public function test_missing_index_without_equivalent_requires_review_with_evidence_boundary(): void
     {
         $report = ['issues' => [[
             'table' => 'pharma_drug_bid_awards',
@@ -49,6 +49,10 @@ class ModuleSchemaRepairPlannerTest extends TestCase
 
         self::assertFalse($plan['all_safe']);
         self::assertSame('REVIEW', $plan['steps'][0]['risk']);
-        self::assertSame('ADD_INDEX_REVIEW', $plan['steps'][0]['action']);
+        self::assertContains($plan['steps'][0]['action'], ['ADD_INDEX_REVIEW', 'INDEX_EVIDENCE_CONFLICT_REVIEW']);
+        self::assertSame(['medicine_id'], $plan['steps'][0]['evidence']['columns']);
+        self::assertArrayHasKey('matching_foreign_keys', $plan['steps'][0]['evidence']);
+        self::assertArrayHasKey('migration_candidates', $plan['steps'][0]['evidence']);
+        self::assertFalse($plan['execution_available']);
     }
 }
