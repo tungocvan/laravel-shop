@@ -7,6 +7,7 @@ namespace Modules\System\Livewire\Database;
 use Livewire\Component;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\Database\ModuleSchemaDoctorService;
+use Modules\System\Services\Database\ModuleSchemaRepairPlanner;
 use Modules\System\Services\Database\ModuleSnapshotService;
 
 class ModuleSchemaDoctorPanel extends Component
@@ -19,15 +20,21 @@ class ModuleSchemaDoctorPanel extends Component
 
     public ?array $report = null;
 
+    public ?array $repairPlan = null;
+
     public bool $open = false;
 
-    public function diagnose(string $reference, ModuleSchemaDoctorService $doctor): void
-    {
+    public function diagnose(
+        string $reference,
+        ModuleSchemaDoctorService $doctor,
+        ModuleSchemaRepairPlanner $planner,
+    ): void {
         $this->authorizePermission('database.restore');
         $this->reference = $reference;
 
         try {
             $this->report = $doctor->diagnose($reference, $this->module);
+            $this->repairPlan = $planner->plan($this->report);
             $this->open = true;
         } catch (\Throwable $e) {
             report($e);
@@ -38,6 +45,7 @@ class ModuleSchemaDoctorPanel extends Component
                 'auto_repair_available' => false,
                 'restore_unlocked' => false,
             ];
+            $this->repairPlan = ['steps' => [], 'all_safe' => false, 'execution_available' => false];
             $this->open = true;
         }
     }
@@ -47,6 +55,7 @@ class ModuleSchemaDoctorPanel extends Component
         $this->open = false;
         $this->reference = null;
         $this->report = null;
+        $this->repairPlan = null;
     }
 
     public function render(ModuleSnapshotService $snapshots)
