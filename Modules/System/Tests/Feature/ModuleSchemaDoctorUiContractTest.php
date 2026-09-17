@@ -23,6 +23,9 @@ class ModuleSchemaDoctorUiContractTest extends TestCase
         self::assertStringContainsString('PLAN SAFE', $panel);
         self::assertStringContainsString('CẦN REVIEW', $panel);
         self::assertStringContainsString('Execution vẫn bị khóa ở batch này', $panel);
+        self::assertStringContainsString('Evidence', $panel);
+        self::assertStringContainsString('Foreign key hiện tại', $panel);
+        self::assertStringContainsString('Migration ownership', $panel);
         self::assertStringContainsString('Snapshot', $panel);
         self::assertStringContainsString('Hiện tại', $panel);
         self::assertStringContainsString("\$issue['differences']", $panel);
