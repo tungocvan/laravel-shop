@@ -14,10 +14,7 @@ class ModuleSchemaDoctorServiceTest extends TestCase
     {
         $snapshots = $this->createMock(ModuleSnapshotService::class);
         $snapshots->method('resolveLocalReference')->with('ref', 'Pharma')->willReturn(['absolute_path' => '/tmp/pharma.zip']);
-        $snapshots->method('validatePackage')->willReturn([
-            'compatibility' => 'BLOCKED',
-            'manifest' => ['module' => 'Pharma', 'tables' => ['pharma_medicines']],
-        ]);
+        $snapshots->method('validatePackage')->willReturn(['compatibility' => 'BLOCKED', 'manifest' => ['module' => 'Pharma', 'tables' => ['pharma_medicines']]]);
 
         $result = (new ModuleSchemaDoctorService($snapshots))->diagnose('ref', 'Pharma');
 
