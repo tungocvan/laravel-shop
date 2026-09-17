@@ -10,68 +10,31 @@ use Modules\System\Http\Controllers\SystemController;
 use Modules\System\Http\Controllers\SystemDashboardController;
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::redirect('/settings', '/admin/system/settings')
-        ->middleware('permission:system.settings.view,admin')
-        ->name('system.settings.legacy');
+    Route::redirect('/settings', '/admin/system/settings')->middleware('permission:system.settings.view,admin')->name('system.settings.legacy');
 
     Route::prefix('/system')->name('system.')->group(function () {
-        Route::get('/dashboard', SystemDashboardController::class)
-            ->middleware('permission:system.manage,admin')
-            ->name('dashboard');
-        Route::get('/', [SystemController::class, 'index'])
-            ->middleware('permission:system.manage,admin')
-            ->name('index');
-        Route::get('/modules', [SettingController::class, 'modules'])
-            ->middleware('permission:system.modules.view,admin')
-            ->name('modules');
-        Route::get('/artisan', [SettingController::class, 'artisan'])
-            ->middleware('permission:system.commands.run,admin')
-            ->name('artisan');
-        Route::get('/scripts', [SettingController::class, 'scripts'])
-            ->middleware('permission:system.commands.run,admin')
-            ->name('scripts');
-        Route::get('/settings', [SettingController::class, 'index'])
-            ->middleware('permission:system.settings.view,admin')
-            ->name('settings.index');
-        Route::get('/settings/login-theme', [SettingController::class, 'loginTheme'])
-            ->middleware('permission:system.settings.view,admin')
-            ->name('settings.login-theme');
-        Route::get('/settings/login-redirect', [SettingController::class, 'loginRedirect'])
-            ->middleware('permission:system.settings.view,admin')
-            ->name('settings.login-redirect');
-        Route::post('/settings/login-redirect', [SettingController::class, 'updateLoginRedirect'])
-            ->middleware('permission:system.settings.update,admin')
-            ->name('settings.login-redirect.update');
-        Route::post('/settings/login-theme/assets/{type}', [LoginThemeAssetController::class, 'store'])
-            ->middleware('permission:system.settings.update,admin')
-            ->name('settings.login-theme.assets.store');
-        Route::delete('/settings/login-theme/assets/{type}', [LoginThemeAssetController::class, 'destroy'])
-            ->middleware('permission:system.settings.update,admin')
-            ->name('settings.login-theme.assets.destroy');
-        Route::get('/settings/env', [EnvConfigController::class, 'index'])
-            ->middleware('permission:system.env.view,admin')
-            ->name('settings.env');
+        Route::get('/dashboard', SystemDashboardController::class)->middleware('permission:system.manage,admin')->name('dashboard');
+        Route::get('/', [SystemController::class, 'index'])->middleware('permission:system.manage,admin')->name('index');
+        Route::get('/modules', [SettingController::class, 'modules'])->middleware('permission:system.modules.view,admin')->name('modules');
+        Route::get('/artisan', [SettingController::class, 'artisan'])->middleware('permission:system.commands.run,admin')->name('artisan');
+        Route::get('/scripts', [SettingController::class, 'scripts'])->middleware('permission:system.commands.run,admin')->name('scripts');
+        Route::get('/settings', [SettingController::class, 'index'])->middleware('permission:system.settings.view,admin')->name('settings.index');
+        Route::get('/settings/login-theme', [SettingController::class, 'loginTheme'])->middleware('permission:system.settings.view,admin')->name('settings.login-theme');
+        Route::get('/settings/login-redirect', [SettingController::class, 'loginRedirect'])->middleware('permission:system.settings.view,admin')->name('settings.login-redirect');
+        Route::post('/settings/login-redirect', [SettingController::class, 'updateLoginRedirect'])->middleware('permission:system.settings.update,admin')->name('settings.login-redirect.update');
+        Route::post('/settings/login-theme/assets/{type}', [LoginThemeAssetController::class, 'store'])->middleware('permission:system.settings.update,admin')->name('settings.login-theme.assets.store');
+        Route::delete('/settings/login-theme/assets/{type}', [LoginThemeAssetController::class, 'destroy'])->middleware('permission:system.settings.update,admin')->name('settings.login-theme.assets.destroy');
+        Route::get('/settings/env', [EnvConfigController::class, 'index'])->middleware('permission:system.env.view,admin')->name('settings.env');
 
         Route::prefix('/settings/cloud')->name('settings.cloud.')->group(function () {
-            Route::get('/google/connect', [GoogleDriveOAuthController::class, 'connect'])
-                ->middleware('permission:system.env.update,admin')
-                ->name('google.connect');
-            Route::get('/google/callback', [GoogleDriveOAuthController::class, 'callback'])
-                ->middleware('permission:system.env.update,admin')
-                ->name('google.callback');
+            Route::get('/google/connect', [GoogleDriveOAuthController::class, 'connect'])->middleware('permission:system.env.update,admin')->name('google.connect');
+            Route::get('/google/callback', [GoogleDriveOAuthController::class, 'callback'])->middleware('permission:system.env.update,admin')->name('google.callback');
         });
 
         Route::prefix('/database')->name('database.')->group(function () {
-            Route::get('/', [DatabaseController::class, 'index'])
-                ->middleware('permission:database.view,admin')
-                ->name('index');
-            Route::get('/backup-restore', [DatabaseController::class, 'backupRestore'])
-                ->middleware('permission:database.view,admin')
-                ->name('backup-restore');
-            Route::get('/download/{filename}', [DatabaseController::class, 'download'])
-                ->middleware('permission:database.download,admin')
-                ->name('download')
-                ->where('filename', '[a-f0-9]{64}');
+            Route::get('/', [DatabaseController::class, 'index'])->middleware('permission:database.view,admin')->name('index');
+            Route::redirect('/backup-restore', '/admin/system/database')->middleware('permission:database.view,admin')->name('backup-restore');
+            Route::get('/download/{filename}', [DatabaseController::class, 'download'])->middleware('permission:database.download,admin')->name('download')->where('filename', '[a-f0-9]{64}');
         });
     });
 });
