@@ -20,6 +20,18 @@ class DatabaseUnifiedWorkspaceContractTest extends TestCase
         self::assertStringContainsString('Danh sách bảng được ẩn mặc định', $view);
     }
 
+    public function test_module_workspace_hydrates_drive_state_on_initial_mount(): void
+    {
+        $component = file_get_contents(base_path('Modules/System/Livewire/Database/TableList.php'));
+        self::assertIsString($component);
+        self::assertStringContainsString("public function mount(string \$moduleFilter = '')", $component);
+        self::assertStringContainsString('$this->refreshModuleSnapshots();', $component);
+        self::assertStringContainsString('GoogleDriveConnectionService::class', $component);
+        self::assertStringContainsString("status()['connected']", $component);
+        self::assertStringContainsString('Module snapshot Google Drive status failed.', $component);
+        self::assertStringContainsString('Module snapshot local catalog refresh failed.', $component);
+    }
+
     public function test_unified_workspace_preserves_full_database_and_drive_manager(): void
     {
         $view = file_get_contents(base_path('Modules/System/resources/views/pages/database.blade.php'));
