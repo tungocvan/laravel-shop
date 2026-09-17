@@ -77,14 +77,16 @@ class ModuleSchemaDoctorService
     {
         $schema = [];
         foreach ($tables as $table) {
-            $exists = DB::selectOne('SHOW TABLES LIKE ?', [$table]);
-            if ($exists === null) {
+            $quotedTable = '`'.str_replace('`', '``', (string) $table).'`';
+            try {
+                $columnRows = DB::select('SHOW FULL COLUMNS FROM '.$quotedTable);
+            } catch (\Throwable) {
                 $schema[$table] = [];
                 continue;
             }
 
             $columns = [];
-            foreach (DB::select('SHOW FULL COLUMNS FROM `'.str_replace('`', '``', $table).'`') as $row) {
+            foreach ($columnRows as $row) {
                 $data = (array) $row;
                 $columns[(string) $data['Field']] = [
                     'type' => strtolower((string) $data['Type']),
@@ -96,14 +98,10 @@ class ModuleSchemaDoctorService
             ksort($columns, SORT_STRING);
 
             $indexes = [];
-            foreach (DB::select('SHOW INDEX FROM `'.str_replace('`', '``', $table).'`') as $row) {
+            foreach (DB::select('SHOW INDEX FROM '.$quotedTable) as $row) {
                 $data = (array) $row;
                 $name = (string) $data['Key_name'];
-                $indexes[$name][] = [
-                    'column' => (string) $data['Column_name'],
-                    'sequence' => (int) $data['Seq_in_index'],
-                    'unique' => (int) $data['Non_unique'] === 0,
-                ];
+                $indexes[$name][] = ['column' => (string) $data['Column_name'], 'sequence' => (int) $data['Seq_in_index'], 'unique' => (int) $data['Non_unique'] === 0];
             }
             ksort($indexes, SORT_STRING);
 
@@ -111,11 +109,7 @@ class ModuleSchemaDoctorService
             $database = (string) config('database.connections.mysql.database');
             foreach (DB::select('SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION', [$database, $table]) as $row) {
                 $data = (array) $row;
-                $foreignKeys[(string) $data['CONSTRAINT_NAME']][] = [
-                    'column' => (string) $data['COLUMN_NAME'],
-                    'referenced_table' => (string) $data['REFERENCED_TABLE_NAME'],
-                    'referenced_column' => (string) $data['REFERENCED_COLUMN_NAME'],
-                ];
+                $foreignKeys[(string) $data['CONSTRAINT_NAME']][] = ['column' => (string) $data['COLUMN_NAME'], 'referenced_table' => (string) $data['REFERENCED_TABLE_NAME'], 'referenced_column' => (string) $data['REFERENCED_COLUMN_NAME']];
             }
             ksort($foreignKeys, SORT_STRING);
             $schema[$table] = ['columns' => $columns, 'indexes' => $indexes, 'foreign_keys' => $foreignKeys];
