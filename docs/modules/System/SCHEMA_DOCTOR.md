@@ -14,8 +14,10 @@ Snapshot 1.0 cũ chỉ có fingerprint tổng được đánh dấu `REVIEW` khi
 
 ## Detailed schema manifest
 
-`ModuleSchemaDoctorService::currentSchema()` tạo representation deterministic gồm columns, indexes và foreign keys. Snapshot thế hệ kế tiếp có thể lưu representation này trong `manifest.json` dưới key `schema_manifest`; `ModuleSnapshotManifestService` cung cấp boundary để tạo metadata đó mà không thay đổi restore semantics.
+`ModuleSchemaDoctorService::currentSchema()` tạo representation deterministic gồm columns, indexes và foreign keys. `ModuleSnapshotManifestService` và `ModuleSnapshotSchemaManifest` là boundary additive để snapshot thế hệ kế tiếp có thể ghi `schema_manifest` mà vẫn giữ `format_version=1.0` và restore semantics hiện tại.
+
+Lưu ý ở checkpoint này: `ModuleSnapshotService::create()` chưa được đổi để ghi field mới. Vì vậy snapshot hiện hữu và snapshot tạo trước khi integration tiếp theo vẫn được Doctor xử lý như legacy fingerprint-only. Đây là chủ ý để không thay đổi đường backup/restore production trước khi focused tests xác nhận boundary mới.
 
 ## Safety rules
 
-Doctor không được tự `DROP TABLE`, `DROP COLUMN`, `ALTER TABLE`, không bỏ qua checksum/ownership/schema validation và không tự mở Restore khi verdict khác `SAFE`. Việc repair phải đi qua migration/version-control và được đánh giá riêng; Safety Snapshot vẫn là gate bắt buộc của restore hiện hữu.
+Doctor không được tự chạy destructive DDL, không bỏ qua checksum/ownership/schema validation và không tự mở Restore khi verdict khác `SAFE`. Việc repair phải đi qua migration/version-control và được đánh giá riêng; Safety Snapshot vẫn là gate bắt buộc của restore hiện hữu.
