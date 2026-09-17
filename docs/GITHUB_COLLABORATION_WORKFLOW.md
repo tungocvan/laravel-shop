@@ -339,53 +339,17 @@ Ví dụ cấu trúc dữ liệu tổng quát:
 {
   "version": 1,
   "modules": {
-    "ModuleA": true,
-    "ModuleB": false
+    "Example": true
   }
 }
 ```
 
-Quy tắc:
+#### Resolve trạng thái Module
 
-- Đây là runtime state, không phải tracked source và không được commit vào Git.
-- Không sửa `module-state.json` thủ công. Mọi thao tác bật/tắt/reset phải đi qua cơ chế quản trị hoặc `ModuleStateRepository` của hệ thống.
-- Repository runtime state dùng file lock độc quyền và ghi file tạm rồi thay thế nguyên tử; không được thay thế cơ chế này bằng thao tác ghi JSON trực tiếp.
-- Không sửa `Modules/<Module>/config/module.php` chỉ để bật/tắt Module trong runtime.
-
-#### Cách xác định trạng thái Module
-
-`ModuleStateResolver` xác định trạng thái theo thứ tự:
-
-1. Shell Module bắt buộc (`required`) luôn bật.
-2. Nếu runtime state có giá trị cho Module thì dùng đúng `true`/`false` từ runtime state.
-3. Nếu chưa có runtime state thì dùng `default_enabled` trong manifest.
-4. Để tương thích manifest cũ, nếu không có `default_enabled` thì dùng `enabled`; nếu cả hai không tồn tại, fallback chung hiện tại là `true`.
-
-Tóm tắt tổng quát:
+Luồng resolve chuẩn:
 
 ```text
-runtime <Module>=true
-    → Module ENABLED
-
-runtime <Module>=false
-    → Module DISABLED
-
-không có runtime override
-    → dùng default_enabled
-    → nếu thiếu default_enabled thì dùng enabled
-    → nếu cả hai đều thiếu thì fallback chung = true
-```
-
-Shell Module là ngoại lệ bắt buộc: `required=true` thì luôn enabled và không được tắt bằng runtime state.
-
-#### Cách autoload Module
-
-`Modules/ModuleServiceProvider.php` là entry point autoload chung của toàn project. Luồng xử lý phải được hiểu như sau:
-
-```text
-Discover toàn bộ thư mục con trong Modules/
-    ↓
-Đọc manifest config/module.php hoặc Config/module.php nếu có
+Đọc manifest Module
     ↓
 Xác định type / required / depends
     ↓
@@ -423,14 +387,38 @@ Trước và sau thao tác bật/tắt phải kiểm tra dependency, trạng th�
 
 ## 12. Docker / production
 
+Khi người dùng nói `production`, `Docker production`, `debug production`, `test production`, `lỗi chỉ xảy ra production` hoặc tham chiếu `/opt/projects/<project>`, bắt buộc đọc và áp dụng:
+
+```text
+docs/PRODUCTION_DOCKER_RUNTIME.md
+```
+
+Production diagnosis mặc định là **READ-ONLY**. Ưu tiên bootstrap bằng:
+
+```bash
+./production-debug.sh
+```
+
+Sau khi người vận hành thay đổi production `.env`, helper chuẩn để apply runtime environment là:
+
+```bash
+./run-updated-env.sh
+```
+
+Production `.env` canonical nằm tại `/opt/projects/<project>/.env`; không coi `.env` nằm trong Docker image là source of truth và không dump secret trong diagnostic output.
+
 Nếu feature tạo runtime file/directory:
 
 - kiểm tra `Dockerfile`
+- kiểm tra `.dockerignore`
+- kiểm tra `compose.yaml` / Compose overlays applicable
 - kiểm tra `docker/entrypoint.sh`
 - kiểm tra volume persistence
 - kiểm tra ownership của `www-data`
-- phân biệt CLI chạy bằng `root` với PHP-FPM chạy bằng `www-data`
+- phân biệt CLI/container user với PHP-FPM `www-data`
 - không dùng `chmod 777`
+
+Không thực hiện destructive/mutating production operation khi chưa xác định root cause và chưa được người dùng phê duyệt rõ ràng. Đặc biệt không dùng `migrate:fresh`, `db:wipe`, rollback, `git reset --hard`, `git clean -fd`, xóa volume hoặc sửa `.env` như bước diagnosis mặc định.
 
 ## 13. Working tree đang dirty
 
@@ -453,393 +441,26 @@ Chỉ merge khi các gate applicable đã PASS:
 - Admin UI standard acceptance nếu task có Admin UI
 - PWA file handoff acceptance theo `docs/PWA_EXTERNAL_FILE_HANDOFF.md` nếu task có download/open file trên PWA-capable surface
 - Git clean
-- Docker/production check nếu liên quan
-- docs cập nhật
-- `COLLABORATION_HANDOFF.md` đã được cập nhật trong branch trước khi tạo PR
-- handoff đã được refresh trước merge với PR, checkpoint, gates, production boundary và next authorized step hiện tại
-- MR cuối của checkpoint/Module không còn trạng thái, branch hoặc PR cũ trong handoff
-- không còn debug/temp files
+- `COLLABORATION_HANDOFF.md` cập nhật
 
-## 15. Quy trình merge chuẩn
+Không merge nếu còn lỗi chưa giải thích.
 
-```bash
-git switch main
-git pull --ff-only origin main
-git merge --no-ff <feature-branch> -m "merge: <description>"
-```
+## 15. Handoff
 
-Sau merge:
-
-- `git status`
-- chạy regression cần thiết
-- kiểm tra log/commit
-- đối chiếu PR, merge commit và checkpoint thực tế với `COLLABORATION_HANDOFF.md`
-- áp dụng post-merge handoff closeout ở mục 16.9 nếu đây là MR cuối của checkpoint/Module
-
-Chỉ khi PASS mới:
-
-```bash
-git push origin main
-```
-
-Sau push xác nhận:
-
-- `main == origin/main`
-- working tree clean
-
-Sau đó mới xóa branch:
-
-```bash
-git branch -d <feature-branch>
-git push origin --delete <feature-branch>
-```
-
-## 16. Khởi động và bàn giao công việc theo Module
-
-### 16.1 Phản hồi đầu tiên và giới hạn hành động
-
-Khi người dùng yêu cầu áp dụng workflow này kèm tên Module, phản hồi đầu tiên phải xác nhận rằng ChatGPT **chưa sửa code hoặc thay đổi GitHub**. Trước tiên ChatGPT thực hiện kiểm tra chỉ đọc về quyền repository, branch/PR/checkpoint, Module source, tài liệu và handoff; sau đó báo dữ liệu đã xác minh trước khi tiếp tục.
-
-Việc yêu cầu “áp dụng workflow” không tự cấp quyền sửa code, merge, xóa dữ liệu hoặc thực hiện thao tác phá hủy. Phạm vi phải được phân loại rõ là: phân tích, diagnose, review, implementation, kiểm thử/acceptance hay chuẩn bị merge.
-
-### 16.2 Kiểm tra quyền truy cập GitHub trước tiên
-
-Trước khi đọc handoff hoặc phân tích Module, phải xác nhận bằng thao tác chỉ đọc rằng repository được chỉ định là chính xác và quyền truy cập hiện tại đủ cho phạm vi công việc yêu cầu. Không tạo commit, branch hoặc file thử chỉ để kiểm tra quyền ghi.
-
-Nếu quyền đã đầy đủ, chỉ cần báo ngắn gọn đúng một câu:
-
-`Tôi đã có toàn quyền thực hiện trên kho mà bạn chỉ định trong tài liệu.`
-
-Không cần liệt kê tài khoản, mức quyền, branch, API permission hoặc chi tiết kỹ thuật khác khi mọi thứ hợp lệ.
-
-- Không truy cập được hoặc quyền không đủ: dừng và chỉ báo ngắn gọn vấn đề cần người dùng xử lý.
-- Repository không khớp yêu cầu: dừng và yêu cầu xác nhận.
-
-### 16.3 Xác nhận dữ liệu bootstrap
-
-Sau kiểm tra quyền và trước khi thực hiện công việc, xác minh Module source, Module docs, handoff, branch/PR/checkpoint và working scope. Chỉ báo những dữ liệu cần thiết để người dùng xác nhận; không liệt kê chi tiết quyền truy cập đã được xác nhận ở mục 16.2.
-
-Nếu dữ liệu không nhất quán, dừng để người dùng xác nhận thay vì tự phỏng đoán.
-
-Nếu working scope có Admin UI, bootstrap phải ghi nhận `.codex/standards/ADMIN_UI_STANDARD.md` là tài liệu bắt buộc và phải đọc trước khi đưa ra plan hoặc sửa UI.
-
-Nếu working scope có download/open file trên bề mặt có thể chạy dưới installed PWA, bootstrap phải ghi nhận `docs/PWA_EXTERNAL_FILE_HANDOFF.md` là tài liệu bắt buộc và manual acceptance phải bao gồm platform/PWA gate applicable.
-
-### 16.4 Xác minh Module và cây fallback tài liệu
-
-Phải xác minh chính xác `Modules/<Module>` trước. Nếu không tồn tại, không tự chọn Module có tên gần giống; phải kiểm tra sai tên, chữ hoa/thường, branch thiếu source, tài liệu orphan hoặc yêu cầu tạo Module mới.
-
-#### A. Có handoff
-
-Nếu có `docs/modules/<Module>/COLLABORATION_HANDOFF.md`:
-
-1. đọc toàn bộ handoff
-2. đối chiếu checkpoint/branch/PR với GitHub
-3. kiểm tra các file source và tests liên quan
-4. tiếp tục từ “Remaining work / Next step”, không phân tích lại từ đầu
-
-Handoff không được ghi đè bằng chứng hiện tại. Khi khác source, source/schema/config là nguồn sự thật và phải báo documentation drift.
-
-#### B. Có thư mục docs nhưng không có handoff
-
-Không đọc toàn bộ `.md` một cách máy móc. Trước tiên lập inventory và ưu tiên:
-
-1. `README.md`, `REQUIREMENTS.md`
-2. `ANALYSIS.md`, `INFORMATION.md` khi có
-3. master spec, domain invariants và architecture contract
-4. implementation completion/summary/addendum
-5. acceptance, release evidence và release notes
-6. runbook liên quan trực tiếp
-7. phase/kế hoạch lịch sử chỉ khi nhiệm vụ hoặc source dẫn tới
-
-Tài liệu phải được kiểm chứng với source/tests hiện tại. Đề xuất tạo handoff khi branch hoàn thành.
-
-#### C. Có Module source nhưng chưa có thư mục docs
-
-Đề xuất áp dụng `.codex/tasks/analyze-module.md`. Task `/analyze` chỉ phân tích, không sửa application code và chỉ được tạo/cập nhật:
-
-```text
-docs/modules/<Module>/ANALYSIS.md
-docs/modules/<Module>/INFORMATION.md
-docs/modules/<Module>/README.md
-```
-
-Tạo `COLLABORATION_HANDOFF.md` là batch riêng sau baseline analysis, không trộn vào contract `/analyze`.
-
-#### D. Có docs nhưng không có Module source
-
-Báo tài liệu có thể orphan/stale và dừng để xác nhận.
-
-#### E. Không có cả source lẫn docs
-
-Dừng và yêu cầu xác nhận tên Module, branch hoặc đây có phải Module mới không.
-
-### 16.5 Thứ tự nguồn sự thật
-
-1. Source code, schema và configuration hiện tại; với cơ chế Module phải đối chiếu thêm `Modules/ModuleServiceProvider.php`, `ModuleStateResolver` và runtime state repository.
-2. Branch, PR và checkpoint thực tế trên GitHub.
-3. `.codex/bootstrap/*`, `.codex/standards/*` và `ROADMAP.md`; riêng Admin UI, `.codex/standards/ADMIN_UI_STANDARD.md` là canonical UI/UX standard và phải được áp dụng cùng repository reality/shared components hiện tại.
-4. Handoff đã được kiểm chứng.
-5. Requirements/analysis/tài liệu Module.
-6. Tài liệu lịch sử hoặc kế hoạch cũ.
-
-### 16.6 File handoff bắt buộc khi kết thúc branch
-
-Mỗi Module dùng một file duy nhất:
+Trước khi tạo PR và trước merge phải cập nhật:
 
 ```text
 docs/modules/<Module>/COLLABORATION_HANDOFF.md
 ```
 
-Trước khi kết thúc feature/fix branch, cập nhật trong chính branch đó: repository/base/branch/PR/checkpoint, phạm vi hoàn thành, batch quan trọng, root cause và cách sửa, quyết định kiến trúc/phân quyền/ranh giới an toàn, migration/seeder/storage/lệnh vận hành, focused test, module regression, impacted/cross-module regression applicable, UI smoke, Git clean, blocker, việc còn lại và bước tiếp theo được phép.
-
-Nếu branch có Admin UI, handoff phải ghi rõ mức tuân thủ `.codex/standards/ADMIN_UI_STANDARD.md`, shared components/patterns đã reuse và kết quả kiểm tra UI desktop/mobile applicable.
-
-Nếu branch có PWA file download/open behavior, handoff phải ghi rõ cách preserved top-level PWA context, security/session boundary và kết quả acceptance iOS/Android/desktop applicable theo `docs/PWA_EXTERNAL_FILE_HANDOFF.md`.
-
-Chỉ ghi thông tin hữu ích để tiếp tục; không sao chép log dài. Handoff không thay thế requirements, runbook hoặc acceptance document.
-
-Chỉ ghi branch `COMPLETED` khi mọi gate applicable đã PASS. Nếu chưa hoàn tất phải ghi `IN PROGRESS`. Không tự cập nhật handoff ngoài phạm vi đã được người dùng phê duyệt.
-
-### 16.7 Gate bắt buộc trước khi tạo PR
-
-Trước khi tạo PR cho branch feature/fix/docs của một Module, phải cập nhật `docs/modules/<Module>/COLLABORATION_HANDOFF.md` trong chính branch đó.
-
-Handoff trước khi tạo PR phải phản ánh tối thiểu:
-
-- repository, base branch và delivery/checkpoint hiện tại
-- mục tiêu, phạm vi và các batch đã hoàn thành/chưa hoàn thành
-- quyết định kiến trúc, phân quyền và safety boundary applicable
-- bằng chứng test/UI/Git-clean đã có; không ghi PASS cho gate chưa chạy
-- blocker, deferred work, production boundary và next authorized step
-- trạng thái branch/checkpoint trung thực
-
-Với PR feature/fix/docs thông thường, vì PR chưa tồn tại ở thời điểm này, được phép ghi:
-
-```text
-Pull request: PENDING — not created
-Merge commit: NOT AVAILABLE
-```
-
-Không tự đoán số PR, merge commit hoặc trạng thái merged. Nếu handoff chưa tồn tại, còn trỏ tới branch/PR/checkpoint cũ hoặc chưa phản ánh batch hiện tại thì **không tạo PR**.
-
-#### Ngoại lệ bền vững cho docs-only post-merge closeout
-
-Một PR docs-only có mục đích duy nhất là làm cho handoff sau merge trở thành trạng thái cuối, bền vững trên `main` không được ghi trạng thái tạm của chính delivery container vào handoff, ví dụ:
-
-- branch corrective đang hoạt động
-- PR của chính closeout đang `PENDING`, `OPEN` hoặc `READY TO MERGE`
-- merge SHA chưa tồn tại của chính closeout
-- next step yêu cầu review/merge chính PR đang chứa handoff
-
-Delivery envelope của closeout — branch, số PR, head SHA, review và merge result — phải được ghi trong PR description và xác minh từ GitHub/Git history. Handoff bền vững chỉ ghi checkpoint nghiệp vụ đang được khép, merge/checkpoint đã tồn tại cần ghi nhận, gates, production boundary và next authorized step **sau khi closeout đã nằm trên `main`**.
-
-Ngoại lệ này không bỏ gate trước tạo PR. Trước khi tạo PR, nội dung handoff vẫn phải hoàn chỉnh, diff phải được review và PR description phải tuyên bố rõ đây là stable post-merge closeout.
-
-### 16.8 Gate bắt buộc trước khi merge PR
-
-Sau review, test và các corrective batch, nhưng trước khi merge, phải refresh handoff ngay trên PR branch.
-
-Handoff trước merge phải ghi hoặc đối chiếu:
-
-- số PR thực tế và base branch đối với delivery thông thường; stable post-merge closeout dùng delivery envelope trong PR/GitHub theo mục 16.7
-- implementation/source checkpoint applicable
-- trạng thái branch `COMPLETED` hoặc `IN PROGRESS` đúng với gates
-- focused test, Module regression, impacted/cross-module regression applicable, full project regression chỉ khi applicable theo mục 8, và manual UI smoke applicable
-- Admin UI standard acceptance nếu có Admin UI
-- PWA file handoff acceptance nếu branch có download/open file trên PWA-capable surface
-- Git-clean, blocker và deferred work
-- ranh giới giữa post-merge acceptance, production enablement và MR/phase tiếp theo
-- next authorized step; không tự đặt tên MR kế tiếp nếu source/docs chưa định nghĩa
-
-Không yêu cầu file handoff tự tham chiếu SHA của chính commit đang cập nhật nó. Head PR và commit cuối phải được xác minh từ GitHub; implementation/source checkpoint có thể được ghi riêng. Merge commit chưa tồn tại trước merge phải ghi `PENDING POST-MERGE VERIFICATION`, không được ghi giả.
-
-Đối với stable post-merge closeout, trước merge phải xác nhận PR description/GitHub chứa delivery envelope thật và handoff không chứa trạng thái tạm hoặc next step tự yêu cầu merge chính container đó.
-
-PR không được merge khi handoff còn stale, thiếu gate applicable hoặc mô tả công việc chưa hoàn tất thành đã hoàn tất.
-
-Checklist bắt buộc trước merge:
-
-- [ ] Handoff nằm trong PR branch.
-- [ ] Delivery thông thường ghi đúng PR/scope/checkpoint; stable post-merge closeout có delivery envelope đúng trong PR description/GitHub.
-- [ ] Stable post-merge closeout không lưu trạng thái tạm của chính container trong handoff.
-- [ ] Test/UI/Git-clean evidence khớp kết quả thực tế.
-- [ ] Full project regression chỉ được coi là gate khi applicable theo mục 8; nếu không applicable phải ghi rõ module-scoped regression strategy.
-- [ ] PWA file handoff acceptance đã PASS hoặc được ghi rõ NOT VERIFIED nếu applicable.
-- [ ] Production enablement không bị suy ra từ việc merge source.
-- [ ] Next authorized step rõ ràng và không tự tạo MR/phase mới.
-- [ ] Nếu đây là MR cuối của checkpoint/Module, handoff không còn trạng thái/branch/PR của checkpoint cũ.
-
-### 16.9 Xác minh và khép handoff sau merge
-
-Sau merge, phải kiểm tra trên `main`:
-
-1. PR thực sự đã merged
-2. merge commit/main checkpoint thực tế
-3. source tree đúng với PR đã duyệt
-4. post-merge regression và Git-clean applicable
-5. handoff trên `main` có đủ dữ liệu để chat kế tiếp tiếp tục an toàn
-
-Nếu MR cuối của checkpoint/Module đã merge nhưng handoff trên `main` chưa phản ánh PR, merge checkpoint, gates, production boundary hoặc next authorized step, trạng thái bắt buộc là:
-
-```text
-POST-MERGE HANDOFF INCOMPLETE
-```
-
-Khi đó:
-
-- checkpoint/Module chưa được coi là hoàn tất handoff cho chat kế tiếp
-- không tự đặt tên hoặc bắt đầu MR/phase tiếp theo
-- tạo branch/PR docs-only để closeout checkpoint cũ nếu được người dùng phê duyệt
-- batch closeout này không tự động trở thành MR kế tiếp
-- chỉ dọn feature branch sau khi post-merge acceptance và handoff closeout PASS
-
-Stable post-merge closeout phải được viết theo ngoại lệ ở mục 16.7. Sau khi PR chứa closeout merge, xác minh delivery envelope từ GitHub/Git history và `main`; không tạo thêm PR chỉ để ghi số PR hoặc merge SHA của chính container nếu checkpoint nghiệp vụ, gates, production boundary và next authorized step bền vững không thay đổi.
-
-Nếu handoff trên `main` vẫn chứa trạng thái tạm của container như `PENDING`, `OPEN`, `READY TO MERGE` hoặc next step yêu cầu review/merge chính container đã merge, ngoại lệ không áp dụng: phải ghi `POST-MERGE HANDOFF INCOMPLETE` và thực hiện corrective closeout được phê duyệt.
-
-## 17. Chuyển đổi làm việc giữa hai máy tính đã cấu hình
-
-Mục này áp dụng khi người dùng làm việc luân phiên trên nhiều máy tính đã có sẵn repository và kết nối GitHub, ví dụ máy tính công ty và máy tính ở nhà.
-
-### 17.1 Trigger và cách hiểu mặc định
-
-Khi người dùng gửi câu:
-
-```text
-chuyển sang máy tính khác
-```
-
-kèm output `git status`, phải hiểu mặc định:
-
-- đây là chuyển sang một máy tính **đã được cấu hình Git/GitHub và đã có repository**
-- output được gửi từ máy đích mà người dùng muốn tiếp tục làm việc, trừ khi người dùng nói rõ khác
-- mục tiêu là kiểm tra an toàn branch/local source rồi đồng bộ từ remote để tiếp tục
-- đây không phải yêu cầu cài đặt máy tính mới, clone repository, tạo SSH key hoặc chuyển `.env`/database/storage
-
-Phản hồi đầu tiên phải xác nhận đúng cách hiểu trên và nói rõ chưa switch, pull, push, merge, reset hoặc xóa branch khi chưa hoàn tất kiểm tra an toàn.
-
-Chỉ chuyển sang quy trình máy mới/clone/SSH khi:
-
-- người dùng nói rõ đây là máy mới hoặc repository chưa tồn tại
-- output chứng minh remote/authentication/repository chưa được cấu hình
-- người dùng yêu cầu chuyển cả environment/runtime data
-
-### 17.2 Kiểm tra an toàn trước khi pull
-
-Trước tiên đọc output người dùng cung cấp để xác định:
-
-- working tree clean hay dirty
-- current branch
-- upstream tracking branch
-- trạng thái ahead/behind/diverged nếu có
-- có dấu hiệu local commit hoặc file chưa được bảo toàn hay không
-
-Sau đó thực hiện kiểm tra GitHub chỉ đọc applicable:
-
-- repository và quyền truy cập
-- default branch và checkpoint `main` hiện tại
-- current branch có tồn tại trên remote không
-- PR của branch đã open, closed hay merged
-- local branch head có phải ancestor của `main` hay còn commit chưa tích hợp
-- quan hệ với upstream và quan hệ với `main` phải được đánh giá riêng
-
-Nếu output chưa đủ, hướng dẫn tối thiểu theo quy tắc số lượng lệnh ở mục 5:
-
-```bash
-git fetch origin
-git status --short
-git branch --show-current
-git branch -vv
-```
-
-`git fetch origin` chỉ cập nhật remote-tracking refs và không thay đổi working tree. Không dùng `git pull` trước khi phân loại xong.
-
-### 17.3 Quy tắc phân loại branch
-
-#### Working tree dirty
-
-Nếu `git status` có modified/untracked/conflict:
-
-- dừng trước switch/pull
-- xem `git diff` và xác định dữ liệu cần giữ
-- không tự stash, commit, restore, reset hoặc clean
-- không dùng `git pull` để che lấp tình trạng dirty
-
-#### Current branch là `main`, clean và không diverged
-
-- xác minh `origin/main`
-- dùng `git pull --ff-only origin main`
-- xác nhận HEAD và Git-clean sau pull
-
-#### Current branch là branch cũ đã merge
-
-Nếu branch head đã là ancestor của `main` và không có local-only commit:
-
-- branch an toàn; không cần push hoặc pull riêng branch cũ
-- switch về `main`
-- pull `main` bằng `--ff-only`
-- không checkout/cập nhật hàng loạt các branch lịch sử
-
-#### Current branch còn công việc chưa tích hợp
-
-Nếu branch có commit chưa nằm trong `main`:
-
-- phân biệt commit đã push lên upstream với commit chỉ tồn tại local
-- không switch/pull một branch khác cho đến khi xác định cách bảo toàn
-- nếu commit chỉ tồn tại local, dừng và yêu cầu người dùng chọn push/commit/stash phù hợp
-- nếu tiếp tục đúng active branch trên máy đích, chỉ pull branch đó sau khi xác nhận upstream và fast-forward safety
-
-#### Ahead/behind và diverged
-
-- `ahead N` so với upstream không tự động có nghĩa là commit chưa nằm trong `main`; phải kiểm tra ancestry với `main`
-- `behind N` trên branch lịch sử không tự động là blocker nếu branch đó không phải active delivery
-- nếu local và upstream diverged, không pull/merge/rebase theo phỏng đoán; báo rõ và dừng
-- không dùng pull thường; chỉ dùng `git pull --ff-only` sau khi đã chứng minh fast-forward an toàn
-
-### 17.4 Luồng đồng bộ chuẩn
-
-Khi đã chứng minh an toàn và mục tiêu là tiếp tục từ `main`:
-
-```bash
-git switch main
-git pull --ff-only origin main
-git rev-parse --short HEAD
-git status --short
-```
-
-Nếu đã ở `main`, không bắt buộc switch lại; chỉ yêu cầu lệnh cần thiết theo mục 5.
-
-Kết quả phải được đối chiếu với remote checkpoint:
-
-- local HEAD bằng `origin/main`
-- working tree clean
-- không có commit local bị bỏ lại trên branch khác
-
-Nếu `git pull --ff-only` trả `Already up to date.` và các gate trên PASS, xác nhận ngay máy đích đã sẵn sàng tiếp tục; không tạo thêm bước cài đặt không cần thiết.
-
-### 17.5 Hành động không được tự thực hiện
-
-Trong luồng chuyển giữa hai máy đã cấu hình, không tự:
-
-- hướng dẫn clone repository, tạo/copy SSH key hoặc di chuyển environment data
-- push branch cũ chỉ vì `git branch -vv` hiển thị `ahead`
-- pull hoặc cập nhật toàn bộ branch lịch sử
-- xóa local/remote branch
-- force-push, rebase, reset, restore hoặc clean
-- sửa code, tạo branch công việc mới hoặc suy ra task tiếp theo
-
-Các thao tác trên chỉ được thực hiện khi output chứng minh cần thiết và người dùng phê duyệt phạm vi tương ứng.
-
-### 17.6 Mẫu kết luận
-
-Kết luận phải nêu ngắn gọn:
-
-- máy đích đang ở branch nào
-- working tree có sạch không
-- có local-only commit cần bảo toàn không
-- branch hiện tại có an toàn/đã nằm trong `main` không
-- lệnh switch/pull chính xác cần chạy
-- checkpoint mong đợi sau pull
-
-Không gọi đây là “máy tính mới” khi trigger và output phù hợp với quy trình chuyển giữa các máy đã cấu hình.
+Handoff phải phản ánh:
+
+- branch
+- scope
+- implementation
+- tests
+- UI smoke
+- known issues
+- next step
+
+Nếu task không thuộc một Module cụ thể và không có handoff tương ứng, ghi rõ trong PR/handoff context thay vì tạo tài liệu Module giả.
