@@ -22,11 +22,11 @@ class ModuleSchemaDoctorUiContractTest extends TestCase
         self::assertStringContainsString('Fix Plan an toàn', $panel);
         self::assertStringContainsString('PLAN SAFE', $panel);
         self::assertStringContainsString('CẦN REVIEW', $panel);
-        self::assertStringContainsString('chưa thực thi sửa schema', $panel);
+        self::assertStringContainsString('Execution vẫn bị khóa ở batch này', $panel);
         self::assertStringContainsString('Snapshot', $panel);
         self::assertStringContainsString('Hiện tại', $panel);
         self::assertStringContainsString("\$issue['differences']", $panel);
-        self::assertStringContainsString("\$report['fix_plan']", $panel);
+        self::assertStringContainsString("\$repairPlan['steps']", $panel);
         self::assertStringContainsString('ModuleSchemaDoctorService $doctor', $component);
         self::assertStringNotContainsString('DROP TABLE', $component);
         self::assertStringNotContainsString('ALTER TABLE', $component);
