@@ -1,0 +1,15 @@
+# Production Docker Runtime Contract
+
+Production projects live at `/opt/projects/<project-name>`. Repository production helpers derive the Compose project from the project directory basename and invoke `docker compose -p "$PROJECT_NAME" ...`, so `/opt/projects/tnv` targets `tnv`, `/opt/projects/ntd` targets `ntd`, and no project name is hard-coded. The app working directory is `/var/www/html`.
+
+The canonical runtime environment is `/opt/projects/<project>/.env`. Compose mounts it into PHP services and consumes values through interpolation; socket uses `env_file: .env`. `.env` is excluded by `.dockerignore`, is not an image artifact, and must never be committed or dumped in diagnostics. Laravel-only changes normally require config-cache refresh. Compose interpolation, `environment:` or `env_file:` changes can require service reconciliation/recreation. MariaDB initialization variables need separate planning with an existing named DB volume.
+
+Use `./run-docker-artisan.sh "php artisan <command>"`; it resolves the canonical Compose `app` service. Use `./production-debug.sh` for read-only diagnosis, with optional `--docker`, `--permissions`, `--database`, or `--logs`. PHP runtime writability is checked as `www-data`, not merely root. A degraded stack (`restarting`, `created`, `exited`, `dead`, or otherwise non-running) is a diagnosis signal and must not be automatically reconciled before its root cause/topology is understood.
+
+After an operator changes production `.env`, use `./run-updated-env.sh`. It validates Compose, resolves `app` from the canonical project, refuses automatic apply when the current stack already has non-running services, reconciles with `docker compose up -d --no-build`, refreshes Laravel config, signals queue workers, restarts scheduler when present, and reports final service states. It performs no migration and no database mutation.
+
+Cleanup is deliberately separate from environment apply. `run-updated-env.sh` must not run Docker prune, delete volumes, or erase logs automatically. Use `./production-cleanup.sh --report` for the default read-only report. `--logs` rotates only this project's `storage/logs/laravel.log` when it exceeds `LARAVEL_LOG_MAX_MB` (default 200 MB) and keeps `LARAVEL_LOG_KEEP` archives (default 5). `--docker` is an explicit host-wide maintenance action limited to dangling-image prune and build-cache prune; it never prunes named volumes. `--all` combines the two explicit cleanup actions. Because multiple projects share the Docker host, Docker cleanup must remain operator-triggered rather than part of every `.env` apply.
+
+The entrypoint prepares runtime directories for PHP-FPM `www-data`. Do not use `chmod 777`; distinguish root/CLI writability from `www-data` writability.
+
+Production diagnosis is read-only by default. Do not use `migrate:fresh`, `db:wipe`, rollback, `git reset --hard`, `git clean -fd`, `docker system prune`, `docker volume prune`, `down -v`, volume deletion, permission mutation, or `.env` edits as diagnosis defaults. Production-only Compose overlays may intentionally be untracked; inspect them and never remove them without explicit operator approval.

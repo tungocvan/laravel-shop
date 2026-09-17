@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_NAME="$(basename "$SCRIPT_DIR")"
+MODE="${1:-all}"
+cd "$SCRIPT_DIR"
+
+case "$MODE" in
+    all|--docker|--permissions|--database|--logs) ;;
+    *) echo "Usage: $0 [--docker|--permissions|--database|--logs]" >&2; exit 1 ;;
+esac
+
+section() { printf '\n=== %s ===\n' "$1"; }
+compose() { docker compose -p "$PROJECT_NAME" "$@"; }
+app_id() { compose ps -q app 2>/dev/null | head -1; }
+has_app() { local i; i="$(app_id)"; [[ -n "$i" ]] && [[ "$(docker inspect -f '{{.State.Running}}' "$i" 2>/dev/null)" == true ]]; }
+run_app() { local i; i="$(app_id)"; [[ -n "$i" ]] && docker exec "$i" bash -lc "$1" 2>&1 || true; }
+run_www() { local i; i="$(app_id)"; [[ -n "$i" ]] && docker exec -u www-data "$i" bash -lc "$1" 2>&1 || true; }
+
+printf '%s\n' 'READ-ONLY DIAGNOSTIC' 'No database mutation | No Git mutation | No permission mutation | No container recreation' 'Secrets are not printed'
+
+if [[ "$MODE" == all ]]; then
+    section PROJECT
+    printf 'path            : %s\nproject         : %s\ncompose project : %s\ntimestamp       : %s\nhostname        : %s\n' "$SCRIPT_DIR" "$PROJECT_NAME" "$PROJECT_NAME" "$(date -Is)" "$(hostname)"
+    section GIT
+    git branch --show-current 2>/dev/null || true
+    git rev-parse --short HEAD 2>/dev/null || true
+    git status --short --branch 2>/dev/null || true
+    section ENVIRONMENT
+    [[ -f .env ]] && printf '.env host       : EXISTS\n.env permission : %s\n' "$(stat -c '%a %U:%G' .env 2>/dev/null || echo unknown)" || echo '.env host       : MISSING'
+    has_app && run_app 'test -f /var/www/html/.env && echo ".env container  : EXISTS" || echo ".env container  : MISSING"'
+fi
+
+if [[ "$MODE" == all || "$MODE" == --docker ]]; then
+    section DOCKER
+    docker --version 2>/dev/null || true
+    docker compose version 2>/dev/null || true
+    printf 'Compose project: %s\n\n' "$PROJECT_NAME"
+    compose ps --all 2>/dev/null || true
+    if has_app; then
+        section APPLICATION_CONTAINER
+        I="$(app_id)"
+        docker inspect -f 'name={{.Name}} compose_project={{index .Config.Labels "com.docker.compose.project"}} running={{.State.Running}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}} user={{.Config.User}}' "$I"
+        run_app 'id; pwd; php -v | head -1; php artisan --version; php artisan about --only=environment 2>/dev/null || true'
+    else
+        echo "Compose app service is not running for project: $PROJECT_NAME"
+    fi
+fi
+
+if [[ "$MODE" == all || "$MODE" == --permissions ]]; then
+    section FILESYSTEM
+    if has_app; then
+        run_app 'for p in storage storage/app storage/framework storage/logs bootstrap/cache; do [ -e "$p" ] && stat -c "%a %U:%G %n" "$p" || echo "missing: $p"; done'
+        echo '-- www-data writability --'
+        run_www 'for p in storage storage/app storage/framework storage/logs bootstrap/cache; do [ -w "$p" ] && echo "writable: $p YES" || echo "writable: $p NO"; done'
+    else
+        echo "Compose app service is not running for project: $PROJECT_NAME"
+    fi
+fi
+
+if [[ "$MODE" == all || "$MODE" == --database ]]; then
+    section DATABASE
+    has_app && run_app 'php artisan migrate:status --no-ansi 2>&1 || true' || echo "Compose app service is not running for project: $PROJECT_NAME"
+fi
+
+if [[ "$MODE" == --logs ]]; then
+    section LARAVEL_LOG
+    run_app 'f=$(ls -1t storage/logs/*.log 2>/dev/null | head -1); [ -n "$f" ] && { echo "file: $f"; tail -n 120 "$f"; } || echo "No Laravel log found"'
+    section CONTAINER_LOG
+    I="$(app_id)"
+    [[ -n "$I" ]] && docker logs --tail 120 "$I" 2>&1 || true
+fi
+
+if [[ "$MODE" == all ]]; then
+    section DISK
+    df -h "$SCRIPT_DIR" 2>/dev/null || true
+    docker system df 2>/dev/null || true
+    section DIAGNOSIS_FLAGS
+    [[ -f .env ]] && echo '.env_host: OK' || echo '.env_host: MISSING'
+    I="$(app_id)"
+    if has_app; then
+        echo "app_health: $(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}' "$I")"
+        run_www 'for p in storage/app bootstrap/cache; do [ -w "$p" ] && echo "$p writable as www-data: YES" || echo "$p writable as www-data: NO"; done'
+    else
+        echo 'app_container: NOT RUNNING'
+    fi
+    echo '-- non-running/restarting Compose services --'
+    compose ps --all --format '{{.Service}}|{{.State}}|{{.Status}}' 2>/dev/null | awk -F'|' '$2 != "running" {print}' || true
+fi
