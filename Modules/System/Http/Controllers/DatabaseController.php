@@ -3,6 +3,7 @@
 namespace Modules\System\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Modules\System\Services\DatabaseService;
 
 class DatabaseController extends Controller
@@ -14,22 +15,32 @@ class DatabaseController extends Controller
         $this->dbService = $dbService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $this->authorizePermission('database.view');
 
-        return view('System::pages.database');
+        $allTables = $this->dbService->getAllTables();
+        $modules = collect($allTables)
+            ->pluck('module')
+            ->filter(fn ($module) => is_string($module) && $module !== '' && $module !== 'Unknown')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $selectedModule = trim((string) $request->query('module', ''));
+        if ($selectedModule !== '' && ! in_array($selectedModule, $modules, true)) {
+            $selectedModule = '';
+        }
+
+        return view('System::pages.database', compact('modules', 'selectedModule'));
     }
 
     public function download($filename)
     {
-        // ACL Check (Ví dụ: chỉ Super Admin mới được tải)
-        // $this->authorize('download_database');
-
         $this->authorizePermission('database.download');
 
         $path = $this->dbService->getDownloadPath($filename);
-
         if (! $path) {
             abort(404, 'File backup không tồn tại.');
         }
@@ -41,7 +52,7 @@ class DatabaseController extends Controller
     {
         $this->authorizePermission('database.view');
 
-        return view('System::pages.database-backup-restore');
+        return redirect()->route('admin.system.database.index');
     }
 
     private function authorizePermission(string $permission): void

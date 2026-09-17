@@ -27,7 +27,7 @@ class ModulePermissionManager
 
         $adminPermissions = $permissionModelsByGuard->get('admin', collect());
         if ($adminPermissions->isNotEmpty()) {
-            Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($adminPermissions);
+            $this->assignPersistedPermissionsToSuperAdmin('admin', $adminPermissions->pluck('name')->all());
         }
 
         $this->forgetCache();
@@ -125,18 +125,16 @@ class ModulePermissionManager
         $before = $this->previewActiveSync();
         $permissionsByGuard = $this->activePermissionsByGuard();
 
+        $this->forgetCache();
+
         DB::transaction(function () use ($permissionsByGuard): void {
             collect($permissionsByGuard)->each(function (array $permissions, string $guard): void {
-                $permissionModels = collect($permissions)
-                    ->map(fn (string $permission): Permission => Permission::findOrCreate($permission, $guard))
-                    ->values();
+                foreach ($permissions as $permission) {
+                    Permission::findOrCreate($permission, $guard);
+                }
 
-                if ($guard === 'admin' && $permissionModels->isNotEmpty()) {
-                    // Pass persisted Permission models directly. This avoids a second
-                    // name lookup through Spatie's cached permission collection, which
-                    // can still be stale in Docker/Redis-backed environments during a
-                    // fresh seed.
-                    Role::findOrCreate('Super Admin', 'admin')->givePermissionTo($permissionModels);
+                if ($guard === 'admin' && $permissions !== []) {
+                    $this->assignPersistedPermissionsToSuperAdmin($guard, $permissions);
                 }
             });
         });
@@ -156,6 +154,41 @@ class ModulePermissionManager
     public function forgetCache(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function assignPersistedPermissionsToSuperAdmin(string $guard, array $permissionNames): void
+    {
+        $permissionNames = collect($permissionNames)
+            ->filter(fn (mixed $permission): bool => is_string($permission) && trim($permission) !== '')
+            ->map(fn (string $permission): string => trim($permission))
+            ->unique()
+            ->values();
+
+        if ($permissionNames->isEmpty()) {
+            return;
+        }
+
+        // findOrCreate may return an object from Spatie's in-memory permission cache.
+        // Re-query both sides of the pivot after creation so a fresh/migrated database
+        // never receives stale role/permission primary keys from a previous schema.
+        $this->forgetCache();
+
+        $persistedPermissions = Permission::query()
+            ->where('guard_name', $guard)
+            ->whereIn('name', $permissionNames->all())
+            ->get();
+
+        if ($persistedPermissions->count() !== $permissionNames->count()) {
+            throw new \RuntimeException('Không thể đồng bộ quyền: một hoặc nhiều permission chưa được persist vào database.');
+        }
+
+        Role::findOrCreate('Super Admin', $guard);
+        $superAdmin = Role::query()
+            ->where('name', 'Super Admin')
+            ->where('guard_name', $guard)
+            ->firstOrFail();
+
+        $superAdmin->syncPermissions($persistedPermissions);
     }
 
     private function manifestPath(string $modulePath): ?string

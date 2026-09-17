@@ -102,5 +102,9 @@
         </section>
     @endif
 
+    @if ($moduleFilter !== '' && $moduleFilter !== 'Unknown')
+        @livewire(\Modules\System\Livewire\Database\ModuleSchemaDoctorPanel::class, ['module' => $moduleFilter], key('module-schema-doctor-'.$moduleFilter))
+    @endif
+
     @include('System::livewire.database.table-list')
 </div>
