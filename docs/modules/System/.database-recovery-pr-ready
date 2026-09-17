@@ -1,0 +1,3 @@
+PR-ready checkpoint: 2026-09-17
+Branch: fix/system-module-schema-doctor
+Acceptance: targeted tests PASS, System regression PASS, UI PASS
