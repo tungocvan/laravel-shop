@@ -45,14 +45,7 @@ class ModuleSchemaDoctorService
 
         $currentSchema = $this->currentSchema((array) ($manifest['tables'] ?? []));
         $issues = $this->compareSchemas($snapshotSchema, $currentSchema, (array) ($manifest['tables'] ?? []));
-
-        $hasBlockedIssue = false;
-        foreach ($issues as $issue) {
-            if (($issue['risk'] ?? null) === 'BLOCKED') {
-                $hasBlockedIssue = true;
-                break;
-            }
-        }
+        $hasBlockedIssue = collect($issues)->contains(fn (array $issue): bool => ($issue['risk'] ?? null) === 'BLOCKED');
         $verdict = $hasBlockedIssue ? 'BLOCKED' : 'REVIEW';
         $summary = $verdict === 'BLOCKED'
             ? 'Có khác biệt schema có thể làm mất dữ liệu; Doctor khóa auto-repair và Restore.'
@@ -81,12 +74,12 @@ class ModuleSchemaDoctorService
             $columns = [];
             foreach ($columnRows as $row) {
                 $data = (array) $row;
-                $columns[(string) $data['Field']] = [
-                    'type' => strtolower((string) $data['Type']),
-                    'null' => strtoupper((string) $data['Null']),
+                $columns[(string) $data['Field']] = $this->normalizeColumnDefinition([
+                    'type' => (string) $data['Type'],
+                    'null' => (string) $data['Null'],
                     'default' => $data['Default'],
-                    'extra' => strtolower((string) $data['Extra']),
-                ];
+                    'extra' => (string) $data['Extra'],
+                ]);
             }
             ksort($columns, SORT_STRING);
 
@@ -142,8 +135,21 @@ class ModuleSchemaDoctorService
                 $issues[] = $this->issue($table, 'extra_column', 'BLOCKED', "Database hiện tại có thêm cột {$table}.{$column}.", 'Không tự DROP cột. Xác minh version/migration và dữ liệu trước khi quyết định thủ công.', $column);
             }
             foreach (array_intersect_key($expectedColumns, $actualColumns) as $column => $definition) {
-                if ($definition !== $actualColumns[$column]) {
-                    $issues[] = $this->issue($table, 'column_definition_changed', 'BLOCKED', "Định nghĩa cột {$table}.{$column} khác snapshot.", 'Đối chiếu migration thay đổi kiểu/null/default; không tự ALTER khi chưa đánh giá dữ liệu.', $column);
+                $expectedDefinition = $this->normalizeColumnDefinition((array) $definition);
+                $currentDefinition = $this->normalizeColumnDefinition((array) $actualColumns[$column]);
+                if ($expectedDefinition !== $currentDefinition) {
+                    $differences = $this->columnDifferences($expectedDefinition, $currentDefinition);
+                    $issues[] = $this->issue(
+                        $table,
+                        'column_definition_changed',
+                        'BLOCKED',
+                        "Định nghĩa cột {$table}.{$column} khác snapshot ở: ".implode(', ', array_keys($differences)).'.',
+                        'Đối chiếu migration thay đổi đúng thuộc tính được liệt kê; không tự ALTER khi chưa đánh giá dữ liệu.',
+                        $column,
+                        $expectedDefinition,
+                        $currentDefinition,
+                        $differences,
+                    );
                 }
             }
             foreach (['indexes', 'foreign_keys'] as $section) {
@@ -156,10 +162,7 @@ class ModuleSchemaDoctorService
         return $issues;
     }
 
-    /**
-     * Backward-compatible evidence extractor for v1.0 snapshots. It reads only
-     * CREATE TABLE statements from the packaged dump; SQL is never executed.
-     */
+    /** Backward-compatible evidence extractor for v1.0 snapshots. SQL is read, never executed. */
     private function schemaFromPackageSql(string $packagePath, array $tables): array
     {
         $zip = new ZipArchive;
@@ -191,6 +194,10 @@ class ModuleSchemaDoctorService
                 $line = trim(rtrim(trim($rawLine), ','));
                 if (preg_match('/^`([^`]+)`\s+([^\s]+)(.*)$/i', $line, $columnMatch)) {
                     $tail = (string) $columnMatch[3];
+                    $type = (string) $columnMatch[2];
+                    if (preg_match('/^\s+unsigned\b/i', $tail)) {
+                        $type .= ' unsigned';
+                    }
                     $default = null;
                     if (preg_match('/\bDEFAULT\s+(NULL|\'((?:\\\'|[^\'])*)\'|([^\s,]+))/i', $tail, $defaultMatch)) {
                         $default = strtoupper((string) $defaultMatch[1]) === 'NULL'
@@ -203,12 +210,12 @@ class ModuleSchemaDoctorService
                             $extra[] = strtolower($token);
                         }
                     }
-                    $columns[$columnMatch[1]] = [
-                        'type' => strtolower($columnMatch[2]),
+                    $columns[$columnMatch[1]] = $this->normalizeColumnDefinition([
+                        'type' => $type,
                         'null' => stripos($tail, 'NOT NULL') !== false ? 'NO' : 'YES',
                         'default' => $default,
                         'extra' => implode(' ', $extra),
-                    ];
+                    ]);
                     continue;
                 }
 
@@ -241,9 +248,48 @@ class ModuleSchemaDoctorService
         return $schema;
     }
 
-    private function issue(string $table, string $type, string $risk, string $message, string $suggestion, ?string $subject = null): array
+    private function normalizeColumnDefinition(array $definition): array
     {
-        return array_filter(compact('table', 'subject', 'type', 'risk', 'message', 'suggestion'), static fn ($value): bool => $value !== null);
+        $type = strtolower(trim((string) ($definition['type'] ?? '')));
+        $type = preg_replace('/\b(tinyint|smallint|mediumint|int|integer|bigint)\(\d+\)/', '$1', $type) ?? $type;
+        $type = preg_replace('/\s+/', ' ', $type) ?? $type;
+
+        return [
+            'type' => trim($type),
+            'null' => strtoupper((string) ($definition['null'] ?? '')),
+            'default' => $definition['default'] ?? null,
+            'extra' => strtolower(trim(preg_replace('/\s+/', ' ', (string) ($definition['extra'] ?? '')) ?? '')),
+        ];
+    }
+
+    private function columnDifferences(array $expected, array $current): array
+    {
+        $differences = [];
+        foreach (['type', 'null', 'default', 'extra'] as $attribute) {
+            if (($expected[$attribute] ?? null) !== ($current[$attribute] ?? null)) {
+                $differences[$attribute] = [
+                    'snapshot' => $expected[$attribute] ?? null,
+                    'current' => $current[$attribute] ?? null,
+                ];
+            }
+        }
+
+        return $differences;
+    }
+
+    private function issue(string $table, string $type, string $risk, string $message, string $suggestion, ?string $subject = null, ?array $snapshotDefinition = null, ?array $currentDefinition = null, array $differences = []): array
+    {
+        return array_filter([
+            'table' => $table,
+            'subject' => $subject,
+            'type' => $type,
+            'risk' => $risk,
+            'message' => $message,
+            'suggestion' => $suggestion,
+            'snapshot_definition' => $snapshotDefinition,
+            'current_definition' => $currentDefinition,
+            'differences' => $differences,
+        ], static fn ($value): bool => $value !== null && $value !== []);
     }
 
     private function result(string $verdict, string $summary, array $issues): array
