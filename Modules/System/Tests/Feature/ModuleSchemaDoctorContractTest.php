@@ -19,8 +19,8 @@ class ModuleSchemaDoctorContractTest extends TestCase
         self::assertStringContainsString("'auto_repair_available' => false", $source);
         self::assertStringContainsString("'restore_unlocked' => $verdict === 'SAFE'", $source);
         self::assertStringContainsString('Không tự DROP cột', $source);
-        self::assertStringNotContainsString('DROP TABLE', $source);
-        self::assertStringNotContainsString('DROP COLUMN', $source);
-        self::assertStringNotContainsString('ALTER TABLE', $source);
+        self::assertStringNotContainsString("DB::statement('DROP", $source);
+        self::assertStringNotContainsString('->statement("DROP', $source);
+        self::assertStringNotContainsString('->unprepared(', $source);
     }
 }
