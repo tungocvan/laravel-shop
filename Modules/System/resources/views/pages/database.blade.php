@@ -4,16 +4,18 @@
     <div class="space-y-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">Database Manager</h1>
-                <p class="text-sm text-gray-500">Quản lý, sao lưu và phục hồi dữ liệu hệ thống</p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="text-2xl font-bold text-gray-900">Database Workspace</h1>
+                    <span class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">MODULE FIRST</span>
+                </div>
+                <p class="mt-1 text-sm text-gray-500">Chọn Module để Backup / Restore an toàn; chi tiết bảng chỉ hiển thị khi cần.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                @include('System::partials.dashboard-return-link')
-                <a href="{{ route('admin.system.database.backup-restore') }}"
-                   class="inline-flex min-h-11 items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                    Backup / Restore
-                </a>
-            </div>
+            @include('System::partials.dashboard-return-link')
+        </div>
+
+        <div class="rounded-2xl border border-indigo-100 bg-indigo-50/50 px-5 py-4 text-sm text-indigo-900">
+            <p class="font-semibold">Một workspace duy nhất cho Database Manager.</p>
+            <p class="mt-1 text-indigo-700">Backup/Restore theo Module là luồng chính. Full Database và thao tác từng bảng được giữ riêng để tránh nhầm phạm vi.</p>
         </div>
 
         @livewire('system.database.table-list')
