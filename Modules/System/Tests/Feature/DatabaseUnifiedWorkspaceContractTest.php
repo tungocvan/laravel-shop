@@ -38,7 +38,8 @@ class DatabaseUnifiedWorkspaceContractTest extends TestCase
         self::assertIsString($view);
         self::assertStringContainsString('Backup Catalog · Restore · Local ↔ Google Drive', $view);
         self::assertStringContainsString("@livewire('system.database.full-backup-workspace')", $view);
-        self::assertStringContainsString('đồng bộ Local ↔ Google Drive', $view);
+        self::assertStringContainsString('đồng bộ hai chiều', $view);
+        self::assertStringContainsString('Restore an toàn', $view);
 
         $manager = file_get_contents(base_path('Modules/System/Livewire/Database/FullBackupWorkspace.php'));
         self::assertIsString($manager);
