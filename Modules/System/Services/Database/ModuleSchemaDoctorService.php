@@ -118,9 +118,6 @@ class ModuleSchemaDoctorService
         foreach ($tables as $table) {
             $expected = (array) ($expectedSchema[$table] ?? []);
             $actual = (array) ($currentSchema[$table] ?? []);
-            if ($expected === $actual) {
-                continue;
-            }
             if ($actual === []) {
                 $issues[] = $this->issue($table, 'missing_table', 'REVIEW', "Thiếu bảng {$table} so với snapshot.", 'Đối chiếu/chạy migration tạo bảng của Module trước khi restore.');
                 continue;
@@ -152,10 +149,25 @@ class ModuleSchemaDoctorService
                     );
                 }
             }
+
             foreach (['indexes', 'foreign_keys'] as $section) {
-                if ((array) ($expected[$section] ?? []) !== (array) ($actual[$section] ?? [])) {
-                    $issues[] = $this->issue($table, $section.'_changed', 'REVIEW', 'Khác biệt '.($section === 'indexes' ? 'index' : 'foreign key')." tại {$table}.", 'Đối chiếu migration tương ứng trước khi sửa schema.');
+                $expectedSection = (array) ($expected[$section] ?? []);
+                $actualSection = (array) ($actual[$section] ?? []);
+                if ($expectedSection === $actualSection) {
+                    continue;
                 }
+                $differences = $this->namedStructureDifferences($expectedSection, $actualSection);
+                $issues[] = $this->issue(
+                    $table,
+                    $section.'_changed',
+                    'REVIEW',
+                    'Khác biệt '.($section === 'indexes' ? 'index' : 'foreign key')." tại {$table}: ".$this->structureDifferenceSummary($differences).'.',
+                    'Đối chiếu migration tương ứng trước khi sửa schema.',
+                    null,
+                    $expectedSection,
+                    $actualSection,
+                    $differences,
+                );
             }
         }
 
@@ -198,23 +210,11 @@ class ModuleSchemaDoctorService
                     if (preg_match('/^\s+unsigned\b/i', $tail)) {
                         $type .= ' unsigned';
                     }
-                    $default = null;
-                    if (preg_match('/\bDEFAULT\s+(NULL|\'((?:\\\'|[^\'])*)\'|([^\s,]+))/i', $tail, $defaultMatch)) {
-                        $default = strtoupper((string) $defaultMatch[1]) === 'NULL'
-                            ? null
-                            : ($defaultMatch[2] !== '' ? stripcslashes($defaultMatch[2]) : $defaultMatch[3]);
-                    }
-                    $extra = [];
-                    foreach (['auto_increment', 'on update CURRENT_TIMESTAMP', 'DEFAULT_GENERATED'] as $token) {
-                        if (stripos($tail, $token) !== false) {
-                            $extra[] = strtolower($token);
-                        }
-                    }
                     $columns[$columnMatch[1]] = $this->normalizeColumnDefinition([
                         'type' => $type,
                         'null' => stripos($tail, 'NOT NULL') !== false ? 'NO' : 'YES',
-                        'default' => $default,
-                        'extra' => implode(' ', $extra),
+                        'default' => $this->parseSqlDefault($tail),
+                        'extra' => $this->parseSqlExtra($tail),
                     ]);
                     continue;
                 }
@@ -248,18 +248,56 @@ class ModuleSchemaDoctorService
         return $schema;
     }
 
+    private function parseSqlDefault(string $tail): mixed
+    {
+        if (! preg_match('/\bDEFAULT\s+(NULL|\'(?:\\.|[^\'])*\'|"(?:\\.|[^"])*"|[^\s,]+)/i', $tail, $match)) {
+            return null;
+        }
+
+        $token = trim((string) $match[1]);
+        if (strcasecmp($token, 'NULL') === 0) {
+            return null;
+        }
+        if ((str_starts_with($token, "'") && str_ends_with($token, "'")) || (str_starts_with($token, '"') && str_ends_with($token, '"'))) {
+            return stripcslashes(substr($token, 1, -1));
+        }
+
+        return $token;
+    }
+
+    private function parseSqlExtra(string $tail): string
+    {
+        $extra = [];
+        foreach (['auto_increment', 'on update CURRENT_TIMESTAMP', 'DEFAULT_GENERATED'] as $token) {
+            if (stripos($tail, $token) !== false) {
+                $extra[] = strtolower($token);
+            }
+        }
+
+        return implode(' ', $extra);
+    }
+
     private function normalizeColumnDefinition(array $definition): array
     {
         $type = strtolower(trim((string) ($definition['type'] ?? '')));
         $type = preg_replace('/\b(tinyint|smallint|mediumint|int|integer|bigint)\(\d+\)/', '$1', $type) ?? $type;
         $type = preg_replace('/\s+/', ' ', $type) ?? $type;
+        $type = $this->normalizeJsonType(trim($type));
 
         return [
-            'type' => trim($type),
+            'type' => $type,
             'null' => strtoupper((string) ($definition['null'] ?? '')),
             'default' => $definition['default'] ?? null,
             'extra' => strtolower(trim(preg_replace('/\s+/', ' ', (string) ($definition['extra'] ?? '')) ?? '')),
         ];
+    }
+
+    private function normalizeJsonType(string $type): string
+    {
+        // MariaDB exposes JSON aliases as LONGTEXT in information_schema while
+        // mysqldump may retain JSON. Treat only the plain LONGTEXT representation
+        // as the same logical storage type for snapshot diagnostics.
+        return in_array($type, ['json', 'longtext'], true) ? 'json-text' : $type;
     }
 
     private function columnDifferences(array $expected, array $current): array
@@ -275,6 +313,32 @@ class ModuleSchemaDoctorService
         }
 
         return $differences;
+    }
+
+    private function namedStructureDifferences(array $expected, array $current): array
+    {
+        $missing = array_values(array_diff(array_keys($expected), array_keys($current)));
+        $extra = array_values(array_diff(array_keys($current), array_keys($expected)));
+        $changed = [];
+        foreach (array_intersect(array_keys($expected), array_keys($current)) as $name) {
+            if ($expected[$name] !== $current[$name]) {
+                $changed[] = $name;
+            }
+        }
+
+        return array_filter(['missing' => $missing, 'extra' => $extra, 'changed' => $changed], fn (array $values): bool => $values !== []);
+    }
+
+    private function structureDifferenceSummary(array $differences): string
+    {
+        $parts = [];
+        foreach (['missing' => 'thiếu', 'extra' => 'thêm', 'changed' => 'thay đổi'] as $key => $label) {
+            if (($differences[$key] ?? []) !== []) {
+                $parts[] = $label.' ['.implode(', ', $differences[$key]).']';
+            }
+        }
+
+        return $parts === [] ? 'khác định nghĩa' : implode('; ', $parts);
     }
 
     private function issue(string $table, string $type, string $risk, string $message, string $suggestion, ?string $subject = null, ?array $snapshotDefinition = null, ?array $currentDefinition = null, array $differences = []): array
