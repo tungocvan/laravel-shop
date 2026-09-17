@@ -49,7 +49,9 @@ class ModuleSchemaDoctorService
         $verdict = $hasBlockedIssue ? 'BLOCKED' : 'REVIEW';
         $summary = $verdict === 'BLOCKED'
             ? 'Có khác biệt schema có thể làm mất dữ liệu; Doctor khóa auto-repair và Restore.'
-            : 'Đã xác định khác biệt schema; cần đối chiếu migration trước khi sửa.';
+            : ($issues === []
+                ? 'Schema chi tiết không còn khác biệt sau canonicalization; fingerprint legacy cần được xác minh riêng.'
+                : 'Đã xác định khác biệt schema; cần đối chiếu migration trước khi sửa.');
 
         if ($source === 'module.sql') {
             $summary .= ' Snapshot cũ được Doctor phân tích trực tiếp từ module.sql.';
@@ -92,10 +94,10 @@ class ModuleSchemaDoctorService
                     'unique' => (int) $data['Non_unique'] === 0,
                 ];
             }
-            ksort($indexes, SORT_STRING);
+            $indexes = $this->normalizeNamedStructures($indexes, 'indexes');
 
             $foreignKeys = [];
-            $database = (string) config('database.connections.mysql.database');
+            $database = (string) DB::connection()->getDatabaseName();
             foreach (DB::select('SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION', [$database, $table]) as $row) {
                 $data = (array) $row;
                 $foreignKeys[(string) $data['CONSTRAINT_NAME']][] = [
@@ -104,7 +106,7 @@ class ModuleSchemaDoctorService
                     'referenced_column' => (string) $data['REFERENCED_COLUMN_NAME'],
                 ];
             }
-            ksort($foreignKeys, SORT_STRING);
+            $foreignKeys = $this->normalizeNamedStructures($foreignKeys, 'foreign_keys');
             $schema[$table] = ['columns' => $columns, 'indexes' => $indexes, 'foreign_keys' => $foreignKeys];
         }
         ksort($schema, SORT_STRING);
@@ -151,12 +153,13 @@ class ModuleSchemaDoctorService
             }
 
             foreach (['indexes', 'foreign_keys'] as $section) {
-                $expectedSection = (array) ($expected[$section] ?? []);
-                $actualSection = (array) ($actual[$section] ?? []);
-                if ($expectedSection === $actualSection) {
+                $expectedSection = $this->normalizeNamedStructures((array) ($expected[$section] ?? []), $section);
+                $actualSection = $this->normalizeNamedStructures((array) ($actual[$section] ?? []), $section);
+                $differences = $this->namedStructureDifferences($expectedSection, $actualSection, $section);
+                if ($differences === []) {
                     continue;
                 }
-                $differences = $this->namedStructureDifferences($expectedSection, $actualSection);
+
                 $issues[] = $this->issue(
                     $table,
                     $section.'_changed',
@@ -220,7 +223,7 @@ class ModuleSchemaDoctorService
                 }
 
                 if (preg_match('/^(PRIMARY KEY|UNIQUE KEY `([^`]+)`|KEY `([^`]+)`)\s*\((.+)\)/i', $line, $indexMatch)) {
-                    $name = str_starts_with(strtoupper($indexMatch[1]), 'PRIMARY') ? 'PRIMARY' : ($indexMatch[2] !== '' ? $indexMatch[2] : $indexMatch[3]);
+                    $name = str_starts_with(strtoupper($indexMatch[1]), 'PRIMARY') ? 'PRIMARY' : (($indexMatch[2] ?? '') !== '' ? $indexMatch[2] : $indexMatch[3]);
                     $unique = $name === 'PRIMARY' || str_starts_with(strtoupper($indexMatch[1]), 'UNIQUE');
                     preg_match_all('/`([^`]+)`/', $indexMatch[4], $columnMatches);
                     foreach ($columnMatches[1] as $sequence => $column) {
@@ -238,10 +241,11 @@ class ModuleSchemaDoctorService
                 }
             }
 
-            ksort($columns, SORT_STRING);
-            ksort($indexes, SORT_STRING);
-            ksort($foreignKeys, SORT_STRING);
-            $schema[$table] = ['columns' => $columns, 'indexes' => $indexes, 'foreign_keys' => $foreignKeys];
+            $schema[$table] = [
+                'columns' => $columns,
+                'indexes' => $this->normalizeNamedStructures($indexes, 'indexes'),
+                'foreign_keys' => $this->normalizeNamedStructures($foreignKeys, 'foreign_keys'),
+            ];
         }
         ksort($schema, SORT_STRING);
 
@@ -294,9 +298,6 @@ class ModuleSchemaDoctorService
 
     private function normalizeJsonType(string $type): string
     {
-        // MariaDB exposes JSON aliases as LONGTEXT in information_schema while
-        // mysqldump may retain JSON. Treat only the plain LONGTEXT representation
-        // as the same logical storage type for snapshot diagnostics.
         return in_array($type, ['json', 'longtext'], true) ? 'json-text' : $type;
     }
 
@@ -315,8 +316,43 @@ class ModuleSchemaDoctorService
         return $differences;
     }
 
-    private function namedStructureDifferences(array $expected, array $current): array
+    private function normalizeNamedStructures(array $structures, string $section): array
     {
+        $normalized = [];
+        foreach ($structures as $name => $parts) {
+            $canonicalName = trim((string) $name);
+            $canonicalParts = collect((array) $parts)
+                ->map(function (array $part) use ($section): array {
+                    if ($section === 'indexes') {
+                        return [
+                            'column' => trim((string) ($part['column'] ?? '')),
+                            'sequence' => (int) ($part['sequence'] ?? 0),
+                            'unique' => (bool) ($part['unique'] ?? false),
+                        ];
+                    }
+
+                    return [
+                        'column' => trim((string) ($part['column'] ?? '')),
+                        'referenced_table' => trim((string) ($part['referenced_table'] ?? '')),
+                        'referenced_column' => trim((string) ($part['referenced_column'] ?? '')),
+                    ];
+                })
+                ->sortBy(fn (array $part): string => $section === 'indexes'
+                    ? sprintf('%08d:%s', $part['sequence'], $part['column'])
+                    : $part['column'].':'.$part['referenced_table'].':'.$part['referenced_column'])
+                ->values()
+                ->all();
+            $normalized[$canonicalName] = $canonicalParts;
+        }
+        ksort($normalized, SORT_STRING);
+
+        return $normalized;
+    }
+
+    private function namedStructureDifferences(array $expected, array $current, string $section = 'indexes'): array
+    {
+        $expected = $this->normalizeNamedStructures($expected, $section);
+        $current = $this->normalizeNamedStructures($current, $section);
         $missing = array_values(array_diff(array_keys($expected), array_keys($current)));
         $extra = array_values(array_diff(array_keys($current), array_keys($expected)));
         $changed = [];
