@@ -38,6 +38,22 @@ compose_interpolation_keys() {
     done | sort -u
 }
 
+# queue:restart is intentionally asynchronous. Workers can briefly enter
+# "restarting" while Supervisor/Docker starts their replacement process. Do not
+# classify that expected transition as a production failure immediately.
+wait_for_services_running() {
+    local timeout="${1:-30}" elapsed=0 degraded
+    while (( elapsed < timeout )); do
+        degraded="$(compose ps --all --format '{{.Service}}|{{.State}}|{{.Status}}' 2>/dev/null | awk -F'|' '$2 != "running" {print}')"
+        [[ -z "$degraded" ]] && return 0
+        (( elapsed == 0 )) && info 'Chờ queue/runtime services ổn định sau reload...'
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    printf '%s\n' "$degraded"
+    return 1
+}
+
 usage() {
     cat <<'EOF'
 USAGE:
@@ -149,7 +165,7 @@ docker exec "$APP" bash -lc 'php artisan config:clear && php artisan config:cach
 pass 'Laravel config cache đã refresh.'
 
 info 'Yêu cầu Laravel queue workers reload application state...'
-docker exec "$APP" bash -lc 'php artisan queue:restart' && pass 'queue:restart hoàn tất.' || warn 'queue:restart thất bại.'
+docker exec "$APP" bash -lc 'php artisan queue:restart' && pass 'queue:restart signal đã gửi.' || warn 'queue:restart thất bại.'
 
 # Scheduler restart is only necessary when Compose/runtime-sensitive values changed.
 if [[ "$RECONCILE" -eq 1 ]] && compose config --services | grep -qx scheduler; then
@@ -157,14 +173,19 @@ if [[ "$RECONCILE" -eq 1 ]] && compose config --services | grep -qx scheduler; t
     compose restart scheduler >/dev/null && pass 'Scheduler đã restart.' || warn 'Không restart được scheduler.'
 fi
 
+# queue:restart can make workers report "restarting" for a few seconds. Wait for
+# the expected transition to finish before making the final health verdict.
+if ! DEGRADED="$(wait_for_services_running 30)"; then
+    printf '\n=== SERVICE STATUS ===\n'
+    compose ps --all
+    printf '\n=== RESULT ===\n'
+    printf '%s\n' "$DEGRADED" >&2
+    fail 'Apply hoàn tất nhưng stack chưa running hoàn toàn sau 30s stabilization window.'
+fi
+
 printf '\n=== SERVICE STATUS ===\n'
 compose ps --all
-DEGRADED="$(compose ps --all --format '{{.Service}}|{{.State}}|{{.Status}}' 2>/dev/null | awk -F'|' '$2 != "running" {print}')"
 printf '\n=== RESULT ===\n'
-[[ -z "$DEGRADED" ]] || {
-    printf '%s\n' "$DEGRADED" >&2
-    fail 'Apply hoàn tất nhưng stack chưa running hoàn toàn.'
-}
 
 if [[ "$MODE" == smart ]]; then
     mkdir -p "$STATE_DIR"
