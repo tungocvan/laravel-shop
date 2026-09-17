@@ -2,8 +2,8 @@
 
 namespace Modules\System\Services;
 
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Modules\System\Support\IconParser;
 
 class SystemConfigService
@@ -14,6 +14,7 @@ class SystemConfigService
     ];
 
     protected string $corePath;
+
     protected string $overridePath;
 
     public function __construct()
@@ -21,6 +22,7 @@ class SystemConfigService
         $this->corePath = base_path('Modules/System/config/system_tabs.php');
         $this->overridePath = base_path('Modules/System/data/system_tabs.json');
     }
+
     public function getTabs(): array
     {
         $coreTime = file_exists($this->corePath)
@@ -42,9 +44,10 @@ class SystemConfigService
             );
         });
     }
+
     protected function getCore(): array
     {
-        if (!File::exists($this->corePath)) {
+        if (! File::exists($this->corePath)) {
             return [];
         }
 
@@ -53,7 +56,7 @@ class SystemConfigService
 
     protected function getOverride(): array
     {
-        if (!File::exists($this->overridePath)) {
+        if (! File::exists($this->overridePath)) {
             return [];
         }
 
@@ -67,17 +70,21 @@ class SystemConfigService
         $result = [];
 
         foreach ($core as $item) {
-            if (!isset($item['id'])) continue;
+            if (! isset($item['id'])) {
+                continue;
+            }
+
             $result[$item['id']] = $item;
         }
 
         foreach ($override as $item) {
-            if (!isset($item['id'])) continue;
+            $id = $item['id'] ?? null;
 
-            $result[$item['id']] = array_merge(
-                $result[$item['id']] ?? [],
-                $item
-            );
+            if (! is_string($id) || ! isset($result[$id])) {
+                continue;
+            }
+
+            $result[$id] = array_merge($result[$id], $item);
         }
 
         return array_values($result);
@@ -88,7 +95,17 @@ class SystemConfigService
     // =========================
     public function updateTab(string $id, array $data): void
     {
+        $coreIds = collect($this->getCore())
+            ->pluck('id')
+            ->filter(fn ($coreId): bool => is_string($coreId))
+            ->all();
+
+        if (! in_array($id, $coreIds, true)) {
+            return;
+        }
+
         $tabs = collect($this->getOverride())
+            ->filter(fn ($tab): bool => is_array($tab) && in_array($tab['id'] ?? null, $coreIds, true))
             ->keyBy('id');
 
         $tabs[$id] = array_merge(
@@ -129,10 +146,10 @@ class SystemConfigService
     {
         Cache::forget('system_tabs');
     }
+
     protected function normalize(array $tabs): array
     {
         return collect($tabs)->map(function ($tab) {
-
             $tab['icon'] = IconParser::parse($tab['icon'] ?? null)
                 ?? 'M4 6h16M4 12h16M4 18h16'; // default
 
