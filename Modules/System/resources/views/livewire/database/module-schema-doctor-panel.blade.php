@@ -75,6 +75,22 @@
                                         <div class="flex flex-wrap items-center gap-2"><span class="rounded-full px-2 py-0.5 text-xs font-bold {{ ($step['risk'] ?? 'REVIEW') === 'SAFE' ? 'bg-emerald-100 text-emerald-800' : (($step['risk'] ?? '') === 'BLOCKED' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800') }}">{{ $step['risk'] ?? 'REVIEW' }}</span><code class="text-xs font-bold text-gray-600">{{ $step['action'] ?? 'MANUAL_REVIEW' }}</code></div>
                                         <p class="mt-1 font-semibold text-gray-900">{{ $step['message'] ?? '' }}</p>
                                         <p class="mt-1 text-xs text-gray-600">{{ $step['reason'] ?? '' }}</p>
+                                        @if (($step['evidence'] ?? []) !== [])
+                                            <div class="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3 text-xs text-gray-700">
+                                                <p class="font-bold uppercase tracking-wide text-indigo-700">Evidence</p>
+                                                <p class="mt-1"><span class="font-semibold">Cột:</span> {{ implode(', ', $step['evidence']['columns'] ?? []) ?: 'không xác định' }}</p>
+                                                <p class="mt-1"><span class="font-semibold">Foreign key hiện tại:</span> {{ implode(', ', array_keys($step['evidence']['matching_foreign_keys'] ?? [])) ?: 'không tìm thấy' }}</p>
+                                                @if (($step['evidence']['migration_candidates'] ?? []) !== [])
+                                                    <div class="mt-2"><span class="font-semibold">Migration ownership:</span>
+                                                        @foreach ($step['evidence']['migration_candidates'] as $candidate)
+                                                            <code class="mt-1 block break-all rounded bg-white px-2 py-1 text-gray-700">{{ $candidate['file'] }} · foreignId={{ ($candidate['foreign_id'] ?? false) ? 'yes' : 'no' }} · constrained={{ ($candidate['constrained'] ?? false) ? 'yes' : 'no' }}</code>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <p class="mt-1"><span class="font-semibold">Migration ownership:</span> chưa tìm thấy candidate.</p>
+                                                @endif
+                                            </div>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
