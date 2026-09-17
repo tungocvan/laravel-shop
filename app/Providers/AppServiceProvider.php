@@ -9,6 +9,8 @@ use Illuminate\Support\ServiceProvider;
 use LogicException;
 use Modules\Pharma\Contracts\PriceResolver;
 use Modules\Pharma\Services\DatabasePriceResolver;
+use Modules\System\Services\Database\CanonicalModuleSnapshotService;
+use Modules\System\Services\Database\ModuleSnapshotService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(PriceResolver::class, DatabasePriceResolver::class);
+        $this->app->bind(ModuleSnapshotService::class, CanonicalModuleSnapshotService::class);
     }
 
     /**
