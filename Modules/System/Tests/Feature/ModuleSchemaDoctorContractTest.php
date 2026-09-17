@@ -23,4 +23,13 @@ class ModuleSchemaDoctorContractTest extends TestCase
         self::assertStringNotContainsString('->statement("DROP', $source);
         self::assertStringNotContainsString('->unprepared(', $source);
     }
+
+    public function test_detailed_manifest_boundary_is_backward_compatible(): void
+    {
+        $source = file_get_contents(base_path('Modules/System/Services/Database/ModuleSnapshotSchemaManifest.php'));
+
+        self::assertIsString($source);
+        self::assertStringContainsString('$manifest[\'schema_manifest\'] = $schemaManifest;', $source);
+        self::assertStringNotContainsString("format_version'] =", $source);
+    }
 }
