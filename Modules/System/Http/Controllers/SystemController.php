@@ -18,7 +18,11 @@ class SystemController extends Controller
         $tabs = collect($configService->getTabs())
             ->filter(fn ($tab) => $tab['enabled'] ?? true)
             ->map(function ($tab) use ($registry) {
-                $tab['is_ready'] = ! is_null($registry->getClass($tab['component']));
+                $component = $tab['component'] ?? null;
+
+                $tab['is_ready'] = is_string($component)
+                    && $component !== ''
+                    && ! is_null($registry->getClass($component));
 
                 return $tab;
             })
