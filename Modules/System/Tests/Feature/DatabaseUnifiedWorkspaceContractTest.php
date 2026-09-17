@@ -32,6 +32,20 @@ class DatabaseUnifiedWorkspaceContractTest extends TestCase
         self::assertStringContainsString('Module snapshot local catalog refresh failed.', $component);
     }
 
+    public function test_full_database_workspace_is_hidden_while_module_workspace_is_active(): void
+    {
+        $view = file_get_contents(base_path('Modules/System/resources/views/pages/database.blade.php'));
+        self::assertIsString($view);
+        self::assertStringContainsString("@if (\$selectedModule === '')", $view);
+        self::assertStringContainsString('Backup Catalog · Restore · Local ↔ Google Drive', $view);
+        self::assertStringContainsString("@livewire('system.database.full-backup-workspace')", $view);
+        self::assertStringContainsString('← Quay về Database', $view);
+        self::assertStringContainsString("route('admin.system.database.index')", $view);
+        self::assertStringContainsString('.module-scoped-table-list [wire\\:click="backupFull"]', $view);
+        self::assertStringContainsString('.module-scoped-table-list [wire\\:click="openRestoreModal"]', $view);
+        self::assertStringContainsString('select[wire\\:model\\.live="moduleFilter"]', $view);
+    }
+
     public function test_unified_workspace_preserves_full_database_and_drive_manager(): void
     {
         $view = file_get_contents(base_path('Modules/System/resources/views/pages/database.blade.php'));
