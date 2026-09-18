@@ -6,6 +6,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Modules\Invoices\Console\Commands\BackupInvoiceFilesCommand;
 use Modules\Invoices\Console\Commands\DiagnoseGdtAuthenticationCommand;
+use Modules\Invoices\Console\Commands\RecoverGdtDuplicatesCommand;
 
 class InvoicesServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,7 @@ class InvoicesServiceProvider extends ServiceProvider
             $this->commands([
                 BackupInvoiceFilesCommand::class,
                 DiagnoseGdtAuthenticationCommand::class,
+                RecoverGdtDuplicatesCommand::class,
             ]);
 
             $this->publishes([
