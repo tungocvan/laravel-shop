@@ -165,3 +165,16 @@ These failures must not be repaired by changing Inventory/Source Data/GDT detail
 ### Closeout checkpoint
 
 GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR/merge, preserve the baseline-failure evidence above, run scoped formatting/checks for changed files as required by the collaboration workflow, confirm the working tree is clean after pull, and merge only after explicit approval.
+
+
+## 2026-09-18 — GDT canonical identity + duplicate recovery
+
+- Branch: `fix/invoices-gdt-canonical-dedup-recovery`.
+- Production audit before implementation: sold 2026 had 951 rows / 111,124,775,809 VND; 468 duplicate pairs were proven identical by business fingerprint, provider, header hash and detail hash. Expected canonical baseline after recovery: 483 rows / 55,926,358,092 VND.
+- Root cause: legacy GDT rows could use `cttkhac.TransactionID` (observed 12-character lookup codes), while current canonical mapping prefers GDT `mtdiep/mhdon/ma/id`; lookup-code-only persistence therefore inserted a second row.
+- Prevention: `GdtInvoiceService` now resolves exact canonical lookup first, then identical GDT header hash, legacy TransactionID, and finally a conservative unique business fingerprint including totals/VAT.
+- Recovery: `invoices:recover-gdt-duplicates --year=2026 --type=sold` is dry-run by default. `--apply` is explicit and transaction guarded. A pair is eligible only when the two GDT rows share business fingerprint + header/detail hashes and exactly one row matches the canonical GDT identity.
+- Reference safety: legacy `invoice_files` and inventory snapshot references are repointed only when the canonical side has no conflicting row; conflicts BLOCK the pair. Duplicate source rows are hash-verified, user/business metadata is merged conservatively, then the legacy source/invoice is removed.
+- Idempotency: after a successful apply, rerunning the command should report zero eligible duplicate pairs.
+- Checkpoint validation requested locally: focused contract test + Pint, dry-run must report the audited pair/reference counts before any `--apply`; only after dry-run acceptance should apply be executed and 483 rows / 55,926,358,092 VND be verified.
+- No UI templates changed; manual smoke remains `/admin/invoices/hoadon-list` after recovery.
