@@ -54,6 +54,12 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringNotContainsString("'password' => \$password,", $this->diagnosticLoggingSection($service));
         $this->assertStringNotContainsString("'cvalue' => \$cvalue,", $this->diagnosticLoggingSection($service));
         $this->assertStringNotContainsString("'token' => \$token,", $this->diagnosticLoggingSection($service));
+        $this->assertStringContainsString("'cache_store' => (string) config('cache.default')", $service);
+        $this->assertStringContainsString("'cache_key' => \$cacheKey", $service);
+        $this->assertStringContainsString("'cache_put_succeeded' => \$cachePutSucceeded", $service);
+        $this->assertStringContainsString("'token_present_after_put' => \$tokenPresentAfterPut", $service);
+        $this->assertStringContainsString("'token_ttl_seconds' => \$time", $service);
+        $this->assertStringNotContainsString("'token_cached' => true", $service);
     }
     #[Test]
     public function authenticate_sends_a_fresh_request_id_without_logging_its_value(): void
