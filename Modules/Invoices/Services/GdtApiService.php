@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class GdtApiService
@@ -149,11 +150,14 @@ class GdtApiService
 
         $startedAt = microtime(true);
         $transfer = [];
+        $requestId = (string) Str::uuid();
 
         try {
             // Authentication can legitimately take longer than list/detail reads during GDT peak load.
             // Do not blindly retry the POST because captcha/authenticate may not be safely repeatable.
-            $res = $this->authenticationClient($cookies, $transfer)->post($url, [
+            $res = $this->authenticationClient($cookies, $transfer)
+                ->withHeader('request-id', $requestId)
+                ->post($url, [
                 'username' => $username,
                 'password' => $password,
                 'ckey' => $ckey,
@@ -190,7 +194,7 @@ class GdtApiService
                 'referer' => $this->frontendOrigin().'/',
                 'action' => '',
                 'end_point' => '/',
-                'request_id' => 'not-sent-until-contract-is-verified',
+                'request_id' => 'generated-per-auth-request',
             ],
             'network_context' => $transfer,
             'response_context' => $this->responseContext($res),
