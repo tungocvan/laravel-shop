@@ -8,18 +8,19 @@ use Modules\Invoices\Services\GdtDuplicateRecoveryService;
 final class RecoverGdtDuplicatesCommand extends Command
 {
     protected $signature = 'invoices:recover-gdt-duplicates
-        {--year=2026 : Năm hóa đơn cần kiểm tra}
-        {--type=sold : sold hoặc purchase}
+        {--year= : Giới hạn theo năm; để trống = toàn bộ dữ liệu}
+        {--type=all : all, sold hoặc purchase}
         {--apply : Thực hiện recovery; mặc định chỉ dry-run}';
 
     protected $description = 'Dry-run hoặc recovery duplicate GDT đã được xác minh bằng canonical identity và RAW hash';
 
     public function handle(GdtDuplicateRecoveryService $service): int
     {
-        $year = (int) $this->option('year');
+        $yearOption = trim((string) $this->option('year'));
+        $year = $yearOption === '' ? null : (int) $yearOption;
         $type = (string) $this->option('type');
-        if (! in_array($type, ['sold', 'purchase'], true)) {
-            $this->error('--type chỉ nhận sold hoặc purchase.');
+        if (! in_array($type, ['all', 'sold', 'purchase'], true)) {
+            $this->error('--type chỉ nhận all, sold hoặc purchase.');
 
             return self::FAILURE;
         }
