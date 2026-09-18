@@ -5,12 +5,17 @@ namespace Modules\Pharma\Tests\Unit;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\MedicineCatalogNormalizer;
 use Modules\Pharma\Services\MedicineIdentityResolver;
+use LogicException;
+use Modules\Pharma\Services\MedicineService;
 use Modules\Pharma\Services\MedicineSkuGenerator;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class MedicineCanonicalIdentityTest extends TestCase
 {
+    use RefreshDatabase;
+
     #[Test]
     public function same_registration_and_name_can_have_distinct_strength_variants(): void
     {
@@ -79,4 +84,46 @@ class MedicineCanonicalIdentityTest extends TestCase
         $this->assertStringContainsString('static::created(', $model);
         $this->assertStringContainsString('saveQuietly()', $model);
     }
+    #[Test]
+    public function manual_edit_keeps_registration_fields_canonical_and_rejects_duplicate_identity(): void
+    {
+        $first = Medicine::query()->create([
+            'name' => 'Medicine A',
+            'registration_number' => 'REG-A',
+            'registration_number_raw' => 'REG-A',
+            'registration_number_primary' => 'REG-A',
+            'canonical_identity_key' => app(MedicineIdentityResolver::class)->canonicalMedicineIdentity([
+                'name' => 'Medicine A',
+                'registration_number' => 'REG-A',
+            ]),
+        ]);
+        $second = Medicine::query()->create([
+            'name' => 'Medicine B',
+            'registration_number' => 'REG-B',
+            'registration_number_raw' => 'REG-B',
+            'registration_number_primary' => 'REG-B',
+            'canonical_identity_key' => app(MedicineIdentityResolver::class)->canonicalMedicineIdentity([
+                'name' => 'Medicine B',
+                'registration_number' => 'REG-B',
+            ]),
+        ]);
+
+        $updated = app(MedicineService::class)->update($first->id, [
+            'name' => 'Medicine A',
+            'registration_number' => " REG-C\n",
+        ]);
+
+        $this->assertSame('REG-C', $updated->registration_number);
+        $this->assertSame('REG-C', $updated->registration_number_primary);
+        $this->assertSame('REG-C', $updated->registration_number_raw);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('trùng Medicine Master');
+
+        app(MedicineService::class)->update($updated->id, [
+            'name' => $second->name,
+            'registration_number' => $second->registration_number,
+        ]);
+    }
+
 }
