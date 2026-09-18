@@ -112,3 +112,43 @@ Only confirmed Inventory receipts change stock.
 ## Closeout
 
 This scope is complete. Do not reopen `fix/invoices-structured-lot-expiry` for new work. Future work starts from current `main` and must preserve the canonical ownership and stock-posting invariants above.
+
+
+## Current handoff — GDT authentication request contract diagnostics
+
+- Branch: `fix/invoices-gdt-auth-session-diagnostics`.
+- Scope: `Modules\\Invoices` GDT authentication/session diagnostics for `/admin/invoices/hoadon`.
+- Status: **IMPLEMENTED / FOCUSED TEST PASS / CLI AUTH PASS / UI PASS**.
+- No schema migration.
+- Inventory ownership boundary above remains unchanged; Inventory does not call GDT directly.
+
+### Root-cause evidence
+
+The failure was isolated outside Livewire/UI. Captcha initialization succeeded from the local application session, while authenticate returned HTTP 403 with the upstream blocked-request response. Transport diagnostics showed the captcha and authenticate requests reaching the same GDT endpoint/IP over HTTP/2 with successful SSL verification and the same persisted captcha-session cookie jar.
+
+The GDT authenticate request now sends a newly generated UUID `request-id` for each authentication request. The application does not copy/replay a browser request ID and does not add browser fingerprint headers. Diagnostic logs record only `generated-per-auth-request`, never the UUID value.
+
+Controlled CLI verification changed from authenticate HTTP 403 without `request-id` to authenticate HTTP 200 with a fresh `request-id`. The successful response returned the expected login action and the token was cached. The real `/admin/invoices/hoadon` connection flow was then manually verified: **UI PASS**.
+
+### Security / diagnostics invariants
+
+Diagnostic logging excludes GDT username/password, captcha value, token, cookie values and the generated request-id value. Cookie diagnostics contain metadata only. The local diagnostic command remains local-environment-only and requires the operator to read/enter the captcha manually.
+
+Do not copy browser cookies/tokens/request IDs into Laravel, emulate `sec-*` browser headers, spoof a Chrome identity, or introduce automatic retries for captcha/authenticate POST.
+
+### Test evidence and known baseline drift
+
+`tests/Feature/Invoices/GdtAuthenticationSafetyContractTest.php`: **PASS** after the final request-id change.
+
+Invoices module regression after the fix: **49 passed (459 assertions), 4 failed**. The four failures are pre-existing contract/baseline drift outside this GDT authentication scope:
+
+- `InvoiceInventoryBulkIntakeContractTest`: missing expected `GdtPdfService::fetchAndStoreDetail(Invoices $invoice): array`.
+- `InvoiceInventoryBulkIntakeContractTest`: missing expected `'_gdt_raw_payload' => $item` persistence contract.
+- `InvoiceInventoryBulkIntakeContractTest`: missing expected supplier/invoice `classification_scope` contract string.
+- `InvoiceInventoryHandoffContractTest`: missing expected `->ingest($this->factory->build($invoice))` contract string.
+
+These failures must not be repaired by changing Inventory/Source Data/GDT detail/handoff behavior as part of this authentication branch. They require separate reconciliation against current `main` ownership/contracts.
+
+### Closeout checkpoint
+
+GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR/merge, preserve the baseline-failure evidence above, run scoped formatting/checks for changed files as required by the collaboration workflow, confirm the working tree is clean after pull, and merge only after explicit approval.
