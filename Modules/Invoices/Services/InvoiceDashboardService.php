@@ -145,7 +145,7 @@ final class InvoiceDashboardService
                             ->where('invoice_source_records.provider', '=', 'gdt')
                             ->where('invoice_source_records.business_classification', '=', 'SERVICE_EXPENSE');
                     })
-                    ->leftJoin('invoices', function ($join): void {
+                    ->leftJoin('invoices', function ($join) use ($periodStart, $periodEnd): void {
                         $join->on('invoices.id', '=', 'invoice_source_records.invoice_id')
                             ->where('invoices.invoice_type', '=', 'purchase')
                             ->whereBetween('invoices.issued_date', [$periodStart, $periodEnd]);
