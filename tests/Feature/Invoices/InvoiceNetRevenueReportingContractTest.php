@@ -33,6 +33,24 @@ class InvoiceNetRevenueReportingContractTest extends TestCase
         $this->assertStringNotContainsString("invoice_type = 'purchase' THEN total_amount ELSE 0 END", $service);
     }
 
+
+    public function test_client_invoice_list_uses_pre_vat_values_and_sorting(): void
+    {
+        $service = file_get_contents(base_path('Modules/Invoices/Services/InvoiceService.php'));
+        $workspace = file_get_contents(base_path('Modules/ClientPortal/Applications/Invoices/Services/ClientInvoiceWorkspaceService.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/index.blade.php'));
+
+        $this->assertStringContainsString('COALESCE(SUM(amount_before_vat), 0) as amount_before_vat_sum', $service);
+        $this->assertStringContainsString("'net_amount_desc' => ['amount_before_vat', 'desc']", $service);
+        $this->assertStringContainsString("'net_amount_asc' => ['amount_before_vat', 'asc']", $service);
+        $this->assertStringContainsString("'amount_desc' => 'net_amount_desc'", $workspace);
+        $this->assertStringContainsString("'amount_asc' => 'net_amount_asc'", $workspace);
+        $this->assertStringContainsString("($stats['amount_before_vat'] ?? 0)", $view);
+        $this->assertStringContainsString('$invoice->amount_before_vat', $view);
+        $this->assertStringContainsString('Giá trị chưa VAT', $view);
+        $this->assertStringNotContainsString('$invoice->total_amount', $view);
+    }
+
     public function test_admin_and_client_surfaces_label_net_revenue_explicitly(): void
     {
         $adminList = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/hoadon-list.blade.php'));
