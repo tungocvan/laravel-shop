@@ -70,7 +70,7 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringNotContainsString("'cookie_value' =>", $command);
         $this->assertStringNotContainsString('$this->line($image)', $command);
         $this->assertStringContainsString("storage_path('app/invoices/gdt-diagnostics/captcha.svg')", $command);
-        $this->assertStringContainsString("file_put_contents($captchaPath, $image)", $command);
+        $this->assertStringContainsString('file_put_contents($captchaPath, $image)', $command);
     }
 
     private function diagnosticLoggingSection(string $service): string
