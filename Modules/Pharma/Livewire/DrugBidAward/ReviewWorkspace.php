@@ -19,23 +19,46 @@ class ReviewWorkspace extends Component
     use WithPagination;
 
     public string $status = 'pending';
+
     public string $search = '';
+
     public int $perPage = 25;
+
     public array $selectedAwardIds = [];
+
     public ?int $selectedAwardId = null;
+
     public string $candidateSearch = '';
+
     public ?int $selectedMedicineId = null;
+
     public ?int $selectedVariantId = null;
+
     public ?int $selectedPackageId = null;
+
     public ?string $successMessage = null;
+
     public ?string $errorMessage = null;
+
     public bool $linkSuccessModal = false;
+
     public ?string $linkedMedicineName = null;
+
     public ?string $linkedMedicineCode = null;
+
     public ?string $confirmationAction = null;
 
-    public function updatingSearch(): void { $this->resetPage(); $this->selectedAwardIds = []; }
-    public function updatingStatus(): void { $this->resetPage(); $this->selectedAwardIds = []; }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+        $this->selectedAwardIds = [];
+    }
+
+    public function updatingStatus(): void
+    {
+        $this->resetPage();
+        $this->selectedAwardIds = [];
+    }
 
     public function selectAward(int $awardId): void
     {
