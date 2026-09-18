@@ -13,7 +13,7 @@ return [
         'auth_timeout' => (int) env('GDT_API_AUTH_TIMEOUT', 45),
         'token_ttl' => (int) env('GDT_TOKEN_TTL', 36000),
         'cache_key' => env('GDT_TOKEN_CACHE_KEY', 'gdt_token'),
-        'user_agent' => env('GDT_API_USER_AGENT', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36'),
+        'user_agent' => env('GDT_API_USER_AGENT', 'Laravel-Invoices-GDT/1.0'),
         'detail_request_delay_ms' => (int) env('GDT_DETAIL_REQUEST_DELAY_MS', 1000),
         'detail_retry_attempts' => (int) env('GDT_DETAIL_RETRY_ATTEMPTS', 4),
         'detail_retry_backoff_seconds' => [5, 10, 20, 40],
