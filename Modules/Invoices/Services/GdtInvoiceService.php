@@ -132,7 +132,7 @@ class GdtInvoiceService
                 return false;
             }
 
-return $date >= $requestedStart && $date <= $requestedEnd;
+            return $date >= $requestedStart && $date <= $requestedEnd;
         }));
         $outsideRange = count($all) - $inRange;
         $show(sprintf('[GDT] Theo ngày lập trong phạm vi %s → %s: %d · ngoài phạm vi: %d.', Carbon::parse($startDate)->format('d/m/Y'), Carbon::parse($endDate)->format('d/m/Y'), $inRange, $outsideRange));
@@ -397,7 +397,7 @@ return $date >= $requestedStart && $date <= $requestedEnd;
             throw new \RuntimeException('Không thể xác định khóa hóa đơn để ghi cơ sở dữ liệu: thiếu mã tra cứu, số hóa đơn hoặc ngày lập.');
         }
 
-return ['invoice_type' => $attributes['invoice_type'], 'invoice_number' => $attributes['invoice_number'], 'symbol' => $attributes['symbol'], 'issued_date' => $attributes['issued_date'], 'tax_code' => $attributes['tax_code']];
+        return ['invoice_type' => $attributes['invoice_type'], 'invoice_number' => $attributes['invoice_number'], 'symbol' => $attributes['symbol'], 'issued_date' => $attributes['issued_date'], 'tax_code' => $attributes['tax_code']];
     }
 
     private function exportExcel(array $rows, bool $vatIn, string $filename): string
@@ -426,7 +426,7 @@ return ['invoice_type' => $attributes['invoice_type'], 'invoice_number' => $attr
             }
         }
 
-return null;
+        return null;
     }
 
     private function payloadHash(array $payload): string
@@ -449,6 +449,6 @@ return null;
             return $value;
         }
 
-return preg_replace('/[^0-9.\-]/','',(string) $value) ?: null;
+        return preg_replace('/[^0-9.\-]/', '', (string) $value) ?: null;
     }
 }
