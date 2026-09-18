@@ -60,7 +60,8 @@ class MedicineCatalogImportUiContractTest extends TestCase
         $this->assertStringNotContainsString('Mã / GPLH', $view);
         $this->assertStringContainsString('>Mã thuốc</th>', $view);
         $this->assertStringContainsString('>GPLH</th>', $view);
-        $this->assertStringContainsString("registration_number_primary ?: \\$medicine->registration_number ?: 'Chưa có GPLH'", $view);
+        $this->assertStringContainsString('registration_number_primary ?: $medicine->registration_number', $view);
+        $this->assertStringContainsString("?: 'Chưa có GPLH'", $view);
         $this->assertStringContainsString('lg:hidden', $view);
         $this->assertStringContainsString("orWhere('registration_number_raw', 'like'", $service);
     }
