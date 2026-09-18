@@ -42,7 +42,7 @@ final class InvoiceDashboardService
             : $this->emptyInvoiceMetrics(false);
         $classificationMetrics = $availability['invoices'] && $availability['invoice_source_records']
             ? $this->classificationMetrics($availability['invoice_expense_categories'], $classificationYear)
-            : $this->emptyClassificationMetrics(false);
+            : $this->emptyClassificationMetrics(false, $classificationYear);
         $pdfMetrics = $this->pdfMetrics(
             $capabilities['download'],
             $availability['invoice_files'] && $invoiceMetrics['available'],
@@ -147,10 +147,10 @@ final class InvoiceDashboardService
                     })
                     ->leftJoin('invoices', function ($join): void {
                         $join->on('invoices.id', '=', 'invoice_source_records.invoice_id')
-                            ->where('invoices.invoice_type', '=', 'purchase');
+                            ->where('invoices.invoice_type', '=', 'purchase')
+                            ->whereBetween('invoices.issued_date', [$periodStart, $periodEnd]);
                     })
                     ->where('invoice_expense_categories.is_active', true)
-                    ->whereBetween('invoices.issued_date', [$periodStart, $periodEnd])
                     ->groupBy('invoice_expense_categories.id', 'invoice_expense_categories.code', 'invoice_expense_categories.name', 'invoice_expense_categories.sort_order')
                     ->orderBy('invoice_expense_categories.sort_order')
                     ->orderBy('invoice_expense_categories.name')
@@ -191,19 +191,19 @@ final class InvoiceDashboardService
         } catch (Throwable $exception) {
             $this->logUnavailable('classification_metrics', $exception);
 
-            return $this->emptyClassificationMetrics(false);
+            return $this->emptyClassificationMetrics(false, $year);
         }
     }
 
     /** @return array<string, mixed> */
-    private function emptyClassificationMetrics(bool $available): array
+    private function emptyClassificationMetrics(bool $available, ?int $year = null): array
     {
         return [
             'available' => $available,
             'basis' => 'amount_before_vat',
-            'year' => (int) now()->format('Y'),
-            'period_start' => now()->startOfYear()->toDateString(),
-            'period_end' => now()->endOfYear()->toDateString(),
+            'year' => $year ?? (int) now()->format('Y'),
+            'period_start' => CarbonImmutable::create($year ?? (int) now()->format('Y'), 1, 1)->startOfYear()->toDateString(),
+            'period_end' => CarbonImmutable::create($year ?? (int) now()->format('Y'), 12, 31)->endOfYear()->toDateString(),
             'total_count' => 0,
             'total_value' => 0.0,
             'goods_count' => 0,
