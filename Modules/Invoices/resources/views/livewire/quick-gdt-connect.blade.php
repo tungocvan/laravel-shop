@@ -50,7 +50,13 @@
 
                 <form wire:submit="connect" class="space-y-5 px-5 py-5 sm:px-6">
                     @if ($error)
-                        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-800">{{ $error }}</div>
+                        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-800">
+                            <p class="font-semibold">{{ $errorCode === 'UPSTREAM_REQUEST_BLOCKED' ? 'GDT từ chối yêu cầu xác thực' : 'Không thể kết nối GDT' }}</p>
+                            <p class="mt-1">{{ $error }}</p>
+                            @if ($errorCode === 'UPSTREAM_REQUEST_BLOCKED')
+                                <p class="mt-2 text-rose-700">Gợi ý: kiểm tra tài khoản bằng cách đăng nhập trực tiếp trên Cổng HĐĐT và không thử kết nối liên tục. Diagnostic hiện tại chưa kết luận nguyên nhân là do máy chủ. Nếu GDT cung cấp phương thức tích hợp chính thức, hãy ưu tiên cấu hình phương thức đó cho hệ thống.</p>
+                            @endif
+                        </div>
                     @endif
 
                     <div>

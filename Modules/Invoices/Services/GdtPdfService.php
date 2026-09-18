@@ -6,9 +6,11 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Modules\Invoices\Models\InvoiceInventorySnapshot;
-use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
+use Modules\Invoices\Models\InvoiceSourceRecord;
 use RuntimeException;
 use Throwable;
 
@@ -124,11 +126,19 @@ class GdtPdfService
         try {
             for ($attempt = 1; $attempt <= $attempts; $attempt++) {
                 try {
+                    $origin = $this->frontendOrigin();
                     $response = Http::withOptions([
                         'verify' => (bool) config('invoices.gdt.verify_ssl', true),
                     ])->timeout((int) config('invoices.gdt.timeout', 15))
                         ->withToken($token)
-                        ->acceptJson()
+                        ->withHeaders([
+                            'Accept' => 'application/json, text/plain, */*',
+                            'Origin' => $origin,
+                            'Referer' => $origin.'/',
+                            'Action' => '',
+                            'End-Point' => '/',
+                            'request-id' => (string) Str::uuid(),
+                        ])
                         ->get(rtrim((string) config('invoices.gdt.base_url'), '/').'/query/invoices/detail', [
                             'nbmst' => $nbmst,
                             'khhdon' => $khhdon,
@@ -138,6 +148,7 @@ class GdtPdfService
                 } catch (ConnectionException $exception) {
                     if ($attempt < $attempts) {
                         sleep(max(1, (int) ($backoffs[$attempt - 1] ?? 5)));
+
                         continue;
                     }
 
@@ -145,8 +156,16 @@ class GdtPdfService
                 }
 
                 if (in_array($response->status(), [401, 403], true)) {
-                    Cache::forget($tokenKey);
-                    throw new RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+                    $this->logRejectedDetail($response, $invoice, $attempt);
+                    if ($response->status() === 401) {
+                        Cache::forget($tokenKey);
+                    }
+
+                    throw new RuntimeException(
+                        $response->status() === 401
+                            ? 'Phiên đăng nhập GDT đã hết hạn.'
+                            : 'GDT từ chối yêu cầu lấy chi tiết hóa đơn (HTTP 403).'
+                    );
                 }
 
                 if ($response->status() === 429 && $attempt < $attempts) {
@@ -160,6 +179,7 @@ class GdtPdfService
                     }
 
                     sleep($delay);
+
                     continue;
                 }
 
@@ -188,6 +208,29 @@ class GdtPdfService
             $this->markAcquisitionError($source, $exception->getMessage());
             throw $exception;
         }
+    }
+
+    private function logRejectedDetail($response, Invoices $invoice, int $attempt): void
+    {
+        $payload = $response->json();
+        Log::warning('GDT invoice detail rejected.', [
+            'invoice_id' => (int) $invoice->id,
+            'attempt' => $attempt,
+            'status' => $response->status(),
+            'message' => is_array($payload) ? ($payload['message'] ?? $payload['error'] ?? null) : null,
+            'response_keys' => is_array($payload) ? array_keys($payload) : [],
+            'request_context' => [
+                'authorization' => 'bearer-token-present',
+                'request_id' => 'generated-per-detail-request',
+            ],
+        ]);
+    }
+
+    private function frontendOrigin(): string
+    {
+        $baseUrl = rtrim((string) config('invoices.gdt.base_url'), '/');
+
+        return preg_replace('#/api$#', '', $baseUrl) ?: $baseUrl;
     }
 
     private function markAcquisitionError(InvoiceSourceRecord $source, string $message): void

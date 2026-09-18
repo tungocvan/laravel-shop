@@ -25,6 +25,8 @@ final class QuickGdtConnect extends Component
 
     public ?string $message = null;
 
+    public ?string $errorCode = null;
+
     public function boot(GdtApiService $service): void
     {
         $this->service = $service;
@@ -42,6 +44,7 @@ final class QuickGdtConnect extends Component
         $this->resetValidation();
         $this->error = null;
         $this->message = null;
+        $this->errorCode = null;
         $this->modalOpen = true;
         $this->refreshCaptcha();
     }
@@ -51,6 +54,7 @@ final class QuickGdtConnect extends Component
         $this->modalOpen = false;
         $this->cvalue = null;
         $this->error = null;
+        $this->errorCode = null;
         $this->resetValidation();
     }
 
@@ -86,6 +90,7 @@ final class QuickGdtConnect extends Component
     {
         $this->authorizeConfigure();
         $this->error = null;
+        $this->errorCode = null;
         $this->message = null;
 
         $this->validate([
@@ -116,7 +121,13 @@ final class QuickGdtConnect extends Component
 
         if (($response['status'] ?? 'error') !== 'success') {
             $this->error = (string) ($response['message'] ?? 'Đăng nhập GDT không thành công.');
-            $this->refreshCaptchaKeepingError();
+            $this->errorCode = isset($response['code']) ? (string) $response['code'] : null;
+
+            // A 403 upstream block is not evidence of a bad captcha. Avoid immediately
+            // creating another GDT session/request when the upstream explicitly blocks auth.
+            if ($this->errorCode !== 'UPSTREAM_REQUEST_BLOCKED') {
+                $this->refreshCaptchaKeepingError();
+            }
 
             return;
         }

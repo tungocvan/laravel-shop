@@ -4,10 +4,12 @@ namespace Modules\Invoices\Services;
 
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
+use GuzzleHttp\TransferStats;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class GdtApiService
@@ -77,11 +79,12 @@ class GdtApiService
     {
         // Captcha and authenticate are a single upstream session. Start a fresh cookie jar
         // here and persist it because Livewire will submit authenticate in another PHP request.
-        $cookies = new CookieJar();
+        $cookies = new CookieJar;
         $startedAt = microtime(true);
+        $transfer = [];
 
         try {
-            $response = $this->sessionClient($cookies)->get($this->url('/captcha'));
+            $response = $this->sessionClient($cookies, $transfer)->get($this->url('/captcha'));
         } catch (ConnectionException $exception) {
             Log::warning('Không thể kết nối API GDT để tải captcha.', [
                 'url' => $this->url('/captcha'),
@@ -110,6 +113,8 @@ class GdtApiService
             'status' => $response->status(),
             'elapsed_ms' => $this->elapsedMilliseconds($startedAt),
             'cookie_count' => count($cookies->toArray()),
+            'network_context' => $transfer,
+            'response_context' => $this->responseContext($response),
         ]);
 
         $data = $response->json();
@@ -144,16 +149,20 @@ class GdtApiService
         }
 
         $startedAt = microtime(true);
+        $transfer = [];
+        $requestId = (string) Str::uuid();
 
         try {
             // Authentication can legitimately take longer than list/detail reads during GDT peak load.
             // Do not blindly retry the POST because captcha/authenticate may not be safely repeatable.
-            $res = $this->authenticationClient($cookies)->post($url, [
-                'username' => $username,
-                'password' => $password,
-                'ckey' => $ckey,
-                'cvalue' => $cvalue,
-            ]);
+            $res = $this->authenticationClient($cookies, $transfer)
+                ->withHeader('request-id', $requestId)
+                ->post($url, [
+                    'username' => $username,
+                    'password' => $password,
+                    'ckey' => $ckey,
+                    'cvalue' => $cvalue,
+                ]);
         } catch (ConnectionException $exception) {
             Log::warning('Không thể kết nối API GDT để đăng nhập.', [
                 'url' => $url,
@@ -178,17 +187,34 @@ class GdtApiService
             'status' => $res->status(),
             'elapsed_ms' => $this->elapsedMilliseconds($startedAt),
             'cookie_count' => count($cookies->toArray()),
+            'cookie_metadata' => $this->cookieMetadata($cookies),
+            'request_context' => [
+                'content_type' => 'application/json',
+                'origin' => $this->frontendOrigin(),
+                'referer' => $this->frontendOrigin().'/',
+                'action' => '',
+                'end_point' => '/',
+                'request_id' => 'generated-per-auth-request',
+            ],
+            'network_context' => $transfer,
+            'response_context' => $this->responseContext($res),
         ];
 
         if ($res->successful()) {
             $token = is_array($payload) ? ($payload['token'] ?? $payload['accessToken'] ?? null) : null;
 
             if ($token) {
-                Cache::put(config('invoices.gdt.cache_key'), $token, $time);
+                $cacheKey = (string) config('invoices.gdt.cache_key', 'gdt_token');
+                $cachePutSucceeded = Cache::put($cacheKey, $token, $time);
+                $tokenPresentAfterPut = Cache::has($cacheKey);
                 Cache::forget($this->sessionCacheKey());
 
                 Log::notice('GDT login succeeded.', $diagnostics + [
-                    'token_cached' => true,
+                    'cache_store' => (string) config('cache.default'),
+                    'cache_key' => $cacheKey,
+                    'cache_put_succeeded' => $cachePutSucceeded,
+                    'token_present_after_put' => $tokenPresentAfterPut,
+                    'token_ttl_seconds' => $time,
                 ]);
 
                 return ['status' => 'success', 'message' => null];
@@ -210,8 +236,18 @@ class GdtApiService
             'response_keys' => is_array($payload) ? array_keys($payload) : [],
         ]);
 
+        if ($res->status() === 403) {
+            return [
+                'status' => 'error',
+                'code' => 'UPSTREAM_REQUEST_BLOCKED',
+                'http_status' => 403,
+                'message' => 'GDT từ chối yêu cầu xác thực của ứng dụng (HTTP 403). Captcha và phiên GDT đã được khởi tạo, nhưng yêu cầu đăng nhập bị hệ thống GDT chặn. Đây không phải lỗi kết nối mạng và hệ thống chưa xác định đây là lỗi tài khoản, mật khẩu hoặc captcha.',
+            ];
+        }
+
         return [
             'status' => 'error',
+            'http_status' => $res->status(),
             'message' => $message ?: "Đăng nhập GDT không thành công (HTTP {$res->status()}).",
         ];
     }
@@ -237,30 +273,50 @@ class GdtApiService
         return max(30, min((int) config('invoices.gdt.auth_timeout', 45), 120));
     }
 
-    private function authenticationClient(CookieJar $cookies)
+    private function authenticationClient(CookieJar $cookies, array &$transfer = [])
     {
-        return $this->baseClient($cookies)
+        return $this->baseClient($cookies, $transfer)
             ->connectTimeout(min(15, $this->authenticationTimeout()))
             ->timeout($this->authenticationTimeout());
     }
 
-    private function sessionClient(CookieJar $cookies)
+    private function sessionClient(CookieJar $cookies, array &$transfer = [])
     {
-        return $this->baseClient($cookies)
+        return $this->baseClient($cookies, $transfer)
             ->connectTimeout(min(10, (int) config('invoices.gdt.timeout', 15)))
             ->timeout((int) config('invoices.gdt.timeout', 15));
     }
 
-    private function baseClient(CookieJar $cookies)
+    private function baseClient(CookieJar $cookies, array &$transfer = [])
     {
         return Http::withOptions([
             'verify' => (bool) config('invoices.gdt.verify_ssl', true),
             'cookies' => $cookies,
+            'on_stats' => function (TransferStats $stats) use (&$transfer): void {
+                $handler = $stats->getHandlerStats();
+                $transfer = [
+                    'primary_ip' => $handler['primary_ip'] ?? null,
+                    'http_code' => $handler['http_code'] ?? null,
+                    'http_version' => $handler['http_version'] ?? null,
+                    'ssl_verify_result' => $handler['ssl_verify_result'] ?? null,
+                    'namelookup_ms' => $this->secondsToMilliseconds($handler['namelookup_time'] ?? null),
+                    'connect_ms' => $this->secondsToMilliseconds($handler['connect_time'] ?? null),
+                    'tls_ms' => $this->secondsToMilliseconds($handler['appconnect_time'] ?? null),
+                    'total_ms' => $this->secondsToMilliseconds($handler['total_time'] ?? null),
+                ];
+            },
         ])->withHeaders([
             'Accept' => 'application/json, text/plain, */*',
-            'User-Agent' => 'Mozilla/5.0 Laravel-Invoices-GDT/1.0',
-            'Origin' => rtrim((string) config('invoices.gdt.base_url'), '/'),
-            'Referer' => rtrim((string) config('invoices.gdt.base_url'), '/').'/',
+            'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
+            // GDT frontend is hosted at the site origin, while base_url ends in /api.
+            // Sending Origin/Referer as .../api makes authenticate look unlike the official frontend
+            // and can be rejected by upstream anti-abuse checks as an invalid request.
+            'Origin' => $this->frontendOrigin(),
+            'Referer' => $this->frontendOrigin().'/',
+            // These are application-level headers emitted by the official GDT frontend.
+            // They describe the application request contract; they are not browser fingerprint headers.
+            'Action' => '',
+            'End-Point' => '/',
         ]);
     }
 
@@ -279,7 +335,7 @@ class GdtApiService
 
     private function restoreSessionCookies(): CookieJar
     {
-        $jar = new CookieJar();
+        $jar = new CookieJar;
         $stored = Cache::get($this->sessionCacheKey(), []);
 
         if (! is_array($stored)) {
@@ -304,6 +360,62 @@ class GdtApiService
     private function sessionCacheKey(): string
     {
         return (string) config('invoices.gdt.cache_key', 'gdt_token').':auth-session-cookies';
+    }
+
+    /**
+     * Safe cookie diagnostics. Values are intentionally excluded.
+     */
+    private function cookieMetadata(CookieJar $cookies): array
+    {
+        return array_map(static fn (array $cookie): array => [
+            'name' => (string) ($cookie['Name'] ?? ''),
+            'domain' => (string) ($cookie['Domain'] ?? ''),
+            'path' => (string) ($cookie['Path'] ?? ''),
+            'secure' => (bool) ($cookie['Secure'] ?? false),
+            'http_only' => (bool) ($cookie['HttpOnly'] ?? false),
+        ], $cookies->toArray());
+    }
+
+    private function responseContext($response): array
+    {
+        return [
+            'action' => $this->safeHeader($response->header('action')),
+            'content_type' => $this->safeHeader($response->header('content-type')),
+            'vary' => $this->safeHeader($response->header('vary')),
+            'server' => $this->safeHeader($response->header('server')),
+            'request_id_present' => $response->hasHeader('request-id'),
+        ];
+    }
+
+    private function secondsToMilliseconds(mixed $seconds): ?int
+    {
+        return is_numeric($seconds) ? (int) round(((float) $seconds) * 1000) : null;
+    }
+
+    private function safeHeader(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return mb_substr(trim($value), 0, 500);
+    }
+
+    private function frontendOrigin(): string
+    {
+        $baseUrl = (string) config('invoices.gdt.base_url');
+        $parts = parse_url($baseUrl);
+
+        if (! is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+            return rtrim($baseUrl, '/');
+        }
+
+        $origin = $parts['scheme'].'://'.$parts['host'];
+        if (isset($parts['port'])) {
+            $origin .= ':'.$parts['port'];
+        }
+
+        return $origin;
     }
 
     private function elapsedMilliseconds(float $startedAt): int

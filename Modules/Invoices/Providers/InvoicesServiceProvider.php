@@ -5,6 +5,7 @@ namespace Modules\Invoices\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Modules\Invoices\Console\Commands\BackupInvoiceFilesCommand;
+use Modules\Invoices\Console\Commands\DiagnoseGdtAuthenticationCommand;
 
 class InvoicesServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,7 @@ class InvoicesServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 BackupInvoiceFilesCommand::class,
+                DiagnoseGdtAuthenticationCommand::class,
             ]);
 
             $this->publishes([
