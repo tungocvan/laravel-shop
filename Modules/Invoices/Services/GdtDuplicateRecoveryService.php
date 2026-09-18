@@ -53,6 +53,7 @@ final class GdtDuplicateRecoveryService
             ->whereNotNull('s.header_hash')
             ->whereNotNull('s.detail_hash')
             ->select(
+                'i.invoice_type',
                 'i.symbol',
                 'i.invoice_number',
                 'i.issued_date',
@@ -64,6 +65,7 @@ final class GdtDuplicateRecoveryService
                 DB::raw('COUNT(*) AS qty'),
             )
             ->groupBy(
+                'i.invoice_type',
                 'i.symbol',
                 'i.invoice_number',
                 'i.issued_date',
@@ -81,7 +83,7 @@ final class GdtDuplicateRecoveryService
     {
         return DB::transaction(function () use ($pair, $apply): array {
             $invoices = Invoices::query()
-                ->where('invoice_type', 'sold')
+                ->where('invoice_type', $pair->invoice_type)
                 ->where('symbol', $pair->symbol)
                 ->where('invoice_number', $pair->invoice_number)
                 ->whereDate('issued_date', $pair->issued_date)
