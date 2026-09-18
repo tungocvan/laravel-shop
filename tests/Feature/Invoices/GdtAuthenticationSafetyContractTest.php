@@ -83,8 +83,8 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringContainsString('if($res->status()===401)Cache::forget', $service);
         $this->assertStringContainsString("GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403)", $service);
         $this->assertStringContainsString("'request-id' => (string) Str::uuid()", $service);
-        $this->assertStringContainsString("'Origin' => $origin", $service);
-        $this->assertStringContainsString("'Referer' => $origin.'/'", $service);
+        $this->assertStringContainsString("'Origin' => " . '$origin', $service);
+        $this->assertStringContainsString("'Referer' => " . '$origin' . ".'/'", $service);
         $this->assertStringContainsString("'Action' => ''", $service);
         $this->assertStringContainsString("'End-Point' => '/'", $service);
         $this->assertStringNotContainsString("'token' => " . '$token', $service);
