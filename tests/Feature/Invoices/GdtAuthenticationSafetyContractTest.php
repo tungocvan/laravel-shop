@@ -61,9 +61,9 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Invoices/Services/GdtApiService.php'));
 
         $this->assertStringContainsString('$requestId = (string) Str::uuid();', $service);
-        $this->assertStringContainsString("->withHeader('request-id', $requestId)", $service);
+        $this->assertStringContainsString("->withHeader('request-id', \$requestId)", $service);
         $this->assertStringContainsString("'request_id' => 'generated-per-auth-request'", $service);
-        $this->assertStringNotContainsString("'request_id' => $requestId", $service);
+        $this->assertStringNotContainsString("'request_id' => \$requestId", $service);
     }
 
     #[Test]
