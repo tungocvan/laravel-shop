@@ -53,6 +53,82 @@ The successful response included the expected login action and the token was cac
 
 Implementation rule: generate a fresh UUID for the authenticate request. Never copy or replay a browser request-id. Diagnostic logs record only that a request ID was generated; they never record its value.
 
+## Incident — 18/09/2026: invoice list/detail HTTP 403 after successful login
+
+### Symptom and misleading secondary errors
+
+Authentication could return HTTP 200 and the token could be present in the database cache, but the first invoice-list query still returned HTTP 403 with the upstream blocked-request message.
+
+The old code treated both HTTP 401 and HTTP 403 as an expired session and deleted the cached token. That produced misleading follow-up errors such as `Không có token GDT trong cache` or `Phiên đăng nhập GDT đã hết hạn hoặc chưa được tạo`. Those messages were consequences of deleting the token after a 403, not proof that cache, queue or token TTL was the original cause.
+
+The detail endpoint had the same 401/403 conflation. A rejected detail request could delete the token and make every later detail request fail before reaching GDT.
+
+### Verified diagnosis
+
+Fresh-login evidence showed:
+
+```text
+authenticate                         -> HTTP 200
+database cache put                   -> success
+token present immediately after put -> true
+invoice list query with Bearer token but old request context -> HTTP 403
+```
+
+Safe rejection diagnostics then recorded the list-query status as HTTP 403 and the upstream blocked-request message without logging the token.
+
+After aligning the invoice-list request context with the successful authentication pattern, the same date range returned all 20/20 invoice headers. The failure then moved to the detail endpoint, whose code still used the old request context and still merged 401/403.
+
+### Implemented correction
+
+For authenticate, invoice-list queries and invoice-detail queries:
+
+- generate a fresh UUID `request-id` for each outbound request;
+- send the application-level `Accept`, `Origin`, `Referer`, `Action` and `End-Point` context used by this integration;
+- retain Bearer authentication where required;
+- never copy/replay browser request IDs, cookies or browser fingerprint headers.
+
+For list/detail rejection handling:
+
+- HTTP 401 means the authentication token is rejected; clear the cached token and require a fresh login;
+- HTTP 403 means GDT rejected the request; do **not** delete the cached token merely because of 403;
+- log a redacted rejection diagnostic containing endpoint/action context, HTTP status, upstream message/response keys and a marker that Bearer/request-id were present, never their values.
+
+### Runtime acceptance
+
+After worker reload and a fresh manual-captcha login:
+
+```text
+RAW detail recovery: 14 candidates -> 14 fetched, 0 errors
+invoice list query: 20/20 received
+header persistence: 0 created, 0 updated, 20 unchanged
+detail pass: 19 reused, 1 fetched, 0 errors
+Excel export: created successfully
+job: completed
+```
+
+This is the end-to-end acceptance evidence for the 18/09/2026 request-context correction.
+
+### Error signatures and recovery guide
+
+| Signature | Meaning / first check | Correct recovery |
+| --- | --- | --- |
+| Captcha HTTP 200, authenticate HTTP 403 blocked-request | Authentication request contract rejected by GDT | Verify fresh per-request `request-id` and safe application headers. Do not repeatedly submit captcha/login or copy browser secrets. |
+| Authenticate HTTP 200, token cache put/present true, list query HTTP 403 | Login/cache is working; list request contract is being rejected | Inspect `GDT invoice query rejected.`. Keep token on 403; verify list request context before investigating cache/queue. |
+| List query succeeds but detail returns HTTP 403 | Detail request contract is being rejected | Inspect `GDT invoice detail rejected.`. Keep token on 403; verify detail request context. |
+| HTTP 401 on list/detail | GDT rejected the Bearer session/token | Clear the cached token, perform a fresh manual-captcha login, then retry once. |
+| `Không có token GDT trong cache` immediately after an earlier 403 | May be a secondary symptom from legacy 403 handling | Inspect the preceding rejection status first. Do not diagnose cache failure from this message alone. |
+| Fresh source pulled but runtime still shows old generic 401/403 message | Long-lived queue worker may still have old PHP code loaded | Run `php artisan queue:restart`; if PM2 owns the worker, confirm/restart the correct queue process, then fresh-login before one controlled retry. |
+| Google Drive token refresh warning while GDT processing continues | Separate storage/export verification concern | Diagnose Google Drive independently; do not treat it as evidence of GDT authentication failure. |
+| HTTP 429 on detail | GDT rate limit | Respect `Retry-After`/configured conservative backoff. Do not increase request frequency. |
+| Connection/timeout error | Transport failure, not automatically authentication failure | Check network/DNS/TLS diagnostics and retry conservatively; do not delete token solely for a connection exception. |
+
+When a 401/403 occurs, always inspect the **first** rejection in the job. Later missing-token errors can be secondary effects and are less useful for root-cause diagnosis.
+
+### Queue-worker rule after code changes
+
+`queue:work` is long-lived. Pulling new PHP source does not guarantee an already-running worker has loaded it. After changing GDT request/diagnostic code, reload the worker before runtime verification. Then perform a fresh manual-captcha login and one controlled sync. Do not use repeated retries as a diagnostic technique.
+
+
 ## External reference history
 
 These references are supporting observations, not an official GDT API contract.
@@ -96,6 +172,8 @@ Primary files to inspect first:
 
 ```text
 Modules/Invoices/Services/GdtApiService.php
+Modules/Invoices/Services/GdtInvoiceService.php
+Modules/Invoices/Services/GdtPdfService.php
 Modules/Invoices/Console/Commands/DiagnoseGdtAuthenticationCommand.php
 Modules/Invoices/Providers/InvoicesServiceProvider.php
 Modules/Invoices/config/invoices.php
@@ -105,11 +183,14 @@ docs/modules/Invoices/COLLABORATION_HANDOFF.md
 
 ## Known regression baseline at this closeout
 
-After the request-id fix:
+After the request-context fixes:
 
-- focused GDT authentication contract test: PASS;
+- focused GDT authentication contract test: **7 passed / 73 assertions**;
 - CLI GDT authentication: PASS;
 - `/admin/invoices/hoadon`: UI PASS;
+- invoice list runtime: **20/20 received**;
+- RAW detail runtime: **14/14 recovery fetched, then 19 reused + 1 fetched, 0 errors**;
+- Excel export/job completion: PASS;
 - Invoices module regression: 49 passed / 4 failed / 459 assertions.
 
 The four failures are existing Inventory/bulk-intake/handoff contract drift and are outside this GDT authentication scope. Do not modify those boundaries merely to make this authentication branch green.
