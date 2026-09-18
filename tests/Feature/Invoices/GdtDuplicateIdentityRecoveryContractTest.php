@@ -42,6 +42,25 @@ class GdtDuplicateIdentityRecoveryContractTest extends TestCase
     }
 
     #[Test]
+    public function source_data_is_read_annotation_only_and_cannot_create_duplicate_sources(): void
+    {
+        $manager = file_get_contents(base_path('Modules/Invoices/Livewire/SourceDataManager.php'));
+        $model = file_get_contents(base_path('Modules/Invoices/Models/InvoiceSourceRecord.php'));
+        $migration = file_get_contents(base_path('Modules/Invoices/database/migrations/2026_09_10_020000_create_invoice_source_records_table.php'));
+        $detail = file_get_contents(base_path('Modules/Invoices/Services/GdtPdfService.php'));
+
+        $this->assertStringNotContainsString('InvoiceSourceRecord::create(', $manager);
+        $this->assertStringNotContainsString('firstOrCreate(', $manager);
+        $this->assertStringNotContainsString('updateOrCreate(', $manager);
+        $this->assertStringNotContainsString('GdtApiService', $manager);
+        $this->assertStringNotContainsString('GdtInvoiceService', $manager);
+        $this->assertStringNotContainsString('GdtPdfService', $manager);
+        $this->assertStringContainsString("->unique(['invoice_id', 'provider'])", $migration);
+        $this->assertStringContainsString("['invoice_id' => \$invoice->id, 'provider' => 'gdt']", $detail);
+        $this->assertStringContainsString("->where('provider', \$record->provider ?: 'gdt')", $model);
+    }
+
+    #[Test]
     public function provider_registers_the_recovery_command(): void
     {
         $provider = file_get_contents(base_path('Modules/Invoices/Providers/InvoicesServiceProvider.php'));
