@@ -55,6 +55,21 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringNotContainsString("'cvalue' => \$cvalue,", $this->diagnosticLoggingSection($service));
         $this->assertStringNotContainsString("'token' => \$token,", $this->diagnosticLoggingSection($service));
     }
+    #[Test]
+    public function local_cli_diagnostic_is_registered_and_does_not_print_secrets(): void
+    {
+        $provider = file_get_contents(base_path('Modules/Invoices/Providers/InvoicesServiceProvider.php'));
+        $command = file_get_contents(base_path('Modules/Invoices/Console/Commands/DiagnoseGdtAuthenticationCommand.php'));
+
+        $this->assertStringContainsString('DiagnoseGdtAuthenticationCommand::class', $provider);
+        $this->assertStringContainsString("app()->environment('local')", $command);
+        $this->assertStringContainsString("\$this->secret('Nhập mã captcha')", $command);
+        $this->assertStringNotContainsString("config('invoices.gdt.password')", $command);
+        $this->assertStringNotContainsString("config('invoices.gdt.username')", $command);
+        $this->assertStringNotContainsString("'token' =>", $command);
+        $this->assertStringNotContainsString("'cookie_value' =>", $command);
+    }
+
     private function diagnosticLoggingSection(string $service): string
     {
         $start = strpos($service, "\$diagnostics = [");
