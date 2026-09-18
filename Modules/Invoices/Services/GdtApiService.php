@@ -4,6 +4,7 @@ namespace Modules\Invoices\Services;
 
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
+use GuzzleHttp\TransferStats;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -79,9 +80,10 @@ class GdtApiService
         // here and persist it because Livewire will submit authenticate in another PHP request.
         $cookies = new CookieJar;
         $startedAt = microtime(true);
+        $transfer = [];
 
         try {
-            $response = $this->sessionClient($cookies)->get($this->url('/captcha'));
+            $response = $this->sessionClient($cookies, $transfer)->get($this->url('/captcha'));
         } catch (ConnectionException $exception) {
             Log::warning('Không thể kết nối API GDT để tải captcha.', [
                 'url' => $this->url('/captcha'),
@@ -110,6 +112,8 @@ class GdtApiService
             'status' => $response->status(),
             'elapsed_ms' => $this->elapsedMilliseconds($startedAt),
             'cookie_count' => count($cookies->toArray()),
+            'network_context' => $transfer,
+            'response_context' => $this->responseContext($response),
         ]);
 
         $data = $response->json();
@@ -144,11 +148,12 @@ class GdtApiService
         }
 
         $startedAt = microtime(true);
+        $transfer = [];
 
         try {
             // Authentication can legitimately take longer than list/detail reads during GDT peak load.
             // Do not blindly retry the POST because captcha/authenticate may not be safely repeatable.
-            $res = $this->authenticationClient($cookies)->post($url, [
+            $res = $this->authenticationClient($cookies, $transfer)->post($url, [
                 'username' => $username,
                 'password' => $password,
                 'ckey' => $ckey,
@@ -187,11 +192,8 @@ class GdtApiService
                 'end_point' => '/',
                 'request_id' => 'not-sent-until-contract-is-verified',
             ],
-            'response_context' => [
-                'action' => $this->safeHeader($res->header('action')),
-                'content_type' => $this->safeHeader($res->header('content-type')),
-                'vary' => $this->safeHeader($res->header('vary')),
-            ],
+            'network_context' => $transfer,
+            'response_context' => $this->responseContext($res),
         ];
 
         if ($res->successful()) {
@@ -261,25 +263,38 @@ class GdtApiService
         return max(30, min((int) config('invoices.gdt.auth_timeout', 45), 120));
     }
 
-    private function authenticationClient(CookieJar $cookies)
+    private function authenticationClient(CookieJar $cookies, array &$transfer = [])
     {
-        return $this->baseClient($cookies)
+        return $this->baseClient($cookies, $transfer)
             ->connectTimeout(min(15, $this->authenticationTimeout()))
             ->timeout($this->authenticationTimeout());
     }
 
-    private function sessionClient(CookieJar $cookies)
+    private function sessionClient(CookieJar $cookies, array &$transfer = [])
     {
-        return $this->baseClient($cookies)
+        return $this->baseClient($cookies, $transfer)
             ->connectTimeout(min(10, (int) config('invoices.gdt.timeout', 15)))
             ->timeout((int) config('invoices.gdt.timeout', 15));
     }
 
-    private function baseClient(CookieJar $cookies)
+    private function baseClient(CookieJar $cookies, array &$transfer = [])
     {
         return Http::withOptions([
             'verify' => (bool) config('invoices.gdt.verify_ssl', true),
             'cookies' => $cookies,
+            'on_stats' => function (TransferStats $stats) use (&$transfer): void {
+                $handler = $stats->getHandlerStats();
+                $transfer = [
+                    'primary_ip' => $handler['primary_ip'] ?? null,
+                    'http_code' => $handler['http_code'] ?? null,
+                    'http_version' => $handler['http_version'] ?? null,
+                    'ssl_verify_result' => $handler['ssl_verify_result'] ?? null,
+                    'namelookup_ms' => $this->secondsToMilliseconds($handler['namelookup_time'] ?? null),
+                    'connect_ms' => $this->secondsToMilliseconds($handler['connect_time'] ?? null),
+                    'tls_ms' => $this->secondsToMilliseconds($handler['appconnect_time'] ?? null),
+                    'total_ms' => $this->secondsToMilliseconds($handler['total_time'] ?? null),
+                ];
+            },
         ])->withHeaders([
             'Accept' => 'application/json, text/plain, */*',
             'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
@@ -349,6 +364,22 @@ class GdtApiService
             'secure' => (bool) ($cookie['Secure'] ?? false),
             'http_only' => (bool) ($cookie['HttpOnly'] ?? false),
         ], $cookies->toArray());
+    }
+
+    private function responseContext($response): array
+    {
+        return [
+            'action' => $this->safeHeader($response->header('action')),
+            'content_type' => $this->safeHeader($response->header('content-type')),
+            'vary' => $this->safeHeader($response->header('vary')),
+            'server' => $this->safeHeader($response->header('server')),
+            'request_id_present' => $response->hasHeader('request-id'),
+        ];
+    }
+
+    private function secondsToMilliseconds(mixed $seconds): ?int
+    {
+        return is_numeric($seconds) ? (int) round(((float) $seconds) * 1000) : null;
     }
 
     private function safeHeader(?string $value): ?string
