@@ -21,6 +21,7 @@ class Index extends Component
     public ?int $confirmingId = null;
     public ?string $confirmingAction = null;
     public ?string $errorMessage = null;
+    public array $selectedIds = [];
 
     protected $queryString = ['search' => ['except' => ''], 'type' => ['except' => 'all'], 'status' => ['except' => 'all'], 'perPage' => ['except' => 10]];
 
@@ -40,6 +41,21 @@ class Index extends Component
         $this->errorMessage = null;
     }
 
+    public function confirmBulkDelete(): void
+    {
+        $this->authorizePharmaEdit();
+
+        if ($this->selectedIds === []) {
+            $this->errorMessage = 'Vui lòng chọn ít nhất một bảng giá để xóa.';
+
+            return;
+        }
+
+        $this->confirmingId = null;
+        $this->confirmingAction = 'bulk-delete';
+        $this->errorMessage = null;
+    }
+
     public function cancelConfirm(): void
     {
         $this->confirmingId = null;
@@ -49,9 +65,19 @@ class Index extends Component
 
     public function executeConfirmed(PriceListManager $manager): void
     {
-        $list = PriceList::query()->findOrFail($this->confirmingId);
-
         try {
+            if ($this->confirmingAction === 'bulk-delete') {
+                $this->authorizePharmaEdit();
+                $deleted = $manager->deleteSelected($this->selectedIds);
+                $this->selectedIds = [];
+                $this->cancelConfirm();
+                session()->flash('success', "Đã xóa {$deleted} bảng giá.");
+
+                return;
+            }
+
+            $list = PriceList::query()->findOrFail($this->confirmingId);
+
             if ($this->confirmingAction === 'activate') {
                 $manager->activate($list, auth('admin')->id());
             } elseif ($this->confirmingAction === 'deactivate') {
@@ -60,7 +86,7 @@ class Index extends Component
                 $manager->clone($list, ['name' => $list->name.' - Bản sao']);
             } elseif ($this->confirmingAction === 'delete') {
                 $this->authorizePharmaEdit();
-                $manager->deleteDraft($list);
+                $manager->deleteRemovable($list);
             }
         } catch (Throwable $exception) {
             report($exception);
