@@ -77,7 +77,7 @@ class GdtApiService
     {
         // Captcha and authenticate are a single upstream session. Start a fresh cookie jar
         // here and persist it because Livewire will submit authenticate in another PHP request.
-        $cookies = new CookieJar();
+        $cookies = new CookieJar;
         $startedAt = microtime(true);
 
         try {
@@ -303,7 +303,7 @@ class GdtApiService
 
     private function restoreSessionCookies(): CookieJar
     {
-        $jar = new CookieJar();
+        $jar = new CookieJar;
         $stored = Cache::get($this->sessionCacheKey(), []);
 
         if (! is_array($stored)) {
