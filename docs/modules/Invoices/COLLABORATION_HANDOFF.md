@@ -191,3 +191,13 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Focused GDT authentication + duplicate identity/recovery tests: PASS.
 - Manual UI acceptance: PASS.
 - Invoices regression baseline outside this scope remains the previously documented Inventory contract drift; do not repair it in this recovery branch.
+
+
+### Source-data duplicate boundary audit — 2026-09-18
+
+- Audited /admin/invoices/source-data and InvoiceSourceRecord write paths after canonical GDT dedup recovery.
+- SourceDataManager remains annotation/read-management only: it does not acquire GDT data and does not create/upsert source records.
+- Canonical RAW writers key GDT source records by (invoice_id, provider), backed by the database unique constraint on (invoice_id, provider).
+- Duplicate prevention therefore remains owned by GdtInvoiceService ingestion for both purchase/sold and all years; source-data cannot independently create a second GDT source for the same invoice.
+- Added contract coverage to lock this boundary.
+- Focused duplicate/source-data contract: 4 passed, 29 assertions.
