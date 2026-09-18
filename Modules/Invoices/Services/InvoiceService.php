@@ -62,8 +62,8 @@ class InvoiceService
             ->selectRaw("SUM(CASE WHEN invoice_type = 'sold' THEN 1 ELSE 0 END) as sold_count")
             ->selectRaw("SUM(CASE WHEN invoice_type = 'purchase' THEN 1 ELSE 0 END) as purchase_count")
             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount_sum')
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_amount_sum")
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_amount_sum")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN amount_before_vat ELSE 0 END), 0) as sold_amount_sum")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN amount_before_vat ELSE 0 END), 0) as purchase_amount_sum")
             ->selectRaw('COALESCE(SUM(vat_amount), 0) as vat_amount_sum')
             ->selectRaw('COALESCE(SUM(CASE WHEN tax_rate = 5 THEN total_amount ELSE 0 END), 0) as tax_rate_5_sum')
             ->selectRaw('COALESCE(SUM(CASE WHEN tax_rate = 8 THEN total_amount ELSE 0 END), 0) as tax_rate_8_sum')
@@ -91,8 +91,8 @@ class InvoiceService
     public function dashboard(): array
     {
         $summary = Invoices::query()
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_amount")
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_amount")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN amount_before_vat ELSE 0 END), 0) as sold_amount")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN amount_before_vat ELSE 0 END), 0) as purchase_amount")
             ->selectRaw("COUNT(DISTINCT CASE WHEN invoice_type = 'sold' AND name IS NOT NULL AND name <> '' THEN name END) as sold_customers")
             ->selectRaw("COUNT(DISTINCT CASE WHEN invoice_type = 'purchase' AND name IS NOT NULL AND name <> '' THEN name END) as purchase_customers")
             ->first();
@@ -103,7 +103,7 @@ class InvoiceService
 
         $yearly = Invoices::query()
             ->whereNotNull('issued_date')
-            ->selectRaw($yearExpression.' as year, COUNT(*) as invoice_count, COALESCE(SUM(CASE WHEN invoice_type="sold" THEN total_amount ELSE 0 END), 0) as sold_total, COALESCE(SUM(CASE WHEN invoice_type="purchase" THEN total_amount ELSE 0 END), 0) as purchase_total')
+            ->selectRaw($yearExpression.' as year, COUNT(*) as invoice_count, COALESCE(SUM(CASE WHEN invoice_type="sold" THEN amount_before_vat ELSE 0 END), 0) as sold_total, COALESCE(SUM(CASE WHEN invoice_type="purchase" THEN amount_before_vat ELSE 0 END), 0) as purchase_total')
             ->groupByRaw($yearExpression)
             ->orderByDesc('year')
             ->get()
@@ -130,8 +130,8 @@ class InvoiceService
             ->whereDate('issued_date', '<=', sprintf('%04d-12-31', $year))
             ->selectRaw($monthExpression.' as month')
             ->selectRaw('COUNT(*) as invoice_count')
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_total")
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN amount_before_vat ELSE 0 END), 0) as sold_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN amount_before_vat ELSE 0 END), 0) as purchase_total")
             ->selectRaw('COALESCE(SUM(vat_amount), 0) as vat_total')
             ->groupByRaw($monthExpression)
             ->orderByRaw($monthExpression)
