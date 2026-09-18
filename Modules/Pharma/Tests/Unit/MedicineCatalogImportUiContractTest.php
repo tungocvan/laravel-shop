@@ -49,4 +49,20 @@ class MedicineCatalogImportUiContractTest extends TestCase
         $this->assertStringContainsString("'Nồng độ - Hàm lượng'", $export);
         $this->assertStringContainsString("'Tên biệt dược'", $export);
     }
+    #[Test]
+    public function medicine_master_surfaces_registration_as_a_first_class_responsive_field(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineService.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($service);
+        $this->assertStringNotContainsString('Mã / GPLH', $view);
+        $this->assertStringContainsString('>Mã thuốc</th>', $view);
+        $this->assertStringContainsString('>GPLH</th>', $view);
+        $this->assertStringContainsString("registration_number_primary ?: \\$medicine->registration_number ?: 'Chưa có GPLH'", $view);
+        $this->assertStringContainsString('lg:hidden', $view);
+        $this->assertStringContainsString("orWhere('registration_number_raw', 'like'", $service);
+    }
+
 }
