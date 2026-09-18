@@ -74,11 +74,11 @@ class InvoicesApplicationContractTest extends TestCase
         $this->assertStringContainsString('onchange="this.form.submit()"', $dashboard);
         $this->assertStringNotContainsString('>Xem</button>', $dashboard);
         $this->assertStringContainsString('Tổng quan kinh doanh', $dashboard);
-        $this->assertStringContainsString('Doanh thu năm', $dashboard);
+        $this->assertStringContainsString('Doanh thu chưa VAT năm', $dashboard);
         $this->assertStringContainsString('So với năm {{ $previousYear }}', $dashboard);
         $this->assertStringContainsString('Tình trạng tài liệu', $dashboard);
         $this->assertStringContainsString('Xu hướng 12 tháng', $dashboard);
-        $this->assertStringContainsString('Tình hình doanh thu qua các năm', $dashboard);
+        $this->assertStringContainsString('Tình hình doanh thu chưa VAT qua các năm', $dashboard);
         $this->assertStringContainsString('Tháng hiện tại trong năm đang xem', $dashboard);
         $this->assertStringContainsString('Tổng = bán ra + mua vào', $dashboard);
         $this->assertStringContainsString('space-y-3 md:hidden', $dashboard);
