@@ -159,6 +159,6 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('if($selected->isNotEmpty())', str_replace(' ', '', $controller));
         $this->assertStringContainsString('name="items[]"', $show);
         $this->assertStringContainsString('Không chọn sản phẩm', $show);
-        $this->assertStringContainsString('Export toàn bộ', $show);
+        $this->assertStringContainsString('Không chọn sản phẩm → xuất toàn bộ', $show);
     }
 }
