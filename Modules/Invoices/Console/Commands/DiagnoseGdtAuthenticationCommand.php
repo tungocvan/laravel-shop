@@ -28,13 +28,33 @@ class DiagnoseGdtAuthenticationCommand extends Command
             return self::FAILURE;
         }
 
-        $this->info('Captcha GDT đã được tạo. Mở ảnh captcha bằng data bên dưới; dữ liệu này không chứa tài khoản/mật khẩu.');
         $image = $captcha['content'] ?? $captcha['image'] ?? null;
-        if (is_string($image) && $image !== '') {
-            $this->line($image);
-        } else {
-            $this->warn('Response captcha không có trường content/image để hiển thị.');
+        if (! is_string($image) || trim($image) === '') {
+            $this->error('Response captcha không có dữ liệu SVG/image để hiển thị.');
+
+            return self::FAILURE;
         }
+
+        $captchaPath = storage_path('app/invoices/gdt-diagnostics/captcha.svg');
+        if (! is_dir(dirname($captchaPath))) {
+            mkdir(dirname($captchaPath), 0755, true);
+        }
+
+        if (str_starts_with($image, 'data:image/svg+xml;base64,')) {
+            $image = base64_decode(substr($image, strlen('data:image/svg+xml;base64,')), true) ?: '';
+        }
+
+        if (! str_contains($image, '<svg')) {
+            $this->error('Captcha nhận được không phải SVG hợp lệ để lưu diagnostic.');
+
+            return self::FAILURE;
+        }
+
+        file_put_contents($captchaPath, $image);
+
+        $this->info('Captcha GDT đã được tạo.');
+        $this->line('Mở file này để đọc captcha: '.$captchaPath);
+        $this->line('WSL/Windows có thể dùng: explorer.exe "'.str_replace('/', '\\\\', $captchaPath).'"');
 
         $cvalue = (string) $this->secret('Nhập mã captcha');
         if ($cvalue === '') {
