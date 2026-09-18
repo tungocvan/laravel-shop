@@ -127,6 +127,19 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringContainsString('file_put_contents($captchaPath, $image)', $command);
     }
 
+
+    #[Test]
+    public function gdt_sync_log_distinguishes_api_count_from_requested_issued_date_coverage(): void
+    {
+        $service = file_get_contents(base_path('Modules/Invoices/Services/GdtInvoiceService.php'));
+
+        $this->assertStringContainsString('[GDT] Tổng cộng API trả về:', $service);
+        $this->assertStringContainsString('Theo ngày lập trong phạm vi', $service);
+        $this->assertStringContainsString('ngoài phạm vi:', $service);
+        $this->assertStringContainsString("Carbon::createFromFormat('d/m/Y'", $service);
+    }
+
+
     private function diagnosticLoggingSection(string $service): string
     {
         $start = strpos($service, "\$diagnostics = [");
