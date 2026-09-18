@@ -15,7 +15,9 @@ class GdtAuthenticationSafetyContractTest extends TestCase
 
         $this->assertStringContainsString("'code' => 'UPSTREAM_REQUEST_BLOCKED'", $service);
         $this->assertStringContainsString("'http_status' => 403", $service);
-        $this->assertStringContainsString('GDT từ chối yêu cầu xác thực từ máy chủ', $service);
+        $this->assertStringContainsString('GDT từ chối yêu cầu xác thực của ứng dụng', $service);
+        $this->assertStringContainsString("'Action' => ''", $service);
+        $this->assertStringContainsString("'End-Point' => '/'", $service);
         $this->assertStringContainsString('Laravel-Invoices-GDT/1.0', $config);
         $this->assertStringNotContainsString('Chrome/', $config);
     }
@@ -28,7 +30,7 @@ class GdtAuthenticationSafetyContractTest extends TestCase
 
         $this->assertStringContainsString("if (\$this->errorCode !== 'UPSTREAM_REQUEST_BLOCKED')", $component);
         $this->assertStringContainsString('$this->refreshCaptchaKeepingError();', $component);
-        $this->assertStringContainsString('GDT từ chối đăng nhập từ máy chủ', $view);
+        $this->assertStringContainsString('GDT từ chối yêu cầu xác thực', $view);
         $this->assertStringContainsString('không thử kết nối liên tục', $view);
         $this->assertStringContainsString('phương thức tích hợp chính thức', $view);
     }
