@@ -33,6 +33,11 @@ class GdtDuplicateIdentityRecoveryContractTest extends TestCase
         $this->assertStringContainsString('invoice_inventory_snapshots', $recovery);
         $this->assertStringContainsString('mergeSourceMetadata', $recovery);
         $this->assertStringContainsString('invoices:recover-gdt-duplicates', $command);
+        $this->assertStringContainsString('{--year= : Giới hạn theo năm; để trống = toàn bộ dữ liệu}', $command);
+        $this->assertStringContainsString('{--type=all : all, sold hoặc purchase}', $command);
+        $this->assertStringContainsString("public function recover(?int \$year = null, string \$invoiceType = 'all'", $recovery);
+        $this->assertStringContainsString("if (\$year !== null)", $recovery);
+        $this->assertStringContainsString("if (\$invoiceType !== 'all')", $recovery);
         $this->assertStringContainsString('{--apply', $command);
     }
 
