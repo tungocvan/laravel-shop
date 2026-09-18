@@ -42,7 +42,12 @@ class GdtAuthenticationSafetyContractTest extends TestCase
 
         $this->assertStringContainsString("'cookie_metadata' => \$this->cookieMetadata(\$cookies)", $service);
         $this->assertStringContainsString("'request_context' => [", $service);
-        $this->assertStringContainsString("'response_context' => [", $service);
+        $this->assertStringContainsString("'response_context' => ", $service);
+        $this->assertStringContainsString("'network_context' => \$transfer", $service);
+        $this->assertStringContainsString("'primary_ip' =>", $service);
+        $this->assertStringContainsString("'http_version' =>", $service);
+        $this->assertStringContainsString("'ssl_verify_result' =>", $service);
+        $this->assertStringContainsString("'request_id_present' =>", $service);
         $this->assertStringNotContainsString("'cookie_value' =>", $service);
         // Credentials and token necessarily appear in the outbound payload/cache path.
         // The safety boundary is that diagnostic/log contexts never include their values.
