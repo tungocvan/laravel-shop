@@ -56,6 +56,17 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringNotContainsString("'token' => \$token,", $this->diagnosticLoggingSection($service));
     }
     #[Test]
+    public function authenticate_sends_a_fresh_request_id_without_logging_its_value(): void
+    {
+        $service = file_get_contents(base_path('Modules/Invoices/Services/GdtApiService.php'));
+
+        $this->assertStringContainsString('$requestId = (string) Str::uuid();', $service);
+        $this->assertStringContainsString("->withHeader('request-id', $requestId)", $service);
+        $this->assertStringContainsString("'request_id' => 'generated-per-auth-request'", $service);
+        $this->assertStringNotContainsString("'request_id' => $requestId", $service);
+    }
+
+    #[Test]
     public function local_cli_diagnostic_is_registered_and_does_not_print_secrets(): void
     {
         $provider = file_get_contents(base_path('Modules/Invoices/Providers/InvoicesServiceProvider.php'));
