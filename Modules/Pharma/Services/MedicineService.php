@@ -12,6 +12,7 @@ class MedicineService
     public function __construct(
         private readonly MedicineImportExport $importExport,
         private readonly MedicineIdentityResolver $identityResolver,
+        private readonly MedicineCatalogNormalizer $normalizer,
     ) {}
 
     public function getPaginatedMedicines(
@@ -98,6 +99,7 @@ class MedicineService
         return DB::transaction(function () use ($id, $data) {
             $medicine = $this->findOrFail($id);
             $data = $this->normalizeQualityState($data, $medicine);
+            $this->guardCanonicalIdentityCollision($medicine, $data['canonical_identity_key'] ?? null);
             $medicine->update($data);
 
             return $medicine->refresh();
@@ -143,6 +145,14 @@ class MedicineService
 
     private function normalizeQualityState(array $data, ?Medicine $existing = null): array
     {
+        if (array_key_exists('registration_number', $data)) {
+            $rawRegistration = $this->normalizer->text($data['registration_number']);
+            $primaryRegistration = $this->normalizer->registrationPrimary($rawRegistration);
+            $data['registration_number_raw'] = $rawRegistration;
+            $data['registration_number_primary'] = $primaryRegistration;
+            $data['registration_number'] = $primaryRegistration;
+        }
+
         $identityKey = $this->identityResolver->canonicalMedicineIdentity($data + ($existing?->toArray() ?? []));
         $data['canonical_identity_key'] = $identityKey;
 
@@ -181,5 +191,26 @@ class MedicineService
         }
 
         return $data;
+    }
+
+    private function guardCanonicalIdentityCollision(Medicine $medicine, ?string $identityKey): void
+    {
+        if ($identityKey === null) {
+            return;
+        }
+
+        $duplicate = Medicine::query()
+            ->where('canonical_identity_key', $identityKey)
+            ->whereKeyNot($medicine->getKey())
+            ->first(['id', 'medicine_code', 'name', 'registration_number']);
+
+        if ($duplicate) {
+            $label = $duplicate->medicine_code ?: Medicine::codeForId((int) $duplicate->id);
+
+            throw new LogicException(
+                "Không thể cập nhật vì dữ liệu định danh trùng Medicine Master {$label} – {$duplicate->name}"
+                .($duplicate->registration_number ? " (GPLH {$duplicate->registration_number})." : '.')
+            );
+        }
     }
 }
