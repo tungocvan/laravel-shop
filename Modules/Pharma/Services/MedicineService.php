@@ -53,7 +53,9 @@ class MedicineService
                     ->where('sku', 'like', "%{$value}%")
                     ->orWhere('strength_text', 'like', "%{$value}%")
                     ->orWhere('presentation_text', 'like', "%{$value}%"))
-                ->orWhereHas('aliases', fn ($alias) => $alias->where('alias', 'like', "%{$value}%"))))
+                ->orWhereHas('aliases', fn ($alias) => $alias
+                    ->where('alias_value', 'like', "%{$value}%")
+                    ->orWhere('normalized_value', 'like', "%{$value}%"))))
             ->when($circularGroup, fn ($query, $value) => $query->where('circular_group', $value))
             ->when($specialControl, fn ($query, $value) => $query->where('is_special_control', $value === 'yes'))
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
