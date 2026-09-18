@@ -68,6 +68,9 @@ class MedicineCatalogImportUiContractTest extends TestCase
         $this->assertStringContainsString('admin.pharma.medicines.edit', $view);
         $this->assertStringContainsString('deleteMedicine', $view);
         $this->assertStringContainsString("orWhere('registration_number_raw', 'like'", $service);
+        $this->assertStringContainsString("where('alias_value', 'like'", $service);
+        $this->assertStringContainsString("orWhere('normalized_value', 'like'", $service);
+        $this->assertStringNotContainsString("where('alias', 'like'", $service);
     }
 
 }
