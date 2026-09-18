@@ -258,9 +258,12 @@ class GdtApiService
             'cookies' => $cookies,
         ])->withHeaders([
             'Accept' => 'application/json, text/plain, */*',
-            'User-Agent' => 'Mozilla/5.0 Laravel-Invoices-GDT/1.0',
-            'Origin' => rtrim((string) config('invoices.gdt.base_url'), '/'),
-            'Referer' => rtrim((string) config('invoices.gdt.base_url'), '/').'/',
+            'User-Agent' => (string) config('invoices.gdt.user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36'),
+            // GDT frontend is hosted at the site origin, while base_url ends in /api.
+            // Sending Origin/Referer as .../api makes authenticate look unlike the official frontend
+            // and can be rejected by upstream anti-abuse checks as an invalid request.
+            'Origin' => $this->frontendOrigin(),
+            'Referer' => $this->frontendOrigin().'/',
         ]);
     }
 
@@ -304,6 +307,23 @@ class GdtApiService
     private function sessionCacheKey(): string
     {
         return (string) config('invoices.gdt.cache_key', 'gdt_token').':auth-session-cookies';
+    }
+
+    private function frontendOrigin(): string
+    {
+        $baseUrl = (string) config('invoices.gdt.base_url');
+        $parts = parse_url($baseUrl);
+
+        if (! is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+            return rtrim($baseUrl, '/');
+        }
+
+        $origin = $parts['scheme'].'://'.$parts['host'];
+        if (isset($parts['port'])) {
+            $origin .= ':'.$parts['port'];
+        }
+
+        return $origin;
     }
 
     private function elapsedMilliseconds(float $startedAt): int
