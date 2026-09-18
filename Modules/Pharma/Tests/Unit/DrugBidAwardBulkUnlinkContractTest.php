@@ -20,6 +20,9 @@ class DrugBidAwardBulkUnlinkContractTest extends TestCase
             "review_reason' => 'bulk_manual_unlink_requires_review'",
             'DB::transaction',
             'lockForUpdate',
+            "'medicine_id' => null",
+            "'medicine_code' => null",
+            "'medicine_match_status' => DrugBidAward::MATCH_UNRESOLVED",
         ] as $text) {
             $this->assertStringContainsString($text, $component);
         }
