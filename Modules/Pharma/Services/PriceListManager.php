@@ -158,15 +158,54 @@ class PriceListManager
 
     public function deleteDraft(PriceList $priceList): void
     {
-        if (! $priceList->isDraft()) {
+        $this->deleteRemovable($priceList);
+    }
+
+    public function deleteRemovable(PriceList $priceList): void
+    {
+        if (! in_array($priceList->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_INACTIVE], true)) {
             throw ValidationException::withMessages([
-                'price_list' => 'Chỉ bảng giá DRAFT mới được xóa. Bảng giá đã kích hoạt phải Deactivate/Archive để giữ lịch sử.',
+                'price_list' => 'Chỉ bảng giá DRAFT hoặc INACTIVE mới được xóa. Bảng giá ACTIVE phải được ngưng trước khi xóa.',
             ]);
         }
 
         DB::transaction(function () use ($priceList): void {
             $priceList->items()->delete();
             $priceList->delete();
+        });
+    }
+
+    public function deleteSelected(array $ids): int
+    {
+        $ids = array_values(array_unique(array_map('intval', array_filter($ids))));
+
+        if ($ids === []) {
+            throw ValidationException::withMessages(['price_list' => 'Vui lòng chọn ít nhất một bảng giá để xóa.']);
+        }
+
+        return DB::transaction(function () use ($ids): int {
+            $priceLists = PriceList::query()->whereKey($ids)->lockForUpdate()->get();
+
+            if ($priceLists->count() !== count($ids)) {
+                throw ValidationException::withMessages(['price_list' => 'Một hoặc nhiều bảng giá đã thay đổi hoặc không còn tồn tại. Vui lòng tải lại danh sách.']);
+            }
+
+            $blocked = $priceLists->filter(
+                fn (PriceList $priceList) => ! in_array($priceList->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_INACTIVE], true)
+            );
+
+            if ($blocked->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'price_list' => 'Không thể xóa vì có bảng giá ACTIVE/ARCHIVED trong lựa chọn. Hãy ngưng bảng giá ACTIVE trước khi xóa.',
+                ]);
+            }
+
+            foreach ($priceLists as $priceList) {
+                $priceList->items()->delete();
+                $priceList->delete();
+            }
+
+            return $priceLists->count();
         });
     }
 }
