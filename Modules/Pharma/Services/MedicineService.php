@@ -146,7 +146,10 @@ class MedicineService
     private function normalizeQualityState(array $data, ?Medicine $existing = null): array
     {
         if (array_key_exists('registration_number', $data)) {
-            $rawRegistration = $this->normalizer->text($data['registration_number']);
+            $rawRegistration = is_string($data['registration_number'])
+                ? trim($data['registration_number'])
+                : null;
+            $rawRegistration = $rawRegistration === '' ? null : $rawRegistration;
             $primaryRegistration = $this->normalizer->registrationPrimary($rawRegistration);
             $data['registration_number_raw'] = $rawRegistration;
             $data['registration_number_primary'] = $primaryRegistration;
