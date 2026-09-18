@@ -204,11 +204,17 @@ class GdtApiService
             $token = is_array($payload) ? ($payload['token'] ?? $payload['accessToken'] ?? null) : null;
 
             if ($token) {
-                Cache::put(config('invoices.gdt.cache_key'), $token, $time);
+                $cacheKey = (string) config('invoices.gdt.cache_key', 'gdt_token');
+                $cachePutSucceeded = Cache::put($cacheKey, $token, $time);
+                $tokenPresentAfterPut = Cache::has($cacheKey);
                 Cache::forget($this->sessionCacheKey());
 
                 Log::notice('GDT login succeeded.', $diagnostics + [
-                    'token_cached' => true,
+                    'cache_store' => (string) config('cache.default'),
+                    'cache_key' => $cacheKey,
+                    'cache_put_succeeded' => $cachePutSucceeded,
+                    'token_present_after_put' => $tokenPresentAfterPut,
+                    'token_ttl_seconds' => $time,
                 ]);
 
                 return ['status' => 'success', 'message' => null];
