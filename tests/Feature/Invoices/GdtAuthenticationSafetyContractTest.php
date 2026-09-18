@@ -80,7 +80,7 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringContainsString("GDT invoice query rejected.", $service);
         $this->assertStringContainsString("'authorization' => 'bearer-token-present'", $service);
         $this->assertStringContainsString("'request_id' => 'not-sent-until-query-contract-is-verified'", $service);
-        $this->assertStringContainsString("if($res->status()===401)Cache::forget", $service);
+        $this->assertStringContainsString('if($res->status()===401)Cache::forget', $service);
         $this->assertStringContainsString("GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403)", $service);
         $this->assertStringNotContainsString("'token' => \\$token", $service);
         $this->assertStringNotContainsString("'authorization' => \\$token", $service);
