@@ -92,6 +92,24 @@ class GdtAuthenticationSafetyContractTest extends TestCase
     }
 
     #[Test]
+    public function invoice_detail_request_context_distinguishes_401_from_403_without_logging_token(): void
+    {
+        $service = file_get_contents(base_path('Modules/Invoices/Services/GdtPdfService.php'));
+
+        $this->assertStringContainsString("GDT invoice detail rejected.", $service);
+        $this->assertStringContainsString("'request_id' => 'generated-per-detail-request'", $service);
+        $this->assertStringContainsString("'request-id' => (string) Str::uuid()", $service);
+        $this->assertStringContainsString("'Origin' => " . '$origin', $service);
+        $this->assertStringContainsString("'Referer' => " . '$origin' . ".'/'", $service);
+        $this->assertStringContainsString("'Action' => ''", $service);
+        $this->assertStringContainsString("'End-Point' => '/'", $service);
+        $this->assertStringContainsString("if (" . '$response' . "->status() === 401)", $service);
+        $this->assertStringContainsString("GDT từ chối yêu cầu lấy chi tiết hóa đơn (HTTP 403)", $service);
+        $this->assertStringNotContainsString("'token' => " . '$token', $service);
+        $this->assertStringNotContainsString("'authorization' => " . '$token', $service);
+    }
+
+    #[Test]
     public function local_cli_diagnostic_is_registered_and_does_not_print_secrets(): void
     {
         $provider = file_get_contents(base_path('Modules/Invoices/Providers/InvoicesServiceProvider.php'));
