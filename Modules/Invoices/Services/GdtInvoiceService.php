@@ -132,7 +132,7 @@ class GdtInvoiceService
                 return false;
             }
 
-return $date >= $requestedStart && $date <= $requestedEnd;
+            return $date >= $requestedStart && $date <= $requestedEnd;
         }));
         $outsideRange = count($all) - $inRange;
         $show(sprintf('[GDT] Theo ngày lập trong phạm vi %s → %s: %d · ngoài phạm vi: %d.', Carbon::parse($startDate)->format('d/m/Y'), Carbon::parse($endDate)->format('d/m/Y'), $inRange, $outsideRange));
@@ -250,8 +250,8 @@ return $date >= $requestedStart && $date <= $requestedEnd;
             $stats = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'invoice_ids' => []];
             foreach ($rows as $row) {
                 $attributes = $this->databaseAttributes($row, $vatIn);
-                $identity = $this->invoiceIdentity($attributes);
-                $invoice = Invoices::query()->where($identity)->first();
+                $raw = is_array($row['_gdt_raw_payload'] ?? null) ? $row['_gdt_raw_payload'] : [];
+                $invoice = $this->findExistingInvoice($attributes, $raw);
                 if (! $invoice) {
                     $invoice = Invoices::query()->create($attributes);
                     $stats['created']++;
@@ -263,7 +263,7 @@ return $date >= $requestedStart && $date <= $requestedEnd;
                         $invoice->save();
                         $stats['updated']++;
                     }
-                }$this->persistRawHeader($invoice, is_array($row['_gdt_raw_payload'] ?? null) ? $row['_gdt_raw_payload'] : []);
+                }$this->persistRawHeader($invoice, $raw);
                 $stats['invoice_ids'][] = (int) $invoice->id;
             }$stats['invoice_ids'] = array_values(array_unique($stats['invoice_ids']));
 
@@ -320,6 +320,75 @@ return $date >= $requestedStart && $date <= $requestedEnd;
         return ['lookup_code' => $this->nullableString($row['Mã tra cứu'] ?? null), 'symbol' => $this->nullableString($row['Ký hiệu'] ?? null), 'invoice_number' => $this->nullableString($row['Số hóa đơn'] ?? null), 'type' => $this->nullableString($row['Loại hóa đơn'] ?? null), 'issued_date' => $issuedDate !== '' ? Carbon::createFromFormat('d/m/Y', $issuedDate)->toDateString() : null, 'tax_code' => $this->nullableString($row['Mã số thuế'] ?? null), 'name' => $this->nullableString($row['Đơn vị'] ?? null), 'address' => $this->nullableString($row['Địa chỉ'] ?? null), 'email' => $this->nullableString($row['Email'] ?? null), 'phone' => $this->nullableString($row['Phone'] ?? null), 'tax_rate' => $this->nullableNumber($row['Thuế suất'] ?? null), 'vat_amount' => $this->nullableNumber($row['Tiền VAT'] ?? null), 'amount_before_vat' => $this->nullableNumber($row['Trước VAT'] ?? null), 'total_amount' => $this->nullableNumber($row['Thành tiền'] ?? null), 'invoice_type' => $vatIn ? 'purchase' : 'sold'];
     }
 
+    private function findExistingInvoice(array $attributes, array $raw): ?Invoices
+    {
+        $identity = $this->invoiceIdentity($attributes);
+        $invoice = Invoices::query()->where($identity)->first();
+        if ($invoice !== null || $raw === []) {
+            return $invoice;
+        }
+
+        $headerHash = $this->payloadHash($raw);
+        $sourceInvoiceIds = InvoiceSourceRecord::query()
+            ->where('provider', 'gdt')
+            ->where('header_hash', $headerHash)
+            ->pluck('invoice_id');
+
+        if ($sourceInvoiceIds->isNotEmpty()) {
+            $matches = Invoices::query()
+                ->whereKey($sourceInvoiceIds)
+                ->where('invoice_type', $attributes['invoice_type'])
+                ->orderByDesc('id')
+                ->get();
+
+            if ($matches->count() === 1) {
+                return $matches->first();
+            }
+        }
+
+        $legacyTransactionId = $this->extractTransactionId($raw);
+        if ($legacyTransactionId !== null) {
+            $legacy = Invoices::query()
+                ->where('invoice_type', $attributes['invoice_type'])
+                ->where('lookup_code', $legacyTransactionId)
+                ->first();
+
+            if ($legacy !== null) {
+                return $legacy;
+            }
+        }
+
+        if (blank($attributes['invoice_number']) || blank($attributes['issued_date'])) {
+            return null;
+        }
+
+        $businessMatches = Invoices::query()
+            ->where('invoice_type', $attributes['invoice_type'])
+            ->where('invoice_number', $attributes['invoice_number'])
+            ->where('symbol', $attributes['symbol'])
+            ->where('issued_date', $attributes['issued_date'])
+            ->where('tax_code', $attributes['tax_code'])
+            ->where('total_amount', $attributes['total_amount'])
+            ->where('vat_amount', $attributes['vat_amount'])
+            ->limit(2)
+            ->get();
+
+        return $businessMatches->count() === 1 ? $businessMatches->first() : null;
+    }
+
+    private function extractTransactionId(array $raw): ?string
+    {
+        foreach (($raw['cttkhac'] ?? []) as $item) {
+            if (! is_array($item) || strcasecmp((string) ($item['ttruong'] ?? ''), 'TransactionID') !== 0) {
+                continue;
+            }
+
+            return $this->nullableString($item['dlieu'] ?? null);
+        }
+
+        return null;
+    }
+
     private function invoiceIdentity(array $attributes): array
     {
         if (filled($attributes['lookup_code'])) {
@@ -328,7 +397,7 @@ return $date >= $requestedStart && $date <= $requestedEnd;
             throw new \RuntimeException('Không thể xác định khóa hóa đơn để ghi cơ sở dữ liệu: thiếu mã tra cứu, số hóa đơn hoặc ngày lập.');
         }
 
-return ['invoice_type' => $attributes['invoice_type'], 'invoice_number' => $attributes['invoice_number'], 'symbol' => $attributes['symbol'], 'issued_date' => $attributes['issued_date'], 'tax_code' => $attributes['tax_code']];
+        return ['invoice_type' => $attributes['invoice_type'], 'invoice_number' => $attributes['invoice_number'], 'symbol' => $attributes['symbol'], 'issued_date' => $attributes['issued_date'], 'tax_code' => $attributes['tax_code']];
     }
 
     private function exportExcel(array $rows, bool $vatIn, string $filename): string
@@ -357,7 +426,7 @@ return ['invoice_type' => $attributes['invoice_type'], 'invoice_number' => $attr
             }
         }
 
-return null;
+        return null;
     }
 
     private function payloadHash(array $payload): string
@@ -380,6 +449,6 @@ return null;
             return $value;
         }
 
-return preg_replace('/[^0-9.\-]/','',(string) $value) ?: null;
+        return preg_replace('/[^0-9.\-]/', '', (string) $value) ?: null;
     }
 }

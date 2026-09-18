@@ -5,8 +5,8 @@ namespace Modules\Invoices\Livewire;
 use Illuminate\Support\Arr;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Models\InvoiceExpenseCategory;
+use Modules\Invoices\Models\Invoices;
 use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Services\InvoiceSourceDetailExportService;
 use Modules\Invoices\Support\GdtInvoiceLineMetadata;
@@ -16,28 +16,51 @@ final class SourceDataManager extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $partner = '';
+
     public string $year = 'all';
+
     public string $month = 'all';
+
     public string $invoiceType = 'purchase';
+
     public string $detailStatus = 'all';
+
     public string $businessClassification = 'all';
+
     public string $sortBy = 'supplier_asc';
+
     public int $perPage = 25;
+
     public array $partnerList = [];
+
     public array $businessClassifications = [];
+
     public array $businessNotes = [];
+
     public array $expenseCategoryIds = [];
+
     public array $expenseNotes = [];
+
     public array $applySameTaxCode = [];
+
     public array $supplierBatchIds = [];
+
     public bool $exportAll = true;
+
     public bool $exportPurchase = false;
+
     public bool $exportSold = false;
+
     public ?string $message = null;
+
     public bool $saveModalOpen = false;
+
     public array $saveModal = [];
+
     public bool $detailModalOpen = false;
+
     public array $detailModal = [];
 
     public function mount(?string $year = null, ?string $month = null, ?string $businessClassification = null): void
@@ -176,6 +199,7 @@ final class SourceDataManager extends Component
 
         if ($sources->isEmpty()) {
             $this->message = 'Không có hóa đơn phù hợp phạm vi xuất Excel.';
+
             return null;
         }
 
@@ -251,6 +275,7 @@ final class SourceDataManager extends Component
         $this->normalizeMonth();
         if ($this->invoiceType !== 'sold' || $this->year === 'all' || $this->month === 'all') {
             $this->message = 'Hãy chọn một năm, một tháng cụ thể và loại hóa đơn Bán ra trước khi áp dụng hàng loạt.';
+
             return;
         }
 
@@ -321,6 +346,7 @@ final class SourceDataManager extends Component
         $classification = strtoupper(trim((string) ($this->businessClassifications[$sourceId] ?? 'UNCLASSIFIED')));
         if (! in_array($classification, InvoiceSourceRecord::CLASSIFICATIONS, true)) {
             $this->addError("businessClassifications.{$sourceId}", 'Phân loại nghiệp vụ không hợp lệ.');
+
             return;
         }
 
@@ -340,6 +366,7 @@ final class SourceDataManager extends Component
             $this->removeSupplierBatchSelection($sourceId);
             $source->forceFill($attributes);
             $this->showSaveModal($source, $classification, $note, true, $updated, $expenseCategoryId);
+
             return;
         }
 
@@ -355,6 +382,7 @@ final class SourceDataManager extends Component
         $selectedIds = collect($this->supplierBatchIds)->map(fn ($id) => (int) $id)->filter()->unique()->values();
         if ($selectedIds->isEmpty()) {
             $this->message = 'Chưa chọn nhà cung cấp nào để lưu hàng loạt.';
+
             return;
         }
 
@@ -372,6 +400,7 @@ final class SourceDataManager extends Component
 
             if ($taxCode === '' || ! in_array($classification, InvoiceSourceRecord::CLASSIFICATIONS, true) || $classification === 'UNCLASSIFIED') {
                 $skipped++;
+
                 continue;
             }
             if (isset($processedSuppliers[$supplierKey])) {
@@ -381,6 +410,7 @@ final class SourceDataManager extends Component
             $expenseCategoryId = $this->validatedExpenseCategoryId($source->id, $classification, false);
             if ($classification === 'SERVICE_EXPENSE' && $expenseCategoryId === false) {
                 $skipped++;
+
                 continue;
             }
 
@@ -401,6 +431,7 @@ final class SourceDataManager extends Component
 
         if ($results === []) {
             $this->message = 'Chưa có nhà cung cấp hợp lệ để lưu. Hãy kiểm tra phân loại nghiệp vụ và phân loại chi phí cấp 2.';
+
             return;
         }
 
@@ -547,6 +578,7 @@ final class SourceDataManager extends Component
             )->orderByDesc(
                 Invoices::query()->select('issued_date')->whereColumn('invoices.id', 'invoice_source_records.invoice_id')->limit(1),
             )->orderByDesc('invoice_source_records.id');
+
             return;
         }
 
@@ -615,6 +647,7 @@ final class SourceDataManager extends Component
             if ($reportError) {
                 $this->addError("expenseCategoryIds.{$sourceId}", 'Phân loại chi phí cấp 2 không hợp lệ hoặc đã ngừng sử dụng.');
             }
+
             return false;
         }
 
@@ -634,6 +667,7 @@ final class SourceDataManager extends Component
     {
         $taxCode = trim((string) ($source->invoice?->tax_code ?? ''));
         $invoiceType = $source->invoice?->invoice_type;
+
         return InvoiceSourceRecord::query()
             ->where('provider', 'gdt')
             ->whereHas('invoice', fn ($query) => $query->where('tax_code', $taxCode)->when($invoiceType, fn ($query) => $query->where('invoice_type', $invoiceType)))
@@ -663,6 +697,7 @@ final class SourceDataManager extends Component
                 return $value;
             }
         }
+
         return null;
     }
 
@@ -702,6 +737,7 @@ final class SourceDataManager extends Component
             'sold' => 'Bán ra',
             default => 'Tất cả loại',
         };
+
         return $this->partner !== '' ? $period.' · '.$type.' · '.$this->partner : $period.' · '.$type;
     }
 

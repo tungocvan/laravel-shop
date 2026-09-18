@@ -53,7 +53,7 @@ final class InvoiceSourceRecord extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (InvoiceSourceRecord $record): void {
+        self::creating(function (InvoiceSourceRecord $record): void {
             if (($record->business_classification ?? 'UNCLASSIFIED') !== 'UNCLASSIFIED') {
                 return;
             }

@@ -165,3 +165,39 @@ These failures must not be repaired by changing Inventory/Source Data/GDT detail
 ### Closeout checkpoint
 
 GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR/merge, preserve the baseline-failure evidence above, run scoped formatting/checks for changed files as required by the collaboration workflow, confirm the working tree is clean after pull, and merge only after explicit approval.
+
+
+## 2026-09-18 — GDT canonical identity + duplicate recovery
+
+- Branch: `fix/invoices-gdt-canonical-dedup-recovery`.
+- Production audit before implementation: sold 2026 had 951 rows / 111,124,775,809 VND; 468 duplicate pairs were proven identical by business fingerprint, provider, header hash and detail hash. Expected canonical baseline after recovery: 483 rows / 55,926,358,092 VND.
+- Root cause: legacy GDT rows could use `cttkhac.TransactionID` (observed 12-character lookup codes), while current canonical mapping prefers GDT `mtdiep/mhdon/ma/id`; lookup-code-only persistence therefore inserted a second row.
+- Prevention: `GdtInvoiceService` now resolves exact canonical lookup first, then identical GDT header hash, legacy TransactionID, and finally a conservative unique business fingerprint including totals/VAT.
+- Recovery: `invoices:recover-gdt-duplicates` now audits all years and both `sold`/`purchase` directions by default; `--year` and `--type` are optional scope filters. It is dry-run by default. `--apply` is explicit and transaction guarded. A pair is eligible only when the two GDT rows share business fingerprint + header/detail hashes and exactly one row matches the canonical GDT identity.
+- Reference safety: legacy `invoice_files` and inventory snapshot references are repointed only when the canonical side has no conflicting row; conflicts BLOCK the pair. Duplicate source rows are hash-verified, user/business metadata is merged conservatively, then the legacy source/invoice is removed.
+- Idempotency: after a successful apply, rerunning the command should report zero eligible duplicate pairs.
+- Checkpoint validation requested locally: focused contract test + Pint, then an all-period/all-direction dry-run must report every eligible pair/reference before any `--apply`. The known 2026 sold subset must still reconcile to 468 pairs and, after apply, 483 rows / 55,926,358,092 VND.
+- No UI templates changed; manual smoke remains `/admin/invoices/hoadon-list` after recovery.
+
+
+### Final acceptance — 2026-09-18
+
+- All-period/all-direction dry-run found 469 verified GDT duplicate pairs: 468 sold + 1 purchase, all in 2026; blocked = 0.
+- Recovery apply completed 469/469; 68 invoice_file references preserved/repointed; 0 inventory snapshots required movement; blocked = 0.
+- Idempotency re-run: pairs = 0.
+- Post-recovery 2026 sold: 483 invoices / 55,926,358,092 VND.
+- Post-recovery 2026 purchase: 564 invoices / 46,114,902,421 VND.
+- Post-recovery total: 1,047 invoices; GDT source records: 1,047.
+- Focused GDT authentication + duplicate identity/recovery tests: PASS.
+- Manual UI acceptance: PASS.
+- Invoices regression baseline outside this scope remains the previously documented Inventory contract drift; do not repair it in this recovery branch.
+
+
+### Source-data duplicate boundary audit — 2026-09-18
+
+- Audited /admin/invoices/source-data and InvoiceSourceRecord write paths after canonical GDT dedup recovery.
+- SourceDataManager remains annotation/read-management only: it does not acquire GDT data and does not create/upsert source records.
+- Canonical RAW writers key GDT source records by (invoice_id, provider), backed by the database unique constraint on (invoice_id, provider).
+- Duplicate prevention therefore remains owned by GdtInvoiceService ingestion for both purchase/sold and all years; source-data cannot independently create a second GDT source for the same invoice.
+- Added contract coverage to lock this boundary.
+- Focused duplicate/source-data contract: 4 passed, 29 assertions.
