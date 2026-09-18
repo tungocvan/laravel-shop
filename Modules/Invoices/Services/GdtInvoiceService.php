@@ -68,6 +68,22 @@ class GdtInvoiceService
         if($processed!==$total)throw new \RuntimeException("Đồng bộ không đầy đủ: nhận {$processed}/{$total} hóa đơn. Không tạo file Excel.");$show("✅ Đã nhận đủ {$processed}/{$total} hóa đơn");return $result;
     }
 
+    private function logRejectedQuery($response, string $action, int $page): void
+    {
+        $payload = $response->json();
+        Log::warning('GDT invoice query rejected.', [
+            'action' => $action,
+            'page' => $page,
+            'status' => $response->status(),
+            'message' => is_array($payload) ? ($payload['message'] ?? $payload['error'] ?? null) : null,
+            'response_keys' => is_array($payload) ? array_keys($payload) : [],
+            'request_context' => [
+                'authorization' => 'bearer-token-present',
+                'request_id' => 'not-sent-until-query-contract-is-verified',
+            ],
+        ]);
+    }
+
     private function client(string $token){return Http::withOptions(['verify'=>(bool)config('invoices.gdt.verify_ssl',true)])->timeout((int)config('invoices.gdt.timeout',15))->withToken($token);}
     private function url(string $path):string{return rtrim((string)config('invoices.gdt.base_url'),'/').'/'.ltrim($path,'/');}
 
