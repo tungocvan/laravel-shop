@@ -62,6 +62,7 @@ class InvoiceService
             ->selectRaw("SUM(CASE WHEN invoice_type = 'sold' THEN 1 ELSE 0 END) as sold_count")
             ->selectRaw("SUM(CASE WHEN invoice_type = 'purchase' THEN 1 ELSE 0 END) as purchase_count")
             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount_sum')
+            ->selectRaw('COALESCE(SUM(amount_before_vat), 0) as amount_before_vat_sum')
             ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN amount_before_vat ELSE 0 END), 0) as sold_amount_sum")
             ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN amount_before_vat ELSE 0 END), 0) as purchase_amount_sum")
             ->selectRaw('COALESCE(SUM(vat_amount), 0) as vat_amount_sum')
@@ -76,6 +77,7 @@ class InvoiceService
             'sold_count' => (int) ($row?->sold_count ?? 0),
             'purchase_count' => (int) ($row?->purchase_count ?? 0),
             'total_amount' => $row?->total_amount_sum ?? 0,
+            'amount_before_vat' => $row?->amount_before_vat_sum ?? 0,
             'sold_amount' => $row?->sold_amount_sum ?? 0,
             'purchase_amount' => $row?->purchase_amount_sum ?? 0,
             'vat_amount' => $row?->vat_amount_sum ?? 0,
@@ -187,7 +189,9 @@ class InvoiceService
         [$column, $direction] = match ($filters['sort'] ?? 'date_desc') {
             'date_asc' => ['issued_date', 'asc'],
             'amount_desc' => ['total_amount', 'desc'],
+            'net_amount_desc' => ['amount_before_vat', 'desc'],
             'amount_asc' => ['total_amount', 'asc'],
+            'net_amount_asc' => ['amount_before_vat', 'asc'],
             'invoice_desc' => ['invoice_number', 'desc'],
             'invoice_asc' => ['invoice_number', 'asc'],
             'partner_asc' => ['name', 'asc'],
