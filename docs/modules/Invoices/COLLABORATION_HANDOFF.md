@@ -116,6 +116,8 @@ This scope is complete. Do not reopen `fix/invoices-structured-lot-expiry` for n
 
 ## Current handoff — GDT authentication request contract diagnostics
 
+Detailed reusable runbook: `docs/modules/Invoices/GDT_AUTHENTICATION_TROUBLESHOOTING.md`. Future GDT login incidents must consult and append to that runbook before introducing new request-contract changes.
+
 - Branch: `fix/invoices-gdt-auth-session-diagnostics`.
 - Scope: `Modules\\Invoices` GDT authentication/session diagnostics for `/admin/invoices/hoadon`.
 - Status: **IMPLEMENTED / FOCUSED TEST PASS / CLI AUTH PASS / UI PASS**.
