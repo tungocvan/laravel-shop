@@ -178,6 +178,17 @@ class GdtApiService
             'status' => $res->status(),
             'elapsed_ms' => $this->elapsedMilliseconds($startedAt),
             'cookie_count' => count($cookies->toArray()),
+            'cookie_metadata' => $this->cookieMetadata($cookies),
+            'request_context' => [
+                'content_type' => 'application/json',
+                'origin' => $this->frontendOrigin(),
+                'referer' => $this->frontendOrigin().'/',
+            ],
+            'response_context' => [
+                'action' => $this->safeHeader($res->header('action')),
+                'content_type' => $this->safeHeader($res->header('content-type')),
+                'vary' => $this->safeHeader($res->header('vary')),
+            ],
         ];
 
         if ($res->successful()) {
@@ -307,6 +318,29 @@ class GdtApiService
     private function sessionCacheKey(): string
     {
         return (string) config('invoices.gdt.cache_key', 'gdt_token').':auth-session-cookies';
+    }
+
+    /**
+     * Safe cookie diagnostics. Values are intentionally excluded.
+     */
+    private function cookieMetadata(CookieJar $cookies): array
+    {
+        return array_map(static fn (array $cookie): array => [
+            'name' => (string) ($cookie['Name'] ?? ''),
+            'domain' => (string) ($cookie['Domain'] ?? ''),
+            'path' => (string) ($cookie['Path'] ?? ''),
+            'secure' => (bool) ($cookie['Secure'] ?? false),
+            'http_only' => (bool) ($cookie['HttpOnly'] ?? false),
+        ], $cookies->toArray());
+    }
+
+    private function safeHeader(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return mb_substr(trim($value), 0, 500);
     }
 
     private function frontendOrigin(): string
