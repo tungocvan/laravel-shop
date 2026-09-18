@@ -168,6 +168,15 @@ class ReviewWorkspace extends Component
                 ->get();
 
             foreach ($matches as $match) {
+                DrugBidAward::query()
+                    ->whereKey($match->drug_bid_award_id)
+                    ->where('medicine_id', $match->medicine_id)
+                    ->update([
+                        'medicine_id' => null,
+                        'medicine_code' => null,
+                        'medicine_match_status' => DrugBidAward::MATCH_UNRESOLVED,
+                    ]);
+
                 $match->update([
                     'medicine_id' => null,
                     'medicine_variant_id' => null,
@@ -199,7 +208,14 @@ class ReviewWorkspace extends Component
         $match = $award->canonicalMatch;
         if (! $match?->medicine_id) { $this->errorMessage = 'Kết quả này hiện chưa có liên kết để hủy.'; return; }
         $oldMedicine = $match->medicine;
-        $match->update(['medicine_id' => null, 'medicine_variant_id' => null, 'medicine_package_id' => null, 'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED, 'resolution_level' => null, 'review_status' => DrugBidAwardMatch::REVIEW_PENDING, 'is_manual' => false, 'matched_by' => null, 'matched_at' => null, 'review_reason' => 'manual_unlink_requires_review']);
+        DB::transaction(function () use ($award, $match): void {
+            $award->update([
+                'medicine_id' => null,
+                'medicine_code' => null,
+                'medicine_match_status' => DrugBidAward::MATCH_UNRESOLVED,
+            ]);
+            $match->update(['medicine_id' => null, 'medicine_variant_id' => null, 'medicine_package_id' => null, 'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED, 'resolution_level' => null, 'review_status' => DrugBidAwardMatch::REVIEW_PENDING, 'is_manual' => false, 'matched_by' => null, 'matched_at' => null, 'review_reason' => 'manual_unlink_requires_review']);
+        });
         $this->showActionSuccess('Đã hủy liên kết. Kết quả đã được đưa trở lại hàng chờ Cần rà soát.', $oldMedicine);
     }
 
