@@ -183,6 +183,9 @@ class GdtApiService
                 'content_type' => 'application/json',
                 'origin' => $this->frontendOrigin(),
                 'referer' => $this->frontendOrigin().'/',
+                'action' => '',
+                'end_point' => '/',
+                'request_id' => 'not-sent-until-contract-is-verified',
             ],
             'response_context' => [
                 'action' => $this->safeHeader($res->header('action')),
@@ -226,7 +229,7 @@ class GdtApiService
                 'status' => 'error',
                 'code' => 'UPSTREAM_REQUEST_BLOCKED',
                 'http_status' => 403,
-                'message' => 'GDT từ chối yêu cầu xác thực từ máy chủ (HTTP 403). Captcha và phiên GDT đã được khởi tạo, nhưng yêu cầu đăng nhập bị hệ thống GDT chặn. Đây không phải lỗi kết nối mạng và hệ thống chưa xác định đây là lỗi tài khoản, mật khẩu hoặc captcha.',
+                'message' => 'GDT từ chối yêu cầu xác thực của ứng dụng (HTTP 403). Captcha và phiên GDT đã được khởi tạo, nhưng yêu cầu đăng nhập bị hệ thống GDT chặn. Đây không phải lỗi kết nối mạng và hệ thống chưa xác định đây là lỗi tài khoản, mật khẩu hoặc captcha.',
             ];
         }
 
@@ -285,6 +288,10 @@ class GdtApiService
             // and can be rejected by upstream anti-abuse checks as an invalid request.
             'Origin' => $this->frontendOrigin(),
             'Referer' => $this->frontendOrigin().'/',
+            // These are application-level headers emitted by the official GDT frontend.
+            // They describe the application request contract; they are not browser fingerprint headers.
+            'Action' => '',
+            'End-Point' => '/',
         ]);
     }
 
