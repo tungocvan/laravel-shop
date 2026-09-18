@@ -43,7 +43,7 @@ class PriceListExportProfileV2ContractTest extends TestCase
         $view=file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
 
         foreach(['pageSetup.table_border','pageSetup.header_background','pageSetup.header_text_color','Excel Designer v3','Times New Roman','Thư viện cấu hình JSON','Lưu cấu hình JSON'] as $needle)$this->assertStringContainsString($needle,$view.$component);
-        foreach(['noticeOpen','confirmOpen','confirmAction','saveJsonToServer','importSelectedJson'] as $needle)$this->assertStringContainsString($needle,$component);
+        foreach(['noticeOpen','confirmOpen','pendingConfirmAction','pendingConfirmValue','executeConfirmedAction','saveJsonToServer','importSelectedJson'] as $needle)$this->assertStringContainsString($needle,$component);
     }
 
     #[Test]
