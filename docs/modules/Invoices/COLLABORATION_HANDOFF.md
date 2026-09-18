@@ -178,3 +178,16 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Idempotency: after a successful apply, rerunning the command should report zero eligible duplicate pairs.
 - Checkpoint validation requested locally: focused contract test + Pint, then an all-period/all-direction dry-run must report every eligible pair/reference before any `--apply`. The known 2026 sold subset must still reconcile to 468 pairs and, after apply, 483 rows / 55,926,358,092 VND.
 - No UI templates changed; manual smoke remains `/admin/invoices/hoadon-list` after recovery.
+
+
+### Final acceptance — 2026-09-18
+
+- All-period/all-direction dry-run found 469 verified GDT duplicate pairs: 468 sold + 1 purchase, all in 2026; blocked = 0.
+- Recovery apply completed 469/469; 68 invoice_file references preserved/repointed; 0 inventory snapshots required movement; blocked = 0.
+- Idempotency re-run: pairs = 0.
+- Post-recovery 2026 sold: 483 invoices / 55,926,358,092 VND.
+- Post-recovery 2026 purchase: 564 invoices / 46,114,902,421 VND.
+- Post-recovery total: 1,047 invoices; GDT source records: 1,047.
+- Focused GDT authentication + duplicate identity/recovery tests: PASS.
+- Manual UI acceptance: PASS.
+- Invoices regression baseline outside this scope remains the previously documented Inventory contract drift; do not repair it in this recovery branch.
