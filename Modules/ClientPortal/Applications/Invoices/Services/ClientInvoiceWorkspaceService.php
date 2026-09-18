@@ -191,7 +191,13 @@ final class ClientInvoiceWorkspaceService
         $month = filter_var($requestedMonth, FILTER_VALIDATE_INT) !== false
             ? max(1, min(12, (int) $requestedMonth))
             : null;
-        $paginator = $this->invoices->paginate($filters, $perPage)->withQueryString();
+        $queryFilters = $filters;
+        $queryFilters['sort'] = match ($filters['sort']) {
+            'amount_desc' => 'net_amount_desc',
+            'amount_asc' => 'net_amount_asc',
+            default => $filters['sort'],
+        };
+        $paginator = $this->invoices->paginate($queryFilters, $perPage)->withQueryString();
 
         return [
             'filters' => $filters,
