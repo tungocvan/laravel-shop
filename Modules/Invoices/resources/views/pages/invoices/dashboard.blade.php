@@ -54,7 +54,7 @@
                 <div class="flex flex-wrap items-end gap-2"><form method="GET" action="{{ route('admin.invoices.dashboard') }}" class="flex items-end gap-2"><label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Năm<input name="year" type="number" min="2000" max="2100" value="{{ $classificationYear }}" class="mt-1 block min-h-10 w-28 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900" aria-label="Năm phân tích mua vào"></label><button type="submit" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Áp dụng</button></form>@if ($capabilities['create'])<a href="{{ route('admin.invoices.source-data', ['year' => $classificationYear]) }}" class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700">Mở phân loại nguồn →</a>@endif</div>
             </div>
 
-            @if ($classificationMetrics['available'])
+            @if ($classificationMetrics['available'] && $classificationMetrics['total_count'] > 0)
                 <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                     <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold uppercase text-slate-500">Tổng mua vào có nguồn</p><p class="mt-2 text-xl font-bold text-slate-950">{{ $formatMoney($classificationMetrics['total_value']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($classificationMetrics['total_count']) }} hóa đơn</p></div>
                     <a href="{{ route('admin.invoices.source-data', ['year' => $classificationYear, 'businessClassification' => 'GOODS']) }}" class="rounded-xl border border-emerald-200 bg-white p-4 transition hover:border-emerald-400"><p class="text-xs font-semibold uppercase text-emerald-700">Hàng hóa</p><p class="mt-2 text-xl font-bold text-emerald-800">{{ $formatMoney($classificationMetrics['goods_value']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($classificationMetrics['goods_count']) }} hóa đơn</p></a>
@@ -66,6 +66,14 @@
                 @if (!empty($classificationMetrics['expense_breakdown']))
                     <div class="mt-5"><div class="mb-3 flex items-center justify-between gap-3"><div><h3 class="font-semibold text-slate-900">Phân loại chi phí cấp 2</h3><p class="mt-1 text-xs text-slate-500">Danh mục động; có thể bổ sung nhóm mới mà không thay schema hóa đơn nguồn.</p></div></div><div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">@foreach ($classificationMetrics['expense_breakdown'] as $expense)<div class="rounded-xl border border-amber-100 bg-white px-4 py-3"><p class="truncate text-xs font-semibold text-slate-600" title="{{ $expense['name'] }}">{{ $expense['name'] }}</p><p class="mt-1 font-bold text-slate-950">{{ $formatMoney($expense['total_value']) }}</p><p class="mt-1 text-[11px] text-slate-500">{{ number_format($expense['invoice_count']) }} hóa đơn</p></div>@endforeach</div></div>
                 @endif
+            @elseif ($classificationMetrics['available'])
+                <div class="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-7 text-center">
+                    <p class="text-base font-bold text-slate-900">Chưa có dữ liệu mua vào đã phân loại trong năm {{ $classificationYear }}</p>
+                    <p class="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">Không tìm thấy hóa đơn nguồn thuộc khoảng 01/01/{{ $classificationYear }}–31/12/{{ $classificationYear }}. Các KPI bằng 0 được ẩn để tránh nhầm với dữ liệu đã phát sinh.</p>
+                    @if ($capabilities['create'])
+                        <a href="{{ route('admin.invoices.source-data', ['year' => $classificationYear]) }}" class="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">Mở dữ liệu nguồn →</a>
+                    @endif
+                </div>
             @else
                 <div class="mt-5 rounded-xl border border-amber-200 bg-white px-4 py-4 text-sm text-amber-900">Dữ liệu phân loại chưa sẵn sàng. Hãy chạy migration của Invoices rồi mở lại Dashboard.</div>
             @endif
