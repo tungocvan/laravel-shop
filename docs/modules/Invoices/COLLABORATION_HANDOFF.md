@@ -132,6 +132,17 @@ The GDT authenticate request now sends a newly generated UUID `request-id` for e
 
 Controlled CLI verification changed from authenticate HTTP 403 without `request-id` to authenticate HTTP 200 with a fresh `request-id`. The successful response returned the expected login action and the token was cached. The real `/admin/invoices/hoadon` connection flow was then manually verified: **UI PASS**.
 
+
+### Runtime request-context acceptance — 18/09/2026
+
+Authentication alone was not the complete incident. A fresh token was successfully written to the database cache, but the invoice-list endpoint returned HTTP 403 while using the old query request context. Legacy handling then deleted the token because it treated 401 and 403 identically, causing secondary missing-token/expired-session messages.
+
+The list and detail paths now use a fresh per-request UUID `request-id` plus the safe application-level request context. HTTP 401 clears the token; HTTP 403 is diagnosed as a rejected request and does not clear the token solely because of the status.
+
+After queue worker reload and a fresh manual-captcha login, runtime acceptance completed successfully: 14/14 missing local details recovered, invoice list 20/20 received, 20 headers remained idempotent, detail pass reused 19 and fetched 1 with 0 errors, Excel was generated and the job completed.
+
+The reusable failure signatures, misleading secondary-error explanation, 401/403 recovery rules, worker-reload procedure and Google Drive separation are recorded in `GDT_AUTHENTICATION_TROUBLESHOOTING.md`.
+
 ### Security / diagnostics invariants
 
 Diagnostic logging excludes GDT username/password, captcha value, token, cookie values and the generated request-id value. Cookie diagnostics contain metadata only. The local diagnostic command remains local-environment-only and requires the operator to read/enter the captcha manually.
@@ -140,7 +151,7 @@ Do not copy browser cookies/tokens/request IDs into Laravel, emulate `sec-*` bro
 
 ### Test evidence and known baseline drift
 
-`tests/Feature/Invoices/GdtAuthenticationSafetyContractTest.php`: **PASS** after the final request-id change.
+`tests/Feature/Invoices/GdtAuthenticationSafetyContractTest.php`: **7 passed / 73 assertions** after authenticate/list/detail request-context coverage.
 
 Invoices module regression after the fix: **49 passed (459 assertions), 4 failed**. The four failures are pre-existing contract/baseline drift outside this GDT authentication scope:
 
