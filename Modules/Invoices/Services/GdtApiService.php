@@ -221,8 +221,18 @@ class GdtApiService
             'response_keys' => is_array($payload) ? array_keys($payload) : [],
         ]);
 
+        if ($res->status() === 403) {
+            return [
+                'status' => 'error',
+                'code' => 'UPSTREAM_REQUEST_BLOCKED',
+                'http_status' => 403,
+                'message' => 'GDT từ chối yêu cầu xác thực từ máy chủ (HTTP 403). Captcha và phiên GDT đã được khởi tạo, nhưng yêu cầu đăng nhập bị hệ thống GDT chặn. Đây không phải lỗi kết nối mạng và hệ thống chưa xác định đây là lỗi tài khoản, mật khẩu hoặc captcha.',
+            ];
+        }
+
         return [
             'status' => 'error',
+            'http_status' => $res->status(),
             'message' => $message ?: "Đăng nhập GDT không thành công (HTTP {$res->status()}).",
         ];
     }
@@ -269,7 +279,7 @@ class GdtApiService
             'cookies' => $cookies,
         ])->withHeaders([
             'Accept' => 'application/json, text/plain, */*',
-            'User-Agent' => (string) config('invoices.gdt.user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36'),
+            'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
             // GDT frontend is hosted at the site origin, while base_url ends in /api.
             // Sending Origin/Referer as .../api makes authenticate look unlike the official frontend
             // and can be rejected by upstream anti-abuse checks as an invalid request.
