@@ -45,7 +45,7 @@ class InvoiceNetRevenueReportingContractTest extends TestCase
         $this->assertStringContainsString("'net_amount_asc' => ['amount_before_vat', 'asc']", $service);
         $this->assertStringContainsString("'amount_desc' => 'net_amount_desc'", $workspace);
         $this->assertStringContainsString("'amount_asc' => 'net_amount_asc'", $workspace);
-        $this->assertStringContainsString("($stats['amount_before_vat'] ?? 0)", $view);
+        $this->assertStringContainsString("(\$stats['amount_before_vat'] ?? 0)", $view);
         $this->assertStringContainsString('$invoice->amount_before_vat', $view);
         $this->assertStringContainsString('Giá trị chưa VAT', $view);
         $this->assertStringNotContainsString('$invoice->total_amount', $view);
