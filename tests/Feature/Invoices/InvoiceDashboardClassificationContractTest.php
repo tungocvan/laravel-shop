@@ -33,6 +33,9 @@ class InvoiceDashboardClassificationContractTest extends TestCase
         $this->assertStringContainsString('Phân tích mua vào · năm {{ $classificationYear }}', $view);
         $this->assertStringContainsString('01/01/{{ $classificationYear }}–31/12/{{ $classificationYear }}', $view);
         $this->assertStringContainsString('name="year"', $view);
+        $this->assertStringContainsString("\$classificationMetrics['total_count'] > 0", $view);
+        $this->assertStringContainsString('Chưa có dữ liệu mua vào đã phân loại trong năm {{ $classificationYear }}', $view);
+        $this->assertStringContainsString('Các KPI bằng 0 được ẩn để tránh nhầm với dữ liệu đã phát sinh.', $view);
         $this->assertStringContainsString('Giá trị chưa VAT', $view);
         $this->assertStringContainsString('Phân loại chi phí cấp 2', $view);
         $this->assertStringContainsString("['year' => \$classificationYear, 'businessClassification' => 'GOODS']", $view);
