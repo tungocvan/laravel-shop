@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -79,12 +80,28 @@ class GdtInvoiceService
             'response_keys' => is_array($payload) ? array_keys($payload) : [],
             'request_context' => [
                 'authorization' => 'bearer-token-present',
-                'request_id' => 'not-sent-until-query-contract-is-verified',
+                'request_id' => 'generated-per-query-request',
             ],
         ]);
     }
 
-    private function client(string $token){return Http::withOptions(['verify'=>(bool)config('invoices.gdt.verify_ssl',true)])->timeout((int)config('invoices.gdt.timeout',15))->withToken($token);}
+    private function client(string $token)
+    {
+        $origin = rtrim((string) config('invoices.gdt.base_url'), '/');
+        $origin = preg_replace('#/api$#', '', $origin) ?: $origin;
+
+        return Http::withOptions(['verify' => (bool) config('invoices.gdt.verify_ssl', true)])
+            ->timeout((int) config('invoices.gdt.timeout', 15))
+            ->withToken($token)
+            ->withHeaders([
+                'Accept' => 'application/json, text/plain, */*',
+                'Origin' => $origin,
+                'Referer' => $origin.'/',
+                'Action' => '',
+                'End-Point' => '/',
+                'request-id' => (string) Str::uuid(),
+            ]);
+    }
     private function url(string $path):string{return rtrim((string)config('invoices.gdt.base_url'),'/').'/'.ltrim($path,'/');}
 
     private function mapInvoice(array $item,bool $vatIn):array{$counterpartyIsBuyer=!$vatIn;return['Mã tra cứu'=>$this->extractLookupCode($item),'Ký hiệu'=>($item['khmshdon']??'').'/'.($item['khhdon']??''),'Số hóa đơn'=>$item['shdon']??'','Loại hóa đơn'=>$item['thdon']??'','Ngày lập'=>isset($item['tdlap'])?Carbon::parse($item['tdlap'])->format('d/m/Y'):'','Mã số thuế'=>$counterpartyIsBuyer?($item['nmmst']??''):($item['nbmst']??''),'Đơn vị'=>$counterpartyIsBuyer?($item['nmten']??''):($item['nbten']??''),'Địa chỉ'=>$counterpartyIsBuyer?($item['nmdchi']??''):($item['nbdchi']??''),'Email'=>$counterpartyIsBuyer?($item['nmdctdtu']??''):($item['nbdctdtu']??''),'Phone'=>$counterpartyIsBuyer?($item['nmsdthoai']??''):($item['nbsdthoai']??''),'Thuế suất'=>$item['thttltsuat'][0]['tsuat']??'','Tiền VAT'=>$item['tgtthue']??0,'Trước VAT'=>$item['tgtcthue']??0,'Thành tiền'=>$item['tgtttbso']??0,'_gdt_raw_payload'=>$item];}
