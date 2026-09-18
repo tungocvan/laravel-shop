@@ -13,11 +13,11 @@ class GdtDuplicateIdentityRecoveryContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Invoices/Services/GdtInvoiceService.php'));
 
         $this->assertStringContainsString('findExistingInvoice($attributes, $raw)', $service);
-        $this->assertStringContainsString("->where('header_hash', $headerHash)", $service);
+        $this->assertStringContainsString('->where(\'header_hash\', $headerHash)', $service);
         $this->assertStringContainsString('extractTransactionId($raw)', $service);
         $this->assertStringContainsString("'TransactionID'", $service);
-        $this->assertStringContainsString("->where('total_amount', $attributes['total_amount'])", $service);
-        $this->assertStringContainsString("->where('vat_amount', $attributes['vat_amount'])", $service);
+        $this->assertStringContainsString('->where(\'total_amount\', $attributes[\'total_amount\'])', $service);
+        $this->assertStringContainsString('->where(\'vat_amount\', $attributes[\'vat_amount\'])', $service);
     }
 
     #[Test]
@@ -26,13 +26,13 @@ class GdtDuplicateIdentityRecoveryContractTest extends TestCase
         $recovery = file_get_contents(base_path('Modules/Invoices/Services/GdtDuplicateRecoveryService.php'));
         $command = file_get_contents(base_path('Modules/Invoices/Console/Commands/RecoverGdtDuplicatesCommand.php'));
 
-        $this->assertStringContainsString("bool $apply = false", $recovery);
-        $this->assertStringContainsString("header_hash", $recovery);
-        $this->assertStringContainsString("detail_hash", $recovery);
-        $this->assertStringContainsString("invoice_files", $recovery);
-        $this->assertStringContainsString("invoice_inventory_snapshots", $recovery);
+        $this->assertStringContainsString('bool $apply = false', $recovery);
+        $this->assertStringContainsString('header_hash', $recovery);
+        $this->assertStringContainsString('detail_hash', $recovery);
+        $this->assertStringContainsString('invoice_files', $recovery);
+        $this->assertStringContainsString('invoice_inventory_snapshots', $recovery);
         $this->assertStringContainsString('mergeSourceMetadata', $recovery);
-        $this->assertStringContainsString("invoices:recover-gdt-duplicates", $command);
+        $this->assertStringContainsString('invoices:recover-gdt-duplicates', $command);
         $this->assertStringContainsString('{--apply', $command);
     }
 
