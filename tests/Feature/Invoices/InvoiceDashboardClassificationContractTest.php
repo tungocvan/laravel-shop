@@ -16,9 +16,12 @@ class InvoiceDashboardClassificationContractTest extends TestCase
         $this->assertStringContainsString("'invoice_source_records' => \$this->tableExists('invoice_source_records')", $service);
         $this->assertStringContainsString("'invoice_expense_categories' => \$this->tableExists('invoice_expense_categories')", $service);
         $this->assertStringContainsString("'classification' => \$classificationMetrics", $service);
-        $this->assertStringContainsString('private function classificationMetrics(bool $expenseCategoriesAvailable): array', $service);
+        $this->assertStringContainsString('private function classificationMetrics(bool $expenseCategoriesAvailable, int $year): array', $service);
         $this->assertStringContainsString("->where('invoices.invoice_type', 'purchase')", $service);
         $this->assertStringContainsString('SUM(invoices.amount_before_vat)', $service);
+        $this->assertStringContainsString("->whereBetween('invoices.issued_date', [\$periodStart, \$periodEnd])", $service);
+        $this->assertStringContainsString("'period_start' => \$periodStart", $service);
+        $this->assertStringContainsString("'period_end' => \$periodEnd", $service);
         $this->assertStringContainsString("business_classification = 'GOODS'", $service);
         $this->assertStringContainsString("business_classification = 'SERVICE_EXPENSE'", $service);
         $this->assertStringContainsString("business_classification = 'MIXED'", $service);
@@ -27,12 +30,18 @@ class InvoiceDashboardClassificationContractTest extends TestCase
 
         $this->assertStringContainsString("route('admin.invoices.source-data')", $view);
         $this->assertStringContainsString('Cơ cấu hàng hóa & chi phí', $view);
-        $this->assertStringContainsString('Giá trị sử dụng số tiền trước VAT', $view);
+        $this->assertStringContainsString('Phân tích mua vào · năm {{ $classificationYear }}', $view);
+        $this->assertStringContainsString('01/01/{{ $classificationYear }}–31/12/{{ $classificationYear }}', $view);
+        $this->assertStringContainsString('name="year"', $view);
+        $this->assertStringContainsString("\$classificationMetrics['total_count'] > 0", $view);
+        $this->assertStringContainsString('Chưa có dữ liệu mua vào đã phân loại trong năm {{ $classificationYear }}', $view);
+        $this->assertStringContainsString('Các KPI bằng 0 được ẩn để tránh nhầm với dữ liệu đã phát sinh.', $view);
+        $this->assertStringContainsString('Giá trị chưa VAT', $view);
         $this->assertStringContainsString('Phân loại chi phí cấp 2', $view);
-        $this->assertStringContainsString("['businessClassification' => 'GOODS']", $view);
-        $this->assertStringContainsString("['businessClassification' => 'SERVICE_EXPENSE']", $view);
-        $this->assertStringContainsString("['businessClassification' => 'MIXED']", $view);
-        $this->assertStringContainsString("['businessClassification' => 'UNCLASSIFIED']", $view);
+        $this->assertStringContainsString("['year' => \$classificationYear, 'businessClassification' => 'GOODS']", $view);
+        $this->assertStringContainsString("['year' => \$classificationYear, 'businessClassification' => 'SERVICE_EXPENSE']", $view);
+        $this->assertStringContainsString("['year' => \$classificationYear, 'businessClassification' => 'MIXED']", $view);
+        $this->assertStringContainsString("['year' => \$classificationYear, 'businessClassification' => 'UNCLASSIFIED']", $view);
     }
 
     #[Test]

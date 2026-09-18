@@ -88,8 +88,8 @@
         <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-5 shadow-sm">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <p class="text-sm font-semibold text-sky-700">{{ $annualYear === 'Tất cả' ? 'Doanh thu bán ra — Tất cả các năm' : 'Doanh thu bán ra năm '.$annualYear }}</p>
-                    <p class="mt-1 text-xs text-sky-600">{{ $annualYear === 'Tất cả' ? 'Tổng hóa đơn bán ra của toàn bộ dữ liệu.' : 'Tổng hóa đơn bán ra trong năm đang chọn.' }}</p>
+                    <p class="text-sm font-semibold text-sky-700">{{ $annualYear === 'Tất cả' ? 'Doanh thu bán ra chưa VAT — Tất cả các năm' : 'Doanh thu bán ra chưa VAT năm '.$annualYear }}</p>
+                    <p class="mt-1 text-xs text-sky-600">{{ $annualYear === 'Tất cả' ? 'Tổng giá trị hàng hóa, dịch vụ bán ra chưa VAT của toàn bộ dữ liệu.' : 'Tổng giá trị hàng hóa, dịch vụ bán ra chưa VAT trong năm đang chọn.' }}</p>
                 </div>
                 <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700">{{ number_format($annualStats['sold_count']) }} HĐ</span>
             </div>
@@ -98,8 +98,8 @@
         <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <p class="text-sm font-semibold text-amber-700">{{ $annualYear === 'Tất cả' ? 'Giá trị mua vào — Tất cả các năm' : 'Giá trị mua vào năm '.$annualYear }}</p>
-                    <p class="mt-1 text-xs text-amber-600">{{ $annualYear === 'Tất cả' ? 'Tổng hóa đơn mua vào của toàn bộ dữ liệu.' : 'Tổng hóa đơn mua vào trong năm đang chọn.' }}</p>
+                    <p class="text-sm font-semibold text-amber-700">{{ $annualYear === 'Tất cả' ? 'Giá trị mua vào chưa VAT — Tất cả các năm' : 'Giá trị mua vào chưa VAT năm '.$annualYear }}</p>
+                    <p class="mt-1 text-xs text-amber-600">{{ $annualYear === 'Tất cả' ? 'Tổng giá trị hàng hóa, dịch vụ mua vào chưa VAT của toàn bộ dữ liệu.' : 'Tổng giá trị hàng hóa, dịch vụ mua vào chưa VAT trong năm đang chọn.' }}</p>
                 </div>
                 <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-700">{{ number_format($annualStats['purchase_count']) }} HĐ</span>
             </div>
@@ -146,8 +146,8 @@
 
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"><p class="text-xs font-medium uppercase text-gray-500">Trong bộ lọc</p><p class="mt-1 text-lg font-bold">{{ number_format($filterStats['count']) }} hóa đơn</p></div>
-                <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3"><p class="text-xs font-medium uppercase text-sky-700">Bán ra</p><p class="mt-1 text-lg font-bold text-slate-900">{{ number_format((float)$filterStats['sold_amount']) }} ₫</p></div>
-                <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"><p class="text-xs font-medium uppercase text-amber-700">Mua vào</p><p class="mt-1 text-lg font-bold text-slate-900">{{ number_format((float)$filterStats['purchase_amount']) }} ₫</p></div>
+                <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3"><p class="text-xs font-medium uppercase text-sky-700">Bán ra · chưa VAT</p><p class="mt-1 text-lg font-bold text-slate-900">{{ number_format((float)$filterStats['sold_amount']) }} ₫</p></div>
+                <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"><p class="text-xs font-medium uppercase text-amber-700">Mua vào · chưa VAT</p><p class="mt-1 text-lg font-bold text-slate-900">{{ number_format((float)$filterStats['purchase_amount']) }} ₫</p></div>
                 <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"><p class="text-xs font-medium uppercase text-gray-500">VAT trong bộ lọc</p><p class="mt-1 text-lg font-bold">{{ number_format((float)$filterStats['vat_amount']) }} ₫</p></div>
             </div>
 

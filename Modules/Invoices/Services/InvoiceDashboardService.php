@@ -18,8 +18,9 @@ final class InvoiceDashboardService
 
     public function __construct(private readonly GdtApiService $gdtApi) {}
 
-    public function forUser(mixed $user): InvoiceDashboardData
+    public function forUser(mixed $user, ?int $classificationYear = null): InvoiceDashboardData
     {
+        $classificationYear = max(2000, min(2100, $classificationYear ?? (int) now()->format('Y')));
         $capabilities = [
             'list' => $this->hasPermission($user, 'invoices-list'),
             'create' => $this->hasPermission($user, 'invoices-create'),
@@ -40,8 +41,8 @@ final class InvoiceDashboardService
             ? $this->invoiceMetrics($recentInvoices)
             : $this->emptyInvoiceMetrics(false);
         $classificationMetrics = $availability['invoices'] && $availability['invoice_source_records']
-            ? $this->classificationMetrics($availability['invoice_expense_categories'])
-            : $this->emptyClassificationMetrics(false);
+            ? $this->classificationMetrics($availability['invoice_expense_categories'], $classificationYear)
+            : $this->emptyClassificationMetrics(false, $classificationYear);
         $pdfMetrics = $this->pdfMetrics(
             $capabilities['download'],
             $availability['invoice_files'] && $invoiceMetrics['available'],
@@ -110,8 +111,11 @@ final class InvoiceDashboardService
     /**
      * @return array<string, mixed>
      */
-    private function classificationMetrics(bool $expenseCategoriesAvailable): array
+    private function classificationMetrics(bool $expenseCategoriesAvailable, int $year): array
     {
+        $periodStart = CarbonImmutable::create($year, 1, 1)->startOfYear()->toDateString();
+        $periodEnd = CarbonImmutable::create($year, 12, 31)->endOfYear()->toDateString();
+
         try {
             $summary = DB::table('invoices')
                 ->join('invoice_source_records', function ($join): void {
@@ -119,6 +123,7 @@ final class InvoiceDashboardService
                         ->where('invoice_source_records.provider', '=', 'gdt');
                 })
                 ->where('invoices.invoice_type', 'purchase')
+                ->whereBetween('invoices.issued_date', [$periodStart, $periodEnd])
                 ->selectRaw('COUNT(*) as total_count')
                 ->selectRaw('COALESCE(SUM(invoices.amount_before_vat), 0) as total_value')
                 ->selectRaw("SUM(CASE WHEN invoice_source_records.business_classification = 'GOODS' THEN 1 ELSE 0 END) as goods_count")
@@ -140,9 +145,10 @@ final class InvoiceDashboardService
                             ->where('invoice_source_records.provider', '=', 'gdt')
                             ->where('invoice_source_records.business_classification', '=', 'SERVICE_EXPENSE');
                     })
-                    ->leftJoin('invoices', function ($join): void {
+                    ->leftJoin('invoices', function ($join) use ($periodStart, $periodEnd): void {
                         $join->on('invoices.id', '=', 'invoice_source_records.invoice_id')
-                            ->where('invoices.invoice_type', '=', 'purchase');
+                            ->where('invoices.invoice_type', '=', 'purchase')
+                            ->whereBetween('invoices.issued_date', [$periodStart, $periodEnd]);
                     })
                     ->where('invoice_expense_categories.is_active', true)
                     ->groupBy('invoice_expense_categories.id', 'invoice_expense_categories.code', 'invoice_expense_categories.name', 'invoice_expense_categories.sort_order')
@@ -166,6 +172,9 @@ final class InvoiceDashboardService
             return [
                 'available' => true,
                 'basis' => 'amount_before_vat',
+                'year' => $year,
+                'period_start' => $periodStart,
+                'period_end' => $periodEnd,
                 'total_count' => (int) ($summary?->total_count ?? 0),
                 'total_value' => (float) ($summary?->total_value ?? 0),
                 'goods_count' => (int) ($summary?->goods_count ?? 0),
@@ -182,16 +191,19 @@ final class InvoiceDashboardService
         } catch (Throwable $exception) {
             $this->logUnavailable('classification_metrics', $exception);
 
-            return $this->emptyClassificationMetrics(false);
+            return $this->emptyClassificationMetrics(false, $year);
         }
     }
 
     /** @return array<string, mixed> */
-    private function emptyClassificationMetrics(bool $available): array
+    private function emptyClassificationMetrics(bool $available, ?int $year = null): array
     {
         return [
             'available' => $available,
             'basis' => 'amount_before_vat',
+            'year' => $year ?? (int) now()->format('Y'),
+            'period_start' => CarbonImmutable::create($year ?? (int) now()->format('Y'), 1, 1)->startOfYear()->toDateString(),
+            'period_end' => CarbonImmutable::create($year ?? (int) now()->format('Y'), 12, 31)->endOfYear()->toDateString(),
             'total_count' => 0,
             'total_value' => 0.0,
             'goods_count' => 0,

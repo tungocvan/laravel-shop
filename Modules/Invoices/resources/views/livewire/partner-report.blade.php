@@ -20,13 +20,13 @@
                 </div>
                 <div class="p-6">
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4"><p class="text-xs font-semibold uppercase text-sky-700">Bán ra · đã VAT</p><p class="mt-2 text-xl font-bold text-sky-900">{{ number_format($partnerDetail['sold_total']) }} ₫</p><p class="mt-1 text-xs text-sky-700">{{ number_format($partnerDetail['sold_count']) }} hóa đơn bán ra</p></div>
-                        <div class="rounded-2xl border border-amber-100 bg-amber-50/70 p-4"><p class="text-xs font-semibold uppercase text-amber-700">Mua vào · đã VAT</p><p class="mt-2 text-xl font-bold text-amber-900">{{ number_format($partnerDetail['purchase_total']) }} ₫</p><p class="mt-1 text-xs text-amber-700">{{ number_format($partnerDetail['purchase_count']) }} hóa đơn mua vào</p></div>
+                        <div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4"><p class="text-xs font-semibold uppercase text-sky-700">Bán ra · chưa VAT</p><p class="mt-2 text-xl font-bold text-sky-900">{{ number_format($partnerDetail['sold_total']) }} ₫</p><p class="mt-1 text-xs text-sky-700">{{ number_format($partnerDetail['sold_count']) }} hóa đơn bán ra</p></div>
+                        <div class="rounded-2xl border border-amber-100 bg-amber-50/70 p-4"><p class="text-xs font-semibold uppercase text-amber-700">Mua vào · chưa VAT</p><p class="mt-2 text-xl font-bold text-amber-900">{{ number_format($partnerDetail['purchase_total']) }} ₫</p><p class="mt-1 text-xs text-amber-700">{{ number_format($partnerDetail['purchase_count']) }} hóa đơn mua vào</p></div>
                         <div class="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4"><p class="text-xs font-semibold uppercase text-indigo-700">VAT đầu ra</p><p class="mt-2 text-xl font-bold text-indigo-900">{{ number_format($partnerDetail['sold_vat']) }} ₫</p></div>
                         <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4"><p class="text-xs font-semibold uppercase text-emerald-700">VAT đầu vào</p><p class="mt-2 text-xl font-bold text-emerald-900">{{ number_format($partnerDetail['purchase_vat']) }} ₫</p></div>
                     </div>
                     <div class="mt-5 grid gap-4 sm:grid-cols-2">
-                        <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5"><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Chênh lệch tổng tiền</p><p class="mt-2 text-2xl font-bold {{ $partnerDetail['total_difference'] >= 0 ? 'text-emerald-700' : 'text-red-600' }}">{{ $partnerDetail['total_difference'] >= 0 ? '+' : '' }}{{ number_format($partnerDetail['total_difference']) }} ₫</p><p class="mt-2 text-xs text-gray-500">Bán ra đã VAT − Mua vào đã VAT. Chỉ là số đối chiếu theo đối tác, không phải lợi nhuận.</p></div>
+                        <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5"><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Chênh lệch chưa VAT</p><p class="mt-2 text-2xl font-bold {{ $partnerDetail['total_difference'] >= 0 ? 'text-emerald-700' : 'text-red-600' }}">{{ $partnerDetail['total_difference'] >= 0 ? '+' : '' }}{{ number_format($partnerDetail['total_difference']) }} ₫</p><p class="mt-2 text-xs text-gray-500">Bán ra chưa VAT − Mua vào chưa VAT. Chỉ là số đối chiếu theo đối tác, không phải lợi nhuận.</p></div>
                         <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5"><p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Chênh lệch VAT</p><p class="mt-2 text-2xl font-bold {{ $partnerDetail['vat_difference'] >= 0 ? 'text-indigo-700' : 'text-amber-700' }}">{{ $partnerDetail['vat_difference'] >= 0 ? '+' : '' }}{{ number_format($partnerDetail['vat_difference']) }} ₫</p><p class="mt-2 text-xs text-gray-500">VAT đầu ra − VAT đầu vào của riêng đối tác trong kỳ đang lọc.</p></div>
                     </div>
                     <div class="mt-6 flex flex-wrap justify-end gap-2">
@@ -106,8 +106,8 @@
 
     <div class="grid gap-4 md:grid-cols-3">
         <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><div class="text-xs font-semibold uppercase text-gray-500">Số hóa đơn</div><div class="mt-2 text-2xl font-bold">{{ number_format($summary['invoice_count']) }}</div></div>
-        <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-5"><div class="text-xs font-semibold uppercase text-sky-700">Tổng bán ra · đã VAT</div><div class="mt-2 whitespace-nowrap text-xl font-bold text-sky-900">{{ number_format($summary['sold_total']) }} ₫</div></div>
-        <div class="rounded-2xl border border-amber-100 bg-amber-50/60 p-5"><div class="text-xs font-semibold uppercase text-amber-700">Tổng mua vào · đã VAT</div><div class="mt-2 whitespace-nowrap text-xl font-bold text-amber-900">{{ number_format($summary['purchase_total']) }} ₫</div></div>
+        <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-5"><div class="text-xs font-semibold uppercase text-sky-700">Tổng bán ra · chưa VAT</div><div class="mt-2 whitespace-nowrap text-xl font-bold text-sky-900">{{ number_format($summary['sold_total']) }} ₫</div></div>
+        <div class="rounded-2xl border border-amber-100 bg-amber-50/60 p-5"><div class="text-xs font-semibold uppercase text-amber-700">Tổng mua vào · chưa VAT</div><div class="mt-2 whitespace-nowrap text-xl font-bold text-amber-900">{{ number_format($summary['purchase_total']) }} ₫</div></div>
     </div>
 
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -131,8 +131,8 @@
                         <th class="min-w-[360px] px-4 py-3">Đối tác</th>
                         <th class="min-w-[150px] px-4 py-3 whitespace-nowrap">MST</th>
                         <th class="min-w-[90px] px-4 py-3 text-right whitespace-nowrap">Số HĐ</th>
-                        <th class="min-w-[190px] px-4 py-3 text-right whitespace-nowrap">Bán ra <span class="block normal-case text-[10px] font-medium text-gray-400">Đã có VAT</span></th>
-                        <th class="min-w-[190px] px-4 py-3 text-right whitespace-nowrap">Mua vào <span class="block normal-case text-[10px] font-medium text-gray-400">Đã có VAT</span></th>
+                        <th class="min-w-[190px] px-4 py-3 text-right whitespace-nowrap">Bán ra <span class="block normal-case text-[10px] font-medium text-gray-400">Chưa VAT</span></th>
+                        <th class="min-w-[190px] px-4 py-3 text-right whitespace-nowrap">Mua vào <span class="block normal-case text-[10px] font-medium text-gray-400">Chưa VAT</span></th>
                         <th class="min-w-[180px] px-4 py-3 text-right whitespace-nowrap">Thao tác</th>
                     </tr>
                 </thead>

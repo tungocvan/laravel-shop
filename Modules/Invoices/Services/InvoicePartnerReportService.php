@@ -72,12 +72,12 @@ class InvoicePartnerReportService
             ->selectRaw('COUNT(*) as invoice_count')
             ->selectRaw("SUM(CASE WHEN invoice_type = 'sold' THEN 1 ELSE 0 END) as sold_count")
             ->selectRaw("SUM(CASE WHEN invoice_type = 'purchase' THEN 1 ELSE 0 END) as purchase_count")
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_total")
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN amount_before_vat ELSE 0 END), 0) as sold_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN amount_before_vat ELSE 0 END), 0) as purchase_total")
             ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN vat_amount ELSE 0 END), 0) as sold_vat")
             ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN vat_amount ELSE 0 END), 0) as purchase_vat")
             ->selectRaw('COALESCE(SUM(vat_amount), 0) as vat_total')
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE -total_amount END), 0) as net_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN amount_before_vat ELSE -amount_before_vat END), 0) as net_total")
             ->groupBy('name', 'tax_code');
     }
 
@@ -87,8 +87,8 @@ class InvoicePartnerReportService
             ->selectRaw('COUNT(*) as invoice_count')
             ->selectRaw("SUM(CASE WHEN invoice_type = 'sold' THEN 1 ELSE 0 END) as sold_count")
             ->selectRaw("SUM(CASE WHEN invoice_type = 'purchase' THEN 1 ELSE 0 END) as purchase_count")
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN total_amount ELSE 0 END), 0) as sold_total")
-            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN total_amount ELSE 0 END), 0) as purchase_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN amount_before_vat ELSE 0 END), 0) as sold_total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN amount_before_vat ELSE 0 END), 0) as purchase_total")
             ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'sold' THEN vat_amount ELSE 0 END), 0) as sold_vat")
             ->selectRaw("COALESCE(SUM(CASE WHEN invoice_type = 'purchase' THEN vat_amount ELSE 0 END), 0) as purchase_vat");
     }

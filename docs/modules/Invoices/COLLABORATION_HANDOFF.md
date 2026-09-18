@@ -201,3 +201,16 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Duplicate prevention therefore remains owned by GdtInvoiceService ingestion for both purchase/sold and all years; source-data cannot independently create a second GDT source for the same invoice.
 - Added contract coverage to lock this boundary.
 - Focused duplicate/source-data contract: 4 passed, 29 assertions.
+
+
+## 2026-09-18 — Net revenue reporting + dashboard period semantics
+
+- Branch: `refactor/invoices-net-revenue-reporting`.
+- Financial reporting semantics are now explicit: sales revenue and purchase value use `amount_before_vat`; VAT remains a separate metric. Invoice-level payable/total amount remains `total_amount` where the actual document total is required.
+- Applied consistently to `/admin/invoices/hoadon-list`, `/apps/invoices`, `/admin/invoices/reports/partners`, and `/apps/invoices/partners`. Partner sold/purchase/net-difference reporting is before VAT.
+- ClientPortal `/apps/invoices/list` now displays and summarizes pre-VAT values. Its high/low amount sorting is mapped to `amount_before_vat` without changing the Admin invoice-list sort contract.
+- Admin `/admin/invoices/dashboard` purchase-classification analysis is year-scoped by `issued_date`, defaults to the current year, exposes an explicit year selector, shows the exact 01/01–31/12 period, and preserves that year in source-data drill-down links.
+- Years with no classified purchase data render an explicit empty state instead of a grid of zero-value KPIs. Expense category rows remain structurally available for years that do have data.
+- Acceptance evidence: focused tests PASS; targeted Pint PASS; Admin dashboard 2026 data UI PASS; 2025 empty-state UI PASS; ClientPortal invoice-list pre-VAT UI PASS. Earlier admin/client revenue and partner-report surfaces were also UI PASS in this batch.
+- Focused regression files: `InvoiceDashboardClassificationContractTest.php`, `InvoiceNetRevenueReportingContractTest.php`, and `ClientPortal/InvoicesApplicationContractTest.php`.
+- Closeout: scope is ready for PR/merge after confirming the branch is clean and up to date. Do not fold unrelated Inventory baseline drift into this refactor.
