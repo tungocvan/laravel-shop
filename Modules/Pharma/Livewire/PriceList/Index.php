@@ -30,9 +30,20 @@ class Index extends Component
         $this->authorizePharmaView();
     }
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedType(): void { $this->resetPage(); }
-    public function updatedStatus(): void { $this->resetPage(); }
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedType(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatus(): void
+    {
+        $this->resetPage();
+    }
 
     public function confirm(int $id, string $action): void
     {
