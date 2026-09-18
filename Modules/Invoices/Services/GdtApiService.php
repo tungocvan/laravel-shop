@@ -158,11 +158,11 @@ class GdtApiService
             $res = $this->authenticationClient($cookies, $transfer)
                 ->withHeader('request-id', $requestId)
                 ->post($url, [
-                'username' => $username,
-                'password' => $password,
-                'ckey' => $ckey,
-                'cvalue' => $cvalue,
-            ]);
+                    'username' => $username,
+                    'password' => $password,
+                    'ckey' => $ckey,
+                    'cvalue' => $cvalue,
+                ]);
         } catch (ConnectionException $exception) {
             Log::warning('Không thể kết nối API GDT để đăng nhập.', [
                 'url' => $url,

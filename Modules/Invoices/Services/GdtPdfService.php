@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Invoices\Models\InvoiceInventorySnapshot;
-use Modules\Invoices\Models\InvoiceSourceRecord;
 use Modules\Invoices\Models\Invoices;
+use Modules\Invoices\Models\InvoiceSourceRecord;
 use RuntimeException;
 use Throwable;
 
@@ -148,6 +148,7 @@ class GdtPdfService
                 } catch (ConnectionException $exception) {
                     if ($attempt < $attempts) {
                         sleep(max(1, (int) ($backoffs[$attempt - 1] ?? 5)));
+
                         continue;
                     }
 
@@ -178,6 +179,7 @@ class GdtPdfService
                     }
 
                     sleep($delay);
+
                     continue;
                 }
 

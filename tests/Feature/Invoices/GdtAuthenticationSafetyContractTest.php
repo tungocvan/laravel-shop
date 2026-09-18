@@ -61,6 +61,7 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringContainsString("'token_ttl_seconds' => \$time", $service);
         $this->assertStringNotContainsString("'token_cached' => true", $service);
     }
+
     #[Test]
     public function authenticate_sends_a_fresh_request_id_without_logging_its_value(): void
     {
@@ -77,18 +78,18 @@ class GdtAuthenticationSafetyContractTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/Invoices/Services/GdtInvoiceService.php'));
 
-        $this->assertStringContainsString("GDT invoice query rejected.", $service);
+        $this->assertStringContainsString('GDT invoice query rejected.', $service);
         $this->assertStringContainsString("'authorization' => 'bearer-token-present'", $service);
         $this->assertStringContainsString("'request_id' => 'generated-per-query-request'", $service);
         $this->assertStringContainsString('if($res->status()===401)Cache::forget', $service);
-        $this->assertStringContainsString("GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403)", $service);
+        $this->assertStringContainsString('GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403)', $service);
         $this->assertStringContainsString("'request-id' => (string) Str::uuid()", $service);
-        $this->assertStringContainsString("'Origin' => " . '$origin', $service);
-        $this->assertStringContainsString("'Referer' => " . '$origin' . ".'/'", $service);
+        $this->assertStringContainsString("'Origin' => ".'$origin', $service);
+        $this->assertStringContainsString("'Referer' => ".'$origin'.".'/'", $service);
         $this->assertStringContainsString("'Action' => ''", $service);
         $this->assertStringContainsString("'End-Point' => '/'", $service);
-        $this->assertStringNotContainsString("'token' => " . '$token', $service);
-        $this->assertStringNotContainsString("'authorization' => " . '$token', $service);
+        $this->assertStringNotContainsString("'token' => ".'$token', $service);
+        $this->assertStringNotContainsString("'authorization' => ".'$token', $service);
     }
 
     #[Test]
@@ -96,17 +97,17 @@ class GdtAuthenticationSafetyContractTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/Invoices/Services/GdtPdfService.php'));
 
-        $this->assertStringContainsString("GDT invoice detail rejected.", $service);
+        $this->assertStringContainsString('GDT invoice detail rejected.', $service);
         $this->assertStringContainsString("'request_id' => 'generated-per-detail-request'", $service);
         $this->assertStringContainsString("'request-id' => (string) Str::uuid()", $service);
-        $this->assertStringContainsString("'Origin' => " . '$origin', $service);
-        $this->assertStringContainsString("'Referer' => " . '$origin' . ".'/'", $service);
+        $this->assertStringContainsString("'Origin' => ".'$origin', $service);
+        $this->assertStringContainsString("'Referer' => ".'$origin'.".'/'", $service);
         $this->assertStringContainsString("'Action' => ''", $service);
         $this->assertStringContainsString("'End-Point' => '/'", $service);
-        $this->assertStringContainsString("if (" . '$response' . "->status() === 401)", $service);
-        $this->assertStringContainsString("GDT từ chối yêu cầu lấy chi tiết hóa đơn (HTTP 403)", $service);
-        $this->assertStringNotContainsString("'token' => " . '$token', $service);
-        $this->assertStringNotContainsString("'authorization' => " . '$token', $service);
+        $this->assertStringContainsString('if ('.'$response'.'->status() === 401)', $service);
+        $this->assertStringContainsString('GDT từ chối yêu cầu lấy chi tiết hóa đơn (HTTP 403)', $service);
+        $this->assertStringNotContainsString("'token' => ".'$token', $service);
+        $this->assertStringNotContainsString("'authorization' => ".'$token', $service);
     }
 
     #[Test]
@@ -127,7 +128,6 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringContainsString('file_put_contents($captchaPath, $image)', $command);
     }
 
-
     #[Test]
     public function gdt_sync_log_distinguishes_api_count_from_requested_issued_date_coverage(): void
     {
@@ -139,10 +139,9 @@ class GdtAuthenticationSafetyContractTest extends TestCase
         $this->assertStringContainsString("Carbon::createFromFormat('d/m/Y'", $service);
     }
 
-
     private function diagnosticLoggingSection(string $service): string
     {
-        $start = strpos($service, "\$diagnostics = [");
+        $start = strpos($service, '$diagnostics = [');
         $end = strpos($service, 'private function responseMessage', $start ?: 0);
 
         $this->assertNotFalse($start);
