@@ -18,8 +18,9 @@ final class InvoiceDashboardService
 
     public function __construct(private readonly GdtApiService $gdtApi) {}
 
-    public function forUser(mixed $user): InvoiceDashboardData
+    public function forUser(mixed $user, ?int $classificationYear = null): InvoiceDashboardData
     {
+        $classificationYear = max(2000, min(2100, $classificationYear ?? (int) now()->format('Y')));
         $capabilities = [
             'list' => $this->hasPermission($user, 'invoices-list'),
             'create' => $this->hasPermission($user, 'invoices-create'),
@@ -40,7 +41,7 @@ final class InvoiceDashboardService
             ? $this->invoiceMetrics($recentInvoices)
             : $this->emptyInvoiceMetrics(false);
         $classificationMetrics = $availability['invoices'] && $availability['invoice_source_records']
-            ? $this->classificationMetrics($availability['invoice_expense_categories'])
+            ? $this->classificationMetrics($availability['invoice_expense_categories'], $classificationYear)
             : $this->emptyClassificationMetrics(false);
         $pdfMetrics = $this->pdfMetrics(
             $capabilities['download'],
@@ -110,8 +111,11 @@ final class InvoiceDashboardService
     /**
      * @return array<string, mixed>
      */
-    private function classificationMetrics(bool $expenseCategoriesAvailable): array
+    private function classificationMetrics(bool $expenseCategoriesAvailable, int $year): array
     {
+        $periodStart = CarbonImmutable::create($year, 1, 1)->startOfYear()->toDateString();
+        $periodEnd = CarbonImmutable::create($year, 12, 31)->endOfYear()->toDateString();
+
         try {
             $summary = DB::table('invoices')
                 ->join('invoice_source_records', function ($join): void {
@@ -119,6 +123,7 @@ final class InvoiceDashboardService
                         ->where('invoice_source_records.provider', '=', 'gdt');
                 })
                 ->where('invoices.invoice_type', 'purchase')
+                ->whereBetween('invoices.issued_date', [$periodStart, $periodEnd])
                 ->selectRaw('COUNT(*) as total_count')
                 ->selectRaw('COALESCE(SUM(invoices.amount_before_vat), 0) as total_value')
                 ->selectRaw("SUM(CASE WHEN invoice_source_records.business_classification = 'GOODS' THEN 1 ELSE 0 END) as goods_count")
@@ -145,6 +150,7 @@ final class InvoiceDashboardService
                             ->where('invoices.invoice_type', '=', 'purchase');
                     })
                     ->where('invoice_expense_categories.is_active', true)
+                    ->whereBetween('invoices.issued_date', [$periodStart, $periodEnd])
                     ->groupBy('invoice_expense_categories.id', 'invoice_expense_categories.code', 'invoice_expense_categories.name', 'invoice_expense_categories.sort_order')
                     ->orderBy('invoice_expense_categories.sort_order')
                     ->orderBy('invoice_expense_categories.name')
@@ -166,6 +172,9 @@ final class InvoiceDashboardService
             return [
                 'available' => true,
                 'basis' => 'amount_before_vat',
+                'year' => $year,
+                'period_start' => $periodStart,
+                'period_end' => $periodEnd,
                 'total_count' => (int) ($summary?->total_count ?? 0),
                 'total_value' => (float) ($summary?->total_value ?? 0),
                 'goods_count' => (int) ($summary?->goods_count ?? 0),
@@ -192,6 +201,9 @@ final class InvoiceDashboardService
         return [
             'available' => $available,
             'basis' => 'amount_before_vat',
+            'year' => (int) now()->format('Y'),
+            'period_start' => now()->startOfYear()->toDateString(),
+            'period_end' => now()->endOfYear()->toDateString(),
             'total_count' => 0,
             'total_value' => 0.0,
             'goods_count' => 0,
