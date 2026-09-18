@@ -129,6 +129,28 @@ When a 401/403 occurs, always inspect the **first** rejection in the job. Later 
 `queue:work` is long-lived. Pulling new PHP source does not guarantee an already-running worker has loaded it. After changing GDT request/diagnostic code, reload the worker before runtime verification. Then perform a fresh manual-captcha login and one controlled sync. Do not use repeated retries as a diagnostic technique.
 
 
+
+## Diagnostic note — GDT API count can differ from canonical date coverage
+
+Do not assume the count returned by the GDT list endpoint must equal `InvoiceSourceCoverageService` coverage.
+
+Verified case on 18/09/2026 for a requested sold-invoice range of 10/09/2026 through 17/09/2026:
+
+```text
+GDT API list returned: 20 invoices
+canonical local coverage in requested issued_date range: 14/14
+out-of-range invoices returned by GDT: 6
+```
+
+The six extra records were invoice numbers 463 through 468. Their persisted `issued_date` was 09/09/2026, so they were correctly excluded from local coverage for 10/09–17/09. Invoice numbers 469 through 482 were inside the requested local `issued_date` range.
+
+This was **not** a timezone/database-date defect: direct raw database inspection confirmed the stored dates. It was also not missing canonical data. The upstream GDT response simply contained records whose persisted invoice issue date fell outside the requested local date boundary.
+
+Recovery rule: when API count and RAW canonical coverage differ, first compare the returned records' normalized `issued_date` against the requested range. Do not broaden `InvoiceSourceCoverageService`, delete records, re-fetch detail, or diagnose missing data solely from the count mismatch.
+
+The sync log therefore reports two separate concepts: total records returned by the GDT API, and how many of those records have normalized issue dates inside/outside the operator's requested range. RAW canonical coverage continues to use the requested local `issued_date` range.
+
+
 ## External reference history
 
 These references are supporting observations, not an official GDT API contract.
