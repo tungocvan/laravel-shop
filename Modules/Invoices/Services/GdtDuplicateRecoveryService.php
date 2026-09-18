@@ -10,7 +10,7 @@ use RuntimeException;
 
 final class GdtDuplicateRecoveryService
 {
-    public function recover(int $year = 2026, string $invoiceType = 'sold', bool $apply = false): array
+    public function recover(?int $year = null, string $invoiceType = 'all', bool $apply = false): array
     {
         $pairs = $this->duplicatePairs($year, $invoiceType);
         $stats = [
@@ -42,14 +42,12 @@ final class GdtDuplicateRecoveryService
         return $stats;
     }
 
-    private function duplicatePairs(int $year, string $invoiceType): Collection
+    private function duplicatePairs(?int $year, string $invoiceType): Collection
     {
-        return DB::table('invoices as i')
+        $query = DB::table('invoices as i')
             ->join('invoice_source_records as s', function ($join): void {
                 $join->on('s.invoice_id', '=', 'i.id')->where('s.provider', '=', 'gdt');
             })
-            ->whereYear('i.issued_date', $year)
-            ->where('i.invoice_type', $invoiceType)
             ->whereNotNull('s.header_hash')
             ->whereNotNull('s.detail_hash')
             ->select(
@@ -75,8 +73,16 @@ final class GdtDuplicateRecoveryService
                 's.header_hash',
                 's.detail_hash',
             )
-            ->havingRaw('COUNT(*) = 2')
-            ->get();
+            ->havingRaw('COUNT(*) = 2');
+
+        if ($year !== null) {
+            $query->whereYear('i.issued_date', $year);
+        }
+        if ($invoiceType !== 'all') {
+            $query->where('i.invoice_type', $invoiceType);
+        }
+
+        return $query->get();
     }
 
     private function recoverPair(object $pair, bool $apply): array
