@@ -64,7 +64,7 @@ class ModuleSchemaDoctorPanel extends Component
         if ($this->module !== '' && $this->module !== 'Unknown') {
             $blocked = array_values(array_filter(
                 $snapshots->listLocal($this->module, 30),
-                static fn (array $snapshot): bool => ($snapshot['compatibility'] ?? 'BLOCKED') !== 'COMPATIBLE',
+                static fn (array $snapshot): bool => ($snapshot['compatibility'] ?? 'BLOCKED') === 'BLOCKED',
             ));
         }
 
