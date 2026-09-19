@@ -233,9 +233,26 @@ class ModuleSnapshotDataService
             return;
         }
 
+        $this->assertRelatedRestoreIdentityConflicts($zip, $name, $related);
+
         $ownerIds = DB::table($ownerTable)->pluck($ownerKey)->all();
-        if ($ownerIds !== []) {
-            DB::table($rootTable)->where($whereColumn, $whereValue)->whereIn($ownerForeignKey, $ownerIds)->delete();
+        $existingRootIds = $ownerIds === [] ? [] : DB::table($rootTable)
+            ->where($whereColumn, $whereValue)
+            ->whereIn($ownerForeignKey, $ownerIds)
+            ->pluck((string) ($root['key'] ?? 'id'))
+            ->all();
+
+        foreach ((array) ($related['children'] ?? []) as $child) {
+            $child = (array) $child;
+            $table = (string) ($child['table'] ?? '');
+            $foreignKey = (string) ($child['foreign_key'] ?? '');
+            if ($existingRootIds !== [] && $this->tableExists($table)) {
+                DB::table($table)->whereIn($foreignKey, $existingRootIds)->delete();
+            }
+        }
+
+        if ($existingRootIds !== []) {
+            DB::table($rootTable)->whereIn((string) ($root['key'] ?? 'id'), $existingRootIds)->delete();
         }
 
         foreach ((array) ($related['references'] ?? []) as $reference) {
@@ -253,6 +270,82 @@ class ModuleSnapshotDataService
                 $this->restoreEntry($zip, 'data/related/'.$name.'/'.$table.'.jsonl', $table, true);
             }
         }
+    }
+
+    private function assertRelatedRestoreIdentityConflicts(ZipArchive $zip, string $name, array $related): void
+    {
+        $root = (array) ($related['root'] ?? []);
+        $rootTable = (string) ($root['table'] ?? '');
+        $whereColumn = (string) ($root['where_column'] ?? '');
+        $ownerForeignKey = (string) ($root['owner_foreign_key'] ?? 'owner_id');
+
+        foreach ($this->readEntryRows($zip, 'data/related/'.$name.'/'.$rootTable.'.jsonl') as $row) {
+            if (! isset($row['id'])) {
+                continue;
+            }
+
+            $existing = DB::table($rootTable)->where('id', $row['id'])->first();
+            if ($existing !== null && (
+                (string) ($existing->{$whereColumn} ?? '') !== (string) ($row[$whereColumn] ?? '')
+                || (string) ($existing->{$ownerForeignKey} ?? '') !== (string) ($row[$ownerForeignKey] ?? '')
+            )) {
+                throw new RuntimeException('Module Snapshot related-data ['.$name.'] xung đột ID '.$rootTable.'#'.$row['id'].' với owner khác.');
+            }
+        }
+
+        foreach ((array) ($related['references'] ?? []) as $reference) {
+            $reference = (array) $reference;
+            $table = (string) ($reference['target_table'] ?? '');
+            if ($table !== 'dossier_templates') {
+                continue;
+            }
+
+            foreach ($this->readEntryRows($zip, 'data/related/'.$name.'/'.$table.'.jsonl') as $row) {
+                if (! isset($row['id'])) {
+                    continue;
+                }
+
+                $existing = DB::table($table)->where('id', $row['id'])->first();
+                if ($existing !== null && isset($row['code']) && (string) ($existing->code ?? '') !== (string) $row['code']) {
+                    throw new RuntimeException('Module Snapshot related-data ['.$name.'] xung đột ID '.$table.'#'.$row['id'].' với template code khác.');
+                }
+            }
+        }
+
+        foreach ((array) ($related['children'] ?? []) as $child) {
+            $child = (array) $child;
+            $table = (string) ($child['table'] ?? '');
+            $foreignKey = (string) ($child['foreign_key'] ?? '');
+            foreach ($this->readEntryRows($zip, 'data/related/'.$name.'/'.$table.'.jsonl') as $row) {
+                if (! isset($row['id'])) {
+                    continue;
+                }
+
+                $existing = DB::table($table)->where('id', $row['id'])->first();
+                if ($existing !== null && (string) ($existing->{$foreignKey} ?? '') !== (string) ($row[$foreignKey] ?? '')) {
+                    throw new RuntimeException('Module Snapshot related-data ['.$name.'] xung đột ID '.$table.'#'.$row['id'].' với dossier khác.');
+                }
+            }
+        }
+    }
+
+    private function readEntryRows(ZipArchive $zip, string $entry): array
+    {
+        $raw = $zip->getFromName($entry);
+        if ($raw === false || trim($raw) === '') {
+            return [];
+        }
+
+        $rows = [];
+        foreach (preg_split('/\\R/', trim($raw)) ?: [] as $line) {
+            $row = json_decode($line, true);
+            if (! is_array($row)) {
+                throw new RuntimeException('Dữ liệu JSONL không hợp lệ: '.$entry);
+            }
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 
     private function restoreEntry(ZipArchive $zip, string $entry, string $table, bool $upsert = false): void
