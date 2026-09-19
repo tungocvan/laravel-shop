@@ -17,7 +17,7 @@ class InvoicePartnerSyncDashboardContractTest extends TestCase
         $this->assertStringContainsString('Đồng bộ đối tác', $dashboard);
         $this->assertStringContainsString('Quét & chuẩn bị đồng bộ', $dashboard);
         $this->assertStringContainsString("route('admin.partners.invoice-candidates')", $dashboard);
-        $this->assertStringContainsString("PartnerCandidateIntakeService", $service);
+        $this->assertStringContainsString('PartnerCandidateIntakeService', $service);
         $this->assertStringContainsString("->intake('invoices'", $service);
         $this->assertStringNotContainsString('Partner::updateOrCreate', $service);
         $this->assertStringNotContainsString('Partner::query()->create', $service);
