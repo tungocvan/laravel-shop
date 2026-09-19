@@ -60,6 +60,34 @@
             </div>
         </section>
 
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="font-semibold text-slate-950">Nơi lưu tài liệu</h2>
+                    <p class="mt-1 text-sm text-slate-600">Có thể lưu Local, Google Drive hoặc đồng thời cả hai. Google Drive dùng cấu trúc <span class="font-mono">Laravel-Backup/Pharma/HSSP/...</span>.</p>
+                </div>
+                @if($googleDriveConnected)
+                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Google Drive đã kết nối</span>
+                @else
+                    <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Google Drive chưa kết nối</span>
+                @endif
+            </div>
+            @php
+                $selectedTargets = old('storage_targets', $googleDriveConnected ? ['google_drive'] : ['local']);
+            @endphp
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
+                    <input type="checkbox" name="storage_targets[]" value="local" @checked(in_array('local', $selectedTargets, true)) class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span><span class="block text-sm font-semibold text-slate-900">Local</span><span class="mt-1 block text-xs text-slate-500">storage/app/Pharma/HSSP/...</span></span>
+                </label>
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 p-4 {{ $googleDriveConnected ? 'cursor-pointer hover:bg-slate-50' : 'cursor-not-allowed opacity-60' }}">
+                    <input type="checkbox" name="storage_targets[]" value="google_drive" @checked($googleDriveConnected && in_array('google_drive', $selectedTargets, true)) @disabled(!$googleDriveConnected) class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span><span class="block text-sm font-semibold text-slate-900">Google Drive</span><span class="mt-1 block text-xs text-slate-500">Laravel-Backup/Pharma/HSSP/...</span></span>
+                </label>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Nếu Google Drive đã kết nối, lựa chọn mặc định là Google Drive. Bạn có thể tích thêm Local để giữ đồng thời hai bản.</p>
+        </section>
+
         <x-dossier.editor
             :template="$dossierTemplate"
             :dossier="$dossier"
