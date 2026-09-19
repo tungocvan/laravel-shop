@@ -19,7 +19,7 @@ return [
                     'key' => 'id',
                     'where_column' => 'owner_type',
                     'where_value' => MedicineProfile::class,
-                    'owner_table' => 'medicine_profiles',
+                    'owner_table' => 'pharma_medicine_profiles',
                     'owner_key' => 'id',
                     'owner_foreign_key' => 'owner_id',
                 ],
