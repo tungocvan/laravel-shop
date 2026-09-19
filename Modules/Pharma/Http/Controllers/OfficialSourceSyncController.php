@@ -9,11 +9,13 @@ use Illuminate\Http\Response;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Pharma\Exports\OfficialSourceFacilitiesExport;
+use Modules\Pharma\Imports\OfficialSourceFacilitiesImport;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Modules\Pharma\Jobs\PersistOfficialSourceSnapshotJob;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\OfficialSourceSyncBatch;
 use Modules\Pharma\Services\OfficialFacilityImport\BhxhProvinceCatalog;
+use Modules\Pharma\Services\OfficialFacilityImport\OfficialFacilityNormalizer;
 
 class OfficialSourceSyncController extends Controller
 {
@@ -96,28 +98,51 @@ class OfficialSourceSyncController extends Controller
     public function export(Request $request, BhxhProvinceCatalog $provinceCatalog): BinaryFileResponse|Response
     {
         $validated = $request->validate([
-            'selected_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'selected_ids' => ['nullable', 'array', 'max:500'],
             'selected_ids.*' => ['integer', 'distinct'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'business_region' => ['nullable', 'string', 'max:50'],
+            'source' => ['nullable', 'string', 'max:50'],
+            'province' => ['nullable', 'string', 'max:255'],
+            'partition' => ['nullable', 'string', 'max:50'],
+            'status' => ['nullable', 'string', 'max:20'],
         ]);
 
-        $facilities = OfficialSourceFacility::query()
-            ->whereIn('id', $validated['selected_ids'])
-            ->orderBy('province_name')
-            ->orderBy('facility_name')
-            ->get();
+        $selectedIds = array_values(array_filter((array) ($validated['selected_ids'] ?? [])));
+        $query = OfficialSourceFacility::query();
 
-        if ($facilities->isEmpty()) {
-            return response('Không có cơ sở hợp lệ để export.', 422);
+        if ($selectedIds !== []) {
+            $query->whereIn('id', $selectedIds);
+        } else {
+            $this->applyFilters($query, $request, $provinceCatalog);
         }
 
-        $filename = 'pharma-official-facilities-'.now()->format('Ymd-His').'.xlsx';
-        $partitionLabels = $this->partitionLabels($provinceCatalog);
+        $facilities = $query->orderBy('province_name')->orderBy('facility_name')->get();
+        if ($facilities->isEmpty()) {
+            return response('Không có cơ sở phù hợp để export.', 422);
+        }
 
         return Excel::download(
-            new OfficialSourceFacilitiesExport($facilities, $provinceCatalog, $partitionLabels),
-            $filename,
+            new OfficialSourceFacilitiesExport($facilities, $provinceCatalog, $this->partitionLabels($provinceCatalog)),
+            'pharma-official-facilities-'.now()->format('Ymd-His').'.xlsx',
         );
     }
+
+    public function import(Request $request, OfficialFacilityNormalizer $normalizer): JsonResponse
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:20480'],
+        ]);
+
+        $import = new OfficialSourceFacilitiesImport($normalizer);
+        Excel::import($import, $validated['file']);
+
+        return response()->json([
+            'message' => 'Import Kho dữ liệu nguồn Pharma hoàn tất.',
+            ...$import->summary,
+        ]);
+    }
+
 
     public function store(Request $request): JsonResponse
     {
@@ -166,6 +191,35 @@ class OfficialSourceSyncController extends Controller
             'completed_at' => optional($batch->completed_at)->toIso8601String(),
             'error_message' => $batch->error_message,
         ]);
+    }
+
+    private function applyFilters($query, Request $request, BhxhProvinceCatalog $provinceCatalog): void
+    {
+        $search = trim((string) $request->string('search'));
+        $source = trim((string) $request->string('source'));
+        $businessRegion = trim((string) $request->string('business_region'));
+        $province = trim((string) $request->string('province'));
+        $partition = trim((string) $request->string('partition'));
+        $status = trim((string) $request->string('status'));
+        $regionLabel = $provinceCatalog->regions()[$businessRegion] ?? null;
+        $regionProvinceNames = $regionLabel === null ? [] : array_values($provinceCatalog->provincesByRegion()[$regionLabel] ?? []);
+
+        $query
+            ->when($source !== '', fn ($builder) => $builder->where('source', $source))
+            ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
+            ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
+            ->when($partition !== '', fn ($builder) => $builder->where('source_province_code', $partition))
+            ->when(in_array($status, ['active', 'stale'], true), fn ($builder) => $builder->where('is_active', $status === 'active'))
+            ->when($search !== '', function ($builder) use ($search): void {
+                $like = '%'.$search.'%';
+                $builder->where(fn ($nested) => $nested
+                    ->where('external_id', 'like', $like)
+                    ->orWhere('facility_name', 'like', $like)
+                    ->orWhere('province_name', 'like', $like)
+                    ->orWhere('source_province_code', 'like', $like)
+                    ->orWhere('district_name', 'like', $like)
+                    ->orWhere('source_district_code', 'like', $like));
+            });
     }
 
     private function partitionLabels(BhxhProvinceCatalog $provinceCatalog): array
