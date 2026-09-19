@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DossierAttachment extends Model
 {
-    protected $fillable = ['dossier_id', 'item_id', 'kind', 'disk', 'path', 'original_name', 'mime_type', 'size', 'checksum', 'sync_status', 'remote_path', 'uploaded_by'];
+    protected $fillable = ['dossier_id', 'item_id', 'kind', 'disk', 'path', 'original_name', 'mime_type', 'size', 'checksum', 'sync_status', 'remote_path', 'remote_id', 'uploaded_by'];
 
     public function dossier(): BelongsTo
     {
