@@ -176,7 +176,14 @@ class ModuleSnapshotDataService
             $sourceColumn = $this->safeIdentifier((string) ($reference['source_column'] ?? ''));
             $targetTable = $this->safeIdentifier((string) ($reference['target_table'] ?? ''));
             $targetColumn = $this->safeIdentifier((string) ($reference['target_column'] ?? 'id'));
-            $sourceRows = $captured[$sourceTable] ?? collect();
+            $this->assertRelatedTableColumns($name, $sourceTable, [$sourceColumn]);
+            $this->assertRelatedTableColumns($name, $targetTable, [$targetColumn]);
+
+            if (! array_key_exists($sourceTable, $captured)) {
+                throw new RuntimeException('Module Snapshot related-data ['.$name.'] tham chiếu source table chưa được capture: '.$sourceTable);
+            }
+
+            $sourceRows = $captured[$sourceTable];
             $ids = collect($sourceRows)->pluck($sourceColumn)->filter(fn ($value) => $value !== null)->unique()->values()->all();
             $captured[$targetTable] = $ids === [] ? collect() : DB::table($targetTable)->whereIn($targetColumn, $ids)->orderBy($this->stableOrderColumn($targetTable))->get();
         }
@@ -186,6 +193,7 @@ class ModuleSnapshotDataService
             $child = (array) $child;
             $table = $this->safeIdentifier((string) ($child['table'] ?? ''));
             $foreignKey = $this->safeIdentifier((string) ($child['foreign_key'] ?? ''));
+            $this->assertRelatedTableColumns($name, $table, [$foreignKey]);
             $captured[$table] = $rootIds === [] ? collect() : DB::table($table)->whereIn($foreignKey, $rootIds)->orderBy($this->stableOrderColumn($table))->get();
         }
 
