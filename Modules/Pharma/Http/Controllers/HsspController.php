@@ -161,6 +161,12 @@ class HsspController extends Controller
             'items.registration.effective_to' => ['required', 'date'],
             'item_files.*.*' => ['nullable', 'file', 'max:20480'],
             'master_files.*' => ['nullable', 'file', 'max:51200'],
+            'existing_custom_items.*.title' => ['nullable', 'string', 'max:255'],
+            'existing_custom_items.*.effective_to' => ['nullable', 'date'],
+            'existing_custom_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'custom_items.*.title' => ['nullable', 'string', 'max:255'],
+            'custom_items.*.effective_to' => ['nullable', 'date'],
+            'custom_files.*.*' => ['nullable', 'file', 'max:20480'],
         ]);
 
         DB::transaction(function () use ($medicine, $profile, $data, $request): void {
@@ -209,6 +215,36 @@ class HsspController extends Controller
                 $storage->store($dossier, $item, $file, $root);
             }
         }
+        foreach ((array) $request->input('existing_custom_items', []) as $itemId => $custom) {
+            $item = $dossier->items()->whereNull('template_item_id')->find($itemId);
+            if (! $item) {
+                continue;
+            }
+            $item->update([
+                'title' => trim((string) ($custom['title'] ?? $item->title)) ?: $item->title,
+                'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
+            ]);
+            foreach ($request->file('existing_custom_files.'.$itemId, []) as $file) {
+                $storage->store($dossier, $item, $file, $root);
+            }
+        }
+
+        foreach ((array) $request->input('custom_items', []) as $index => $custom) {
+            $title = trim((string) ($custom['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $item = $dossier->items()->create([
+                'code' => 'custom-'.now()->format('YmdHis').'-'.($index + 1),
+                'title' => $title,
+                'sort_order' => 100 + $dossier->items()->whereNull('template_item_id')->count(),
+                'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
+            ]);
+            foreach ($request->file('custom_files.'.$index, []) as $file) {
+                $storage->store($dossier, $item, $file, $root);
+            }
+        }
+
         foreach ($request->file('master_files', []) as $file) {
             $storage->store($dossier, null, $file, $root, 'master');
         }
