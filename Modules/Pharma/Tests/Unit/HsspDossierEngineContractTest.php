@@ -11,14 +11,16 @@ class HsspDossierEngineContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/HsspController.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/hssp/form.blade.php'));
         $template = file_get_contents(base_path('Modules/Pharma/Services/HsspDossierTemplateService.php'));
+        $component = file_get_contents(base_path('resources/views/components/dossier/editor.blade.php'));
         $storage = file_get_contents(base_path('app/Dossiers/Services/DossierStorageService.php'));
 
         $this->assertStringContainsString('DossierManager $dossiers', $controller);
         $this->assertStringContainsString("'items.gmp.effective_to' => ['required', 'date']", $controller);
         $this->assertStringContainsString("'items.registration.effective_to' => ['required', 'date']", $controller);
         $this->assertStringContainsString('enctype="multipart/form-data"', $view);
-        $this->assertStringContainsString('+ Thêm mục hồ sơ', $view);
-        $this->assertStringContainsString('name="master_files[]"', $view);
+        $this->assertStringContainsString('<x-dossier.editor', $view);
+        $this->assertStringContainsString('+ Thêm mục hồ sơ', $component);
+        $this->assertStringContainsString('name="master_files[]"', $component);
         $this->assertStringContainsString("'pharma-product-dossier'", $template);
         $this->assertStringContainsString("'allows_multiple_files' => true", $template);
         $this->assertStringContainsString("'Laravel-Backup/'", $storage);
