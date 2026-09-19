@@ -30,4 +30,24 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString('Dữ liệu chưa ghi trực tiếp vào Partner', $view);
         $this->assertStringContainsString('business_region', $view);
     }
+    public function test_source_repository_exposes_region_filter_search_selection_export_and_white_pagination(): void
+    {
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/OfficialSourceSyncController.php'));
+        $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/official-facilities/source.blade.php'));
+
+        $this->assertStringContainsString("string('business_region')", $controller);
+        $this->assertStringContainsString("whereIn('province_name', \$regionProvinceNames)", $controller);
+        $this->assertStringContainsString('public function export(', $controller);
+        $this->assertStringContainsString("'selected_ids' => ['required', 'array', 'min:1', 'max:500']", $controller);
+        $this->assertStringContainsString("official-facilities/source/export", $routes);
+        $this->assertStringContainsString('<x-search', $view);
+        $this->assertStringContainsString('name="business_region"', $view);
+        $this->assertStringContainsString('data-select-page', $view);
+        $this->assertStringContainsString('name="selected_ids[]"', $view);
+        $this->assertStringContainsString('Export đã chọn', $view);
+        $this->assertStringContainsString('aria-label="Phân trang cơ sở KCB nguồn"', $view);
+        $this->assertStringContainsString('border-slate-200 bg-white', $view);
+        $this->assertStringContainsString('{{ $provinceRegions[$facility->province_name] ?? \'—\' }}', $view);
+    }
 }
