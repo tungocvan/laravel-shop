@@ -15,6 +15,8 @@ class InvoiceCandidateBulkReviewContractTest extends TestCase
 
         $this->assertStringContainsString("public string \$status = 'actionable'", $component);
         $this->assertStringContainsString('public string $role', $component);
+        $this->assertStringContainsString("public string \$identity = 'with_tax_code'", $component);
+        $this->assertStringContainsString("whereNull('tax_code')", $component);
         $this->assertStringContainsString('public array $selectedIds', $component);
         $this->assertStringContainsString('updatedSelectPage', $component);
         $this->assertStringContainsString('bulkCreate', $component);
@@ -22,6 +24,10 @@ class InvoiceCandidateBulkReviewContractTest extends TestCase
         $this->assertStringContainsString("whereJsonContains('partner_types', 'customer')", $component);
 
         $this->assertStringContainsString('Vai trò', $view);
+        $this->assertStringContainsString('Định danh MST', $view);
+        $this->assertStringContainsString('Không có MST', $view);
+        $this->assertStringContainsString('Chỉ review', $view);
+        $this->assertStringContainsString('whitespace-nowrap', $view);
         $this->assertStringContainsString('Tạo Partner đã chọn', $view);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
         $this->assertStringContainsString("links('partner::vendor.pagination.admin-partner')", $view);
