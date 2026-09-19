@@ -1,3 +1,14 @@
+## UI refinement — Medicine Catalog filters and columns
+
+- Filter controls are rebalanced into one desktop row. `Xóa bộ lọc` occupies the final slot only when a select/per-page value differs from its default; free-text search remains independent.
+- Reset restores HSSP, master quality, circular group, special-control and per-page selectors to defaults without clearing the search field.
+- `Variant / SKU` is removed from desktop and mobile catalog presentation; SKU remains searchable and remains part of the underlying Medicine/Variant model.
+- `Quy cách` receives additional table width so packaging text is readable after adding `Nhóm thuốc`.
+- Existing HSSP delete protection and centered delete confirmation/result modals are retained; the mobile delete action now follows the same HSSP-disabled behavior.
+- No schema/data migration.
+
+---
+
 ## Checkpoint — Medicine Catalog group + guarded delete UX
 
 - Branch: `fix/pharma-medicine-catalog-delete-ux`
