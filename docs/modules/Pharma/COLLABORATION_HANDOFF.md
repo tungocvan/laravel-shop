@@ -1,3 +1,13 @@
+## Fix — Official Source workbook helper sheets
+
+- Reproduced import incompatibility from the operator-provided workbook: the primary `Worksheet` contains the exported facility rows, while helper sheets such as `Nguon` and `Ma_dia_ban` do not carry the round-trip facility headings.
+- `OfficialSourceFacilitiesImport` now implements `WithMultipleSheets` and `SkipsUnknownSheets`, explicitly importing only `Worksheet` and ignoring helper/reference sheets.
+- Existing row validation and `(source, external_id)` identity rules remain unchanged.
+- No schema migration.
+- Added focused contract coverage for sheet scoping. Awaiting pull + focused test + re-import of the operator workbook.
+
+---
+
 ## Checkpoint — Official Source smart XLSX export/import
 
 - Source repository Export is always enabled.
