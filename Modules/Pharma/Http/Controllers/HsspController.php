@@ -112,7 +112,7 @@ class HsspController extends Controller
             'metadata' => ['medicine_id' => $medicine->id, 'medicine_code' => $medicine->medicine_code],
         ], $itemMetadata);
 
-        $root = 'Pharma/HSSP/'.($medicine->medicine_code ?: 'medicine-'.$medicine->id).'/profile-'.$profile->id;
+        $root = 'Pharma/HSSP/'.$this->hsspFolderName($medicine);
         foreach ($dossier->items as $item) {
             foreach ($request->file('item_files.'.$item->code, []) as $file) {
                 $storage->store($dossier, $item, $file, $root, 'item', $targets);
@@ -219,7 +219,7 @@ class HsspController extends Controller
             ]);
         }
 
-        $root = 'Pharma/HSSP/'.($medicine->medicine_code ?: 'medicine-'.$medicine->id).'/profile-'.$profile->id;
+        $root = 'Pharma/HSSP/'.$this->hsspFolderName($medicine);
         foreach ($dossier->items as $item) {
             foreach ($request->file('item_files.'.$item->code, []) as $file) {
                 $storage->store($dossier, $item, $file, $root, 'item', $targets);
@@ -261,6 +261,14 @@ class HsspController extends Controller
 
         return redirect()->route('admin.pharma.hssp.index')
             ->with('success', 'Đã cập nhật HSSP của thuốc '.$medicine->name.'.');
+    }
+
+    private function hsspFolderName(Medicine $medicine): string
+    {
+        $name = trim(preg_replace('/[\\\\\/]+/u', '-', (string) $medicine->name) ?? '');
+        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '', " .-_");
+
+        return ($name !== '' ? $name : 'Thuoc').'-'.$medicine->id;
     }
 
     private function validated(Request $request, Medicine $medicine, ?MedicineProfile $profile = null): array
