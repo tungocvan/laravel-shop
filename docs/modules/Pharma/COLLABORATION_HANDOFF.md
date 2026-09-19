@@ -1,3 +1,16 @@
+## Checkpoint — BHXH source-first lookup UX
+
+- Route `/admin/pharma/official-facilities/bhxh` now prefers the Pharma official source mirror before making a new BHXH lookup.
+- Selecting a BHXH source partition or district reads active rows from `pharma_official_source_facilities` using source + source province code + optional source district code.
+- Existing cached rows render immediately with count and last-sync timestamp; no CAPTCHA is required to view them.
+- CAPTCHA is only validated client-side when the operator explicitly submits a fresh BHXH lookup. The action label becomes `Tra cứu lại BHXH` when cached data exists.
+- Cached data never enables `Đồng bộ vùng này`; that action is enabled only by a successful fresh BHXH response/snapshot.
+- Empty cache explains that CAPTCHA is needed for first lookup.
+- No schema migration and no change to source identity or Partner boundary.
+- Awaiting pull + focused contract test + UI smoke for cached whole-partition, cached district, and fresh refresh flow.
+
+---
+
 ## UI refinement — Official Source compact filters + XLSX + numbered pagination
 
 - Operator UI feedback: source repository layout works, but search should be shorter so reset stays on the filter row; export must be a native multi-column Excel workbook; pagination should expose page numbers.
