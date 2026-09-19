@@ -4,7 +4,7 @@
 
 - Module: `Pharma` with reusable dossier core under `App\\Dossiers`
 - Branch: `refactor/pharma-hssp-dossier-engine`
-- Status: **IMPLEMENTED — AWAITING LOCAL MIGRATION / TARGETED TEST / DELETE UI ACCEPTANCE**
+- Status: **IMPLEMENTATION COMPLETE — TEST PASS + UI PASS + QUEUE/DRIVE LIFECYCLE PASS — READY FOR PR/MERGE**
 - Date: 2026-09-19
 
 ### Current implementation
@@ -16,9 +16,19 @@
 - Cleanup is retry-safe: Drive 404/missing legacy paths are treated idempotently; failed cleanup leaves dossier/profile records available for retry instead of silently losing cleanup evidence.
 - HSSP index includes a destructive confirmation modal explaining Local/Drive cleanup and Medicine preservation.
 
-### Acceptance pending
+### Final acceptance — 2026-09-19
 
-Run migrations, focused HSSP/System contracts and Pharma targeted regression. UI-test deleting the current Justone HSSP, confirm the managed Local/Drive files disappear, confirm the Medicine remains, then recreate HSSP and verify queued upload + modal workflow end-to-end.
+Operator verification:
+
+```text
+Pharma tests: 133 passed (1035 assertions)
+Pint: PASS after accepted formatting sync
+UI: PASS
+DeleteHsspDossier: DONE on queue pharma
+UploadDossierAttachmentToGoogleDrive: multiple uploads DONE on queue pharma
+```
+
+The Justone HSSP lifecycle was exercised end-to-end: delete through the confirmation UI, queued Local/Google Drive cleanup while preserving Medicine Master, recreate the product dossier, and queued Google Drive uploads through the generic dossier job. Runtime ModuleRegistry/PM2 discovery was also verified with Pharma enabled from runtime state and the `pharma` queue active.
 
 ---
 
