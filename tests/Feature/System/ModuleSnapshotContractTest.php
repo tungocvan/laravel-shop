@@ -171,7 +171,7 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("'compatibility_basis'] = 'schema_aware_v2'", $canonical);
         $this->assertStringContainsString("if (\$enforceSchema && \$validated['compatibility'] === 'BLOCKED')", $canonical);
         $this->assertStringContainsString("if (\$validated['compatibility'] !== 'COMPATIBLE')", $canonical);
-        $this->assertStringContainsString('\$this->readVerifiedSql(\$path)', $canonical);
+        $this->assertStringContainsString('$this->readVerifiedSql($path)', $canonical);
 
         $v2Start = strpos($canonical, "if (\$formatVersion === '2.0')");
         $v2Return = strpos($canonical, 'return $validated;', $v2Start);
