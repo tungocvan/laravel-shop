@@ -19,6 +19,23 @@ class DossierStorageService
 
     public function __construct(private readonly GoogleDriveConnectionService $googleDrive) {}
 
+    /** @return array{upload_max_bytes:int,post_max_bytes:int,safe_post_bytes:int,upload_max_label:string,post_max_label:string,safe_post_label:string} */
+    public function uploadLimits(): array
+    {
+        $upload = $this->iniBytes((string) ini_get('upload_max_filesize'));
+        $post = $this->iniBytes((string) ini_get('post_max_size'));
+        $safePost = $post > 0 ? (int) floor($post * 0.9) : 0;
+
+        return [
+            'upload_max_bytes' => $upload,
+            'post_max_bytes' => $post,
+            'safe_post_bytes' => $safePost,
+            'upload_max_label' => $this->bytesLabel($upload),
+            'post_max_label' => $this->bytesLabel($post),
+            'safe_post_label' => $this->bytesLabel($safePost),
+        ];
+    }
+
     public function googleDriveConnected(): bool
     {
         try {
@@ -26,6 +43,33 @@ class DossierStorageService
         } catch (Throwable) {
             return false;
         }
+    }
+
+    private function iniBytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '-1') {
+            return 0;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (float) $value;
+
+        return (int) match ($unit) {
+            'g' => $number * 1024 * 1024 * 1024,
+            'm' => $number * 1024 * 1024,
+            'k' => $number * 1024,
+            default => $number,
+        };
+    }
+
+    private function bytesLabel(int $bytes): string
+    {
+        if ($bytes <= 0) {
+            return 'Không giới hạn';
+        }
+
+        return rtrim(rtrim(number_format($bytes / 1024 / 1024, 1, '.', ''), '0'), '.').' MB';
     }
 
     /**
